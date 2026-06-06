@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Movy Browser Test</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    background: #1a1a1a;
+    color: #ccc;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 11px;
+    padding: 16px;
+    user-select: none;
+}
+
+h1 { font-size: 13px; color: #fff; margin-bottom: 12px; letter-spacing: 0.5px; }
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.toolbar label { color: #666; }
+.toolbar select, .toolbar button {
+    background: #2a2a2a;
+    border: 1px solid #444;
+    color: #ccc;
+    padding: 3px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font: inherit;
+}
+.toolbar button:hover { background: #333; }
+.toolbar .sep { color: #333; }
+
+/* ── OLED display canvas ─────────────────────────────────────────────────── */
+/* Internal 128×64 px, CSS-scaled 5× with pixelated rendering */
+.display-wrap {
+    display: inline-block;
+    border: 1px solid #2a2a2a;
+    margin-bottom: 14px;
+    line-height: 0;
+}
+#display {
+    display: block;
+    width: 640px;
+    height: 320px;
+    image-rendering: pixelated;
+    background: #000;
+}
+
+/* ── Virtual knob grid: 2 rows × 4 cols ─────────────────────────────────── */
+.knob-section { margin-bottom: 14px; }
+.knob-row-label {
+    color: #444;
+    font-size: 10px;
+    padding: 2px 0 4px;
+    letter-spacing: 0.3px;
+}
+.knob-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 160px);
+}
+
+.knob {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 0;
+    cursor: ns-resize;
+    border-radius: 4px;
+    transition: background 0.1s;
+}
+.knob:hover  { background: #222; }
+.knob.active { background: #252520; }
+
+/* SVG knob dial — 300° arc, r=12, center (16,16) in 32×32 viewport
+   Start: (10, 26.4) = 120° SVG  (7 o'clock)
+   End:   (22, 26.4) =  60° SVG  (5 o'clock)
+   Sweep: clockwise, large-arc=1 (300°)
+   Arc length: (300/360)×2π×12 ≈ 62.83                                    */
+.knob-track { fill: none; stroke: #333; stroke-width: 2; stroke-linecap: round; }
+.knob-fill  {
+    fill: none;
+    stroke: #888;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 62.83;
+    stroke-dashoffset: 62.83;   /* initially hidden */
+    transition: stroke-dashoffset 0.05s, stroke 0.05s;
+}
+.knob.active .knob-fill { stroke: #bbb; }
+
+.knob-name { font-size: 10px; color: #666; letter-spacing: 0.3px; }
+.knob-val  { font-size: 10px; color: #bbb; min-height: 13px; }
+
+/* ── ViewModel inspector ─────────────────────────────────────────────────── */
+.vm-section { border-top: 1px solid #222; padding-top: 10px; }
+.vm-section h2 { font-size: 11px; color: #444; margin-bottom: 6px; font-weight: normal; }
+.vm-header { display: flex; gap: 8px; align-items: baseline; margin-bottom: 6px; color: #888; }
+.vm-header b { color: #ddd; }
+.bank  { color: #666; }
+.banks { color: #444; font-size: 10px; }
+.vm-params { border-collapse: collapse; width: 640px; }
+.vm-params td { border: 1px solid #222; padding: 4px 6px; width: 25%; }
+.cell { display: flex; flex-direction: column; gap: 1px; }
+.cell.touched { background: #252520; }
+.cell.empty { color: #333; }
+.pname { color: #555; font-size: 10px; }
+.pval  { color: #bbb; }
+</style>
+</head>
+<body>
+
+<h1>Movy Browser Test</h1>
+
+<div class="toolbar">
+    <label>Synth:</label>
+    <select id="preset-select">
+        <option value="test8">Test 8 (1 bank)</option>
+        <option value="test16">Test 16 (2 banks)</option>
+        <option value="test_enum">Enums</option>
+    </select>
+    <span class="sep">|</span>
+    <label>Bank:</label>
+    <button id="btn-prev">◀ prev</button>
+    <button id="btn-next">next ▶</button>
+    <span class="sep">|</span>
+    <label style="color:#444;font-size:10px">drag knobs up/down to adjust</label>
+</div>
+
+<!-- OLED display: 128×64 pixels scaled 5× by CSS -->
+<div class="display-wrap">
+    <canvas id="display" width="128" height="64"></canvas>
+</div>
+
+<div class="knob-section">
+    <div class="knob-row-label">Row 1 — knobs 1–4</div>
+    <div class="knob-grid" id="row0">
+        <!-- Knobs 0–3 generated inline for clarity -->
+        <div class="knob" id="knob-0">
+            <svg width="32" height="32" viewBox="0 0 32 32">
+                <path class="knob-track" d="M10,26.4 A12,12 0 1,1 22,26.4"/>
+                <path class="knob-fill" id="kfill-0" d="M10,26.4 A12,12 0 1,1 22,26.4"/>
+            </svg>
+            <div class="knob-name" id="kname-0">—</div>
+            <div class="knob-val"  id="kval-0"></div>
+        </div>
+        <div class="knob" id="knob-1">
+            <svg width="32" height="32" viewBox="0 0 32 32">
+                <path class="knob-track" d="M10,26.4 A12,12 0 1,1 22,26.4"/>
+                <path class="knob-fill" id="kfill-1" d="M10,26.4 A12,12 0 1,1 22,26.4"/>
+            </svg>
+            <div class="knob-name" id="kname-1">—</div>
+            <div class="knob-val"  id="kval-1"></div>
+        </div>
+        <div class="knob" id="knob-2">
+            <svg width="32" height="32" viewBox="0 0 32 32">
+                <path class="knob-track" d="M10,26.4 A12,12 0 1,1 22,26.4"/>
+                <path class="knob-fill" id="kfill-2" d="M10,26.4 A12,12 0 1,1 22,26.4"/>
+            </svg>
+            <div class="knob-name" id="kname-2">—</div>
+            <div class="knob-val"  id="kval-2"></div>
+        </div>
+        <div class="knob" id="knob-3">
+            <svg width="32" height="32" viewBox="0 0 32 32">
+                <path class="knob-track" d="M10,26.4 A12,12 0 1,1 22,26.4"/>
+                <path class="knob-fill" id="kfill-3" d="M10,26.4 A12,12 0 1,1 22,26.4"/>
+            </svg>
+            <div class="knob-name" id="kname-3">—</div>
+            <div class="knob-val"  id="kval-3"></div>
+        </div>
+    </div>
+
+    <div class="knob-row-label" style="margin-top:8px">Row 2 — knobs 5–8</div>
+    <div class="knob-grid" id="row1">
+        <div class="knob" id="knob-4">
+            <svg width="32" height="32" viewBox="0 0 32 32">
+                <path class="knob-track" d="M10,26.4 A12,12 0 1,1 22,26.4"/>
+                <path class="knob-fill" id="kfill-4" d="M10,26.4 A12,12 0 1,1 22,26.4"/>
+            </svg>
+            <div class="knob-name" id="kname-4">—</div>
+            <div class="knob-val"  id="kval-4"></div>
+        </div>
+        <div class="knob" id="knob-5">
+            <svg width="32" height="32" viewBox="0 0 32 32">
+                <path class="knob-track" d="M10,26.4 A12,12 0 1,1 22,26.4"/>
+                <path class="knob-fill" id="kfill-5" d="M10,26.4 A12,12 0 1,1 22,26.4"/>
+            </svg>
+            <div class="knob-name" id="kname-5">—</div>
+            <div class="knob-val"  id="kval-5"></div>
+        </div>
+        <div class="knob" id="knob-6">
+            <svg width="32" height="32" viewBox="0 0 32 32">
+                <path class="knob-track" d="M10,26.4 A12,12 0 1,1 22,26.4"/>
+                <path class="knob-fill" id="kfill-6" d="M10,26.4 A12,12 0 1,1 22,26.4"/>
+            </svg>
+            <div class="knob-name" id="kname-6">—</div>
+            <div class="knob-val"  id="kval-6"></div>
+        </div>
+        <div class="knob" id="knob-7">
+            <svg width="32" height="32" viewBox="0 0 32 32">
+                <path class="knob-track" d="M10,26.4 A12,12 0 1,1 22,26.4"/>
+                <path class="knob-fill" id="kfill-7" d="M10,26.4 A12,12 0 1,1 22,26.4"/>
+            </svg>
+            <div class="knob-name" id="kname-7">—</div>
+            <div class="knob-val"  id="kval-7"></div>
+        </div>
+    </div>
+</div>
+
+<div class="vm-section">
+    <h2>ViewModel inspector</h2>
+    <div id="vm-inspector"></div>
+</div>
+
+<script type="module" src="harness.mjs"></script>
+</body>
+</html>

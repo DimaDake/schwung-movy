@@ -1,0 +1,15 @@
+{
+  "name": "movy-browser-test",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "screenshot": "node screenshot.mjs",
+    "screenshot:update": "node screenshot.mjs --update"
+  },
+  "dependencies": {
+    "pixelmatch": "^5.3.0",
+    "pngjs": "^7.0.0",
+    "puppeteer": "^22.0.0"
+  }
+}

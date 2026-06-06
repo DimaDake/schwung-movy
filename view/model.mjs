@@ -160,12 +160,17 @@ export function createModel(slot) {
                 const physK = row * KNOBS_PER_ROW + col;
                 const gi    = knobPage * KNOBS_PER_PAGE + physK;
                 const p     = knobParams[gi];
+                const v  = knobValues[gi];
+                const nv = (p.min === p.max || v === null || v === undefined)
+                    ? 0
+                    : Math.max(0, Math.min(1, (v - p.min) / (p.max - p.min)));
                 rows[row].push(p ? {
-                    shortName:    p.label.substring(0, 5),
-                    fullName:     p.label,
-                    type:         p.type,
-                    displayValue: formatValue(p, knobValues[gi]),
-                    touched:      (touchedSlot === physK),
+                    shortName:      p.label.substring(0, 5),
+                    fullName:       p.label,
+                    type:           p.type,
+                    normalizedValue: nv,
+                    displayValue:   formatValue(p, v),
+                    touched:        (touchedSlot === physK),
                 } : null);
             }
         }
@@ -249,5 +254,13 @@ export function createModel(slot) {
         },
 
         getViewModel,
+
+        /* Force module name re-poll and hierarchy reload on next tick.
+         * Call this after swapping the mock synth state in browser tests. */
+        reload() {
+            hierarchyKey  = "";
+            pollCountdown = 1;
+            dirty         = true;
+        },
     };
 }

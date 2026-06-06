@@ -20,6 +20,7 @@ let mockState = {};
 
 /* Must be set before any render call; ES modules resolve bare globals from
  * globalThis at call time, so setting here (after imports) is safe. */
+globalThis.host_read_file  = () => null;  /* no filesystem in browser */
 globalThis.fill_rect    = (x, y, w, h, v) => {
     ctx2d.fillStyle = v ? '#d4d0c8' : '#000000';
     ctx2d.fillRect(x, y, w, h);

@@ -9,6 +9,10 @@ function hier(knobs) {
     return JSON.stringify({ levels: { root: { knobs } } });
 }
 
+function hierFull(knobs, params) {
+    return JSON.stringify({ levels: { root: { knobs, params } } });
+}
+
 export const MOCK_SYNTHS = {
 
     test8: {
@@ -78,5 +82,107 @@ export const MOCK_SYNTHS = {
         "synth:res":    "0.20",
         "synth:env":    "0.30",
         "synth:vel":    "0.50",
+    },
+
+    plaits: {
+        "synth:name":   "Plaits",
+        "synth:module": "plaits",
+        "synth:ui_hierarchy": hierFull(
+            ["engine","harmonics","timbre","morph","decay","lpg_colour","fm_amount","aux_mix"],
+            [
+                { key: "engine",               label: "Engine",    type: "enum" },
+                { key: "harmonics",            label: "Harmonics" },
+                { key: "timbre",               label: "Timbre" },
+                { key: "morph",                label: "Morph" },
+                { key: "decay",                label: "Decay" },
+                { key: "lpg_colour",           label: "LPG Color" },
+                { key: "fm_amount",            label: "FM Amount" },
+                { key: "aux_mix",              label: "Aux Mix" },
+                { key: "attack",               label: "Attack" },
+                { key: "timbre_mod",           label: "Timbre Mod" },
+                { key: "morph_mod",            label: "Morph Mod" },
+                { key: "legato",               label: "Legato",    type: "enum" },
+                { key: "velocity_sensitivity", label: "Vel Sens" },
+                { key: "octave_transpose",     label: "Octave" },
+            ]
+        ),
+        "synth:chain_params": JSON.stringify([
+            { key: "engine",    name: "Engine",    type: "enum",
+              options: ["VA VCF","Phase Dist","6-Op I","6-Op II","6-Op III",
+                        "Wave Terr","Str Mach","Chiptune","V. Analog","Waveshape",
+                        "FM","Grain","Additive","Wavetable","Chord","Speech",
+                        "Swarm","Noise","Particle","String","Modal",
+                        "Bass Drum","Snare Drum","Hi-Hat"],
+              default: "VA VCF", refreshes_labels: true },
+            { key: "harmonics", name: "Harmonics", type: "float", min: 0, max: 1, step: 0.01, default: 0.5 },
+            { key: "timbre",    name: "Timbre",    type: "float", min: 0, max: 1, step: 0.01, default: 0.5 },
+            { key: "morph",     name: "Morph",     type: "float", min: 0, max: 1, step: 0.01, default: 0.5 },
+            { key: "decay",     name: "Decay",     type: "float", min: 0, max: 1, step: 0.01, default: 0.5 },
+            { key: "lpg_colour",name: "LPG Color", type: "float", min: 0, max: 1, step: 0.01, default: 0.5 },
+            { key: "fm_amount", name: "FM",        type: "float", min: 0, max: 1, step: 0.01, default: 0   },
+            { key: "aux_mix",   name: "Mix",       type: "float", min: 0, max: 1, step: 0.01, default: 0   },
+            { key: "attack",    name: "Attack",    type: "float", min: 0, max: 1, step: 0.01, default: 0   },
+            { key: "timbre_mod",name: "Timbre Mod",type: "float", min: 0, max: 1, step: 0.01, default: 0   },
+            { key: "morph_mod", name: "Morph Mod", type: "float", min: 0, max: 1, step: 0.01, default: 0   },
+            { key: "legato",    name: "Legato",    type: "enum",  options: ["off","on"],        default: "off" },
+            { key: "velocity_sensitivity", name: "Vel Sens", type: "float", min: 0, max: 1, step: 0.01, default: 0.5 },
+            { key: "octave_transpose",     name: "Octave",   type: "int",   min: -3, max: 3,             default: 0   },
+        ]),
+        "synth:engine":               "0",
+        "synth:harmonics":            "0.5",
+        "synth:timbre":               "0.5",
+        "synth:morph":                "0.5",
+        "synth:decay":                "0.5",
+        "synth:lpg_colour":           "0.5",
+        "synth:fm_amount":            "0.0",
+        "synth:aux_mix":              "0.0",
+        "synth:attack":               "0.0",
+        "synth:timbre_mod":           "0.0",
+        "synth:morph_mod":            "0.0",
+        "synth:legato":               "0",
+        "synth:velocity_sensitivity": "0.5",
+        "synth:octave_transpose":     "0",
+    },
+
+    wurl: {
+        "synth:name":   "Wurl",
+        "synth:module": "wurl",
+        "synth:ui_hierarchy": hierFull(
+            ["volume","tremolo","attack","decay","brightness","darken","bark","reverb"],
+            [
+                { key: "volume",     label: "Volume" },
+                { key: "tremolo",    label: "Tremolo" },
+                { key: "attack",     label: "Attack" },
+                { key: "decay",      label: "Decay" },
+                { key: "brightness", label: "Brightness" },
+                { key: "darken",     label: "Darken" },
+                { key: "bark",       label: "Bark" },
+                { key: "reverb",     label: "Reverb" },
+                { key: "speaker",    label: "Speaker" },
+                { key: "tune",       label: "Tune" },
+            ]
+        ),
+        "synth:chain_params": JSON.stringify([
+            { key: "volume",     name: "Volume",     type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "tremolo",    name: "Tremolo",    type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "attack",     name: "Attack",     type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "decay",      name: "Decay",      type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "brightness", name: "Bright",     type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "darken",     name: "Darken",     type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "bark",       name: "Bark",       type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "reverb",     name: "Reverb",     type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "speaker",    name: "Speaker",    type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "tune",       name: "Tune",       type: "float", min: 0, max: 1, step: 0.01 },
+        ]),
+        "synth:volume":     "0.8",
+        "synth:tremolo":    "0.0",
+        "synth:attack":     "0.05",
+        "synth:decay":      "0.6",
+        "synth:brightness": "0.5",
+        "synth:darken":     "0.3",
+        "synth:bark":       "0.4",
+        "synth:reverb":     "0.3",
+        "synth:speaker":    "0.5",
+        "synth:tune":       "0.5",
     },
 };

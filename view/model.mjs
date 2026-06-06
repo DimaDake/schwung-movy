@@ -4,6 +4,8 @@
  * in browser tests these are mocked on globalThis.
  */
 
+import { loadModuleConfig } from '../modules/index.mjs';
+
 const NAME_POLL_TICKS    = 344;   /* ~1 s at device tick rate */
 const KNOB_REFRESH_TICKS = 69;    /* ~0.2 s */
 const KNOBS_PER_PAGE     = 8;
@@ -24,12 +26,14 @@ function formatValue(p, v) {
 
 export function createModel(slot) {
     let activeSlot   = slot;
-    let knobParams   = [];
+    let knobParams   = [];     /* flat array; null entries = empty slots */
     let knobValues   = [];
     let pendingDeltas = new Array(KNOBS_PER_PAGE).fill(0);
     let knobPage     = 0;
-    let touchedSlot  = -1;   /* last-turned knob index 0-7; -1 = none */
+    let touchedSlot  = -1;
     let activeModuleName = "—";
+    let moduleId     = "";
+    let moduleConfig = null;
     let hierarchyKey = "";
     let pollCountdown    = NAME_POLL_TICKS;
     let refreshCountdown = 0;
@@ -44,64 +48,114 @@ export function createModel(slot) {
     function loadHierarchy() {
         knobParams   = [];
         knobValues   = [];
+        moduleConfig = null;
         hierarchyKey = activeModuleName;
 
         mlog("loadHierarchy: slot=" + activeSlot + " module=" + activeModuleName);
+
+        /* Read module ID for config lookup */
+        moduleId = shadow_get_param(activeSlot, "synth:module") || "";
+
+        /* Read chain_params for accurate min/max/step/options */
+        const chainParamsRaw = shadow_get_param(activeSlot, "synth:chain_params");
+        const cpMap = {};
+        if (chainParamsRaw) {
+            try {
+                const arr = JSON.parse(chainParamsRaw);
+                for (const cp of arr) { if (cp.key) cpMap[cp.key] = cp; }
+            } catch (e) { mlog("chain_params parse error: " + e); }
+        }
+
         const raw = shadow_get_param(activeSlot, "synth:ui_hierarchy");
         if (!raw) {
             mlog("loadHierarchy: ui_hierarchy null — using test params");
             knobParams = [
-                { key: 'test_a', label: 'TestA', type: 'float', min: 0, max: 1,   step: 0.02, options: null },
-                { key: 'test_b', label: 'TestB', type: 'int',   min: 0, max: 127, step: 1,    options: null },
+                { key: 'test_a', label: 'TestA', shortLabel: null, type: 'float', min: 0, max: 1,   step: 0.02, options: null },
+                { key: 'test_b', label: 'TestB', shortLabel: null, type: 'int',   min: 0, max: 127, step: 1,    options: null },
             ];
             knobValues = [0.5, 64];
             dirty = true;
             return;
         }
 
+        /* Parse ui_hierarchy to get paramDefs (label/type fallback) */
+        let paramDefs = {};
         try {
             const hier = JSON.parse(raw);
-            if (!hier.levels) return;
-
-            const paramDefs = {};
-            for (const lvl of Object.values(hier.levels)) {
-                if (!lvl.params) continue;
-                for (const p of lvl.params) {
-                    if (!p || !p.key) continue;
-                    paramDefs[p.key] = p;
+            if (hier.levels) {
+                for (const lvl of Object.values(hier.levels)) {
+                    if (!lvl.params) continue;
+                    for (const p of lvl.params) {
+                        if (p && p.key) paramDefs[p.key] = p;
+                    }
                 }
             }
+        } catch (e) { mlog("ui_hierarchy parse error: " + e); }
 
-            const rootLevel = hier.levels.root || Object.values(hier.levels)[0];
-            if (!rootLevel) return;
-            const knobSources = rootLevel.knobs || rootLevel.params || [];
+        /* Try to load a module config for named banks */
+        moduleConfig = loadModuleConfig(moduleId);
 
-            for (const knob of knobSources) {
-                const key   = typeof knob === 'string' ? knob : knob.key;
-                const label = typeof knob === 'string' ? knob : (knob.label || knob.key);
-                if (!key) continue;
-
-                const def     = (typeof knob === 'object' && knob.type) ? knob : (paramDefs[key] || {});
-                const type    = def.type || 'float';
-                const options = def.options || null;
-                let min  = def.min  != null ? def.min  : 0;
-                let max  = def.max  != null ? def.max  : 1;
-                let step = def.step != null ? def.step : (type === 'float' ? 0.02 : 1);
-
-                if (type === 'enum') { min = 0; max = options ? options.length - 1 : 127; step = 1; }
-
-                knobParams.push({ key, label: def.label || label, type, min, max, step, options });
+        if (moduleConfig) {
+            /* Config-driven layout: flatten banks → knobParams (null for empty slots) */
+            for (const bank of moduleConfig.banks) {
+                for (const row of bank.rows) {
+                    for (const slot of row) {
+                        if (!slot || !slot.key) { knobParams.push(null); continue; }
+                        const cp   = cpMap[slot.key]  || {};
+                        const hier = paramDefs[slot.key] || {};
+                        const type = slot.type || cp.type || hier.type || 'float';
+                        let options = cp.options || hier.options || null;
+                        let min  = cp.min  != null ? cp.min  : (hier.min  != null ? hier.min  : 0);
+                        let max  = cp.max  != null ? cp.max  : (hier.max  != null ? hier.max  : 1);
+                        let step = cp.step != null ? cp.step : (hier.step != null ? hier.step : (type === 'float' ? 0.01 : 1));
+                        if (type === 'enum') { min = 0; max = options ? options.length - 1 : 127; step = 1; }
+                        knobParams.push({
+                            key:        slot.key,
+                            label:      slot.full  || cp.name || hier.label || slot.key,
+                            shortLabel: slot.short || null,
+                            type, options, min, max, step,
+                        });
+                    }
+                }
             }
-        } catch (e) { mlog("loadHierarchy: parse error " + e); }
+            mlog("loadHierarchy: config loaded for " + moduleId + ", " + moduleConfig.banks.length + " banks");
+        } else {
+            /* Auto-layout from ui_hierarchy knobs */
+            let rootLevel = null;
+            try {
+                const hier = JSON.parse(raw);
+                rootLevel = hier.levels && (hier.levels.root || Object.values(hier.levels)[0]);
+            } catch {}
+
+            if (rootLevel) {
+                const knobSources = rootLevel.knobs || rootLevel.params || [];
+                for (const knob of knobSources) {
+                    const key   = typeof knob === 'string' ? knob : knob.key;
+                    const label = typeof knob === 'string' ? knob : (knob.label || knob.key);
+                    if (!key) continue;
+                    const def     = (typeof knob === 'object' && knob.type) ? knob : (paramDefs[key] || {});
+                    const cp      = cpMap[key] || {};
+                    const type    = def.type || cp.type || 'float';
+                    const options = cp.options || def.options || null;
+                    let min  = cp.min  != null ? cp.min  : (def.min  != null ? def.min  : 0);
+                    let max  = cp.max  != null ? cp.max  : (def.max  != null ? def.max  : 1);
+                    let step = cp.step != null ? cp.step : (def.step != null ? def.step : (type === 'float' ? 0.02 : 1));
+                    if (type === 'enum') { min = 0; max = options ? options.length - 1 : 127; step = 1; }
+                    knobParams.push({ key, label: def.label || label, shortLabel: null, type, options, min, max, step });
+                }
+            }
+        }
 
         knobValues = new Array(knobParams.length).fill(null);
-        mlog("loadHierarchy: loaded " + knobParams.length + " params: " + knobParams.map(p => p.key).join(","));
+        mlog("loadHierarchy: " + knobParams.filter(Boolean).length + " params loaded");
         dirty = true;
     }
 
     function refreshKnobValues() {
         for (let gi = 0; gi < knobParams.length; gi++) {
-            const raw = shadow_get_param(activeSlot, "synth:" + knobParams[gi].key);
+            const p = knobParams[gi];
+            if (!p) continue;
+            const raw = shadow_get_param(activeSlot, "synth:" + p.key);
             if (raw !== null) {
                 const v = parseFloat(raw);
                 if (!isNaN(v)) knobValues[gi] = v;
@@ -112,10 +166,7 @@ export function createModel(slot) {
     function applyKnobDelta(physK, delta) {
         const gi = knobPage * KNOBS_PER_PAGE + physK;
         const p  = knobParams[gi];
-        if (!p) {
-            mlog("applyKnobDelta physK=" + physK + " gi=" + gi + " no param (total=" + knobParams.length + ")");
-            return;
-        }
+        if (!p) return;  /* empty slot */
 
         if (knobValues[gi] === null || knobValues[gi] === undefined) {
             const raw = shadow_get_param(activeSlot, "synth:" + p.key);
@@ -152,7 +203,9 @@ export function createModel(slot) {
 
     function getViewModel() {
         const nBanks   = numBanks();
-        const bankName = nBanks > 1 ? "PG" + (knobPage + 1) : "";
+        const bankName = moduleConfig && moduleConfig.banks[knobPage]
+            ? moduleConfig.banks[knobPage].name
+            : (nBanks > 1 ? "PG" + (knobPage + 1) : "");
 
         const rows = [[], []];
         for (let row = 0; row < 2; row++) {
@@ -160,18 +213,19 @@ export function createModel(slot) {
                 const physK = row * KNOBS_PER_ROW + col;
                 const gi    = knobPage * KNOBS_PER_PAGE + physK;
                 const p     = knobParams[gi];
+                if (!p) { rows[row].push(null); continue; }
                 const v  = knobValues[gi];
                 const nv = (p.min === p.max || v === null || v === undefined)
                     ? 0
                     : Math.max(0, Math.min(1, (v - p.min) / (p.max - p.min)));
-                rows[row].push(p ? {
-                    shortName:      p.label.substring(0, 5),
-                    fullName:       p.label,
-                    type:           p.type,
+                rows[row].push({
+                    shortName:       p.shortLabel || p.label.substring(0, 4).toUpperCase(),
+                    fullName:        p.label,
+                    type:            p.type,
                     normalizedValue: nv,
-                    displayValue:   formatValue(p, v),
-                    touched:        (touchedSlot === physK),
-                } : null);
+                    displayValue:    formatValue(p, v),
+                    touched:         (touchedSlot === physK),
+                });
             }
         }
 
@@ -194,7 +248,6 @@ export function createModel(slot) {
         },
 
         handleKnobTouch(k) {
-            /* k = 0-7 on press, -1 on release */
             if (touchedSlot !== k) { touchedSlot = k; dirty = true; }
         },
 
@@ -215,14 +268,12 @@ export function createModel(slot) {
         },
 
         tick() {
-            /* Reload hierarchy when module changes */
             if (hierarchyKey !== activeModuleName) {
                 knobPage = 0;
                 loadHierarchy();
                 refreshCountdown = 0;
             }
 
-            /* Apply accumulated knob deltas */
             for (let k = 0; k < KNOBS_PER_PAGE; k++) {
                 if (pendingDeltas[k] !== 0) {
                     applyKnobDelta(k, pendingDeltas[k]);
@@ -230,13 +281,11 @@ export function createModel(slot) {
                 }
             }
 
-            /* Periodic: poll module name */
             if (--pollCountdown <= 0) {
                 pollCountdown = NAME_POLL_TICKS;
                 pollModuleName();
             }
 
-            /* Periodic: refresh values from synth */
             if (--refreshCountdown <= 0) {
                 refreshCountdown = KNOB_REFRESH_TICKS;
                 if (knobParams.length > 0) {
@@ -255,8 +304,6 @@ export function createModel(slot) {
 
         getViewModel,
 
-        /* Force module name re-poll and hierarchy reload on next tick.
-         * Call this after swapping the mock synth state in browser tests. */
         reload() {
             hierarchyKey  = "";
             pollCountdown = 1;

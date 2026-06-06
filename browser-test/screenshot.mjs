@@ -28,7 +28,7 @@ const BASE_DIR   = join(__dir, 'screenshots', 'baseline');
 const ACTUAL_DIR = join(__dir, 'screenshots', 'actual');
 const UPDATE     = process.argv.includes('--update');
 
-const PRESETS = ['test8', 'test16', 'test_enum'];
+const PRESETS = ['test8', 'test16', 'test_enum', 'plaits', 'wurl'];
 const MIME = {
     '.html': 'text/html',
     '.mjs':  'text/javascript',

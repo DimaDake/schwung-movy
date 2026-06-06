@@ -25,9 +25,11 @@ ssh -o ConnectTimeout=5 "ableton@$HOST" 'echo ok' >/dev/null 2>&1 || {
 pass "SSH reachable"
 
 # ── 2. Deploy ────────────────────────────────────────────────────────────────
-info "Deploying ui.js + ui_font.mjs..."
-scp -q "$MOVY_DIR/ui.js" "$MOVY_DIR/ui_font.mjs" \
-    "ableton@$HOST:/data/UserData/schwung/modules/tools/movy/"
+info "Deploying ui.js + ui_font.mjs + view/..."
+REMOTE="/data/UserData/schwung/modules/tools/movy"
+ssh "ableton@$HOST" "mkdir -p $REMOTE/view" >/dev/null 2>&1
+scp -q "$MOVY_DIR/ui.js" "$MOVY_DIR/ui_font.mjs" "ableton@$HOST:$REMOTE/"
+scp -q "$MOVY_DIR/view/model.mjs" "$MOVY_DIR/view/renderer.mjs" "ableton@$HOST:$REMOTE/view/"
 pass "Deployed"
 
 # ── 3. Enable logging + clear log ────────────────────────────────────────────

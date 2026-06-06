@@ -4,5 +4,8 @@
 set -euo pipefail
 HOST="${1:-move.local}"
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
-scp "$DIR/ui.js" "$DIR/ui_font.mjs" "ableton@$HOST:/data/UserData/schwung/modules/tools/movy/"
+REMOTE="/data/UserData/schwung/modules/tools/movy"
+ssh "ableton@$HOST" "mkdir -p $REMOTE/view"
+scp "$DIR/ui.js" "$DIR/ui_font.mjs" "ableton@$HOST:$REMOTE/"
+scp "$DIR/view/model.mjs" "$DIR/view/renderer.mjs" "ableton@$HOST:$REMOTE/view/"
 echo "deployed to $HOST"

@@ -1,0 +1,16 @@
+{
+    "id": "movy",
+    "name": "Movy",
+    "version": "0.1.0",
+    "author": "megadake",
+    "description": "Piano keyboard + module host for Schwung",
+    "component_type": "tool",
+    "tool_config": {
+        "interactive": true,
+        "skip_file_browser": true
+    },
+    "capabilities": {
+        "skip_led_clear": true,
+        "claims_master_knob": true
+    }
+}

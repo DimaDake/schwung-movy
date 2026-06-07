@@ -48,6 +48,7 @@ export function buildViewModel(s: ModelState): ViewModel {
                 isLongEnum:      p.type === 'enum' && (p.options?.length ?? 0) > 6,
                 options:         p.options,
                 enumIndex:       enumIdx,
+                renderStyle:     p.renderStyle,
             });
         }
     }

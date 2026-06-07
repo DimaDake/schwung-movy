@@ -26,8 +26,8 @@ export function renderKnobsView(vm: ViewModel): void {
     if (!hasParams) {
         fontPrint(2, ROW0_Y + 4, 'No params', 1);
     } else {
-        drawKnobRow(vm.rows[0], ROW0_Y, LBL0_Y, 0);
-        drawKnobRow(vm.rows[1], ROW1_Y, LBL1_Y, 1);
+        drawKnobRow(vm.rows[0], ROW0_Y, LBL0_Y);
+        drawKnobRow(vm.rows[1], ROW1_Y, LBL1_Y);
     }
 
     if (vm.overlay) drawEnumOverlay(vm);

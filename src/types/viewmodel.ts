@@ -8,6 +8,7 @@ export interface ParamVM {
     isLongEnum:      boolean;
     options:         string[] | null;
     enumIndex:       number;
+    renderStyle:     'arc' | 'hbar' | 'vbar';
 }
 
 export interface ToastState {

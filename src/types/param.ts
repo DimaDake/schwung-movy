@@ -1,8 +1,9 @@
 export interface KnobSlot {
-    key:   string;
-    short: string;
-    full:  string;
-    type:  'float' | 'int' | 'enum';
+    key:    string;
+    short:  string;
+    full:   string;
+    type:   'float' | 'int' | 'enum';
+    render?: 'arc' | 'hbar' | 'vbar';
 }
 
 export interface BankConfig {
@@ -26,4 +27,5 @@ export interface KnobParam {
     step:       number;
     options:    string[] | null;
     nameKey?:   string;
+    renderStyle: 'arc' | 'hbar' | 'vbar';
 }

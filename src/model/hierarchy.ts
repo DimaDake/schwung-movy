@@ -15,6 +15,10 @@ interface HierLevel {
     items_param?: string; select_param?: string;
 }
 
+function inferRenderStyle(type: KnobParam['type'], min: number, max: number): KnobParam['renderStyle'] {
+    return (type === 'int' && min === 0 && max === 1) ? 'hbar' : 'arc';
+}
+
 export function loadHierarchy(s: ModelState): void {
     s.knobParams   = [];
     s.knobValues   = [];
@@ -40,8 +44,8 @@ export function loadHierarchy(s: ModelState): void {
     if (!raw) {
         mlog('loadHierarchy: ui_hierarchy null — using test params');
         s.knobParams = [
-            { key: 'test_a', label: 'TestA', shortLabel: null, type: 'float', min: 0, max: 1,   step: 0.02, options: null },
-            { key: 'test_b', label: 'TestB', shortLabel: null, type: 'int',   min: 0, max: 127, step: 1,    options: null },
+            { key: 'test_a', label: 'TestA', shortLabel: null, type: 'float', min: 0, max: 1,   step: 0.02, options: null, renderStyle: 'arc' },
+            { key: 'test_b', label: 'TestB', shortLabel: null, type: 'int',   min: 0, max: 127, step: 1,    options: null, renderStyle: 'arc' },
         ];
         s.knobValues = [0.5, 64];
         s.dirty = true;
@@ -86,12 +90,13 @@ export function loadHierarchy(s: ModelState): void {
                     let max  = cp.max  != null ? cp.max  : (hier.max  != null ? hier.max  : 1);
                     let step = cp.step != null ? cp.step : (hier.step != null ? hier.step : (type === 'float' ? 0.01 : 1));
                     if (type === 'enum') { min = 0; max = options ? options.length - 1 : 127; step = 1; }
+                    const renderStyle = slot.render ?? inferRenderStyle(type as KnobParam['type'], min, max);
                     s.knobParams.push({
                         key:        slot.key,
                         label:      slot.full || cp.name || hier.label || slot.key,
                         shortLabel: slot.short ?? null,
                         type:       type as KnobParam['type'],
-                        options, min, max, step,
+                        options, min, max, step, renderStyle,
                     });
                 }
             }
@@ -148,6 +153,7 @@ export function loadHierarchy(s: ModelState): void {
                 type: 'enum', min: 0, max: presetCount - 1, step: 1,
                 options: allNames,
                 nameKey: allNames ? undefined : (nameParam ?? undefined),
+                renderStyle: 'arc',
             };
             presetSeparate = (rootLevel.knobs ?? []).length >= KNOBS_PER_PAGE;
         }
@@ -212,6 +218,7 @@ export function loadHierarchy(s: ModelState): void {
                 shortLabel: null,
                 type:       type as KnobParam['type'],
                 options, min, max, step,
+                renderStyle: inferRenderStyle(type as KnobParam['type'], min, max),
             });
         }
     }

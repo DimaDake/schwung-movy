@@ -16,11 +16,11 @@ export function drawLabelCell(col: number, lblY: number, pvm: ParamVM): void {
     }
 }
 
-export function drawKnobRow(params: (ParamVM | null)[], rowY: number, lblY: number, row: 0 | 1): void {
+export function drawKnobRow(params: (ParamVM | null)[], rowY: number, lblY: number): void {
     for (let col = 0; col < 4; col++) {
         const pvm = params[col];
         if (!pvm) continue;
-        drawKnobWidget(col, rowY, pvm, row);
+        drawKnobWidget(col, rowY, pvm);
         drawLabelCell(col, lblY, pvm);
     }
 }

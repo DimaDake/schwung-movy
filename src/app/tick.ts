@@ -6,6 +6,7 @@ import { midiNoteName } from '../keyboard/notes.js';
 import { renderKnobsView } from '../renderer/knob-view.js';
 import { renderKeysView }  from '../renderer/keys-view.js';
 import { renderBrowseView } from '../renderer/browse-view.js';
+import { updateKnobLEDs }  from '../renderer/knob-leds.js';
 
 const PAD_MIN       = MovePads[0];
 const PAD_MAX       = MovePads[MovePads.length - 1];
@@ -29,7 +30,9 @@ export function tick(): void {
         if (appState.currentView === VIEW_KEYS) {
             renderKeysView(appState.model?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
-            renderKnobsView(appState.model!.getViewModel());
+            const vm = appState.model!.getViewModel();
+            renderKnobsView(vm);
+            updateKnobLEDs(vm);
         } else {
             renderBrowseView(browserState.modules, browserState.browseIndex);
         }

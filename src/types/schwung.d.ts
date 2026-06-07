@@ -23,6 +23,15 @@ declare const BrightRed: number;
 /* Control surface constants */
 declare const MovePads: number[];
 declare const MoveKnob1: number;
+/* Knob touch notes 0-7 — also used as LED note positions under each knob */
+declare const MoveKnob1Touch: number;
+declare const MoveKnob2Touch: number;
+declare const MoveKnob3Touch: number;
+declare const MoveKnob4Touch: number;
+declare const MoveKnob5Touch: number;
+declare const MoveKnob6Touch: number;
+declare const MoveKnob7Touch: number;
+declare const MoveKnob8Touch: number;
 declare const MoveShift: number;
 declare const MoveBack: number;
 declare const MoveMainButton: number;

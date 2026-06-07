@@ -5,6 +5,9 @@ export interface ParamVM {
     normalizedValue: number;
     displayValue:    string;
     touched:         boolean;
+    isLongEnum:      boolean;
+    options:         string[] | null;
+    enumIndex:       number;
 }
 
 export interface ToastState {

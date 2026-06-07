@@ -2,12 +2,16 @@ import type { ViewModel } from '../types/viewmodel.js';
 import type { ModelState } from './state.js';
 import { formatValue } from './store.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
+import { autoShorten } from '../renderer/shorten.js';
 
 export function buildViewModel(s: ModelState): ViewModel {
-    const nBanks   = Math.max(1, Math.ceil(s.knobParams.length / KNOBS_PER_PAGE));
-    const bankName = s.moduleConfig && s.moduleConfig.banks[s.knobPage]
-        ? s.moduleConfig.banks[s.knobPage].name
-        : (nBanks > 1 ? 'PG' + (s.knobPage + 1) : '');
+    const nBanks = Math.max(1, Math.ceil(s.knobParams.length / KNOBS_PER_PAGE));
+    let bankName = '';
+    if (s.moduleConfig && s.moduleConfig.banks[s.knobPage]) {
+        bankName = s.moduleConfig.banks[s.knobPage].name;
+    } else if (nBanks > 1) {
+        bankName = s.knobPage === 0 ? 'Main' : 'Page ' + s.knobPage;
+    }
 
     const rows: ViewModel['rows'] = [[], []];
     for (let row = 0; row < 2; row++) {
@@ -20,13 +24,17 @@ export function buildViewModel(s: ModelState): ViewModel {
             const nv = (p.min === p.max || v === null || v === undefined)
                 ? 0
                 : Math.max(0, Math.min(1, (v - p.min) / (p.max - p.min)));
+            const enumIdx = (p.type === 'enum' && typeof v === 'number') ? Math.round(v) : 0;
             rows[row].push({
-                shortName:       p.shortLabel || p.label.substring(0, 4).toUpperCase(),
+                shortName:       p.shortLabel ? p.shortLabel.toUpperCase() : autoShorten(p.label, 5),
                 fullName:        p.label,
                 type:            p.type,
                 normalizedValue: nv,
                 displayValue:    formatValue(p, v),
-                touched:         (s.touchedSlot === physK),
+                touched:         s.touchedSlot === physK,
+                isLongEnum:      p.type === 'enum' && (p.options?.length ?? 0) > 6,
+                options:         p.options,
+                enumIndex:       enumIdx,
             });
         }
     }

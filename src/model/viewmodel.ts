@@ -6,8 +6,11 @@ import { autoShorten } from '../renderer/shorten.js';
 
 export function buildViewModel(s: ModelState): ViewModel {
     const nBanks = Math.max(1, Math.ceil(s.knobParams.length / KNOBS_PER_PAGE));
+
     let bankName = '';
-    if (s.moduleConfig && s.moduleConfig.banks[s.knobPage]) {
+    if (s.bankNames.length > 1 && s.bankNames[s.knobPage]) {
+        bankName = s.bankNames[s.knobPage];
+    } else if (s.moduleConfig && s.moduleConfig.banks[s.knobPage]) {
         bankName = s.moduleConfig.banks[s.knobPage].name;
     } else if (nBanks > 1) {
         bankName = s.knobPage === 0 ? 'Main' : 'Page ' + s.knobPage;
@@ -25,12 +28,15 @@ export function buildViewModel(s: ModelState): ViewModel {
                 ? 0
                 : Math.max(0, Math.min(1, (v - p.min) / (p.max - p.min)));
             const enumIdx = (p.type === 'enum' && typeof v === 'number') ? Math.round(v) : 0;
+            const dv = p.nameKey
+                ? (shadow_get_param(s.activeSlot, 'synth:' + p.nameKey) ?? formatValue(p, v))
+                : formatValue(p, v);
             rows[row].push({
                 shortName:       p.shortLabel ? p.shortLabel.toUpperCase() : autoShorten(p.label, 5),
                 fullName:        p.label,
                 type:            p.type,
                 normalizedValue: nv,
-                displayValue:    formatValue(p, v),
+                displayValue:    dv,
                 touched:         s.touchedSlots.includes(physK),
                 isLongEnum:      p.type === 'enum' && (p.options?.length ?? 0) > 6,
                 options:         p.options,
@@ -44,7 +50,12 @@ export function buildViewModel(s: ModelState): ViewModel {
     if (primary >= 0) {
         const gi = s.knobPage * KNOBS_PER_PAGE + primary;
         const p  = s.knobParams[gi];
-        if (p) toast = { fullName: p.label, value: formatValue(p, s.knobValues[gi]) };
+        if (p) {
+            const tv = p.nameKey
+                ? (shadow_get_param(s.activeSlot, 'synth:' + p.nameKey) ?? formatValue(p, s.knobValues[gi]))
+                : formatValue(p, s.knobValues[gi]);
+            toast = { fullName: p.label, value: tv };
+        }
     }
 
     return {

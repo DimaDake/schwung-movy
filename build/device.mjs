@@ -15,7 +15,7 @@ const SCHWUNG_BANNER = [
     '         MoveShift, MoveBack, MoveMainButton, MoveMainKnob,',
     '         MoveLeft, MoveRight, MoveUp, MoveDown',
     '} from "/data/UserData/schwung/shared/constants.mjs";',
-    'import { setLED, decodeDelta }',
+    'import { setLED, setButtonLED, decodeDelta }',
     '    from "/data/UserData/schwung/shared/input_filter.mjs";',
 ].join('\n');
 

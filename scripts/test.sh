@@ -166,6 +166,14 @@ else
     fail "changePage not logged (model.mjs changePage mlog missing or module not reloaded)"
 fi
 
+# Knob LEDs
+if echo "$LOG" | grep -q "knobLED k="; then
+    SAMPLE=$(echo "$LOG" | grep "knobLED k=0 " | tail -1 | sed 's/.*\[movy\] //')
+    pass "Knob LEDs firing — $SAMPLE"
+else
+    fail "updateKnobLEDs never ran (knobLED log line absent)"
+fi
+
 # ── 9. Summary ───────────────────────────────────────────────────────────────
 echo ""
 if [[ $FAILURES -eq 0 ]]; then

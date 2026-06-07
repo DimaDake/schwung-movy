@@ -1,4 +1,5 @@
 import type { ViewModel } from '../types/viewmodel.js';
+import { mlog } from '../log.js';
 
 /* White intensity scale (knobs 1-4) — palette indices from constants.mjs */
 function whiteLevel(nv: number): number {
@@ -17,17 +18,27 @@ function amberLevel(nv: number): number {
     return 3;                     // bright orange     #FF9900
 }
 
+let logTickCount = 0;
+
 /** Set the LED under each of the 8 knobs based on current param values.
  *  Knobs 1-4 (physK 0-3) → white intensity; knobs 5-8 (physK 4-7) → amber intensity.
- *  LED note positions match the capacitive touch notes (0-7). */
+ *  Uses both note-based (0-7) and CC-based (71-78) LED addresses since the
+ *  visible hardware LED type is not confirmed. force=true bypasses the LED
+ *  cache so Move firmware's per-frame touch-state updates don't win. */
 export function updateKnobLEDs(vm: ViewModel): void {
+    logTickCount++;
+    const doLog = (logTickCount % 344) === 1; // log ~once per second
     for (let row = 0; row < 2; row++) {
         for (let col = 0; col < 4; col++) {
             const physK = row * 4 + col;
             const pvm   = vm.rows[row][col];
             const nv    = pvm?.normalizedValue ?? 0;
             const color = row === 0 ? whiteLevel(nv) : amberLevel(nv);
-            setLED(physK, color, false);
+            /* notes 0-7: knob touch LEDs */
+            setLED(physK, color, true);
+            /* CC 71-78: knob indicator LEDs (same physical knob, different LED channel) */
+            setButtonLED(MoveKnob1 + physK, color, true);
+            if (doLog) mlog('knobLED k=' + physK + ' nv=' + nv.toFixed(2) + ' color=' + color);
         }
     }
 }

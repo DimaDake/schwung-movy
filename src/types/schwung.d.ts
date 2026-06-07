@@ -11,6 +11,7 @@ declare function shadow_send_midi_to_dsp(data: number[]): void;
 declare function host_exit_module(): void;
 declare function host_read_file(path: string): string | null;
 declare function setLED(note: number, color: number, immediate: boolean): void;
+declare function setButtonLED(cc: number, color: number, immediate: boolean): void;
 declare function decodeDelta(d2: number): number;
 
 /* LED color constants */

@@ -2,6 +2,7 @@ export function autoShorten(label: string, maxChars: number): string {
     const up = label.toUpperCase().replace(/_/g, ' ').trim();
     if (up.length <= maxChars) return up;
     const words = up.split(/\s+/);
+    if (words.length === 1) return words[0].substring(0, maxChars);
     if (words[0].length <= maxChars) return words[0];
     const acronym = words.map(w => w[0]).join('');
     if (acronym.length <= maxChars) return acronym;

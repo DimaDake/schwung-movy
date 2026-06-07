@@ -2,17 +2,17 @@ import { G } from './glyphs.js';
 
 export const FONT_HEIGHT = 5;
 
-export function fontWidth(str: string): number {
+export function fontWidth(str: string, letterGap = -1): number {
     let w = 0;
     for (let i = 0; i < str.length; i++) {
         const cp = str.charCodeAt(i);
-        if (cp < 0x20 || cp > 0x7E) { w += 5; continue; }
-        w += G[cp - 0x20][0];
+        w += cp < 0x20 || cp > 0x7E ? 5 : G[cp - 0x20][0];
+        if (i < str.length - 1) w += letterGap;
     }
     return w;
 }
 
-export function fontPrint(x: number, y: number, str: string, color: number): void {
+export function fontPrint(x: number, y: number, str: string, color: number, letterGap = -1): void {
     let cx = x;
     for (let i = 0; i < str.length; i++) {
         const cp = str.charCodeAt(i);
@@ -31,5 +31,6 @@ export function fontPrint(x: number, y: number, str: string, color: number): voi
             }
         }
         cx += adv;
+        if (i < str.length - 1) cx += letterGap;
     }
 }

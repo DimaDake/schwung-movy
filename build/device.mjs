@@ -12,6 +12,7 @@ const SCHWUNG_BANNER = [
     'import * as os from "os";',
     'import { Black, DarkGrey, White, BrightRed, NeonGreen,',
     '         MovePads, MoveKnob1, MidiNoteOn, MidiNoteOff,',
+    '         MoveKnob1Touch, MoveKnob8Touch,',
     '         MoveShift, MoveBack, MoveMainButton, MoveMainKnob,',
     '         MoveLeft, MoveRight, MoveUp, MoveDown',
     '} from "/data/UserData/schwung/shared/constants.mjs";',

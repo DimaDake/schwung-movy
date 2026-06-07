@@ -33,6 +33,7 @@ const PRESETS = [
     'enum_overlay', 'knob_toast', 'no_params', 'keys_view', 'browse_view',
     'obxd_preset_page', 'obxd_main_page', 'obxd_filter_page',
     'lfo_prefix',
+    'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
 ];
 const MIME = {
     '.html': 'text/html',
@@ -109,7 +110,11 @@ async function main() {
                                    browse_view: 'test8',
                                    obxd_preset_page: 'obxd_like',
                                    obxd_main_page:   'obxd_like',
-                                   obxd_filter_page: 'obxd_like' };
+                                   obxd_filter_page: 'obxd_like',
+                                   chain_synth:      'test8',
+                                   chain_empty:      'test8',
+                                   chain_jog_toast:  'test8',
+                                   knobs_jog_toast:  'test8' };
         const basePreset = syntheticPresets[preset] ?? preset;
         await page.select('#preset-select', basePreset);
 
@@ -154,6 +159,22 @@ async function main() {
             await page.evaluate(() => {
                 globalThis.__movy_model?.changePage(3);
                 globalThis.__movy_forceRender?.();
+            });
+        } else if (preset === 'chain_synth') {
+            await page.evaluate(() => {
+                globalThis.__movy_renderChainView?.(1, false);  /* synth, no toast */
+            });
+        } else if (preset === 'chain_empty') {
+            await page.evaluate(() => {
+                globalThis.__movy_renderChainView?.(2, false);  /* fx1 = empty slot */
+            });
+        } else if (preset === 'chain_jog_toast') {
+            await page.evaluate(() => {
+                globalThis.__movy_renderChainView?.(1, true);   /* synth + jog toast */
+            });
+        } else if (preset === 'knobs_jog_toast') {
+            await page.evaluate(() => {
+                globalThis.__movy_renderKnobsJogToast?.();
             });
         }
 

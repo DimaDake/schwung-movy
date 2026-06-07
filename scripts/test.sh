@@ -153,17 +153,15 @@ else
     fi
 fi
 
-# Jog wheel / bank switch
-if echo "$LOG" | grep -q "jog bank delta="; then
-    pass "Jog wheel CC reached changePage handler"
+# Jog wheel — chain navigation or page change
+if echo "$LOG" | grep -q "chain chainIndex="; then
+    IDX=$(echo "$LOG" | grep "chain chainIndex=" | tail -1 | grep -o "chainIndex=[0-9]*" | cut -d= -f2)
+    pass "Jog wheel CC navigates chain — chainIndex=$IDX"
+elif echo "$LOG" | grep -q "changePage delta="; then
+    PLINE=$(echo "$LOG" | grep "changePage delta=" | head -1 | sed 's/.*\[movy\] //')
+    pass "Jog wheel CC reaches changePage — $PLINE"
 else
     fail "Jog wheel CC not received (CC14 not reaching onMidiMessageInternal)"
-fi
-if echo "$LOG" | grep -q "changePage delta="; then
-    PLINE=$(echo "$LOG" | grep "changePage delta=" | head -1 | sed 's/.*\[movy\] //')
-    pass "changePage called — $PLINE"
-else
-    fail "changePage not logged (model.mjs changePage mlog missing or module not reloaded)"
 fi
 
 # Knob LEDs

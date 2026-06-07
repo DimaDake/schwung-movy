@@ -11,6 +11,7 @@ import { createModel }    from '../dist/esm/model/index.js';
 import { renderKnobsView } from '../dist/esm/renderer/knob-view.js';
 import { renderKeysView }  from '../dist/esm/renderer/keys-view.js';
 import { renderBrowseView } from '../dist/esm/renderer/browse-view.js';
+import { renderChainView } from '../dist/esm/renderer/chain-view.js';
 import { MOCK_SYNTHS }     from './mock-synth.mjs';
 
 /* ── Canvas + mock globals ───────────────────────────────────────────────── */
@@ -37,13 +38,14 @@ globalThis.shadow_get_ui_slot = () => 0;
 
 /* ── Model ───────────────────────────────────────────────────────────────── */
 
-const model = createModel(0);
+const COMPONENT_KEYS = ['midi_fx1', 'synth', 'fx1', 'fx2'];
+const chainModels    = COMPONENT_KEYS.map(k => createModel(0, k));
+const model          = chainModels[1];   /* synth — backwards compat for existing test code */
 globalThis.__movy_model = model;
 
 function loadPreset(id) {
     mockState = { ...MOCK_SYNTHS[id] };
-    model.reset();
-    model.reload();  /* fast re-poll + hierarchy reload on next tick */
+    for (const m of chainModels) { m.reset(); m.reload(); }
 }
 
 /* ── SVG knob arc (300° range, r=12, center 16,16) ──────────────────────── */
@@ -168,6 +170,17 @@ globalThis.__movy_renderKeysView   = () => renderKeysView(
     n => { const names=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']; return names[n%12]+Math.floor(n/12-1); }
 );
 globalThis.__movy_renderBrowseView = (mods, idx) => renderBrowseView(mods, idx);
+
+globalThis.__movy_renderChainView = (chainIndex, jogTouched) => {
+    const m  = chainModels[chainIndex ?? 1];
+    const vm = m.getViewModel();
+    renderChainView(vm, chainIndex ?? 1, jogTouched ?? false);
+};
+
+globalThis.__movy_renderKnobsJogToast = () => {
+    const vm = model.getViewModel();
+    renderKnobsView(vm, true);
+};
 
 /* ── Boot ────────────────────────────────────────────────────────────────── */
 

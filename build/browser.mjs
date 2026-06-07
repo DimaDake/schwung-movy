@@ -1,33 +1,25 @@
-#!/usr/bin/env node
-// Compiles src/**/*.ts -> dist/esm/**/*.js (no bundling; browser loads ES modules).
+// Bundles model + renderer entry points -> dist/esm/ for browser tests.
+// Code splitting puts shared code in chunk files; JSON configs are inlined.
 import * as esbuild from 'esbuild';
-import { readdirSync, statSync } from 'fs';
-import { resolve, join, dirname } from 'path';
+import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const root  = resolve(__dir, '..');
-const srcDir = resolve(root, 'src');
 
-function findTs(dir) {
-    const out = [];
-    for (const name of readdirSync(dir)) {
-        const full = join(dir, name);
-        if (statSync(full).isDirectory()) out.push(...findTs(full));
-        else if (name.endsWith('.ts') && !name.endsWith('.d.ts')) out.push(full);
-    }
-    return out;
-}
-
-const entryPoints = findTs(srcDir);
 await esbuild.build({
-    entryPoints,
-    bundle:         false,
-    outdir:         resolve(root, 'dist/esm'),
-    outbase:        srcDir,
-    format:         'esm',
-    target:         ['es2020'],
-    sourcemap:      true,
-    logLevel:       'info',
+    entryPoints: [
+        resolve(root, 'src/model/index.ts'),
+        resolve(root, 'src/renderer/knob-view.ts'),
+        resolve(root, 'src/renderer/keys-view.ts'),
+        resolve(root, 'src/renderer/browse-view.ts'),
+    ],
+    bundle:    true,
+    splitting: true,
+    outdir:    resolve(root, 'dist/esm'),
+    outbase:   resolve(root, 'src'),
+    format:    'esm',
+    target:    ['es2020'],
+    logLevel:  'info',
 });
-console.log(`Browser modules written: dist/esm/ (${entryPoints.length} files)`);
+console.log('Browser modules written: dist/esm/');

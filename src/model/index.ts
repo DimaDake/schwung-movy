@@ -6,8 +6,8 @@ import { processTick }      from './tick.js';
 import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV } from './constants.js';
 import { mlog } from '../log.js';
 
-export function createModel(slot: number) {
-    const s = createModelState(slot);
+export function createModel(slot: number, componentKey = 'synth') {
+    const s = createModelState(slot, componentKey);
 
     function numBanks() { return Math.max(1, Math.ceil(s.knobParams.length / KNOBS_PER_PAGE)); }
 
@@ -64,7 +64,7 @@ export function createModel(slot: number) {
                 const p = s.knobParams[s.enumOverlay.gi];
                 if (p) {
                     s.knobValues[s.enumOverlay.gi] = s.enumOverlay.selected;
-                    shadow_set_param(s.activeSlot, 'synth:' + p.key, String(s.enumOverlay.selected));
+                    shadow_set_param(s.activeSlot, s.componentKey + ':' + p.key, String(s.enumOverlay.selected));
                 }
                 s.enumOverlay = null;
             }

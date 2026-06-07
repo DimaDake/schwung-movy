@@ -10,6 +10,7 @@ export interface EnumOverlay {
 
 export interface ModelState {
     activeSlot:         number;
+    componentKey:       string;
     knobParams:         (KnobParam | null)[];
     knobValues:         (number | null)[];
     pendingDeltas:      number[];
@@ -28,9 +29,10 @@ export interface ModelState {
     dirty:              boolean;
 }
 
-export function createModelState(activeSlot: number): ModelState {
+export function createModelState(activeSlot: number, componentKey: string): ModelState {
     return {
         activeSlot,
+        componentKey,
         knobParams:         [],
         knobValues:         [],
         pendingDeltas:      new Array(KNOBS_PER_PAGE).fill(0) as number[],

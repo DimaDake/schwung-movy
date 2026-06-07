@@ -27,11 +27,11 @@ export function loadHierarchy(s: ModelState): void {
     s.hierarchyKey = s.activeModuleName;
 
     mlog('loadHierarchy: slot=' + s.activeSlot + ' module=' + s.activeModuleName);
-    s.moduleId = shadow_get_param(s.activeSlot, 'synth_module') || '';
+    s.moduleId = shadow_get_param(s.activeSlot, s.componentKey + '_module') || '';
 
     /* chain_params → cpMap for type/min/max/step/options/name lookups */
     const cpMap: Record<string, HierParam & { name?: string }> = {};
-    const chainParamsRaw = shadow_get_param(s.activeSlot, 'synth:chain_params');
+    const chainParamsRaw = shadow_get_param(s.activeSlot, s.componentKey + ':chain_params');
     if (chainParamsRaw) {
         try {
             const arr = JSON.parse(chainParamsRaw) as Array<{ key?: string }>;
@@ -40,7 +40,7 @@ export function loadHierarchy(s: ModelState): void {
         } catch (e) { mlog('chain_params parse error: ' + e); }
     }
 
-    const raw = shadow_get_param(s.activeSlot, 'synth:ui_hierarchy');
+    const raw = shadow_get_param(s.activeSlot, s.componentKey + ':ui_hierarchy');
     if (!raw) {
         mlog('loadHierarchy: ui_hierarchy null — using test params');
         s.knobParams = [
@@ -131,20 +131,20 @@ export function loadHierarchy(s: ModelState): void {
     let presetSeparate = false;
 
     if (listParam && countParam) {
-        const countRaw    = shadow_get_param(s.activeSlot, 'synth:' + countParam);
+        const countRaw    = shadow_get_param(s.activeSlot, s.componentKey + ':' + countParam);
         const presetCount = countRaw ? parseInt(countRaw) : 0;
         if (presetCount > 0) {
             let allNames: string[] | null = null;
 
             /* Strategy 1: bulk JSON array */
-            const namesRaw = shadow_get_param(s.activeSlot, 'synth:preset_names');
+            const namesRaw = shadow_get_param(s.activeSlot, s.componentKey + ':preset_names');
             if (namesRaw) { try { allNames = JSON.parse(namesRaw) as string[]; } catch {} }
 
             /* Strategy 2: per-index query */
-            if (!allNames && shadow_get_param(s.activeSlot, 'synth:preset_name_0') !== null) {
+            if (!allNames && shadow_get_param(s.activeSlot, s.componentKey + ':preset_name_0') !== null) {
                 allNames = [];
                 for (let i = 0; i < presetCount; i++) {
-                    allNames.push(shadow_get_param(s.activeSlot, 'synth:preset_name_' + i) ?? String(i));
+                    allNames.push(shadow_get_param(s.activeSlot, s.componentKey + ':preset_name_' + i) ?? String(i));
                 }
             }
 

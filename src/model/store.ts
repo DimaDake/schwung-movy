@@ -20,7 +20,7 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
     if (!p) return;
 
     if (s.knobValues[gi] === null || s.knobValues[gi] === undefined) {
-        const raw = shadow_get_param(s.activeSlot, 'synth:' + p.key);
+        const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + p.key);
         if (raw === null && !p.key.startsWith('test_')) return;
         const v = parseFloat(raw ?? '');
         s.knobValues[gi] = (raw === null || isNaN(v)) ? p.min : v;
@@ -34,8 +34,8 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
     s.knobValues[gi] = newVal;
 
     const valStr = (p.type === 'float') ? newVal.toFixed(4) : String(Math.round(newVal));
-    mlog('set slot=' + s.activeSlot + ' gi=' + gi + ' key=synth:' + p.key + ' val=' + valStr);
-    const ok = p.key.startsWith('test_') ? true : shadow_set_param(s.activeSlot, 'synth:' + p.key, valStr);
+    mlog('set slot=' + s.activeSlot + ' gi=' + gi + ' key=' + s.componentKey + ':' + p.key + ' val=' + valStr);
+    const ok = p.key.startsWith('test_') ? true : shadow_set_param(s.activeSlot, s.componentKey + ':' + p.key, valStr);
     mlog('set_param returned ' + ok);
     s.dirty = true;
 }
@@ -44,7 +44,7 @@ export function refreshKnobValues(s: ModelState): void {
     for (let gi = 0; gi < s.knobParams.length; gi++) {
         const p = s.knobParams[gi];
         if (!p) continue;
-        const raw = shadow_get_param(s.activeSlot, 'synth:' + p.key);
+        const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + p.key);
         if (raw !== null) {
             const v = parseFloat(raw);
             if (!isNaN(v)) s.knobValues[gi] = v;
@@ -53,8 +53,8 @@ export function refreshKnobValues(s: ModelState): void {
 }
 
 export function pollModuleName(s: ModelState): void {
-    const name = shadow_get_param(s.activeSlot, 'synth:name')
-              || shadow_get_param(s.activeSlot, 'synth_module')
+    const name = shadow_get_param(s.activeSlot, s.componentKey + ':name')
+              || shadow_get_param(s.activeSlot, s.componentKey + '_module')
               || '—';
     if (name !== s.activeModuleName) {
         s.activeModuleName = name;

@@ -31,4 +31,5 @@ export interface ViewModel {
     touchedSlot: number | null;
     toast:       ToastState | null;
     overlay:     OverlayState | null;
+    isEmpty:     boolean;
 }

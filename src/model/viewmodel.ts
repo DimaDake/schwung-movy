@@ -36,7 +36,7 @@ export function buildViewModel(s: ModelState): ViewModel {
                 : Math.max(0, Math.min(1, (v - p.min) / (p.max - p.min)));
             const enumIdx = (p.type === 'enum' && typeof v === 'number') ? Math.round(v) : 0;
             const dv = p.nameKey
-                ? (shadow_get_param(s.activeSlot, 'synth:' + p.nameKey) ?? formatValue(p, v))
+                ? (shadow_get_param(s.activeSlot, s.componentKey + ':' + p.nameKey) ?? formatValue(p, v))
                 : formatValue(p, v);
             rows[row].push({
                 shortName:       shortNames[physK],
@@ -60,7 +60,7 @@ export function buildViewModel(s: ModelState): ViewModel {
         const p  = s.knobParams[gi];
         if (p) {
             const tv = p.nameKey
-                ? (shadow_get_param(s.activeSlot, 'synth:' + p.nameKey) ?? formatValue(p, s.knobValues[gi]))
+                ? (shadow_get_param(s.activeSlot, s.componentKey + ':' + p.nameKey) ?? formatValue(p, s.knobValues[gi]))
                 : formatValue(p, s.knobValues[gi]);
             toast = { fullName: p.label, value: tv };
         }
@@ -77,5 +77,6 @@ export function buildViewModel(s: ModelState): ViewModel {
         overlay:     s.enumOverlay
             ? { slot: s.enumOverlay.slot, options: s.enumOverlay.options, selected: s.enumOverlay.selected }
             : null,
+        isEmpty:     s.moduleId === '' && s.activeModuleName === '—',
     };
 }

@@ -31,6 +31,7 @@ const UPDATE     = process.argv.includes('--update');
 const PRESETS = [
     'test8', 'test16', 'test_enum', 'plaits', 'wurl',
     'enum_overlay', 'knob_toast', 'no_params', 'keys_view', 'browse_view',
+    'obxd_preset_page', 'obxd_main_page', 'obxd_filter_page',
 ];
 const MIME = {
     '.html': 'text/html',
@@ -104,7 +105,10 @@ async function main() {
         /* Determine which mock preset to load, then apply any view override */
         const syntheticPresets = { enum_overlay: 'plaits', knob_toast: 'test8',
                                    no_params: 'no_params', keys_view: 'test8',
-                                   browse_view: 'test8' };
+                                   browse_view: 'test8',
+                                   obxd_preset_page: 'obxd_like',
+                                   obxd_main_page:   'obxd_like',
+                                   obxd_filter_page: 'obxd_like' };
         const basePreset = syntheticPresets[preset] ?? preset;
         await page.select('#preset-select', basePreset);
 
@@ -134,6 +138,21 @@ async function main() {
                 globalThis.__movy_renderBrowseView?.(
                     [{ name: 'Plaits' }, { name: 'Wurl' }, { name: 'Bass' }], 1
                 );
+            });
+        } else if (preset === 'obxd_preset_page') {
+            /* page 0 = dedicated Preset page */
+            await page.evaluate(() => { globalThis.__movy_forceRender?.(); });
+        } else if (preset === 'obxd_main_page') {
+            /* page 1 = Main (root.knobs) */
+            await page.evaluate(() => {
+                globalThis.__movy_model?.changePage(1);
+                globalThis.__movy_forceRender?.();
+            });
+        } else if (preset === 'obxd_filter_page') {
+            /* page 3 = Filter (shows Cutoff/Resonance with fixed labels) */
+            await page.evaluate(() => {
+                globalThis.__movy_model?.changePage(3);
+                globalThis.__movy_forceRender?.();
             });
         }
 

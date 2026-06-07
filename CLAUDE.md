@@ -12,8 +12,22 @@ Device: `ableton@move.local`
 
 ## Dev loop
 
+Run tests in this order at the end of every task:
+
 ```bash
-# Quick deploy (ui.js + ui_font.mjs)
+# 1. Local (always) — pixel-diff screenshot regression
+node browser-test/screenshot.mjs
+
+# 2. Device (when reachable) — deploy + automated MIDI/log test
+ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
+  && ./scripts/test.sh \
+  || echo "Device offline — skipping"
+```
+
+Other useful commands:
+
+```bash
+# Quick deploy only (ui.js + ui_font.mjs)
 ./scripts/deploy.sh [move.local]
 
 # Full automated test — deploy, open movy, inject knob CCs, check log (PASS/FAIL)

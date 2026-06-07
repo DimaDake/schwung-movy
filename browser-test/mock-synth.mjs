@@ -193,6 +193,31 @@ export const MOCK_SYNTHS = {
         "synth:chain_params": null,
     },
 
+    lfo_prefix: {
+        "synth:name": "LFO Test",
+        "synth:ui_hierarchy": JSON.stringify({ levels: { root: {
+            knobs: ["lfo_rate","lfo_shape","lfo_offset","lfo_amount","osc_wave","osc_level","osc_tune","osc_pan"],
+        }}}),
+        "synth:chain_params": JSON.stringify([
+            { key: "lfo_rate",   name: "LFO Rate",   type: "float", min: 0, max: 1 },
+            { key: "lfo_shape",  name: "LFO Shape",  type: "float", min: 0, max: 1 },
+            { key: "lfo_offset", name: "LFO Offset", type: "float", min: 0, max: 1 },
+            { key: "lfo_amount", name: "LFO Amount", type: "float", min: 0, max: 1 },
+            { key: "osc_wave",   name: "OSC Wave",   type: "float", min: 0, max: 1 },
+            { key: "osc_level",  name: "OSC Level",  type: "float", min: 0, max: 1 },
+            { key: "osc_tune",   name: "OSC Tune",   type: "float", min: 0, max: 1 },
+            { key: "osc_pan",    name: "OSC Pan",    type: "float", min: 0, max: 1 },
+        ]),
+        "synth:lfo_rate":   "0.50",
+        "synth:lfo_shape":  "0.30",
+        "synth:lfo_offset": "0.70",
+        "synth:lfo_amount": "0.40",
+        "synth:osc_wave":   "0.60",
+        "synth:osc_level":  "0.80",
+        "synth:osc_tune":   "0.50",
+        "synth:osc_pan":    "0.50",
+    },
+
     obxd_like: {
         "synth:name":   "OB-Xd",
         "synth:ui_hierarchy": JSON.stringify({

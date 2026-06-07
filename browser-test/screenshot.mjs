@@ -32,6 +32,7 @@ const PRESETS = [
     'test8', 'test16', 'test_enum', 'plaits', 'wurl',
     'enum_overlay', 'knob_toast', 'no_params', 'keys_view', 'browse_view',
     'obxd_preset_page', 'obxd_main_page', 'obxd_filter_page',
+    'lfo_prefix',
 ];
 const MIME = {
     '.html': 'text/html',

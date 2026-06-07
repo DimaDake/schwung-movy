@@ -2,7 +2,7 @@ import type { ViewModel } from '../types/viewmodel.js';
 import type { ModelState } from './state.js';
 import { formatValue } from './store.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
-import { autoShorten } from '../renderer/shorten.js';
+import { dedupShortNames } from '../renderer/shorten.js';
 
 export function buildViewModel(s: ModelState): ViewModel {
     const nBanks = Math.max(1, Math.ceil(s.knobParams.length / KNOBS_PER_PAGE));
@@ -16,11 +16,18 @@ export function buildViewModel(s: ModelState): ViewModel {
         bankName = s.knobPage === 0 ? 'Main' : 'Page ' + s.knobPage;
     }
 
+    const pageStart   = s.knobPage * KNOBS_PER_PAGE;
+    const pageEntries = Array.from({ length: KNOBS_PER_PAGE }, (_, i) => {
+        const p = s.knobParams[pageStart + i];
+        return p ? { label: p.label, shortLabel: p.shortLabel ?? null } : null;
+    });
+    const shortNames = dedupShortNames(pageEntries, 5);
+
     const rows: ViewModel['rows'] = [[], []];
     for (let row = 0; row < 2; row++) {
         for (let col = 0; col < KNOBS_PER_ROW; col++) {
             const physK = row * KNOBS_PER_ROW + col;
-            const gi    = s.knobPage * KNOBS_PER_PAGE + physK;
+            const gi    = pageStart + physK;
             const p     = s.knobParams[gi];
             if (!p) { rows[row].push(null); continue; }
             const v  = s.knobValues[gi];
@@ -32,7 +39,7 @@ export function buildViewModel(s: ModelState): ViewModel {
                 ? (shadow_get_param(s.activeSlot, 'synth:' + p.nameKey) ?? formatValue(p, v))
                 : formatValue(p, v);
             rows[row].push({
-                shortName:       p.shortLabel ? p.shortLabel.toUpperCase() : autoShorten(p.label, 5),
+                shortName:       shortNames[physK],
                 fullName:        p.label,
                 type:            p.type,
                 normalizedValue: nv,
@@ -48,7 +55,7 @@ export function buildViewModel(s: ModelState): ViewModel {
     const primary = s.touchedSlots.length > 0 ? s.touchedSlots[s.touchedSlots.length - 1] : -1;
     let toast: ViewModel['toast'] = null;
     if (primary >= 0) {
-        const gi = s.knobPage * KNOBS_PER_PAGE + primary;
+        const gi = pageStart + primary;
         const p  = s.knobParams[gi];
         if (p) {
             const tv = p.nameKey

@@ -1,17 +1,15 @@
 import type { ViewModel } from '../types/viewmodel.js';
 import { mlog } from '../log.js';
 
-/* White intensity scale (knobs 1-4) — palette indices from constants.mjs */
+/* White intensity scale (knobs 1-4) — always lit so row is identifiable */
 function whiteLevel(nv: number): number {
-    if (nv <= 0)    return 0;    // off
     if (nv < 0.33)  return 124;  // DarkGrey  #1A1A1A
     if (nv < 0.67)  return 118;  // LightGrey #595959
     return 120;                   // White     #FFFFFF
 }
 
-/* Amber intensity scale (knobs 5-8) */
+/* Amber intensity scale (knobs 5-8) — always lit so row is identifiable */
 function amberLevel(nv: number): number {
-    if (nv <= 0)    return 0;    // off
     if (nv < 0.25)  return 75;   // very dark amber  #403302
     if (nv < 0.5)   return 29;   // mustard           #876700
     if (nv < 0.75)  return 6;    // ochre             #C19D08

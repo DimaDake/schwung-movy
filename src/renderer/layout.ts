@@ -9,3 +9,5 @@ export const LBL1_Y   = 51;
 export const CELL_W   = 32;
 export const LBL_H    = 7;
 export const KW       = 16;
+export const TOAST_Y  = 58;
+export const TOAST_H  = 6;

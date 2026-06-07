@@ -1,6 +1,6 @@
 import type { ViewModel } from '../types/viewmodel.js';
 import { fontPrint } from '../font/index.js';
-import { drawInvertedHeader } from './header.js';
+import { drawHeader } from './header.js';
 import { W } from './layout.js';
 
 export function drawEnumOverlay(vm: ViewModel): void {
@@ -12,7 +12,7 @@ export function drawEnumOverlay(vm: ViewModel): void {
     const valueStr = ov.options[ov.selected] || String(ov.selected);
 
     clear_screen();
-    drawInvertedHeader(fullName, valueStr);
+    drawHeader(fullName, valueStr, true);
 
     const LIST_TOP = 8;
     const ROW_H    = 7;

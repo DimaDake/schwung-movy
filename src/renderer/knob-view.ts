@@ -1,6 +1,6 @@
 import type { ViewModel } from '../types/viewmodel.js';
 import { fontPrint, fontWidth } from '../font/index.js';
-import { drawInvertedHeader, drawBankBar } from './header.js';
+import { drawHeader, drawBankBar } from './header.js';
 import { drawKnobRow } from './label.js';
 import { drawEnumOverlay } from './overlay.js';
 import { W, ROW0_Y, LBL0_Y, ROW1_Y, LBL1_Y } from './layout.js';
@@ -10,7 +10,7 @@ export function renderKnobsView(vm: ViewModel): void {
     clear_screen();
 
     if (vm.toast) {
-        drawInvertedHeader(vm.toast.fullName, vm.toast.value);
+        drawHeader(vm.toast.fullName, vm.toast.value, true);
     } else {
         const rightW   = vm.bankName ? fontWidth(vm.bankName) + 4 : 0;
         const maxNameW = W - rightW - 4;
@@ -18,7 +18,7 @@ export function renderKnobsView(vm: ViewModel): void {
         while (dispName.length > 1 && fontWidth(dispName) > maxNameW) {
             dispName = dispName.slice(0, -1);
         }
-        drawInvertedHeader(dispName, vm.bankName || null);
+        drawHeader(dispName, vm.bankName || null, false);
     }
 
     drawBankBar(vm.bankIndex, vm.bankCount);

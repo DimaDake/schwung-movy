@@ -1,10 +1,10 @@
 import { fontPrint, FONT_HEIGHT } from '../font/index.js';
-import { drawInvertedHeader } from './header.js';
+import { drawHeader } from './header.js';
 import { W, HEADER_H } from './layout.js';
 
 export function renderBrowseView(modules: { name: string }[], browseIndex: number): void {
     clear_screen();
-    drawInvertedHeader('Sound module', null);
+    drawHeader('Sound module', null, true);
 
     const FOOTER_Y = 57;
     const LIST_TOP = HEADER_H + 2;

@@ -1,5 +1,5 @@
 import { fontPrint, fontWidth, FONT_HEIGHT } from '../font/index.js';
-import { drawInvertedHeader } from './header.js';
+import { drawHeader } from './header.js';
 import { W, HEADER_H } from './layout.js';
 
 export function renderKeysView(moduleName: string, rootNote: number, midiNoteName: (n: number) => string): void {
@@ -12,7 +12,7 @@ export function renderKeysView(moduleName: string, rootNote: number, midiNoteNam
     }
     if (abbrev !== moduleName) abbrev += '~';
 
-    drawInvertedHeader('Movy', '[' + abbrev + ']');
+    drawHeader('Movy', '[' + abbrev + ']', true);
 
     const rootName = midiNoteName(rootNote);
     const topName  = midiNoteName(rootNote + 24);

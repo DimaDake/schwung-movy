@@ -13,6 +13,7 @@ await esbuild.build({
         resolve(root, 'src/renderer/knob-view.ts'),
         resolve(root, 'src/renderer/keys-view.ts'),
         resolve(root, 'src/renderer/browse-view.ts'),
+        resolve(root, 'src/renderer/chain-view.ts'),
     ],
     bundle:    true,
     splitting: true,

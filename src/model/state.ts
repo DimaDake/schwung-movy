@@ -13,14 +13,15 @@ export interface ModelState {
     knobParams:         (KnobParam | null)[];
     knobValues:         (number | null)[];
     pendingDeltas:      number[];
-    enumAccums:         number[];   /* fractional delta accumulator per physical knob */
+    enumAccums:         number[];
     knobPage:           number;
-    touchedSlots:       number[];      /* all currently held knobs; last = primary */
-    longPressCountdown: number;       /* -1 = inactive */
+    touchedSlots:       number[];
+    longPressCountdown: number;
     enumOverlay:        EnumOverlay | null;
     activeModuleName:   string;
     moduleId:           string;
     moduleConfig:       ModuleConfig | null;
+    bankNames:          string[];
     hierarchyKey:       string;
     pollCountdown:      number;
     refreshCountdown:   number;
@@ -41,6 +42,7 @@ export function createModelState(activeSlot: number): ModelState {
         activeModuleName:   '—',
         moduleId:           '',
         moduleConfig:       null,
+        bankNames:          [],
         hierarchyKey:       '',
         pollCountdown:      NAME_POLL_TICKS,
         refreshCountdown:   0,

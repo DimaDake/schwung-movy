@@ -25,4 +25,5 @@ export interface KnobParam {
     max:        number;
     step:       number;
     options:    string[] | null;
+    nameKey?:   string;
 }

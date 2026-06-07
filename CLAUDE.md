@@ -21,7 +21,8 @@ node browser-test/screenshot.mjs
 # 2. Device (when reachable) — deploy + automated MIDI/log test
 ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
   && ./scripts/test.sh \
-  || echo "Device offline — skipping"
+  || echo "DEVICE OFFLINE — SKIPPING DEVICE TESTS"
+# If offline: report DEVICE OFFLINE to the user in CAPS
 ```
 
 Other useful commands:

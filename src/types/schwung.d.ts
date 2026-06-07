@@ -1,0 +1,49 @@
+/* Ambient declarations for Schwung host APIs and QuickJS globals.
+ * All of these are injected into the global scope on the device.
+ * In browser tests they are mocked on globalThis. */
+
+declare function fill_rect(x: number, y: number, w: number, h: number, color: number): void;
+declare function clear_screen(): void;
+declare function shadow_get_param(slot: number, key: string): string | null;
+declare function shadow_set_param(slot: number, key: string, value: string): boolean;
+declare function shadow_get_ui_slot(): number;
+declare function shadow_send_midi_to_dsp(data: number[]): void;
+declare function host_exit_module(): void;
+declare function host_read_file(path: string): string | null;
+declare function setLED(note: number, color: number, immediate: boolean): void;
+declare function decodeDelta(d2: number): number;
+
+/* LED color constants */
+declare const Black: number;
+declare const DarkGrey: number;
+declare const White: number;
+declare const NeonGreen: number;
+declare const BrightRed: number;
+
+/* Control surface constants */
+declare const MovePads: number[];
+declare const MoveKnob1: number;
+declare const MoveShift: number;
+declare const MoveBack: number;
+declare const MoveMainButton: number;
+declare const MoveMainKnob: number;
+declare const MoveLeft: number;
+declare const MoveRight: number;
+declare const MoveUp: number;
+declare const MoveDown: number;
+
+/* MIDI status bytes */
+declare const MidiNoteOn: number;
+declare const MidiNoteOff: number;
+
+/* QuickJS os module — available as a global on device via banner import */
+declare namespace os {
+    function readdir(path: string): [string[], number];
+}
+
+/* App globals assigned at startup */
+declare global {
+    var init:                  (() => void)            | undefined;
+    var tick:                  (() => void)            | undefined;
+    var onMidiMessageInternal: ((data: number[]) => void) | undefined;
+}

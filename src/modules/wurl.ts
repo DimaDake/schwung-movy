@@ -1,0 +1,36 @@
+import type { ModuleConfig } from '../types/param.js';
+
+export const wurlConfig: ModuleConfig = {
+    id: 'wurl', name: 'Wurl',
+    banks: [
+        {
+            name: 'WURL',
+            rows: [
+                [
+                    { key: 'volume',     short: 'VOL',  full: 'Volume',     type: 'float' },
+                    { key: 'tremolo',    short: 'TREM', full: 'Tremolo',    type: 'float' },
+                    { key: 'attack',     short: 'ATK',  full: 'Attack',     type: 'float' },
+                    { key: 'decay',      short: 'DCY',  full: 'Decay',      type: 'float' },
+                ],
+                [
+                    { key: 'brightness', short: 'BGHT', full: 'Brightness', type: 'float' },
+                    { key: 'darken',     short: 'DARK', full: 'Darken',     type: 'float' },
+                    { key: 'bark',       short: 'BARK', full: 'Bark',       type: 'float' },
+                    { key: 'reverb',     short: 'REVB', full: 'Reverb',     type: 'float' },
+                ],
+            ],
+        },
+        {
+            name: 'FX',
+            rows: [
+                [
+                    { key: 'speaker', short: 'SPKR', full: 'Speaker', type: 'float' },
+                    { key: 'tune',    short: 'TUNE', full: 'Tune',    type: 'float' },
+                    null,
+                    null,
+                ],
+                [null, null, null, null],
+            ],
+        },
+    ],
+};

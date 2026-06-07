@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
-# deploy.sh — copy ui.js and ui_font.mjs to the device
+# deploy.sh — build and copy ui.js to the device
 #
-# All movy logic (model, renderer, module configs) lives in ui.js so that
-# shadow_load_ui_module re-evaluates everything fresh on each tool open.
-# The view/ and modules/ subdirs are only used by browser tests.
+# esbuild bundles all TypeScript (model, renderer, font, modules) into ui.js.
+# ui_font.mjs is no longer deployed separately.
 #
 # Usage: ./scripts/deploy.sh [host]   (default: move.local)
 set -euo pipefail
 HOST="${1:-move.local}"
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 REMOTE="/data/UserData/schwung/modules/tools/movy"
+
+cd "$DIR"
+node build/device.mjs
 ssh "ableton@$HOST" "mkdir -p $REMOTE"
-scp "$DIR/ui.js" "$DIR/ui_font.mjs" "ableton@$HOST:$REMOTE/"
+scp "$DIR/ui.js" "ableton@$HOST:$REMOTE/"
 echo "deployed to $HOST"

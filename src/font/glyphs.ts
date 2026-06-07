@@ -1,9 +1,6 @@
 // Elektron pixel font — rasterised from elektron-font.otf at 8pt
 // Glyph format: [advance, yOff, w, h, ...rowBytes]  bit0=leftmost pixel
-
-export const FONT_HEIGHT = 5;  // nominal cap height in pixels
-
-const G = [
+export const G: number[][] = [
   [6, 0, 0, 0],// ' '
   [3, 0, 3, 5, 2, 2, 2, 0, 2],// '!'
   [5, 0, 5, 2, 10, 10],// '"'
@@ -100,35 +97,3 @@ const G = [
   [5, 0, 5, 5, 6, 4, 8, 4, 6],// '}'
   [6, 0, 6, 2, 20, 10],// '~'
 ];
-
-export function fontWidth(str) {
-  let w = 0;
-  for (let i = 0; i < str.length; i++) {
-    const cp = str.charCodeAt(i);
-    if (cp < 0x20 || cp > 0x7E) { w += 5; continue; }
-    w += G[cp - 0x20][0];
-  }
-  return w;
-}
-
-export function fontPrint(x, y, str, color) {
-  let cx = x;
-  for (let i = 0; i < str.length; i++) {
-    const cp = str.charCodeAt(i);
-    if (cp < 0x20 || cp > 0x7E) { cx += 5; continue; }
-    const g = G[cp - 0x20];
-    const adv = g[0], yOff = g[1], w = g[2], h = g[3];
-    for (let row = 0; row < h; row++) {
-      const bits = g[4 + row];
-      let col = 0;
-      while (col < w) {
-        if (bits & (1 << col)) {
-          const s = col;
-          while (col < w && (bits & (1 << col))) col++;
-          fill_rect(cx + s, y + yOff + row, col - s, 1, color);
-        } else { col++; }
-      }
-    }
-    cx += adv;
-  }
-}

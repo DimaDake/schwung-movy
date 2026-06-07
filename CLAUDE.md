@@ -44,12 +44,16 @@ ssh ableton@move.local 'tail -f /data/UserData/schwung/debug.log | grep "\[movy\
 ssh ableton@move.local '> /data/UserData/schwung/debug.log'
 ```
 
+**Build system:** All source lives in `src/` (TypeScript). `npm run build:device`
+bundles everything to `ui.js` via esbuild (single ESM file, no stale-module
+issues). `npm run build:browser` compiles to `dist/esm/` for browser tests.
+Run `node build/device.mjs` before deploying; `scripts/deploy.sh` does this automatically.
+
 **QuickJS module cache:** `shadow_load_ui_module` re-evaluates `ui.js` fresh on
 every tool open, but ES modules **imported by** `ui.js` are cached for the entire
 `shadow_ui` process lifetime (shadow_ui ignores SIGTERM; SIGKILL kills it without
-respawn). To avoid stale-code bugs, **all movy logic lives in `ui.js`** — model,
-renderer, and module configs are inlined rather than split into separate files.
-The `view/` and `modules/` subdirs exist only for browser tests.
+respawn). The esbuild bundle avoids this: all movy logic is inlined at build time,
+leaving only the Schwung shared imports external (`/data/UserData/schwung/shared/*`).
 
 **Never `kill -9` the shadow_ui process** — MoveOriginal (its parent) does not
 respawn it, so the device UI breaks until a full reboot.

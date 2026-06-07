@@ -32,11 +32,13 @@ pass "SSH reachable"
 # ── 2. Deploy ────────────────────────────────────────────────────────────────
 # All movy logic is in ui.js (inlined) — shadow_load_ui_module re-evaluates
 # ui.js fresh on every tool open, so no module-cache issues.
-info "Deploying..."
+info "Building and deploying..."
+cd "$MOVY_DIR"
+node build/device.mjs >/dev/null 2>&1
 REMOTE="/data/UserData/schwung/modules/tools/movy"
 ssh "ableton@$HOST" "mkdir -p $REMOTE" >/dev/null 2>&1
-scp -q "$MOVY_DIR/ui.js" "$MOVY_DIR/ui_font.mjs" "ableton@$HOST:$REMOTE/"
-pass "Deployed"
+scp -q "$MOVY_DIR/ui.js" "ableton@$HOST:$REMOTE/"
+pass "Built + deployed"
 
 # ── 3. Enable logging + clear log ────────────────────────────────────────────
 ssh "ableton@$HOST" '

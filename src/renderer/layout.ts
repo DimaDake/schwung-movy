@@ -1,0 +1,11 @@
+export const W        = 128;
+export const HEADER_H = 8;
+export const BAR_Y    = 8;
+export const BAR_H    = 3;
+export const ROW0_Y   = 11;
+export const LBL0_Y   = 24;
+export const ROW1_Y   = 31;
+export const LBL1_Y   = 44;
+export const CELL_W   = 32;
+export const LBL_H    = 7;
+export const KW       = 10;

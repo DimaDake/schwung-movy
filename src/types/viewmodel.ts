@@ -1,0 +1,30 @@
+export interface ParamVM {
+    shortName:       string;
+    fullName:        string;
+    type:            string;
+    normalizedValue: number;
+    displayValue:    string;
+    touched:         boolean;
+}
+
+export interface ToastState {
+    fullName: string;
+    value:    string;
+}
+
+export interface OverlayState {
+    slot:     number;
+    options:  string[];
+    selected: number;
+}
+
+export interface ViewModel {
+    moduleName:  string;
+    bankName:    string;
+    bankIndex:   number;
+    bankCount:   number;
+    rows:        (ParamVM | null)[][];
+    touchedSlot: number | null;
+    toast:       ToastState | null;
+    overlay:     OverlayState | null;
+}

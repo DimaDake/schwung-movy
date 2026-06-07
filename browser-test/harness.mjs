@@ -7,8 +7,10 @@
  * Then open:                  http://localhost:8080/browser-test/
  */
 
-import { createModel }    from '../view/model.mjs';
-import { renderKnobsView, renderKeysView, renderBrowseView } from '../view/renderer.mjs';
+import { createModel }    from '../dist/esm/model/index.js';
+import { renderKnobsView } from '../dist/esm/renderer/knob-view.js';
+import { renderKeysView }  from '../dist/esm/renderer/keys-view.js';
+import { renderBrowseView } from '../dist/esm/renderer/browse-view.js';
 import { MOCK_SYNTHS }     from './mock-synth.mjs';
 
 /* ── Canvas + mock globals ───────────────────────────────────────────────── */

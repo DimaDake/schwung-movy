@@ -1,0 +1,15 @@
+{
+  "name": "movy",
+  "type": "module",
+  "scripts": {
+    "build": "node build/device.mjs && node build/browser.mjs",
+    "build:device": "node build/device.mjs",
+    "build:browser": "node build/browser.mjs",
+    "typecheck": "tsc --noEmit",
+    "dev": "node build/browser.mjs --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.21.0",
+    "typescript": "^5.4.0"
+  }
+}

@@ -30,13 +30,14 @@ export function updateKnobLEDs(vm: ViewModel): void {
         for (let col = 0; col < 4; col++) {
             const physK = row * 4 + col;
             const pvm   = vm.rows[row][col];
-            const nv    = pvm?.normalizedValue ?? 0;
-            const color = row === 0 ? whiteLevel(nv) : amberLevel(nv);
+            const color = pvm === null ? 0
+                : row === 0 ? whiteLevel(pvm.normalizedValue)
+                : amberLevel(pvm.normalizedValue);
             /* notes 0-7: knob touch LEDs */
             setLED(physK, color, true);
             /* CC 71-78: knob indicator LEDs (same physical knob, different LED channel) */
             setButtonLED(MoveKnob1 + physK, color, true);
-            if (doLog) mlog('knobLED k=' + physK + ' nv=' + nv.toFixed(2) + ' color=' + color);
+            if (doLog) mlog('knobLED k=' + physK + ' nv=' + (pvm?.normalizedValue ?? -1).toFixed(2) + ' color=' + color);
         }
     }
 }

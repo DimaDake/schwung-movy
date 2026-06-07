@@ -8,6 +8,7 @@ import { loadModuleConfig } from '../modules/index.mjs';
 
 const NAME_POLL_TICKS    = 344;   /* ~1 s at device tick rate */
 const KNOB_REFRESH_TICKS = 69;    /* ~0.2 s */
+const LONG_PRESS_TICKS   = 172;   /* ~0.5 s */
 const KNOBS_PER_PAGE     = 8;
 const KNOBS_PER_ROW      = 4;
 
@@ -31,6 +32,8 @@ export function createModel(slot) {
     let pendingDeltas = new Array(KNOBS_PER_PAGE).fill(0);
     let knobPage     = 0;
     let touchedSlot  = -1;
+    let longPressCountdown = -1;
+    let enumOverlay  = null;    // null | {slot, gi, options, selected}
     let activeModuleName = "—";
     let moduleId     = "";
     let moduleConfig = null;
@@ -53,8 +56,8 @@ export function createModel(slot) {
 
         mlog("loadHierarchy: slot=" + activeSlot + " module=" + activeModuleName);
 
-        /* Read module ID for config lookup */
-        moduleId = shadow_get_param(activeSlot, "synth:module") || "";
+        /* Read module ID (host-level key, no colon prefix) */
+        moduleId = shadow_get_param(activeSlot, "synth_module") || "";
 
         /* Read chain_params for accurate min/max/step/options */
         const chainParamsRaw = shadow_get_param(activeSlot, "synth:chain_params");
@@ -63,6 +66,7 @@ export function createModel(slot) {
             try {
                 const arr = JSON.parse(chainParamsRaw);
                 for (const cp of arr) { if (cp.key) cpMap[cp.key] = cp; }
+                mlog("loadHierarchy: chain_params " + arr.length + " entries");
             } catch (e) { mlog("chain_params parse error: " + e); }
         }
 
@@ -229,6 +233,13 @@ export function createModel(slot) {
             }
         }
 
+        let toast = null;
+        if (touchedSlot >= 0) {
+            const gi = knobPage * KNOBS_PER_PAGE + touchedSlot;
+            const p  = knobParams[gi];
+            if (p) toast = { fullName: p.label, value: formatValue(p, knobValues[gi]) };
+        }
+
         return {
             moduleName:  activeModuleName,
             bankName,
@@ -236,6 +247,10 @@ export function createModel(slot) {
             bankCount:   nBanks,
             rows,
             touchedSlot: touchedSlot >= 0 ? touchedSlot : null,
+            toast,
+            overlay:     enumOverlay
+                ? { slot: enumOverlay.slot, options: enumOverlay.options, selected: enumOverlay.selected }
+                : null,
         };
     }
 
@@ -243,24 +258,59 @@ export function createModel(slot) {
 
     return {
         handleKnobDelta(k, delta) {
+            if (enumOverlay && k === enumOverlay.slot) {
+                const next = Math.max(0, Math.min(enumOverlay.options.length - 1,
+                                                  enumOverlay.selected + delta));
+                if (next !== enumOverlay.selected) {
+                    enumOverlay.selected = next;
+                    knobValues[enumOverlay.gi] = next;
+                    dirty = true;
+                }
+                return;
+            }
+            longPressCountdown = -1;
             pendingDeltas[k] += delta;
             if (touchedSlot !== k) { touchedSlot = k; dirty = true; }
         },
 
         handleKnobTouch(k) {
+            if (enumOverlay) { enumOverlay = null; dirty = true; }
             if (touchedSlot !== k) { touchedSlot = k; dirty = true; }
+            const gi = knobPage * KNOBS_PER_PAGE + k;
+            const p  = knobParams[gi];
+            longPressCountdown = (p && p.type === 'enum' && p.options && p.options.length)
+                ? LONG_PRESS_TICKS : -1;
+        },
+
+        handleKnobRelease() {
+            if (enumOverlay) {
+                const p = knobParams[enumOverlay.gi];
+                if (p) {
+                    knobValues[enumOverlay.gi] = enumOverlay.selected;
+                    shadow_set_param(activeSlot, "synth:" + p.key,
+                                     String(enumOverlay.selected));
+                }
+                enumOverlay = null;
+                dirty = true;
+            }
+            if (touchedSlot >= 0) { touchedSlot = -1; dirty = true; }
+            longPressCountdown = -1;
         },
 
         changePage(delta) {
+            if (enumOverlay) return;
             const next = Math.max(0, Math.min(numBanks() - 1, knobPage + delta));
+            mlog("changePage delta=" + delta + " " + knobPage + "→" + next + "/" + numBanks());
             if (next !== knobPage) { knobPage = next; dirty = true; }
         },
 
         getModuleName() { return activeModuleName; },
 
         reset() {
-            knobPage     = 0;
-            touchedSlot  = -1;
+            knobPage       = 0;
+            touchedSlot    = -1;
+            longPressCountdown = -1;
+            enumOverlay    = null;
             pollCountdown    = NAME_POLL_TICKS;
             refreshCountdown = 0;
             for (let i = 0; i < KNOBS_PER_PAGE; i++) pendingDeltas[i] = 0;
@@ -278,6 +328,27 @@ export function createModel(slot) {
                 if (pendingDeltas[k] !== 0) {
                     applyKnobDelta(k, pendingDeltas[k]);
                     pendingDeltas[k] = 0;
+                }
+            }
+
+            if (longPressCountdown > 0) {
+                longPressCountdown--;
+                if (longPressCountdown === 0) {
+                    const k = touchedSlot;
+                    if (k >= 0) {
+                        const gi = knobPage * KNOBS_PER_PAGE + k;
+                        const p  = knobParams[gi];
+                        if (p && p.type === 'enum' && p.options) {
+                            enumOverlay = {
+                                slot:     k,
+                                gi,
+                                options:  p.options,
+                                selected: Math.round(knobValues[gi] ?? 0),
+                            };
+                            dirty = true;
+                        }
+                    }
+                    longPressCountdown = -1;
                 }
             }
 

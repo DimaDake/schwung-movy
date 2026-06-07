@@ -6,6 +6,8 @@ and exposes the active chain slot's synth parameters on the 8 knobs.
 
 Device: `ableton@move.local`
 
+**Plans:** Save all implementation plans to `movy/plans/` (not the repo root `plans/`).
+
 ---
 
 ## Dev loop
@@ -27,8 +29,15 @@ ssh ableton@move.local 'tail -f /data/UserData/schwung/debug.log | grep "\[movy\
 ssh ableton@move.local '> /data/UserData/schwung/debug.log'
 ```
 
-Schwung reloads JS automatically when the tool is reopened — no host restart
-needed for JS-only changes.
+**QuickJS module cache:** `shadow_load_ui_module` re-evaluates `ui.js` fresh on
+every tool open, but ES modules **imported by** `ui.js` are cached for the entire
+`shadow_ui` process lifetime (shadow_ui ignores SIGTERM; SIGKILL kills it without
+respawn). To avoid stale-code bugs, **all movy logic lives in `ui.js`** — model,
+renderer, and module configs are inlined rather than split into separate files.
+The `view/` and `modules/` subdirs exist only for browser tests.
+
+**Never `kill -9` the shadow_ui process** — MoveOriginal (its parent) does not
+respawn it, so the device UI breaks until a full reboot.
 
 ---
 

@@ -185,4 +185,11 @@ export const MOCK_SYNTHS = {
         "synth:speaker":    "0.5",
         "synth:tune":       "0.5",
     },
+
+    /* No synth loaded — model falls back to fallback test params */
+    no_params: {
+        "synth:name": null,
+        "synth:ui_hierarchy": null,
+        "synth:chain_params": null,
+    },
 };

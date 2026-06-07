@@ -8,7 +8,7 @@
  */
 
 import { createModel }    from '../view/model.mjs';
-import { renderKnobsView } from '../view/renderer.mjs';
+import { renderKnobsView, renderKeysView, renderBrowseView } from '../view/renderer.mjs';
 import { MOCK_SYNTHS }     from './mock-synth.mjs';
 
 /* ── Canvas + mock globals ───────────────────────────────────────────────── */
@@ -36,6 +36,7 @@ globalThis.shadow_get_ui_slot = () => 0;
 /* ── Model ───────────────────────────────────────────────────────────────── */
 
 const model = createModel(0);
+globalThis.__movy_model = model;
 
 function loadPreset(id) {
     mockState = { ...MOCK_SYNTHS[id] };
@@ -71,14 +72,21 @@ for (let k = 0; k < NUM_KNOBS; k++) {
         lastY = e.clientY;
         el.setPointerCapture(e.pointerId);
         el.classList.add('active');
+        model.handleKnobTouch(k);
     });
     el.addEventListener('pointermove', e => {
         if (!(e.buttons & 1)) return;
         const steps = Math.trunc(lastY - e.clientY);  /* up = positive */
         if (steps !== 0) { model.handleKnobDelta(k, steps); lastY = e.clientY; }
     });
-    el.addEventListener('pointerup',     () => el.classList.remove('active'));
-    el.addEventListener('pointercancel', () => el.classList.remove('active'));
+    el.addEventListener('pointerup', () => {
+        el.classList.remove('active');
+        model.handleKnobRelease();
+    });
+    el.addEventListener('pointercancel', () => {
+        el.classList.remove('active');
+        model.handleKnobRelease();
+    });
 }
 
 /* ── Page navigation ─────────────────────────────────────────────────────── */
@@ -144,6 +152,20 @@ function tick() {
     }
     requestAnimationFrame(tick);
 }
+
+globalThis.__movy_forceRender = () => {
+    const vm = model.getViewModel();
+    renderKnobsView(vm);
+    updateKnobWidgets(vm);
+    updateInspector(vm);
+};
+
+/* Exposed for screenshot.mjs to render alternate views */
+globalThis.__movy_renderKeysView   = () => renderKeysView(
+    model.getModuleName(), 60,
+    n => { const names=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']; return names[n%12]+Math.floor(n/12-1); }
+);
+globalThis.__movy_renderBrowseView = (mods, idx) => renderBrowseView(mods, idx);
 
 /* ── Boot ────────────────────────────────────────────────────────────────── */
 

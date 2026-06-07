@@ -28,7 +28,10 @@ const BASE_DIR   = join(__dir, 'screenshots', 'baseline');
 const ACTUAL_DIR = join(__dir, 'screenshots', 'actual');
 const UPDATE     = process.argv.includes('--update');
 
-const PRESETS = ['test8', 'test16', 'test_enum', 'plaits', 'wurl'];
+const PRESETS = [
+    'test8', 'test16', 'test_enum', 'plaits', 'wurl',
+    'enum_overlay', 'knob_toast', 'no_params', 'keys_view', 'browse_view',
+];
 const MIME = {
     '.html': 'text/html',
     '.mjs':  'text/javascript',
@@ -98,8 +101,12 @@ async function main() {
 
         await page.goto(url, { waitUntil: 'networkidle0' });
 
-        /* Select the preset */
-        await page.select('#preset-select', preset);
+        /* Determine which mock preset to load, then apply any view override */
+        const syntheticPresets = { enum_overlay: 'test_enum', knob_toast: 'test8',
+                                   no_params: 'no_params', keys_view: 'test8',
+                                   browse_view: 'test8' };
+        const basePreset = syntheticPresets[preset] ?? preset;
+        await page.select('#preset-select', basePreset);
 
         /* Wait for model.tick() to run and render */
         await page.waitForFunction(
@@ -107,6 +114,29 @@ async function main() {
             { timeout: 3000 },
         );
         await new Promise(r => setTimeout(r, 200));  /* extra rAF settle */
+
+        /* Synthetic view states */
+        if (preset === 'enum_overlay') {
+            await page.evaluate(() => {
+                const m = globalThis.__movy_model;
+                if (m) { m.handleKnobTouch(0); for (let i = 0; i < 175; i++) m.tick(); }
+                globalThis.__movy_forceRender?.();
+            });
+            await new Promise(r => setTimeout(r, 50));
+        } else if (preset === 'knob_toast') {
+            await page.evaluate(() => {
+                globalThis.__movy_model?.handleKnobTouch(2);
+                globalThis.__movy_forceRender?.();
+            });
+        } else if (preset === 'keys_view') {
+            await page.evaluate(() => { globalThis.__movy_renderKeysView?.(); });
+        } else if (preset === 'browse_view') {
+            await page.evaluate(() => {
+                globalThis.__movy_renderBrowseView?.(
+                    [{ name: 'Plaits' }, { name: 'Wurl' }, { name: 'Bass' }], 1
+                );
+            });
+        }
 
         /* Capture canvas at its native 128×64 resolution */
         const dataUrl = await page.evaluate(() => {

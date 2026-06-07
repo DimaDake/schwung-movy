@@ -42,15 +42,43 @@ function drawBankBar(bankIndex, bankCount) {
     }
 }
 
-/* Draw one 32px-wide knob cell: placeholder box centered in the row area */
-function drawKnobCell(col, rowY) {
-    const kx = col * CELL_W + (CELL_W - KW) / 2;  /* centered */
+/* Arc knob: 300° sweep from 7-o'clock (min) to 5-o'clock (max). */
+function drawArcKnob(kx, ky, normVal) {
+    const cx = kx + 4.5;
+    const cy = ky + 4.5;
+    const r  = 4.0;
+    const START = 210;
+    const RANGE = 300;
+    for (let d = START; d <= START + RANGE; d += 22) {
+        const rad = d * Math.PI / 180;
+        fill_rect(Math.round(cx + r * Math.sin(rad)),
+                  Math.round(cy - r * Math.cos(rad)), 1, 1, 1);
+    }
+    const fillEnd = START + normVal * RANGE;
+    for (let d = START; d <= fillEnd; d += 6) {
+        const rad = d * Math.PI / 180;
+        fill_rect(Math.round(cx + r * Math.sin(rad)),
+                  Math.round(cy - r * Math.cos(rad)), 1, 1, 1);
+    }
+    if (normVal > 0) {
+        const rad = fillEnd * Math.PI / 180;
+        fill_rect(Math.round(cx + r * Math.sin(rad)),
+                  Math.round(cy - r * Math.cos(rad)), 1, 1, 1);
+    }
+}
+
+function drawEnumKnob(kx, ky) {
+    fill_rect(kx + 1, ky + 1, KW - 2, KW - 2, 1);
+}
+
+function drawKnobWidget(col, rowY, pvm) {
+    const kx = col * CELL_W + Math.floor((CELL_W - KW) / 2);
     const ky = rowY + 1;
-    /* 10×10 hollow box */
-    fill_rect(kx,      ky,      KW, 1,  1);  /* top */
-    fill_rect(kx,      ky+KW-1, KW, 1,  1);  /* bottom */
-    fill_rect(kx,      ky,      1,  KW, 1);  /* left */
-    fill_rect(kx+KW-1, ky,      1,  KW, 1);  /* right */
+    if (pvm.type === 'enum') {
+        drawEnumKnob(kx, ky);
+    } else {
+        drawArcKnob(kx, ky, pvm.normalizedValue);
+    }
 }
 
 /* Draw one 32px-wide label cell. Shows shortName normally, displayValue on touch. */
@@ -65,24 +93,67 @@ function drawKnobRow(params, rowY, lblY) {
     for (let col = 0; col < 4; col++) {
         const pvm = params[col];
         if (!pvm) continue;
-        drawKnobCell(col, rowY);
+        drawKnobWidget(col, rowY, pvm);
         drawLabelCell(col, lblY, pvm);
     }
 }
 
 /* ── Main views ─────────────────────────────────────────────────────────── */
 
+function drawEnumOverlay(vm) {
+    const ov  = vm.overlay;
+    const row = Math.floor(ov.slot / 4);
+    const col = ov.slot % 4;
+    const pvm = vm.rows[row] && vm.rows[row][col];
+    const fullName = pvm ? pvm.fullName : "";
+    const valueStr = ov.options[ov.selected] || String(ov.selected);
+
+    clear_screen();
+    drawInvertedHeader(fullName, valueStr);
+
+    const LIST_TOP = 8;
+    const ROW_H    = 7;
+    const VISIBLE  = Math.floor((64 - LIST_TOP) / ROW_H);
+    const n        = ov.options.length;
+    const half     = Math.floor(VISIBLE / 2);
+    const start    = Math.max(0, Math.min(ov.selected - half, n - VISIBLE));
+
+    for (let i = 0; i < VISIBLE; i++) {
+        const idx = start + i;
+        if (idx >= n) break;
+        const y = LIST_TOP + i * ROW_H;
+        if (idx === ov.selected) {
+            fill_rect(0, y, W - 2, ROW_H, 1);
+            fontPrint(2, y + 1, ov.options[idx], 0);
+        } else {
+            fontPrint(2, y + 1, ov.options[idx], 1);
+        }
+    }
+
+    if (n > VISIBLE) {
+        const trackH = 64 - LIST_TOP;
+        const thumbH = Math.max(3, Math.round(trackH * VISIBLE / n));
+        const thumbY = LIST_TOP + Math.round((trackH - thumbH) * start / Math.max(1, n - VISIBLE));
+        fill_rect(W - 1, LIST_TOP, 1, trackH, 1);
+        fill_rect(W - 1, thumbY,   1, thumbH, 0);
+    }
+}
+
 export function renderKnobsView(vm) {
+    if (vm.overlay) { drawEnumOverlay(vm); return; }
     clear_screen();
 
-    /* Truncate module name to fit header alongside bank name */
-    const rightW    = vm.bankName ? fontWidth(vm.bankName) + 4 : 0;
-    const maxNameW  = W - rightW - 4;
-    let dispName    = vm.moduleName;
-    while (dispName.length > 1 && fontWidth(dispName) > maxNameW) {
-        dispName = dispName.slice(0, -1);
+    if (vm.toast) {
+        drawInvertedHeader(vm.toast.fullName, vm.toast.value);
+    } else {
+        const rightW    = vm.bankName ? fontWidth(vm.bankName) + 4 : 0;
+        const maxNameW  = W - rightW - 4;
+        let dispName    = vm.moduleName;
+        while (dispName.length > 1 && fontWidth(dispName) > maxNameW) {
+            dispName = dispName.slice(0, -1);
+        }
+        drawInvertedHeader(dispName, vm.bankName);
     }
-    drawInvertedHeader(dispName, vm.bankName);
 
     drawBankBar(vm.bankIndex, vm.bankCount);
 

@@ -1,8 +1,7 @@
 import type { ParamVM } from '../types/viewmodel.js';
-import { CELL_W, KW, LBL_H } from './layout.js';
-import { fontPrint, fontWidth } from '../font/index.js';
+import { CELL_W, KW } from './layout.js';
 import { fontPrint5x3, fontWidth5x3 } from '../font/index5x3.js';
-import { autoShorten, enumSquareLines } from './shorten.js';
+import { enumSquareLines } from './shorten.js';
 
 function drawCircleBorder(cx: number, cy: number, r: number): void {
     let x = r, y = 0, err = 0;
@@ -47,36 +46,14 @@ function drawEnumSquare(kx: number, ky: number, options: string[] | null, enumIn
     fill_rect(kx + KW - 1, ky, 1, KW, 1);
     const raw = options ? (options[enumIndex] ?? String(enumIndex)) : String(enumIndex);
     const [line1, line2] = enumSquareLines(raw);
-    const inner = KW - 2;
-    const totalH = 11;
+    const inner  = KW - 2;
+    const totalH = line2.length > 0 ? 11 : 5;
     const startY = ky + 1 + Math.floor((inner - totalH) / 2);
-    const l1w = fontWidth5x3(line1), l2w = fontWidth5x3(line2);
-    fontPrint5x3(kx + 1 + Math.floor((inner - l1w) / 2), startY,     line1, 1);
-    fontPrint5x3(kx + 1 + Math.floor((inner - l2w) / 2), startY + 6, line2, 1);
-}
-
-export function drawLongEnumCell(col: number, rowY: number, lblY: number, pvm: ParamVM): void {
-    const kx    = col * CELL_W;
-    const cellH = lblY + LBL_H - rowY;
-    const ROW_H = 7;
-    const startY = rowY + Math.floor((cellH - 3 * ROW_H) / 2);
-    const opts  = pvm.options ?? [];
-    const sel   = pvm.enumIndex;
-    const maxW  = CELL_W - 4;
-
-    for (let i = -1; i <= 1; i++) {
-        const idx = sel + i;
-        const y   = startY + (i + 1) * ROW_H;
-        if (idx < 0 || idx >= opts.length) continue;
-        const text = autoShorten(opts[idx], 7);
-        const tw   = fontWidth(text);
-        const tx   = kx + 2 + Math.max(0, Math.floor((maxW - tw) / 2));
-        if (i === 0) {
-            fill_rect(kx, y, CELL_W, ROW_H, 1);
-            fontPrint(tx, y + 1, text, 0);
-        } else {
-            fontPrint(tx, y + 1, text, 1);
-        }
+    const l1w = fontWidth5x3(line1);
+    fontPrint5x3(kx + 1 + Math.floor((inner - l1w) / 2), startY, line1, 1);
+    if (line2.length > 0) {
+        const l2w = fontWidth5x3(line2);
+        fontPrint5x3(kx + 1 + Math.floor((inner - l2w) / 2), startY + 6, line2, 1);
     }
 }
 

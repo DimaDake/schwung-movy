@@ -32,8 +32,11 @@ export function createModel(slot: number) {
             if (s.touchedSlot !== k) { s.touchedSlot = k; s.dirty = true; }
             const gi = s.knobPage * KNOBS_PER_PAGE + k;
             const p  = s.knobParams[gi];
-            s.longPressCountdown = (p && p.type === 'enum' && p.options?.length)
-                ? LONG_PRESS_TICKS : -1;
+            if (p && p.type === 'enum' && p.options && p.options.length > 6) {
+                s.enumOverlay = { slot: k, gi, options: p.options, selected: Math.round((s.knobValues[gi] ?? 0) as number) };
+                s.dirty = true;
+            }
+            s.longPressCountdown = -1;
         },
 
         handleKnobRelease(): void {

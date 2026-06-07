@@ -1,6 +1,6 @@
 import type { ParamVM } from '../types/viewmodel.js';
 import { fontPrint, fontWidth } from '../font/index.js';
-import { drawKnobWidget, drawLongEnumCell } from './knob.js';
+import { drawKnobWidget } from './knob.js';
 import { CELL_W, LBL_H } from './layout.js';
 
 export function drawLabelCell(col: number, lblY: number, pvm: ParamVM): void {
@@ -20,11 +20,7 @@ export function drawKnobRow(params: (ParamVM | null)[], rowY: number, lblY: numb
     for (let col = 0; col < 4; col++) {
         const pvm = params[col];
         if (!pvm) continue;
-        if (pvm.isLongEnum) {
-            drawLongEnumCell(col, rowY, lblY, pvm);
-        } else {
-            drawKnobWidget(col, rowY, pvm);
-            drawLabelCell(col, lblY, pvm);
-        }
+        drawKnobWidget(col, rowY, pvm);
+        drawLabelCell(col, lblY, pvm);
     }
 }

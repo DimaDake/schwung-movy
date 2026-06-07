@@ -102,7 +102,7 @@ async function main() {
         await page.goto(url, { waitUntil: 'networkidle0' });
 
         /* Determine which mock preset to load, then apply any view override */
-        const syntheticPresets = { enum_overlay: 'test_enum', knob_toast: 'test8',
+        const syntheticPresets = { enum_overlay: 'plaits', knob_toast: 'test8',
                                    no_params: 'no_params', keys_view: 'test8',
                                    browse_view: 'test8' };
         const basePreset = syntheticPresets[preset] ?? preset;
@@ -118,8 +118,7 @@ async function main() {
         /* Synthetic view states */
         if (preset === 'enum_overlay') {
             await page.evaluate(() => {
-                const m = globalThis.__movy_model;
-                if (m) { m.handleKnobTouch(0); for (let i = 0; i < 175; i++) m.tick(); }
+                globalThis.__movy_model?.handleKnobTouch(0);
                 globalThis.__movy_forceRender?.();
             });
             await new Promise(r => setTimeout(r, 50));

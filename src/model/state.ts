@@ -13,8 +13,9 @@ export interface ModelState {
     knobParams:         (KnobParam | null)[];
     knobValues:         (number | null)[];
     pendingDeltas:      number[];
+    enumAccums:         number[];   /* fractional delta accumulator per physical knob */
     knobPage:           number;
-    touchedSlot:        number;       /* -1 = none */
+    touchedSlots:       number[];      /* all currently held knobs; last = primary */
     longPressCountdown: number;       /* -1 = inactive */
     enumOverlay:        EnumOverlay | null;
     activeModuleName:   string;
@@ -32,8 +33,9 @@ export function createModelState(activeSlot: number): ModelState {
         knobParams:         [],
         knobValues:         [],
         pendingDeltas:      new Array(KNOBS_PER_PAGE).fill(0) as number[],
+        enumAccums:         new Array(KNOBS_PER_PAGE).fill(0) as number[],
         knobPage:           0,
-        touchedSlot:        -1,
+        touchedSlots:       [],
         longPressCountdown: -1,
         enumOverlay:        null,
         activeModuleName:   '—',

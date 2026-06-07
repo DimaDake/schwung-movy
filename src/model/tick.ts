@@ -20,7 +20,7 @@ export function processTick(s: ModelState): boolean {
     if (s.longPressCountdown > 0) {
         s.longPressCountdown--;
         if (s.longPressCountdown === 0) {
-            const k = s.touchedSlot;
+            const k = s.touchedSlots.length > 0 ? s.touchedSlots[s.touchedSlots.length - 1] : -1;
             if (k >= 0) {
                 const gi = s.knobPage * KNOBS_PER_PAGE + k;
                 const p  = s.knobParams[gi];

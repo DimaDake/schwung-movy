@@ -31,7 +31,7 @@ export function buildViewModel(s: ModelState): ViewModel {
                 type:            p.type,
                 normalizedValue: nv,
                 displayValue:    formatValue(p, v),
-                touched:         s.touchedSlot === physK,
+                touched:         s.touchedSlots.includes(physK),
                 isLongEnum:      p.type === 'enum' && (p.options?.length ?? 0) > 6,
                 options:         p.options,
                 enumIndex:       enumIdx,
@@ -39,9 +39,10 @@ export function buildViewModel(s: ModelState): ViewModel {
         }
     }
 
+    const primary = s.touchedSlots.length > 0 ? s.touchedSlots[s.touchedSlots.length - 1] : -1;
     let toast: ViewModel['toast'] = null;
-    if (s.touchedSlot >= 0) {
-        const gi = s.knobPage * KNOBS_PER_PAGE + s.touchedSlot;
+    if (primary >= 0) {
+        const gi = s.knobPage * KNOBS_PER_PAGE + primary;
         const p  = s.knobParams[gi];
         if (p) toast = { fullName: p.label, value: formatValue(p, s.knobValues[gi]) };
     }
@@ -52,7 +53,7 @@ export function buildViewModel(s: ModelState): ViewModel {
         bankIndex:   s.knobPage,
         bankCount:   nBanks,
         rows,
-        touchedSlot: s.touchedSlot >= 0 ? s.touchedSlot : null,
+        touchedSlot: primary >= 0 ? primary : null,
         toast,
         overlay:     s.enumOverlay
             ? { slot: s.enumOverlay.slot, options: s.enumOverlay.options, selected: s.enumOverlay.selected }

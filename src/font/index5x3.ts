@@ -13,7 +13,6 @@ export function fontWidth5x3(str: string): number {
     for (let i = 0; i < str.length; i++) {
         const idx = glyphIndex(str.charCodeAt(i));
         w += idx >= 0 ? G5[idx][0] : 4;
-        if (i < str.length - 1) w -= 1;
     }
     return w;
 }
@@ -37,6 +36,5 @@ export function fontPrint5x3(x: number, y: number, str: string, color: number): 
             }
         }
         cx += adv;
-        if (i < str.length - 1) cx -= 1;
     }
 }

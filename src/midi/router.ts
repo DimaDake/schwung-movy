@@ -20,7 +20,7 @@ export function onMidiMessageInternal(data: number[]): void {
     /* Capacitive knob touch: NoteOn note=0..7 */
     if ((status & 0xF0) === 0x90 && d1 < 8) {
         if (d2 > 0) model?.handleKnobTouch(d1);
-        else        model?.handleKnobRelease();
+        else        model?.handleKnobRelease(d1);
         return;
     }
     if ((status & 0xF0) === 0x90 && d1 < 10) return;  /* encoder touch — ignore */

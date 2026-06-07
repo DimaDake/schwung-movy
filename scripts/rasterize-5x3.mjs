@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 // Rasterizes chars from 5x3-font.otf → src/font/glyphs5x3.ts
 // Glyph format (same as glyphs.ts): [advance, yOff, w, h, ...rowBytes]  bit0=leftmost
-import { loadSync } from 'opentype.js';
-import { writeFileSync } from 'fs';
+import pkg from 'opentype.js';
+const { parse } = pkg;
+import { writeFileSync, readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
-const font  = loadSync(resolve(__dir, '../5x3-font.otf'));
+const fontBuf = readFileSync(resolve(__dir, '../../5x3-font.otf'));
+const font = parse(fontBuf.buffer.slice(fontBuf.byteOffset, fontBuf.byteOffset + fontBuf.byteLength));
 
 const CHARS    = ' !"\'()+,-./:0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const TARGET_H = 5;

@@ -1,15 +1,17 @@
-import { appState, VIEW_KEYS, VIEW_KNOBS } from './state.js';
+import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN } from './state.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
+import { CHAIN_SLOTS } from '../chain/config.js';
 import { padLedColor } from '../keyboard/leds.js';
 import { midiNoteName } from '../keyboard/notes.js';
 import { renderKnobsView } from '../renderer/knob-view.js';
 import { renderKeysView }  from '../renderer/keys-view.js';
 import { renderBrowseView } from '../renderer/browse-view.js';
+import { renderChainView } from '../renderer/chain-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
 
-const PAD_MIN       = MovePads[0];
-const PAD_MAX       = MovePads[MovePads.length - 1];
+const PAD_MIN        = MovePads[0];
+const PAD_MAX        = MovePads[MovePads.length - 1];
 const LED_INIT_BATCH = 8;
 
 export function tick(): void {
@@ -24,17 +26,23 @@ export function tick(): void {
         return;
     }
 
-    const modelDirty = appState.model?.tick() ?? false;
+    const activeModel = appState.chainModels[appState.chainIndex];
+    const modelDirty  = activeModel?.tick() ?? false;
 
     if (modelDirty || appState.dirty) {
         if (appState.currentView === VIEW_KEYS) {
-            renderKeysView(appState.model?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
+            renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
-            const vm = appState.model!.getViewModel();
-            renderKnobsView(vm);
+            const vm = activeModel!.getViewModel();
+            renderKnobsView(vm, appState.jogTouched);
+            updateKnobLEDs(vm);
+        } else if (appState.currentView === VIEW_CHAIN) {
+            const vm = activeModel!.getViewModel();
+            renderChainView(vm, appState.chainIndex, appState.jogTouched);
             updateKnobLEDs(vm);
         } else {
-            renderBrowseView(browserState.modules, browserState.browseIndex);
+            const browseTitle = CHAIN_SLOTS[appState.chainIndex]?.label ?? 'Module';
+            renderBrowseView(browserState.modules, browserState.browseIndex, browseTitle);
         }
         appState.dirty = false;
     }

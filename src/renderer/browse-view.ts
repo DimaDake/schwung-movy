@@ -2,9 +2,9 @@ import { fontPrint, FONT_HEIGHT } from '../font/index.js';
 import { drawHeader } from './header.js';
 import { W, HEADER_H } from './layout.js';
 
-export function renderBrowseView(modules: { name: string }[], browseIndex: number): void {
+export function renderBrowseView(modules: { name: string }[], browseIndex: number, title = 'Module'): void {
     clear_screen();
-    drawHeader('Sound module', null, true);
+    drawHeader(title, null, true);
 
     const FOOTER_Y = 57;
     const LIST_TOP = HEADER_H + 2;

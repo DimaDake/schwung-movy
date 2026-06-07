@@ -1,4 +1,4 @@
-// Elektron pixel font — rasterised from elektron-font.otf at 8pt
+// Pixel font — rasterised at 8pt
 // Glyph format: [advance, yOff, w, h, ...rowBytes]  bit0=leftmost pixel
 export const G: number[][] = [
   [6, 0, 0, 0],// ' '

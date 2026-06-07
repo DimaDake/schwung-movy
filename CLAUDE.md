@@ -127,7 +127,7 @@ src/
     globals.ts     Assigns init/tick/onMidiMessageInternal to globalThis
 
   font/
-    glyphs.ts      G[] glyph table (Elektron pixel font rasterised at 8pt)
+    glyphs.ts      G[] glyph table (pixel font rasterised at 8pt)
     index.ts       FONT_HEIGHT, fontPrint(), fontWidth()
 ```
 
@@ -266,12 +266,7 @@ Do not treat the raw `d2` value as a delta directly.
 
 ## Font
 
-`src/font/glyphs.ts` contains the Elektron pixel font rasterised from
-`elektron-font.otf` at 8pt. `FONT_HEIGHT = 5`. Glyph format:
-`[advance, yOff, w, h, ...rowBytes]` with bit0 = leftmost pixel per row.
-
-To regenerate after changing the OTF or size:
-```bash
-python3 scripts/generate_font.py
-```
-Requires Pillow: `pip install pillow`.
+`src/font/glyphs.ts` contains the pixel font as a pre-rasterised glyph table.
+`FONT_HEIGHT = 5`. Glyph format: `[advance, yOff, w, h, ...rowBytes]`
+with bit0 = leftmost pixel per row. The original OTF has been removed;
+the glyph data in `glyphs.ts` is the source of truth.

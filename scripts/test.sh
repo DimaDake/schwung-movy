@@ -102,8 +102,8 @@ fi
 
 # Hierarchy load
 if echo "$LOG" | grep -q "loadHierarchy:"; then
-    if echo "$LOG" | grep -qE "[0-9]+ params loaded"; then
-        N=$(echo "$LOG" | grep "params loaded" | tail -1 | grep -o "[0-9]* params" | awk '{print $1}')
+    if echo "$LOG" | grep -qE "[0-9]+ params(,| loaded)"; then
+        N=$(echo "$LOG" | grep -E "[0-9]+ params" | tail -1 | grep -o "[0-9]* params" | awk '{print $1}')
         pass "Hierarchy loaded — $N params"
     elif echo "$LOG" | grep -q "ui_hierarchy null"; then
         pass "Hierarchy: no synth loaded — fallback test params active"

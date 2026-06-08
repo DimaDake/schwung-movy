@@ -67,7 +67,7 @@ export function buildViewModel(s: ModelState): ViewModel {
     }
 
     return {
-        moduleName:  'T' + (s.activeSlot + 1) + ' > ' + s.activeModuleName,
+        moduleName:  s.activeModuleName,
         bankName,
         bankIndex:   s.knobPage,
         bankCount:   nBanks,

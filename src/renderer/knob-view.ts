@@ -12,16 +12,17 @@ function drawJogToast(text: string): void {
     fontPrint(tx, TOAST_Y + 1, text, 0);
 }
 
-export function renderKnobsView(vm: ViewModel, jogTouched = false): void {
+export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 0): void {
     clear_screen();
 
     if (vm.toast) {
         drawHeader(vm.toast.fullName, vm.toast.value, true);
     } else {
-        const rightW   = vm.bankName ? fontWidth(vm.bankName) + 4 : 0;
-        const maxNameW = W - rightW - 4;
-        let dispName   = vm.moduleName;
-        while (dispName.length > 1 && fontWidth(dispName) > maxNameW) {
+        const trackLabel = 'T' + (activeSlot + 1);
+        const rightW     = vm.bankName ? fontWidth(vm.bankName) + 4 : 0;
+        const maxLeftW   = W - rightW - 4;
+        let dispName     = trackLabel + ' > ' + vm.moduleName;
+        while (dispName.length > 1 && fontWidth(dispName) > maxLeftW) {
             dispName = dispName.slice(0, -1);
         }
         drawHeader(dispName, vm.bankName || null, false);

@@ -35,7 +35,7 @@ export function tick(): void {
             renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
             const vm = activeModel!.getViewModel();
-            renderKnobsView(vm, appState.jogTouched);
+            renderKnobsView(vm, appState.jogTouched, appState.activeSlot);
             updateKnobLEDs(vm);
         } else if (appState.currentView === VIEW_CHAIN) {
             const vm = activeModel!.getViewModel();

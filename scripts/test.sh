@@ -187,12 +187,9 @@ fi
 # movy should sustain well above 100 ticks/sec for responsive knob control.
 TICK_RATE_MIN=100
 
-# Refresh blocking: refreshKnobValues fires N sequential shadow_get_param calls
-# (one per param). Baseline: ~180 ms for 62-param synths (OB-Xd), ~50 ms for
-# 16-param synths (Plaits). Threshold 500 ms passes current code while catching
-# a further regression (extra loop, unbounded polling, etc.).
-# After the staggered-refresh optimization lands, tighten this to 30 ms.
-REFRESH_MS_MAX=500
+# Refresh blocking: each tick calls refreshOneParam() — one shadow_get_param.
+# Baseline: ~3 ms per GET. Threshold 10 ms allows for shim jitter.
+REFRESH_MS_MAX=10
 
 if echo "$LOG" | grep -q "perf_tick_rate="; then
     RATE=$(echo "$LOG" | grep "perf_tick_rate=" | tail -1 | grep -o "perf_tick_rate=[0-9]*" | cut -d= -f2)

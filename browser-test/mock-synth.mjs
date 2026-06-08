@@ -186,6 +186,56 @@ export const MOCK_SYNTHS = {
         "synth:tune":       "0.5",
     },
 
+    nav_levels: {
+        "synth:name": "NavTest",
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: {
+                    knobs: ["main_a", "main_b"],
+                    params: [
+                        { label: "Main", level: "main" },
+                        { label: "Mod",  level: "mod"  },
+                    ],
+                },
+                main: {
+                    name: "Main",
+                    knobs: ["main_a", "main_b", "main_c", "main_d"],
+                },
+                mod: {
+                    name: "Mod",
+                    params: [
+                        { label: "Pitch", level: "pitch_mod" },
+                        { label: "Filt",  level: "filt_mod"  },
+                    ],
+                },
+                pitch_mod: {
+                    name: "Pitch",
+                    knobs: ["pm_lfo", "pm_env", "pm_vel"],
+                },
+                filt_mod: {
+                    name: "Filter",
+                    knobs: ["fm_lfo", "fm_env", "fm_vel"],
+                },
+            },
+        }),
+        "synth:chain_params": JSON.stringify([
+            { key: "main_a", name: "Main A", type: "float", min: 0, max: 1 },
+            { key: "main_b", name: "Main B", type: "float", min: 0, max: 1 },
+            { key: "main_c", name: "Main C", type: "float", min: 0, max: 1 },
+            { key: "main_d", name: "Main D", type: "float", min: 0, max: 1 },
+            { key: "pm_lfo", name: "LFO",    type: "float", min: -1, max: 1 },
+            { key: "pm_env", name: "Env",    type: "float", min: -1, max: 1 },
+            { key: "pm_vel", name: "Vel",    type: "float", min: -1, max: 1 },
+            { key: "fm_lfo", name: "LFO",    type: "float", min: -1, max: 1 },
+            { key: "fm_env", name: "Env",    type: "float", min: -1, max: 1 },
+            { key: "fm_vel", name: "Vel",    type: "float", min: -1, max: 1 },
+        ]),
+        "synth:main_a": "0.5", "synth:main_b": "0.5",
+        "synth:main_c": "0.5", "synth:main_d": "0.5",
+        "synth:pm_lfo": "0.0", "synth:pm_env": "0.0", "synth:pm_vel": "0.0",
+        "synth:fm_lfo": "0.0", "synth:fm_env": "0.0", "synth:fm_vel": "0.0",
+    },
+
     /* No synth loaded — model falls back to fallback test params */
     no_params: {
         "synth:name": null,

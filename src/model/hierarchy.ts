@@ -9,6 +9,7 @@ interface HierParam {
     type?: string; min?: number; max?: number; step?: number; options?: string[];
 }
 interface HierLevel {
+    name?: string;
     knobs?: (string | HierParam)[];
     params?: (string | HierParam)[];
     list_param?: string; count_param?: string; name_param?: string;
@@ -181,14 +182,39 @@ export function loadHierarchy(s: ModelState): void {
     if (presetParam && !presetSeparate) rootKeys = [listParam!, ...rootKeys];
     if (rootKeys.length > 0) addLevel('Main', rootKeys);
 
-    /* Sub-levels from root.params order — skip navigation-only levels (no knobs) */
+    /* Sub-levels from root.params — recurse into navigation-only levels */
+    function levelNameToPrefix(name: string): string {
+        const words = name.split(/\s+/).filter(Boolean);
+        if (words.length === 0) return '';
+        if (words.length === 1) return words[0].slice(0, 6);
+        return (words[0].slice(0, 4) + words.slice(1).map(w => w[0].toUpperCase()).join('')).slice(0, 6);
+    }
+
+    const visitedLevels = new Set<string>();
+
+    function addLevelOrExpand(levelKey: string, prefix: string | null, depth: number): void {
+        if (depth > 2 || visitedLevels.has(levelKey)) return;
+        visitedLevels.add(levelKey);
+        const lvl = allLevels[levelKey];
+        if (!lvl) return;
+        const name  = lvl.name || levelLabel[levelKey] || levelKey;
+        const label = prefix ? prefix + '/' + name : name;
+        if (Array.isArray(lvl.knobs) && lvl.knobs.length > 0) {
+            const keys = lvl.knobs.map(toKey).filter((k): k is string => k !== null);
+            if (keys.length > 0) addLevel(label, keys);
+        } else if (Array.isArray(lvl.params)) {
+            const nextPrefix = levelNameToPrefix(name);
+            for (const sub of lvl.params) {
+                if (typeof sub !== 'object' || !sub.level) continue;
+                addLevelOrExpand(sub.level, nextPrefix, depth + 1);
+            }
+        }
+    }
+
     if (Array.isArray(rootLevel.params)) {
         for (const entry of rootLevel.params) {
             if (typeof entry !== 'object' || !entry.level) continue;
-            const lvl = allLevels[entry.level];
-            if (!lvl || !Array.isArray(lvl.knobs) || lvl.knobs.length === 0) continue;
-            const keys = lvl.knobs.map(toKey).filter((k): k is string => k !== null);
-            if (keys.length > 0) addLevel(levelLabel[entry.level] || entry.level, keys);
+            addLevelOrExpand(entry.level, null, 0);
         }
     }
 

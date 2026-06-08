@@ -92,6 +92,31 @@ _log('\nTest: bankCount and bankName');
     eq('obxd: first bankName = Preset', vm.bankName, 'Preset');
 }
 
+/* ── nav-only level expansion ─────────────────────────────────────────────── */
+
+_log('\nTest: navigation-only levels expand recursively');
+
+{
+    const m = bootModel(MOCK_SYNTHS.nav_levels);
+    eq('nav_levels: bankCount = 4', m.getViewModel().bankCount, 4);
+
+    const names = [];
+    for (let i = 0; i < 4; i++) {
+        if (i > 0) m.changePage(1);
+        names.push(m.getViewModel().bankName);
+    }
+    eq('nav_levels: bank 0 = Main',       names[0], 'Main');
+    eq('nav_levels: bank 1 = Main',       names[1], 'Main');
+    eq('nav_levels: bank 2 = Mod/Pitch',  names[2], 'Mod/Pitch');
+    eq('nav_levels: bank 3 = Mod/Filter', names[3], 'Mod/Filter');
+    eq('nav_levels: no bare Mod bank',    names.includes('Mod'), false);
+
+    // page 2 (Mod/Pitch) should expose 3 params
+    m.changePage(-1);
+    eq('nav_levels: Mod/Pitch has 3 params',
+        m.getViewModel().rows.flat().filter(Boolean).length, 3);
+}
+
 /* ── isEmpty flag ─────────────────────────────────────────────────────────── */
 
 _log('\nTest: vm.isEmpty');

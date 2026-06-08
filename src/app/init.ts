@@ -13,7 +13,8 @@ export function init(): void {
         CHAIN_SLOTS.map(s => createModel(slot, s.componentKey))
     );
     appState.trackChainIndex = [1, 1, 1, 1];
-    appState.currentView  = VIEW_CHAIN;
+    appState.trackView       = [VIEW_CHAIN, VIEW_CHAIN, VIEW_CHAIN, VIEW_CHAIN];
+    appState.currentView     = VIEW_CHAIN;
     appState.shiftHeld    = false;
     appState.jogTouched   = false;
     appState.browseOrigin = VIEW_CHAIN;

@@ -13,6 +13,7 @@ export const appState = {
     initLedIndex:    0,
     initLedsDone:    false,
     trackChainIndex: [1, 1, 1, 1] as number[],
+    trackView:       [3, 3, 3, 3] as number[],   /* VIEW_CHAIN per track */
     trackModels:     [] as Model[][],
     jogTouched:      false,
     browseOrigin:    VIEW_CHAIN as number,

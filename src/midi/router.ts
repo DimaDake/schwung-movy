@@ -68,7 +68,10 @@ export function onMidiMessageInternal(data: number[]): void {
     if (d1 >= TRACK_CC_START && d1 <= TRACK_CC_END && d2 > 0) {
         const newSlot = TRACK_CC_END - d1;
         if (newSlot !== appState.activeSlot) {
+            appState.trackView[appState.activeSlot] =
+                appState.currentView === VIEW_BROWSE ? appState.browseOrigin : appState.currentView;
             appState.activeSlot = newSlot;
+            appState.currentView = appState.trackView[newSlot];
             appState.jogTouched = false;
         }
         appState.dirty = true;

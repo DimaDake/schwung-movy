@@ -9,8 +9,10 @@ export function init(): void {
     appState.activeSlot = (typeof shadow_get_ui_slot === 'function') ? shadow_get_ui_slot() : 0;
     mlog('init: activeSlot=' + appState.activeSlot);
 
-    appState.chainModels  = CHAIN_SLOTS.map(s => createModel(appState.activeSlot, s.componentKey));
-    appState.chainIndex   = 1;
+    appState.trackModels = Array.from({ length: 4 }, (_, slot) =>
+        CHAIN_SLOTS.map(s => createModel(slot, s.componentKey))
+    );
+    appState.trackChainIndex = [1, 1, 1, 1];
     appState.currentView  = VIEW_CHAIN;
     appState.shiftHeld    = false;
     appState.jogTouched   = false;
@@ -19,7 +21,9 @@ export function init(): void {
     appState.initLedIndex = 0;
     appState.initLedsDone = false;
 
-    for (const m of appState.chainModels) m.reset();
+    for (const trackSlots of appState.trackModels) {
+        for (const m of trackSlots) m.reset();
+    }
 
     keyboardState.rootNote = 48;
     for (const k of Object.keys(keyboardState.held)) delete keyboardState.held[+k];

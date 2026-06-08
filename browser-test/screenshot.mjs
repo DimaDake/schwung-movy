@@ -34,6 +34,7 @@ const PRESETS = [
     'obxd_preset_page', 'obxd_main_page', 'obxd_filter_page',
     'lfo_prefix',
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
+    'chain_t2', 'chain_t4',
 ];
 const MIME = {
     '.html': 'text/html',
@@ -114,7 +115,9 @@ async function main() {
                                    chain_synth:      'test8',
                                    chain_empty:      'test8',
                                    chain_jog_toast:  'test8',
-                                   knobs_jog_toast:  'test8' };
+                                   knobs_jog_toast:  'test8',
+                                   chain_t2:         'test8',
+                                   chain_t4:         'test8' };
         const basePreset = syntheticPresets[preset] ?? preset;
         await page.select('#preset-select', basePreset);
 
@@ -175,6 +178,14 @@ async function main() {
         } else if (preset === 'knobs_jog_toast') {
             await page.evaluate(() => {
                 globalThis.__movy_renderKnobsJogToast?.();
+            });
+        } else if (preset === 'chain_t2') {
+            await page.evaluate(() => {
+                globalThis.__movy_renderChainView?.(1, false, 1);  /* synth slot, T2 */
+            });
+        } else if (preset === 'chain_t4') {
+            await page.evaluate(() => {
+                globalThis.__movy_renderChainView?.(1, false, 3);  /* synth slot, T4 */
             });
         }
 

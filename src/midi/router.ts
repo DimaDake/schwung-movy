@@ -5,11 +5,20 @@ import { noteOn, noteOff, changeRoot, releaseAllNotes } from '../keyboard/handle
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { mlog } from '../log.js';
 
-const PAD_MIN      = MovePads[0];
-const PAD_MAX      = MovePads[MovePads.length - 1];
-const KNOB_CC_BASE = MoveKnob1;
-const NUM_KNOBS    = 8;
-const JOG_TOUCH    = MoveKnob8Touch + 1;  /* note 8 = main encoder touch */
+const PAD_MIN        = MovePads[0];
+const PAD_MAX        = MovePads[MovePads.length - 1];
+const KNOB_CC_BASE   = MoveKnob1;
+const NUM_KNOBS      = 8;
+const JOG_TOUCH      = MoveKnob8Touch + 1;  /* note 8 = main encoder touch */
+const TRACK_CC_START = 40;                   /* MoveRow4 → slot 3 */
+const TRACK_CC_END   = 43;                   /* MoveRow1 → slot 0 */
+
+function activeModel() {
+    return appState.trackModels[appState.activeSlot]?.[appState.trackChainIndex[appState.activeSlot]];
+}
+
+function chainIndex(): number { return appState.trackChainIndex[appState.activeSlot]; }
+function setChainIndex(i: number): void { appState.trackChainIndex[appState.activeSlot] = i; }
 
 export function onMidiMessageInternal(data: number[]): void {
     if (!data || data.length < 3) return;
@@ -19,9 +28,8 @@ export function onMidiMessageInternal(data: number[]): void {
 
     /* Capacitive knob touch: NoteOn note=0..7 */
     if ((status & 0xF0) === 0x90 && d1 < 8) {
-        const active = appState.chainModels[appState.chainIndex];
-        if (d2 > 0) active?.handleKnobTouch(d1);
-        else        active?.handleKnobRelease(d1);
+        if (d2 > 0) activeModel()?.handleKnobTouch(d1);
+        else        activeModel()?.handleKnobRelease(d1);
         return;
     }
 
@@ -50,11 +58,22 @@ export function onMidiMessageInternal(data: number[]): void {
         const k     = d1 - KNOB_CC_BASE;
         const delta = decodeDelta(d2);
         mlog('knobCC k=' + k + ' d2=' + d2 + ' delta=' + delta);
-        appState.chainModels[appState.chainIndex]?.handleKnobDelta(k, delta);
+        activeModel()?.handleKnobDelta(k, delta);
         return;
     }
 
     if ((status & 0xF0) !== 0xB0) return;
+
+    /* Track buttons (CC 40–43): newSlot = 43 - d1  →  CC43=slot0, CC40=slot3 */
+    if (d1 >= TRACK_CC_START && d1 <= TRACK_CC_END && d2 > 0) {
+        const newSlot = TRACK_CC_END - d1;
+        if (newSlot !== appState.activeSlot) {
+            appState.activeSlot = newSlot;
+            appState.jogTouched = false;
+        }
+        appState.dirty = true;
+        return;
+    }
 
     /* Shift */
     if (d1 === MoveShift) { appState.shiftHeld = d2 > 0; return; }
@@ -80,16 +99,16 @@ export function onMidiMessageInternal(data: number[]): void {
         if (appState.currentView === VIEW_BROWSE) {
             loadSelectedModule(appState.activeSlot);
         } else if (appState.currentView === VIEW_CHAIN) {
-            const isEmpty = appState.chainModels[appState.chainIndex]?.getViewModel().isEmpty ?? false;
+            const isEmpty = activeModel()?.getViewModel().isEmpty ?? false;
             if (appState.shiftHeld || isEmpty) {
-                openBrowser(appState.activeSlot, appState.chainIndex);
+                openBrowser(appState.activeSlot, chainIndex());
                 appState.browseOrigin = VIEW_CHAIN;
             } else {
                 appState.currentView = VIEW_KNOBS;
                 appState.dirty = true;
             }
         } else if (appState.currentView === VIEW_KNOBS) {
-            openBrowser(appState.activeSlot, appState.chainIndex);
+            openBrowser(appState.activeSlot, chainIndex());
             appState.browseOrigin = VIEW_KNOBS;
         } else if (appState.currentView === VIEW_KEYS) {
             appState.currentView = VIEW_CHAIN;
@@ -103,10 +122,10 @@ export function onMidiMessageInternal(data: number[]): void {
         const delta = decodeDelta(d2);
         if (delta !== 0) {
             if (appState.currentView === VIEW_CHAIN) {
-                appState.chainIndex = Math.max(0, Math.min(3, appState.chainIndex + (delta > 0 ? 1 : -1)));
-                mlog('chain chainIndex=' + appState.chainIndex);
+                setChainIndex(Math.max(0, Math.min(3, chainIndex() + (delta > 0 ? 1 : -1))));
+                mlog('chain chainIndex=' + chainIndex());
             } else if (appState.currentView === VIEW_KNOBS) {
-                appState.chainModels[appState.chainIndex]?.changePage(delta > 0 ? 1 : -1);
+                activeModel()?.changePage(delta > 0 ? 1 : -1);
             } else if (appState.currentView === VIEW_BROWSE) {
                 browserState.browseIndex = Math.max(0, Math.min(browserState.modules.length - 1, browserState.browseIndex + delta));
             }
@@ -118,18 +137,18 @@ export function onMidiMessageInternal(data: number[]): void {
     /* Left/Right — page nav in VIEW_KNOBS; chain-slot nav in VIEW_CHAIN */
     if (d1 === MoveLeft && d2 > 0) {
         if (appState.currentView === VIEW_CHAIN) {
-            appState.chainIndex = Math.max(0, appState.chainIndex - 1);
+            setChainIndex(Math.max(0, chainIndex() - 1));
         } else if (appState.currentView === VIEW_KNOBS) {
-            appState.chainModels[appState.chainIndex]?.changePage(-1);
+            activeModel()?.changePage(-1);
         }
         appState.dirty = true;
         return;
     }
     if (d1 === MoveRight && d2 > 0) {
         if (appState.currentView === VIEW_CHAIN) {
-            appState.chainIndex = Math.min(3, appState.chainIndex + 1);
+            setChainIndex(Math.min(3, chainIndex() + 1));
         } else if (appState.currentView === VIEW_KNOBS) {
-            appState.chainModels[appState.chainIndex]?.changePage(1);
+            activeModel()?.changePage(1);
         }
         appState.dirty = true;
         return;

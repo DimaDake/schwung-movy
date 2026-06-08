@@ -171,10 +171,10 @@ globalThis.__movy_renderKeysView   = () => renderKeysView(
 );
 globalThis.__movy_renderBrowseView = (mods, idx) => renderBrowseView(mods, idx);
 
-globalThis.__movy_renderChainView = (chainIndex, jogTouched) => {
+globalThis.__movy_renderChainView = (chainIndex, jogTouched, activeSlot) => {
     const m  = chainModels[chainIndex ?? 1];
     const vm = m.getViewModel();
-    renderChainView(vm, chainIndex ?? 1, jogTouched ?? false);
+    renderChainView(vm, chainIndex ?? 1, jogTouched ?? false, activeSlot ?? 0);
 };
 
 globalThis.__movy_renderKnobsJogToast = () => {

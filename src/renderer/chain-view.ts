@@ -13,13 +13,14 @@ function drawJogToast(text: string): void {
     fontPrint(tx, TOAST_Y + 1, text, 0);
 }
 
-export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: boolean): void {
+export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: boolean, activeSlot = 0): void {
     clear_screen();
 
-    const slot = CHAIN_SLOTS[chainIndex] ?? CHAIN_SLOTS[1];
+    const slot       = CHAIN_SLOTS[chainIndex] ?? CHAIN_SLOTS[1];
+    const trackLabel = 'T' + (activeSlot + 1);
 
     if (vm.isEmpty) {
-        drawHeader('T1', slot.label, false);
+        drawHeader(trackLabel, slot.label, false);
         drawBankBar(chainIndex, 4);
         const msg = 'CLICK JOG: ADD MODULE';
         fontPrint(Math.max(0, Math.floor((W - fontWidth(msg)) / 2)), 28, msg, 1);
@@ -30,11 +31,11 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
     if (vm.toast) {
         drawHeader(vm.toast.fullName, vm.toast.value, true);
     } else {
-        const leftW    = fontWidth('T1') + 4;
+        const leftW    = fontWidth(trackLabel) + 4;
         const maxRight = W - leftW - 4;
         let right = vm.moduleName;
         while (right.length > 1 && fontWidth(right) > maxRight) right = right.slice(0, -1);
-        drawHeader('T1', right, false);
+        drawHeader(trackLabel, right, false);
     }
 
     drawBankBar(chainIndex, 4);

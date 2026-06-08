@@ -51,5 +51,5 @@ export function loadSelectedModule(activeSlot: number): void {
     appState.currentView = appState.browseOrigin;
     appState.dirty = true;
     const idx = CHAIN_SLOTS.findIndex(s => s.componentKey === browserState.componentKey);
-    if (idx >= 0) appState.chainModels[idx]?.reload();
+    if (idx >= 0) appState.trackModels[appState.activeSlot]?.[idx]?.reload();
 }

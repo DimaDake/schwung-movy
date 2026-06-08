@@ -26,7 +26,8 @@ export function tick(): void {
         return;
     }
 
-    const activeModel = appState.chainModels[appState.chainIndex];
+    const chainIdx    = appState.trackChainIndex[appState.activeSlot];
+    const activeModel = appState.trackModels[appState.activeSlot]?.[chainIdx];
     const modelDirty  = activeModel?.tick() ?? false;
 
     if (modelDirty || appState.dirty) {
@@ -38,10 +39,10 @@ export function tick(): void {
             updateKnobLEDs(vm);
         } else if (appState.currentView === VIEW_CHAIN) {
             const vm = activeModel!.getViewModel();
-            renderChainView(vm, appState.chainIndex, appState.jogTouched);
+            renderChainView(vm, chainIdx, appState.jogTouched, appState.activeSlot);
             updateKnobLEDs(vm);
         } else {
-            const browseTitle = CHAIN_SLOTS[appState.chainIndex]?.label ?? 'Module';
+            const browseTitle = CHAIN_SLOTS[chainIdx]?.label ?? 'Module';
             renderBrowseView(browserState.modules, browserState.browseIndex, browseTitle);
         }
         appState.dirty = false;

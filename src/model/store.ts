@@ -1,6 +1,6 @@
 import type { KnobParam } from '../types/param.js';
 import type { ModelState } from './state.js';
-import { KNOBS_PER_PAGE, ENUM_DELTA_DIV, REFRESH_SUPPRESS_TICKS } from './constants.js';
+import { KNOBS_PER_PAGE, ENUM_DELTA_DIV, ARC_DELTA_SCALE, REFRESH_SUPPRESS_TICKS } from './constants.js';
 import { mlog } from '../log.js';
 
 export function formatValue(p: KnobParam, v: number | null | undefined): string {
@@ -26,7 +26,8 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
         s.knobValues[gi] = (raw === null || isNaN(v)) ? p.min : v;
     }
 
-    const scaled = p.type === 'enum' ? delta / ENUM_DELTA_DIV : delta * p.step;
+    const arcScale = p.renderStyle === 'arc' ? ARC_DELTA_SCALE : 1;
+    const scaled = p.type === 'enum' ? delta / ENUM_DELTA_DIV : delta * p.step * arcScale;
     let newVal = (s.knobValues[gi] as number) + scaled;
     newVal = Math.max(p.min, Math.min(p.max, newVal));
     if (p.type === 'int') newVal = Math.round(newVal);

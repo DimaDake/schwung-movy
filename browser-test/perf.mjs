@@ -21,10 +21,11 @@ import { MOCK_SYNTHS }     from './mock-synth.mjs';
  * Catches someone adding a per-pixel inner loop or doubling the draw calls. */
 const FILL_RECT_PER_RENDER_MAX = 1500;
 
-/* shadow_get_param calls accumulated during a single processTick refresh
- * window (69 ticks). Baseline: 16 (one read per param, test16 has 16 params).
- * Allows up to 2.5× to accommodate synths with more params; catches O(n²). */
-const GET_PARAM_PER_REFRESH_MAX = 40;
+/* Max shadow_get_param calls in any single tick over a 70-tick window.
+ * After staggered refresh: 1 GET per tick (cursor advances one position).
+ * Threshold 2 allows for rounding/off-by-one while catching any bulk-refresh
+ * regression (old code fired 16 GETs on the scheduled tick). */
+const GET_PARAM_PER_TICK_MAX = 2;
 
 /* Median renderKnobsView wall-clock time (ms) in Node.js V8 with a no-op
  * fill_rect. Baseline: ~0.004ms. Threshold is generous (V8 is much faster
@@ -95,25 +96,29 @@ _origLog('\nTest 1: fill_rect calls per renderKnobsView (test16, 8 arc knobs)');
     _origLog(`    (baseline: ${fillRectCount} calls)`);
 }
 
-/* ── Test 2: shadow_get_param calls in one refresh window ────────────────── */
+/* ── Test 2: max shadow_get_param calls in any single tick ───────────────── */
 
-_origLog('\nTest 2: shadow_get_param calls during 69-tick refresh window (test16)');
+_origLog('\nTest 2: max shadow_get_param calls in any single tick (test16, 70 ticks)');
 
 {
     mockState = { ...MOCK_SYNTHS.test16 };
     const model = createModel(0, 'synth');
 
-    /* Tick 1 loads hierarchy and fires an initial immediate refresh. */
+    /* Tick 1 loads hierarchy; its GETs are excluded from per-tick measurement. */
     model.tick();
 
-    /* Ticks 2–70: the next scheduled refresh fires on tick 70 (KNOB_REFRESH_TICKS=69
-     * decrements from 69 to 0 across 69 more ticks). Count all getParam calls. */
-    getParamCount = 0;
-    for (let i = 0; i < 69; i++) model.tick();
+    /* Ticks 2–71: measure the maximum GETs seen in any single tick.
+     * Old code: tick 70 fires refreshKnobValues for all 16 params → 16 GETs.
+     * New code (staggered): every tick does exactly 1 GET → max = 1. */
+    let maxGetsInOneTick = 0;
+    for (let i = 0; i < 70; i++) {
+        getParamCount = 0;
+        model.tick();
+        if (getParamCount > maxGetsInOneTick) maxGetsInOneTick = getParamCount;
+    }
 
-    /* pollModuleName fires at tick 344, well outside this window. */
-    check('shadow_get_param calls in refresh window', getParamCount, GET_PARAM_PER_REFRESH_MAX);
-    _origLog(`    (baseline: ${getParamCount} calls for ${model.getViewModel().rows.flat().filter(Boolean).length} visible params)`);
+    check('max shadow_get_param calls per tick', maxGetsInOneTick, GET_PARAM_PER_TICK_MAX);
+    _origLog(`    (baseline: ${maxGetsInOneTick} max calls in any single tick)`);
 }
 
 /* ── Test 3: renderKnobsView median wall-clock time (Node.js V8) ─────────── */

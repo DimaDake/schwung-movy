@@ -94,7 +94,7 @@ export function createModel(slot: number, componentKey = 'synth') {
             s.longPressCountdown = -1;
             s.enumOverlay = null;
             s.pollCountdown = NAME_POLL_TICKS;
-            s.refreshCountdown = 0;
+            s.refreshParamCursor = 0;
             for (let i = 0; i < KNOBS_PER_PAGE; i++) { s.pendingDeltas[i] = 0; s.enumAccums[i] = 0; }
             s.dirty = true;
         },

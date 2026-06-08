@@ -1,6 +1,6 @@
 import type { KnobParam } from '../types/param.js';
 import type { ModelState } from './state.js';
-import { KNOBS_PER_PAGE, ENUM_DELTA_DIV } from './constants.js';
+import { KNOBS_PER_PAGE, ENUM_DELTA_DIV, REFRESH_SUPPRESS_TICKS } from './constants.js';
 import { mlog } from '../log.js';
 
 export function formatValue(p: KnobParam, v: number | null | undefined): string {
@@ -40,15 +40,22 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
     s.dirty = true;
 }
 
-export function refreshKnobValues(s: ModelState): void {
-    for (let gi = 0; gi < s.knobParams.length; gi++) {
-        const p = s.knobParams[gi];
-        if (!p) continue;
-        const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + p.key);
-        if (raw !== null) {
-            const v = parseFloat(raw);
-            if (!isNaN(v)) s.knobValues[gi] = v;
-        }
+export function refreshOneParam(s: ModelState, tickCount: number): void {
+    if (s.knobParams.length === 0) return;
+    if (tickCount - s.lastDeltaTick < REFRESH_SUPPRESS_TICKS) return;
+
+    const i = s.refreshParamCursor % s.knobParams.length;
+    s.refreshParamCursor = (i + 1) % s.knobParams.length;
+
+    const p = s.knobParams[i];
+    if (!p) return;
+
+    const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + p.key);
+    if (raw === null) return;
+    const newVal = parseFloat(raw);
+    if (!isNaN(newVal) && newVal !== s.knobValues[i]) {
+        s.knobValues[i] = newVal;
+        s.dirty = true;
     }
 }
 

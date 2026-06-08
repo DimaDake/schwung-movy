@@ -20,9 +20,10 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
 
     if (vm.isEmpty) {
         drawHeader('T1', slot.label, false);
+        drawBankBar(chainIndex, 4);
         const msg = 'CLICK JOG: ADD MODULE';
         fontPrint(Math.max(0, Math.floor((W - fontWidth(msg)) / 2)), 28, msg, 1);
-        if (jogTouched) drawJogToast('SHIFT+CLICK SWAP  CLICK OPEN');
+        if (jogTouched) drawJogToast('CLICK: ADD MODULE');
         return;
     }
 

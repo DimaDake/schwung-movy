@@ -42,12 +42,7 @@ export function loadHierarchy(s: ModelState): void {
 
     const raw = shadow_get_param(s.activeSlot, s.componentKey + ':ui_hierarchy');
     if (!raw) {
-        mlog('loadHierarchy: ui_hierarchy null — using test params');
-        s.knobParams = [
-            { key: 'test_a', label: 'TestA', shortLabel: null, type: 'float', min: 0, max: 1,   step: 0.02, options: null, renderStyle: 'arc' },
-            { key: 'test_b', label: 'TestB', shortLabel: null, type: 'int',   min: 0, max: 127, step: 1,    options: null, renderStyle: 'arc' },
-        ];
-        s.knobValues = [0.5, 64];
+        mlog('loadHierarchy: ui_hierarchy null — no params');
         s.dirty = true;
         return;
     }

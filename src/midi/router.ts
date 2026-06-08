@@ -80,7 +80,8 @@ export function onMidiMessageInternal(data: number[]): void {
         if (appState.currentView === VIEW_BROWSE) {
             loadSelectedModule(appState.activeSlot);
         } else if (appState.currentView === VIEW_CHAIN) {
-            if (appState.shiftHeld) {
+            const isEmpty = appState.chainModels[appState.chainIndex]?.getViewModel().isEmpty ?? false;
+            if (appState.shiftHeld || isEmpty) {
                 openBrowser(appState.activeSlot, appState.chainIndex);
                 appState.browseOrigin = VIEW_CHAIN;
             } else {

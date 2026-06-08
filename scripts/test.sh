@@ -77,6 +77,13 @@ sleep 0.2
 python3 "$INJECT" "$HOST" cc 14 1    # second step — tests clamping at bank boundary
 sleep 0.3
 
+# ── 6b. Wait for perf log entries ────────────────────────────────────────────
+# KNOB_REFRESH_TICKS=69 ticks (~0.2 s) fires the first refresh after hierarchy
+# load. NAME_POLL_TICKS=344 ticks (~1 s) fires the tick-rate sample.
+# Wait 1.5 s to guarantee both have appeared in the log.
+info "Waiting for perf log entries (~1.5 s)..."
+sleep 1.5
+
 # ── 7. Fetch log ─────────────────────────────────────────────────────────────
 LOG=$(ssh "ableton@$HOST" 'grep "\[movy\]" /data/UserData/schwung/debug.log 2>/dev/null || true')
 
@@ -170,6 +177,54 @@ if echo "$LOG" | grep -q "knobLED k="; then
     pass "Knob LEDs firing — $SAMPLE"
 else
     fail "updateKnobLEDs never ran (knobLED log line absent)"
+fi
+
+# ── 8b. Performance checks ───────────────────────────────────────────────────
+# These catch regressions in tick rate and IPC blocking without requiring
+# instrumented builds — the timing is logged by processTick every cycle.
+
+# Tick rate: overtake mode targets ~500 Hz (usleep 2 ms). Even under load,
+# movy should sustain well above 100 ticks/sec for responsive knob control.
+TICK_RATE_MIN=100
+
+# Refresh blocking: refreshKnobValues fires N sequential shadow_get_param calls
+# (one per param). Baseline: ~180 ms for 62-param synths (OB-Xd), ~50 ms for
+# 16-param synths (Plaits). Threshold 500 ms passes current code while catching
+# a further regression (extra loop, unbounded polling, etc.).
+# After the staggered-refresh optimization lands, tighten this to 30 ms.
+REFRESH_MS_MAX=500
+
+if echo "$LOG" | grep -q "perf_tick_rate="; then
+    RATE=$(echo "$LOG" | grep "perf_tick_rate=" | tail -1 | grep -o "perf_tick_rate=[0-9]*" | cut -d= -f2)
+    if [[ -n "$RATE" ]] && (( RATE >= TICK_RATE_MIN )); then
+        pass "Tick rate ${RATE} ticks/sec >= ${TICK_RATE_MIN} (threshold)"
+    elif [[ -n "$RATE" ]]; then
+        fail "Tick rate ${RATE} ticks/sec is below threshold ${TICK_RATE_MIN} — possible blocking"
+    else
+        fail "Could not parse perf_tick_rate value"
+    fi
+else
+    fail "perf_tick_rate not found in log — timing instrumentation missing or not reached"
+fi
+
+if echo "$LOG" | grep -q "perf_refresh_ms="; then
+    # Check all refresh samples in the log — all must be below threshold.
+    REFRESH_FAILURES=0
+    REFRESH_MAX_SEEN=0
+    while IFS= read -r line; do
+        MS=$(echo "$line" | grep -o "perf_refresh_ms=[0-9]*" | cut -d= -f2)
+        [[ -z "$MS" ]] && continue
+        (( MS > REFRESH_MAX_SEEN )) && REFRESH_MAX_SEEN=$MS
+        (( MS > REFRESH_MS_MAX )) && REFRESH_FAILURES=$((REFRESH_FAILURES + 1))
+    done < <(echo "$LOG" | grep "perf_refresh_ms=")
+
+    if (( REFRESH_FAILURES == 0 )); then
+        pass "Refresh blocking ${REFRESH_MAX_SEEN} ms max <= ${REFRESH_MS_MAX} ms (threshold)"
+    else
+        fail "Refresh blocking ${REFRESH_MAX_SEEN} ms max — ${REFRESH_FAILURES} sample(s) exceed ${REFRESH_MS_MAX} ms"
+    fi
+else
+    fail "perf_refresh_ms not found in log — timing instrumentation missing or refresh not triggered"
 fi
 
 # ── 9. Summary ───────────────────────────────────────────────────────────────

@@ -18,7 +18,10 @@ Run tests in this order at the end of every task:
 # 1. Local (always) — pixel-diff screenshot regression
 node browser-test/screenshot.mjs
 
-# 2. Device (when reachable) — deploy + automated MIDI/log test
+# 2. Local (always) — performance regression (fill_rect count, IPC call count, render time)
+node browser-test/perf.mjs
+
+# 3. Device (when reachable) — deploy + automated MIDI/log test + perf timing
 ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
   && ./scripts/test.sh \
   || echo "DEVICE OFFLINE — SKIPPING DEVICE TESTS"

@@ -1,12 +1,15 @@
 export interface KnobSlot {
-    key:     string;
-    short:   string;
-    full:    string;
-    type:    'float' | 'int' | 'enum';
-    render?: 'arc' | 'hbar' | 'vbar';
-    options?: string[];
-    min?:    number;
-    max?:    number;
+    key:            string;
+    short:          string;
+    full:           string;
+    type:           'float' | 'int' | 'enum' | 'file';
+    render?:        'arc' | 'hbar' | 'vbar';
+    options?:       string[];
+    min?:           number;
+    max?:           number;
+    fileRoot?:      string;
+    fileFilter?:    string[];
+    fileStartPath?: string;
 }
 
 export interface BankConfig {
@@ -21,14 +24,17 @@ export interface ModuleConfig {
 }
 
 export interface KnobParam {
-    key:        string;
-    label:      string;
-    shortLabel: string | null;
-    type:       'float' | 'int' | 'enum';
-    min:        number;
-    max:        number;
-    step:       number;
-    options:    string[] | null;
-    nameKey?:   string;
-    renderStyle: 'arc' | 'hbar' | 'vbar';
+    key:            string;
+    label:          string;
+    shortLabel:     string | null;
+    type:           'float' | 'int' | 'enum' | 'file';
+    min:            number;
+    max:            number;
+    step:           number;
+    options:        string[] | null;
+    nameKey?:       string;
+    renderStyle:    'arc' | 'hbar' | 'vbar';
+    fileRoot?:      string;
+    fileFilter?:    string[];
+    fileStartPath?: string;
 }

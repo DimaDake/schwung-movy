@@ -62,7 +62,7 @@ export function buildViewModel(s: ModelState): ViewModel {
             const tv = p.nameKey
                 ? (shadow_get_param(s.activeSlot, s.componentKey + ':' + p.nameKey) ?? formatValue(p, s.knobValues[gi]))
                 : formatValue(p, s.knobValues[gi]);
-            toast = { fullName: p.label, value: tv };
+            toast = { fullName: p.label, value: tv, browseHint: false };
         }
     }
 

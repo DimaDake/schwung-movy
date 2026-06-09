@@ -12,8 +12,9 @@ export interface ParamVM {
 }
 
 export interface ToastState {
-    fullName: string;
-    value:    string;
+    fullName:   string;
+    value:      string;
+    browseHint: boolean;
 }
 
 export interface OverlayState {

@@ -117,6 +117,79 @@ _log('\nTest: navigation-only levels expand recursively');
         m.getViewModel().rows.flat().filter(Boolean).length, 3);
 }
 
+/* ── moog config: all 7 banks with correct param metadata ────────────────── */
+
+_log('\nTest: moog config bank layout and param metadata');
+
+{
+    const m = bootModel(MOCK_SYNTHS.moog);
+    const bankNames = [];
+    for (let i = 0; i < 7; i++) {
+        if (i > 0) m.changePage(1);
+        bankNames.push(m.getViewModel().bankName);
+    }
+    eq('moog: bankCount = 7', m.getViewModel().bankCount, 7);
+
+    const expected = ['Main', 'F.Env', 'Osc 1', 'Osc 2', 'Osc 3', 'Osc 4', 'Mod'];
+    for (let i = 0; i < expected.length; i++) {
+        eq(`moog: bank ${i} = ${expected[i]}`, bankNames[i], expected[i]);
+    }
+
+    // navigate to each Osc bank (banks 2-5) and verify wave/range param metadata
+    // Bank layout per Osc bank: row[0] = [wave, volume, range, detune/noise]
+    // ParamVM has no key field, so we check by position and observable properties.
+    const WAVE_OPTIONS = ['Tri', 'Saw', 'Sq', 'Pls'];
+    m.changePage(-6); // back to bank 0
+    for (let i = 0; i < 7; i++) {
+        if (i > 0) m.changePage(1);
+        if (i < 2 || i > 5) continue; // only Osc 1-4 banks
+        const oscNum = i - 1;
+        const vm2 = m.getViewModel();
+        const wave  = vm2.rows[0][0];
+        const range = vm2.rows[0][2];
+
+        if (!wave)  { fail(`moog: Osc ${oscNum} wave slot non-null`,  'null'); continue; }
+        if (!range) { fail(`moog: Osc ${oscNum} range slot non-null`, 'null'); continue; }
+
+        eq(`moog: Osc ${oscNum} wave type = enum`,     wave.type,          'enum');
+        eq(`moog: Osc ${oscNum} wave options[0]`,      wave.options?.[0],  WAVE_OPTIONS[0]);
+        eq(`moog: Osc ${oscNum} wave options[3]`,      wave.options?.[3],  WAVE_OPTIONS[3]);
+
+        eq(`moog: Osc ${oscNum} range type = int`,     range.type,         'int');
+    }
+
+    // Main bank: 8 non-null params
+    m.changePage(-6);
+    eq('moog: Main bank has 8 params',
+        m.getViewModel().rows.flat().filter(Boolean).length, 8);
+
+    // total non-null params across all banks = 37
+    let total = 0;
+    m.changePage(-6);
+    for (let i = 0; i < 7; i++) {
+        if (i > 0) m.changePage(1);
+        total += m.getViewModel().rows.flat().filter(Boolean).length;
+    }
+    eq('moog: total params across all banks = 37', total, 37);
+
+    // Verify KnobSlot.min/max are picked up: osc1_range is int -2..2.
+    // After enough ticks to refresh values, displayValue of "-2" should render as "-2"
+    // (and normalizedValue 0.625 instead of 0.5 confirms min=-2 not default 0).
+    const moogRange = bootModel({ ...MOCK_SYNTHS.moog, 'synth:osc1_range': '-2' });
+    for (let i = 0; i < 60; i++) moogRange.tick();
+    moogRange.changePage(2); // Osc 1 bank
+    {
+        const rangeSlot = moogRange.getViewModel().rows[0][2];
+        if (!rangeSlot) { fail('moog: osc1_range slot exists', 'null'); }
+        else {
+            eq('moog: osc1_range displayValue for -2',  rangeSlot.displayValue, '-2');
+            const expectedNv = ((-2) - (-2)) / (2 - (-2)); // 0 (clamped low end)
+            eq('moog: osc1_range normalizedValue reflects min=-2',
+                Math.round(rangeSlot.normalizedValue * 100), Math.round(expectedNv * 100));
+        }
+    }
+}
+
 /* ── isEmpty flag ─────────────────────────────────────────────────────────── */
 
 _log('\nTest: vm.isEmpty');

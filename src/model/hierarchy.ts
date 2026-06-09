@@ -14,6 +14,7 @@ interface HierLevel {
     params?: (string | HierParam)[];
     list_param?: string; count_param?: string; name_param?: string;
     items_param?: string; select_param?: string;
+    children?: string;
 }
 
 function inferRenderStyle(type: KnobParam['type'], min: number, max: number): KnobParam['renderStyle'] {
@@ -107,14 +108,21 @@ export function loadHierarchy(s: ModelState): void {
     const rootLevel = allLevels['root'] || Object.values(allLevels)[0] || null;
     if (!rootLevel) { s.dirty = true; return; }
 
+    const hasNavEntries = (lvl: HierLevel | null): boolean =>
+        Array.isArray(lvl?.params) && lvl!.params.some(p => typeof p === 'object' && (p as HierParam).level != null);
+    const navLevel: HierLevel | null =
+        hasNavEntries(rootLevel)
+            ? rootLevel
+            : (rootLevel?.children ? (allLevels[rootLevel.children] ?? rootLevel) : rootLevel);
+
     function toKey(k: string | HierParam): string | null {
         return typeof k === 'string' ? k : (k.key ?? null);
     }
 
-    /* Level → display label map from root.params navigation entries */
+    /* Level → display label map from navLevel.params navigation entries */
     const levelLabel: Record<string, string> = {};
-    if (Array.isArray(rootLevel.params)) {
-        for (const p of rootLevel.params) {
+    if (Array.isArray(navLevel?.params)) {
+        for (const p of navLevel!.params!) {
             if (typeof p === 'object' && p.level && p.label) levelLabel[p.level] = p.label;
         }
     }
@@ -211,8 +219,8 @@ export function loadHierarchy(s: ModelState): void {
         }
     }
 
-    if (Array.isArray(rootLevel.params)) {
-        for (const entry of rootLevel.params) {
+    if (Array.isArray(navLevel?.params)) {
+        for (const entry of navLevel!.params!) {
             if (typeof entry !== 'object' || !entry.level) continue;
             addLevelOrExpand(entry.level, null, 0);
         }

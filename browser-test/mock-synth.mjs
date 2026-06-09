@@ -237,17 +237,42 @@ export const MOCK_SYNTHS = {
     },
 
     moog: {
-        "synth_module":        "moog",
         "synth:name":          "RaffoSynth",
-        "synth:ui_hierarchy":  JSON.stringify({ levels: { root: {
-            knobs: ["cutoff","resonance","contour","attack","decay","sustain","release","glide"],
-            params: [
-                { key: "osc1_wave", label: "Osc1 Wave", type: "enum",
-                  options: ["Triangle","Sawtooth","Square","Pulse"] },
-                { key: "osc2_wave", label: "Osc2 Wave", type: "enum",
-                  options: ["Triangle","Sawtooth","Square","Pulse"] },
-            ],
-        }}}),
+        "synth:preset_count":  "14",
+        "synth:ui_hierarchy":  JSON.stringify({ levels: {
+            root: {
+                children:    "main",
+                list_param:  "preset",
+                count_param: "preset_count",
+                name_param:  "preset_name",
+                knobs: ["cutoff","resonance","contour","key_follow","attack","decay","sustain","release"],
+                params: [],
+            },
+            main: {
+                params: [
+                    { level: "osc1",        label: "Oscillator 1" },
+                    { level: "osc2",        label: "Oscillator 2" },
+                    { level: "osc3",        label: "Oscillator 3" },
+                    { level: "osc4",        label: "Oscillator 4" },
+                    { level: "mixer",       label: "Mixer"        },
+                    { level: "filter",      label: "Filter"       },
+                    { level: "filt_env",    label: "Filter Env"   },
+                    { level: "amp_env",     label: "Amp Env"      },
+                    { level: "lfo",         label: "LFO"          },
+                    { level: "performance", label: "Performance"  },
+                ],
+            },
+            osc1:        { knobs: ["osc1_wave","osc1_volume","osc1_range","noise"]       },
+            osc2:        { knobs: ["osc2_wave","osc2_volume","osc2_range","osc2_detune"] },
+            osc3:        { knobs: ["osc3_wave","osc3_volume","osc3_range","osc3_detune"] },
+            osc4:        { knobs: ["osc4_wave","osc4_volume","osc4_range","osc4_detune"] },
+            mixer:       { knobs: ["glide","volume"]                                     },
+            filter:      { knobs: ["cutoff","resonance","contour","key_follow"]          },
+            filt_env:    { knobs: ["f_attack","f_decay","f_sustain","f_release"]         },
+            amp_env:     { knobs: ["attack","decay","sustain","release"]                 },
+            lfo:         { knobs: ["lfo_rate","lfo_pitch","lfo_filter","mod_filter"]     },
+            performance: { knobs: ["mod_pitch","bend_range","vel_sens"]                  },
+        }}),
         "synth:chain_params": JSON.stringify([
             { key: "osc1_wave",   name: "Osc1 Wave",   type: "int",   min: 0,  max: 3  },
             { key: "osc1_volume", name: "Osc1 Volume", type: "float", min: 0,  max: 1  },

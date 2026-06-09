@@ -1,9 +1,12 @@
 export interface KnobSlot {
-    key:    string;
-    short:  string;
-    full:   string;
-    type:   'float' | 'int' | 'enum';
+    key:     string;
+    short:   string;
+    full:    string;
+    type:    'float' | 'int' | 'enum';
     render?: 'arc' | 'hbar' | 'vbar';
+    options?: string[];
+    min?:    number;
+    max?:    number;
 }
 
 export interface BankConfig {

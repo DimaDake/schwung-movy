@@ -1,12 +1,14 @@
 import type { ModuleConfig } from '../types/param.js';
 import plaitsJson from './plaits.json';
 import wurlJson   from './wurl.json';
+import moogJson   from './moog.json';
 
 const MOVY_SG_ROOT = '/data/UserData/schwung/modules/sound_generators';
 
 const CONFIGS: Record<string, ModuleConfig> = {
     plaits: plaitsJson as unknown as ModuleConfig,
     wurl:   wurlJson   as unknown as ModuleConfig,
+    moog:   moogJson   as unknown as ModuleConfig,
 };
 
 function tryFile(path: string): ModuleConfig | null {

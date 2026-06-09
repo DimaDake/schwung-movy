@@ -1,0 +1,109 @@
+{
+  "id": "moog",
+  "name": "RaffoSynth",
+  "banks": [
+    {
+      "name": "Main",
+      "rows": [
+        [
+          { "key": "cutoff",     "short": "CUTO", "full": "Cutoff",     "type": "float" },
+          { "key": "resonance",  "short": "RESO", "full": "Resonance",  "type": "float" },
+          { "key": "contour",    "short": "CONT", "full": "Contour",    "type": "float" },
+          { "key": "key_follow", "short": "KFOL", "full": "Key Follow", "type": "float" }
+        ],
+        [
+          { "key": "attack",  "short": "ATK",  "full": "Attack",  "type": "float" },
+          { "key": "decay",   "short": "DCY",  "full": "Decay",   "type": "float" },
+          { "key": "sustain", "short": "SUST", "full": "Sustain", "type": "float" },
+          { "key": "release", "short": "REL",  "full": "Release", "type": "float" }
+        ]
+      ]
+    },
+    {
+      "name": "F.Env",
+      "rows": [
+        [
+          { "key": "f_attack",  "short": "FATK", "full": "F Attack",  "type": "float" },
+          { "key": "f_decay",   "short": "FDCY", "full": "F Decay",   "type": "float" },
+          { "key": "f_sustain", "short": "FSUS", "full": "F Sustain", "type": "float" },
+          { "key": "f_release", "short": "FREL", "full": "F Release", "type": "float" }
+        ],
+        [
+          { "key": "glide",  "short": "GLID", "full": "Glide",  "type": "float" },
+          { "key": "volume", "short": "VOL",  "full": "Volume", "type": "float" },
+          null,
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Osc 1",
+      "rows": [
+        [
+          { "key": "osc1_wave",   "short": "WAVE", "full": "Wave",   "type": "enum",
+            "options": ["Tri", "Saw", "Sq", "Pls"], "min": 0, "max": 3 },
+          { "key": "osc1_volume", "short": "VOL",  "full": "Volume", "type": "float" },
+          { "key": "osc1_range",  "short": "RNG",  "full": "Range",  "type": "int", "min": -2, "max": 2 },
+          { "key": "noise",       "short": "NOIS", "full": "Noise",  "type": "float" }
+        ],
+        [null, null, null, null]
+      ]
+    },
+    {
+      "name": "Osc 2",
+      "rows": [
+        [
+          { "key": "osc2_wave",   "short": "WAVE", "full": "Wave",   "type": "enum",
+            "options": ["Tri", "Saw", "Sq", "Pls"], "min": 0, "max": 3 },
+          { "key": "osc2_volume", "short": "VOL",  "full": "Volume", "type": "float" },
+          { "key": "osc2_range",  "short": "RNG",  "full": "Range",  "type": "int", "min": -2, "max": 2 },
+          { "key": "osc2_detune", "short": "DTUN", "full": "Detune", "type": "float" }
+        ],
+        [null, null, null, null]
+      ]
+    },
+    {
+      "name": "Osc 3",
+      "rows": [
+        [
+          { "key": "osc3_wave",   "short": "WAVE", "full": "Wave",   "type": "enum",
+            "options": ["Tri", "Saw", "Sq", "Pls"], "min": 0, "max": 3 },
+          { "key": "osc3_volume", "short": "VOL",  "full": "Volume", "type": "float" },
+          { "key": "osc3_range",  "short": "RNG",  "full": "Range",  "type": "int", "min": -2, "max": 2 },
+          { "key": "osc3_detune", "short": "DTUN", "full": "Detune", "type": "float" }
+        ],
+        [null, null, null, null]
+      ]
+    },
+    {
+      "name": "Osc 4",
+      "rows": [
+        [
+          { "key": "osc4_wave",   "short": "WAVE", "full": "Wave",   "type": "enum",
+            "options": ["Tri", "Saw", "Sq", "Pls"], "min": 0, "max": 3 },
+          { "key": "osc4_volume", "short": "VOL",  "full": "Volume", "type": "float" },
+          { "key": "osc4_range",  "short": "RNG",  "full": "Range",  "type": "int", "min": -2, "max": 2 },
+          { "key": "osc4_detune", "short": "DTUN", "full": "Detune", "type": "float" }
+        ],
+        [null, null, null, null]
+      ]
+    },
+    {
+      "name": "Mod",
+      "rows": [
+        [
+          { "key": "lfo_rate",   "short": "RATE", "full": "LFO Rate",   "type": "float" },
+          { "key": "lfo_pitch",  "short": "PTCH", "full": "LFO>Pitch",  "type": "float" },
+          { "key": "lfo_filter", "short": "FILT", "full": "LFO>Filter", "type": "float" },
+          { "key": "mod_filter", "short": "MFLT", "full": "Mod>Filter", "type": "float" }
+        ],
+        [
+          { "key": "mod_pitch",   "short": "MPCH", "full": "Mod>Pitch",   "type": "float" },
+          { "key": "bend_range",  "short": "BEND", "full": "Bend Range",  "type": "float" },
+          { "key": "vel_sens",    "short": "VEL",  "full": "Vel Sens",    "type": "float" },
+          null
+        ]
+      ]
+    }
+  ]
+}

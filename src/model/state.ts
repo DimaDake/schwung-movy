@@ -8,17 +8,28 @@ export interface EnumOverlay {
     selected: number;
 }
 
+export interface FileOverlay {
+    slot:     number;
+    gi:       number;
+    items:    string[];   // absolute paths, filtered + sorted
+    selected: number;     // index into items
+    original: string;     // path at touch time
+    accum:    number;     // fractional delta accumulator
+}
+
 export interface ModelState {
     activeSlot:          number;
     componentKey:        string;
     knobParams:          (KnobParam | null)[];
     knobValues:          (number | null)[];
+    fileValues:          (string | null)[];
     pendingDeltas:       number[];
     enumAccums:          number[];
     knobPage:            number;
     touchedSlots:        number[];
     longPressCountdown:  number;
     enumOverlay:         EnumOverlay | null;
+    fileOverlay:         FileOverlay | null;
     activeModuleName:    string;
     moduleId:            string;
     moduleConfig:        ModuleConfig | null;
@@ -36,12 +47,14 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         componentKey,
         knobParams:          [],
         knobValues:          [],
+        fileValues:          [],
         pendingDeltas:       new Array(KNOBS_PER_PAGE).fill(0) as number[],
         enumAccums:          new Array(KNOBS_PER_PAGE).fill(0) as number[],
         knobPage:            0,
         touchedSlots:        [],
         longPressCountdown:  -1,
         enumOverlay:         null,
+        fileOverlay:         null,
         activeModuleName:    '—',
         moduleId:            '',
         moduleConfig:        null,

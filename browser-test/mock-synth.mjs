@@ -322,6 +322,21 @@ export const MOCK_SYNTHS = {
         ].map(k => [`synth:${k}`, "0.5"])),
     },
 
+    file_param: {
+        "synth:name": "SamplerTest",
+        "synth:chain_params": JSON.stringify([
+            { key: "sample", name: "Sample", type: "filepath",
+              root: "/data/UserData/Samples", filter: [".wav"],
+              start_path: "/data/UserData/Samples" },
+            { key: "vol", name: "Volume", type: "float", min: 0, max: 1, step: 0.01 },
+        ]),
+        "synth:ui_hierarchy": JSON.stringify({ levels: { root: {
+            knobs: ["sample", "vol"],
+        }}}),
+        "synth:sample": "/data/UserData/Samples/kick.wav",
+        "synth:vol":    "0.8",
+    },
+
     /* No synth loaded — model falls back to fallback test params */
     no_params: {
         "synth:name": null,

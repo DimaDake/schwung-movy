@@ -21,6 +21,14 @@ function inferRenderStyle(type: KnobParam['type'], min: number, max: number): Kn
     return (type === 'int' && min === 0 && max === 1) ? 'hbar' : 'arc';
 }
 
+function parseFilter(filter: unknown): string[] {
+    if (!filter) return [];
+    const vals = Array.isArray(filter) ? filter as unknown[] : [filter];
+    return (vals as string[])
+        .filter((v): v is string => typeof v === 'string' && v.length > 0)
+        .map(v => v.toLowerCase().startsWith('.') ? v.toLowerCase() : '.' + v.toLowerCase());
+}
+
 export function loadHierarchy(s: ModelState): void {
     s.knobParams   = [];
     s.knobValues   = [];
@@ -100,6 +108,7 @@ export function loadHierarchy(s: ModelState): void {
         }
         mlog('loadHierarchy: config for ' + s.moduleId + ', ' + s.moduleConfig.banks.length + ' banks');
         s.knobValues = new Array(s.knobParams.length).fill(null) as (number | null)[];
+        s.fileValues = new Array(s.knobParams.length).fill(null) as (string | null)[];
         s.dirty = true;
         return;
     }
@@ -236,6 +245,21 @@ export function loadHierarchy(s: ModelState): void {
             const cp  = cpMap[key]       ?? {};
             const def = paramDefs[key]   ?? knobInline[key] ?? {};
             const type    = cp.type    || def.type    || 'float';
+            if (type === 'filepath') {
+                s.knobParams.push({
+                    key,
+                    label:      String((cp as { name?: string }).name ?? (def as { label?: string }).label ?? key),
+                    shortLabel: null,
+                    type:       'file',
+                    min: 0, max: 0, step: 0,
+                    options:    null,
+                    renderStyle: 'arc',
+                    fileRoot:      String((cp as { root?: string }).root      ?? '/data/UserData'),
+                    fileFilter:    parseFilter((cp as { filter?: unknown }).filter),
+                    fileStartPath: String((cp as { start_path?: string }).start_path ?? (cp as { root?: string }).root ?? '/data/UserData'),
+                });
+                continue;
+            }
             const options = cp.options ?? def.options ?? null;
             let min  = cp.min  != null ? cp.min  : (def.min  != null ? def.min  : 0);
             let max  = cp.max  != null ? cp.max  : (def.max  != null ? def.max  : 1);
@@ -253,6 +277,7 @@ export function loadHierarchy(s: ModelState): void {
     }
 
     s.knobValues = new Array(s.knobParams.length).fill(null) as (number | null)[];
+    s.fileValues = new Array(s.knobParams.length).fill(null) as (string | null)[];
     mlog('loadHierarchy: ' + s.knobParams.filter(Boolean).length + ' params, ' + bankEntries.length + ' banks');
     s.dirty = true;
 }

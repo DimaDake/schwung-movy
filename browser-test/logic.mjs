@@ -22,6 +22,17 @@ globalThis.setLED             = () => {};
 globalThis.setButtonLED       = () => {};
 globalThis.MoveKnob1          = 71;
 
+let mockFsEntries = {};  // path → string[] of filenames
+
+globalThis.os = {
+    readdir: (path) => [mockFsEntries[path] ?? [], 0],
+    stat:    (path) => {
+        // treat paths without an extension as directories
+        const mode = path.lastIndexOf('.') > path.lastIndexOf('/') ? 0x8000 : 0x4000;
+        return [{ mode }, 0];
+    },
+};
+
 const _log = console.log.bind(console);
 console.log = (...args) => {
     if (typeof args[0] === 'string' && args[0].startsWith('[movy]')) return;
@@ -193,6 +204,89 @@ _log('\nTest: vm.rows populated correctly');
     const vm = bootModel(MOCK_SYNTHS.no_params).getViewModel();
     const nonNull = vm.rows.flat().filter(Boolean).length;
     eq('no_params: 0 params in rows', nonNull, 0);
+}
+
+/* ── file param detection ─────────────────────────────────────────────────── */
+
+_log('\nTest: file param detected from chain_params type:filepath');
+
+{
+    const m = bootModel(MOCK_SYNTHS.file_param);
+    const vm = m.getViewModel();
+    const sampleKnob = vm.rows[0][0];
+    eq('file_param: sample knob type = file', sampleKnob?.type, 'file');
+    eq('file_param: vol knob type = float',   vm.rows[0][1]?.type, 'float');
+}
+
+/* ── file overlay behavior ────────────────────────────────────────────────── */
+
+_log('\nTest: file overlay opens on touch with dir scan');
+
+{
+    mockFsEntries['/data/UserData/Samples'] = ['hat.wav', 'kick.wav', 'snare.wav'];
+    const m  = bootModel(MOCK_SYNTHS.file_param);
+    for (let i = 0; i < 20; i++) m.tick();
+    m.handleKnobTouch(0);
+    const vm = m.getViewModel();
+    eq('file overlay: 3 items',         vm.overlay?.options.length, 3);
+    eq('file overlay: slot = 0',        vm.overlay?.slot, 0);
+    eq('file overlay: selected = kick', vm.overlay?.options[vm.overlay.selected], 'kick.wav');
+}
+
+_log('\nTest: file overlay scrolls with knob delta');
+
+{
+    mockFsEntries['/data/UserData/Samples'] = ['hat.wav', 'kick.wav', 'snare.wav'];
+    const m = bootModel(MOCK_SYNTHS.file_param);
+    for (let i = 0; i < 20; i++) m.tick();
+    m.handleKnobTouch(0);
+    m.handleKnobDelta(0, 4);  // ENUM_DELTA_DIV=4 → 1 step
+    eq('file overlay: moved to snare', m.getViewModel().overlay?.selected, 2);
+    m.handleKnobDelta(0, -4);
+    eq('file overlay: moved back to kick', m.getViewModel().overlay?.selected, 1);
+}
+
+_log('\nTest: file overlay commits on release');
+
+{
+    mockFsEntries['/data/UserData/Samples'] = ['hat.wav', 'kick.wav', 'snare.wav'];
+    const m = bootModel({ ...MOCK_SYNTHS.file_param });
+    for (let i = 0; i < 20; i++) m.tick();
+    m.handleKnobTouch(0);
+    m.handleKnobDelta(0, 8);  // 2 steps: sorted hat[0],kick[1],snare[2]; kick→idx1+2=3 clamped→2=snare
+    m.handleKnobRelease(0);
+    eq('file overlay: committed to shadow', mockState['synth:sample'], '/data/UserData/Samples/snare.wav');
+    eq('file overlay: dismissed',          m.getViewModel().overlay, null);
+}
+
+/* ── viewmodel: file display value and browseHint ─────────────────────────── */
+
+_log('\nTest: file knob displayValue = basename of current path');
+
+{
+    const m = bootModel(MOCK_SYNTHS.file_param);
+    for (let i = 0; i < 20; i++) m.tick();
+    const vm = m.getViewModel();
+    eq('file knob displayValue = kick.wav', vm.rows[0][0]?.displayValue, 'kick.wav');
+}
+
+_log('\nTest: browseHint = true when file param is primary touched slot');
+
+{
+    mockFsEntries['/data/UserData/Samples'] = ['kick.wav'];
+    const m = bootModel(MOCK_SYNTHS.file_param);
+    for (let i = 0; i < 20; i++) m.tick();
+    m.handleKnobTouch(0);
+    eq('toast.browseHint = true',   m.getViewModel().toast?.browseHint, true);
+    eq('toast.fullName = Sample',   m.getViewModel().toast?.fullName, 'Sample');
+}
+
+_log('\nTest: browseHint = false for non-file param touch');
+
+{
+    const m = bootModel(MOCK_SYNTHS.test8);
+    m.handleKnobTouch(0);
+    eq('toast.browseHint = false for float', m.getViewModel().toast?.browseHint, false);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

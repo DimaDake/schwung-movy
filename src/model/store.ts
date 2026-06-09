@@ -4,6 +4,7 @@ import { KNOBS_PER_PAGE, ENUM_DELTA_DIV, ARC_DELTA_SCALE, REFRESH_SUPPRESS_TICKS
 import { mlog } from '../log.js';
 
 export function formatValue(p: KnobParam, v: number | null | undefined): string {
+    if (p.type === 'file') return '...';
     if (v === null || v === undefined) return '...';
     if (p.type === 'enum') {
         if (p.options && p.options[Math.round(v)]) return p.options[Math.round(v)].substring(0, 5);
@@ -18,6 +19,7 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
     const gi = s.knobPage * KNOBS_PER_PAGE + physK;
     const p  = s.knobParams[gi];
     if (!p) return;
+    if (p.type === 'file') return;
 
     if (s.knobValues[gi] === null || s.knobValues[gi] === undefined) {
         const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + p.key);
@@ -50,6 +52,15 @@ export function refreshOneParam(s: ModelState, tickCount: number): void {
 
     const p = s.knobParams[i];
     if (!p) return;
+
+    if (p.type === 'file') {
+        const path = shadow_get_param(s.activeSlot, s.componentKey + ':' + p.key);
+        if (path !== s.fileValues[i]) {
+            s.fileValues[i] = path;
+            s.dirty = true;
+        }
+        return;
+    }
 
     const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + p.key);
     if (raw === null) return;

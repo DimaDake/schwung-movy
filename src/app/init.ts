@@ -18,9 +18,10 @@ export function init(): void {
     appState.shiftHeld    = false;
     appState.jogTouched   = false;
     appState.browseOrigin = VIEW_CHAIN;
-    appState.dirty        = true;
-    appState.initLedIndex = 0;
-    appState.initLedsDone = false;
+    appState.dirty           = true;
+    appState.initLedIndex    = 0;
+    appState.initLedsDone    = false;
+    appState.fileBrowserState = null;
 
     for (const trackSlots of appState.trackModels) {
         for (const m of trackSlots) m.reset();

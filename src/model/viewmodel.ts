@@ -4,6 +4,11 @@ import { formatValue } from './store.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
 import { dedupShortNames } from '../renderer/shorten.js';
 
+function basename(path: string): string {
+    const i = path.lastIndexOf('/');
+    return i >= 0 ? path.slice(i + 1) : path;
+}
+
 export function buildViewModel(s: ModelState): ViewModel {
     const nBanks = Math.max(1, Math.ceil(s.knobParams.length / KNOBS_PER_PAGE));
 
@@ -35,9 +40,11 @@ export function buildViewModel(s: ModelState): ViewModel {
                 ? 0
                 : Math.max(0, Math.min(1, (v - p.min) / (p.max - p.min)));
             const enumIdx = (p.type === 'enum' && typeof v === 'number') ? Math.round(v) : 0;
-            const dv = p.nameKey
-                ? (shadow_get_param(s.activeSlot, s.componentKey + ':' + p.nameKey) ?? formatValue(p, v))
-                : formatValue(p, v);
+            const dv = p.type === 'file'
+                ? (s.fileValues[gi] ? basename(s.fileValues[gi] as string) : '—')
+                : p.nameKey
+                    ? (shadow_get_param(s.activeSlot, s.componentKey + ':' + p.nameKey) ?? formatValue(p, v))
+                    : formatValue(p, v);
             rows[row].push({
                 shortName:       shortNames[physK],
                 fullName:        p.label,
@@ -59,10 +66,15 @@ export function buildViewModel(s: ModelState): ViewModel {
         const gi = pageStart + primary;
         const p  = s.knobParams[gi];
         if (p) {
-            const tv = p.nameKey
-                ? (shadow_get_param(s.activeSlot, s.componentKey + ':' + p.nameKey) ?? formatValue(p, s.knobValues[gi]))
-                : formatValue(p, s.knobValues[gi]);
-            toast = { fullName: p.label, value: tv, browseHint: false };
+            let tv: string;
+            if (p.type === 'file') {
+                tv = s.fileValues[gi] ? basename(s.fileValues[gi] as string) : '—';
+            } else if (p.nameKey) {
+                tv = shadow_get_param(s.activeSlot, s.componentKey + ':' + p.nameKey) ?? formatValue(p, s.knobValues[gi]);
+            } else {
+                tv = formatValue(p, s.knobValues[gi]);
+            }
+            toast = { fullName: p.label, value: tv, browseHint: p.type === 'file' };
         }
     }
 
@@ -74,8 +86,10 @@ export function buildViewModel(s: ModelState): ViewModel {
         rows,
         touchedSlot: primary >= 0 ? primary : null,
         toast,
-        overlay:     s.enumOverlay
+        overlay: s.enumOverlay
             ? { slot: s.enumOverlay.slot, options: s.enumOverlay.options, selected: s.enumOverlay.selected }
+            : s.fileOverlay
+            ? { slot: s.fileOverlay.slot, options: s.fileOverlay.items.map(p => basename(p).slice(0, 12)), selected: s.fileOverlay.selected }
             : null,
         isEmpty:     s.moduleId === '' && s.activeModuleName === '—',
     };

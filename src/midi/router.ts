@@ -1,8 +1,9 @@
-import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN } from '../app/state.js';
+import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE } from '../app/state.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
 import { noteOn, noteOff, changeRoot, releaseAllNotes } from '../keyboard/handler.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
+import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
 import { mlog } from '../log.js';
 
 const PAD_MIN        = MovePads[0];
@@ -87,6 +88,10 @@ export function onMidiMessageInternal(data: number[]): void {
         if (appState.currentView === VIEW_BROWSE) {
             appState.currentView = appState.browseOrigin;
             appState.dirty = true;
+        } else if (appState.currentView === VIEW_FILE_BROWSE) {
+            appState.fileBrowserState = null;
+            appState.currentView      = appState.browseOrigin;
+            appState.dirty = true;
         } else if (appState.currentView === VIEW_KEYS || appState.currentView === VIEW_KNOBS) {
             appState.currentView = VIEW_CHAIN;
             appState.dirty = true;
@@ -101,6 +106,8 @@ export function onMidiMessageInternal(data: number[]): void {
     if (d1 === MoveMainButton && d2 > 0) {
         if (appState.currentView === VIEW_BROWSE) {
             loadSelectedModule(appState.activeSlot);
+        } else if (appState.currentView === VIEW_FILE_BROWSE) {
+            activateFileBrowserItem();
         } else if (appState.currentView === VIEW_CHAIN) {
             const isEmpty = activeModel()?.getViewModel().isEmpty ?? false;
             if (appState.shiftHeld || isEmpty) {
@@ -111,8 +118,24 @@ export function onMidiMessageInternal(data: number[]): void {
                 appState.dirty = true;
             }
         } else if (appState.currentView === VIEW_KNOBS) {
-            openBrowser(appState.activeSlot, chainIndex());
-            appState.browseOrigin = VIEW_KNOBS;
+            const fileTarget = activeModel()?.getFileBrowseTarget() ?? null;
+            if (fileTarget) {
+                activeModel()?.clearFileOverlay();
+                openFileBrowser(
+                    appState.activeSlot,
+                    activeModel()!.getComponentKey(),
+                    fileTarget.key,
+                    fileTarget.gi,
+                    fileTarget.root,
+                    fileTarget.filter,
+                    fileTarget.startPath,
+                    fileTarget.currentPath,
+                );
+                appState.browseOrigin = VIEW_KNOBS;
+            } else {
+                openBrowser(appState.activeSlot, chainIndex());
+                appState.browseOrigin = VIEW_KNOBS;
+            }
         } else if (appState.currentView === VIEW_KEYS) {
             appState.currentView = VIEW_CHAIN;
             appState.dirty = true;
@@ -131,6 +154,8 @@ export function onMidiMessageInternal(data: number[]): void {
                 activeModel()?.changePage(delta > 0 ? 1 : -1);
             } else if (appState.currentView === VIEW_BROWSE) {
                 browserState.browseIndex = Math.max(0, Math.min(browserState.modules.length - 1, browserState.browseIndex + delta));
+            } else if (appState.currentView === VIEW_FILE_BROWSE) {
+                navigateFileBrowser(delta);
             }
             appState.dirty = true;
         }

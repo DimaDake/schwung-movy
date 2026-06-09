@@ -1,4 +1,4 @@
-import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN } from './state.js';
+import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE } from './state.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
 import { CHAIN_SLOTS } from '../chain/config.js';
@@ -7,7 +7,8 @@ import { midiNoteName } from '../keyboard/notes.js';
 import { renderKnobsView } from '../renderer/knob-view.js';
 import { renderKeysView }  from '../renderer/keys-view.js';
 import { renderBrowseView } from '../renderer/browse-view.js';
-import { renderChainView } from '../renderer/chain-view.js';
+import { renderChainView }    from '../renderer/chain-view.js';
+import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
 
 const PAD_MIN        = MovePads[0];
@@ -41,6 +42,8 @@ export function tick(): void {
             const vm = activeModel!.getViewModel();
             renderChainView(vm, chainIdx, appState.jogTouched, appState.activeSlot);
             updateKnobLEDs(vm);
+        } else if (appState.currentView === VIEW_FILE_BROWSE) {
+            if (appState.fileBrowserState) renderFileBrowseView(appState.fileBrowserState);
         } else {
             const browseTitle = CHAIN_SLOTS[chainIdx]?.label ?? 'Module';
             renderBrowseView(browserState.modules, browserState.browseIndex, browseTitle);

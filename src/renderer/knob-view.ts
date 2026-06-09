@@ -39,5 +39,6 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
     }
 
     if (vm.overlay) drawEnumOverlay(vm);
-    if (jogTouched) drawJogToast('CLICK JOG: SWAP MODULE');
+    if (vm.toast?.browseHint) drawJogToast('JOG: BROWSE');
+    else if (jogTouched)      drawJogToast('CLICK JOG: SWAP MODULE');
 }

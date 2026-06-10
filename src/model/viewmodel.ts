@@ -3,11 +3,7 @@ import type { ModelState } from './state.js';
 import { formatValue } from './store.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
 import { dedupShortNames } from '../renderer/shorten.js';
-
-function basename(path: string): string {
-    const i = path.lastIndexOf('/');
-    return i >= 0 ? path.slice(i + 1) : path;
-}
+import { basename } from './path.js';
 
 export function buildViewModel(s: ModelState): ViewModel {
     const nBanks = Math.max(1, Math.ceil(s.knobParams.length / KNOBS_PER_PAGE));

@@ -1,23 +1,12 @@
 import type { FileBrowserItem, FileBrowserState } from '../app/state.js';
 import { appState, VIEW_FILE_BROWSE } from '../app/state.js';
+import { basename, dirname } from '../model/path.js';
 
 function isDir(path: string): boolean {
     try {
         const [st] = (os as { stat(p: string): [{ mode: number }, number] }).stat(path);
         return (st.mode & 0xF000) === 0x4000;
     } catch { return false; }
-}
-
-function basename(path: string): string {
-    const i = path.lastIndexOf('/');
-    return i >= 0 ? path.slice(i + 1) : path;
-}
-
-function dirname(path: string): string {
-    if (!path) return '/';
-    const i = path.lastIndexOf('/');
-    if (i <= 0) return '/';
-    return path.slice(0, i);
 }
 
 function scanDir(dir: string, root: string, filter: string[]): FileBrowserItem[] {

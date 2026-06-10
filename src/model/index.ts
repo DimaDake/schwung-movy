@@ -4,18 +4,14 @@ import { applyKnobDelta }   from './store.js';
 import { buildViewModel }   from './viewmodel.js';
 import { processTick }      from './tick.js';
 import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV } from './constants.js';
+import { basename, dirname } from './path.js';
 import { mlog } from '../log.js';
 
-function fileBasename(path: string): string {
-    const i = path.lastIndexOf('/');
-    return i >= 0 ? path.slice(i + 1) : path;
-}
-
-function fileDirname(path: string): string {
-    if (!path) return '/';
-    const i = path.lastIndexOf('/');
-    if (i <= 0) return '/';
-    return path.slice(0, i);
+// Fractional accumulator: returns whole steps consumed and the leftover fraction
+function accumStep(accum: number, delta: number): [newAccum: number, step: number] {
+    const next = accum + delta / ENUM_DELTA_DIV;
+    const step = Math.trunc(next);
+    return [next - step, step];
 }
 
 function scanFiles(dir: string, filter: string[]): string[] {
@@ -46,10 +42,9 @@ export function createModel(slot: number, componentKey = 'synth') {
     return {
         handleKnobDelta(k: number, delta: number): void {
             if (s.enumOverlay && k === s.enumOverlay.slot) {
-                s.enumAccums[k] += delta / ENUM_DELTA_DIV;
-                const step = Math.trunc(s.enumAccums[k]);
+                const [acc, step] = accumStep(s.enumAccums[k], delta);
+                s.enumAccums[k] = acc;
                 if (step !== 0) {
-                    s.enumAccums[k] -= step;
                     const n    = s.enumOverlay.options.length;
                     const next = Math.max(0, Math.min(n - 1, s.enumOverlay.selected + step));
                     if (next !== s.enumOverlay.selected) {
@@ -61,10 +56,9 @@ export function createModel(slot: number, componentKey = 'synth') {
                 return;
             }
             if (s.fileOverlay && k === s.fileOverlay.slot) {
-                s.fileOverlay.accum += delta / ENUM_DELTA_DIV;
-                const step = Math.trunc(s.fileOverlay.accum);
+                const [acc, step] = accumStep(s.fileOverlay.accum, delta);
+                s.fileOverlay.accum = acc;
                 if (step !== 0) {
-                    s.fileOverlay.accum -= step;
                     const n    = s.fileOverlay.items.length;
                     const next = Math.max(0, Math.min(n - 1, s.fileOverlay.selected + step));
                     if (next !== s.fileOverlay.selected) {
@@ -101,7 +95,7 @@ export function createModel(slot: number, componentKey = 'synth') {
             }
             if (p && p.type === 'file') {
                 const currentPath = s.fileValues[gi] ?? '';
-                const scanDir     = currentPath ? fileDirname(currentPath) : (p.fileStartPath ?? '/data/UserData');
+                const scanDir     = currentPath ? dirname(currentPath) : (p.fileStartPath ?? '/data/UserData');
                 const items       = scanFiles(scanDir, p.fileFilter ?? []);
                 if (items.length > 0) {
                     const selIdx = currentPath ? items.indexOf(currentPath) : 0;

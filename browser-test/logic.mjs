@@ -337,6 +337,48 @@ _log('\nTest: drum module detection via loadHierarchy');
   eq('plaits: not drum (drumPadCount=0)', mp.getViewModel().drumPadCount, 0);
 }
 
+// ── ViewModel drum fields: isPadSpecific, drumCurrentPad, drumPadCount ───
+
+_log('\nTest: ViewModel drum fields');
+
+{
+  const mrdrumsPreset = {
+    'synth:name': 'MrDrums',
+    'synth_module': 'mrdrums',
+    'synth:ui_current_pad': '5',
+    'synth:pad_vol': '0.8',
+  };
+  const m = bootModel(mrdrumsPreset);
+
+  // Main bank (index 0) has padSpecific=true
+  const vm0 = m.getViewModel();
+  eq('mrdrums Main bank isPadSpecific', vm0.isPadSpecific, true);
+  eq('mrdrums drumCurrentPad', vm0.drumCurrentPad, 5);
+  eq('mrdrums drumPadCount', vm0.drumPadCount, 16);
+
+  // KrautDrums: all banks default to padSpecific=false
+  const krautPreset = {
+    'synth:name': 'KrautDrums',
+    'synth_module': 'krautdrums',
+    'synth:lvl_bass': '0.5',
+  };
+  const mk = bootModel(krautPreset);
+  const vmk = mk.getViewModel();
+  eq('krautdrums bank 0 isPadSpecific=false (default)', vmk.isPadSpecific, false);
+  eq('krautdrums drumPadCount', vmk.drumPadCount, 16);
+
+  // Navigate to a different bank and verify it's also not padSpecific
+  mk.changePage(1);
+  const vmk2 = mk.getViewModel();
+  eq('krautdrums bank 1 isPadSpecific=false (default)', vmk2.isPadSpecific, false);
+
+  // Non-drum module
+  const plaitsPreset = { 'synth:name': 'Plaits', 'synth_module': 'plaits' };
+  const mp = bootModel(plaitsPreset);
+  eq('plaits isPadSpecific=false', mp.getViewModel().isPadSpecific, false);
+  eq('plaits drumPadCount=0', mp.getViewModel().drumPadCount, 0);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

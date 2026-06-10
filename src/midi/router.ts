@@ -2,6 +2,7 @@ import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BRO
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
 import { noteOn, noteOff, changeRoot, releaseAllNotes } from '../keyboard/handler.js';
+import { drumPadOn, drumPadOff } from '../keyboard/drum-handler.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
 import { mlog } from '../log.js';
@@ -48,9 +49,24 @@ export function onMidiMessageInternal(data: number[]): void {
 
     /* Pad notes */
     if (d1 >= PAD_MIN && d1 <= PAD_MAX) {
-        if ((status & 0xF0) === 0x90 && d2 > 0) { noteOn(d1, PAD_MIN, PAD_MAX);  return; }
+        const model   = activeModel();
+        const drumCfg = model?.getDrumConfig() ?? null;
+        if ((status & 0xF0) === 0x90 && d2 > 0) {
+            if (drumCfg) {
+                const pad = drumPadOn(d1, PAD_MIN, appState.shiftHeld, drumCfg, keyboardState.rootNote, model!.getComponentKey(), appState.activeSlot);
+                if (pad !== null) model!.updateDrumPad(pad, d1);
+            } else {
+                noteOn(d1, PAD_MIN, PAD_MAX);
+            }
+            return;
+        }
         if ((status & 0xF0) === 0x80 || ((status & 0xF0) === 0x90 && d2 === 0)) {
-            noteOff(d1, PAD_MIN); return;
+            if (drumCfg) {
+                drumPadOff(d1, PAD_MIN, drumCfg, keyboardState.rootNote);
+            } else {
+                noteOff(d1, PAD_MIN);
+            }
+            return;
         }
     }
 

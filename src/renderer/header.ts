@@ -18,3 +18,18 @@ export function drawBankBar(bankIndex: number, bankCount: number): void {
         fill_rect(sx, BAR_Y, sw, h, 1);
     }
 }
+
+export function drawPadGridIcon(x: number, y: number, padCount: number, currentPad: number): void {
+    const rows = padCount <= 8 ? 2 : 4;
+    const w    = 6;
+    const h    = rows + 2;
+    fill_rect(x,         y,         w, 1, 1);
+    fill_rect(x,         y + h - 1, w, 1, 1);
+    fill_rect(x,         y,         1, h, 1);
+    fill_rect(x + w - 1, y,         1, h, 1);
+    if (currentPad >= 1 && currentPad <= padCount) {
+        const row = Math.floor((currentPad - 1) / 4);
+        const col = (currentPad - 1) % 4;
+        fill_rect(x + 1 + col, y + 1 + row, 1, 1, 1);
+    }
+}

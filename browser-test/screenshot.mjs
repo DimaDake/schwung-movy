@@ -35,6 +35,7 @@ const PRESETS = [
     'lfo_prefix',
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
     'chain_t2', 'chain_t4',
+    'drum-mrdrums-pad5', 'drum-mrdrums-global',
 ];
 const MIME = {
     '.html': 'text/html',
@@ -109,15 +110,17 @@ async function main() {
         const syntheticPresets = { enum_overlay: 'plaits', knob_toast: 'test8',
                                    no_params: 'no_params', keys_view: 'test8',
                                    browse_view: 'test8',
-                                   obxd_preset_page: 'obxd_like',
-                                   obxd_main_page:   'obxd_like',
-                                   obxd_filter_page: 'obxd_like',
-                                   chain_synth:      'test8',
-                                   chain_empty:      'test8',
-                                   chain_jog_toast:  'test8',
-                                   knobs_jog_toast:  'test8',
-                                   chain_t2:         'test8',
-                                   chain_t4:         'test8' };
+                                   obxd_preset_page:   'obxd_like',
+                                   obxd_main_page:     'obxd_like',
+                                   obxd_filter_page:   'obxd_like',
+                                   chain_synth:        'test8',
+                                   chain_empty:        'test8',
+                                   chain_jog_toast:    'test8',
+                                   knobs_jog_toast:    'test8',
+                                   chain_t2:           'test8',
+                                   chain_t4:           'test8',
+                                   'drum-mrdrums-pad5':    'mrdrums',
+                                   'drum-mrdrums-global':  'mrdrums' };
         const basePreset = syntheticPresets[preset] ?? preset;
         await page.select('#preset-select', basePreset);
 
@@ -186,6 +189,21 @@ async function main() {
         } else if (preset === 'chain_t4') {
             await page.evaluate(() => {
                 globalThis.__movy_renderChainView?.(1, false, 3);  /* synth slot, T4 */
+            });
+        } else if (preset === 'drum-mrdrums-pad5') {
+            /* Tick twice to fully load drum module config, then render */
+            await page.evaluate(() => {
+                globalThis.__movy_model?.tick();
+                globalThis.__movy_model?.tick();
+                globalThis.__movy_forceRender?.();
+            });
+        } else if (preset === 'drum-mrdrums-global') {
+            /* Tick to load, navigate to bank 1 (Rand — non-padSpecific), render */
+            await page.evaluate(() => {
+                globalThis.__movy_model?.tick();
+                globalThis.__movy_model?.tick();
+                globalThis.__movy_model?.changePage(1);
+                globalThis.__movy_forceRender?.();
             });
         }
 

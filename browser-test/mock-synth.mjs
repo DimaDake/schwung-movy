@@ -354,6 +354,21 @@ export const MOCK_SYNTHS = {
         "synth:vol":    "0.8",
     },
 
+    mrdrums: {
+        "synth:name":             "MrDrums",
+        "synth_module":           "mrdrums",
+        "synth:ui_current_pad":   "5",
+        "synth:pad_vol":          "0.80",
+        "synth:pad_pan":          "0.00",
+        "synth:pad_tune":         "0.00",
+        "synth:pad_start":        "0.00",
+        "synth:pad_attack_ms":    "0.00",
+        "synth:pad_decay_ms":     "250.0",
+        "synth:pad_mode":         "0",
+        "synth:g_master_vol":     "1.0",
+        "synth:g_polyphony":      "16",
+    },
+
     /* No synth loaded — model falls back to fallback test params */
     no_params: {
         "synth:name": null,

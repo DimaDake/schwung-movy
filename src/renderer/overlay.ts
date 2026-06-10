@@ -12,16 +12,6 @@ export function drawEnumOverlay(vm: ViewModel): void {
 
     fill_rect(ovX, ovY, ovW, ovH, 0);
 
-    if (ov.waveform) {
-        const midY = ovY + Math.floor(ovH / 2);
-        const maxH = Math.floor(ovH / 2) - 1;
-        for (let i = 0; i < ov.waveform.length && i < ovW; i++) {
-            const h = Math.max(1, Math.round(ov.waveform[i] * maxH));
-            fill_rect(ovX + i, midY - h, 1, h * 2, 1);
-        }
-        return;
-    }
-
     const ROW_H   = 7;
     const VISIBLE = Math.floor(ovH / ROW_H);
     const n       = ov.options.length;

@@ -5,5 +5,3 @@ export const KNOBS_PER_PAGE         = 8;
 export const KNOBS_PER_ROW          = 4;
 export const ENUM_DELTA_DIV         = 4;    /* physical turns needed per 1 enum step */
 export const ARC_DELTA_SCALE        = 0.5;  /* sensitivity multiplier for continuous arc knobs */
-export const PREVIEW_DELAY_TICKS    = 700;  /* ~2 s of inactivity before waveform preview loads */
-export const WAVEFORM_POINTS        = 96;   /* one point per pixel of the 3-column overlay */

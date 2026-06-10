@@ -89,7 +89,7 @@ export function buildViewModel(s: ModelState): ViewModel {
         overlay: s.enumOverlay
             ? { slot: s.enumOverlay.slot, options: s.enumOverlay.options, selected: s.enumOverlay.selected }
             : s.fileOverlay
-            ? { slot: s.fileOverlay.slot, options: s.fileOverlay.items.map(p => basename(p).slice(0, 12)), selected: s.fileOverlay.selected, waveform: s.fileOverlay.waveform }
+            ? { slot: s.fileOverlay.slot, options: s.fileOverlay.items.map(p => basename(p).slice(0, 12)), selected: s.fileOverlay.selected }
             : null,
         isEmpty:     s.moduleId === '' && s.activeModuleName === '—',
     };

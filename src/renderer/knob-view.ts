@@ -16,7 +16,7 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
     clear_screen();
 
     if (vm.toast) {
-        drawHeader(vm.toast.fullName, vm.toast.value, true);
+        drawHeader(vm.toast.fullName, vm.overlay ? null : vm.toast.value, true);
     } else {
         const trackLabel = 'T' + (activeSlot + 1);
         const rightW     = vm.bankName ? fontWidth(vm.bankName) + 4 : 0;

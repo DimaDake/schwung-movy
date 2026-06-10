@@ -24,13 +24,16 @@ export interface OverlayState {
 }
 
 export interface ViewModel {
-    moduleName:  string;
-    bankName:    string;
-    bankIndex:   number;
-    bankCount:   number;
-    rows:        (ParamVM | null)[][];
-    touchedSlot: number | null;
-    toast:       ToastState | null;
-    overlay:     OverlayState | null;
-    isEmpty:     boolean;
+    moduleName:     string;
+    bankName:       string;
+    bankIndex:      number;
+    bankCount:      number;
+    rows:           (ParamVM | null)[][];
+    touchedSlot:    number | null;
+    toast:          ToastState | null;
+    overlay:        OverlayState | null;
+    isEmpty:        boolean;
+    drumPadCount:   number;
+    drumCurrentPad: number;
+    isPadSpecific:  boolean;
 }

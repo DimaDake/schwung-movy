@@ -39,6 +39,10 @@ export interface ModelState {
     refreshParamCursor:  number;
     lastDeltaTick:       number;
     dirty:               boolean;
+    isDrum:              boolean;
+    drumPadCount:        number;
+    drumCurrentPad:      number;
+    drumCurrentPhysPad:  number;
 }
 
 export function createModelState(activeSlot: number, componentKey: string): ModelState {
@@ -64,5 +68,9 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         refreshParamCursor:  0,
         lastDeltaTick:       -(REFRESH_SUPPRESS_TICKS + 1),
         dirty:               false,
+        isDrum:              false,
+        drumPadCount:        0,
+        drumCurrentPad:      1,
+        drumCurrentPhysPad:  0,
     };
 }

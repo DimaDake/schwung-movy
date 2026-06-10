@@ -15,12 +15,22 @@ export interface KnobSlot {
 export interface BankConfig {
     name: string;
     rows: (KnobSlot | null)[][];
+    padSpecific?: boolean;
 }
 
 export interface ModuleConfig {
     id:    string;
     name:  string;
     banks: BankConfig[];
+    drum?: DrumConfig;
+}
+
+export interface DrumConfig {
+    padCount:         number;
+    padNoteStart:     number;
+    rawMidi:          boolean;
+    currentPadParam?: string;
+    shiftSelectMidi?: boolean;
 }
 
 export interface KnobParam {

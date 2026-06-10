@@ -7,6 +7,7 @@
 
 import { createModel }    from '../dist/esm/model/index.js';
 import { MOCK_SYNTHS }    from './mock-synth.mjs';
+import { drumPadOn, drumPadOff } from '../dist/esm/keyboard/drum-handler.js';
 
 /* ── Mock globals ─────────────────────────────────────────────────────────── */
 
@@ -21,6 +22,8 @@ globalThis.host_read_file     = () => null;
 globalThis.setLED             = () => {};
 globalThis.setButtonLED       = () => {};
 globalThis.MoveKnob1          = 71;
+globalThis.MidiNoteOn         = 0x90;
+globalThis.MidiNoteOff        = 0x80;
 
 let mockFsEntries = {};  // path → string[] of filenames
 
@@ -377,6 +380,62 @@ _log('\nTest: ViewModel drum fields');
   const mp = bootModel(plaitsPreset);
   eq('plaits isPadSpecific=false', mp.getViewModel().isPadSpecific, false);
   eq('plaits drumPadCount=0', mp.getViewModel().drumPadCount, 0);
+}
+
+/* ── drumPadOn / drumPadOff ──────────────────────────────────────────────── */
+
+_log('\nTest: drumPadOn');
+
+{
+  let sentMidi = [];
+  let setParams = {};
+  const origSendMidi  = globalThis.shadow_send_midi_to_dsp;
+  const origSetParam  = globalThis.shadow_set_param;
+  globalThis.shadow_send_midi_to_dsp = (msg) => { sentMidi.push([...msg]); };
+  globalThis.shadow_set_param = (_s, key, val) => { setParams[key] = val; return true; };
+
+  const mrdCfg = { padCount: 16, padNoteStart: 36, rawMidi: false, currentPadParam: 'ui_current_pad' };
+
+  // pad 68, rawMidi=false, rootNote=36: PAD_MAP[0]=0 → midiNote=36 → drumPad=1
+  sentMidi = []; setParams = {};
+  const r1 = drumPadOn(68, 68, false, mrdCfg, 36, 'synth', 0);
+  eq('mrdrums pad68 → drumPad 1', r1, 1);
+  eq('sends NoteOn 36', sentMidi[0]?.[1], 36);
+  eq('velocity 100', sentMidi[0]?.[2], 100);
+  eq('sets ui_current_pad=1', setParams['synth:ui_current_pad'], '1');
+
+  // pad 76, PAD_MAP[8]=1 → midiNote=37 → drumPad=2 (valid)
+  sentMidi = []; setParams = {};
+  const r2 = drumPadOn(76, 68, false, mrdCfg, 36, 'synth', 0);
+  eq('mrdrums pad76 → valid drumPad', r2 !== null, true);
+
+  // shift+pad (no shiftSelectMidi) → suppresses MIDI, still sets param
+  sentMidi = []; setParams = {};
+  const r3 = drumPadOn(68, 68, true, mrdCfg, 36, 'synth', 0);
+  eq('shift+pad returns drumPad 1', r3, 1);
+  eq('shift: no MIDI sent', sentMidi.length, 0);
+  eq('shift: still sets param', setParams['synth:ui_current_pad'], '1');
+
+  // shiftSelectMidi=true (weird-dreams) → sends vel=1
+  const wdCfg = { padCount: 8, padNoteStart: 36, rawMidi: false, shiftSelectMidi: true };
+  sentMidi = [];
+  drumPadOn(68, 68, true, wdCfg, 36, 'synth', 0);
+  eq('shiftSelectMidi: sends vel=1', sentMidi[0]?.[2], 1);
+
+  // rawMidi=true (krautdrums): midiNote=physPad → drumPad=physPad-padNoteStart+1
+  const kCfg = { padCount: 16, padNoteStart: 68, rawMidi: true };
+  sentMidi = []; setParams = {};
+  const r4 = drumPadOn(68, 68, false, kCfg, 36, 'synth', 0);
+  eq('krautdrums pad68 → drumPad 1', r4, 1);
+  eq('rawMidi sends pad note 68', sentMidi[0]?.[1], 68);
+
+  // rawMidi out-of-range: kCfg has padCount=16, padNoteStart=68; pad84=drumPad17 (out of range)
+  sentMidi = [];
+  const r5 = drumPadOn(84, 68, false, kCfg, 36, 'synth', 0);
+  eq('rawMidi out-of-range → null', r5, null);
+
+  globalThis.shadow_send_midi_to_dsp = origSendMidi;
+  globalThis.shadow_set_param = origSetParam;
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

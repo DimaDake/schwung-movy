@@ -14,6 +14,7 @@ await esbuild.build({
         resolve(root, 'src/renderer/keys-view.ts'),
         resolve(root, 'src/renderer/browse-view.ts'),
         resolve(root, 'src/renderer/chain-view.ts'),
+        resolve(root, 'src/keyboard/drum-handler.ts'),
     ],
     bundle:    true,
     splitting: true,

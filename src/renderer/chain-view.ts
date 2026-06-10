@@ -29,7 +29,7 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
     }
 
     if (vm.toast) {
-        drawHeader(vm.toast.fullName, vm.toast.value, true);
+        drawHeader(vm.toast.fullName, vm.overlay ? null : vm.toast.value, true);
     } else {
         const leftW    = fontWidth(trackLabel) + 4;
         const maxRight = W - leftW - 4;

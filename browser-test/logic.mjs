@@ -302,6 +302,41 @@ _log('\nTest: browseHint = false for non-file param touch');
     eq('toast.browseHint = false for float', m.getViewModel().toast?.browseHint, false);
 }
 
+// ── Drum module detection ─────────────────────────────────────────────────
+
+_log('\nTest: drum module detection via loadHierarchy');
+
+{
+  const mrdrumsPreset = {
+    'synth:name': 'MrDrums',
+    'synth_module': 'mrdrums',
+    'synth:pad_vol': '0.8',
+    'synth:ui_current_pad': '3',
+  };
+
+  const m = bootModel(mrdrumsPreset);
+  const vm = m.getViewModel();
+  eq('mrdrums: isDrum via drumPadCount', vm.drumPadCount, 16);
+  eq('mrdrums: drumCurrentPad from param', vm.drumCurrentPad, 3);
+
+  const krautPreset = {
+    'synth:name': 'KrautDrums',
+    'synth_module': 'krautdrums',
+    'synth:lvl_bass': '0.85',
+  };
+  const mk = bootModel(krautPreset);
+  const vmk = mk.getViewModel();
+  eq('krautdrums: drumPadCount=16', vmk.drumPadCount, 16);
+  eq('krautdrums: drumCurrentPad defaults to 1', vmk.drumCurrentPad, 1);
+
+  const plaitsPreset = {
+    'synth:name': 'Plaits',
+    'synth_module': 'plaits',
+  };
+  const mp = bootModel(plaitsPreset);
+  eq('plaits: not drum (drumPadCount=0)', mp.getViewModel().drumPadCount, 0);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

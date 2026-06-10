@@ -191,6 +191,16 @@ export function createModel(slot: number, componentKey = 'synth') {
         },
 
         getComponentKey(): string { return s.componentKey; },
+
+        getDrumConfig(): import('../types/param.js').DrumConfig | null {
+            return s.moduleConfig?.drum ?? null;
+        },
+
+        updateDrumPad(pad: number, physPad: number): void {
+            s.drumCurrentPad     = pad;
+            s.drumCurrentPhysPad = physPad;
+            s.dirty = true;
+        },
     };
 }
 

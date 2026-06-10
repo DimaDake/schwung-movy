@@ -39,6 +39,21 @@ export function loadHierarchy(s: ModelState): void {
     mlog('loadHierarchy: slot=' + s.activeSlot + ' module=' + s.activeModuleName);
     s.moduleId = shadow_get_param(s.activeSlot, s.componentKey + '_module') || '';
 
+    s.moduleConfig = loadModuleConfig(s.moduleId);
+
+    s.isDrum             = false;
+    s.drumPadCount       = 0;
+    s.drumCurrentPad     = 1;
+    s.drumCurrentPhysPad = 0;
+    if (s.moduleConfig?.drum) {
+        s.isDrum       = true;
+        s.drumPadCount = s.moduleConfig.drum.padCount;
+        if (s.moduleConfig.drum.currentPadParam) {
+            const padRaw = shadow_get_param(s.activeSlot, s.componentKey + ':' + s.moduleConfig.drum.currentPadParam);
+            if (padRaw) s.drumCurrentPad = Math.max(1, parseInt(padRaw));
+        }
+    }
+
     /* chain_params → cpMap for type/min/max/step/options/name lookups */
     const cpMap: Record<string, HierParam & { name?: string }> = {};
     const chainParamsRaw = shadow_get_param(s.activeSlot, s.componentKey + ':chain_params');
@@ -51,7 +66,7 @@ export function loadHierarchy(s: ModelState): void {
     }
 
     const raw = shadow_get_param(s.activeSlot, s.componentKey + ':ui_hierarchy');
-    if (!raw) {
+    if (!raw && !s.moduleConfig) {
         mlog('loadHierarchy: ui_hierarchy null — no params');
         s.dirty = true;
         return;
@@ -62,24 +77,24 @@ export function loadHierarchy(s: ModelState): void {
     const paramDefs:  Record<string, HierParam> = {};
     const knobInline: Record<string, HierParam> = {};
     let allLevels: Record<string, HierLevel> = {};
-    try {
-        const hier = JSON.parse(raw) as { levels?: Record<string, HierLevel> };
-        allLevels = hier.levels ?? {};
-        for (const lvl of Object.values(allLevels)) {
-            if (lvl.params) {
-                for (const p of lvl.params) {
-                    if (typeof p === 'object' && p.key) paramDefs[p.key] = p;
+    if (raw) {
+        try {
+            const hier = JSON.parse(raw) as { levels?: Record<string, HierLevel> };
+            allLevels = hier.levels ?? {};
+            for (const lvl of Object.values(allLevels)) {
+                if (lvl.params) {
+                    for (const p of lvl.params) {
+                        if (typeof p === 'object' && p.key) paramDefs[p.key] = p;
+                    }
+                }
+                if (lvl.knobs) {
+                    for (const k of lvl.knobs) {
+                        if (typeof k === 'object' && k.key) knobInline[k.key] = k;
+                    }
                 }
             }
-            if (lvl.knobs) {
-                for (const k of lvl.knobs) {
-                    if (typeof k === 'object' && k.key) knobInline[k.key] = k;
-                }
-            }
-        }
-    } catch (e) { mlog('ui_hierarchy parse error: ' + e); }
-
-    s.moduleConfig = loadModuleConfig(s.moduleId);
+        } catch (e) { mlog('ui_hierarchy parse error: ' + e); }
+    }
 
     /* ── Custom config path (Plaits, Wurl, etc.) ─────────────────────────── */
     if (s.moduleConfig) {

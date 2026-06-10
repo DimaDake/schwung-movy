@@ -80,7 +80,9 @@ function drawEnumSquare(kx: number, ky: number, options: string[] | null, enumIn
 export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
     const kx = col * CELL_W + Math.floor((CELL_W - KW) / 2);
     const ky = rowY;
-    if (pvm.type === 'enum') {
+    if (pvm.type === 'file') {
+        drawEnumSquare(kx, ky, [pvm.displayValue], 0);
+    } else if (pvm.type === 'enum') {
         drawEnumSquare(kx, ky, pvm.options, pvm.enumIndex);
     } else if (pvm.renderStyle === 'hbar') {
         drawHorzBar(kx, ky, pvm.normalizedValue);

@@ -1,6 +1,7 @@
 import type { ModelState } from './state.js';
 import { loadHierarchy } from './hierarchy.js';
 import { applyKnobDelta, refreshOneParam, pollModuleName } from './store.js';
+import { loadWaveformPreview } from './wavload.js';
 import { KNOBS_PER_PAGE, NAME_POLL_TICKS } from './constants.js';
 import { mlog } from '../log.js';
 
@@ -25,6 +26,18 @@ export function processTick(s: ModelState): boolean {
         }
     }
     if (hadDelta) s.lastDeltaTick = _perfTickCount;
+
+    if (s.fileOverlay && s.fileOverlay.previewCountdown > 0) {
+        s.fileOverlay.previewCountdown--;
+        if (s.fileOverlay.previewCountdown === 0) {
+            const item = s.fileOverlay.items[s.fileOverlay.selected];
+            if (item && item !== s.fileOverlay.waveformPath) {
+                s.fileOverlay.waveform     = loadWaveformPreview(item);
+                s.fileOverlay.waveformPath = item;
+                s.dirty = true;
+            }
+        }
+    }
 
     if (s.longPressCountdown > 0) {
         s.longPressCountdown--;

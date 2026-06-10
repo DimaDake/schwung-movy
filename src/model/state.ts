@@ -9,12 +9,15 @@ export interface EnumOverlay {
 }
 
 export interface FileOverlay {
-    slot:     number;
-    gi:       number;
-    items:    string[];   // absolute paths, filtered + sorted
-    selected: number;     // index into items
-    original: string;     // path at touch time
-    accum:    number;     // fractional delta accumulator
+    slot:             number;
+    gi:               number;
+    items:            string[];   // absolute paths, filtered + sorted
+    selected:         number;     // index into items
+    original:         string;     // path at touch time
+    accum:            number;     // fractional delta accumulator
+    previewCountdown: number;     // ticks until waveform loads; reset on delta
+    waveform:         number[] | null;
+    waveformPath:     string | null;  // path for which waveform was loaded
 }
 
 export interface ModelState {

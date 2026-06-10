@@ -25,12 +25,16 @@ globalThis.MoveKnob1          = 71;
 let mockFsEntries = {};  // path → string[] of filenames
 
 globalThis.os = {
-    readdir: (path) => [mockFsEntries[path] ?? [], 0],
-    stat:    (path) => {
-        // treat paths without an extension as directories
+    readdir:  (path) => [mockFsEntries[path] ?? [], 0],
+    stat:     (path) => {
         const mode = path.lastIndexOf('.') > path.lastIndexOf('/') ? 0x8000 : 0x4000;
         return [{ mode }, 0];
     },
+    open:     () => -1,  // waveform loading returns null in tests
+    read:     () => 0,
+    seek:     () => 0,
+    close:    () => 0,
+    O_RDONLY: 0,
 };
 
 const _log = console.log.bind(console);

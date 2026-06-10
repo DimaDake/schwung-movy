@@ -3,7 +3,7 @@ import { loadHierarchy }    from './hierarchy.js';
 import { applyKnobDelta }   from './store.js';
 import { buildViewModel }   from './viewmodel.js';
 import { processTick }      from './tick.js';
-import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV } from './constants.js';
+import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV, PREVIEW_DELAY_TICKS } from './constants.js';
 import { mlog } from '../log.js';
 
 function fileBasename(path: string): string {
@@ -62,13 +62,15 @@ export function createModel(slot: number, componentKey = 'synth') {
             }
             if (s.fileOverlay && k === s.fileOverlay.slot) {
                 s.fileOverlay.accum += delta / ENUM_DELTA_DIV;
+                s.fileOverlay.previewCountdown = PREVIEW_DELAY_TICKS;
                 const step = Math.trunc(s.fileOverlay.accum);
                 if (step !== 0) {
                     s.fileOverlay.accum -= step;
                     const n    = s.fileOverlay.items.length;
                     const next = Math.max(0, Math.min(n - 1, s.fileOverlay.selected + step));
                     if (next !== s.fileOverlay.selected) {
-                        s.fileOverlay.selected = next;
+                        s.fileOverlay.selected  = next;
+                        s.fileOverlay.waveform  = null;
                         s.dirty = true;
                     }
                 }
@@ -107,8 +109,11 @@ export function createModel(slot: number, componentKey = 'synth') {
                     const selIdx = currentPath ? items.indexOf(currentPath) : 0;
                     s.fileOverlay = {
                         slot: k, gi, items,
-                        selected: selIdx >= 0 ? selIdx : 0,
-                        original: currentPath, accum: 0,
+                        selected:         selIdx >= 0 ? selIdx : 0,
+                        original:         currentPath, accum: 0,
+                        previewCountdown: PREVIEW_DELAY_TICKS,
+                        waveform:         null,
+                        waveformPath:     null,
                     };
                 }
             }

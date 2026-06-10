@@ -49,6 +49,11 @@ declare const MidiNoteOff: number;
 /* QuickJS os module — available as a global on device via banner import */
 declare namespace os {
     function readdir(path: string): [string[], number];
+    function open(path: string, flags: number): number;
+    function read(fd: number, buf: ArrayBuffer, offset: number, len: number): number;
+    function seek(fd: number, offset: number, whence: number): number;
+    function close(fd: number): number;
+    const O_RDONLY: number;
 }
 
 /* App globals assigned at startup */

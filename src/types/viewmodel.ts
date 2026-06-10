@@ -18,9 +18,10 @@ export interface ToastState {
 }
 
 export interface OverlayState {
-    slot:     number;
-    options:  string[];
-    selected: number;
+    slot:      number;
+    options:   string[];
+    selected:  number;
+    waveform?: number[] | null;
 }
 
 export interface ViewModel {

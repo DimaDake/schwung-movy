@@ -206,6 +206,19 @@ _log('\nTest: vm.rows populated correctly');
     eq('no_params: 0 params in rows', nonNull, 0);
 }
 
+/* ── granny-style: filepath in chain_params but absent from all knobs arrays ── */
+
+_log('\nTest: filepath absent from knobs arrays is injected into Main page');
+
+{
+    const m = bootModel(MOCK_SYNTHS.granny_like);
+    const vm = m.getViewModel();
+    const first = vm.rows[0][0];
+    eq('granny_like: first knob = sample_path (file)', first?.type, 'file');
+    eq('granny_like: sample_path fullName = Sample File', first?.fullName, 'Sample File');
+    eq('granny_like: position still present', vm.rows[0][1]?.fullName, 'Position');
+}
+
 /* ── file param detection ─────────────────────────────────────────────────── */
 
 _log('\nTest: file param detected from chain_params type:filepath');

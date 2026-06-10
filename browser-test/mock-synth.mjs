@@ -322,6 +322,23 @@ export const MOCK_SYNTHS = {
         ].map(k => [`synth:${k}`, "0.5"])),
     },
 
+    /* Granny-style: filepath in chain_params but NOT in any level's knobs array */
+    granny_like: {
+        "synth:name": "GrannyTest",
+        "synth:chain_params": JSON.stringify([
+            { key: "sample_path", name: "Sample File", type: "filepath",
+              root: "/data/UserData/UserLibrary/Samples", filter: ".wav" },
+            { key: "position", name: "Position", type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "size_ms",  name: "Size",     type: "float", min: 5, max: 500, step: 0.5  },
+        ]),
+        "synth:ui_hierarchy": JSON.stringify({ levels: { root: {
+            knobs: ["position", "size_ms"],
+        }}}),
+        "synth:sample_path": "/data/UserData/UserLibrary/Samples/loop.wav",
+        "synth:position":    "0.2",
+        "synth:size_ms":     "100",
+    },
+
     file_param: {
         "synth:name": "SamplerTest",
         "synth:chain_params": JSON.stringify([

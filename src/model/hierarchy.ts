@@ -197,6 +197,20 @@ export function loadHierarchy(s: ModelState): void {
     /* Main page from root.knobs (with preset prepended if there's room) */
     let rootKeys = (rootLevel.knobs ?? []).map(toKey).filter((k): k is string => k !== null);
     if (presetParam && !presetSeparate) rootKeys = [listParam!, ...rootKeys];
+
+    /* Inject filepath params from chain_params not already in any knobs array */
+    const allKnobKeys = new Set<string>();
+    for (const lvl of Object.values(allLevels)) {
+        for (const k of (lvl.knobs ?? [])) {
+            const key = typeof k === 'string' ? k : k.key;
+            if (key) allKnobKeys.add(key);
+        }
+    }
+    const orphanFilePaths = Object.entries(cpMap)
+        .filter(([key, cp]) => (cp as { type?: string }).type === 'filepath' && !allKnobKeys.has(key))
+        .map(([key]) => key);
+    if (orphanFilePaths.length > 0) rootKeys = [...orphanFilePaths, ...rootKeys];
+
     if (rootKeys.length > 0) addLevel('Main', rootKeys);
 
     /* Sub-levels from root.params — recurse into navigation-only levels */

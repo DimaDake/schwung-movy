@@ -1,7 +1,7 @@
-import type { ParamVM } from '../types/viewmodel.js';
+import type { ParamVM, ViewModel } from '../types/viewmodel.js';
 import { fontPrint, fontWidth } from '../font/index.js';
 import { drawKnobWidget } from './knob.js';
-import { CELL_W, LBL_H } from './layout.js';
+import { CELL_W, LBL_H, ROW0_Y, LBL0_Y, ROW1_Y, LBL1_Y } from './layout.js';
 
 export function drawLabelCell(col: number, lblY: number, pvm: ParamVM): void {
     const knobCenterX = col * CELL_W + Math.floor(CELL_W / 2);
@@ -22,5 +22,16 @@ export function drawKnobRow(params: (ParamVM | null)[], rowY: number, lblY: numb
         if (!pvm) continue;
         drawKnobWidget(col, rowY, pvm);
         drawLabelCell(col, lblY, pvm);
+    }
+}
+
+// Renders both knob rows or a "No params" fallback when all slots are empty
+export function drawKnobParams(vm: ViewModel): void {
+    const hasParams = vm.rows[0].some(Boolean) || vm.rows[1].some(Boolean);
+    if (!hasParams) {
+        fontPrint(2, ROW0_Y + 4, 'No params', 1);
+    } else {
+        drawKnobRow(vm.rows[0], ROW0_Y, LBL0_Y);
+        drawKnobRow(vm.rows[1], ROW1_Y, LBL1_Y);
     }
 }

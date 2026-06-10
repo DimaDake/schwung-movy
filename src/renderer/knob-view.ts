@@ -1,16 +1,9 @@
 import type { ViewModel } from '../types/viewmodel.js';
-import { fontPrint, fontWidth } from '../font/index.js';
+import { fontWidth } from '../font/index.js';
 import { drawHeader, drawBankBar } from './header.js';
-import { drawKnobRow } from './label.js';
-import { drawEnumOverlay } from './overlay.js';
-import { W, ROW0_Y, LBL0_Y, ROW1_Y, LBL1_Y, TOAST_Y, TOAST_H } from './layout.js';
-
-function drawJogToast(text: string): void {
-    fill_rect(0, TOAST_Y, W, TOAST_H, 1);
-    const tw = fontWidth(text);
-    const tx = Math.max(1, Math.floor((W - tw) / 2));
-    fontPrint(tx, TOAST_Y + 1, text, 0);
-}
+import { drawKnobParams } from './label.js';
+import { drawEnumOverlay, drawJogToast } from './overlay.js';
+import { W } from './layout.js';
 
 export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 0): void {
     clear_screen();
@@ -29,14 +22,7 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
     }
 
     drawBankBar(vm.bankIndex, vm.bankCount);
-
-    const hasParams = vm.rows[0].some(Boolean) || vm.rows[1].some(Boolean);
-    if (!hasParams) {
-        fontPrint(2, ROW0_Y + 4, 'No params', 1);
-    } else {
-        drawKnobRow(vm.rows[0], ROW0_Y, LBL0_Y);
-        drawKnobRow(vm.rows[1], ROW1_Y, LBL1_Y);
-    }
+    drawKnobParams(vm);
 
     if (vm.overlay) drawEnumOverlay(vm);
     if (vm.toast?.browseHint) drawJogToast('JOG: BROWSE');

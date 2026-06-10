@@ -1,0 +1,68 @@
+{
+  "id": "krautdrums",
+  "name": "KrautDrums",
+  "drum": {
+    "padCount": 16,
+    "padNoteStart": 68,
+    "rawMidi": true
+  },
+  "banks": [
+    {
+      "name": "Levels",
+      "rows": [
+        [
+          { "key": "lvl_bass",    "short": "BASS",  "full": "Bass",     "type": "float", "min": 0, "max": 1 },
+          { "key": "lvl_conga",   "short": "CONGA", "full": "Conga",    "type": "float", "min": 0, "max": 1 },
+          { "key": "lvl_tom1",    "short": "TOM1",  "full": "Tom 1",    "type": "float", "min": 0, "max": 1 },
+          { "key": "lvl_tom2",    "short": "TOM2",  "full": "Tom 2",    "type": "float", "min": 0, "max": 1 },
+          { "key": "lvl_claves",  "short": "CLVS",  "full": "Claves",   "type": "float", "min": 0, "max": 1 },
+          { "key": "lvl_snare",   "short": "SNARE", "full": "Snare",    "type": "float", "min": 0, "max": 1 },
+          { "key": "lvl_cowbell", "short": "COWBL", "full": "Cowbell",  "type": "float", "min": 0, "max": 1 },
+          { "key": "lvl_cymbals", "short": "CYMBL", "full": "Cymbals",  "type": "float", "min": 0, "max": 1 }
+        ]
+      ]
+    },
+    {
+      "name": "FX",
+      "rows": [
+        [
+          { "key": "delay_mix",    "short": "DLMIX", "full": "Delay Mix",  "type": "float", "min": 0, "max": 1 },
+          { "key": "delay_time",   "short": "DLTIM", "full": "Delay Time", "type": "float", "min": 0, "max": 1 },
+          { "key": "delay_fb",     "short": "DLFBK", "full": "Delay Fdbk", "type": "float", "min": 0, "max": 1 },
+          { "key": "reverb_mix",   "short": "RVMIX", "full": "Reverb Mix", "type": "float", "min": 0, "max": 1 },
+          { "key": "reverb_decay", "short": "RVDCY", "full": "Reverb Dcy", "type": "float", "min": 0, "max": 1 },
+          { "key": "reverb_tone",  "short": "RVTON", "full": "Reverb Tone","type": "float", "min": 0, "max": 1 },
+          { "key": "bus_comp",     "short": "COMP",  "full": "Bus Comp",   "type": "float", "min": 0, "max": 1 },
+          { "key": "all_decay",    "short": "ALDCY", "full": "All Decay",  "type": "float", "min": 0, "max": 1 }
+        ]
+      ]
+    },
+    {
+      "name": "Attitude",
+      "rows": [
+        [
+          { "key": "preamp_drive",  "short": "DRIVE", "full": "Drive",   "type": "float", "min": 0,    "max": 1 },
+          { "key": "tape_amount",   "short": "TAPE",  "full": "Tape",    "type": "float", "min": 0,    "max": 1 },
+          { "key": "hpf_freq",      "short": "HPF",   "full": "HPF",     "type": "float", "min": 30,   "max": 500 },
+          { "key": "eq_body",       "short": "BODY",  "full": "Body",    "type": "float", "min": -6,   "max": 6 },
+          { "key": "eq_air",        "short": "AIR",   "full": "Air",     "type": "float", "min": -6,   "max": 6 },
+          { "key": "filter_cutoff", "short": "CUTOF", "full": "Cutoff",  "type": "float", "min": 100,  "max": 15000 },
+          { "key": "filter_reso",   "short": "RESO",  "full": "Reso",    "type": "float", "min": 0,    "max": 1 },
+          { "key": "phaser_amount", "short": "PHASE", "full": "Phaser",  "type": "float", "min": 0,    "max": 1 }
+        ]
+      ]
+    },
+    {
+      "name": "General",
+      "rows": [
+        [
+          { "key": "tempo",      "short": "TEMPO", "full": "Tempo",      "type": "float", "min": 60,  "max": 200 },
+          { "key": "drift",      "short": "DRIFT", "full": "Drift",      "type": "float", "min": 0,   "max": 1 },
+          { "key": "master_vol", "short": "MSVOL", "full": "Master Vol", "type": "float", "min": 0,   "max": 1 },
+          { "key": "density",    "short": "DNSTY", "full": "Density",    "type": "float", "min": 0,   "max": 1 },
+          null, null, null, null
+        ]
+      ]
+    }
+  ]
+}

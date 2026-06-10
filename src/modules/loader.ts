@@ -1,12 +1,22 @@
 import type { ModuleConfig } from '../types/param.js';
-import plaitsJson from './plaits.json';
-import wurlJson   from './wurl.json';
+import plaitsJson      from './plaits.json';
+import wurlJson        from './wurl.json';
+import mrdrumsJson     from './mrdrums.json';
+import weirdDreamsJson from './weird-dreams.json';
+import krautdrumsJson  from './krautdrums.json';
+import libpo32Json     from './libpo32.json';
+import essaimJson      from './essaim.json';
 
 const MOVY_SG_ROOT = '/data/UserData/schwung/modules/sound_generators';
 
 const CONFIGS: Record<string, ModuleConfig> = {
-    plaits: plaitsJson as unknown as ModuleConfig,
-    wurl:   wurlJson   as unknown as ModuleConfig,
+    plaits:          plaitsJson       as unknown as ModuleConfig,
+    wurl:            wurlJson         as unknown as ModuleConfig,
+    mrdrums:         mrdrumsJson      as unknown as ModuleConfig,
+    'weird-dreams':  weirdDreamsJson  as unknown as ModuleConfig,
+    krautdrums:      krautdrumsJson   as unknown as ModuleConfig,
+    'po32-drum':     libpo32Json      as unknown as ModuleConfig,
+    essaim:          essaimJson       as unknown as ModuleConfig,
 };
 
 function tryFile(path: string): ModuleConfig | null {

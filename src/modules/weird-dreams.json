@@ -1,0 +1,58 @@
+{
+  "id": "weird-dreams",
+  "name": "Weird Dreams",
+  "drum": {
+    "padCount": 8,
+    "padNoteStart": 36,
+    "rawMidi": false,
+    "shiftSelectMidi": true
+  },
+  "banks": [
+    {
+      "name": "Voice",
+      "padSpecific": true,
+      "rows": [
+        [
+          { "key": "cv_vol",    "short": "VOL",   "full": "Volume",  "type": "float", "min": 0, "max": 1 },
+          { "key": "cv_pan",    "short": "PAN",   "full": "Pan",     "type": "float", "min": -1, "max": 1 },
+          { "key": "cv_freq",   "short": "FREQ",  "full": "Freq",    "type": "float", "min": 20, "max": 20000 },
+          { "key": "cv_decay",  "short": "DECAY", "full": "Decay",   "type": "float", "min": 0, "max": 1 }
+        ],
+        [
+          { "key": "cv_wave",   "short": "WAVE",  "full": "Wave",    "type": "float", "min": 0, "max": 1 },
+          { "key": "cv_mix",    "short": "MIX",   "full": "Mix",     "type": "float", "min": 0, "max": 1 },
+          { "key": "cv_cutoff", "short": "CUTOF", "full": "Cutoff",  "type": "float", "min": 0, "max": 1 },
+          { "key": "cv_preset", "short": "PRSET", "full": "Preset",  "type": "int",   "min": 0, "max": 40 }
+        ]
+      ]
+    },
+    {
+      "name": "Patch",
+      "rows": [
+        [
+          { "key": "kit",       "short": "KIT",   "full": "Kit",       "type": "int",   "min": 0, "max": 63 },
+          { "key": "rnd_kit",   "short": "RNKIT", "full": "Rnd Kit",   "type": "float", "min": 0, "max": 1 },
+          { "key": "rnd_voice", "short": "RNDVC", "full": "Rnd Voice", "type": "float", "min": 0, "max": 1 },
+          { "key": "rnd_pitch", "short": "RNDPT", "full": "Rnd Pitch", "type": "float", "min": 0, "max": 1 }
+        ]
+      ]
+    },
+    {
+      "name": "FX",
+      "rows": [
+        [
+          { "key": "rev_mix",   "short": "RVMIX", "full": "Rev Mix",   "type": "float", "min": 0, "max": 1 },
+          { "key": "rev_type",  "short": "RVTYP", "full": "Rev Type",  "type": "int",   "min": 0, "max": 2 },
+          { "key": "rev_size",  "short": "RVSIZ", "full": "Rev Size",  "type": "float", "min": 0, "max": 1 },
+          { "key": "rev_decay", "short": "RVDCY", "full": "Rev Decay", "type": "float", "min": 0, "max": 1 }
+        ],
+        [
+          { "key": "dly_mix",   "short": "DLMIX", "full": "Dly Mix",   "type": "float", "min": 0, "max": 1 },
+          { "key": "dly_rate",  "short": "DLRAT", "full": "Dly Rate",  "type": "float", "min": 0, "max": 1 },
+          { "key": "dly_fdbk",  "short": "DLFBK", "full": "Dly Fdbk", "type": "float", "min": 0, "max": 1 },
+          { "key": "dly_tone",  "short": "DLTON", "full": "Dly Tone",  "type": "float", "min": 0, "max": 1 }
+        ]
+      ]
+    }
+  ]
+}

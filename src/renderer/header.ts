@@ -30,6 +30,6 @@ export function drawPadGridIcon(x: number, y: number, padCount: number, currentP
     if (currentPad >= 1 && currentPad <= padCount) {
         const row = Math.floor((currentPad - 1) / 4);
         const col = (currentPad - 1) % 4;
-        fill_rect(x + 1 + col, y + 1 + row, 1, 1, 1);
+        fill_rect(x + 1 + col, y + rows - row, 1, 1, 1);
     }
 }

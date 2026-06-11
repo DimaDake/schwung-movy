@@ -2,7 +2,7 @@ import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BRO
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
 import { CHAIN_SLOTS } from '../chain/config.js';
-import { padLedColor } from '../keyboard/leds.js';
+import { padLedColor, drumPadLedColor } from '../keyboard/leds.js';
 import { midiNoteName } from '../keyboard/notes.js';
 import { renderKnobsView } from '../renderer/knob-view.js';
 import { renderKeysView }  from '../renderer/keys-view.js';
@@ -49,5 +49,21 @@ export function tick(): void {
             renderBrowseView(browserState.modules, browserState.browseIndex, browseTitle);
         }
         appState.dirty = false;
+
+        /* ── Drum pad LEDs ──────────────────────────────────────────────────── */
+        const dvm       = activeModel?.getViewModel();
+        const isDrum    = (dvm?.drumPadCount ?? 0) > 0;
+        if (isDrum) {
+            const drumCfg = activeModel!.getDrumConfig()!;
+            for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {
+                const p = PAD_MIN + i;
+                setLED(p, drumPadLedColor(p, PAD_MIN, drumCfg, keyboardState.rootNote, dvm!.drumCurrentPhysPad), true);
+            }
+            appState.drumActive = true;
+        } else if (appState.drumActive) {
+            appState.drumActive = false;
+            appState.initLedsDone = false;
+            appState.initLedIndex = 0;
+        }
     }
 }

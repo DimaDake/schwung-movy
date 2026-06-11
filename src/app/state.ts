@@ -37,4 +37,5 @@ export const appState = {
     jogTouched:       false,
     browseOrigin:     VIEW_CHAIN as number,
     fileBrowserState: null as FileBrowserState | null,
+    drumActive:       false,
 };

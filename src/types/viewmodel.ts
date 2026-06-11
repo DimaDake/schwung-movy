@@ -33,7 +33,8 @@ export interface ViewModel {
     toast:          ToastState | null;
     overlay:        OverlayState | null;
     isEmpty:        boolean;
-    drumPadCount:   number;
-    drumCurrentPad: number;
-    isPadSpecific:  boolean;
+    drumPadCount:      number;
+    drumCurrentPad:    number;
+    drumCurrentPhysPad: number;
+    isPadSpecific:     boolean;
 }

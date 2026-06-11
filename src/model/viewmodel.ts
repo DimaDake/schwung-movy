@@ -88,8 +88,9 @@ export function buildViewModel(s: ModelState): ViewModel {
             ? { slot: s.fileOverlay.slot, options: s.fileOverlay.items.map(p => basename(p).slice(0, 12)), selected: s.fileOverlay.selected }
             : null,
         isEmpty:        s.moduleId === '' && s.activeModuleName === '—',
-        drumPadCount:   s.drumPadCount,
-        drumCurrentPad: s.drumCurrentPad,
-        isPadSpecific:  (s.moduleConfig?.banks[s.knobPage]?.padSpecific) ?? false,
+        drumPadCount:       s.drumPadCount,
+        drumCurrentPad:     s.drumCurrentPad,
+        drumCurrentPhysPad: s.drumCurrentPhysPad,
+        isPadSpecific:      (s.moduleConfig?.banks[s.knobPage]?.padSpecific) ?? false,
     };
 }

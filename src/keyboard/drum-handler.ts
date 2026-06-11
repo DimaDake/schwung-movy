@@ -1,5 +1,4 @@
 import type { DrumConfig } from '../types/param.js';
-import { PAD_MAP } from './notes.js';
 
 export function drumPadOn(
     physPad:      number,
@@ -11,17 +10,20 @@ export function drumPadOn(
     slot:         number,
 ): number | null {
     let midiNote: number;
+    let drumPad:  number;
     if (drumConfig.rawMidi) {
         midiNote = physPad;
+        drumPad  = midiNote - drumConfig.padNoteStart + 1;
     } else {
-        const offset = PAD_MAP[physPad - padMin];
-        if (offset === null || offset === undefined) return null;
-        midiNote = rootNote + offset;
+        const padIdx = physPad - padMin;
+        const col    = padIdx % 8;
+        const row    = Math.floor(padIdx / 8);
+        if (col >= 4) return null;
+        drumPad  = row * 4 + col + 1;
+        midiNote = drumConfig.padNoteStart + drumPad - 1;
     }
-    const drumPad = midiNote - drumConfig.padNoteStart + 1;
     if (drumPad < 1 || drumPad > drumConfig.padCount) return null;
 
-    // Shift without shiftSelectMidi: select pad visually but suppress MIDI
     const suppressMidi = shiftHeld && !drumConfig.shiftSelectMidi;
     if (!suppressMidi) {
         shadow_send_midi_to_dsp([MidiNoteOn, midiNote, shiftHeld ? 1 : 100]);
@@ -39,14 +41,18 @@ export function drumPadOff(
     rootNote:   number,
 ): void {
     let midiNote: number;
+    let drumPad:  number;
     if (drumConfig.rawMidi) {
         midiNote = physPad;
+        drumPad  = midiNote - drumConfig.padNoteStart + 1;
     } else {
-        const offset = PAD_MAP[physPad - padMin];
-        if (offset === null || offset === undefined) return;
-        midiNote = rootNote + offset;
+        const padIdx = physPad - padMin;
+        const col    = padIdx % 8;
+        const row    = Math.floor(padIdx / 8);
+        if (col >= 4) return;
+        drumPad  = row * 4 + col + 1;
+        midiNote = drumConfig.padNoteStart + drumPad - 1;
     }
-    const drumPad = midiNote - drumConfig.padNoteStart + 1;
     if (drumPad < 1 || drumPad > drumConfig.padCount) return;
     shadow_send_midi_to_dsp([MidiNoteOff, midiNote, 0]);
 }

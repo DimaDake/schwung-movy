@@ -3,21 +3,25 @@ import { PAD_MAP } from './notes.js';
 import { keyboardState } from './state.js';
 
 export function drumPadLedColor(
-    padNote:       number,
-    padMin:        number,
-    drumConfig:    DrumConfig,
-    rootNote:      number,
+    padNote:        number,
+    padMin:         number,
+    drumConfig:     DrumConfig,
+    rootNote:       number,
     currentPhysPad: number,
 ): number {
-    if (padNote === currentPhysPad) return NeonGreen;
+    let drumPad: number;
     if (drumConfig.rawMidi) {
-        const drumPad = padNote - drumConfig.padNoteStart + 1;
-        return (drumPad >= 1 && drumPad <= drumConfig.padCount) ? White : Black;
+        drumPad = padNote - drumConfig.padNoteStart + 1;
+    } else {
+        const padIdx = padNote - padMin;
+        const col    = padIdx % 8;
+        const row    = Math.floor(padIdx / 8);
+        if (col >= 4) return Black;
+        drumPad = row * 4 + col + 1;
     }
-    const offset = PAD_MAP[padNote - padMin];
-    if (offset === null || offset === undefined) return Black;
-    const drumPad = rootNote + offset - drumConfig.padNoteStart + 1;
-    return (drumPad >= 1 && drumPad <= drumConfig.padCount) ? White : Black;
+    if (drumPad < 1 || drumPad > drumConfig.padCount) return Black;
+    if (padNote === currentPhysPad) return NeonGreen;
+    return White;
 }
 
 export function padLedColor(padNote: number, padMin: number): number {

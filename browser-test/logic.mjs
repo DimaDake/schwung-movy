@@ -404,10 +404,11 @@ _log('\nTest: drumPadOn');
   eq('velocity 100', sentMidi[0]?.[2], 100);
   eq('sets ui_current_pad=1', setParams['synth:ui_current_pad'], '1');
 
-  // pad 76, PAD_MAP[8]=1 → midiNote=37 → drumPad=2 (valid)
+  // pad 76: padIdx=8, col=0, row=1 → drumPad=5, midiNote=40
   sentMidi = []; setParams = {};
   const r2 = drumPadOn(76, 68, false, mrdCfg, 36, 'synth', 0);
-  eq('mrdrums pad76 → valid drumPad', r2 !== null, true);
+  eq('mrdrums pad76 → drumPad 5', r2, 5);
+  eq('mrdrums pad76 → midiNote 40', sentMidi[0]?.[1], 40);
 
   // shift+pad (no shiftSelectMidi) → suppresses MIDI, still sets param
   sentMidi = []; setParams = {};
@@ -429,10 +430,16 @@ _log('\nTest: drumPadOn');
   eq('krautdrums pad68 → drumPad 1', r4, 1);
   eq('rawMidi sends pad note 68', sentMidi[0]?.[1], 68);
 
-  // rawMidi out-of-range: kCfg has padCount=16, padNoteStart=68; pad84=drumPad17 (out of range)
+  // rawMidi out-of-range: kCfg padCount=16, pad84=drumPad17
   sentMidi = [];
   const r5 = drumPadOn(84, 68, false, kCfg, 36, 'synth', 0);
   eq('rawMidi out-of-range → null', r5, null);
+
+  // right-half column (col=4, pad72): inactive for rawMidi=false
+  sentMidi = [];
+  const r6 = drumPadOn(72, 68, false, mrdCfg, 36, 'synth', 0);
+  eq('grid col>=4 → null', r6, null);
+  eq('grid col>=4: no MIDI', sentMidi.length, 0);
 
   globalThis.shadow_send_midi_to_dsp = origSendMidi;
   globalThis.shadow_set_param = origSetParam;

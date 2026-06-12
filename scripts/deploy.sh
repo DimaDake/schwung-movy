@@ -12,6 +12,7 @@ REMOTE="/data/UserData/schwung/modules/tools/movy"
 
 cd "$DIR"
 node build/device.mjs
+./scripts/build-dsp.sh
 ssh "ableton@$HOST" "mkdir -p $REMOTE"
-scp "$DIR/ui.js" "ableton@$HOST:$REMOTE/"
+scp "$DIR/ui.js" "$DIR/dist/dsp.so" "ableton@$HOST:$REMOTE/"
 echo "deployed to $HOST"

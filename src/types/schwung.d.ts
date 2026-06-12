@@ -10,6 +10,11 @@ declare function shadow_get_ui_slot(): number;
 declare function shadow_send_midi_to_dsp(data: number[]): void;
 declare function host_exit_module(): void;
 declare function host_read_file(path: string): string | null;
+/* Tool-DSP param bridge — installed by shadow_ui before ui.js loads when the
+ * tool ships a dsp.so (routes to shadow_set/get_param(0, "overtake_dsp:"+key)).
+ * Guard with typeof checks: absent in browser tests and DSP-less installs. */
+declare function host_module_set_param(key: string, value: string): boolean;
+declare function host_module_get_param(key: string): string | null;
 declare function setLED(note: number, color: number, immediate: boolean): void;
 declare function setButtonLED(cc: number, color: number, immediate: boolean): void;
 declare function decodeDelta(d2: number): number;

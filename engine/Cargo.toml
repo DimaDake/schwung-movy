@@ -1,0 +1,8 @@
+[workspace]
+resolver = "2"
+members = ["crates/seq-core", "crates/movy-dsp"]
+
+[profile.release]
+opt-level = 3
+lto = true
+panic = "abort"

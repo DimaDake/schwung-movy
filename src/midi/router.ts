@@ -5,6 +5,7 @@ import { noteOn, noteOff, changeRoot, releaseAllNotes } from '../keyboard/handle
 import { drumPadOn, drumPadOff } from '../keyboard/drum-handler.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
+import { seqHandleMidi } from '../seq/router.js';
 import { mlog } from '../log.js';
 
 const PAD_MIN        = MovePads[0];
@@ -24,6 +25,7 @@ function setChainIndex(i: number): void { appState.trackChainIndex[appState.acti
 
 export function onMidiMessageInternal(data: number[]): void {
     if (!data || data.length < 3) return;
+    if (seqHandleMidi(data)) return;
     const status = data[0];
     const d1     = data[1];
     const d2     = data[2];

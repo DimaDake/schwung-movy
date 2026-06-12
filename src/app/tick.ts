@@ -11,6 +11,7 @@ import { renderChainView }    from '../renderer/chain-view.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
 import { seqSpikeTick } from '../seq/spike.js';
+import { seqEngineTick } from '../seq/engine.js';
 
 const PAD_MIN        = MovePads[0];
 const PAD_MAX        = MovePads[MovePads.length - 1];
@@ -18,6 +19,7 @@ const LED_INIT_BATCH = 8;
 
 export function tick(): void {
     seqSpikeTick();
+    seqEngineTick();
     if (!appState.initLedsDone) {
         const total = PAD_MAX - PAD_MIN + 1;
         const end   = Math.min(appState.initLedIndex + LED_INIT_BATCH, total);

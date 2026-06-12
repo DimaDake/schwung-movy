@@ -445,6 +445,80 @@ _log('\nTest: drumPadOn');
   globalThis.shadow_set_param = origSetParam;
 }
 
+/* ── seq engine plumbing: cmd batching + status polling ──────────────────── */
+{
+    _log('\nseq engine plumbing:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { seqCmd, seqEngineTick, resetSeqEngine, engineAvailable } =
+        await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+
+    const engine = installMockEngine();
+    resetSeqEngine(); resetSeqState();
+
+    eq('engine detected via host_module_* globals', engineAvailable(), true);
+
+    // Multiple queued ops must flush as ONE batched set_param (coalescing).
+    seqCmd('play');
+    seqCmd('non 0 60 100');
+    seqCmd('nof 0 60');
+    seqEngineTick();
+    eq('three ops → one set_param call', engine.cmdBatches.length, 1);
+    eq('batch joins ops with ;', engine.cmdBatches[0], 'play;non 0 60 100;nof 0 60');
+    eq('ops parsed on engine side', engine.ops.length, 3);
+
+    // No queued ops → no set_param traffic.
+    const before = engine.setParamCalls;
+    seqEngineTick();
+    eq('idle tick sends no cmd', engine.setParamCalls, before);
+
+    // First tick polled status and parsed it into the mirror.
+    eq('status poll marks engineOk', seqState.engineOk, true);
+    eq('status play=0 parsed', seqState.playing, false);
+
+    // Status changes propagate on the next poll cadence.
+    engine.status.play = 1;
+    engine.status.tick = 4321;
+    engine.status.bpm = 13350;
+    for (let i = 0; i < 10; i++) seqEngineTick();
+    eq('play state mirrored', seqState.playing, true);
+    eq('engine tick mirrored', seqState.engineTick, 4321);
+    eq('bpm mirrored', seqState.bpmX100, 13350);
+
+    // Unknown status keys must be ignored (forward compat).
+    engine.status.tick = 9;
+    globalThis.host_module_get_param = (key) =>
+        key === 'status' ? 'play=1 tick=9 bpm=13350 future_key=42' : null;
+    for (let i = 0; i < 10; i++) seqEngineTick();
+    eq('unknown status key ignored', seqState.engineTick, 9);
+
+    // Engine without status protocol: polling backs off and stays silent.
+    engine.reset();
+    installMockEngine();                       // reinstall clean hooks
+    const e2 = installMockEngine();
+    e2.statusUnavailable = true;
+    resetSeqEngine(); resetSeqState();
+    for (let i = 0; i < 1000; i++) seqEngineTick();
+    eq('status-less engine: polling capped', e2.getParamCalls <= 16, true);
+    eq('status-less engine: engineOk stays false', seqState.engineOk, false);
+
+    // No engine at all: everything is a no-op.
+    uninstallMockEngine();
+    resetSeqEngine();
+    seqCmd('play');
+    seqEngineTick();
+    eq('no engine: engineAvailable false', engineAvailable(), false);
+}
+
+/* ── seq router: first-look dispatch leaves existing events untouched ────── */
+{
+    _log('\nseq router:');
+    const { seqHandleMidi } = await import('../dist/esm/seq/router.js');
+    eq('pad note not claimed', seqHandleMidi([0x90, 68, 100]), false);
+    eq('knob CC not claimed', seqHandleMidi([0xB0, 71, 65]), false);
+    eq('step note not claimed yet (step 1)', seqHandleMidi([0x90, 16, 127]), false);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

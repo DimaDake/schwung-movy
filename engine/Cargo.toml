@@ -2,7 +2,8 @@
 resolver = "2"
 members = ["crates/seq-core", "crates/movy-dsp"]
 
+# panic must stay "unwind": every FFI entry point catches panics so a bug
+# in the engine can never abort the host process (MoveOriginal).
 [profile.release]
 opt-level = 3
 lto = true
-panic = "abort"

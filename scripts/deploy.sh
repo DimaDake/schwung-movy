@@ -14,5 +14,11 @@ cd "$DIR"
 node build/device.mjs
 ./scripts/build-dsp.sh
 ssh "ableton@$HOST" "mkdir -p $REMOTE"
-scp "$DIR/ui.js" "$DIR/dist/dsp.so" "ableton@$HOST:$REMOTE/"
+scp "$DIR/ui.js" "ableton@$HOST:$REMOTE/"
+# NEVER overwrite dsp.so in place: it may be dlopen'd by the shim, and
+# clobbering a mapped .so's inode corrupts its pages (crashes MoveOriginal).
+# scp to a temp name + mv gives the new file a fresh inode while the old
+# mapping stays intact; the movy UI then hot-reloads the engine by version.
+scp "$DIR/dist/dsp.so" "ableton@$HOST:$REMOTE/dsp.so.new"
+ssh "ableton@$HOST" "mv $REMOTE/dsp.so.new $REMOTE/dsp.so"
 echo "deployed to $HOST"

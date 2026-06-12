@@ -18,6 +18,8 @@ await esbuild.build({
         resolve(root, 'src/seq/engine.ts'),
         resolve(root, 'src/seq/router.ts'),
         resolve(root, 'src/seq/state.ts'),
+        resolve(root, 'src/seq/leds.ts'),
+        resolve(root, 'src/seq/constants.ts'),
     ],
     bundle:    true,
     splitting: true,

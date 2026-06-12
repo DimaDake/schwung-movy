@@ -8,6 +8,7 @@ export function noteOn(padNote: number, padMin: number, padMax: number): void {
     const midiNote = keyboardState.rootNote + offset;
     if (midiNote < 0 || midiNote > 127) return;
     keyboardState.held[padNote] = midiNote;
+    keyboardState.lastPlayedNote = midiNote;
     shadow_send_midi_to_dsp([MidiNoteOn, midiNote, 100]);
     setLED(padNote, BrightRed, true);
 }

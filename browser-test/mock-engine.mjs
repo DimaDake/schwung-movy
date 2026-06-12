@@ -3,6 +3,8 @@
  * the same cmd/status contract as movy-dsp, so src/seq/engine.ts is tested
  * against the real wire format. */
 
+import { ENGINE_VERSION } from '../dist/esm/seq/constants.js';
+
 export function installMockEngine() {
     const engine = {
         /* every batched cmd flush, in arrival order */
@@ -15,6 +17,8 @@ export function installMockEngine() {
         statusUnavailable: false,
         setParamCalls: 0,
         getParamCalls: 0,
+        /* DSP (re)load requests ("load" key, shim-handled on device) */
+        loadRequests: [],
 
         reset() {
             this.cmdBatches = [];
@@ -23,19 +27,24 @@ export function installMockEngine() {
             this.statusUnavailable = false;
             this.setParamCalls = 0;
             this.getParamCalls = 0;
+            this.loadRequests = [];
         },
     };
 
-    globalThis.host_module_set_param = (key, value) => {
+    const setParam = (key, value) => {
         engine.setParamCalls++;
         if (key === 'cmd') {
             engine.cmdBatches.push(value);
             for (const op of value.split(';')) {
                 if (op.length > 0) engine.ops.push(op);
             }
+        } else if (key === 'load') {
+            engine.loadRequests.push(value);
         }
         return true;
     };
+    globalThis.host_module_set_param = setParam;
+    globalThis.host_module_set_param_blocking = (key, value, _timeoutMs) => setParam(key, value);
 
     globalThis.host_module_get_param = (key) => {
         engine.getParamCalls++;
@@ -44,7 +53,7 @@ export function installMockEngine() {
             const s = engine.status;
             return `play=${s.play} tick=${s.tick} bpm=${s.bpm}`;
         }
-        if (key === 'ping') return 'pong mock';
+        if (key === 'ping') return 'pong ' + ENGINE_VERSION;
         return null;
     };
 
@@ -53,5 +62,6 @@ export function installMockEngine() {
 
 export function uninstallMockEngine() {
     delete globalThis.host_module_set_param;
+    delete globalThis.host_module_set_param_blocking;
     delete globalThis.host_module_get_param;
 }

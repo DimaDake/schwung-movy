@@ -5,7 +5,7 @@ import { noteOn, noteOff, changeRoot, releaseAllNotes } from '../keyboard/handle
 import { drumPadOn, drumPadOff } from '../keyboard/drum-handler.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
-import { seqHandleMidi } from '../seq/router.js';
+import { seqHandleMidi, seqNotePadPlayed } from '../seq/router.js';
 import { mlog } from '../log.js';
 
 const PAD_MIN        = MovePads[0];
@@ -60,6 +60,7 @@ export function onMidiMessageInternal(data: number[]): void {
             } else {
                 noteOn(d1, PAD_MIN, PAD_MAX);
             }
+            seqNotePadPlayed(appState.activeSlot, keyboardState.lastPlayedNote, 100);
             return;
         }
         if ((status & 0xF0) === 0x80 || ((status & 0xF0) === 0x90 && d2 === 0)) {

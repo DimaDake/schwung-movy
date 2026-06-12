@@ -1,4 +1,5 @@
 import type { DrumConfig } from '../types/param.js';
+import { keyboardState } from './state.js';
 
 export function drumPadOn(
     physPad:      number,
@@ -26,6 +27,7 @@ export function drumPadOn(
 
     const suppressMidi = shiftHeld && !drumConfig.shiftSelectMidi;
     if (!suppressMidi) {
+        keyboardState.lastPlayedNote = midiNote;
         shadow_send_midi_to_dsp([MidiNoteOn, midiNote, shiftHeld ? 1 : 100]);
     }
     if (drumConfig.currentPadParam) {

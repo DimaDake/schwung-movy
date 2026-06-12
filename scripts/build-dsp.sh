@@ -8,6 +8,15 @@ set -euo pipefail
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:/opt/homebrew/bin:$PATH"
 
+# UI and engine must agree on the protocol version (the UI re-loads the DSP
+# until ping reports this exact version).
+RUST_VER=$(grep -o 'ENGINE_VERSION: &str = "[^"]*"' "$DIR/engine/crates/movy-dsp/src/lib.rs" | cut -d'"' -f2)
+TS_VER=$(grep -o "ENGINE_VERSION = '[^']*'" "$DIR/src/seq/constants.ts" | cut -d"'" -f2)
+if [[ "$RUST_VER" != "$TS_VER" ]]; then
+    echo "ERROR: ENGINE_VERSION mismatch: movy-dsp/lib.rs=$RUST_VER vs seq/constants.ts=$TS_VER"
+    exit 1
+fi
+
 TARGET=aarch64-unknown-linux-gnu
 cd "$DIR/engine"
 cargo build --release --target "$TARGET"

@@ -1,7 +1,11 @@
 //! seq-core: pure sequencer logic for movy. No FFI, no I/O — everything here
 //! runs identically on the host (cargo test) and on the device.
 
+pub mod clip;
 pub mod clock;
+pub mod command;
+pub mod engine;
+pub mod track;
 
 /// Master clock resolution, pulses per quarter note (davebox-proven).
 pub const PPQN: u32 = 96;

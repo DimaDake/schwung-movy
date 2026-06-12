@@ -457,6 +457,7 @@ _log('\nTest: drumPadOn');
     resetSeqEngine(); resetSeqState();
 
     eq('engine detected via host_module_* globals', engineAvailable(), true);
+    seqEngineTick(); // boot probe: ping matches → engine ready
 
     // Multiple queued ops must flush as ONE batched set_param (coalescing).
     seqCmd('play');
@@ -492,15 +493,28 @@ _log('\nTest: drumPadOn');
     for (let i = 0; i < 10; i++) seqEngineTick();
     eq('unknown status key ignored', seqState.engineTick, 9);
 
-    // Engine without status protocol: polling backs off and stays silent.
-    engine.reset();
-    installMockEngine();                       // reinstall clean hooks
-    const e2 = installMockEngine();
-    e2.statusUnavailable = true;
+    // Dead engine (all gets return null): the boot probe re-issues the DSP
+    // load a bounded number of times, then gives up for the session.
+    const dead = installMockEngine();
+    let deadGets = 0;
+    globalThis.host_module_get_param = () => { deadGets++; return null; };
     resetSeqEngine(); resetSeqState();
-    for (let i = 0; i < 1000; i++) seqEngineTick();
-    eq('status-less engine: polling capped', e2.getParamCalls <= 16, true);
-    eq('status-less engine: engineOk stays false', seqState.engineOk, false);
+    const { engineReady } = await import('../dist/esm/seq/engine.js');
+    for (let i = 0; i < 5000; i++) seqEngineTick();
+    eq('dead engine: 3 load attempts', dead.loadRequests.length, 3);
+    eq('dead engine: load path correct',
+        dead.loadRequests[0], '/data/UserData/schwung/modules/tools/movy/dsp.so');
+    eq('dead engine: gives up (not ready)', engineReady(), false);
+    eq('dead engine: probing bounded', deadGets <= 40, true);
+    eq('dead engine: engineOk stays false', seqState.engineOk, false);
+
+    // Stale engine (wrong version pong): reload requested immediately.
+    const e3 = installMockEngine();
+    globalThis.host_module_get_param = (key) => (key === 'ping' ? 'pong 0.0.1' : null);
+    resetSeqEngine(); resetSeqState();
+    seqEngineTick();
+    eq('stale engine: reload requested on first probe', e3.loadRequests.length, 1);
+    e3.reset();
 
     // No engine at all: everything is a no-op.
     uninstallMockEngine();
@@ -510,13 +524,106 @@ _log('\nTest: drumPadOn');
     eq('no engine: engineAvailable false', engineAvailable(), false);
 }
 
-/* ── seq router: first-look dispatch leaves existing events untouched ────── */
+/* ── seq router: step toggle, Play, track watch ──────────────────────────── */
 {
     _log('\nseq router:');
-    const { seqHandleMidi } = await import('../dist/esm/seq/router.js');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi, seqNotePadPlayed } = await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState, occHasStep } = await import('../dist/esm/seq/state.js');
+
+    const engine = installMockEngine();
+    resetSeqEngine(); resetSeqState();
+    seqEngineTick(); // boot probe → ready
+
     eq('pad note not claimed', seqHandleMidi([0x90, 68, 100]), false);
     eq('knob CC not claimed', seqHandleMidi([0xB0, 71, 65]), false);
-    eq('step note not claimed yet (step 1)', seqHandleMidi([0x90, 16, 127]), false);
+
+    // Pad play sets the step-entry pitch for the active track.
+    seqNotePadPlayed(0, 72, 110);
+    eq('pad play recorded as step-entry pitch', seqState.lastPitch[0], 72);
+
+    // Step press → claimed, emits tog with last pitch, optimistic mirror.
+    // (Optimistic state is asserted before the tick: the mock's status poll
+    // reports play=0 and would overwrite it; on device the poll runs after
+    // the engine already applied the batch, so mirror and engine agree.)
+    eq('step note claimed', seqHandleMidi([0x90, 16, 127]), true);
+    eq('optimistic occ set', occHasStep(0), true);
+    eq('optimistic clip created (1 bar)', seqState.lenSteps, 16);
+    eq('optimistic auto-start', seqState.playing, true);
+    seqEngineTick();
+    eq('tog cmd emitted', engine.ops[engine.ops.length - 1], 'tog 0 0 72 110');
+
+    // Step note-off is consumed silently.
+    const opsBefore = engine.ops.length;
+    eq('step note-off claimed', seqHandleMidi([0x80, 16, 0]), true);
+    seqEngineTick();
+    eq('step note-off emits nothing', engine.ops.length, opsBefore);
+
+    // Toggling the same step again clears the occupancy mirror.
+    seqHandleMidi([0x90, 16, 127]);
+    eq('optimistic occ cleared on re-toggle', occHasStep(0), false);
+
+    // Play toggles transport based on the mirror.
+    seqState.playing = false;
+    eq('Play CC claimed', seqHandleMidi([0xB0, 85, 127]), true);
+    seqEngineTick();
+    eq('play cmd emitted', engine.ops[engine.ops.length - 1], 'play');
+    eq('optimistic play mirror', seqState.playing, true);
+    seqHandleMidi([0xB0, 85, 127]);
+    seqEngineTick();
+    eq('second press emits stop', engine.ops[engine.ops.length - 1], 'stop');
+
+    // Track buttons: watch retarget without claiming the event.
+    eq('track button NOT claimed', seqHandleMidi([0xB0, 41, 127]), false);
+    seqEngineTick();
+    eq('watch cmd emitted for track 2', engine.ops[engine.ops.length - 1], 'watch 2');
+    eq('watchTrack mirrored', seqState.watchTrack, 2);
+
+    engine.reset(); uninstallMockEngine(); resetSeqEngine(); resetSeqState();
+}
+
+/* ── seq LEDs: cached step-row painting ──────────────────────────────────── */
+{
+    _log('\nseq LEDs:');
+    globalThis.White = 122; globalThis.DarkGrey = 124;
+    globalThis.NeonGreen = 126; globalThis.Black = 0;
+    const ledCalls = [];
+    const origSetLED = globalThis.setLED;
+    const origSetButtonLED = globalThis.setButtonLED;
+    globalThis.setLED = (note, color) => ledCalls.push([note, color]);
+    globalThis.setButtonLED = (cc, color) => ledCalls.push(['b' + cc, color]);
+
+    const { seqLedsTick, seqLedsInvalidate } = await import('../dist/esm/seq/leds.js');
+    const { seqState, resetSeqState, occToggleStep } = await import('../dist/esm/seq/state.js');
+
+    resetSeqState(); seqLedsInvalidate();
+    seqState.lenSteps = 16;
+    occToggleStep(0); occToggleStep(4);
+    seqState.playing = true;
+    seqState.curStep = 2;
+
+    seqLedsTick(0);
+    const byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
+    eq('occupied step white', byNote[16], 122);
+    eq('occupied step white (2)', byNote[20], 122);
+    eq('playhead green', byNote[18], 126);
+    eq('empty in-loop dim', byNote[17], 124);
+    eq('play button lit', byNote.b85, 122);
+
+    // Cached layer: identical repaint sends nothing.
+    ledCalls.length = 0;
+    seqLedsTick(0);
+    eq('no LED traffic when unchanged', ledCalls.length, 0);
+
+    // Playhead movement repaints exactly the two affected steps.
+    seqState.curStep = 3;
+    seqLedsTick(0);
+    eq('playhead move repaints 2 LEDs', ledCalls.length, 2);
+
+    globalThis.setLED = origSetLED;
+    globalThis.setButtonLED = origSetButtonLED;
+    resetSeqState(); seqLedsInvalidate();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

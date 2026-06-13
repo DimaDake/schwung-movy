@@ -474,7 +474,7 @@ impl Engine {
         let wt = &self.tracks[self.watch_track];
         let clip = wt.active();
         format!(
-            "play={} tick={} bpm={} trk={} step={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} occ={}",
+            "play={} tick={} bpm={} trk={} step={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} occ={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -488,8 +488,18 @@ impl Engine {
             self.dirty as u8,
             self.session_state(),
             self.active_notes_state(),
+            self.mute_state(),
             clip.occupancy_hex_lane(self.watch_lane)
         )
+    }
+
+    /// `mute=` payload: one '0'/'1' per track (track 0 first).
+    fn mute_state(&self) -> String {
+        let mut out = String::with_capacity(4);
+        for t in &self.tracks {
+            out.push(if t.muted { '1' } else { '0' });
+        }
+        out
     }
 
     /// `act=` payload: 4 comma-separated tracks, each dot-separated ascending
@@ -839,5 +849,16 @@ mod tests {
         e.play();
         let _ = run_ticks(&mut e, 10);
         assert_eq!(e.tracks[0].pos_tick, 0);
+    }
+
+    #[test]
+    fn status_reports_mute_flags() {
+        use crate::command::apply_batch;
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "mute 1 1", &mut out);
+        let s = e.status();
+        let m = s.split("mute=").nth(1).unwrap().split(' ').next().unwrap();
+        assert_eq!(m, "0100"); // track 1 muted
     }
 }

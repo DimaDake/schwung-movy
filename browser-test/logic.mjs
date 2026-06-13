@@ -1391,6 +1391,32 @@ _log('\nTest: drumPadOn');
     eq('muted+active still white', trackButtonColor(2, true, true), 120);
 }
 
+/* ── mute gesture ────────────────────────────────────────────────────────── */
+{
+    _log('\nmute gesture:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { muteTrack, setMuteHeld, muteHeld } = await import('../dist/esm/seq/router.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { peekSeqCmdQueue, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+
+    installMockEngine();
+    resetSeqEngine(); resetSeqState();
+
+    setMuteHeld(true);
+    eq('mute held', muteHeld(), true);
+    resetSeqEngine();
+    seqState.muted[2] = false;
+    muteTrack(2);
+    eq('queues mute on', peekSeqCmdQueue().some(c => c === 'mute 2 1'), true);
+    resetSeqEngine();
+    seqState.muted[2] = true;
+    muteTrack(2);
+    eq('queues mute off', peekSeqCmdQueue().some(c => c === 'mute 2 0'), true);
+    setMuteHeld(false);
+
+    uninstallMockEngine();
+}
+
 /* ── mute mirror ─────────────────────────────────────────────────────────── */
 {
     _log('\nmute mirror:');

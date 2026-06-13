@@ -164,6 +164,11 @@ function parseStatus(s: string): void {
     }
 }
 
+/* Test hook: inspect the pending command queue. */
+export function peekSeqCmdQueue(): string[] {
+    return cmdQueue.slice();
+}
+
 /* Test hook: reset boot/queue/backoff between test cases. */
 export function resetSeqEngine(): void {
     cmdQueue.length = 0;

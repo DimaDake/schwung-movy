@@ -12,6 +12,21 @@ import {
     CC_NOTE_SESSION, CC_PLAY, CC_REC, CC_TRACK_END, CC_TRACK_START,
     NUM_STEP_BUTTONS, PAD_MAX, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
+
+const CC_MUTE = 88;
+
+let muteHeldState = false;
+export function setMuteHeld(down: boolean): void { muteHeldState = down; }
+export function muteHeld(): boolean { return muteHeldState; }
+
+/* Toggle a track's mute via the engine (mirror flips optimistically so the
+ * track button dims this tick). */
+export function muteTrack(track: number): void {
+    if (track < 0 || track > 3) return;
+    const next = seqState.muted[track] ? 0 : 1;
+    seqState.muted[track] = next === 1;
+    seqCmd('mute ' + track + ' ' + next);
+}
 import {
     copyActive, copyButton, copyMarkStep, deleteActive, deleteButton, deletePad,
     deleteStep, pasteArmed, pasteAtStep,
@@ -92,6 +107,12 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     }
 
     if (statusType !== 0xB0) return false;
+
+    /* Mute button: held state gates track-button mute gesture (midi/router.ts). */
+    if (d1 === CC_MUTE) {
+        setMuteHeld(d2 > 0);
+        return true;
+    }
 
     /* Loop button: tap toggles Loop Mode; hold + wheel resizes the loop. */
     if (d1 === CC_LOOP) {

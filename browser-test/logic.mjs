@@ -1259,6 +1259,136 @@ _log('\nTest: drumPadOn');
     globalThis.host_read_file = () => null; // restore the default test stub
 }
 
+/* ── active-notes mirror ─────────────────────────────────────────────────── */
+{
+    _log('\nactive-notes mirror:');
+    const { activeFromStr, activeHasNote } = await import('../dist/esm/seq/state.js');
+
+    activeFromStr('60.64,,38,');
+    eq('track0 has 60',  activeHasNote(0, 60), true);
+    eq('track0 has 64',  activeHasNote(0, 64), true);
+    eq('track0 lacks 38', activeHasNote(0, 38), false);
+    eq('track1 empty',   activeHasNote(1, 60), false);
+    eq('track2 has 38',  activeHasNote(2, 38), true);
+    activeFromStr(',,,'); // all clear
+    eq('cleared',        activeHasNote(2, 38), false);
+}
+
+/* ── last-held set ───────────────────────────────────────────────────────── */
+{
+    _log('\nlast-held set:');
+    const { noteHeld, setHeldSet, clearHeldSet } = await import('../dist/esm/seq/held.js');
+
+    clearHeldSet(0);
+    eq('empty initially', noteHeld(0, 60), false);
+    setHeldSet(0, [60, 64, 67]);
+    eq('60 held',  noteHeld(0, 60), true);
+    eq('64 held',  noteHeld(0, 64), true);
+    eq('62 not',   noteHeld(0, 62), false);
+    eq('track1 unaffected', noteHeld(1, 60), false);
+    setHeldSet(0, [72]);                 // replaces
+    eq('replaced: 60 gone', noteHeld(0, 60), false);
+    eq('replaced: 72 in',   noteHeld(0, 72), true);
+}
+
+/* ── drum pad LED color ──────────────────────────────────────────────────── */
+{
+    _log('\ndrum pad LED color:');
+    globalThis.Black     = 0;
+    globalThis.White     = 120;
+    globalThis.NeonGreen = 11;
+
+    const { drumPadLedColor } = await import('../dist/esm/keyboard/leds.js');
+    const { trackColor } = await import('../dist/esm/seq/colors.js');
+
+    const cfg = { rawMidi: false, padNoteStart: 36, padCount: 16 };
+    const padMin = 68;
+    // pad index 0 => drumPad 1 => note 36; selected when currentPhysPad === pad.
+    const unselNotPlaying = drumPadLedColor(68, padMin, cfg, 36, /*phys*/-1, /*track*/2, /*playing*/false);
+    eq('unselected = track color', unselNotPlaying, trackColor(2));
+    const selected = drumPadLedColor(68, padMin, cfg, 36, /*phys*/68, 2, false);
+    eq('selected = white', selected, 120);
+    const playing = drumPadLedColor(68, padMin, cfg, 36, -1, 2, /*playing*/true);
+    eq('playing = green', playing, 11);
+    const off = drumPadLedColor(72, padMin, cfg, 36, -1, 2, false); // col>=4 => off
+    eq('right half = off', off, 0);
+}
+
+/* ── chromatic pad LED color ─────────────────────────────────────────────── */
+{
+    _log('\nchromatic pad LED color:');
+    const { chromaticPadColor, chromaticPitch } = await import('../dist/esm/seq/pads.js');
+    const { trackColor } = await import('../dist/esm/seq/colors.js');
+    const { setHeldSet, clearHeldSet } = await import('../dist/esm/seq/held.js');
+
+    const padMin = 68, base = 60; // bottom-left = C4
+    // bottom-left pad is the root C => track color, unless playing/held.
+    eq('root = track color', chromaticPadColor(68, padMin, base, 0, false, false), trackColor(0));
+    eq('playing = green',    chromaticPadColor(68, padMin, base, 0, false, /*playing*/true), 11);
+    // mark the held set: pitch at pad 69 = C#4 = 61.
+    setHeldSet(0, [chromaticPitch(69, padMin, base)]);
+    eq('held-set = white',   chromaticPadColor(69, padMin, base, 0, false, false), 120);
+    clearHeldSet(0);
+}
+
+/* ── transport LEDs ──────────────────────────────────────────────────────── */
+{
+    _log('\ntransport LEDs:');
+    const { transportPlayColor, transportRecColor } = await import('../dist/esm/seq/leds.js');
+
+    eq('play stopped = dark grey', transportPlayColor(false), 124);
+    eq('play running = green',     transportPlayColor(true), 11);
+    eq('rec idle = dark grey',     transportRecColor(false), 124);
+    eq('rec recording = red',      transportRecColor(true), 1);
+}
+
+/* ── affordance LEDs ─────────────────────────────────────────────────────── */
+{
+    _log('\naffordance LEDs:');
+    const {
+        backLedColor, arrowLedColor, sampleLedColor, captureLedColor, undoLedColor,
+    } = await import('../dist/esm/seq/buttons.js');
+    const { VIEW_CHAIN, VIEW_KNOBS } = await import('../dist/esm/app/state.js');
+
+    eq('back off in chain view',  backLedColor(VIEW_CHAIN), 0);
+    eq('back dim in module view', backLedColor(VIEW_KNOBS), 16);
+    eq('left off at bar 0',  arrowLedColor(-1, 0, 3, false), 0);
+    eq('left dim mid',       arrowLedColor(-1, 1, 3, false), 16);
+    eq('left bright pressed', arrowLedColor(-1, 1, 3, true), 124);
+    eq('right off at max',   arrowLedColor(+1, 3, 3, false), 0);
+    eq('right dim mid',      arrowLedColor(+1, 1, 3, false), 16);
+    eq('sample always off',  sampleLedColor(), 0);
+    eq('capture off',        captureLedColor(), 0);
+    eq('undo off',           undoLedColor(), 0);
+}
+
+/* ── step-icon LEDs ──────────────────────────────────────────────────────── */
+{
+    _log('\nstep-icon LEDs:');
+    const { stepIconColor } = await import('../dist/esm/seq/leds.js');
+
+    // step indexes are 0-based: step 6 -> idx 5 (metro), step 10 -> idx 9 (full vel)
+    const off = { shift: false, metro: false, fullVel: false };
+    eq('metro idx dark when off+noshift', stepIconColor(5, off), 0);
+    eq('metro idx lit when metro on',     stepIconColor(5, { shift: false, metro: true, fullVel: false }), 124);
+    eq('fullvel idx lit when on',         stepIconColor(9, { shift: false, metro: false, fullVel: true }), 124);
+    // Shift held: all shortcut icons show (dim if inactive, bright if active).
+    eq('shift shows metro dim',  stepIconColor(5, { shift: true, metro: false, fullVel: false }), 16);
+    eq('shift shows dbl-loop dim', stepIconColor(14, { shift: true, metro: false, fullVel: false }), 16);
+    eq('shift shows quant dim',  stepIconColor(15, { shift: true, metro: false, fullVel: false }), 16);
+    eq('non-shortcut idx dark',  stepIconColor(0, { shift: true, metro: false, fullVel: false }), 0);
+}
+
+/* ── track-button LEDs ───────────────────────────────────────────────────── */
+{
+    _log('\ntrack-button LEDs:');
+    const { trackButtonColor } = await import('../dist/esm/seq/leds.js');
+    const { trackColor } = await import('../dist/esm/seq/colors.js');
+
+    eq('base = track color', trackButtonColor(1, /*active*/false), trackColor(1));
+    eq('active = white pulse', trackButtonColor(1, true), 120);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

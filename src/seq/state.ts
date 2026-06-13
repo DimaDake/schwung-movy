@@ -10,6 +10,7 @@ export interface SeqUiState {
     playing: boolean;        // transport running
     engineTick: number;      // engine master tick (96 PPQN) at last poll
     bpmX100: number;         // engine tempo, hundredths of BPM
+    activeNotes: Uint8Array; // track*128 + pitch, 1 = sounding (from `act=`)
 
     /* watched clip (active track's selected clip) */
     watchTrack: number;      // track whose clip the step LEDs show
@@ -58,6 +59,7 @@ function defaults(): SeqUiState {
         playing: false,
         engineTick: 0,
         bpmX100: 12000,
+        activeNotes: new Uint8Array(512),
         watchTrack: 0,
         curStep: 0,
         lenSteps: 0,
@@ -138,4 +140,24 @@ export function occFromHex(hex: string): void {
             ? parseInt(hex.slice(i * 2, i * 2 + 2), 16) || 0
             : 0;
     }
+}
+
+/* Parse the engine's `act=` value (4 comma-separated tracks, dot-separated
+ * pitches) into the reused activeNotes buffer. Called once per status poll. */
+export function activeFromStr(s: string): void {
+    seqState.activeNotes.fill(0);
+    const tracks = s.split(',');
+    for (let t = 0; t < 4; t++) {
+        const g = tracks[t];
+        if (!g) continue;
+        for (const ps of g.split('.')) {
+            const p = Number(ps);
+            if (p >= 0 && p < 128) seqState.activeNotes[t * 128 + p] = 1;
+        }
+    }
+}
+
+export function activeHasNote(track: number, pitch: number): boolean {
+    if (track < 0 || track > 3 || pitch < 0 || pitch > 127) return false;
+    return seqState.activeNotes[track * 128 + pitch] === 1;
 }

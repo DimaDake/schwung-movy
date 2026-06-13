@@ -658,7 +658,7 @@ _log('\nTest: drumPadOn');
     eq('occupied step white (2)', byNote[20], C_WHITE);
     eq('playhead green', byNote[18], C_GREEN);
     eq('empty in-loop dim track color', byNote[17], trackColorDim(0));
-    eq('play button lit', byNote.b85, C_WHITE);
+    eq('play button lit (green)', byNote.b85, C_GREEN);
 
     // Cached layer: identical repaint sends nothing.
     ledCalls.length = 0;
@@ -710,13 +710,13 @@ _log('\nTest: drumPadOn');
     eq('top-left (row 3) = +15', chromaticPitch(92, PAD_MIN, base), 63);
 
     // Coloring: root C = track color, in-scale gray, out-of-scale dark.
-    eq('root C uses track color', chromaticPadColor(68, PAD_MIN, base, 2, false), trackColor(2));
+    eq('root C uses track color', chromaticPadColor(68, PAD_MIN, base, 2, false, false), trackColor(2));
     // base+2 = D (in C major) → light gray (118)
-    eq('in-scale note light gray', chromaticPadColor(70, PAD_MIN, base, 0, false), 118);
+    eq('in-scale note light gray', chromaticPadColor(70, PAD_MIN, base, 0, false, false), 118);
     // base+1 = C# (out of scale) → dark
-    eq('out-of-scale dark', chromaticPadColor(69, PAD_MIN, base, 0, false), 0);
-    // held pad → red regardless of pitch
-    eq('held pad red', chromaticPadColor(69, PAD_MIN, base, 0, true), 1);
+    eq('out-of-scale dark', chromaticPadColor(69, PAD_MIN, base, 0, false, false), 0);
+    // held pad (physically down) → green (sounding)
+    eq('held pad green', chromaticPadColor(69, PAD_MIN, base, 0, true, false), 11);
 
     eq('C in major scale', inScale(60), true);
     eq('C# not in major scale', inScale(61), false);

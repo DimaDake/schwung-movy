@@ -1,4 +1,5 @@
 import type { DrumConfig } from '../types/param.js';
+import { trackColor } from '../seq/colors.js';
 
 export function drumPadLedColor(
     padNote:        number,
@@ -6,6 +7,8 @@ export function drumPadLedColor(
     drumConfig:     DrumConfig,
     rootNote:       number,
     currentPhysPad: number,
+    track:          number,
+    isPlaying:      boolean,
 ): number {
     let drumPad: number;
     if (drumConfig.rawMidi) {
@@ -18,6 +21,7 @@ export function drumPadLedColor(
         drumPad = row * 4 + col + 1;
     }
     if (drumPad < 1 || drumPad > drumConfig.padCount) return Black;
-    if (padNote === currentPhysPad) return NeonGreen;
-    return White;
+    if (isPlaying)                    return NeonGreen; // sounding (seq or held)
+    if (padNote === currentPhysPad)   return White;     // selected pad in rack
+    return trackColor(track);
 }

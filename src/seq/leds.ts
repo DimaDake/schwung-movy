@@ -118,10 +118,11 @@ function paintStepIcons(shift: boolean): void {
 }
 
 /* Track buttons (CC 40..43; CC 43 = track 0). Base = the track color so they
- * match the chromatic root; a sounding note on that track flashes it white.
- * (Mute-dimming arrives with the mute gesture in Batch 2.) */
-export function trackButtonColor(track: number, active: boolean): number {
-    return active ? C_WHITE : trackColor(track);
+ * match the chromatic root; a sounding note on that track flashes it white;
+ * muted track dims to the track's dim color so it's visually "off". */
+export function trackButtonColor(track: number, active: boolean, muted: boolean): number {
+    if (active) return C_WHITE;          // sounding note wins (full brightness)
+    return muted ? trackColorDim(track) : trackColor(track);
 }
 
 function trackHasActiveNote(track: number): boolean {
@@ -133,7 +134,7 @@ function trackHasActiveNote(track: number): boolean {
 function paintTrackButtons(): void {
     for (let t = 0; t < 4; t++) {
         const cc = CC_TRACK_END - t; // CC 43 = track 0
-        cachedSetButtonLED(cc, trackButtonColor(t, trackHasActiveNote(t)));
+        cachedSetButtonLED(cc, trackButtonColor(t, trackHasActiveNote(t), seqState.muted[t]));
     }
 }
 

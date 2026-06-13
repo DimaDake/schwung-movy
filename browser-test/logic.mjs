@@ -1383,10 +1383,12 @@ _log('\nTest: drumPadOn');
 {
     _log('\ntrack-button LEDs:');
     const { trackButtonColor } = await import('../dist/esm/seq/leds.js');
-    const { trackColor } = await import('../dist/esm/seq/colors.js');
+    const { trackColor, trackColorDim } = await import('../dist/esm/seq/colors.js');
 
-    eq('base = track color', trackButtonColor(1, /*active*/false), trackColor(1));
-    eq('active = white pulse', trackButtonColor(1, true), 120);
+    eq('base = track color', trackButtonColor(1, /*active*/false, /*muted*/false), trackColor(1));
+    eq('active = white pulse', trackButtonColor(1, true, false), 120);
+    eq('muted dim',     trackButtonColor(2, false, true), trackColorDim(2));
+    eq('muted+active still white', trackButtonColor(2, true, true), 120);
 }
 
 /* ── mute mirror ─────────────────────────────────────────────────────────── */

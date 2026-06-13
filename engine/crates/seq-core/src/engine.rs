@@ -474,7 +474,7 @@ impl Engine {
         let wt = &self.tracks[self.watch_track];
         let clip = wt.active();
         format!(
-            "play={} tick={} bpm={} trk={} step={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} occ={}",
+            "play={} tick={} bpm={} trk={} step={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} occ={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -487,8 +487,37 @@ impl Engine {
             self.metronome as u8,
             self.dirty as u8,
             self.session_state(),
+            self.active_notes_state(),
             clip.occupancy_hex_lane(self.watch_lane)
         )
+    }
+
+    /// `act=` payload: 4 comma-separated tracks, each dot-separated ascending
+    /// pitches currently sounding. Derived from the open gates, which are
+    /// exactly the sequenced notes still ringing — live pad notes are sounded
+    /// by the UI directly and never become gates, so they are excluded here.
+    fn active_notes_state(&self) -> String {
+        let mut out = String::with_capacity(48);
+        for t in 0..NUM_TRACKS {
+            if t > 0 {
+                out.push(',');
+            }
+            let mut pitches: Vec<u8> = self
+                .gates
+                .iter()
+                .filter(|g| g.track as usize == t)
+                .map(|g| g.pitch)
+                .collect();
+            pitches.sort_unstable();
+            pitches.dedup();
+            for (i, p) in pitches.iter().enumerate() {
+                if i > 0 {
+                    out.push('.');
+                }
+                out.push_str(&p.to_string());
+            }
+        }
+        out
     }
 
     /// Per-track Session grid state for the UI: tracks joined by ',', each
@@ -774,6 +803,34 @@ mod tests {
         assert!(s.contains("len=16"));
         let occ = s.split("occ=").nth(1).unwrap();
         assert_eq!(&occ[0..2], "10"); // step 3 = bit 4 of byte 0
+    }
+
+    #[test]
+    fn status_reports_active_notes_during_playback() {
+        let mut e = engine();
+        // One note on track 0 at step 0, then start playback (play() selects
+        // the active clip as the playing slot).
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.play();
+        // Advance just past the note's trigger so its gate is open.
+        let _ = run_ticks(&mut e, 2);
+        let s = e.status();
+        let act = s.split("act=").nth(1).unwrap().split(' ').next().unwrap();
+        // Format: 4 comma-separated tracks, dot-separated pitches; track 0 sounds 60.
+        assert_eq!(act.split(',').next().unwrap(), "60");
+    }
+
+    #[test]
+    fn active_notes_clear_when_stopped() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.play();
+        let _ = run_ticks(&mut e, 2);
+        e.stop(&mut out); // stop drains gates (silences) → active set empties
+        let s = e.status();
+        let act = s.split("act=").nth(1).unwrap().split(' ').next().unwrap();
+        assert_eq!(act, ",,,"); // all four tracks empty
     }
 
     #[test]

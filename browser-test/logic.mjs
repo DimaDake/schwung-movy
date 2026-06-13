@@ -398,7 +398,7 @@ _log('\nTest: drumPadOn');
 
   // pad 68, rawMidi=false, rootNote=36: PAD_MAP[0]=0 → midiNote=36 → drumPad=1
   sentMidi = []; setParams = {};
-  const r1 = drumPadOn(68, 68, false, mrdCfg, 36, 'synth', 0);
+  const r1 = drumPadOn(68, 68, false, mrdCfg, 36, 'synth', 0, 100);
   eq('mrdrums pad68 → drumPad 1', r1, 1);
   eq('sends NoteOn 36', sentMidi[0]?.[1], 36);
   eq('velocity 100', sentMidi[0]?.[2], 100);
@@ -406,13 +406,13 @@ _log('\nTest: drumPadOn');
 
   // pad 76: padIdx=8, col=0, row=1 → drumPad=5, midiNote=40
   sentMidi = []; setParams = {};
-  const r2 = drumPadOn(76, 68, false, mrdCfg, 36, 'synth', 0);
+  const r2 = drumPadOn(76, 68, false, mrdCfg, 36, 'synth', 0, 100);
   eq('mrdrums pad76 → drumPad 5', r2, 5);
   eq('mrdrums pad76 → midiNote 40', sentMidi[0]?.[1], 40);
 
   // shift+pad (no shiftSelectMidi) → suppresses MIDI, still sets param
   sentMidi = []; setParams = {};
-  const r3 = drumPadOn(68, 68, true, mrdCfg, 36, 'synth', 0);
+  const r3 = drumPadOn(68, 68, true, mrdCfg, 36, 'synth', 0, 100);
   eq('shift+pad returns drumPad 1', r3, 1);
   eq('shift: no MIDI sent', sentMidi.length, 0);
   eq('shift: still sets param', setParams['synth:ui_current_pad'], '1');
@@ -420,24 +420,24 @@ _log('\nTest: drumPadOn');
   // shiftSelectMidi=true (weird-dreams) → sends vel=1
   const wdCfg = { padCount: 8, padNoteStart: 36, rawMidi: false, shiftSelectMidi: true };
   sentMidi = [];
-  drumPadOn(68, 68, true, wdCfg, 36, 'synth', 0);
+  drumPadOn(68, 68, true, wdCfg, 36, 'synth', 0, 100);
   eq('shiftSelectMidi: sends vel=1', sentMidi[0]?.[2], 1);
 
   // rawMidi=true (krautdrums): midiNote=physPad → drumPad=physPad-padNoteStart+1
   const kCfg = { padCount: 16, padNoteStart: 68, rawMidi: true };
   sentMidi = []; setParams = {};
-  const r4 = drumPadOn(68, 68, false, kCfg, 36, 'synth', 0);
+  const r4 = drumPadOn(68, 68, false, kCfg, 36, 'synth', 0, 100);
   eq('krautdrums pad68 → drumPad 1', r4, 1);
   eq('rawMidi sends pad note 68', sentMidi[0]?.[1], 68);
 
   // rawMidi out-of-range: kCfg padCount=16, pad84=drumPad17
   sentMidi = [];
-  const r5 = drumPadOn(84, 68, false, kCfg, 36, 'synth', 0);
+  const r5 = drumPadOn(84, 68, false, kCfg, 36, 'synth', 0, 100);
   eq('rawMidi out-of-range → null', r5, null);
 
   // right-half column (col=4, pad72): inactive for rawMidi=false
   sentMidi = [];
-  const r6 = drumPadOn(72, 68, false, mrdCfg, 36, 'synth', 0);
+  const r6 = drumPadOn(72, 68, false, mrdCfg, 36, 'synth', 0, 100);
   eq('grid col>=4 → null', r6, null);
   eq('grid col>=4: no MIDI', sentMidi.length, 0);
 
@@ -686,6 +686,61 @@ _log('\nTest: drumPadOn');
     globalThis.setLED = origSetLED;
     globalThis.setButtonLED = origSetButtonLED;
     resetSeqState(); seqLedsInvalidate();
+}
+
+/* ── seq pads: chromatic layout + coloring ───────────────────────────────── */
+{
+    _log('\nseq chromatic pads:');
+    const { chromaticPitch, chromaticPadColor, inScale } =
+        await import('../dist/esm/seq/pads.js');
+    const { trackColor } = await import('../dist/esm/seq/colors.js');
+
+    const PAD_MIN = 68;
+    const base = 48; // C3 at bottom-left
+
+    // Bottom-left = base; +1 per column right; +5 per row up.
+    eq('bottom-left = base note', chromaticPitch(68, PAD_MIN, base), 48);
+    eq('one column right = +1 semitone', chromaticPitch(69, PAD_MIN, base), 49);
+    eq('one row up = +5 semitones', chromaticPitch(76, PAD_MIN, base), 53);
+    eq('top-left (row 3) = +15', chromaticPitch(92, PAD_MIN, base), 63);
+
+    // Coloring: root C = track color, in-scale gray, out-of-scale dark.
+    eq('root C uses track color', chromaticPadColor(68, PAD_MIN, base, 2, false), trackColor(2));
+    // base+2 = D (in C major) → light gray (118)
+    eq('in-scale note light gray', chromaticPadColor(70, PAD_MIN, base, 0, false), 118);
+    // base+1 = C# (out of scale) → dark
+    eq('out-of-scale dark', chromaticPadColor(69, PAD_MIN, base, 0, false), 0);
+    // held pad → red regardless of pitch
+    eq('held pad red', chromaticPadColor(69, PAD_MIN, base, 0, true), 1);
+
+    eq('C in major scale', inScale(60), true);
+    eq('C# not in major scale', inScale(61), false);
+}
+
+/* ── seq Full Velocity toggle (Shift+Step 10) ────────────────────────────── */
+{
+    _log('\nseq full velocity:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi } = await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+
+    installMockEngine();
+    resetSeqEngine(); resetSeqState();
+    seqEngineTick(); // ready
+
+    eq('full velocity off by default', seqState.fullVelocity, false);
+    // Shift + Step 10 (note 25) toggles it; the event is still claimed.
+    eq('shift+step claimed', seqHandleMidi([0x90, 25, 127], true), true);
+    eq('full velocity toggled on', seqState.fullVelocity, true);
+    seqHandleMidi([0x90, 25, 127], true);
+    eq('full velocity toggled off', seqState.fullVelocity, false);
+
+    // A bare step press (no shift) still toggles a note, not the flag.
+    seqHandleMidi([0x90, 25, 127], false);
+    eq('bare step did not touch full velocity', seqState.fullVelocity, false);
+
+    uninstallMockEngine(); resetSeqEngine(); resetSeqState();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

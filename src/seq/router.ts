@@ -20,22 +20,29 @@ import {
 
 const CC_LEFT = 62;
 const CC_RIGHT = 63;
+const STEP_FULL_VEL = 9; // Step 10 (0-indexed) — Shift+Step 10 = Full Velocity
 
 /* Pads currently held, padNote → midiNote, for chord step entry. Mirrors the
  * pads physically down so a step press can place the whole chord. */
 const heldChord = new Map<number, number>();
 
-export function seqHandleMidi(data: number[]): boolean {
+export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     const statusType = data[0] & 0xF0;
     const d1 = data[1];
     const d2 = data[2];
 
-    /* Step buttons: note-on toggles; note-off ignored (hold gestures land
-     * in later steps). */
+    /* Step buttons: Shift+step are Move's shifted functions; a bare step-on
+     * toggles a note. Note-off is ignored (hold gestures land in later
+     * steps). */
     if ((statusType === 0x90 || statusType === 0x80)
         && d1 >= STEP_NOTE_BASE && d1 < STEP_NOTE_BASE + NUM_STEP_BUTTONS) {
         if (statusType === 0x90 && d2 > 0) {
-            toggleStep(d1 - STEP_NOTE_BASE);
+            const step = d1 - STEP_NOTE_BASE;
+            if (shiftHeld) {
+                shiftStepFunction(step);
+            } else {
+                toggleStep(step);
+            }
         }
         return true;
     }
@@ -70,6 +77,16 @@ export function seqHandleMidi(data: number[]): boolean {
     }
 
     return false;
+}
+
+/* Shift + step button = Move's shifted step functions. Step 10 toggles Full
+ * Velocity; further entries (Double Loop = Step 15, Quantize = Step 16) land
+ * in later steps. */
+function shiftStepFunction(step: number): void {
+    if (step === STEP_FULL_VEL) {
+        seqState.fullVelocity = !seqState.fullVelocity;
+        seqToast(seqState.fullVelocity ? 'Full Velocity On' : 'Full Velocity Off');
+    }
 }
 
 function navigateBar(delta: number): void {

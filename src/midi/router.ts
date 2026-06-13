@@ -6,6 +6,7 @@ import { drumPadOn, drumPadOff } from '../keyboard/drum-handler.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
 import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased } from '../seq/router.js';
+import { seqState } from '../seq/state.js';
 import { mlog } from '../log.js';
 
 const PAD_MIN        = MovePads[0];
@@ -25,7 +26,7 @@ function setChainIndex(i: number): void { appState.trackChainIndex[appState.acti
 
 export function onMidiMessageInternal(data: number[]): void {
     if (!data || data.length < 3) return;
-    if (seqHandleMidi(data)) return;
+    if (seqHandleMidi(data, appState.shiftHeld)) return;
     const status = data[0];
     const d1     = data[1];
     const d2     = data[2];
@@ -53,21 +54,23 @@ export function onMidiMessageInternal(data: number[]): void {
     if (d1 >= PAD_MIN && d1 <= PAD_MAX) {
         const model   = activeModel();
         const drumCfg = model?.getDrumConfig() ?? null;
+        const track = appState.activeSlot;
         if ((status & 0xF0) === 0x90 && d2 > 0) {
+            const vel = seqState.fullVelocity ? 127 : d2;
             if (drumCfg) {
-                const pad = drumPadOn(d1, PAD_MIN, appState.shiftHeld, drumCfg, keyboardState.rootNote, model!.getComponentKey(), appState.activeSlot);
+                const pad = drumPadOn(d1, PAD_MIN, appState.shiftHeld, drumCfg, keyboardState.rootNote, model!.getComponentKey(), track, vel);
                 if (pad !== null) model!.updateDrumPad(pad, d1);
             } else {
-                noteOn(d1, PAD_MIN, PAD_MAX);
+                noteOn(d1, PAD_MIN, track, vel);
             }
-            seqNotePadPlayed(appState.activeSlot, d1, keyboardState.lastPlayedNote, d2);
+            seqNotePadPlayed(track, d1, keyboardState.lastPlayedNote, vel);
             return;
         }
         if ((status & 0xF0) === 0x80 || ((status & 0xF0) === 0x90 && d2 === 0)) {
             if (drumCfg) {
-                drumPadOff(d1, PAD_MIN, drumCfg, keyboardState.rootNote);
+                drumPadOff(d1, PAD_MIN, drumCfg, keyboardState.rootNote, track);
             } else {
-                noteOff(d1, PAD_MIN);
+                noteOff(d1, PAD_MIN, track);
             }
             seqNotePadReleased(d1);
             return;
@@ -94,6 +97,9 @@ export function onMidiMessageInternal(data: number[]): void {
             appState.activeSlot = newSlot;
             appState.currentView = appState.trackView[newSlot];
             appState.jogTouched = false;
+            /* Repaint pads: the chromatic root takes the new track's color. */
+            appState.initLedsDone = false;
+            appState.initLedIndex = 0;
         }
         appState.dirty = true;
         return;
@@ -116,7 +122,7 @@ export function onMidiMessageInternal(data: number[]): void {
             appState.currentView = VIEW_CHAIN;
             appState.dirty = true;
         } else {
-            releaseAllNotes();
+            releaseAllNotes(appState.activeSlot);
             host_exit_module();
         }
         return;
@@ -202,18 +208,13 @@ export function onMidiMessageInternal(data: number[]): void {
         return;
     }
 
-    /* Up → VIEW_KEYS from CHAIN or KNOBS */
-    if (d1 === MoveUp && d2 > 0) {
-        if (appState.currentView === VIEW_CHAIN || appState.currentView === VIEW_KNOBS) {
-            appState.currentView = VIEW_KEYS;
+    /* +/- buttons shift the chromatic pad layout by an octave (native melodic
+     * behavior). Drum modules manage their own pad octave, so skip them. */
+    if ((d1 === MoveUp || d1 === MoveDown) && d2 > 0) {
+        if (!activeModel()?.getDrumConfig()) {
+            changeRoot(d1 === MoveUp ? 12 : -12, appState.activeSlot, PAD_MIN, PAD_MAX);
             appState.dirty = true;
-        } else if (appState.currentView === VIEW_KEYS) {
-            changeRoot(1, PAD_MIN, PAD_MAX);
         }
-        return;
-    }
-    if (d1 === MoveDown && d2 > 0 && appState.currentView === VIEW_KEYS) {
-        changeRoot(-1, PAD_MIN, PAD_MAX);
         return;
     }
 }

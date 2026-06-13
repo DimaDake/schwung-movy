@@ -2,7 +2,8 @@ import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BRO
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
 import { CHAIN_SLOTS } from '../chain/config.js';
-import { padLedColor, drumPadLedColor } from '../keyboard/leds.js';
+import { drumPadLedColor } from '../keyboard/leds.js';
+import { chromaticPadColor } from '../seq/pads.js';
 import { midiNoteName } from '../keyboard/notes.js';
 import { renderKnobsView } from '../renderer/knob-view.js';
 import { renderKeysView }  from '../renderer/keys-view.js';
@@ -27,8 +28,10 @@ export function tick(): void {
     if (!appState.initLedsDone) {
         const total = PAD_MAX - PAD_MIN + 1;
         const end   = Math.min(appState.initLedIndex + LED_INIT_BATCH, total);
+        const base  = keyboardState.rootNote;
         for (let i = appState.initLedIndex; i < end; i++) {
-            setLED(PAD_MIN + i, padLedColor(PAD_MIN + i, PAD_MIN), true);
+            const p = PAD_MIN + i;
+            setLED(p, chromaticPadColor(p, PAD_MIN, base, appState.activeSlot, false), true);
         }
         appState.initLedIndex = end;
         if (appState.initLedIndex >= total) { appState.initLedsDone = true; appState.dirty = true; }

@@ -24,6 +24,7 @@ export interface SeqUiState {
     /* view */
     barOffset: number;       // which bar's 16 steps the step buttons show
     watchLane: number;       // drum-lane pitch shown on steps, or -1 = melodic
+    fullVelocity: boolean;   // Shift+Step 10: force all pad notes to 127
 }
 
 function defaults(): SeqUiState {
@@ -40,6 +41,7 @@ function defaults(): SeqUiState {
         lastVel: [100, 100, 100, 100],
         barOffset: 0,
         watchLane: -1,
+        fullVelocity: false,
     };
 }
 

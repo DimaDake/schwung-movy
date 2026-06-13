@@ -9,6 +9,7 @@ export function drumPadOn(
     rootNote:     number,
     componentKey: string,
     slot:         number,
+    vel:          number,
 ): number | null {
     let midiNote: number;
     let drumPad:  number;
@@ -28,7 +29,7 @@ export function drumPadOn(
     const suppressMidi = shiftHeld && !drumConfig.shiftSelectMidi;
     if (!suppressMidi) {
         keyboardState.lastPlayedNote = midiNote;
-        shadow_send_midi_to_dsp([MidiNoteOn, midiNote, shiftHeld ? 1 : 100]);
+        shadow_send_midi_to_dsp([MidiNoteOn | slot, midiNote, shiftHeld ? 1 : vel]);
     }
     if (drumConfig.currentPadParam) {
         shadow_set_param(slot, componentKey + ':' + drumConfig.currentPadParam, String(drumPad));
@@ -41,6 +42,7 @@ export function drumPadOff(
     padMin:     number,
     drumConfig: DrumConfig,
     rootNote:   number,
+    slot:       number,
 ): void {
     let midiNote: number;
     let drumPad:  number;
@@ -56,5 +58,5 @@ export function drumPadOff(
         midiNote = drumConfig.padNoteStart + drumPad - 1;
     }
     if (drumPad < 1 || drumPad > drumConfig.padCount) return;
-    shadow_send_midi_to_dsp([MidiNoteOff, midiNote, 0]);
+    shadow_send_midi_to_dsp([MidiNoteOff | slot, midiNote, 0]);
 }

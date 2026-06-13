@@ -37,6 +37,9 @@ export interface SeqUiState {
     watchLane: number;       // drum-lane pitch shown on steps, or -1 = melodic
     fullVelocity: boolean;   // Shift+Step 10: force all pad notes to 127
 
+    /* per-track mute, from `mute=` engine status field */
+    muted: boolean[];
+
     /* session mode */
     sessionMode: boolean;        // pads show the clip grid
     session: SessionTrack[];     // 4 tracks of clip-slot state (from status)
@@ -75,9 +78,15 @@ function defaults(): SeqUiState {
         barOffset: 0,
         watchLane: -1,
         fullVelocity: false,
+        muted: [false, false, false, false],
         sessionMode: false,
         session: emptySession(),
     };
+}
+
+/* Parse the engine's `mute=` value (one '0'/'1' per track). */
+export function muteFromStr(s: string): void {
+    for (let t = 0; t < 4; t++) seqState.muted[t] = s[t] === '1';
 }
 
 /* Parse the engine's `sess=` value: tracks joined by ',', each `EE.P.Q.S`

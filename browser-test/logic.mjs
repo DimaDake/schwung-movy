@@ -1389,6 +1389,19 @@ _log('\nTest: drumPadOn');
     eq('active = white pulse', trackButtonColor(1, true), 120);
 }
 
+/* ── mute mirror ─────────────────────────────────────────────────────────── */
+{
+    _log('\nmute mirror:');
+    const { muteFromStr, seqState } = await import('../dist/esm/seq/state.js');
+
+    muteFromStr('0100');
+    eq('t0 unmuted', seqState.muted[0], false);
+    eq('t1 muted',   seqState.muted[1], true);
+    eq('t2 unmuted', seqState.muted[2], false);
+    muteFromStr('1111');
+    eq('all muted',  seqState.muted[3], true);
+}
+
 /* ── momentary: tap vs hold ───────────────────────────────────────────────── */
 {
     _log('\nmomentary tap vs hold:');

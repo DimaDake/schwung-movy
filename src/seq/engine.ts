@@ -15,7 +15,7 @@
 
 import { mlog } from '../log.js';
 import { ENGINE_DSP_PATH, ENGINE_VERSION } from './constants.js';
-import { activeFromStr, occFromHex, seqState, sessionFromStr } from './state.js';
+import { activeFromStr, muteFromStr, occFromHex, seqState, sessionFromStr } from './state.js';
 
 const STATUS_POLL_TICKS = 8;  // ~24 Hz at the ~196 Hz device tick rate
 const PROBE_TICKS = 30;       // ping cadence while booting
@@ -154,6 +154,7 @@ function parseStatus(s: string): void {
         else if (key === 'metro') seqState.metro = val === '1';
         else if (key === 'dirty') seqState.dirty = val === '1';
         else if (key === 'act') activeFromStr(val);
+        else if (key === 'mute') muteFromStr(val);
         else if (key === 'sess') sessionFromStr(val);
         else if (key === 'occ') occFromHex(val);
     }

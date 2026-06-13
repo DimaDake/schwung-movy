@@ -3,13 +3,28 @@
  * per-tick repaint costs nothing on the wire when nothing changed
  * (davebox ui_leds pattern). */
 
-import { C_DARKGREY, C_GREEN, C_WHITE, trackColor, trackColorDim } from './colors.js';
-import { CC_PLAY, CC_REC, NUM_STEP_BUTTONS, PAD_MIN, STEP_NOTE_BASE } from './constants.js';
+import { backLedColor, arrowLedColor, sampleLedColor, captureLedColor, undoLedColor } from './buttons.js';
+import { C_DARKGREY, C_GREEN, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
+import {
+    CC_PLAY, CC_REC, CC_TRACK_START, CC_TRACK_END, NUM_STEP_BUTTONS, PAD_MIN, STEP_NOTE_BASE,
+} from './constants.js';
 import { sessionPaintGrid } from './session.js';
-import { loopEndBar, loopStartBar, occHasStep, seqState } from './state.js';
+import { loopEndBar, loopStartBar, maxBarOffset, occHasStep, seqState } from './state.js';
 
-const C_RED = 1;        // BrightRed — recording
-const C_RED_DIM = 67;   // dim red — armed / count-in off-phase
+const C_RED = 1;  // BrightRed — recording
+
+/* CC addresses for non-step buttons (MoveCCButtons). */
+const CC_BACK = 51, CC_CAPTURE = 52, CC_UNDO = 56, CC_LOOP = 58,
+      CC_COPY = 60, CC_LEFT = 62, CC_RIGHT = 63, CC_MUTE = 88,
+      CC_SAMPLE = 118, CC_DELETE_BTN = 119;
+
+const STEP_ICON_CC_BASE = 16; // step-icon LEDs are CC 16..31 (printed icons under each step)
+
+/* Step-icon slot indices (0-based) for the latched shortcut features. */
+const ICON_METRO = 5;     // step 6
+const ICON_FULLVEL = 9;   // step 10
+const ICON_DBLLOOP = 14;  // step 15
+const ICON_QUANT = 15;    // step 16
 
 /* A coarse blink phase from the engine tick, for flashing LEDs. */
 function blinkOn(): boolean {
@@ -71,26 +86,94 @@ function paintLoopBars(): void {
     }
 }
 
-/* Transport button LEDs: Play lit while running; Rec solid red while
- * recording, flashing red during the count-in, dim otherwise. */
-function paintTransport(): void {
-    cachedSetButtonLED(CC_PLAY, seqState.playing ? C_WHITE : C_DARKGREY);
-    let rec: number;
-    if (seqState.recording) {
-        rec = C_RED;
-    } else if (seqState.countingIn) {
-        rec = blinkOn() ? C_RED : C_RED_DIM;
-    } else {
-        rec = C_RED_DIM;
-    }
-    cachedSetButtonLED(CC_REC, rec);
+export function transportPlayColor(playing: boolean): number {
+    return playing ? C_GREEN : C_DARKGREY;
 }
 
-export function seqLedsTick(): void {
+export function transportRecColor(recording: boolean): number {
+    return recording ? C_RED : C_DARKGREY;
+}
+
+/* Transport button LEDs: Play green while running; Rec red while recording. */
+function paintTransport(): void {
+    cachedSetButtonLED(CC_PLAY, transportPlayColor(seqState.playing));
+    cachedSetButtonLED(CC_REC, transportRecColor(seqState.recording));
+}
+
+/* Step-icon LEDs are CC 16..31 (the printed icons under each step), separate
+ * from the step buttons' RGB LEDs at notes 16..31. They show latched feature
+ * state, and — while Shift is held — the full set of combinable shortcuts. */
+interface IconCtx { shift: boolean; metro: boolean; fullVel: boolean; }
+
+export function stepIconColor(idx: number, c: IconCtx): number {
+    const active = (idx === ICON_METRO && c.metro) || (idx === ICON_FULLVEL && c.fullVel);
+    if (active) return WHITE_BRIGHT;
+    if (c.shift && (idx === ICON_METRO || idx === ICON_FULLVEL
+                    || idx === ICON_DBLLOOP || idx === ICON_QUANT)) {
+        return WHITE_DIM;
+    }
+    return WHITE_OFF;
+}
+
+function paintStepIcons(shift: boolean): void {
+    const ctx = { shift, metro: seqState.metro, fullVel: seqState.fullVelocity };
+    for (let i = 0; i < NUM_STEP_BUTTONS; i++) {
+        cachedSetButtonLED(STEP_ICON_CC_BASE + i, stepIconColor(i, ctx));
+    }
+}
+
+/* Track buttons (CC 40..43; CC 43 = track 0). Base = the track color so they
+ * match the chromatic root; a sounding note on that track flashes it white.
+ * (Mute-dimming arrives with the mute gesture in Batch 2.) */
+export function trackButtonColor(track: number, active: boolean): number {
+    return active ? C_WHITE : trackColor(track);
+}
+
+function trackHasActiveNote(track: number): boolean {
+    const base = track * 128;
+    for (let p = 0; p < 128; p++) if (seqState.activeNotes[base + p]) return true;
+    return false;
+}
+
+function paintTrackButtons(): void {
+    for (let t = 0; t < 4; t++) {
+        const cc = CC_TRACK_END - t; // CC 43 = track 0
+        cachedSetButtonLED(cc, trackButtonColor(t, trackHasActiveNote(t)));
+    }
+}
+
+function paintAffordances(view: number, barOffset: number, maxOff: number,
+                          leftPressed: boolean, rightPressed: boolean): void {
+    cachedSetButtonLED(CC_BACK, backLedColor(view));
+    cachedSetButtonLED(CC_LEFT, arrowLedColor(-1, barOffset, maxOff, leftPressed));
+    cachedSetButtonLED(CC_RIGHT, arrowLedColor(+1, barOffset, maxOff, rightPressed));
+    cachedSetButtonLED(CC_SAMPLE, sampleLedColor());
+    cachedSetButtonLED(CC_CAPTURE, captureLedColor());
+    cachedSetButtonLED(CC_UNDO, undoLedColor());
+    // Always-available functional buttons: dim (Loop bright in Loop Mode).
+    cachedSetButtonLED(CC_LOOP, seqState.loopMode ? WHITE_BRIGHT : WHITE_DIM);
+    cachedSetButtonLED(CC_COPY, WHITE_DIM);
+    cachedSetButtonLED(CC_DELETE_BTN, WHITE_DIM);
+    cachedSetButtonLED(CC_MUTE, WHITE_DIM);
+}
+
+/* Worst case (cold frame after seqLedsInvalidate): ~29 CC packets (transport +
+ * 4 track + 16 icons + ~8 affordance) + up to LED_INIT_BATCH (8) pad packets
+ * < 60-packet overtake buffer. Do not raise LED_INIT_BATCH past 8 without
+ * re-checking this sum. */
+export function seqLedsTick(
+    shiftHeld: boolean = false,
+    currentView: number = 0,
+    barOffset: number = 0,
+    maxOff: number = 0,
+): void {
     // Session mode owns the 32-pad clip grid (cached).
     if (seqState.sessionMode) {
         sessionPaintGrid(cachedSetLED, PAD_MIN);
     }
+    paintTrackButtons();
+    paintStepIcons(shiftHeld);
+    paintAffordances(currentView, barOffset, maxOff, false, false);
     if (seqState.loopMode) {
         paintLoopBars();
         paintTransport();

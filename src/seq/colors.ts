@@ -22,3 +22,8 @@ export function trackColor(track: number): number {
 export function trackColorDim(track: number): number {
     return TRACK_COLOR_DIM[track & 3];
 }
+
+/* White-LED brightness levels (Back/arrows/etc. are not RGB). */
+export const WHITE_OFF = 0;
+export const WHITE_DIM = 16;
+export const WHITE_BRIGHT = 124;

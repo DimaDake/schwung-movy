@@ -15,7 +15,7 @@ import { seqEngineTick } from '../seq/engine.js';
 import { seqPersistTick } from '../seq/persist.js';
 import { seqLedsTick, seqLedsInvalidate } from '../seq/leds.js';
 import { seqSetLane } from '../seq/router.js';
-import { seqState } from '../seq/state.js';
+import { activeHasNote, maxBarOffset, seqState } from '../seq/state.js';
 import { engineReady } from '../seq/engine.js';
 import { drawLoopStrip, drawSeqToast, seqToastActive, seqToastTick } from '../seq/render.js';
 
@@ -37,14 +37,14 @@ export function tick(): void {
         if (!seqState.sessionMode) { appState.initLedsDone = false; appState.initLedIndex = 0; }
         appState.dirty = true;
     }
-    seqLedsTick();
+    seqLedsTick(appState.shiftHeld, appState.currentView, seqState.barOffset, maxBarOffset());
     if (!appState.initLedsDone && !seqState.sessionMode) {
         const total = PAD_MAX - PAD_MIN + 1;
         const end   = Math.min(appState.initLedIndex + LED_INIT_BATCH, total);
         const base  = keyboardState.rootNote;
         for (let i = appState.initLedIndex; i < end; i++) {
             const p = PAD_MIN + i;
-            setLED(p, chromaticPadColor(p, PAD_MIN, base, appState.activeSlot, false), true);
+            setLED(p, chromaticPadColor(p, PAD_MIN, base, appState.activeSlot, false, false), true);
         }
         appState.initLedIndex = end;
         if (appState.initLedIndex >= total) { appState.initLedsDone = true; appState.dirty = true; }
@@ -97,9 +97,15 @@ export function tick(): void {
         const drumNow   = !seqState.sessionMode && (dvm?.drumPadCount ?? 0) > 0;
         if (drumNow) {
             const drumCfg = activeModel!.getDrumConfig()!;
+            const track   = seqState.watchTrack;
             for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {
                 const p = PAD_MIN + i;
-                setLED(p, drumPadLedColor(p, PAD_MIN, drumCfg, keyboardState.rootNote, dvm!.drumCurrentPhysPad), true);
+                // Derive the pad's MIDI note to check activeHasNote (mirrors drumPadLedColor's mapping).
+                const idx = p - PAD_MIN, col = idx % 8, row = Math.floor(idx / 8);
+                const dp  = drumCfg.rawMidi ? p - drumCfg.padNoteStart + 1 : row * 4 + col + 1;
+                const note = drumCfg.rawMidi ? p : drumCfg.padNoteStart + dp - 1;
+                const playing = activeHasNote(track, note);
+                setLED(p, drumPadLedColor(p, PAD_MIN, drumCfg, keyboardState.rootNote, dvm!.drumCurrentPhysPad, track, playing), true);
             }
             appState.drumActive = true;
         } else if (appState.drumActive) {

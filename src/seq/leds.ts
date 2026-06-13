@@ -3,6 +3,7 @@
  * per-tick repaint costs nothing on the wire when nothing changed
  * (davebox ui_leds pattern). */
 
+import { C_DARKGREY, C_GREEN, C_WHITE, trackColorDim } from './colors.js';
 import { CC_PLAY, NUM_STEP_BUTTONS, STEP_NOTE_BASE } from './constants.js';
 import { occHasStep, seqState } from './state.js';
 
@@ -30,27 +31,32 @@ export function seqLedsInvalidate(): void {
     lastButtonLed.clear();
 }
 
-export function seqLedsTick(barOffset: number): void {
-    /* Step row: basic semantics (full native color set lands in Step 3) —
-     * white = has notes, dim = empty step inside the loop, off = outside
-     * the loop / empty clip, green = playhead while playing. */
-    const playheadVisible = seqState.playing
-        && seqState.curStep >= barOffset * NUM_STEP_BUTTONS
-        && seqState.curStep < (barOffset + 1) * NUM_STEP_BUTTONS;
+export function seqLedsTick(): void {
+    const bar = seqState.barOffset;
+    const base = bar * NUM_STEP_BUTTONS;
+
+    /* Step-row semantics (manual §9.5):
+     *   white            = step has note(s)
+     *   dim track color  = empty step inside the loop
+     *   dim gray         = empty clip / bar outside the loop
+     *   green (playhead)  = current play position while playing  */
+    const playStep = seqState.playing ? seqState.curStep : -1;
+    const dimTrack = trackColorDim(seqState.watchTrack);
+
     for (let i = 0; i < NUM_STEP_BUTTONS; i++) {
-        const step = barOffset * NUM_STEP_BUTTONS + i;
+        const step = base + i;
         let color: number;
-        if (playheadVisible && step === seqState.curStep) {
-            color = NeonGreen;
+        if (step === playStep) {
+            color = C_GREEN;
         } else if (occHasStep(step)) {
-            color = White;
-        } else if (step < seqState.lenSteps) {
-            color = DarkGrey;
+            color = C_WHITE;
+        } else if (seqState.lenSteps > 0 && step < seqState.lenSteps) {
+            color = dimTrack;
         } else {
-            color = Black;
+            color = C_DARKGREY;
         }
         cachedSetLED(STEP_NOTE_BASE + i, color);
     }
 
-    cachedSetButtonLED(CC_PLAY, seqState.playing ? White : DarkGrey);
+    cachedSetButtonLED(CC_PLAY, seqState.playing ? C_WHITE : C_DARKGREY);
 }

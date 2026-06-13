@@ -12,15 +12,18 @@ import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
 import { seqEngineTick } from '../seq/engine.js';
 import { seqLedsTick } from '../seq/leds.js';
-import { barOffset } from '../seq/router.js';
+import { seqSetLane } from '../seq/router.js';
+import { drawSeqToast, seqToastActive, seqToastTick } from '../seq/render.js';
 
 const PAD_MIN        = MovePads[0];
 const PAD_MAX        = MovePads[MovePads.length - 1];
 const LED_INIT_BATCH = 8;
 
+let lastToastShowing = false;
+
 export function tick(): void {
     seqEngineTick();
-    seqLedsTick(barOffset);
+    seqLedsTick();
     if (!appState.initLedsDone) {
         const total = PAD_MAX - PAD_MIN + 1;
         const end   = Math.min(appState.initLedIndex + LED_INIT_BATCH, total);
@@ -36,7 +39,22 @@ export function tick(): void {
     const activeModel = appState.trackModels[appState.activeSlot]?.[chainIdx];
     const modelDirty  = activeModel?.tick() ?? false;
 
-    if (modelDirty || appState.dirty) {
+    /* Keep the sequencer's watched step-LED lane in sync with the active
+     * module: a drum module filters steps to the selected pad's note; a
+     * melodic module shows all notes (lane -1). */
+    const dvm0   = activeModel?.getViewModel();
+    const isDrum = (dvm0?.drumPadCount ?? 0) > 0;
+    if (isDrum) {
+        const cfg = activeModel!.getDrumConfig();
+        seqSetLane(cfg ? cfg.padNoteStart + (dvm0!.drumCurrentPad - 1) : -1);
+    } else {
+        seqSetLane(-1);
+    }
+
+    seqToastTick();
+    const toastShowing = seqToastActive();
+
+    if (modelDirty || appState.dirty || toastShowing !== lastToastShowing) {
         if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
@@ -53,12 +71,14 @@ export function tick(): void {
             const browseTitle = CHAIN_SLOTS[chainIdx]?.label ?? 'Module';
             renderBrowseView(browserState.modules, browserState.browseIndex, browseTitle);
         }
+        if (toastShowing) drawSeqToast();
+        lastToastShowing = toastShowing;
         appState.dirty = false;
 
         /* ── Drum pad LEDs ──────────────────────────────────────────────────── */
         const dvm       = activeModel?.getViewModel();
-        const isDrum    = (dvm?.drumPadCount ?? 0) > 0;
-        if (isDrum) {
+        const drumNow   = (dvm?.drumPadCount ?? 0) > 0;
+        if (drumNow) {
             const drumCfg = activeModel!.getDrumConfig()!;
             for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {
                 const p = PAD_MIN + i;

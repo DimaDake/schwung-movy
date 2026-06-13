@@ -36,7 +36,14 @@ export function installMockEngine() {
         if (key === 'cmd') {
             engine.cmdBatches.push(value);
             for (const op of value.split(';')) {
-                if (op.length > 0) engine.ops.push(op);
+                if (op.length === 0) continue;
+                engine.ops.push(op);
+                /* Apply transport ops to status so a subsequent poll agrees
+                 * with the UI's optimistic mirror (faithful-engine behavior:
+                 * the engine reports back what the command set). */
+                const verb = op.split(' ')[0];
+                if (verb === 'play') engine.status.play = 1;
+                else if (verb === 'stop') engine.status.play = 0;
             }
         } else if (key === 'load') {
             engine.loadRequests.push(value);

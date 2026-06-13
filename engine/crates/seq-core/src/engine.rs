@@ -26,6 +26,9 @@ pub struct Engine {
     pub playing: bool,
     /// Track whose active clip the UI is watching (step LEDs / status).
     pub watch_track: usize,
+    /// Pitch the watched step LEDs are filtered to (drum-lane view), or None
+    /// for the melodic "all notes" view.
+    pub watch_lane: Option<u8>,
     gates: Vec<Gate>,
 }
 
@@ -36,6 +39,7 @@ impl Engine {
             tracks: (0..NUM_TRACKS).map(|_| Track::new()).collect(),
             playing: false,
             watch_track: 0,
+            watch_lane: None,
             gates: Vec::with_capacity(128),
         }
     }
@@ -146,7 +150,7 @@ impl Engine {
             self.watch_track,
             wt.current_step(),
             clip.length_steps,
-            clip.occupancy_hex()
+            clip.occupancy_hex_lane(self.watch_lane)
         )
     }
 }

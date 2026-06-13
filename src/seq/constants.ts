@@ -14,5 +14,5 @@ export const CC_TRACK_END = 43;
  * build-dsp.sh fails the build when they diverge. The UI re-issues the DSP
  * load until ping returns this exact version (fixes the fire-and-forget
  * load race and stale engines after redeploy). */
-export const ENGINE_VERSION = '0.2.0';
+export const ENGINE_VERSION = '0.3.0';
 export const ENGINE_DSP_PATH = '/data/UserData/schwung/modules/tools/movy/dsp.so';

@@ -2,44 +2,58 @@
  * this before any existing handler; returning true consumes the event, so
  * the param-page layer stays untouched by sequencer features.
  *
- * Owned today: step buttons (notes 16-31) and the Play button.
- * Observed without claiming: track buttons (to retarget the engine's
- * watched clip — selection itself stays with the param-page handler). */
+ * Owned: step buttons (notes 16-31), Play, and — while the engine is ready —
+ * Left/Right arrows (bar navigation, native behavior; param page/chain nav
+ * stays on the jog wheel). Track buttons are observed (watched-clip
+ * retarget) without being claimed, so the param-page track switch still
+ * runs. */
 
 import {
     CC_PLAY, CC_TRACK_END, CC_TRACK_START,
     NUM_STEP_BUTTONS, STEP_NOTE_BASE,
 } from './constants.js';
-import { seqCmd } from './engine.js';
-import { occHasStep, occToggleStep, seqState } from './state.js';
+import { engineReady, seqCmd } from './engine.js';
+import { seqToast } from './render.js';
+import {
+    maxBarOffset, occHasStep, occToggleStep, seqState,
+} from './state.js';
 
-/* Bar shown on the step buttons (left/right arrows move it — Step 3). */
-export let barOffset = 0;
+const CC_LEFT = 62;
+const CC_RIGHT = 63;
+
+/* Pads currently held, padNote → midiNote, for chord step entry. Mirrors the
+ * pads physically down so a step press can place the whole chord. */
+const heldChord = new Map<number, number>();
 
 export function seqHandleMidi(data: number[]): boolean {
-    const status = data[0] & 0xF0;
+    const statusType = data[0] & 0xF0;
     const d1 = data[1];
     const d2 = data[2];
 
     /* Step buttons: note-on toggles; note-off ignored (hold gestures land
      * in later steps). */
-    if ((status === 0x90 || status === 0x80)
+    if ((statusType === 0x90 || statusType === 0x80)
         && d1 >= STEP_NOTE_BASE && d1 < STEP_NOTE_BASE + NUM_STEP_BUTTONS) {
-        if (status === 0x90 && d2 > 0) {
+        if (statusType === 0x90 && d2 > 0) {
             toggleStep(d1 - STEP_NOTE_BASE);
         }
         return true;
     }
 
-    if (status !== 0xB0) return false;
+    if (statusType !== 0xB0) return false;
 
-    /* Play: toggle transport. Mirror updated optimistically so the LED
-     * reacts this tick; the next status poll confirms. */
     if (d1 === CC_PLAY) {
         if (d2 > 0) {
             seqCmd(seqState.playing ? 'stop' : 'play');
             seqState.playing = !seqState.playing;
         }
+        return true;
+    }
+
+    /* Left/Right = bar navigation, but only once the engine is live; with no
+     * engine they fall through to the existing param page/chain nav. */
+    if ((d1 === CC_LEFT || d1 === CC_RIGHT) && d2 > 0 && engineReady()) {
+        navigateBar(d1 === CC_RIGHT ? 1 : -1);
         return true;
     }
 
@@ -49,6 +63,7 @@ export function seqHandleMidi(data: number[]): boolean {
         const track = CC_TRACK_END - d1;
         if (track !== seqState.watchTrack) {
             seqState.watchTrack = track;
+            seqState.barOffset = 0;
             seqCmd('watch ' + track);
         }
         return false;
@@ -57,27 +72,65 @@ export function seqHandleMidi(data: number[]): boolean {
     return false;
 }
 
-function toggleStep(button: number): void {
-    const step = barOffset * NUM_STEP_BUTTONS + button;
-    const t = seqState.watchTrack;
-    seqCmd(`tog ${t} ${step} ${seqState.lastPitch[t]} ${seqState.lastVel[t]}`);
-    /* Optimistic mirror so the step LED flips this tick. Adding the first
-     * note also auto-starts the transport (engine rule) and implicitly
-     * creates a 1-bar clip — mirror both. */
-    if (!occHasStep(step)) {
-        if (seqState.lenSteps === 0) seqState.lenSteps = NUM_STEP_BUTTONS;
-        if (!seqState.playing) seqState.playing = true;
-        occToggleStep(step);
-    } else {
-        occToggleStep(step);
+function navigateBar(delta: number): void {
+    const next = Math.max(0, Math.min(seqState.barOffset + delta, maxBarOffset()));
+    if (next !== seqState.barOffset) {
+        seqState.barOffset = next;
+        seqToast('Bar ' + (next + 1));
     }
 }
 
-/* Pads feed step entry: remember the active track's last played note so a
- * step press knows what to place. Called from the keyboard handlers. */
-export function seqNotePadPlayed(track: number, pitch: number, vel: number): void {
+function toggleStep(button: number): void {
+    const step = seqState.barOffset * NUM_STEP_BUTTONS + button;
+    const t = seqState.watchTrack;
+    const wasSet = occHasStep(step);
+
+    if (seqState.watchLane >= 0) {
+        /* Drum lane: toggle just the selected lane's pitch at this step. */
+        seqCmd(`ltog ${t} ${step} ${seqState.watchLane} ${seqState.lastVel[t]}`);
+    } else {
+        /* Melodic: place the currently-held chord, or the last-played note
+         * if no pads are down; a step that already has notes is cleared. */
+        const pitches = heldChord.size > 0
+            ? [...heldChord.values()]
+            : [seqState.lastPitch[t]];
+        const v = seqState.lastVel[t];
+        seqCmd(`tog ${t} ${step} ${pitches.map((p) => `${p} ${v}`).join(' ')}`);
+    }
+
+    /* Optimistic mirror so the step LED flips this tick. Adding the first
+     * note auto-starts the transport and implicitly creates a 1-bar clip. */
+    if (!wasSet) {
+        if (seqState.lenSteps === 0) seqState.lenSteps = NUM_STEP_BUTTONS;
+        if (step >= seqState.lenSteps) {
+            seqState.lenSteps = (Math.floor(step / NUM_STEP_BUTTONS) + 1) * NUM_STEP_BUTTONS;
+        }
+        if (!seqState.playing) seqState.playing = true;
+    }
+    occToggleStep(step);
+}
+
+/* Pad note-on: remember the active track's last-played note (step-entry
+ * value) and add it to the held chord. */
+export function seqNotePadPlayed(track: number, padNote: number, midiNote: number, vel: number): void {
     if (track >= 0 && track < 4) {
-        seqState.lastPitch[track] = pitch;
+        seqState.lastPitch[track] = midiNote;
         seqState.lastVel[track] = vel;
     }
+    heldChord.set(padNote, midiNote);
+}
+
+/* Pad note-off: drop it from the held chord. */
+export function seqNotePadReleased(padNote: number): void {
+    heldChord.delete(padNote);
+}
+
+/* Active module changed: set the watched step-LED lane. lane < 0 = melodic
+ * (all notes); lane >= 0 = a drum pad's MIDI note. Emits wlane only on a
+ * real change. */
+export function seqSetLane(lane: number): void {
+    if (lane === seqState.watchLane) return;
+    seqState.watchLane = lane;
+    seqState.barOffset = 0;
+    seqCmd('wlane ' + (lane < 0 ? -1 : lane));
 }

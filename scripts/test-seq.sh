@@ -44,6 +44,27 @@ sleep 0.1
 python3 "$INJECT" "$HOST" note_off 16
 sleep 2
 
+info "Chord: hold two pads + press step 5 (note 20)..."
+python3 "$INJECT" "$HOST" note_on 82 100
+python3 "$INJECT" "$HOST" note_on 84 100
+sleep 0.1
+python3 "$INJECT" "$HOST" note_on 20 127
+sleep 0.1
+python3 "$INJECT" "$HOST" note_off 20
+python3 "$INJECT" "$HOST" note_off 82
+python3 "$INJECT" "$HOST" note_off 84
+sleep 0.3
+
+info "Bar navigation: Right then Left arrow (CC 63 / 62)..."
+python3 "$INJECT" "$HOST" cc 63 127
+sleep 0.1
+python3 "$INJECT" "$HOST" cc 63 0
+sleep 0.3
+python3 "$INJECT" "$HOST" cc 62 127
+sleep 0.1
+python3 "$INJECT" "$HOST" cc 62 0
+sleep 0.5
+
 info "Pressing Play (CC 85) — should stop the transport..."
 python3 "$INJECT" "$HOST" cc 85 127
 sleep 0.3

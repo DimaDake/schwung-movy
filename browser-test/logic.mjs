@@ -458,24 +458,24 @@ _log('\nTest: drumPadOn');
 
     eq('engine detected via host_module_* globals', engineAvailable(), true);
     seqEngineTick(); // boot probe: ping matches → engine ready
+    seqEngineTick(); // first post-boot tick polls status
+
+    eq('status poll marks engineOk', seqState.engineOk, true);
+    eq('status play=0 parsed', seqState.playing, false);
 
     // Multiple queued ops must flush as ONE batched set_param (coalescing).
-    seqCmd('play');
+    seqCmd('watch 0');
     seqCmd('non 0 60 100');
     seqCmd('nof 0 60');
     seqEngineTick();
     eq('three ops → one set_param call', engine.cmdBatches.length, 1);
-    eq('batch joins ops with ;', engine.cmdBatches[0], 'play;non 0 60 100;nof 0 60');
+    eq('batch joins ops with ;', engine.cmdBatches[0], 'watch 0;non 0 60 100;nof 0 60');
     eq('ops parsed on engine side', engine.ops.length, 3);
 
     // No queued ops → no set_param traffic.
     const before = engine.setParamCalls;
     seqEngineTick();
     eq('idle tick sends no cmd', engine.setParamCalls, before);
-
-    // First tick polled status and parsed it into the mirror.
-    eq('status poll marks engineOk', seqState.engineOk, true);
-    eq('status play=0 parsed', seqState.playing, false);
 
     // Status changes propagate on the next poll cadence.
     engine.status.play = 1;
@@ -524,29 +524,28 @@ _log('\nTest: drumPadOn');
     eq('no engine: engineAvailable false', engineAvailable(), false);
 }
 
-/* ── seq router: step toggle, Play, track watch ──────────────────────────── */
+/* ── seq router: step toggle, chords, drum lanes, bars, Play, watch ──────── */
 {
     _log('\nseq router:');
     const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
-    const { seqHandleMidi, seqNotePadPlayed } = await import('../dist/esm/seq/router.js');
+    const { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, seqSetLane } =
+        await import('../dist/esm/seq/router.js');
     const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
     const { seqState, resetSeqState, occHasStep } = await import('../dist/esm/seq/state.js');
+    const { resetSeqToast, seqToastActive } = await import('../dist/esm/seq/render.js');
 
     const engine = installMockEngine();
-    resetSeqEngine(); resetSeqState();
+    resetSeqEngine(); resetSeqState(); resetSeqToast();
     seqEngineTick(); // boot probe → ready
 
     eq('pad note not claimed', seqHandleMidi([0x90, 68, 100]), false);
     eq('knob CC not claimed', seqHandleMidi([0xB0, 71, 65]), false);
 
-    // Pad play sets the step-entry pitch for the active track.
-    seqNotePadPlayed(0, 72, 110);
+    // Pad play (padNote 80 → midiNote 72) sets the step-entry pitch + holds it.
+    seqNotePadPlayed(0, 80, 72, 110);
     eq('pad play recorded as step-entry pitch', seqState.lastPitch[0], 72);
 
-    // Step press → claimed, emits tog with last pitch, optimistic mirror.
-    // (Optimistic state is asserted before the tick: the mock's status poll
-    // reports play=0 and would overwrite it; on device the poll runs after
-    // the engine already applied the batch, so mirror and engine agree.)
+    // Step press while a pad is held places that note (chord-of-one).
     eq('step note claimed', seqHandleMidi([0x90, 16, 127]), true);
     eq('optimistic occ set', occHasStep(0), true);
     eq('optimistic clip created (1 bar)', seqState.lenSteps, 16);
@@ -554,18 +553,58 @@ _log('\nTest: drumPadOn');
     seqEngineTick();
     eq('tog cmd emitted', engine.ops[engine.ops.length - 1], 'tog 0 0 72 110');
 
+    // Two held pads → chord placed in one tog op.
+    seqState.playing = false;
+    seqNotePadPlayed(0, 81, 74, 100);   // held: 72 and 74
+    seqHandleMidi([0x90, 21, 127]);     // step 6
+    seqEngineTick();
+    eq('chord tog emits both pitches', engine.ops[engine.ops.length - 1], 'tog 0 5 72 100 74 100');
+
+    // Releasing pads → next step uses the last-played note only.
+    seqNotePadReleased(80); seqNotePadReleased(81);
+    seqNotePadPlayed(0, 80, 67, 90);
+    seqHandleMidi([0x90, 17, 127]);     // step 1
+    seqEngineTick();
+    eq('after release, single note placed', engine.ops[engine.ops.length - 1], 'tog 0 1 67 90');
+    seqNotePadReleased(80);
+
     // Step note-off is consumed silently.
     const opsBefore = engine.ops.length;
     eq('step note-off claimed', seqHandleMidi([0x80, 16, 0]), true);
     seqEngineTick();
     eq('step note-off emits nothing', engine.ops.length, opsBefore);
 
-    // Toggling the same step again clears the occupancy mirror.
+    // Drum-lane mode: seqSetLane(38) → wlane, and step uses ltog.
+    seqSetLane(38);
+    seqEngineTick();
+    eq('wlane cmd emitted', engine.ops[engine.ops.length - 1], 'wlane 38');
+    seqHandleMidi([0x90, 16, 127]);     // step 0 in lane
+    seqEngineTick();
+    eq('drum lane uses ltog', engine.ops[engine.ops.length - 1], 'ltog 0 0 38 90');
+    seqSetLane(-1);
+    seqEngineTick();
+    eq('melodic lane -1', engine.ops[engine.ops.length - 1], 'wlane -1');
+
+    // Bar navigation: Right advances the visible bar (clip is 1 bar long, so
+    // one extra empty bar is reachable), with a toast; clamps at the end.
+    resetSeqState(); resetSeqToast();
+    seqState.lenSteps = 16; // one bar
+    eq('Right arrow claimed (engine ready)', seqHandleMidi([0xB0, 63, 127]), true);
+    eq('barOffset advanced to 1', seqState.barOffset, 1);
+    eq('bar toast shown', seqToastActive(), true);
+    seqHandleMidi([0xB0, 63, 127]);     // clamp: max is 1 for a 1-bar clip
+    eq('barOffset clamped', seqState.barOffset, 1);
+    seqHandleMidi([0xB0, 62, 127]);     // Left
+    eq('Left arrow returns to bar 0', seqState.barOffset, 0);
+    // Step press on bar 1 targets absolute step 16.
+    seqState.barOffset = 1;
+    seqNotePadPlayed(0, 80, 60, 100);
     seqHandleMidi([0x90, 16, 127]);
-    eq('optimistic occ cleared on re-toggle', occHasStep(0), false);
+    seqEngineTick();
+    eq('bar offset maps to absolute step', engine.ops[engine.ops.length - 1], 'tog 0 16 60 100');
 
     // Play toggles transport based on the mirror.
-    seqState.playing = false;
+    resetSeqState();
     eq('Play CC claimed', seqHandleMidi([0xB0, 85, 127]), true);
     seqEngineTick();
     eq('play cmd emitted', engine.ops[engine.ops.length - 1], 'play');
@@ -580,46 +619,69 @@ _log('\nTest: drumPadOn');
     eq('watch cmd emitted for track 2', engine.ops[engine.ops.length - 1], 'watch 2');
     eq('watchTrack mirrored', seqState.watchTrack, 2);
 
-    engine.reset(); uninstallMockEngine(); resetSeqEngine(); resetSeqState();
+    // Arrows fall through to existing nav when the engine is NOT ready.
+    uninstallMockEngine(); resetSeqEngine(); resetSeqState();
+    eq('Right arrow NOT claimed without engine', seqHandleMidi([0xB0, 63, 127]), false);
+
+    engine.reset(); resetSeqEngine(); resetSeqState(); resetSeqToast();
 }
 
-/* ── seq LEDs: cached step-row painting ──────────────────────────────────── */
+/* ── seq LEDs: track-colored step row, cached painting ───────────────────── */
 {
     _log('\nseq LEDs:');
-    globalThis.White = 122; globalThis.DarkGrey = 124;
-    globalThis.NeonGreen = 126; globalThis.Black = 0;
+    const { seqLedsTick, seqLedsInvalidate } = await import('../dist/esm/seq/leds.js');
+    const { seqState, resetSeqState, occToggleStep } = await import('../dist/esm/seq/state.js');
+    const { C_WHITE, C_DARKGREY, C_GREEN, trackColorDim } =
+        await import('../dist/esm/seq/colors.js');
+
     const ledCalls = [];
     const origSetLED = globalThis.setLED;
     const origSetButtonLED = globalThis.setButtonLED;
     globalThis.setLED = (note, color) => ledCalls.push([note, color]);
     globalThis.setButtonLED = (cc, color) => ledCalls.push(['b' + cc, color]);
 
-    const { seqLedsTick, seqLedsInvalidate } = await import('../dist/esm/seq/leds.js');
-    const { seqState, resetSeqState, occToggleStep } = await import('../dist/esm/seq/state.js');
-
     resetSeqState(); seqLedsInvalidate();
-    seqState.lenSteps = 16;
+    seqState.watchTrack = 0;
+    seqState.lenSteps = 32;       // 2 bars
     occToggleStep(0); occToggleStep(4);
     seqState.playing = true;
     seqState.curStep = 2;
 
-    seqLedsTick(0);
-    const byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
-    eq('occupied step white', byNote[16], 122);
-    eq('occupied step white (2)', byNote[20], 122);
-    eq('playhead green', byNote[18], 126);
-    eq('empty in-loop dim', byNote[17], 124);
-    eq('play button lit', byNote.b85, 122);
+    seqLedsTick();
+    let byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
+    eq('occupied step white', byNote[16], C_WHITE);
+    eq('occupied step white (2)', byNote[20], C_WHITE);
+    eq('playhead green', byNote[18], C_GREEN);
+    eq('empty in-loop dim track color', byNote[17], trackColorDim(0));
+    eq('play button lit', byNote.b85, C_WHITE);
 
     // Cached layer: identical repaint sends nothing.
     ledCalls.length = 0;
-    seqLedsTick(0);
+    seqLedsTick();
     eq('no LED traffic when unchanged', ledCalls.length, 0);
 
     // Playhead movement repaints exactly the two affected steps.
     seqState.curStep = 3;
-    seqLedsTick(0);
+    seqLedsTick();
     eq('playhead move repaints 2 LEDs', ledCalls.length, 2);
+
+    // Bar 2 view: bar 1 is in-loop (steps 16-31), so all dim track color;
+    // a step past the loop would be dim gray, but len=32 fills bar 1.
+    ledCalls.length = 0;
+    seqState.barOffset = 1;
+    seqState.playing = false;
+    seqLedsInvalidate();
+    seqLedsTick();
+    byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
+    eq('bar 2 in-loop dim track color', byNote[16], trackColorDim(0));
+
+    // Empty bar past the loop → dim gray.
+    ledCalls.length = 0;
+    seqState.lenSteps = 16;       // shrink to 1 bar; bar 1 now outside loop
+    seqLedsInvalidate();
+    seqLedsTick();
+    byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
+    eq('bar past loop dim gray', byNote[16], C_DARKGREY);
 
     globalThis.setLED = origSetLED;
     globalThis.setButtonLED = origSetButtonLED;

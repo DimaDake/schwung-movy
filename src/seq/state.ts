@@ -20,6 +20,10 @@ export interface SeqUiState {
     /* note entry */
     lastPitch: number[];     // per-track: last played pitch (step-entry value)
     lastVel: number[];       // per-track: last played velocity
+
+    /* view */
+    barOffset: number;       // which bar's 16 steps the step buttons show
+    watchLane: number;       // drum-lane pitch shown on steps, or -1 = melodic
 }
 
 function defaults(): SeqUiState {
@@ -34,7 +38,21 @@ function defaults(): SeqUiState {
         occ: new Uint8Array(32),
         lastPitch: [60, 60, 60, 60],
         lastVel: [100, 100, 100, 100],
+        barOffset: 0,
+        watchLane: -1,
     };
+}
+
+/* Number of bars in the watched clip, with one extra empty bar available to
+ * navigate into (native: stepping past the loop shows an empty bar that
+ * becomes part of the loop once a note is added). Capped at 16 bars. */
+export function clipBars(): number {
+    return Math.max(1, Math.ceil(seqState.lenSteps / 16));
+}
+
+export function maxBarOffset(): number {
+    if (seqState.lenSteps === 0) return 0;
+    return Math.min(clipBars(), 15);
 }
 
 export const seqState: SeqUiState = defaults();

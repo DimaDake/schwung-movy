@@ -1,12 +1,64 @@
 # CLAUDE.md — Movy
 
-Movy is a Schwung **tool module** (no DSP) that runs inside the shadow-UI
-QuickJS context on Ableton Move. It presents the 32 pads as a piano keyboard
-and exposes the active chain slot's synth parameters on the 8 knobs.
+Movy is a Schwung **tool module** for Ableton Move. The UI (TypeScript →
+`ui.js`) runs in the shadow-UI QuickJS context; it presents the active chain
+slot's synth parameters on the 8 knobs and is also a **native-Move-style
+4-track step sequencer**. The sequencer's musical engine is a **Rust DSP**
+(`dsp.so`) that schwung loads as the co-running overtake DSP.
 
 Device: `ableton@move.local`
 
 **Plans:** Save all implementation plans to `movy/plans/` (not the repo root `plans/`).
+
+---
+
+## Sequencer (engine + UI)
+
+The sequencer spans two layers; keep musical truth in the engine and only a
+mirror in the UI.
+
+- **Engine — `engine/` (Rust workspace):** `seq-core` (pure logic: clock,
+  clips/notes, scheduler, recording, sessions, persistence — host-testable
+  with `cargo test`) + `movy-dsp` (`cdylib` → `dsp.so`, implements schwung's
+  `plugin_api_v2`; every FFI entry point catches panics so an engine bug can
+  never abort MoveOriginal). Spec/design: `plans/2026-06-12-sequencer-*.md`.
+- **UI — `src/seq/`:** `engine.ts` (the only IPC: one batched `cmd`
+  set_param/tick + a `status` poll), `state.ts` (mirror), `router.ts`
+  (first-look MIDI dispatch — sequencer events never touch the param-page
+  handlers), `leds.ts`/`session.ts`/`render.ts` (cached LEDs, clip grid, Loop
+  Overview strip), plus `loop-mode.ts`, `step-edit.ts`, `edit-ops.ts`,
+  `pads.ts`, `persist.ts`, `colors.ts`, `constants.ts`.
+
+### Hard rules (learned on device — do not relearn)
+
+- **ENGINE_VERSION must match** between `engine/crates/movy-dsp/src/lib.rs`
+  and `src/seq/constants.ts` (`build-dsp.sh` fails the build otherwise). The
+  UI probes `ping` and re-issues the DSP load until the version matches —
+  this is how a redeployed engine hot-reloads.
+- **Engine sets must be blocking** (`host_module_set_param_blocking`): the
+  `overtake_dsp:` param SHM is a single slot, so non-blocking writes (and even
+  schwung's own DSP-load request) are routinely lost.
+- **Never scp over a dlopen'd `dsp.so` in place** — overwriting a mapped
+  `.so`'s inode corrupts its pages and crashes MoveOriginal. `deploy.sh`
+  ships it scp-to-temp + `mv` (fresh inode).
+- Live pad notes are sounded **directly** (`shadow_send_midi_to_dsp`,
+  channel = track) for zero latency; the engine only **records** them (no
+  double trigger). Recorded notes are suppressed until the clip wraps.
+- The engine has no filesystem; the UI ferries persisted state via
+  `host_read_file`/`host_write_file` (`src/seq/persist.ts`).
+
+### Build / deploy / test the engine
+
+```bash
+cd engine && cargo test            # pure seq-core logic (host)
+./scripts/build-dsp.sh             # cross-compile aarch64 → dist/dsp.so (glibc <= 2.35)
+./scripts/deploy.sh                # builds ui.js + dsp.so, deploys both (atomic .so)
+./scripts/test-seq.sh              # device e2e: transport, steps, record, session, persistence
+```
+
+If MoveOriginal dies, recover with the davebox restart sequence (root SSH;
+the user must run it): stop `move-launcher`, pkill the schwung stack, start
+`move-launcher`.
 
 ---
 

@@ -164,6 +164,54 @@ _origLog('\nTest 4: fill_rect calls per renderKnobsView (test_enum)');
     _origLog(`    (baseline: ${fillRectCount} calls)`);
 }
 
+/* ── Test 5: sequencer LED cache + IPC + strip budgets ───────────────────── */
+
+_origLog('\nTest 5: sequencer perf budgets');
+
+{
+    const { ENGINE_VERSION } = await import('../dist/esm/seq/constants.js');
+    globalThis.host_module_set_param = () => true;
+    globalThis.host_module_set_param_blocking = () => true;
+    globalThis.host_module_get_param = (k) =>
+        (k === 'ping' ? 'pong ' + ENGINE_VERSION : k === 'status' ? 'play=1 tick=0' : null);
+
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqLedsTick, seqLedsInvalidate } = await import('../dist/esm/seq/leds.js');
+    const { seqState, resetSeqState, occToggleStep } = await import('../dist/esm/seq/state.js');
+    const { drawLoopStrip } = await import('../dist/esm/seq/render.js');
+
+    let ledCount = 0;
+    globalThis.setLED = () => { ledCount++; };
+    globalThis.setButtonLED = () => { ledCount++; };
+
+    resetSeqEngine(); resetSeqState(); seqLedsInvalidate();
+    seqEngineTick(); seqEngineTick(); // boot + first poll
+
+    // Steady state (nothing changed): the cached LED layer sends nothing.
+    seqState.lenSteps = 16; occToggleStep(0);
+    seqLedsTick();          // first paint
+    ledCount = 0;
+    for (let i = 0; i < 50; i++) seqLedsTick();
+    check('seq LED sends when idle (50 ticks)', ledCount, 0);
+
+    // IPC: at most one set_param flush per tick regardless of queued ops.
+    let setParamCalls = 0;
+    globalThis.host_module_set_param = () => { setParamCalls++; return true; };
+    globalThis.host_module_set_param_blocking = () => { setParamCalls++; return true; };
+    const { seqCmd } = await import('../dist/esm/seq/engine.js');
+    seqCmd('tog 0 0 60 100'); seqCmd('tog 0 1 62 100'); seqCmd('watch 0');
+    setParamCalls = 0;
+    seqEngineTick();
+    check('seq set_param calls per tick', setParamCalls, 1);
+
+    // Loop strip is cheap: bounded fill_rect per draw.
+    fillRectCount = 0;
+    seqState.lenSteps = 16 * 16; // 16 bars
+    drawLoopStrip();
+    check('loop strip fill_rect calls', fillRectCount, 40);
+    _origLog(`    (strip: ${fillRectCount} fill_rect)`);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _origLog('');

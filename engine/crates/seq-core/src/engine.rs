@@ -48,10 +48,10 @@ impl Engine {
         self.tracks[self.watch_track].active()
     }
 
-    /// Start transport: native Move restarts clips from the beginning.
+    /// Start transport: native Move restarts clips from the loop start.
     pub fn play(&mut self) {
         for t in &mut self.tracks {
-            t.pos_tick = 0;
+            t.pos_tick = t.active().loop_start_ticks();
         }
         self.clock.reset();
         self.playing = true;
@@ -128,11 +128,13 @@ impl Engine {
                     }
                 }
             }
-            // Advance + wrap inside the loop.
+            // Advance + wrap inside the loop window [start, start+len).
+            let start = self.tracks[ti].active().loop_start_ticks();
+            let end = self.tracks[ti].active().loop_end_ticks();
             let t = &mut self.tracks[ti];
             t.pos_tick += 1;
-            if t.pos_tick >= t.active().length_ticks() {
-                t.pos_tick = 0;
+            if t.pos_tick >= end {
+                t.pos_tick = start;
             }
         }
     }
@@ -143,13 +145,14 @@ impl Engine {
         let wt = &self.tracks[self.watch_track];
         let clip = wt.active();
         format!(
-            "play={} tick={} bpm={} trk={} step={} len={} occ={}",
+            "play={} tick={} bpm={} trk={} step={} len={} lstart={} occ={}",
             self.playing as u8,
             self.clock.tick,
             self.clock.bpm_x100(),
             self.watch_track,
             wt.current_step(),
             clip.length_steps,
+            clip.loop_start_steps,
             clip.occupancy_hex_lane(self.watch_lane)
         )
     }
@@ -257,6 +260,21 @@ mod tests {
         assert_eq!(e.tracks[0].pos_tick, 0);
         let ev = run_ticks(&mut e, 2);
         assert!(ev.contains(&OutEvent::NoteOn { track: 0, pitch: 60, vel: 100 }));
+    }
+
+    #[test]
+    fn playback_wraps_inside_loop_window() {
+        let mut e = engine();
+        // Content in bars 0 and 1; loop window = bar 1 only.
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);  // bar 0
+        e.tracks[0].active_mut().toggle_step(16, &[(64, 100)]); // bar 1
+        e.tracks[0].active_mut().set_loop(16, 16);              // loop = bar 1
+        e.play();
+        assert_eq!(e.tracks[0].pos_tick, 16 * TICKS_PER_STEP);  // starts at window
+        let ev = run_ticks(&mut e, 16 * TICKS_PER_STEP as u64 + 4);
+        // Only the bar-1 note (64) plays; the bar-0 note (60) is outside.
+        assert!(ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 64, .. })));
+        assert!(!ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 60, .. })));
     }
 
     #[test]

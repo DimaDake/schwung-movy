@@ -23,6 +23,7 @@ await esbuild.build({
         resolve(root, 'src/seq/colors.ts'),
         resolve(root, 'src/seq/render.ts'),
         resolve(root, 'src/seq/pads.ts'),
+        resolve(root, 'src/seq/loop-mode.ts'),
     ],
     bundle:    true,
     splitting: true,

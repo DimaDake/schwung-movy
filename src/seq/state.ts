@@ -15,7 +15,11 @@ export interface SeqUiState {
     watchTrack: number;      // track whose clip the step LEDs show
     curStep: number;         // playhead step within the watched clip
     lenSteps: number;        // watched clip loop length in steps (0 = empty)
+    loopStart: number;       // watched clip loop-window start step
     occ: Uint8Array;         // 256-bit step occupancy bitmap
+
+    /* loop mode */
+    loopMode: boolean;       // step buttons show bars instead of steps
 
     /* note entry */
     lastPitch: number[];     // per-track: last played pitch (step-entry value)
@@ -36,7 +40,9 @@ function defaults(): SeqUiState {
         watchTrack: 0,
         curStep: 0,
         lenSteps: 0,
+        loopStart: 0,
         occ: new Uint8Array(32),
+        loopMode: false,
         lastPitch: [60, 60, 60, 60],
         lastVel: [100, 100, 100, 100],
         barOffset: 0,
@@ -55,6 +61,15 @@ export function clipBars(): number {
 export function maxBarOffset(): number {
     if (seqState.lenSteps === 0) return 0;
     return Math.min(clipBars(), 15);
+}
+
+/* First and last (inclusive) loop bar indices for the watched clip. */
+export function loopStartBar(): number {
+    return Math.floor(seqState.loopStart / 16);
+}
+
+export function loopEndBar(): number {
+    return Math.floor((seqState.loopStart + Math.max(16, seqState.lenSteps) - 1) / 16);
 }
 
 export const seqState: SeqUiState = defaults();

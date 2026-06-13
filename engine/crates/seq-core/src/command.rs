@@ -69,6 +69,24 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 }
             }
         }
+        // loop <track> <startStep> <lenSteps> — set the loop window.
+        "loop" => {
+            if let (Some(t), Some(s), Some(l)) = (next(), next(), next()) {
+                if (t as usize) < NUM_TRACKS && s >= 0 && l > 0 {
+                    engine.tracks[t as usize]
+                        .active_mut()
+                        .set_loop(s as u16, l as u16);
+                }
+            }
+        }
+        // dbl <track> — double the loop (duplicate notes + double length).
+        "dbl" => {
+            if let Some(t) = next() {
+                if (t as usize) < NUM_TRACKS {
+                    engine.tracks[t as usize].active_mut().double_loop();
+                }
+            }
+        }
         // ltog <track> <step> <pitch> <vel> — drum-lane per-pitch toggle.
         "ltog" => {
             if let (Some(t), Some(s), Some(p), Some(v)) = (next(), next(), next(), next()) {
@@ -169,6 +187,21 @@ mod tests {
         let notes = &e.tracks[0].active().notes;
         assert_eq!(notes.len(), 1);
         assert_eq!(notes[0].pitch, 38);
+    }
+
+    #[test]
+    fn loop_and_double_commands() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "tog 0 0 60 100;loop 0 0 16", &mut out);
+        assert_eq!(e.tracks[0].active().length_steps, 16);
+        apply_batch(&mut e, "dbl 0", &mut out);
+        assert_eq!(e.tracks[0].active().length_steps, 32);
+        assert!(e.tracks[0].active().step_has_notes(16));
+        // Set a window starting at bar 1.
+        apply_batch(&mut e, "loop 0 16 16", &mut out);
+        assert_eq!(e.tracks[0].active().loop_start_steps, 16);
+        assert_eq!(e.tracks[0].active().length_steps, 16);
     }
 
     #[test]

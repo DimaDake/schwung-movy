@@ -65,6 +65,25 @@ sleep 0.1
 python3 "$INJECT" "$HOST" cc 62 0
 sleep 0.5
 
+info "Loop Mode: tap Loop (CC 58), set 1-bar loop, double it (Shift+Step15)..."
+python3 "$INJECT" "$HOST" cc 58 127     # Loop tap → enter Loop Mode
+python3 "$INJECT" "$HOST" cc 58 0
+sleep 0.2
+python3 "$INJECT" "$HOST" note_on 16 127  # bar 1
+python3 "$INJECT" "$HOST" note_off 16
+sleep 0.1
+python3 "$INJECT" "$HOST" note_on 16 127  # double-tap → 1-bar loop
+python3 "$INJECT" "$HOST" note_off 16
+sleep 0.2
+python3 "$INJECT" "$HOST" cc 58 127     # exit Loop Mode
+python3 "$INJECT" "$HOST" cc 58 0
+sleep 0.2
+python3 "$INJECT" "$HOST" cc 49 127     # Shift down
+python3 "$INJECT" "$HOST" note_on 30 127  # Step 15 = note 30 → Double Loop
+python3 "$INJECT" "$HOST" note_off 30
+python3 "$INJECT" "$HOST" cc 49 0       # Shift up
+sleep 0.5
+
 info "Pressing Play (CC 85) — should stop the transport..."
 python3 "$INJECT" "$HOST" cc 85 127
 sleep 0.3

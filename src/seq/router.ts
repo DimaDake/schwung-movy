@@ -13,6 +13,9 @@ import {
     NUM_STEP_BUTTONS, STEP_NOTE_BASE,
 } from './constants.js';
 import { engineReady, seqCmd } from './engine.js';
+import {
+    doubleLoop, loopButton, loopHeld, loopStepOff, loopStepOn, loopWheel,
+} from './loop-mode.js';
 import { seqToast } from './render.js';
 import {
     maxBarOffset, occHasStep, occToggleStep, seqState,
@@ -20,7 +23,10 @@ import {
 
 const CC_LEFT = 62;
 const CC_RIGHT = 63;
+const CC_LOOP = 58;
+const CC_WHEEL = 14;     // MoveMainKnob — claimed only while Loop is held
 const STEP_FULL_VEL = 9; // Step 10 (0-indexed) — Shift+Step 10 = Full Velocity
+const STEP_DOUBLE_LOOP = 14; // Step 15 — Shift+Step 15 = Double Loop
 
 /* Pads currently held, padNote → midiNote, for chord step entry. Mirrors the
  * pads physically down so a step press can place the whole chord. */
@@ -31,23 +37,36 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     const d1 = data[1];
     const d2 = data[2];
 
-    /* Step buttons: Shift+step are Move's shifted functions; a bare step-on
-     * toggles a note. Note-off is ignored (hold gestures land in later
-     * steps). */
+    /* Step buttons: Shift+step are Move's shifted functions; in Loop Mode a
+     * step selects a bar; otherwise a bare step-on toggles a note. */
     if ((statusType === 0x90 || statusType === 0x80)
         && d1 >= STEP_NOTE_BASE && d1 < STEP_NOTE_BASE + NUM_STEP_BUTTONS) {
-        if (statusType === 0x90 && d2 > 0) {
-            const step = d1 - STEP_NOTE_BASE;
-            if (shiftHeld) {
-                shiftStepFunction(step);
-            } else {
-                toggleStep(step);
-            }
+        const step = d1 - STEP_NOTE_BASE;
+        const on = statusType === 0x90 && d2 > 0;
+        if (on && shiftHeld) {
+            shiftStepFunction(step);
+        } else if (seqState.loopMode) {
+            if (on) loopStepOn(step);
+            else loopStepOff(step);
+        } else if (on) {
+            toggleStep(step);
         }
         return true;
     }
 
     if (statusType !== 0xB0) return false;
+
+    /* Loop button: tap toggles Loop Mode; hold + wheel resizes the loop. */
+    if (d1 === CC_LOOP) {
+        loopButton(d2 > 0);
+        return true;
+    }
+
+    /* Wheel is claimed only while Loop is held (loop resize); otherwise it
+     * falls through to the param page/chain nav. */
+    if (d1 === CC_WHEEL && loopHeld()) {
+        return loopWheel(decodeDelta(d2));
+    }
 
     if (d1 === CC_PLAY) {
         if (d2 > 0) {
@@ -86,6 +105,8 @@ function shiftStepFunction(step: number): void {
     if (step === STEP_FULL_VEL) {
         seqState.fullVelocity = !seqState.fullVelocity;
         seqToast(seqState.fullVelocity ? 'Full Velocity On' : 'Full Velocity Off');
+    } else if (step === STEP_DOUBLE_LOOP) {
+        doubleLoop();
     }
 }
 

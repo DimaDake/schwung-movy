@@ -3,9 +3,9 @@
  * per-tick repaint costs nothing on the wire when nothing changed
  * (davebox ui_leds pattern). */
 
-import { C_DARKGREY, C_GREEN, C_WHITE, trackColorDim } from './colors.js';
+import { C_DARKGREY, C_GREEN, C_WHITE, trackColor, trackColorDim } from './colors.js';
 import { CC_PLAY, NUM_STEP_BUTTONS, STEP_NOTE_BASE } from './constants.js';
-import { occHasStep, seqState } from './state.js';
+import { loopEndBar, loopStartBar, occHasStep, seqState } from './state.js';
 
 const lastNoteLed = new Map<number, number>();
 const lastButtonLed = new Map<number, number>();
@@ -31,7 +31,43 @@ export function seqLedsInvalidate(): void {
     lastButtonLed.clear();
 }
 
+function barHasContent(bar: number): boolean {
+    const base = bar * NUM_STEP_BUTTONS;
+    for (let i = 0; i < NUM_STEP_BUTTONS; i++) {
+        if (occHasStep(base + i)) return true;
+    }
+    return false;
+}
+
+/* Loop Mode: step buttons are bars (manual §12.1) — white = bar in the loop
+ * window, track color = bar with content outside the loop, dim gray = empty
+ * bar outside, green = the bar the playhead is in while playing. */
+function paintLoopBars(): void {
+    const start = loopStartBar();
+    const end = loopEndBar();
+    const playBar = seqState.playing ? Math.floor(seqState.curStep / NUM_STEP_BUTTONS) : -1;
+    const inLoopCol = trackColor(seqState.watchTrack);
+    for (let bar = 0; bar < NUM_STEP_BUTTONS; bar++) {
+        let color: number;
+        if (bar === playBar) {
+            color = C_GREEN;
+        } else if (bar >= start && bar <= end) {
+            color = C_WHITE;
+        } else if (barHasContent(bar)) {
+            color = inLoopCol;
+        } else {
+            color = C_DARKGREY;
+        }
+        cachedSetLED(STEP_NOTE_BASE + bar, color);
+    }
+}
+
 export function seqLedsTick(): void {
+    if (seqState.loopMode) {
+        paintLoopBars();
+        cachedSetButtonLED(CC_PLAY, seqState.playing ? C_WHITE : C_DARKGREY);
+        return;
+    }
     const bar = seqState.barOffset;
     const base = bar * NUM_STEP_BUTTONS;
 

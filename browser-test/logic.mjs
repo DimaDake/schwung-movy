@@ -24,6 +24,9 @@ globalThis.setButtonLED       = () => {};
 globalThis.MoveKnob1          = 71;
 globalThis.MidiNoteOn         = 0x90;
 globalThis.MidiNoteOff        = 0x80;
+/* shadow_ui re-encodes wheel deltas (1-63 = +, 65-127 = -); decodeDelta
+ * recovers the signed value. */
+globalThis.decodeDelta        = (d2) => (d2 < 64 ? d2 : d2 - 128);
 
 let mockFsEntries = {};  // path → string[] of filenames
 
@@ -741,6 +744,95 @@ _log('\nTest: drumPadOn');
     eq('bare step did not touch full velocity', seqState.fullVelocity, false);
 
     uninstallMockEngine(); resetSeqEngine(); resetSeqState();
+}
+
+/* ── seq loop mode: toggle, set window, double, resize ───────────────────── */
+{
+    _log('\nseq loop mode:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi } = await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { resetLoopMode } = await import('../dist/esm/seq/loop-mode.js');
+    const { resetSeqToast } = await import('../dist/esm/seq/render.js');
+
+    const engine = installMockEngine();
+    resetSeqEngine(); resetSeqState(); resetLoopMode(); resetSeqToast();
+    seqEngineTick(); // ready
+    seqState.lenSteps = 32; // 2-bar clip
+
+    // Loop button tap (down then up with no gesture) toggles Loop Mode.
+    seqHandleMidi([0xB0, 58, 127], false);
+    seqHandleMidi([0xB0, 58, 0], false);
+    eq('Loop tap enters Loop Mode', seqState.loopMode, true);
+
+    // Two bars pressed together → loop window [min,max].
+    seqHandleMidi([0x90, 16 + 1, 127], false); // bar 1 (index 1)
+    seqHandleMidi([0x90, 16 + 3, 127], false); // bar 3
+    seqEngineTick();
+    eq('two-bar press sets loop window', engine.ops[engine.ops.length - 1], 'loop 0 16 48');
+    eq('optimistic loopStart', seqState.loopStart, 16);
+    eq('optimistic lenSteps', seqState.lenSteps, 48);
+    seqHandleMidi([0x80, 16 + 1, 0], false);
+    seqHandleMidi([0x80, 16 + 3, 0], false);
+
+    // Double-tap one bar → 1-bar loop at that bar.
+    seqHandleMidi([0x90, 16 + 2, 127], false);
+    seqHandleMidi([0x80, 16 + 2, 0], false);
+    seqHandleMidi([0x90, 16 + 2, 127], false); // within double-tap window
+    seqEngineTick();
+    eq('double-tap sets 1-bar loop', engine.ops[engine.ops.length - 1], 'loop 0 32 16');
+    seqHandleMidi([0x80, 16 + 2, 0], false);
+
+    // Loop + wheel resizes by whole bars (loop currently 1 bar at bar 2).
+    seqHandleMidi([0xB0, 58, 127], false);     // hold Loop
+    seqHandleMidi([0xB0, 14, 1], false);       // wheel +1 → 2 bars from bar 2
+    seqEngineTick();
+    eq('Loop+wheel grows the loop', engine.ops[engine.ops.length - 1], 'loop 0 32 32');
+    seqHandleMidi([0xB0, 58, 0], false);       // release; gesture happened → no toggle
+    eq('Loop+wheel hold did not toggle mode', seqState.loopMode, true);
+
+    // Shift+Step 15 doubles the loop.
+    seqState.loopStart = 0; seqState.lenSteps = 16;
+    seqHandleMidi([0x90, 16 + 14, 127], true);
+    seqEngineTick();
+    eq('Shift+Step15 doubles loop', engine.ops[engine.ops.length - 1], 'dbl 0');
+
+    // Exit Loop Mode with another tap.
+    seqHandleMidi([0xB0, 58, 127], false);
+    seqHandleMidi([0xB0, 58, 0], false);
+    eq('Loop tap exits Loop Mode', seqState.loopMode, false);
+
+    uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetLoopMode();
+}
+
+/* ── seq loop LEDs: bars on the step row ─────────────────────────────────── */
+{
+    _log('\nseq loop LEDs:');
+    const { seqLedsTick, seqLedsInvalidate } = await import('../dist/esm/seq/leds.js');
+    const { seqState, resetSeqState, occToggleStep } = await import('../dist/esm/seq/state.js');
+    const { C_WHITE, C_DARKGREY, trackColor } = await import('../dist/esm/seq/colors.js');
+
+    const ledCalls = [];
+    const origSetLED = globalThis.setLED;
+    globalThis.setLED = (note, color) => ledCalls.push([note, color]);
+
+    resetSeqState(); seqLedsInvalidate();
+    seqState.loopMode = true;
+    seqState.watchTrack = 0;
+    seqState.loopStart = 16;   // loop = bar 1..2
+    seqState.lenSteps = 32;
+    occToggleStep(16 * 3 + 2); // content in bar 3 (outside loop)
+
+    seqLedsTick();
+    const byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
+    eq('loop bar white (bar 1)', byNote[17], C_WHITE);
+    eq('loop bar white (bar 2)', byNote[18], C_WHITE);
+    eq('content bar outside loop = track color', byNote[19], trackColor(0));
+    eq('empty bar outside loop = dim gray', byNote[16], C_DARKGREY);
+
+    globalThis.setLED = origSetLED;
+    resetSeqState(); seqLedsInvalidate();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

@@ -26,8 +26,11 @@ pub struct Note {
 #[derive(Debug, Clone)]
 pub struct Clip {
     pub notes: Vec<Note>,
-    /// Loop length in steps (16 per bar). 0 = empty slot (no clip).
+    /// Loop window length in steps (16 per bar). 0 = empty slot (no clip).
     pub length_steps: u16,
+    /// First step of the loop window (bar-aligned). Playback wraps inside
+    /// [loop_start_steps, loop_start_steps + length_steps).
+    pub loop_start_steps: u16,
 }
 
 impl Default for Clip {
@@ -41,6 +44,7 @@ impl Clip {
         Clip {
             notes: Vec::new(),
             length_steps: 0,
+            loop_start_steps: 0,
         }
     }
 
@@ -54,9 +58,18 @@ impl Clip {
         self.length_steps as u32 * TICKS_PER_STEP
     }
 
+    pub fn loop_start_ticks(&self) -> u32 {
+        self.loop_start_steps as u32 * TICKS_PER_STEP
+    }
+
+    pub fn loop_end_ticks(&self) -> u32 {
+        self.loop_start_ticks() + self.length_ticks()
+    }
+
     pub fn clear(&mut self) {
         self.notes.clear();
         self.length_steps = 0;
+        self.loop_start_steps = 0;
     }
 
     /// Ensure the clip exists and is at least one bar long (implicit clip
@@ -67,13 +80,60 @@ impl Clip {
         }
     }
 
-    /// Create the clip if needed and grow the loop to include `step`'s bar
-    /// (native: adding notes past the loop end extends it to that bar).
+    /// Set the loop window from a bar-aligned start and length (clamped to
+    /// 16 bars total and at least one bar).
+    pub fn set_loop(&mut self, start_steps: u16, len_steps: u16) {
+        let bar = STEPS_PER_BAR as u16;
+        let start = (start_steps / bar) * bar;
+        let len = len_steps.max(bar);
+        let start = start.min(MAX_STEPS - bar);
+        self.loop_start_steps = start;
+        self.length_steps = len.min(MAX_STEPS - start);
+    }
+
+    /// Double the loop: copy the window's notes into the following window and
+    /// double the length (native Double Loop; capped at 16 bars).
+    pub fn double_loop(&mut self) {
+        if self.length_steps == 0 {
+            return;
+        }
+        let len = self.length_steps;
+        let start = self.loop_start_steps;
+        if start + len * 2 > MAX_STEPS {
+            return; // would exceed 16 bars
+        }
+        let span_ticks = len as u32 * TICKS_PER_STEP;
+        let win_start = start;
+        let win_end = start + len;
+        let copies: Vec<Note> = self
+            .notes
+            .iter()
+            .filter(|n| n.step >= win_start && n.step < win_end)
+            .map(|n| Note {
+                tick: n.tick + span_ticks,
+                gate: n.gate,
+                pitch: n.pitch,
+                vel: n.vel,
+                step: n.step + len,
+            })
+            .collect();
+        for n in copies {
+            if self.notes.len() >= MAX_NOTES {
+                break;
+            }
+            self.notes.push(n);
+        }
+        self.length_steps = len * 2;
+    }
+
+    /// Create the clip if needed and grow the loop window's end to include
+    /// `step`'s bar (native: adding notes past the loop end extends it).
     fn extend_to_step(&mut self, step: u16) {
         self.ensure_exists();
-        if step >= self.length_steps {
-            let bars = (step / STEPS_PER_BAR as u16) + 1;
-            self.length_steps = (bars * STEPS_PER_BAR as u16).min(MAX_STEPS);
+        let bar = STEPS_PER_BAR as u16;
+        let end_of_bar = (step / bar + 1) * bar;
+        if end_of_bar > self.loop_start_steps + self.length_steps {
+            self.length_steps = (end_of_bar - self.loop_start_steps).min(MAX_STEPS - self.loop_start_steps);
         }
     }
 
@@ -246,6 +306,42 @@ mod tests {
         // Melodic view (None) sees both.
         let all = c.occupancy_hex_lane(None);
         assert_eq!(&all[0..2], "88");
+    }
+
+    #[test]
+    fn set_loop_window_is_bar_aligned_and_clamped() {
+        let mut c = Clip::new();
+        c.set_loop(20, 40); // start bar 1 (step 16), len 40 → clamps to bars
+        assert_eq!(c.loop_start_steps, 16);
+        assert_eq!(c.length_steps, 40);
+        // Minimum one bar.
+        c.set_loop(0, 0);
+        assert_eq!(c.length_steps, STEPS_PER_BAR as u16);
+    }
+
+    #[test]
+    fn double_loop_copies_notes_and_doubles_length() {
+        let mut c = Clip::new();
+        c.toggle_step(0, &[(60, 100)]);
+        c.toggle_step(8, &[(62, 100)]);
+        assert_eq!(c.length_steps, 16);
+        c.double_loop();
+        assert_eq!(c.length_steps, 32);
+        // Originals plus copies one bar later.
+        assert!(c.step_has_notes(0) && c.step_has_notes(8));
+        assert!(c.step_has_notes(16) && c.step_has_notes(24));
+        assert_eq!(c.notes.len(), 4);
+    }
+
+    #[test]
+    fn double_loop_capped_at_16_bars() {
+        let mut c = Clip::new();
+        c.set_loop(0, 8 * STEPS_PER_BAR as u16); // 8 bars
+        c.toggle_step(0, &[(60, 100)]);
+        c.double_loop(); // → 16 bars
+        assert_eq!(c.length_steps, 16 * STEPS_PER_BAR as u16);
+        c.double_loop(); // would be 32 bars → refused
+        assert_eq!(c.length_steps, 16 * STEPS_PER_BAR as u16);
     }
 
     #[test]

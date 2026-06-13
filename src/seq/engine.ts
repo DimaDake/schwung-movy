@@ -54,6 +54,13 @@ export function engineReady(): boolean {
     return bootState === 'ok';
 }
 
+/* Monotonic UI-tick counter, for short interaction timers (e.g. double-tap
+ * detection) that need a coarse clock without wall-time access. */
+let uiTickCount = 0;
+export function uiTick(): number {
+    return uiTickCount;
+}
+
 /* Queue one engine op, e.g. "play" or "tog 0 0 60 100". Sent on the next
  * tick (held through boot, dropped only if the engine never appears). */
 export function seqCmd(op: string): void {
@@ -61,6 +68,7 @@ export function seqCmd(op: string): void {
 }
 
 export function seqEngineTick(): void {
+    uiTickCount++;
     if (!engineAvailable()) return;
     if (bootState === 'absent') return;
     if (bootState === 'probe') {
@@ -140,6 +148,7 @@ function parseStatus(s: string): void {
         else if (key === 'trk') seqState.watchTrack = Number(val) || 0;
         else if (key === 'step') seqState.curStep = Number(val) || 0;
         else if (key === 'len') seqState.lenSteps = Number(val) || 0;
+        else if (key === 'lstart') seqState.loopStart = Number(val) || 0;
         else if (key === 'occ') occFromHex(val);
     }
     if (lastEnginePlay !== seqState.playing) {

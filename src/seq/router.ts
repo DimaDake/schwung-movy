@@ -35,11 +35,12 @@ import { engineReady, seqCmd } from './engine.js';
 import {
     doubleLoop, loopButton, loopHeld, loopStepOff, loopStepOn, loopWheel,
 } from './loop-mode.js';
+import { momentaryDown, momentaryUp } from './momentary.js';
 import {
     anyStepHeld, editLength, editNudge, editPad, editStepDown, editStepUp,
     editTranspose, editVelocity,
 } from './step-edit.js';
-import { seqToast } from './render.js';
+import { seqHeaderAnnounce, seqToast } from './render.js';
 import {
     sessionCopyButton, sessionDeleteButton, sessionPad, sessionToggle,
 } from './session.js';
@@ -120,9 +121,16 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         return true;
     }
 
-    /* Note/Session toggle. */
+    /* Note/Session toggle: momentary (tap latches, hold peeks then returns). */
     if (d1 === CC_NOTE_SESSION) {
-        if (d2 > 0) sessionToggle();
+        if (d2 > 0) {
+            const prev = seqState.sessionMode;
+            momentaryDown(d1, () => { seqState.sessionMode = prev; seqHeaderAnnounce(prev ? 'Session' : 'Note'); });
+            seqState.sessionMode = true;
+            seqHeaderAnnounce('Session');
+        } else {
+            momentaryUp(d1);
+        }
         return true;
     }
 

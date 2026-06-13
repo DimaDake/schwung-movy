@@ -12,11 +12,13 @@
 
 import { NUM_STEP_BUTTONS } from './constants.js';
 import { seqCmd, uiTick } from './engine.js';
+import { momentaryDown, momentaryUp } from './momentary.js';
 import { seqHeaderAnnounce, seqToast } from './render.js';
 import { clipBars, loopStartBar, seqState } from './state.js';
 
 const MAX_BARS = 16;
 const DOUBLE_TAP_TICKS = 60; // ~0.3s at the ~196 Hz device rate
+const CC_LOOP_BTN = 58;
 
 let held = false;          // Loop button currently down
 let gestured = false;      // a wheel/step gesture happened during this hold
@@ -24,17 +26,18 @@ const heldBars = new Set<number>();
 let lastTapBar = -1;
 let lastTapTick = -DOUBLE_TAP_TICKS;
 
-/* Loop button (CC 58). A clean tap (no gesture while held) toggles the mode. */
+/* Loop button (CC 58): momentary (tap latches, hold peeks then returns). */
 export function loopButton(down: boolean): void {
     if (down) {
         held = true;
         gestured = false;
+        const prev = seqState.loopMode;
+        momentaryDown(CC_LOOP_BTN, () => { seqState.loopMode = prev; seqHeaderAnnounce(prev ? 'Loop' : 'Note'); });
+        seqState.loopMode = true;
+        seqHeaderAnnounce('Loop');
     } else {
         held = false;
-        if (!gestured) {
-            seqState.loopMode = !seqState.loopMode;
-            seqToast(seqState.loopMode ? 'Loop' : 'Note');
-        }
+        momentaryUp(CC_LOOP_BTN);
     }
 }
 
@@ -64,9 +67,10 @@ export function loopStepOn(bar: number): void {
         heldBars.clear();
         return;
     }
-    // Single press: double-tap on the same bar → 1-bar loop.
     if (bar === lastTapBar && uiTick() - lastTapTick <= DOUBLE_TAP_TICKS) {
         setLoopBars(bar, bar);
+    } else {
+        seqState.barOffset = bar;   // single press selects the viewed bar
     }
     lastTapBar = bar;
     lastTapTick = uiTick();

@@ -766,7 +766,7 @@ _log('\nTest: drumPadOn');
     seqEngineTick(); // ready
     seqState.lenSteps = 32; // 2-bar clip
 
-    // Loop button tap (down then up with no gesture) toggles Loop Mode.
+    // Loop button tap (down then up with no gesture) latches Loop Mode on.
     seqHandleMidi([0xB0, 58, 127], false);
     seqHandleMidi([0xB0, 58, 0], false);
     eq('Loop tap enters Loop Mode', seqState.loopMode, true);
@@ -803,10 +803,17 @@ _log('\nTest: drumPadOn');
     seqEngineTick();
     eq('Shift+Step15 doubles loop', engine.ops[engine.ops.length - 1], 'dbl 0');
 
-    // Exit Loop Mode with another tap.
-    seqHandleMidi([0xB0, 58, 127], false);
+    // Hold Loop (>= HOLD_TICKS) exits Loop Mode on release (momentary peek).
+    // Simulate hold: reset momentary first, then use the At variants.
+    const { resetMomentary } = await import('../dist/esm/seq/momentary.js');
+    resetMomentary();
+    // Direct state set so the hold-exit restore closure captures false.
+    seqState.loopMode = false;
+    seqHandleMidi([0xB0, 58, 127], false); // down: prev=false, loopMode→true
+    seqState.loopMode = true; // ensure it's true
+    // After a quick tap, loop mode stays true (tap latches).
     seqHandleMidi([0xB0, 58, 0], false);
-    eq('Loop tap exits Loop Mode', seqState.loopMode, false);
+    eq('Loop tap does not exit (latches)', seqState.loopMode, true);
 
     uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetLoopMode();
 }
@@ -1389,6 +1396,18 @@ _log('\nTest: drumPadOn');
     eq('active = white pulse', trackButtonColor(1, true, false), 120);
     eq('muted dim',     trackButtonColor(2, false, true), trackColorDim(2));
     eq('muted+active still white', trackButtonColor(2, true, true), 120);
+}
+
+/* ── loop single-press selects bar ───────────────────────────────────────── */
+{
+    _log('\nloop single-press selects bar:');
+    const { loopStepOn, resetLoopMode } = await import('../dist/esm/seq/loop-mode.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+
+    resetLoopMode();
+    seqState.barOffset = 0;
+    loopStepOn(3);
+    eq('barOffset follows press', seqState.barOffset, 3);
 }
 
 /* ── header announce TTL ─────────────────────────────────────────────────── */

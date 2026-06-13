@@ -834,14 +834,16 @@ _log('\nTest: drumPadOn');
     seqState.watchTrack = 0;
     seqState.loopStart = 16;   // loop = bar 1..2
     seqState.lenSteps = 32;
-    occToggleStep(16 * 3 + 2); // content in bar 3 (outside loop)
+    seqState.barOffset = 1;    // bar 1 is selected
+    occToggleStep(16 * 3 + 2); // content in bar 3
 
     seqLedsTick();
     const byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
-    eq('loop bar white (bar 1)', byNote[17], C_WHITE);
-    eq('loop bar white (bar 2)', byNote[18], C_WHITE);
-    eq('content bar outside loop = track color', byNote[19], trackColor(0));
-    eq('empty bar outside loop = dim gray', byNote[16], C_DARKGREY);
+    // New loop-bar semantics: selected=white, content=blink track color, else off.
+    eq('selected bar white (bar 1)', byNote[17], C_WHITE);
+    eq('empty bar off (bar 2)', byNote[18], 0);
+    eq('content bar blink on = track color', byNote[19], trackColor(0));
+    eq('empty bar off (bar 0)', byNote[16], 0);
 
     globalThis.setLED = origSetLED;
     resetSeqState(); seqLedsInvalidate();
@@ -1396,6 +1398,20 @@ _log('\nTest: drumPadOn');
     eq('active = white pulse', trackButtonColor(1, true, false), 120);
     eq('muted dim',     trackButtonColor(2, false, true), trackColorDim(2));
     eq('muted+active still white', trackButtonColor(2, true, true), 120);
+}
+
+/* ── loop bar color ──────────────────────────────────────────────────────── */
+{
+    _log('\nloop bar color:');
+    const { loopBarColor } = await import('../dist/esm/seq/leds.js');
+    const { trackColor } = await import('../dist/esm/seq/colors.js');
+
+    const base = { isPlayhead:false, selected:false, hasContent:false, inLoop:false, blink:true, track:1 };
+    eq('playhead green', loopBarColor({ ...base, isPlayhead:true }), 11);
+    eq('selected white', loopBarColor({ ...base, selected:true }), 120);
+    eq('content blink on = track', loopBarColor({ ...base, hasContent:true, blink:true }), trackColor(1));
+    eq('content blink off = off', loopBarColor({ ...base, hasContent:true, blink:false }), 0);
+    eq('empty = off', loopBarColor({ ...base }), 0);
 }
 
 /* ── session cell color ──────────────────────────────────────────────────── */

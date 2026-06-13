@@ -1,10 +1,8 @@
-/* All sequencer LED painting goes through this cached layer: a color is
- * only sent when it differs from the last value sent for that LED, so the
- * per-tick repaint costs nothing on the wire when nothing changed
- * (davebox ui_leds pattern). */
+/* Sequencer LED painting through a cached diff layer — only changed colors
+ * are sent, so unchanged frames cost nothing on the wire (davebox pattern). */
 
 import { backLedColor, arrowLedColor, sampleLedColor, captureLedColor, undoLedColor } from './buttons.js';
-import { C_DARKGREY, C_GREEN, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
+import { C_BLACK, C_DARKGREY, C_GREEN, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
 import {
     CC_PLAY, CC_REC, CC_TRACK_END, NUM_STEP_BUTTONS, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
@@ -58,26 +56,32 @@ function barHasContent(bar: number): boolean {
     return false;
 }
 
-/* Loop Mode: step buttons are bars (manual §12.1) — white = bar in the loop
- * window, track color = bar with content outside the loop, dim gray = empty
- * bar outside, green = the bar the playhead is in while playing. */
+// No per-tick allocation: derive blink from engine tick integer division.
+function blinkPhase(): boolean { return Math.floor(seqState.engineTick / 24) % 2 === 0; }
+
+interface BarCtx { isPlayhead: boolean; selected: boolean; hasContent: boolean; inLoop: boolean; blink: boolean; track: number; }
+
+export function loopBarColor(c: BarCtx): number {
+    if (c.isPlayhead) return C_GREEN;                                   // playhead while playing
+    if (c.selected)   return C_WHITE;                                   // selected bar
+    if (c.hasContent) return c.blink ? trackColor(c.track) : C_BLACK;  // content bars blink track color
+    return C_BLACK;                                                     // empty/out-of-loop
+}
+
+/* Loop Mode: step buttons are bars — selected white, content blink track color, playhead green. */
 function paintLoopBars(): void {
     const start = loopStartBar();
     const end = loopEndBar();
     const playBar = seqState.playing ? Math.floor(seqState.curStep / NUM_STEP_BUTTONS) : -1;
-    const inLoopCol = trackColor(seqState.watchTrack);
+    const blink = blinkPhase();
     for (let bar = 0; bar < NUM_STEP_BUTTONS; bar++) {
-        let color: number;
-        if (bar === playBar) {
-            color = C_GREEN;
-        } else if (bar >= start && bar <= end) {
-            color = C_WHITE;
-        } else if (barHasContent(bar)) {
-            color = inLoopCol;
-        } else {
-            color = C_DARKGREY;
-        }
-        cachedSetLED(STEP_NOTE_BASE + bar, color);
+        cachedSetLED(STEP_NOTE_BASE + bar, loopBarColor({
+            isPlayhead: bar === playBar,
+            selected: bar === seqState.barOffset,
+            hasContent: barHasContent(bar),
+            inLoop: bar >= start && bar <= end,
+            blink, track: seqState.watchTrack,
+        }));
     }
 }
 
@@ -138,25 +142,20 @@ function paintTrackButtons(): void {
     }
 }
 
-function paintAffordances(view: number, barOffset: number, maxOff: number,
-                          leftPressed: boolean, rightPressed: boolean): void {
-    cachedSetButtonLED(CC_BACK, backLedColor(view));
-    cachedSetButtonLED(CC_LEFT, arrowLedColor(-1, barOffset, maxOff, leftPressed));
-    cachedSetButtonLED(CC_RIGHT, arrowLedColor(+1, barOffset, maxOff, rightPressed));
+function paintAffordances(view: number, barOffset: number, maxOff: number, lp: boolean, rp: boolean): void {
+    cachedSetButtonLED(CC_BACK,   backLedColor(view));
+    cachedSetButtonLED(CC_LEFT,   arrowLedColor(-1, barOffset, maxOff, lp));
+    cachedSetButtonLED(CC_RIGHT,  arrowLedColor(+1, barOffset, maxOff, rp));
     cachedSetButtonLED(CC_SAMPLE, sampleLedColor());
     cachedSetButtonLED(CC_CAPTURE, captureLedColor());
-    cachedSetButtonLED(CC_UNDO, undoLedColor());
-    // Always-available functional buttons: dim (Loop bright in Loop Mode).
+    cachedSetButtonLED(CC_UNDO,   undoLedColor());
+    // Functional buttons always dim; Loop bright in Loop Mode.
     cachedSetButtonLED(CC_LOOP, seqState.loopMode ? WHITE_BRIGHT : WHITE_DIM);
-    cachedSetButtonLED(CC_COPY, WHITE_DIM);
-    cachedSetButtonLED(CC_DELETE_BTN, WHITE_DIM);
-    cachedSetButtonLED(CC_MUTE, WHITE_DIM);
+    cachedSetButtonLED(CC_COPY, WHITE_DIM); cachedSetButtonLED(CC_DELETE_BTN, WHITE_DIM); cachedSetButtonLED(CC_MUTE, WHITE_DIM);
 }
 
-/* Worst case (cold frame after seqLedsInvalidate): ~29 CC packets (transport +
- * 4 track + 16 icons + ~8 affordance) + up to LED_INIT_BATCH (8) pad packets
- * < 60-packet overtake buffer. Do not raise LED_INIT_BATCH past 8 without
- * re-checking this sum. */
+/* Worst-case cold frame: ~29 CC + up to 8 pad packets < 60-packet buffer.
+ * Do not raise LED_INIT_BATCH past 8 without rechecking this. */
 export function seqLedsTick(
     shiftHeld: boolean = false,
     currentView: number = 0,
@@ -169,7 +168,7 @@ export function seqLedsTick(
     }
     paintTrackButtons();
     paintStepIcons(shiftHeld);
-    paintAffordances(currentView, barOffset, maxOff, false, false);
+    paintAffordances(currentView, barOffset, maxOff, false, false);  // lp/rp: never pressed in tick path
     if (seqState.loopMode) {
         paintLoopBars();
         paintTransport();
@@ -178,11 +177,7 @@ export function seqLedsTick(
     const bar = seqState.barOffset;
     const base = bar * NUM_STEP_BUTTONS;
 
-    /* Step-row semantics (manual §9.5):
-     *   white            = step has note(s)
-     *   dim track color  = empty step inside the loop
-     *   dim gray         = empty clip / bar outside the loop
-     *   green (playhead)  = current play position while playing  */
+    /* Step-row: white=notes, dim-track=in-loop, dim-gray=out-of-loop, green=playhead */
     const playStep = seqState.playing ? seqState.curStep : -1;
     const dimTrack = trackColorDim(seqState.watchTrack);
 

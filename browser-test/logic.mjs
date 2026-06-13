@@ -926,6 +926,93 @@ _log('\nTest: drumPadOn');
     uninstallMockEngine(); reset();
 }
 
+/* ── seq copy & delete operations ────────────────────────────────────────── */
+{
+    _log('\nseq copy & delete:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi, seqNotePadPlayed } = await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { resetEditOps } = await import('../dist/esm/seq/edit-ops.js');
+    const { resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
+    const { resetLoopMode } = await import('../dist/esm/seq/loop-mode.js');
+    const { resetSeqToast } = await import('../dist/esm/seq/render.js');
+
+    const engine = installMockEngine();
+    const reset = () => {
+        resetSeqEngine(); resetSeqState(); resetEditOps();
+        resetStepEdit(); resetLoopMode(); resetSeqToast(); engine.reset();
+    };
+    const lastOp = () => engine.ops[engine.ops.length - 1];
+    reset(); seqEngineTick();
+
+    // Copy tap (down/up, no step) → duplicate clip.
+    seqHandleMidi([0xB0, 60, 127], false);
+    seqHandleMidi([0xB0, 60, 0], false);
+    seqEngineTick();
+    eq('Copy tap duplicates clip', lastOp(), 'clipdup 0');
+
+    // Copy + two steps → copy range; next step pastes.
+    reset(); seqEngineTick();
+    seqHandleMidi([0xB0, 60, 127], false);     // Copy down
+    seqHandleMidi([0x90, 16 + 0, 127], false); // mark step 0
+    seqHandleMidi([0x90, 16 + 3, 127], false); // mark step 3
+    seqHandleMidi([0xB0, 60, 0], false);       // Copy up → copy 0..3
+    seqEngineTick();
+    eq('copy range op', lastOp(), 'cpy 0 0 3');
+    seqHandleMidi([0x90, 16 + 8, 127], false); // paste at step 8
+    seqEngineTick();
+    eq('paste op', lastOp(), 'pst 0 8');
+    // The marked-step presses while copying must NOT have toggled notes.
+    eq('copy marks did not toggle notes', engine.ops.filter(o => o.startsWith('tog')).length, 0);
+
+    // Copy again while paste-armed clears the clipboard.
+    reset(); seqEngineTick();
+    seqHandleMidi([0xB0, 60, 127], false);
+    seqHandleMidi([0x90, 16 + 0, 127], false);
+    seqHandleMidi([0xB0, 60, 0], false);       // armed
+    seqHandleMidi([0xB0, 60, 127], false);     // press Copy again → clear
+    seqEngineTick();
+    eq('Copy-again clears clipboard', lastOp(), 'cpyclr');
+
+    // Delete tap → delete clip.
+    reset(); seqEngineTick();
+    seqHandleMidi([0xB0, 119, 127], false);
+    seqHandleMidi([0xB0, 119, 0], false);
+    seqEngineTick();
+    eq('Delete tap deletes clip', lastOp(), 'clipdel 0');
+
+    // Delete + step → delete that step's notes (no clip delete on release).
+    reset(); seqEngineTick();
+    seqHandleMidi([0xB0, 119, 127], false);    // Delete down
+    seqHandleMidi([0x90, 16 + 5, 127], false); // step 5
+    seqEngineTick();
+    eq('Delete+step clears the step', lastOp(), 'del 0 5 5 -1');
+    seqHandleMidi([0xB0, 119, 0], false);      // release — acted, so no clip delete
+    seqEngineTick();
+    eq('Delete+step release did not delete clip',
+        engine.ops.filter(o => o.startsWith('clipdel')).length, 0);
+
+    // Delete + step in Loop Mode → delete the whole bar.
+    reset(); seqEngineTick();
+    seqState.loopMode = true;
+    seqHandleMidi([0xB0, 119, 127], false);
+    seqHandleMidi([0x90, 16 + 2, 127], false); // bar 2
+    seqEngineTick();
+    eq('Delete+bar clears the bar', lastOp(), 'del 0 32 47 -1');
+    seqHandleMidi([0xB0, 119, 0], false);
+
+    // Delete + drum pad → clear that pitch across the clip.
+    reset(); seqEngineTick();
+    seqHandleMidi([0xB0, 119, 127], false);
+    seqNotePadPlayed(0, 80, 38, 100);          // pad while Delete held
+    seqEngineTick();
+    eq('Delete+pad clears the pitch', lastOp(), 'del 0 0 255 38');
+    seqHandleMidi([0xB0, 119, 0], false);
+
+    uninstallMockEngine(); reset();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

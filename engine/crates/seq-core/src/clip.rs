@@ -268,6 +268,23 @@ impl Clip {
         }
     }
 
+    /// Remove notes whose step anchor is in [s0, s1] (optionally only the
+    /// given pitch — drum-pad delete). Used by Delete gestures.
+    pub fn delete_range(&mut self, s0: u16, s1: u16, lane: Option<u8>) {
+        self.notes
+            .retain(|n| !Clip::note_matches(n, s0, s1, lane));
+    }
+
+    /// Push a note with an explicit tick/gate (used by paste, which preserves
+    /// the source notes' sub-step offset and length).
+    pub fn add_note_raw(&mut self, step: u16, tick: u32, gate: u32, pitch: u8, vel: u8) {
+        if self.notes.len() >= MAX_NOTES || step >= MAX_STEPS {
+            return;
+        }
+        self.extend_to_step(step);
+        self.notes.push(Note { tick, gate, pitch, vel, step });
+    }
+
     /// Add `pitch` to every step in [s0, s1] that doesn't already have it
     /// (Loop Mode "add a note to every step in a bar"). Returns added count.
     pub fn add_pitch_range(&mut self, s0: u16, s1: u16, pitch: u8, vel: u8) -> usize {

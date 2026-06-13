@@ -5,7 +5,8 @@
 
 use crate::clip::Clip;
 use crate::clock::Clock;
-use crate::track::{Track, NUM_TRACKS};
+use crate::track::{Track, CLIPS_PER_TRACK, NUM_TRACKS};
+use crate::TICKS_PER_STEP;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OutEvent {
@@ -29,7 +30,19 @@ pub struct Engine {
     /// Pitch the watched step LEDs are filtered to (drum-lane view), or None
     /// for the melodic "all notes" view.
     pub watch_lane: Option<u8>,
+    /// Note clipboard for copy/paste of steps and ranges, across tracks and
+    /// clips. Ticks/steps are stored relative to the copy start.
+    clipboard: Vec<ClipboardNote>,
     gates: Vec<Gate>,
+}
+
+#[derive(Clone, Copy)]
+struct ClipboardNote {
+    rel_step: u16,
+    rel_tick: u32,
+    gate: u32,
+    pitch: u8,
+    vel: u8,
 }
 
 impl Engine {
@@ -40,8 +53,94 @@ impl Engine {
             playing: false,
             watch_track: 0,
             watch_lane: None,
+            clipboard: Vec::new(),
             gates: Vec::with_capacity(128),
         }
+    }
+
+    // ── Clip operations (Copy/Delete, manual §12) ─────────────────────────
+
+    /// Duplicate the track's active clip into the next empty slot and select
+    /// it (native Copy in Note mode). No-op if every slot is occupied.
+    pub fn duplicate_clip(&mut self, track: usize) {
+        if track >= NUM_TRACKS {
+            return;
+        }
+        let src = self.tracks[track].active_clip;
+        let mut dst = None;
+        for off in 1..=CLIPS_PER_TRACK {
+            let i = (src + off) % CLIPS_PER_TRACK;
+            if !self.tracks[track].clips[i].exists() {
+                dst = Some(i);
+                break;
+            }
+        }
+        if let Some(d) = dst {
+            self.tracks[track].clips[d] = self.tracks[track].clips[src].clone();
+            self.tracks[track].active_clip = d;
+        }
+    }
+
+    pub fn delete_clip(&mut self, track: usize) {
+        if track < NUM_TRACKS {
+            self.tracks[track].active_mut().clear();
+        }
+    }
+
+    pub fn select_clip(&mut self, track: usize, slot: usize) {
+        if track < NUM_TRACKS && slot < CLIPS_PER_TRACK {
+            self.tracks[track].active_clip = slot;
+        }
+    }
+
+    pub fn delete_range(&mut self, track: usize, s0: u16, s1: u16, lane: Option<u8>) {
+        if track < NUM_TRACKS {
+            self.tracks[track].active_mut().delete_range(s0, s1, lane);
+        }
+    }
+
+    // ── Note clipboard (copy/paste steps + ranges) ────────────────────────
+
+    pub fn copy_steps(&mut self, track: usize, s0: u16, s1: u16) {
+        if track >= NUM_TRACKS {
+            return;
+        }
+        let base_tick = s0 as u32 * TICKS_PER_STEP;
+        self.clipboard = self.tracks[track]
+            .active()
+            .notes
+            .iter()
+            .filter(|n| n.step >= s0 && n.step <= s1)
+            .map(|n| ClipboardNote {
+                rel_step: n.step - s0,
+                rel_tick: n.tick.saturating_sub(base_tick),
+                gate: n.gate,
+                pitch: n.pitch,
+                vel: n.vel,
+            })
+            .collect();
+    }
+
+    pub fn paste_steps(&mut self, track: usize, dest_step: u16) {
+        if track >= NUM_TRACKS || self.clipboard.is_empty() {
+            return;
+        }
+        let base_tick = dest_step as u32 * TICKS_PER_STEP;
+        let cb = self.clipboard.clone();
+        let clip = self.tracks[track].active_mut();
+        for cn in cb {
+            clip.add_note_raw(
+                dest_step + cn.rel_step,
+                base_tick + cn.rel_tick,
+                cn.gate,
+                cn.pitch,
+                cn.vel,
+            );
+        }
+    }
+
+    pub fn clear_clipboard(&mut self) {
+        self.clipboard.clear();
     }
 
     pub fn watched_clip(&self) -> &Clip {

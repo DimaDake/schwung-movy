@@ -90,6 +90,41 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 }
             }
         }
+        // del <t> <s0> <s1> <pitch|-1> — delete notes in range (step delete,
+        // bar delete, or drum-pad delete with a pitch + full 0..255 range).
+        "del" => {
+            if let (Some(t), Some(s0), Some(s1), Some(p)) = (next(), next(), next(), next()) {
+                let lane = if (0..128).contains(&p) { Some(p as u8) } else { None };
+                engine.delete_range(t as usize, s0.clamp(0, 255) as u16, s1.clamp(0, 255) as u16, lane);
+            }
+        }
+        "clipdup" => {
+            if let Some(t) = next() {
+                engine.duplicate_clip(t as usize);
+            }
+        }
+        "clipdel" => {
+            if let Some(t) = next() {
+                engine.delete_clip(t as usize);
+            }
+        }
+        "clipsel" => {
+            if let (Some(t), Some(s)) = (next(), next()) {
+                engine.select_clip(t as usize, s.max(0) as usize);
+            }
+        }
+        // cpy <t> <s0> <s1> ; pst <t> <destStep> ; cpyclr
+        "cpy" => {
+            if let (Some(t), Some(s0), Some(s1)) = (next(), next(), next()) {
+                engine.copy_steps(t as usize, s0.clamp(0, 255) as u16, s1.clamp(0, 255) as u16);
+            }
+        }
+        "pst" => {
+            if let (Some(t), Some(d)) = (next(), next()) {
+                engine.paste_steps(t as usize, d.clamp(0, 255) as u16);
+            }
+        }
+        "cpyclr" => engine.clear_clipboard(),
         // addp <t> <s0> <s1> <pitch> <vel> — add a pitch to every step in the
         // range that lacks it (Loop Mode: hold a bar + press a pad).
         "addp" => {
@@ -244,6 +279,53 @@ mod tests {
         let snare = e.tracks[0].active().notes.iter().find(|n| n.pitch == 38).unwrap();
         assert_eq!(snare.vel, 50);
         assert_eq!(e.tracks[0].active().notes.iter().find(|n| n.pitch == 72).unwrap().vel, 70);
+    }
+
+    #[test]
+    fn clip_copy_delete_commands() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        // Place notes, delete one step.
+        apply_batch(&mut e, "tog 0 0 60 100;tog 0 4 62 100", &mut out);
+        apply_batch(&mut e, "del 0 0 0 -1", &mut out);
+        assert!(!e.tracks[0].active().step_has_notes(0));
+        assert!(e.tracks[0].active().step_has_notes(4));
+
+        // Duplicate the clip → next slot becomes active with the same notes.
+        apply_batch(&mut e, "clipdup 0", &mut out);
+        assert_eq!(e.tracks[0].active_clip, 1);
+        assert!(e.tracks[0].active().step_has_notes(4));
+
+        // Delete the active clip.
+        apply_batch(&mut e, "clipdel 0", &mut out);
+        assert!(!e.tracks[0].active().exists());
+
+        // Drum-pad delete (pitch-filtered, whole clip) on a fresh slot.
+        apply_batch(&mut e, "clipsel 0 0;clipdel 0", &mut out);
+        apply_batch(&mut e, "ltog 0 0 36 100;ltog 0 8 36 100;ltog 0 4 38 100", &mut out);
+        apply_batch(&mut e, "del 0 0 255 36", &mut out);
+        assert!(e.tracks[0].active().notes.iter().all(|n| n.pitch == 38));
+        assert_eq!(e.tracks[0].active().notes.len(), 1);
+    }
+
+    #[test]
+    fn copy_paste_steps() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "tog 0 0 60 100;tog 0 2 64 110", &mut out);
+        apply_batch(&mut e, "cpy 0 0 3", &mut out);   // copy steps 0-3
+        apply_batch(&mut e, "pst 0 8", &mut out);     // paste at step 8
+        assert!(e.tracks[0].active().step_has_notes(8));   // 0 → 8
+        assert!(e.tracks[0].active().step_has_notes(10));  // 2 → 10
+        let pasted = e.tracks[0].active().notes.iter().find(|n| n.step == 10).unwrap();
+        assert_eq!(pasted.pitch, 64);
+        assert_eq!(pasted.vel, 110);
+
+        // Cross-track paste uses the same clipboard.
+        apply_batch(&mut e, "pst 1 0", &mut out);
+        assert!(e.tracks[1].active().step_has_notes(0));
+        apply_batch(&mut e, "cpyclr;pst 1 4", &mut out); // cleared → no-op
+        assert!(!e.tracks[1].active().step_has_notes(4));
     }
 
     #[test]

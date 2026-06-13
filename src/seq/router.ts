@@ -12,6 +12,10 @@ import {
     CC_PLAY, CC_TRACK_END, CC_TRACK_START,
     NUM_STEP_BUTTONS, STEP_NOTE_BASE,
 } from './constants.js';
+import {
+    copyActive, copyButton, copyMarkStep, deleteActive, deleteButton, deletePad,
+    deleteStep, pasteArmed, pasteAtStep,
+} from './edit-ops.js';
 import { engineReady, seqCmd } from './engine.js';
 import {
     doubleLoop, loopButton, loopHeld, loopStepOff, loopStepOn, loopWheel,
@@ -32,6 +36,8 @@ const CC_WHEEL = 14;     // MoveMainKnob — wheel
 const CC_VOLUME = 79;    // MoveMaster — Volume encoder
 const CC_PLUS = 55;      // MoveUp / +
 const CC_MINUS = 54;     // MoveDown / -
+const CC_COPY = 60;
+const CC_DELETE = 119;
 const STEP_FULL_VEL = 9; // Step 10 (0-indexed) — Shift+Step 10 = Full Velocity
 const STEP_DOUBLE_LOOP = 14; // Step 15 — Shift+Step 15 = Double Loop
 
@@ -52,7 +58,13 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         && d1 >= STEP_NOTE_BASE && d1 < STEP_NOTE_BASE + NUM_STEP_BUTTONS) {
         const button = d1 - STEP_NOTE_BASE;
         const on = statusType === 0x90 && d2 > 0;
-        if (on && shiftHeld) {
+        if (on && copyActive()) {
+            copyMarkStep(button);
+        } else if (on && deleteActive()) {
+            deleteStep(button);
+        } else if (on && pasteArmed()) {
+            pasteAtStep(button);
+        } else if (on && shiftHeld) {
             shiftStepFunction(button);
         } else if (on) {
             editStepDown(button);
@@ -70,6 +82,18 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     /* Loop button: tap toggles Loop Mode; hold + wheel resizes the loop. */
     if (d1 === CC_LOOP) {
         loopButton(d2 > 0);
+        return true;
+    }
+
+    /* Copy: tap duplicates the clip; hold + step copies notes. */
+    if (d1 === CC_COPY) {
+        copyButton(d2 > 0);
+        return true;
+    }
+
+    /* Delete: tap deletes the clip; hold + step/pad deletes notes. */
+    if (d1 === CC_DELETE) {
+        deleteButton(d2 > 0);
         return true;
     }
 
@@ -180,6 +204,10 @@ export function seqNotePadPlayed(track: number, padNote: number, midiNote: numbe
     if (track >= 0 && track < 4) {
         seqState.lastPitch[track] = midiNote;
         seqState.lastVel[track] = vel;
+    }
+    if (deleteActive()) {
+        deletePad(midiNote); // hold Delete + pad clears that pitch
+        return;
     }
     if (anyStepHeld()) {
         editPad(midiNote, vel);

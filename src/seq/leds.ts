@@ -6,10 +6,10 @@
 import { backLedColor, arrowLedColor, sampleLedColor, captureLedColor, undoLedColor } from './buttons.js';
 import { C_DARKGREY, C_GREEN, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
 import {
-    CC_PLAY, CC_REC, CC_TRACK_START, CC_TRACK_END, NUM_STEP_BUTTONS, PAD_MIN, STEP_NOTE_BASE,
+    CC_PLAY, CC_REC, CC_TRACK_END, NUM_STEP_BUTTONS, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
 import { sessionPaintGrid } from './session.js';
-import { loopEndBar, loopStartBar, maxBarOffset, occHasStep, seqState } from './state.js';
+import { loopEndBar, loopStartBar, occHasStep, seqState } from './state.js';
 
 const C_RED = 1;  // BrightRed — recording
 
@@ -25,11 +25,6 @@ const ICON_METRO = 5;     // step 6
 const ICON_FULLVEL = 9;   // step 10
 const ICON_DBLLOOP = 14;  // step 15
 const ICON_QUANT = 15;    // step 16
-
-/* A coarse blink phase from the engine tick, for flashing LEDs. */
-function blinkOn(): boolean {
-    return Math.floor(seqState.engineTick / 24) % 2 === 0;
-}
 
 const lastNoteLed = new Map<number, number>();
 const lastButtonLed = new Map<number, number>();

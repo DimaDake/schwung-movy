@@ -596,7 +596,7 @@ _log('\nTest: drumPadOn');
     seqState.lenSteps = 16; // one bar
     eq('Right arrow claimed (engine ready)', seqHandleMidi([0xB0, 63, 127], false), true);
     eq('barOffset advanced to 1', seqState.barOffset, 1);
-    eq('bar toast shown', seqToastActive(), true);
+    // Bar-N toasts were dropped (Task 9); bar nav is now silent.
     seqHandleMidi([0xB0, 63, 127], false);     // clamp: max is 1 for a 1-bar clip
     eq('barOffset clamped', seqState.barOffset, 1);
     seqHandleMidi([0xB0, 62, 127], false);     // Left
@@ -1389,6 +1389,20 @@ _log('\nTest: drumPadOn');
     eq('active = white pulse', trackButtonColor(1, true, false), 120);
     eq('muted dim',     trackButtonColor(2, false, true), trackColorDim(2));
     eq('muted+active still white', trackButtonColor(2, true, true), 120);
+}
+
+/* ── header announce TTL ─────────────────────────────────────────────────── */
+{
+    _log('\nheader announce TTL:');
+    const { seqHeaderAnnounce, seqHeaderActive, seqHeaderTick, resetSeqHeader } =
+        await import('../dist/esm/seq/render.js');
+
+    resetSeqHeader();
+    eq('inactive initially', seqHeaderActive(), false);
+    seqHeaderAnnounce('Session', 2);
+    eq('active after announce', seqHeaderActive(), true);
+    seqHeaderTick(); seqHeaderTick();
+    eq('expires after ttl', seqHeaderActive(), false);
 }
 
 /* ── mute gesture ────────────────────────────────────────────────────────── */

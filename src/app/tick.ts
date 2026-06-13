@@ -17,7 +17,11 @@ import { seqLedsTick, seqLedsInvalidate } from '../seq/leds.js';
 import { seqSetLane } from '../seq/router.js';
 import { activeHasNote, maxBarOffset, seqState } from '../seq/state.js';
 import { engineReady } from '../seq/engine.js';
-import { drawLoopStrip, drawSeqToast, seqToastActive, seqToastTick } from '../seq/render.js';
+import {
+    drawLoopStrip, drawSeqToast, drawSeqHeader,
+    seqToastActive, seqToastTick,
+    seqHeaderActive, seqHeaderTick,
+} from '../seq/render.js';
 
 const PAD_MIN        = MovePads[0];
 const PAD_MAX        = MovePads[MovePads.length - 1];
@@ -68,9 +72,11 @@ export function tick(): void {
     }
 
     seqToastTick();
+    seqHeaderTick();
     const toastShowing = seqToastActive();
+    const headerShowing = seqHeaderActive();
 
-    if (modelDirty || appState.dirty || toastShowing !== lastToastShowing) {
+    if (modelDirty || appState.dirty || toastShowing !== lastToastShowing || headerShowing) {
         if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
@@ -88,6 +94,7 @@ export function tick(): void {
             renderBrowseView(browserState.modules, browserState.browseIndex, browseTitle);
         }
         if (toastShowing) drawSeqToast();
+        if (headerShowing) drawSeqHeader();
         lastToastShowing = toastShowing;
         appState.dirty = false;
 

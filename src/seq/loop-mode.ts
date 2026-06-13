@@ -12,7 +12,7 @@
 
 import { NUM_STEP_BUTTONS } from './constants.js';
 import { seqCmd, uiTick } from './engine.js';
-import { seqToast } from './render.js';
+import { seqHeaderAnnounce, seqToast } from './render.js';
 import { clipBars, loopStartBar, seqState } from './state.js';
 
 const MAX_BARS = 16;
@@ -85,7 +85,7 @@ function setLoopBars(startBar: number, endBar: number): void {
     // Optimistic mirror.
     seqState.loopStart = startStep;
     seqState.lenSteps = lenStep;
-    seqToast(s === e ? `Loop ${s + 1}` : `Loop ${s + 1}-${e + 1}`);
+    seqHeaderAnnounce(s === e ? `Loop ${s + 1}` : `Loop ${s + 1}-${e + 1}`);
 }
 
 /* Shift+Step 15: double the loop (notes + length). */

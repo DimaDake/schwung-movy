@@ -1,17 +1,40 @@
-/* Minimal sequencer screen overlay: short toasts ("Bar 2", confirmations)
- * drawn over the param view, where native firmware shows them. The full
- * Loop Overview strip lands in Step 10; this is just the toast plumbing the
- * earlier steps need.
+/* Minimal sequencer screen overlay: short toasts and the header announcement
+ * band drawn over the param view, plus the Loop Overview strip.
  *
- * Ownership: app/tick.ts decides redraws. seqToastActive() lets it keep the
- * frame alive while a toast shows; seqToastTick() ages it and reports when
- * the toast just expired so tick.ts can repaint the clean view once. */
+ * Ownership: app/tick.ts decides redraws. seqToastActive/seqHeaderActive let
+ * it keep the frame alive while content is showing; *Tick() ages them. */
 
 import { drawJogToast } from '../renderer/overlay.js';
 import { W } from '../renderer/layout.js';
+import { fontPrint } from '../font/index.js';
 import { clipBars, seqState } from './state.js';
 
 const DEFAULT_TTL = 60; // ticks (~0.3s at the ~196 Hz device rate)
+
+/* Header announcement: a short inverted band at the top of the screen for
+ * view-switch notifications (Note/Session/Loop). Placed at the top so it
+ * never covers the bottom loop/bar strip. */
+let headerText = '';
+let headerTtl = 0;
+
+export function seqHeaderAnnounce(msg: string, ttlTicks: number = DEFAULT_TTL): void {
+    headerText = msg;
+    headerTtl = ttlTicks;
+}
+
+export function seqHeaderActive(): boolean { return headerTtl > 0; }
+
+export function seqHeaderTick(): void {
+    if (headerTtl > 0) headerTtl--;
+}
+
+export function drawSeqHeader(): void {
+    if (headerTtl <= 0) return;
+    fill_rect(0, 0, W, 9, 1);              // inverted header band
+    fontPrint(2, 1, headerText, 0);
+}
+
+export function resetSeqHeader(): void { headerText = ''; headerTtl = 0; }
 
 /* Loop Overview strip (manual §12.1): one segment per bar at the very bottom
  * of the display — thick = selected bar (thin if the loop is a single bar),

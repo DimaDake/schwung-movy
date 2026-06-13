@@ -218,10 +218,7 @@ function shiftStepFunction(step: number): void {
 
 function navigateBar(delta: number): void {
     const next = Math.max(0, Math.min(seqState.barOffset + delta, maxBarOffset()));
-    if (next !== seqState.barOffset) {
-        seqState.barOffset = next;
-        seqToast('Bar ' + (next + 1));
-    }
+    seqState.barOffset = next;
 }
 
 function toggleStep(button: number): void {

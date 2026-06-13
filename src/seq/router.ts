@@ -35,7 +35,7 @@ import { engineReady, seqCmd } from './engine.js';
 import {
     doubleLoop, loopButton, loopHeld, loopStepOff, loopStepOn, loopWheel,
 } from './loop-mode.js';
-import { momentaryDown, momentaryUp } from './momentary.js';
+import { momentaryDown, momentaryGesture, momentaryUp } from './momentary.js';
 import {
     anyStepHeld, editLength, editNudge, editPad, editStepDown, editStepUp,
     editTranspose, editVelocity,
@@ -67,6 +67,10 @@ const STEP_QUANTIZE = 15; // Step 16 — Shift+Step 16 = Quantize
  * pads physically down so a step press can place the whole chord. */
 const heldChord = new Map<number, number>();
 
+/* Session view state before the Note/Session button's current press, so a tap
+ * can decide latch-vs-toggle-off and a hold can revert. */
+let sessionPrev = false;
+
 export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     const statusType = data[0] & 0xF0;
     const d1 = data[1];
@@ -76,7 +80,10 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     if (seqState.sessionMode
         && (statusType === 0x90 || statusType === 0x80)
         && d1 >= PAD_MIN && d1 <= PAD_MAX) {
-        if (statusType === 0x90 && d2 > 0) sessionPad(d1, PAD_MIN);
+        if (statusType === 0x90 && d2 > 0) {
+            momentaryGesture(); // launching a clip while Session is held = temporary peek
+            sessionPad(d1, PAD_MIN);
+        }
         return true;
     }
 
@@ -121,15 +128,18 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         return true;
     }
 
-    /* Note/Session toggle: momentary (tap latches, hold peeks then returns). */
+    /* Note/Session: momentary. Down shows Session; a clean tap latches (or
+     * toggles back to Note if already in Session); a hold or any clip launch
+     * while held reverts to the prior view on release. */
     if (d1 === CC_NOTE_SESSION) {
         if (d2 > 0) {
-            const prev = seqState.sessionMode;
-            momentaryDown(d1, () => { seqState.sessionMode = prev; seqHeaderAnnounce(prev ? 'Session' : 'Note'); });
+            sessionPrev = seqState.sessionMode;
+            momentaryDown(d1, () => { seqState.sessionMode = sessionPrev; seqHeaderAnnounce(sessionPrev ? 'Session' : 'Note'); });
             seqState.sessionMode = true;
             seqHeaderAnnounce('Session');
-        } else {
-            momentaryUp(d1);
+        } else if (momentaryUp(d1) === 'tap' && sessionPrev) {
+            seqState.sessionMode = false; // tap while already in Session → back to Note
+            seqHeaderAnnounce('Note');
         }
         return true;
     }

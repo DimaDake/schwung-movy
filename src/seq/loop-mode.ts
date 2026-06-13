@@ -12,7 +12,7 @@
 
 import { NUM_STEP_BUTTONS } from './constants.js';
 import { seqCmd, uiTick } from './engine.js';
-import { momentaryDown, momentaryUp } from './momentary.js';
+import { momentaryDown, momentaryGesture, momentaryUp } from './momentary.js';
 import { seqHeaderAnnounce, seqToast } from './render.js';
 import { clipBars, loopStartBar, seqState } from './state.js';
 
@@ -21,23 +21,28 @@ const DOUBLE_TAP_TICKS = 60; // ~0.3s at the ~196 Hz device rate
 const CC_LOOP_BTN = 58;
 
 let held = false;          // Loop button currently down
-let gestured = false;      // a wheel/step gesture happened during this hold
+let loopPrev = false;      // loopMode before the current press (tap/hold decision)
 const heldBars = new Set<number>();
 let lastTapBar = -1;
 let lastTapTick = -DOUBLE_TAP_TICKS;
 
-/* Loop button (CC 58): momentary (tap latches, hold peeks then returns). */
+/* Loop button (CC 58): momentary. Down shows the loop bars; a clean tap latches
+ * (or toggles back to Note if already in Loop); a hold or a wheel/bar gesture
+ * while held reverts to the prior view on release (so Loop+wheel resize keeps
+ * the bars visible and never permanently flips the mode). */
 export function loopButton(down: boolean): void {
     if (down) {
         held = true;
-        gestured = false;
-        const prev = seqState.loopMode;
-        momentaryDown(CC_LOOP_BTN, () => { seqState.loopMode = prev; seqHeaderAnnounce(prev ? 'Loop' : 'Note'); });
+        loopPrev = seqState.loopMode;
+        momentaryDown(CC_LOOP_BTN, () => { seqState.loopMode = loopPrev; seqHeaderAnnounce(loopPrev ? 'Loop' : 'Note'); });
         seqState.loopMode = true;
         seqHeaderAnnounce('Loop');
     } else {
         held = false;
-        momentaryUp(CC_LOOP_BTN);
+        if (momentaryUp(CC_LOOP_BTN) === 'tap' && loopPrev) {
+            seqState.loopMode = false; // tap while already in Loop → back to Note
+            seqHeaderAnnounce('Note');
+        }
     }
 }
 
@@ -49,7 +54,7 @@ export function loopHeld(): boolean {
  * current start. Returns true if consumed. */
 export function loopWheel(delta: number): boolean {
     if (!held) return false;
-    gestured = true;
+    momentaryGesture(); // resizing = modifier use; release reverts, never latches
     const start = loopStartBar();
     const bars = clipBars();
     const next = Math.max(1, Math.min(bars + (delta > 0 ? 1 : -1), MAX_BARS - start));
@@ -60,7 +65,7 @@ export function loopWheel(delta: number): boolean {
 /* Step press in Loop Mode = bar selection. */
 export function loopStepOn(bar: number): void {
     heldBars.add(bar);
-    gestured = true;
+    momentaryGesture(); // selecting/setting bars while Loop held = modifier use
     if (heldBars.size >= 2) {
         const bars = [...heldBars];
         setLoopBars(Math.min(...bars), Math.max(...bars));
@@ -104,7 +109,7 @@ export function doubleLoop(): void {
 
 export function resetLoopMode(): void {
     held = false;
-    gestured = false;
+    loopPrev = false;
     heldBars.clear();
     lastTapBar = -1;
     lastTapTick = -DOUBLE_TAP_TICKS;

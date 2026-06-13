@@ -803,17 +803,27 @@ _log('\nTest: drumPadOn');
     seqEngineTick();
     eq('Shift+Step15 doubles loop', engine.ops[engine.ops.length - 1], 'dbl 0');
 
-    // Hold Loop (>= HOLD_TICKS) exits Loop Mode on release (momentary peek).
-    // Simulate hold: reset momentary first, then use the At variants.
+    // Momentary semantics. resetMomentary + resetLoopMode so press state is clean.
     const { resetMomentary } = await import('../dist/esm/seq/momentary.js');
-    resetMomentary();
-    // Direct state set so the hold-exit restore closure captures false.
+    resetMomentary(); resetLoopMode();
+
+    // Clean tap from Note → latches Loop on.
     seqState.loopMode = false;
-    seqHandleMidi([0xB0, 58, 127], false); // down: prev=false, loopMode→true
-    seqState.loopMode = true; // ensure it's true
-    // After a quick tap, loop mode stays true (tap latches).
-    seqHandleMidi([0xB0, 58, 0], false);
-    eq('Loop tap does not exit (latches)', seqState.loopMode, true);
+    seqHandleMidi([0xB0, 58, 127], false); // down: loopPrev=false → loopMode=true
+    seqHandleMidi([0xB0, 58, 0], false);   // up: tap (0 ticks elapsed) → latch
+    eq('Loop tap from Note latches on', seqState.loopMode, true);
+
+    // Clean tap while already in Loop → toggles back to Note.
+    seqHandleMidi([0xB0, 58, 127], false); // down: loopPrev=true
+    seqHandleMidi([0xB0, 58, 0], false);   // up: tap → toggle off
+    eq('Loop tap while in Loop exits to Note', seqState.loopMode, false);
+
+    // Loop + wheel from Note: the gesture reverts on release (no latch).
+    seqState.loopMode = false;
+    seqHandleMidi([0xB0, 58, 127], false); // down: loopPrev=false → loopMode=true
+    seqHandleMidi([0xB0, 14, 1], false);   // wheel → momentaryGesture
+    seqHandleMidi([0xB0, 58, 0], false);   // up: gesture → revert to Note
+    eq('Loop+wheel from Note reverts', seqState.loopMode, false);
 
     uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetLoopMode();
 }
@@ -1496,7 +1506,7 @@ _log('\nTest: drumPadOn');
 /* ── momentary: tap vs hold ───────────────────────────────────────────────── */
 {
     _log('\nmomentary tap vs hold:');
-    const { momentaryDownAt, momentaryUpAt, resetMomentary } =
+    const { momentaryDownAt, momentaryUpAt, momentaryGesture, resetMomentary } =
         await import('../dist/esm/seq/momentary.js');
 
     let restored = 0;
@@ -1505,20 +1515,27 @@ _log('\nTest: drumPadOn');
     // Quick tap (< 28 ticks elapsed) → latch, restore NOT called.
     resetMomentary();
     momentaryDownAt(40, 100, restore);
-    momentaryUpAt(40, 110);          // 10 ticks → tap
+    eq('tap returns tap', momentaryUpAt(40, 110), 'tap'); // 10 ticks
     eq('tap does not restore', restored, 0);
 
-    // Hold (>= 28 ticks) → restore called.
+    // Hold (>= 28 ticks) → revert, restore called.
     resetMomentary();
     momentaryDownAt(40, 100, restore);
-    momentaryUpAt(40, 140);          // 40 ticks → hold
+    eq('hold returns revert', momentaryUpAt(40, 140), 'revert'); // 40 ticks
     eq('hold restores', restored, 1);
+
+    // Gesture while held → revert even on a quick release.
+    resetMomentary();
+    momentaryDownAt(40, 100, restore);
+    momentaryGesture();
+    eq('gesture returns revert', momentaryUpAt(40, 105), 'revert'); // 5 ticks
+    eq('gesture restores', restored, 2);
 
     // Up for a different button is ignored.
     resetMomentary();
     momentaryDownAt(40, 100, restore);
-    momentaryUpAt(58, 200);          // wrong button
-    eq('other-button up ignored', restored, 1);
+    eq('other-button up none', momentaryUpAt(58, 200), 'none');
+    eq('other-button up ignored', restored, 2);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

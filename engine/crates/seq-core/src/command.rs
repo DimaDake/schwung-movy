@@ -147,6 +147,34 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 engine.select_clip(t as usize, s.max(0) as usize);
             }
         }
+        // launch <t> <slot> — Session launch (or select-empty-stops).
+        "launch" => {
+            if let (Some(t), Some(s)) = (next(), next()) {
+                engine.launch_clip(t as usize, s.max(0) as usize);
+            }
+        }
+        // stoptrk <t> — stop a track's clip (quantized while running).
+        "stoptrk" => {
+            if let Some(t) = next() {
+                engine.stop_track(t as usize);
+            }
+        }
+        // Session clip copy/paste/delete by explicit slot.
+        "clipcopy" => {
+            if let (Some(t), Some(s)) = (next(), next()) {
+                engine.copy_clip(t as usize, s.max(0) as usize);
+            }
+        }
+        "clippaste" => {
+            if let (Some(t), Some(s)) = (next(), next()) {
+                engine.paste_clip(t as usize, s.max(0) as usize);
+            }
+        }
+        "clipdelat" => {
+            if let (Some(t), Some(s)) = (next(), next()) {
+                engine.delete_clip_at(t as usize, s.max(0) as usize);
+            }
+        }
         // cpy <t> <s0> <s1> ; pst <t> <destStep> ; cpyclr
         "cpy" => {
             if let (Some(t), Some(s0), Some(s1)) = (next(), next(), next()) {

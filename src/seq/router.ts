@@ -9,8 +9,8 @@
  * runs. */
 
 import {
-    CC_PLAY, CC_REC, CC_TRACK_END, CC_TRACK_START,
-    NUM_STEP_BUTTONS, STEP_NOTE_BASE,
+    CC_NOTE_SESSION, CC_PLAY, CC_REC, CC_TRACK_END, CC_TRACK_START,
+    NUM_STEP_BUTTONS, PAD_MAX, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
 import {
     copyActive, copyButton, copyMarkStep, deleteActive, deleteButton, deletePad,
@@ -25,6 +25,9 @@ import {
     editTranspose, editVelocity,
 } from './step-edit.js';
 import { seqToast } from './render.js';
+import {
+    sessionCopyButton, sessionDeleteButton, sessionPad, sessionToggle,
+} from './session.js';
 import {
     maxBarOffset, occHasStep, occToggleStep, seqState,
 } from './state.js';
@@ -51,6 +54,14 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     const statusType = data[0] & 0xF0;
     const d1 = data[1];
     const d2 = data[2];
+
+    /* Session mode owns the 32 pads as the clip grid. */
+    if (seqState.sessionMode
+        && (statusType === 0x90 || statusType === 0x80)
+        && d1 >= PAD_MIN && d1 <= PAD_MAX) {
+        if (statusType === 0x90 && d2 > 0) sessionPad(d1, PAD_MIN);
+        return true;
+    }
 
     /* Step buttons. A press registers a held range (for hold-step editing)
      * and, in the relevant mode, also drives note toggle / bar select. The
@@ -87,15 +98,22 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         return true;
     }
 
-    /* Copy: tap duplicates the clip; hold + step copies notes. */
-    if (d1 === CC_COPY) {
-        copyButton(d2 > 0);
+    /* Note/Session toggle. */
+    if (d1 === CC_NOTE_SESSION) {
+        if (d2 > 0) sessionToggle();
         return true;
     }
 
-    /* Delete: tap deletes the clip; hold + step/pad deletes notes. */
+    /* Copy/Delete: in Session mode they act on clips by pad; otherwise the
+     * Note-mode step/clip gestures (edit-ops). */
+    if (d1 === CC_COPY) {
+        if (seqState.sessionMode) sessionCopyButton(d2 > 0);
+        else copyButton(d2 > 0);
+        return true;
+    }
     if (d1 === CC_DELETE) {
-        deleteButton(d2 > 0);
+        if (seqState.sessionMode) sessionDeleteButton(d2 > 0);
+        else deleteButton(d2 > 0);
         return true;
     }
 

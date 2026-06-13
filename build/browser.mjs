@@ -26,6 +26,7 @@ await esbuild.build({
         resolve(root, 'src/seq/loop-mode.ts'),
         resolve(root, 'src/seq/step-edit.ts'),
         resolve(root, 'src/seq/edit-ops.ts'),
+        resolve(root, 'src/seq/session.ts'),
     ],
     bundle:    true,
     splitting: true,

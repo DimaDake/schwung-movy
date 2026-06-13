@@ -4,7 +4,8 @@
  * (davebox ui_leds pattern). */
 
 import { C_DARKGREY, C_GREEN, C_WHITE, trackColor, trackColorDim } from './colors.js';
-import { CC_PLAY, CC_REC, NUM_STEP_BUTTONS, STEP_NOTE_BASE } from './constants.js';
+import { CC_PLAY, CC_REC, NUM_STEP_BUTTONS, PAD_MIN, STEP_NOTE_BASE } from './constants.js';
+import { sessionPaintGrid } from './session.js';
 import { loopEndBar, loopStartBar, occHasStep, seqState } from './state.js';
 
 const C_RED = 1;        // BrightRed — recording
@@ -86,6 +87,10 @@ function paintTransport(): void {
 }
 
 export function seqLedsTick(): void {
+    // Session mode owns the 32-pad clip grid (cached).
+    if (seqState.sessionMode) {
+        sessionPaintGrid(cachedSetLED, PAD_MIN);
+    }
     if (seqState.loopMode) {
         paintLoopBars();
         paintTransport();

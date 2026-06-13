@@ -9,9 +9,16 @@ pub const CLIPS_PER_TRACK: usize = 8;
 #[derive(Debug, Clone)]
 pub struct Track {
     pub clips: Vec<Clip>,
-    /// Selected clip slot — the target of note entry/editing in Note mode.
+    /// Selected clip slot — the target of note entry/editing.
     pub active_clip: usize,
-    /// Position inside the active clip in ticks; valid while transport runs.
+    /// Slot currently playing (None = stopped). Distinct from `active_clip`
+    /// so Session mode can edit one clip while another plays.
+    pub playing_slot: Option<usize>,
+    /// Slot queued to launch at the next bar boundary.
+    pub queued_slot: Option<usize>,
+    /// Stop this track's clip at the next bar boundary.
+    pub pending_stop: bool,
+    /// Position inside the playing clip in ticks; valid while transport runs.
     pub pos_tick: u32,
     pub muted: bool,
 }
@@ -27,11 +34,15 @@ impl Track {
         Track {
             clips: (0..CLIPS_PER_TRACK).map(|_| Clip::new()).collect(),
             active_clip: 0,
+            playing_slot: None,
+            queued_slot: None,
+            pending_stop: false,
             pos_tick: 0,
             muted: false,
         }
     }
 
+    /// The selected clip (edit target).
     pub fn active(&self) -> &Clip {
         &self.clips[self.active_clip]
     }
@@ -41,7 +52,12 @@ impl Track {
         &mut self.clips[i]
     }
 
-    /// Current step index within the active clip (for the playhead LED).
+    /// The clip currently producing playback, if any.
+    pub fn playing(&self) -> Option<&Clip> {
+        self.playing_slot.map(|s| &self.clips[s])
+    }
+
+    /// Current step index within the playing clip (for the playhead LED).
     pub fn current_step(&self) -> u16 {
         (self.pos_tick / crate::TICKS_PER_STEP) as u16
     }

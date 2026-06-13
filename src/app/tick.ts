@@ -12,8 +12,9 @@ import { renderChainView }    from '../renderer/chain-view.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
 import { seqEngineTick } from '../seq/engine.js';
-import { seqLedsTick } from '../seq/leds.js';
+import { seqLedsTick, seqLedsInvalidate } from '../seq/leds.js';
 import { seqSetLane } from '../seq/router.js';
+import { seqState } from '../seq/state.js';
 import { drawSeqToast, seqToastActive, seqToastTick } from '../seq/render.js';
 
 const PAD_MIN        = MovePads[0];
@@ -21,11 +22,20 @@ const PAD_MAX        = MovePads[MovePads.length - 1];
 const LED_INIT_BATCH = 8;
 
 let lastToastShowing = false;
+let lastSessionMode = false;
 
 export function tick(): void {
     seqEngineTick();
+    /* Session toggle changes pad ownership: invalidate the seq LED cache and
+     * re-init the instrument pad LEDs when returning to Note mode. */
+    if (seqState.sessionMode !== lastSessionMode) {
+        lastSessionMode = seqState.sessionMode;
+        seqLedsInvalidate();
+        if (!seqState.sessionMode) { appState.initLedsDone = false; appState.initLedIndex = 0; }
+        appState.dirty = true;
+    }
     seqLedsTick();
-    if (!appState.initLedsDone) {
+    if (!appState.initLedsDone && !seqState.sessionMode) {
         const total = PAD_MAX - PAD_MIN + 1;
         const end   = Math.min(appState.initLedIndex + LED_INIT_BATCH, total);
         const base  = keyboardState.rootNote;
@@ -79,8 +89,9 @@ export function tick(): void {
         appState.dirty = false;
 
         /* ── Drum pad LEDs ──────────────────────────────────────────────────── */
+        /* In Session mode the clip grid owns the pads (painted by seqLedsTick). */
         const dvm       = activeModel?.getViewModel();
-        const drumNow   = (dvm?.drumPadCount ?? 0) > 0;
+        const drumNow   = !seqState.sessionMode && (dvm?.drumPadCount ?? 0) > 0;
         if (drumNow) {
             const drumCfg = activeModel!.getDrumConfig()!;
             for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {

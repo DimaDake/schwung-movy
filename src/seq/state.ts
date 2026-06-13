@@ -34,6 +34,21 @@ export interface SeqUiState {
     barOffset: number;       // which bar's 16 steps the step buttons show
     watchLane: number;       // drum-lane pitch shown on steps, or -1 = melodic
     fullVelocity: boolean;   // Shift+Step 10: force all pad notes to 127
+
+    /* session mode */
+    sessionMode: boolean;        // pads show the clip grid
+    session: SessionTrack[];     // 4 tracks of clip-slot state (from status)
+}
+
+export interface SessionTrack {
+    exist: number;    // bitmap: bit s set = slot s has a clip
+    playing: number;  // playing slot, or -1
+    queued: number;   // queued slot, or -1
+    selected: number; // selected slot
+}
+
+function emptySession(): SessionTrack[] {
+    return [0, 1, 2, 3].map(() => ({ exist: 0, playing: -1, queued: -1, selected: 0 }));
 }
 
 function defaults(): SeqUiState {
@@ -56,7 +71,25 @@ function defaults(): SeqUiState {
         barOffset: 0,
         watchLane: -1,
         fullVelocity: false,
+        sessionMode: false,
+        session: emptySession(),
     };
+}
+
+/* Parse the engine's `sess=` value: tracks joined by ',', each `EE.P.Q.S`
+ * (exist hex, playing/queued/selected slot or '-'). */
+export function sessionFromStr(s: string): void {
+    const groups = s.split(',');
+    for (let t = 0; t < 4; t++) {
+        const g = (groups[t] ?? '').split('.');
+        const slot = (v: string) => (v === '-' || v === undefined ? -1 : Number(v));
+        seqState.session[t] = {
+            exist: parseInt(g[0] ?? '0', 16) || 0,
+            playing: slot(g[1]),
+            queued: slot(g[2]),
+            selected: g[3] === undefined ? 0 : Number(g[3]) || 0,
+        };
+    }
 }
 
 /* Number of bars in the watched clip, with one extra empty bar available to

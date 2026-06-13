@@ -1067,6 +1067,95 @@ _log('\nTest: drumPadOn');
     uninstallMockEngine(); reset();
 }
 
+/* ── seq session mode: grid, launch/stop, copy/delete clips ──────────────── */
+{
+    _log('\nseq session mode:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi } = await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState, sessionFromStr } = await import('../dist/esm/seq/state.js');
+    const { resetSession } = await import('../dist/esm/seq/session.js');
+    const { resetSeqToast } = await import('../dist/esm/seq/render.js');
+
+    const engine = installMockEngine();
+    const reset = () => { resetSeqEngine(); resetSeqState(); resetSession(); resetSeqToast(); engine.reset(); };
+    const lastOp = () => engine.ops[engine.ops.length - 1];
+    reset(); seqEngineTick();
+
+    // Note/Session toggle.
+    seqHandleMidi([0xB0, 50, 127], false);
+    eq('Note/Session enters session', seqState.sessionMode, true);
+
+    // Pad grid mapping: top-left pad (note 92) = track 0, slot 0.
+    seqHandleMidi([0x90, 92, 127], false);
+    seqEngineTick();
+    eq('top-left pad → launch track 0 slot 0', lastOp(), 'launch 0 0');
+    eq('launch retargets watch track', seqState.watchTrack, 0);
+    // Bottom-left pad (note 68) = track 3, slot 0.
+    seqHandleMidi([0x90, 68, 127], false);
+    seqEngineTick();
+    eq('bottom-left pad → track 3 slot 0', lastOp(), 'launch 3 0');
+    // One column right on the top row (note 93) = track 0, slot 1.
+    seqHandleMidi([0x90, 93, 127], false);
+    seqEngineTick();
+    eq('column maps to slot', lastOp(), 'launch 0 1');
+
+    // Pads are claimed in session mode (not played as notes).
+    eq('session pad note-on claimed', seqHandleMidi([0x90, 80, 100], false), true);
+    eq('session pad note-off claimed', seqHandleMidi([0x80, 80, 0], false), true);
+
+    // Delete + pad → delete that clip.
+    reset(); seqEngineTick(); seqState.sessionMode = true;
+    seqHandleMidi([0xB0, 119, 127], false);   // Delete down
+    seqHandleMidi([0x90, 92, 127], false);    // track 0 slot 0
+    seqEngineTick();
+    eq('Delete+pad clears the clip', lastOp(), 'clipdelat 0 0');
+    seqHandleMidi([0xB0, 119, 0], false);
+
+    // Copy + src pad, release, dest pad → clip copy/paste.
+    reset(); seqEngineTick(); seqState.sessionMode = true;
+    seqHandleMidi([0xB0, 60, 127], false);    // Copy down
+    seqHandleMidi([0x90, 92, 127], false);    // src = track 0 slot 0
+    seqHandleMidi([0xB0, 60, 0], false);      // release → copy
+    seqEngineTick();
+    eq('clip copy op', lastOp(), 'clipcopy 0 0');
+    seqHandleMidi([0x90, 93, 127], false);    // dest = track 0 slot 1
+    seqEngineTick();
+    eq('clip paste op', lastOp(), 'clippaste 0 1');
+
+    // Status `sess=` populates the grid mirror.
+    sessionFromStr('03.0.-.0,00.-.-.0,00.-.-.0,00.-.-.0');
+    eq('session exist bitmap parsed', seqState.session[0].exist, 0x03);
+    eq('session playing slot parsed', seqState.session[0].playing, 0);
+    eq('session no-queue parsed as -1', seqState.session[0].queued, -1);
+
+    uninstallMockEngine(); reset();
+}
+
+/* ── seq session LEDs: clip grid colors ──────────────────────────────────── */
+{
+    _log('\nseq session LEDs:');
+    const { sessionPaintGrid, resetSession } = await import('../dist/esm/seq/session.js');
+    const { seqState, resetSeqState, sessionFromStr } = await import('../dist/esm/seq/state.js');
+    const { C_WHITE, C_BLACK, trackColor } = await import('../dist/esm/seq/colors.js');
+
+    resetSeqState(); resetSession();
+    seqState.engineTick = 0; // pulse phase ON
+    // track 0: slot0 exists+playing+selected; slot1 exists; track3: nothing.
+    sessionFromStr('03.0.-.0,00.-.-.0,00.-.-.0,00.-.-.0');
+
+    const calls = {};
+    sessionPaintGrid((note, color) => { calls[note] = color; }, 68);
+    // top row = track 0: note 92 = slot 0, note 93 = slot 1.
+    eq('playing+selected clip pulses white', calls[92], C_WHITE);
+    eq('existing (non-selected) clip = track color', calls[93], trackColor(0));
+    eq('empty slot dark', calls[94], C_BLACK);
+    // bottom row = track 3, all empty/dark.
+    eq('empty track dark', calls[68], C_BLACK);
+
+    resetSeqState(); resetSession();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

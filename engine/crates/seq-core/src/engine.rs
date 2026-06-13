@@ -41,6 +41,8 @@ pub struct Engine {
     /// Note clipboard for copy/paste of steps and ranges, across tracks and
     /// clips. Ticks/steps are stored relative to the copy start.
     clipboard: Vec<ClipboardNote>,
+    /// Whole-clip clipboard for Session copy/paste.
+    clip_clipboard: Option<Clip>,
     /// Recording state (live capture into the active clip).
     pub recording: bool,
     rec_track: usize,
@@ -72,6 +74,7 @@ impl Engine {
             watch_track: 0,
             watch_lane: None,
             clipboard: Vec::new(),
+            clip_clipboard: None,
             recording: false,
             rec_track: 0,
             count_in_left: 0,
@@ -112,6 +115,31 @@ impl Engine {
     pub fn delete_clip(&mut self, track: usize) {
         if track < NUM_TRACKS {
             self.tracks[track].active_mut().clear();
+        }
+    }
+
+    /// Delete a specific clip slot (Session: hold Delete + clip pad).
+    pub fn delete_clip_at(&mut self, track: usize, slot: usize) {
+        if track < NUM_TRACKS && slot < CLIPS_PER_TRACK {
+            self.tracks[track].clips[slot].clear();
+        }
+    }
+
+    /// Copy a whole clip to the clip clipboard (Session Copy).
+    pub fn copy_clip(&mut self, track: usize, slot: usize) {
+        if track < NUM_TRACKS && slot < CLIPS_PER_TRACK {
+            self.clip_clipboard = Some(self.tracks[track].clips[slot].clone());
+        }
+    }
+
+    /// Paste the clip clipboard into a slot (overwrites) and select it.
+    pub fn paste_clip(&mut self, track: usize, slot: usize) {
+        if track >= NUM_TRACKS || slot >= CLIPS_PER_TRACK {
+            return;
+        }
+        if let Some(c) = self.clip_clipboard.clone() {
+            self.tracks[track].clips[slot] = c;
+            self.tracks[track].active_clip = slot;
         }
     }
 
@@ -175,14 +203,71 @@ impl Engine {
         self.tracks[self.watch_track].active()
     }
 
-    /// Start transport: native Move restarts clips from the loop start.
-    pub fn play(&mut self) {
+    /// Flip transport on and reset the clock, seeding each track's playhead
+    /// to its playing clip's loop start. Leaves playing_slot selections
+    /// untouched (used by both Play and Session launch).
+    fn start_transport(&mut self) {
         for t in &mut self.tracks {
-            t.pos_tick = t.active().loop_start_ticks();
+            let start = t.playing().map_or(0, |c| c.loop_start_ticks());
+            t.pos_tick = start;
         }
         self.clock.reset();
         self.master_tick = 0;
         self.playing = true;
+    }
+
+    /// Play button / auto-start: every track plays its selected clip (native
+    /// "Play starts all selected clips"), restarting from the loop start.
+    pub fn play(&mut self) {
+        for t in &mut self.tracks {
+            t.playing_slot = if t.active().exists() {
+                Some(t.active_clip)
+            } else {
+                None
+            };
+            t.queued_slot = None;
+            t.pending_stop = false;
+        }
+        self.start_transport();
+    }
+
+    /// Session launch / empty-slot select. Always selects the slot. An
+    /// existing clip launches (queued to the next bar while running, immediate
+    /// + transport start when stopped); an empty slot stops the track (native:
+    /// selecting an empty slot stops the playing clip).
+    pub fn launch_clip(&mut self, track: usize, slot: usize) {
+        if track >= NUM_TRACKS || slot >= CLIPS_PER_TRACK {
+            return;
+        }
+        self.tracks[track].active_clip = slot;
+        let exists = self.tracks[track].clips[slot].exists();
+        if self.playing {
+            if exists {
+                self.tracks[track].queued_slot = Some(slot);
+                self.tracks[track].pending_stop = false;
+            } else {
+                self.tracks[track].pending_stop = true;
+                self.tracks[track].queued_slot = None;
+            }
+        } else if exists {
+            self.tracks[track].playing_slot = Some(slot);
+            self.start_transport();
+        } else {
+            self.tracks[track].playing_slot = None;
+        }
+    }
+
+    /// Stop a track's clip — at the next bar while running, immediately when
+    /// stopped (used when pressing an empty slot in Session mode).
+    pub fn stop_track(&mut self, track: usize) {
+        if track >= NUM_TRACKS {
+            return;
+        }
+        if self.playing {
+            self.tracks[track].pending_stop = true;
+        } else {
+            self.tracks[track].playing_slot = None;
+        }
     }
 
     /// Stop transport and release everything still sounding. Ends recording.
@@ -288,11 +373,27 @@ impl Engine {
     }
 
     fn service_tick(&mut self, out: &mut Vec<OutEvent>) {
-        // Metronome / count-in click on beat boundaries (PPQN = one beat).
-        if (self.count_in_left > 0 || self.metronome) && self.master_tick % PPQN as u64 == 0 {
+        // Bar boundary: metronome click + resolve queued launches / stops
+        // (1-bar launch quantization).
+        if self.master_tick % PPQN as u64 == 0
+            && (self.count_in_left > 0 || self.metronome)
+        {
             out.push(OutEvent::Click {
                 accent: self.master_tick % (PPQN as u64 * 4) == 0,
             });
+        }
+        if self.master_tick % crate::TICKS_PER_BAR as u64 == 0 {
+            for t in &mut self.tracks {
+                if let Some(slot) = t.queued_slot.take() {
+                    t.playing_slot = Some(slot);
+                    t.active_clip = slot;
+                    t.pos_tick = t.clips[slot].loop_start_ticks();
+                }
+                if t.pending_stop {
+                    t.pending_stop = false;
+                    t.playing_slot = None;
+                }
+            }
         }
         self.master_tick += 1;
         // Count-in elapses → capture begins.
@@ -319,23 +420,21 @@ impl Engine {
         }
 
         for ti in 0..NUM_TRACKS {
-            let muted = self.tracks[ti].muted;
-            let clip = self.tracks[ti].active();
-            if !clip.exists() {
+            let Some(slot) = self.tracks[ti].playing_slot else {
+                continue;
+            };
+            if !self.tracks[ti].clips[slot].exists() {
                 continue;
             }
+            let muted = self.tracks[ti].muted;
             let pos = self.tracks[ti].pos_tick;
             if !muted {
-                let len = self.tracks[ti].active().notes.len();
+                let len = self.tracks[ti].clips[slot].notes.len();
                 for ni in 0..len {
-                    let n = self.tracks[ti].active().notes[ni];
+                    let n = self.tracks[ti].clips[slot].notes[ni];
                     // Skip notes just recorded this pass (suppress_until_wrap).
                     if n.tick == pos && !n.suppress {
-                        out.push(OutEvent::NoteOn {
-                            track: ti as u8,
-                            pitch: n.pitch,
-                            vel: n.vel,
-                        });
+                        out.push(OutEvent::NoteOn { track: ti as u8, pitch: n.pitch, vel: n.vel });
                         self.gates.push(Gate {
                             track: ti as u8,
                             pitch: n.pitch,
@@ -348,19 +447,18 @@ impl Engine {
             // wrap, recorded notes become audible for the next pass. While
             // recording into this track, the clip extends bar-by-bar (up to
             // 16) instead of wrapping — native "length extends until stop".
-            let start = self.tracks[ti].active().loop_start_ticks();
-            let end = self.tracks[ti].active().loop_end_ticks();
+            let start = self.tracks[ti].clips[slot].loop_start_ticks();
+            let end = self.tracks[ti].clips[slot].loop_end_ticks();
             let recording_here = self.recording && ti == self.rec_track;
-            let t = &mut self.tracks[ti];
-            t.pos_tick += 1;
-            if t.pos_tick >= end {
-                let bar = crate::STEPS_PER_BAR as u16;
-                let clip = t.active_mut();
-                if recording_here && clip.loop_start_steps + clip.length_steps + bar <= crate::clip::MAX_STEPS {
-                    clip.set_loop(clip.loop_start_steps, clip.length_steps + bar);
+            let bar = crate::STEPS_PER_BAR as u16;
+            self.tracks[ti].pos_tick += 1;
+            if self.tracks[ti].pos_tick >= end {
+                let c = &mut self.tracks[ti].clips[slot];
+                if recording_here && c.loop_start_steps + c.length_steps + bar <= crate::clip::MAX_STEPS {
+                    c.set_loop(c.loop_start_steps, c.length_steps + bar);
                 } else {
-                    t.pos_tick = start;
-                    t.active_mut().release_suppressed();
+                    self.tracks[ti].pos_tick = start;
+                    self.tracks[ti].clips[slot].release_suppressed();
                 }
             }
         }
@@ -372,7 +470,7 @@ impl Engine {
         let wt = &self.tracks[self.watch_track];
         let clip = wt.active();
         format!(
-            "play={} tick={} bpm={} trk={} step={} len={} lstart={} rec={} cin={} metro={} occ={}",
+            "play={} tick={} bpm={} trk={} step={} len={} lstart={} rec={} cin={} metro={} sess={} occ={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -383,8 +481,36 @@ impl Engine {
             self.recording as u8,
             (self.count_in_left > 0) as u8,
             self.metronome as u8,
+            self.session_state(),
             clip.occupancy_hex_lane(self.watch_lane)
         )
+    }
+
+    /// Per-track Session grid state for the UI: tracks joined by ',', each
+    /// `EE.P.Q.S` — EE = 2-hex bitmap of occupied slots, P/Q/S = playing /
+    /// queued / selected slot (digit, or '-' for none).
+    fn session_state(&self) -> String {
+        let slot = |o: Option<usize>| o.map_or('-', |s| (b'0' + s as u8) as char);
+        let mut out = String::with_capacity(40);
+        for (i, t) in self.tracks.iter().enumerate() {
+            if i > 0 {
+                out.push(',');
+            }
+            let mut exist = 0u8;
+            for (s, c) in t.clips.iter().enumerate() {
+                if c.exists() {
+                    exist |= 1 << s;
+                }
+            }
+            out.push_str(&format!(
+                "{:02x}.{}.{}.{}",
+                exist,
+                slot(t.playing_slot),
+                slot(t.queued_slot),
+                (b'0' + t.active_clip as u8) as char
+            ));
+        }
+        out
     }
 }
 
@@ -572,6 +698,64 @@ mod tests {
 
     fn apply_quant(e: &mut Engine, _out: &mut Vec<OutEvent>) {
         e.quantize_active(0);
+    }
+
+    #[test]
+    fn launch_when_stopped_is_immediate() {
+        let mut e = engine();
+        e.tracks[1].clips[2].toggle_step(0, &[(60, 100)]);
+        e.launch_clip(1, 2);
+        assert!(e.playing);
+        assert_eq!(e.tracks[1].playing_slot, Some(2));
+        assert_eq!(e.tracks[1].active_clip, 2);
+        // Only track 1 plays; others stay silent.
+        assert_eq!(e.tracks[0].playing_slot, None);
+        let ev = run_ticks(&mut e, 2);
+        assert!(ev.contains(&OutEvent::NoteOn { track: 1, pitch: 60, vel: 100 }));
+    }
+
+    #[test]
+    fn launch_while_running_is_bar_quantized() {
+        let mut e = engine();
+        e.tracks[0].clips[0].toggle_step(0, &[(60, 100)]);
+        e.tracks[0].clips[3].toggle_step(0, &[(67, 100)]);
+        e.launch_clip(0, 0); // immediate (stopped)
+        // Queue clip 3 mid-bar; it must not switch until the next bar.
+        run_ticks(&mut e, TICKS_PER_STEP as u64 * 2);
+        e.launch_clip(0, 3);
+        assert_eq!(e.tracks[0].playing_slot, Some(0));
+        assert_eq!(e.tracks[0].queued_slot, Some(3));
+        // Advance to the next bar boundary → clip 3 takes over.
+        run_ticks(&mut e, crate::TICKS_PER_BAR as u64);
+        assert_eq!(e.tracks[0].playing_slot, Some(3));
+        assert_eq!(e.tracks[0].queued_slot, None);
+    }
+
+    #[test]
+    fn empty_slot_selects_and_stops_track() {
+        let mut e = engine();
+        e.tracks[2].clips[0].toggle_step(0, &[(60, 100)]);
+        e.launch_clip(2, 0);
+        run_ticks(&mut e, 4);
+        // Select an empty slot 5: selects it and stops the track at next bar.
+        e.launch_clip(2, 5);
+        assert_eq!(e.tracks[2].active_clip, 5);
+        assert!(e.tracks[2].pending_stop);
+        run_ticks(&mut e, crate::TICKS_PER_BAR as u64);
+        assert_eq!(e.tracks[2].playing_slot, None);
+    }
+
+    #[test]
+    fn session_status_reports_grid() {
+        let mut e = engine();
+        e.tracks[0].clips[0].toggle_step(0, &[(60, 100)]);
+        e.tracks[0].clips[1].toggle_step(0, &[(62, 100)]);
+        e.launch_clip(0, 0);
+        let s = e.status();
+        let sess = s.split("sess=").nth(1).unwrap().split(' ').next().unwrap();
+        let t0 = sess.split(',').next().unwrap();
+        // slots 0 and 1 exist → bitmap 0x03; playing 0; queued -; selected 0.
+        assert_eq!(t0, "03.0.-.0");
     }
 
     #[test]

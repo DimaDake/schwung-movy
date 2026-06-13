@@ -107,6 +107,20 @@ python3 "$INJECT" "$HOST" cc 86 127      # Rec again → stop recording
 python3 "$INJECT" "$HOST" cc 86 0
 sleep 0.5
 
+info "Session mode: toggle (CC 50), launch a clip pad, toggle back..."
+python3 "$INJECT" "$HOST" cc 50 127      # Note/Session toggle → session
+python3 "$INJECT" "$HOST" cc 50 0
+sleep 0.3
+python3 "$INJECT" "$HOST" note_on 92 127 # top-left clip pad = track 0 slot 0
+python3 "$INJECT" "$HOST" note_off 92
+sleep 0.5
+python3 "$INJECT" "$HOST" note_on 68 127 # bottom-left = track 3 slot 0 (empty → stop)
+python3 "$INJECT" "$HOST" note_off 68
+sleep 0.5
+python3 "$INJECT" "$HOST" cc 50 127      # back to Note mode
+python3 "$INJECT" "$HOST" cc 50 0
+sleep 0.5
+
 LOG=$(ssh "ableton@$HOST" 'grep -E "\[movy\]|movy-dsp" /data/UserData/schwung/debug.log 2>/dev/null || true')
 echo ""
 echo -e "${BLD}=== Seq log ===${RST}"

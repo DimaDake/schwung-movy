@@ -221,6 +221,82 @@ impl Clip {
     pub fn occupancy_hex(&self) -> String {
         self.occupancy_hex_lane(None)
     }
+
+    // ── Step / note property editing (hold-step gestures, manual §11) ──────
+    // All operate on notes whose step anchor is in the inclusive range
+    // [s0, s1]; a single step uses s0 == s1, a whole bar uses the 16-step
+    // range. `lane` (Some(pitch)) restricts the edit to a drum lane.
+
+    fn note_matches(n: &Note, s0: u16, s1: u16, lane: Option<u8>) -> bool {
+        n.step >= s0 && n.step <= s1 && lane.map_or(true, |p| n.pitch == p)
+    }
+
+    pub fn adjust_velocity(&mut self, s0: u16, s1: u16, lane: Option<u8>, delta: i32) {
+        for n in &mut self.notes {
+            if Clip::note_matches(n, s0, s1, lane) {
+                n.vel = (n.vel as i32 + delta).clamp(1, 127) as u8;
+            }
+        }
+    }
+
+    pub fn transpose(&mut self, s0: u16, s1: u16, lane: Option<u8>, semitones: i32) {
+        for n in &mut self.notes {
+            if Clip::note_matches(n, s0, s1, lane) {
+                n.pitch = (n.pitch as i32 + semitones).clamp(0, 127) as u8;
+            }
+        }
+    }
+
+    /// Lengthen/shorten gates, capped so a note never overruns the next note
+    /// of the same pitch (native rule), and never past the clip end.
+    pub fn adjust_length(&mut self, s0: u16, s1: u16, lane: Option<u8>, delta: i32) {
+        let clip_end = self.length_ticks();
+        // Snapshot (tick,pitch) so the cap can scan without borrow conflicts.
+        let others: Vec<(u32, u8)> = self.notes.iter().map(|n| (n.tick, n.pitch)).collect();
+        for n in &mut self.notes {
+            if !Clip::note_matches(n, s0, s1, lane) {
+                continue;
+            }
+            let mut cap = clip_end.saturating_sub(n.tick);
+            for &(t, p) in &others {
+                if p == n.pitch && t > n.tick {
+                    cap = cap.min(t - n.tick);
+                }
+            }
+            let g = (n.gate as i32 + delta).clamp(1, cap.max(1) as i32);
+            n.gate = g as u32;
+        }
+    }
+
+    /// Add `pitch` to every step in [s0, s1] that doesn't already have it
+    /// (Loop Mode "add a note to every step in a bar"). Returns added count.
+    pub fn add_pitch_range(&mut self, s0: u16, s1: u16, pitch: u8, vel: u8) -> usize {
+        let mut added = 0;
+        for step in s0..=s1.min(MAX_STEPS - 1) {
+            let present = self.notes.iter().any(|n| n.step == step && n.pitch == pitch);
+            if !present {
+                self.push_note(step, pitch, vel);
+                added += 1;
+            }
+        }
+        added
+    }
+
+    /// Sub-step nudge: shift a note's tick within ±one step of its anchor,
+    /// keeping the step anchor fixed (davebox note-offset model — the LED and
+    /// the audible position never diverge). Clamped to the clip bounds.
+    pub fn nudge(&mut self, s0: u16, s1: u16, lane: Option<u8>, delta: i32) {
+        let clip_end = self.length_ticks();
+        for n in &mut self.notes {
+            if !Clip::note_matches(n, s0, s1, lane) {
+                continue;
+            }
+            let anchor = n.step as i32 * TICKS_PER_STEP as i32;
+            let lo = (anchor - TICKS_PER_STEP as i32).max(0);
+            let hi = (anchor + TICKS_PER_STEP as i32).min(clip_end.saturating_sub(1) as i32);
+            n.tick = (n.tick as i32 + delta).clamp(lo, hi) as u32;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -342,6 +418,59 @@ mod tests {
         assert_eq!(c.length_steps, 16 * STEPS_PER_BAR as u16);
         c.double_loop(); // would be 32 bars → refused
         assert_eq!(c.length_steps, 16 * STEPS_PER_BAR as u16);
+    }
+
+    #[test]
+    fn adjust_velocity_clamps() {
+        let mut c = Clip::new();
+        c.toggle_step(0, &[(60, 100)]);
+        c.adjust_velocity(0, 0, None, 20);
+        assert_eq!(c.notes[0].vel, 120);
+        c.adjust_velocity(0, 0, None, 50); // clamp to 127
+        assert_eq!(c.notes[0].vel, 127);
+        c.adjust_velocity(0, 0, None, -200); // clamp to 1
+        assert_eq!(c.notes[0].vel, 1);
+    }
+
+    #[test]
+    fn transpose_shifts_pitch() {
+        let mut c = Clip::new();
+        c.toggle_step(0, &[(60, 100)]);
+        c.transpose(0, 0, None, 12);
+        assert_eq!(c.notes[0].pitch, 72);
+    }
+
+    #[test]
+    fn adjust_length_caps_at_next_same_pitch() {
+        let mut c = Clip::new();
+        c.toggle_step(0, &[(60, 100)]);   // gate = TICKS_PER_STEP (24)
+        c.toggle_step(2, &[(60, 100)]);   // same pitch two steps later
+        c.adjust_length(0, 0, None, 1000); // try to grow hugely
+        // Capped to reach (not pass) the next C at tick 48.
+        let first = c.notes.iter().find(|n| n.tick == 0).unwrap();
+        assert_eq!(first.gate, 2 * TICKS_PER_STEP);
+    }
+
+    #[test]
+    fn nudge_keeps_step_anchor() {
+        let mut c = Clip::new();
+        c.toggle_step(4, &[(60, 100)]);
+        let anchor = c.notes[0].step;
+        c.nudge(4, 4, None, 5);
+        assert_eq!(c.notes[0].step, anchor); // anchor unchanged
+        assert_eq!(c.notes[0].tick, 4 * TICKS_PER_STEP + 5);
+        // Can't nudge beyond ±one step from the anchor.
+        c.nudge(4, 4, None, 1000);
+        assert!(c.notes[0].tick <= 5 * TICKS_PER_STEP);
+    }
+
+    #[test]
+    fn range_edits_cover_a_bar() {
+        let mut c = Clip::new();
+        c.toggle_step(0, &[(60, 50)]);
+        c.toggle_step(8, &[(62, 50)]);
+        c.adjust_velocity(0, 15, None, 10); // whole bar
+        assert!(c.notes.iter().all(|n| n.vel == 60));
     }
 
     #[test]

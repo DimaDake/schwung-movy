@@ -540,91 +540,92 @@ _log('\nTest: drumPadOn');
     const engine = installMockEngine();
     resetSeqEngine(); resetSeqState(); resetSeqToast();
     seqEngineTick(); // boot probe → ready
+    const lastOp = () => engine.ops[engine.ops.length - 1];
+    /* A tap = press then release; the note toggle fires on release. */
+    const tapStep = (button) => {
+        seqHandleMidi([0x90, 16 + button, 127], false);
+        seqHandleMidi([0x80, 16 + button, 0], false);
+    };
 
-    eq('pad note not claimed', seqHandleMidi([0x90, 68, 100]), false);
-    eq('knob CC not claimed', seqHandleMidi([0xB0, 71, 65]), false);
+    eq('pad note not claimed', seqHandleMidi([0x90, 68, 100], false), false);
+    eq('knob CC not claimed', seqHandleMidi([0xB0, 71, 65], false), false);
 
     // Pad play (padNote 80 → midiNote 72) sets the step-entry pitch + holds it.
     seqNotePadPlayed(0, 80, 72, 110);
     eq('pad play recorded as step-entry pitch', seqState.lastPitch[0], 72);
 
-    // Step press while a pad is held places that note (chord-of-one).
-    eq('step note claimed', seqHandleMidi([0x90, 16, 127]), true);
+    // Tap step while a pad is held → places that note; toggles on release.
+    eq('step note claimed', seqHandleMidi([0x90, 16, 127], false), true);
+    seqHandleMidi([0x80, 16, 0], false);
     eq('optimistic occ set', occHasStep(0), true);
     eq('optimistic clip created (1 bar)', seqState.lenSteps, 16);
     eq('optimistic auto-start', seqState.playing, true);
     seqEngineTick();
-    eq('tog cmd emitted', engine.ops[engine.ops.length - 1], 'tog 0 0 72 110');
+    eq('tog cmd emitted', lastOp(), 'tog 0 0 72 110');
 
     // Two held pads → chord placed in one tog op.
     seqState.playing = false;
     seqNotePadPlayed(0, 81, 74, 100);   // held: 72 and 74
-    seqHandleMidi([0x90, 21, 127]);     // step 6
+    tapStep(5);                          // step 5
     seqEngineTick();
-    eq('chord tog emits both pitches', engine.ops[engine.ops.length - 1], 'tog 0 5 72 100 74 100');
+    eq('chord tog emits both pitches', lastOp(), 'tog 0 5 72 100 74 100');
 
     // Releasing pads → next step uses the last-played note only.
     seqNotePadReleased(80); seqNotePadReleased(81);
     seqNotePadPlayed(0, 80, 67, 90);
-    seqHandleMidi([0x90, 17, 127]);     // step 1
+    seqNotePadReleased(80);              // pad released before the step tap
+    tapStep(1);                          // step 1
     seqEngineTick();
-    eq('after release, single note placed', engine.ops[engine.ops.length - 1], 'tog 0 1 67 90');
-    seqNotePadReleased(80);
+    eq('after release, single note placed', lastOp(), 'tog 0 1 67 90');
 
-    // Step note-off is consumed silently.
-    const opsBefore = engine.ops.length;
-    eq('step note-off claimed', seqHandleMidi([0x80, 16, 0]), true);
-    seqEngineTick();
-    eq('step note-off emits nothing', engine.ops.length, opsBefore);
-
-    // Drum-lane mode: seqSetLane(38) → wlane, and step uses ltog.
+    // Drum-lane mode: seqSetLane(38) → wlane, and a step tap uses ltog.
     seqSetLane(38);
     seqEngineTick();
-    eq('wlane cmd emitted', engine.ops[engine.ops.length - 1], 'wlane 38');
-    seqHandleMidi([0x90, 16, 127]);     // step 0 in lane
+    eq('wlane cmd emitted', lastOp(), 'wlane 38');
+    tapStep(0);
     seqEngineTick();
-    eq('drum lane uses ltog', engine.ops[engine.ops.length - 1], 'ltog 0 0 38 90');
+    eq('drum lane uses ltog', lastOp(), 'ltog 0 0 38 90');
     seqSetLane(-1);
     seqEngineTick();
-    eq('melodic lane -1', engine.ops[engine.ops.length - 1], 'wlane -1');
+    eq('melodic lane -1', lastOp(), 'wlane -1');
 
     // Bar navigation: Right advances the visible bar (clip is 1 bar long, so
     // one extra empty bar is reachable), with a toast; clamps at the end.
     resetSeqState(); resetSeqToast();
     seqState.lenSteps = 16; // one bar
-    eq('Right arrow claimed (engine ready)', seqHandleMidi([0xB0, 63, 127]), true);
+    eq('Right arrow claimed (engine ready)', seqHandleMidi([0xB0, 63, 127], false), true);
     eq('barOffset advanced to 1', seqState.barOffset, 1);
     eq('bar toast shown', seqToastActive(), true);
-    seqHandleMidi([0xB0, 63, 127]);     // clamp: max is 1 for a 1-bar clip
+    seqHandleMidi([0xB0, 63, 127], false);     // clamp: max is 1 for a 1-bar clip
     eq('barOffset clamped', seqState.barOffset, 1);
-    seqHandleMidi([0xB0, 62, 127]);     // Left
+    seqHandleMidi([0xB0, 62, 127], false);     // Left
     eq('Left arrow returns to bar 0', seqState.barOffset, 0);
-    // Step press on bar 1 targets absolute step 16.
+    // Step tap on bar 1 targets absolute step 16.
     seqState.barOffset = 1;
-    seqNotePadPlayed(0, 80, 60, 100);
-    seqHandleMidi([0x90, 16, 127]);
+    seqNotePadPlayed(0, 80, 60, 100); seqNotePadReleased(80);
+    tapStep(0);
     seqEngineTick();
-    eq('bar offset maps to absolute step', engine.ops[engine.ops.length - 1], 'tog 0 16 60 100');
+    eq('bar offset maps to absolute step', lastOp(), 'tog 0 16 60 100');
 
     // Play toggles transport based on the mirror.
     resetSeqState();
-    eq('Play CC claimed', seqHandleMidi([0xB0, 85, 127]), true);
+    eq('Play CC claimed', seqHandleMidi([0xB0, 85, 127], false), true);
     seqEngineTick();
-    eq('play cmd emitted', engine.ops[engine.ops.length - 1], 'play');
+    eq('play cmd emitted', lastOp(), 'play');
     eq('optimistic play mirror', seqState.playing, true);
-    seqHandleMidi([0xB0, 85, 127]);
+    seqHandleMidi([0xB0, 85, 127], false);
     seqEngineTick();
-    eq('second press emits stop', engine.ops[engine.ops.length - 1], 'stop');
+    eq('second press emits stop', lastOp(), 'stop');
 
     // Track buttons: watch retarget without claiming the event.
-    eq('track button NOT claimed', seqHandleMidi([0xB0, 41, 127]), false);
+    eq('track button NOT claimed', seqHandleMidi([0xB0, 41, 127], false), false);
     seqEngineTick();
-    eq('watch cmd emitted for track 2', engine.ops[engine.ops.length - 1], 'watch 2');
+    eq('watch cmd emitted for track 2', lastOp(), 'watch 2');
     eq('watchTrack mirrored', seqState.watchTrack, 2);
 
     // Arrows fall through to existing nav when the engine is NOT ready.
     uninstallMockEngine(); resetSeqEngine(); resetSeqState();
-    eq('Right arrow NOT claimed without engine', seqHandleMidi([0xB0, 63, 127]), false);
+    eq('Right arrow NOT claimed without engine', seqHandleMidi([0xB0, 63, 127], false), false);
 
     engine.reset(); resetSeqEngine(); resetSeqState(); resetSeqToast();
 }
@@ -739,11 +740,13 @@ _log('\nTest: drumPadOn');
     seqHandleMidi([0x90, 25, 127], true);
     eq('full velocity toggled off', seqState.fullVelocity, false);
 
-    // A bare step press (no shift) still toggles a note, not the flag.
+    // A bare step press+release (no shift) toggles a note, not the flag.
     seqHandleMidi([0x90, 25, 127], false);
+    seqHandleMidi([0x80, 25, 0], false);
     eq('bare step did not touch full velocity', seqState.fullVelocity, false);
 
-    uninstallMockEngine(); resetSeqEngine(); resetSeqState();
+    const { resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
+    uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetStepEdit();
 }
 
 /* ── seq loop mode: toggle, set window, double, resize ───────────────────── */
@@ -754,10 +757,11 @@ _log('\nTest: drumPadOn');
     const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
     const { resetLoopMode } = await import('../dist/esm/seq/loop-mode.js');
+    const { resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
     const { resetSeqToast } = await import('../dist/esm/seq/render.js');
 
     const engine = installMockEngine();
-    resetSeqEngine(); resetSeqState(); resetLoopMode(); resetSeqToast();
+    resetSeqEngine(); resetSeqState(); resetLoopMode(); resetStepEdit(); resetSeqToast();
     seqEngineTick(); // ready
     seqState.lenSteps = 32; // 2-bar clip
 
@@ -833,6 +837,93 @@ _log('\nTest: drumPadOn');
 
     globalThis.setLED = origSetLED;
     resetSeqState(); seqLedsInvalidate();
+}
+
+/* ── seq step editing: hold-step gestures ────────────────────────────────── */
+{
+    _log('\nseq step editing:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi, seqNotePadPlayed } = await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
+    const { resetLoopMode } = await import('../dist/esm/seq/loop-mode.js');
+    const { resetSeqToast } = await import('../dist/esm/seq/render.js');
+
+    const engine = installMockEngine();
+    const reset = () => { resetSeqEngine(); resetSeqState(); resetStepEdit(); resetLoopMode(); resetSeqToast(); engine.reset(); };
+    reset();
+    seqEngineTick(); // ready
+
+    const lastOp = () => engine.ops[engine.ops.length - 1];
+
+    // Hold step 3 + Volume turn → velocity edit (note NOT toggled on release).
+    seqHandleMidi([0x90, 16 + 3, 127], false);   // hold step 3
+    eq('Volume claimed while step held', seqHandleMidi([0xB0, 79, 1], false), true);
+    seqEngineTick();
+    eq('velocity edit op', lastOp(), 'evel 0 3 3 -1 4');
+    seqHandleMidi([0x80, 16 + 3, 0], false);     // release — gesture happened
+    seqEngineTick();
+    eq('held+edit did not toggle a note', engine.ops.filter(o => o.startsWith('tog')).length, 0);
+
+    // Hold step + wheel → length; + arrow → nudge; + arrow w/ shift → fine.
+    reset(); seqEngineTick();
+    seqHandleMidi([0x90, 16 + 0, 127], false);
+    seqHandleMidi([0xB0, 14, 1], false);
+    seqEngineTick();
+    eq('length edit op', lastOp(), 'elen 0 0 0 -1 2');
+    seqHandleMidi([0xB0, 63, 127], false);       // right arrow
+    seqEngineTick();
+    eq('nudge coarse op', lastOp(), 'enudge 0 0 0 -1 2');
+    seqHandleMidi([0xB0, 62, 127], true);        // left arrow + shift = fine
+    seqEngineTick();
+    eq('nudge fine op', lastOp(), 'enudge 0 0 0 -1 -1');
+    seqHandleMidi([0x80, 16 + 0, 0], false);
+
+    // Hold step + plus = transpose (melodic). Drum lane disables transpose.
+    reset(); seqEngineTick();
+    seqHandleMidi([0x90, 16 + 5, 127], false);
+    eq('plus claimed while step held', seqHandleMidi([0xB0, 55, 127], false), true);
+    seqEngineTick();
+    eq('transpose op', lastOp(), 'etrn 0 5 5 -1 1');
+    seqHandleMidi([0x80, 16 + 5, 0], false);
+
+    // Hold step + pad → toggle that pitch at the step (single step).
+    reset(); seqEngineTick();
+    seqHandleMidi([0x90, 16 + 2, 127], false);   // hold step 2
+    seqNotePadPlayed(0, 80, 67, 100);            // pad while held
+    seqEngineTick();
+    eq('hold-step + pad toggles pitch at step', lastOp(), 'ltog 0 2 67 100');
+    seqHandleMidi([0x80, 16 + 2, 0], false);
+
+    // Multi-step hold: gesture applies to every held step.
+    reset(); seqEngineTick();
+    seqHandleMidi([0x90, 16 + 1, 127], false);
+    seqHandleMidi([0x90, 16 + 4, 127], false);
+    seqHandleMidi([0xB0, 79, 1], false);         // Volume up
+    seqEngineTick();
+    eq('multi-step velocity edits both', engine.ops.filter(o => o.startsWith('evel')).length, 2);
+    seqHandleMidi([0x80, 16 + 1, 0], false);
+    seqHandleMidi([0x80, 16 + 4, 0], false);
+
+    // A plain tap (no gesture) DOES toggle a note on release.
+    reset(); seqEngineTick();
+    seqState.lastPitch[0] = 64; seqState.lastVel[0] = 90;
+    seqHandleMidi([0x90, 16 + 7, 127], false);
+    seqHandleMidi([0x80, 16 + 7, 0], false);
+    seqEngineTick();
+    eq('tap toggles a note on release', lastOp(), 'tog 0 7 64 90');
+
+    // Loop Mode: hold a bar + wheel edits the whole bar's note lengths.
+    reset(); seqEngineTick();
+    seqState.loopMode = true;
+    seqHandleMidi([0x90, 16 + 1, 127], false);   // hold bar 1
+    seqHandleMidi([0xB0, 14, 1], false);         // wheel
+    seqEngineTick();
+    eq('loop-mode bar edit spans the bar', lastOp(), 'elen 0 16 31 -1 2');
+    seqHandleMidi([0x80, 16 + 1, 0], false);
+
+    uninstallMockEngine(); reset();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

@@ -16,6 +16,10 @@ import { engineReady, seqCmd } from './engine.js';
 import {
     doubleLoop, loopButton, loopHeld, loopStepOff, loopStepOn, loopWheel,
 } from './loop-mode.js';
+import {
+    anyStepHeld, editLength, editNudge, editPad, editStepDown, editStepUp,
+    editTranspose, editVelocity,
+} from './step-edit.js';
 import { seqToast } from './render.js';
 import {
     maxBarOffset, occHasStep, occToggleStep, seqState,
@@ -24,7 +28,10 @@ import {
 const CC_LEFT = 62;
 const CC_RIGHT = 63;
 const CC_LOOP = 58;
-const CC_WHEEL = 14;     // MoveMainKnob — claimed only while Loop is held
+const CC_WHEEL = 14;     // MoveMainKnob — wheel
+const CC_VOLUME = 79;    // MoveMaster — Volume encoder
+const CC_PLUS = 55;      // MoveUp / +
+const CC_MINUS = 54;     // MoveDown / -
 const STEP_FULL_VEL = 9; // Step 10 (0-indexed) — Shift+Step 10 = Full Velocity
 const STEP_DOUBLE_LOOP = 14; // Step 15 — Shift+Step 15 = Double Loop
 
@@ -37,19 +44,23 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     const d1 = data[1];
     const d2 = data[2];
 
-    /* Step buttons: Shift+step are Move's shifted functions; in Loop Mode a
-     * step selects a bar; otherwise a bare step-on toggles a note. */
+    /* Step buttons. A press registers a held range (for hold-step editing)
+     * and, in the relevant mode, also drives note toggle / bar select. The
+     * note toggle fires on RELEASE so a held step + gesture can edit instead
+     * of toggling (native behavior). Shift+step are the shifted functions. */
     if ((statusType === 0x90 || statusType === 0x80)
         && d1 >= STEP_NOTE_BASE && d1 < STEP_NOTE_BASE + NUM_STEP_BUTTONS) {
-        const step = d1 - STEP_NOTE_BASE;
+        const button = d1 - STEP_NOTE_BASE;
         const on = statusType === 0x90 && d2 > 0;
         if (on && shiftHeld) {
-            shiftStepFunction(step);
-        } else if (seqState.loopMode) {
-            if (on) loopStepOn(step);
-            else loopStepOff(step);
+            shiftStepFunction(button);
         } else if (on) {
-            toggleStep(step);
+            editStepDown(button);
+            if (seqState.loopMode) loopStepOn(button);
+        } else {
+            const wasTap = editStepUp(button);
+            if (seqState.loopMode) loopStepOff(button);
+            else if (wasTap) toggleStep(button);
         }
         return true;
     }
@@ -62,10 +73,17 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         return true;
     }
 
-    /* Wheel is claimed only while Loop is held (loop resize); otherwise it
+    /* Volume encoder edits held steps' velocity; otherwise not ours. */
+    if (d1 === CC_VOLUME) {
+        return editVelocity(decodeDelta(d2));
+    }
+
+    /* Wheel: held-step length edit first, then Loop+wheel resize; otherwise
      * falls through to the param page/chain nav. */
-    if (d1 === CC_WHEEL && loopHeld()) {
-        return loopWheel(decodeDelta(d2));
+    if (d1 === CC_WHEEL) {
+        if (editLength(decodeDelta(d2))) return true;
+        if (loopHeld()) return loopWheel(decodeDelta(d2));
+        return false;
     }
 
     if (d1 === CC_PLAY) {
@@ -76,11 +94,18 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         return true;
     }
 
-    /* Left/Right = bar navigation, but only once the engine is live; with no
-     * engine they fall through to the existing param page/chain nav. */
-    if ((d1 === CC_LEFT || d1 === CC_RIGHT) && d2 > 0 && engineReady()) {
-        navigateBar(d1 === CC_RIGHT ? 1 : -1);
-        return true;
+    /* +/- buttons transpose held steps; otherwise fall through to octave. */
+    if ((d1 === CC_PLUS || d1 === CC_MINUS) && d2 > 0 && anyStepHeld()) {
+        return editTranspose(d1 === CC_PLUS ? 1 : -1);
+    }
+
+    /* Left/Right: nudge held steps; else bar navigation (engine ready); else
+     * fall through to the existing param page/chain nav. */
+    if ((d1 === CC_LEFT || d1 === CC_RIGHT) && d2 > 0) {
+        const dir = d1 === CC_RIGHT ? 1 : -1;
+        if (anyStepHeld()) return editNudge(dir, shiftHeld);
+        if (engineReady()) { navigateBar(dir); return true; }
+        return false;
     }
 
     /* Track buttons: observe only — retarget the watched clip and let the
@@ -149,11 +174,16 @@ function toggleStep(button: number): void {
 }
 
 /* Pad note-on: remember the active track's last-played note (step-entry
- * value) and add it to the held chord. */
+ * value). If a step is held, the pad edits that step's notes (hold-step +
+ * pad gesture) instead of joining the held chord. */
 export function seqNotePadPlayed(track: number, padNote: number, midiNote: number, vel: number): void {
     if (track >= 0 && track < 4) {
         seqState.lastPitch[track] = midiNote;
         seqState.lastVel[track] = vel;
+    }
+    if (anyStepHeld()) {
+        editPad(midiNote, vel);
+        return;
     }
     heldChord.set(padNote, midiNote);
 }

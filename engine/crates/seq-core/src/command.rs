@@ -69,6 +69,44 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 }
             }
         }
+        // Note-edit gestures over an inclusive step range [s0,s1] (single
+        // step: s0==s1; whole bar: 16-step range). p = lane pitch or -1 (all).
+        // evel/elen/enudge <t> <s0> <s1> <p> <delta>; etrn <t> <s0> <s1> <p> <semitones>
+        "evel" | "elen" | "enudge" | "etrn" => {
+            if let (Some(t), Some(s0), Some(s1), Some(p), Some(d)) =
+                (next(), next(), next(), next(), next())
+            {
+                if (t as usize) < NUM_TRACKS {
+                    let lane = if (0..128).contains(&p) { Some(p as u8) } else { None };
+                    let (a, b) = (s0.clamp(0, 255) as u16, s1.clamp(0, 255) as u16);
+                    let clip = engine.tracks[t as usize].active_mut();
+                    let dv = d as i32;
+                    match verb {
+                        "evel" => clip.adjust_velocity(a, b, lane, dv),
+                        "elen" => clip.adjust_length(a, b, lane, dv),
+                        "enudge" => clip.nudge(a, b, lane, dv),
+                        _ => clip.transpose(a, b, lane, dv),
+                    }
+                }
+            }
+        }
+        // addp <t> <s0> <s1> <pitch> <vel> — add a pitch to every step in the
+        // range that lacks it (Loop Mode: hold a bar + press a pad).
+        "addp" => {
+            if let (Some(t), Some(s0), Some(s1), Some(p), Some(v)) =
+                (next(), next(), next(), next(), next())
+            {
+                if (t as usize) < NUM_TRACKS && (0..128).contains(&p) {
+                    let added = engine.tracks[t as usize].active_mut().add_pitch_range(
+                        s0.clamp(0, 255) as u16,
+                        s1.clamp(0, 255) as u16,
+                        p as u8,
+                        v.clamp(1, 127) as u8,
+                    );
+                    engine.maybe_autostart(added > 0);
+                }
+            }
+        }
         // loop <track> <startStep> <lenSteps> — set the loop window.
         "loop" => {
             if let (Some(t), Some(s), Some(l)) = (next(), next(), next()) {
@@ -187,6 +225,25 @@ mod tests {
         let notes = &e.tracks[0].active().notes;
         assert_eq!(notes.len(), 1);
         assert_eq!(notes[0].pitch, 38);
+    }
+
+    #[test]
+    fn note_edit_commands() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "tog 0 0 60 100", &mut out);
+        apply_batch(&mut e, "evel 0 0 0 -1 -30", &mut out);
+        assert_eq!(e.tracks[0].active().notes[0].vel, 70);
+        apply_batch(&mut e, "etrn 0 0 0 -1 12", &mut out);
+        assert_eq!(e.tracks[0].active().notes[0].pitch, 72);
+        apply_batch(&mut e, "enudge 0 0 0 -1 5", &mut out);
+        assert_eq!(e.tracks[0].active().notes[0].tick, 5);
+        // Lane-restricted edit ignores other pitches.
+        apply_batch(&mut e, "ltog 0 0 38 100", &mut out);
+        apply_batch(&mut e, "evel 0 0 0 38 -50", &mut out);
+        let snare = e.tracks[0].active().notes.iter().find(|n| n.pitch == 38).unwrap();
+        assert_eq!(snare.vel, 50);
+        assert_eq!(e.tracks[0].active().notes.iter().find(|n| n.pitch == 72).unwrap().vel, 70);
     }
 
     #[test]

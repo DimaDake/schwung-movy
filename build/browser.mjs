@@ -24,6 +24,7 @@ await esbuild.build({
         resolve(root, 'src/seq/render.ts'),
         resolve(root, 'src/seq/pads.ts'),
         resolve(root, 'src/seq/loop-mode.ts'),
+        resolve(root, 'src/seq/step-edit.ts'),
     ],
     bundle:    true,
     splitting: true,

@@ -1156,6 +1156,55 @@ _log('\nTest: drumPadOn');
     resetSeqState(); resetSession();
 }
 
+/* ── seq loop overview strip (bottom-of-screen render) ───────────────────── */
+{
+    _log('\nseq loop strip:');
+    const rects = [];
+    const origFill = globalThis.fill_rect;
+    globalThis.fill_rect = (x, y, w, h, v) => rects.push({ x, y, w, h, v });
+
+    const { drawLoopStrip } = await import('../dist/esm/seq/render.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+
+    // 2-bar clip, bar 0 selected, not playing.
+    resetSeqState();
+    seqState.lenSteps = 32;
+    seqState.barOffset = 0;
+    rects.length = 0;
+    drawLoopStrip();
+    // First rect clears the band; then a thick segment for the selected bar
+    // and a thin one for the other.
+    eq('strip clears its band first', rects[0].v, 0);
+    const segs = rects.slice(1).filter(r => r.v === 1);
+    eq('two bar segments drawn', segs.length, 2);
+    eq('selected bar is thick (2px)', segs[0].h, 2);
+    eq('other bar is thin (1px)', segs[1].h, 1);
+
+    // Single-bar loop → the sole bar is thin (native rule).
+    resetSeqState(); seqState.lenSteps = 16; seqState.barOffset = 0;
+    rects.length = 0;
+    drawLoopStrip();
+    const seg1 = rects.slice(1).filter(r => r.v === 1);
+    eq('single-bar loop draws one segment', seg1.length, 1);
+    eq('single bar is thin', seg1[0].h, 1);
+
+    // Navigating to the empty bar past a 1-bar loop draws a "+" (two rects).
+    resetSeqState(); seqState.lenSteps = 16; seqState.barOffset = 1;
+    rects.length = 0;
+    drawLoopStrip();
+    // bar 0 segment (1) + plus icon (2 rects) = 3 lit rects.
+    eq('empty bar shows a plus marker', rects.slice(1).filter(r => r.v === 1).length, 3);
+
+    // Playing adds a vertical playhead mark (4px tall).
+    resetSeqState(); seqState.lenSteps = 32; seqState.playing = true; seqState.curStep = 4;
+    rects.length = 0;
+    drawLoopStrip();
+    eq('playhead mark drawn while playing', rects.some(r => r.v === 1 && r.h === 4), true);
+
+    globalThis.fill_rect = origFill;
+    resetSeqState();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

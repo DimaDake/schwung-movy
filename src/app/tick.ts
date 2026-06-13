@@ -15,7 +15,8 @@ import { seqEngineTick } from '../seq/engine.js';
 import { seqLedsTick, seqLedsInvalidate } from '../seq/leds.js';
 import { seqSetLane } from '../seq/router.js';
 import { seqState } from '../seq/state.js';
-import { drawSeqToast, seqToastActive, seqToastTick } from '../seq/render.js';
+import { engineReady } from '../seq/engine.js';
+import { drawLoopStrip, drawSeqToast, seqToastActive, seqToastTick } from '../seq/render.js';
 
 const PAD_MIN        = MovePads[0];
 const PAD_MAX        = MovePads[MovePads.length - 1];
@@ -104,5 +105,12 @@ export function tick(): void {
             appState.initLedsDone = false;
             appState.initLedIndex = 0;
         }
+    }
+
+    /* Loop Overview strip overlays the bottom of the param view whenever the
+     * sequencer is live; a toast temporarily covers it. Drawn every tick (not
+     * just on dirty frames) so the playhead sweeps continuously. */
+    if (engineReady() && !seqToastActive()) {
+        drawLoopStrip();
     }
 }

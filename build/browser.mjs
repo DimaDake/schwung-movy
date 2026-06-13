@@ -27,6 +27,7 @@ await esbuild.build({
         resolve(root, 'src/seq/step-edit.ts'),
         resolve(root, 'src/seq/edit-ops.ts'),
         resolve(root, 'src/seq/session.ts'),
+        resolve(root, 'src/seq/persist.ts'),
     ],
     bundle:    true,
     splitting: true,

@@ -15,7 +15,7 @@ use seq_core::engine::{Engine, OutEvent};
 use std::ffi::{CStr, CString};
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.8.0";
+const ENGINE_VERSION: &str = "0.9.0";
 
 struct Instance {
     engine: Engine,
@@ -49,6 +49,12 @@ impl Instance {
                 }
             }
             "file_path" => {}
+            // Load persisted state (UI sends the autosave file's contents).
+            "state" => {
+                if seq_core::persist::load(&mut self.engine, val) {
+                    self.engine.dirty = false;
+                }
+            }
             _ => {}
         }
     }
@@ -57,6 +63,13 @@ impl Instance {
         match key {
             "status" => Some(self.engine.status()),
             "ping" => Some(format!("pong {ENGINE_VERSION}")),
+            // Serialize for autosave; reading it clears the dirty flag (the UI
+            // is about to persist exactly this snapshot).
+            "state" => {
+                let s = seq_core::persist::serialize(&self.engine);
+                self.engine.dirty = false;
+                Some(s)
+            }
             "diag" => Some(format!("blocks={} out_cap={}", self.blocks, self.out.capacity())),
             _ => None,
         }

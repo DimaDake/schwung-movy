@@ -1205,6 +1205,60 @@ _log('\nTest: drumPadOn');
     resetSeqState();
 }
 
+/* ── seq persistence: load on boot, autosave on dirty ────────────────────── */
+{
+    _log('\nseq persistence:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { seqPersistTick, resetSeqPersist } = await import('../dist/esm/seq/persist.js');
+
+    // Mock the device filesystem.
+    const files = {};
+    const PATH = '/data/UserData/schwung/modules/tools/movy/seq-state.json';
+    globalThis.host_read_file  = (p) => files[p] ?? null;
+    globalThis.host_write_file = (p, c) => { files[p] = c; return true; };
+
+    const engine = installMockEngine();
+    // Extend the mock to serve/accept a state blob.
+    let engineState = 'movy1\nbpm 12000\n';
+    const origGet = globalThis.host_module_get_param;
+    globalThis.host_module_get_param = (key) => (key === 'state' ? engineState : origGet(key));
+    const origSetB = globalThis.host_module_set_param_blocking;
+    let loadedBlob = null;
+    globalThis.host_module_set_param_blocking = (key, val) => {
+        if (key === 'state') loadedBlob = val;
+        return true;
+    };
+
+    // Restore: a saved file on disk is pushed to the engine once on boot.
+    files[PATH] = 'movy1\nbpm 14000\ncl 0 0 16 0 0:24:60:100\n';
+    resetSeqEngine(); resetSeqState(); resetSeqPersist();
+    seqEngineTick();      // boot probe → ready
+    seqPersistTick();     // first ready tick → load
+    eq('state restored from file on boot', loadedBlob, files[PATH]);
+
+    // Autosave: when dirty, the serialized state is written to the file.
+    engineState = 'movy1\nbpm 13000\ncl 0 0 32 0 0:24:62:110\n';
+    seqState.dirty = true;
+    files[PATH] = ''; // clear to observe the write
+    for (let i = 0; i < 700; i++) seqPersistTick(); // past the save interval
+    eq('autosave wrote the engine state', files[PATH], engineState);
+    eq('dirty cleared after save', seqState.dirty, false);
+
+    // Not dirty → no write.
+    files[PATH] = 'SENTINEL';
+    for (let i = 0; i < 700; i++) seqPersistTick();
+    eq('no write when clean', files[PATH], 'SENTINEL');
+
+    globalThis.host_module_get_param = origGet;
+    globalThis.host_module_set_param_blocking = origSetB;
+    delete globalThis.host_read_file;
+    delete globalThis.host_write_file;
+    uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetSeqPersist();
+    globalThis.host_read_file = () => null; // restore the default test stub
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

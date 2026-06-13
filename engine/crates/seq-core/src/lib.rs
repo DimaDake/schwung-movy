@@ -5,6 +5,7 @@ pub mod clip;
 pub mod clock;
 pub mod command;
 pub mod engine;
+pub mod persist;
 pub mod track;
 
 /// Master clock resolution, pulses per quarter note (davebox-proven).

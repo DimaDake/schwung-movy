@@ -121,6 +121,19 @@ python3 "$INJECT" "$HOST" cc 50 127      # back to Note mode
 python3 "$INJECT" "$HOST" cc 50 0
 sleep 0.5
 
+info "Persistence: waiting for autosave, then reopening Movy to restore..."
+sleep 4   # autosave fires ~3s after the last edit
+STATE_FILE="/data/UserData/schwung/modules/tools/movy/seq-state.json"
+STATE_OK=$(ssh "ableton@$HOST" "test -s $STATE_FILE && echo yes || echo no")
+ssh "ableton@$HOST" 'python3 -c "
+import mmap, json
+with open(\"/data/UserData/schwung/open_tool_cmd.json\", \"w\") as f:
+    f.write(json.dumps({\"file_path\": \"/\", \"tool_id\": \"movy\"}))
+with open(\"/dev/shm/schwung-control\", \"r+b\") as f:
+    mm = mmap.mmap(f.fileno(), 0); mm[56] = 1; mm.close()
+"'
+sleep 3
+
 LOG=$(ssh "ableton@$HOST" 'grep -E "\[movy\]|movy-dsp" /data/UserData/schwung/debug.log 2>/dev/null || true')
 echo ""
 echo -e "${BLD}=== Seq log ===${RST}"
@@ -133,6 +146,11 @@ echo "$LOG" | grep -q "seq: play=1" \
     && pass "Step entry auto-started transport" || fail "No auto-start (seq: play=1 missing)"
 echo "$LOG" | grep -q "seq: play=0" \
     && pass "Play button stopped transport" || fail "No stop (seq: play=0 missing)"
+
+[[ "$STATE_OK" == "yes" ]] \
+    && pass "Autosave wrote a non-empty state file" || fail "No autosave file at $STATE_FILE"
+echo "$LOG" | grep -q "seq: restored state" \
+    && pass "State restored on reopen" || fail "No restore on reopen (seq: restored state missing)"
 
 echo ""
 if [[ $FAILURES -eq 0 ]]; then

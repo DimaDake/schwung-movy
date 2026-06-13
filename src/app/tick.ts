@@ -12,6 +12,7 @@ import { renderChainView }    from '../renderer/chain-view.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
 import { seqEngineTick } from '../seq/engine.js';
+import { seqPersistTick } from '../seq/persist.js';
 import { seqLedsTick, seqLedsInvalidate } from '../seq/leds.js';
 import { seqSetLane } from '../seq/router.js';
 import { seqState } from '../seq/state.js';
@@ -27,6 +28,7 @@ let lastSessionMode = false;
 
 export function tick(): void {
     seqEngineTick();
+    seqPersistTick();
     /* Session toggle changes pad ownership: invalidate the seq LED cache and
      * re-init the instrument pad LEDs when returning to Note mode. */
     if (seqState.sessionMode !== lastSessionMode) {

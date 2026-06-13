@@ -53,6 +53,9 @@ pub struct Engine {
     /// Per-tick master counter (clock.tick advances per audio block, so it
     /// can't time individual ticks; this increments inside service_tick).
     master_tick: u64,
+    /// Set by edit commands, cleared when the state is serialized for saving.
+    /// The UI polls it to know when to write the autosave file.
+    pub dirty: bool,
     gates: Vec<Gate>,
 }
 
@@ -81,6 +84,7 @@ impl Engine {
             metronome: false,
             rec_pending: Vec::new(),
             master_tick: 0,
+            dirty: false,
             gates: Vec::with_capacity(128),
         }
     }
@@ -470,7 +474,7 @@ impl Engine {
         let wt = &self.tracks[self.watch_track];
         let clip = wt.active();
         format!(
-            "play={} tick={} bpm={} trk={} step={} len={} lstart={} rec={} cin={} metro={} sess={} occ={}",
+            "play={} tick={} bpm={} trk={} step={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} occ={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -481,6 +485,7 @@ impl Engine {
             self.recording as u8,
             (self.count_in_left > 0) as u8,
             self.metronome as u8,
+            self.dirty as u8,
             self.session_state(),
             clip.occupancy_hex_lane(self.watch_lane)
         )

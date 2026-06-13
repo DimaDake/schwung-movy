@@ -14,6 +14,7 @@ pub fn apply_batch(engine: &mut Engine, batch: &str, out: &mut Vec<OutEvent>) {
         let op = op.trim();
         if !op.is_empty() {
             apply_op(engine, op, out);
+            engine.dirty = true; // a UI command may have changed saved state
         }
     }
 }

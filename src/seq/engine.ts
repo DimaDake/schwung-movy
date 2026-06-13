@@ -152,6 +152,7 @@ function parseStatus(s: string): void {
         else if (key === 'rec') seqState.recording = val === '1';
         else if (key === 'cin') seqState.countingIn = val === '1';
         else if (key === 'metro') seqState.metro = val === '1';
+        else if (key === 'dirty') seqState.dirty = val === '1';
         else if (key === 'sess') sessionFromStr(val);
         else if (key === 'occ') occFromHex(val);
     }

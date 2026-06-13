@@ -25,6 +25,7 @@ export interface SeqUiState {
     recording: boolean;
     countingIn: boolean;
     metro: boolean;
+    dirty: boolean;          // engine has unsaved state changes
 
     /* note entry */
     lastPitch: number[];     // per-track: last played pitch (step-entry value)
@@ -66,6 +67,7 @@ function defaults(): SeqUiState {
         recording: false,
         countingIn: false,
         metro: false,
+        dirty: false,
         lastPitch: [60, 60, 60, 60],
         lastVel: [100, 100, 100, 100],
         barOffset: 0,

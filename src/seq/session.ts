@@ -11,7 +11,7 @@
  * The engine owns clip state; this module emits commands and paints the grid
  * LEDs from the `session` mirror, pulsing queued/stopping/selected cells. */
 
-import { C_BLACK, C_GREEN, C_WHITE, trackColor } from './colors.js';
+import { C_BLACK, C_DARKGREY, C_GREEN, C_WHITE, trackColor } from './colors.js';
 import { seqCmd } from './engine.js';
 import { seqToast } from './render.js';
 import { seqState } from './state.js';
@@ -101,6 +101,21 @@ function pulseOn(): boolean {
     return Math.floor(seqState.engineTick / 24) % 2 === 0;
 }
 
+export interface CellCtx {
+    exists: boolean; isSel: boolean; isPlaying: boolean; isQueued: boolean;
+    blink: boolean; track: number;
+}
+
+export function sessionCellColor(c: CellCtx): number {
+    if (c.isQueued)             return c.blink ? C_GREEN : C_BLACK;                     // queued for launch
+    if (c.isPlaying && c.isSel) return c.blink ? C_WHITE : C_BLACK;                    // playing+selected pulse
+    if (c.isPlaying)            return C_WHITE;                                          // playing (solid)
+    if (c.isSel && c.exists)    return c.blink ? C_WHITE : trackColor(c.track);         // selected w/ content
+    if (c.isSel)                return C_DARKGREY;                                       // selected empty
+    if (c.exists)               return trackColor(c.track);                              // has content
+    return C_BLACK;                                                                      // empty
+}
+
 /* Paint the 32-pad clip grid (manual §17.1 LED semantics). */
 export function sessionPaintGrid(setLed: (note: number, color: number) => void, padMin: number): void {
     const blink = pulseOn();
@@ -115,24 +130,7 @@ export function sessionPaintGrid(setLed: (note: number, color: number) => void, 
         const isSel = st.selected === slot && track === seqState.watchTrack;
         const isPlaying = st.playing === slot;
         const isQueued = st.queued === slot;
-        const col = trackColor(track);
-
-        let color: number;
-        if (isQueued) {
-            color = blink ? C_GREEN : C_BLACK;            // queued for launch
-        } else if (isPlaying && st.queued >= 0) {
-            color = blink ? col : C_BLACK;                // about to stop (other queued)
-        } else if (isSel && exists) {
-            color = blink ? C_WHITE : C_BLACK;            // selected playing/stopped clip
-        } else if (isPlaying) {
-            color = C_WHITE;                              // playing clip (solid)
-        } else if (exists) {
-            color = col;                                  // existing clip
-        } else if (isSel) {
-            color = C_WHITE;                              // selected empty slot
-        } else {
-            color = C_BLACK;                              // empty
-        }
+        const color = sessionCellColor({ exists, isSel, isPlaying, isQueued, blink, track });
         setLed(padMin + idx, color);
     }
 }

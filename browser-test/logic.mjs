@@ -1398,6 +1398,20 @@ _log('\nTest: drumPadOn');
     eq('muted+active still white', trackButtonColor(2, true, true), 120);
 }
 
+/* ── session cell color ──────────────────────────────────────────────────── */
+{
+    _log('\nsession cell color:');
+    const { sessionCellColor } = await import('../dist/esm/seq/session.js');
+    const { trackColor } = await import('../dist/esm/seq/colors.js');
+
+    const base = { exists:false, isSel:false, isPlaying:false, isQueued:false, blink:true, track:1 };
+    eq('empty unselected = off', sessionCellColor({ ...base }), 0);
+    eq('content unselected = track', sessionCellColor({ ...base, exists:true }), trackColor(1));
+    eq('selected empty = dark grey', sessionCellColor({ ...base, isSel:true }), 124);
+    eq('selected content blink on = white', sessionCellColor({ ...base, exists:true, isSel:true, blink:true }), 120);
+    eq('selected content blink off = track', sessionCellColor({ ...base, exists:true, isSel:true, blink:false }), trackColor(1));
+}
+
 /* ── loop single-press selects bar ───────────────────────────────────────── */
 {
     _log('\nloop single-press selects bar:');

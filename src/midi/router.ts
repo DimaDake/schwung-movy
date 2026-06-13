@@ -5,8 +5,9 @@ import { noteOn, noteOff, changeRoot, releaseAllNotes } from '../keyboard/handle
 import { drumPadOn, drumPadOff } from '../keyboard/drum-handler.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
-import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased } from '../seq/router.js';
+import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteTrack } from '../seq/router.js';
 import { seqState } from '../seq/state.js';
+import { momentaryDown, momentaryUp } from '../seq/momentary.js';
 import { mlog } from '../log.js';
 
 const PAD_MIN        = MovePads[0];
@@ -88,20 +89,38 @@ export function onMidiMessageInternal(data: number[]): void {
 
     if ((status & 0xF0) !== 0xB0) return;
 
-    /* Track buttons (CC 40–43): newSlot = 43 - d1  →  CC43=slot0, CC40=slot3 */
-    if (d1 >= TRACK_CC_START && d1 <= TRACK_CC_END && d2 > 0) {
-        const newSlot = TRACK_CC_END - d1;
-        if (newSlot !== appState.activeSlot) {
-            appState.trackView[appState.activeSlot] =
-                appState.currentView === VIEW_BROWSE ? appState.browseOrigin : appState.currentView;
-            appState.activeSlot = newSlot;
-            appState.currentView = appState.trackView[newSlot];
+    /* Track buttons (CC 40–43): CC43=slot0 … CC40=slot3.
+     * Mute+track gesture mutes; otherwise momentary: down opens the track's
+     * note layout, up decides tap (latch) vs hold (return to prior state). */
+    if (d1 >= TRACK_CC_START && d1 <= TRACK_CC_END) {
+        const track = TRACK_CC_END - d1;
+        if (d2 > 0) {
+            if (muteHeld()) { muteTrack(track); appState.dirty = true; return; }
+            // Snapshot prior state so the restore closure can return exactly here.
+            const prevSlot = appState.activeSlot;
+            const prevView = appState.currentView === VIEW_BROWSE ? appState.browseOrigin : appState.currentView;
+            const prevSession = seqState.sessionMode;
+            const prevLoop = seqState.loopMode;
+            momentaryDown(d1, () => {
+                seqState.sessionMode = prevSession;
+                seqState.loopMode = prevLoop;
+                appState.activeSlot = prevSlot;
+                appState.currentView = prevView;
+                appState.initLedsDone = false; appState.initLedIndex = 0;
+                appState.dirty = true;
+            });
+            appState.trackView[appState.activeSlot] = prevView;
+            seqState.sessionMode = false;
+            seqState.loopMode = false;
+            appState.activeSlot = track;
+            appState.currentView = VIEW_KEYS;
             appState.jogTouched = false;
-            /* Repaint pads: the chromatic root takes the new track's color. */
-            appState.initLedsDone = false;
-            appState.initLedIndex = 0;
+            appState.initLedsDone = false; appState.initLedIndex = 0;
+            appState.dirty = true;
+        } else {
+            momentaryUp(d1);
+            appState.dirty = true;
         }
-        appState.dirty = true;
         return;
     }
 

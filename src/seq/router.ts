@@ -31,6 +31,7 @@ import {
 import {
     maxBarOffset, occHasStep, occToggleStep, seqState,
 } from './state.js';
+import { setHeldSet } from './held.js';
 
 const CC_LEFT = 62;
 const CC_RIGHT = 63;
@@ -249,6 +250,7 @@ export function seqNotePadPlayed(track: number, padNote: number, midiNote: numbe
         return;
     }
     heldChord.set(padNote, midiNote);
+    setHeldSet(track, [...heldChord.values()]);
     /* Forward to the engine for recording capture. The UI already sounded the
      * note directly (zero latency); the engine only records (no double note),
      * and ignores it unless armed. */

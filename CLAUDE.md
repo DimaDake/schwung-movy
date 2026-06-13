@@ -47,22 +47,14 @@ mirror in the UI.
 - The engine has no filesystem; the UI ferries persisted state via
   `host_read_file`/`host_write_file` (`src/seq/persist.ts`).
 
-### LED performance (movy owns every Move LED in overtake mode)
+### PErformance
 
-- **Always paint through the cached helpers** (`cachedSetLED` /
-  `cachedSetButtonLED` in `seq/leds.ts`): a color is sent only when it differs
-  from the last value for that LED, so steady-state LED cost on the wire is
-  zero. A painter that sends every tick (cache miss) is a bug, not a budget to
-  raise.
-- **Never repaint all LEDs in one tick.** The overtake output buffer drops
-  >~60 LED packets/frame, and movy drives ~77 LEDs (32 pads + 16 step buttons +
-  16 step icons via CC 16–31 + ~13 buttons). Full repaints (startup, invalidate)
-  must stay progressive (~8 LEDs/frame, spanning frames) — see `app/tick.ts`.
-- **Paint is a pure function of state, with no per-tick allocation.** Pulses /
-  blinks derive on/off from a tick counter vs a stored start tick (see
-  `blinkOn()` / `pulseOn()`); reuse buffers/sets — no new arrays per frame.
-- `perf.mjs` asserts per-tick IPC count; added painters must show ~0
-  steady-state IPC delta.
+PErformance is very important, make sure you think about it for implementation and add new and run existing performance tests for the new features
+
+
+### Cost efficient usage
+
+if you are opus or fable 5 try to optimize token usage and make it cost efficient while make sure the code is reviewed by you. if there is an option to use subagent, use it only if it reduces limit usage
 
 ### Build / deploy / test the engine
 

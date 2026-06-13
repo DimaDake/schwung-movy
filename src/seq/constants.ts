@@ -7,6 +7,7 @@ export const NUM_STEP_BUTTONS = 16;
 export const STEPS_PER_BAR = 16;    // fixed 1/16 grid
 
 export const CC_PLAY = 85;
+export const CC_REC = 86;
 export const CC_TRACK_START = 40;   // CC 43 = track 0 … CC 40 = track 3
 export const CC_TRACK_END = 43;
 
@@ -14,5 +15,5 @@ export const CC_TRACK_END = 43;
  * build-dsp.sh fails the build when they diverge. The UI re-issues the DSP
  * load until ping returns this exact version (fixes the fire-and-forget
  * load race and stale engines after redeploy). */
-export const ENGINE_VERSION = '0.6.0';
+export const ENGINE_VERSION = '0.7.0';
 export const ENGINE_DSP_PATH = '/data/UserData/schwung/modules/tools/movy/dsp.so';

@@ -90,6 +90,23 @@ sleep 0.3
 python3 "$INJECT" "$HOST" cc 85 0
 sleep 1
 
+info "Recording: Rec (CC 86), count-in + metronome, play pads, stop..."
+python3 "$INJECT" "$HOST" cc 49 127      # Shift
+python3 "$INJECT" "$HOST" note_on 21 127 # Shift+Step6 = metronome on
+python3 "$INJECT" "$HOST" note_off 21
+python3 "$INJECT" "$HOST" cc 49 0        # Shift up
+sleep 0.2
+python3 "$INJECT" "$HOST" cc 86 127      # Rec → count-in starts
+python3 "$INJECT" "$HOST" cc 86 0
+sleep 2.5                                # 1-bar count-in (clicks audible) then recording
+python3 "$INJECT" "$HOST" note_on 70 110 # play a pad during recording
+sleep 0.3
+python3 "$INJECT" "$HOST" note_off 70
+sleep 1
+python3 "$INJECT" "$HOST" cc 86 127      # Rec again → stop recording
+python3 "$INJECT" "$HOST" cc 86 0
+sleep 0.5
+
 LOG=$(ssh "ableton@$HOST" 'grep -E "\[movy\]|movy-dsp" /data/UserData/schwung/debug.log 2>/dev/null || true')
 echo ""
 echo -e "${BLD}=== Seq log ===${RST}"

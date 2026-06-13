@@ -9,7 +9,7 @@
  * runs. */
 
 import {
-    CC_PLAY, CC_TRACK_END, CC_TRACK_START,
+    CC_PLAY, CC_REC, CC_TRACK_END, CC_TRACK_START,
     NUM_STEP_BUTTONS, STEP_NOTE_BASE,
 } from './constants.js';
 import {
@@ -38,8 +38,10 @@ const CC_PLUS = 55;      // MoveUp / +
 const CC_MINUS = 54;     // MoveDown / -
 const CC_COPY = 60;
 const CC_DELETE = 119;
-const STEP_FULL_VEL = 9; // Step 10 (0-indexed) — Shift+Step 10 = Full Velocity
+const STEP_METRO = 5;     // Step 6  — Shift+Step 6  = Metronome
+const STEP_FULL_VEL = 9;  // Step 10 — Shift+Step 10 = Full Velocity
 const STEP_DOUBLE_LOOP = 14; // Step 15 — Shift+Step 15 = Double Loop
+const STEP_QUANTIZE = 15; // Step 16 — Shift+Step 16 = Quantize
 
 /* Pads currently held, padNote → midiNote, for chord step entry. Mirrors the
  * pads physically down so a step press can place the whole chord. */
@@ -94,6 +96,15 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     /* Delete: tap deletes the clip; hold + step/pad deletes notes. */
     if (d1 === CC_DELETE) {
         deleteButton(d2 > 0);
+        return true;
+    }
+
+    /* Rec: toggle recording (engine arms a one-bar count-in). */
+    if (d1 === CC_REC) {
+        if (d2 > 0) {
+            seqCmd('rec ' + seqState.watchTrack);
+            seqToast(seqState.recording ? 'Stop' : 'Record');
+        }
         return true;
     }
 
@@ -156,6 +167,12 @@ function shiftStepFunction(step: number): void {
         seqToast(seqState.fullVelocity ? 'Full Velocity On' : 'Full Velocity Off');
     } else if (step === STEP_DOUBLE_LOOP) {
         doubleLoop();
+    } else if (step === STEP_METRO) {
+        seqCmd('metro ' + (seqState.metro ? 0 : 1));
+        seqToast(seqState.metro ? 'Metronome Off' : 'Metronome On');
+    } else if (step === STEP_QUANTIZE) {
+        seqCmd('quant ' + seqState.watchTrack);
+        seqToast('Quantized');
     }
 }
 
@@ -214,11 +231,19 @@ export function seqNotePadPlayed(track: number, padNote: number, midiNote: numbe
         return;
     }
     heldChord.set(padNote, midiNote);
+    /* Forward to the engine for recording capture. The UI already sounded the
+     * note directly (zero latency); the engine only records (no double note),
+     * and ignores it unless armed. */
+    if (engineReady()) seqCmd(`non ${track} ${midiNote} ${vel}`);
 }
 
-/* Pad note-off: drop it from the held chord. */
+/* Pad note-off: drop it from the held chord and end any recording capture. */
 export function seqNotePadReleased(padNote: number): void {
+    const midiNote = heldChord.get(padNote);
     heldChord.delete(padNote);
+    if (midiNote !== undefined && engineReady()) {
+        seqCmd(`nof ${seqState.watchTrack} ${midiNote}`);
+    }
 }
 
 /* Active module changed: set the watched step-LED lane. lane < 0 = melodic

@@ -8,6 +8,7 @@
 import { createModel }    from '../dist/esm/model/index.js';
 import { MOCK_SYNTHS }    from './mock-synth.mjs';
 import { drumPadOn, drumPadOff } from '../dist/esm/keyboard/drum-handler.js';
+import { ENGINE_VERSION } from '../dist/esm/seq/constants.js';
 
 /* ── Mock globals ─────────────────────────────────────────────────────────── */
 
@@ -1009,6 +1010,59 @@ _log('\nTest: drumPadOn');
     seqEngineTick();
     eq('Delete+pad clears the pitch', lastOp(), 'del 0 0 255 38');
     seqHandleMidi([0xB0, 119, 0], false);
+
+    uninstallMockEngine(); reset();
+}
+
+/* ── seq recording: Rec, metronome, quantize, live capture ───────────────── */
+{
+    _log('\nseq recording:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased } =
+        await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { resetEditOps } = await import('../dist/esm/seq/edit-ops.js');
+    const { resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
+    const { resetSeqToast } = await import('../dist/esm/seq/render.js');
+
+    const engine = installMockEngine();
+    const reset = () => {
+        resetSeqEngine(); resetSeqState(); resetEditOps(); resetStepEdit();
+        resetSeqToast(); engine.reset();
+    };
+    const lastOp = () => engine.ops[engine.ops.length - 1];
+    reset(); seqEngineTick();
+
+    // Rec press → rec command on the watched track.
+    seqHandleMidi([0xB0, 86, 127], false);
+    seqEngineTick();
+    eq('Rec emits rec command', lastOp(), 'rec 0');
+
+    // Shift+Step 6 toggles metronome; Shift+Step 16 quantizes.
+    seqHandleMidi([0x90, 16 + 5, 127], true);
+    seqEngineTick();
+    eq('Shift+Step6 toggles metronome', lastOp(), 'metro 1');
+    seqHandleMidi([0x90, 16 + 15, 127], true);
+    seqEngineTick();
+    eq('Shift+Step16 quantizes', lastOp(), 'quant 0');
+
+    // Live pad notes forward non/nof for recording capture.
+    reset(); seqEngineTick();
+    seqNotePadPlayed(0, 80, 67, 110);
+    seqEngineTick();
+    eq('pad-on forwards non', lastOp(), 'non 0 67 110');
+    seqNotePadReleased(80);
+    seqEngineTick();
+    eq('pad-off forwards nof', lastOp(), 'nof 0 67');
+
+    // Status mirrors recording flags for the Rec LED.
+    engine.status.rec = 1; engine.status.cin = 0; engine.status.metro = 1;
+    globalThis.host_module_get_param = (key) =>
+        key === 'status' ? 'play=1 rec=1 cin=0 metro=1' : (key === 'ping' ? 'pong ' + ENGINE_VERSION : null);
+    for (let i = 0; i < 10; i++) seqEngineTick();
+    eq('recording flag mirrored', seqState.recording, true);
+    eq('metronome flag mirrored', seqState.metro, true);
 
     uninstallMockEngine(); reset();
 }

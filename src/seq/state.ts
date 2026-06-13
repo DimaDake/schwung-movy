@@ -21,6 +21,11 @@ export interface SeqUiState {
     /* loop mode */
     loopMode: boolean;       // step buttons show bars instead of steps
 
+    /* recording (engine-driven, mirrored from status) */
+    recording: boolean;
+    countingIn: boolean;
+    metro: boolean;
+
     /* note entry */
     lastPitch: number[];     // per-track: last played pitch (step-entry value)
     lastVel: number[];       // per-track: last played velocity
@@ -43,6 +48,9 @@ function defaults(): SeqUiState {
         loopStart: 0,
         occ: new Uint8Array(32),
         loopMode: false,
+        recording: false,
+        countingIn: false,
+        metro: false,
         lastPitch: [60, 60, 60, 60],
         lastVel: [100, 100, 100, 100],
         barOffset: 0,

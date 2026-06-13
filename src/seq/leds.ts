@@ -4,8 +4,16 @@
  * (davebox ui_leds pattern). */
 
 import { C_DARKGREY, C_GREEN, C_WHITE, trackColor, trackColorDim } from './colors.js';
-import { CC_PLAY, NUM_STEP_BUTTONS, STEP_NOTE_BASE } from './constants.js';
+import { CC_PLAY, CC_REC, NUM_STEP_BUTTONS, STEP_NOTE_BASE } from './constants.js';
 import { loopEndBar, loopStartBar, occHasStep, seqState } from './state.js';
+
+const C_RED = 1;        // BrightRed — recording
+const C_RED_DIM = 67;   // dim red — armed / count-in off-phase
+
+/* A coarse blink phase from the engine tick, for flashing LEDs. */
+function blinkOn(): boolean {
+    return Math.floor(seqState.engineTick / 24) % 2 === 0;
+}
 
 const lastNoteLed = new Map<number, number>();
 const lastButtonLed = new Map<number, number>();
@@ -62,10 +70,25 @@ function paintLoopBars(): void {
     }
 }
 
+/* Transport button LEDs: Play lit while running; Rec solid red while
+ * recording, flashing red during the count-in, dim otherwise. */
+function paintTransport(): void {
+    cachedSetButtonLED(CC_PLAY, seqState.playing ? C_WHITE : C_DARKGREY);
+    let rec: number;
+    if (seqState.recording) {
+        rec = C_RED;
+    } else if (seqState.countingIn) {
+        rec = blinkOn() ? C_RED : C_RED_DIM;
+    } else {
+        rec = C_RED_DIM;
+    }
+    cachedSetButtonLED(CC_REC, rec);
+}
+
 export function seqLedsTick(): void {
     if (seqState.loopMode) {
         paintLoopBars();
-        cachedSetButtonLED(CC_PLAY, seqState.playing ? C_WHITE : C_DARKGREY);
+        paintTransport();
         return;
     }
     const bar = seqState.barOffset;
@@ -94,5 +117,5 @@ export function seqLedsTick(): void {
         cachedSetLED(STEP_NOTE_BASE + i, color);
     }
 
-    cachedSetButtonLED(CC_PLAY, seqState.playing ? C_WHITE : C_DARKGREY);
+    paintTransport();
 }

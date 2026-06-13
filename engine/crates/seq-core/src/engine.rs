@@ -6,12 +6,20 @@
 use crate::clip::Clip;
 use crate::clock::Clock;
 use crate::track::{Track, CLIPS_PER_TRACK, NUM_TRACKS};
-use crate::TICKS_PER_STEP;
+use crate::{PPQN, TICKS_PER_STEP};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OutEvent {
     NoteOn { track: u8, pitch: u8, vel: u8 },
     NoteOff { track: u8, pitch: u8 },
+    /// Metronome click; `accent` marks the downbeat (bar start).
+    Click { accent: bool },
+}
+
+struct RecPending {
+    pitch: u8,
+    vel: u8,
+    start_tick: u32,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -33,6 +41,16 @@ pub struct Engine {
     /// Note clipboard for copy/paste of steps and ranges, across tracks and
     /// clips. Ticks/steps are stored relative to the copy start.
     clipboard: Vec<ClipboardNote>,
+    /// Recording state (live capture into the active clip).
+    pub recording: bool,
+    rec_track: usize,
+    /// Count-in ticks remaining before capture begins (0 = not counting in).
+    count_in_left: u32,
+    pub metronome: bool,
+    rec_pending: Vec<RecPending>,
+    /// Per-tick master counter (clock.tick advances per audio block, so it
+    /// can't time individual ticks; this increments inside service_tick).
+    master_tick: u64,
     gates: Vec<Gate>,
 }
 
@@ -54,8 +72,18 @@ impl Engine {
             watch_track: 0,
             watch_lane: None,
             clipboard: Vec::new(),
+            recording: false,
+            rec_track: 0,
+            count_in_left: 0,
+            metronome: false,
+            rec_pending: Vec::new(),
+            master_tick: 0,
             gates: Vec::with_capacity(128),
         }
+    }
+
+    pub fn counting_in(&self) -> bool {
+        self.count_in_left > 0
     }
 
     // ── Clip operations (Copy/Delete, manual §12) ─────────────────────────
@@ -153,17 +181,90 @@ impl Engine {
             t.pos_tick = t.active().loop_start_ticks();
         }
         self.clock.reset();
+        self.master_tick = 0;
         self.playing = true;
     }
 
-    /// Stop transport and release everything still sounding.
+    /// Stop transport and release everything still sounding. Ends recording.
     pub fn stop(&mut self, out: &mut Vec<OutEvent>) {
         self.playing = false;
+        self.recording = false;
+        self.count_in_left = 0;
+        self.rec_pending.clear();
         for g in self.gates.drain(..) {
             out.push(OutEvent::NoteOff {
                 track: g.track,
                 pitch: g.pitch,
             });
+        }
+    }
+
+    // ── Recording (manual §14) ────────────────────────────────────────────
+
+    /// Rec button: toggle recording on `track`. Starting arms a one-bar
+    /// count-in (the metronome clicks; capture begins when it elapses) and
+    /// starts the transport if stopped.
+    pub fn toggle_record(&mut self, track: usize) {
+        if track >= NUM_TRACKS {
+            return;
+        }
+        if self.recording || self.count_in_left > 0 {
+            self.recording = false;
+            self.count_in_left = 0;
+            self.rec_pending.clear();
+            return;
+        }
+        self.rec_track = track;
+        self.watch_track = track;
+        // Ensure the target clip exists so its playhead advances (and a new
+        // recording extends from one bar).
+        self.tracks[track].active_mut().ensure_exists();
+        if !self.playing {
+            self.play();
+        }
+        self.count_in_left = crate::TICKS_PER_BAR;
+    }
+
+    pub fn set_metronome(&mut self, on: bool) {
+        self.metronome = on;
+    }
+
+    /// Quantize the watched track's active clip to the step grid.
+    pub fn quantize_active(&mut self, track: usize) {
+        if track < NUM_TRACKS {
+            self.tracks[track].active_mut().quantize();
+        }
+    }
+
+    /// Record a live pad note-on. The UI sounds the note directly (zero
+    /// latency); this only captures it for recording, so there's no double
+    /// trigger. No-op unless recording this track.
+    pub fn live_note_on(&mut self, track: usize, pitch: u8, vel: u8) {
+        if track < NUM_TRACKS && self.recording && track == self.rec_track {
+            self.rec_pending.push(RecPending {
+                pitch,
+                vel,
+                start_tick: self.tracks[track].pos_tick,
+            });
+        }
+    }
+
+    /// Finalize a recorded note (start → now) into the clip on note-off,
+    /// handling loop wrap. No-op unless recording this track.
+    pub fn live_note_off(&mut self, track: usize, pitch: u8) {
+        if track >= NUM_TRACKS || !self.recording || track != self.rec_track {
+            return;
+        }
+        if let Some(idx) = self.rec_pending.iter().rposition(|p| p.pitch == pitch) {
+            let p = self.rec_pending.swap_remove(idx);
+            let now = self.tracks[track].pos_tick;
+            let span = self.tracks[track].active().length_ticks().max(1);
+            let gate = if now >= p.start_tick {
+                now - p.start_tick
+            } else {
+                span - p.start_tick + now
+            };
+            self.tracks[track].active_mut().record_note(p.start_tick, gate.max(1), pitch, p.vel);
         }
     }
 
@@ -187,6 +288,21 @@ impl Engine {
     }
 
     fn service_tick(&mut self, out: &mut Vec<OutEvent>) {
+        // Metronome / count-in click on beat boundaries (PPQN = one beat).
+        if (self.count_in_left > 0 || self.metronome) && self.master_tick % PPQN as u64 == 0 {
+            out.push(OutEvent::Click {
+                accent: self.master_tick % (PPQN as u64 * 4) == 0,
+            });
+        }
+        self.master_tick += 1;
+        // Count-in elapses → capture begins.
+        if self.count_in_left > 0 {
+            self.count_in_left -= 1;
+            if self.count_in_left == 0 {
+                self.recording = true;
+            }
+        }
+
         // Note-offs first so a same-pitch note starting this tick retriggers.
         let mut i = 0;
         while i < self.gates.len() {
@@ -213,7 +329,8 @@ impl Engine {
                 let len = self.tracks[ti].active().notes.len();
                 for ni in 0..len {
                     let n = self.tracks[ti].active().notes[ni];
-                    if n.tick == pos {
+                    // Skip notes just recorded this pass (suppress_until_wrap).
+                    if n.tick == pos && !n.suppress {
                         out.push(OutEvent::NoteOn {
                             track: ti as u8,
                             pitch: n.pitch,
@@ -227,13 +344,24 @@ impl Engine {
                     }
                 }
             }
-            // Advance + wrap inside the loop window [start, start+len).
+            // Advance + wrap inside the loop window [start, start+len). On
+            // wrap, recorded notes become audible for the next pass. While
+            // recording into this track, the clip extends bar-by-bar (up to
+            // 16) instead of wrapping — native "length extends until stop".
             let start = self.tracks[ti].active().loop_start_ticks();
             let end = self.tracks[ti].active().loop_end_ticks();
+            let recording_here = self.recording && ti == self.rec_track;
             let t = &mut self.tracks[ti];
             t.pos_tick += 1;
             if t.pos_tick >= end {
-                t.pos_tick = start;
+                let bar = crate::STEPS_PER_BAR as u16;
+                let clip = t.active_mut();
+                if recording_here && clip.loop_start_steps + clip.length_steps + bar <= crate::clip::MAX_STEPS {
+                    clip.set_loop(clip.loop_start_steps, clip.length_steps + bar);
+                } else {
+                    t.pos_tick = start;
+                    t.active_mut().release_suppressed();
+                }
             }
         }
     }
@@ -244,14 +372,17 @@ impl Engine {
         let wt = &self.tracks[self.watch_track];
         let clip = wt.active();
         format!(
-            "play={} tick={} bpm={} trk={} step={} len={} lstart={} occ={}",
+            "play={} tick={} bpm={} trk={} step={} len={} lstart={} rec={} cin={} metro={} occ={}",
             self.playing as u8,
-            self.clock.tick,
+            self.master_tick,
             self.clock.bpm_x100(),
             self.watch_track,
             wt.current_step(),
             clip.length_steps,
             clip.loop_start_steps,
+            self.recording as u8,
+            (self.count_in_left > 0) as u8,
+            self.metronome as u8,
             clip.occupancy_hex_lane(self.watch_lane)
         )
     }
@@ -374,6 +505,73 @@ mod tests {
         // Only the bar-1 note (64) plays; the bar-0 note (60) is outside.
         assert!(ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 64, .. })));
         assert!(!ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 60, .. })));
+    }
+
+    #[test]
+    fn recording_captures_live_notes_after_count_in() {
+        let mut e = engine();
+        e.toggle_record(0); // arms: count-in starts, transport plays
+        assert!(e.playing);
+        assert!(e.counting_in());
+        assert!(!e.recording);
+        // Run through the one-bar count-in (no capture yet).
+        run_ticks(&mut e, crate::TICKS_PER_BAR as u64 + 1);
+        assert!(e.recording);
+        assert!(!e.counting_in());
+        // Play a live note for ~2 steps.
+        e.live_note_on(0, 60, 100);
+        run_ticks(&mut e, 2 * TICKS_PER_STEP as u64);
+        e.live_note_off(0, 60);
+        assert_eq!(e.tracks[0].active().notes.len(), 1);
+        let n = e.tracks[0].active().notes[0];
+        assert_eq!(n.pitch, 60);
+        assert_eq!(n.vel, 100);
+        assert!(n.gate >= TICKS_PER_STEP); // ~2 steps long
+        assert!(n.suppress); // not replayed until the clip wraps
+    }
+
+    #[test]
+    fn count_in_and_metronome_emit_clicks() {
+        let mut e = engine();
+        e.toggle_record(0);
+        // The count-in bar produces 4 beat clicks, one accented (downbeat).
+        let cin = run_ticks(&mut e, crate::TICKS_PER_BAR as u64);
+        assert_eq!(cin.iter().filter(|x| matches!(x, OutEvent::Click { .. })).count(), 4);
+        // Metronome on, run another bar: 4 clicks, 1 accent.
+        e.set_metronome(true);
+        let bar = run_ticks(&mut e, crate::TICKS_PER_BAR as u64);
+        assert_eq!(bar.iter().filter(|x| matches!(x, OutEvent::Click { .. })).count(), 4);
+        assert_eq!(
+            bar.iter().filter(|x| matches!(x, OutEvent::Click { accent: true })).count(),
+            1
+        );
+    }
+
+    #[test]
+    fn toggle_record_twice_stops() {
+        let mut e = engine();
+        e.toggle_record(0);
+        run_ticks(&mut e, crate::TICKS_PER_BAR as u64 + 1);
+        assert!(e.recording);
+        e.toggle_record(0);
+        assert!(!e.recording);
+    }
+
+    #[test]
+    fn quantize_snaps_notes_to_grid() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        // Place a note then nudge it off-grid.
+        e.tracks[0].active_mut().toggle_step(2, &[(60, 100)]);
+        e.tracks[0].active_mut().nudge(2, 2, None, 7);
+        assert_ne!(e.tracks[0].active().notes[0].tick % TICKS_PER_STEP, 0);
+        apply_quant(&mut e, &mut out);
+        assert_eq!(e.tracks[0].active().notes[0].tick % TICKS_PER_STEP, 0);
+        assert_eq!(e.tracks[0].active().notes[0].step, 2);
+    }
+
+    fn apply_quant(e: &mut Engine, _out: &mut Vec<OutEvent>) {
+        e.quantize_active(0);
     }
 
     #[test]

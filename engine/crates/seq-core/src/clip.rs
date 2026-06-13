@@ -21,6 +21,10 @@ pub struct Note {
     pub vel: u8,
     /// Step anchor — authoritative for step ops, LEDs, and step editing.
     pub step: u16,
+    /// Just-recorded note: the scheduler skips it until the clip next wraps,
+    /// so the take you just played doesn't double-trigger on the same pass
+    /// (davebox suppress_until_wrap).
+    pub suppress: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -115,6 +119,7 @@ impl Clip {
                 pitch: n.pitch,
                 vel: n.vel,
                 step: n.step + len,
+                suppress: false,
             })
             .collect();
         for n in copies {
@@ -156,7 +161,37 @@ impl Clip {
             pitch,
             vel,
             step,
+            suppress: false,
         });
+    }
+
+    /// Record a live note at an explicit tick/gate, suppressed until the clip
+    /// next wraps so the just-played take doesn't double-trigger this pass.
+    pub fn record_note(&mut self, tick: u32, gate: u32, pitch: u8, vel: u8) {
+        if self.notes.len() >= MAX_NOTES {
+            return;
+        }
+        let bar = STEPS_PER_BAR as u32;
+        let step = ((tick + TICKS_PER_STEP / 2) / TICKS_PER_STEP) as u16;
+        self.extend_to_step(step.min((MAX_STEPS as u32 - bar) as u16));
+        self.notes.push(Note { tick, gate: gate.max(1), pitch, vel, step, suppress: true });
+    }
+
+    /// Clear the suppress flag on all notes (called when the clip wraps).
+    pub fn release_suppressed(&mut self) {
+        for n in &mut self.notes {
+            n.suppress = false;
+        }
+    }
+
+    /// Quantize every note's start to the nearest step (Shift+Step 16, full
+    /// strength for v1).
+    pub fn quantize(&mut self) {
+        for n in &mut self.notes {
+            let step = (n.tick + TICKS_PER_STEP / 2) / TICKS_PER_STEP;
+            n.tick = step * TICKS_PER_STEP;
+            n.step = step as u16;
+        }
     }
 
     /// Melodic step toggle: a step containing any notes is cleared; an empty
@@ -282,7 +317,7 @@ impl Clip {
             return;
         }
         self.extend_to_step(step);
-        self.notes.push(Note { tick, gate, pitch, vel, step });
+        self.notes.push(Note { tick, gate, pitch, vel, step, suppress: false });
     }
 
     /// Add `pitch` to every step in [s0, s1] that doesn't already have it

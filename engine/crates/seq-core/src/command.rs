@@ -90,6 +90,40 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 }
             }
         }
+        // rec <t> — toggle recording on track (one-bar count-in).
+        "rec" => {
+            if let Some(t) = next() {
+                engine.toggle_record(t as usize);
+            }
+        }
+        // metro <0|1> — metronome on/off.
+        "metro" => {
+            if let Some(v) = next() {
+                engine.set_metronome(v != 0);
+            }
+        }
+        // quant <t> — quantize the active clip to the grid.
+        "quant" => {
+            if let Some(t) = next() {
+                engine.quantize_active(t as usize);
+            }
+        }
+        // non/nof <t> <pitch> [vel] — live pad note for recording capture.
+        // The UI sounds the note directly; these only record.
+        "non" => {
+            if let (Some(t), Some(p), Some(v)) = (next(), next(), next()) {
+                if (0..128).contains(&p) {
+                    engine.live_note_on(t as usize, p as u8, v.clamp(1, 127) as u8);
+                }
+            }
+        }
+        "nof" => {
+            if let (Some(t), Some(p)) = (next(), next()) {
+                if (0..128).contains(&p) {
+                    engine.live_note_off(t as usize, p as u8);
+                }
+            }
+        }
         // del <t> <s0> <s1> <pitch|-1> — delete notes in range (step delete,
         // bar delete, or drum-pad delete with a pitch + full 0..255 range).
         "del" => {

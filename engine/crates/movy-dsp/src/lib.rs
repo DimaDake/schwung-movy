@@ -12,19 +12,15 @@ use core::ffi::{c_char, c_int, c_void};
 use ffi::*;
 use seq_core::command::apply_batch;
 use seq_core::engine::{Engine, OutEvent};
-use seq_core::PPQN;
 use std::ffi::{CStr, CString};
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.6.0";
+const ENGINE_VERSION: &str = "0.7.0";
 
 struct Instance {
     engine: Engine,
     out: Vec<OutEvent>,
     click: Click,
-    /// Spike leftover, kept as a manual audio-path check: clicks on the
-    /// next N beats. The real metronome lands with recording (Step 8).
-    click_beats_left: u32,
     blocks: u64,
 }
 
@@ -35,7 +31,6 @@ impl Instance {
             engine: Engine::new(rate, DEFAULT_BPM_X100),
             out: Vec::with_capacity(256),
             click: Click::new(rate),
-            click_beats_left: 0,
             blocks: 0,
         }
     }
@@ -54,11 +49,6 @@ impl Instance {
                 }
             }
             "file_path" => {}
-            "test_click" => {
-                if let Ok(n) = val.trim().parse::<u32>() {
-                    self.click_beats_left = n;
-                }
-            }
             _ => {}
         }
     }
@@ -67,42 +57,35 @@ impl Instance {
         match key {
             "status" => Some(self.engine.status()),
             "ping" => Some(format!("pong {ENGINE_VERSION}")),
-            "diag" => Some(format!(
-                "blocks={} gates_cap={} out_cap={}",
-                self.blocks,
-                0,
-                self.out.capacity()
-            )),
+            "diag" => Some(format!("blocks={} out_cap={}", self.blocks, self.out.capacity())),
             _ => None,
         }
     }
 
+    /// Turn engine events into host MIDI sends + metronome triggers. Indexes
+    /// `out` (events are Copy) so `click` can be borrowed in the same pass,
+    /// then clears it — preserving the buffer's capacity across blocks.
     fn drain_out(&mut self) {
-        for ev in self.out.drain(..) {
-            match ev {
+        for i in 0..self.out.len() {
+            match self.out[i] {
                 OutEvent::NoteOn { track, pitch, vel } => {
                     host::midi_send_internal(0x90 | track, pitch, vel);
                 }
                 OutEvent::NoteOff { track, pitch } => {
                     host::midi_send_internal(0x80 | track, pitch, 0);
                 }
+                OutEvent::Click { accent } => {
+                    self.click.trigger(accent);
+                }
             }
         }
+        self.out.clear();
     }
 
     fn render(&mut self, out_audio: &mut [i16]) {
         self.blocks += 1;
-        let pre_tick = self.engine.clock.tick;
         self.engine
             .advance_block((out_audio.len() / 2) as u32, &mut self.out);
-        // Spike audio check: click on beat boundaries.
-        if self.click_beats_left > 0 && self.engine.clock.tick != pre_tick {
-            let t = self.engine.clock.tick;
-            if t % PPQN as u64 == 0 {
-                self.click.trigger(t % (PPQN as u64 * 4) == 0);
-                self.click_beats_left -= 1;
-            }
-        }
         self.drain_out();
         self.click.render(out_audio);
     }

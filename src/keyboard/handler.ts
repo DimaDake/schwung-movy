@@ -1,5 +1,6 @@
 import { keyboardState } from './state.js';
 import { chromaticPadColor, chromaticPitch } from '../seq/pads.js';
+import { C_GREEN } from '../seq/colors.js';
 
 /* Live pad note on the chromatic layout. Emits on the track's MIDI channel
  * (0x9n) so it reaches that track's chain slot, carrying real velocity. The
@@ -10,7 +11,7 @@ export function noteOn(padNote: number, padMin: number, track: number, vel: numb
     keyboardState.held[padNote] = midiNote;
     keyboardState.lastPlayedNote = midiNote;
     shadow_send_midi_to_dsp([MidiNoteOn | track, midiNote, vel]);
-    setLED(padNote, BrightRed, true);
+    setLED(padNote, C_GREEN, true); // immediate green feedback before the next poll
 }
 
 export function noteOff(padNote: number, padMin: number, track: number): void {
@@ -18,7 +19,7 @@ export function noteOff(padNote: number, padMin: number, track: number): void {
     if (midiNote === undefined) return;
     shadow_send_midi_to_dsp([MidiNoteOff | track, midiNote, 0]);
     delete keyboardState.held[padNote];
-    setLED(padNote, chromaticPadColor(padNote, padMin, keyboardState.rootNote, track, false), true);
+    setLED(padNote, chromaticPadColor(padNote, padMin, keyboardState.rootNote, track, false, false), true);
 }
 
 export function releaseAllNotes(track: number): void {
@@ -33,6 +34,6 @@ export function changeRoot(semitones: number, track: number, padMin: number, pad
     releaseAllNotes(track);
     keyboardState.rootNote = Math.max(0, Math.min(103, keyboardState.rootNote + semitones));
     for (let pad = padMin; pad <= padMax; pad++) {
-        setLED(pad, chromaticPadColor(pad, padMin, keyboardState.rootNote, track, false), true);
+        setLED(pad, chromaticPadColor(pad, padMin, keyboardState.rootNote, track, false, false), true);
     }
 }

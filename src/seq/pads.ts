@@ -3,17 +3,16 @@
  * fourth) from the pad below it. padNote 68 is bottom-left (lowest); higher
  * rows are higher pitches.
  *
- * Coloring is fixed C-major (key/scale editing is out of scope): the root
- * note C uses the track color, other in-scale notes light gray, out-of-scale
- * pads stay dark. Held pads flash red.
+ * Coloring: root C = track color, sounding = green, last-held set = white,
+ * other in-scale notes light gray, out-of-scale pads stay dark.
  *
  * baseNote is the MIDI note of the bottom-left pad; the +/- buttons shift it
  * by an octave. */
 
-import { C_BLACK, trackColor } from './colors.js';
+import { C_BLACK, C_GREEN, C_WHITE, trackColor } from './colors.js';
+import { noteHeld } from './held.js';
 
 const C_LIGHTGREY = 118; // schwung LightGrey — in-scale, non-root
-const C_HELD = 1;        // schwung BrightRed — pad pressed
 
 const COLS = 8;
 const ROW_INTERVAL = 5;  // semitones per row going up (perfect fourth)
@@ -36,11 +35,13 @@ export function chromaticPadColor(
     baseNote: number,
     track: number,
     held: boolean,
+    isPlaying: boolean,
 ): number {
-    if (held) return C_HELD;
     const pitch = chromaticPitch(padNote, padMin, baseNote);
     if (pitch < 0 || pitch > 127) return C_BLACK;
+    if (isPlaying || held)   return C_GREEN;          // sounding
+    if (noteHeld(track, pitch)) return C_WHITE;       // last-held selection
     const semitone = ((pitch % 12) + 12) % 12;
-    if (semitone === 0) return trackColor(track); // root C
+    if (semitone === 0) return trackColor(track);     // root
     return inScale(pitch) ? C_LIGHTGREY : C_BLACK;
 }

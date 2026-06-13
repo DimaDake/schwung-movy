@@ -28,6 +28,7 @@ const PAD_MAX        = MovePads[MovePads.length - 1];
 const LED_INIT_BATCH = 8;
 
 let lastToastShowing = false;
+let lastHeaderShowing = false;
 let lastSessionMode = false;
 
 export function tick(): void {
@@ -76,7 +77,8 @@ export function tick(): void {
     const toastShowing = seqToastActive();
     const headerShowing = seqHeaderActive();
 
-    if (modelDirty || appState.dirty || toastShowing !== lastToastShowing || headerShowing) {
+    if (modelDirty || appState.dirty || toastShowing !== lastToastShowing
+        || headerShowing !== lastHeaderShowing) {
         if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
@@ -96,6 +98,7 @@ export function tick(): void {
         if (toastShowing) drawSeqToast();
         if (headerShowing) drawSeqHeader();
         lastToastShowing = toastShowing;
+        lastHeaderShowing = headerShowing;
         appState.dirty = false;
 
         /* ── Drum pad LEDs ──────────────────────────────────────────────────── */

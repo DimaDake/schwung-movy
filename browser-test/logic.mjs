@@ -1389,6 +1389,34 @@ _log('\nTest: drumPadOn');
     eq('active = white pulse', trackButtonColor(1, true), 120);
 }
 
+/* ── momentary: tap vs hold ───────────────────────────────────────────────── */
+{
+    _log('\nmomentary tap vs hold:');
+    const { momentaryDownAt, momentaryUpAt, resetMomentary } =
+        await import('../dist/esm/seq/momentary.js');
+
+    let restored = 0;
+    const restore = () => { restored++; };
+
+    // Quick tap (< 28 ticks elapsed) → latch, restore NOT called.
+    resetMomentary();
+    momentaryDownAt(40, 100, restore);
+    momentaryUpAt(40, 110);          // 10 ticks → tap
+    eq('tap does not restore', restored, 0);
+
+    // Hold (>= 28 ticks) → restore called.
+    resetMomentary();
+    momentaryDownAt(40, 100, restore);
+    momentaryUpAt(40, 140);          // 40 ticks → hold
+    eq('hold restores', restored, 1);
+
+    // Up for a different button is ignored.
+    resetMomentary();
+    momentaryDownAt(40, 100, restore);
+    momentaryUpAt(58, 200);          // wrong button
+    eq('other-button up ignored', restored, 1);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

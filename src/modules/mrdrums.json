@@ -48,6 +48,14 @@
           { "key": "g_humanize_ms",   "short": "HUMAN", "full": "Humanize",    "type": "float", "min": 0, "max": 50 }
         ]
       ]
+    },
+    {
+      "name": "Preset",
+      "rows": [
+        [
+          { "key": "ui_preset_path", "short": "PRSET", "full": "Load Preset", "type": "file", "fileRoot": "/data/UserData/UserLibrary", "fileFilter": [".ablpresetbundle"], "fileStartPath": "/data/UserData/UserLibrary" }
+        ]
+      ]
     }
   ]
 }

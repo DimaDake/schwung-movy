@@ -38,7 +38,7 @@ import {
 import { momentaryDown, momentaryGesture, momentaryUp } from './momentary.js';
 import {
     anyStepHeld, editLength, editNudge, editPad, editStepDown, editStepUp,
-    editTranspose, editVelocity,
+    editTranspose, editVelocity, heldStepAbs, setLengthTo,
 } from './step-edit.js';
 import { seqHeaderAnnounce, seqToast } from './render.js';
 import {
@@ -104,8 +104,14 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         } else if (on && shiftHeld) {
             shiftStepFunction(button);
         } else if (on) {
-            editStepDown(button);
-            if (seqState.loopMode) loopStepOn(button);
+            const absB = seqState.barOffset * NUM_STEP_BUTTONS + button;
+            if (!seqState.loopMode && heldStepAbs() >= 0 && absB !== heldStepAbs()
+                && setLengthTo(absB)) {
+                // length gesture consumed; do not register B as a held step
+            } else {
+                editStepDown(button);
+                if (seqState.loopMode) loopStepOn(button);
+            }
         } else {
             const wasTap = editStepUp(button);
             if (seqState.loopMode) loopStepOff(button);

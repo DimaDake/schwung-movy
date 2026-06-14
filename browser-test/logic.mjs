@@ -916,15 +916,17 @@ _log('\nTest: drumPadOn');
     eq('hold-step + pad toggles pitch at step', lastOp(), 'ltog 0 2 67 100');
     seqHandleMidi([0x80, 16 + 2, 0], false);
 
-    // Multi-step hold: gesture applies to every held step.
+    // Multi-step hold in Loop Mode: pressing two bars registers both for edits.
     reset(); seqEngineTick();
+    seqState.loopMode = true;
     seqHandleMidi([0x90, 16 + 1, 127], false);
     seqHandleMidi([0x90, 16 + 4, 127], false);
     seqHandleMidi([0xB0, 79, 1], false);         // Volume up
     seqEngineTick();
-    eq('multi-step velocity edits both', engine.ops.filter(o => o.startsWith('evel')).length, 2);
+    eq('multi-step (loop mode) velocity edits both bars', engine.ops.filter(o => o.startsWith('evel')).length, 2);
     seqHandleMidi([0x80, 16 + 1, 0], false);
     seqHandleMidi([0x80, 16 + 4, 0], false);
+    seqState.loopMode = false;
 
     // A plain tap (no gesture) DOES toggle a note on release.
     reset(); seqEngineTick();
@@ -1536,6 +1538,29 @@ _log('\nTest: drumPadOn');
     momentaryDownAt(40, 100, restore);
     eq('other-button up none', momentaryUpAt(58, 200), 'none');
     eq('other-button up ignored', restored, 2);
+}
+
+/* ── hold-A-press-B length gesture ──────────────────────────────────────── */
+{
+    _log('\nhold-A-press-B length:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { editStepDown, setLengthTo, heldStepAbs, resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
+
+    installMockEngine();
+    resetSeqEngine(); resetSeqState(); resetStepEdit();
+    seqState.barOffset = 0; seqState.watchLane = -1; seqState.watchTrack = 0;
+
+    editStepDown(2);                  // hold step 2 (abs 2)
+    eq('heldStepAbs is 2', heldStepAbs(), 2);
+    setLengthTo(6);                   // press step 6 → length 4 steps = 96 ticks
+    eq('slen emitted', peekSeqCmdQueue().some(c => c === 'slen 0 2 2 -1 96'), true);
+    resetStepEdit();
+    editStepDown(4);
+    eq('B<=A is no-op', setLengthTo(4), false);
+
+    uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetStepEdit();
 }
 
 /* ── playhead position ───────────────────────────────────────────────────── */

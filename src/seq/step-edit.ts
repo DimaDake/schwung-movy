@@ -115,6 +115,25 @@ export function editPad(pitch: number, vel: number): boolean {
     return true;
 }
 
+/* The single held step's absolute index (Note mode), or -1 if not exactly one. */
+export function heldStepAbs(): number {
+    if (heldRanges.size !== 1) return -1;
+    const r = [...heldRanges.values()][0];
+    return r.s0 === r.s1 ? r.s0 : -1;
+}
+
+/* Hold A + press B → set A's note length to span to B. Returns true if a
+ * length-set was emitted (B > A), false otherwise. */
+export function setLengthTo(absB: number): boolean {
+    const a = heldStepAbs();
+    if (a < 0 || absB <= a) return false;
+    markGestured();
+    const ticks = (absB - a) * TICKS_PER_STEP;
+    seqCmd(`slen ${seqState.watchTrack} ${a} ${a} ${lane()} ${ticks}`);
+    seqToast('Length ' + (absB - a));
+    return true;
+}
+
 export function resetStepEdit(): void {
     heldRanges.clear();
     gestured.clear();

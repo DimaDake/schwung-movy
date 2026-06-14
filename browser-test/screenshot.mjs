@@ -207,6 +207,24 @@ async function main() {
             });
         }
 
+        /* Deterministic settle: page navigation (changePage) kicks off an async
+         * knob-value refresh over several ticks, and the background rAF loop
+         * re-rendering concurrently makes a mid-settle capture nondeterministic.
+         * Freeze the loop, then tick+repaint until the model reports no change
+         * (or a cap), so the captured frame is the converged render. */
+        await page.evaluate(() => globalThis.__movy_stopLoop?.());
+        await page.evaluate(() => new Promise(resolve => {
+            let idle = 0, total = 0;
+            const settle = () => {
+                const dirty = globalThis.__movy_tickAndRepaint?.() ?? false;
+                idle = dirty ? 0 : idle + 1;
+                total++;
+                if (idle >= 5 || total >= 200) resolve(); // 5 clean ticks, or cap
+                else requestAnimationFrame(settle);
+            };
+            requestAnimationFrame(settle);
+        }));
+
         /* Capture canvas at its native 128×64 resolution */
         const dataUrl = await page.evaluate(() => {
             return document.getElementById('display').toDataURL('image/png');

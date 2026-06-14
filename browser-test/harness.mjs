@@ -146,40 +146,55 @@ function updateInspector(vm) {
 
 /* ── rAF tick loop ───────────────────────────────────────────────────────── */
 
-function tick() {
-    const dirty = model.tick();
-    if (dirty) {
-        const vm = model.getViewModel();
-        renderKnobsView(vm);
-        updateKnobWidgets(vm);
-        updateInspector(vm);
-    }
-    requestAnimationFrame(tick);
-}
-
-globalThis.__movy_forceRender = () => {
+/* repaint redraws whichever view was last shown, so a dirty tick after a
+ * synthetic navigation re-renders the correct view (not always knobs). */
+function knobsRepaint() {
     const vm = model.getViewModel();
     renderKnobsView(vm);
     updateKnobWidgets(vm);
     updateInspector(vm);
+}
+let lastRender = knobsRepaint;
+let running = true;
+
+function tick() {
+    if (!running) return;
+    if (model.tick()) lastRender();
+    requestAnimationFrame(tick);
+}
+
+/* screenshot.mjs freezes the loop and drives a deterministic settle so the
+ * capture isn't racing the async value refresh. */
+globalThis.__movy_stopLoop = () => { running = false; };
+globalThis.__movy_tickAndRepaint = () => { const d = model.tick(); if (d) lastRender(); return d; };
+
+globalThis.__movy_forceRender = () => { lastRender = knobsRepaint; lastRender(); };
+
+/* Exposed for screenshot.mjs to render alternate views. Each sets lastRender
+ * so a dirty settle tick repaints THIS view, not the knobs view. */
+globalThis.__movy_renderKeysView   = () => {
+    lastRender = () => renderKeysView(
+        model.getModuleName(), 60,
+        n => { const names=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']; return names[n%12]+Math.floor(n/12-1); }
+    );
+    lastRender();
+};
+globalThis.__movy_renderBrowseView = (mods, idx) => {
+    lastRender = () => renderBrowseView(mods, idx);
+    lastRender();
 };
 
-/* Exposed for screenshot.mjs to render alternate views */
-globalThis.__movy_renderKeysView   = () => renderKeysView(
-    model.getModuleName(), 60,
-    n => { const names=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']; return names[n%12]+Math.floor(n/12-1); }
-);
-globalThis.__movy_renderBrowseView = (mods, idx) => renderBrowseView(mods, idx);
-
 globalThis.__movy_renderChainView = (chainIndex, jogTouched, activeSlot) => {
-    const m  = chainModels[chainIndex ?? 1];
-    const vm = m.getViewModel();
-    renderChainView(vm, chainIndex ?? 1, jogTouched ?? false, activeSlot ?? 0);
+    lastRender = () => {
+        const m  = chainModels[chainIndex ?? 1];
+        renderChainView(m.getViewModel(), chainIndex ?? 1, jogTouched ?? false, activeSlot ?? 0);
+    };
+    lastRender();
 };
 
 globalThis.__movy_renderKnobsJogToast = () => {
-    const vm = model.getViewModel();
-    renderKnobsView(vm, true);
+    lastRender = () => renderKnobsView(model.getViewModel(), true);
+    lastRender();
 };
 
 /* ── Boot ────────────────────────────────────────────────────────────────── */

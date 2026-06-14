@@ -310,11 +310,16 @@ impl Engine {
         self.watch_track = track;
         // Ensure the target clip exists so its playhead advances (and a new
         // recording extends from one bar).
+        let was_playing = self.playing;
         self.tracks[track].active_mut().ensure_exists();
         if !self.playing {
             self.play();
         }
-        self.count_in_left = crate::TICKS_PER_BAR;
+        if was_playing {
+            self.recording = true;             // punch-in: record now, no count-in
+        } else {
+            self.count_in_left = crate::TICKS_PER_BAR;
+        }
     }
 
     pub fn set_metronome(&mut self, on: bool) {
@@ -897,6 +902,25 @@ mod tests {
         let s = e.status();
         let pos = s.split("pos=").nth(1).unwrap().split(' ').next().unwrap();
         assert_eq!(pos.parse::<u32>().unwrap(), e.tracks[e.watch_track].pos_tick);
+    }
+
+    #[test]
+    fn record_while_playing_skips_count_in() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.play();              // transport already running
+        e.toggle_record(0);
+        assert!(e.recording, "records immediately");
+        assert!(!e.counting_in(), "no count-in while already playing");
+    }
+
+    #[test]
+    fn record_while_stopped_arms_count_in() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.toggle_record(0);
+        assert!(e.counting_in(), "stopped: arms the count-in");
+        assert!(!e.recording, "recording begins only after the count-in");
     }
 
     #[test]

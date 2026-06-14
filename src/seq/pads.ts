@@ -29,18 +29,21 @@ export function inScale(pitch: number): boolean {
     return MAJOR.includes(((pitch % 12) + 12) % 12);
 }
 
+/* holdNotes: when non-null, those pitches show white instead of the lastHeld
+ * set (step-hold overlay mode). null = normal mode using lastHeld. */
 export function chromaticPadColor(
     padNote: number,
     padMin: number,
     baseNote: number,
     track: number,
-    held: boolean,
     isPlaying: boolean,
+    holdNotes: number[] | null = null,
 ): number {
     const pitch = chromaticPitch(padNote, padMin, baseNote);
     if (pitch < 0 || pitch > 127) return C_BLACK;
-    if (isPlaying || held)   return C_GREEN;          // sounding
-    if (noteHeld(track, pitch)) return C_WHITE;       // last-held selection
+    if (isPlaying) return C_GREEN;
+    const white = holdNotes !== null ? holdNotes.includes(pitch) : noteHeld(track, pitch);
+    if (white) return C_WHITE;
     const semitone = ((pitch % 12) + 12) % 12;
     if (semitone === 0) return trackColor(track);     // root
     return inScale(pitch) ? C_LIGHTGREY : C_BLACK;

@@ -155,6 +155,11 @@ function parseStatus(s: string): void {
         else if (key === 'dirty') seqState.dirty = val === '1';
         else if (key === 'pos') seqState.posTick = Number(val) || 0;
         else if (key === 'hlen') seqState.holdLen = Number(val) || 0;
+        else if (key === 'hnotes') {
+            seqState.holdNotes = val
+                ? val.split('.').map(Number).filter((n) => n >= 0 && n <= 127)
+                : [];
+        }
         else if (key === 'act') activeFromStr(val);
         else if (key === 'mute') muteFromStr(val);
         else if (key === 'sess') sessionFromStr(val);

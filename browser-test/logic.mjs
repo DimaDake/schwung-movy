@@ -733,13 +733,13 @@ _log('\nTest: drumPadOn');
     eq('top-left (row 3) = +15', chromaticPitch(92, PAD_MIN, base), 63);
 
     // Coloring: root C = track color, in-scale gray, out-of-scale dark.
-    eq('root C uses track color', chromaticPadColor(68, PAD_MIN, base, 2, false, false), trackColor(2));
+    eq('root C uses track color', chromaticPadColor(68, PAD_MIN, base, 2, false), trackColor(2));
     // base+2 = D (in C major) → light gray (118)
-    eq('in-scale note light gray', chromaticPadColor(70, PAD_MIN, base, 0, false, false), 118);
+    eq('in-scale note light gray', chromaticPadColor(70, PAD_MIN, base, 0, false), 118);
     // base+1 = C# (out of scale) → dark
-    eq('out-of-scale dark', chromaticPadColor(69, PAD_MIN, base, 0, false, false), 0);
-    // held pad (physically down) → green (sounding)
-    eq('held pad green', chromaticPadColor(69, PAD_MIN, base, 0, true, false), 11);
+    eq('out-of-scale dark', chromaticPadColor(69, PAD_MIN, base, 0, false), 0);
+    // isPlaying=true → green (sounding, highest priority)
+    eq('playing pad green', chromaticPadColor(69, PAD_MIN, base, 0, true), 11);
 
     eq('C in major scale', inScale(60), true);
     eq('C# not in major scale', inScale(61), false);
@@ -1367,12 +1367,16 @@ _log('\nTest: drumPadOn');
 
     const padMin = 68, base = 60; // bottom-left = C4
     // bottom-left pad is the root C => track color, unless playing/held.
-    eq('root = track color', chromaticPadColor(68, padMin, base, 0, false, false), trackColor(0));
-    eq('playing = green',    chromaticPadColor(68, padMin, base, 0, false, /*playing*/true), 11);
+    eq('root = track color', chromaticPadColor(68, padMin, base, 0, false), trackColor(0));
+    eq('playing = green',    chromaticPadColor(68, padMin, base, 0, /*playing*/true), 11);
     // mark the held set: pitch at pad 69 = C#4 = 61.
     setHeldSet(0, [chromaticPitch(69, padMin, base)]);
-    eq('held-set = white',   chromaticPadColor(69, padMin, base, 0, false, false), 120);
+    eq('held-set = white',   chromaticPadColor(69, padMin, base, 0, false), 120);
     clearHeldSet(0);
+    // step-hold overlay: holdNotes array overrides the noteHeld set
+    const holdPitches = [chromaticPitch(68, padMin, base)]; // C4 = 60
+    eq('holdNotes-in-array = white', chromaticPadColor(68, padMin, base, 0, false, holdPitches), 120);
+    eq('holdNotes-missing = normal', chromaticPadColor(69, padMin, base, 0, false, holdPitches), 0); // C# out of scale → black
 }
 
 /* ── transport LEDs ──────────────────────────────────────────────────────── */
@@ -1662,6 +1666,11 @@ _log('\nTest: drumPadOn');
     parseStatusForTest('play=1 tick=10 step=2 pos=53 len=32 hlen=4 occ=' + '0'.repeat(64));
     eq('posTick parsed', seqState.posTick, 53);
     eq('holdLen parsed', seqState.holdLen, 4);
+    parseStatusForTest('hnotes=60.64.67');
+    eq('holdNotes parsed (3 pitches)', seqState.holdNotes.length, 3);
+    eq('holdNotes[0] = 60', seqState.holdNotes[0], 60);
+    parseStatusForTest('hnotes=');
+    eq('holdNotes empty string clears array', seqState.holdNotes.length, 0);
 }
 
 /* ── visual metronome helper ─────────────────────────────────────────────── */

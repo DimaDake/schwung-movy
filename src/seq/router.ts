@@ -113,12 +113,18 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
                 if (seqState.loopMode) loopStepOn(button);
                 if (!seqState.loopMode && heldStepAbs() >= 0) {
                     seqState.holdStep = heldStepAbs();
+                    seqState.holdNotes = [];
                     seqCmd('hold ' + seqState.watchTrack + ' ' + seqState.holdStep);
                 }
             }
         } else {
             const wasTap = editStepUp(button);
             if (!anyStepHeld()) {
+                if (seqState.holdNotes.length > 0) {
+                    setHeldSet(seqState.watchTrack, seqState.holdNotes);
+                    seqState.lastPitch[seqState.watchTrack] = seqState.holdNotes[0];
+                }
+                seqState.holdNotes = [];
                 seqState.holdStep = -1;
                 seqState.holdLen = 0;
                 seqCmd('hold ' + seqState.watchTrack + ' -1');

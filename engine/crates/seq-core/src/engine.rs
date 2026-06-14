@@ -492,13 +492,34 @@ impl Engine {
         }
     }
 
+    /// `hnotes=` payload: dot-separated pitches in the held step, empty when no step held.
+    fn held_notes_state(&self) -> String {
+        match self.held_query {
+            Some((t, step)) if t < NUM_TRACKS => {
+                let mut pitches: Vec<u8> = self.tracks[t]
+                    .active()
+                    .notes_at_step(step)
+                    .map(|n| n.pitch)
+                    .collect();
+                pitches.sort_unstable();
+                pitches.dedup();
+                pitches.iter().enumerate().fold(String::new(), |mut s, (i, p)| {
+                    if i > 0 { s.push('.'); }
+                    s.push_str(&p.to_string());
+                    s
+                })
+            }
+            _ => String::new(),
+        }
+    }
+
     /// Compact status string the UI polls (space-separated key=value; the
     /// UI ignores unknown keys, so this can grow freely).
     pub fn status(&self) -> String {
         let wt = &self.tracks[self.watch_track];
         let clip = wt.active();
         format!(
-            "play={} tick={} bpm={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} occ={}",
+            "play={} tick={} bpm={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -515,6 +536,7 @@ impl Engine {
             self.active_notes_state(),
             self.mute_state(),
             self.held_len_steps(),
+            self.held_notes_state(),
             clip.occupancy_hex_lane(self.watch_lane)
         )
     }
@@ -891,6 +913,27 @@ mod tests {
         let s2 = e.status();
         let hlen0 = s2.split("hlen=").nth(1).unwrap().split(' ').next().unwrap();
         assert_eq!(hlen0, "0");
+    }
+
+    #[test]
+    fn hold_query_reports_step_pitches() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        e.tracks[0].active_mut().toggle_step(3, &[(60, 100), (64, 90), (67, 80)]);
+        crate::command::apply_batch(&mut e, "hold 0 3", &mut out);
+        let s = e.status();
+        let hnotes = s.split("hnotes=").nth(1).unwrap().split(' ').next().unwrap();
+        assert_eq!(hnotes, "60.64.67");
+        // Empty step → empty hnotes
+        crate::command::apply_batch(&mut e, "hold 0 5", &mut out); // step 5 has no notes
+        let s2 = e.status();
+        let hn2 = s2.split("hnotes=").nth(1).unwrap().split(' ').next().unwrap();
+        assert_eq!(hn2, "");
+        // No hold → empty
+        crate::command::apply_batch(&mut e, "hold 0 -1", &mut out);
+        let s3 = e.status();
+        let hn3 = s3.split("hnotes=").nth(1).unwrap().split(' ').next().unwrap();
+        assert_eq!(hn3, "");
     }
 
     #[test]

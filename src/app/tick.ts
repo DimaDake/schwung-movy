@@ -3,7 +3,7 @@ import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
 import { MASTER_FX_SLOTS } from '../chain/config.js';
 import { drumPadLedColor } from '../keyboard/leds.js';
-import { chromaticPadColor } from '../seq/pads.js';
+import { chromaticPadColor, chromaticPitch } from '../seq/pads.js';
 import { midiNoteName } from '../keyboard/notes.js';
 import { renderKnobsView } from '../renderer/knob-view.js';
 import { renderKeysView }  from '../renderer/keys-view.js';
@@ -31,6 +31,10 @@ let lastToastShowing = false;
 let lastHeaderShowing = false;
 let lastSessionMode = false;
 
+/* Per-pad color cache for the chromatic layout: avoids resending unchanged
+ * LED colors every tick. Initialized to 0 (C_BLACK); first tick syncs all. */
+const chromaticCache = new Uint8Array(32);
+
 export function tick(): void {
     seqEngineTick();
     seqPersistTick();
@@ -39,7 +43,7 @@ export function tick(): void {
     if (seqState.sessionMode !== lastSessionMode) {
         lastSessionMode = seqState.sessionMode;
         seqLedsInvalidate();
-        if (!seqState.sessionMode) { appState.initLedsDone = false; appState.initLedIndex = 0; }
+        if (!seqState.sessionMode) { appState.initLedsDone = false; appState.initLedIndex = 0; chromaticCache.fill(0); }
         appState.dirty = true;
     }
     seqLedsTick(appState.shiftHeld, appState.currentView, seqState.barOffset, maxBarOffset());
@@ -66,7 +70,9 @@ export function tick(): void {
         const base  = keyboardState.rootNote;
         for (let i = appState.initLedIndex; i < end; i++) {
             const p = PAD_MIN + i;
-            setLED(p, chromaticPadColor(p, PAD_MIN, base, appState.activeSlot, false, false), true);
+            const color = chromaticPadColor(p, PAD_MIN, base, appState.activeSlot, false);
+            chromaticCache[i] = color;
+            setLED(p, color, true);
         }
         appState.initLedIndex = end;
         if (appState.initLedIndex >= total) { appState.initLedsDone = true; appState.dirty = true; }
@@ -139,6 +145,30 @@ export function tick(): void {
             appState.drumActive = false;
             appState.initLedsDone = false;
             appState.initLedIndex = 0;
+            chromaticCache.fill(0);
+        }
+    }
+
+    /* Per-tick chromatic pad update: green for sequencer-active or physically-
+     * held notes, white for lastHeld set or step-hold overlay (holdNotes),
+     * normal scale coloring otherwise. Runs outside the dirty-frame guard so
+     * the sequencer's active-note LEDs update at poll rate (~24 Hz) without
+     * requiring a full UI redraw. Cache diff prevents redundant LED sends. */
+    if (!seqState.sessionMode && !isDrum && appState.initLedsDone) {
+        const base      = keyboardState.rootNote;
+        const track     = appState.activeSlot;
+        const holdNotes = seqState.holdStep >= 0 && seqState.holdNotes.length > 0
+            ? seqState.holdNotes : null;
+        for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {
+            const p     = PAD_MIN + i;
+            const pitch = chromaticPitch(p, PAD_MIN, base);
+            const isPlaying = keyboardState.held[p] !== undefined
+                || (pitch >= 0 && pitch <= 127 && activeHasNote(track, pitch));
+            const color = chromaticPadColor(p, PAD_MIN, base, track, isPlaying, holdNotes);
+            if (chromaticCache[i] !== color) {
+                chromaticCache[i] = color;
+                setLED(p, color, true);
+            }
         }
     }
 

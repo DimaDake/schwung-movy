@@ -40,6 +40,7 @@ export interface SeqUiState {
     posTick: number;         // watched track playhead tick (from `pos=`)
     holdStep: number;        // step whose length is being shown, or -1
     holdLen: number;         // held note length in steps (from `hlen=`), 0 = none
+    holdNotes: number[];     // pitches in the held step (from `hnotes=`), empty when none
 
     /* per-track mute, from `mute=` engine status field */
     muted: boolean[];
@@ -85,6 +86,7 @@ function defaults(): SeqUiState {
         posTick: 0,
         holdStep: -1,
         holdLen: 0,
+        holdNotes: [],
         muted: [false, false, false, false],
         sessionMode: false,
         session: emptySession(),

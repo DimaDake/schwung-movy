@@ -9,7 +9,7 @@
 
 import { uiTick } from './engine.js';
 
-const HOLD_TICKS = 28; // ~300 ms at the ~94 Hz device tick rate
+const HOLD_TICKS = 94; // ~1 s at the ~94 Hz device tick rate
 
 let active: { button: number; pressTick: number; restore: () => void; gestured: boolean } | null = null;
 

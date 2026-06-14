@@ -1514,30 +1514,71 @@ _log('\nTest: drumPadOn');
     let restored = 0;
     const restore = () => { restored++; };
 
-    // Quick tap (< 28 ticks elapsed) → latch, restore NOT called.
+    // Quick tap (< 94 ticks elapsed) → latch, restore NOT called.
     resetMomentary();
     momentaryDownAt(40, 100, restore);
     eq('tap returns tap', momentaryUpAt(40, 110), 'tap'); // 10 ticks
     eq('tap does not restore', restored, 0);
 
-    // Hold (>= 28 ticks) → revert, restore called.
+    // Hold (>= 94 ticks ~1 s) → revert, restore called.
     resetMomentary();
     momentaryDownAt(40, 100, restore);
-    eq('hold returns revert', momentaryUpAt(40, 140), 'revert'); // 40 ticks
+    eq('hold returns revert', momentaryUpAt(40, 200), 'revert'); // 100 ticks
     eq('hold restores', restored, 1);
+
+    // 93 ticks is still a tap (one tick below threshold).
+    resetMomentary();
+    momentaryDownAt(40, 0, restore);
+    eq('93 ticks is still tap', momentaryUpAt(40, 93), 'tap');
+    eq('93-tick does not restore', restored, 1);
+
+    // 94 ticks exactly → revert.
+    resetMomentary();
+    momentaryDownAt(40, 0, restore);
+    eq('94 ticks is hold', momentaryUpAt(40, 94), 'revert');
+    eq('94-tick restores', restored, 2);
 
     // Gesture while held → revert even on a quick release.
     resetMomentary();
     momentaryDownAt(40, 100, restore);
     momentaryGesture();
     eq('gesture returns revert', momentaryUpAt(40, 105), 'revert'); // 5 ticks
-    eq('gesture restores', restored, 2);
+    eq('gesture restores', restored, 3);
 
     // Up for a different button is ignored.
     resetMomentary();
     momentaryDownAt(40, 100, restore);
     eq('other-button up none', momentaryUpAt(58, 200), 'none');
-    eq('other-button up ignored', restored, 2);
+    eq('other-button up ignored', restored, 3);
+}
+
+/* ── seqRestoreWatch: restores watchTrack + barOffset ───────────────────── */
+{
+    _log('\nseqRestoreWatch:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { seqRestoreWatch } = await import('../dist/esm/seq/router.js');
+
+    installMockEngine();
+    resetSeqEngine(); resetSeqState();
+    seqState.watchTrack = 2;
+    seqState.barOffset  = 3;
+
+    seqRestoreWatch(0);
+    eq('watchTrack restored to 0', seqState.watchTrack, 0);
+    eq('barOffset reset to 0',     seqState.barOffset,  0);
+    const cmds = peekSeqCmdQueue();
+    eq('watch cmd emitted', cmds.some(c => c === 'watch 0'), true);
+
+    // Calling with same track still resets barOffset and emits watch.
+    resetSeqEngine();
+    seqState.watchTrack = 1; seqState.barOffset = 2;
+    seqRestoreWatch(1);
+    eq('same track: barOffset reset', seqState.barOffset, 0);
+    eq('same track: watch emitted',   peekSeqCmdQueue().some(c => c === 'watch 1'), true);
+
+    uninstallMockEngine(); resetSeqEngine(); resetSeqState();
 }
 
 /* ── step-row length span ────────────────────────────────────────────────── */

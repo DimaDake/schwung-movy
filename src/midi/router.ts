@@ -5,7 +5,7 @@ import { noteOn, noteOff, changeRoot, releaseAllNotes } from '../keyboard/handle
 import { drumPadOn, drumPadOff } from '../keyboard/drum-handler.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
-import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteTrack } from '../seq/router.js';
+import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteTrack, seqRestoreWatch } from '../seq/router.js';
 import { seqState } from '../seq/state.js';
 import { momentaryDown, momentaryUp } from '../seq/momentary.js';
 import { mlog } from '../log.js';
@@ -97,15 +97,19 @@ export function onMidiMessageInternal(data: number[]): void {
         if (d2 > 0) {
             if (muteHeld()) { muteTrack(track); appState.dirty = true; return; }
             // Snapshot prior state so the restore closure can return exactly here.
-            const prevSlot = appState.activeSlot;
-            const prevView = appState.currentView === VIEW_BROWSE ? appState.browseOrigin : appState.currentView;
-            const prevSession = seqState.sessionMode;
-            const prevLoop = seqState.loopMode;
+            // Note: seqHandleMidi already ran above and updated watchTrack/barOffset,
+            // so we capture the pre-switch slot to restore on hold release.
+            const prevSlot      = appState.activeSlot;
+            const prevView      = appState.currentView === VIEW_BROWSE ? appState.browseOrigin : appState.currentView;
+            const prevSession   = seqState.sessionMode;
+            const prevLoop      = seqState.loopMode;
+            const prevWatchTrack = prevSlot; // watchTrack should match active slot
             momentaryDown(d1, () => {
                 seqState.sessionMode = prevSession;
                 seqState.loopMode = prevLoop;
                 appState.activeSlot = prevSlot;
                 appState.currentView = prevView;
+                seqRestoreWatch(prevWatchTrack);
                 appState.initLedsDone = false; appState.initLedIndex = 0;
                 appState.dirty = true;
             });
@@ -113,7 +117,7 @@ export function onMidiMessageInternal(data: number[]): void {
             seqState.sessionMode = false;
             seqState.loopMode = false;
             appState.activeSlot = track;
-            appState.currentView = VIEW_KEYS;
+            appState.currentView = appState.trackView[track];
             appState.jogTouched = false;
             appState.initLedsDone = false; appState.initLedIndex = 0;
             appState.dirty = true;

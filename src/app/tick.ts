@@ -60,14 +60,15 @@ export function tick(): void {
     const activeModel = appState.trackModels[appState.activeSlot]?.[chainIdx];
     const modelDirty  = activeModel?.tick() ?? false;
 
-    /* Keep the sequencer's watched step-LED lane in sync with the active
-     * module: a drum module filters steps to the selected pad's note; a
-     * melodic module shows all notes (lane -1). */
-    const dvm0   = activeModel?.getViewModel();
-    const isDrum = (dvm0?.drumPadCount ?? 0) > 0;
+    /* Drum status comes from the synth slot (index 1) regardless of which
+     * chain module is currently selected — drum pads and step lane stay active
+     * even when the user is browsing FX parameters on the same track. */
+    const synthModel = appState.trackModels[appState.activeSlot]?.[1];
+    const synthDvm   = synthModel?.getViewModel();
+    const isDrum     = (synthDvm?.drumPadCount ?? 0) > 0;
     if (isDrum) {
-        const cfg = activeModel!.getDrumConfig();
-        seqSetLane(cfg ? cfg.padNoteStart + (dvm0!.drumCurrentPad - 1) : -1);
+        const cfg = synthModel!.getDrumConfig();
+        seqSetLane(cfg ? cfg.padNoteStart + (synthDvm!.drumCurrentPad - 1) : -1);
     } else {
         seqSetLane(-1);
     }
@@ -102,11 +103,12 @@ export function tick(): void {
         appState.dirty = false;
 
         /* ── Drum pad LEDs ──────────────────────────────────────────────────── */
-        /* In Session mode the clip grid owns the pads (painted by seqLedsTick). */
-        const dvm       = activeModel?.getViewModel();
-        const drumNow   = !seqState.sessionMode && (dvm?.drumPadCount ?? 0) > 0;
+        /* In Session mode the clip grid owns the pads (painted by seqLedsTick).
+         * synthModel/synthDvm/isDrum are from the synth slot regardless of the
+         * active chain index, so drum pads light up even on FX parameter pages. */
+        const drumNow = !seqState.sessionMode && isDrum;
         if (drumNow) {
-            const drumCfg = activeModel!.getDrumConfig()!;
+            const drumCfg = synthModel!.getDrumConfig()!;
             const track   = seqState.watchTrack;
             for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {
                 const p = PAD_MIN + i;
@@ -115,7 +117,7 @@ export function tick(): void {
                 const dp  = drumCfg.rawMidi ? p - drumCfg.padNoteStart + 1 : row * 4 + col + 1;
                 const note = drumCfg.rawMidi ? p : drumCfg.padNoteStart + dp - 1;
                 const playing = activeHasNote(track, note);
-                setLED(p, drumPadLedColor(p, PAD_MIN, drumCfg, keyboardState.rootNote, dvm!.drumCurrentPhysPad, track, playing), true);
+                setLED(p, drumPadLedColor(p, PAD_MIN, drumCfg, keyboardState.rootNote, synthDvm!.drumCurrentPhysPad, track, playing), true);
             }
             appState.drumActive = true;
         } else if (appState.drumActive) {

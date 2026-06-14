@@ -16,13 +16,9 @@ const CC_BACK = 51, CC_CAPTURE = 52, CC_UNDO = 56, CC_LOOP = 58,
       CC_COPY = 60, CC_LEFT = 62, CC_RIGHT = 63, CC_MUTE = 88,
       CC_SAMPLE = 118, CC_DELETE_BTN = 119;
 
-const STEP_ICON_CC_BASE = 16; // step-icon LEDs are CC 16..31 (printed icons under each step)
-
-/* Step-icon slot indices (0-based) for the latched shortcut features. */
-const ICON_METRO = 5;     // step 6
-const ICON_FULLVEL = 9;   // step 10
-const ICON_DBLLOOP = 14;  // step 15
-const ICON_QUANT = 15;    // step 16
+const STEP_ICON_CC_BASE = 16; // step-icon LEDs = CC 16..31
+// Step-icon slot indices (0-based) for the latched shortcut features.
+const ICON_METRO = 5, ICON_FULLVEL = 9, ICON_DBLLOOP = 14, ICON_QUANT = 15;
 
 const lastNoteLed = new Map<number, number>();
 const lastButtonLed = new Map<number, number>();
@@ -43,29 +39,24 @@ function cachedSetButtonLED(cc: number, color: number): void {
 
 /* Forget everything sent — next tick repaints all sequencer LEDs. Use after
  * anything that may have clobbered LED hardware state. */
-export function seqLedsInvalidate(): void {
-    lastNoteLed.clear();
-    lastButtonLed.clear();
-}
+/* Forget everything sent — next tick repaints all sequencer LEDs. Use after
+ * anything that may have clobbered LED hardware state. */
+export function seqLedsInvalidate(): void { lastNoteLed.clear(); lastButtonLed.clear(); }
 
 function barHasContent(bar: number): boolean {
-    const base = bar * NUM_STEP_BUTTONS;
-    for (let i = 0; i < NUM_STEP_BUTTONS; i++) {
-        if (occHasStep(base + i)) return true;
-    }
+    const b = bar * NUM_STEP_BUTTONS;
+    for (let i = 0; i < NUM_STEP_BUTTONS; i++) if (occHasStep(b + i)) return true;
     return false;
 }
 
 // No per-tick allocation: derive blink from engine tick integer division.
 function blinkPhase(): boolean { return Math.floor(seqState.engineTick / 24) % 2 === 0; }
-
 interface BarCtx { isPlayhead: boolean; selected: boolean; hasContent: boolean; inLoop: boolean; blink: boolean; track: number; }
-
 export function loopBarColor(c: BarCtx): number {
-    if (c.isPlayhead) return C_GREEN;                                   // playhead while playing
-    if (c.selected)   return C_WHITE;                                   // selected bar
-    if (c.hasContent) return c.blink ? trackColor(c.track) : C_BLACK;  // content bars blink track color
-    return C_BLACK;                                                     // empty/out-of-loop
+    if (c.isPlayhead) return C_GREEN;
+    if (c.selected)   return C_WHITE;
+    if (c.hasContent) return c.blink ? trackColor(c.track) : C_BLACK;
+    return C_BLACK;
 }
 
 /* Loop Mode: step buttons are bars — selected white, content blink track color, playhead green. */
@@ -93,7 +84,6 @@ export function transportRecColor(recording: boolean): number {
     return recording ? C_RED : C_DARKGREY;
 }
 
-/* Transport button LEDs: Play green while running; Rec red while recording. */
 function paintTransport(): void {
     cachedSetButtonLED(CC_PLAY, transportPlayColor(seqState.playing));
     cachedSetButtonLED(CC_REC, transportRecColor(seqState.recording));
@@ -121,11 +111,9 @@ function paintStepIcons(shift: boolean): void {
     }
 }
 
-/* Track buttons (CC 40..43; CC 43 = track 0). Base = the track color so they
- * match the chromatic root; a sounding note on that track flashes it white;
- * muted track dims to the track's dim color so it's visually "off". */
+// Track buttons: sounding note → white; muted → dim; else base track color.
 export function trackButtonColor(track: number, active: boolean, muted: boolean): number {
-    if (active) return C_WHITE;          // sounding note wins (full brightness)
+    if (active) return C_WHITE;
     return muted ? trackColorDim(track) : trackColor(track);
 }
 
@@ -143,15 +131,21 @@ function paintTrackButtons(): void {
 }
 
 function paintAffordances(view: number, barOffset: number, maxOff: number, lp: boolean, rp: boolean): void {
-    cachedSetButtonLED(CC_BACK,   backLedColor(view));
-    cachedSetButtonLED(CC_LEFT,   arrowLedColor(-1, barOffset, maxOff, lp));
-    cachedSetButtonLED(CC_RIGHT,  arrowLedColor(+1, barOffset, maxOff, rp));
-    cachedSetButtonLED(CC_SAMPLE, sampleLedColor());
-    cachedSetButtonLED(CC_CAPTURE, captureLedColor());
-    cachedSetButtonLED(CC_UNDO,   undoLedColor());
-    // Functional buttons always dim; Loop bright in Loop Mode.
+    cachedSetButtonLED(CC_BACK, backLedColor(view));
+    cachedSetButtonLED(CC_LEFT, arrowLedColor(-1, barOffset, maxOff, lp));
+    cachedSetButtonLED(CC_RIGHT, arrowLedColor(+1, barOffset, maxOff, rp));
+    cachedSetButtonLED(CC_SAMPLE, sampleLedColor()); cachedSetButtonLED(CC_CAPTURE, captureLedColor()); cachedSetButtonLED(CC_UNDO, undoLedColor());
     cachedSetButtonLED(CC_LOOP, seqState.loopMode ? WHITE_BRIGHT : WHITE_DIM);
     cachedSetButtonLED(CC_COPY, WHITE_DIM); cachedSetButtonLED(CC_DELETE_BTN, WHITE_DIM); cachedSetButtonLED(CC_MUTE, WHITE_DIM);
+}
+
+/* Length-span overlay while a step is held: the steps AFTER the held step, up
+ * to its note length, light dim track color. Returns -1 when `absStep` is not a
+ * span step (so the caller keeps the normal step color). */
+export function lengthSpanColor(absStep: number, holdStep: number, holdLen: number, track: number): number {
+    if (holdStep < 0 || holdLen <= 1) return -1;
+    if (absStep > holdStep && absStep <= holdStep + holdLen - 1) return trackColorDim(track);
+    return -1;
 }
 
 /* Worst-case cold frame: ~29 CC + up to 8 pad packets < 60-packet buffer.
@@ -177,14 +171,19 @@ export function seqLedsTick(
     const bar = seqState.barOffset;
     const base = bar * NUM_STEP_BUTTONS;
 
-    /* Step-row: white=notes, dim-track=in-loop, dim-gray=out-of-loop, green=playhead */
+    /* Step-row: length-span overlay first (dim track, following held note),
+     * then playhead, note presence, in-loop, out-of-loop. */
     const playStep = seqState.playing ? seqState.curStep : -1;
     const dimTrack = trackColorDim(seqState.watchTrack);
+    const { holdStep, holdLen, watchTrack } = seqState;
 
     for (let i = 0; i < NUM_STEP_BUTTONS; i++) {
         const step = base + i;
+        const span = lengthSpanColor(step, holdStep, holdLen, watchTrack);
         let color: number;
-        if (step === playStep) {
+        if (span >= 0) {
+            color = span;
+        } else if (step === playStep) {
             color = C_GREEN;
         } else if (occHasStep(step)) {
             color = C_WHITE;

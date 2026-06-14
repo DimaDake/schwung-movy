@@ -111,9 +111,18 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
             } else {
                 editStepDown(button);
                 if (seqState.loopMode) loopStepOn(button);
+                if (!seqState.loopMode && heldStepAbs() >= 0) {
+                    seqState.holdStep = heldStepAbs();
+                    seqCmd('hold ' + seqState.watchTrack + ' ' + seqState.holdStep);
+                }
             }
         } else {
             const wasTap = editStepUp(button);
+            if (!anyStepHeld()) {
+                seqState.holdStep = -1;
+                seqState.holdLen = 0;
+                seqCmd('hold ' + seqState.watchTrack + ' -1');
+            }
             if (seqState.loopMode) loopStepOff(button);
             else if (wasTap) toggleStep(button);
         }

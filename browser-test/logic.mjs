@@ -1540,6 +1540,18 @@ _log('\nTest: drumPadOn');
     eq('other-button up ignored', restored, 2);
 }
 
+/* ── step-row length span ────────────────────────────────────────────────── */
+{
+    _log('\nstep-row length span:');
+    const { lengthSpanColor } = await import('../dist/esm/seq/leds.js');
+    const { trackColorDim } = await import('../dist/esm/seq/colors.js');
+    // held abs step 2, length 4 → steps 3,4,5 are span (dim), step 2 is the held note.
+    eq('span step dim', lengthSpanColor(4, 2, 4, 0), trackColorDim(0)); // absStep 4 within [3,5]
+    eq('held step not span', lengthSpanColor(2, 2, 4, 0), -1);          // -1 = "not a span step"
+    eq('past span', lengthSpanColor(6, 2, 4, 0), -1);
+    eq('no hold', lengthSpanColor(4, -1, 0, 0), -1);
+}
+
 /* ── hold-A-press-B length gesture ──────────────────────────────────────── */
 {
     _log('\nhold-A-press-B length:');

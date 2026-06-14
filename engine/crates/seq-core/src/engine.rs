@@ -46,6 +46,9 @@ pub struct Engine {
     /// Recording state (live capture into the active clip).
     pub recording: bool,
     rec_track: usize,
+    /// True when recording started into a clip with no notes (first take);
+    /// false during overdub. Auto-extend is suppressed on overdub.
+    rec_empty_start: bool,
     /// Count-in ticks remaining before capture begins (0 = not counting in).
     count_in_left: u32,
     pub metronome: bool,
@@ -82,6 +85,7 @@ impl Engine {
             clip_clipboard: None,
             recording: false,
             rec_track: 0,
+            rec_empty_start: false,
             count_in_left: 0,
             metronome: false,
             rec_pending: Vec::new(),
@@ -308,6 +312,7 @@ impl Engine {
         }
         self.rec_track = track;
         self.watch_track = track;
+        self.rec_empty_start = self.tracks[track].active().notes.is_empty();
         // Ensure the target clip exists so its playhead advances (and a new
         // recording extends from one bar).
         let was_playing = self.playing;
@@ -470,7 +475,9 @@ impl Engine {
                 self.tracks[ti].pos_tick += 1;
                 if self.tracks[ti].pos_tick >= end {
                     let c = &mut self.tracks[ti].clips[slot];
-                    if recording_here && c.loop_start_steps + c.length_steps + bar <= crate::clip::MAX_STEPS {
+                    if recording_here && self.rec_empty_start
+                        && c.loop_start_steps + c.length_steps + bar <= crate::clip::MAX_STEPS
+                    {
                         c.set_loop(c.loop_start_steps, c.length_steps + bar);
                     } else {
                         self.tracks[ti].pos_tick = start;
@@ -990,5 +997,33 @@ mod tests {
         let s = e.status();
         let m = s.split("mute=").nth(1).unwrap().split(' ').next().unwrap();
         assert_eq!(m, "0100"); // track 1 muted
+    }
+
+    #[test]
+    fn first_recording_auto_extends_clip() {
+        // Empty clip: recording should extend bar-by-bar on each loop.
+        let mut e = engine();
+        e.toggle_record(0); // count-in
+        run_ticks(&mut e, crate::TICKS_PER_BAR as u64 + 1); // start recording
+        assert!(e.recording);
+        assert_eq!(e.tracks[0].active().length_steps, crate::STEPS_PER_BAR as u16);
+        // Run one full bar: pos_tick should hit end → clip extends to 2 bars.
+        run_ticks(&mut e, crate::TICKS_PER_BAR as u64);
+        assert_eq!(e.tracks[0].active().length_steps, crate::STEPS_PER_BAR as u16 * 2);
+    }
+
+    #[test]
+    fn overdub_does_not_auto_extend_clip() {
+        // Clip already has a note → overdub should NOT extend on wrap.
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]); // place a note first
+        assert_eq!(e.tracks[0].active().notes.len(), 1);
+        let initial_len = e.tracks[0].active().length_steps;
+        e.toggle_record(0); // count-in; rec_empty_start = false (has notes)
+        run_ticks(&mut e, crate::TICKS_PER_BAR as u64 + 1); // start recording
+        assert!(e.recording);
+        // Run one full bar: clip should NOT extend.
+        run_ticks(&mut e, crate::TICKS_PER_BAR as u64);
+        assert_eq!(e.tracks[0].active().length_steps, initial_len);
     }
 }

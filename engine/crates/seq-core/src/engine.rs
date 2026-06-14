@@ -474,12 +474,13 @@ impl Engine {
         let wt = &self.tracks[self.watch_track];
         let clip = wt.active();
         format!(
-            "play={} tick={} bpm={} trk={} step={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} occ={}",
+            "play={} tick={} bpm={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} occ={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
             self.watch_track,
             wt.current_step(),
+            wt.pos_tick,
             clip.length_steps,
             clip.loop_start_steps,
             self.recording as u8,
@@ -849,6 +850,17 @@ mod tests {
         e.play();
         let _ = run_ticks(&mut e, 10);
         assert_eq!(e.tracks[0].pos_tick, 0);
+    }
+
+    #[test]
+    fn status_reports_watched_pos_tick() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.play();
+        let _ = run_ticks(&mut e, 5);
+        let s = e.status();
+        let pos = s.split("pos=").nth(1).unwrap().split(' ').next().unwrap();
+        assert_eq!(pos.parse::<u32>().unwrap(), e.tracks[e.watch_track].pos_tick);
     }
 
     #[test]

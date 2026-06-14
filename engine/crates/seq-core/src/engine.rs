@@ -426,46 +426,51 @@ impl Engine {
             }
         }
 
-        for ti in 0..NUM_TRACKS {
-            let Some(slot) = self.tracks[ti].playing_slot else {
-                continue;
-            };
-            if !self.tracks[ti].clips[slot].exists() {
-                continue;
-            }
-            let muted = self.tracks[ti].muted;
-            let pos = self.tracks[ti].pos_tick;
-            if !muted {
-                let len = self.tracks[ti].clips[slot].notes.len();
-                for ni in 0..len {
-                    let n = self.tracks[ti].clips[slot].notes[ni];
-                    // Skip notes just recorded this pass (suppress_until_wrap).
-                    if n.tick == pos && !n.suppress {
-                        out.push(OutEvent::NoteOn { track: ti as u8, pitch: n.pitch, vel: n.vel });
-                        self.gates.push(Gate {
-                            track: ti as u8,
-                            pitch: n.pitch,
-                            ticks_left: n.gate.max(1),
-                        });
+        // No clip playback (and no playhead advance) during the count-in: the
+        // pre-roll bar only clicks; playback starts cleanly from loop-start on
+        // the tick the count-in reaches 0.
+        if self.count_in_left == 0 {
+            for ti in 0..NUM_TRACKS {
+                let Some(slot) = self.tracks[ti].playing_slot else {
+                    continue;
+                };
+                if !self.tracks[ti].clips[slot].exists() {
+                    continue;
+                }
+                let muted = self.tracks[ti].muted;
+                let pos = self.tracks[ti].pos_tick;
+                if !muted {
+                    let len = self.tracks[ti].clips[slot].notes.len();
+                    for ni in 0..len {
+                        let n = self.tracks[ti].clips[slot].notes[ni];
+                        // Skip notes just recorded this pass (suppress_until_wrap).
+                        if n.tick == pos && !n.suppress {
+                            out.push(OutEvent::NoteOn { track: ti as u8, pitch: n.pitch, vel: n.vel });
+                            self.gates.push(Gate {
+                                track: ti as u8,
+                                pitch: n.pitch,
+                                ticks_left: n.gate.max(1),
+                            });
+                        }
                     }
                 }
-            }
-            // Advance + wrap inside the loop window [start, start+len). On
-            // wrap, recorded notes become audible for the next pass. While
-            // recording into this track, the clip extends bar-by-bar (up to
-            // 16) instead of wrapping — native "length extends until stop".
-            let start = self.tracks[ti].clips[slot].loop_start_ticks();
-            let end = self.tracks[ti].clips[slot].loop_end_ticks();
-            let recording_here = self.recording && ti == self.rec_track;
-            let bar = crate::STEPS_PER_BAR as u16;
-            self.tracks[ti].pos_tick += 1;
-            if self.tracks[ti].pos_tick >= end {
-                let c = &mut self.tracks[ti].clips[slot];
-                if recording_here && c.loop_start_steps + c.length_steps + bar <= crate::clip::MAX_STEPS {
-                    c.set_loop(c.loop_start_steps, c.length_steps + bar);
-                } else {
-                    self.tracks[ti].pos_tick = start;
-                    self.tracks[ti].clips[slot].release_suppressed();
+                // Advance + wrap inside the loop window [start, start+len). On
+                // wrap, recorded notes become audible for the next pass. While
+                // recording into this track, the clip extends bar-by-bar (up to
+                // 16) instead of wrapping — native "length extends until stop".
+                let start = self.tracks[ti].clips[slot].loop_start_ticks();
+                let end = self.tracks[ti].clips[slot].loop_end_ticks();
+                let recording_here = self.recording && ti == self.rec_track;
+                let bar = crate::STEPS_PER_BAR as u16;
+                self.tracks[ti].pos_tick += 1;
+                if self.tracks[ti].pos_tick >= end {
+                    let c = &mut self.tracks[ti].clips[slot];
+                    if recording_here && c.loop_start_steps + c.length_steps + bar <= crate::clip::MAX_STEPS {
+                        c.set_loop(c.loop_start_steps, c.length_steps + bar);
+                    } else {
+                        self.tracks[ti].pos_tick = start;
+                        self.tracks[ti].clips[slot].release_suppressed();
+                    }
                 }
             }
         }
@@ -892,6 +897,21 @@ mod tests {
         let s = e.status();
         let pos = s.split("pos=").nth(1).unwrap().split(' ').next().unwrap();
         assert_eq!(pos.parse::<u32>().unwrap(), e.tracks[e.watch_track].pos_tick);
+    }
+
+    #[test]
+    fn clips_silent_during_count_in_then_play() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.toggle_record(0); // arms a one-bar count-in, starts transport
+        // Most of the count-in bar: no clip NoteOn (clicks are a different event).
+        let during = run_ticks(&mut e, crate::TICKS_PER_BAR as u64 - 4);
+        assert!(!during.iter().any(|x| matches!(x, OutEvent::NoteOn { .. })),
+                "no clip notes during count-in");
+        // Cross the count-in boundary: the step-0 note plays.
+        let after = run_ticks(&mut e, 8);
+        assert!(after.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 60, .. })),
+                "note plays once count-in ends");
     }
 
     #[test]

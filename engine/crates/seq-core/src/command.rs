@@ -91,6 +91,12 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 }
             }
         }
+        // hold <track> <step> — set the step-length query (step < 0 clears).
+        "hold" => {
+            if let (Some(t), Some(s)) = (next(), next()) {
+                engine.set_held_query(if s < 0 { None } else { Some((t as usize, s.clamp(0, 255) as u16)) });
+            }
+        }
         // slen <t> <s0> <s1> <p> <ticks> — set absolute note length.
         "slen" => {
             if let (Some(t), Some(s0), Some(s1), Some(p), Some(tk)) =

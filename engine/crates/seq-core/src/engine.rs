@@ -57,6 +57,8 @@ pub struct Engine {
     /// The UI polls it to know when to write the autosave file.
     pub dirty: bool,
     gates: Vec<Gate>,
+    /// (track, step) the UI is holding, for the step-length readout. None = not held.
+    held_query: Option<(usize, u16)>,
 }
 
 #[derive(Clone, Copy)]
@@ -86,6 +88,7 @@ impl Engine {
             master_tick: 0,
             dirty: false,
             gates: Vec::with_capacity(128),
+            held_query: None,
         }
     }
 
@@ -468,13 +471,24 @@ impl Engine {
         }
     }
 
+    pub fn set_held_query(&mut self, q: Option<(usize, u16)>) {
+        self.held_query = q;
+    }
+
+    fn held_len_steps(&self) -> u16 {
+        match self.held_query {
+            Some((t, step)) if t < NUM_TRACKS => self.tracks[t].active().note_len_steps_at(step),
+            _ => 0,
+        }
+    }
+
     /// Compact status string the UI polls (space-separated key=value; the
     /// UI ignores unknown keys, so this can grow freely).
     pub fn status(&self) -> String {
         let wt = &self.tracks[self.watch_track];
         let clip = wt.active();
         format!(
-            "play={} tick={} bpm={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} occ={}",
+            "play={} tick={} bpm={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} occ={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -490,6 +504,7 @@ impl Engine {
             self.session_state(),
             self.active_notes_state(),
             self.mute_state(),
+            self.held_len_steps(),
             clip.occupancy_hex_lane(self.watch_lane)
         )
     }
@@ -850,6 +865,22 @@ mod tests {
         e.play();
         let _ = run_ticks(&mut e, 10);
         assert_eq!(e.tracks[0].pos_tick, 0);
+    }
+
+    #[test]
+    fn hold_query_reports_note_length_in_steps() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        e.tracks[0].active_mut().toggle_step(2, &[(60, 100)]);
+        e.tracks[0].active_mut().set_length(2, 2, None, 4 * TICKS_PER_STEP); // 4 steps
+        crate::command::apply_batch(&mut e, "hold 0 2", &mut out);
+        let s1 = e.status();
+        let hlen = s1.split("hlen=").nth(1).unwrap().split(' ').next().unwrap();
+        assert_eq!(hlen, "4");
+        crate::command::apply_batch(&mut e, "hold 0 -1", &mut out); // clear
+        let s2 = e.status();
+        let hlen0 = s2.split("hlen=").nth(1).unwrap().split(' ').next().unwrap();
+        assert_eq!(hlen0, "0");
     }
 
     #[test]

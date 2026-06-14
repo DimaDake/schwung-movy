@@ -303,6 +303,16 @@ impl Clip {
         }
     }
 
+    /// Length in whole steps (rounded up, min 1) of the note anchored at `step`,
+    /// or 0 if no note there. Uses the first matching pitch.
+    pub fn note_len_steps_at(&self, step: u16) -> u16 {
+        self.notes
+            .iter()
+            .find(|n| n.step == step)
+            .map(|n| ((n.gate + TICKS_PER_STEP - 1) / TICKS_PER_STEP).max(1) as u16)
+            .unwrap_or(0)
+    }
+
     /// Set the gate of matching notes to an absolute tick length, capped at the
     /// clip end and the next same-pitch note (mirrors adjust_length's caps).
     pub fn set_length(&mut self, s0: u16, s1: u16, lane: Option<u8>, ticks: u32) {

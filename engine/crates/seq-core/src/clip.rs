@@ -303,6 +303,25 @@ impl Clip {
         }
     }
 
+    /// Set the gate of matching notes to an absolute tick length, capped at the
+    /// clip end and the next same-pitch note (mirrors adjust_length's caps).
+    pub fn set_length(&mut self, s0: u16, s1: u16, lane: Option<u8>, ticks: u32) {
+        let clip_end = self.length_ticks();
+        let others: Vec<(u32, u8)> = self.notes.iter().map(|n| (n.tick, n.pitch)).collect();
+        for n in &mut self.notes {
+            if !Clip::note_matches(n, s0, s1, lane) {
+                continue;
+            }
+            let mut cap = clip_end.saturating_sub(n.tick);
+            for &(t, p) in &others {
+                if p == n.pitch && t > n.tick {
+                    cap = cap.min(t - n.tick);
+                }
+            }
+            n.gate = ticks.clamp(1, cap.max(1));
+        }
+    }
+
     /// Remove notes whose step anchor is in [s0, s1] (optionally only the
     /// given pitch — drum-pad delete). Used by Delete gestures.
     pub fn delete_range(&mut self, s0: u16, s1: u16, lane: Option<u8>) {
@@ -523,6 +542,15 @@ mod tests {
         c.toggle_step(8, &[(62, 50)]);
         c.adjust_velocity(0, 15, None, 10); // whole bar
         assert!(c.notes.iter().all(|n| n.vel == 60));
+    }
+
+    #[test]
+    fn set_length_sets_absolute_gate() {
+        let mut c = Clip::new();
+        c.toggle_step(0, &[(60, 100)]);            // gate = TICKS_PER_STEP
+        c.set_length(0, 0, None, 4 * TICKS_PER_STEP);
+        let n = c.notes.iter().find(|n| n.tick == 0).unwrap();
+        assert_eq!(n.gate, 4 * TICKS_PER_STEP);
     }
 
     #[test]

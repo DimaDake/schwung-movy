@@ -91,6 +91,18 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 }
             }
         }
+        // slen <t> <s0> <s1> <p> <ticks> — set absolute note length.
+        "slen" => {
+            if let (Some(t), Some(s0), Some(s1), Some(p), Some(tk)) =
+                (next(), next(), next(), next(), next())
+            {
+                if (t as usize) < NUM_TRACKS {
+                    let lane = if (0..128).contains(&p) { Some(p as u8) } else { None };
+                    let (a, b) = (s0.clamp(0, 255) as u16, s1.clamp(0, 255) as u16);
+                    engine.tracks[t as usize].active_mut().set_length(a, b, lane, tk.max(1) as u32);
+                }
+            }
+        }
         // rec <t> — toggle recording on track (one-bar count-in).
         "rec" => {
             if let Some(t) = next() {
@@ -404,6 +416,16 @@ mod tests {
         apply_batch(&mut e, "loop 0 16 16", &mut out);
         assert_eq!(e.tracks[0].active().loop_start_steps, 16);
         assert_eq!(e.tracks[0].active().length_steps, 16);
+    }
+
+    #[test]
+    fn slen_sets_note_length() {
+        let mut e = Engine::new(44100, 12000);
+        let mut out = Vec::new();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        apply_batch(&mut e, "slen 0 0 0 -1 96", &mut out); // 96 ticks = 4 steps
+        let n = e.tracks[0].active().notes.iter().find(|n| n.tick == 0).unwrap();
+        assert_eq!(n.gate, 96);
     }
 
     #[test]

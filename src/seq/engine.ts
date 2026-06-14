@@ -153,6 +153,8 @@ function parseStatus(s: string): void {
         else if (key === 'cin') seqState.countingIn = val === '1';
         else if (key === 'metro') seqState.metro = val === '1';
         else if (key === 'dirty') seqState.dirty = val === '1';
+        else if (key === 'pos') seqState.posTick = Number(val) || 0;
+        else if (key === 'hlen') seqState.holdLen = Number(val) || 0;
         else if (key === 'act') activeFromStr(val);
         else if (key === 'mute') muteFromStr(val);
         else if (key === 'sess') sessionFromStr(val);
@@ -163,6 +165,9 @@ function parseStatus(s: string): void {
         lastEnginePlay = seqState.playing;
     }
 }
+
+/* Test hook: drive parseStatus directly. */
+export function parseStatusForTest(s: string): void { parseStatus(s); }
 
 /* Test hook: inspect the pending command queue. */
 export function peekSeqCmdQueue(): string[] {

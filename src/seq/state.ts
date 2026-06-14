@@ -37,6 +37,10 @@ export interface SeqUiState {
     watchLane: number;       // drum-lane pitch shown on steps, or -1 = melodic
     fullVelocity: boolean;   // Shift+Step 10: force all pad notes to 127
 
+    posTick: number;         // watched track playhead tick (from `pos=`)
+    holdStep: number;        // step whose length is being shown, or -1
+    holdLen: number;         // held note length in steps (from `hlen=`), 0 = none
+
     /* per-track mute, from `mute=` engine status field */
     muted: boolean[];
 
@@ -78,6 +82,9 @@ function defaults(): SeqUiState {
         barOffset: 0,
         watchLane: -1,
         fullVelocity: false,
+        posTick: 0,
+        holdStep: -1,
+        holdLen: 0,
         muted: [false, false, false, false],
         sessionMode: false,
         session: emptySession(),

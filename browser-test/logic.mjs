@@ -1538,6 +1538,17 @@ _log('\nTest: drumPadOn');
     eq('other-button up ignored', restored, 2);
 }
 
+/* ── batch3 status mirror ────────────────────────────────────────────────── */
+{
+    _log('\nbatch3 status mirror:');
+    const { parseStatusForTest } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    resetSeqState();
+    parseStatusForTest('play=1 tick=10 step=2 pos=53 len=32 hlen=4 occ=' + '0'.repeat(64));
+    eq('posTick parsed', seqState.posTick, 53);
+    eq('holdLen parsed', seqState.holdLen, 4);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

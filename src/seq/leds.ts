@@ -2,7 +2,7 @@
  * are sent, so unchanged frames cost nothing on the wire (davebox pattern). */
 
 import { backLedColor, arrowLedColor, sampleLedColor, captureLedColor, undoLedColor } from './buttons.js';
-import { C_BLACK, C_DARKGREY, C_GREEN, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
+import { C_BLACK, C_DARKGREY, C_GREEN, C_REC_RED, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
 import {
     CC_PLAY, CC_REC, CC_TRACK_END, NUM_STEP_BUTTONS, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
@@ -12,8 +12,6 @@ import { cachedSetLED, cachedSetButtonLED, ledFrameReset, seqLedsInvalidate } fr
 
 /* Re-exported so callers keep importing the LED API from one place. */
 export { seqLedsInvalidate };
-
-const C_RED = 1;  // BrightRed — recording
 
 /* CC addresses for non-step buttons (MoveCCButtons). */
 const CC_BACK = 51, CC_CAPTURE = 52, CC_UNDO = 56, CC_LOOP = 58,
@@ -61,13 +59,13 @@ export function transportPlayColor(playing: boolean): number {
     return playing ? C_GREEN : C_DARKGREY;
 }
 
-export function transportRecColor(recording: boolean): number {
-    return recording ? C_RED : C_DARKGREY;
+export function transportRecColor(recording: boolean, countingIn: boolean): number {
+    return (recording || countingIn) ? C_REC_RED : C_DARKGREY;
 }
 
 function paintTransport(): void {
     cachedSetButtonLED(CC_PLAY, transportPlayColor(seqState.playing));
-    cachedSetButtonLED(CC_REC, transportRecColor(seqState.recording));
+    cachedSetButtonLED(CC_REC, transportRecColor(seqState.recording, seqState.countingIn));
 }
 
 /* Step-icon LEDs are CC 16..31 (the printed icons under each step), separate
@@ -181,7 +179,7 @@ export function seqLedsTick(
         } else {
             const span = lengthSpanColor(step, holdStep, holdLen, watchTrack);
             if (span >= 0) color = span;
-            else if (step === playStep) color = C_GREEN;
+            else if (step === playStep) color = seqState.recording ? C_REC_RED : C_GREEN;
             else if (occHasStep(step)) color = C_WHITE;
             else if (seqState.lenSteps > 0 && step < seqState.lenSteps) color = dimTrack;
             else color = C_DARKGREY;

@@ -690,6 +690,16 @@ _log('\nTest: drumPadOn');
     byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
     eq('bar past loop dim gray', byNote[16], C_DARKGREY);
 
+    // Recording: playhead step is red instead of green.
+    resetSeqState(); seqLedsInvalidate();
+    const { C_REC_RED: C_REC_RED_LED } = await import('../dist/esm/seq/colors.js');
+    seqState.watchTrack = 0; seqState.lenSteps = 16; seqState.playing = true;
+    seqState.recording = true; seqState.curStep = 0;
+    ledCalls.length = 0;
+    for (let i = 0; i < 3; i++) seqLedsTick();
+    byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
+    eq('playhead red when recording', byNote[16], C_REC_RED_LED);
+
     // Session (master chain) mode: step row goes dark — there is no per-step
     // editing for master FX, so notes 16..31 must be painted black.
     resetSeqState(); seqLedsInvalidate();
@@ -1369,11 +1379,14 @@ _log('\nTest: drumPadOn');
 {
     _log('\ntransport LEDs:');
     const { transportPlayColor, transportRecColor } = await import('../dist/esm/seq/leds.js');
+    const { C_REC_RED } = await import('../dist/esm/seq/colors.js');
 
-    eq('play stopped = dark grey', transportPlayColor(false), 124);
-    eq('play running = green',     transportPlayColor(true), 11);
-    eq('rec idle = dark grey',     transportRecColor(false), 124);
-    eq('rec recording = red',      transportRecColor(true), 1);
+    eq('play stopped = dark grey',   transportPlayColor(false), 124);
+    eq('play running = green',       transportPlayColor(true), 11);
+    eq('rec idle = dark grey',       transportRecColor(false, false), 124);
+    eq('rec recording = red',        transportRecColor(true, false), C_REC_RED);
+    eq('rec counting-in = red',      transportRecColor(false, true), C_REC_RED);
+    eq('rec proper red color = 127', C_REC_RED, 127);
 }
 
 /* ── affordance LEDs ─────────────────────────────────────────────────────── */

@@ -10,6 +10,7 @@ export const C_BLACK = 0;
 export const C_WHITE = 120;
 export const C_DARKGREY = 124; // "dim gray" — empty clip / bar outside loop
 export const C_GREEN = 11;     // NeonGreen — playhead
+export const C_REC_RED = 127;  // Red — recording indicator (same as track 0 color; index 1 renders pink)
 
 /* Bright = playing/selected clip & chromatic root; dim = empty in-loop step. */
 export const TRACK_COLOR = [127, 7, 14, 22];      // Red, VividYellow, Cyan, Purple

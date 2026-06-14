@@ -43,7 +43,24 @@ export function tick(): void {
         appState.dirty = true;
     }
     seqLedsTick(appState.shiftHeld, appState.currentView, seqState.barOffset, maxBarOffset());
-    if (!appState.initLedsDone && !seqState.sessionMode) {
+
+    /* Drum status comes from the synth slot (index 1) regardless of which
+     * chain module is currently selected — drum pads and step lane stay active
+     * even when the user is browsing FX parameters on the same track. */
+    const synthModel = appState.trackModels[appState.activeSlot]?.[1];
+    const synthDvm   = synthModel?.getViewModel();
+    const isDrum     = (synthDvm?.drumPadCount ?? 0) > 0;
+    if (isDrum) {
+        const cfg = synthModel!.getDrumConfig();
+        seqSetLane(cfg ? cfg.padNoteStart + (synthDvm!.drumCurrentPad - 1) : -1);
+    } else {
+        seqSetLane(-1);
+    }
+
+    /* Chromatic instrument-pad init batch. Skipped for a drum track whose synth
+     * is already loaded: the drum-grid paint below owns those pads, so painting
+     * chromatic first would flash the chromatic layout on (re)select. */
+    if (!appState.initLedsDone && !seqState.sessionMode && !isDrum) {
         const total = PAD_MAX - PAD_MIN + 1;
         const end   = Math.min(appState.initLedIndex + LED_INIT_BATCH, total);
         const base  = keyboardState.rootNote;
@@ -64,19 +81,6 @@ export function tick(): void {
     const masterModel = seqState.sessionMode ? appState.masterFxModels[mIdx] : null;
     const masterDirty = masterModel?.tick() ?? false;
 
-    /* Drum status comes from the synth slot (index 1) regardless of which
-     * chain module is currently selected — drum pads and step lane stay active
-     * even when the user is browsing FX parameters on the same track. */
-    const synthModel = appState.trackModels[appState.activeSlot]?.[1];
-    const synthDvm   = synthModel?.getViewModel();
-    const isDrum     = (synthDvm?.drumPadCount ?? 0) > 0;
-    if (isDrum) {
-        const cfg = synthModel!.getDrumConfig();
-        seqSetLane(cfg ? cfg.padNoteStart + (synthDvm!.drumCurrentPad - 1) : -1);
-    } else {
-        seqSetLane(-1);
-    }
-
     seqToastTick();
     seqHeaderTick();
     const toastShowing = seqToastActive();
@@ -84,7 +88,15 @@ export function tick(): void {
 
     if (modelDirty || masterDirty || appState.dirty || toastShowing !== lastToastShowing
         || headerShowing !== lastHeaderShowing) {
-        if (seqState.sessionMode) {
+        if (appState.currentView === VIEW_BROWSE) {
+            // A browser opened from the master chain shows the master slot label.
+            const browseTitle = seqState.sessionMode
+                ? (MASTER_FX_SLOTS[mIdx]?.label ?? 'Module')
+                : (activeModel?.getModuleName() ?? 'Module');
+            renderBrowseView(browserState.modules, browserState.browseIndex, browseTitle);
+        } else if (appState.currentView === VIEW_FILE_BROWSE) {
+            if (appState.fileBrowserState) renderFileBrowseView(appState.fileBrowserState);
+        } else if (seqState.sessionMode) {
             const vm = masterModel!.getViewModel();
             renderChainView(vm, mIdx, appState.jogTouched, 'MASTER', MASTER_FX_SLOTS[mIdx]?.label);
             updateKnobLEDs(vm);
@@ -98,11 +110,6 @@ export function tick(): void {
             const vm = activeModel!.getViewModel();
             renderChainView(vm, chainIdx, appState.jogTouched, 'T' + (appState.activeSlot + 1));
             updateKnobLEDs(vm);
-        } else if (appState.currentView === VIEW_FILE_BROWSE) {
-            if (appState.fileBrowserState) renderFileBrowseView(appState.fileBrowserState);
-        } else {
-            const browseTitle = activeModel?.getModuleName() ?? 'Module';
-            renderBrowseView(browserState.modules, browserState.browseIndex, browseTitle);
         }
         if (toastShowing) drawSeqToast();
         if (headerShowing) drawSeqHeader();
@@ -137,8 +144,10 @@ export function tick(): void {
 
     /* Loop Overview strip overlays the bottom of the param view whenever the
      * sequencer is live; a toast temporarily covers it. Drawn every tick (not
-     * just on dirty frames) so the playhead sweeps continuously. */
-    if (engineReady() && !seqToastActive()) {
+     * just on dirty frames) so the playhead sweeps continuously. Hidden on the
+     * master chain (Session mode) — it tracks the watched track's clip, which
+     * is irrelevant while editing master FX. */
+    if (engineReady() && !seqToastActive() && !seqState.sessionMode) {
         drawLoopStrip();
     }
 }

@@ -1,11 +1,10 @@
 import { browserState } from './state.js';
 import { appState, VIEW_BROWSE } from '../app/state.js';
-import { CHAIN_SLOTS } from '../chain/config.js';
+import type { ChainSlot } from '../chain/config.js';
 
 const MODULES_BASE = '/data/UserData/schwung/modules';
 
-function scanModules(chainIndex: number): { id: string; name: string }[] {
-    const slot   = CHAIN_SLOTS[chainIndex];
+function scanModules(slot: ChainSlot): { id: string; name: string }[] {
     const dir    = `${MODULES_BASE}/${slot.scanDir}`;
     const result: { id: string; name: string }[] = [];
     try {
@@ -32,24 +31,28 @@ function scanModules(chainIndex: number): { id: string; name: string }[] {
     return result;
 }
 
-export function openBrowser(activeSlot: number, chainIndex: number): void {
-    const slot = CHAIN_SLOTS[chainIndex];
+/* Open the module browser for a chain slot. `paramSlot` is the shadow param
+ * slot (0-3 for track chains, 0 for the master bus); `reload` refreshes the
+ * model backing this slot after a load. Generalized over CHAIN_SLOTS and
+ * MASTER_FX_SLOTS so master FX slots browse/load like track slots. */
+export function openBrowser(slot: ChainSlot, paramSlot: number, reload: () => void): void {
     browserState.componentKey = slot.componentKey;
-    browserState.modules      = scanModules(chainIndex);
+    browserState.paramSlot    = paramSlot;
+    browserState.reload       = reload;
+    browserState.modules      = scanModules(slot);
     browserState.browseIndex  = 0;
-    const activeId = shadow_get_param(activeSlot, slot.componentKey + '_module') || '';
+    const activeId = shadow_get_param(paramSlot, slot.componentKey + '_module') || '';
     const idx = browserState.modules.findIndex(m => m.id === activeId);
     if (idx >= 0) browserState.browseIndex = idx;
     appState.currentView = VIEW_BROWSE;
     appState.dirty = true;
 }
 
-export function loadSelectedModule(activeSlot: number): void {
+export function loadSelectedModule(): void {
     if (browserState.modules.length === 0) return;
     const mod = browserState.modules[browserState.browseIndex];
-    shadow_set_param(activeSlot, browserState.componentKey + ':module', mod.id);
+    shadow_set_param(browserState.paramSlot, browserState.componentKey + ':module', mod.id);
     appState.currentView = appState.browseOrigin;
     appState.dirty = true;
-    const idx = CHAIN_SLOTS.findIndex(s => s.componentKey === browserState.componentKey);
-    if (idx >= 0) appState.trackModels[appState.activeSlot]?.[idx]?.reload();
+    browserState.reload?.();
 }

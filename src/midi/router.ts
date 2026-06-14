@@ -1,4 +1,5 @@
 import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE } from '../app/state.js';
+import { CHAIN_SLOTS, MASTER_FX_SLOTS } from '../chain/config.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
 import { noteOn, noteOff, changeRoot, releaseAllNotes } from '../keyboard/handler.js';
@@ -25,6 +26,21 @@ function activeModel() {
 function chainIndex(): number { return appState.trackChainIndex[appState.activeSlot]; }
 function setChainIndex(i: number): void { appState.trackChainIndex[appState.activeSlot] = i; }
 
+function masterModel() { return appState.masterFxModels[appState.masterChainIndex]; }
+
+/* The model the 8 knobs edit and the screen shows: the master FX slot while the
+ * master chain is on screen (Session mode), otherwise the active track slot. */
+function knobModel() { return masterChainActive() ? masterModel() : activeModel(); }
+
+/* Session mode shows the master FX chain, but a browse/file-browse view (opened
+ * from it) takes over the screen and the jog wheel — so master-chain navigation
+ * only applies while that chain is actually on screen. */
+function masterChainActive(): boolean {
+    return seqState.sessionMode
+        && appState.currentView !== VIEW_BROWSE
+        && appState.currentView !== VIEW_FILE_BROWSE;
+}
+
 export function onMidiMessageInternal(data: number[]): void {
     if (!data || data.length < 3) return;
     if (seqHandleMidi(data, appState.shiftHeld)) return;
@@ -34,8 +50,8 @@ export function onMidiMessageInternal(data: number[]): void {
 
     /* Capacitive knob touch: NoteOn note=0..7 */
     if ((status & 0xF0) === 0x90 && d1 < 8) {
-        if (d2 > 0) activeModel()?.handleKnobTouch(d1);
-        else        activeModel()?.handleKnobRelease(d1);
+        if (d2 > 0) knobModel()?.handleKnobTouch(d1);
+        else        knobModel()?.handleKnobRelease(d1);
         return;
     }
 
@@ -83,7 +99,7 @@ export function onMidiMessageInternal(data: number[]): void {
         const k     = d1 - KNOB_CC_BASE;
         const delta = decodeDelta(d2);
         mlog('knobCC k=' + k + ' d2=' + d2 + ' delta=' + delta);
-        activeModel()?.handleKnobDelta(k, delta);
+        knobModel()?.handleKnobDelta(k, delta);
         return;
     }
 
@@ -154,13 +170,22 @@ export function onMidiMessageInternal(data: number[]): void {
     /* Jog click */
     if (d1 === MoveMainButton && d2 > 0) {
         if (appState.currentView === VIEW_BROWSE) {
-            loadSelectedModule(appState.activeSlot);
+            loadSelectedModule();
         } else if (appState.currentView === VIEW_FILE_BROWSE) {
             activateFileBrowserItem();
+        } else if (masterChainActive()) {
+            // Master FX chain: click opens the module browser for the focused
+            // master slot (empty slot adds; Shift swaps an existing module).
+            const mi = appState.masterChainIndex;
+            const isEmpty = masterModel()?.getViewModel().isEmpty ?? false;
+            if (appState.shiftHeld || isEmpty) {
+                openBrowser(MASTER_FX_SLOTS[mi], 0, () => masterModel()?.reload());
+                appState.browseOrigin = VIEW_CHAIN;
+            }
         } else if (appState.currentView === VIEW_CHAIN) {
             const isEmpty = activeModel()?.getViewModel().isEmpty ?? false;
             if (appState.shiftHeld || isEmpty) {
-                openBrowser(appState.activeSlot, chainIndex());
+                openBrowser(CHAIN_SLOTS[chainIndex()], appState.activeSlot, () => activeModel()?.reload());
                 appState.browseOrigin = VIEW_CHAIN;
             } else {
                 appState.currentView = VIEW_KNOBS;
@@ -182,7 +207,7 @@ export function onMidiMessageInternal(data: number[]): void {
                 );
                 appState.browseOrigin = VIEW_KNOBS;
             } else {
-                openBrowser(appState.activeSlot, chainIndex());
+                openBrowser(CHAIN_SLOTS[chainIndex()], appState.activeSlot, () => activeModel()?.reload());
                 appState.browseOrigin = VIEW_KNOBS;
             }
         } else if (appState.currentView === VIEW_KEYS) {
@@ -196,7 +221,7 @@ export function onMidiMessageInternal(data: number[]): void {
     if (d1 === MoveMainKnob) {
         const delta = decodeDelta(d2);
         if (delta !== 0) {
-            if (seqState.sessionMode) {
+            if (masterChainActive()) {
                 appState.masterChainIndex = Math.max(0, Math.min(3, appState.masterChainIndex + (delta > 0 ? 1 : -1)));
             } else if (appState.currentView === VIEW_CHAIN) {
                 setChainIndex(Math.max(0, Math.min(3, chainIndex() + (delta > 0 ? 1 : -1))));
@@ -216,7 +241,7 @@ export function onMidiMessageInternal(data: number[]): void {
     /* Left/Right — master FX slot nav in session mode; page nav in VIEW_KNOBS;
      * chain-slot nav in VIEW_CHAIN. */
     if (d1 === MoveLeft && d2 > 0) {
-        if (seqState.sessionMode) {
+        if (masterChainActive()) {
             appState.masterChainIndex = Math.max(0, appState.masterChainIndex - 1);
         } else if (appState.currentView === VIEW_CHAIN) {
             setChainIndex(Math.max(0, chainIndex() - 1));
@@ -227,7 +252,7 @@ export function onMidiMessageInternal(data: number[]): void {
         return;
     }
     if (d1 === MoveRight && d2 > 0) {
-        if (seqState.sessionMode) {
+        if (masterChainActive()) {
             appState.masterChainIndex = Math.min(3, appState.masterChainIndex + 1);
         } else if (appState.currentView === VIEW_CHAIN) {
             setChainIndex(Math.min(3, chainIndex() + 1));

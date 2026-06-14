@@ -188,11 +188,38 @@ _origLog('\nTest 5: sequencer perf budgets');
     seqEngineTick(); seqEngineTick(); // boot + first poll
 
     // Steady state (nothing changed): the cached LED layer sends nothing.
+    // A cold frame paints progressively (FRAME_BUDGET per tick), so warm up a
+    // few ticks until fully drained before measuring idle quiescence.
     seqState.lenSteps = 16; occToggleStep(0);
-    seqLedsTick();          // first paint
+    for (let i = 0; i < 4; i++) seqLedsTick();   // drain cold frame
     ledCount = 0;
     for (let i = 0; i < 50; i++) seqLedsTick();
     check('seq LED sends when idle (50 ticks)', ledCount, 0);
+
+    // Session-mode cold frame must respect the ~60-packet MIDI LED buffer
+    // (schwung API.md). Entering session invalidates the cache (note-mode pads
+    // are painted via direct setLED, desyncing it), so the next tick repaints
+    // every seq LED. A naive paint sends ~80 packets in one tick, overflowing
+    // the buffer and silently dropping session pads — which the cache then
+    // records as "sent" and never retries (the intermittent "session LEDs
+    // don't switch" bug). Budget per-tick sends; the rest drain over next ticks.
+    seqState.sessionMode = true;
+    seqState.session[0].exist = 0xFF;   // visible grid content for track 0
+    seqLedsInvalidate();
+    ledCount = 0;
+    seqLedsTick();
+    check('session cold-frame LED sends per tick', ledCount, 50);
+    _origLog(`    (cold session frame: ${ledCount} LED sends)`);
+    // Drain: a few ticks finish painting, then steady state sends nothing —
+    // proving no changed LED was dropped (all reached the cache).
+    for (let i = 0; i < 4; i++) seqLedsTick();
+    ledCount = 0;
+    seqLedsTick();
+    check('session LEDs fully drained (steady 0)', ledCount, 0);
+    seqState.sessionMode = false;
+    seqState.session[0].exist = 0;
+    seqLedsInvalidate();
+    seqLedsTick();
 
     // IPC: at most one set_param flush per tick regardless of queued ops.
     let setParamCalls = 0;

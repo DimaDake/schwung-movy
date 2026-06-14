@@ -652,7 +652,9 @@ _log('\nTest: drumPadOn');
     seqState.playing = true;
     seqState.curStep = 2;
 
-    seqLedsTick();
+    // Cold frame paints progressively (FRAME_BUDGET sends/tick); drain it so
+    // every LED (incl. the last-painted transport button) has been emitted.
+    for (let i = 0; i < 3; i++) seqLedsTick();
     let byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
     eq('occupied step white', byNote[16], C_WHITE);
     eq('occupied step white (2)', byNote[20], C_WHITE);
@@ -687,6 +689,17 @@ _log('\nTest: drumPadOn');
     seqLedsTick();
     byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
     eq('bar past loop dim gray', byNote[16], C_DARKGREY);
+
+    // Session (master chain) mode: step row goes dark — there is no per-step
+    // editing for master FX, so notes 16..31 must be painted black.
+    resetSeqState(); seqLedsInvalidate();
+    seqState.sessionMode = true;
+    seqState.lenSteps = 16; occToggleStep(0); occToggleStep(4);
+    ledCalls.length = 0;
+    for (let i = 0; i < 3; i++) seqLedsTick();   // drain progressive cold frame
+    byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
+    eq('session step 0 off', byNote[16], 0);
+    eq('session step 4 off', byNote[20], 0);
 
     globalThis.setLED = origSetLED;
     globalThis.setButtonLED = origSetButtonLED;

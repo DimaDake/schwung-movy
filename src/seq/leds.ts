@@ -8,6 +8,10 @@ import {
 } from './constants.js';
 import { sessionPaintGrid } from './session.js';
 import { loopEndBar, loopStartBar, occHasStep, seqState } from './state.js';
+import { cachedSetLED, cachedSetButtonLED, ledFrameReset, seqLedsInvalidate } from './led-cache.js';
+
+/* Re-exported so callers keep importing the LED API from one place. */
+export { seqLedsInvalidate };
 
 const C_RED = 1;  // BrightRed — recording
 
@@ -19,27 +23,6 @@ const CC_BACK = 51, CC_CAPTURE = 52, CC_UNDO = 56, CC_LOOP = 58,
 const STEP_ICON_CC_BASE = 16; // step-icon LEDs = CC 16..31
 // Step-icon slot indices (0-based) for the latched shortcut features.
 const ICON_METRO = 5, ICON_FULLVEL = 9, ICON_DBLLOOP = 14, ICON_QUANT = 15;
-
-const lastNoteLed = new Map<number, number>();
-const lastButtonLed = new Map<number, number>();
-
-function cachedSetLED(note: number, color: number): void {
-    if (lastNoteLed.get(note) !== color) {
-        lastNoteLed.set(note, color);
-        setLED(note, color, true);
-    }
-}
-
-function cachedSetButtonLED(cc: number, color: number): void {
-    if (lastButtonLed.get(cc) !== color) {
-        lastButtonLed.set(cc, color);
-        setButtonLED(cc, color, true);
-    }
-}
-
-/* Forget everything sent — next tick repaints all sequencer LEDs. Use after
- * anything that may have clobbered LED hardware state. */
-export function seqLedsInvalidate(): void { lastNoteLed.clear(); lastButtonLed.clear(); }
 
 function barHasContent(bar: number): boolean {
     const b = bar * NUM_STEP_BUTTONS;
@@ -151,17 +134,28 @@ export function metronomeStep(stepInBar: number, engineTick: number): boolean {
     return Math.floor(stepInBar / 4) === Math.floor(engineTick / 96) % 4; // 96 = PPQN
 }
 
-/* Worst-case cold frame: ~29 CC + up to 8 pad packets < 60-packet buffer.
- * Do not raise LED_INIT_BATCH past 8 without rechecking this. */
+/* A cold frame can want ~80 LED sends (Session grid + steps + buttons); the
+ * FRAME_BUDGET cap in cachedSet* spreads that over a few ticks so the ~60-packet
+ * MIDI buffer never overflows. Paint Session pads first so the user-visible clip
+ * grid gets priority within the budget; lower-priority buttons fill in next tick. */
 export function seqLedsTick(
     shiftHeld: boolean = false,
     currentView: number = 0,
     barOffset: number = 0,
     maxOff: number = 0,
 ): void {
-    // Session mode owns the 32-pad clip grid (cached).
+    ledFrameReset();
+    // Session mode owns the 32-pad clip grid; the step row is not part of it,
+    // so keep the step button LEDs dark (the master FX chain has no per-step
+    // editing). Pads paint first for priority within the frame budget.
     if (seqState.sessionMode) {
         sessionPaintGrid(cachedSetLED, PAD_MIN);
+        for (let i = 0; i < NUM_STEP_BUTTONS; i++) cachedSetLED(STEP_NOTE_BASE + i, C_BLACK);
+        paintTrackButtons();
+        paintStepIcons(shiftHeld);
+        paintAffordances(currentView, barOffset, maxOff, false, false);
+        paintTransport();
+        return;
     }
     paintTrackButtons();
     paintStepIcons(shiftHeld);

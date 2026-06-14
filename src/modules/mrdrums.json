@@ -13,7 +13,7 @@
       "padSpecific": true,
       "rows": [
         [
-          { "key": "pad_sample_path", "short": "SAMPL", "full": "Sample",   "type": "file", "fileRoot": "/data/UserData", "fileFilter": [".wav"], "fileStartPath": "/data/UserData/UserLibrary/Samples" },
+          { "key": "pad_sample_path", "short": "SAMPL", "full": "Sample",   "type": "file", "fileRoot": "/data/UserData", "fileFilter": [".wav", ".ablpresetbundle"], "fileStartPath": "/data/UserData/UserLibrary/Samples" },
           { "key": "pad_vol",         "short": "VOL",   "full": "Volume",   "type": "float", "min": 0, "max": 1 },
           { "key": "pad_pan",         "short": "PAN",   "full": "Pan",      "type": "float", "min": -1, "max": 1 },
           { "key": "pad_tune",        "short": "TUNE",  "full": "Tune",     "type": "float", "min": -24, "max": 24 }

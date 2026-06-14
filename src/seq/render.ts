@@ -9,6 +9,16 @@ import { W } from '../renderer/layout.js';
 import { fontPrint } from '../font/index.js';
 import { clipBars, seqState } from './state.js';
 
+const TICKS_PER_STEP = 24; // mirror of seq-core
+
+/* Continuous playhead x within the strip: fraction of the clip elapsed. */
+export function playheadX(posTick: number, lenSteps: number, stripW: number): number {
+    const lenTicks = Math.max(lenSteps, 16) * TICKS_PER_STEP;
+    if (lenTicks <= 0) return 0;
+    const x = Math.round((posTick / lenTicks) * stripW);
+    return Math.max(0, Math.min(x, stripW - 1));
+}
+
 const DEFAULT_TTL = 60; // ticks (~0.3s at the ~196 Hz device rate)
 
 /* Header announcement: a short inverted band at the top of the screen for
@@ -66,13 +76,10 @@ export function drawLoopStrip(): void {
         }
     }
 
-    // Playhead sweep: a vertical mark in the currently-playing bar.
+    // Playhead sweep: smooth continuous tick position across the full strip.
     if (seqState.playing) {
-        const playBar = Math.floor(seqState.curStep / 16);
-        if (playBar < view) {
-            const px = playBar * segW + Math.floor(segW / 2);
-            fill_rect(px, STRIP_Y - 2, 1, 4, 1);
-        }
+        const px = playheadX(seqState.posTick, seqState.lenSteps, W);
+        fill_rect(px, STRIP_Y - 2, 1, 4, 1);
     }
 }
 

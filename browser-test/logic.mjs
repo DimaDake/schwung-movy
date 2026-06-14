@@ -1538,6 +1538,17 @@ _log('\nTest: drumPadOn');
     eq('other-button up ignored', restored, 2);
 }
 
+/* ── playhead position ───────────────────────────────────────────────────── */
+{
+    _log('\nplayhead position:');
+    const { playheadX } = await import('../dist/esm/seq/render.js');
+    const W = 128;
+    eq('start at 0', playheadX(0, 32, W), 0);
+    eq('mid', playheadX(16 * 24, 32, W), 64);   // half of a 32-step clip
+    eq('clamps to width-1', playheadX(999999, 32, W), W - 1);
+    eq('empty clip → 0', playheadX(0, 0, W), 0);
+}
+
 /* ── batch3 status mirror ────────────────────────────────────────────────── */
 {
     _log('\nbatch3 status mirror:');

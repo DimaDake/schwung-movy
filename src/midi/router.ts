@@ -196,7 +196,9 @@ export function onMidiMessageInternal(data: number[]): void {
     if (d1 === MoveMainKnob) {
         const delta = decodeDelta(d2);
         if (delta !== 0) {
-            if (appState.currentView === VIEW_CHAIN) {
+            if (seqState.sessionMode) {
+                appState.masterChainIndex = Math.max(0, Math.min(3, appState.masterChainIndex + (delta > 0 ? 1 : -1)));
+            } else if (appState.currentView === VIEW_CHAIN) {
                 setChainIndex(Math.max(0, Math.min(3, chainIndex() + (delta > 0 ? 1 : -1))));
                 mlog('chain chainIndex=' + chainIndex());
             } else if (appState.currentView === VIEW_KNOBS) {
@@ -211,9 +213,12 @@ export function onMidiMessageInternal(data: number[]): void {
         return;
     }
 
-    /* Left/Right — page nav in VIEW_KNOBS; chain-slot nav in VIEW_CHAIN */
+    /* Left/Right — master FX slot nav in session mode; page nav in VIEW_KNOBS;
+     * chain-slot nav in VIEW_CHAIN. */
     if (d1 === MoveLeft && d2 > 0) {
-        if (appState.currentView === VIEW_CHAIN) {
+        if (seqState.sessionMode) {
+            appState.masterChainIndex = Math.max(0, appState.masterChainIndex - 1);
+        } else if (appState.currentView === VIEW_CHAIN) {
             setChainIndex(Math.max(0, chainIndex() - 1));
         } else if (appState.currentView === VIEW_KNOBS) {
             activeModel()?.changePage(-1);
@@ -222,7 +227,9 @@ export function onMidiMessageInternal(data: number[]): void {
         return;
     }
     if (d1 === MoveRight && d2 > 0) {
-        if (appState.currentView === VIEW_CHAIN) {
+        if (seqState.sessionMode) {
+            appState.masterChainIndex = Math.min(3, appState.masterChainIndex + 1);
+        } else if (appState.currentView === VIEW_CHAIN) {
             setChainIndex(Math.min(3, chainIndex() + 1));
         } else if (appState.currentView === VIEW_KNOBS) {
             activeModel()?.changePage(1);

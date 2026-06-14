@@ -6,13 +6,14 @@ import { drawEnumOverlay, drawJogToast } from './overlay.js';
 import { W, ROW0_Y } from './layout.js';
 import { CHAIN_SLOTS } from '../chain/config.js';
 
-export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: boolean, trackLabel: string): void {
+export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: boolean, trackLabel: string, slotLabel?: string): void {
     clear_screen();
 
     const slot = CHAIN_SLOTS[chainIndex] ?? CHAIN_SLOTS[1];
+    const effectiveSlotLabel = slotLabel ?? slot.label;
 
     if (vm.isEmpty) {
-        drawHeader(trackLabel, slot.label, false);
+        drawHeader(trackLabel, effectiveSlotLabel, false);
         drawBankBar(chainIndex, 4);
         const msg = 'CLICK JOG: ADD MODULE';
         fontPrint(Math.max(0, Math.floor((W - fontWidth(msg)) / 2)), 28, msg, 1);

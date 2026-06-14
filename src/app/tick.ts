@@ -1,7 +1,7 @@
 import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE } from './state.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
-import { CHAIN_SLOTS } from '../chain/config.js';
+import { MASTER_FX_SLOTS } from '../chain/config.js';
 import { drumPadLedColor } from '../keyboard/leds.js';
 import { chromaticPadColor } from '../seq/pads.js';
 import { midiNoteName } from '../keyboard/notes.js';
@@ -60,6 +60,10 @@ export function tick(): void {
     const activeModel = appState.trackModels[appState.activeSlot]?.[chainIdx];
     const modelDirty  = activeModel?.tick() ?? false;
 
+    const mIdx        = appState.masterChainIndex;
+    const masterModel = seqState.sessionMode ? appState.masterFxModels[mIdx] : null;
+    const masterDirty = masterModel?.tick() ?? false;
+
     /* Drum status comes from the synth slot (index 1) regardless of which
      * chain module is currently selected — drum pads and step lane stay active
      * even when the user is browsing FX parameters on the same track. */
@@ -78,11 +82,11 @@ export function tick(): void {
     const toastShowing = seqToastActive();
     const headerShowing = seqHeaderActive();
 
-    if (modelDirty || appState.dirty || toastShowing !== lastToastShowing
+    if (modelDirty || masterDirty || appState.dirty || toastShowing !== lastToastShowing
         || headerShowing !== lastHeaderShowing) {
         if (seqState.sessionMode) {
-            const vm = activeModel!.getViewModel();
-            renderChainView(vm, chainIdx, appState.jogTouched, 'MASTER');
+            const vm = masterModel!.getViewModel();
+            renderChainView(vm, mIdx, appState.jogTouched, 'MASTER', MASTER_FX_SLOTS[mIdx]?.label);
             updateKnobLEDs(vm);
         } else if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
@@ -97,7 +101,7 @@ export function tick(): void {
         } else if (appState.currentView === VIEW_FILE_BROWSE) {
             if (appState.fileBrowserState) renderFileBrowseView(appState.fileBrowserState);
         } else {
-            const browseTitle = CHAIN_SLOTS[chainIdx]?.label ?? 'Module';
+            const browseTitle = activeModel?.getModuleName() ?? 'Module';
             renderBrowseView(browserState.modules, browserState.browseIndex, browseTitle);
         }
         if (toastShowing) drawSeqToast();

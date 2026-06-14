@@ -1,6 +1,7 @@
 import type { Model } from '../model/index.js';
 
 export const VIEW_KEYS        = 0;
+export const VIEW_SESSION      = 5;
 export const VIEW_KNOBS       = 1;
 export const VIEW_BROWSE      = 2;
 export const VIEW_CHAIN       = 3;
@@ -34,6 +35,8 @@ export const appState = {
     trackChainIndex:  [1, 1, 1, 1] as number[],
     trackView:        [3, 3, 3, 3] as number[],
     trackModels:      [] as Model[][],
+    masterFxModels:   [] as Model[],
+    masterChainIndex: 0,
     jogTouched:       false,
     browseOrigin:     VIEW_CHAIN as number,
     fileBrowserState: null as FileBrowserState | null,

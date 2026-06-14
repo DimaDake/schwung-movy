@@ -39,8 +39,6 @@ function cachedSetButtonLED(cc: number, color: number): void {
 
 /* Forget everything sent — next tick repaints all sequencer LEDs. Use after
  * anything that may have clobbered LED hardware state. */
-/* Forget everything sent — next tick repaints all sequencer LEDs. Use after
- * anything that may have clobbered LED hardware state. */
 export function seqLedsInvalidate(): void { lastNoteLed.clear(); lastButtonLed.clear(); }
 
 function barHasContent(bar: number): boolean {
@@ -148,6 +146,11 @@ export function lengthSpanColor(absStep: number, holdStep: number, holdLen: numb
     return -1;
 }
 
+/* Empty-clip visual metronome: which 4-step beat-group is lit (one per beat, cycling). */
+export function metronomeStep(stepInBar: number, engineTick: number): boolean {
+    return Math.floor(stepInBar / 4) === Math.floor(engineTick / 96) % 4; // 96 = PPQN
+}
+
 /* Worst-case cold frame: ~29 CC + up to 8 pad packets < 60-packet buffer.
  * Do not raise LED_INIT_BATCH past 8 without rechecking this. */
 export function seqLedsTick(
@@ -171,26 +174,23 @@ export function seqLedsTick(
     const bar = seqState.barOffset;
     const base = bar * NUM_STEP_BUTTONS;
 
-    /* Step-row: length-span overlay first (dim track, following held note),
-     * then playhead, note presence, in-loop, out-of-loop. */
+    // Step-row: empty+playing → cycling green beat-group; else span/playhead/occ/loop.
     const playStep = seqState.playing ? seqState.curStep : -1;
     const dimTrack = trackColorDim(seqState.watchTrack);
     const { holdStep, holdLen, watchTrack } = seqState;
-
+    const emptyMetro = seqState.lenSteps === 0 && seqState.playing;
     for (let i = 0; i < NUM_STEP_BUTTONS; i++) {
         const step = base + i;
-        const span = lengthSpanColor(step, holdStep, holdLen, watchTrack);
         let color: number;
-        if (span >= 0) {
-            color = span;
-        } else if (step === playStep) {
-            color = C_GREEN;
-        } else if (occHasStep(step)) {
-            color = C_WHITE;
-        } else if (seqState.lenSteps > 0 && step < seqState.lenSteps) {
-            color = dimTrack;
+        if (emptyMetro) {
+            color = metronomeStep(i, seqState.engineTick) ? C_GREEN : C_BLACK;
         } else {
-            color = C_DARKGREY;
+            const span = lengthSpanColor(step, holdStep, holdLen, watchTrack);
+            if (span >= 0) color = span;
+            else if (step === playStep) color = C_GREEN;
+            else if (occHasStep(step)) color = C_WHITE;
+            else if (seqState.lenSteps > 0 && step < seqState.lenSteps) color = dimTrack;
+            else color = C_DARKGREY;
         }
         cachedSetLED(STEP_NOTE_BASE + i, color);
     }

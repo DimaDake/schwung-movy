@@ -1597,6 +1597,19 @@ _log('\nTest: drumPadOn');
     eq('holdLen parsed', seqState.holdLen, 4);
 }
 
+/* ── visual metronome helper ─────────────────────────────────────────────── */
+{
+    _log('\nvisual metronome:');
+    const { metronomeStep } = await import('../dist/esm/seq/leds.js');
+
+    eq('beat0 lights step 0',  metronomeStep(0, 0),       true);
+    eq('beat0 lights step 3',  metronomeStep(3, 0),       true);
+    eq('beat0 dark step 4',    metronomeStep(4, 0),       false);
+    eq('beat1 lights step 4',  metronomeStep(4, 96),      true);
+    eq('beat3 lights step 12', metronomeStep(12, 96 * 3), true);
+    eq('wraps to beat0 at 4 beats', metronomeStep(0, 96 * 4), true);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

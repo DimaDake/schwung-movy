@@ -40,7 +40,7 @@ import {
     anyStepHeld, editLength, editNudge, editPad, editStepDown, editStepUp,
     editTranspose, editVelocity, heldStepAbs, setLengthTo,
 } from './step-edit.js';
-import { seqHeaderAnnounce, seqToast } from './render.js';
+import { seqToast } from './render.js';
 import {
     sessionCopyButton, sessionDeleteButton, sessionPad, sessionToggle,
 } from './session.js';
@@ -149,12 +149,10 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     if (d1 === CC_NOTE_SESSION) {
         if (d2 > 0) {
             sessionPrev = seqState.sessionMode;
-            momentaryDown(d1, () => { seqState.sessionMode = sessionPrev; seqHeaderAnnounce(sessionPrev ? 'Session' : 'Note'); });
+            momentaryDown(d1, () => { seqState.sessionMode = sessionPrev; });
             seqState.sessionMode = true;
-            seqHeaderAnnounce('Session');
         } else if (momentaryUp(d1) === 'tap' && sessionPrev) {
             seqState.sessionMode = false; // tap while already in Session → back to Note
-            seqHeaderAnnounce('Note');
         }
         return true;
     }

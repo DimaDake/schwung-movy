@@ -6,11 +6,10 @@ import { drawEnumOverlay, drawJogToast } from './overlay.js';
 import { W, ROW0_Y } from './layout.js';
 import { CHAIN_SLOTS } from '../chain/config.js';
 
-export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: boolean, activeSlot = 0): void {
+export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: boolean, trackLabel: string): void {
     clear_screen();
 
-    const slot       = CHAIN_SLOTS[chainIndex] ?? CHAIN_SLOTS[1];
-    const trackLabel = 'T' + (activeSlot + 1);
+    const slot = CHAIN_SLOTS[chainIndex] ?? CHAIN_SLOTS[1];
 
     if (vm.isEmpty) {
         drawHeader(trackLabel, slot.label, false);

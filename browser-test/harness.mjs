@@ -185,9 +185,10 @@ globalThis.__movy_renderBrowseView = (mods, idx) => {
 };
 
 globalThis.__movy_renderChainView = (chainIndex, jogTouched, activeSlot) => {
+    const label = 'T' + ((activeSlot ?? 0) + 1);
     lastRender = () => {
         const m  = chainModels[chainIndex ?? 1];
-        renderChainView(m.getViewModel(), chainIndex ?? 1, jogTouched ?? false, activeSlot ?? 0);
+        renderChainView(m.getViewModel(), chainIndex ?? 1, jogTouched ?? false, label);
     };
     lastRender();
 };

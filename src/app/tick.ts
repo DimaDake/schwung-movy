@@ -80,7 +80,11 @@ export function tick(): void {
 
     if (modelDirty || appState.dirty || toastShowing !== lastToastShowing
         || headerShowing !== lastHeaderShowing) {
-        if (appState.currentView === VIEW_KEYS) {
+        if (seqState.sessionMode) {
+            const vm = activeModel!.getViewModel();
+            renderChainView(vm, chainIdx, appState.jogTouched, 'MASTER');
+            updateKnobLEDs(vm);
+        } else if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
             const vm = activeModel!.getViewModel();
@@ -88,7 +92,7 @@ export function tick(): void {
             updateKnobLEDs(vm);
         } else if (appState.currentView === VIEW_CHAIN) {
             const vm = activeModel!.getViewModel();
-            renderChainView(vm, chainIdx, appState.jogTouched, appState.activeSlot);
+            renderChainView(vm, chainIdx, appState.jogTouched, 'T' + (appState.activeSlot + 1));
             updateKnobLEDs(vm);
         } else if (appState.currentView === VIEW_FILE_BROWSE) {
             if (appState.fileBrowserState) renderFileBrowseView(appState.fileBrowserState);

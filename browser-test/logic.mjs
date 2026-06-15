@@ -9,25 +9,11 @@ import { createModel }    from '../dist/esm/model/index.js';
 import { MOCK_SYNTHS }    from './mock-synth.mjs';
 import { drumPadOn, drumPadOff } from '../dist/esm/keyboard/drum-handler.js';
 import { ENGINE_VERSION } from '../dist/esm/seq/constants.js';
+import { installEnv } from './env.mjs';
 
 /* ── Mock globals ─────────────────────────────────────────────────────────── */
 
-let mockState = {};
-
-globalThis.fill_rect          = () => {};
-globalThis.clear_screen       = () => {};
-globalThis.shadow_get_param   = (_s, key) => mockState[key] ?? null;
-globalThis.shadow_set_param   = (_s, key, val) => { mockState[key] = val; return true; };
-globalThis.shadow_get_ui_slot = () => 0;
-globalThis.host_read_file     = () => null;
-globalThis.setLED             = () => {};
-globalThis.setButtonLED       = () => {};
-globalThis.MoveKnob1          = 71;
-globalThis.MidiNoteOn         = 0x90;
-globalThis.MidiNoteOff        = 0x80;
-/* shadow_ui re-encodes wheel deltas (1-63 = +, 65-127 = -); decodeDelta
- * recovers the signed value. */
-globalThis.decodeDelta        = (d2) => (d2 < 64 ? d2 : d2 - 128);
+const env = installEnv();
 
 let mockFsEntries = {};  // path → string[] of filenames
 
@@ -62,7 +48,7 @@ function notMatch(label, str, pattern) {
 }
 
 function bootModel(preset, slot = 0, componentKey = 'synth') {
-    mockState = { ...preset };
+    env.setParams(preset);
     const m = createModel(slot, componentKey);
     m.reload();  // sets pollCountdown=1 so pollModuleName fires on next tick
     m.tick();    // tick 1: polls name, resets hierarchyKey
@@ -275,7 +261,7 @@ _log('\nTest: file overlay commits on release');
     m.handleKnobTouch(0);
     m.handleKnobDelta(0, 8);  // 2 steps: sorted hat[0],kick[1],snare[2]; kick→idx1+2=3 clamped→2=snare
     m.handleKnobRelease(0);
-    eq('file overlay: committed to shadow', mockState['synth:sample'], '/data/UserData/Samples/snare.wav');
+    eq('file overlay: committed to shadow', env.params['synth:sample'], '/data/UserData/Samples/snare.wav');
     eq('file overlay: dismissed',          m.getViewModel().overlay, null);
 }
 

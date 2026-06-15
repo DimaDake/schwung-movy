@@ -75,6 +75,46 @@ _log('\napp-loop: selected pad is white when idle');
     eq('idle selected pad = white', padColor(PAD_KICK), 120);
 }
 
+_log('\napp-loop: green wins over white (sequencer gate)');
+{
+    resetApp();
+    sendMidi([0x90, PAD_KICK, 100]); sendMidi([0x80, PAD_KICK, 0]); // select PAD_KICK
+    advance(2);
+    eq('precondition: selected pad white', padColor(PAD_KICK), 120);
+
+    engine.status.act = String(NOTE_KICK);   // sequencer now sounding the kick
+    advance(10);                              // > STATUS_POLL_TICKS (8) → poll lands
+    eq('sounding selected pad → green', padColor(PAD_KICK), 11);
+
+    engine.status.act = '';                   // gate closes (engine reports nothing sounding)
+    advance(10);
+    eq('after gate closes → back to white', padColor(PAD_KICK), 120);
+}
+
+_log('\napp-loop: held pad lights green, reverts on release');
+{
+    resetApp();
+    sendMidi([0x90, PAD_KICK, 100]);   // press and HOLD
+    advance(2);
+    eq('held pad → green', padColor(PAD_KICK), 11);
+
+    sendMidi([0x80, PAD_KICK, 0]);     // release
+    advance(2);
+    eq('released pad reverts (selected → white)', padColor(PAD_KICK), 120);
+}
+
+_log('\napp-loop: multi-step entry on a drum lane');
+{
+    resetApp();                          // drum lane already selected (watchLane >= 0)
+    sendMidi([0x90, 16 + 0, 127]);       // hold step 0
+    sendMidi([0x90, 16 + 3, 127]);       // press step 3 while step 0 held
+    sendMidi([0x80, 16 + 3, 0]);         // release → step 3 toggles on
+    sendMidi([0x80, 16 + 0, 0]);         // release → step 0 toggles on
+    eq('drum multi: step 0 entered', occHasStep(0), true);
+    eq('drum multi: step 3 entered', occHasStep(3), true);
+    eq('drum multi: no length gesture', engine.ops.some((o) => o.startsWith('slen')), false);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

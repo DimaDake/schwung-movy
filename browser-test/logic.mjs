@@ -1882,6 +1882,25 @@ _log('\nTest: getKnobParamInfo');
     eq('out-of-range knob → null', m.getKnobParamInfo(99), null);
 }
 
+/* ── viewmodel carries automation fields ─────────────────────────────────── */
+_log('\nTest: viewmodel automation fields');
+{
+    const m = bootModel(MOCK_SYNTHS.obxd_like);
+    const firstKey = m.getKnobParamInfo(0)?.key;
+    // Lane 0 bound to the first param's key, with a lock present.
+    const auto = {
+        assignedLanes: 0b1, activeLanes: 0b1, held: false, poolFull: false,
+        heldValues: new Map(),
+        laneForKey: (key) => (key === firstKey ? 0 : -1),
+    };
+    const vm = m.getViewModel(auto);
+    const pv = vm.rows[0][0];
+    eq('first param automated dot set', pv.automated, true);
+    eq('viewmodel exposes automationHeld', vm.automationHeld, false);
+    // No-arg getViewModel → no automation.
+    eq('default vm: not automated', m.getViewModel().rows[0][0].automated, false);
+}
+
 /* ── automation: registry + lane assignment ──────────────────────────────── */
 _log('\nautomation registry:');
 {

@@ -161,7 +161,7 @@ export function createModel(slot: number, componentKey = 'synth') {
 
         tick(): boolean { return processTick(s); },
 
-        getViewModel() { return buildViewModel(s); },
+        getViewModel(auto?: import('../types/viewmodel.js').AutomationView) { return buildViewModel(s, auto); },
 
         reload(): void { s.hierarchyKey = ''; s.pollCountdown = 1; s.dirty = true; },
 

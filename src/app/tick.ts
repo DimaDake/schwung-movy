@@ -12,7 +12,8 @@ import { renderChainView }    from '../renderer/chain-view.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync } from '../seq/engine.js';
-import { syncLabelsFromEngine, rangeFromChainParams } from '../seq/automation.js';
+import { syncLabelsFromEngine, rangeFromChainParams, automationRegistry, denorm7 } from '../seq/automation.js';
+import type { AutomationView } from '../types/viewmodel.js';
 import { seqPersistTick } from '../seq/persist.js';
 import { seqLedsTick, seqLedsInvalidate } from '../seq/leds.js';
 import { seqSetLane } from '../seq/router.js';
@@ -36,6 +37,28 @@ let jogToastShown = false;   // a bottom jog/browse toast is on screen (strip yi
 /* Per-pad color cache for the chromatic layout: avoids resending unchanged
  * LED colors every tick. Initialized to 0 (C_BLACK); first tick syncs all. */
 const chromaticCache = new Uint8Array(32);
+
+/* Assemble the automation snapshot for the param viewmodel from the seq mirror
+ * + the lane registry. Kept here (app layer) so model/ stays free of seq/. */
+function buildAutomationView(track: number): AutomationView {
+    const reg = automationRegistry()[track];
+    const heldValues = new Map<number, number>();
+    for (const [lane, v] of seqState.heldLocks) {
+        const e = reg[lane];
+        if (e) heldValues.set(lane, denorm7(v, e.min, e.max));
+    }
+    const laneForKey = (key: string): number => {
+        for (let l = 0; l < 8; l++) if (reg[l] && reg[l]!.shortName === key) return l;
+        return -1;
+    };
+    return {
+        assignedLanes: seqState.autoAssigned,
+        activeLanes:   seqState.autoActive,
+        held:          seqState.holdStep >= 0,
+        poolFull:      seqState.autoPoolFull,
+        heldValues, laneForKey,
+    };
+}
 
 /* Same idea for the 4×4 drum grid: the drum-pad colors update at poll rate
  * (green follows the sequencer gate / held pads), so cache-diffing keeps the
@@ -134,7 +157,7 @@ export function tick(): void {
         } else if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
-            const vm = activeModel!.getViewModel();
+            const vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot));
             renderKnobsView(vm, appState.jogTouched, appState.activeSlot);
             jogToastShown = !!vm.toast?.browseHint || appState.jogTouched;
             updateKnobLEDs(vm);

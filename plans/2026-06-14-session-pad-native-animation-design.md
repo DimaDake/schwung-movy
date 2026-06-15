@@ -139,6 +139,14 @@ playing/queued flash white natively. The table's "base→white" entries become
 4. **Part B**: implement the animation cache + table per the spike result (or the
    white↔black fallback), update tests/baselines, device-verify.
 
+## Spike result (2026-06-15)
+
+Device-confirmed on `move.local`: the firmware uses the **two-color model** —
+`Pulse4th`/`Pulse8th` pulse between the channel-0 base color and the
+animation-channel color, i.e. **track color ↔ white** as designed. The white↔black
+fallback was not needed. Grey empty-selected slots verified on all four tracks.
+Implemented and shipped with the primary mapping.
+
 ## Risks
 
 - Two-color model unverified → mitigated by the spike before Part B.

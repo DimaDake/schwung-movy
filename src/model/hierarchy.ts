@@ -2,6 +2,7 @@ import type { KnobParam } from '../types/param.js';
 import type { ModelState } from './state.js';
 import { loadModuleConfig } from '../modules/loader.js';
 import { mlog } from '../log.js';
+import { moduleReadKey } from '../chain/config.js';
 import { KNOBS_PER_PAGE } from './constants.js';
 
 interface HierParam {
@@ -37,7 +38,7 @@ export function loadHierarchy(s: ModelState): void {
     s.hierarchyKey = s.activeModuleName;
 
     mlog('loadHierarchy: slot=' + s.activeSlot + ' module=' + s.activeModuleName);
-    s.moduleId = shadow_get_param(s.activeSlot, s.componentKey + '_module') || '';
+    s.moduleId = shadow_get_param(s.activeSlot, moduleReadKey(s.componentKey)) || '';
 
     s.moduleConfig = loadModuleConfig(s.moduleId);
 

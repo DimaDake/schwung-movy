@@ -17,6 +17,7 @@ await esbuild.build({
         resolve(root, 'src/keyboard/drum-handler.ts'),
         resolve(root, 'src/keyboard/state.ts'),
         resolve(root, 'src/app/globals.ts'),
+        resolve(root, 'src/chain/config.ts'),
         resolve(root, 'src/seq/engine.ts'),
         resolve(root, 'src/seq/router.ts'),
         resolve(root, 'src/seq/state.ts'),

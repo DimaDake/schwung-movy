@@ -1,6 +1,7 @@
 import type { KnobParam } from '../types/param.js';
 import type { ModelState } from './state.js';
 import { KNOBS_PER_PAGE, ENUM_DELTA_DIV, ARC_DELTA_SCALE, REFRESH_SUPPRESS_TICKS } from './constants.js';
+import { moduleReadKey } from '../chain/config.js';
 import { mlog } from '../log.js';
 
 export function formatValue(p: KnobParam, v: number | null | undefined): string {
@@ -73,7 +74,7 @@ export function refreshOneParam(s: ModelState, tickCount: number): void {
 
 export function pollModuleName(s: ModelState): void {
     const name = shadow_get_param(s.activeSlot, s.componentKey + ':name')
-              || shadow_get_param(s.activeSlot, s.componentKey + '_module')
+              || shadow_get_param(s.activeSlot, moduleReadKey(s.componentKey))
               || '—';
     if (name !== s.activeModuleName) {
         s.activeModuleName = name;

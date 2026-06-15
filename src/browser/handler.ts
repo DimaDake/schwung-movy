@@ -1,6 +1,6 @@
 import { browserState } from './state.js';
 import { appState, VIEW_BROWSE } from '../app/state.js';
-import type { ChainSlot } from '../chain/config.js';
+import { moduleReadKey, type ChainSlot } from '../chain/config.js';
 
 const MODULES_BASE = '/data/UserData/schwung/modules';
 
@@ -41,7 +41,7 @@ export function openBrowser(slot: ChainSlot, paramSlot: number, reload: () => vo
     browserState.reload       = reload;
     browserState.modules      = scanModules(slot);
     browserState.browseIndex  = 0;
-    const activeId = shadow_get_param(paramSlot, slot.componentKey + '_module') || '';
+    const activeId = shadow_get_param(paramSlot, moduleReadKey(slot.componentKey)) || '';
     const idx = browserState.modules.findIndex(m => m.id === activeId);
     if (idx >= 0) browserState.browseIndex = idx;
     appState.currentView = VIEW_BROWSE;

@@ -183,6 +183,31 @@ _log('\nTest: vm.isEmpty');
 eq('no_params: isEmpty = true',  bootModel(MOCK_SYNTHS.no_params).getViewModel().isEmpty, true);
 eq('test8: isEmpty = false',     bootModel(MOCK_SYNTHS.test8).getViewModel().isEmpty,     false);
 
+/* ── master FX module read key ─────────────────────────────────────────────
+ * Track components expose the loaded module id via an underscore alias
+ * (fx1_module); master FX has none and is read with its colon key
+ * (master_fx:fx1:module). A wrong key here left an added master FX module
+ * reading back empty ("click jog to add"). */
+_log('\nTest: master FX module detection');
+{
+    const { moduleReadKey } = await import('../dist/esm/chain/config.js');
+    eq('track module read key', moduleReadKey('fx1'), 'fx1_module');
+    eq('master module read key', moduleReadKey('master_fx:fx1'), 'master_fx:fx1:module');
+
+    // A master FX slot whose module id is set under the colon key is detected
+    // as loaded (not empty) — the bug was the model reading the underscore key.
+    const preset = {
+        'master_fx:fx1:module':       'reverb',
+        'master_fx:fx1:name':         'Reverb',
+        'master_fx:fx1:ui_hierarchy': JSON.stringify({ levels: { root: { knobs: ['mix'] } } }),
+        'master_fx:fx1:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float', min: 0, max: 1 }]),
+        'master_fx:fx1:mix':          '0.5',
+    };
+    const vm = bootModel(preset, 0, 'master_fx:fx1').getViewModel();
+    eq('master FX module detected (not empty)', vm.isEmpty, false);
+    eq('master FX module name', vm.moduleName, 'Reverb');
+}
+
 /* ── row params populated ─────────────────────────────────────────────────── */
 
 _log('\nTest: vm.rows populated correctly');

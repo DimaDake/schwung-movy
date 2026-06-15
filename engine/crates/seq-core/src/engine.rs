@@ -3,7 +3,7 @@
 //! them into host MIDI sends. One Engine instance == the whole 4-track
 //! sequencer.
 
-use crate::clip::Clip;
+use crate::clip::{Clip, Lock};
 use crate::clock::Clock;
 use crate::track::{Track, CLIPS_PER_TRACK, NUM_TRACKS};
 use crate::{PPQN, TICKS_PER_STEP};
@@ -41,6 +41,9 @@ pub struct Engine {
     /// Note clipboard for copy/paste of steps and ranges, across tracks and
     /// clips. Ticks/steps are stored relative to the copy start.
     clipboard: Vec<ClipboardNote>,
+    /// Automation locks captured alongside `clipboard`, steps stored relative
+    /// to the copy start so an empty (note-less) step's automation copies too.
+    lock_clipboard: Vec<Lock>,
     /// Whole-clip clipboard for Session copy/paste.
     clip_clipboard: Option<Clip>,
     /// Recording state (live capture into the active clip).
@@ -82,6 +85,7 @@ impl Engine {
             watch_track: 0,
             watch_lane: None,
             clipboard: Vec::new(),
+            lock_clipboard: Vec::new(),
             clip_clipboard: None,
             recording: false,
             rec_track: 0,
@@ -186,6 +190,13 @@ impl Engine {
                 vel: n.vel,
             })
             .collect();
+        self.lock_clipboard = self.tracks[track]
+            .active()
+            .locks
+            .iter()
+            .filter(|l| l.step >= s0 && l.step <= s1)
+            .map(|l| Lock { lane: l.lane, step: l.step - s0, val: l.val })
+            .collect();
     }
 
     pub fn paste_steps(&mut self, track: usize, dest_step: u16) {
@@ -204,10 +215,16 @@ impl Engine {
                 cn.vel,
             );
         }
+        let lb = self.lock_clipboard.clone();
+        let clip = self.tracks[track].active_mut();
+        for l in lb {
+            clip.set_lock(l.lane, dest_step + l.step, l.val);
+        }
     }
 
     pub fn clear_clipboard(&mut self) {
         self.clipboard.clear();
+        self.lock_clipboard.clear();
     }
 
     pub fn watched_clip(&self) -> &Clip {
@@ -674,6 +691,20 @@ mod tests {
                 "track {t} missing"
             );
         }
+    }
+
+    #[test]
+    fn copy_paste_carries_locks_even_without_notes() {
+        use crate::command::apply_batch;
+        let mut e = engine();
+        let mut out = Vec::new();
+        // Lock on step 1 with NO note there; note on step 0.
+        apply_batch(&mut e, "tog 0 0 60 100", &mut out);
+        e.tracks[0].active_mut().set_lock(2, 1, 77);
+        apply_batch(&mut e, "cpy 0 0 3", &mut out);   // copy steps 0-3 (locks + notes)
+        apply_batch(&mut e, "pst 0 8", &mut out);     // paste at step 8
+        assert_eq!(e.tracks[0].active().lock_at(2, 9), Some(77)); // step 1 → 9
+        assert!(e.tracks[0].active().step_has_notes(8));          // step 0 → 8
     }
 
     #[test]

@@ -57,8 +57,12 @@ export function installMockEngine() {
         engine.getParamCalls++;
         if (key === 'status') {
             if (engine.statusUnavailable) return null;
-            const s = engine.status;
-            return `play=${s.play} tick=${s.tick} bpm=${s.bpm}`;
+            /* Serialize every key in engine.status (play/tick/bpm by default,
+             * plus any a test adds — act=, occ=, …) so the wire format matches
+             * the real engine and tests can inject arbitrary status. */
+            return Object.entries(engine.status)
+                .map(([k, v]) => `${k}=${v}`)
+                .join(' ');
         }
         if (key === 'ping') return 'pong ' + ENGINE_VERSION;
         return null;

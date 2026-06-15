@@ -489,6 +489,13 @@ _log('\nTest: drumPadOn');
     eq('engine tick mirrored', seqState.engineTick, 4321);
     eq('bpm mirrored', seqState.bpmX100, 13350);
 
+    // Mock engine serializes arbitrary status keys so tests can inject act=.
+    const { activeHasNote } = await import('../dist/esm/seq/state.js');
+    engine.status.act = '38';            // track 0 pitch 38 sounding
+    for (let i = 0; i < 10; i++) seqEngineTick();
+    eq('injected act= populates activeNotes', activeHasNote(0, 38), true);
+    delete engine.status.act;
+
     // Unknown status keys must be ignored (forward compat).
     engine.status.tick = 9;
     globalThis.host_module_get_param = (key) =>

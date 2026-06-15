@@ -110,6 +110,13 @@ Drum grid, driven through `init()` + `tick()` with a `mrdrums`-style preset:
   `seq: step <abs> lane <lane>`. The device test selects a drum track, holds
   step 1 + presses step 5, and asserts **two** such log lines for one lane —
   proving multi-step entry on hardware.
+  - **Performance constraint (required):** the log sits only on the discrete
+    step-entry event, which fires at human-interaction rate (~1 call per step
+    press). It must **not** be added to any per-tick / per-poll / per-LED path
+    (those run at ~24–60 Hz and feed the perf budgets). `mlog` is ungated
+    (builds the string + `console.log` every call), so it stays off hot paths
+    by placement, not by guarding. The perf suite (`perf.mjs`) must stay green,
+    confirming no regression to `fill_rect` / IPC / LED-send counts.
 - **LED smoke:** drive a short drum pattern; assert no crash and expected
   transport behavior. LED *values* are not asserted on device (impossible) —
   the local harness is authoritative for LED logic.
@@ -131,7 +138,9 @@ Drum grid, driven through `init()` + `tick()` with a `mrdrums`-style preset:
   assertion fail. (Sanity check that the tests actually bite.)
 - The `logic.mjs` refactor to `env.mjs` leaves all existing checks green.
 - New `mlog` line on drum step entry does not change UI/engine behavior; local
-  logic + screenshot + perf suites stay green.
+  logic + screenshot + perf suites stay green. The `mlog` is on the discrete
+  step-entry path only (interaction-rate), never per-tick/per-poll/per-LED, so
+  it has no effect on the perf budgets.
 
 ## Risks / notes
 

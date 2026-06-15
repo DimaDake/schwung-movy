@@ -9,7 +9,8 @@ import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '.
 import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteTrack, seqRestoreWatch } from '../seq/router.js';
 import { seqState } from '../seq/state.js';
 import { momentaryDown, momentaryUp } from '../seq/momentary.js';
-import { handleAutomationKnob } from '../seq/automation.js';
+import { handleAutomationKnob, clearLaneForKnob } from '../seq/automation.js';
+import { deleteActive } from '../seq/edit-ops.js';
 import { mlog } from '../log.js';
 
 const PAD_MIN        = MovePads[0];
@@ -49,10 +50,16 @@ export function onMidiMessageInternal(data: number[]): void {
     const d1     = data[1];
     const d2     = data[2];
 
-    /* Capacitive knob touch: NoteOn note=0..7 */
+    /* Capacitive knob touch: NoteOn note=0..7. Hold-Clear (Delete) + touch
+     * clears that knob's automation lane. */
     if ((status & 0xF0) === 0x90 && d1 < 8) {
-        if (d2 > 0) knobModel()?.handleKnobTouch(d1);
-        else        knobModel()?.handleKnobRelease(d1);
+        if (d2 > 0) {
+            const info = knobModel()?.getKnobParamInfo(d1) ?? null;
+            if (deleteActive() && info) { clearLaneForKnob(appState.activeSlot, info); return; }
+            knobModel()?.handleKnobTouch(d1);
+        } else {
+            knobModel()?.handleKnobRelease(d1);
+        }
         return;
     }
 

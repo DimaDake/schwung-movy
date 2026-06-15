@@ -1942,6 +1942,26 @@ _log('\nautomation knob routing:');
     resetSeqState();
 }
 
+/* ── automation: label re-sync from engine ───────────────────────────────── */
+_log('\nautomation label sync:');
+{
+    const { resetAutomation, syncLabelsFromEngine, laneForParam, clearLane } =
+        await import('../dist/esm/seq/automation.js');
+    const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    resetAutomation(); resetSeqEngine();
+    const applied = [];
+    syncLabelsFromEngine(
+        '-.synth:cutoff.-.-.-.-.-.-,-.-.-.-.-.-.-.-,-.-.-.-.-.-.-.-,-.-.-.-.-.-.-.-',
+        (slot, lane, tp) => applied.push(slot + ':' + lane + ':' + tp),
+        () => ({ min: 0, max: 1, type: 'float' }),
+    );
+    eq('label synced into registry', laneForParam(0, 'synth:cutoff'), 1);
+    eq('re-applied knob mapping', applied.includes('0:1:synth:cutoff'), true);
+    // Clear frees the lane.
+    clearLane(0, 1);
+    eq('cleared lane gone', laneForParam(0, 'synth:cutoff'), -1);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

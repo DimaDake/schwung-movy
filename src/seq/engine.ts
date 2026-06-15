@@ -67,6 +67,16 @@ export function seqCmd(op: string): void {
     cmdQueue.push(op);
 }
 
+/* Automation label re-sync request: set on engine boot/reload; the app tick
+ * consumes it once to fetch `alabels` and rebuild the lane registry. */
+let labelSyncPending = false;
+export function requestLabelSync(): void { labelSyncPending = true; }
+export function takeLabelSync(): boolean {
+    if (!labelSyncPending) return false;
+    labelSyncPending = false;
+    return true;
+}
+
 export function seqEngineTick(): void {
     uiTickCount++;
     if (!engineAvailable()) return;
@@ -106,6 +116,7 @@ function probeTick(): void {
         bootState = 'ok';
         statusFailures = 0;
         pollCountdown = 1;
+        requestLabelSync(); // rebuild automation registry + re-apply chain mappings
         return;
     }
     probeFailures++;

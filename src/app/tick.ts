@@ -11,7 +11,8 @@ import { renderBrowseView } from '../renderer/browse-view.js';
 import { renderChainView }    from '../renderer/chain-view.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
-import { seqEngineTick } from '../seq/engine.js';
+import { seqEngineTick, takeLabelSync } from '../seq/engine.js';
+import { syncLabelsFromEngine, rangeFromChainParams } from '../seq/automation.js';
 import { seqPersistTick } from '../seq/persist.js';
 import { seqLedsTick, seqLedsInvalidate } from '../seq/leds.js';
 import { seqSetLane } from '../seq/router.js';
@@ -43,6 +44,18 @@ const drumCache = new Uint8Array(32);
 
 export function tick(): void {
     seqEngineTick();
+    // Engine (re)booted: rebuild the automation registry from its labels and
+    // re-apply each lane's chain knob mapping so playback CCs land.
+    if (engineReady() && takeLabelSync()) {
+        const labels = host_module_get_param('alabels');
+        if (labels) {
+            syncLabelsFromEngine(
+                labels,
+                (slot, lane, tp) => shadow_set_param(slot, 'knob_' + (lane + 1) + '_set', tp),
+                (tp) => rangeFromChainParams(appState.activeSlot, tp),
+            );
+        }
+    }
     seqPersistTick();
     /* Session toggle changes pad ownership: invalidate the seq LED cache and
      * re-init the instrument pad LEDs when returning to Note mode. */

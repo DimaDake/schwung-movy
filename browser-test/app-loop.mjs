@@ -113,6 +113,9 @@ _log('\napp-loop: multi-step entry on a drum lane');
     eq('drum multi: step 0 entered', occHasStep(0), true);
     eq('drum multi: step 3 entered', occHasStep(3), true);
     eq('drum multi: no length gesture', engine.ops.some((o) => o.startsWith('slen')), false);
+
+    const stepLogs = logs.filter((l) => l.includes('seq: step'));
+    eq('drum multi: two step-entry log lines', stepLogs.length, 2);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

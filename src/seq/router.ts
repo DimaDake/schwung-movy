@@ -12,6 +12,7 @@ import {
     CC_NOTE_SESSION, CC_PLAY, CC_REC, CC_TRACK_END, CC_TRACK_START,
     NUM_STEP_BUTTONS, PAD_MAX, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
+import { mlog } from '../log.js';
 
 const CC_MUTE = 88;
 
@@ -270,6 +271,9 @@ function toggleStep(button: number): void {
     if (seqState.watchLane >= 0) {
         /* Drum lane: toggle just the selected lane's pitch at this step. */
         seqCmd(`ltog ${t} ${step} ${seqState.watchLane} ${seqState.lastVel[t]}`);
+        // Interaction-rate only (one per step press) — never a per-tick path;
+        // lets the device test count multi-step entries from the log.
+        mlog(`seq: step ${step} lane ${seqState.watchLane}`);
     } else {
         /* Melodic: place the currently-held chord, or the last-played note
          * if no pads are down; a step that already has notes is cleared. */

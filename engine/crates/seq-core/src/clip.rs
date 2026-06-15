@@ -27,9 +27,24 @@ pub struct Note {
     pub suppress: bool,
 }
 
+/// Max automation locks per clip (8 lanes × generous step budget).
+pub const MAX_LOCKS: usize = 1024;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Lock {
+    /// Automation lane 0..8 (maps to chain knob lane / abs CC 102+lane).
+    pub lane: u8,
+    pub step: u16,
+    /// 7-bit value (0..=127), scaled to the param range by the chain.
+    pub val: u8,
+}
+
 #[derive(Debug, Clone)]
 pub struct Clip {
     pub notes: Vec<Note>,
+    /// Sparse parameter-automation locks (p-lock model); unlocked steps play
+    /// the lane base value (revert-to-base).
+    pub locks: Vec<Lock>,
     /// Loop window length in steps (16 per bar). 0 = empty slot (no clip).
     pub length_steps: u16,
     /// First step of the loop window (bar-aligned). Playback wraps inside
@@ -47,6 +62,7 @@ impl Clip {
     pub fn new() -> Self {
         Clip {
             notes: Vec::new(),
+            locks: Vec::new(),
             length_steps: 0,
             loop_start_steps: 0,
         }
@@ -72,8 +88,38 @@ impl Clip {
 
     pub fn clear(&mut self) {
         self.notes.clear();
+        self.locks.clear();
         self.length_steps = 0;
         self.loop_start_steps = 0;
+    }
+
+    /// Upsert a lock for (lane, step). Caps at MAX_LOCKS (drops new ones over).
+    pub fn set_lock(&mut self, lane: u8, step: u16, val: u8) {
+        if let Some(l) = self.locks.iter_mut().find(|l| l.lane == lane && l.step == step) {
+            l.val = val;
+            return;
+        }
+        if self.locks.len() < MAX_LOCKS {
+            self.locks.push(Lock { lane, step, val });
+        }
+    }
+
+    pub fn lock_at(&self, lane: u8, step: u16) -> Option<u8> {
+        self.locks.iter().find(|l| l.lane == lane && l.step == step).map(|l| l.val)
+    }
+
+    pub fn clear_lane(&mut self, lane: u8) {
+        self.locks.retain(|l| l.lane != lane);
+    }
+
+    /// Bitmask of lanes (bit `lane`) that have ≥1 lock — drives the UI dots.
+    pub fn automated_lanes(&self) -> u8 {
+        self.locks.iter().fold(0u8, |m, l| m | (1u8 << (l.lane & 7)))
+    }
+
+    /// (lane, val) pairs at `step` — for the held-step display.
+    pub fn locks_at_step(&self, step: u16) -> impl Iterator<Item = (u8, u8)> + '_ {
+        self.locks.iter().filter(move |l| l.step == step).map(|l| (l.lane, l.val))
     }
 
     /// Ensure the clip exists and is at least one bar long (implicit clip
@@ -561,6 +607,45 @@ mod tests {
         c.set_length(0, 0, None, 4 * TICKS_PER_STEP);
         let n = c.notes.iter().find(|n| n.tick == 0).unwrap();
         assert_eq!(n.gate, 4 * TICKS_PER_STEP);
+    }
+
+    #[test]
+    fn lock_set_upsert_and_read() {
+        let mut c = Clip::new();
+        c.set_lock(2, 4, 100);
+        c.set_lock(2, 4, 120); // upsert same lane+step
+        assert_eq!(c.lock_at(2, 4), Some(120));
+        assert_eq!(c.lock_at(2, 5), None);
+        assert_eq!(c.locks.len(), 1);
+    }
+
+    #[test]
+    fn automated_lanes_bitmask() {
+        let mut c = Clip::new();
+        c.set_lock(0, 0, 10);
+        c.set_lock(3, 8, 20);
+        assert_eq!(c.automated_lanes(), 0b0000_1001);
+    }
+
+    #[test]
+    fn clear_lane_removes_only_that_lane() {
+        let mut c = Clip::new();
+        c.set_lock(1, 0, 10);
+        c.set_lock(2, 0, 20);
+        c.clear_lane(1);
+        assert_eq!(c.lock_at(1, 0), None);
+        assert_eq!(c.lock_at(2, 0), Some(20));
+    }
+
+    #[test]
+    fn locks_at_step_lists_pairs() {
+        let mut c = Clip::new();
+        c.set_lock(0, 6, 11);
+        c.set_lock(5, 6, 99);
+        c.set_lock(0, 7, 1);
+        let mut got: Vec<(u8, u8)> = c.locks_at_step(6).collect();
+        got.sort_unstable();
+        assert_eq!(got, vec![(0, 11), (5, 99)]);
     }
 
     #[test]

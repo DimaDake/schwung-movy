@@ -119,9 +119,9 @@ playing/queued flash white natively. The table's "base→white" entries become
 
 - **logic.mjs** — truth table for `sessionCellColor` across all 6 states × 4
   tracks, asserting `{color, channel}` and proving no `watchTrack` dependency.
-- **screenshot.mjs** — the browser harness can't render a hardware pulse, so the
-  mock renders an animated cell's **base** color; refresh baselines for the
-  grey-empty-on-every-track change.
+- **screenshot.mjs** — not affected: the session clip grid is LED-only (no
+  `fill_rect`); the screen shows the master FX chain. Run it (expect 0 failures),
+  but no baseline update is needed.
 - **perf.mjs** — assert the grid emits ≤1 message per pad per tick (no manual
   double-write) and total Session-frame sends ≤ the 16/tick flush cap.
 - **Device** — the spike, then `test-seq.sh` for the session e2e, then a manual

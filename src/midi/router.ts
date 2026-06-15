@@ -182,16 +182,14 @@ export function onMidiMessageInternal(data: number[]): void {
                 openBrowser(MASTER_FX_SLOTS[mi], 0, () => masterModel()?.reload());
                 appState.browseOrigin = VIEW_CHAIN;
             }
-        } else if (appState.currentView === VIEW_CHAIN) {
-            const isEmpty = activeModel()?.getViewModel().isEmpty ?? false;
-            if (appState.shiftHeld || isEmpty) {
-                openBrowser(CHAIN_SLOTS[chainIndex()], appState.activeSlot, () => activeModel()?.reload());
-                appState.browseOrigin = VIEW_CHAIN;
-            } else {
-                appState.currentView = VIEW_KNOBS;
-                appState.dirty = true;
-            }
-        } else if (appState.currentView === VIEW_KNOBS) {
+        } else if (appState.currentView === VIEW_KEYS) {
+            appState.currentView = VIEW_CHAIN;
+            appState.dirty = true;
+        } else if (appState.currentView === VIEW_CHAIN || appState.currentView === VIEW_KNOBS) {
+            // Holding a file-param knob + jog click opens the file browser — the
+            // same gesture works on the module knob page and on the chain page,
+            // since the touched param lives on the model regardless of view.
+            // browseOrigin returns to whichever view the click happened in.
             const fileTarget = activeModel()?.getFileBrowseTarget() ?? null;
             if (fileTarget) {
                 activeModel()?.clearFileOverlay();
@@ -205,14 +203,21 @@ export function onMidiMessageInternal(data: number[]): void {
                     fileTarget.startPath,
                     fileTarget.currentPath,
                 );
-                appState.browseOrigin = VIEW_KNOBS;
+                appState.browseOrigin = appState.currentView;
+            } else if (appState.currentView === VIEW_CHAIN) {
+                const isEmpty = activeModel()?.getViewModel().isEmpty ?? false;
+                if (appState.shiftHeld || isEmpty) {
+                    openBrowser(CHAIN_SLOTS[chainIndex()], appState.activeSlot, () => activeModel()?.reload());
+                    appState.browseOrigin = VIEW_CHAIN;
+                } else {
+                    appState.currentView = VIEW_KNOBS;
+                    appState.dirty = true;
+                }
             } else {
+                // VIEW_KNOBS with no file param held → module browser.
                 openBrowser(CHAIN_SLOTS[chainIndex()], appState.activeSlot, () => activeModel()?.reload());
                 appState.browseOrigin = VIEW_KNOBS;
             }
-        } else if (appState.currentView === VIEW_KEYS) {
-            appState.currentView = VIEW_CHAIN;
-            appState.dirty = true;
         }
         return;
     }

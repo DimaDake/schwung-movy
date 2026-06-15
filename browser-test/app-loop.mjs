@@ -118,6 +118,38 @@ _log('\napp-loop: multi-step entry on a drum lane');
     eq('drum multi: two step-entry log lines', stepLogs.length, 2);
 }
 
+_log('\napp-loop: file-param jog-click opens the browser on the chain page');
+{
+    const { VIEW_CHAIN, VIEW_FILE_BROWSE } = await import('../dist/esm/app/state.js');
+    /* Minimal filesystem for the file browser's directory listing. */
+    globalThis.os = {
+        readdir: () => [['kick.wav', 'snare.wav'], 0],
+        stat: (p) => [{ mode: p.endsWith('.wav') ? 0x8000 : 0x4000 }, 0],
+    };
+    const setup = () => {
+        engine.reset();
+        env.setParams(MOCK_SYNTHS.file_param);     // synth slot 0 = "sample" (file)
+        resetSeqState(); resetSeqEngine();
+        globalThis.init();
+        appState.trackModels[0][1].reload();
+        advance(12);                                // load hierarchy
+        appState.currentView = VIEW_CHAIN;          // user is on the chain page
+    };
+
+    // Holding the file-param knob (slot 0) + jog click → file browser.
+    setup();
+    sendMidi([0x90, 0, 100]);   // touch knob 0 (file param), keep held
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);  // jog click
+    eq('chain page: file-param jog click opens file browser', appState.currentView, VIEW_FILE_BROWSE);
+
+    // Holding a non-file knob (slot 1 = Volume) + jog click → NOT a file browser.
+    setup();
+    sendMidi([0x90, 1, 100]);   // touch knob 1 (float param), keep held
+    sendMidi([0xB0, 50, 127]);  // jog click
+    eq('chain page: non-file knob jog click does not open file browser',
+        appState.currentView === VIEW_FILE_BROWSE, false);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

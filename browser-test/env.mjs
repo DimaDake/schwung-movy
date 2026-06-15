@@ -50,7 +50,7 @@ export function installEnv() {
      * to satisfy module-eval and runtime comparisons. */
     globalThis.MoveShift          = 49;
     globalThis.MoveBack           = 51;
-    globalThis.MoveMainButton     = 50;
+    globalThis.MoveMainButton     = 3;    // jog-click CC; 50 is taken by Note/Session
     globalThis.MoveMainKnob       = 14;
     globalThis.MoveLeft           = 62;
     globalThis.MoveRight          = 63;

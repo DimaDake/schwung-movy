@@ -6,7 +6,9 @@
     "build:device": "node build/device.mjs",
     "build:browser": "node build/browser.mjs",
     "typecheck": "tsc --noEmit",
-    "dev": "node build/browser.mjs --watch"
+    "dev": "node build/browser.mjs --watch",
+    "test:app": "node browser-test/app-loop.mjs",
+    "test": "node build/browser.mjs && node browser-test/logic.mjs && node browser-test/app-loop.mjs && node browser-test/screenshot.mjs && node browser-test/perf.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.21.0",

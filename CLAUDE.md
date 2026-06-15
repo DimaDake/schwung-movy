@@ -75,11 +75,17 @@ the user must run it): stop `move-launcher`, pkill the schwung stack, start
 
 Run tests in this order at the end of every task:
 
+Run `npm run build:browser` first (refreshes `dist/esm`), then in order
+(or just `npm test`, which builds + runs all four):
+
 ```bash
 # 1. Local (always) — viewmodel/business logic assertions
 node browser-test/logic.mjs
 
-# 2. Local (always) — pixel-diff screenshot regression
+# 1b. Local (always) — full init/tick/MIDI loop → setLED (drum grid, multi-step)
+node browser-test/app-loop.mjs
+
+# 2. Local (always) — framebuffer pixel-diff vs baselines (pure node, no browser)
 node browser-test/screenshot.mjs
 
 # 3. Local (always) — performance regression (fill_rect count, IPC call count, render time)

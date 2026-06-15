@@ -121,6 +121,17 @@ python3 "$INJECT" "$HOST" cc 50 127      # back to Note mode
 python3 "$INJECT" "$HOST" cc 50 0
 sleep 0.5
 
+info "Drum multi-step: hold step 1 + press step 5 on a drum track..."
+python3 "$INJECT" "$HOST" cc 43 127      # select track 0 (CC43 = slot 0)
+python3 "$INJECT" "$HOST" cc 43 0
+sleep 0.3
+python3 "$INJECT" "$HOST" note_on 16 127 # hold step 1
+sleep 0.1
+python3 "$INJECT" "$HOST" note_on 20 127 # press step 5 while step 1 held
+python3 "$INJECT" "$HOST" note_off 20    # release step 5 → enters
+python3 "$INJECT" "$HOST" note_off 16    # release step 1 → enters
+sleep 0.5
+
 info "Persistence: waiting for autosave, then reopening Movy to restore..."
 sleep 4   # autosave fires ~3s after the last edit
 STATE_FILE="/data/UserData/schwung/modules/tools/movy/seq-state.json"
@@ -151,6 +162,14 @@ echo "$LOG" | grep -q "seq: play=0" \
     && pass "Autosave wrote a non-empty state file" || fail "No autosave file at $STATE_FILE"
 echo "$LOG" | grep -q "seq: restored state" \
     && pass "State restored on reopen" || fail "No restore on reopen (seq: restored state missing)"
+
+# Drum multi-step: each step entered on a drum lane logs "seq: step <n> lane <l>".
+# Holding step 1 + pressing step 5 must enter BOTH (>= 2 lines). Only meaningful
+# if track 0's synth is a drum; the local app-loop test is the authoritative proof.
+STEP_LINES=$(echo "$LOG" | grep -c "seq: step" || true)
+[[ "$STEP_LINES" -ge 2 ]] \
+    && pass "Drum multi-step entered $STEP_LINES steps while one was held" \
+    || fail "Multi-step not observed (expected >=2 'seq: step' lines, got $STEP_LINES)"
 
 echo ""
 if [[ $FAILURES -eq 0 ]]; then

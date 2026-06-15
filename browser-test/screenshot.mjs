@@ -1,29 +1,30 @@
 #!/usr/bin/env node
-/* browser-test/screenshot.mjs — capture movy display screenshots and compare
- * against committed baselines for visual regression detection.
+/* browser-test/screenshot.mjs — headless 128×64 framebuffer render + baseline
+ * pixel diff. No browser: fill_rect/clear_screen write to an in-memory RGBA
+ * framebuffer, the same render functions run as on device, and the frame is
+ * PNG-encoded and compared to the committed baselines.
+ *
+ * The display is 1-bit (a pixel is lit '#d4d0c8' or off '#000000') and every
+ * draw is an integer-aligned rect, so the framebuffer reproduces the old
+ * canvas captures pixel-for-pixel — the existing baselines are reused as-is.
  *
  * Usage:
- *   cd browser-test && npm install
- *   node screenshot.mjs           # compare against baseline (exit 1 on diff)
- *   node screenshot.mjs --update  # overwrite baselines with current renders
- *
- * Baselines in screenshots/baseline/ are committed to git.
- * Actual captures go to screenshots/actual/ (gitignored).
+ *   node browser-test/screenshot.mjs           # compare (exit 1 on diff)
+ *   node browser-test/screenshot.mjs --update   # overwrite baselines
  */
 
-import puppeteer           from 'puppeteer';
-import { createServer }    from 'http';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join, dirname }   from 'path';
-import { fileURLToPath }   from 'url';
-import { createReadStream } from 'fs';
-import { extname }         from 'path';
-import { PNG }             from 'pngjs';
-import pixelmatch          from 'pixelmatch';
-import { spawn }           from 'child_process';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { PNG } from 'pngjs';
+import pixelmatch from 'pixelmatch';
+import { installEnv } from './env.mjs';
+
+/* Quiet the renderer's [movy] mlog chatter; keep our own status lines. */
+const _log = console.log.bind(console);
+console.log = (...a) => { if (typeof a[0] === 'string' && a[0].startsWith('[movy]')) return; _log(...a); };
 
 const __dir      = dirname(fileURLToPath(import.meta.url));
-const MOVY_ROOT  = join(__dir, '..');
 const BASE_DIR   = join(__dir, 'screenshots', 'baseline');
 const ACTUAL_DIR = join(__dir, 'screenshots', 'actual');
 const UPDATE     = process.argv.includes('--update');
@@ -37,38 +38,119 @@ const PRESETS = [
     'chain_t2', 'chain_t4',
     'drum-mrdrums-pad5', 'drum-mrdrums-global',
 ];
-const MIME = {
-    '.html': 'text/html',
-    '.mjs':  'text/javascript',
-    '.js':   'text/javascript',
-    '.json': 'application/json',
-    '.png':  'image/png',
-    '.otf':  'font/otf',
+
+/* Which mock preset backs each (possibly synthetic) screenshot. */
+const BASE = {
+    enum_overlay: 'plaits', knob_toast: 'test8', no_params: 'no_params',
+    keys_view: 'test8', browse_view: 'test8',
+    obxd_preset_page: 'obxd_like', obxd_main_page: 'obxd_like', obxd_filter_page: 'obxd_like',
+    chain_synth: 'test8', chain_empty: 'test8', chain_jog_toast: 'test8',
+    knobs_jog_toast: 'test8', chain_t2: 'test8', chain_t4: 'test8',
+    'drum-mrdrums-pad5': 'mrdrums', 'drum-mrdrums-global': 'mrdrums',
 };
 
-/* ── Local HTTP server ───────────────────────────────────────────────────── */
+const W = 128, H = 64;
+const ON  = [212, 208, 200];   // '#d4d0c8' lit pixel
+const OFF = [0, 0, 0];
 
-function startServer(root, port) {
-    return new Promise(resolve => {
-        const server = createServer((req, res) => {
-            let path = req.url.split('?')[0];
-            if (path.endsWith('/')) path += 'index.html';
-            const file = join(root, path);
-            try {
-                const body = readFileSync(file);
-                const ext  = extname(file);
-                res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
-                res.end(body);
-            } catch {
-                res.writeHead(404);
-                res.end('Not found: ' + path);
-            }
-        });
-        server.listen(port, () => resolve(server));
-    });
+/* ── Framebuffer-backed display globals ──────────────────────────────────── */
+
+const fb = new Uint8Array(W * H * 4);
+function paint(x, y, w, h, rgb) {
+    const x0 = Math.max(0, x | 0), y0 = Math.max(0, y | 0);
+    const x1 = Math.min(W, (x | 0) + (w | 0)), y1 = Math.min(H, (y | 0) + (h | 0));
+    for (let yy = y0; yy < y1; yy++) {
+        for (let xx = x0; xx < x1; xx++) {
+            const i = (yy * W + xx) * 4;
+            fb[i] = rgb[0]; fb[i + 1] = rgb[1]; fb[i + 2] = rgb[2]; fb[i + 3] = 255;
+        }
+    }
 }
 
-/* ── PNG pixel comparison ────────────────────────────────────────────────── */
+const env = installEnv();
+globalThis.fill_rect    = (x, y, w, h, v) => paint(x, y, w, h, v ? ON : OFF);
+globalThis.clear_screen = () => paint(0, 0, W, H, OFF);
+
+/* ── Model + renderers (imported after env so bundled globals resolve) ───── */
+
+const { createModel }      = await import('../dist/esm/model/index.js');
+const { renderKnobsView }  = await import('../dist/esm/renderer/knob-view.js');
+const { renderKeysView }   = await import('../dist/esm/renderer/keys-view.js');
+const { renderBrowseView } = await import('../dist/esm/renderer/browse-view.js');
+const { renderChainView }  = await import('../dist/esm/renderer/chain-view.js');
+const { MOCK_SYNTHS }      = await import('./mock-synth.mjs');
+
+const COMPONENT_KEYS = ['midi_fx1', 'synth', 'fx1', 'fx2'];
+const chainModels = COMPONENT_KEYS.map(k => createModel(0, k));
+const model = chainModels[1];   // synth slot — the default knobs view
+
+function loadPreset(id) {
+    env.setParams(MOCK_SYNTHS[id]);
+    for (const m of chainModels) { m.reset(); m.reload(); }
+}
+
+/* ── View renderers (port of harness.mjs __movy_* helpers) ───────────────── */
+
+const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const midiName = n => NOTE_NAMES[n % 12] + Math.floor(n / 12 - 1);
+
+function knobsRepaint() { renderKnobsView(model.getViewModel()); }
+let lastRender = knobsRepaint;
+function forceRender()  { lastRender = knobsRepaint; lastRender(); }
+
+/* Each helper sets lastRender so the post-state settle repaints THIS view. */
+function showKeys()  { lastRender = () => renderKeysView(model.getModuleName(), 60, midiName); lastRender(); }
+function showBrowse(mods, idx) { lastRender = () => renderBrowseView(mods, idx); lastRender(); }
+function showChain(chainIndex, jogTouched, activeSlot) {
+    const label = 'T' + ((activeSlot ?? 0) + 1);
+    lastRender = () => renderChainView(
+        chainModels[chainIndex ?? 1].getViewModel(), chainIndex ?? 1, jogTouched ?? false, label);
+    lastRender();
+}
+function showKnobsJogToast() { lastRender = () => renderKnobsView(model.getViewModel(), true); lastRender(); }
+
+/* Drive model.tick()+repaint until the render converges (mirrors the old
+ * deterministic settle: 5 clean ticks, or a 200-tick cap). Only the synth
+ * model ticks — matching the harness rAF loop — so chain slots that were never
+ * ticked render as empty. */
+function settle() {
+    let idle = 0, total = 0;
+    while (idle < 5 && total < 200) {
+        const dirty = model.tick();
+        if (dirty) lastRender();
+        idle = dirty ? 0 : idle + 1;
+        total++;
+    }
+}
+
+function applyView(preset) {
+    switch (preset) {
+        case 'enum_overlay':     model.handleKnobTouch(0); forceRender(); break;
+        case 'knob_toast':       model.handleKnobTouch(2); forceRender(); break;
+        case 'keys_view':        showKeys(); break;
+        case 'browse_view':      showBrowse([{ name: 'Plaits' }, { name: 'Wurl' }, { name: 'Bass' }], 1); break;
+        case 'obxd_preset_page': forceRender(); break;                       // page 0
+        case 'obxd_main_page':   model.changePage(1); forceRender(); break;
+        case 'obxd_filter_page': model.changePage(3); forceRender(); break;
+        case 'chain_synth':      showChain(1, false); break;
+        case 'chain_empty':      showChain(2, false); break;                 // fx1 = empty
+        case 'chain_jog_toast':  showChain(1, true); break;
+        case 'knobs_jog_toast':  showKnobsJogToast(); break;
+        case 'chain_t2':         showChain(1, false, 1); break;
+        case 'chain_t4':         showChain(1, false, 3); break;
+        case 'drum-mrdrums-pad5':   model.tick(); model.tick(); forceRender(); break;
+        case 'drum-mrdrums-global': model.tick(); model.tick(); model.changePage(1); forceRender(); break;
+        default:                 forceRender(); break;                       // plain knobs view
+    }
+}
+
+/* ── PNG encode + pixel diff ─────────────────────────────────────────────── */
+
+function capturePng() {
+    const png = new PNG({ width: W, height: H });
+    png.data.set(fb);
+    return PNG.sync.write(png);
+}
 
 function diffPngs(baselinePath, actualPath) {
     const baseline = PNG.sync.read(readFileSync(baselinePath));
@@ -77,185 +159,48 @@ function diffPngs(baselinePath, actualPath) {
         return { different: true, reason: 'size mismatch' };
     }
     const diff  = new PNG({ width: baseline.width, height: baseline.height });
-    const count = pixelmatch(
-        baseline.data, actual.data, diff.data,
-        baseline.width, baseline.height,
-        { threshold: 0.1 },
-    );
+    const count = pixelmatch(baseline.data, actual.data, diff.data,
+        baseline.width, baseline.height, { threshold: 0.1 });
     return { different: count > 0, count };
 }
 
 /* ── Main ────────────────────────────────────────────────────────────────── */
 
-async function main() {
-    mkdirSync(BASE_DIR,   { recursive: true });
-    mkdirSync(ACTUAL_DIR, { recursive: true });
+mkdirSync(BASE_DIR,   { recursive: true });
+mkdirSync(ACTUAL_DIR, { recursive: true });
 
-    const PORT   = 18080 + Math.floor(Math.random() * 100);
-    const server = await startServer(MOVY_ROOT, PORT);
-    const url    = `http://localhost:${PORT}/browser-test/`;
+let pass = 0, fail = 0;
 
-    const browser = await puppeteer.launch({ headless: 'new' });
-    const page    = await browser.newPage();
-    await page.setViewport({ width: 800, height: 600 });
+for (const preset of PRESETS) {
+    process.stdout.write(`  ${preset} ... `);
 
-    let pass = 0, fail = 0;
+    clear_screen();
+    loadPreset(BASE[preset] ?? preset);
+    lastRender = knobsRepaint;
+    settle();          // load hierarchy, render default knobs view
+    applyView(preset); // synthetic view state (if any)
+    settle();          // converge async value refresh
 
-    for (const preset of PRESETS) {
-        process.stdout.write(`  ${preset} ... `);
+    const pngBuf = capturePng();
+    const actual = join(ACTUAL_DIR, `${preset}.png`);
+    writeFileSync(actual, pngBuf);
 
-        await page.goto(url, { waitUntil: 'networkidle0' });
-
-        /* Determine which mock preset to load, then apply any view override */
-        const syntheticPresets = { enum_overlay: 'plaits', knob_toast: 'test8',
-                                   no_params: 'no_params', keys_view: 'test8',
-                                   browse_view: 'test8',
-                                   obxd_preset_page:   'obxd_like',
-                                   obxd_main_page:     'obxd_like',
-                                   obxd_filter_page:   'obxd_like',
-                                   chain_synth:        'test8',
-                                   chain_empty:        'test8',
-                                   chain_jog_toast:    'test8',
-                                   knobs_jog_toast:    'test8',
-                                   chain_t2:           'test8',
-                                   chain_t4:           'test8',
-                                   'drum-mrdrums-pad5':    'mrdrums',
-                                   'drum-mrdrums-global':  'mrdrums' };
-        const basePreset = syntheticPresets[preset] ?? preset;
-        await page.select('#preset-select', basePreset);
-
-        /* Wait for model.tick() to run and render */
-        await page.waitForFunction(
-            () => document.getElementById('vm-inspector')?.textContent.trim().length > 0,
-            { timeout: 3000 },
-        );
-        await new Promise(r => setTimeout(r, 200));  /* extra rAF settle */
-
-        /* Synthetic view states */
-        if (preset === 'enum_overlay') {
-            await page.evaluate(() => {
-                globalThis.__movy_model?.handleKnobTouch(0);
-                globalThis.__movy_forceRender?.();
-            });
-            await new Promise(r => setTimeout(r, 50));
-        } else if (preset === 'knob_toast') {
-            await page.evaluate(() => {
-                globalThis.__movy_model?.handleKnobTouch(2);
-                globalThis.__movy_forceRender?.();
-            });
-        } else if (preset === 'keys_view') {
-            await page.evaluate(() => { globalThis.__movy_renderKeysView?.(); });
-        } else if (preset === 'browse_view') {
-            await page.evaluate(() => {
-                globalThis.__movy_renderBrowseView?.(
-                    [{ name: 'Plaits' }, { name: 'Wurl' }, { name: 'Bass' }], 1
-                );
-            });
-        } else if (preset === 'obxd_preset_page') {
-            /* page 0 = dedicated Preset page */
-            await page.evaluate(() => { globalThis.__movy_forceRender?.(); });
-        } else if (preset === 'obxd_main_page') {
-            /* page 1 = Main (root.knobs) */
-            await page.evaluate(() => {
-                globalThis.__movy_model?.changePage(1);
-                globalThis.__movy_forceRender?.();
-            });
-        } else if (preset === 'obxd_filter_page') {
-            /* page 3 = Filter (shows Cutoff/Resonance with fixed labels) */
-            await page.evaluate(() => {
-                globalThis.__movy_model?.changePage(3);
-                globalThis.__movy_forceRender?.();
-            });
-        } else if (preset === 'chain_synth') {
-            await page.evaluate(() => {
-                globalThis.__movy_renderChainView?.(1, false);  /* synth, no toast */
-            });
-        } else if (preset === 'chain_empty') {
-            await page.evaluate(() => {
-                globalThis.__movy_renderChainView?.(2, false);  /* fx1 = empty slot */
-            });
-        } else if (preset === 'chain_jog_toast') {
-            await page.evaluate(() => {
-                globalThis.__movy_renderChainView?.(1, true);   /* synth + jog toast */
-            });
-        } else if (preset === 'knobs_jog_toast') {
-            await page.evaluate(() => {
-                globalThis.__movy_renderKnobsJogToast?.();
-            });
-        } else if (preset === 'chain_t2') {
-            await page.evaluate(() => {
-                globalThis.__movy_renderChainView?.(1, false, 1);  /* synth slot, T2 */
-            });
-        } else if (preset === 'chain_t4') {
-            await page.evaluate(() => {
-                globalThis.__movy_renderChainView?.(1, false, 3);  /* synth slot, T4 */
-            });
-        } else if (preset === 'drum-mrdrums-pad5') {
-            /* Tick twice to fully load drum module config, then render */
-            await page.evaluate(() => {
-                globalThis.__movy_model?.tick();
-                globalThis.__movy_model?.tick();
-                globalThis.__movy_forceRender?.();
-            });
-        } else if (preset === 'drum-mrdrums-global') {
-            /* Tick to load, navigate to bank 1 (Rand — non-padSpecific), render */
-            await page.evaluate(() => {
-                globalThis.__movy_model?.tick();
-                globalThis.__movy_model?.tick();
-                globalThis.__movy_model?.changePage(1);
-                globalThis.__movy_forceRender?.();
-            });
-        }
-
-        /* Deterministic settle: page navigation (changePage) kicks off an async
-         * knob-value refresh over several ticks, and the background rAF loop
-         * re-rendering concurrently makes a mid-settle capture nondeterministic.
-         * Freeze the loop, then tick+repaint until the model reports no change
-         * (or a cap), so the captured frame is the converged render. */
-        await page.evaluate(() => globalThis.__movy_stopLoop?.());
-        await page.evaluate(() => new Promise(resolve => {
-            let idle = 0, total = 0;
-            const settle = () => {
-                const dirty = globalThis.__movy_tickAndRepaint?.() ?? false;
-                idle = dirty ? 0 : idle + 1;
-                total++;
-                if (idle >= 5 || total >= 200) resolve(); // 5 clean ticks, or cap
-                else requestAnimationFrame(settle);
-            };
-            requestAnimationFrame(settle);
-        }));
-
-        /* Capture canvas at its native 128×64 resolution */
-        const dataUrl = await page.evaluate(() => {
-            return document.getElementById('display').toDataURL('image/png');
-        });
-        const pngBuf  = Buffer.from(dataUrl.split(',')[1], 'base64');
-        const actual  = join(ACTUAL_DIR, `${preset}.png`);
-        writeFileSync(actual, pngBuf);
-
-        const baseline = join(BASE_DIR, `${preset}.png`);
-
-        if (!existsSync(baseline) || UPDATE) {
-            writeFileSync(baseline, pngBuf);
-            console.log(UPDATE ? 'updated' : 'saved baseline');
-            pass++;
+    const baseline = join(BASE_DIR, `${preset}.png`);
+    if (!existsSync(baseline) || UPDATE) {
+        writeFileSync(baseline, pngBuf);
+        console.log(UPDATE ? 'updated' : 'saved baseline');
+        pass++;
+    } else {
+        const result = diffPngs(baseline, actual);
+        if (result.different) {
+            console.log(`FAIL (${result.reason ?? result.count + ' px differ'})`);
+            fail++;
         } else {
-            const result = diffPngs(baseline, actual);
-            if (result.different) {
-                console.log(`FAIL (${result.reason ?? result.count + ' px differ'})`);
-                fail++;
-            } else {
-                console.log('ok');
-                pass++;
-            }
+            console.log('ok');
+            pass++;
         }
     }
-
-    await browser.close();
-    server.close();
-
-    console.log(`\n  ${pass} passed, ${fail} failed`);
-    process.exit(fail > 0 ? 1 : 0);
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+console.log(`\n  ${pass} passed, ${fail} failed`);
+process.exit(fail > 0 ? 1 : 0);

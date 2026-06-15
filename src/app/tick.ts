@@ -30,6 +30,7 @@ const LED_INIT_BATCH = 8;
 let lastToastShowing = false;
 let lastHeaderShowing = false;
 let lastSessionMode = false;
+let jogToastShown = false;   // a bottom jog/browse toast is on screen (strip yields to it)
 
 /* Per-pad color cache for the chromatic layout: avoids resending unchanged
  * LED colors every tick. Initialized to 0 (C_BLACK); first tick syncs all. */
@@ -99,6 +100,11 @@ export function tick(): void {
 
     if (modelDirty || masterDirty || appState.dirty || toastShowing !== lastToastShowing
         || headerShowing !== lastHeaderShowing) {
+        /* A bottom jog/browse toast (drawn by the param/chain renderers) shares
+         * the bottom rows with the Loop strip; track it so the per-tick strip
+         * below doesn't paint over it. Recomputed each rendered frame; persists
+         * across non-dirty ticks since the on-screen toast persists too. */
+        jogToastShown = false;
         if (appState.currentView === VIEW_BROWSE) {
             // A browser opened from the master chain shows the master slot label.
             const browseTitle = seqState.sessionMode
@@ -110,16 +116,19 @@ export function tick(): void {
         } else if (seqState.sessionMode) {
             const vm = masterModel!.getViewModel();
             renderChainView(vm, mIdx, appState.jogTouched, 'MASTER', MASTER_FX_SLOTS[mIdx]?.label);
+            jogToastShown = appState.jogTouched;
             updateKnobLEDs(vm);
         } else if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
             const vm = activeModel!.getViewModel();
             renderKnobsView(vm, appState.jogTouched, appState.activeSlot);
+            jogToastShown = !!vm.toast?.browseHint || appState.jogTouched;
             updateKnobLEDs(vm);
         } else if (appState.currentView === VIEW_CHAIN) {
             const vm = activeModel!.getViewModel();
             renderChainView(vm, chainIdx, appState.jogTouched, 'T' + (appState.activeSlot + 1));
+            jogToastShown = appState.jogTouched;
             updateKnobLEDs(vm);
         }
         if (toastShowing) drawSeqToast();
@@ -193,7 +202,7 @@ export function tick(): void {
      * just on dirty frames) so the playhead sweeps continuously. Hidden on the
      * master chain (Session mode) — it tracks the watched track's clip, which
      * is irrelevant while editing master FX. */
-    if (engineReady() && !seqToastActive() && !seqState.sessionMode) {
+    if (engineReady() && !seqToastActive() && !jogToastShown && !seqState.sessionMode) {
         drawLoopStrip();
     }
 }

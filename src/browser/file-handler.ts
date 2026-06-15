@@ -4,7 +4,7 @@ import { basename, dirname } from '../model/path.js';
 
 function isDir(path: string): boolean {
     try {
-        const [st] = (os as { stat(p: string): [{ mode: number }, number] }).stat(path);
+        const [st] = os.stat(path);
         return (st.mode & 0xF000) === 0x4000;
     } catch { return false; }
 }
@@ -15,7 +15,7 @@ function scanDir(dir: string, root: string, filter: string[]): FileBrowserItem[]
         items.push({ name: '..', path: dirname(dir), isDir: true });
     }
     try {
-        const [entries] = (os as { readdir(p: string): [string[], number] }).readdir(dir);
+        const [entries] = os.readdir(dir);
         if (!Array.isArray(entries)) return items;
         const fileItems: FileBrowserItem[] = [];
         const dirItems:  FileBrowserItem[] = [];

@@ -1908,6 +1908,40 @@ _log('\nautomation registry:');
     eq('pool full → -1', assignLane(0, 0, { ...info, key: 'k8' }, () => true), -1);
 }
 
+/* ── automation: knob-turn routing (hold-step / Rec / base) ──────────────── */
+_log('\nautomation knob routing:');
+{
+    const { resetAutomation, handleAutomationKnob } = await import('../dist/esm/seq/automation.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const info = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
+
+    // Hold-step: knob turn writes a lock at the held step.
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    seqState.holdStep = 4;
+    eq('hold-step knob consumed', handleAutomationKnob(0, 0, info, +1, () => true), true);
+    eq('aset at held step 4', peekSeqCmdQueue().some((o) => o.startsWith('aset 0 0 4 ')), true);
+
+    // Non-automatable param is never consumed.
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    seqState.holdStep = 4;
+    eq('non-automatable not consumed',
+        handleAutomationKnob(0, 0, { ...info, automatable: false }, +1, () => true), false);
+
+    // No gesture + not yet a lane → not consumed (normal param path runs).
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    seqState.holdStep = -1;
+    eq('idle knob on unassigned param not consumed',
+        handleAutomationKnob(0, 0, info, +1, () => true), false);
+
+    // Rec-armed + playing → lock at the current playing step.
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    seqState.recording = true; seqState.playing = true; seqState.curStep = 7;
+    eq('rec knob consumed', handleAutomationKnob(0, 0, info, +1, () => true), true);
+    eq('aset at playing step 7', peekSeqCmdQueue().some((o) => o.startsWith('aset 0 0 7 ')), true);
+    resetSeqState();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

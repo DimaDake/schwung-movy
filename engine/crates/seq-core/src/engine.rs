@@ -14,6 +14,8 @@ pub enum OutEvent {
     NoteOff { track: u8, pitch: u8 },
     /// Metronome click; `accent` marks the downbeat (bar start).
     Click { accent: bool },
+    /// Parameter automation: chain abs-CC 102+lane, value 0..=127.
+    Cc { track: u8, lane: u8, val: u8 },
 }
 
 struct RecPending {
@@ -238,6 +240,7 @@ impl Engine {
         for t in &mut self.tracks {
             let start = t.playing().map_or(0, |c| c.loop_start_ticks());
             t.pos_tick = start;
+            t.last_auto_step = -1; // re-emit automation from step 0 on (re)start
         }
         self.clock.reset();
         self.master_tick = 0;
@@ -304,6 +307,9 @@ impl Engine {
         self.recording = false;
         self.count_in_left = 0;
         self.rec_pending.clear();
+        for t in &mut self.tracks {
+            t.last_auto_step = -1;
+        }
         for g in self.gates.drain(..) {
             out.push(OutEvent::NoteOff {
                 track: g.track,
@@ -513,7 +519,27 @@ impl Engine {
                         self.tracks[ti].clips[slot].release_suppressed();
                     }
                 }
+                // Parameter automation: emit on step entry (revert-to-base).
+                let cur = (self.tracks[ti].pos_tick / TICKS_PER_STEP) as i32;
+                if cur != self.tracks[ti].last_auto_step {
+                    self.tracks[ti].last_auto_step = cur;
+                    self.emit_automation(ti, slot, cur as u16, out);
+                }
             }
+        }
+    }
+
+    /// Emit automation CCs for `track` entering `step`: each assigned lane gets
+    /// its lock value at this step, or the lane base when no lock (revert-to-base).
+    fn emit_automation(&mut self, track: usize, slot: usize, step: u16, out: &mut Vec<OutEvent>) {
+        for lane in 0..8u8 {
+            if !self.tracks[track].lane_assigned[lane as usize] {
+                continue;
+            }
+            let val = self.tracks[track].clips[slot]
+                .lock_at(lane, step)
+                .unwrap_or(self.tracks[track].lane_base[lane as usize]);
+            out.push(OutEvent::Cc { track: track as u8, lane, val });
         }
     }
 
@@ -675,6 +701,34 @@ mod tests {
         let on = ev.iter().position(|x| matches!(x, OutEvent::NoteOn { .. })).unwrap();
         let off = ev.iter().position(|x| matches!(x, OutEvent::NoteOff { .. })).unwrap();
         assert!(on < off);
+    }
+
+    #[test]
+    fn emits_lock_value_on_locked_step_and_base_elsewhere() {
+        let mut e = engine();
+        // Lane 0 assigned, base 40; note so the clip plays; lock 100 at step 2.
+        e.tracks[0].lane_assigned[0] = true;
+        e.tracks[0].lane_base[0] = 40;
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[0].active_mut().set_lock(0, 2, 100);
+        e.play();
+        let ev = run_ticks(&mut e, 3 * TICKS_PER_STEP as u64 + 2);
+        let ccs: Vec<(u8, u8)> = ev.iter().filter_map(|x| match x {
+            OutEvent::Cc { lane, val, track: 0 } => Some((*lane, *val)), _ => None,
+        }).collect();
+        // Step 0 (base 40), step 2 (lock 100) both appear; only on step entry.
+        assert!(ccs.contains(&(0, 40)));
+        assert!(ccs.contains(&(0, 100)));
+    }
+
+    #[test]
+    fn no_cc_for_unassigned_lane() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[0].active_mut().set_lock(0, 0, 50); // lock but lane unassigned
+        e.play();
+        let ev = run_ticks(&mut e, TICKS_PER_STEP as u64 + 2);
+        assert!(!ev.iter().any(|x| matches!(x, OutEvent::Cc { .. })));
     }
 
     #[test]

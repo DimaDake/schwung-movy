@@ -559,6 +559,21 @@ _log('\nTest: drumPadOn');
     eq('no engine: engineAvailable false', engineAvailable(), false);
 }
 
+/* ── automation: status fields parse into the mirror ─────────────────────── */
+{
+    _log('\nautomation status parse:');
+    const { parseStatusForTest } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    resetSeqState();
+    parseStatusForTest('play=0 trk=0 alanes=05 aauto=04 hauto=2:50');
+    eq('autoAssigned parsed', seqState.autoAssigned, 0x05);
+    eq('autoActive parsed', seqState.autoActive, 0x04);
+    eq('heldLocks lane 2 = 50', seqState.heldLocks.get(2), 50);
+    // Empty hauto clears the map.
+    parseStatusForTest('play=0 trk=0 hauto=');
+    eq('empty hauto clears heldLocks', seqState.heldLocks.size, 0);
+}
+
 /* ── seq router: step toggle, chords, drum lanes, bars, Play, watch ──────── */
 {
     _log('\nseq router:');

@@ -164,6 +164,15 @@ function parseStatus(s: string): void {
         else if (key === 'mute') muteFromStr(val);
         else if (key === 'sess') sessionFromStr(val);
         else if (key === 'occ') occFromHex(val);
+        else if (key === 'alanes') seqState.autoAssigned = parseInt(val, 16) || 0;
+        else if (key === 'aauto') seqState.autoActive = parseInt(val, 16) || 0;
+        else if (key === 'hauto') {
+            seqState.heldLocks.clear();
+            if (val) for (const pair of val.split('.')) {
+                const [l, v] = pair.split(':').map(Number);
+                if (l >= 0 && l < 8) seqState.heldLocks.set(l, v);
+            }
+        }
     }
     if (lastEnginePlay !== seqState.playing) {
         mlog('seq: play=' + (seqState.playing ? 1 : 0));

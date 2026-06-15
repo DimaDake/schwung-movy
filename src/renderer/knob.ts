@@ -1,6 +1,8 @@
 import type { ParamVM } from '../types/viewmodel.js';
 import { CELL_W, KW } from './layout.js';
 import { fontPrint5x3, fontWidth5x3 } from '../font/index5x3.js';
+import { fontPrint, fontWidth, FONT_HEIGHT } from '../font/index.js';
+import { fontPrintBig, fontWidthBig, BIG_FONT_HEIGHT } from '../font/big.js';
 import { enumSquareLines } from './shorten.js';
 
 function drawCircleBorder(cx: number, cy: number, r: number): void {
@@ -77,10 +79,32 @@ function drawEnumSquare(kx: number, ky: number, options: string[] | null, enumIn
     }
 }
 
+/* Preset knob: the 1-based preset number rendered big in the Nokia font, no
+ * frame, centered across the full cell (using the side margins beyond the
+ * 16px box). Falls back to the small font if the number is too wide (>=4
+ * digits) so it always fits. */
+function drawPresetValue(cellX: number, ky: number, pvm: ParamVM): void {
+    const num = pvm.type === 'enum'
+        ? pvm.enumIndex + 1
+        : Math.round(Number(pvm.displayValue));
+    const text = Number.isFinite(num) ? String(num) : '—';
+    const bw = fontWidthBig(text);
+    if (bw <= CELL_W) {
+        fontPrintBig(cellX + Math.floor((CELL_W - bw) / 2),
+                     ky + Math.floor((KW - BIG_FONT_HEIGHT) / 2), text, 1);
+    } else {
+        const sw = fontWidth(text);
+        fontPrint(cellX + Math.floor((CELL_W - sw) / 2),
+                  ky + Math.floor((KW - FONT_HEIGHT) / 2), text, 1);
+    }
+}
+
 export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
     const kx = col * CELL_W + Math.floor((CELL_W - KW) / 2);
     const ky = rowY;
-    if (pvm.type === 'file') {
+    if (pvm.renderStyle === 'preset') {
+        drawPresetValue(col * CELL_W, ky, pvm);
+    } else if (pvm.type === 'file') {
         drawEnumSquare(kx, ky, [pvm.displayValue], 0);
     } else if (pvm.type === 'enum') {
         drawEnumSquare(kx, ky, pvm.options, pvm.enumIndex);

@@ -37,6 +37,7 @@ const PRESETS = [
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
     'chain_t2', 'chain_t4',
     'drum-mrdrums-pad5', 'drum-mrdrums-global',
+    'auto_dot', 'auto_held', 'auto_limit',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -47,6 +48,7 @@ const BASE = {
     chain_synth: 'test8', chain_empty: 'test8', chain_jog_toast: 'test8',
     knobs_jog_toast: 'test8', chain_t2: 'test8', chain_t4: 'test8',
     'drum-mrdrums-pad5': 'mrdrums', 'drum-mrdrums-global': 'mrdrums',
+    auto_dot: 'test8', auto_held: 'test8', auto_limit: 'test8',
 };
 
 const W = 128, H = 64;
@@ -108,6 +110,17 @@ function showChain(chainIndex, jogTouched, activeSlot) {
     lastRender();
 }
 function showKnobsJogToast() { lastRender = () => renderKnobsView(model.getViewModel(), true); lastRender(); }
+function showKnobsAuto(auto) { lastRender = () => renderKnobsView(model.getViewModel(auto)); lastRender(); }
+/* Automation snapshot: lane 0 bound to knob 0's param. */
+function autoView({ held = false, poolFull = false, assignedLanes = 1, heldVal = null } = {}) {
+    const key = model.getKnobParamInfo(0)?.key;
+    const heldValues = new Map();
+    if (heldVal !== null) heldValues.set(0, heldVal);
+    return {
+        assignedLanes, activeLanes: 1, held, poolFull, heldValues,
+        laneForKey: (k) => (k === key ? 0 : -1),
+    };
+}
 
 /* Drive model.tick()+repaint until the render converges (mirrors the old
  * deterministic settle: 5 clean ticks, or a 200-tick cap). Only the synth
@@ -140,6 +153,9 @@ function applyView(preset) {
         case 'chain_t4':         showChain(1, false, 3); break;
         case 'drum-mrdrums-pad5':   model.tick(); model.tick(); forceRender(); break;
         case 'drum-mrdrums-global': model.tick(); model.tick(); model.changePage(1); forceRender(); break;
+        case 'auto_dot':         showKnobsAuto(autoView()); break;
+        case 'auto_held':        showKnobsAuto(autoView({ held: true, heldVal: model.getKnobParamInfo(0).max })); break;
+        case 'auto_limit':       showKnobsAuto(autoView({ held: true, poolFull: true, assignedLanes: 0xFF })); break;
         default:                 forceRender(); break;                       // plain knobs view
     }
 }

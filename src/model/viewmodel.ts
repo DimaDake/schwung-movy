@@ -74,6 +74,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
                 renderStyle:     p.renderStyle,
                 automated,
                 automatable,
+                assigned:        lane >= 0,
             });
         }
     }

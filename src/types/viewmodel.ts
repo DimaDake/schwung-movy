@@ -11,6 +11,7 @@ export interface ParamVM {
     renderStyle:     'arc' | 'hbar' | 'vbar' | 'preset';
     automated:       boolean;   // lane has ≥1 lock → show the dot
     automatable:     boolean;   // can be assigned a lane (numeric, non-global)
+    assigned:        boolean;   // already bound to an automation lane
 }
 
 /* Injected automation snapshot (built in app/tick from seqState + the lane

@@ -1,6 +1,6 @@
 import { createModelState } from './state.js';
 import { loadHierarchy }    from './hierarchy.js';
-import { applyKnobDelta }   from './store.js';
+import { applyKnobDelta, knobParamInfo }   from './store.js';
 import { buildViewModel }   from './viewmodel.js';
 import { processTick }      from './tick.js';
 import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV } from './constants.js';
@@ -191,6 +191,8 @@ export function createModel(slot: number, componentKey = 'synth') {
         },
 
         getComponentKey(): string { return s.componentKey; },
+
+        getKnobParamInfo(physK: number) { return knobParamInfo(s, physK); },
 
         getDrumConfig(): import('../types/param.js').DrumConfig | null {
             return s.moduleConfig?.drum ?? null;

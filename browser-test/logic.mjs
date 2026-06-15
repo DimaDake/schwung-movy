@@ -1869,6 +1869,19 @@ _log('\nTest: preset param uses the preset render style');
     eq('preset knob renderStyle = preset', vm.rows[0][0]?.renderStyle, 'preset');
 }
 
+/* ── model exposes per-knob param info for automation ────────────────────── */
+_log('\nTest: getKnobParamInfo');
+{
+    const m = bootModel(MOCK_SYNTHS.obxd_like);
+    const info = m.getKnobParamInfo(0);
+    eq('param info present', info !== null, true);
+    eq('param info has key', typeof info.key, 'string');
+    eq('param info has target', info.target, 'synth');
+    eq('param info has automatable flag', typeof info.automatable, 'boolean');
+    // Out-of-range knob → null.
+    eq('out-of-range knob → null', m.getKnobParamInfo(99), null);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

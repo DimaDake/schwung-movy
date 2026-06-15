@@ -105,13 +105,17 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
             shiftStepFunction(button);
         } else if (on) {
             const absB = seqState.barOffset * NUM_STEP_BUTTONS + button;
-            if (!seqState.loopMode && heldStepAbs() >= 0 && absB !== heldStepAbs()
+            // The hold-A + press-B length gesture (and the held-step note
+            // overlay) are melodic-only. On a drum lane each step press is
+            // independent, so holding one step never blocks entering others.
+            if (!seqState.loopMode && seqState.watchLane < 0
+                && heldStepAbs() >= 0 && absB !== heldStepAbs()
                 && setLengthTo(absB)) {
                 // length gesture consumed; do not register B as a held step
             } else {
                 editStepDown(button);
                 if (seqState.loopMode) loopStepOn(button);
-                if (!seqState.loopMode && heldStepAbs() >= 0) {
+                if (!seqState.loopMode && seqState.watchLane < 0 && heldStepAbs() >= 0) {
                     seqState.holdStep = heldStepAbs();
                     seqState.holdNotes = [];
                     seqCmd('hold ' + seqState.watchTrack + ' ' + seqState.holdStep);

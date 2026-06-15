@@ -29,6 +29,9 @@ export function drumPadOn(
     const suppressMidi = shiftHeld && !drumConfig.shiftSelectMidi;
     if (!suppressMidi) {
         keyboardState.lastPlayedNote = midiNote;
+        // Track the sounding pad so the drum grid lights it green while held
+        // (a shift-select makes no sound, so it must not register as playing).
+        keyboardState.held[physPad] = midiNote;
         shadow_send_midi_to_dsp([MidiNoteOn | slot, midiNote, shiftHeld ? 1 : vel]);
     }
     if (drumConfig.currentPadParam) {
@@ -58,5 +61,6 @@ export function drumPadOff(
         midiNote = drumConfig.padNoteStart + drumPad - 1;
     }
     if (drumPad < 1 || drumPad > drumConfig.padCount) return;
+    delete keyboardState.held[physPad];
     shadow_send_midi_to_dsp([MidiNoteOff | slot, midiNote, 0]);
 }

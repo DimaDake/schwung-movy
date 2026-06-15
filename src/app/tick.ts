@@ -35,6 +35,11 @@ let lastSessionMode = false;
  * LED colors every tick. Initialized to 0 (C_BLACK); first tick syncs all. */
 const chromaticCache = new Uint8Array(32);
 
+/* Same idea for the 4×4 drum grid: the drum-pad colors update at poll rate
+ * (green follows the sequencer gate / held pads), so cache-diffing keeps the
+ * LED traffic to actual changes. */
+const drumCache = new Uint8Array(32);
+
 export function tick(): void {
     seqEngineTick();
     seqPersistTick();
@@ -122,31 +127,42 @@ export function tick(): void {
         lastToastShowing = toastShowing;
         lastHeaderShowing = headerShowing;
         appState.dirty = false;
+    }
 
-        /* ── Drum pad LEDs ──────────────────────────────────────────────────── */
-        /* In Session mode the clip grid owns the pads (painted by seqLedsTick).
-         * synthModel/synthDvm/isDrum are from the synth slot regardless of the
-         * active chain index, so drum pads light up even on FX parameter pages. */
-        const drumNow = !seqState.sessionMode && isDrum;
-        if (drumNow) {
-            const drumCfg = synthModel!.getDrumConfig()!;
-            const track   = seqState.watchTrack;
-            for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {
-                const p = PAD_MIN + i;
-                // Derive the pad's MIDI note to check activeHasNote (mirrors drumPadLedColor's mapping).
-                const idx = p - PAD_MIN, col = idx % 8, row = Math.floor(idx / 8);
-                const dp  = drumCfg.rawMidi ? p - drumCfg.padNoteStart + 1 : row * 4 + col + 1;
-                const note = drumCfg.rawMidi ? p : drumCfg.padNoteStart + dp - 1;
-                const playing = activeHasNote(track, note);
-                setLED(p, drumPadLedColor(p, PAD_MIN, drumCfg, keyboardState.rootNote, synthDvm!.drumCurrentPhysPad, track, playing), true);
+    /* ── Drum pad LEDs ──────────────────────────────────────────────────────
+     * Painted every tick (not just on dirty frames) so a pad turns green the
+     * moment its note sounds — from the sequencer gate (activeHasNote) or from
+     * the user physically holding it (keyboardState.held) — and reverts when it
+     * stops. Green wins over the white "selected" pad and the resting track
+     * color (priority lives in drumPadLedColor). In Session mode the clip grid
+     * owns the pads (painted by seqLedsTick). synthModel/synthDvm/isDrum come
+     * from the synth slot regardless of the active chain index, so drum pads
+     * light up even on FX parameter pages. */
+    const drumNow = !seqState.sessionMode && isDrum;
+    if (drumNow) {
+        const drumCfg = synthModel!.getDrumConfig()!;
+        const track   = seqState.watchTrack;
+        const sel     = synthDvm!.drumCurrentPhysPad;
+        for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {
+            const p = PAD_MIN + i;
+            // Derive the pad's MIDI note to check activeHasNote (mirrors drumPadLedColor's mapping).
+            const idx = p - PAD_MIN, col = idx % 8, row = Math.floor(idx / 8);
+            const dp  = drumCfg.rawMidi ? p - drumCfg.padNoteStart + 1 : row * 4 + col + 1;
+            const note = drumCfg.rawMidi ? p : drumCfg.padNoteStart + dp - 1;
+            const playing = activeHasNote(track, note) || keyboardState.held[p] !== undefined;
+            const color = drumPadLedColor(p, PAD_MIN, drumCfg, keyboardState.rootNote, sel, track, playing);
+            if (drumCache[i] !== color) {
+                drumCache[i] = color;
+                setLED(p, color, true);
             }
-            appState.drumActive = true;
-        } else if (appState.drumActive) {
-            appState.drumActive = false;
-            appState.initLedsDone = false;
-            appState.initLedIndex = 0;
-            chromaticCache.fill(0);
         }
+        appState.drumActive = true;
+    } else if (appState.drumActive) {
+        appState.drumActive = false;
+        appState.initLedsDone = false;
+        appState.initLedIndex = 0;
+        chromaticCache.fill(0);
+        drumCache.fill(0);
     }
 
     /* Per-tick chromatic pad update: green for sequencer-active or physically-

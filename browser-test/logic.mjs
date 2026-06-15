@@ -445,6 +445,19 @@ _log('\nTest: drumPadOn');
   eq('grid col>=4 → null', r6, null);
   eq('grid col>=4: no MIDI', sentMidi.length, 0);
 
+  // Held tracking: a sounding pad registers in keyboardState.held so the drum
+  // grid can light it green; release clears it. A shift-select makes no sound,
+  // so it must not register as held.
+  const { keyboardState } = await import('../dist/esm/keyboard/state.js');
+  for (const k of Object.keys(keyboardState.held)) delete keyboardState.held[+k];
+  drumPadOn(76, 68, false, mrdCfg, 36, 'synth', 0, 100);   // sounds midiNote 40
+  eq('held pad tracked (phys→midi)', keyboardState.held[76], 40);
+  drumPadOff(76, 68, mrdCfg, 36, 0);
+  eq('held pad cleared on release', keyboardState.held[76], undefined);
+  drumPadOn(68, 68, true, mrdCfg, 36, 'synth', 0, 100);     // shift-select, silent
+  eq('shift-select not held', keyboardState.held[68], undefined);
+  for (const k of Object.keys(keyboardState.held)) delete keyboardState.held[+k];
+
   globalThis.shadow_send_midi_to_dsp = origSendMidi;
   globalThis.shadow_set_param = origSetParam;
 }
@@ -589,6 +602,33 @@ _log('\nTest: drumPadOn');
     seqSetLane(-1);
     seqEngineTick();
     eq('melodic lane -1', lastOp(), 'wlane -1');
+
+    // ── Multi-step entry ──────────────────────────────────────────────────
+    // Melodic: hold step A + press step B is the length gesture (set A's note
+    // length to span A→B), so B is NOT entered as a step.
+    resetSeqState(); engine.reset(); resetSeqEngine(); seqEngineTick();
+    seqState.lenSteps = 16;
+    seqHandleMidi([0x90, 16 + 0, 127], false);   // hold step 0
+    seqHandleMidi([0x90, 16 + 3, 127], false);   // press step 3 → length gesture
+    seqHandleMidi([0x80, 16 + 3, 0], false);
+    seqHandleMidi([0x80, 16 + 0, 0], false);
+    seqEngineTick();
+    eq('melodic hold+press: B not entered', occHasStep(3), false);
+    eq('melodic hold+press: emits slen', engine.ops.some((o) => o.startsWith('slen')), true);
+
+    // Drum lane: hold step 0 + press step 3 enters BOTH (no length gesture) —
+    // multiple steps can be entered while one is held.
+    resetSeqState(); engine.reset(); resetSeqEngine(); seqEngineTick();
+    seqState.lenSteps = 16;
+    seqSetLane(38); seqEngineTick();
+    seqHandleMidi([0x90, 16 + 0, 127], false);   // hold step 0
+    seqHandleMidi([0x90, 16 + 3, 127], false);   // press step 3 while step 0 held
+    seqHandleMidi([0x80, 16 + 3, 0], false);     // release → step 3 toggles on
+    seqHandleMidi([0x80, 16 + 0, 0], false);     // release → step 0 toggles on
+    eq('drum multi: step 0 entered', occHasStep(0), true);
+    eq('drum multi: step 3 entered', occHasStep(3), true);
+    eq('drum multi: no length gesture', engine.ops.some((o) => o.startsWith('slen')), false);
+    seqSetLane(-1); seqEngineTick();
 
     // Bar navigation: Right advances the visible bar (clip is 1 bar long, so
     // one extra empty bar is reachable), with a toast; clamps at the end.

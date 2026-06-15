@@ -1836,6 +1836,15 @@ _log('\nTest: drumPadOn');
     eq('wraps to beat0 at 4 beats', metronomeStep(0, 96 * 4), true);
 }
 
+/* ── big font (preset value) ───────────────────────────────────────────── */
+_log('\nTest: big preset font metrics');
+{
+    const { fontWidthBig, BIG_FONT_HEIGHT } = await import('../dist/esm/font/big.js');
+    eq('big font cap-height = 11', BIG_FONT_HEIGHT, 11);
+    // Up to 3 preset digits must fit the 32px knob cell (else small-font fallback).
+    eq('3 digits fit the cell', fontWidthBig('888') <= 32, true);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

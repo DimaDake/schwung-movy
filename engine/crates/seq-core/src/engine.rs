@@ -313,17 +313,29 @@ impl Engine {
         self.rec_track = track;
         self.watch_track = track;
         self.rec_empty_start = self.tracks[track].active().notes.is_empty();
-        // Ensure the target clip exists so its playhead advances (and a new
-        // recording extends from one bar).
         let was_playing = self.playing;
+        // Ensure the selected clip exists and is the slot this track plays/records
+        // into, clearing any pending stop / queued launch left by selecting an
+        // empty slot in Session mode. Without this, punch-in recording into a
+        // freshly created empty clip never captures (playing_slot stayed None or
+        // pointed at the old clip) and never auto-extends.
+        let a = self.tracks[track].active_clip;
         self.tracks[track].active_mut().ensure_exists();
-        if !self.playing {
-            self.play();
-        }
-        if was_playing {
-            self.recording = true;             // punch-in: record now, no count-in
-        } else {
+        self.tracks[track].playing_slot = Some(a);
+        self.tracks[track].queued_slot = None;
+        self.tracks[track].pending_stop = false;
+        if !was_playing {
+            self.play();                       // seeds playheads + starts transport
             self.count_in_left = crate::TICKS_PER_BAR;
+        } else {
+            // Punch-in: record now (no count-in). For a just-created empty clip,
+            // seed this track's playhead to the clip start so capture begins at
+            // bar 1 and auto-extends; an overdub keeps its current position.
+            if self.rec_empty_start {
+                let start = self.tracks[track].clips[a].loop_start_ticks();
+                self.tracks[track].pos_tick = start;
+            }
+            self.recording = true;
         }
     }
 
@@ -1025,5 +1037,35 @@ mod tests {
         // Run one full bar: clip should NOT extend.
         run_ticks(&mut e, crate::TICKS_PER_BAR as u64);
         assert_eq!(e.tracks[0].active().length_steps, initial_len);
+    }
+
+    #[test]
+    fn punch_in_records_into_empty_slot_and_extends() {
+        // Transport already running, then record a NEW clip into an empty slot
+        // (Session punch-in). The slot must become the track's playing/recording
+        // clip — capture works and it auto-extends like any first recording.
+        let mut e = engine();
+        e.tracks[1].active_mut().toggle_step(0, &[(48, 100)]); // some other track playing
+        e.play();
+        assert!(e.playing);
+
+        e.launch_clip(0, 2); // select empty slot 2 while running (sets pending_stop)
+        assert!(e.tracks[0].active().notes.is_empty());
+
+        e.toggle_record(0); // punch-in (no count-in)
+        assert!(e.recording);
+        assert_eq!(e.tracks[0].playing_slot, Some(2), "empty slot not made the playing clip");
+        assert!(!e.tracks[0].pending_stop, "pending stop from empty-slot select not cleared");
+
+        // A live note is captured into the new clip.
+        e.live_note_on(0, 60, 110);
+        run_ticks(&mut e, 2 * TICKS_PER_STEP as u64);
+        e.live_note_off(0, 60);
+        assert_eq!(e.tracks[0].clips[2].notes.len(), 1, "note not recorded into the empty slot");
+
+        // Crossing the end auto-extends the new clip bar-by-bar.
+        let before = e.tracks[0].clips[2].length_steps;
+        run_ticks(&mut e, crate::TICKS_PER_BAR as u64);
+        assert!(e.tracks[0].clips[2].length_steps > before, "new clip did not auto-extend");
     }
 }

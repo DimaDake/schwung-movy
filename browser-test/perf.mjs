@@ -233,6 +233,13 @@ _origLog('\nTest 5: sequencer perf budgets');
     seqEngineTick();
     check('seq set_param calls per tick', setParamCalls, 1);
 
+    // Automation ops (aset/abase/alabel) ride the same batched cmd channel —
+    // many queued in a tick still flush as ONE set_param (no per-lock IPC spam).
+    seqCmd('aset 0 0 4 100'); seqCmd('aset 0 1 4 90'); seqCmd('abase 0 0 64');
+    setParamCalls = 0;
+    seqEngineTick();
+    check('automation ops: one flush per tick', setParamCalls, 1);
+
     // Loop strip is cheap: bounded fill_rect per draw.
     fillRectCount = 0;
     seqState.lenSteps = 16 * 16; // 16 bars

@@ -150,6 +150,37 @@ _log('\napp-loop: file-param jog-click opens the browser on the chain page');
         appState.currentView === VIEW_FILE_BROWSE, false);
 }
 
+_log('\napp-loop: knob turn while a step is held writes automation');
+{
+    const { VIEW_KNOBS } = await import('../dist/esm/app/state.js');
+    const { resetAutomation } = await import('../dist/esm/seq/automation.js');
+
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.file_param);   // knob 0 = file, knob 1 = Volume (float)
+    resetSeqState(); resetSeqEngine(); resetAutomation();
+    globalThis.init();
+    appState.trackModels[0][1].reload();
+    advance(12);                              // settle engine + hierarchy
+    appState.currentView = VIEW_KNOBS;
+    appState.activeSlot = 0;
+
+    // A held step + turning the Volume knob (CC 72 = knob 1) auto-assigns a lane
+    // and writes a lock at the held step.
+    seqState.holdStep = 4;
+    sendMidi([0xB0, 72, 1]);                  // knob 1, +1
+    advance(1);                               // flush the cmd queue to the engine
+    eq('held-step knob auto-assigns a lane', engine.ops.some((o) => o.startsWith('alabel 0 0 ')), true);
+    eq('held-step knob writes a lock at step 4', engine.ops.some((o) => o.startsWith('aset 0 0 4 ')), true);
+
+    // The file param (knob 0 = CC 71) is not automatable → no aset.
+    engine.reset(); resetAutomation();
+    seqState.holdStep = 4;
+    sendMidi([0xB0, 71, 1]);                  // knob 0 (file param)
+    advance(1);
+    eq('file param not automated', engine.ops.some((o) => o.startsWith('aset')), false);
+    seqState.holdStep = -1;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

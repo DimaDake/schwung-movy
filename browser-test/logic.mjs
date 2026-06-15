@@ -1181,27 +1181,105 @@ _log('\nTest: drumPadOn');
     _log('\nseq session LEDs:');
     const { sessionPaintGrid, resetSession } = await import('../dist/esm/seq/session.js');
     const { seqState, resetSeqState, sessionFromStr } = await import('../dist/esm/seq/state.js');
-    const { C_WHITE, C_BLACK, C_DARKGREY, trackColor } = await import('../dist/esm/seq/colors.js');
+    const { C_WHITE, C_BLACK, C_DARKGREY, trackColor,
+            ANIM_NONE, ANIM_PULSE, ANIM_PULSE_FAST, ANIM_PULSE_SLOW }
+        = await import('../dist/esm/seq/colors.js');
 
     resetSeqState(); resetSession();
-    seqState.engineTick = 0; // pulse phase ON
-    // track 0: slot0 exists+playing+selected; slot1 exists; track3: nothing.
-    sessionFromStr('03.0.-.0,00.-.-.0,00.-.-.0,00.-.-.0');
+    // track0: slot0 exists+playing; slot1 exists (stopped); slot2 queued;
+    // slot3 exists+selected (focus). tracks 1-3: empty, selected=0.
+    sessionFromStr('0F.0.2.3,00.-.-.0,00.-.-.0,00.-.-.0');
 
-    const calls = {};
-    sessionPaintGrid((note, color) => { calls[note] = color; }, 68);
-    // top row = track 0: note 92 = slot 0, note 93 = slot 1.
-    eq('playing+selected clip pulses white', calls[92], C_WHITE);
-    eq('existing (non-selected) clip = track color', calls[93], trackColor(0));
-    eq('empty slot dark', calls[94], C_BLACK); // track0 slot2: empty, not selected
+    const cells = {};
+    sessionPaintGrid((note, base, anim, channel) => { cells[note] = { base, anim, channel }; }, 68);
+    // top row = track 0: notes 92/93/94/95 = slots 0/1/2/3.
+    eq('playing pulses (Pulse4th) to white', cells[92].channel, ANIM_PULSE);
+    eq('playing anim target white', cells[92].anim, C_WHITE);
+    eq('playing base = track color', cells[92].base, trackColor(0));
+    eq('stopped clip is solid', cells[93].channel, ANIM_NONE);
+    eq('stopped clip = track color', cells[93].base, trackColor(0));
+    eq('queued pulses fast (Pulse8th)', cells[94].channel, ANIM_PULSE_FAST);
+    eq('queued anim target white', cells[94].anim, C_WHITE);
+    eq('selected clip pulses slow (Pulse2th)', cells[95].channel, ANIM_PULSE_SLOW);
+    eq('selected clip base = track color', cells[95].base, trackColor(0));
+
     // Selection highlight is NOT gated on watchTrack: every track greys its own
-    // selected (default slot 0) empty cell, not just the focused track.
-    eq('track3 selected-empty grey', calls[68], C_DARKGREY); // bottom row slot 0
-    eq('track2 selected-empty grey', calls[76], C_DARKGREY);
-    eq('track1 selected-empty grey', calls[84], C_DARKGREY);
-    eq('track3 unselected-empty dark', calls[69], C_BLACK);  // slot 1, not selected
+    // selected (default slot 0) empty cell, solid (no animation).
+    eq('track3 selected-empty grey', cells[68].base, C_DARKGREY); // bottom row slot 0
+    eq('track3 selected-empty solid', cells[68].channel, ANIM_NONE);
+    eq('track2 selected-empty grey', cells[76].base, C_DARKGREY);
+    eq('track1 selected-empty grey', cells[84].base, C_DARKGREY);
+    eq('track3 unselected-empty dark', cells[69].base, C_BLACK);   // slot 1, not selected
+    eq('track3 unselected-empty solid', cells[69].channel, ANIM_NONE);
 
     resetSeqState(); resetSession();
+}
+
+/* ── seq LED animation channel constants ─────────────────────────────────── */
+{
+    _log('\nseq anim constants:');
+    const { ANIM_NONE, ANIM_PULSE, ANIM_PULSE_FAST, ANIM_PULSE_SLOW }
+        = await import('../dist/esm/seq/colors.js');
+    eq('NoAnimation channel', ANIM_NONE, 0x00);
+    eq('Pulse4th channel', ANIM_PULSE, 0x09);
+    eq('Pulse8th channel', ANIM_PULSE_FAST, 0x08);
+    eq('Pulse2th channel', ANIM_PULSE_SLOW, 0x0A);
+}
+
+/* ── seq cachedSetAnimLED: native animation + base handshake ──────────────── */
+{
+    _log('\nseq anim LED cache:');
+    const { cachedSetAnimLED, ledFrameReset, seqLedsInvalidate }
+        = await import('../dist/esm/seq/leds.js');
+    const { ANIM_NONE, ANIM_PULSE } = await import('../dist/esm/seq/colors.js');
+
+    const sent = [];
+    const savedSend = globalThis.move_midi_internal_send;
+    globalThis.move_midi_internal_send = (arr) => { sent.push(arr.slice()); };
+    const tick = (fn) => { ledFrameReset(); fn(); };
+
+    seqLedsInvalidate();              // clear cache state
+
+    // Solid color: one note-on on channel 0.
+    tick(() => cachedSetAnimLED(70, 22, 22, ANIM_NONE));
+    eq('solid emits one msg', sent.length, 1);
+    eq('solid status ch0', sent[0][1], 0x90);
+    eq('solid note', sent[0][2], 70);
+    eq('solid color', sent[0][3], 22);
+
+    // Re-sending the same solid state sends nothing.
+    sent.length = 0;
+    tick(() => cachedSetAnimLED(70, 22, 22, ANIM_NONE));
+    eq('unchanged solid sends nothing', sent.length, 0);
+
+    // Animate a note whose base is already established (base 22 == last solid):
+    // emits exactly one message, on the Pulse channel, with the anim color.
+    sent.length = 0;
+    tick(() => cachedSetAnimLED(70, 22, 120, ANIM_PULSE));
+    eq('anim w/ established base = one msg', sent.length, 1);
+    eq('anim status = 0x90 | channel', sent[0][1], 0x90 | ANIM_PULSE);
+    eq('anim color is the target', sent[0][3], 120);
+
+    // Re-sending the same animation sends nothing.
+    sent.length = 0;
+    tick(() => cachedSetAnimLED(70, 22, 120, ANIM_PULSE));
+    eq('unchanged anim sends nothing', sent.length, 0);
+
+    // Handshake: a note whose base differs from last sent emits the base (ch0)
+    // this tick, then the animation on the NEXT tick.
+    seqLedsInvalidate(); sent.length = 0;
+    tick(() => cachedSetAnimLED(71, 7, 120, ANIM_PULSE));   // base 7 never sent
+    eq('handshake tick1 = base on ch0', sent.length, 1);
+    eq('handshake tick1 status ch0', sent[0][1], 0x90);
+    eq('handshake tick1 color = base', sent[0][3], 7);
+    sent.length = 0;
+    tick(() => cachedSetAnimLED(71, 7, 120, ANIM_PULSE));   // same request next tick
+    eq('handshake tick2 = anim', sent.length, 1);
+    eq('handshake tick2 status = pulse', sent[0][1], 0x90 | ANIM_PULSE);
+    eq('handshake tick2 color = anim', sent[0][3], 120);
+
+    globalThis.move_midi_internal_send = savedSend;
+    seqLedsInvalidate();
 }
 
 /* ── seq loop overview strip (bottom-of-screen render) ───────────────────── */
@@ -1464,14 +1542,24 @@ _log('\nTest: drumPadOn');
 {
     _log('\nsession cell color:');
     const { sessionCellColor } = await import('../dist/esm/seq/session.js');
-    const { trackColor } = await import('../dist/esm/seq/colors.js');
+    const { trackColor, C_BLACK, C_WHITE, C_DARKGREY,
+            ANIM_NONE, ANIM_PULSE, ANIM_PULSE_FAST, ANIM_PULSE_SLOW }
+        = await import('../dist/esm/seq/colors.js');
 
-    const base = { exists:false, isSel:false, isPlaying:false, isQueued:false, blink:true, track:1 };
-    eq('empty unselected = off', sessionCellColor({ ...base }), 0);
-    eq('content unselected = track', sessionCellColor({ ...base, exists:true }), trackColor(1));
-    eq('selected empty = dark grey', sessionCellColor({ ...base, isSel:true }), 124);
-    eq('selected content blink on = white', sessionCellColor({ ...base, exists:true, isSel:true, blink:true }), 120);
-    eq('selected content blink off = track', sessionCellColor({ ...base, exists:true, isSel:true, blink:false }), trackColor(1));
+    const base = { exists:false, isSel:false, isPlaying:false, isQueued:false, track:1 };
+    const tc = trackColor(1);
+    const led = (ctx) => JSON.stringify(sessionCellColor(ctx));
+    const want = (b, a, ch) => JSON.stringify({ base:b, anim:a, channel:ch });
+    // Solid (no animation) states.
+    eq('empty unselected = off', led({ ...base }), want(C_BLACK, C_BLACK, ANIM_NONE));
+    eq('content unselected = solid track', led({ ...base, exists:true }), want(tc, tc, ANIM_NONE));
+    eq('selected empty = solid grey', led({ ...base, isSel:true }), want(C_DARKGREY, C_DARKGREY, ANIM_NONE));
+    // Animated states (pulse base->white at distinct rates).
+    eq('selected content = slow pulse', led({ ...base, exists:true, isSel:true }), want(tc, C_WHITE, ANIM_PULSE_SLOW));
+    eq('playing = pulse', led({ ...base, exists:true, isPlaying:true }), want(tc, C_WHITE, ANIM_PULSE));
+    eq('queued = fast pulse', led({ ...base, exists:true, isQueued:true }), want(tc, C_WHITE, ANIM_PULSE_FAST));
+    // Priority: queued outranks playing.
+    eq('queued outranks playing', sessionCellColor({ ...base, exists:true, isPlaying:true, isQueued:true }).channel, ANIM_PULSE_FAST);
 }
 
 /* ── loop single-press selects bar ───────────────────────────────────────── */

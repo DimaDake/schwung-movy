@@ -20,6 +20,10 @@ declare function host_module_get_param(key: string): string | null;
 declare function setLED(note: number, color: number, immediate: boolean): void;
 declare function setButtonLED(cc: number, color: number, immediate: boolean): void;
 declare function decodeDelta(d2: number): number;
+/* Native LED / surface MIDI: [cin, status, data1, data2]. A shadow_ui global
+ * available to overtake modules; used to drive Push-2-style LED animation
+ * channels. Absent in browser tests (guard with typeof). */
+declare function move_midi_internal_send(data: number[]): void;
 
 /* LED color constants */
 declare const Black: number;

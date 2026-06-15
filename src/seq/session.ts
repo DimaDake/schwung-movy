@@ -11,7 +11,7 @@
  * The engine owns clip state; this module emits commands and paints the grid
  * LEDs from the `session` mirror, pulsing queued/stopping/selected cells. */
 
-import { C_BLACK, C_DARKGREY, C_GREEN, C_WHITE, trackColor } from './colors.js';
+import { C_BLACK, C_DARKGREY, C_WHITE, trackColor, ANIM_NONE, ANIM_PULSE, ANIM_PULSE_FAST, ANIM_PULSE_SLOW } from './colors.js';
 import { seqCmd } from './engine.js';
 import { seqToast } from './render.js';
 import { seqState } from './state.js';
@@ -96,29 +96,33 @@ export function sessionPad(padNote: number, padMin: number): void {
     seqCmd(`launch ${track} ${slot}`);
 }
 
-/* Blink phase for pulsing cells, derived from the engine tick. */
-function pulseOn(): boolean {
-    return Math.floor(seqState.engineTick / 24) % 2 === 0;
-}
-
 export interface CellCtx {
     exists: boolean; isSel: boolean; isPlaying: boolean; isQueued: boolean;
-    blink: boolean; track: number;
+    track: number;
+}
+export interface CellLed { base: number; anim: number; channel: number; }
+
+/* Native animation: `base` is the solid/channel-0 color; (`anim`,`channel`) is
+ * the pulse target. Priority: queued > playing > selected > content > empty.
+ * Two-color mapping (pulse base->white). On single-color firmware the same code
+ * degrades to a white<->black pulse (the chosen fallback), since the base is
+ * ignored once the pulse channel is set. */
+export function sessionCellColor(c: CellCtx): CellLed {
+    const tc = trackColor(c.track);
+    if (c.isQueued)          return { base: c.exists ? tc : C_BLACK, anim: C_WHITE, channel: ANIM_PULSE_FAST }; // queued for launch
+    if (c.isPlaying)         return { base: tc,        anim: C_WHITE,   channel: ANIM_PULSE };      // playing
+    if (c.isSel && c.exists) return { base: tc,        anim: C_WHITE,   channel: ANIM_PULSE_SLOW }; // selected w/ content (focus)
+    if (c.isSel)             return { base: C_DARKGREY, anim: C_DARKGREY, channel: ANIM_NONE };      // selected empty
+    if (c.exists)            return { base: tc,        anim: tc,        channel: ANIM_NONE };        // has content
+    return { base: C_BLACK, anim: C_BLACK, channel: ANIM_NONE };                                     // empty
 }
 
-export function sessionCellColor(c: CellCtx): number {
-    if (c.isQueued)             return c.blink ? C_GREEN : C_BLACK;                     // queued for launch
-    if (c.isPlaying && c.isSel) return c.blink ? C_WHITE : C_BLACK;                    // playing+selected pulse
-    if (c.isPlaying)            return C_WHITE;                                          // playing (solid)
-    if (c.isSel && c.exists)    return c.blink ? C_WHITE : trackColor(c.track);         // selected w/ content
-    if (c.isSel)                return C_DARKGREY;                                       // selected empty
-    if (c.exists)               return trackColor(c.track);                              // has content
-    return C_BLACK;                                                                      // empty
-}
-
-/* Paint the 32-pad clip grid (manual §17.1 LED semantics). */
-export function sessionPaintGrid(setLed: (note: number, color: number) => void, padMin: number): void {
-    const blink = pulseOn();
+/* Paint the 32-pad clip grid (manual §17.1 LED semantics) via the native
+ * animation setter. */
+export function sessionPaintGrid(
+    setLed: (note: number, base: number, anim: number, channel: number) => void,
+    padMin: number,
+): void {
     for (let idx = 0; idx < ROWS * COLS; idx++) {
         const rowFromBottom = Math.floor(idx / COLS);
         const slot = idx % COLS;
@@ -129,8 +133,8 @@ export function sessionPaintGrid(setLed: (note: number, color: number) => void, 
         const isSel = st.selected === slot;
         const isPlaying = st.playing === slot;
         const isQueued = st.queued === slot;
-        const color = sessionCellColor({ exists, isSel, isPlaying, isQueued, blink, track });
-        setLed(padMin + idx, color);
+        const led = sessionCellColor({ exists, isSel, isPlaying, isQueued, track });
+        setLed(padMin + idx, led.base, led.anim, led.channel);
     }
 }
 

@@ -183,6 +183,7 @@ _origLog('\nTest 5: sequencer perf budgets');
     let ledCount = 0;
     globalThis.setLED = () => { ledCount++; };
     globalThis.setButtonLED = () => { ledCount++; };
+    globalThis.move_midi_internal_send = () => { ledCount++; }; // native pad animation
 
     resetSeqEngine(); resetSeqState(); seqLedsInvalidate();
     seqEngineTick(); seqEngineTick(); // boot + first poll
@@ -211,8 +212,9 @@ _origLog('\nTest 5: sequencer perf budgets');
     check('session cold-frame LED sends per tick', ledCount, 50);
     _origLog(`    (cold session frame: ${ledCount} LED sends)`);
     // Drain: a few ticks finish painting, then steady state sends nothing —
-    // proving no changed LED was dropped (all reached the cache).
-    for (let i = 0; i < 4; i++) seqLedsTick();
+    // proving no changed LED was dropped (all reached the cache). Animated pads
+    // need the one-tick base->animation handshake, so allow extra drain ticks.
+    for (let i = 0; i < 6; i++) seqLedsTick();
     ledCount = 0;
     seqLedsTick();
     check('session LEDs fully drained (steady 0)', ledCount, 0);

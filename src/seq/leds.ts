@@ -8,10 +8,10 @@ import {
 } from './constants.js';
 import { sessionPaintGrid } from './session.js';
 import { loopEndBar, loopStartBar, occHasStep, seqState } from './state.js';
-import { cachedSetLED, cachedSetButtonLED, ledFrameReset, seqLedsInvalidate } from './led-cache.js';
+import { cachedSetLED, cachedSetButtonLED, cachedSetAnimLED, ledFrameReset, seqLedsInvalidate } from './led-cache.js';
 
 /* Re-exported so callers keep importing the LED API from one place. */
-export { seqLedsInvalidate };
+export { seqLedsInvalidate, cachedSetAnimLED, ledFrameReset };
 
 /* CC addresses for non-step buttons (MoveCCButtons). */
 const CC_BACK = 51, CC_CAPTURE = 52, CC_UNDO = 56, CC_LOOP = 58,
@@ -147,7 +147,7 @@ export function seqLedsTick(
     // so keep the step button LEDs dark (the master FX chain has no per-step
     // editing). Pads paint first for priority within the frame budget.
     if (seqState.sessionMode) {
-        sessionPaintGrid(cachedSetLED, PAD_MIN);
+        sessionPaintGrid(cachedSetAnimLED, PAD_MIN);
         for (let i = 0; i < NUM_STEP_BUTTONS; i++) cachedSetLED(STEP_NOTE_BASE + i, C_BLACK);
         paintTrackButtons();
         paintStepIcons(shiftHeld);

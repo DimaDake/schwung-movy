@@ -24,6 +24,15 @@ export function trackColorDim(track: number): number {
     return TRACK_COLOR_DIM[track & 3];
 }
 
+/* Native Move LED animation channels (Push-2 model: the note-on's MIDI channel
+ * selects the hardware animation — schwung/src/shared/constants.mjs:633). The
+ * channel is OR-ed into the 0x90 status byte; the firmware does the smooth
+ * gradient, so we no longer toggle colors in JS. */
+export const ANIM_NONE = 0x00;       // solid, no animation
+export const ANIM_PULSE_FAST = 0x08; // Pulse8th — queued-to-launch (urgent)
+export const ANIM_PULSE = 0x09;      // Pulse4th — playing clip
+export const ANIM_PULSE_SLOW = 0x0A; // Pulse2th — selected clip (focus marker)
+
 /* White-LED brightness levels (Back/arrows/etc. are not RGB). */
 export const WHITE_OFF = 0;
 export const WHITE_DIM = 16;

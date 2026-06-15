@@ -547,6 +547,64 @@ impl Engine {
         self.held_query = q;
     }
 
+    // ── Parameter automation commands (lane 0..8, val 0..=127) ─────────────
+
+    pub fn auto_label(&mut self, track: usize, lane: usize, label: &str) {
+        if track < NUM_TRACKS && lane < 8 {
+            self.tracks[track].lane_assigned[lane] = true;
+            self.tracks[track].lane_label[lane] = label.to_string();
+        }
+    }
+
+    pub fn auto_base(&mut self, track: usize, lane: usize, val: u8, out: &mut Vec<OutEvent>) {
+        if track < NUM_TRACKS && lane < 8 {
+            self.tracks[track].lane_base[lane] = val;
+            if self.tracks[track].lane_assigned[lane] {
+                out.push(OutEvent::Cc { track: track as u8, lane: lane as u8, val });
+            }
+        }
+    }
+
+    pub fn auto_set(&mut self, track: usize, lane: usize, step: u16, val: u8, out: &mut Vec<OutEvent>) {
+        if track < NUM_TRACKS && lane < 8 {
+            self.tracks[track].active_mut().set_lock(lane as u8, step, val);
+            // Audition: apply now (stopped) / refresh (playing) for the edited lane.
+            if self.tracks[track].lane_assigned[lane] {
+                out.push(OutEvent::Cc { track: track as u8, lane: lane as u8, val });
+            }
+        }
+    }
+
+    pub fn auto_clear(&mut self, track: usize, lane: usize) {
+        if track < NUM_TRACKS && lane < 8 {
+            for c in &mut self.tracks[track].clips {
+                c.clear_lane(lane as u8);
+            }
+            self.tracks[track].lane_assigned[lane] = false;
+            self.tracks[track].lane_label[lane].clear();
+        }
+    }
+
+    /// All lanes' labels for every track, for the UI to rebuild its registry +
+    /// re-apply chain knob mappings after a load. Format: tracks ',', lanes '.',
+    /// each label or '-'.
+    pub fn auto_labels(&self) -> String {
+        let mut out = String::new();
+        for (ti, t) in self.tracks.iter().enumerate() {
+            if ti > 0 {
+                out.push(',');
+            }
+            for lane in 0..8 {
+                if lane > 0 {
+                    out.push('.');
+                }
+                let l = &t.lane_label[lane];
+                out.push_str(if l.is_empty() { "-" } else { l });
+            }
+        }
+        out
+    }
+
     fn held_len_steps(&self) -> u16 {
         match self.held_query {
             Some((t, step)) if t < NUM_TRACKS => self.tracks[t].active().note_len_steps_at(step),
@@ -580,8 +638,28 @@ impl Engine {
     pub fn status(&self) -> String {
         let wt = &self.tracks[self.watch_track];
         let clip = wt.active();
+        let alanes = wt
+            .lane_assigned
+            .iter()
+            .enumerate()
+            .fold(0u8, |m, (i, &a)| if a { m | (1 << i) } else { m });
+        let aauto = clip.automated_lanes();
+        let hauto = match self.held_query {
+            Some((t, step)) if t < NUM_TRACKS => {
+                let mut v: Vec<(u8, u8)> = self.tracks[t].active().locks_at_step(step).collect();
+                v.sort_unstable();
+                v.iter().enumerate().fold(String::new(), |mut s, (i, (l, val))| {
+                    if i > 0 {
+                        s.push('.');
+                    }
+                    s.push_str(&format!("{l}:{val}"));
+                    s
+                })
+            }
+            _ => String::new(),
+        };
         format!(
-            "play={} tick={} bpm={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={}",
+            "play={} tick={} bpm={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -599,7 +677,10 @@ impl Engine {
             self.mute_state(),
             self.held_len_steps(),
             self.held_notes_state(),
-            clip.occupancy_hex_lane(self.watch_lane)
+            clip.occupancy_hex_lane(self.watch_lane),
+            alanes,
+            aauto,
+            hauto
         )
     }
 

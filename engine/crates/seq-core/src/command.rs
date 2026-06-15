@@ -254,6 +254,37 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 }
             }
         }
+        // Parameter automation. lane 0..8, val 0..=127.
+        // alabel <t> <lane> <target:param> — assign a lane to a chain param.
+        "alabel" => {
+            let t = it.next().and_then(|s| s.parse::<i64>().ok());
+            let lane = it.next().and_then(|s| s.parse::<i64>().ok());
+            let label = it.next().unwrap_or("");
+            if let (Some(t), Some(lane)) = (t, lane) {
+                engine.auto_label(t as usize, lane as usize, label);
+            }
+        }
+        "abase" => {
+            if let (Some(t), Some(lane), Some(v)) = (next(), next(), next()) {
+                engine.auto_base(t as usize, lane as usize, v.clamp(0, 127) as u8, out);
+            }
+        }
+        "aset" => {
+            if let (Some(t), Some(lane), Some(s), Some(v)) = (next(), next(), next(), next()) {
+                engine.auto_set(
+                    t as usize,
+                    lane as usize,
+                    s.clamp(0, 255) as u16,
+                    v.clamp(0, 127) as u8,
+                    out,
+                );
+            }
+        }
+        "aclr" => {
+            if let (Some(t), Some(lane)) = (next(), next()) {
+                engine.auto_clear(t as usize, lane as usize);
+            }
+        }
         _ => {} // forward compat
     }
 }
@@ -432,6 +463,38 @@ mod tests {
         apply_batch(&mut e, "slen 0 0 0 -1 96", &mut out); // 96 ticks = 4 steps
         let n = e.tracks[0].active().notes.iter().find(|n| n.tick == 0).unwrap();
         assert_eq!(n.gate, 96);
+    }
+
+    #[test]
+    fn automation_commands_set_lane_lock_base() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "alabel 0 1 synth:cutoff", &mut out);
+        assert!(e.tracks[0].lane_assigned[1]);
+        assert_eq!(e.tracks[0].lane_label[1], "synth:cutoff");
+        apply_batch(&mut e, "abase 0 1 64", &mut out);
+        assert_eq!(e.tracks[0].lane_base[1], 64);
+        // abase emits a live CC immediately (audition / stopped apply).
+        assert!(out.iter().any(|x| matches!(x, OutEvent::Cc { track: 0, lane: 1, val: 64 })));
+        apply_batch(&mut e, "aset 0 1 5 90", &mut out);
+        assert_eq!(e.tracks[0].active().lock_at(1, 5), Some(90));
+        apply_batch(&mut e, "aclr 0 1", &mut out);
+        assert!(!e.tracks[0].lane_assigned[1]);
+        assert_eq!(e.tracks[0].active().lock_at(1, 5), None);
+    }
+
+    #[test]
+    fn status_reports_automation_fields() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "alabel 0 0 synth:a;alabel 0 2 synth:b", &mut out);
+        e.tracks[0].active_mut().set_lock(2, 4, 50);
+        apply_batch(&mut e, "hold 0 4", &mut out);
+        let s = e.status();
+        assert!(s.contains("alanes=05")); // lanes 0 and 2 assigned
+        assert!(s.contains("aauto=04")); // lane 2 has a lock
+        let hauto = s.split("hauto=").nth(1).unwrap().split(' ').next().unwrap();
+        assert_eq!(hauto, "2:50");
     }
 
     #[test]

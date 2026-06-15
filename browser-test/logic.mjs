@@ -1882,6 +1882,32 @@ _log('\nTest: getKnobParamInfo');
     eq('out-of-range knob → null', m.getKnobParamInfo(99), null);
 }
 
+/* ── automation: registry + lane assignment ──────────────────────────────── */
+_log('\nautomation registry:');
+{
+    const {
+        resetAutomation, laneForParam, assignLane, norm7, denorm7,
+    } = await import('../dist/esm/seq/automation.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
+    resetAutomation(); resetSeqEngine();
+    eq('norm7 mid → 64', norm7(1, 0, 2), 64);
+    eq('denorm7 max → 2', denorm7(127, 0, 2), 2);
+
+    const info = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
+    const lane = assignLane(0, 0, info, () => true);
+    eq('first lane assigned', lane, 0);
+    eq('lane lookup by target:param', laneForParam(0, 'synth:cutoff'), 0);
+    // alabel + abase queued for the engine.
+    const q = peekSeqCmdQueue().join('|');
+    eq('alabel queued', q.includes('alabel 0 0 synth:cutoff'), true);
+    eq('abase queued', q.includes('abase 0 0 64'), true);
+    // Re-assigning the same param returns the same lane.
+    eq('same param → same lane', assignLane(0, 0, info, () => true), 0);
+    // Pool of 8: filling all returns -1.
+    for (let i = 1; i < 8; i++) assignLane(0, 0, { ...info, key: 'k' + i }, () => true);
+    eq('pool full → -1', assignLane(0, 0, { ...info, key: 'k8' }, () => true), -1);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

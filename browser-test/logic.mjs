@@ -1845,6 +1845,15 @@ _log('\nTest: big preset font metrics');
     eq('3 digits fit the cell', fontWidthBig('888') <= 32, true);
 }
 
+/* ── preset knob render style ──────────────────────────────────────────── */
+_log('\nTest: preset param uses the preset render style');
+{
+    // obxd_like has 8 root knobs (= KNOBS_PER_PAGE), so the preset gets its own
+    // page 0; rows[0][0] is the preset param.
+    const vm = bootModel(MOCK_SYNTHS.obxd_like).getViewModel();
+    eq('preset knob renderStyle = preset', vm.rows[0][0]?.renderStyle, 'preset');
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

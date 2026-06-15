@@ -182,7 +182,7 @@ export function loadHierarchy(s: ModelState): void {
                 type: 'enum', min: 0, max: presetCount - 1, step: 1,
                 options: allNames,
                 nameKey: allNames ? undefined : (nameParam ?? undefined),
-                renderStyle: 'arc',
+                renderStyle: 'preset',
             };
             presetSeparate = (rootLevel.knobs ?? []).length >= KNOBS_PER_PAGE;
         }

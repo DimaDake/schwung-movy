@@ -3,7 +3,7 @@ export interface KnobSlot {
     short:          string;
     full:           string;
     type:           'float' | 'int' | 'enum' | 'file';
-    render?:        'arc' | 'hbar' | 'vbar';
+    render?:        'arc' | 'hbar' | 'vbar' | 'preset';
     options?:       string[];
     min?:           number;
     max?:           number;
@@ -43,7 +43,7 @@ export interface KnobParam {
     step:           number;
     options:        string[] | null;
     nameKey?:       string;
-    renderStyle:    'arc' | 'hbar' | 'vbar';
+    renderStyle:    'arc' | 'hbar' | 'vbar' | 'preset';
     fileRoot?:      string;
     fileFilter?:    string[];
     fileStartPath?: string;

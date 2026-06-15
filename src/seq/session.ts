@@ -125,9 +125,8 @@ export function sessionPaintGrid(setLed: (note: number, color: number) => void, 
         const track = ROWS - 1 - rowFromBottom;
         const st = seqState.session[track];
         const exists = (st.exist & (1 << slot)) !== 0;
-        // Only the focused track shows its selection highlight, so column 0
-        // doesn't light white on every track.
-        const isSel = st.selected === slot && track === seqState.watchTrack;
+        // Every track shows its own selected slot — no active-track special case.
+        const isSel = st.selected === slot;
         const isPlaying = st.playing === slot;
         const isQueued = st.queued === slot;
         const color = sessionCellColor({ exists, isSel, isPlaying, isQueued, blink, track });

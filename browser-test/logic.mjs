@@ -1181,7 +1181,7 @@ _log('\nTest: drumPadOn');
     _log('\nseq session LEDs:');
     const { sessionPaintGrid, resetSession } = await import('../dist/esm/seq/session.js');
     const { seqState, resetSeqState, sessionFromStr } = await import('../dist/esm/seq/state.js');
-    const { C_WHITE, C_BLACK, trackColor } = await import('../dist/esm/seq/colors.js');
+    const { C_WHITE, C_BLACK, C_DARKGREY, trackColor } = await import('../dist/esm/seq/colors.js');
 
     resetSeqState(); resetSession();
     seqState.engineTick = 0; // pulse phase ON
@@ -1193,9 +1193,13 @@ _log('\nTest: drumPadOn');
     // top row = track 0: note 92 = slot 0, note 93 = slot 1.
     eq('playing+selected clip pulses white', calls[92], C_WHITE);
     eq('existing (non-selected) clip = track color', calls[93], trackColor(0));
-    eq('empty slot dark', calls[94], C_BLACK);
-    // bottom row = track 3, all empty/dark.
-    eq('empty track dark', calls[68], C_BLACK);
+    eq('empty slot dark', calls[94], C_BLACK); // track0 slot2: empty, not selected
+    // Selection highlight is NOT gated on watchTrack: every track greys its own
+    // selected (default slot 0) empty cell, not just the focused track.
+    eq('track3 selected-empty grey', calls[68], C_DARKGREY); // bottom row slot 0
+    eq('track2 selected-empty grey', calls[76], C_DARKGREY);
+    eq('track1 selected-empty grey', calls[84], C_DARKGREY);
+    eq('track3 unselected-empty dark', calls[69], C_BLACK);  // slot 1, not selected
 
     resetSeqState(); resetSession();
 }

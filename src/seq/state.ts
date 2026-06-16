@@ -54,6 +54,7 @@ export interface SeqUiState {
     autoActive: number;              // bitmask of lanes with locks (from `aauto`)
     heldLocks: Map<number, number>;  // lane -> value at the held step (from `hauto`)
     autoPoolFull: boolean;           // last assign hit the 8-lane cap (limit toast)
+    stepAutoMode: boolean;           // a step held long enough → record knob turns as automation
 }
 
 export interface SessionTrack {
@@ -100,6 +101,7 @@ function defaults(): SeqUiState {
         autoActive: 0,
         heldLocks: new Map(),
         autoPoolFull: false,
+        stepAutoMode: false,
     };
 }
 

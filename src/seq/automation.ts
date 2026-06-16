@@ -34,6 +34,7 @@ export function resetAutomation(): void {
     for (const t of registry) t.fill(null);
     liveVal.clear();
     liveCtx.clear();
+    recordingLanes.clear();
 }
 
 /* 7-bit conversion matching the chain's abs-CC scaling. */
@@ -46,6 +47,13 @@ export function denorm7(n: number, min: number, max: number): number {
 }
 
 function clamp7(n: number): number { return Math.max(0, Math.min(127, n)); }
+
+/* Param keys assigned to a lane on `track` (for the page's read-back suppression). */
+export function laneKeysForTrack(track: number): string[] {
+    const out: string[] = [];
+    for (const e of registry[track]) if (e) out.push(e.shortName);
+    return out;
+}
 
 export function laneForParam(track: number, targetParam: string): number {
     const lanes = registry[track];
@@ -92,38 +100,51 @@ function accumLive(track: number, lane: number, ctx: string, seed: number, delta
     return next;
 }
 
-/* Route a knob turn as automation. Returns true if consumed. `delta` is the
- * decoded encoder delta; `setMapping` issues the chain mapping on assign. */
+/* Lanes (track*8+lane) currently being live-recorded — used to revert the
+ * synth to base when the knob is released. */
+const recordingLanes = new Set<number>();
+
+/* Route a knob turn as automation. Returns true if consumed (step-automation
+ * or live-record). In normal mode it returns false so the normal param path
+ * edits the original/base value immediately (no engine round-trip → no lag);
+ * the engine's base is synced on knob release (`automationKnobReleased`). */
 export function handleAutomationKnob(
     track: number, _physK: number, info: KnobParamInfo, delta: number,
     setMapping: (lane: number) => boolean,
 ): boolean {
     if (!info.automatable) return false;
-    const held = seqState.holdStep >= 0;
+    const held = seqState.stepAutoMode;
     const recArmed = seqState.recording && seqState.playing;
+    if (!held && !recArmed) return false; // normal path owns the base — immediate
+
+    // Step-automation or Rec: ensure a lane, then write a lock at the target step.
     const tp = info.target + ':' + info.key;
-
-    if (!held && !recArmed) {
-        // No gesture: only intercept if already a lane, to keep its base
-        // engine-driven; otherwise let the normal param path run.
-        const lane = laneForParam(track, tp);
-        if (lane < 0) return false;
-        const next = accumLive(track, lane, 'b', norm7(info.value, info.min, info.max), delta);
-        seqCmd('abase ' + track + ' ' + lane + ' ' + next);
-        return true;
-    }
-
-    // Hold-step or Rec: ensure a lane, then write a lock at the target step.
     let lane = laneForParam(track, tp);
     if (lane < 0) lane = assignLane(track, track, info, setMapping);
     if (lane < 0) { seqState.autoPoolFull = true; return true; } // consumed; toast in render
 
     const step = held ? seqState.holdStep : seqState.curStep;
-    const ctx = held ? ('h' + step) : ('r' + step);
+    const ctx = (held ? 'h' : 'r') + step;
     const seed = seqState.heldLocks.get(lane) ?? norm7(info.value, info.min, info.max);
     const next = accumLive(track, lane, ctx, seed, delta);
     seqCmd('aset ' + track + ' ' + lane + ' ' + step + ' ' + next);
+    seqState.heldLocks.set(lane, next);          // optimistic held-step display
+    if (recArmed) recordingLanes.add(track * 8 + lane);
     return true;
+}
+
+/* Knob released: sync the engine base for a normal edit, or — if we were
+ * live-recording this lane — revert the synth to base (the recorded lock still
+ * plays at its step). `info.value` is the param's current (base) value. */
+export function automationKnobReleased(track: number, info: KnobParamInfo): void {
+    const lane = laneForParam(track, info.target + ':' + info.key);
+    if (lane < 0) return;
+    const baseN = norm7(info.value, info.min, info.max);
+    if (recordingLanes.delete(track * 8 + lane)) {
+        seqCmd('abase ' + track + ' ' + lane + ' ' + baseN); // emits → revert to base
+    } else if (!seqState.stepAutoMode) {
+        seqCmd('abaseq ' + track + ' ' + lane + ' ' + baseN); // quiet base sync
+    }
 }
 
 /* Hold-Clear + knob touch: clear the lane bound to this knob's param. */

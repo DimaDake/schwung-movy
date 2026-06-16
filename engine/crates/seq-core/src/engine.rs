@@ -565,6 +565,16 @@ impl Engine {
         }
     }
 
+    /// Set the lane base WITHOUT emitting a CC. The UI uses this when the user
+    /// edits the original value via the normal param path (which already applied
+    /// it to the synth) — the base only needs to update so playback reverts to
+    /// it on un-locked steps.
+    pub fn auto_base_quiet(&mut self, track: usize, lane: usize, val: u8) {
+        if track < NUM_TRACKS && lane < 8 {
+            self.tracks[track].lane_base[lane] = val;
+        }
+    }
+
     pub fn auto_set(&mut self, track: usize, lane: usize, step: u16, val: u8, out: &mut Vec<OutEvent>) {
         if track < NUM_TRACKS && lane < 8 {
             self.tracks[track].active_mut().set_lock(lane as u8, step, val);

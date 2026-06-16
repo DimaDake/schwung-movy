@@ -164,21 +164,21 @@ _log('\napp-loop: knob turn while a step is held writes automation');
     appState.currentView = VIEW_KNOBS;
     appState.activeSlot = 0;
 
-    // A held step + turning the Volume knob (CC 72 = knob 1) auto-assigns a lane
-    // and writes a lock at the held step.
-    seqState.holdStep = 4;
+    // Step-automation mode + turning the Volume knob (CC 72 = knob 1) auto-assigns
+    // a lane and writes a lock at the held step.
+    seqState.stepAutoMode = true; seqState.holdStep = 4;
     sendMidi([0xB0, 72, 1]);                  // knob 1, +1
     advance(1);                               // flush the cmd queue to the engine
-    eq('held-step knob auto-assigns a lane', engine.ops.some((o) => o.startsWith('alabel 0 0 ')), true);
-    eq('held-step knob writes a lock at step 4', engine.ops.some((o) => o.startsWith('aset 0 0 4 ')), true);
+    eq('step-auto knob auto-assigns a lane', engine.ops.some((o) => o.startsWith('alabel 0 0 ')), true);
+    eq('step-auto knob writes a lock at step 4', engine.ops.some((o) => o.startsWith('aset 0 0 4 ')), true);
 
     // The file param (knob 0 = CC 71) is not automatable → no aset.
     engine.reset(); resetAutomation();
-    seqState.holdStep = 4;
+    seqState.stepAutoMode = true; seqState.holdStep = 4;
     sendMidi([0xB0, 71, 1]);                  // knob 0 (file param)
     advance(1);
     eq('file param not automated', engine.ops.some((o) => o.startsWith('aset')), false);
-    seqState.holdStep = -1;
+    seqState.stepAutoMode = false; seqState.holdStep = -1;
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

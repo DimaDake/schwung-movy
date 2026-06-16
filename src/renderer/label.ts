@@ -14,10 +14,11 @@ export function drawLabelCell(col: number, lblY: number, pvm: ParamVM): void {
     } else {
         fontPrint(tx, lblY + 1, text, 1);
     }
-    // Automation marker: a 2×2 dot at the cell's top-right edge (inverted when
-    // the cell is filled by the touched/held value).
+    // Automation marker: a 2×2 dot just past the top-right of the text (clamped
+    // inside the cell; inverted when the cell is filled by the touched value).
     if (pvm.automated) {
-        const dx = col * CELL_W + CELL_W - 3;
+        const cellRight = col * CELL_W + CELL_W;
+        const dx = Math.min(tx + tw + 1, cellRight - 2);
         fill_rect(dx, lblY, 2, 2, pvm.touched ? 0 : 1);
     }
 }

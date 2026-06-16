@@ -12,7 +12,7 @@ import { renderChainView }    from '../renderer/chain-view.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync } from '../seq/engine.js';
-import { syncLabelsFromEngine, rangeFromChainParams, automationRegistry, denorm7 } from '../seq/automation.js';
+import { syncLabelsFromEngine, rangeFromChainParams, automationRegistry, denorm7, laneKeysForTrack } from '../seq/automation.js';
 import type { AutomationView } from '../types/viewmodel.js';
 import { seqPersistTick } from '../seq/persist.js';
 import { seqLedsTick, seqLedsInvalidate } from '../seq/leds.js';
@@ -123,6 +123,9 @@ export function tick(): void {
 
     const chainIdx    = appState.trackChainIndex[appState.activeSlot];
     const activeModel = appState.trackModels[appState.activeSlot]?.[chainIdx];
+    // Automation lanes are driven by playback — keep the page from reading them
+    // back (decouples display from automation; avoids per-step repaints).
+    activeModel?.setNoRefreshKeys(laneKeysForTrack(appState.activeSlot));
     const modelDirty  = activeModel?.tick() ?? false;
 
     const mIdx        = appState.masterChainIndex;

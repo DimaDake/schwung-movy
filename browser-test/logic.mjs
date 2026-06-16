@@ -1935,22 +1935,22 @@ _log('\nautomation knob routing:');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
     const info = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
 
-    // Hold-step: knob turn writes a lock at the held step.
+    // Step-automation mode: knob turn writes a lock at the held step.
     resetAutomation(); resetSeqEngine(); resetSeqState();
-    seqState.holdStep = 4;
-    eq('hold-step knob consumed', handleAutomationKnob(0, 0, info, +1, () => true), true);
+    seqState.stepAutoMode = true; seqState.holdStep = 4;
+    eq('step-auto knob consumed', handleAutomationKnob(0, 0, info, +1, () => true), true);
     eq('aset at held step 4', peekSeqCmdQueue().some((o) => o.startsWith('aset 0 0 4 ')), true);
 
     // Non-automatable param is never consumed.
     resetAutomation(); resetSeqEngine(); resetSeqState();
-    seqState.holdStep = 4;
+    seqState.stepAutoMode = true; seqState.holdStep = 4;
     eq('non-automatable not consumed',
         handleAutomationKnob(0, 0, { ...info, automatable: false }, +1, () => true), false);
 
-    // No gesture + not yet a lane → not consumed (normal param path runs).
+    // Normal mode (no step-auto, no Rec): not consumed → normal param path edits
+    // the base immediately (no lag).
     resetAutomation(); resetSeqEngine(); resetSeqState();
-    seqState.holdStep = -1;
-    eq('idle knob on unassigned param not consumed',
+    eq('normal-mode knob not consumed (even if a lane)',
         handleAutomationKnob(0, 0, info, +1, () => true), false);
 
     // Rec-armed + playing → lock at the current playing step.

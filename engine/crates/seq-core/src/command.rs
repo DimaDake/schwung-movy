@@ -269,6 +269,11 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 engine.auto_base(t as usize, lane as usize, v.clamp(0, 127) as u8, out);
             }
         }
+        "abaseq" => {
+            if let (Some(t), Some(lane), Some(v)) = (next(), next(), next()) {
+                engine.auto_base_quiet(t as usize, lane as usize, v.clamp(0, 127) as u8);
+            }
+        }
         "aset" => {
             if let (Some(t), Some(lane), Some(s), Some(v)) = (next(), next(), next(), next()) {
                 engine.auto_set(
@@ -476,6 +481,11 @@ mod tests {
         assert_eq!(e.tracks[0].lane_base[1], 64);
         // abase emits a live CC immediately (audition / stopped apply).
         assert!(out.iter().any(|x| matches!(x, OutEvent::Cc { track: 0, lane: 1, val: 64 })));
+        // abaseq updates the base WITHOUT emitting a CC.
+        out.clear();
+        apply_batch(&mut e, "abaseq 0 1 30", &mut out);
+        assert_eq!(e.tracks[0].lane_base[1], 30);
+        assert!(out.is_empty());
         apply_batch(&mut e, "aset 0 1 5 90", &mut out);
         assert_eq!(e.tracks[0].active().lock_at(1, 5), Some(90));
         apply_batch(&mut e, "aclr 0 1", &mut out);

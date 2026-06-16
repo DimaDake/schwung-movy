@@ -83,6 +83,10 @@ export function refreshOneParam(s: ModelState, tickCount: number): void {
     const p = s.knobParams[i];
     if (!p) return;
 
+    // Automation lanes are driven by playback; reading the synth back would
+    // overwrite the UI-owned base value and repaint on every automation step.
+    if (s.noRefreshKeys.has(p.key)) return;
+
     if (p.type === 'file') {
         const path = shadow_get_param(s.activeSlot, s.componentKey + ':' + p.key);
         if (path !== s.fileValues[i]) {

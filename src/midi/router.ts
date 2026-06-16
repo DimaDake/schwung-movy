@@ -9,7 +9,7 @@ import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '.
 import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteTrack, seqRestoreWatch } from '../seq/router.js';
 import { seqState } from '../seq/state.js';
 import { momentaryDown, momentaryUp } from '../seq/momentary.js';
-import { handleAutomationKnob, clearLaneForKnob } from '../seq/automation.js';
+import { handleAutomationKnob, clearLaneForKnob, automationKnobReleased } from '../seq/automation.js';
 import { deleteActive } from '../seq/edit-ops.js';
 import { mlog } from '../log.js';
 
@@ -58,7 +58,9 @@ export function onMidiMessageInternal(data: number[]): void {
             if (deleteActive() && info) { clearLaneForKnob(appState.activeSlot, info); return; }
             knobModel()?.handleKnobTouch(d1);
         } else {
+            const info = knobModel()?.getKnobParamInfo(d1) ?? null;
             knobModel()?.handleKnobRelease(d1);
+            if (info) automationKnobReleased(appState.activeSlot, info);
         }
         return;
     }

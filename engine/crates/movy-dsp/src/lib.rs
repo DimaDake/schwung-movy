@@ -15,7 +15,7 @@ use seq_core::engine::{Engine, OutEvent};
 use std::ffi::{CStr, CString};
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.14.1";
+const ENGINE_VERSION: &str = "0.15.1";
 
 struct Instance {
     engine: Engine,
@@ -62,6 +62,7 @@ impl Instance {
     fn get_param(&mut self, key: &str) -> Option<String> {
         match key {
             "status" => Some(self.engine.status()),
+            "alabels" => Some(self.engine.auto_labels()),
             "ping" => Some(format!("pong {ENGINE_VERSION}")),
             // Serialize for autosave; reading it clears the dirty flag (the UI
             // is about to persist exactly this snapshot).
@@ -89,6 +90,9 @@ impl Instance {
                 }
                 OutEvent::Click { accent } => {
                     self.click.trigger(accent);
+                }
+                OutEvent::Cc { track, lane, val } => {
+                    host::midi_send_internal(0xB0 | track, 102 + lane, val);
                 }
             }
         }

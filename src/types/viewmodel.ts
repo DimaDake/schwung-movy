@@ -9,6 +9,20 @@ export interface ParamVM {
     options:         string[] | null;
     enumIndex:       number;
     renderStyle:     'arc' | 'hbar' | 'vbar' | 'preset';
+    automated:       boolean;   // lane has ≥1 lock → show the dot
+    automatable:     boolean;   // can be assigned a lane (numeric, non-global)
+    assigned:        boolean;   // already bound to an automation lane
+}
+
+/* Injected automation snapshot (built in app/tick from seqState + the lane
+ * registry) so model/ stays free of seq/ imports. */
+export interface AutomationView {
+    assignedLanes: number;                 // bitmask, active track
+    activeLanes:   number;                  // bitmask of lanes with locks
+    held:          boolean;                 // a step is currently held
+    poolFull:      boolean;                 // all 8 lanes used (limit toast)
+    heldValues:    Map<number, number>;     // lane -> display value at held step
+    laneForKey:    (key: string) => number; // param key -> lane (-1 none)
 }
 
 export interface ToastState {
@@ -37,4 +51,6 @@ export interface ViewModel {
     drumCurrentPad:    number;
     drumCurrentPhysPad: number;
     isPadSpecific:     boolean;
+    automationHeld:    boolean;   // a step is held → automation-edit view
+    automationPoolFull: boolean;  // 8-lane cap reached (limit toast)
 }

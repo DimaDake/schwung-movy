@@ -9,6 +9,8 @@ import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '.
 import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteTrack, seqRestoreWatch } from '../seq/router.js';
 import { seqState } from '../seq/state.js';
 import { momentaryDown, momentaryUp } from '../seq/momentary.js';
+import { handleAutomationKnob, clearLaneForKnob, automationKnobReleased } from '../seq/automation.js';
+import { deleteActive } from '../seq/edit-ops.js';
 import { mlog } from '../log.js';
 
 const PAD_MIN        = MovePads[0];
@@ -48,10 +50,18 @@ export function onMidiMessageInternal(data: number[]): void {
     const d1     = data[1];
     const d2     = data[2];
 
-    /* Capacitive knob touch: NoteOn note=0..7 */
+    /* Capacitive knob touch: NoteOn note=0..7. Hold-Clear (Delete) + touch
+     * clears that knob's automation lane. */
     if ((status & 0xF0) === 0x90 && d1 < 8) {
-        if (d2 > 0) knobModel()?.handleKnobTouch(d1);
-        else        knobModel()?.handleKnobRelease(d1);
+        if (d2 > 0) {
+            const info = knobModel()?.getKnobParamInfo(d1) ?? null;
+            if (deleteActive() && info) { clearLaneForKnob(appState.activeSlot, info); return; }
+            knobModel()?.handleKnobTouch(d1);
+        } else {
+            const info = knobModel()?.getKnobParamInfo(d1) ?? null;
+            knobModel()?.handleKnobRelease(d1);
+            if (info) automationKnobReleased(appState.activeSlot, info);
+        }
         return;
     }
 
@@ -94,12 +104,20 @@ export function onMidiMessageInternal(data: number[]): void {
         }
     }
 
-    /* Knob CC (71–78) */
+    /* Knob CC (71–78) — automation gets first refusal (hold-step / Rec / a
+     * param already bound to a lane); otherwise the normal param-set path. */
     if ((status & 0xF0) === 0xB0 && d1 >= KNOB_CC_BASE && d1 < KNOB_CC_BASE + NUM_KNOBS) {
         const k     = d1 - KNOB_CC_BASE;
         const delta = decodeDelta(d2);
         mlog('knobCC k=' + k + ' d2=' + d2 + ' delta=' + delta);
-        knobModel()?.handleKnobDelta(k, delta);
+        const model = knobModel();
+        const info  = model?.getKnobParamInfo(k) ?? null;
+        const track = appState.activeSlot;
+        if (info && handleAutomationKnob(track, k, info, delta,
+                (lane) => shadow_set_param(track, 'knob_' + (lane + 1) + '_set', info.target + ':' + info.key))) {
+            return;
+        }
+        model?.handleKnobDelta(k, delta);
         return;
     }
 

@@ -559,6 +559,21 @@ _log('\nTest: drumPadOn');
     eq('no engine: engineAvailable false', engineAvailable(), false);
 }
 
+/* ── automation: status fields parse into the mirror ─────────────────────── */
+{
+    _log('\nautomation status parse:');
+    const { parseStatusForTest } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    resetSeqState();
+    parseStatusForTest('play=0 trk=0 alanes=05 aauto=04 hauto=2:50');
+    eq('autoAssigned parsed', seqState.autoAssigned, 0x05);
+    eq('autoActive parsed', seqState.autoActive, 0x04);
+    eq('heldLocks lane 2 = 50', seqState.heldLocks.get(2), 50);
+    // Empty hauto clears the map.
+    parseStatusForTest('play=0 trk=0 hauto=');
+    eq('empty hauto clears heldLocks', seqState.heldLocks.size, 0);
+}
+
 /* ── seq router: step toggle, chords, drum lanes, bars, Play, watch ──────── */
 {
     _log('\nseq router:');
@@ -1852,6 +1867,148 @@ _log('\nTest: preset param uses the preset render style');
     // page 0; rows[0][0] is the preset param.
     const vm = bootModel(MOCK_SYNTHS.obxd_like).getViewModel();
     eq('preset knob renderStyle = preset', vm.rows[0][0]?.renderStyle, 'preset');
+}
+
+/* ── model exposes per-knob param info for automation ────────────────────── */
+_log('\nTest: getKnobParamInfo');
+{
+    const m = bootModel(MOCK_SYNTHS.obxd_like);
+    const info = m.getKnobParamInfo(0);
+    eq('param info present', info !== null, true);
+    eq('param info has key', typeof info.key, 'string');
+    eq('param info has target', info.target, 'synth');
+    eq('param info has automatable flag', typeof info.automatable, 'boolean');
+    // Out-of-range knob → null.
+    eq('out-of-range knob → null', m.getKnobParamInfo(99), null);
+}
+
+/* ── viewmodel carries automation fields ─────────────────────────────────── */
+_log('\nTest: viewmodel automation fields');
+{
+    const m = bootModel(MOCK_SYNTHS.obxd_like);
+    const firstKey = m.getKnobParamInfo(0)?.key;
+    // Lane 0 bound to the first param's key, with a lock present.
+    const auto = {
+        assignedLanes: 0b1, activeLanes: 0b1, held: false, poolFull: false,
+        heldValues: new Map(),
+        laneForKey: (key) => (key === firstKey ? 0 : -1),
+    };
+    const vm = m.getViewModel(auto);
+    const pv = vm.rows[0][0];
+    eq('first param automated dot set', pv.automated, true);
+    eq('viewmodel exposes automationHeld', vm.automationHeld, false);
+    // No-arg getViewModel → no automation.
+    eq('default vm: not automated', m.getViewModel().rows[0][0].automated, false);
+}
+
+/* ── automation: registry + lane assignment ──────────────────────────────── */
+_log('\nautomation registry:');
+{
+    const {
+        resetAutomation, laneForParam, assignLane, norm7, denorm7,
+    } = await import('../dist/esm/seq/automation.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
+    resetAutomation(); resetSeqEngine();
+    eq('norm7 mid → 64', norm7(1, 0, 2), 64);
+    eq('denorm7 max → 2', denorm7(127, 0, 2), 2);
+
+    const info = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
+    const lane = assignLane(0, 0, info, () => true);
+    eq('first lane assigned', lane, 0);
+    eq('lane lookup by target:param', laneForParam(0, 'synth:cutoff'), 0);
+    // alabel + abase queued for the engine.
+    const q = peekSeqCmdQueue().join('|');
+    eq('alabel queued', q.includes('alabel 0 0 synth:cutoff'), true);
+    eq('abase queued', q.includes('abase 0 0 64'), true);
+    // Re-assigning the same param returns the same lane.
+    eq('same param → same lane', assignLane(0, 0, info, () => true), 0);
+    // Pool of 8: filling all returns -1.
+    for (let i = 1; i < 8; i++) assignLane(0, 0, { ...info, key: 'k' + i }, () => true);
+    eq('pool full → -1', assignLane(0, 0, { ...info, key: 'k8' }, () => true), -1);
+}
+
+/* ── automation: knob-turn routing (hold-step / Rec / base) ──────────────── */
+_log('\nautomation knob routing:');
+{
+    const { resetAutomation, handleAutomationKnob } = await import('../dist/esm/seq/automation.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const info = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
+
+    // Step-automation mode: knob turn writes a lock at the held step.
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    seqState.stepAutoMode = true; seqState.holdStep = 4;
+    eq('step-auto knob consumed', handleAutomationKnob(0, 0, info, +1, () => true), true);
+    eq('aset at held step 4', peekSeqCmdQueue().some((o) => o.startsWith('aset 0 0 4 ')), true);
+
+    // Non-automatable param is never consumed.
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    seqState.stepAutoMode = true; seqState.holdStep = 4;
+    eq('non-automatable not consumed',
+        handleAutomationKnob(0, 0, { ...info, automatable: false }, +1, () => true), false);
+
+    // Normal mode (no step-auto, no Rec): not consumed → normal param path edits
+    // the base immediately (no lag).
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    eq('normal-mode knob not consumed (even if a lane)',
+        handleAutomationKnob(0, 0, info, +1, () => true), false);
+
+    // Rec-armed + playing → lock at the current playing step.
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    seqState.recording = true; seqState.playing = true; seqState.curStep = 7;
+    eq('rec knob consumed', handleAutomationKnob(0, 0, info, +1, () => true), true);
+    eq('aset at playing step 7', peekSeqCmdQueue().some((o) => o.startsWith('aset 0 0 7 ')), true);
+    resetSeqState();
+}
+
+/* ── automation: hold+knob gesture enters step-auto, release is not a tap ─── */
+_log('\nautomation gesture (tap vs hold):');
+{
+    const { resetAutomation, handleAutomationKnob } = await import('../dist/esm/seq/automation.js');
+    const { editStepDown, editStepUp, endStepAutomation, resetStepEdit } =
+        await import('../dist/esm/seq/step-edit.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const info = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
+
+    resetAutomation(); resetSeqEngine(); resetSeqState(); resetStepEdit();
+    editStepDown(0);                         // hold step 0 (barOffset 0)
+    eq('not step-auto until a gesture', seqState.stepAutoMode, false);
+    eq('hold+knob consumed', handleAutomationKnob(0, 0, info, +1, () => true), true);
+    eq('entered step-auto mode', seqState.stepAutoMode, true);
+    eq('aset at held step 0', peekSeqCmdQueue().some((o) => o.startsWith('aset 0 0 0 ')), true);
+    eq('release after step-auto is NOT a tap', editStepUp(0), false);
+
+    // A plain tap (no knob, no hold) stays a tap → toggles a note.
+    resetStepEdit(); resetSeqState();
+    editStepDown(1);
+    eq('plain press is still a tap', editStepUp(1), true);
+
+    // endStepAutomation clears the mode + held snapshot.
+    seqState.stepAutoMode = true; seqState.heldLocks.set(0, 50);
+    endStepAutomation();
+    eq('endStepAutomation clears mode', seqState.stepAutoMode, false);
+    eq('endStepAutomation clears heldLocks', seqState.heldLocks.size, 0);
+}
+
+/* ── automation: label re-sync from engine ───────────────────────────────── */
+_log('\nautomation label sync:');
+{
+    const { resetAutomation, syncLabelsFromEngine, laneForParam, clearLane } =
+        await import('../dist/esm/seq/automation.js');
+    const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    resetAutomation(); resetSeqEngine();
+    const applied = [];
+    syncLabelsFromEngine(
+        '-.synth:cutoff.-.-.-.-.-.-,-.-.-.-.-.-.-.-,-.-.-.-.-.-.-.-,-.-.-.-.-.-.-.-',
+        (slot, lane, tp) => applied.push(slot + ':' + lane + ':' + tp),
+        () => ({ min: 0, max: 1, type: 'float' }),
+    );
+    eq('label synced into registry', laneForParam(0, 'synth:cutoff'), 1);
+    eq('re-applied knob mapping', applied.includes('0:1:synth:cutoff'), true);
+    // Clear frees the lane.
+    clearLane(0, 1);
+    eq('cleared lane gone', laneForParam(0, 'synth:cutoff'), -1);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

@@ -1,6 +1,6 @@
 import { createModelState } from './state.js';
 import { loadHierarchy }    from './hierarchy.js';
-import { applyKnobDelta }   from './store.js';
+import { applyKnobDelta, knobParamInfo }   from './store.js';
 import { buildViewModel }   from './viewmodel.js';
 import { processTick }      from './tick.js';
 import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV } from './constants.js';
@@ -161,7 +161,7 @@ export function createModel(slot: number, componentKey = 'synth') {
 
         tick(): boolean { return processTick(s); },
 
-        getViewModel() { return buildViewModel(s); },
+        getViewModel(auto?: import('../types/viewmodel.js').AutomationView) { return buildViewModel(s, auto); },
 
         reload(): void { s.hierarchyKey = ''; s.pollCountdown = 1; s.dirty = true; },
 
@@ -191,6 +191,23 @@ export function createModel(slot: number, componentKey = 'synth') {
         },
 
         getComponentKey(): string { return s.componentKey; },
+
+        getKnobParamInfo(physK: number) { return knobParamInfo(s, physK); },
+
+        /* Keys whose synth value the param page must not read back (automation
+         * lanes — the page shows the UI-owned base). */
+        setNoRefreshKeys(keys: string[]): void {
+            s.noRefreshKeys.clear();
+            for (const k of keys) s.noRefreshKeys.add(k);
+        },
+
+        /* Current (base) value of a param by key, regardless of page, or null. */
+        getValueByKey(key: string): number | null {
+            const gi = s.knobParams.findIndex((p) => p?.key === key);
+            if (gi < 0) return null;
+            const v = s.knobValues[gi];
+            return (v === null || v === undefined) ? null : (v as number);
+        },
 
         getDrumConfig(): import('../types/param.js').DrumConfig | null {
             return s.moduleConfig?.drum ?? null;

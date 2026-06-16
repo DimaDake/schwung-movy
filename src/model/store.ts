@@ -16,6 +16,35 @@ export function formatValue(p: KnobParam, v: number | null | undefined): string 
     return Math.round((v - p.min) / range * 100) + '%';
 }
 
+export interface KnobParamInfo {
+    gi: number;
+    key: string;
+    target: string;      // componentKey, e.g. "synth" / "fx1"
+    value: number;       // current manual value (defaults to min if unknown)
+    min: number;
+    max: number;
+    type: string;
+    automatable: boolean;
+}
+
+/* Per-knob param facts the automation layer needs. Automatable = numeric range,
+ * not a file/global param (globals like g_* aren't reachable as target:param in
+ * the chain's knob mapping; see the device spike). */
+export function knobParamInfo(s: ModelState, physK: number): KnobParamInfo | null {
+    const gi = s.knobPage * KNOBS_PER_PAGE + physK;
+    const p = s.knobParams[gi];
+    if (!p) return null;
+    const v = s.knobValues[gi];
+    const automatable = (p.type === 'float' || p.type === 'int')
+        && typeof p.min === 'number' && typeof p.max === 'number' && p.max > p.min
+        && !p.key.startsWith('g_');
+    return {
+        gi, key: p.key, target: s.componentKey,
+        value: (v === null || v === undefined) ? p.min : (v as number),
+        min: p.min, max: p.max, type: p.type, automatable,
+    };
+}
+
 export function applyKnobDelta(s: ModelState, physK: number, delta: number): void {
     const gi = s.knobPage * KNOBS_PER_PAGE + physK;
     const p  = s.knobParams[gi];
@@ -53,6 +82,10 @@ export function refreshOneParam(s: ModelState, tickCount: number): void {
 
     const p = s.knobParams[i];
     if (!p) return;
+
+    // Automation lanes are driven by playback; reading the synth back would
+    // overwrite the UI-owned base value and repaint on every automation step.
+    if (s.noRefreshKeys.has(p.key)) return;
 
     if (p.type === 'file') {
         const path = shadow_get_param(s.activeSlot, s.componentKey + ':' + p.key);

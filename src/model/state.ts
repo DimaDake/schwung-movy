@@ -43,6 +43,10 @@ export interface ModelState {
     drumPadCount:        number;
     drumCurrentPad:      number;
     drumCurrentPhysPad:  number;
+    /* Param keys that are automation lanes — their synth value is driven by
+     * automation playback, so the param page must NOT read it back (it shows
+     * the UI-owned base). Set by the app from the automation registry. */
+    noRefreshKeys:       Set<string>;
 }
 
 export function createModelState(activeSlot: number, componentKey: string): ModelState {
@@ -72,5 +76,6 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         drumPadCount:        0,
         drumCurrentPad:      1,
         drumCurrentPhysPad:  0,
+        noRefreshKeys:       new Set(),
     };
 }

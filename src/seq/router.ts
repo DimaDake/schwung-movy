@@ -39,7 +39,7 @@ import {
 import { momentaryDown, momentaryGesture, momentaryUp } from './momentary.js';
 import {
     anyStepHeld, editLength, editNudge, editPad, editStepDown, editStepUp,
-    editTranspose, editVelocity, heldStepAbs, setLengthTo,
+    editTranspose, editVelocity, heldStepAbs, setLengthTo, endStepAutomation,
 } from './step-edit.js';
 import { seqToast } from './render.js';
 import {
@@ -133,6 +133,7 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
                 seqState.holdStep = -1;
                 seqState.holdLen = 0;
                 seqCmd('hold ' + seqState.watchTrack + ' -1');
+                endStepAutomation();
             }
             if (seqState.loopMode) loopStepOff(button);
             else if (wasTap) toggleStep(button);

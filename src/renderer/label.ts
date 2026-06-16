@@ -14,12 +14,31 @@ export function drawLabelCell(col: number, lblY: number, pvm: ParamVM): void {
     } else {
         fontPrint(tx, lblY + 1, text, 1);
     }
+    // Automation marker: a 2×2 dot just past the top-right of the text (clamped
+    // inside the cell; inverted when the cell is filled by the touched value).
+    if (pvm.automated) {
+        const cellRight = col * CELL_W + CELL_W;
+        const dx = Math.min(tx + tw + 1, cellRight - 2);
+        fill_rect(dx, lblY, 2, 2, pvm.touched ? 0 : 1);
+    }
 }
 
-export function drawKnobRow(params: (ParamVM | null)[], rowY: number, lblY: number): void {
+/* While a step is held, only automatable params are editable; at the 8-lane
+ * limit, only already-assigned lanes are shown. */
+function hiddenDuringHold(pvm: ParamVM, held: boolean, poolFull: boolean): boolean {
+    if (!held) return false;
+    if (!pvm.automatable) return true;
+    return poolFull && !pvm.assigned;
+}
+
+export function drawKnobRow(
+    params: (ParamVM | null)[], rowY: number, lblY: number,
+    held = false, poolFull = false,
+): void {
     for (let col = 0; col < 4; col++) {
         const pvm = params[col];
         if (!pvm) continue;
+        if (hiddenDuringHold(pvm, held, poolFull)) continue;
         drawKnobWidget(col, rowY, pvm);
         drawLabelCell(col, lblY, pvm);
     }
@@ -31,7 +50,7 @@ export function drawKnobParams(vm: ViewModel): void {
     if (!hasParams) {
         fontPrint(2, ROW0_Y + 4, 'No params', 1);
     } else {
-        drawKnobRow(vm.rows[0], ROW0_Y, LBL0_Y);
-        drawKnobRow(vm.rows[1], ROW1_Y, LBL1_Y);
+        drawKnobRow(vm.rows[0], ROW0_Y, LBL0_Y, vm.automationHeld, vm.automationPoolFull);
+        drawKnobRow(vm.rows[1], ROW1_Y, LBL1_Y, vm.automationHeld, vm.automationPoolFull);
     }
 }

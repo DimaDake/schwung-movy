@@ -1,11 +1,18 @@
-import type { ViewModel } from '../types/viewmodel.js';
+import type { ViewModel, AutomationView } from '../types/viewmodel.js';
 import type { ModelState } from './state.js';
 import { formatValue } from './store.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
 import { dedupShortNames } from '../renderer/shorten.js';
 import { basename } from './path.js';
 
-export function buildViewModel(s: ModelState): ViewModel {
+/* No-automation default so callers that don't care (browser tests, non-seq
+ * views) need not build a snapshot. */
+const NO_AUTOMATION: AutomationView = {
+    assignedLanes: 0, activeLanes: 0, held: false, poolFull: false,
+    heldValues: new Map(), laneForKey: () => -1,
+};
+
+export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATION): ViewModel {
     const nBanks = Math.max(1, Math.ceil(s.knobParams.length / KNOBS_PER_PAGE));
 
     let bankName = '';
@@ -41,17 +48,33 @@ export function buildViewModel(s: ModelState): ViewModel {
                 : p.nameKey
                     ? (shadow_get_param(s.activeSlot, s.componentKey + ':' + p.nameKey) ?? formatValue(p, v))
                     : formatValue(p, v);
+            const lane = auto.laneForKey(p.key);
+            const automated = lane >= 0 && (auto.activeLanes & (1 << lane)) !== 0;
+            const automatable = (p.type === 'float' || p.type === 'int')
+                && typeof p.min === 'number' && typeof p.max === 'number' && p.max > p.min
+                && !p.key.startsWith('g_');
+            // While a step is held, an automatable lane shows its held-step value
+            // inverted (like a knob touch) instead of the name.
+            let touched = s.touchedSlots.includes(physK);
+            let displayValue = dv;
+            if (auto.held && lane >= 0 && auto.heldValues.has(lane)) {
+                touched = true;
+                displayValue = formatValue(p, auto.heldValues.get(lane) as number);
+            }
             rows[row].push({
                 shortName:       shortNames[physK],
                 fullName:        p.label,
                 type:            p.type,
                 normalizedValue: nv,
-                displayValue:    dv,
-                touched:         s.touchedSlots.includes(physK),
+                displayValue,
+                touched,
                 isLongEnum:      p.type === 'enum' && (p.options?.length ?? 0) > 6,
                 options:         p.options,
                 enumIndex:       enumIdx,
                 renderStyle:     p.renderStyle,
+                automated,
+                automatable,
+                assigned:        lane >= 0,
             });
         }
     }
@@ -92,5 +115,7 @@ export function buildViewModel(s: ModelState): ViewModel {
         drumCurrentPad:     s.drumCurrentPad,
         drumCurrentPhysPad: s.drumCurrentPhysPad,
         isPadSpecific:      (s.moduleConfig?.banks[s.knobPage]?.padSpecific) ?? false,
+        automationHeld:     auto.held,
+        automationPoolFull: auto.poolFull,
     };
 }

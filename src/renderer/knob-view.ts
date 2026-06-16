@@ -36,6 +36,8 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
     drawKnobParams(vm);
 
     if (vm.overlay) drawEnumOverlay(vm);
-    if (vm.toast?.browseHint) drawJogToast('JOG: BROWSE');
+    // Limit reached + a step held: tell the user only the 8 lanes are editable.
+    if (vm.automationHeld && vm.automationPoolFull) drawJogToast('8 AUTOMATION LANES — FULL');
+    else if (vm.toast?.browseHint) drawJogToast('JOG: BROWSE');
     else if (jogTouched)      drawJogToast('CLICK JOG: SWAP MODULE');
 }

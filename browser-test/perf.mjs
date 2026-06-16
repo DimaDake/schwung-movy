@@ -121,6 +121,55 @@ _origLog('\nTest 2: max shadow_get_param calls in any single tick (test16, 70 ti
     _origLog(`    (baseline: ${maxGetsInOneTick} max calls in any single tick)`);
 }
 
+/* ── Test 2b: automation lanes are decoupled from playback ───────────────── */
+/* The param page must NOT read back an automation lane's synth value, so
+ * automation playback (and live recording) cause zero page repaints and there
+ * is no read-back feedback loop. */
+_origLog('\nTest 2b: automation lanes never repaint the page (no feedback loop)');
+{
+    mockState = { ...MOCK_SYNTHS.test16 };
+    const probe = createModel(0, 'synth');
+    probe.tick();
+    const key = probe.getKnobParamInfo(0).key;
+    const synthKey = 'synth:' + key;
+
+    // Count read-backs of THIS param specifically across many ticks while its
+    // synth value is jerked by automation every tick.
+    const origGet = globalThis.shadow_get_param;
+    const runReads = (model) => {
+        let reads = 0;
+        globalThis.shadow_get_param = (s, k) => { if (k === synthKey) reads++; return mockState[k] ?? null; };
+        for (let i = 0; i < 80; i++) {
+            mockState[synthKey] = String(i % 2 ? 0.1 : 0.9);  // automation jerks it
+            model.tick();
+        }
+        globalThis.shadow_get_param = origGet;
+        return reads;
+    };
+
+    // Suppressed (it's an automation lane) → never read back → no feedback loop.
+    mockState = { ...MOCK_SYNTHS.test16 };
+    const model = createModel(0, 'synth');
+    model.tick();
+    model.setNoRefreshKeys([key]);
+    for (let i = 0; i < 5; i++) model.tick();
+    const before = model.getKnobParamInfo(0).value;
+    const suppressedReads = runReads(model);
+    const after = model.getKnobParamInfo(0).value;
+    check('automation lane is never read back (no feedback loop)', suppressedReads, 0);
+    check('suppressed lane holds the UI base value', before === after ? 0 : 1, 0);
+
+    // Contrast: an un-suppressed param IS read back as it changes — proving the
+    // suppression is what eliminates the loop.
+    mockState = { ...MOCK_SYNTHS.test16 };
+    const ctrl = createModel(0, 'synth');
+    ctrl.tick();
+    for (let i = 0; i < 5; i++) ctrl.tick();
+    const ctrlReads = runReads(ctrl);
+    check('contrast: un-suppressed param IS read back', ctrlReads > 0 ? 0 : 1, 0);
+    _origLog(`    (suppressed reads=${suppressedReads}, un-suppressed reads=${ctrlReads})`);
+}
+
 /* ── Test 3: renderKnobsView median wall-clock time (Node.js V8) ─────────── */
 
 _origLog('\nTest 3: renderKnobsView median time — Node.js V8 (no-op fill_rect)');
@@ -232,6 +281,13 @@ _origLog('\nTest 5: sequencer perf budgets');
     setParamCalls = 0;
     seqEngineTick();
     check('seq set_param calls per tick', setParamCalls, 1);
+
+    // Automation ops (aset/abase/alabel) ride the same batched cmd channel —
+    // many queued in a tick still flush as ONE set_param (no per-lock IPC spam).
+    seqCmd('aset 0 0 4 100'); seqCmd('aset 0 1 4 90'); seqCmd('abase 0 0 64');
+    setParamCalls = 0;
+    seqEngineTick();
+    check('automation ops: one flush per tick', setParamCalls, 1);
 
     // Loop strip is cheap: bounded fill_rect per draw.
     fillRectCount = 0;

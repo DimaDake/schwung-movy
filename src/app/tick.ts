@@ -11,10 +11,13 @@ import { renderBrowseView } from '../renderer/browse-view.js';
 import { renderChainView }    from '../renderer/chain-view.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
-import { seqEngineTick } from '../seq/engine.js';
+import { seqEngineTick, takeLabelSync } from '../seq/engine.js';
+import { syncLabelsFromEngine, rangeFromChainParams, automationRegistry, denorm7, laneKeysForTrack } from '../seq/automation.js';
+import type { AutomationView } from '../types/viewmodel.js';
 import { seqPersistTick } from '../seq/persist.js';
 import { seqLedsTick, seqLedsInvalidate } from '../seq/leds.js';
 import { seqSetLane } from '../seq/router.js';
+import { stepAutoTick } from '../seq/step-edit.js';
 import { activeHasNote, maxBarOffset, seqState } from '../seq/state.js';
 import { engineReady } from '../seq/engine.js';
 import {
@@ -36,6 +39,28 @@ let jogToastShown = false;   // a bottom jog/browse toast is on screen (strip yi
  * LED colors every tick. Initialized to 0 (C_BLACK); first tick syncs all. */
 const chromaticCache = new Uint8Array(32);
 
+/* Assemble the automation snapshot for the param viewmodel from the seq mirror
+ * + the lane registry. Kept here (app layer) so model/ stays free of seq/. */
+function buildAutomationView(track: number): AutomationView {
+    const reg = automationRegistry()[track];
+    const heldValues = new Map<number, number>();
+    for (const [lane, v] of seqState.heldLocks) {
+        const e = reg[lane];
+        if (e) heldValues.set(lane, denorm7(v, e.min, e.max));
+    }
+    const laneForKey = (key: string): number => {
+        for (let l = 0; l < 8; l++) if (reg[l] && reg[l]!.shortName === key) return l;
+        return -1;
+    };
+    return {
+        assignedLanes: seqState.autoAssigned,
+        activeLanes:   seqState.autoActive,
+        held:          seqState.stepAutoMode,
+        poolFull:      seqState.autoPoolFull,
+        heldValues, laneForKey,
+    };
+}
+
 /* Same idea for the 4×4 drum grid: the drum-pad colors update at poll rate
  * (green follows the sequencer gate / held pads), so cache-diffing keeps the
  * LED traffic to actual changes. */
@@ -43,6 +68,19 @@ const drumCache = new Uint8Array(32);
 
 export function tick(): void {
     seqEngineTick();
+    stepAutoTick(); // promote a long single-step hold to step-automation mode
+    // Engine (re)booted: rebuild the automation registry from its labels and
+    // re-apply each lane's chain knob mapping so playback CCs land.
+    if (engineReady() && takeLabelSync()) {
+        const labels = host_module_get_param('alabels');
+        if (labels) {
+            syncLabelsFromEngine(
+                labels,
+                (slot, lane, tp) => shadow_set_param(slot, 'knob_' + (lane + 1) + '_set', tp),
+                (tp) => rangeFromChainParams(appState.activeSlot, tp),
+            );
+        }
+    }
     seqPersistTick();
     /* Session toggle changes pad ownership: invalidate the seq LED cache and
      * re-init the instrument pad LEDs when returning to Note mode. */
@@ -87,6 +125,9 @@ export function tick(): void {
 
     const chainIdx    = appState.trackChainIndex[appState.activeSlot];
     const activeModel = appState.trackModels[appState.activeSlot]?.[chainIdx];
+    // Automation lanes are driven by playback — keep the page from reading them
+    // back (decouples display from automation; avoids per-step repaints).
+    activeModel?.setNoRefreshKeys(laneKeysForTrack(appState.activeSlot));
     const modelDirty  = activeModel?.tick() ?? false;
 
     const mIdx        = appState.masterChainIndex;
@@ -121,7 +162,7 @@ export function tick(): void {
         } else if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
-            const vm = activeModel!.getViewModel();
+            const vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot));
             renderKnobsView(vm, appState.jogTouched, appState.activeSlot);
             jogToastShown = !!vm.toast?.browseHint || appState.jogTouched;
             updateKnobLEDs(vm);

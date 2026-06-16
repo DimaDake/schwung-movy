@@ -24,18 +24,32 @@ pub fn serialize(engine: &Engine) -> String {
     s.push_str(&format!("bpm {}\n", engine.clock.bpm_x100()));
     for (ti, t) in engine.tracks.iter().enumerate() {
         s.push_str(&format!("tk {} {} {}\n", ti, t.active_clip, t.muted as u8));
+        for lane in 0..8 {
+            if t.lane_assigned[lane] {
+                s.push_str(&format!("au {} {} {} {}\n", ti, lane, t.lane_base[lane], t.lane_label[lane]));
+            }
+        }
         for (ci, c) in t.clips.iter().enumerate() {
-            if !c.exists() {
-                continue;
-            }
-            s.push_str(&format!("cl {} {} {} {} ", ti, ci, c.length_steps, c.loop_start_steps));
-            for (i, n) in c.notes.iter().enumerate() {
-                if i > 0 {
-                    s.push(';');
+            if c.exists() {
+                s.push_str(&format!("cl {} {} {} {} ", ti, ci, c.length_steps, c.loop_start_steps));
+                for (i, n) in c.notes.iter().enumerate() {
+                    if i > 0 {
+                        s.push(';');
+                    }
+                    s.push_str(&format!("{}:{}:{}:{}", n.tick, n.gate, n.pitch, n.vel));
                 }
-                s.push_str(&format!("{}:{}:{}:{}", n.tick, n.gate, n.pitch, n.vel));
+                s.push('\n');
             }
-            s.push('\n');
+            if !c.locks.is_empty() {
+                s.push_str(&format!("lk {} {} ", ti, ci));
+                for (i, l) in c.locks.iter().enumerate() {
+                    if i > 0 {
+                        s.push(';');
+                    }
+                    s.push_str(&format!("{}:{}:{}", l.lane, l.step, l.val));
+                }
+                s.push('\n');
+            }
         }
     }
     s
@@ -58,6 +72,9 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
         t.playing_slot = None;
         t.queued_slot = None;
         t.pending_stop = false;
+        t.lane_assigned = [false; 8];
+        t.lane_base = [0u8; 8];
+        t.lane_label = Default::default();
     }
     for line in lines {
         let mut it = line.split_whitespace();
@@ -77,10 +94,48 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
                 }
             }
             Some("cl") => load_clip(engine, &mut it),
+            Some("au") => {
+                // au <track> <lane> <base> <label>
+                let track = it.next().and_then(|x| x.parse::<usize>().ok());
+                let lane = it.next().and_then(|x| x.parse::<usize>().ok());
+                let base = it.next().and_then(|x| x.parse::<u8>().ok());
+                let label = it.next().unwrap_or("");
+                if let (Some(track), Some(lane), Some(base)) = (track, lane, base) {
+                    if track < engine.tracks.len() && lane < 8 {
+                        engine.tracks[track].lane_assigned[lane] = true;
+                        engine.tracks[track].lane_base[lane] = base;
+                        engine.tracks[track].lane_label[lane] = label.to_string();
+                    }
+                }
+            }
+            Some("lk") => load_locks(engine, &mut it),
             _ => {}
         }
     }
     true
+}
+
+fn load_locks<'a>(engine: &mut Engine, it: &mut impl Iterator<Item = &'a str>) {
+    let track = it.next().and_then(|x| x.parse::<usize>().ok());
+    let slot = it.next().and_then(|x| x.parse::<usize>().ok());
+    let (Some(track), Some(slot)) = (track, slot) else {
+        return;
+    };
+    if track >= engine.tracks.len() || slot >= 8 {
+        return;
+    }
+    if let Some(locks) = it.next() {
+        for tok in locks.split(';') {
+            let p: Vec<&str> = tok.split(':').collect();
+            if p.len() == 3 {
+                if let (Ok(lane), Ok(step), Ok(val)) =
+                    (p[0].parse::<u8>(), p[1].parse::<u16>(), p[2].parse::<u8>())
+                {
+                    engine.tracks[track].clips[slot].set_lock(lane & 7, step, val.min(127));
+                }
+            }
+        }
+    }
 }
 
 fn load_clip<'a>(engine: &mut Engine, it: &mut impl Iterator<Item = &'a str>) {
@@ -142,6 +197,22 @@ mod tests {
         // Transport never persists.
         assert!(!e2.playing);
         assert_eq!(e2.tracks[0].playing_slot, None);
+    }
+
+    #[test]
+    fn round_trips_automation() {
+        let mut e = Engine::new(44100, 12000);
+        let mut out = Vec::new();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        crate::command::apply_batch(&mut e, "alabel 0 1 synth:cutoff;abase 0 1 70", &mut out);
+        e.tracks[0].active_mut().set_lock(1, 3, 55);
+        let s = serialize(&e);
+        let mut e2 = Engine::new(44100, 12000);
+        assert!(load(&mut e2, &s));
+        assert!(e2.tracks[0].lane_assigned[1]);
+        assert_eq!(e2.tracks[0].lane_label[1], "synth:cutoff");
+        assert_eq!(e2.tracks[0].lane_base[1], 70);
+        assert_eq!(e2.tracks[0].active().lock_at(1, 3), Some(55));
     }
 
     #[test]

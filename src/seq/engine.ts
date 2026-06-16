@@ -67,6 +67,16 @@ export function seqCmd(op: string): void {
     cmdQueue.push(op);
 }
 
+/* Automation label re-sync request: set on engine boot/reload; the app tick
+ * consumes it once to fetch `alabels` and rebuild the lane registry. */
+let labelSyncPending = false;
+export function requestLabelSync(): void { labelSyncPending = true; }
+export function takeLabelSync(): boolean {
+    if (!labelSyncPending) return false;
+    labelSyncPending = false;
+    return true;
+}
+
 export function seqEngineTick(): void {
     uiTickCount++;
     if (!engineAvailable()) return;
@@ -106,6 +116,7 @@ function probeTick(): void {
         bootState = 'ok';
         statusFailures = 0;
         pollCountdown = 1;
+        requestLabelSync(); // rebuild automation registry + re-apply chain mappings
         return;
     }
     probeFailures++;
@@ -164,6 +175,15 @@ function parseStatus(s: string): void {
         else if (key === 'mute') muteFromStr(val);
         else if (key === 'sess') sessionFromStr(val);
         else if (key === 'occ') occFromHex(val);
+        else if (key === 'alanes') seqState.autoAssigned = parseInt(val, 16) || 0;
+        else if (key === 'aauto') seqState.autoActive = parseInt(val, 16) || 0;
+        else if (key === 'hauto') {
+            seqState.heldLocks.clear();
+            if (val) for (const pair of val.split('.')) {
+                const [l, v] = pair.split(':').map(Number);
+                if (l >= 0 && l < 8) seqState.heldLocks.set(l, v);
+            }
+        }
     }
     if (lastEnginePlay !== seqState.playing) {
         mlog('seq: play=' + (seqState.playing ? 1 : 0));

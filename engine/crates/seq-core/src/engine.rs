@@ -3,7 +3,7 @@
 //! them into host MIDI sends. One Engine instance == the whole 4-track
 //! sequencer.
 
-use crate::clip::Clip;
+use crate::clip::{Clip, Lock};
 use crate::clock::Clock;
 use crate::track::{Track, CLIPS_PER_TRACK, NUM_TRACKS};
 use crate::{PPQN, TICKS_PER_STEP};
@@ -14,6 +14,8 @@ pub enum OutEvent {
     NoteOff { track: u8, pitch: u8 },
     /// Metronome click; `accent` marks the downbeat (bar start).
     Click { accent: bool },
+    /// Parameter automation: chain abs-CC 102+lane, value 0..=127.
+    Cc { track: u8, lane: u8, val: u8 },
 }
 
 struct RecPending {
@@ -41,6 +43,9 @@ pub struct Engine {
     /// Note clipboard for copy/paste of steps and ranges, across tracks and
     /// clips. Ticks/steps are stored relative to the copy start.
     clipboard: Vec<ClipboardNote>,
+    /// Automation locks captured alongside `clipboard`, steps stored relative
+    /// to the copy start so an empty (note-less) step's automation copies too.
+    lock_clipboard: Vec<Lock>,
     /// Whole-clip clipboard for Session copy/paste.
     clip_clipboard: Option<Clip>,
     /// Recording state (live capture into the active clip).
@@ -82,6 +87,7 @@ impl Engine {
             watch_track: 0,
             watch_lane: None,
             clipboard: Vec::new(),
+            lock_clipboard: Vec::new(),
             clip_clipboard: None,
             recording: false,
             rec_track: 0,
@@ -186,6 +192,13 @@ impl Engine {
                 vel: n.vel,
             })
             .collect();
+        self.lock_clipboard = self.tracks[track]
+            .active()
+            .locks
+            .iter()
+            .filter(|l| l.step >= s0 && l.step <= s1)
+            .map(|l| Lock { lane: l.lane, step: l.step - s0, val: l.val })
+            .collect();
     }
 
     pub fn paste_steps(&mut self, track: usize, dest_step: u16) {
@@ -204,10 +217,16 @@ impl Engine {
                 cn.vel,
             );
         }
+        let lb = self.lock_clipboard.clone();
+        let clip = self.tracks[track].active_mut();
+        for l in lb {
+            clip.set_lock(l.lane, dest_step + l.step, l.val);
+        }
     }
 
     pub fn clear_clipboard(&mut self) {
         self.clipboard.clear();
+        self.lock_clipboard.clear();
     }
 
     pub fn watched_clip(&self) -> &Clip {
@@ -221,6 +240,7 @@ impl Engine {
         for t in &mut self.tracks {
             let start = t.playing().map_or(0, |c| c.loop_start_ticks());
             t.pos_tick = start;
+            t.last_auto_step = -1; // re-emit automation from step 0 on (re)start
         }
         self.clock.reset();
         self.master_tick = 0;
@@ -287,6 +307,9 @@ impl Engine {
         self.recording = false;
         self.count_in_left = 0;
         self.rec_pending.clear();
+        for t in &mut self.tracks {
+            t.last_auto_step = -1;
+        }
         for g in self.gates.drain(..) {
             out.push(OutEvent::NoteOff {
                 track: g.track,
@@ -496,12 +519,100 @@ impl Engine {
                         self.tracks[ti].clips[slot].release_suppressed();
                     }
                 }
+                // Parameter automation: emit on step entry (revert-to-base).
+                let cur = (self.tracks[ti].pos_tick / TICKS_PER_STEP) as i32;
+                if cur != self.tracks[ti].last_auto_step {
+                    self.tracks[ti].last_auto_step = cur;
+                    self.emit_automation(ti, slot, cur as u16, out);
+                }
             }
+        }
+    }
+
+    /// Emit automation CCs for `track` entering `step`: each assigned lane gets
+    /// its lock value at this step, or the lane base when no lock (revert-to-base).
+    fn emit_automation(&mut self, track: usize, slot: usize, step: u16, out: &mut Vec<OutEvent>) {
+        for lane in 0..8u8 {
+            if !self.tracks[track].lane_assigned[lane as usize] {
+                continue;
+            }
+            let val = self.tracks[track].clips[slot]
+                .lock_at(lane, step)
+                .unwrap_or(self.tracks[track].lane_base[lane as usize]);
+            out.push(OutEvent::Cc { track: track as u8, lane, val });
         }
     }
 
     pub fn set_held_query(&mut self, q: Option<(usize, u16)>) {
         self.held_query = q;
+    }
+
+    // ── Parameter automation commands (lane 0..8, val 0..=127) ─────────────
+
+    pub fn auto_label(&mut self, track: usize, lane: usize, label: &str) {
+        if track < NUM_TRACKS && lane < 8 {
+            self.tracks[track].lane_assigned[lane] = true;
+            self.tracks[track].lane_label[lane] = label.to_string();
+        }
+    }
+
+    pub fn auto_base(&mut self, track: usize, lane: usize, val: u8, out: &mut Vec<OutEvent>) {
+        if track < NUM_TRACKS && lane < 8 {
+            self.tracks[track].lane_base[lane] = val;
+            if self.tracks[track].lane_assigned[lane] {
+                out.push(OutEvent::Cc { track: track as u8, lane: lane as u8, val });
+            }
+        }
+    }
+
+    /// Set the lane base WITHOUT emitting a CC. The UI uses this when the user
+    /// edits the original value via the normal param path (which already applied
+    /// it to the synth) — the base only needs to update so playback reverts to
+    /// it on un-locked steps.
+    pub fn auto_base_quiet(&mut self, track: usize, lane: usize, val: u8) {
+        if track < NUM_TRACKS && lane < 8 {
+            self.tracks[track].lane_base[lane] = val;
+        }
+    }
+
+    pub fn auto_set(&mut self, track: usize, lane: usize, step: u16, val: u8, out: &mut Vec<OutEvent>) {
+        if track < NUM_TRACKS && lane < 8 {
+            self.tracks[track].active_mut().set_lock(lane as u8, step, val);
+            // Audition: apply now (stopped) / refresh (playing) for the edited lane.
+            if self.tracks[track].lane_assigned[lane] {
+                out.push(OutEvent::Cc { track: track as u8, lane: lane as u8, val });
+            }
+        }
+    }
+
+    pub fn auto_clear(&mut self, track: usize, lane: usize) {
+        if track < NUM_TRACKS && lane < 8 {
+            for c in &mut self.tracks[track].clips {
+                c.clear_lane(lane as u8);
+            }
+            self.tracks[track].lane_assigned[lane] = false;
+            self.tracks[track].lane_label[lane].clear();
+        }
+    }
+
+    /// All lanes' labels for every track, for the UI to rebuild its registry +
+    /// re-apply chain knob mappings after a load. Format: tracks ',', lanes '.',
+    /// each label or '-'.
+    pub fn auto_labels(&self) -> String {
+        let mut out = String::new();
+        for (ti, t) in self.tracks.iter().enumerate() {
+            if ti > 0 {
+                out.push(',');
+            }
+            for lane in 0..8 {
+                if lane > 0 {
+                    out.push('.');
+                }
+                let l = &t.lane_label[lane];
+                out.push_str(if l.is_empty() { "-" } else { l });
+            }
+        }
+        out
     }
 
     fn held_len_steps(&self) -> u16 {
@@ -537,8 +648,28 @@ impl Engine {
     pub fn status(&self) -> String {
         let wt = &self.tracks[self.watch_track];
         let clip = wt.active();
+        let alanes = wt
+            .lane_assigned
+            .iter()
+            .enumerate()
+            .fold(0u8, |m, (i, &a)| if a { m | (1 << i) } else { m });
+        let aauto = clip.automated_lanes();
+        let hauto = match self.held_query {
+            Some((t, step)) if t < NUM_TRACKS => {
+                let mut v: Vec<(u8, u8)> = self.tracks[t].active().locks_at_step(step).collect();
+                v.sort_unstable();
+                v.iter().enumerate().fold(String::new(), |mut s, (i, (l, val))| {
+                    if i > 0 {
+                        s.push('.');
+                    }
+                    s.push_str(&format!("{l}:{val}"));
+                    s
+                })
+            }
+            _ => String::new(),
+        };
         format!(
-            "play={} tick={} bpm={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={}",
+            "play={} tick={} bpm={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -556,7 +687,10 @@ impl Engine {
             self.mute_state(),
             self.held_len_steps(),
             self.held_notes_state(),
-            clip.occupancy_hex_lane(self.watch_lane)
+            clip.occupancy_hex_lane(self.watch_lane),
+            alanes,
+            aauto,
+            hauto
         )
     }
 
@@ -661,6 +795,34 @@ mod tests {
     }
 
     #[test]
+    fn emits_lock_value_on_locked_step_and_base_elsewhere() {
+        let mut e = engine();
+        // Lane 0 assigned, base 40; note so the clip plays; lock 100 at step 2.
+        e.tracks[0].lane_assigned[0] = true;
+        e.tracks[0].lane_base[0] = 40;
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[0].active_mut().set_lock(0, 2, 100);
+        e.play();
+        let ev = run_ticks(&mut e, 3 * TICKS_PER_STEP as u64 + 2);
+        let ccs: Vec<(u8, u8)> = ev.iter().filter_map(|x| match x {
+            OutEvent::Cc { lane, val, track: 0 } => Some((*lane, *val)), _ => None,
+        }).collect();
+        // Step 0 (base 40), step 2 (lock 100) both appear; only on step entry.
+        assert!(ccs.contains(&(0, 40)));
+        assert!(ccs.contains(&(0, 100)));
+    }
+
+    #[test]
+    fn no_cc_for_unassigned_lane() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[0].active_mut().set_lock(0, 0, 50); // lock but lane unassigned
+        e.play();
+        let ev = run_ticks(&mut e, TICKS_PER_STEP as u64 + 2);
+        assert!(!ev.iter().any(|x| matches!(x, OutEvent::Cc { .. })));
+    }
+
+    #[test]
     fn four_tracks_play_simultaneously() {
         let mut e = engine();
         for t in 0..4 {
@@ -674,6 +836,20 @@ mod tests {
                 "track {t} missing"
             );
         }
+    }
+
+    #[test]
+    fn copy_paste_carries_locks_even_without_notes() {
+        use crate::command::apply_batch;
+        let mut e = engine();
+        let mut out = Vec::new();
+        // Lock on step 1 with NO note there; note on step 0.
+        apply_batch(&mut e, "tog 0 0 60 100", &mut out);
+        e.tracks[0].active_mut().set_lock(2, 1, 77);
+        apply_batch(&mut e, "cpy 0 0 3", &mut out);   // copy steps 0-3 (locks + notes)
+        apply_batch(&mut e, "pst 0 8", &mut out);     // paste at step 8
+        assert_eq!(e.tracks[0].active().lock_at(2, 9), Some(77)); // step 1 → 9
+        assert!(e.tracks[0].active().step_has_notes(8));          // step 0 → 8
     }
 
     #[test]

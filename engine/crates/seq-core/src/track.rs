@@ -21,6 +21,13 @@ pub struct Track {
     /// Position inside the playing clip in ticks; valid while transport runs.
     pub pos_tick: u32,
     pub muted: bool,
+    /// Automation lane state (per track, shared across the track's clips —
+    /// mirrors the chain slot's 8 knob mappings). label = "target:param".
+    pub lane_assigned: [bool; 8],
+    pub lane_base: [u8; 8],
+    pub lane_label: [String; 8],
+    /// Last step automation was emitted for (per track) — see engine emission.
+    pub last_auto_step: i32,
 }
 
 impl Default for Track {
@@ -39,6 +46,10 @@ impl Track {
             pending_stop: false,
             pos_tick: 0,
             muted: false,
+            lane_assigned: [false; 8],
+            lane_base: [0u8; 8],
+            lane_label: Default::default(),
+            last_auto_step: -1,
         }
     }
 
@@ -60,5 +71,18 @@ impl Track {
     /// Current step index within the playing clip (for the playhead LED).
     pub fn current_step(&self) -> u16 {
         (self.pos_tick / crate::TICKS_PER_STEP) as u16
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_track_has_unassigned_lanes() {
+        let t = Track::new();
+        assert_eq!(t.lane_assigned, [false; 8]);
+        assert_eq!(t.lane_base, [0u8; 8]);
+        assert!(t.lane_label.iter().all(|s| s.is_empty()));
     }
 }

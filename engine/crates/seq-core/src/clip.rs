@@ -112,6 +112,11 @@ impl Clip {
         self.locks.retain(|l| l.lane != lane);
     }
 
+    /// Remove a single lane's lock at one step (the rest of the lane stays).
+    pub fn clear_lock(&mut self, lane: u8, step: u16) {
+        self.locks.retain(|l| !(l.lane == lane && l.step == step));
+    }
+
     /// Bitmask of lanes (bit `lane`) that have ≥1 lock — drives the UI dots.
     pub fn automated_lanes(&self) -> u8 {
         self.locks.iter().fold(0u8, |m, l| m | (1u8 << (l.lane & 7)))

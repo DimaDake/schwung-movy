@@ -10,6 +10,7 @@
 import type { KnobParamInfo } from '../model/store.js';
 import { seqCmd } from './engine.js';
 import { seqState } from './state.js';
+import { seqToast } from './render.js';
 import { beginStepAutomation } from './step-edit.js';
 
 export interface LaneEntry {
@@ -36,6 +37,7 @@ export function resetAutomation(): void {
     liveVal.clear();
     liveCtx.clear();
     recordingLanes.clear();
+    touchedNotTurned.clear();
 }
 
 /* 7-bit conversion matching the chain's abs-CC scaling. */
@@ -105,12 +107,21 @@ function accumLive(track: number, lane: number, ctx: string, seed: number, delta
  * synth to base when the knob is released. */
 const recordingLanes = new Set<number>();
 
+/* Knobs (physK) touched in step-automation mode that haven't been turned yet —
+ * releasing one (a tap) clears that step's automation for the param. */
+const touchedNotTurned = new Set<number>();
+
+/* Knob touched: in step-automation mode, arm tap-to-clear for this knob. */
+export function automationKnobTouched(physK: number): void {
+    if (seqState.stepAutoMode) touchedNotTurned.add(physK);
+}
+
 /* Route a knob turn as automation. Returns true if consumed (step-automation
  * or live-record). In normal mode it returns false so the normal param path
  * edits the original/base value immediately (no engine round-trip → no lag);
  * the engine's base is synced on knob release (`automationKnobReleased`). */
 export function handleAutomationKnob(
-    track: number, _physK: number, info: KnobParamInfo, delta: number,
+    track: number, physK: number, info: KnobParamInfo, delta: number,
     setMapping: (lane: number) => boolean,
 ): boolean {
     if (!info.automatable) return false;
@@ -121,6 +132,7 @@ export function handleAutomationKnob(
     }
     const held = seqState.stepAutoMode;
     if (!held && !recArmed) return false;
+    touchedNotTurned.delete(physK); // a turn → not a tap (no clear on release)
 
     // Step-automation or Rec: ensure a lane, then write a lock at the target step.
     const tp = info.target + ':' + info.key;
@@ -138,11 +150,25 @@ export function handleAutomationKnob(
     return true;
 }
 
-/* Knob released: sync the engine base for a normal edit, or — if we were
- * live-recording this lane — revert the synth to base (the recorded lock still
- * plays at its step). `info.value` is the param's current (base) value. */
-export function automationKnobReleased(track: number, info: KnobParamInfo): void {
+/* Knob released. In step-automation mode, a tap (touched, never turned) clears
+ * this step's automation for the param. Otherwise: revert a live-recorded lane
+ * to base, or sync the engine base for a normal edit. `info.value` is the
+ * param's current (base) value. */
+export function automationKnobReleased(track: number, physK: number, info: KnobParamInfo): void {
     const lane = laneForParam(track, info.target + ':' + info.key);
+    const wasTap = touchedNotTurned.delete(physK);
+
+    // Tap in step-automation mode → clear this step's lock (revert to base).
+    if (seqState.stepAutoMode && wasTap) {
+        if (lane >= 0 && seqState.heldLocks.has(lane)) {
+            seqCmd('aclrs ' + track + ' ' + lane + ' ' + seqState.holdStep);
+            seqState.heldLocks.delete(lane);             // optimistic: back to name
+            liveCtx.delete(track + ':' + lane);          // reseed next edit
+            seqToast(info.key + ' cleared');
+        }
+        return;
+    }
+
     if (lane < 0) return;
     const baseN = norm7(info.value, info.min, info.max);
     if (recordingLanes.delete(track * 8 + lane)) {

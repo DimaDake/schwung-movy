@@ -595,6 +595,14 @@ impl Engine {
         }
     }
 
+    /// Remove one lane's lock at a single step (active clip). The lane stays
+    /// assigned — only this step reverts to base.
+    pub fn auto_clear_step(&mut self, track: usize, lane: usize, step: u16) {
+        if track < NUM_TRACKS && lane < 8 {
+            self.tracks[track].active_mut().clear_lock(lane as u8, step);
+        }
+    }
+
     /// All lanes' labels for every track, for the UI to rebuild its registry +
     /// re-apply chain knob mappings after a load. Format: tracks ',', lanes '.',
     /// each label or '-'.

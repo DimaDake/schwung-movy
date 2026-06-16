@@ -1991,6 +1991,37 @@ _log('\nautomation gesture (tap vs hold):');
     eq('endStepAutomation clears heldLocks', seqState.heldLocks.size, 0);
 }
 
+/* ── automation: tap a knob (no turn) in step-auto clears that step ───────── */
+_log('\nautomation tap-to-clear:');
+{
+    const { resetAutomation, handleAutomationKnob, automationKnobTouched, automationKnobReleased } =
+        await import('../dist/esm/seq/automation.js');
+    const { resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const info = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
+
+    resetAutomation(); resetSeqEngine(); resetSeqState(); resetStepEdit();
+    seqState.stepAutoMode = true; seqState.holdStep = 4;
+    handleAutomationKnob(0, 0, info, +1, () => true);    // create a lock by turning
+    eq('lock present after a turn', seqState.heldLocks.has(0), true);
+
+    // Tap = touch then release without turning → clears this step's lock.
+    resetSeqEngine();
+    automationKnobTouched(0);
+    automationKnobReleased(0, 0, info);
+    eq('tap queues aclrs at held step', peekSeqCmdQueue().some((o) => o.startsWith('aclrs 0 0 4')), true);
+    eq('tap clears the optimistic held lock', seqState.heldLocks.has(0), false);
+
+    // Touch + turn is NOT a tap → no clear.
+    resetSeqEngine();
+    automationKnobTouched(0);
+    handleAutomationKnob(0, 0, info, +1, () => true);
+    automationKnobReleased(0, 0, info);
+    eq('touch+turn does not clear', peekSeqCmdQueue().some((o) => o.startsWith('aclrs')), false);
+    resetSeqState();
+}
+
 /* ── automation: label re-sync from engine ───────────────────────────────── */
 _log('\nautomation label sync:');
 {

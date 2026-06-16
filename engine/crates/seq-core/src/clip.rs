@@ -122,6 +122,15 @@ impl Clip {
         self.locks.retain(|l| l.step != step);
     }
 
+    /// Set one lane's lock to `val` for every step in [s0, s1] (whole-bar set).
+    pub fn set_lock_range(&mut self, lane: u8, s0: u16, s1: u16, val: u8) {
+        let mut step = s0;
+        while step <= s1 {
+            self.set_lock(lane, step, val);
+            step += 1;
+        }
+    }
+
     /// Bitmask of lanes (bit `lane`) that have ≥1 lock — drives the UI dots.
     pub fn automated_lanes(&self) -> u8 {
         self.locks.iter().fold(0u8, |m, l| m | (1u8 << (l.lane & 7)))

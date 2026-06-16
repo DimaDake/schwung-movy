@@ -2035,6 +2035,24 @@ _log('\nautomation tap-to-clear:');
     resetSeqState();
 }
 
+/* ── automation: holding a bar in Loop mode sets the whole bar ────────────── */
+_log('\nautomation bar-range (Loop mode):');
+{
+    const { resetAutomation, handleAutomationKnob } = await import('../dist/esm/seq/automation.js');
+    const { editStepDown, resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const info = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
+
+    resetAutomation(); resetSeqEngine(); resetSeqState(); resetStepEdit();
+    seqState.loopMode = true;
+    editStepDown(1);                         // hold bar 1 → range steps 16..31
+    eq('bar-knob consumed', handleAutomationKnob(0, 0, info, +1, () => true), true);
+    eq('writes asetr across the bar', peekSeqCmdQueue().some((o) => o.startsWith('asetr 0 0 16 31 ')), true);
+    eq('no single-step aset for a bar', peekSeqCmdQueue().some((o) => o.startsWith('aset 0 0 ')), false);
+    resetSeqState(); resetStepEdit();
+}
+
 /* ── automation: label re-sync from engine ───────────────────────────────── */
 _log('\nautomation label sync:');
 {

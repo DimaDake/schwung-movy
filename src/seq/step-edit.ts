@@ -51,15 +51,15 @@ export function editStepDown(button: number): void {
  * automation, the release won't toggle a note). Returns the step, or -1 if not
  * exactly one step is held. Idempotent. */
 export function beginStepAutomation(): number {
-    const s = heldStepAbs();
-    if (s < 0) return -1;
+    const r = heldRange();                // one step (Note) or a whole bar (Loop)
+    if (!r) return -1;
     markGestured();                       // release is no longer a tap
     if (!seqState.stepAutoMode) {
         seqState.stepAutoMode = true;
-        seqState.holdStep = s;
-        seqCmd('hold ' + seqState.watchTrack + ' ' + s);
+        seqState.holdStep = r.s0;         // representative step for the held-value display
+        seqCmd('hold ' + seqState.watchTrack + ' ' + r.s0);
     }
-    return s;
+    return r.s0;
 }
 
 /* Per-tick: a single step held past the threshold enters step-automation mode
@@ -149,6 +149,14 @@ export function editPad(pitch: number, vel: number): boolean {
         }
     });
     return true;
+}
+
+/* The single held range (one step in Note mode, a whole bar in Loop mode), or
+ * null unless exactly one button is held. Drives step-automation's target. */
+export function heldRange(): { s0: number; s1: number } | null {
+    if (heldRanges.size !== 1) return null;
+    const r = [...heldRanges.values()][0];
+    return { s0: r.s0, s1: r.s1 };
 }
 
 /* Every absolute step currently held (flattening Loop-mode bar ranges). */

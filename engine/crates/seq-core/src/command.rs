@@ -300,6 +300,21 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 engine.auto_clear_step_all(t as usize, s.clamp(0, 255) as u16);
             }
         }
+        // asetr <t> <lane> <s0> <s1> <val> — set a lane's lock over a step range.
+        "asetr" => {
+            if let (Some(t), Some(lane), Some(s0), Some(s1), Some(v)) =
+                (next(), next(), next(), next(), next())
+            {
+                engine.auto_set_range(
+                    t as usize,
+                    lane as usize,
+                    s0.clamp(0, 255) as u16,
+                    s1.clamp(0, 255) as u16,
+                    v.clamp(0, 127) as u8,
+                    out,
+                );
+            }
+        }
         _ => {} // forward compat
     }
 }
@@ -515,6 +530,14 @@ mod tests {
         assert_eq!(e.tracks[0].active().lock_at(0, 3), None);
         assert_eq!(e.tracks[0].active().lock_at(2, 3), None);
         assert_eq!(e.tracks[0].active().lock_at(1, 9), Some(70));
+
+        // asetr sets a lane's lock across a whole bar (range), nothing outside it.
+        apply_batch(&mut e, "asetr 0 0 16 31 99", &mut out);
+        for s in 16..=31 {
+            assert_eq!(e.tracks[0].active().lock_at(0, s), Some(99));
+        }
+        assert_eq!(e.tracks[0].active().lock_at(0, 15), None);
+        assert_eq!(e.tracks[0].active().lock_at(0, 32), None);
     }
 
     #[test]

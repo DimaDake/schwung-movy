@@ -585,6 +585,17 @@ impl Engine {
         }
     }
 
+    /// Set one lane's lock for every step in [s0, s1] (hold-a-bar set). Emits a
+    /// single audition CC with the value if the lane is assigned.
+    pub fn auto_set_range(&mut self, track: usize, lane: usize, s0: u16, s1: u16, val: u8, out: &mut Vec<OutEvent>) {
+        if track < NUM_TRACKS && lane < 8 {
+            self.tracks[track].active_mut().set_lock_range(lane as u8, s0, s1, val);
+            if self.tracks[track].lane_assigned[lane] {
+                out.push(OutEvent::Cc { track: track as u8, lane: lane as u8, val });
+            }
+        }
+    }
+
     pub fn auto_clear(&mut self, track: usize, lane: usize) {
         if track < NUM_TRACKS && lane < 8 {
             for c in &mut self.tracks[track].clips {

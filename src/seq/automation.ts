@@ -11,7 +11,7 @@ import type { KnobParamInfo } from '../model/store.js';
 import { seqCmd } from './engine.js';
 import { seqState } from './state.js';
 import { seqToast } from './render.js';
-import { beginStepAutomation } from './step-edit.js';
+import { beginStepAutomation, heldRange } from './step-edit.js';
 
 export interface LaneEntry {
     targetParam: string;   // "synth:cutoff"
@@ -144,7 +144,13 @@ export function handleAutomationKnob(
     const ctx = (held ? 'h' : 'r') + step;
     const seed = seqState.heldLocks.get(lane) ?? norm7(info.value, info.min, info.max);
     const next = accumLive(track, lane, ctx, seed, delta);
-    seqCmd('aset ' + track + ' ' + lane + ' ' + step + ' ' + next);
+    // Holding a bar in Loop mode writes the value across the whole bar.
+    const r = held ? heldRange() : null;
+    if (r && r.s1 > r.s0) {
+        seqCmd('asetr ' + track + ' ' + lane + ' ' + r.s0 + ' ' + r.s1 + ' ' + next);
+    } else {
+        seqCmd('aset ' + track + ' ' + lane + ' ' + step + ' ' + next);
+    }
     seqState.heldLocks.set(lane, next);          // optimistic held-step display
     if (recArmed) recordingLanes.add(track * 8 + lane);
     return true;

@@ -10,6 +10,7 @@
 import type { KnobParamInfo } from '../model/store.js';
 import { seqCmd } from './engine.js';
 import { seqState } from './state.js';
+import { beginStepAutomation } from './step-edit.js';
 
 export interface LaneEntry {
     targetParam: string;   // "synth:cutoff"
@@ -113,9 +114,13 @@ export function handleAutomationKnob(
     setMapping: (lane: number) => boolean,
 ): boolean {
     if (!info.automatable) return false;
-    const held = seqState.stepAutoMode;
     const recArmed = seqState.recording && seqState.playing;
-    if (!held && !recArmed) return false; // normal path owns the base — immediate
+    // Turning a knob while a single step is held enters step-automation mode.
+    if (!seqState.stepAutoMode && !recArmed && beginStepAutomation() < 0) {
+        return false; // no step held → normal path owns the base (immediate)
+    }
+    const held = seqState.stepAutoMode;
+    if (!held && !recArmed) return false;
 
     // Step-automation or Rec: ensure a lane, then write a lock at the target step.
     const tp = info.target + ':' + info.key;

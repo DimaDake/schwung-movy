@@ -23,6 +23,10 @@ interface Range { s0: number; s1: number; }
 
 const heldRanges = new Map<number, Range>(); // physical button (0-15) → range
 const gestured = new Set<number>();
+const pressMs = new Map<number, number>();   // button → Date.now() at press
+
+/* A hold this long (no tap) switches to step-automation mode. */
+const STEP_AUTO_MS = 300;
 
 export function anyStepHeld(): boolean {
     return heldRanges.size > 0;
@@ -40,6 +44,37 @@ export function editStepDown(button: number): void {
         range = { s0: step, s1: step };
     }
     heldRanges.set(button, range);
+    pressMs.set(button, Date.now());
+}
+
+/* Promote the single held step to step-automation mode (knob turns record
+ * automation, the release won't toggle a note). Returns the step, or -1 if not
+ * exactly one step is held. Idempotent. */
+export function beginStepAutomation(): number {
+    const s = heldStepAbs();
+    if (s < 0) return -1;
+    markGestured();                       // release is no longer a tap
+    if (!seqState.stepAutoMode) {
+        seqState.stepAutoMode = true;
+        seqState.holdStep = s;
+        seqCmd('hold ' + seqState.watchTrack + ' ' + s);
+    }
+    return s;
+}
+
+/* Per-tick: a single step held past the threshold enters step-automation mode
+ * even without a knob turn (so the user can see the step's automation values). */
+export function stepAutoTick(): void {
+    if (seqState.stepAutoMode || heldRanges.size !== 1) return;
+    const button = [...heldRanges.keys()][0];
+    const t = pressMs.get(button);
+    if (t !== undefined && Date.now() - t >= STEP_AUTO_MS) beginStepAutomation();
+}
+
+/* Leave step-automation mode (called on step release when nothing is held). */
+export function endStepAutomation(): void {
+    seqState.stepAutoMode = false;
+    seqState.heldLocks.clear();
 }
 
 /* Release a held button. Returns true if it was a tap (no gesture occurred),
@@ -48,6 +83,7 @@ export function editStepUp(button: number): boolean {
     const wasTap = heldRanges.has(button) && !gestured.has(button);
     heldRanges.delete(button);
     gestured.delete(button);
+    pressMs.delete(button);
     return wasTap;
 }
 
@@ -137,4 +173,5 @@ export function setLengthTo(absB: number): boolean {
 export function resetStepEdit(): void {
     heldRanges.clear();
     gestured.clear();
+    pressMs.clear();
 }

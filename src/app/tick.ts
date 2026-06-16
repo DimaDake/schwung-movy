@@ -17,6 +17,7 @@ import type { AutomationView } from '../types/viewmodel.js';
 import { seqPersistTick } from '../seq/persist.js';
 import { seqLedsTick, seqLedsInvalidate } from '../seq/leds.js';
 import { seqSetLane } from '../seq/router.js';
+import { stepAutoTick } from '../seq/step-edit.js';
 import { activeHasNote, maxBarOffset, seqState } from '../seq/state.js';
 import { engineReady } from '../seq/engine.js';
 import {
@@ -54,7 +55,7 @@ function buildAutomationView(track: number): AutomationView {
     return {
         assignedLanes: seqState.autoAssigned,
         activeLanes:   seqState.autoActive,
-        held:          seqState.holdStep >= 0,
+        held:          seqState.stepAutoMode,
         poolFull:      seqState.autoPoolFull,
         heldValues, laneForKey,
     };
@@ -67,6 +68,7 @@ const drumCache = new Uint8Array(32);
 
 export function tick(): void {
     seqEngineTick();
+    stepAutoTick(); // promote a long single-step hold to step-automation mode
     // Engine (re)booted: rebuild the automation registry from its labels and
     // re-apply each lane's chain knob mapping so playback CCs land.
     if (engineReady() && takeLabelSync()) {

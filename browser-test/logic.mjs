@@ -1961,6 +1961,36 @@ _log('\nautomation knob routing:');
     resetSeqState();
 }
 
+/* ── automation: hold+knob gesture enters step-auto, release is not a tap ─── */
+_log('\nautomation gesture (tap vs hold):');
+{
+    const { resetAutomation, handleAutomationKnob } = await import('../dist/esm/seq/automation.js');
+    const { editStepDown, editStepUp, endStepAutomation, resetStepEdit } =
+        await import('../dist/esm/seq/step-edit.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const info = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
+
+    resetAutomation(); resetSeqEngine(); resetSeqState(); resetStepEdit();
+    editStepDown(0);                         // hold step 0 (barOffset 0)
+    eq('not step-auto until a gesture', seqState.stepAutoMode, false);
+    eq('hold+knob consumed', handleAutomationKnob(0, 0, info, +1, () => true), true);
+    eq('entered step-auto mode', seqState.stepAutoMode, true);
+    eq('aset at held step 0', peekSeqCmdQueue().some((o) => o.startsWith('aset 0 0 0 ')), true);
+    eq('release after step-auto is NOT a tap', editStepUp(0), false);
+
+    // A plain tap (no knob, no hold) stays a tap → toggles a note.
+    resetStepEdit(); resetSeqState();
+    editStepDown(1);
+    eq('plain press is still a tap', editStepUp(1), true);
+
+    // endStepAutomation clears the mode + held snapshot.
+    seqState.stepAutoMode = true; seqState.heldLocks.set(0, 50);
+    endStepAutomation();
+    eq('endStepAutomation clears mode', seqState.stepAutoMode, false);
+    eq('endStepAutomation clears heldLocks', seqState.heldLocks.size, 0);
+}
+
 /* ── automation: label re-sync from engine ───────────────────────────────── */
 _log('\nautomation label sync:');
 {

@@ -295,6 +295,11 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 engine.auto_clear_step(t as usize, lane as usize, s.clamp(0, 255) as u16);
             }
         }
+        "aclrstep" => {
+            if let (Some(t), Some(s)) = (next(), next()) {
+                engine.auto_clear_step_all(t as usize, s.clamp(0, 255) as u16);
+            }
+        }
         _ => {} // forward compat
     }
 }
@@ -503,6 +508,13 @@ mod tests {
         apply_batch(&mut e, "aclr 0 1", &mut out);
         assert!(!e.tracks[0].lane_assigned[1]);
         assert_eq!(e.tracks[0].active().lock_at(1, 6), None);
+
+        // aclrstep removes every lane's lock at one step, leaving other steps.
+        apply_batch(&mut e, "aset 0 0 3 50;aset 0 2 3 60;aset 0 1 9 70", &mut out);
+        apply_batch(&mut e, "aclrstep 0 3", &mut out);
+        assert_eq!(e.tracks[0].active().lock_at(0, 3), None);
+        assert_eq!(e.tracks[0].active().lock_at(2, 3), None);
+        assert_eq!(e.tracks[0].active().lock_at(1, 9), Some(70));
     }
 
     #[test]

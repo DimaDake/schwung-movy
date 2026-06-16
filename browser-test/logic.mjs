@@ -1105,7 +1105,8 @@ _log('\nTest: drumPadOn');
     seqHandleMidi([0xB0, 119, 127], false);    // Delete down
     seqHandleMidi([0x90, 16 + 5, 127], false); // step 5
     seqEngineTick();
-    eq('Delete+step clears the step', lastOp(), 'del 0 5 5 -1');
+    eq('Delete+step clears the step notes', engine.ops.includes('del 0 5 5 -1'), true);
+    eq('Delete+step clears the step automation', engine.ops.includes('aclrstep 0 5'), true);
     seqHandleMidi([0xB0, 119, 0], false);      // release — acted, so no clip delete
     seqEngineTick();
     eq('Delete+step release did not delete clip',
@@ -1117,7 +1118,7 @@ _log('\nTest: drumPadOn');
     seqHandleMidi([0xB0, 119, 127], false);
     seqHandleMidi([0x90, 16 + 2, 127], false); // bar 2
     seqEngineTick();
-    eq('Delete+bar clears the bar', lastOp(), 'del 0 32 47 -1');
+    eq('Delete+bar clears the bar', engine.ops.includes('del 0 32 47 -1'), true);
     seqHandleMidi([0xB0, 119, 0], false);
 
     // Delete + drum pad → clear that pitch across the clip.
@@ -1127,6 +1128,18 @@ _log('\nTest: drumPadOn');
     seqEngineTick();
     eq('Delete+pad clears the pitch', lastOp(), 'del 0 0 255 38');
     seqHandleMidi([0xB0, 119, 0], false);
+
+    // Step held + Clear → clears that step's automation (no clip delete, no note).
+    reset(); seqEngineTick();
+    seqHandleMidi([0x90, 16 + 7, 127], false); // hold step 7
+    seqHandleMidi([0xB0, 119, 127], false);    // Clear down while holding
+    seqEngineTick();
+    eq('step+Clear clears that step automation', engine.ops.includes('aclrstep 0 7'), true);
+    seqHandleMidi([0xB0, 119, 0], false);      // Clear release
+    seqHandleMidi([0x80, 16 + 7, 0], false);   // step release
+    seqEngineTick();
+    eq('step+Clear did not delete the clip', engine.ops.filter(o => o.startsWith('clipdel')).length, 0);
+    eq('step+Clear did not toggle a note', engine.ops.filter(o => o.startsWith('tog')).length, 0);
 
     uninstallMockEngine(); reset();
 }

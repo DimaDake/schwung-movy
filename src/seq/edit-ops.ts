@@ -17,6 +17,8 @@ import { NUM_STEP_BUTTONS } from './constants.js';
 import { seqCmd } from './engine.js';
 import { seqToast } from './render.js';
 import { seqState } from './state.js';
+import { clearStepAllAutomation } from './automation.js';
+import { anyStepHeld, heldStepList, markHeldGestured } from './step-edit.js';
 
 let copyHeld = false;
 let copySource: number[] = []; // absolute steps marked while Copy is held
@@ -83,6 +85,17 @@ export function deleteButton(down: boolean): void {
     if (down) {
         delHeld = true;
         delActed = false;
+        // Step(s) held + Clear → clear that/those step(s)' automation (notes
+        // are left intact; the held step was being edited, not deleted).
+        if (anyStepHeld()) {
+            const steps = heldStepList();
+            for (const s of steps) clearStepAllAutomation(seqState.watchTrack, s);
+            if (steps.length > 0) {
+                markHeldGestured();    // release won't toggle a note
+                seqToast('Automation cleared');
+                delActed = true;       // and Clear release won't delete the clip
+            }
+        }
     } else {
         delHeld = false;
         if (!delActed) {
@@ -99,10 +112,13 @@ export function deleteStep(button: number): void {
     if (seqState.loopMode) {
         const base = button * NUM_STEP_BUTTONS;
         seqCmd(`del ${t} ${base} ${base + NUM_STEP_BUTTONS - 1} -1`);
+        for (let s = base; s < base + NUM_STEP_BUTTONS; s++) clearStepAllAutomation(t, s);
         seqToast('Bar cleared');
     } else {
         const s = absStep(button);
-        seqCmd(`del ${t} ${s} ${s} -1`);
+        seqCmd(`del ${t} ${s} ${s} -1`);   // notes
+        clearStepAllAutomation(t, s);       // and automation
+        seqToast('Step cleared');
     }
     delActed = true;
 }

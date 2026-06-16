@@ -178,6 +178,12 @@ export function automationKnobReleased(track: number, physK: number, info: KnobP
     }
 }
 
+/* Clear ALL lanes' automation at one step (Clear + step, or step + Clear). */
+export function clearStepAllAutomation(track: number, step: number): void {
+    seqCmd('aclrstep ' + track + ' ' + step);
+    if (seqState.stepAutoMode && seqState.holdStep === step) seqState.heldLocks.clear();
+}
+
 /* Hold-Clear + knob touch: clear the lane bound to this knob's param. */
 export function clearLaneForKnob(track: number, info: KnobParamInfo): void {
     const lane = laneForParam(track, info.target + ':' + info.key);

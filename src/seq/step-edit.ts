@@ -151,6 +151,18 @@ export function editPad(pitch: number, vel: number): boolean {
     return true;
 }
 
+/* Every absolute step currently held (flattening Loop-mode bar ranges). */
+export function heldStepList(): number[] {
+    const out: number[] = [];
+    for (const r of heldRanges.values()) for (let s = r.s0; s <= r.s1; s++) out.push(s);
+    return out;
+}
+
+/* Mark the held buttons as gestured so their release won't toggle a note. */
+export function markHeldGestured(): void {
+    markGestured();
+}
+
 /* The single held step's absolute index (Note mode), or -1 if not exactly one. */
 export function heldStepAbs(): number {
     if (heldRanges.size !== 1) return -1;

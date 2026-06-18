@@ -108,6 +108,32 @@ impl Clip {
         self.locks.iter().find(|l| l.lane == lane && l.step == step).map(|l| l.val)
     }
 
+    /// Effective automation value at `step` for `lane`, given the lane `base`.
+    /// Pure, position-deterministic form of the latch rule: scan backward
+    /// cyclically within the loop window — the first lock found governs (it
+    /// latched forward with no interrupting note), a note found first means the
+    /// latch was already broken → base. Mirrors the engine's forward recurrence
+    /// in steady state and is the test oracle for it.
+    pub fn effective_at(&self, lane: u8, step: u16, base: u8) -> u8 {
+        let len = self.length_steps;
+        if len == 0 {
+            return base;
+        }
+        let start = self.loop_start_steps;
+        let rel = step.wrapping_sub(start) as i32;
+        for d in 0..len as i32 {
+            let off = (rel - d).rem_euclid(len as i32) as u16;
+            let s = start + off;
+            if let Some(v) = self.lock_at(lane, s) {
+                return v;
+            }
+            if self.step_has_notes(s) {
+                return base;
+            }
+        }
+        base
+    }
+
     pub fn clear_lane(&mut self, lane: u8) {
         self.locks.retain(|l| l.lane != lane);
     }
@@ -674,5 +700,59 @@ mod tests {
             c.toggle_step(s, &[(60, 100), (61, 100)]);
         }
         assert!(c.notes.len() <= MAX_NOTES);
+    }
+
+    #[test]
+    fn effective_at_latches_until_note_or_lock() {
+        let mut c = Clip::new();
+        // One-bar clip: note at step 0 (extends length to 16), lock 100 at step 4.
+        c.toggle_step(0, &[(60, 100)]);
+        c.set_lock(0, 4, 100);
+        // base = 40 (resting value)
+        assert_eq!(c.effective_at(0, 0, 40), 40); // note at step 0 → base
+        assert_eq!(c.effective_at(0, 3, 40), 40); // before the lock → base (carry of base)
+        assert_eq!(c.effective_at(0, 4, 40), 100); // lock
+        assert_eq!(c.effective_at(0, 9, 40), 100); // latch holds (no note, no later lock)
+        assert_eq!(c.effective_at(0, 15, 40), 100); // still holds to end of bar
+    }
+
+    #[test]
+    fn effective_at_note_on_other_step_reverts_to_base() {
+        let mut c = Clip::new();
+        c.toggle_step(0, &[(60, 100)]); // note step 0
+        c.toggle_step(8, &[(62, 100)]); // note step 8 (different step) ends the latch
+        c.set_lock(0, 4, 100);
+        assert_eq!(c.effective_at(0, 7, 40), 100); // latch from lock 4 still on
+        assert_eq!(c.effective_at(0, 8, 40), 40); // note on step 8 reverts to base
+        assert_eq!(c.effective_at(0, 12, 40), 40); // stays base after the interrupting note
+    }
+
+    #[test]
+    fn effective_at_lock_wins_over_same_step_note() {
+        let mut c = Clip::new();
+        c.toggle_step(0, &[(60, 100)]); // note AND lock on step 0
+        c.set_lock(0, 0, 90);
+        assert_eq!(c.effective_at(0, 0, 40), 90); // co-located lock wins (note doesn't end it)
+        assert_eq!(c.effective_at(0, 5, 40), 90); // latches forward
+    }
+
+    #[test]
+    fn effective_at_carries_across_loop_boundary() {
+        let mut c = Clip::new();
+        c.toggle_step(0, &[(60, 100)]); // length 16; note at step 0
+        c.set_lock(0, 14, 77);
+        // Going backward cyclically from step 2: 2,1,0 — the note at step 0 ends
+        // the latch before reaching lock 14 → base at step 2.
+        assert_eq!(c.effective_at(0, 2, 40), 40);
+        // Remove the note: now the lock at 14 wraps to govern step 2.
+        c.notes.clear();
+        assert_eq!(c.effective_at(0, 2, 40), 77); // carries across the boundary
+    }
+
+    #[test]
+    fn effective_at_no_locks_is_base() {
+        let mut c = Clip::new();
+        c.toggle_step(0, &[(60, 100)]);
+        assert_eq!(c.effective_at(0, 5, 40), 40);
     }
 }

@@ -9,7 +9,7 @@
  *   dirty flag, so steady state writes nothing. */
 
 import { mlog } from '../log.js';
-import { engineReady } from './engine.js';
+import { engineReady, requestLabelSync } from './engine.js';
 import { seqState } from './state.js';
 
 const STATE_PATH = '/data/UserData/schwung/modules/tools/movy/seq-state.json';
@@ -30,6 +30,12 @@ export function seqPersistTick(): void {
         const data = host_read_file(STATE_PATH);
         if (data && data.length > 0 && typeof host_module_set_param_blocking === 'function') {
             host_module_set_param_blocking('state', data, 200);
+            // Restore carries the lane labels/assignments. The boot label-sync
+            // already ran (against the pre-restore engine) and read nothing, so
+            // re-request it now that the engine holds the restored automation —
+            // otherwise the UI registry stays empty (no dot, no held value, and
+            // no read-back suppression for automated lanes).
+            requestLabelSync();
             mlog('seq: restored state (' + data.length + ' bytes)');
         }
         return;

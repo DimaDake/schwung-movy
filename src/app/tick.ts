@@ -13,7 +13,8 @@ import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync } from '../seq/engine.js';
 import { syncLabelsFromEngine, rangeFromChainParams, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty } from '../seq/automation.js';
-import type { AutomationView } from '../types/viewmodel.js';
+import type { AutomationView, ViewModel } from '../types/viewmodel.js';
+import { mlog } from '../log.js';
 import { seqPersistTick } from '../seq/persist.js';
 import { seqLedsTick, seqLedsInvalidate } from '../seq/leds.js';
 import { seqSetLane } from '../seq/router.js';
@@ -61,6 +62,23 @@ function buildAutomationView(track: number): AutomationView {
     };
 }
 
+let _autoLanesLog = '';
+let _autoRenderLog = '';
+/* Diagnostic (off unless debug_log_on): the per-knob automation render decision
+ * — automated (a, the dot) and touched (t, showing the held value) — so the
+ * device automation test can assert the dot + held-value highlight without
+ * reading pixels. Throttled to changes, so it is silent at steady state. */
+function diagAutoRender(vm: ViewModel): void {
+    let line = 'held=' + (vm.automationHeld ? 1 : 0) + ' |';
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) {
+        const pv = vm.rows[r][c];
+        if (!pv) continue;
+        line += ' ' + pv.shortName + ':a' + (pv.automated ? 1 : 0) + 't' + (pv.touched ? 1 : 0)
+            + '=' + (pv.touched ? pv.displayValue : '-');
+    }
+    if (line !== _autoRenderLog) { _autoRenderLog = line; mlog('auto render ' + line); }
+}
+
 /* Same idea for the 4×4 drum grid: the drum-pad colors update at poll rate
  * (green follows the sequencer gate / held pads), so cache-diffing keeps the
  * LED traffic to actual changes. */
@@ -73,6 +91,11 @@ export function tick(): void {
     // change via consumed knob turns and the status poll — both outside the
     // param page's normal dirty path. Repaint when that display state changes.
     if (automationDisplayDirty()) appState.dirty = true;
+    // Diagnostic (off unless debug_log_on): the UI lane registry mirrors the
+    // engine's assigned lanes. Empty here means automation display + read-back
+    // suppression are dead — the device automation test asserts it is populated.
+    const laneKeys = laneKeysForTrack(appState.activeSlot).join(',');
+    if (laneKeys !== _autoLanesLog) { _autoLanesLog = laneKeys; mlog('auto lanes t=' + appState.activeSlot + ' [' + laneKeys + ']'); }
     // Engine (re)booted: rebuild the automation registry from its labels and
     // re-apply each lane's chain knob mapping so playback CCs land.
     if (engineReady() && takeLabelSync()) {
@@ -167,11 +190,13 @@ export function tick(): void {
             renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
             const vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot));
+            diagAutoRender(vm);
             renderKnobsView(vm, appState.jogTouched, appState.activeSlot);
             jogToastShown = !!vm.toast?.browseHint || appState.jogTouched;
             updateKnobLEDs(vm);
         } else if (appState.currentView === VIEW_CHAIN) {
-            const vm = activeModel!.getViewModel();
+            const vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot));
+            diagAutoRender(vm);
             renderChainView(vm, chainIdx, appState.jogTouched, 'T' + (appState.activeSlot + 1));
             jogToastShown = appState.jogTouched;
             updateKnobLEDs(vm);

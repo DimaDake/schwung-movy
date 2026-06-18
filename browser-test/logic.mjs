@@ -1471,6 +1471,41 @@ _log('\nTest: drumPadOn');
     globalThis.host_read_file = () => null; // restore the default test stub
 }
 
+/* ── automation: restore re-requests label sync ──────────────────────────────
+ * The boot label-sync runs before the persist restore, so it reads the engine
+ * before its lanes exist (empty registry → no dot, no held value, no read-back
+ * suppression). The restore must re-request the sync so the registry repopulates
+ * from the now-restored engine labels. */
+_log('\nautomation: restore re-requests label sync:');
+{
+    const { resetSeqEngine, seqEngineTick, takeLabelSync } = await import('../dist/esm/seq/engine.js');
+    const { seqPersistTick, resetSeqPersist } = await import('../dist/esm/seq/persist.js');
+    const { resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+
+    const files = {};
+    const PATH = '/data/UserData/schwung/modules/tools/movy/seq-state.json';
+    globalThis.host_read_file  = (p) => files[p] ?? null;
+    globalThis.host_write_file = () => true;
+    const engine = installMockEngine();
+    const origSetB = globalThis.host_module_set_param_blocking;
+    globalThis.host_module_set_param_blocking = () => true;
+
+    files[PATH] = 'movy1\nau 0 0 100 synth:cutoff\n';   // a persisted lane label
+    resetSeqEngine(); resetSeqState(); resetSeqPersist();
+    seqEngineTick();          // boot probe → ready → requestLabelSync (the boot's own)
+    takeLabelSync();          // consume it, to isolate the restore's re-request
+    eq('no pending label sync before restore', takeLabelSync(), false);
+    seqPersistTick();         // first ready tick → restore pushes state
+    eq('restore re-requests label sync', takeLabelSync(), true);
+
+    globalThis.host_module_set_param_blocking = origSetB;
+    delete globalThis.host_read_file;
+    delete globalThis.host_write_file;
+    uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetSeqPersist();
+    globalThis.host_read_file = () => null;
+}
+
 /* ── active-notes mirror ─────────────────────────────────────────────────── */
 {
     _log('\nactive-notes mirror:');

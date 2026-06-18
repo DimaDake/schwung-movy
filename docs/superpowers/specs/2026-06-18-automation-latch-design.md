@@ -116,35 +116,35 @@ assignment, dots, gestures, or persistence.
   - on transport start (play pressed), for each track at its start step;
   - whenever a track's playhead is repositioned outside normal step advance.
   `last_auto_step` is set so the next `service_tick` doesn't double-emit.
-- **`auto_base` / `auto_base_quiet`** unchanged. A live knob turn on an assigned
-  lane still updates base and (for `auto_base`) emits immediately; the next step
-  entry's recurrence picks the base up via case 2/3 as usual.
+- **`auto_base` / `auto_base_quiet`** unchanged. They keep the lane base in sync
+  with the param's manual (resting) value; the next step entry's recurrence
+  picks the base up via case 2/3 as usual.
 
-### Status — held-step display (`status()` `hauto`)
-Currently `hauto` reports only **explicit locks** at the held step. Under
-latching, a held step often has **no** explicit lock but an **inherited**
-effective value the user is editing against. Extend `hauto` so that, for each
-**assigned** lane, it reports the value the user would see:
-- explicit lock at the held step → that value (as today), **flagged as set**;
-- otherwise → `effective_at(lane, held_step, base)`, **flagged as inherited**.
+### Live recording (unchanged)
+The Rec+turn live-record path (`handleAutomationKnob`, `aset` at the playing
+step) **stays as-is**. A live-recorded value is just a lock, so it latches under
+case 1 exactly like a hold-step lock — no special handling.
 
-Wire format (back-compat, UI ignores unknown): keep `lane:val` pairs, add a
-trailing flag char, e.g. `l:val:s` (set) / `l:val:i` (inherited). The UI renders
-inherited values dimmed/distinct so it's clear that turning the knob will create
-a new lock at that step. (Existing `aauto` dot bitmask is unchanged.)
+### Status / held-step display — unchanged
+`status()` `hauto` keeps reporting **only explicit locks** at the held step, and
+the UI keeps showing them as today. No inherited-value display is added.
 
 ### Version
 - Bump `ENGINE_VERSION` in `engine/crates/movy-dsp/src/lib.rs` **and**
   `src/seq/constants.ts` (build-time guard) — playback semantics changed.
 
-## 5. UI changes (`src/seq`, renderer)
+## 5. UI changes — none
 
-Minimal — the gestures, lane registry, dot, and assignment flow are untouched.
+This is a pure engine playback change. Gestures (hold-step+turn, Rec+turn,
+clear), the lane registry, the automation dot, the held-step display, and
+rendering are all untouched.
 
-- **Held-step value rendering.** Parse the extended `hauto` flag; render
-  *inherited* effective values in a distinct (dimmed) style vs *set* locks. If
-  the flag is absent (older engine) fall back to today's "all set" rendering.
-- No change to hold-step+turn (`aset`), Rec+turn, clear, or the automation dot.
+**On-screen knobs do not follow automation during playback — already handled.**
+`src/app/tick.ts` calls `setNoRefreshKeys(laneKeysForTrack(...))` each tick, so
+an assigned lane's param is excluded from the value read-back poll
+(`store.ts` `refreshOneParam`). The knob keeps showing the UI-owned **base**
+value while the engine drives the actual param underneath; it never animates to
+the latched value. The latch change does not affect this.
 
 ## 6. Performance
 
@@ -168,17 +168,10 @@ Minimal — the gestures, lane registry, dot, and assignment flow are untouched.
 - Regression: existing automation tests updated for latch semantics (the old
   "blip + revert every step" assertions are replaced).
 
-### `logic.mjs`
-- `hauto` parse: inherited vs set flag surfaces the right per-lane value at the
-  held step.
-
 ### `app-loop.mjs`
 - A playing clip with one lock and sparse notes emits the latched `CC 102+lane`
   sequence the recurrence predicts (capture MIDI, assert the change points).
-
-### `screenshot.mjs`
-- New baseline: held-step display showing an **inherited** (dimmed) value
-  alongside a **set** value.
+- A live-recorded lock (Rec+turn) latches the same as a hold-step lock.
 
 ### `perf.mjs`
 - CC emission count for a latched lane ≤ the pre-change per-step count.
@@ -192,9 +185,8 @@ Minimal — the gestures, lane registry, dot, and assignment flow are untouched.
 - **Stopped audition unchanged.** Hold-step+turn while stopped still emits the
   held value live and reverts to base on release (a single-step audition; the
   latch is a playback concept).
-- **Live knob turn during playback** on an assigned lane updates base; the latch
-  is not "ended" by it explicitly, but the next case-2/3 step picks up the new
-  base — acceptable and consistent.
+- **On-screen knobs stay on base during playback** (§5) — the displayed knob
+  never animates to the latched value; only the underlying param moves.
 - **Empty clip / no locks** → every lane stays at base (case 3 carry of the
   seeded base); no behavior change from today for un-automated clips.
 

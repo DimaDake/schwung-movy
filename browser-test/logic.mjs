@@ -1993,7 +1993,7 @@ _log('\nautomation registry:');
 /* ── automation: knob-turn routing (hold-step / Rec / base) ──────────────── */
 _log('\nautomation knob routing:');
 {
-    const { resetAutomation, handleAutomationKnob } = await import('../dist/esm/seq/automation.js');
+    const { resetAutomation, handleAutomationKnob, automationKnobReleased } = await import('../dist/esm/seq/automation.js');
     const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
     const info = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
@@ -2021,6 +2021,18 @@ _log('\nautomation knob routing:');
     seqState.recording = true; seqState.playing = true; seqState.curStep = 7;
     eq('rec knob consumed', handleAutomationKnob(0, 0, info, +1, () => true), true);
     eq('aset at playing step 7', peekSeqCmdQueue().some((o) => o.startsWith('aset 0 0 7 ')), true);
+    resetSeqState();
+
+    // Live-recorded automation latches: releasing the knob does NOT revert the
+    // param to base — the recorded lock holds until its end trigger.
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    seqState.recording = true; seqState.playing = true; seqState.curStep = 7;
+    handleAutomationKnob(0, 0, info, +1, () => true);   // assigns lane 0, records lock
+    const beforeLen = peekSeqCmdQueue().length;
+    automationKnobReleased(0, 0, info);
+    const afterRelease = peekSeqCmdQueue().slice(beforeLen);
+    eq('recorded-lane release issues no abase revert',
+        afterRelease.some((o) => o.startsWith('abase 0 0')), false);
     resetSeqState();
 }
 

@@ -120,10 +120,20 @@ assignment, dots, gestures, or persistence.
   with the param's manual (resting) value; the next step entry's recurrence
   picks the base up via case 2/3 as usual.
 
-### Live recording (unchanged)
+### Live recording (now latches like step automation)
 The Rec+turn live-record path (`handleAutomationKnob`, `aset` at the playing
-step) **stays as-is**. A live-recorded value is just a lock, so it latches under
-case 1 exactly like a hold-step lock — no special handling.
+step) keeps writing one lock per step crossed (per-step resolution — **no**
+sub-step curves). A live-recorded value is just a lock, so it latches under
+case 1 exactly like a hold-step lock.
+
+**One behavior change (UI side, `automationKnobReleased`):** today releasing the
+knob after live-recording fires `abase … → revert to base`, snapping the param
+back to base the instant you let go. Under latching the last recorded value must
+**hold** (latch forward until the next note on a different step, or the next
+lock). So **remove the revert-to-base on release for recorded lanes** — the
+recorded lock latches via playback, no release-time emit. (`recordingLanes`
+becomes dead once this revert is gone; remove it. The normal non-recording
+`abaseq` quiet base-sync on release is unchanged.)
 
 ### Status / held-step display — unchanged
 `status()` `hauto` keeps reporting **only explicit locks** at the held step, and
@@ -133,11 +143,13 @@ the UI keeps showing them as today. No inherited-value display is added.
 - Bump `ENGINE_VERSION` in `engine/crates/movy-dsp/src/lib.rs` **and**
   `src/seq/constants.ts` (build-time guard) — playback semantics changed.
 
-## 5. UI changes — none
+## 5. UI / gesture changes — one small one
 
-This is a pure engine playback change. Gestures (hold-step+turn, Rec+turn,
-clear), the lane registry, the automation dot, the held-step display, and
-rendering are all untouched.
+The renderer, lane registry, automation dot, held-step display, hold-step+turn,
+and clear are all untouched. The **only** UI-side change is in
+`automationKnobReleased` (`src/seq/automation.ts`): remove the revert-to-base on
+release for live-recorded lanes (§4) so the recorded value latches until its end
+trigger instead of snapping back. `recordingLanes` is removed as dead code.
 
 **On-screen knobs do not follow automation during playback — already handled.**
 `src/app/tick.ts` calls `setNoRefreshKeys(laneKeysForTrack(...))` each tick, so
@@ -168,10 +180,16 @@ the latched value. The latch change does not affect this.
 - Regression: existing automation tests updated for latch semantics (the old
   "blip + revert every step" assertions are replaced).
 
+### `logic.mjs`
+- `automationKnobReleased` for a live-recorded lane issues **no** revert-to-base
+  command (the lock latches); the normal non-recording quiet base-sync still
+  fires.
+
 ### `app-loop.mjs`
 - A playing clip with one lock and sparse notes emits the latched `CC 102+lane`
   sequence the recurrence predicts (capture MIDI, assert the change points).
-- A live-recorded lock (Rec+turn) latches the same as a hold-step lock.
+- A live-recorded sweep latches: the last recorded value holds after knob
+  release until the next note/lock (no snap-back to base).
 
 ### `perf.mjs`
 - CC emission count for a latched lane ≤ the pre-change per-step count.

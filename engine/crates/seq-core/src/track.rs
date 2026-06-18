@@ -28,6 +28,10 @@ pub struct Track {
     pub lane_label: [String; 8],
     /// Last step automation was emitted for (per track) — see engine emission.
     pub last_auto_step: i32,
+    /// Per-lane value currently applied during playback (`-1` = none emitted
+    /// yet → force emit). The latch carry: an unlocked, note-free step holds
+    /// this. Runtime-only (derived; not persisted).
+    pub auto_cur: [i16; 8],
 }
 
 impl Default for Track {
@@ -50,6 +54,7 @@ impl Track {
             lane_base: [0u8; 8],
             lane_label: Default::default(),
             last_auto_step: -1,
+            auto_cur: [-1; 8],
         }
     }
 

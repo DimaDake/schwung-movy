@@ -181,6 +181,58 @@ _log('\napp-loop: knob turn while a step is held writes automation');
     seqState.stepAutoMode = false; seqState.holdStep = -1;
 }
 
+_log('\napp-loop: param page repaints when held-step automation changes');
+{
+    const { VIEW_KNOBS } = await import('../dist/esm/app/state.js');
+    const { resetAutomation } = await import('../dist/esm/seq/automation.js');
+
+    // renderKnobsView is the only param-view path that calls clear_screen, so a
+    // bump means the page actually repainted (LED/loop-strip use fill_rect/setLED).
+    let clears = 0;
+    globalThis.clear_screen = () => { clears++; };
+
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.file_param);    // knob 1 = Volume (automatable float)
+    resetSeqState(); resetSeqEngine(); resetAutomation();
+    globalThis.init();
+    appState.trackModels[0][1].reload();
+    advance(12);
+    appState.currentView = VIEW_KNOBS;
+    appState.activeSlot = 0;
+
+    // Enter step-automation and turn knob 1 once to assign a lane + write a lock.
+    seqState.stepAutoMode = true; seqState.holdStep = 4;
+    sendMidi([0xB0, 72, 1]);
+    advance(20);                              // settle assign + initial repaint
+
+    // Baseline: a held step with a stable lock must not repaint every tick
+    // (the perf decoupling depends on this).
+    let base = clears;
+    advance(10);
+    eq('idle held-step ticks do not repaint', clears, base);
+
+    // 1) Turning a knob updates the held value → the page must repaint so the
+    //    new value shows (the bug: the turn was consumed without marking dirty).
+    base = clears;
+    sendMidi([0xB0, 72, 1]);
+    advance(2);
+    eq('knob turn in step-auto repaints held value', clears > base, true);
+
+    // 2) A status poll changing heldLocks (re-holding an automated step pulls
+    //    the engine's locks via hauto) → the page must repaint to highlight it.
+    engine.status.hauto = '0:10';
+    advance(10);                              // absorb into the baseline
+    base = clears;
+    engine.status.hauto = '0:90';            // engine now reports a different lock
+    advance(10);
+    eq('poll-driven heldLocks change repaints', clears > base, true);
+
+    globalThis.clear_screen = () => {};
+    delete engine.status.hauto;
+    seqState.stepAutoMode = false; seqState.holdStep = -1;
+    resetAutomation();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

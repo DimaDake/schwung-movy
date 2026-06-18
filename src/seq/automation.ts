@@ -38,6 +38,31 @@ export function resetAutomation(): void {
     liveCtx.clear();
     recordingLanes.clear();
     touchedNotTurned.clear();
+    lastDisplaySig = '';
+}
+
+/* The held-step value display (inverted value instead of the param name) is fed
+ * by `stepAutoMode` + `heldLocks`, both of which change out-of-band of the
+ * param page's normal dirty path: a knob turn consumed as automation never
+ * reaches the model, and the status poll rewrites `heldLocks` from `hauto`. The
+ * page is also decoupled from playback read-back for perf, so nothing else
+ * repaints it. This signature lets the app tick detect those changes and force
+ * a repaint — without repainting on every idle/playback tick. */
+let lastDisplaySig = '';
+function displaySig(): string {
+    if (!seqState.stepAutoMode) return '';
+    let sig = 's';
+    const lanes = [...seqState.heldLocks.entries()].sort((a, b) => a[0] - b[0]);
+    for (const [l, v] of lanes) sig += l + ':' + v + '.';
+    return sig;
+}
+/* True when the held-step display changed since the previous call (call once
+ * per tick). */
+export function automationDisplayDirty(): boolean {
+    const sig = displaySig();
+    if (sig === lastDisplaySig) return false;
+    lastDisplaySig = sig;
+    return true;
 }
 
 /* 7-bit conversion matching the chain's abs-CC scaling. */

@@ -1912,6 +1912,21 @@ _log('\nTest: viewmodel automation fields');
     eq('viewmodel exposes automationHeld', vm.automationHeld, false);
     // No-arg getViewModel → no automation.
     eq('default vm: not automated', m.getViewModel().rows[0][0].automated, false);
+
+    // Held step with a lock on lane 0: the param shows its held-step value
+    // INVERTED (touched) instead of the name — even though no knob is physically
+    // touched. This is what keeps an automated param highlighted while the step
+    // stays held (e.g. after releasing the knob).
+    const p0 = m.getKnobParamInfo(0);
+    const heldAuto = {
+        assignedLanes: 0b1, activeLanes: 0b1, held: true, poolFull: false,
+        heldValues: new Map([[0, p0.max]]),   // lane 0 locked to its max at this step
+        laneForKey: (key) => (key === firstKey ? 0 : -1),
+    };
+    const heldVm = m.getViewModel(heldAuto).rows[0][0];
+    eq('held param shows as touched (not the name)', heldVm.touched, true);
+    // displayValue is the held-step value, not the param's short name.
+    eq('held param shows a value, not its name', heldVm.displayValue !== heldVm.shortName, true);
 }
 
 /* ── automation: registry + lane assignment ──────────────────────────────── */
@@ -2051,6 +2066,31 @@ _log('\nautomation bar-range (Loop mode):');
     eq('writes asetr across the bar', peekSeqCmdQueue().some((o) => o.startsWith('asetr 0 0 16 31 ')), true);
     eq('no single-step aset for a bar', peekSeqCmdQueue().some((o) => o.startsWith('aset 0 0 ')), false);
     resetSeqState(); resetStepEdit();
+}
+
+/* ── automation: held-step display change detection (repaint trigger) ─────── */
+_log('\nautomation display-dirty:');
+{
+    const { resetAutomation, automationDisplayDirty } = await import('../dist/esm/seq/automation.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+
+    resetAutomation(); resetSeqState();
+    eq('idle: not dirty', automationDisplayDirty(), false);
+
+    seqState.stepAutoMode = true;
+    eq('enter step-auto → dirty', automationDisplayDirty(), true);
+    eq('unchanged → not dirty', automationDisplayDirty(), false);
+
+    seqState.heldLocks.set(0, 100);          // a lock appears at the held step
+    eq('new lock → dirty', automationDisplayDirty(), true);
+
+    seqState.heldLocks.set(0, 50);           // turning the knob changes the value
+    eq('lock value change → dirty', automationDisplayDirty(), true);
+    eq('same value again → not dirty', automationDisplayDirty(), false);
+
+    seqState.stepAutoMode = false;           // release the step
+    eq('exit step-auto → dirty', automationDisplayDirty(), true);
+    resetAutomation(); resetSeqState();
 }
 
 /* ── automation: label re-sync from engine ───────────────────────────────── */

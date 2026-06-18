@@ -12,7 +12,7 @@ import { renderChainView }    from '../renderer/chain-view.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync } from '../seq/engine.js';
-import { syncLabelsFromEngine, rangeFromChainParams, automationRegistry, denorm7, laneKeysForTrack } from '../seq/automation.js';
+import { syncLabelsFromEngine, rangeFromChainParams, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty } from '../seq/automation.js';
 import type { AutomationView } from '../types/viewmodel.js';
 import { seqPersistTick } from '../seq/persist.js';
 import { seqLedsTick, seqLedsInvalidate } from '../seq/leds.js';
@@ -69,6 +69,10 @@ const drumCache = new Uint8Array(32);
 export function tick(): void {
     seqEngineTick();
     stepAutoTick(); // promote a long single-step hold to step-automation mode
+    // The held-step value display is driven by stepAutoMode + heldLocks, which
+    // change via consumed knob turns and the status poll — both outside the
+    // param page's normal dirty path. Repaint when that display state changes.
+    if (automationDisplayDirty()) appState.dirty = true;
     // Engine (re)booted: rebuild the automation registry from its labels and
     // re-apply each lane's chain knob mapping so playback CCs land.
     if (engineReady() && takeLabelSync()) {

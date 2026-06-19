@@ -2106,6 +2106,18 @@ _log('\nclear + automation knob:');
         peekSeqCmdQueue().some((o) => o.startsWith('clipdel')), false);
 }
 
+/* ── toast shows a flat ~1.5s regardless of requested ttl ────────────────── */
+_log('\ntoast duration:');
+{
+    const { seqToast, seqToastActive, seqToastTick, resetSeqToast } =
+        await import('../dist/esm/seq/render.js');
+    resetSeqToast();
+    seqToast('hi', 10);            // request a short ttl (ignored)
+    let ticks = 0;
+    while (seqToastActive()) { seqToastTick(); ticks++; if (ticks > 1000) break; }
+    eq('toast shows ~1.5s (>=250 ticks) regardless of requested ttl', ticks >= 250, true);
+}
+
 /* ── automation: hold+knob gesture enters step-auto, release is not a tap ─── */
 _log('\nautomation gesture (tap vs hold):');
 {

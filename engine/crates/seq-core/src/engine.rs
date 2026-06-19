@@ -407,14 +407,6 @@ impl Engine {
         }
     }
 
-    /// Called by note entry: native auto-starts the transport when the
-    /// first note lands in an empty clip while stopped.
-    pub fn maybe_autostart(&mut self, notes_added: bool) {
-        if notes_added && !self.playing {
-            self.play();
-        }
-    }
-
     /// Advance one audio block; pushes due MIDI into `out`.
     pub fn advance_block(&mut self, frames: u32, out: &mut Vec<OutEvent>) {
         let fired = self.clock.advance(frames);

@@ -15,7 +15,7 @@ use seq_core::engine::{Engine, OutEvent};
 use std::ffi::{CStr, CString};
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.15.4";
+const ENGINE_VERSION: &str = "0.16.0";
 
 struct Instance {
     engine: Engine,

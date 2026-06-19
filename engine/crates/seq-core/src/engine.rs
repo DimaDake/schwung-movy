@@ -241,6 +241,7 @@ impl Engine {
             let start = t.playing().map_or(0, |c| c.loop_start_ticks());
             t.pos_tick = start;
             t.last_auto_step = -1; // re-emit automation from step 0 on (re)start
+            t.auto_cur = [-1; 8];
         }
         self.clock.reset();
         self.master_tick = 0;
@@ -309,6 +310,7 @@ impl Engine {
         self.rec_pending.clear();
         for t in &mut self.tracks {
             t.last_auto_step = -1;
+            t.auto_cur = [-1; 8];
         }
         for g in self.gates.drain(..) {
             out.push(OutEvent::NoteOff {
@@ -440,6 +442,8 @@ impl Engine {
                     t.playing_slot = Some(slot);
                     t.active_clip = slot;
                     t.pos_tick = t.clips[slot].loop_start_ticks();
+                    t.last_auto_step = -1;
+                    t.auto_cur = [-1; 8];
                 }
                 if t.pending_stop {
                     t.pending_stop = false;
@@ -529,17 +533,33 @@ impl Engine {
         }
     }
 
-    /// Emit automation CCs for `track` entering `step`: each assigned lane gets
-    /// its lock value at this step, or the lane base when no lock (revert-to-base).
+    /// Emit automation CCs for `track` entering `step` (the latch). Each
+    /// assigned lane resolves to: its lock at this step (a new automation
+    /// point), else base if a note is anchored here (a note on a step other
+    /// than the latch origin ends it), else the carried value (latch holds).
+    /// Emits only when the value changes; carry persists across the loop
+    /// boundary because `auto_cur` is not reset on wrap.
     fn emit_automation(&mut self, track: usize, slot: usize, step: u16, out: &mut Vec<OutEvent>) {
         for lane in 0..8u8 {
             if !self.tracks[track].lane_assigned[lane as usize] {
                 continue;
             }
-            let val = self.tracks[track].clips[slot]
-                .lock_at(lane, step)
-                .unwrap_or(self.tracks[track].lane_base[lane as usize]);
-            out.push(OutEvent::Cc { track: track as u8, lane, val });
+            let base = self.tracks[track].lane_base[lane as usize];
+            let v: u8 = {
+                let clip = &self.tracks[track].clips[slot];
+                if let Some(lv) = clip.lock_at(lane, step) {
+                    lv
+                } else if clip.step_has_notes(step) {
+                    base
+                } else {
+                    let cur = self.tracks[track].auto_cur[lane as usize];
+                    if cur >= 0 { cur as u8 } else { base }
+                }
+            };
+            if v as i16 != self.tracks[track].auto_cur[lane as usize] {
+                self.tracks[track].auto_cur[lane as usize] = v as i16;
+                out.push(OutEvent::Cc { track: track as u8, lane, val: v });
+            }
         }
     }
 
@@ -821,22 +841,88 @@ mod tests {
         assert!(on < off);
     }
 
+    // Collect (lane, val) CCs for track 0 from an event list.
+    fn ccs0(ev: &[OutEvent]) -> Vec<(u8, u8)> {
+        ev.iter().filter_map(|x| match x {
+            OutEvent::Cc { lane, val, track: 0 } => Some((*lane, *val)),
+            _ => None,
+        }).collect()
+    }
+
     #[test]
-    fn emits_lock_value_on_locked_step_and_base_elsewhere() {
+    fn automation_latches_forward_emitting_on_change_only() {
         let mut e = engine();
-        // Lane 0 assigned, base 40; note so the clip plays; lock 100 at step 2.
+        // Lane 0 assigned, base 40; note at step 0; lock 100 at step 2.
         e.tracks[0].lane_assigned[0] = true;
         e.tracks[0].lane_base[0] = 40;
         e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
         e.tracks[0].active_mut().set_lock(0, 2, 100);
         e.play();
-        let ev = run_ticks(&mut e, 3 * TICKS_PER_STEP as u64 + 2);
-        let ccs: Vec<(u8, u8)> = ev.iter().filter_map(|x| match x {
-            OutEvent::Cc { lane, val, track: 0 } => Some((*lane, *val)), _ => None,
-        }).collect();
-        // Step 0 (base 40), step 2 (lock 100) both appear; only on step entry.
-        assert!(ccs.contains(&(0, 40)));
-        assert!(ccs.contains(&(0, 100)));
+        // Run one full bar (16 steps) + slack into step 0 of the next pass.
+        let ev = run_ticks(&mut e, 16 * TICKS_PER_STEP as u64 + 2);
+        let ccs = ccs0(&ev);
+        // Only three emits across 16+ steps: base 40 at step 0, lock 100 at step
+        // 2 (then 100 latches with no per-step re-emit through step 15), and base
+        // 40 again at step 0 of pass 2 where the note reverts the latch.
+        assert_eq!(ccs, vec![(0, 40), (0, 100), (0, 40)], "latch should emit on change only");
+    }
+
+    #[test]
+    fn automation_reverts_to_base_on_note_at_other_step() {
+        let mut e = engine();
+        e.tracks[0].lane_assigned[0] = true;
+        e.tracks[0].lane_base[0] = 40;
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[0].active_mut().toggle_step(8, &[(62, 100)]); // note step 8
+        e.tracks[0].active_mut().set_lock(0, 2, 100);
+        e.play();
+        let ev = run_ticks(&mut e, 16 * TICKS_PER_STEP as u64 + 2);
+        let ccs = ccs0(&ev);
+        // step0 → base 40, step2 → 100, step8 note → back to base 40.
+        assert_eq!(ccs, vec![(0, 40), (0, 100), (0, 40)]);
+    }
+
+    #[test]
+    fn automation_carries_across_loop_boundary() {
+        let mut e = engine();
+        e.tracks[0].lane_assigned[0] = true;
+        e.tracks[0].lane_base[0] = 40;
+        // No notes → nothing interrupts; lock 77 at step 14.
+        e.tracks[0].active_mut().set_lock(0, 14, 77);
+        // Give the clip a length so it plays (set_loop one bar) without notes.
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.play();
+        // Two full bars: after the lock at 14 the value 77 must persist past the
+        // wrap (no re-revert to base at step 0 of the second pass).
+        let ev = run_ticks(&mut e, 32 * TICKS_PER_STEP as u64 + 2);
+        let ccs = ccs0(&ev);
+        // First pass: base 40 (seed at step 0), then 77 at step 14. Second pass:
+        // value stays 77 across the boundary → no further CC.
+        assert_eq!(ccs, vec![(0, 40), (0, 77)]);
+    }
+
+    #[test]
+    fn automation_matches_effective_at_oracle_in_steady_state() {
+        let mut e = engine();
+        e.tracks[0].lane_assigned[0] = true;
+        let base = 40u8;
+        e.tracks[0].lane_base[0] = base;
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[0].active_mut().toggle_step(8, &[(62, 100)]);
+        e.tracks[0].active_mut().set_lock(0, 2, 100);
+        e.tracks[0].active_mut().set_lock(0, 10, 55);
+        let clip = e.tracks[0].active().clone();
+        e.play();
+        // First full bar reaches steady state (the carry settles). Then at every
+        // tick of the second bar the applied value (auto_cur) must equal the
+        // oracle for the step the playhead is in — no alignment assumptions.
+        run_ticks(&mut e, 16 * TICKS_PER_STEP as u64);
+        for _ in 0..16 * TICKS_PER_STEP as u64 {
+            run_ticks(&mut e, 1);
+            let step = e.tracks[0].current_step();
+            assert_eq!(e.tracks[0].auto_cur[0], clip.effective_at(0, step, base) as i16,
+                "step {step} mismatch vs oracle");
+        }
     }
 
     #[test]

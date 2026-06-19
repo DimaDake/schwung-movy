@@ -24,6 +24,12 @@ interface Range { s0: number; s1: number; }
 const heldRanges = new Map<number, Range>(); // physical button (0-15) → range
 const gestured = new Set<number>();
 const pressMs = new Map<number, number>();   // button → Date.now() at press
+/* Drum steps that were held together (a multi-press): each is an independent
+ * entry, so the solo-hold step-automation timer must not suppress their toggle.
+ * Without this, holding one drum step as an anchor while tapping others would
+ * promote the anchor to automation mode once it's briefly held alone, and it
+ * would never enter (the "holding one step never blocks entering others" rule). */
+const coPressed = new Set<number>();
 
 /* A hold this long (no tap) switches to step-automation mode. */
 const STEP_AUTO_MS = 300;
@@ -45,6 +51,18 @@ export function editStepDown(button: number): void {
     }
     heldRanges.set(button, range);
     pressMs.set(button, Date.now());
+    // On a drum lane, two+ steps held together are independent entries. Exempt
+    // them from the solo-hold automation timer AND undo any promotion that
+    // already happened (the anchor may have been held alone past 300ms before
+    // this second press — as device MIDI-inject latency causes), so each still
+    // toggles on release.
+    if (seqState.watchLane >= 0 && heldRanges.size >= 2) {
+        for (const b of heldRanges.keys()) {
+            coPressed.add(b);
+            gestured.delete(b);
+        }
+        if (seqState.stepAutoMode) endStepAutomation(); // cancel solo-hold promotion
+    }
 }
 
 /* Promote the single held step to step-automation mode (knob turns record
@@ -67,6 +85,9 @@ export function beginStepAutomation(): number {
 export function stepAutoTick(): void {
     if (seqState.stepAutoMode || heldRanges.size !== 1) return;
     const button = [...heldRanges.keys()][0];
+    // A step from a drum multi-press stays an independent entry, never a
+    // promoted solo hold — so its release still toggles the note.
+    if (coPressed.has(button)) return;
     const t = pressMs.get(button);
     if (t !== undefined && Date.now() - t >= STEP_AUTO_MS) beginStepAutomation();
 }
@@ -83,6 +104,7 @@ export function editStepUp(button: number): boolean {
     const wasTap = heldRanges.has(button) && !gestured.has(button);
     heldRanges.delete(button);
     gestured.delete(button);
+    coPressed.delete(button);
     pressMs.delete(button);
     return wasTap;
 }
@@ -193,5 +215,6 @@ export function setLengthTo(absB: number): boolean {
 export function resetStepEdit(): void {
     heldRanges.clear();
     gestured.clear();
+    coPressed.clear();
     pressMs.clear();
 }

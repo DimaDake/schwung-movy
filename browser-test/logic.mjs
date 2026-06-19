@@ -661,6 +661,53 @@ _log('\nTest: drumPadOn');
     eq('drum multi: step 0 entered', occHasStep(0), true);
     eq('drum multi: step 3 entered', occHasStep(3), true);
     eq('drum multi: no length gesture', engine.ops.some((o) => o.startsWith('slen')), false);
+
+    // Drum multi-step where the anchor is held past the 300ms step-automation
+    // threshold (reproduces the device failure): after step 3 is released,
+    // step 0 is held alone, and the per-tick stepAutoTick must NOT promote it to
+    // step-automation mode (which would suppress its toggle). The anchor must
+    // still enter on release.
+    {
+        const { stepAutoTick } = await import('../dist/esm/seq/step-edit.js');
+        resetSeqState(); engine.reset(); resetSeqEngine(); seqEngineTick();
+        seqState.lenSteps = 16;
+        seqSetLane(38); seqEngineTick();
+        const realNow = Date.now;
+        let clock = 1000;
+        Date.now = () => clock;
+        seqHandleMidi([0x90, 16 + 0, 127], false);   // hold step 0 (press at t=1000)
+        seqHandleMidi([0x90, 16 + 3, 127], false);   // press step 3 while step 0 held
+        seqHandleMidi([0x80, 16 + 3, 0], false);     // release step 3 → toggles on
+        clock = 1500;                                // 500ms later — past the 300ms threshold
+        stepAutoTick();                              // per-tick promotion check fires here
+        seqHandleMidi([0x80, 16 + 0, 0], false);     // release step 0 → must still toggle
+        Date.now = realNow;
+        eq('drum multi (>300ms hold): anchor still entered', occHasStep(0), true);
+        eq('drum multi (>300ms hold): B still entered', occHasStep(3), true);
+    }
+
+    // Harder ordering (matches device MIDI-inject latency): the anchor is held
+    // ALONE past 300ms and promoted to step-automation FIRST, then the second
+    // step is pressed. The multi-press must cancel the anchor's promotion so it
+    // still enters on release.
+    {
+        const { stepAutoTick } = await import('../dist/esm/seq/step-edit.js');
+        resetSeqState(); engine.reset(); resetSeqEngine(); seqEngineTick();
+        seqState.lenSteps = 16;
+        seqSetLane(38); seqEngineTick();
+        const realNow = Date.now;
+        let clock = 1000;
+        Date.now = () => clock;
+        seqHandleMidi([0x90, 16 + 0, 127], false);   // hold step 0
+        clock = 1400;                                // 400ms alone → promotes to auto mode
+        stepAutoTick();
+        seqHandleMidi([0x90, 16 + 3, 127], false);   // NOW press step 3 (multi-press)
+        seqHandleMidi([0x80, 16 + 3, 0], false);     // release step 3
+        seqHandleMidi([0x80, 16 + 0, 0], false);     // release step 0
+        Date.now = realNow;
+        eq('drum multi (anchor promoted first): anchor still entered', occHasStep(0), true);
+        eq('drum multi (anchor promoted first): B entered', occHasStep(3), true);
+    }
     seqSetLane(-1); seqEngineTick();
 
     // Bar navigation: Right advances the visible bar (clip is 1 bar long, so
@@ -1993,7 +2040,7 @@ _log('\nautomation registry:');
 /* ── automation: knob-turn routing (hold-step / Rec / base) ──────────────── */
 _log('\nautomation knob routing:');
 {
-    const { resetAutomation, handleAutomationKnob } = await import('../dist/esm/seq/automation.js');
+    const { resetAutomation, handleAutomationKnob, automationKnobReleased } = await import('../dist/esm/seq/automation.js');
     const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
     const info = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
@@ -2021,6 +2068,18 @@ _log('\nautomation knob routing:');
     seqState.recording = true; seqState.playing = true; seqState.curStep = 7;
     eq('rec knob consumed', handleAutomationKnob(0, 0, info, +1, () => true), true);
     eq('aset at playing step 7', peekSeqCmdQueue().some((o) => o.startsWith('aset 0 0 7 ')), true);
+    resetSeqState();
+
+    // Live-recorded automation latches: releasing the knob does NOT revert the
+    // param to base — the recorded lock holds until its end trigger.
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    seqState.recording = true; seqState.playing = true; seqState.curStep = 7;
+    handleAutomationKnob(0, 0, info, +1, () => true);   // assigns lane 0, records lock
+    const beforeLen = peekSeqCmdQueue().length;
+    automationKnobReleased(0, 0, info);
+    const afterRelease = peekSeqCmdQueue().slice(beforeLen);
+    eq('recorded-lane release issues no abase revert',
+        afterRelease.some((o) => o.startsWith('abase 0 0')), false);
     resetSeqState();
 }
 

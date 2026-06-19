@@ -36,7 +36,6 @@ export function resetAutomation(): void {
     for (const t of registry) t.fill(null);
     liveVal.clear();
     liveCtx.clear();
-    recordingLanes.clear();
     touchedNotTurned.clear();
     lastDisplaySig = '';
 }
@@ -128,10 +127,6 @@ function accumLive(track: number, lane: number, ctx: string, seed: number, delta
     return next;
 }
 
-/* Lanes (track*8+lane) currently being live-recorded — used to revert the
- * synth to base when the knob is released. */
-const recordingLanes = new Set<number>();
-
 /* Knobs (physK) touched in step-automation mode that haven't been turned yet —
  * releasing one (a tap) clears that step's automation for the param. */
 const touchedNotTurned = new Set<number>();
@@ -177,7 +172,6 @@ export function handleAutomationKnob(
         seqCmd('aset ' + track + ' ' + lane + ' ' + step + ' ' + next);
     }
     seqState.heldLocks.set(lane, next);          // optimistic held-step display
-    if (recArmed) recordingLanes.add(track * 8 + lane);
     return true;
 }
 
@@ -201,11 +195,11 @@ export function automationKnobReleased(track: number, physK: number, info: KnobP
     }
 
     if (lane < 0) return;
-    const baseN = norm7(info.value, info.min, info.max);
-    if (recordingLanes.delete(track * 8 + lane)) {
-        seqCmd('abase ' + track + ' ' + lane + ' ' + baseN); // emits → revert to base
-    } else if (!seqState.stepAutoMode) {
-        seqCmd('abaseq ' + track + ' ' + lane + ' ' + baseN); // quiet base sync
+    // Live-recorded automation latches until its end trigger (next note on a
+    // different step, or next lock) — no revert-to-base on release. Only a
+    // normal (non-automation) edit syncs the engine base, quietly.
+    if (!seqState.stepAutoMode) {
+        seqCmd('abaseq ' + track + ' ' + lane + ' ' + norm7(info.value, info.min, info.max));
     }
 }
 

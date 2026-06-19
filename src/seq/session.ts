@@ -15,15 +15,13 @@ import { C_BLACK, C_DARKGREY, C_WHITE, trackColor, ANIM_NONE, ANIM_PULSE, ANIM_P
 import { seqCmd } from './engine.js';
 import { seqToast } from './render.js';
 import { seqState } from './state.js';
+import { dupActive, onUnit as dupOnUnit } from './duplicate.js';
 
 const COLS = 8;
 const ROWS = 4;
 
-/* Session Copy/Delete have their own held state (distinct from the Note-mode
- * step copy/delete in edit-ops). */
-let copyHeld = false;
-let copySrc: { track: number; slot: number } | null = null;
-let pasteArmed = false;
+/* Session Delete has its own held state (distinct from the Note-mode step
+ * delete in edit-ops). Copy is handled by the shared duplicate gesture. */
 let deleteHeld = false;
 
 function padToCell(padNote: number, padMin: number): { track: number; slot: number } | null {
@@ -44,26 +42,6 @@ export function sessionToggle(): void {
     seqToast(seqState.sessionMode ? 'Session' : 'Note');
 }
 
-export function sessionCopyButton(down: boolean): void {
-    if (down) {
-        if (pasteArmed) { // cancel a pending paste
-            pasteArmed = false;
-            copySrc = null;
-            seqToast('Copy cancelled');
-            return;
-        }
-        copyHeld = true;
-        copySrc = null;
-    } else {
-        copyHeld = false;
-        if (copySrc) {
-            seqCmd(`clipcopy ${copySrc.track} ${copySrc.slot}`);
-            pasteArmed = true;
-            seqToast('Clip copied');
-        }
-    }
-}
-
 export function sessionDeleteButton(down: boolean): void {
     deleteHeld = down;
 }
@@ -80,14 +58,8 @@ export function sessionPad(padNote: number, padMin: number): void {
         seqToast('Clip deleted');
         return;
     }
-    if (copyHeld) {
-        copySrc = { track, slot };
-        return;
-    }
-    if (pasteArmed) {
-        seqCmd(`clippaste ${track} ${slot}`);
-        pasteArmed = false;
-        seqToast('Clip pasted');
+    if (dupActive()) {
+        dupOnUnit({ kind: 'clip', track, slot });
         return;
     }
     // Launch the clip (or select-empty-stops). Also retarget the watched
@@ -139,8 +111,5 @@ export function sessionPaintGrid(
 }
 
 export function resetSession(): void {
-    copyHeld = false;
-    copySrc = null;
-    pasteArmed = false;
     deleteHeld = false;
 }

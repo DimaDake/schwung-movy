@@ -606,7 +606,7 @@ _log('\nTest: drumPadOn');
     seqHandleMidi([0x80, 16, 0], false);
     eq('optimistic occ set', occHasStep(0), true);
     eq('optimistic clip created (1 bar)', seqState.lenSteps, 16);
-    eq('optimistic auto-start', seqState.playing, true);
+    eq('step entry does not auto-start', seqState.playing, false);
     seqEngineTick();
     eq('tog cmd emitted', lastOp(), 'tog 0 0 72 110');
 
@@ -718,6 +718,55 @@ _log('\nTest: drumPadOn');
     eq('mute+track keeps watchTrack', seqState.watchTrack, 0);
     eq('mute+track emits no watch cmd', engine.ops.some((o) => o.startsWith('watch ')), false);
     setMuteHeld(false);
+
+    // Copy held + two step presses (note view) → cpy then pst, no note toggled.
+    resetSeqState(); engine.reset(); resetSeqEngine(); seqEngineTick();
+    {
+        const { copyButton } = await import('../dist/esm/seq/duplicate.js');
+        copyButton(true);
+        seqHandleMidi([0x90, 16 + 2, 127], false); // source step 2
+        seqHandleMidi([0x90, 16 + 9, 127], false); // dest step 9
+        copyButton(false);
+        seqEngineTick();                           // flush queued cmds to the mock engine
+        eq('dup step copy via router', engine.ops.includes('cpy 0 2 2'), true);
+        eq('dup step paste via router', engine.ops.includes('pst 0 9'), true);
+        eq('dup step did not toggle a note', engine.ops.some((o) => o.startsWith('tog ')), false);
+    }
+
+    // Session: Copy held + two clip pads → clipcopy then clippaste, no launch.
+    resetSeqState(); engine.reset(); resetSeqEngine(); seqEngineTick();
+    seqState.sessionMode = true;
+    {
+        const { copyButton } = await import('../dist/esm/seq/duplicate.js');
+        copyButton(true);
+        seqHandleMidi([0x90, 68, 127], false);     // pad 68 = track 3 slot 0 (bottom-left)
+        seqHandleMidi([0x90, 68 + 1, 127], false); // dest pad
+        copyButton(false);
+        seqEngineTick();
+        eq('dup clip copy via router', engine.ops.some((o) => o.startsWith('clipcopy')), true);
+        eq('dup clip paste via router', engine.ops.some((o) => o.startsWith('clippaste')), true);
+        eq('dup clip did not launch', engine.ops.some((o) => o.startsWith('launch')), false);
+    }
+    seqState.sessionMode = false;
+
+    // Session: Clear held + clip pad → clipdelat + toast; multiple while held.
+    resetSeqState(); engine.reset(); resetSeqEngine(); resetSeqToast(); seqEngineTick();
+    seqState.sessionMode = true;
+    seqHandleMidi([0xB0, 119, 127], false);   // hold Clear
+    seqHandleMidi([0x90, 68, 127], false);     // clip A
+    seqHandleMidi([0x90, 68 + 1, 127], false); // clip B (still held)
+    seqEngineTick();
+    eq('clear+clip deletes A', engine.ops.includes('clipdelat 3 0'), true);
+    eq('clear+clip deletes B', engine.ops.includes('clipdelat 3 1'), true);
+    seqHandleMidi([0xB0, 119, 0], false);
+    seqState.sessionMode = false;
+
+    // Step entry while stopped does not start the transport (UI mirror).
+    resetSeqState(); engine.reset(); resetSeqEngine(); seqEngineTick();
+    seqState.playing = false;
+    seqHandleMidi([0x90, 16 + 0, 127], false);
+    seqHandleMidi([0x80, 16 + 0, 0], false);
+    eq('step entry keeps playing false', seqState.playing, false);
 
     // Bar navigation: Right advances the visible bar (clip is 1 bar long, so
     // one extra empty bar is reachable), with a toast; clamps at the end.
@@ -1111,43 +1160,27 @@ _log('\nTest: drumPadOn');
     const { resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
     const { resetLoopMode } = await import('../dist/esm/seq/loop-mode.js');
     const { resetSeqToast } = await import('../dist/esm/seq/render.js');
+    const { resetDuplicate } = await import('../dist/esm/seq/duplicate.js');
 
     const engine = installMockEngine();
     const reset = () => {
-        resetSeqEngine(); resetSeqState(); resetEditOps();
+        resetSeqEngine(); resetSeqState(); resetEditOps(); resetDuplicate();
         resetStepEdit(); resetLoopMode(); resetSeqToast(); engine.reset();
     };
     const lastOp = () => engine.ops[engine.ops.length - 1];
     reset(); seqEngineTick();
 
-    // Copy tap (down/up, no step) → duplicate clip.
-    seqHandleMidi([0xB0, 60, 127], false);
-    seqHandleMidi([0xB0, 60, 0], false);
-    seqEngineTick();
-    eq('Copy tap duplicates clip', lastOp(), 'clipdup 0');
-
-    // Copy + two steps → copy range; next step pastes.
-    reset(); seqEngineTick();
+    // Copy held → source step → dest step: copy then paste-replace, no toggles.
+    // (The full duplicate-gesture matrix is covered in the 'duplicate gesture'
+    // and 'seq router' blocks; here we just confirm the Copy button routes to
+    // it and releases cleanly.)
     seqHandleMidi([0xB0, 60, 127], false);     // Copy down
-    seqHandleMidi([0x90, 16 + 0, 127], false); // mark step 0
-    seqHandleMidi([0x90, 16 + 3, 127], false); // mark step 3
-    seqHandleMidi([0xB0, 60, 0], false);       // Copy up → copy 0..3
+    seqHandleMidi([0x90, 16 + 0, 127], false); // source step 0
+    seqHandleMidi([0x90, 16 + 8, 127], false); // dest step 8
+    seqHandleMidi([0xB0, 60, 0], false);       // Copy up
     seqEngineTick();
-    eq('copy range op', lastOp(), 'cpy 0 0 3');
-    seqHandleMidi([0x90, 16 + 8, 127], false); // paste at step 8
-    seqEngineTick();
-    eq('paste op', lastOp(), 'pst 0 8');
-    // The marked-step presses while copying must NOT have toggled notes.
-    eq('copy marks did not toggle notes', engine.ops.filter(o => o.startsWith('tog')).length, 0);
-
-    // Copy again while paste-armed clears the clipboard.
-    reset(); seqEngineTick();
-    seqHandleMidi([0xB0, 60, 127], false);
-    seqHandleMidi([0x90, 16 + 0, 127], false);
-    seqHandleMidi([0xB0, 60, 0], false);       // armed
-    seqHandleMidi([0xB0, 60, 127], false);     // press Copy again → clear
-    seqEngineTick();
-    eq('Copy-again clears clipboard', lastOp(), 'cpyclr');
+    eq('dup copy then paste', engine.ops.includes('cpy 0 0 0') && engine.ops.includes('pst 0 8'), true);
+    eq('dup presses did not toggle notes', engine.ops.filter(o => o.startsWith('tog')).length, 0);
 
     // Delete tap → delete clip.
     reset(); seqEngineTick();
@@ -1262,9 +1295,10 @@ _log('\nTest: drumPadOn');
     const { seqState, resetSeqState, sessionFromStr } = await import('../dist/esm/seq/state.js');
     const { resetSession } = await import('../dist/esm/seq/session.js');
     const { resetSeqToast } = await import('../dist/esm/seq/render.js');
+    const { resetDuplicate } = await import('../dist/esm/seq/duplicate.js');
 
     const engine = installMockEngine();
-    const reset = () => { resetSeqEngine(); resetSeqState(); resetSession(); resetSeqToast(); engine.reset(); };
+    const reset = () => { resetSeqEngine(); resetSeqState(); resetSession(); resetDuplicate(); resetSeqToast(); engine.reset(); };
     const lastOp = () => engine.ops[engine.ops.length - 1];
     reset(); seqEngineTick();
 
@@ -1298,16 +1332,16 @@ _log('\nTest: drumPadOn');
     eq('Delete+pad clears the clip', lastOp(), 'clipdelat 0 0');
     seqHandleMidi([0xB0, 119, 0], false);
 
-    // Copy + src pad, release, dest pad → clip copy/paste.
+    // Copy HELD → src pad → dest pad (still held) → clip copy then paste.
     reset(); seqEngineTick(); seqState.sessionMode = true;
-    seqHandleMidi([0xB0, 60, 127], false);    // Copy down
+    seqHandleMidi([0xB0, 60, 127], false);    // Copy down (held)
     seqHandleMidi([0x90, 92, 127], false);    // src = track 0 slot 0
-    seqHandleMidi([0xB0, 60, 0], false);      // release → copy
     seqEngineTick();
     eq('clip copy op', lastOp(), 'clipcopy 0 0');
-    seqHandleMidi([0x90, 93, 127], false);    // dest = track 0 slot 1
+    seqHandleMidi([0x90, 93, 127], false);    // dest = track 0 slot 1 (still held)
     seqEngineTick();
     eq('clip paste op', lastOp(), 'clippaste 0 1');
+    seqHandleMidi([0xB0, 60, 0], false);      // Copy up
 
     // Status `sess=` populates the grid mirror.
     sessionFromStr('03.0.-.0,00.-.-.0,00.-.-.0,00.-.-.0');

@@ -20,15 +20,9 @@ import { seqState } from './state.js';
 import { clearStepAllAutomation } from './automation.js';
 import { anyStepHeld, heldStepList, markHeldGestured } from './step-edit.js';
 
-let copyHeld = false;
-let copySource: number[] = []; // absolute steps marked while Copy is held
-let pasteArmedFlag = false;
 let delHeld = false;
 let delActed = false;
 
-export function copyActive(): boolean {
-    return copyHeld;
-}
 export function deleteActive(): boolean {
     return delHeld;
 }
@@ -38,52 +32,9 @@ export function deleteActive(): boolean {
 export function markDeleteActed(): void {
     delActed = true;
 }
-export function pasteArmed(): boolean {
-    return pasteArmedFlag;
-}
 
 function absStep(button: number): number {
     return seqState.barOffset * NUM_STEP_BUTTONS + button;
-}
-
-/* Copy button (CC 60). */
-export function copyButton(down: boolean): void {
-    const t = seqState.watchTrack;
-    if (down) {
-        if (pasteArmedFlag) {
-            // Pressing Copy again before pasting cancels the pending paste.
-            seqCmd('cpyclr');
-            pasteArmedFlag = false;
-            seqToast('Clipboard cleared');
-            return;
-        }
-        copyHeld = true;
-        copySource = [];
-    } else {
-        copyHeld = false;
-        if (copySource.length === 0) {
-            seqCmd('clipdup ' + t);
-            seqToast('Clip duplicated');
-        } else {
-            const s0 = Math.min(...copySource);
-            const s1 = Math.max(...copySource);
-            seqCmd(`cpy ${t} ${s0} ${s1}`);
-            pasteArmedFlag = true;
-            seqToast('Copied');
-        }
-    }
-}
-
-/* A step pressed while Copy is held marks (part of) the copy source. */
-export function copyMarkStep(button: number): void {
-    copySource.push(absStep(button));
-}
-
-/* A step pressed while paste-armed pastes the clipboard there. */
-export function pasteAtStep(button: number): void {
-    seqCmd(`pst ${seqState.watchTrack} ${absStep(button)}`);
-    pasteArmedFlag = false;
-    seqToast('Pasted');
 }
 
 /* Delete button (CC 119). */
@@ -138,9 +89,6 @@ export function deletePad(pitch: number): void {
 }
 
 export function resetEditOps(): void {
-    copyHeld = false;
-    copySource = [];
-    pasteArmedFlag = false;
     delHeld = false;
     delActed = false;
 }

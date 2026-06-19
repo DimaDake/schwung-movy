@@ -661,6 +661,30 @@ _log('\nTest: drumPadOn');
     eq('drum multi: step 0 entered', occHasStep(0), true);
     eq('drum multi: step 3 entered', occHasStep(3), true);
     eq('drum multi: no length gesture', engine.ops.some((o) => o.startsWith('slen')), false);
+
+    // Drum multi-step where the anchor is held past the 300ms step-automation
+    // threshold (reproduces the device failure): after step 3 is released,
+    // step 0 is held alone, and the per-tick stepAutoTick must NOT promote it to
+    // step-automation mode (which would suppress its toggle). The anchor must
+    // still enter on release.
+    {
+        const { stepAutoTick } = await import('../dist/esm/seq/step-edit.js');
+        resetSeqState(); engine.reset(); resetSeqEngine(); seqEngineTick();
+        seqState.lenSteps = 16;
+        seqSetLane(38); seqEngineTick();
+        const realNow = Date.now;
+        let clock = 1000;
+        Date.now = () => clock;
+        seqHandleMidi([0x90, 16 + 0, 127], false);   // hold step 0 (press at t=1000)
+        seqHandleMidi([0x90, 16 + 3, 127], false);   // press step 3 while step 0 held
+        seqHandleMidi([0x80, 16 + 3, 0], false);     // release step 3 → toggles on
+        clock = 1500;                                // 500ms later — past the 300ms threshold
+        stepAutoTick();                              // per-tick promotion check fires here
+        seqHandleMidi([0x80, 16 + 0, 0], false);     // release step 0 → must still toggle
+        Date.now = realNow;
+        eq('drum multi (>300ms hold): anchor still entered', occHasStep(0), true);
+        eq('drum multi (>300ms hold): B still entered', occHasStep(3), true);
+    }
     seqSetLane(-1); seqEngineTick();
 
     // Bar navigation: Right advances the visible bar (clip is 1 bar long, so

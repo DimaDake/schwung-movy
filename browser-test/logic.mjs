@@ -2092,6 +2092,20 @@ _log('\nautomation knob routing:');
     resetSeqState();
 }
 
+/* ── Clear + automation-knob clear must not delete the clip ──────────────── */
+_log('\nclear + automation knob:');
+{
+    const { deleteButton, markDeleteActed, resetEditOps } =
+        await import('../dist/esm/seq/edit-ops.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
+    resetEditOps(); resetSeqEngine();
+    deleteButton(true);            // hold Clear
+    markDeleteActed();             // automation-knob clear acted
+    deleteButton(false);           // release Clear
+    eq('clear+automation-knob does not delete clip',
+        peekSeqCmdQueue().some((o) => o.startsWith('clipdel')), false);
+}
+
 /* ── automation: hold+knob gesture enters step-auto, release is not a tap ─── */
 _log('\nautomation gesture (tap vs hold):');
 {

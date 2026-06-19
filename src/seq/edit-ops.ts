@@ -32,6 +32,12 @@ export function copyActive(): boolean {
 export function deleteActive(): boolean {
     return delHeld;
 }
+/* Mark the in-progress Clear gesture as having acted, so its release does not
+ * fall through to deleting the active clip. Used by the automation-knob clear
+ * (and any other Clear-modified action). */
+export function markDeleteActed(): void {
+    delActed = true;
+}
 export function pasteArmed(): boolean {
     return pasteArmedFlag;
 }

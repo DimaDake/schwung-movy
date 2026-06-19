@@ -578,7 +578,7 @@ _log('\nTest: drumPadOn');
 {
     _log('\nseq router:');
     const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
-    const { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, seqSetLane } =
+    const { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, seqSetLane, setMuteHeld } =
         await import('../dist/esm/seq/router.js');
     const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
     const { seqState, resetSeqState, occHasStep } = await import('../dist/esm/seq/state.js');
@@ -709,6 +709,15 @@ _log('\nTest: drumPadOn');
         eq('drum multi (anchor promoted first): B entered', occHasStep(3), true);
     }
     seqSetLane(-1); seqEngineTick();
+
+    // Mute held: a track-button press must NOT retarget the watched track.
+    resetSeqState(); engine.reset(); resetSeqEngine(); seqEngineTick();
+    seqState.watchTrack = 0;
+    setMuteHeld(true);
+    seqHandleMidi([0xB0, 42, 127], false);   // track button for track 1 (CC 43 = track 0)
+    eq('mute+track keeps watchTrack', seqState.watchTrack, 0);
+    eq('mute+track emits no watch cmd', engine.ops.some((o) => o.startsWith('watch ')), false);
+    setMuteHeld(false);
 
     // Bar navigation: Right advances the visible bar (clip is 1 bar long, so
     // one extra empty bar is reachable), with a toast; clamps at the end.

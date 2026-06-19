@@ -227,10 +227,12 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     }
 
     /* Track buttons: observe only — retarget the watched clip and let the
-     * existing param-page track switching run unchanged. */
+     * existing param-page track switching run unchanged. While Mute is held a
+     * track press is purely a mute (handled in midi/router.ts), so do not
+     * retarget the step-view focus. */
     if (d1 >= CC_TRACK_START && d1 <= CC_TRACK_END && d2 > 0) {
         const track = CC_TRACK_END - d1;
-        if (track !== seqState.watchTrack) {
+        if (!muteHeld() && track !== seqState.watchTrack) {
             seqState.watchTrack = track;
             seqState.barOffset = 0;
             seqCmd('watch ' + track);

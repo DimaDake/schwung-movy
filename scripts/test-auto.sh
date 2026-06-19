@@ -32,8 +32,8 @@ FAILURES=0
 inj() { python3 "$INJECT" "$HOST" "$@" >/dev/null 2>&1; }
 movylog() { ssh "ableton@$HOST" "grep '\[movy\]' $LOG 2>/dev/null || true"; }
 
-# CC numbers (shared/constants.mjs): jog-click=3, Play=85, knob2=72.
-CC_JOG=3; CC_PLAY=85; CC_KNOB2=72; CC_BACK=51
+# CC numbers (shared/constants.mjs): jog-click=3, Play=85, Rec=86, knob2=72.
+CC_JOG=3; CC_PLAY=85; CC_REC=86; CC_KNOB2=72; CC_BACK=51
 STEP1=16; STEP5=20; PAD=80
 
 # ── Pre-flight + deploy ───────────────────────────────────────────────────────
@@ -63,7 +63,10 @@ inj note_on $PAD 100; sleep 0.1; inj note_off $PAD; sleep 0.1       # set step-e
 inj note_on $STEP1 127; sleep 0.1; inj note_off $STEP1; sleep 0.2   # place note (auto-clip)
 inj cc $CC_PLAY 127; sleep 0.1; inj cc $CC_PLAY 0; sleep 0.5        # play
 inj note_on $STEP5 127; sleep 0.45                                  # hold step 5 (step-auto)
-for _ in 1 2 3 4 5; do inj cc $CC_KNOB2 110; sleep 0.18; done       # turn knob 2 down (delta -18)
+# Sweep up then down (well separated): bidirectional so we get distinct values
+# regardless of the base, instead of clamping at a rail (which yields one value).
+for _ in 1 2 3; do inj cc $CC_KNOB2 12; sleep 0.3; done             # up
+for _ in 1 2 3; do inj cc $CC_KNOB2 116; sleep 0.3; done            # down
 inj note_off $STEP5; sleep 0.8
 
 L=$(movylog)
@@ -88,6 +91,36 @@ if echo "$L" | grep -qE "auto render .*:a1t"; then
     pass "P2: automation dot shown on automated param (a1)"
 else
     fail "P2: automation dot never shown (no ':a1' in any 'auto render' line)"
+fi
+
+# ── 1b. LIVE record (no step held): the on-screen arc/value must follow the ───
+#       turn while recording. This is the path the held-step test misses: a live
+#       take is recArmed (recording+playing), NOT step-auto, so its repaint is
+#       driven by liveTurn, not heldLocks. Frozen screen here = the reported bug.
+info "Arming Record and turning knob 2 live (no step held)..."
+inj cc $CC_REC 127; sleep 0.1; inj cc $CC_REC 0                     # arm record (one-bar count-in)
+sleep 3                                                             # let the count-in elapse → recording live
+ssh "ableton@$HOST" "> $LOG" >/dev/null 2>&1                        # isolate the live-turn frames
+# Sweep up then down, well separated: each turn lands on its own render tick (so
+# the diag logs a distinct value per turn) and the bidirectional sweep avoids
+# clamping at a rail (one value) regardless of the starting base.
+for _ in 1 2 3; do inj cc $CC_KNOB2 12; sleep 0.3; done             # up, no step held
+for _ in 1 2 3; do inj cc $CC_KNOB2 116; sleep 0.3; done            # down
+sleep 0.6
+inj cc $CC_REC 127; sleep 0.1; inj cc $CC_REC 0                     # stop recording
+
+LL=$(movylog)
+echo -e "${BLD}=== auto render (live, held=0) ===${RST}"; echo "$LL" | grep "auto render held=0" | grep -E "t1=" | tail -8 || true
+LIVE_VALUES=$(echo "$LL" | grep "auto render held=0" | grep -oE "t1=[0-9]+%" | sort -u | wc -l | tr -d ' ')
+if echo "$LL" | grep -qE "auto render held=0.*t1="; then
+    pass "P4: live-record value highlighted while turning (no step held)"
+else
+    fail "P4: live take never repainted the arc/value (screen frozen while turning)"
+fi
+if [[ "${LIVE_VALUES:-0}" -ge 2 ]]; then
+    pass "P4: live-record arc/value follows the turn ($LIVE_VALUES distinct values)"
+else
+    fail "P4: live value did not change while turning ($LIVE_VALUES distinct values)"
 fi
 
 # ── 2. Reopen and verify the registry repopulates from restore (P3 root) ──────

@@ -56,19 +56,26 @@ export function resetAutomation(): void {
     lastDisplaySig = '';
 }
 
-/* The held-step value display (inverted value instead of the param name) is fed
- * by `stepAutoMode` + `heldLocks`, both of which change out-of-band of the
- * param page's normal dirty path: a knob turn consumed as automation never
- * reaches the model, and the status poll rewrites `heldLocks` from `hauto`. The
- * page is also decoupled from playback read-back for perf, so nothing else
- * repaints it. This signature lets the app tick detect those changes and force
- * a repaint — without repainting on every idle/playback tick. */
+/* The automation value display (inverted value + moved arc instead of the param
+ * name) is fed out-of-band of the param page's normal dirty path. A knob turn
+ * consumed as automation never reaches the model, and the page is decoupled from
+ * playback read-back for perf, so nothing else repaints it. Two sources drive it:
+ *   - held step: `stepAutoMode` + `heldLocks` (rewritten by the status poll), and
+ *   - live record: `liveTurn` (set per turn, cleared on release → snap to base).
+ * This signature lets the app tick detect either changing and force a repaint —
+ * without repainting on every idle/playback tick. */
 let lastDisplaySig = '';
 function displaySig(): string {
-    if (!seqState.stepAutoMode) return '';
-    let sig = 's';
-    const lanes = [...seqState.heldLocks.entries()].sort((a, b) => a[0] - b[0]);
-    for (const [l, v] of lanes) sig += l + ':' + v + '.';
+    let sig = '';
+    if (seqState.stepAutoMode) {
+        sig = 's';
+        const lanes = [...seqState.heldLocks.entries()].sort((a, b) => a[0] - b[0]);
+        for (const [l, v] of lanes) sig += l + ':' + v + '.';
+    }
+    // Live-record turns also move the on-screen arc/value; fold them in so a
+    // turn (and the release that clears them) repaints the param page.
+    const live = [...liveTurn.entries()].sort();
+    for (const [k, v] of live) sig += '|' + k + '=' + v;
     return sig;
 }
 /* True when the held-step display changed since the previous call (call once

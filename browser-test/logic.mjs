@@ -2324,7 +2324,8 @@ _log('\nautomation bar-range (Loop mode):');
 /* ── automation: held-step display change detection (repaint trigger) ─────── */
 _log('\nautomation display-dirty:');
 {
-    const { resetAutomation, automationDisplayDirty } = await import('../dist/esm/seq/automation.js');
+    const { resetAutomation, automationDisplayDirty, handleAutomationKnob, automationKnobReleased } = await import('../dist/esm/seq/automation.js');
+    const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
 
     resetAutomation(); resetSeqState();
@@ -2344,6 +2345,20 @@ _log('\nautomation display-dirty:');
     seqState.stepAutoMode = false;           // release the step
     eq('exit step-auto → dirty', automationDisplayDirty(), true);
     resetAutomation(); resetSeqState();
+
+    // Live record (NOT step-auto): turning a knob must ALSO trigger a repaint so
+    // the on-screen arc/value follows the live take; release snaps back to base
+    // (also a repaint). Without this, the screen stays frozen while turning.
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    const liveInfo = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
+    seqState.recording = true; seqState.playing = true; seqState.curStep = 2;
+    automationDisplayDirty();                 // settle the baseline signature
+    handleAutomationKnob(0, 0, liveInfo, +5, () => true);
+    eq('live take knob turn → dirty', automationDisplayDirty(), true);
+    eq('live take unchanged → not dirty', automationDisplayDirty(), false);
+    automationKnobReleased(0, 0, liveInfo);
+    eq('live take release (snap to base) → dirty', automationDisplayDirty(), true);
+    resetAutomation(); resetSeqEngine(); resetSeqState();
 }
 
 /* ── automation: label re-sync from engine ───────────────────────────────── */

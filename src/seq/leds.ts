@@ -2,7 +2,7 @@
  * are sent, so unchanged frames cost nothing on the wire (davebox pattern). */
 
 import { backLedColor, arrowLedColor, sampleLedColor, captureLedColor, undoLedColor } from './buttons.js';
-import { C_BLACK, C_DARKGREY, C_GREEN, C_REC_RED, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
+import { C_BLACK, C_DARKGREY, C_GREEN, C_LIGHTGREY, C_REC_RED, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
 import {
     CC_PLAY, CC_REC, CC_TRACK_END, NUM_STEP_BUTTONS, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
@@ -119,11 +119,12 @@ function paintAffordances(view: number, barOffset: number, maxOff: number, lp: b
 }
 
 /* Length-span overlay while a step is held: the steps AFTER the held step, up
- * to its note length, light dim track color. Returns -1 when `absStep` is not a
- * span step (so the caller keeps the normal step color). */
-export function lengthSpanColor(absStep: number, holdStep: number, holdLen: number, track: number): number {
+ * to its note length, light light-grey (distinct from in-clip dim and brighter
+ * than out-of-clip dark-grey; overrides occupied steps as it paints first).
+ * Returns -1 when `absStep` is not a span step (caller keeps the normal color). */
+export function lengthSpanColor(absStep: number, holdStep: number, holdLen: number, _track: number): number {
     if (holdStep < 0 || holdLen <= 1) return -1;
-    if (absStep > holdStep && absStep <= holdStep + holdLen - 1) return trackColorDim(track);
+    if (absStep > holdStep && absStep <= holdStep + holdLen - 1) return C_LIGHTGREY;
     return -1;
 }
 

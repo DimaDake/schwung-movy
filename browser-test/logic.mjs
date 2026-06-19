@@ -1918,12 +1918,17 @@ _log('\nautomation: restore re-requests label sync:');
 {
     _log('\nstep-row length span:');
     const { lengthSpanColor } = await import('../dist/esm/seq/leds.js');
-    const { trackColorDim } = await import('../dist/esm/seq/colors.js');
-    // held abs step 2, length 4 → steps 3,4,5 are span (dim), step 2 is the held note.
-    eq('span step dim', lengthSpanColor(4, 2, 4, 0), trackColorDim(0)); // absStep 4 within [3,5]
+    const { C_LIGHTGREY, C_DARKGREY, trackColorDim } = await import('../dist/esm/seq/colors.js');
+    // held abs step 2, length 4 → steps 3,4,5 are span (light-grey), step 2 is the held note.
+    eq('span step light-grey', lengthSpanColor(4, 2, 4, 0), C_LIGHTGREY); // absStep 4 within [3,5]
+    eq('last span step light-grey', lengthSpanColor(5, 2, 4, 0), C_LIGHTGREY);
     eq('held step not span', lengthSpanColor(2, 2, 4, 0), -1);          // -1 = "not a span step"
     eq('past span', lengthSpanColor(6, 2, 4, 0), -1);
+    eq('1-step note has no tail', lengthSpanColor(3, 2, 1, 0), -1);
     eq('no hold', lengthSpanColor(4, -1, 0, 0), -1);
+    // The tail must be visually distinct from in-clip dim and out-of-clip dark-grey.
+    eq('tail grey differs from in-clip dim', C_LIGHTGREY !== trackColorDim(0), true);
+    eq('tail grey differs from out-of-clip dark-grey', C_LIGHTGREY !== C_DARKGREY, true);
 }
 
 /* ── hold-A-press-B length gesture ──────────────────────────────────────── */

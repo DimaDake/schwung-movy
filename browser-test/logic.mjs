@@ -2118,6 +2118,61 @@ _log('\ntoast duration:');
     eq('toast shows ~1.5s (>=250 ticks) regardless of requested ttl', ticks >= 250, true);
 }
 
+/* ── duplicate gesture (Copy held → source → dest, replace) ──────────────── */
+_log('\nduplicate gesture:');
+{
+    const { copyButton, onUnit, dupActive, resetDuplicate } =
+        await import('../dist/esm/seq/duplicate.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
+
+    // Clip: copy source slot, paste-replace at dest (cross-track), source stays armed.
+    resetDuplicate(); resetSeqEngine();
+    copyButton(true);
+    eq('dup active while held', dupActive(), true);
+    onUnit({ kind: 'clip', track: 0, slot: 0 });
+    onUnit({ kind: 'clip', track: 1, slot: 3 });
+    onUnit({ kind: 'clip', track: 2, slot: 5 }); // second dest — source still armed
+    const q = peekSeqCmdQueue();
+    eq('clip copy emitted', q.includes('clipcopy 0 0'), true);
+    eq('clip paste 1', q.includes('clippaste 1 3'), true);
+    eq('clip paste 2 (armed)', q.includes('clippaste 2 5'), true);
+    copyButton(false);
+    eq('dup inactive after release', dupActive(), false);
+
+    // Step: cpy single step, pst at dest.
+    resetDuplicate(); resetSeqEngine();
+    copyButton(true);
+    onUnit({ kind: 'step', track: 0, step: 2 });
+    onUnit({ kind: 'step', track: 0, step: 9 });
+    const qs = peekSeqCmdQueue();
+    eq('step copy', qs.includes('cpy 0 2 2'), true);
+    eq('step paste', qs.includes('pst 0 9'), true);
+    copyButton(false);
+
+    // Bar: cpy the 16-step bar range, pst at dest bar start.
+    resetDuplicate(); resetSeqEngine();
+    copyButton(true);
+    onUnit({ kind: 'bar', track: 0, bar: 0 });
+    onUnit({ kind: 'bar', track: 0, bar: 2 });
+    const qb = peekSeqCmdQueue();
+    eq('bar copy', qb.includes('cpy 0 0 15'), true);
+    eq('bar paste', qb.includes('pst 0 32'), true);
+    copyButton(false);
+
+    // No source captured yet → a press is the source, not a paste.
+    resetDuplicate(); resetSeqEngine();
+    copyButton(true);
+    onUnit({ kind: 'clip', track: 0, slot: 1 });
+    eq('first press is copy not paste',
+        peekSeqCmdQueue().some((o) => o.startsWith('clippaste')), false);
+    copyButton(false);
+
+    // onUnit ignored when not held.
+    resetDuplicate(); resetSeqEngine();
+    onUnit({ kind: 'clip', track: 0, slot: 0 });
+    eq('onUnit no-op when not held', peekSeqCmdQueue().length, 0);
+}
+
 /* ── automation: hold+knob gesture enters step-auto, release is not a tap ─── */
 _log('\nautomation gesture (tap vs hold):');
 {

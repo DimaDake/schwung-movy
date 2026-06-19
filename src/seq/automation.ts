@@ -185,8 +185,17 @@ export function handleAutomationKnob(
     if (lane < 0) { seqState.autoPoolFull = true; return true; } // consumed; toast in render
 
     const step = held ? seqState.holdStep : seqState.curStep;
-    const ctx = (held ? 'h' : 'r') + step;
-    const seed = seqState.heldLocks.get(lane) ?? norm7(info.value, info.min, info.max);
+    // A held step keys the accumulator by its (fixed) step. A live take must
+    // accumulate CONTINUOUSLY as the playhead advances, so it keys by lane only
+    // ('r', step-independent) — otherwise every step boundary reseeds it. The
+    // seed is read only on the first turn of a context; for live that is the
+    // current base (heldLocks is held-step-only and the status poll clears it
+    // each tick, so it must NOT drive the live seed — that caused the value to
+    // snap back to base on every turn).
+    const ctx = held ? 'h' + step : 'r';
+    const seed = held
+        ? (seqState.heldLocks.get(lane) ?? norm7(info.value, info.min, info.max))
+        : norm7(info.value, info.min, info.max);
     const next = accumLive(track, lane, ctx, seed, delta);
     // Holding a bar in Loop mode writes the value across the whole bar.
     const r = held ? heldRange() : null;
@@ -195,7 +204,7 @@ export function handleAutomationKnob(
     } else {
         seqCmd('aset ' + track + ' ' + lane + ' ' + step + ' ' + next);
     }
-    seqState.heldLocks.set(lane, next);          // optimistic held-step display
+    if (held) seqState.heldLocks.set(lane, next); // optimistic held-step display
     // Live take (no step held): let the on-screen knob follow the turn. The
     // held-step case is already driven by heldLocks above.
     if (!held) liveTurn.set(track + ':' + lane, next);
@@ -209,7 +218,13 @@ export function handleAutomationKnob(
 export function automationKnobReleased(track: number, physK: number, info: KnobParamInfo): void {
     const lane = laneForParam(track, info.target + ':' + info.key);
     const wasTap = touchedNotTurned.delete(physK);
-    if (lane >= 0) liveTurn.delete(track + ':' + lane); // knob released → snap to base
+    if (lane >= 0) {
+        liveTurn.delete(track + ':' + lane); // knob released → snap to base
+        // End the live accumulator's context so the NEXT take reseeds from the
+        // (possibly updated) base instead of continuing this take's value.
+        liveCtx.delete(track + ':' + lane);
+        liveVal.delete(track + ':' + lane);
+    }
 
     // Tap in step-automation mode → clear this step's lock (revert to base).
     if (seqState.stepAutoMode && wasTap) {

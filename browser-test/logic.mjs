@@ -2152,6 +2152,23 @@ _log('\nautomation knob routing:');
     eq('release clears the live knob value (knob snaps to base)', liveTurnValues(0).has(0), false);
     resetSeqState();
 
+    // A live take must ACCUMULATE across playback steps. The status poll clears
+    // heldLocks each tick (no step held), and the playhead advances every step;
+    // if the live seed came from heldLocks / a per-step context it would reset to
+    // base on every turn (the "feedback loop back to the original position" bug).
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    seqState.recording = true; seqState.playing = true;
+    seqState.curStep = 2;
+    handleAutomationKnob(0, 0, info, +5, () => true);
+    const v1 = liveTurnValues(0).get(0);
+    seqState.heldLocks.clear();            // simulate the ~24Hz hauto poll wiping it
+    seqState.curStep = 3;                  // playhead advanced to the next step
+    handleAutomationKnob(0, 0, info, +5, () => true);
+    const v2 = liveTurnValues(0).get(0);
+    eq('live take accumulates across steps (not reset to base)', v2 > v1, true);
+    eq('live take accumulated by both deltas', v2 - v1, 5);
+    resetSeqState();
+
     // Step-automation does NOT leak a live value (held path drives the knob via
     // heldLocks instead, so the knob doesn't snap back while the step is held).
     resetAutomation(); resetSeqEngine(); resetSeqState();

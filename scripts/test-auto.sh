@@ -100,12 +100,13 @@ fi
 info "Arming Record and turning knob 2 live (no step held)..."
 inj cc $CC_REC 127; sleep 0.1; inj cc $CC_REC 0                     # arm record (one-bar count-in)
 sleep 3                                                             # let the count-in elapse → recording live
-ssh "ableton@$HOST" "> $LOG" >/dev/null 2>&1                        # isolate the live-turn frames
-# Sweep up then down, well separated: each turn lands on its own render tick (so
-# the diag logs a distinct value per turn) and the bidirectional sweep avoids
-# clamping at a rail (one value) regardless of the starting base.
-for _ in 1 2 3; do inj cc $CC_KNOB2 12; sleep 0.3; done             # up, no step held
-for _ in 1 2 3; do inj cc $CC_KNOB2 116; sleep 0.3; done            # down
+# Drive to the floor first so the up-sweep below has full headroom and a known
+# base. Then a pure up-sweep MUST yield ascending distinct values: a live take
+# that fails to accumulate (the status poll wipes heldLocks every tick, the
+# playhead advances) sticks at base+one-delta — the reported "snaps back" bug.
+for _ in 1 2 3 4; do inj cc $CC_KNOB2 116; sleep 0.25; done         # down to floor
+ssh "ableton@$HOST" "> $LOG" >/dev/null 2>&1                        # isolate the up-sweep frames
+for _ in 1 2 3 4; do inj cc $CC_KNOB2 12; sleep 0.3; done           # up, well separated, no step held
 sleep 0.6
 inj cc $CC_REC 127; sleep 0.1; inj cc $CC_REC 0                     # stop recording
 
@@ -117,10 +118,12 @@ if echo "$LL" | grep -qE "auto render held=0.*t1="; then
 else
     fail "P4: live take never repainted the arc/value (screen frozen while turning)"
 fi
-if [[ "${LIVE_VALUES:-0}" -ge 2 ]]; then
-    pass "P4: live-record arc/value follows the turn ($LIVE_VALUES distinct values)"
+# An accumulating up-sweep gives several ascending values; a non-accumulating
+# (reverting) take sticks at base+one-delta → one value. Require ≥3.
+if [[ "${LIVE_VALUES:-0}" -ge 3 ]]; then
+    pass "P4: live-record value accumulates across the take ($LIVE_VALUES distinct values)"
 else
-    fail "P4: live value did not change while turning ($LIVE_VALUES distinct values)"
+    fail "P4: live value did not accumulate — snaps back to base ($LIVE_VALUES distinct values)"
 fi
 
 # ── 2. Reopen and verify the registry repopulates from restore (P3 root) ──────

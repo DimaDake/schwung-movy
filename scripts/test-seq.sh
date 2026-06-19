@@ -84,7 +84,11 @@ python3 "$INJECT" "$HOST" note_off 30
 python3 "$INJECT" "$HOST" cc 49 0       # Shift up
 sleep 0.5
 
-info "Pressing Play (CC 85) — should stop the transport..."
+# Snapshot the log BEFORE the Play press: step entry must NOT have auto-started
+# the transport (any seq: play=1 here would be a regression of that behavior).
+PRE_PLAY_LOG=$(ssh "ableton@$HOST" 'grep -E "\[movy\]" /data/UserData/schwung/debug.log 2>/dev/null || true')
+
+info "Pressing Play (CC 85) — should START the transport (step entry did not)..."
 python3 "$INJECT" "$HOST" cc 85 127
 sleep 0.3
 python3 "$INJECT" "$HOST" cc 85 0
@@ -153,10 +157,11 @@ echo ""
 
 echo "$LOG" | grep -q "movy-dsp.*create_instance" \
     && pass "Engine loaded" || fail "Engine missing"
+echo "$PRE_PLAY_LOG" | grep -q "seq: play=1" \
+    && fail "Step entry auto-started transport (it must not)" \
+    || pass "Step entry did not auto-start the transport"
 echo "$LOG" | grep -q "seq: play=1" \
-    && pass "Step entry auto-started transport" || fail "No auto-start (seq: play=1 missing)"
-echo "$LOG" | grep -q "seq: play=0" \
-    && pass "Play button stopped transport" || fail "No stop (seq: play=0 missing)"
+    && pass "Play button started the transport" || fail "Play did not start (seq: play=1 missing)"
 
 [[ "$STATE_OK" == "yes" ]] \
     && pass "Autosave wrote a non-empty state file" || fail "No autosave file at $STATE_FILE"

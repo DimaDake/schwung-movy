@@ -51,10 +51,17 @@ export function editStepDown(button: number): void {
     }
     heldRanges.set(button, range);
     pressMs.set(button, Date.now());
-    // On a drum lane, two+ steps held together are independent entries — exempt
-    // them from the solo-hold automation timer so each still toggles on release.
+    // On a drum lane, two+ steps held together are independent entries. Exempt
+    // them from the solo-hold automation timer AND undo any promotion that
+    // already happened (the anchor may have been held alone past 300ms before
+    // this second press — as device MIDI-inject latency causes), so each still
+    // toggles on release.
     if (seqState.watchLane >= 0 && heldRanges.size >= 2) {
-        for (const b of heldRanges.keys()) coPressed.add(b);
+        for (const b of heldRanges.keys()) {
+            coPressed.add(b);
+            gestured.delete(b);
+        }
+        if (seqState.stepAutoMode) endStepAutomation(); // cancel solo-hold promotion
     }
 }
 

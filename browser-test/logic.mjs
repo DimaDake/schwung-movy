@@ -685,6 +685,29 @@ _log('\nTest: drumPadOn');
         eq('drum multi (>300ms hold): anchor still entered', occHasStep(0), true);
         eq('drum multi (>300ms hold): B still entered', occHasStep(3), true);
     }
+
+    // Harder ordering (matches device MIDI-inject latency): the anchor is held
+    // ALONE past 300ms and promoted to step-automation FIRST, then the second
+    // step is pressed. The multi-press must cancel the anchor's promotion so it
+    // still enters on release.
+    {
+        const { stepAutoTick } = await import('../dist/esm/seq/step-edit.js');
+        resetSeqState(); engine.reset(); resetSeqEngine(); seqEngineTick();
+        seqState.lenSteps = 16;
+        seqSetLane(38); seqEngineTick();
+        const realNow = Date.now;
+        let clock = 1000;
+        Date.now = () => clock;
+        seqHandleMidi([0x90, 16 + 0, 127], false);   // hold step 0
+        clock = 1400;                                // 400ms alone → promotes to auto mode
+        stepAutoTick();
+        seqHandleMidi([0x90, 16 + 3, 127], false);   // NOW press step 3 (multi-press)
+        seqHandleMidi([0x80, 16 + 3, 0], false);     // release step 3
+        seqHandleMidi([0x80, 16 + 0, 0], false);     // release step 0
+        Date.now = realNow;
+        eq('drum multi (anchor promoted first): anchor still entered', occHasStep(0), true);
+        eq('drum multi (anchor promoted first): B entered', occHasStep(3), true);
+    }
     seqSetLane(-1); seqEngineTick();
 
     // Bar navigation: Right advances the visible bar (clip is 1 bar long, so

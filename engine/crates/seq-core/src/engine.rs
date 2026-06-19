@@ -46,6 +46,9 @@ pub struct Engine {
     /// Automation locks captured alongside `clipboard`, steps stored relative
     /// to the copy start so an empty (note-less) step's automation copies too.
     lock_clipboard: Vec<Lock>,
+    /// Width in steps of the last `copy_steps` source range, so a paste replaces
+    /// the destination span even when the source had no notes.
+    clipboard_span: u16,
     /// Whole-clip clipboard for Session copy/paste.
     clip_clipboard: Option<Clip>,
     /// Recording state (live capture into the active clip).
@@ -88,6 +91,7 @@ impl Engine {
             watch_lane: None,
             clipboard: Vec::new(),
             lock_clipboard: Vec::new(),
+            clipboard_span: 0,
             clip_clipboard: None,
             recording: false,
             rec_track: 0,
@@ -178,6 +182,7 @@ impl Engine {
         if track >= NUM_TRACKS {
             return;
         }
+        self.clipboard_span = s1 - s0 + 1;
         let base_tick = s0 as u32 * TICKS_PER_STEP;
         self.clipboard = self.tracks[track]
             .active()
@@ -202,8 +207,17 @@ impl Engine {
     }
 
     pub fn paste_steps(&mut self, track: usize, dest_step: u16) {
-        if track >= NUM_TRACKS || self.clipboard.is_empty() {
+        if track >= NUM_TRACKS || self.clipboard_span == 0 {
             return;
+        }
+        let span = self.clipboard_span;
+        // Replace, not merge: clear the destination span (notes + locks) first.
+        {
+            let clip = self.tracks[track].active_mut();
+            clip.delete_range(dest_step, dest_step + span - 1, None);
+            for s in dest_step..dest_step + span {
+                clip.clear_step_locks(s);
+            }
         }
         let base_tick = dest_step as u32 * TICKS_PER_STEP;
         let cb = self.clipboard.clone();
@@ -404,14 +418,6 @@ impl Engine {
                 span - p.start_tick + now
             };
             self.tracks[track].active_mut().record_note(p.start_tick, gate.max(1), pitch, p.vel);
-        }
-    }
-
-    /// Called by note entry: native auto-starts the transport when the
-    /// first note lands in an empty clip while stopped.
-    pub fn maybe_autostart(&mut self, notes_added: bool) {
-        if notes_added && !self.playing {
-            self.play();
         }
     }
 
@@ -963,6 +969,29 @@ mod tests {
         apply_batch(&mut e, "pst 0 8", &mut out);     // paste at step 8
         assert_eq!(e.tracks[0].active().lock_at(2, 9), Some(77)); // step 1 → 9
         assert!(e.tracks[0].active().step_has_notes(8));          // step 0 → 8
+    }
+
+    #[test]
+    fn paste_steps_replaces_destination() {
+        let mut e = engine();
+        // Source: note at step 0. Destination step 4 already has a note.
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[0].active_mut().toggle_step(4, &[(62, 100)]);
+        e.copy_steps(0, 0, 0);          // copy one step
+        e.paste_steps(0, 4);            // paste-replace at step 4
+        // Step 4 now holds ONLY the source's pitch (62 replaced by 60), not both.
+        let at4: Vec<u8> = e.tracks[0].active().notes.iter()
+            .filter(|n| n.step == 4).map(|n| n.pitch).collect();
+        assert_eq!(at4, vec![60], "destination replaced, not merged");
+    }
+
+    #[test]
+    fn paste_steps_empty_source_clears_destination() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(2, &[(62, 100)]); // dest has a note
+        e.copy_steps(0, 0, 0);          // step 0 is empty → empty clipboard
+        e.paste_steps(0, 2);            // replace step 2 with empty
+        assert!(!e.tracks[0].active().step_has_notes(2), "empty source clears the dest step");
     }
 
     #[test]

@@ -63,10 +63,9 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                     }
                 }
                 if (t as usize) < NUM_TRACKS {
-                    let added = engine.tracks[t as usize]
+                    engine.tracks[t as usize]
                         .active_mut()
                         .toggle_step(s.clamp(0, 255) as u16, &chord);
-                    engine.maybe_autostart(added);
                 }
             }
         }
@@ -213,13 +212,12 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 (next(), next(), next(), next(), next())
             {
                 if (t as usize) < NUM_TRACKS && (0..128).contains(&p) {
-                    let added = engine.tracks[t as usize].active_mut().add_pitch_range(
+                    engine.tracks[t as usize].active_mut().add_pitch_range(
                         s0.clamp(0, 255) as u16,
                         s1.clamp(0, 255) as u16,
                         p as u8,
                         v.clamp(1, 127) as u8,
                     );
-                    engine.maybe_autostart(added > 0);
                 }
             }
         }
@@ -245,12 +243,11 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
         "ltog" => {
             if let (Some(t), Some(s), Some(p), Some(v)) = (next(), next(), next(), next()) {
                 if (t as usize) < NUM_TRACKS && (0..128).contains(&p) {
-                    let added = engine.tracks[t as usize].active_mut().toggle_step_pitch(
+                    engine.tracks[t as usize].active_mut().toggle_step_pitch(
                         s.clamp(0, 255) as u16,
                         p as u8,
                         v.clamp(1, 127) as u8,
                     );
-                    engine.maybe_autostart(added);
                 }
             }
         }
@@ -338,16 +335,12 @@ mod tests {
     }
 
     #[test]
-    fn tog_autostarts_transport() {
+    fn tog_does_not_autostart_transport() {
         let mut e = engine();
         let mut out = Vec::new();
-        assert!(!e.playing);
-        apply_batch(&mut e, "tog 0 4 62 90", &mut out);
-        assert!(e.playing, "first note in empty clip must start transport");
-        // Toggling the note away does not stop or restart anything.
-        apply_batch(&mut e, "tog 0 4 62 90", &mut out);
-        assert!(e.playing);
-        assert!(e.tracks[0].active().notes.is_empty());
+        apply_batch(&mut e, "tog 0 0 60 100", &mut out);
+        assert!(!e.playing, "entering a step while stopped must not start playback");
+        assert!(e.tracks[0].active().exists(), "the clip is still created");
     }
 
     #[test]

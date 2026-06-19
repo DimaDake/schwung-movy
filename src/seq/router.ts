@@ -29,9 +29,9 @@ export function muteTrack(track: number): void {
     seqCmd('mute ' + track + ' ' + next);
 }
 import {
-    copyActive, copyButton, copyMarkStep, deleteActive, deleteButton, deletePad,
-    deleteStep, pasteArmed, pasteAtStep,
+    deleteActive, deleteButton, deletePad, deleteStep,
 } from './edit-ops.js';
+import { copyButton as dupCopyButton, dupActive, onUnit as dupOnUnit } from './duplicate.js';
 import { engineReady, seqCmd } from './engine.js';
 import {
     doubleLoop, loopButton, loopHeld, loopStepOff, loopStepOn, loopWheel,
@@ -43,7 +43,7 @@ import {
 } from './step-edit.js';
 import { seqToast } from './render.js';
 import {
-    sessionCopyButton, sessionDeleteButton, sessionPad, sessionToggle,
+    sessionDeleteButton, sessionPad, sessionToggle,
 } from './session.js';
 import {
     maxBarOffset, occHasStep, occToggleStep, seqState,
@@ -96,12 +96,13 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         && d1 >= STEP_NOTE_BASE && d1 < STEP_NOTE_BASE + NUM_STEP_BUTTONS) {
         const button = d1 - STEP_NOTE_BASE;
         const on = statusType === 0x90 && d2 > 0;
-        if (on && copyActive()) {
-            copyMarkStep(button);
+        if (on && dupActive()) {
+            const absB = seqState.barOffset * NUM_STEP_BUTTONS + button;
+            dupOnUnit(seqState.loopMode
+                ? { kind: 'bar', track: seqState.watchTrack, bar: button }
+                : { kind: 'step', track: seqState.watchTrack, step: absB });
         } else if (on && deleteActive()) {
             deleteStep(button);
-        } else if (on && pasteArmed()) {
-            pasteAtStep(button);
         } else if (on && shiftHeld) {
             shiftStepFunction(button);
         } else if (on) {
@@ -172,8 +173,7 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     /* Copy/Delete: in Session mode they act on clips by pad; otherwise the
      * Note-mode step/clip gestures (edit-ops). */
     if (d1 === CC_COPY) {
-        if (seqState.sessionMode) sessionCopyButton(d2 > 0);
-        else copyButton(d2 > 0);
+        dupCopyButton(d2 > 0);
         return true;
     }
     if (d1 === CC_DELETE) {
@@ -227,10 +227,12 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     }
 
     /* Track buttons: observe only — retarget the watched clip and let the
-     * existing param-page track switching run unchanged. */
+     * existing param-page track switching run unchanged. While Mute is held a
+     * track press is purely a mute (handled in midi/router.ts), so do not
+     * retarget the step-view focus. */
     if (d1 >= CC_TRACK_START && d1 <= CC_TRACK_END && d2 > 0) {
         const track = CC_TRACK_END - d1;
-        if (track !== seqState.watchTrack) {
+        if (!muteHeld() && track !== seqState.watchTrack) {
             seqState.watchTrack = track;
             seqState.barOffset = 0;
             seqCmd('watch ' + track);
@@ -292,7 +294,6 @@ function toggleStep(button: number): void {
         if (step >= seqState.lenSteps) {
             seqState.lenSteps = (Math.floor(step / NUM_STEP_BUTTONS) + 1) * NUM_STEP_BUTTONS;
         }
-        if (!seqState.playing) seqState.playing = true;
     }
     occToggleStep(step);
 }

@@ -30,12 +30,28 @@ const registry: (LaneEntry | null)[][] =
 const liveVal = new Map<string, number>();
 const liveCtx = new Map<string, string>();
 
+/* Knobs being turned RIGHT NOW during a live take ("track:lane" → 0..127), so
+ * the on-screen knob follows the turn. Cleared on release so the knob snaps
+ * back to base — the param page stays decoupled from playback read-back. */
+const liveTurn = new Map<string, number>();
+
+/* Live-turn values for `track`, lane → 0..127 (denormalized in app/tick). */
+export function liveTurnValues(track: number): Map<number, number> {
+    const out = new Map<number, number>();
+    for (const [k, v] of liveTurn) {
+        const [t, l] = k.split(':');
+        if (+t === track) out.set(+l, v);
+    }
+    return out;
+}
+
 export function automationRegistry(): (LaneEntry | null)[][] { return registry; }
 
 export function resetAutomation(): void {
     for (const t of registry) t.fill(null);
     liveVal.clear();
     liveCtx.clear();
+    liveTurn.clear();
     touchedNotTurned.clear();
     lastDisplaySig = '';
 }
@@ -112,6 +128,7 @@ export function clearLane(track: number, lane: number): void {
     registry[track][lane] = null;
     liveVal.delete(track + ':' + lane);
     liveCtx.delete(track + ':' + lane);
+    liveTurn.delete(track + ':' + lane);
     seqCmd('aclr ' + track + ' ' + lane);
 }
 
@@ -172,6 +189,9 @@ export function handleAutomationKnob(
         seqCmd('aset ' + track + ' ' + lane + ' ' + step + ' ' + next);
     }
     seqState.heldLocks.set(lane, next);          // optimistic held-step display
+    // Live take (no step held): let the on-screen knob follow the turn. The
+    // held-step case is already driven by heldLocks above.
+    if (!held) liveTurn.set(track + ':' + lane, next);
     return true;
 }
 
@@ -182,6 +202,7 @@ export function handleAutomationKnob(
 export function automationKnobReleased(track: number, physK: number, info: KnobParamInfo): void {
     const lane = laneForParam(track, info.target + ':' + info.key);
     const wasTap = touchedNotTurned.delete(physK);
+    if (lane >= 0) liveTurn.delete(track + ':' + lane); // knob released → snap to base
 
     // Tap in step-automation mode → clear this step's lock (revert to base).
     if (seqState.stepAutoMode && wasTap) {

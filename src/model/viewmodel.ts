@@ -9,7 +9,7 @@ import { basename } from './path.js';
  * views) need not build a snapshot. */
 const NO_AUTOMATION: AutomationView = {
     assignedLanes: 0, activeLanes: 0, held: false, poolFull: false,
-    heldValues: new Map(), laneForKey: () => -1,
+    heldValues: new Map(), liveValues: new Map(), laneForKey: () => -1,
 };
 
 export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATION): ViewModel {
@@ -39,9 +39,9 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             const p     = s.knobParams[gi];
             if (!p) { rows[row].push(null); continue; }
             const v  = s.knobValues[gi];
-            const nv = (p.min === p.max || v === null || v === undefined)
-                ? 0
-                : Math.max(0, Math.min(1, (v - p.min) / (p.max - p.min)));
+            const renorm = (val: number) => (p.min === p.max)
+                ? 0 : Math.max(0, Math.min(1, (val - p.min) / (p.max - p.min)));
+            const nv = (v === null || v === undefined) ? 0 : renorm(v);
             const enumIdx = (p.type === 'enum' && typeof v === 'number') ? Math.round(v) : 0;
             const dv = p.type === 'file'
                 ? (s.fileValues[gi] ? basename(s.fileValues[gi] as string) : '—')
@@ -53,19 +53,30 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             const automatable = (p.type === 'float' || p.type === 'int')
                 && typeof p.min === 'number' && typeof p.max === 'number' && p.max > p.min
                 && !p.key.startsWith('g_');
-            // While a step is held, an automatable lane shows its held-step value
-            // inverted (like a knob touch) instead of the name.
+            // An automation edit drives BOTH the value text (inverted, like a
+            // knob touch) and the knob's arc/bar position, so editing automation
+            // looks like normal value editing — without touching the base value.
+            // Held step: show that step's locked value. Live record: follow the
+            // knob while it's being turned (cleared on release → snaps to base).
             let touched = s.touchedSlots.includes(physK);
             let displayValue = dv;
+            let arcValue = nv;
             if (auto.held && lane >= 0 && auto.heldValues.has(lane)) {
+                const hv = auto.heldValues.get(lane) as number;
                 touched = true;
-                displayValue = formatValue(p, auto.heldValues.get(lane) as number);
+                displayValue = formatValue(p, hv);
+                arcValue = renorm(hv);
+            } else if (!auto.held && lane >= 0 && auto.liveValues.has(lane)) {
+                const lv = auto.liveValues.get(lane) as number;
+                touched = true;
+                displayValue = formatValue(p, lv);
+                arcValue = renorm(lv);
             }
             rows[row].push({
                 shortName:       shortNames[physK],
                 fullName:        p.label,
                 type:            p.type,
-                normalizedValue: nv,
+                normalizedValue: arcValue,
                 displayValue,
                 touched,
                 isLongEnum:      p.type === 'enum' && (p.options?.length ?? 0) > 6,

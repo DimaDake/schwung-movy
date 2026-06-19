@@ -12,7 +12,7 @@ import { renderChainView }    from '../renderer/chain-view.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync } from '../seq/engine.js';
-import { syncLabelsFromEngine, rangeFromChainParams, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty } from '../seq/automation.js';
+import { syncLabelsFromEngine, rangeFromChainParams, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues } from '../seq/automation.js';
 import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import { mlog } from '../log.js';
 import { seqPersistTick } from '../seq/persist.js';
@@ -49,6 +49,11 @@ function buildAutomationView(track: number): AutomationView {
         const e = reg[lane];
         if (e) heldValues.set(lane, denorm7(v, e.min, e.max));
     }
+    const liveValues = new Map<number, number>();
+    for (const [lane, v] of liveTurnValues(track)) {
+        const e = reg[lane];
+        if (e) liveValues.set(lane, denorm7(v, e.min, e.max));
+    }
     const laneForKey = (key: string): number => {
         for (let l = 0; l < 8; l++) if (reg[l] && reg[l]!.shortName === key) return l;
         return -1;
@@ -58,7 +63,7 @@ function buildAutomationView(track: number): AutomationView {
         activeLanes:   seqState.autoActive,
         held:          seqState.stepAutoMode,
         poolFull:      seqState.autoPoolFull,
-        heldValues, laneForKey,
+        heldValues, liveValues, laneForKey,
     };
 }
 

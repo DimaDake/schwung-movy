@@ -37,7 +37,7 @@ const PRESETS = [
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
     'chain_t2', 'chain_t4',
     'drum-mrdrums-pad5', 'drum-mrdrums-global',
-    'auto_dot', 'auto_held', 'auto_limit',
+    'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -48,7 +48,7 @@ const BASE = {
     chain_synth: 'test8', chain_empty: 'test8', chain_jog_toast: 'test8',
     knobs_jog_toast: 'test8', chain_t2: 'test8', chain_t4: 'test8',
     'drum-mrdrums-pad5': 'mrdrums', 'drum-mrdrums-global': 'mrdrums',
-    auto_dot: 'test8', auto_held: 'test8', auto_limit: 'test8',
+    auto_dot: 'test8', auto_held: 'test8', auto_live: 'test8', auto_limit: 'test8',
 };
 
 const W = 128, H = 64;
@@ -112,12 +112,14 @@ function showChain(chainIndex, jogTouched, activeSlot) {
 function showKnobsJogToast() { lastRender = () => renderKnobsView(model.getViewModel(), true); lastRender(); }
 function showKnobsAuto(auto) { lastRender = () => renderKnobsView(model.getViewModel(auto)); lastRender(); }
 /* Automation snapshot: lane 0 bound to knob 0's param. */
-function autoView({ held = false, poolFull = false, assignedLanes = 1, heldVal = null } = {}) {
+function autoView({ held = false, poolFull = false, assignedLanes = 1, heldVal = null, liveVal = null } = {}) {
     const key = model.getKnobParamInfo(0)?.key;
     const heldValues = new Map();
     if (heldVal !== null) heldValues.set(0, heldVal);
+    const liveValues = new Map();
+    if (liveVal !== null) liveValues.set(0, liveVal);
     return {
-        assignedLanes, activeLanes: 1, held, poolFull, heldValues,
+        assignedLanes, activeLanes: 1, held, poolFull, heldValues, liveValues,
         laneForKey: (k) => (k === key ? 0 : -1),
     };
 }
@@ -155,6 +157,7 @@ function applyView(preset) {
         case 'drum-mrdrums-global': model.tick(); model.tick(); model.changePage(1); forceRender(); break;
         case 'auto_dot':         showKnobsAuto(autoView()); break;
         case 'auto_held':        showKnobsAuto(autoView({ held: true, heldVal: model.getKnobParamInfo(0).max })); break;
+        case 'auto_live':        showKnobsAuto(autoView({ held: false, liveVal: model.getKnobParamInfo(0).max })); break;
         case 'auto_limit':       showKnobsAuto(autoView({ held: true, poolFull: true, assignedLanes: 0xFF })); break;
         default:                 forceRender(); break;                       // plain knobs view
     }

@@ -22,6 +22,7 @@ export interface AutomationView {
     held:          boolean;                 // a step is currently held
     poolFull:      boolean;                 // all 8 lanes used (limit toast)
     heldValues:    Map<number, number>;     // lane -> display value at held step
+    liveValues:    Map<number, number>;     // lane -> value of a knob being turned live (cleared on release)
     laneForKey:    (key: string) => number; // param key -> lane (-1 none)
 }
 

@@ -2028,7 +2028,7 @@ _log('\nTest: viewmodel automation fields');
     // Lane 0 bound to the first param's key, with a lock present.
     const auto = {
         assignedLanes: 0b1, activeLanes: 0b1, held: false, poolFull: false,
-        heldValues: new Map(),
+        heldValues: new Map(), liveValues: new Map(),
         laneForKey: (key) => (key === firstKey ? 0 : -1),
     };
     const vm = m.getViewModel(auto);
@@ -2046,12 +2046,29 @@ _log('\nTest: viewmodel automation fields');
     const heldAuto = {
         assignedLanes: 0b1, activeLanes: 0b1, held: true, poolFull: false,
         heldValues: new Map([[0, p0.max]]),   // lane 0 locked to its max at this step
+        liveValues: new Map(),
         laneForKey: (key) => (key === firstKey ? 0 : -1),
     };
     const heldVm = m.getViewModel(heldAuto).rows[0][0];
     eq('held param shows as touched (not the name)', heldVm.touched, true);
     // displayValue is the held-step value, not the param's short name.
     eq('held param shows a value, not its name', heldVm.displayValue !== heldVm.shortName, true);
+    // The on-screen knob ARC must also follow the held value (base cutoff=0.70,
+    // held=max=1.0): editing automation moves the knob, like normal editing.
+    eq('held param knob arc follows held value (max → nv≈1)',
+        Math.round(heldVm.normalizedValue * 100), 100);
+
+    // Live record (no step held): a knob being turned reports a live value; the
+    // arc follows it and the cell shows touched, exactly like normal editing.
+    const liveAuto = {
+        assignedLanes: 0b1, activeLanes: 0b1, held: false, poolFull: false,
+        heldValues: new Map(), liveValues: new Map([[0, p0.max]]),
+        laneForKey: (key) => (key === firstKey ? 0 : -1),
+    };
+    const liveVm = m.getViewModel(liveAuto).rows[0][0];
+    eq('live-record param knob arc follows live value (max → nv≈1)',
+        Math.round(liveVm.normalizedValue * 100), 100);
+    eq('live-record param shows as touched', liveVm.touched, true);
 }
 
 /* ── automation: registry + lane assignment ──────────────────────────────── */
@@ -2083,7 +2100,7 @@ _log('\nautomation registry:');
 /* ── automation: knob-turn routing (hold-step / Rec / base) ──────────────── */
 _log('\nautomation knob routing:');
 {
-    const { resetAutomation, handleAutomationKnob, automationKnobReleased } = await import('../dist/esm/seq/automation.js');
+    const { resetAutomation, handleAutomationKnob, automationKnobReleased, liveTurnValues } = await import('../dist/esm/seq/automation.js');
     const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
     const info = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
@@ -2123,6 +2140,24 @@ _log('\nautomation knob routing:');
     const afterRelease = peekSeqCmdQueue().slice(beforeLen);
     eq('recorded-lane release issues no abase revert',
         afterRelease.some((o) => o.startsWith('abase 0 0')), false);
+    resetSeqState();
+
+    // Live take: the on-screen knob follows the turn (a live value exists for the
+    // lane), then snaps back to base on release (the live value is cleared).
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    seqState.recording = true; seqState.playing = true; seqState.curStep = 3;
+    handleAutomationKnob(0, 0, info, +5, () => true);
+    eq('live take exposes a live knob value while turning', liveTurnValues(0).has(0), true);
+    automationKnobReleased(0, 0, info);
+    eq('release clears the live knob value (knob snaps to base)', liveTurnValues(0).has(0), false);
+    resetSeqState();
+
+    // Step-automation does NOT leak a live value (held path drives the knob via
+    // heldLocks instead, so the knob doesn't snap back while the step is held).
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    seqState.stepAutoMode = true; seqState.holdStep = 4;
+    handleAutomationKnob(0, 0, info, +1, () => true);
+    eq('step-auto turn does not set a live value', liveTurnValues(0).has(0), false);
     resetSeqState();
 }
 

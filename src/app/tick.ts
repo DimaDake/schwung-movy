@@ -224,6 +224,13 @@ export function tick(): void {
      * light up even on FX parameter pages. */
     const drumNow = !seqState.sessionMode && isDrum;
     if (drumNow) {
+        // On entry from a non-drum track, force a full repaint so non-grid pads
+        // (col >= 4 → Black) overwrite any stale chromatic colors left behind.
+        if (!appState.drumActive) {
+            drumCache.fill(0xFF);
+            setButtonLED(MoveUp, Black, true);
+            setButtonLED(MoveDown, Black, true);
+        }
         const drumCfg = synthModel!.getDrumConfig()!;
         const track   = seqState.watchTrack;
         const sel     = synthDvm!.drumCurrentPhysPad;

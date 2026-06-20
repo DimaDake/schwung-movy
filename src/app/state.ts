@@ -42,3 +42,10 @@ export const appState = {
     fileBrowserState: null as FileBrowserState | null,
     drumActive:       false,
 };
+
+/* True when slot's synth (chain index 1) is a drum module.
+ * Always uses the synth slot — not the currently-viewed chain slot — so the
+ * answer stays consistent regardless of which FX page is open. */
+export function trackIsDrum(slot: number): boolean {
+    return (appState.trackModels[slot]?.[1]?.getViewModel()?.drumPadCount ?? 0) > 0;
+}

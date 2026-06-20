@@ -1,4 +1,4 @@
-import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE } from '../app/state.js';
+import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE } from '../app/state.js';
 import { CHAIN_SLOTS, MASTER_FX_SLOTS } from '../chain/config.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
@@ -8,6 +8,7 @@ import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
 import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteTrack, seqRestoreWatch } from '../seq/router.js';
 import { seqState } from '../seq/state.js';
+import { WHITE_BRIGHT } from '../seq/colors.js';
 import { momentaryDown, momentaryUp } from '../seq/momentary.js';
 import { handleAutomationKnob, clearLaneForKnob, automationKnobReleased, automationKnobTouched } from '../seq/automation.js';
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
@@ -291,13 +292,18 @@ export function onMidiMessageInternal(data: number[]): void {
         return;
     }
 
-    /* +/- buttons shift the chromatic pad layout by an octave (native melodic
-     * behavior). Drum modules manage their own pad octave, so skip them. */
-    if ((d1 === MoveUp || d1 === MoveDown) && d2 > 0) {
-        if (!activeModel()?.getDrumConfig()) {
+    /* +/- buttons shift the chromatic pad layout by an octave. Disabled on drum
+     * tracks (drum pad layout has no octave concept). On melodic tracks: press
+     * flashes the button white, release clears it. */
+    if (d1 === MoveUp || d1 === MoveDown) {
+        if (trackIsDrum(appState.activeSlot)) return;
+        if (d2 > 0) {
             changeRoot(d1 === MoveUp ? 12 : -12, appState.activeSlot, PAD_MIN, PAD_MAX);
-            appState.dirty = true;
+            setButtonLED(d1, WHITE_BRIGHT, true);
+        } else {
+            setButtonLED(d1, Black, true);
         }
+        appState.dirty = true;
         return;
     }
 }

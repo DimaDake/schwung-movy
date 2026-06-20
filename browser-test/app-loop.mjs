@@ -17,6 +17,10 @@ const engine = installMockEngine();
 const ledByPad = {};                       // padNote → last color
 globalThis.setLED = (note, color) => { ledByPad[note] = color; };
 
+/* Capture button LED writes. */
+const buttonLeds = {};
+globalThis.setButtonLED = (cc, color) => { buttonLeds[cc] = color; };
+
 /* [movy] log capture (for the drum step-entry log assertion). */
 const logs = [];
 const _origLog = console.log;
@@ -245,6 +249,54 @@ _log('\napp-loop: param page repaints when held-step automation changes');
     eq('tail step 3 LED = light-grey (118)', padColor(16 + 3), 118);
     eq('tail step 4 LED = light-grey (118)', padColor(16 + 4), 118);
     seqState.holdStep = -1; seqState.holdLen = 0;
+}
+
+/* ── drum LED cleanup: non-grid pads cleared on drum entry ───────────────── */
+_log('\napp-loop: drum LED cleanup on entry');
+{
+    resetApp();
+    // Seed a stale color on a non-drum-grid pad (col >= 4 → Black in drum layout)
+    ledByPad[72] = 99;
+    // Force re-entry by resetting drumActive so tick re-enters the drum branch
+    appState.drumActive = false;
+    advance(1);
+    eq('non-grid pad cleared to Black on drum entry', ledByPad[72], 0);
+}
+
+/* ── octave buttons disabled on drum track ───────────────────────────────── */
+_log('\napp-loop: octave buttons disabled on drum track');
+{
+    resetApp();
+    const { keyboardState } = await import('../dist/esm/keyboard/state.js');
+    const rootBefore = keyboardState.rootNote;
+    for (const k of Object.keys(buttonLeds)) delete buttonLeds[k];
+    sendMidi([0xB0, 55, 127]); // MoveUp press
+    advance(1);
+    eq('drum track: MoveUp does not shift root', keyboardState.rootNote, rootBefore);
+    eq('drum track: MoveUp button LED stays dark', buttonLeds[55] ?? 0, 0);
+}
+
+/* ── octave buttons flash white on normal (melodic) track ────────────────── */
+_log('\napp-loop: octave buttons flash on melodic track');
+{
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.test8);   // melodic synth, no drum config
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    appState.trackModels[0][1].reload();
+    advance(12);
+    const { keyboardState } = await import('../dist/esm/keyboard/state.js');
+    const rootBefore = keyboardState.rootNote;
+    for (const k of Object.keys(buttonLeds)) delete buttonLeds[k];
+
+    sendMidi([0xB0, 55, 127]); // MoveUp press
+    advance(1);
+    eq('melodic: MoveUp shifts root +12', keyboardState.rootNote, rootBefore + 12);
+    eq('melodic: MoveUp button lights white', buttonLeds[55], 124); // WHITE_BRIGHT
+
+    sendMidi([0xB0, 55, 0]); // MoveUp release
+    advance(1);
+    eq('melodic: MoveUp release clears button LED', buttonLeds[55], 0);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

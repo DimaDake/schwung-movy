@@ -56,6 +56,9 @@ const STRIP_Y = 62; // baseline row (display is 64 tall)
 export function drawLoopStrip(): void {
     // Clear the strip band so the sweep doesn't leave trails.
     fill_rect(0, STRIP_Y - 2, W, 4, 0);
+    // No clip in the current slot → no bar line at all (clipBars() floors to 1,
+    // so guard on the real emptiness signal).
+    if (seqState.lenSteps === 0) return;
     const bars = clipBars();
     // Include the empty bar the user has navigated into, if any.
     const view = Math.max(bars, seqState.barOffset + 1, 1);

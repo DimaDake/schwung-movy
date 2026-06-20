@@ -1509,6 +1509,18 @@ _log('\nTest: drumPadOn');
     drawLoopStrip();
     eq('playhead mark drawn while playing', rects.some(r => r.v === 1 && r.h === 4), true);
 
+    // No clip in the current slot → the band is cleared but no line is drawn.
+    resetSeqState(); seqState.lenSteps = 0; seqState.barOffset = 0;
+    rects.length = 0;
+    drawLoopStrip();
+    eq('empty slot clears the band', rects[0].v, 0);
+    eq('empty slot draws no line', rects.slice(1).filter(r => r.v === 1).length, 0);
+    // Even mid-transport, an empty slot shows nothing (no clip = nothing to play).
+    resetSeqState(); seqState.lenSteps = 0; seqState.playing = true;
+    rects.length = 0;
+    drawLoopStrip();
+    eq('empty slot draws no playhead while playing', rects.slice(1).filter(r => r.v === 1).length, 0);
+
     globalThis.fill_rect = origFill;
     resetSeqState();
 }

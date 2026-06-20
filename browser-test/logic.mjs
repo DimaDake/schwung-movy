@@ -542,6 +542,23 @@ _log('\nTest: mrdrums per-pad scoping');
   eq('global param non-automatable', gInfo?.automatable ?? false, false);
 }
 
+/* ── Weird Dreams: same scoping via a different naming scheme ─────────────── */
+
+_log('\nTest: weird-dreams per-voice scoping');
+{
+  // cv_* alias → concrete v{pad}_{suffix}, 1-indexed, no padding, no currentPadParam.
+  const wd = bootModel(MOCK_SYNTHS.weird_dreams, 0, 'synth');
+  eq('focus defaults to 1', wd.getViewModel().drumCurrentPad, 1);
+  eq('VOL reads v1_vol (0.11)', wd.getKnobParamInfo(0).value, 0.11);
+  eq('ioKey is v1_vol', wd.getKnobParamInfo(0).ioKey, 'v1_vol');
+
+  // Switch focus → reads voice 3's concrete keys.
+  wd.updateDrumPad(3, 70);
+  eq('focus moved to voice 3', wd.getViewModel().drumCurrentPad, 3);
+  eq('VOL re-read for v3 (0.33)', wd.getKnobParamInfo(0).value, 0.33);
+  eq('ioKey follows focus to v3_vol', wd.getKnobParamInfo(0).ioKey, 'v3_vol');
+}
+
 /* ── drumPadOn / drumPadOff ──────────────────────────────────────────────── */
 
 _log('\nTest: drumPadOn');

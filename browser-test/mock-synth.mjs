@@ -373,6 +373,21 @@ export const MOCK_SYNTHS = {
         "synth:p05_vol":          "0.50",
     },
 
+    /* Weird Dreams: 8-voice machine. cv_* is the "current voice" alias; every
+     * voice param has a concrete v<N>_* key (1-indexed, no padding). */
+    weird_dreams: {
+        "synth:name":        "Weird Dreams",
+        "synth_module":      "weird-dreams",
+        "synth:cv_vol":      "0.90",
+        "synth:cv_pan":      "0.00",
+        "synth:cv_freq":     "440",
+        "synth:cv_decay":    "0.50",
+        "synth:v1_vol":      "0.11",
+        "synth:v1_pan":      "0.00",
+        "synth:v3_vol":      "0.33",
+        "synth:v3_pan":      "-0.50",
+    },
+
     /* No synth loaded — model falls back to fallback test params */
     no_params: {
         "synth:name": null,

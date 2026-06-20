@@ -48,7 +48,7 @@ import {
 import {
     maxBarOffset, occHasStep, occToggleStep, seqState,
 } from './state.js';
-import { setHeldSet } from './held.js';
+import { heldSetList, setHeldSet } from './held.js';
 
 const CC_LEFT = 62;
 const CC_RIGHT = 63;
@@ -278,11 +278,12 @@ function toggleStep(button: number): void {
         // lets the device test count multi-step entries from the log.
         mlog(`seq: step ${step} lane ${seqState.watchLane}`);
     } else {
-        /* Melodic: place the currently-held chord, or the last-played note
-         * if no pads are down; a step that already has notes is cleared. */
+        /* Melodic: place the currently-held chord, else the full selected
+         * (white) note set, else the last-played note; an occupied step clears. */
+        const selected = heldSetList(t);
         const pitches = heldChord.size > 0
             ? [...heldChord.values()]
-            : [seqState.lastPitch[t]];
+            : (selected.length > 0 ? selected : [seqState.lastPitch[t]]);
         const v = seqState.lastVel[t];
         seqCmd(`tog ${t} ${step} ${pitches.map((p) => `${p} ${v}`).join(' ')}`);
     }

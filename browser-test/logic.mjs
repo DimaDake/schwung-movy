@@ -1070,9 +1070,14 @@ _log('\nTest: drumPadOn');
     const { resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
     const { resetLoopMode } = await import('../dist/esm/seq/loop-mode.js');
     const { resetSeqToast } = await import('../dist/esm/seq/render.js');
+    const { clearHeldSet } = await import('../dist/esm/seq/held.js');
 
     const engine = installMockEngine();
-    const reset = () => { resetSeqEngine(); resetSeqState(); resetStepEdit(); resetLoopMode(); resetSeqToast(); engine.reset(); };
+    const reset = () => {
+        resetSeqEngine(); resetSeqState(); resetStepEdit(); resetLoopMode(); resetSeqToast();
+        for (let t = 0; t < 4; t++) clearHeldSet(t); // clear white selection between sub-tests
+        engine.reset();
+    };
     reset();
     seqEngineTick(); // ready
 
@@ -1910,6 +1915,32 @@ _log('\nautomation: restore re-requests label sync:');
     seqRestoreWatch(1);
     eq('same track: barOffset reset', seqState.barOffset, 0);
     eq('same track: watch emitted',   peekSeqCmdQueue().some(c => c === 'watch 1'), true);
+
+    uninstallMockEngine(); resetSeqEngine(); resetSeqState();
+}
+
+/* ── selected-note entry (a step press places the full white selection) ───── */
+{
+    _log('\nseq selected-note entry:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi } = await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { setHeldSet } = await import('../dist/esm/seq/held.js');
+
+    const engine = installMockEngine();
+    resetSeqEngine(); resetSeqState(); seqEngineTick();
+    seqState.lenSteps = 16; seqState.watchLane = -1;
+    const lastOp = () => engine.ops[engine.ops.length - 1];
+
+    // Select a 3-note chord (white selection), then enter with no pads held.
+    setHeldSet(0, [60, 64, 67]);
+    seqState.lastVel[0] = 100;
+    seqState.lastPitch[0] = 60;
+    seqHandleMidi([0x90, 16 + 2, 127], false);
+    seqHandleMidi([0x80, 16 + 2, 0], false);
+    seqEngineTick();
+    eq('step press enters full selection', lastOp(), 'tog 0 2 60 100 64 100 67 100');
 
     uninstallMockEngine(); resetSeqEngine(); resetSeqState();
 }

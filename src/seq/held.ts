@@ -16,6 +16,13 @@ export function noteHeld(track: number, pitch: number): boolean {
     return track >= 0 && track <= 3 && lastHeld[track].has(pitch);
 }
 
+/* The track's selected (white) pitches, for placing the whole selection on a
+ * step press. Empty when nothing is selected. */
+export function heldSetList(track: number): number[] {
+    if (track < 0 || track > 3) return [];
+    return [...lastHeld[track]];
+}
+
 export function clearHeldSet(track: number): void {
     if (track >= 0 && track <= 3) lastHeld[track].clear();
 }

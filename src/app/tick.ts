@@ -229,30 +229,36 @@ export function tick(): void {
      * light up even on FX parameter pages. */
     const drumNow = !seqState.sessionMode && isDrum;
     if (drumNow) {
-        // On entry from a non-drum track, force a full repaint so non-grid pads
-        // (col >= 4 → Black) overwrite any stale chromatic colors left behind.
-        if (!appState.drumActive) {
-            drumCache.fill(0xFF);
-            setButtonLED(MoveUp, Black, true);
-            setButtonLED(MoveDown, Black, true);
-        }
-        const drumCfg = synthModel!.getDrumConfig()!;
-        const track   = seqState.watchTrack;
-        const sel     = synthDvm!.drumCurrentPhysPad;
-        for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {
-            const p = PAD_MIN + i;
-            // Derive the pad's MIDI note to check activeHasNote (mirrors drumPadLedColor's mapping).
-            const idx = p - PAD_MIN, col = idx % 8, row = Math.floor(idx / 8);
-            const dp  = drumCfg.rawMidi ? p - drumCfg.padNoteStart + 1 : row * 4 + col + 1;
-            const note = drumCfg.rawMidi ? p : drumCfg.padNoteStart + dp - 1;
-            const playing = activeHasNote(track, note) || keyboardState.held[p] !== undefined;
-            const color = drumPadLedColor(p, PAD_MIN, drumCfg, keyboardState.rootNote, sel, track, playing);
-            if (drumCache[i] !== color) {
-                drumCache[i] = color;
-                setLED(p, color, true);
+        // isDrum was sampled before activeModel.tick() ran. If tick() called
+        // loadHierarchy (module just changed), getDrumConfig() returns null even
+        // though isDrum is true. Skip this one transition tick — next tick isDrum
+        // will be false and the else-if branch cleans up normally.
+        const drumCfg = synthModel!.getDrumConfig();
+        if (drumCfg) {
+            // On entry from a non-drum track, force a full repaint so non-grid pads
+            // (col >= 4 → Black) overwrite any stale chromatic colors left behind.
+            if (!appState.drumActive) {
+                drumCache.fill(0xFF);
+                setButtonLED(MoveUp, Black, true);
+                setButtonLED(MoveDown, Black, true);
             }
+            const track = seqState.watchTrack;
+            const sel   = synthDvm!.drumCurrentPhysPad;
+            for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {
+                const p = PAD_MIN + i;
+                // Derive the pad's MIDI note to check activeHasNote (mirrors drumPadLedColor's mapping).
+                const idx = p - PAD_MIN, col = idx % 8, row = Math.floor(idx / 8);
+                const dp  = drumCfg.rawMidi ? p - drumCfg.padNoteStart + 1 : row * 4 + col + 1;
+                const note = drumCfg.rawMidi ? p : drumCfg.padNoteStart + dp - 1;
+                const playing = activeHasNote(track, note) || keyboardState.held[p] !== undefined;
+                const color = drumPadLedColor(p, PAD_MIN, drumCfg, keyboardState.rootNote, sel, track, playing);
+                if (drumCache[i] !== color) {
+                    drumCache[i] = color;
+                    setLED(p, color, true);
+                }
+            }
+            appState.drumActive = true;
         }
-        appState.drumActive = true;
     } else if (appState.drumActive) {
         appState.drumActive = false;
         appState.initLedsDone = false;

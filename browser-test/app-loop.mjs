@@ -303,6 +303,30 @@ _log('\napp-loop: octave buttons flash on melodic track');
     eq('melodic: MoveUp release returns to dim', buttonLeds[55], 16); // WHITE_DIM
 }
 
+/* ── drum→synth module switch does not crash (getDrumConfig race) ─────────── */
+_log('\napp-loop: drum→synth switch does not crash');
+{
+    resetApp();   // drum (mrdrums) settled: drumPadCount=16, hierarchyKey=activeModuleName
+    // Switch the underlying params to a non-drum synth while keeping the model
+    // state pointing at the old drum hierarchy — exactly what happens when the
+    // user switches modules mid-tick before pollModuleName fires.
+    env.setParams(MOCK_SYNTHS.test8);
+    appState.trackModels[0][1].reload();   // forces hierarchyKey='' so next tick
+                                           // processTick calls loadHierarchy
+
+    // Without the fix this single tick throws:
+    // TypeError: cannot read property 'rawMidi' of null
+    let threw = false;
+    try { advance(1); } catch { threw = true; }
+    eq('drum→synth transition tick does not throw', threw, false);
+
+    // After a second tick the model has fully transitioned to the melodic synth
+    advance(2);
+    const vm = appState.trackModels[0][1].getViewModel();
+    eq('after transition: drumPadCount is 0', vm.drumPadCount, 0);
+    eq('after transition: drumActive flag cleared', appState.drumActive, false);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

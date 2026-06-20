@@ -293,7 +293,8 @@ export function tick(): void {
      * just on dirty frames) so the playhead sweeps continuously. Hidden on the
      * master chain (Session mode) — it tracks the watched track's clip, which
      * is irrelevant while editing master FX. */
-    if (engineReady() && !seqToastActive() && !jogToastShown && !seqState.sessionMode) {
+    const isBrowseView = appState.currentView === VIEW_BROWSE || appState.currentView === VIEW_FILE_BROWSE;
+    if (engineReady() && !seqToastActive() && !jogToastShown && !seqState.sessionMode && !isBrowseView) {
         drawLoopStrip();
     }
 }

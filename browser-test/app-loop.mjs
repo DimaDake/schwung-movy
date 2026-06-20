@@ -327,6 +327,49 @@ _log('\napp-loop: drum→synth switch does not crash');
     eq('after transition: drumActive flag cleared', appState.drumActive, false);
 }
 
+/* ── automation: a module change re-validates lanes (purges now-stale) ─────── */
+_log('\napp-loop: module change purges lanes invalid for the new module');
+{
+    const { laneForParam, resetAutomation } = await import('../dist/esm/seq/automation.js');
+    const { requestLabelSync } = await import('../dist/esm/seq/engine.js');
+    resetApp();                  // mrdrums on track 0
+    resetAutomation();
+    // Engine holds a valid per-pad lane (p01_vol → alias pad_vol, in mrdrums).
+    engine.alabels = '-.synth:p01_vol.-.-.-.-.-.-,-.-.-.-.-.-.-.-,-.-.-.-.-.-.-.-,-.-.-.-.-.-.-.-';
+    requestLabelSync();          // engine delivered labels → sync validates them
+    advance(3);
+    eq('per-pad lane kept under mrdrums', laneForParam(0, 'synth:p01_vol'), 1);
+
+    // Swap the synth to a melodic module with no pad params. Without the
+    // module-change re-sync the stale lane would survive until the next boot.
+    env.setParams(MOCK_SYNTHS.test8);
+    appState.trackModels[0][1].reload();
+    advance(6);
+    eq('lane purged after module change', laneForParam(0, 'synth:p01_vol'), -1);
+}
+
+/* ── automation: the pool-full toast is not overdrawn by the Loop strip ────── */
+_log('\napp-loop: pool-full toast wins the bottom rows over the loop strip');
+{
+    resetApp();
+    // "8 AUTOMATION LANES — FULL" shows while a step is held and the pool is full.
+    seqState.stepAutoMode = true;
+    seqState.autoPoolFull = true;
+    appState.currentView = VIEW_KNOBS;
+    appState.dirty = true;
+
+    // drawLoopStrip() always clears its band first: fill_rect(0, 60, 128, 4, 0).
+    // If the strip is (wrongly) drawn over the toast, that clear band appears.
+    const rects = [];
+    const origFR = globalThis.fill_rect;
+    globalThis.fill_rect = (x, y, w, h, v) => rects.push([x, y, w, h, v]);
+    advance(1);
+    globalThis.fill_rect = origFR;
+    const stripDrawn = rects.some(([x, y, w, h, v]) => x === 0 && y === 60 && w === 128 && h === 4 && v === 0);
+    eq('loop strip suppressed under pool-full toast', stripDrawn, false);
+    seqState.stepAutoMode = false; seqState.autoPoolFull = false;
+}
+
 /* ── Full-screen file browser exits cleanly (Back + select) ──────────────────
  * Regression guard: browseOrigin must capture the pre-open view. If it captures
  * VIEW_FILE_BROWSE (because openFileBrowser already flipped currentView), Back

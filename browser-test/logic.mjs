@@ -2666,24 +2666,67 @@ _log('\nautomation display-dirty:');
     resetAutomation(); resetSeqEngine(); resetSeqState();
 }
 
-/* ── automation: label re-sync from engine ───────────────────────────────── */
+/* ── pad-scope: concrete→alias reverse mapping ───────────────────────────── */
+_log('\npad-scope aliasFromConcrete:');
+{
+    const { aliasFromConcrete } = await import('../dist/esm/model/pad-scope.js');
+    const ps = { aliasPrefix: 'pad_', concreteKeyTemplate: 'p{pad}_{suffix}', padDigits: 2 };
+    eq('p07_pan → pad_pan', aliasFromConcrete(ps, 'p07_pan'), 'pad_pan');
+    eq('p01_decay_ms → pad_decay_ms', aliasFromConcrete(ps, 'p01_decay_ms'), 'pad_decay_ms');
+    eq('bare alias is not concrete → null', aliasFromConcrete(ps, 'pad_pan'), null);
+    eq('non-matching key → null', aliasFromConcrete(ps, 'timbre'), null);
+    eq('no scoping → null', aliasFromConcrete(undefined, 'p07_pan'), null);
+}
+
+/* ── automation: lane validation (purge stale / obsolete-alias lanes) ─────── */
+_log('\nautomation validateLane:');
+{
+    const { validateLane } = await import('../dist/esm/seq/automation.js');
+    const ps = { aliasPrefix: 'pad_', concreteKeyTemplate: 'p{pad}_{suffix}', padDigits: 2 };
+    // The lookup mirrors the model's loaded param set (config-driven for drums:
+    // it lists the ALIAS keys, never the concrete per-pad keys).
+    const meta = { cutoff: { min: 0, max: 2, type: 'float' }, pad_pan: { min: -1, max: 1, type: 'float' } };
+    const lookup = (k) => meta[k] ?? null;
+    // Plain param present → keep with its range.
+    eq('plain param kept (range)', validateLane('synth:cutoff', null, lookup).max, 2);
+    // Bare pad-alias key (pre per-pad migration) → drop even though pad_pan exists.
+    eq('obsolete alias dropped', validateLane('synth:pad_pan', ps, lookup), 'drop');
+    // Concrete pad key whose alias IS a known param → KEEP (its alias' range).
+    eq('valid per-pad lane kept', validateLane('synth:p07_pan', ps, lookup).max, 1);
+    // Concrete pad key whose alias is unknown (module changed) → stale → drop.
+    eq('stale per-pad lane dropped', validateLane('synth:p07_cutoff', ps, lookup), 'drop');
+    // Plain param not in the set (cross-module leftover) → stale → drop.
+    eq('stale plain param dropped', validateLane('synth:timbre', ps, lookup), 'drop');
+}
+
+/* ── automation: label re-sync from engine (validates + purges) ───────────── */
 _log('\nautomation label sync:');
 {
-    const { resetAutomation, syncLabelsFromEngine, laneForParam, clearLane } =
+    const { resetAutomation, syncLabelsFromEngine, laneForParam, automationRegistry } =
         await import('../dist/esm/seq/automation.js');
-    const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
     resetAutomation(); resetSeqEngine();
     const applied = [];
+    // Lane 1 valid (cutoff), lane 2 obsolete-alias (pad_vol), lane 3 stale (timbre).
     syncLabelsFromEngine(
-        '-.synth:cutoff.-.-.-.-.-.-,-.-.-.-.-.-.-.-,-.-.-.-.-.-.-.-,-.-.-.-.-.-.-.-',
+        '-.synth:cutoff.synth:pad_vol.synth:timbre.-.-.-.-,-.-.-.-.-.-.-.-,-.-.-.-.-.-.-.-,-.-.-.-.-.-.-.-',
         (slot, lane, tp) => applied.push(slot + ':' + lane + ':' + tp),
-        () => ({ min: 0, max: 1, type: 'float' }),
+        (track, tp) => {
+            if (tp === 'synth:cutoff') return { min: 0, max: 1, type: 'float' };
+            if (tp === 'synth:pad_vol') return 'drop';   // obsolete alias
+            if (tp === 'synth:timbre') return 'drop';    // stale param
+            return 'unknown';
+        },
     );
-    eq('label synced into registry', laneForParam(0, 'synth:cutoff'), 1);
-    eq('re-applied knob mapping', applied.includes('0:1:synth:cutoff'), true);
-    // Clear frees the lane.
-    clearLane(0, 1);
-    eq('cleared lane gone', laneForParam(0, 'synth:cutoff'), -1);
+    eq('valid lane synced into registry', laneForParam(0, 'synth:cutoff'), 1);
+    eq('re-applied valid knob mapping', applied.includes('0:1:synth:cutoff'), true);
+    eq('obsolete-alias lane purged', laneForParam(0, 'synth:pad_vol'), -1);
+    eq('stale lane purged', laneForParam(0, 'synth:timbre'), -1);
+    // Purge emits aclr so the engine + persistence drop the lane too.
+    const q = peekSeqCmdQueue();
+    eq('aclr queued for obsolete-alias lane', q.includes('aclr 0 2'), true);
+    eq('aclr queued for stale lane', q.includes('aclr 0 3'), true);
+    eq('no aclr for the valid lane', q.includes('aclr 0 1'), false);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

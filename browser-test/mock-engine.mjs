@@ -19,6 +19,9 @@ export function installMockEngine() {
         getParamCalls: 0,
         /* DSP (re)load requests ("load" key, shim-handled on device) */
         loadRequests: [],
+        /* persisted automation lane labels reported via get_param('alabels');
+         * an `aclr <t> <l>` op blanks the matching lane (faithful engine). */
+        alabels: null,
 
         reset() {
             this.cmdBatches = [];
@@ -28,6 +31,7 @@ export function installMockEngine() {
             this.setParamCalls = 0;
             this.getParamCalls = 0;
             this.loadRequests = [];
+            this.alabels = null;
         },
     };
 
@@ -41,9 +45,21 @@ export function installMockEngine() {
                 /* Apply transport ops to status so a subsequent poll agrees
                  * with the UI's optimistic mirror (faithful-engine behavior:
                  * the engine reports back what the command set). */
-                const verb = op.split(' ')[0];
+                const parts = op.split(' ');
+                const verb = parts[0];
                 if (verb === 'play') engine.status.play = 1;
                 else if (verb === 'stop') engine.status.play = 0;
+                else if (verb === 'aclr' && engine.alabels) {
+                    // Blank the cleared lane so a re-poll reflects the purge.
+                    const t = +parts[1], l = +parts[2];
+                    const tracks = engine.alabels.split(',');
+                    if (tracks[t]) {
+                        const lanes = tracks[t].split('.');
+                        lanes[l] = '-';
+                        tracks[t] = lanes.join('.');
+                        engine.alabels = tracks.join(',');
+                    }
+                }
             }
         } else if (key === 'load') {
             engine.loadRequests.push(value);
@@ -65,6 +81,7 @@ export function installMockEngine() {
                 .join(' ');
         }
         if (key === 'ping') return 'pong ' + ENGINE_VERSION;
+        if (key === 'alabels') return engine.alabels;
         return null;
     };
 

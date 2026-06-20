@@ -286,6 +286,10 @@ _log('\napp-loop: octave buttons flash on melodic track');
     appState.trackModels[0][1].reload();
     advance(12);
     const { keyboardState } = await import('../dist/esm/keyboard/state.js');
+    // After init-batch, idle octave buttons show dim (WHITE_DIM=16) on melodic
+    eq('melodic idle: MoveUp button dim', buttonLeds[55], 16);
+    eq('melodic idle: MoveDown button dim', buttonLeds[54], 16);
+
     const rootBefore = keyboardState.rootNote;
     for (const k of Object.keys(buttonLeds)) delete buttonLeds[k];
 
@@ -296,7 +300,7 @@ _log('\napp-loop: octave buttons flash on melodic track');
 
     sendMidi([0xB0, 55, 0]); // MoveUp release
     advance(1);
-    eq('melodic: MoveUp release clears button LED', buttonLeds[55], 0);
+    eq('melodic: MoveUp release returns to dim', buttonLeds[55], 16); // WHITE_DIM
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

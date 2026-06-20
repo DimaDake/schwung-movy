@@ -3,6 +3,7 @@ import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
 import { MASTER_FX_SLOTS } from '../chain/config.js';
 import { drumPadLedColor } from '../keyboard/leds.js';
+import { WHITE_DIM } from '../seq/colors.js';
 import { chromaticPadColor, chromaticPitch } from '../seq/pads.js';
 import { midiNoteName } from '../keyboard/notes.js';
 import { renderKnobsView } from '../renderer/knob-view.js';
@@ -151,7 +152,11 @@ export function tick(): void {
             setLED(p, color, true);
         }
         appState.initLedIndex = end;
-        if (appState.initLedIndex >= total) { appState.initLedsDone = true; appState.dirty = true; }
+        if (appState.initLedIndex >= total) {
+            setButtonLED(MoveUp, WHITE_DIM, true);
+            setButtonLED(MoveDown, WHITE_DIM, true);
+            appState.initLedsDone = true; appState.dirty = true;
+        }
         return;
     }
 
@@ -254,6 +259,10 @@ export function tick(): void {
         appState.initLedIndex = 0;
         chromaticCache.fill(0);
         drumCache.fill(0);
+        if (!seqState.sessionMode) {
+            setButtonLED(MoveUp, WHITE_DIM, true);
+            setButtonLED(MoveDown, WHITE_DIM, true);
+        }
     }
 
     /* Per-tick chromatic pad update: green for sequencer-active or physically-

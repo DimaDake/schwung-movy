@@ -112,13 +112,25 @@ export function loadHierarchy(s: ModelState): void {
                     let step = cp.step != null ? cp.step : (hier.step != null ? hier.step : (type === 'float' ? 0.01 : 1));
                     if (type === 'enum') { min = 0; max = options ? options.length - 1 : 127; step = 1; }
                     const renderStyle = slot.render ?? inferRenderStyle(type as KnobParam['type'], min, max);
-                    s.knobParams.push({
+                    const param: KnobParam = {
                         key:        slot.key,
                         label:      slot.full || cp.name || hier.label || slot.key,
                         shortLabel: slot.short ?? null,
                         type:       type as KnobParam['type'],
                         options, min, max, step, renderStyle,
-                    });
+                    };
+                    /* File slots carry browse metadata. The module config (mrdrums.json)
+                     * is authoritative; chain_params (root/filter/start_path) is the
+                     * device fallback. Without this the browser loses its filter and
+                     * start dir — it then lists every folder/non-preset and crashes
+                     * mrdrums on load. */
+                    if (type === 'file') {
+                        param.fileRoot      = slot.fileRoot      ?? (cp as { root?: string }).root      ?? '/data/UserData';
+                        param.fileFilter    = slot.fileFilter    ?? parseFilter((cp as { filter?: unknown }).filter);
+                        param.fileStartPath = slot.fileStartPath ?? (cp as { start_path?: string }).start_path ?? param.fileRoot;
+                        if (slot.fileRequireContains) param.fileRequireContains = slot.fileRequireContains;
+                    }
+                    s.knobParams.push(param);
                 }
             }
         }

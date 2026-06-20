@@ -53,7 +53,7 @@
       "name": "Preset",
       "rows": [
         [
-          { "key": "ui_preset_path", "short": "PRSET", "full": "Load Preset", "type": "file", "fileRoot": "/data/UserData/UserLibrary", "fileFilter": [".ablpreset"], "fileStartPath": "/data/UserData/UserLibrary/Track Presets" }
+          { "key": "ui_preset_path", "short": "PRSET", "full": "Load Preset", "type": "file", "fileRoot": "/data/UserData/UserLibrary", "fileFilter": [".ablpreset"], "fileStartPath": "/data/UserData/UserLibrary/Track Presets", "fileRequireContains": "drumRack" }
         ]
       ]
     }

@@ -10,6 +10,7 @@ export interface KnobSlot {
     fileRoot?:      string;
     fileFilter?:    string[];
     fileStartPath?: string;
+    fileRequireContains?: string;
 }
 
 export interface BankConfig {
@@ -47,4 +48,5 @@ export interface KnobParam {
     fileRoot?:      string;
     fileFilter?:    string[];
     fileStartPath?: string;
+    fileRequireContains?: string;
 }

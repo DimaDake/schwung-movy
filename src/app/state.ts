@@ -23,6 +23,7 @@ export interface FileBrowserState {
     currentDir:    string;
     items:         FileBrowserItem[];
     selectedIndex: number;
+    requireContains?: string;
 }
 
 export const appState = {

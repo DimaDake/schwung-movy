@@ -355,6 +355,100 @@ _log('\nTest: drum module detection via loadHierarchy');
   eq('plaits: not drum (drumPadCount=0)', mp.getViewModel().drumPadCount, 0);
 }
 
+// ── mrdrums preset file param: browse metadata + filtering + validation ───
+
+const MRDRUMS_PRESET = {
+  'synth:name': 'MrDrums',
+  'synth_module': 'mrdrums',
+};
+const TRACK_PRESETS = '/data/UserData/UserLibrary/Track Presets';
+
+/* Navigate to the preset knob (custom-config bank flattening puts ui_preset_path
+ * at global index 16 → page 2, physical slot 0) and touch it. */
+function touchMrdrumsPreset(m) {
+  m.changePage(1); m.changePage(1);  // clamps to the last page holding the preset
+  m.handleKnobTouch(0);
+}
+
+_log('\nTest: mrdrums preset param keeps fileFilter/fileStartPath/requireContains');
+
+{
+  const m = bootModel(MRDRUMS_PRESET);
+  touchMrdrumsPreset(m);
+  const t = m.getFileBrowseTarget();
+  eq('preset target key', t?.key, 'ui_preset_path');
+  eq('preset filter = .ablpreset', JSON.stringify(t?.filter), JSON.stringify(['.ablpreset']));
+  eq('preset start path = Track Presets', t?.startPath, TRACK_PRESETS);
+  eq('preset requireContains = drumRack', t?.requireContains, 'drumRack');
+}
+
+_log('\nTest: preset overlay starts in Track Presets and hides folders + wrong files');
+
+{
+  mockFsEntries[TRACK_PRESETS] = ['Kits', 'drum.ablpreset', 'loop.wav', 'synth.ablpreset'];
+  const m = bootModel(MRDRUMS_PRESET);
+  touchMrdrumsPreset(m);
+  const opts = m.getViewModel().overlay?.options ?? [];
+  eq('overlay only shows .ablpreset files', opts.length, 2);
+  eq('overlay excludes folder Kits', opts.some(p => p.endsWith('/Kits')), false);
+  eq('overlay excludes loop.wav', opts.some(p => p.endsWith('.wav')), false);
+}
+
+_log('\nTest: fileContentAllows accepts drumRack, rejects others');
+
+{
+  const { fileContentAllows } = await import('../dist/esm/model/file-validate.js');
+  const saved = globalThis.host_read_file;
+  globalThis.host_read_file = (p) => p.endsWith('drum.ablpreset')
+    ? '{ "kind": "drumRack", "chains": [] }'
+    : '{ "kind": "instrumentRack" }';
+  eq('drumRack preset allowed', fileContentAllows('/x/drum.ablpreset', 'drumRack'), true);
+  eq('non-drumRack preset rejected', fileContentAllows('/x/synth.ablpreset', 'drumRack'), false);
+  eq('no token required → always allowed', fileContentAllows('/x/synth.ablpreset', undefined), true);
+  globalThis.host_read_file = () => null;
+  eq('unreadable file fails open (allowed)', fileContentAllows('/x/drum.ablpreset', 'drumRack'), true);
+  globalThis.host_read_file = saved;
+}
+
+_log('\nTest: overlay commit rejects a non-drum preset (param unchanged)');
+
+{
+  mockFsEntries[TRACK_PRESETS] = ['drum.ablpreset', 'synth.ablpreset'];
+  const saved = globalThis.host_read_file;
+  // Override only across the release/validation — loadModuleConfig also reads
+  // via host_read_file, so the model must boot with the real (null) impl first.
+  const presetContent = (p) => p.endsWith('drum.ablpreset')
+    ? '{ "kind": "drumRack" }' : '{ "kind": "instrumentRack" }';
+
+  // sorted: drum.ablpreset[0], synth.ablpreset[1]
+  const m = bootModel(MRDRUMS_PRESET);
+  touchMrdrumsPreset(m);
+  m.handleKnobDelta(0, 4);  // → synth.ablpreset (wrong type)
+  globalThis.host_read_file = presetContent;
+  const rejected = m.handleKnobRelease(0);
+  globalThis.host_read_file = saved;
+  eq('wrong preset → handleKnobRelease returns true', rejected, true);
+  eq('wrong preset → param not set', env.params['synth:ui_preset_path'], undefined);
+
+  const m2 = bootModel(MRDRUMS_PRESET);
+  touchMrdrumsPreset(m2);  // selected idx 0 = drum.ablpreset
+  globalThis.host_read_file = presetContent;
+  const ok2 = m2.handleKnobRelease(0);
+  globalThis.host_read_file = saved;
+  eq('drum preset → not rejected', ok2, false);
+  eq('drum preset → param set', env.params['synth:ui_preset_path'], TRACK_PRESETS + '/drum.ablpreset');
+}
+
+_log('\nTest: track colors — track 3 pink, track 4 blue');
+
+{
+  const { TRACK_COLOR, TRACK_COLOR_DIM } = await import('../dist/esm/seq/colors.js');
+  eq('track 3 = BrightPink(25)', TRACK_COLOR[2], 25);
+  eq('track 4 = Blue(125)',      TRACK_COLOR[3], 125);
+  eq('track 3 dim = DeepMagenta(109)', TRACK_COLOR_DIM[2], 109);
+  eq('track 4 dim = DarkBlue(95)',     TRACK_COLOR_DIM[3], 95);
+}
+
 // ── ViewModel drum fields: isPadSpecific, drumCurrentPad, drumPadCount ───
 
 _log('\nTest: ViewModel drum fields');

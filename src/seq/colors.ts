@@ -14,8 +14,8 @@ export const C_GREEN = 11;     // NeonGreen — playhead
 export const C_REC_RED = 127;  // Red — recording indicator (same as track 0 color; index 1 renders pink)
 
 /* Bright = playing/selected clip & chromatic root; dim = empty in-loop step. */
-export const TRACK_COLOR = [127, 7, 14, 22];      // Red, VividYellow, Cyan, Purple
-export const TRACK_COLOR_DIM = [67, 74, 90, 105]; // Brick, VeryDarkYellow, DeepTeal, MutedViolet
+export const TRACK_COLOR = [127, 7, 25, 125];      // Red, VividYellow, BrightPink, Blue
+export const TRACK_COLOR_DIM = [67, 74, 109, 95];  // Brick, VeryDarkYellow, DeepMagenta, DarkBlue
 
 export function trackColor(track: number): number {
     return TRACK_COLOR[track & 3];

@@ -5,6 +5,7 @@ import { buildViewModel }   from './viewmodel.js';
 import { processTick }      from './tick.js';
 import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV } from './constants.js';
 import { basename, dirname } from './path.js';
+import { fileContentAllows } from './file-validate.js';
 import { mlog } from '../log.js';
 
 // Fractional accumulator: returns whole steps consumed and the leftover fraction
@@ -14,6 +15,17 @@ function accumStep(accum: number, delta: number): [newAccum: number, step: numbe
     return [next - step, step];
 }
 
+function isDir(path: string): boolean {
+    try {
+        const [st] = (os as { stat(p: string): [{ mode: number }, number] }).stat(path);
+        return (st.mode & 0xF000) === 0x4000;
+    } catch { return false; }
+}
+
+/* Flat file list for the inline jog-browse overlay. The overlay has no
+ * directory navigation, so folders are excluded — selecting one would set the
+ * param to a folder path and crash the loader. The full-screen browser
+ * (browser/file-handler.ts) is the one that shows folders for navigation. */
 function scanFiles(dir: string, filter: string[]): string[] {
     try {
         const [entries] = (os as { readdir(p: string): [string[], number] }).readdir(dir);
@@ -25,8 +37,9 @@ function scanFiles(dir: string, filter: string[]): string[] {
                 const lower = n.toLowerCase();
                 return filter.some(ext => lower.endsWith(ext));
             })
-            .sort()
-            .map(n => dir + '/' + n);
+            .map(n => dir + '/' + n)
+            .filter(p => !isDir(p))
+            .sort();
     } catch { return []; }
 }
 
@@ -109,7 +122,10 @@ export function createModel(slot: number, componentKey = 'synth') {
             s.longPressCountdown = -1;
         },
 
-        handleKnobRelease(k?: number): void {
+        /* Returns true if a file selection was rejected (wrong preset type) so
+         * the router can surface a toast — keeps the model free of the seq layer. */
+        handleKnobRelease(k?: number): boolean {
+            let fileRejected = false;
             if (s.enumOverlay && (k === undefined || k === s.enumOverlay.slot)) {
                 const p = s.knobParams[s.enumOverlay.gi];
                 if (p) {
@@ -122,8 +138,12 @@ export function createModel(slot: number, componentKey = 'synth') {
                 const p = s.knobParams[s.fileOverlay.gi];
                 if (p && s.fileOverlay.items.length > 0) {
                     const path = s.fileOverlay.items[s.fileOverlay.selected];
-                    s.fileValues[s.fileOverlay.gi] = path;
-                    shadow_set_param(s.activeSlot, s.componentKey + ':' + p.key, path);
+                    if (fileContentAllows(path, p.fileRequireContains)) {
+                        s.fileValues[s.fileOverlay.gi] = path;
+                        shadow_set_param(s.activeSlot, s.componentKey + ':' + p.key, path);
+                    } else {
+                        fileRejected = true;
+                    }
                 }
                 s.fileOverlay = null;
             }
@@ -135,6 +155,7 @@ export function createModel(slot: number, componentKey = 'synth') {
             }
             s.dirty = true;
             s.longPressCountdown = -1;
+            return fileRejected;
         },
 
         changePage(delta: number): void {
@@ -165,7 +186,7 @@ export function createModel(slot: number, componentKey = 'synth') {
 
         reload(): void { s.hierarchyKey = ''; s.pollCountdown = 1; s.dirty = true; },
 
-        getFileBrowseTarget(): { key: string; gi: number; root: string; filter: string[]; startPath: string; currentPath: string | null } | null {
+        getFileBrowseTarget(): { key: string; gi: number; root: string; filter: string[]; startPath: string; currentPath: string | null; requireContains?: string } | null {
             const primary = primarySlot();
             if (primary < 0) return null;
             const gi = s.knobPage * KNOBS_PER_PAGE + primary;
@@ -178,6 +199,7 @@ export function createModel(slot: number, componentKey = 'synth') {
                 filter:      p.fileFilter    ?? [],
                 startPath:   p.fileStartPath ?? '/data/UserData',
                 currentPath: s.fileValues[gi] ?? null,
+                requireContains: p.fileRequireContains,
             };
         },
 

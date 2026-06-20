@@ -189,7 +189,6 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     if (d1 === CC_REC) {
         if (d2 > 0) {
             seqCmd('rec ' + seqState.watchTrack);
-            seqToast(seqState.recording ? 'Stop' : 'Record');
         }
         return true;
     }

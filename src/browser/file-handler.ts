@@ -1,6 +1,8 @@
 import type { FileBrowserItem, FileBrowserState } from '../app/state.js';
 import { appState, VIEW_FILE_BROWSE } from '../app/state.js';
-import { basename, dirname } from '../model/path.js';
+import { dirname } from '../model/path.js';
+import { fileContentAllows } from '../model/file-validate.js';
+import { seqToast } from '../seq/render.js';
 
 function isDir(path: string): boolean {
     try {
@@ -45,6 +47,7 @@ export function openFileBrowser(
     filter:       string[],
     startPath:    string,
     currentPath:  string | null,
+    requireContains?: string,
 ): void {
     const startDir = currentPath ? dirname(currentPath) : (startPath || root);
     const items    = scanDir(startDir, root, filter);
@@ -58,7 +61,7 @@ export function openFileBrowser(
     appState.fileBrowserState = {
         paramSlot, componentKey, paramKey, gi,
         root, filter, currentDir: startDir,
-        items, selectedIndex,
+        items, selectedIndex, requireContains,
     };
     appState.currentView = VIEW_FILE_BROWSE;
     appState.dirty = true;
@@ -84,6 +87,12 @@ export function activateFileBrowserItem(): void {
         state.selectedIndex = 0;
         appState.dirty = true;
     } else {
+        /* Reject a preset built for a different instrument before committing —
+         * keep the browser open so the user can pick another. */
+        if (!fileContentAllows(item.path, state.requireContains)) {
+            seqToast('Wrong preset type');
+            return;
+        }
         shadow_set_param(state.paramSlot, state.componentKey + ':' + state.paramKey, item.path);
         const chainIdx = appState.trackChainIndex[state.paramSlot];
         appState.trackModels[state.paramSlot]?.[chainIdx]?.setFileValue(state.gi, item.path);

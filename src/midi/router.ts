@@ -12,6 +12,7 @@ import { WHITE_BRIGHT, WHITE_DIM } from '../seq/colors.js';
 import { momentaryDown, momentaryUp } from '../seq/momentary.js';
 import { handleAutomationKnob, clearLaneForKnob, automationKnobReleased, automationKnobTouched } from '../seq/automation.js';
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
+import { seqToast } from '../seq/render.js';
 import { mlog } from '../log.js';
 
 const PAD_MIN        = MovePads[0];
@@ -65,7 +66,7 @@ export function onMidiMessageInternal(data: number[]): void {
             automationKnobTouched(d1);    // arm tap-to-clear in step-auto mode
         } else {
             const info = knobModel()?.getKnobParamInfo(d1) ?? null;
-            knobModel()?.handleKnobRelease(d1);
+            if (knobModel()?.handleKnobRelease(d1)) seqToast('Wrong preset type');
             if (info) automationKnobReleased(appState.activeSlot, d1, info);
         }
         return;
@@ -226,6 +227,7 @@ export function onMidiMessageInternal(data: number[]): void {
                     fileTarget.filter,
                     fileTarget.startPath,
                     fileTarget.currentPath,
+                    fileTarget.requireContains,
                 );
                 appState.browseOrigin = appState.currentView;
             } else if (appState.currentView === VIEW_CHAIN) {

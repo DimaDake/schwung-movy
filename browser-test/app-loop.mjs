@@ -28,7 +28,7 @@ console.log = (...a) => { if (typeof a[0] === 'string' && a[0].startsWith('[movy
 
 /* Bundled app entry points assign init/tick/onMidiMessageInternal to globalThis. */
 await import('../dist/esm/app/globals.js');
-const { appState }      = await import('../dist/esm/app/state.js');
+const { appState, VIEW_KNOBS, VIEW_FILE_BROWSE } = await import('../dist/esm/app/state.js');
 const { seqState, resetSeqState, occHasStep } = await import('../dist/esm/seq/state.js');
 const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
 
@@ -325,6 +325,51 @@ _log('\napp-loop: drum→synth switch does not crash');
     const vm = appState.trackModels[0][1].getViewModel();
     eq('after transition: drumPadCount is 0', vm.drumPadCount, 0);
     eq('after transition: drumActive flag cleared', appState.drumActive, false);
+}
+
+/* ── Full-screen file browser exits cleanly (Back + select) ──────────────────
+ * Regression guard: browseOrigin must capture the pre-open view. If it captures
+ * VIEW_FILE_BROWSE (because openFileBrowser already flipped currentView), Back
+ * and select send the user "back" to the browser itself — a frozen screen. */
+_log('\napp-loop: full-screen file browser exits cleanly');
+{
+    const TP = '/data/UserData/UserLibrary/Track Presets';
+    const savedOs   = globalThis.os;
+    const savedRead = globalThis.host_read_file;
+    const mockFs = { [TP]: ['drum.ablpreset', 'other.ablpreset'] };
+    // os is needed by the browser scan; install AFTER resetApp so module-config
+    // loading (which also reads via host_read_file) uses the bundled config.
+    resetApp();
+    globalThis.os = {
+        readdir: (p) => [mockFs[p] ?? [], 0],
+        stat:    (p) => [{ mode: p.lastIndexOf('.') > p.lastIndexOf('/') ? 0x8000 : 0x4000 }, 0],
+    };
+
+    // Gesture: chain→knobs, jog to the Preset page, hold preset knob, jog-click.
+    sendMidi([0xB0, 3, 127]); advance(1);            // jog-click: VIEW_CHAIN → VIEW_KNOBS
+    sendMidi([0xB0, 14, 1]); sendMidi([0xB0, 14, 1]); advance(1);  // → Preset page
+    sendMidi([0x90, 0, 127]);                         // touch preset knob 0
+    sendMidi([0xB0, 3, 127]);                         // jog-click → open full browser
+
+    eq('browser opened', appState.currentView, VIEW_FILE_BROWSE);
+    eq('browseOrigin captured the pre-open view', appState.browseOrigin, VIEW_KNOBS);
+
+    // Back must return to the origin view, not to the (now empty) browser.
+    sendMidi([0xB0, 51, 127]); advance(1);            // MoveBack
+    eq('Back leaves the file browser', appState.currentView, VIEW_KNOBS);
+    eq('Back clears fileBrowserState', appState.fileBrowserState, null);
+
+    // Reopen, move to drum.ablpreset, select → loads + closes the browser.
+    sendMidi([0x90, 0, 127]); sendMidi([0xB0, 3, 127]); advance(1);
+    sendMidi([0xB0, 14, 1]);                          // skip '..' → drum.ablpreset
+    globalThis.host_read_file = (p) => p.endsWith('.ablpreset') ? '{ "kind": "drumRack" }' : null;
+    sendMidi([0xB0, 3, 127]);                         // jog-click = select
+    globalThis.host_read_file = savedRead;
+    eq('select leaves the file browser', appState.currentView, VIEW_KNOBS);
+    eq('select clears fileBrowserState', appState.fileBrowserState, null);
+    eq('select committed the preset path', env.params['synth:ui_preset_path'], TP + '/drum.ablpreset');
+
+    globalThis.os = savedOs;
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

@@ -217,6 +217,10 @@ export function onMidiMessageInternal(data: number[]): void {
             // browseOrigin returns to whichever view the click happened in.
             const fileTarget = activeModel()?.getFileBrowseTarget() ?? null;
             if (fileTarget) {
+                // Capture the origin BEFORE openFileBrowser flips currentView to
+                // VIEW_FILE_BROWSE — otherwise Back/select return to the browser
+                // itself, leaving a frozen screen.
+                appState.browseOrigin = appState.currentView;
                 activeModel()?.clearFileOverlay();
                 openFileBrowser(
                     appState.activeSlot,
@@ -229,7 +233,6 @@ export function onMidiMessageInternal(data: number[]): void {
                     fileTarget.currentPath,
                     fileTarget.requireContains,
                 );
-                appState.browseOrigin = appState.currentView;
             } else if (appState.currentView === VIEW_CHAIN) {
                 const isEmpty = activeModel()?.getViewModel().isEmpty ?? false;
                 if (appState.shiftHeld || isEmpty) {

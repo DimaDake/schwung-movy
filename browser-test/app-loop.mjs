@@ -233,6 +233,20 @@ _log('\napp-loop: param page repaints when held-step automation changes');
     resetAutomation();
 }
 
+/* ── length tail LED (held step shows its note length as a light-grey tail) ── */
+{
+    _log('\nlength tail LED:');
+    resetApp();
+    seqState.watchLane = -1;          // melodic
+    seqState.lenSteps = 16;
+    seqState.holdStep = 2;
+    seqState.holdLen = 3;             // note spans steps 2..4 → tail on 3 and 4
+    advance(4);                       // let the LED frame budget paint the step row
+    eq('tail step 3 LED = light-grey (118)', padColor(16 + 3), 118);
+    eq('tail step 4 LED = light-grey (118)', padColor(16 + 4), 118);
+    seqState.holdStep = -1; seqState.holdLen = 0;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

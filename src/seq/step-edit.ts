@@ -31,6 +31,11 @@ const pressMs = new Map<number, number>();   // button → Date.now() at press
  * would never enter (the "holding one step never blocks entering others" rule). */
 const coPressed = new Set<number>();
 
+/* Last hold-A + press-B length target, for the end/start toggle. atEnd=true means
+ * the note ends at the END of step b ((b-a+1) steps); false trims to the START of
+ * b ((b-a) steps). Reset when the anchor (A) is released. */
+let lastLenTarget: { a: number; b: number; atEnd: boolean } | null = null;
+
 /* A hold this long (no tap) switches to step-automation mode. */
 const STEP_AUTO_MS = 300;
 
@@ -51,12 +56,14 @@ export function editStepDown(button: number): void {
     }
     heldRanges.set(button, range);
     pressMs.set(button, Date.now());
-    // On a drum lane, two+ steps held together are independent entries. Exempt
-    // them from the solo-hold automation timer AND undo any promotion that
-    // already happened (the anchor may have been held alone past 300ms before
-    // this second press — as device MIDI-inject latency causes), so each still
+    // Two+ steps held together are independent entries (drum lanes, or empty
+    // synth steps — the length gesture is gated on an occupied anchor in the
+    // router, so it never reaches editStepDown for the second step). Exempt them
+    // from the solo-hold automation timer AND undo any promotion that already
+    // happened (the anchor may have been held alone past 300ms before this
+    // second press — as device MIDI-inject latency causes), so each still
     // toggles on release.
-    if (seqState.watchLane >= 0 && heldRanges.size >= 2) {
+    if (heldRanges.size >= 2) {
         for (const b of heldRanges.keys()) {
             coPressed.add(b);
             gestured.delete(b);
@@ -101,6 +108,9 @@ export function endStepAutomation(): void {
 /* Release a held button. Returns true if it was a tap (no gesture occurred),
  * so the caller can toggle the note (Note Mode only). */
 export function editStepUp(button: number): boolean {
+    // The anchor is the only registered held step during a length gesture (B is
+    // never added), so releasing a registered step ends the gesture's toggle.
+    if (heldRanges.has(button)) lastLenTarget = null;
     const wasTap = heldRanges.has(button) && !gestured.has(button);
     heldRanges.delete(button);
     gestured.delete(button);
@@ -200,15 +210,24 @@ export function heldStepAbs(): number {
     return r.s0 === r.s1 ? r.s0 : -1;
 }
 
-/* Hold A + press B → set A's note length to span to B. Returns true if a
- * length-set was emitted (B > A), false otherwise. */
+/* Hold A (an occupied step) + press B → set A's note length. First press of a
+ * given B ends the note at the END of B ((B-A+1) steps); pressing the same B
+ * again trims to the START of B ((B-A) steps); each repeat flips. Returns true
+ * if a length-set was emitted. The router only calls this when A is occupied;
+ * B <= A is a no-op (returns false; the router still consumes the press so B is
+ * not entered). */
 export function setLengthTo(absB: number): boolean {
     const a = heldStepAbs();
     if (a < 0 || absB <= a) return false;
     markGestured();
-    const ticks = (absB - a) * TICKS_PER_STEP;
-    seqCmd(`slen ${seqState.watchTrack} ${a} ${a} ${lane()} ${ticks}`);
-    seqToast('Length ' + (absB - a));
+    let atEnd = true;
+    if (lastLenTarget && lastLenTarget.a === a && lastLenTarget.b === absB) {
+        atEnd = !lastLenTarget.atEnd; // repeat press of the same B flips end/start
+    }
+    lastLenTarget = { a, b: absB, atEnd };
+    const steps = atEnd ? (absB - a + 1) : (absB - a);
+    seqCmd(`slen ${seqState.watchTrack} ${a} ${a} ${lane()} ${steps * TICKS_PER_STEP}`);
+    seqToast('Length ' + steps);
     return true;
 }
 
@@ -217,4 +236,5 @@ export function resetStepEdit(): void {
     gestured.clear();
     coPressed.clear();
     pressMs.clear();
+    lastLenTarget = null;
 }

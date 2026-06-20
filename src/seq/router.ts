@@ -48,7 +48,7 @@ import {
 import {
     maxBarOffset, occHasStep, occToggleStep, seqState,
 } from './state.js';
-import { setHeldSet } from './held.js';
+import { heldSetList, setHeldSet } from './held.js';
 
 const CC_LEFT = 62;
 const CC_RIGHT = 63;
@@ -107,13 +107,16 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
             shiftStepFunction(button);
         } else if (on) {
             const absB = seqState.barOffset * NUM_STEP_BUTTONS + button;
-            // The hold-A + press-B length gesture (and the held-step note
-            // overlay) are melodic-only. On a drum lane each step press is
-            // independent, so holding one step never blocks entering others.
-            if (!seqState.loopMode && seqState.watchLane < 0
-                && heldStepAbs() >= 0 && absB !== heldStepAbs()
-                && setLengthTo(absB)) {
-                // length gesture consumed; do not register B as a held step
+            // The hold-A + press-B length gesture is melodic-only and fires only
+            // when the anchor A already has a note. An empty anchor (or a drum
+            // lane) instead registers B as an independent held step, so two empty
+            // steps held together enter notes on both. B is never registered when
+            // the anchor is occupied, so it does not toggle and multi-entry can't
+            // collide with length-setting.
+            const anchor = (!seqState.loopMode && seqState.watchLane < 0)
+                ? heldStepAbs() : -1;
+            if (anchor >= 0 && absB !== anchor && occHasStep(anchor)) {
+                setLengthTo(absB); // B<=anchor → consumed no-op; either way don't enter B
             } else {
                 editStepDown(button);
                 if (seqState.loopMode) loopStepOn(button);
@@ -278,11 +281,12 @@ function toggleStep(button: number): void {
         // lets the device test count multi-step entries from the log.
         mlog(`seq: step ${step} lane ${seqState.watchLane}`);
     } else {
-        /* Melodic: place the currently-held chord, or the last-played note
-         * if no pads are down; a step that already has notes is cleared. */
+        /* Melodic: place the currently-held chord, else the full selected
+         * (white) note set, else the last-played note; an occupied step clears. */
+        const selected = heldSetList(t);
         const pitches = heldChord.size > 0
             ? [...heldChord.values()]
-            : [seqState.lastPitch[t]];
+            : (selected.length > 0 ? selected : [seqState.lastPitch[t]]);
         const v = seqState.lastVel[t];
         seqCmd(`tog ${t} ${step} ${pitches.map((p) => `${p} ${v}`).join(' ')}`);
     }

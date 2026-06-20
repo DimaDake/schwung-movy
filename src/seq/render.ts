@@ -89,10 +89,10 @@ export function drawLoopStrip(): void {
 let text = '';
 let ttl = 0;
 
-/* Flat toast duration: ~1.5s at the device's ~196 ticks/s. Toasts were too
+/* Flat toast duration: ~1s at the device's ~196 ticks/s. Toasts were too
  * brief to read; every toast now shows for this fixed time regardless of any
  * value a caller passes. */
-const TOAST_TTL = 294;
+const TOAST_TTL = 196;
 
 export function seqToast(msg: string): void {
     text = msg;

@@ -2411,7 +2411,7 @@ _log('\nclear + automation knob:');
         peekSeqCmdQueue().some((o) => o.startsWith('clipdel')), false);
 }
 
-/* ── toast shows a flat ~1.5s regardless of requested ttl ────────────────── */
+/* ── toast shows a flat ~1s regardless of requested ttl ─────────────────── */
 _log('\ntoast duration:');
 {
     const { seqToast, seqToastActive, seqToastTick, resetSeqToast } =
@@ -2420,7 +2420,8 @@ _log('\ntoast duration:');
     seqToast('hi', 10);            // request a short ttl (ignored)
     let ticks = 0;
     while (seqToastActive()) { seqToastTick(); ticks++; if (ticks > 1000) break; }
-    eq('toast shows ~1.5s (>=250 ticks) regardless of requested ttl', ticks >= 250, true);
+    // ~1s at the device's ~196 ticks/s; flat regardless of the requested ttl.
+    eq('toast shows ~1s (180–210 ticks) regardless of requested ttl', ticks >= 180 && ticks <= 210, true);
 }
 
 /* ── duplicate gesture (Copy held → source → dest, replace) ──────────────── */

@@ -277,6 +277,32 @@ impl Engine {
         self.start_transport();
     }
 
+    /// While the transport runs, ensure the edited track's selected clip is the
+    /// one playing, so step entry into an empty/selected slot is immediately
+    /// audible (the selected slot is always the playing slot). Seeds the
+    /// playhead to the master bar/step phase so the clip stays in sync with the
+    /// bar and the other playing tracks. No-op when stopped (preserves the
+    /// no-autostart-on-note-entry rule) or when this slot is already playing
+    /// (don't disturb a running clip's playhead).
+    pub fn ensure_selected_playing(&mut self, track: usize) {
+        if !self.playing || track >= NUM_TRACKS {
+            return;
+        }
+        let slot = self.tracks[track].active_clip;
+        // A note into the selected slot cancels any Session stop/queue on it.
+        self.tracks[track].queued_slot = None;
+        self.tracks[track].pending_stop = false;
+        if self.tracks[track].playing_slot == Some(slot) {
+            return;
+        }
+        self.tracks[track].playing_slot = Some(slot);
+        let len = self.tracks[track].clips[slot].length_ticks().max(1) as u64;
+        let start = self.tracks[track].clips[slot].loop_start_ticks();
+        self.tracks[track].pos_tick = start + (self.master_tick % len) as u32;
+        self.tracks[track].last_auto_step = -1;
+        self.tracks[track].auto_cur = [-1; 8];
+    }
+
     /// Session launch / empty-slot select. Always selects the slot. An
     /// existing clip launches (queued to the next bar while running, immediate
     /// + transport start when stopped); an empty slot stops the track (native:

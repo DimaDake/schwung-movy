@@ -66,6 +66,7 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                     engine.tracks[t as usize]
                         .active_mut()
                         .toggle_step(s.clamp(0, 255) as u16, &chord);
+                    engine.ensure_selected_playing(t as usize);
                 }
             }
         }
@@ -248,6 +249,7 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                         p as u8,
                         v.clamp(1, 127) as u8,
                     );
+                    engine.ensure_selected_playing(t as usize);
                 }
             }
         }
@@ -341,6 +343,62 @@ mod tests {
         apply_batch(&mut e, "tog 0 0 60 100", &mut out);
         assert!(!e.playing, "entering a step while stopped must not start playback");
         assert!(e.tracks[0].active().exists(), "the clip is still created");
+    }
+
+    #[test]
+    fn tog_while_playing_makes_selected_slot_play() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        // Transport running, track 0's selected slot empty + never launched.
+        apply_batch(&mut e, "play", &mut out);
+        assert_eq!(e.tracks[0].playing_slot, None, "empty selected slot isn't playing yet");
+        apply_batch(&mut e, "tog 0 4 60 100", &mut out);
+        assert!(e.playing);
+        assert_eq!(
+            e.tracks[0].playing_slot,
+            Some(e.tracks[0].active_clip),
+            "entering a note while playing makes the selected slot the playing slot"
+        );
+    }
+
+    #[test]
+    fn ltog_while_playing_makes_selected_slot_play() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "play", &mut out);
+        apply_batch(&mut e, "ltog 0 4 36 100", &mut out);
+        assert_eq!(e.tracks[0].playing_slot, Some(e.tracks[0].active_clip));
+    }
+
+    #[test]
+    fn tog_while_playing_grid_aligns_playhead() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "play", &mut out);
+        // Advance 3 steps into the bar (frame-based clock) so the master phase
+        // is not at step 0.
+        let target = 3 * crate::TICKS_PER_STEP as u64;
+        while e.clock.tick < target {
+            e.advance_block(128, &mut out);
+        }
+        apply_batch(&mut e, "tog 0 8 60 100", &mut out);
+        // The newly-playing track is seeded to the master grid phase, not
+        // restarted at step 0.
+        let phase = (e.clock.tick % crate::TICKS_PER_BAR as u64) as u32;
+        assert_eq!(
+            e.tracks[0].pos_tick, phase,
+            "playhead is grid-aligned, not restarted at step 0"
+        );
+        assert_ne!(e.tracks[0].pos_tick, 0, "not restarted at step 0");
+    }
+
+    #[test]
+    fn tog_while_stopped_still_does_not_play() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "tog 0 4 60 100", &mut out);
+        assert!(!e.playing);
+        assert_eq!(e.tracks[0].playing_slot, None, "stopped: note entry must not start playback");
     }
 
     #[test]

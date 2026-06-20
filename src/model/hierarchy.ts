@@ -42,17 +42,24 @@ export function loadHierarchy(s: ModelState): void {
 
     s.moduleConfig = loadModuleConfig(s.moduleId);
 
+    /* Params movy wants to own from load (e.g. ui_auto_select_pad=off so the DSP
+     * never drifts its focused pad away from movy's manual selection). */
+    if (s.moduleConfig?.setOnLoad) {
+        for (const [k, v] of Object.entries(s.moduleConfig.setOnLoad)) {
+            shadow_set_param(s.activeSlot, s.componentKey + ':' + k, v);
+        }
+    }
+
     s.isDrum             = false;
     s.drumPadCount       = 0;
+    // Focused pad is movy-authoritative: default 1, changed only by a manual pad
+    // press. Deliberately NOT seeded from the DSP's currentPadParam — that
+    // coupling let the DSP's playback-drifted pad leak into movy.
     s.drumCurrentPad     = 1;
     s.drumCurrentPhysPad = 0;
     if (s.moduleConfig?.drum) {
         s.isDrum       = true;
         s.drumPadCount = s.moduleConfig.drum.padCount;
-        if (s.moduleConfig.drum.currentPadParam) {
-            const padRaw = shadow_get_param(s.activeSlot, s.componentKey + ':' + s.moduleConfig.drum.currentPadParam);
-            if (padRaw) s.drumCurrentPad = Math.max(1, parseInt(padRaw));
-        }
     }
 
     /* chain_params → cpMap for type/min/max/step/options/name lookups */
@@ -118,6 +125,9 @@ export function loadHierarchy(s: ModelState): void {
                         shortLabel: slot.short ?? null,
                         type:       type as KnobParam['type'],
                         options, min, max, step, renderStyle,
+                        // Global-bank params aren't reachable as chain target:params
+                        // (device spike), so they can't be automated.
+                        automatable: (type === 'float' || type === 'int') && max > min && !bank.global,
                     };
                     /* File slots carry browse metadata. The module config (mrdrums.json)
                      * is authoritative; chain_params (root/filter/start_path) is the
@@ -195,6 +205,7 @@ export function loadHierarchy(s: ModelState): void {
                 options: allNames,
                 nameKey: allNames ? undefined : (nameParam ?? undefined),
                 renderStyle: 'preset',
+                automatable: false,
             };
             presetSeparate = (rootLevel.knobs ?? []).length >= KNOBS_PER_PAGE;
         }
@@ -296,6 +307,7 @@ export function loadHierarchy(s: ModelState): void {
                     min: 0, max: 0, step: 0,
                     options:    null,
                     renderStyle: 'arc',
+                    automatable: false,
                     fileRoot:      String((cp as { root?: string }).root      ?? '/data/UserData'),
                     fileFilter:    parseFilter((cp as { filter?: unknown }).filter),
                     fileStartPath: String((cp as { start_path?: string }).start_path ?? (cp as { root?: string }).root ?? '/data/UserData'),
@@ -314,6 +326,10 @@ export function loadHierarchy(s: ModelState): void {
                 type:       type as KnobParam['type'],
                 options, min, max, step,
                 renderStyle: inferRenderStyle(type as KnobParam['type'], min, max),
+                // Config-less fallback: the `g_` global-naming convention is the
+                // only signal available here. Modules with a movy config use
+                // bank.global instead (see the config path above).
+                automatable: (type === 'float' || type === 'int') && max > min && !key.startsWith('g_'),
             });
         }
     }

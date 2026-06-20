@@ -1,6 +1,6 @@
 import { createModelState } from './state.js';
 import { loadHierarchy }    from './hierarchy.js';
-import { applyKnobDelta, knobParamInfo }   from './store.js';
+import { applyKnobDelta, knobParamInfo, reseedPadParams }   from './store.js';
 import { buildViewModel }   from './viewmodel.js';
 import { processTick }      from './tick.js';
 import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV } from './constants.js';
@@ -238,6 +238,7 @@ export function createModel(slot: number, componentKey = 'synth') {
         updateDrumPad(pad: number, physPad: number): void {
             s.drumCurrentPad     = pad;
             s.drumCurrentPhysPad = physPad;
+            reseedPadParams(s);  // show the newly-focused pad's values immediately
             s.dirty = true;
         },
     };

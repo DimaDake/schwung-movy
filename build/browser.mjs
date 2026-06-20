@@ -11,6 +11,7 @@ await esbuild.build({
     entryPoints: [
         resolve(root, 'src/model/index.ts'),
         resolve(root, 'src/model/file-validate.ts'),
+        resolve(root, 'src/model/pad-scope.ts'),
         resolve(root, 'src/renderer/knob-view.ts'),
         resolve(root, 'src/renderer/keys-view.ts'),
         resolve(root, 'src/renderer/browse-view.ts'),

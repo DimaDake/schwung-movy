@@ -153,7 +153,7 @@ function applyView(preset) {
         case 'knobs_jog_toast':  showKnobsJogToast(); break;
         case 'chain_t2':         showChain(1, false, 1); break;
         case 'chain_t4':         showChain(1, false, 3); break;
-        case 'drum-mrdrums-pad5':   model.tick(); model.tick(); forceRender(); break;
+        case 'drum-mrdrums-pad5':   model.tick(); model.tick(); model.updateDrumPad(5, 76); forceRender(); break;
         case 'drum-mrdrums-global': model.tick(); model.tick(); model.changePage(1); forceRender(); break;
         case 'auto_dot':         showKnobsAuto(autoView()); break;
         case 'auto_held':        showKnobsAuto(autoView({ held: true, heldVal: model.getKnobParamInfo(0).max })); break;

@@ -2,7 +2,16 @@ import type { KnobParam } from '../types/param.js';
 import type { ModelState } from './state.js';
 import { KNOBS_PER_PAGE, ENUM_DELTA_DIV, ARC_DELTA_SCALE, REFRESH_SUPPRESS_TICKS } from './constants.js';
 import { moduleReadKey } from '../chain/config.js';
+import { concreteKey } from './pad-scope.js';
 import { mlog } from '../log.js';
+
+/* The key movy uses to read/write/automate a param. For a pad-scoped drum param
+ * this is the focused pad's concrete key (e.g. "p03_vol"), so all I/O targets the
+ * manually-selected pad regardless of the DSP's own ui_current_pad. Otherwise the
+ * param's own key. */
+export function paramIoKey(s: ModelState, p: KnobParam): string {
+    return concreteKey(s.moduleConfig?.drum?.padScoping, s.drumCurrentPad, p.key);
+}
 
 export function formatValue(p: KnobParam, v: number | null | undefined): string {
     if (p.type === 'file') return '...';
@@ -19,6 +28,7 @@ export function formatValue(p: KnobParam, v: number | null | undefined): string 
 export interface KnobParamInfo {
     gi: number;
     key: string;
+    ioKey: string;       // read/write/automation key (concrete pad key for drums)
     target: string;      // componentKey, e.g. "synth" / "fx1"
     value: number;       // current manual value (defaults to min if unknown)
     min: number;
@@ -35,13 +45,10 @@ export function knobParamInfo(s: ModelState, physK: number): KnobParamInfo | nul
     const p = s.knobParams[gi];
     if (!p) return null;
     const v = s.knobValues[gi];
-    const automatable = (p.type === 'float' || p.type === 'int')
-        && typeof p.min === 'number' && typeof p.max === 'number' && p.max > p.min
-        && !p.key.startsWith('g_');
     return {
-        gi, key: p.key, target: s.componentKey,
+        gi, key: p.key, ioKey: paramIoKey(s, p), target: s.componentKey,
         value: (v === null || v === undefined) ? p.min : (v as number),
-        min: p.min, max: p.max, type: p.type, automatable,
+        min: p.min, max: p.max, type: p.type, automatable: p.automatable,
     };
 }
 
@@ -51,8 +58,9 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
     if (!p) return;
     if (p.type === 'file') return;
 
+    const ioKey = paramIoKey(s, p);
     if (s.knobValues[gi] === null || s.knobValues[gi] === undefined) {
-        const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + p.key);
+        const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey);
         if (raw === null && !p.key.startsWith('test_')) return;
         const v = parseFloat(raw ?? '');
         s.knobValues[gi] = (raw === null || isNaN(v)) ? p.min : v;
@@ -67,9 +75,34 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
     s.knobValues[gi] = newVal;
 
     const valStr = (p.type === 'float') ? newVal.toFixed(4) : String(Math.round(newVal));
-    mlog('set slot=' + s.activeSlot + ' gi=' + gi + ' key=' + s.componentKey + ':' + p.key + ' val=' + valStr);
-    const ok = p.key.startsWith('test_') ? true : shadow_set_param(s.activeSlot, s.componentKey + ':' + p.key, valStr);
+    mlog('set slot=' + s.activeSlot + ' gi=' + gi + ' key=' + s.componentKey + ':' + ioKey + ' val=' + valStr);
+    const ok = p.key.startsWith('test_') ? true : shadow_set_param(s.activeSlot, s.componentKey + ':' + ioKey, valStr);
     mlog('set_param returned ' + ok);
+    s.dirty = true;
+}
+
+/* Re-read every pad-scoped param for the current focused pad. Called when the
+ * focused pad changes so the knobs immediately show the newly-selected pad's
+ * values rather than the previous pad's cached ones. Non-pad params (ioKey ===
+ * key) are left untouched. */
+export function reseedPadParams(s: ModelState): void {
+    const ps = s.moduleConfig?.drum?.padScoping;
+    if (!ps) return;
+    for (let i = 0; i < s.knobParams.length; i++) {
+        const p = s.knobParams[i];
+        if (!p) continue;
+        const ioKey = concreteKey(ps, s.drumCurrentPad, p.key);
+        if (ioKey === p.key) continue; // not pad-scoped
+        const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey);
+        if (p.type === 'file') {
+            s.fileValues[i] = raw;
+        } else if (raw !== null) {
+            const v = parseFloat(raw);
+            s.knobValues[i] = isNaN(v) ? p.min : v;
+        } else {
+            s.knobValues[i] = null;
+        }
+    }
     s.dirty = true;
 }
 
@@ -82,13 +115,14 @@ export function refreshOneParam(s: ModelState, tickCount: number): void {
 
     const p = s.knobParams[i];
     if (!p) return;
+    const ioKey = paramIoKey(s, p);
 
     // Automation lanes are driven by playback; reading the synth back would
     // overwrite the UI-owned base value and repaint on every automation step.
-    if (s.noRefreshKeys.has(p.key)) return;
+    if (s.noRefreshKeys.has(ioKey)) return;
 
     if (p.type === 'file') {
-        const path = shadow_get_param(s.activeSlot, s.componentKey + ':' + p.key);
+        const path = shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey);
         if (path !== s.fileValues[i]) {
             s.fileValues[i] = path;
             s.dirty = true;
@@ -96,7 +130,7 @@ export function refreshOneParam(s: ModelState, tickCount: number): void {
         return;
     }
 
-    const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + p.key);
+    const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey);
     if (raw === null) return;
     const newVal = parseFloat(raw);
     if (!isNaN(newVal) && newVal !== s.knobValues[i]) {

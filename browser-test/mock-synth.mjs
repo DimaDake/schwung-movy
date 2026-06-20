@@ -367,6 +367,10 @@ export const MOCK_SYNTHS = {
         "synth:pad_mode":         "0",
         "synth:g_master_vol":     "1.0",
         "synth:g_polyphony":      "16",
+        /* Concrete per-pad keys movy addresses directly (focused-pad scoping). */
+        "synth:p01_vol":          "0.10",
+        "synth:p02_vol":          "0.20",
+        "synth:p05_vol":          "0.50",
     },
 
     /* No synth loaded — model falls back to fallback test params */

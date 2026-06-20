@@ -15,6 +15,8 @@ import { updateKnobLEDs }  from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync } from '../seq/engine.js';
 import { syncLabelsFromEngine, rangeFromChainParams, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues } from '../seq/automation.js';
 import type { AutomationView, ViewModel } from '../types/viewmodel.js';
+import type { Model } from '../model/index.js';
+import { concreteKey } from '../model/pad-scope.js';
 import { mlog } from '../log.js';
 import { seqPersistTick } from '../seq/persist.js';
 import { seqLedsTick, seqLedsInvalidate } from '../seq/leds.js';
@@ -43,7 +45,7 @@ const chromaticCache = new Uint8Array(32);
 
 /* Assemble the automation snapshot for the param viewmodel from the seq mirror
  * + the lane registry. Kept here (app layer) so model/ stays free of seq/. */
-function buildAutomationView(track: number): AutomationView {
+function buildAutomationView(track: number, model: Model): AutomationView {
     const reg = automationRegistry()[track];
     const heldValues = new Map<number, number>();
     for (const [lane, v] of seqState.heldLocks) {
@@ -55,8 +57,15 @@ function buildAutomationView(track: number): AutomationView {
         const e = reg[lane];
         if (e) liveValues.set(lane, denorm7(v, e.min, e.max));
     }
+    // Resolve the dot/value lane through the focused pad's concrete key, so a
+    // lane belonging to a different pad matches no key on the current page (its
+    // dot vanishes) — switching the focused pad re-scopes the display for free.
+    const ps   = model.getDrumConfig()?.padScoping;
+    const pad  = model.getViewModel().drumCurrentPad;
+    const ck   = model.getComponentKey();
     const laneForKey = (key: string): number => {
-        for (let l = 0; l < 8; l++) if (reg[l] && reg[l]!.shortName === key) return l;
+        const tp = ck + ':' + concreteKey(ps, pad, key);
+        for (let l = 0; l < 8; l++) if (reg[l] && reg[l]!.targetParam === tp) return l;
         return -1;
     };
     return {
@@ -199,13 +208,13 @@ export function tick(): void {
         } else if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
-            const vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot));
+            const vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot, activeModel!));
             diagAutoRender(vm);
             renderKnobsView(vm, appState.jogTouched, appState.activeSlot);
             jogToastShown = !!vm.toast?.browseHint || appState.jogTouched;
             updateKnobLEDs(vm);
         } else if (appState.currentView === VIEW_CHAIN) {
-            const vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot));
+            const vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot, activeModel!));
             diagAutoRender(vm);
             renderChainView(vm, chainIdx, appState.jogTouched, 'T' + (appState.activeSlot + 1));
             jogToastShown = appState.jogTouched;

@@ -17,6 +17,9 @@ export interface BankConfig {
     name: string;
     rows: (KnobSlot | null)[][];
     padSpecific?: boolean;
+    /* Params in this bank are non-automatable globals (not reachable as a chain
+     * target:param). Replaces the old `g_` key-prefix heuristic. */
+    global?: boolean;
 }
 
 export interface ModuleConfig {
@@ -24,6 +27,9 @@ export interface ModuleConfig {
     name:  string;
     banks: BankConfig[];
     drum?: DrumConfig;
+    /* Params to set once when the module loads (e.g. disable a DSP auto-behavior
+     * movy wants to own). Applied as componentKey-prefixed sets. */
+    setOnLoad?: Record<string, string>;
 }
 
 export interface DrumConfig {
@@ -32,6 +38,14 @@ export interface DrumConfig {
     rawMidi:          boolean;
     currentPadParam?: string;
     shiftSelectMidi?: boolean;
+    /* How an alias pad param ("pad_vol") maps to its concrete per-pad key
+     * ("p03_vol"). Lets movy address the focused pad directly, with no key-shape
+     * literal in code. */
+    padScoping?: {
+        aliasPrefix:         string;   // "pad_"
+        concreteKeyTemplate: string;   // "p{pad}_{suffix}"
+        padDigits:           number;   // 2
+    };
 }
 
 export interface KnobParam {
@@ -45,6 +59,7 @@ export interface KnobParam {
     options:        string[] | null;
     nameKey?:       string;
     renderStyle:    'arc' | 'hbar' | 'vbar' | 'preset';
+    automatable:    boolean;
     fileRoot?:      string;
     fileFilter?:    string[];
     fileStartPath?: string;

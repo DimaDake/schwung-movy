@@ -118,13 +118,13 @@ export function assignLane(
     track: number, slot: number, info: KnobParamInfo,
     setMapping: (lane: number) => boolean,
 ): number {
-    const tp = info.target + ':' + info.key;
+    const tp = info.target + ':' + info.ioKey;
     const existing = laneForParam(track, tp);
     if (existing >= 0) return existing;
     const lane = registry[track].findIndex((e) => e === null);
     if (lane < 0) return -1; // pool full
     if (!setMapping(lane)) return -1;
-    registry[track][lane] = { targetParam: tp, shortName: info.key, min: info.min, max: info.max, type: info.type };
+    registry[track][lane] = { targetParam: tp, shortName: info.ioKey, min: info.min, max: info.max, type: info.type };
     seqCmd('alabel ' + track + ' ' + lane + ' ' + tp);
     seqCmd('abase ' + track + ' ' + lane + ' ' + norm7(info.value, info.min, info.max));
     return lane;
@@ -179,7 +179,7 @@ export function handleAutomationKnob(
     touchedNotTurned.delete(physK); // a turn → not a tap (no clear on release)
 
     // Step-automation or Rec: ensure a lane, then write a lock at the target step.
-    const tp = info.target + ':' + info.key;
+    const tp = info.target + ':' + info.ioKey;
     let lane = laneForParam(track, tp);
     if (lane < 0) lane = assignLane(track, track, info, setMapping);
     if (lane < 0) { seqState.autoPoolFull = true; return true; } // consumed; toast in render
@@ -216,7 +216,7 @@ export function handleAutomationKnob(
  * to base, or sync the engine base for a normal edit. `info.value` is the
  * param's current (base) value. */
 export function automationKnobReleased(track: number, physK: number, info: KnobParamInfo): void {
-    const lane = laneForParam(track, info.target + ':' + info.key);
+    const lane = laneForParam(track, info.target + ':' + info.ioKey);
     const wasTap = touchedNotTurned.delete(physK);
     if (lane >= 0) {
         liveTurn.delete(track + ':' + lane); // knob released → snap to base
@@ -254,7 +254,7 @@ export function clearStepAllAutomation(track: number, step: number): void {
 
 /* Hold-Clear + knob touch: clear the lane bound to this knob's param. */
 export function clearLaneForKnob(track: number, info: KnobParamInfo): void {
-    const lane = laneForParam(track, info.target + ':' + info.key);
+    const lane = laneForParam(track, info.target + ':' + info.ioKey);
     if (lane >= 0) clearLane(track, lane);
 }
 

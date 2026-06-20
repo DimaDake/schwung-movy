@@ -5,8 +5,10 @@
     "padCount": 16,
     "padNoteStart": 36,
     "rawMidi": false,
-    "currentPadParam": "ui_current_pad"
+    "currentPadParam": "ui_current_pad",
+    "padScoping": { "aliasPrefix": "pad_", "concreteKeyTemplate": "p{pad}_{suffix}", "padDigits": 2 }
   },
+  "setOnLoad": { "ui_auto_select_pad": "off" },
   "banks": [
     {
       "name": "Main",
@@ -40,6 +42,7 @@
     },
     {
       "name": "Global",
+      "global": true,
       "rows": [
         [
           { "key": "g_master_vol",    "short": "MSVOL", "full": "Master Vol",  "type": "float", "min": 0, "max": 1 },

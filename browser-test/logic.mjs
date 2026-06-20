@@ -335,7 +335,8 @@ _log('\nTest: drum module detection via loadHierarchy');
   const m = bootModel(mrdrumsPreset);
   const vm = m.getViewModel();
   eq('mrdrums: isDrum via drumPadCount', vm.drumPadCount, 16);
-  eq('mrdrums: drumCurrentPad from param', vm.drumCurrentPad, 3);
+  // Focus is movy-owned: defaults to 1, NOT seeded from the DSP's ui_current_pad.
+  eq('mrdrums: drumCurrentPad defaults to 1', vm.drumCurrentPad, 1);
 
   const krautPreset = {
     'synth:name': 'KrautDrums',
@@ -465,7 +466,7 @@ _log('\nTest: ViewModel drum fields');
   // Main bank (index 0) has padSpecific=true
   const vm0 = m.getViewModel();
   eq('mrdrums Main bank isPadSpecific', vm0.isPadSpecific, true);
-  eq('mrdrums drumCurrentPad', vm0.drumCurrentPad, 5);
+  eq('mrdrums drumCurrentPad defaults to 1', vm0.drumCurrentPad, 1);
   eq('mrdrums drumPadCount', vm0.drumPadCount, 16);
 
   // KrautDrums: all banks default to padSpecific=false
@@ -489,6 +490,56 @@ _log('\nTest: ViewModel drum fields');
   const mp = bootModel(plaitsPreset);
   eq('plaits isPadSpecific=false', mp.getViewModel().isPadSpecific, false);
   eq('plaits drumPadCount=0', mp.getViewModel().drumPadCount, 0);
+}
+
+/* ── pad-scoping helper ──────────────────────────────────────────────────── */
+
+_log('\nTest: pad-scope concreteKey');
+{
+  const { concreteKey } = await import('../dist/esm/model/pad-scope.js');
+  const ps = { aliasPrefix: 'pad_', concreteKeyTemplate: 'p{pad}_{suffix}', padDigits: 2 };
+  eq('alias→concrete pad 3', concreteKey(ps, 3, 'pad_vol'), 'p03_vol');
+  eq('non-pad passthrough', concreteKey(ps, 3, 'g_master_vol'), 'g_master_vol');
+  eq('no config passthrough', concreteKey(undefined, 3, 'pad_vol'), 'pad_vol');
+  // Genericness: a totally different scheme must work with zero code change.
+  const alt = { aliasPrefix: 'v_', concreteKeyTemplate: 'voice{pad}.{suffix}', padDigits: 3 };
+  eq('generic template', concreteKey(alt, 7, 'v_cut'), 'voice007.cut');
+}
+
+/* ── Mr Drums: focused-pad scoping ───────────────────────────────────────── */
+
+_log('\nTest: mrdrums per-pad scoping');
+{
+  // Focus is movy-owned: defaults to 1 even though the mock DSP reports
+  // ui_current_pad=5 (no longer seeded from the DSP).
+  const md = bootModel(MOCK_SYNTHS.mrdrums, 0, 'synth');
+  eq('focus defaults to 1 (not DSP pad 5)', md.getViewModel().drumCurrentPad, 1);
+
+  // A normal knob turn writes the concrete focused-pad key, never the alias.
+  const seen = [];
+  const origSet = globalThis.shadow_set_param;
+  globalThis.shadow_set_param = (s, k, v) => { seen.push(k); return origSet(s, k, v); };
+  md.handleKnobDelta(1, 5);  // page 0, knob 1 = pad_vol (VOL); queued
+  md.tick();                 // flush pending delta through applyKnobDelta
+  globalThis.shadow_set_param = origSet;
+  eq('normal edit writes p01_vol', seen.includes('synth:p01_vol'), true);
+  eq('normal edit avoids alias pad_vol', seen.includes('synth:pad_vol'), false);
+
+  // The automation info exposes the concrete I/O key for lane assignment.
+  const info = md.getKnobParamInfo(1);
+  eq('ioKey is concrete for focused pad', info.ioKey, 'p01_vol');
+  eq('pad VOL automatable', info.automatable, true);
+
+  // Switching the focused pad re-reads that pad's values immediately.
+  md.updateDrumPad(5, 76);
+  eq('focus moved to pad 5', md.getViewModel().drumCurrentPad, 5);
+  eq('VOL re-read for pad 5 (p05_vol=0.50)', md.getKnobParamInfo(1).value, 0.5);
+  eq('ioKey follows focus', md.getKnobParamInfo(1).ioKey, 'p05_vol');
+
+  // A Global-bank numeric param is non-automatable via bank.global (not `g_`).
+  md.changePage(2);  // Main(0) → Rand(1) → Global(2)
+  const gInfo = md.getKnobParamInfo(0); // g_master_vol
+  eq('global param non-automatable', gInfo?.automatable ?? false, false);
 }
 
 /* ── drumPadOn / drumPadOff ──────────────────────────────────────────────── */
@@ -2301,7 +2352,7 @@ _log('\nautomation registry:');
     eq('norm7 mid → 64', norm7(1, 0, 2), 64);
     eq('denorm7 max → 2', denorm7(127, 0, 2), 2);
 
-    const info = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
+    const info = { gi: 0, key: 'cutoff', ioKey: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
     const lane = assignLane(0, 0, info, () => true);
     eq('first lane assigned', lane, 0);
     eq('lane lookup by target:param', laneForParam(0, 'synth:cutoff'), 0);
@@ -2312,8 +2363,8 @@ _log('\nautomation registry:');
     // Re-assigning the same param returns the same lane.
     eq('same param → same lane', assignLane(0, 0, info, () => true), 0);
     // Pool of 8: filling all returns -1.
-    for (let i = 1; i < 8; i++) assignLane(0, 0, { ...info, key: 'k' + i }, () => true);
-    eq('pool full → -1', assignLane(0, 0, { ...info, key: 'k8' }, () => true), -1);
+    for (let i = 1; i < 8; i++) assignLane(0, 0, { ...info, key: 'k' + i, ioKey: 'k' + i }, () => true);
+    eq('pool full → -1', assignLane(0, 0, { ...info, key: 'k8', ioKey: 'k8' }, () => true), -1);
 }
 
 /* ── automation: knob-turn routing (hold-step / Rec / base) ──────────────── */
@@ -2322,7 +2373,7 @@ _log('\nautomation knob routing:');
     const { resetAutomation, handleAutomationKnob, automationKnobReleased, liveTurnValues } = await import('../dist/esm/seq/automation.js');
     const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
-    const info = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
+    const info = { gi: 0, key: 'cutoff', ioKey: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
 
     // Step-automation mode: knob turn writes a lock at the held step.
     resetAutomation(); resetSeqEngine(); resetSeqState();
@@ -2487,7 +2538,7 @@ _log('\nautomation gesture (tap vs hold):');
         await import('../dist/esm/seq/step-edit.js');
     const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
-    const info = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
+    const info = { gi: 0, key: 'cutoff', ioKey: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
 
     resetAutomation(); resetSeqEngine(); resetSeqState(); resetStepEdit();
     editStepDown(0);                         // hold step 0 (barOffset 0)
@@ -2517,7 +2568,7 @@ _log('\nautomation tap-to-clear:');
     const { resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
     const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
-    const info = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
+    const info = { gi: 0, key: 'cutoff', ioKey: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
 
     resetAutomation(); resetSeqEngine(); resetSeqState(); resetStepEdit();
     seqState.stepAutoMode = true; seqState.holdStep = 4;
@@ -2547,7 +2598,7 @@ _log('\nautomation bar-range (Loop mode):');
     const { editStepDown, resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
     const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
-    const info = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
+    const info = { gi: 0, key: 'cutoff', ioKey: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
 
     resetAutomation(); resetSeqEngine(); resetSeqState(); resetStepEdit();
     seqState.loopMode = true;
@@ -2587,7 +2638,7 @@ _log('\nautomation display-dirty:');
     // the on-screen arc/value follows the live take; release snaps back to base
     // (also a repaint). Without this, the screen stays frozen while turning.
     resetAutomation(); resetSeqEngine(); resetSeqState();
-    const liveInfo = { gi: 0, key: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
+    const liveInfo = { gi: 0, key: 'cutoff', ioKey: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
     seqState.recording = true; seqState.playing = true; seqState.curStep = 2;
     automationDisplayDirty();                 // settle the baseline signature
     handleAutomationKnob(0, 0, liveInfo, +5, () => true);

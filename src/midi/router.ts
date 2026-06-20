@@ -121,7 +121,7 @@ export function onMidiMessageInternal(data: number[]): void {
         const info  = model?.getKnobParamInfo(k) ?? null;
         const track = appState.activeSlot;
         if (info && handleAutomationKnob(track, k, info, delta,
-                (lane) => shadow_set_param(track, 'knob_' + (lane + 1) + '_set', info.target + ':' + info.key))) {
+                (lane) => shadow_set_param(track, 'knob_' + (lane + 1) + '_set', info.target + ':' + info.ioKey))) {
             return;
         }
         model?.handleKnobDelta(k, delta);

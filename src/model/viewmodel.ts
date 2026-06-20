@@ -50,9 +50,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
                     : formatValue(p, v);
             const lane = auto.laneForKey(p.key);
             const automated = lane >= 0 && (auto.activeLanes & (1 << lane)) !== 0;
-            const automatable = (p.type === 'float' || p.type === 'int')
-                && typeof p.min === 'number' && typeof p.max === 'number' && p.max > p.min
-                && !p.key.startsWith('g_');
+            const automatable = p.automatable;
             // An automation edit drives BOTH the value text (inverted, like a
             // knob touch) and the knob's arc/bar position, so editing automation
             // looks like normal value editing — without touching the base value.

@@ -25,41 +25,47 @@ start playback (the recent behavior is preserved).
 
 ### Sync timing
 
-When the freshly-filled slot joins playback, its playhead is **grid-aligned and
-immediate**: seeded to the master bar/step phase so the clip is in sync with the
-metronome and the other playing tracks. The note placed at step N sounds when
-the global playhead next reaches step N (not from step 0, not queued to the next
-bar).
+When the freshly-filled slot joins playback it is **bar-quantized**, exactly
+like a real Session clip launch: the slot is *queued* and starts cleanly from
+its loop start on the next bar boundary, in sync with the metronome and the
+other playing clips.
+
+This replaces an earlier "grid-aligned immediate" approach (seed the playhead to
+the current master phase). That phase math was provably exact, but starting
+mid-bar means a note placed at a step the playhead has already passed stays
+silent until the loop wraps — so the first pass feels out of sync, depending on
+when in the bar the note was entered. Bar-quantizing removes that: the clip
+always starts from the top on a downbeat and the placed note always plays in
+time.
 
 ## Design
 
 ### Engine: `seq-core/src/engine.rs`
 
-New private helper enforcing the invariant for one track:
+New helper enforcing the invariant for one track by queuing a bar-quantized
+launch (reusing the existing bar-boundary resolution in `service_tick`):
 
 ```rust
-fn ensure_selected_playing(&mut self, track: usize) {
+pub fn ensure_selected_playing(&mut self, track: usize) {
     if !self.playing || track >= NUM_TRACKS { return; }
     let slot = self.tracks[track].active_clip;
-    // A note into the selected slot cancels any Session stop/queue on it.
-    self.tracks[track].queued_slot = None;
+    if self.tracks[track].playing_slot == Some(slot) {
+        self.tracks[track].pending_stop = false; // a note keeps a playing slot alive
+        return;
+    }
+    self.tracks[track].queued_slot = Some(slot);   // resolves to playing on the next bar
     self.tracks[track].pending_stop = false;
-    if self.tracks[track].playing_slot == Some(slot) { return; } // already playing — don't disturb its playhead
-    self.tracks[track].playing_slot = Some(slot);
-    // Grid-align: seed the playhead to the master bar/step phase so the clip is
-    // in sync with the metronome and the other playing tracks.
-    let len = self.tracks[track].clips[slot].length_ticks().max(1) as u64;
-    let start = self.tracks[track].clips[slot].loop_start_ticks();
-    self.tracks[track].pos_tick = start + (self.master_tick % len) as u32;
-    self.tracks[track].last_auto_step = -1;
-    self.tracks[track].auto_cur = [-1; 8];
 }
 ```
 
 Notes:
-- `pos_tick`/`loop_start_ticks`/`length_ticks` are `u32`; `master_tick` is `u64`.
 - Gated on `self.playing`, so the stopped case is a no-op — the no-autostart
   rule is preserved at the engine level.
+- `service_tick`'s bar-boundary handler already does the rest: on the next bar
+  it sets `playing_slot = Some(slot)`, `pos_tick = loop_start`, and resets the
+  automation cursor (`last_auto_step = -1`, `auto_cur = [-1; 8]`).
+- Editing the slot that is already playing early-returns (no requantize); it
+  only clears a `pending_stop` so the note keeps the slot alive.
 
 ### Engine: `seq-core/src/command.rs`
 
@@ -82,12 +88,13 @@ already key off `playing_slot`; the UI only mirrors engine status.
 ## Tests
 
 Rust unit (`command.rs` / `engine.rs`):
-- Transport running + `tog` into the empty selected slot → `playing_slot ==
-  Some(active_clip)`.
-- Grid-alignment: start transport, advance several steps, `tog` a note at the
-  current step → the note fires in phase (verify via `advance_block` output),
-  not restarted from step 0.
-- `ltog` into the empty selected slot while playing → same.
+- Transport running + `tog` into the empty selected slot → `queued_slot ==
+  Some(active_clip)` immediately, `playing_slot == None`; after advancing past
+  the next bar → `playing_slot == Some(active_clip)`, `queued_slot == None`.
+- `ltog` into the empty selected slot while playing → same queue behavior.
+- Phase-lock (`engine.rs`): start a reference clip, advance into the bar, join a
+  second clip via `tog`; every step-0 hit of the joined clip lands on a tick
+  where the reference also hits (perfect bar sync, one bar later).
 - Existing `tog_does_not_autostart_transport` (stopped case) still passes.
 
 Local + device per the task checklist:

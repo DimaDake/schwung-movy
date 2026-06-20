@@ -277,30 +277,26 @@ impl Engine {
         self.start_transport();
     }
 
-    /// While the transport runs, ensure the edited track's selected clip is the
-    /// one playing, so step entry into an empty/selected slot is immediately
-    /// audible (the selected slot is always the playing slot). Seeds the
-    /// playhead to the master bar/step phase so the clip stays in sync with the
-    /// bar and the other playing tracks. No-op when stopped (preserves the
-    /// no-autostart-on-note-entry rule) or when this slot is already playing
-    /// (don't disturb a running clip's playhead).
+    /// While the transport runs, entering a note into the selected slot launches
+    /// that slot — bar-quantized like a real clip launch — so the selected slot
+    /// becomes the playing slot. Queuing (rather than starting mid-bar) makes
+    /// the clip start cleanly from its loop start on the next bar boundary, in
+    /// sync with the metronome and the other playing clips (the queue resolves
+    /// in `service_tick`). No-op when stopped (preserves the
+    /// no-autostart-on-note-entry rule). Editing the slot that is already
+    /// playing must not requantize it — just cancel any pending stop so the note
+    /// keeps it alive.
     pub fn ensure_selected_playing(&mut self, track: usize) {
         if !self.playing || track >= NUM_TRACKS {
             return;
         }
         let slot = self.tracks[track].active_clip;
-        // A note into the selected slot cancels any Session stop/queue on it.
-        self.tracks[track].queued_slot = None;
-        self.tracks[track].pending_stop = false;
         if self.tracks[track].playing_slot == Some(slot) {
+            self.tracks[track].pending_stop = false;
             return;
         }
-        self.tracks[track].playing_slot = Some(slot);
-        let len = self.tracks[track].clips[slot].length_ticks().max(1) as u64;
-        let start = self.tracks[track].clips[slot].loop_start_ticks();
-        self.tracks[track].pos_tick = start + (self.master_tick % len) as u32;
-        self.tracks[track].last_auto_step = -1;
-        self.tracks[track].auto_cur = [-1; 8];
+        self.tracks[track].queued_slot = Some(slot);
+        self.tracks[track].pending_stop = false;
     }
 
     /// Session launch / empty-slot select. Always selects the slot. An
@@ -841,6 +837,7 @@ impl Engine {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::command::apply_batch;
     use crate::TICKS_PER_STEP;
 
     const RATE: u32 = 44100;
@@ -871,6 +868,54 @@ mod tests {
         let on = ev.iter().position(|x| matches!(x, OutEvent::NoteOn { .. })).unwrap();
         let off = ev.iter().position(|x| matches!(x, OutEvent::NoteOff { .. })).unwrap();
         assert!(on < off);
+    }
+
+    /// Advance `ticks` master ticks one block at a time; for each of tracks 0
+    /// and 1, collect the master-tick values (in steps since `start`) at which
+    /// it emits a NoteOn. Both observed in one pass (same engine instance).
+    fn fire_steps(e: &mut Engine, ticks: u64) -> (Vec<u64>, Vec<u64>) {
+        let mut out = Vec::new();
+        let start = e.clock.tick;
+        let (mut p0, mut p1) = (Vec::new(), Vec::new());
+        while e.clock.tick < start + ticks {
+            out.clear();
+            let before = e.clock.tick;
+            e.advance_block(FRAMES, &mut out);
+            if e.clock.tick == before {
+                continue;
+            }
+            let at_step = (e.clock.tick - 1 - start) / TICKS_PER_STEP as u64;
+            if out.iter().any(|x| matches!(x, OutEvent::NoteOn { track: 0, .. })) {
+                p0.push(at_step);
+            }
+            if out.iter().any(|x| matches!(x, OutEvent::NoteOn { track: 1, .. })) {
+                p1.push(at_step);
+            }
+        }
+        (p0, p1)
+    }
+
+    /// Joining the transport by entering a note bar-quantizes the new clip: it
+    /// starts a bar later but every one of its step-0 hits lands exactly on a
+    /// tick where an already-playing reference clip also hits — perfect bar
+    /// sync, regardless of how far into the bar the note was entered.
+    #[test]
+    fn note_join_is_phase_locked_to_a_playing_clip() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        e.tracks[1].active_mut().toggle_step(0, &[(62, 100)]);
+        e.play();
+        let target = e.clock.tick + 5 * TICKS_PER_STEP as u64;
+        while e.clock.tick < target {
+            e.advance_block(FRAMES, &mut out);
+        }
+        apply_batch(&mut e, "tog 0 0 60 100", &mut out);
+        let (p0, p1) = fire_steps(&mut e, 3 * crate::TICKS_PER_BAR as u64);
+        assert!(!p0.is_empty(), "the joined clip eventually plays");
+        assert!(
+            p0.iter().all(|s| p1.contains(s)),
+            "joined clip fires in lockstep with the reference: p0={p0:?} p1={p1:?}"
+        );
     }
 
     // Collect (lane, val) CCs for track 0 from an event list.

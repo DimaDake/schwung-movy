@@ -581,7 +581,7 @@ _log('\nTest: drumPadOn');
     const { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, seqSetLane, setMuteHeld } =
         await import('../dist/esm/seq/router.js');
     const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
-    const { seqState, resetSeqState, occHasStep } = await import('../dist/esm/seq/state.js');
+    const { seqState, resetSeqState, occHasStep, occToggleStep } = await import('../dist/esm/seq/state.js');
     const { resetSeqToast, seqToastActive } = await import('../dist/esm/seq/render.js');
 
     const engine = installMockEngine();
@@ -641,7 +641,8 @@ _log('\nTest: drumPadOn');
     // length to span A→B), so B is NOT entered as a step.
     resetSeqState(); engine.reset(); resetSeqEngine(); seqEngineTick();
     seqState.lenSteps = 16;
-    seqHandleMidi([0x90, 16 + 0, 127], false);   // hold step 0
+    occToggleStep(0);                            // step 0 occupied → length anchor
+    seqHandleMidi([0x90, 16 + 0, 127], false);   // hold occupied step 0
     seqHandleMidi([0x90, 16 + 3, 127], false);   // press step 3 → length gesture
     seqHandleMidi([0x80, 16 + 3, 0], false);
     seqHandleMidi([0x80, 16 + 0, 0], false);
@@ -1945,6 +1946,80 @@ _log('\nautomation: restore re-requests label sync:');
     uninstallMockEngine(); resetSeqEngine(); resetSeqState();
 }
 
+/* ── synth multi-entry (two empty steps held → notes on both) ─────────────── */
+{
+    _log('\nseq synth multi-entry:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi } = await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState, occHasStep } = await import('../dist/esm/seq/state.js');
+    const { setHeldSet } = await import('../dist/esm/seq/held.js');
+    const { resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
+
+    const engine = installMockEngine();
+    resetSeqEngine(); resetSeqState(); resetStepEdit(); seqEngineTick();
+    seqState.lenSteps = 16; seqState.watchLane = -1;       // melodic
+    setHeldSet(0, [60]); seqState.lastVel[0] = 100; seqState.lastPitch[0] = 60;
+
+    // Two EMPTY steps pressed together → BOTH get notes, no length gesture.
+    seqHandleMidi([0x90, 16 + 4, 127], false);   // press empty step 4
+    seqHandleMidi([0x90, 16 + 6, 127], false);   // press empty step 6 while 4 held
+    seqHandleMidi([0x80, 16 + 6, 0], false);     // release → step 6 toggles on
+    seqHandleMidi([0x80, 16 + 4, 0], false);     // release → step 4 toggles on
+    seqEngineTick();                             // flush queued cmds into engine.ops
+    eq('synth multi: step 4 entered', occHasStep(4), true);
+    eq('synth multi: step 6 entered', occHasStep(6), true);
+    eq('synth multi: no length gesture', engine.ops.some((o) => o.startsWith('slen')), false);
+
+    uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetStepEdit();
+}
+
+/* ── length gesture: occupancy gate + end/start toggle ────────────────────── */
+{
+    _log('\nseq length gesture (occupancy + toggle):');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi } = await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState, occHasStep, occToggleStep } =
+        await import('../dist/esm/seq/state.js');
+    const { resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
+
+    const engine = installMockEngine();
+    const TPS = 24; // ticks per step
+    // Flush queued cmds, then return slen ops emitted since the last flush call.
+    const slenAfter = () => { seqEngineTick(); return engine.ops.filter((o) => o.startsWith('slen')); };
+    const press = (b) => seqHandleMidi([0x90, 16 + b, 127], false);
+    const release = (b) => seqHandleMidi([0x80, 16 + b, 0], false);
+
+    // Occupied anchor: first press B=3 → note ends at END of step 3 (4 steps).
+    resetSeqEngine(); resetSeqState(); resetStepEdit(); engine.reset(); seqEngineTick();
+    seqState.lenSteps = 16; seqState.watchLane = -1;
+    occToggleStep(0);                 // step 0 has a note (occupied anchor)
+    press(0);                          // hold occupied step 0
+    press(3);                          // press step 3 → length to END of 3
+    eq('length end-of-B: slen = 4 steps', slenAfter().at(-1), `slen 0 0 0 -1 ${4 * TPS}`);
+    eq('length gesture: B not entered', occHasStep(3), false);
+
+    // Press same B=3 again (still holding A) → trim to START of step 3 (3 steps).
+    release(3); press(3);
+    eq('length toggle: slen = 3 steps', slenAfter().at(-1), `slen 0 0 0 -1 ${3 * TPS}`);
+    // Press again → back to END (4 steps).
+    release(3); press(3);
+    eq('length toggle back: slen = 4 steps', slenAfter().at(-1), `slen 0 0 0 -1 ${4 * TPS}`);
+    release(3); release(0);
+
+    // Backward press (B <= A) on an occupied anchor → no-op, no entry.
+    seqEngineTick(); engine.reset(); resetStepEdit();
+    if (!occHasStep(5)) occToggleStep(5);   // ensure step 5 occupied (anchor)
+    press(5);
+    press(2);                          // B < A
+    eq('backward press: no slen', slenAfter().length, 0);
+    eq('backward press: step 2 not entered', occHasStep(2), false);
+    release(2); release(5);
+
+    uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetStepEdit();
+}
+
 /* ── step-row length span ────────────────────────────────────────────────── */
 {
     _log('\nstep-row length span:');
@@ -1976,8 +2051,10 @@ _log('\nautomation: restore re-requests label sync:');
 
     editStepDown(2);                  // hold step 2 (abs 2)
     eq('heldStepAbs is 2', heldStepAbs(), 2);
-    setLengthTo(6);                   // press step 6 → length 4 steps = 96 ticks
-    eq('slen emitted', peekSeqCmdQueue().some(c => c === 'slen 0 2 2 -1 96'), true);
+    setLengthTo(6);                   // first press of step 6 → ends at END of 6 = 5 steps = 120 ticks
+    eq('slen emitted (end of B)', peekSeqCmdQueue().some(c => c === 'slen 0 2 2 -1 120'), true);
+    setLengthTo(6);                   // same B again → trim to START of 6 = 4 steps = 96 ticks
+    eq('slen emitted (start of B, toggled)', peekSeqCmdQueue().some(c => c === 'slen 0 2 2 -1 96'), true);
     resetStepEdit();
     editStepDown(4);
     eq('B<=A is no-op', setLengthTo(4), false);

@@ -8,7 +8,7 @@
  * a per-(track,lane) live 0..127 accumulator, reseeded only when the edit
  * context changes (held step vs. base), and emit the engine command from it. */
 import type { KnobParamInfo } from '../model/store.js';
-import { seqCmd } from './engine.js';
+import { seqCmd, requestLabelSync } from './engine.js';
 import { seqState } from './state.js';
 import { seqToast } from './render.js';
 import { beginStepAutomation, heldRange } from './step-edit.js';
@@ -233,6 +233,7 @@ export function automationKnobReleased(track: number, physK: number, info: KnobP
             seqCmd('aclrs ' + track + ' ' + lane + ' ' + seqState.holdStep);
             seqState.heldLocks.delete(lane);             // optimistic: back to name
             liveCtx.delete(track + ':' + lane);          // reseed next edit
+            requestLabelSync();                          // engine may free the lane (last lock)
             seqToast(info.key + ' cleared');
         }
         return;
@@ -250,6 +251,7 @@ export function automationKnobReleased(track: number, physK: number, info: KnobP
 /* Clear ALL lanes' automation at one step (Clear + step, or step + Clear). */
 export function clearStepAllAutomation(track: number, step: number): void {
     seqCmd('aclrstep ' + track + ' ' + step);
+    requestLabelSync(); // a lane left lock-less is freed by the engine → re-sync
     if (seqState.stepAutoMode && seqState.holdStep === step) seqState.heldLocks.clear();
 }
 

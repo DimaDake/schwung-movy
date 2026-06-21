@@ -133,9 +133,35 @@ impl Engine {
         }
     }
 
+    /// Free any assigned lane that no clip on the track locks any more (after a
+    /// clip delete or automation clear). A lane with zero locks anywhere is
+    /// inert — its base equals the static param value — so it's released back to
+    /// the 8-lane pool, matching "clear lanes not used on other clips".
+    fn free_unused_lanes(&mut self, track: usize) {
+        if track >= NUM_TRACKS {
+            return;
+        }
+        for lane in 0..8 {
+            if !self.tracks[track].lane_assigned[lane] {
+                continue;
+            }
+            let used = self.tracks[track]
+                .clips
+                .iter()
+                .any(|c| c.has_lock_on_lane(lane as u8));
+            if !used {
+                self.tracks[track].lane_assigned[lane] = false;
+                self.tracks[track].lane_label[lane].clear();
+                self.tracks[track].lane_base[lane] = 0;
+                self.tracks[track].auto_cur[lane] = -1;
+            }
+        }
+    }
+
     pub fn delete_clip(&mut self, track: usize) {
         if track < NUM_TRACKS {
             self.tracks[track].active_mut().clear();
+            self.free_unused_lanes(track);
         }
     }
 
@@ -143,6 +169,7 @@ impl Engine {
     pub fn delete_clip_at(&mut self, track: usize, slot: usize) {
         if track < NUM_TRACKS && slot < CLIPS_PER_TRACK {
             self.tracks[track].clips[slot].clear();
+            self.free_unused_lanes(track);
         }
     }
 
@@ -161,6 +188,7 @@ impl Engine {
         if let Some(c) = self.clip_clipboard.clone() {
             self.tracks[track].clips[slot] = c;
             self.tracks[track].active_clip = slot;
+            self.free_unused_lanes(track);
         }
     }
 
@@ -173,6 +201,7 @@ impl Engine {
     pub fn delete_range(&mut self, track: usize, s0: u16, s1: u16, lane: Option<u8>) {
         if track < NUM_TRACKS {
             self.tracks[track].active_mut().delete_range(s0, s1, lane);
+            self.free_unused_lanes(track);
         }
     }
 
@@ -654,19 +683,21 @@ impl Engine {
         }
     }
 
-    /// Remove one lane's lock at a single step (active clip). The lane stays
-    /// assigned — only this step reverts to base.
+    /// Remove one lane's lock at a single step (active clip). The step reverts
+    /// to base; the lane is freed if that was its last lock across all clips.
     pub fn auto_clear_step(&mut self, track: usize, lane: usize, step: u16) {
         if track < NUM_TRACKS && lane < 8 {
             self.tracks[track].active_mut().clear_lock(lane as u8, step);
+            self.free_unused_lanes(track);
         }
     }
 
     /// Remove all lanes' locks at a single step (active clip) — clear all
-    /// automation on that step. Lanes stay assigned.
+    /// automation on that step. Any lane left with no locks anywhere is freed.
     pub fn auto_clear_step_all(&mut self, track: usize, step: u16) {
         if track < NUM_TRACKS {
             self.tracks[track].active_mut().clear_step_locks(step);
+            self.free_unused_lanes(track);
         }
     }
 

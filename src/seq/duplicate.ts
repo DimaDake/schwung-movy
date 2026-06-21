@@ -4,7 +4,7 @@
  * stays armed while Copy is held, so it can be stamped to several destinations.
  * The engine owns the clipboard; this module only emits commands + toasts. */
 
-import { seqCmd } from './engine.js';
+import { seqCmd, requestLabelSync } from './engine.js';
 import { seqToast } from './render.js';
 
 export type DupUnit =
@@ -47,7 +47,7 @@ function copySource(u: DupUnit): void {
 }
 
 function pasteTo(dest: DupUnit): void {
-    if (dest.kind === 'clip') seqCmd(`clippaste ${dest.track} ${dest.slot}`);
+    if (dest.kind === 'clip') { seqCmd(`clippaste ${dest.track} ${dest.slot}`); requestLabelSync(); }
     else if (dest.kind === 'step') seqCmd(`pst ${dest.track} ${dest.step}`);
     else seqCmd(`pst ${dest.track} ${dest.bar * 16}`);
 }

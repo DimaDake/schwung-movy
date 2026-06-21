@@ -138,6 +138,11 @@ impl Clip {
         self.locks.retain(|l| l.lane != lane);
     }
 
+    /// Any lock on `lane`? Drives lane release: a lane no clip locks is freed.
+    pub fn has_lock_on_lane(&self, lane: u8) -> bool {
+        self.locks.iter().any(|l| l.lane == lane)
+    }
+
     /// Remove a single lane's lock at one step (the rest of the lane stays).
     pub fn clear_lock(&mut self, lane: u8, step: u16) {
         self.locks.retain(|l| !(l.lane == lane && l.step == step));

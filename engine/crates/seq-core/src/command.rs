@@ -577,6 +577,50 @@ mod tests {
     }
 
     #[test]
+    fn lane_freed_when_last_clip_lock_removed() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        // Lane 0 assigned, locked in clip 0 (active) and clip 1.
+        apply_batch(&mut e, "alabel 0 0 synth:cutoff", &mut out);
+        apply_batch(&mut e, "aset 0 0 4 100", &mut out);
+        e.select_clip(0, 1);
+        apply_batch(&mut e, "aset 0 0 4 90", &mut out);
+        e.select_clip(0, 0);
+        // Delete active clip 0 → clip 1 still locks the lane → stays assigned.
+        e.delete_clip(0);
+        assert!(e.tracks[0].lane_assigned[0], "kept while clip 1 still uses it");
+        // Delete clip 1 → no clip locks the lane → freed.
+        e.delete_clip_at(0, 1);
+        assert!(!e.tracks[0].lane_assigned[0], "freed when no clip uses it");
+        assert!(e.tracks[0].lane_label[0].is_empty());
+    }
+
+    #[test]
+    fn auto_clear_step_frees_lone_lane_but_keeps_one_with_other_locks() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "alabel 0 2 synth:res", &mut out);
+        apply_batch(&mut e, "aset 0 2 7 64", &mut out);
+        apply_batch(&mut e, "aclrs 0 2 7", &mut out);
+        assert!(!e.tracks[0].lane_assigned[2], "lone lock cleared → lane freed");
+        // A lane with another locked step survives the clear.
+        apply_batch(&mut e, "alabel 0 1 synth:cutoff", &mut out);
+        apply_batch(&mut e, "aset 0 1 3 50;aset 0 1 8 60", &mut out);
+        apply_batch(&mut e, "aclrs 0 1 3", &mut out);
+        assert!(e.tracks[0].lane_assigned[1], "other step still locks → kept");
+    }
+
+    #[test]
+    fn auto_clear_step_all_frees_step_only_lane() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "alabel 0 0 synth:cutoff", &mut out);
+        apply_batch(&mut e, "aset 0 0 5 70", &mut out);
+        apply_batch(&mut e, "aclrstep 0 5", &mut out);
+        assert!(!e.tracks[0].lane_assigned[0], "step-only lane freed when its step clears");
+    }
+
+    #[test]
     fn status_reports_automation_fields() {
         let mut e = engine();
         let mut out = Vec::new();

@@ -2699,6 +2699,35 @@ _log('\nautomation validateLane:');
     eq('stale plain param dropped', validateLane('synth:timbre', ps, lookup), 'drop');
 }
 
+/* ── automation: clearing a clip's automation re-requests a label sync ─────── */
+/* The engine frees a lane when its last lock is removed; the UI must re-sync so
+ * the freed lane leaves the registry (no phantom assigned lane). */
+_log('\nautomation clear re-requests label sync:');
+{
+    const { resetAutomation, clearStepAllAutomation, automationKnobReleased, automationKnobTouched, assignLane } =
+        await import('../dist/esm/seq/automation.js');
+    const { resetSeqEngine, takeLabelSync } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    takeLabelSync();                                   // drain any pending
+    clearStepAllAutomation(0, 4);                      // Clear + step
+    eq('clearStepAllAutomation requests a label sync', takeLabelSync(), true);
+
+    // Tap-clear (touch + release without turning) clears a step's lock too.
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    takeLabelSync();
+    seqState.stepAutoMode = true; seqState.holdStep = 4;
+    const info = { gi: 0, key: 'cutoff', ioKey: 'cutoff', target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true };
+    const tapLane = assignLane(0, 0, info, () => true); // lane must exist + hold a lock to clear
+    seqState.heldLocks.set(tapLane, 60);
+    takeLabelSync();                                   // drain the assign's sync, if any
+    automationKnobTouched(0);                           // arm tap-to-clear
+    automationKnobReleased(0, 0, info);                // tap (never turned) → aclrs
+    eq('tap-clear requests a label sync', takeLabelSync(), true);
+    resetSeqState();
+}
+
 /* ── automation: label re-sync from engine (validates + purges) ───────────── */
 _log('\nautomation label sync:');
 {

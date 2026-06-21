@@ -13,7 +13,7 @@ import { renderChainView }    from '../renderer/chain-view.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
-import { syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues } from '../seq/automation.js';
+import { syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull } from '../seq/automation.js';
 import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
 import { concreteKey } from '../model/pad-scope.js';
@@ -77,7 +77,7 @@ function buildAutomationView(track: number, model: Model): AutomationView {
         assignedLanes: seqState.autoAssigned,
         activeLanes:   seqState.autoActive,
         held:          seqState.stepAutoMode,
-        poolFull:      seqState.autoPoolFull,
+        poolFull:      poolIsFull(track),
         heldValues, liveValues, laneForKey,
     };
 }

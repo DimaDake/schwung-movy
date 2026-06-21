@@ -106,6 +106,13 @@ export function laneKeysForTrack(track: number): string[] {
     return out;
 }
 
+/* All 8 lanes assigned? Derived live from the registry so the "pool full" state
+ * (which hides non-assigned params on a step-hold) flips the instant the 8th
+ * lane is assigned and clears the instant a lane is freed — unlike a sticky flag. */
+export function poolIsFull(track: number): boolean {
+    return registry[track].every((e) => e !== null);
+}
+
 export function laneForParam(track: number, targetParam: string): number {
     const lanes = registry[track];
     for (let l = 0; l < 8; l++) if (lanes[l]?.targetParam === targetParam) return l;
@@ -183,7 +190,7 @@ export function handleAutomationKnob(
     const tp = info.target + ':' + info.ioKey;
     let lane = laneForParam(track, tp);
     if (lane < 0) lane = assignLane(track, track, info, setMapping);
-    if (lane < 0) { seqState.autoPoolFull = true; return true; } // consumed; toast in render
+    if (lane < 0) return true; // consumed; pool-full state (poolIsFull) drives the toast
 
     const step = held ? seqState.holdStep : seqState.curStep;
     // A held step keys the accumulator by its (fixed) step. A live take must

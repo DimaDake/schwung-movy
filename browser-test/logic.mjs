@@ -2384,6 +2384,24 @@ _log('\nautomation registry:');
     eq('pool full → -1', assignLane(0, 0, { ...info, key: 'k8', ioKey: 'k8' }, () => true), -1);
 }
 
+/* ── automation: pool-full derives from the live lane count ───────────────── */
+/* (Not the old sticky autoPoolFull flag, which lagged a step behind reaching 8
+ * and never reset when lanes were freed → params stayed hidden forever.) */
+_log('\nautomation pool-full (lane count):');
+{
+    const { resetAutomation, assignLane, clearLane, poolIsFull } = await import('../dist/esm/seq/automation.js');
+    const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    resetAutomation(); resetSeqEngine();
+    const mk = (k) => ({ gi: 0, key: k, ioKey: k, target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true });
+    eq('empty pool not full', poolIsFull(0), false);
+    for (let i = 0; i < 7; i++) assignLane(0, 0, mk('k' + i), () => true);
+    eq('7 lanes not full yet', poolIsFull(0), false);
+    assignLane(0, 0, mk('k7'), () => true);            // 8th → full immediately
+    eq('8 lanes → pool full', poolIsFull(0), true);
+    clearLane(0, 3);                                   // freeing a lane → not full
+    eq('after freeing one → not full', poolIsFull(0), false);
+}
+
 /* ── automation: knob-turn routing (hold-step / Rec / base) ──────────────── */
 _log('\nautomation knob routing:');
 {

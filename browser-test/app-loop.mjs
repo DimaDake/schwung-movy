@@ -351,10 +351,15 @@ _log('\napp-loop: module change purges lanes invalid for the new module');
 /* ── automation: the pool-full toast is not overdrawn by the Loop strip ────── */
 _log('\napp-loop: pool-full toast wins the bottom rows over the loop strip');
 {
+    const { resetAutomation, assignLane } = await import('../dist/esm/seq/automation.js');
     resetApp();
-    // "8 AUTOMATION LANES — FULL" shows while a step is held and the pool is full.
+    // "8 AUTOMATION LANES — FULL" shows while a step is held and all 8 lanes are
+    // assigned (pool full is derived live from the registry).
+    resetAutomation();
+    for (let i = 0; i < 8; i++) {
+        assignLane(0, 0, { gi: 0, key: 'p' + i, ioKey: 'p' + i, target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true }, () => true);
+    }
     seqState.stepAutoMode = true;
-    seqState.autoPoolFull = true;
     appState.currentView = VIEW_KNOBS;
     appState.dirty = true;
 
@@ -367,7 +372,7 @@ _log('\napp-loop: pool-full toast wins the bottom rows over the loop strip');
     globalThis.fill_rect = origFR;
     const stripDrawn = rects.some(([x, y, w, h, v]) => x === 0 && y === 60 && w === 128 && h === 4 && v === 0);
     eq('loop strip suppressed under pool-full toast', stripDrawn, false);
-    seqState.stepAutoMode = false; seqState.autoPoolFull = false;
+    seqState.stepAutoMode = false; resetAutomation();
 }
 
 /* ── Full-screen file browser exits cleanly (Back + select) ──────────────────

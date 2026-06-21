@@ -14,7 +14,7 @@
  * shows toasts. */
 
 import { NUM_STEP_BUTTONS } from './constants.js';
-import { seqCmd } from './engine.js';
+import { seqCmd, requestLabelSync } from './engine.js';
 import { seqToast } from './render.js';
 import { seqState } from './state.js';
 import { clearStepAllAutomation } from './automation.js';
@@ -57,6 +57,7 @@ export function deleteButton(down: boolean): void {
         delHeld = false;
         if (!delActed) {
             seqCmd('clipdel ' + seqState.watchTrack);
+            requestLabelSync(); // freed lanes (clip's automation gone) → re-sync
             seqToast('Clip deleted');
         }
     }

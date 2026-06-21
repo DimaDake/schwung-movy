@@ -8,10 +8,11 @@
  * a per-(track,lane) live 0..127 accumulator, reseeded only when the edit
  * context changes (held step vs. base), and emit the engine command from it. */
 import type { KnobParamInfo } from '../model/store.js';
-import { seqCmd } from './engine.js';
+import { seqCmd, requestLabelSync } from './engine.js';
 import { seqState } from './state.js';
 import { seqToast } from './render.js';
 import { beginStepAutomation, heldRange } from './step-edit.js';
+import { aliasFromConcrete, type PadScoping } from '../model/pad-scope.js';
 
 export interface LaneEntry {
     targetParam: string;   // "synth:cutoff"
@@ -105,6 +106,13 @@ export function laneKeysForTrack(track: number): string[] {
     return out;
 }
 
+/* All 8 lanes assigned? Derived live from the registry so the "pool full" state
+ * (which hides non-assigned params on a step-hold) flips the instant the 8th
+ * lane is assigned and clears the instant a lane is freed — unlike a sticky flag. */
+export function poolIsFull(track: number): boolean {
+    return registry[track].every((e) => e !== null);
+}
+
 export function laneForParam(track: number, targetParam: string): number {
     const lanes = registry[track];
     for (let l = 0; l < 8; l++) if (lanes[l]?.targetParam === targetParam) return l;
@@ -182,7 +190,7 @@ export function handleAutomationKnob(
     const tp = info.target + ':' + info.ioKey;
     let lane = laneForParam(track, tp);
     if (lane < 0) lane = assignLane(track, track, info, setMapping);
-    if (lane < 0) { seqState.autoPoolFull = true; return true; } // consumed; toast in render
+    if (lane < 0) return true; // consumed; pool-full state (poolIsFull) drives the toast
 
     const step = held ? seqState.holdStep : seqState.curStep;
     // A held step keys the accumulator by its (fixed) step. A live take must
@@ -232,6 +240,7 @@ export function automationKnobReleased(track: number, physK: number, info: KnobP
             seqCmd('aclrs ' + track + ' ' + lane + ' ' + seqState.holdStep);
             seqState.heldLocks.delete(lane);             // optimistic: back to name
             liveCtx.delete(track + ':' + lane);          // reseed next edit
+            requestLabelSync();                          // engine may free the lane (last lock)
             seqToast(info.key + ' cleared');
         }
         return;
@@ -249,6 +258,7 @@ export function automationKnobReleased(track: number, physK: number, info: KnobP
 /* Clear ALL lanes' automation at one step (Clear + step, or step + Clear). */
 export function clearStepAllAutomation(track: number, step: number): void {
     seqCmd('aclrstep ' + track + ' ' + step);
+    requestLabelSync(); // a lane left lock-less is freed by the engine → re-sync
     if (seqState.stepAutoMode && seqState.holdStep === step) seqState.heldLocks.clear();
 }
 
@@ -258,13 +268,43 @@ export function clearLaneForKnob(track: number, info: KnobParamInfo): void {
     if (lane >= 0) clearLane(track, lane);
 }
 
+export type LaneRange = { min: number; max: number; type: string };
+/* `drop` = purge the persisted lane (stale param / obsolete alias key);
+ * `unknown` = chain not loaded yet, keep the lane untouched this pass. */
+export type LaneVerdict = LaneRange | 'drop' | 'unknown';
+
+/* Decide a persisted lane's fate against the module's current param set. `ps` is
+ * the track's drum pad scoping (null on a non-drum track); `paramRange(key)`
+ * returns the range of a known param or null if the module has no such param
+ * (sourced from the loaded model, which is authoritative for config-driven drum
+ * modules where chain_params is absent). Rules:
+ *   - a BARE alias key (`pad_pan`) is a pre-per-pad-migration leftover the
+ *     concrete-key routing can never match again → drop;
+ *   - a CONCRETE pad key (`p07_pan`) is validated by its alias (`pad_pan`),
+ *     since the param set lists only the alias, never the concrete key;
+ *   - otherwise the key itself must be a known param;
+ *   - known → keep (its range); unknown → stale (drop).
+ * The caller returns `unknown` (keep) when the module isn't loaded yet, so this
+ * only ever runs against an authoritative param set. */
+export function validateLane(
+    tp: string, ps: PadScoping | null,
+    paramRange: (key: string) => LaneRange | null,
+): LaneRange | 'drop' {
+    const key = tp.slice(tp.indexOf(':') + 1);
+    if (ps && key.startsWith(ps.aliasPrefix)) return 'drop'; // bare alias (obsolete)
+    const lookup = (ps && aliasFromConcrete(ps, key)) || key;
+    return paramRange(lookup) ?? 'drop';
+}
+
 /* Rebuild the registry from the engine's `alabels` and re-apply each assigned
- * lane's chain mapping. `apply(slot, lane, targetParam)` issues knob_<N>_set;
- * `rangeOf(targetParam)` supplies min/max/type for denormalization. */
+ * lane's chain mapping. `apply(slot, lane, targetParam)` issues knob_<N>_set.
+ * `validate(track, tp)` decides each lane's fate (see `validateLane`): a `drop`
+ * verdict purges the lane (engine + persistence, via `clearLane` → `aclr`) so
+ * stale/obsolete lanes can't permanently occupy the 8-lane pool. */
 export function syncLabelsFromEngine(
     alabels: string,
     apply: (slot: number, lane: number, targetParam: string) => void,
-    rangeOf: (targetParam: string) => { min: number; max: number; type: string } | null,
+    validate: (track: number, targetParam: string) => LaneVerdict,
 ): void {
     const tracks = alabels.split(',');
     for (let t = 0; t < 4 && t < tracks.length; t++) {
@@ -272,28 +312,14 @@ export function syncLabelsFromEngine(
         for (let l = 0; l < 8 && l < lanes.length; l++) {
             const tp = lanes[l];
             if (!tp || tp === '-') { registry[t][l] = null; continue; }
-            const r = rangeOf(tp);
+            const v = validate(t, tp);
+            if (v === 'drop') { clearLane(t, l); continue; }
+            const r: LaneRange = v === 'unknown' ? { min: 0, max: 1, type: 'float' } : v;
             registry[t][l] = {
                 targetParam: tp, shortName: tp.split(':')[1] ?? tp,
-                min: r?.min ?? 0, max: r?.max ?? 1, type: r?.type ?? 'float',
+                min: r.min, max: r.max, type: r.type,
             };
             apply(t, l, tp);
         }
     }
-}
-
-/* Best-effort range lookup for a "target:param" from a slot's chain_params. */
-export function rangeFromChainParams(slot: number, targetParam: string): { min: number; max: number; type: string } | null {
-    const colon = targetParam.indexOf(':');
-    if (colon < 0) return null;
-    const target = targetParam.slice(0, colon);
-    const key = targetParam.slice(colon + 1);
-    const cp = shadow_get_param(slot, target + ':chain_params');
-    if (!cp) return null;
-    try {
-        const params = JSON.parse(cp) as Array<{ key: string; type: string; min?: number; max?: number }>;
-        const p = params.find((x) => x.key === key);
-        if (!p) return null;
-        return { min: p.min ?? 0, max: p.max ?? 1, type: p.type };
-    } catch { return null; }
 }

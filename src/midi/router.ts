@@ -7,6 +7,7 @@ import { drumPadOn, drumPadOff } from '../keyboard/drum-handler.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
 import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteTrack, seqRestoreWatch } from '../seq/router.js';
+import { anyStepHeld } from '../seq/step-edit.js';
 import { seqState } from '../seq/state.js';
 import { WHITE_BRIGHT, WHITE_DIM } from '../seq/colors.js';
 import { momentaryDown, momentaryUp } from '../seq/momentary.js';
@@ -194,6 +195,16 @@ export function onMidiMessageInternal(data: number[]): void {
 
     /* Jog click */
     if (d1 === MoveMainButton && d2 > 0) {
+        // While a step is held, the jog click is navigation-only: drill from the
+        // chain into the focused module's params, never open a browser (Back
+        // returns to the chain). Lets one held step automate across modules.
+        if (anyStepHeld()) {
+            if (appState.currentView === VIEW_CHAIN) {
+                appState.currentView = VIEW_KNOBS;
+                appState.dirty = true;
+            }
+            return;
+        }
         if (appState.currentView === VIEW_BROWSE) {
             loadSelectedModule();
         } else if (appState.currentView === VIEW_FILE_BROWSE) {

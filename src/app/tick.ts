@@ -12,8 +12,8 @@ import { renderBrowseView } from '../renderer/browse-view.js';
 import { renderChainView }    from '../renderer/chain-view.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
-import { seqEngineTick, takeLabelSync } from '../seq/engine.js';
-import { syncLabelsFromEngine, rangeFromChainParams, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues } from '../seq/automation.js';
+import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
+import { syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull } from '../seq/automation.js';
 import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
 import { concreteKey } from '../model/pad-scope.js';
@@ -38,6 +38,11 @@ let lastToastShowing = false;
 let lastHeaderShowing = false;
 let lastSessionMode = false;
 let jogToastShown = false;   // a bottom jog/browse toast is on screen (strip yields to it)
+
+/* Last-seen module name per "track:chainIdx", to detect a module swap on a
+ * focused component (its param set changed → re-validate that track's automation
+ * lanes). Keyed by component so navigating the chain view never false-triggers. */
+const lastModuleName = new Map<string, string>();
 
 /* Per-pad color cache for the chromatic layout: avoids resending unchanged
  * LED colors every tick. Initialized to 0 (C_BLACK); first tick syncs all. */
@@ -72,7 +77,7 @@ function buildAutomationView(track: number, model: Model): AutomationView {
         assignedLanes: seqState.autoAssigned,
         activeLanes:   seqState.autoActive,
         held:          seqState.stepAutoMode,
-        poolFull:      seqState.autoPoolFull,
+        poolFull:      poolIsFull(track),
         heldValues, liveValues, laneForKey,
     };
 }
@@ -119,7 +124,17 @@ export function tick(): void {
             syncLabelsFromEngine(
                 labels,
                 (slot, lane, tp) => shadow_set_param(slot, 'knob_' + (lane + 1) + '_set', tp),
-                (tp) => rangeFromChainParams(appState.activeSlot, tp),
+                (track, tp) => {
+                    // Validate against the lane's own (track, component) model param
+                    // set — authoritative even for config-driven drum modules. Keep
+                    // the lane (`unknown`) when that model isn't loaded yet, so a
+                    // transient never wipes valid automation.
+                    const comp  = tp.slice(0, tp.indexOf(':'));
+                    const model = appState.trackModels[track]?.find((m) => m.getComponentKey() === comp);
+                    if (!model || !model.hasLoadedParams()) return 'unknown';
+                    const ps = model.getDrumConfig()?.padScoping ?? null;
+                    return validateLane(tp, ps, (key) => model.paramRangeByKey(key));
+                },
             );
         }
     }
@@ -176,6 +191,17 @@ export function tick(): void {
     activeModel?.setNoRefreshKeys(laneKeysForTrack(appState.activeSlot));
     const modelDirty  = activeModel?.tick() ?? false;
 
+    /* A module swap on the focused component changes its param set → re-validate
+     * this track's automation lanes (the label sync drops lanes the new module
+     * no longer has). Skipped on the first sighting (boot sync covers it) and on
+     * empty transients during load. */
+    const mnKey = appState.activeSlot + ':' + chainIdx;
+    const mn    = activeModel?.getModuleName() ?? '';
+    if (mn && lastModuleName.get(mnKey) !== mn) {
+        if (lastModuleName.has(mnKey)) requestLabelSync();
+        lastModuleName.set(mnKey, mn);
+    }
+
     const mIdx        = appState.masterChainIndex;
     const masterModel = seqState.sessionMode ? appState.masterFxModels[mIdx] : null;
     const masterDirty = masterModel?.tick() ?? false;
@@ -211,7 +237,10 @@ export function tick(): void {
             const vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot, activeModel!));
             diagAutoRender(vm);
             renderKnobsView(vm, appState.jogTouched, appState.activeSlot);
-            jogToastShown = !!vm.toast?.browseHint || appState.jogTouched;
+            // The pool-full toast shares the bottom rows with the Loop strip;
+            // claim them so the strip yields to it (like every other toast).
+            jogToastShown = (vm.automationHeld && vm.automationPoolFull)
+                || !!vm.toast?.browseHint || appState.jogTouched;
             updateKnobLEDs(vm);
         } else if (appState.currentView === VIEW_CHAIN) {
             const vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot, activeModel!));

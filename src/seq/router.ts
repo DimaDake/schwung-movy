@@ -38,7 +38,7 @@ import {
 } from './loop-mode.js';
 import { momentaryDown, momentaryGesture, momentaryUp } from './momentary.js';
 import {
-    anyStepHeld, editLength, editNudge, editPad, editStepDown, editStepUp,
+    anyStepHeld, editNudge, editPad, editStepDown, editStepUp,
     editTranspose, editVelocity, heldStepAbs, setLengthTo, endStepAutomation,
 } from './step-edit.js';
 import { seqToast } from './render.js';
@@ -198,10 +198,10 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         return editVelocity(decodeDelta(d2));
     }
 
-    /* Wheel: held-step length edit first, then Loop+wheel resize; otherwise
-     * falls through to the param page/chain nav. */
+    /* Wheel: Loop+wheel resizes the loop; otherwise it falls through to the
+     * param page / chain nav (so a held step can roam pages + modules to
+     * automate). It no longer edits note length. */
     if (d1 === CC_WHEEL) {
-        if (editLength(decodeDelta(d2))) return true;
         if (loopHeld()) return loopWheel(decodeDelta(d2));
         return false;
     }

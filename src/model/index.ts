@@ -223,6 +223,17 @@ export function createModel(slot: number, componentKey = 'synth') {
             for (const k of keys) s.noRefreshKeys.add(k);
         },
 
+        /* Range of a loaded param by key (for automation-lane validation), or
+         * null if this module has no such param. Authoritative for config-driven
+         * drum modules, where chain_params may be absent. */
+        paramRangeByKey(key: string): { min: number; max: number; type: string } | null {
+            const p = s.knobParams.find((p) => p?.key === key);
+            return p ? { min: p.min, max: p.max, type: p.type } : null;
+        },
+
+        /* True once this slot's module hierarchy has loaded (params known). */
+        hasLoadedParams(): boolean { return s.knobParams.some((p) => p != null); },
+
         /* Current (base) value of a param by key, regardless of page, or null. */
         getValueByKey(key: string): number | null {
             const gi = s.knobParams.findIndex((p) => p?.key === key);

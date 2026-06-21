@@ -141,15 +141,6 @@ export function editVelocity(delta: number): boolean {
     return true;
 }
 
-/* Wheel → note length (±10% of a step per detent). */
-export function editLength(delta: number): boolean {
-    if (!anyStepHeld()) return false;
-    const d = (delta > 0 ? 1 : -1) * LEN_STEP;
-    forEach((r) => seqCmd(`elen ${seqState.watchTrack} ${r.s0} ${r.s1} ${lane()} ${d}`));
-    seqToast(d > 0 ? 'Length +' : 'Length -');
-    return true;
-}
-
 /* Left/Right arrow → nudge (Shift = fine). */
 export function editNudge(dir: number, shift: boolean): boolean {
     if (!anyStepHeld()) return false;

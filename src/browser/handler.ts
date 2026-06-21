@@ -39,7 +39,7 @@ export function openBrowser(slot: ChainSlot, paramSlot: number, reload: () => vo
     browserState.componentKey = slot.componentKey;
     browserState.paramSlot    = paramSlot;
     browserState.reload       = reload;
-    browserState.modules      = scanModules(slot);
+    browserState.modules      = [{ id: '', name: 'NONE' }, ...scanModules(slot)];
     browserState.browseIndex  = 0;
     const activeId = shadow_get_param(paramSlot, moduleReadKey(slot.componentKey)) || '';
     const idx = browserState.modules.findIndex(m => m.id === activeId);

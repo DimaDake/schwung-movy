@@ -28,7 +28,7 @@ console.log = (...a) => { if (typeof a[0] === 'string' && a[0].startsWith('[movy
 
 /* Bundled app entry points assign init/tick/onMidiMessageInternal to globalThis. */
 await import('../dist/esm/app/globals.js');
-const { appState, VIEW_KNOBS, VIEW_FILE_BROWSE } = await import('../dist/esm/app/state.js');
+const { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_BROWSE, VIEW_FILE_BROWSE } = await import('../dist/esm/app/state.js');
 const { seqState, resetSeqState, occHasStep } = await import('../dist/esm/seq/state.js');
 const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
 
@@ -327,6 +327,50 @@ _log('\napp-loop: drum→synth switch does not crash');
     eq('after transition: drumActive flag cleared', appState.drumActive, false);
 }
 
+/* ── step-hold: jog wheel switches param page, never note length ──────────── */
+_log('\napp-loop: jog wheel while holding a step switches page (not length)');
+{
+    resetApp();
+    appState.currentView = VIEW_KNOBS;
+    const vm = () => appState.trackModels[0][appState.trackChainIndex[0]].getViewModel();
+    const page0 = vm().bankIndex;
+    sendMidi([0x90, 16, 127]);            // hold step 1
+    engine.ops.length = 0;                // watch for any 'elen' length edit
+    sendMidi([0xB0, 14, 1]);              // jog wheel +1
+    eq('held-step jog switches page', vm().bankIndex, page0 + 1);
+    eq('no note-length edit emitted', engine.ops.some(o => o.startsWith('elen')), false);
+    sendMidi([0x80, 16, 0]);              // release step
+}
+
+/* ── step-hold: jog-press suppresses the module browser ───────────────────── */
+_log('\napp-loop: jog-press while holding a step never opens the browser');
+{
+    resetApp();
+    appState.currentView = VIEW_KNOBS;
+    sendMidi([0x90, 16, 127]);            // hold step 1
+    sendMidi([0xB0, 3, 127]);             // jog press
+    eq('knobs+held jog-press stays in params', appState.currentView, VIEW_KNOBS);
+    sendMidi([0x80, 16, 0]);
+
+    appState.currentView = VIEW_CHAIN;
+    sendMidi([0x90, 16, 127]);
+    sendMidi([0xB0, 3, 127]);
+    eq('chain+held jog-press drills to params', appState.currentView, VIEW_KNOBS);
+    eq('chain+held jog-press did not open browser', appState.currentView !== VIEW_BROWSE, true);
+    sendMidi([0x80, 16, 0]);
+}
+
+/* ── step-hold: Back returns to the chain view (feature relies on this) ────── */
+_log('\napp-loop: Back while holding a step returns to chain view');
+{
+    resetApp();
+    appState.currentView = VIEW_KNOBS;
+    sendMidi([0x90, 16, 127]);            // hold step 1
+    sendMidi([0xB0, 51, 127]);            // Back
+    eq('Back while holding a step → chain view', appState.currentView, VIEW_CHAIN);
+    sendMidi([0x80, 16, 0]);
+}
+
 /* ── automation: a module change re-validates lanes (purges now-stale) ─────── */
 _log('\napp-loop: module change purges lanes invalid for the new module');
 {
@@ -372,6 +416,10 @@ _log('\napp-loop: pool-full toast wins the bottom rows over the loop strip');
     globalThis.fill_rect = origFR;
     const stripDrawn = rects.some(([x, y, w, h, v]) => x === 0 && y === 60 && w === 128 && h === 4 && v === 0);
     eq('loop strip suppressed under pool-full toast', stripDrawn, false);
+    // drawJogToast draws its inverted bar at fill_rect(0, TOAST_Y=58, 128, 6, 1);
+    // its presence at 8-lanes+held proves the "FULL" toast renders immediately.
+    const toastDrawn = rects.some(([x, y, w, h, v]) => x === 0 && y === 58 && w === 128 && h === 6 && v === 1);
+    eq('pool-full toast shown immediately at 8 lanes', toastDrawn, true);
     seqState.stepAutoMode = false; resetAutomation();
 }
 

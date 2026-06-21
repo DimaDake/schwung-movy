@@ -1255,12 +1255,13 @@ _log('\nTest: drumPadOn');
     seqEngineTick();
     eq('held+edit did not toggle a note', engine.ops.filter(o => o.startsWith('tog')).length, 0);
 
-    // Hold step + wheel → length; + arrow → nudge; + arrow w/ shift → fine.
+    // Hold step + wheel → NOT consumed (the wheel navigates param pages now; note
+    // length on jog was dropped). + arrow → nudge; + arrow w/ shift → fine.
     reset(); seqEngineTick();
     seqHandleMidi([0x90, 16 + 0, 127], false);
-    seqHandleMidi([0xB0, 14, 1], false);
+    eq('wheel not consumed for length while a step is held', seqHandleMidi([0xB0, 14, 1], false), false);
     seqEngineTick();
-    eq('length edit op', lastOp(), 'elen 0 0 0 -1 2');
+    eq('no length op emitted', engine.ops.some(o => o.startsWith('elen')), false);
     seqHandleMidi([0xB0, 63, 127], false);       // right arrow
     seqEngineTick();
     eq('nudge coarse op', lastOp(), 'enudge 0 0 0 -1 2');
@@ -1305,13 +1306,14 @@ _log('\nTest: drumPadOn');
     seqEngineTick();
     eq('tap toggles a note on release', lastOp(), 'tog 0 7 64 90');
 
-    // Loop Mode: hold a bar + wheel edits the whole bar's note lengths.
+    // Loop Mode: hold a bar + wheel no longer edits note length (length dropped;
+    // the wheel falls through to page/chain nav).
     reset(); seqEngineTick();
     seqState.loopMode = true;
     seqHandleMidi([0x90, 16 + 1, 127], false);   // hold bar 1
-    seqHandleMidi([0xB0, 14, 1], false);         // wheel
+    eq('loop bar + wheel not consumed for length', seqHandleMidi([0xB0, 14, 1], false), false);
     seqEngineTick();
-    eq('loop-mode bar edit spans the bar', lastOp(), 'elen 0 16 31 -1 2');
+    eq('no loop-mode length op', engine.ops.some(o => o.startsWith('elen')), false);
     seqHandleMidi([0x80, 16 + 1, 0], false);
 
     uninstallMockEngine(); reset();

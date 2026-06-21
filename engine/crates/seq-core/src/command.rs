@@ -109,6 +109,42 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 }
             }
         }
+        // eprob <t> <s0> <s1> <p> <pct>; econd <t> <s0> <s1> <p> <a> <b>;
+        // einv <t> <s0> <s1> <p> <0|1>. p = lane pitch or -1 (whole step).
+        "eprob" => {
+            if let (Some(t), Some(s0), Some(s1), Some(p), Some(pct)) =
+                (next(), next(), next(), next(), next())
+            {
+                if (t as usize) < NUM_TRACKS {
+                    let lane = if (0..128).contains(&p) { Some(p as u8) } else { None };
+                    engine.tracks[t as usize].active_mut().set_trig_prob(
+                        s0.clamp(0, 255) as u16, s1.clamp(0, 255) as u16, lane, pct.clamp(0, 100) as u8);
+                }
+            }
+        }
+        "econd" => {
+            if let (Some(t), Some(s0), Some(s1), Some(p), Some(a), Some(b)) =
+                (next(), next(), next(), next(), next(), next())
+            {
+                if (t as usize) < NUM_TRACKS {
+                    let lane = if (0..128).contains(&p) { Some(p as u8) } else { None };
+                    engine.tracks[t as usize].active_mut().set_trig_cond(
+                        s0.clamp(0, 255) as u16, s1.clamp(0, 255) as u16, lane,
+                        a.clamp(1, 64) as u8, b.clamp(1, 64) as u8);
+                }
+            }
+        }
+        "einv" => {
+            if let (Some(t), Some(s0), Some(s1), Some(p), Some(v)) =
+                (next(), next(), next(), next(), next())
+            {
+                if (t as usize) < NUM_TRACKS {
+                    let lane = if (0..128).contains(&p) { Some(p as u8) } else { None };
+                    engine.tracks[t as usize].active_mut().set_trig_invert(
+                        s0.clamp(0, 255) as u16, s1.clamp(0, 255) as u16, lane, v != 0);
+                }
+            }
+        }
         // rec <t> — toggle recording on track (one-bar count-in).
         "rec" => {
             if let Some(t) = next() {
@@ -324,6 +360,16 @@ mod tests {
 
     fn engine() -> Engine {
         Engine::new(44100, 12000)
+    }
+
+    #[test]
+    fn trig_property_commands() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        e.tracks[0].active_mut().toggle_step(2, &[(60, 100)]);
+        apply_batch(&mut e, "eprob 0 2 2 -1 40;econd 0 2 2 -1 2 3;einv 0 2 2 -1 1", &mut out);
+        let t = e.tracks[0].active().governing_trig(2, 60);
+        assert_eq!((t.prob, t.cond_a, t.cond_b, t.invert), (40, 2, 3, true));
     }
 
     #[test]

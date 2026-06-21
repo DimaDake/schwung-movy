@@ -70,6 +70,8 @@ pub struct Engine {
     gates: Vec<Gate>,
     /// (track, step) the UI is holding, for the step-length readout. None = not held.
     held_query: Option<(usize, u16)>,
+    /// Free-running PRNG state for trig probability rolls (xorshift64*).
+    rng_state: u64,
 }
 
 #[derive(Clone, Copy)]
@@ -103,7 +105,16 @@ impl Engine {
             dirty: false,
             gates: Vec::with_capacity(128),
             held_query: None,
+            rng_state: 0x9E3779B97F4A7C15,
         }
+    }
+
+    /// xorshift64* → a 0..=99 percent roll. Free-running (Elektron-style).
+    fn roll_pct(&mut self) -> u8 {
+        let mut x = self.rng_state;
+        x ^= x >> 12; x ^= x << 25; x ^= x >> 27;
+        self.rng_state = x;
+        ((x.wrapping_mul(0x2545F4914F6CDD1D) >> 33) % 100) as u8
     }
 
     pub fn counting_in(&self) -> bool {
@@ -285,6 +296,7 @@ impl Engine {
             t.pos_tick = start;
             t.last_auto_step = -1; // re-emit automation from step 0 on (re)start
             t.auto_cur = [-1; 8];
+            t.cycle = 1;           // restart the A:B trig-condition play count
         }
         self.clock.reset();
         self.master_tick = 0;
@@ -501,6 +513,7 @@ impl Engine {
                     t.pos_tick = t.clips[slot].loop_start_ticks();
                     t.last_auto_step = -1;
                     t.auto_cur = [-1; 8];
+                    t.cycle = 1;
                 }
                 if t.pending_stop {
                     t.pending_stop = false;
@@ -547,17 +560,41 @@ impl Engine {
                 let pos = self.tracks[ti].pos_tick;
                 if !muted {
                     let len = self.tracks[ti].clips[slot].notes.len();
+                    let cycle = self.tracks[ti].cycle;
+                    // Per-tick decision cache: (note.step, governing-lane) -> play?
+                    // so a chord on one trig shares a single condition+probability
+                    // decision (all notes play or all skip). Few notes fire per
+                    // tick, so a small Vec scan is cheap.
+                    let mut decided: Vec<((u16, Option<u8>), bool)> = Vec::new();
                     for ni in 0..len {
                         let n = self.tracks[ti].clips[slot].notes[ni];
                         // Skip notes just recorded this pass (suppress_until_wrap).
-                        if n.tick == pos && !n.suppress {
-                            out.push(OutEvent::NoteOn { track: ti as u8, pitch: n.pitch, vel: n.vel });
-                            self.gates.push(Gate {
-                                track: ti as u8,
-                                pitch: n.pitch,
-                                ticks_left: n.gate.max(1),
-                            });
+                        if n.tick != pos || n.suppress {
+                            continue;
                         }
+                        let clip = &self.tracks[ti].clips[slot];
+                        let lane_key = if clip.trigs.iter()
+                            .any(|t| t.step == n.step && t.lane == Some(n.pitch))
+                        { Some(n.pitch) } else { None };
+                        let key = (n.step, lane_key);
+                        let play = if let Some(&(_, p)) = decided.iter().find(|(k, _)| *k == key) {
+                            p
+                        } else {
+                            let tp = clip.governing_trig(n.step, n.pitch);
+                            let cond = crate::clip::condition_plays(tp.cond_a, tp.cond_b, tp.invert, cycle);
+                            let p = cond && (tp.prob >= 100 || self.roll_pct() < tp.prob);
+                            decided.push((key, p));
+                            p
+                        };
+                        if !play {
+                            continue;
+                        }
+                        out.push(OutEvent::NoteOn { track: ti as u8, pitch: n.pitch, vel: n.vel });
+                        self.gates.push(Gate {
+                            track: ti as u8,
+                            pitch: n.pitch,
+                            ticks_left: n.gate.max(1),
+                        });
                     }
                 }
                 // Advance + wrap inside the loop window [start, start+len). On
@@ -578,6 +615,7 @@ impl Engine {
                     } else {
                         self.tracks[ti].pos_tick = start;
                         self.tracks[ti].clips[slot].release_suppressed();
+                        self.tracks[ti].cycle = self.tracks[ti].cycle.wrapping_add(1);
                     }
                 }
                 // Parameter automation: emit on step entry (revert-to-base).
@@ -728,6 +766,42 @@ impl Engine {
         }
     }
 
+    /// Held-step readout: (avg velocity, gate ticks of first note, mixed-gate
+    /// flag). lane filtered by watch_lane (None = melodic). Zeros when no step
+    /// held / empty.
+    fn held_note_stats(&self) -> (u8, u32, bool) {
+        let Some((t, step)) = self.held_query else { return (0, 0, false); };
+        if t >= NUM_TRACKS { return (0, 0, false); }
+        let lane = self.watch_lane;
+        let clip = self.tracks[t].active();
+        let mut sum: u32 = 0;
+        let mut count: u32 = 0;
+        let mut gate0: Option<u32> = None;
+        let mut mixed = false;
+        for n in clip.notes.iter().filter(|n| n.step == step && lane.map_or(true, |p| n.pitch == p)) {
+            sum += n.vel as u32;
+            count += 1;
+            match gate0 {
+                None => gate0 = Some(n.gate),
+                Some(g) if g != n.gate => mixed = true,
+                _ => {}
+            }
+        }
+        if count == 0 { return (0, 0, false); }
+        ((sum / count) as u8, gate0.unwrap_or(0), mixed)
+    }
+
+    /// Resolved trig props at the held step (lane = watch_lane), defaults otherwise.
+    fn held_trig(&self) -> crate::clip::TrigProps {
+        match self.held_query {
+            Some((t, step)) if t < NUM_TRACKS => {
+                let pitch = self.watch_lane.unwrap_or(0);
+                self.tracks[t].active().governing_trig(step, pitch)
+            }
+            _ => crate::clip::TrigProps::DEFAULT,
+        }
+    }
+
     /// `hnotes=` payload: dot-separated pitches in the held step, empty when no step held.
     fn held_notes_state(&self) -> String {
         match self.held_query {
@@ -774,8 +848,10 @@ impl Engine {
             }
             _ => String::new(),
         };
+        let (hvel, hgate, hgmix) = self.held_note_stats();
+        let htp = self.held_trig();
         format!(
-            "play={} tick={} bpm={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={}",
+            "play={} tick={} bpm={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -796,7 +872,14 @@ impl Engine {
             clip.occupancy_hex_lane(self.watch_lane),
             alanes,
             aauto,
-            hauto
+            hauto,
+            hvel,
+            hgate,
+            hgmix as u8,
+            htp.prob,
+            htp.cond_a,
+            htp.cond_b,
+            htp.invert as u8
         )
     }
 
@@ -886,6 +969,60 @@ mod tests {
             e.advance_block(FRAMES, &mut out);
         }
         out
+    }
+
+    #[test]
+    fn condition_skips_trig_on_off_cycle() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.tracks[0].active_mut().set_trig_cond(0, 0, None, 2, 2); // 2:2
+        e.play();
+        let ev1 = run_ticks(&mut e, 16 * TICKS_PER_STEP as u64);
+        assert!(!ev1.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 60, .. })),
+            "cycle 1 should be silent for 2:2");
+        let ev2 = run_ticks(&mut e, 16 * TICKS_PER_STEP as u64);
+        assert!(ev2.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 60, .. })),
+            "cycle 2 should sound for 2:2");
+    }
+
+    #[test]
+    fn probability_zero_never_plays() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.tracks[0].active_mut().set_trig_prob(0, 0, None, 0);
+        e.play();
+        let ev = run_ticks(&mut e, 16 * TICKS_PER_STEP as u64 * 4);
+        assert!(!ev.iter().any(|x| matches!(x, OutEvent::NoteOn { .. })), "0% never plays");
+    }
+
+    #[test]
+    fn chord_shares_one_probability_decision() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100), (64, 100)]);
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.tracks[0].active_mut().set_trig_prob(0, 0, None, 50);
+        e.play();
+        let ev = run_ticks(&mut e, 16 * TICKS_PER_STEP as u64 * 8);
+        let n60 = ev.iter().filter(|x| matches!(x, OutEvent::NoteOn { pitch: 60, .. })).count();
+        let n64 = ev.iter().filter(|x| matches!(x, OutEvent::NoteOn { pitch: 64, .. })).count();
+        assert_eq!(n60, n64, "chord notes must share the same play/skip decision");
+    }
+
+    #[test]
+    fn status_reports_held_trig_props() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(3, &[(60, 90), (64, 110)]);
+        e.tracks[0].active_mut().set_trig_prob(3, 3, None, 40);
+        e.tracks[0].active_mut().set_trig_cond(3, 3, None, 2, 3);
+        e.set_held_query(Some((0, 3)));
+        let s = e.status();
+        assert!(s.contains(" hvel=100"), "avg of 90,110 = 100; got: {s}");
+        assert!(s.contains(" hgmix=0"), "same gate not mixed; got: {s}");
+        assert!(s.contains(" hprob=40"), "{s}");
+        assert!(s.contains(" hcond=2:3"), "{s}");
+        assert!(s.contains(" hinv=0"), "{s}");
     }
 
     #[test]

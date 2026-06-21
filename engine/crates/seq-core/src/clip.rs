@@ -39,12 +39,48 @@ pub struct Lock {
     pub val: u8,
 }
 
+/// Max trig-condition/probability entries per clip.
+pub const MAX_TRIGS: usize = 1024;
+
+/// Resolved per-trig properties (defaults when no row exists).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TrigProps {
+    pub prob: u8,   // 0..=100 (%)
+    pub cond_a: u8, // A in A:B (>=1)
+    pub cond_b: u8, // B in A:B (>=1)
+    pub invert: bool,
+}
+
+impl TrigProps {
+    pub const DEFAULT: TrigProps = TrigProps { prob: 100, cond_a: 1, cond_b: 1, invert: false };
+    fn is_default(&self) -> bool { *self == TrigProps::DEFAULT }
+}
+
+/// Sparse per-trig override, keyed (step, lane). lane = Some(pitch) for a drum
+/// lane, None for the whole (melodic) step — mirrors `Clip::note_matches`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Trig {
+    pub step: u16,
+    pub lane: Option<u8>,
+    pub props: TrigProps,
+}
+
+/// Trig condition truth: with 1-based pattern play count `cycle`, A:B plays when
+/// `((cycle-1) mod B) + 1 == A`. `invert` flips the result. (1:1 always plays.)
+pub fn condition_plays(a: u8, b: u8, invert: bool, cycle: u32) -> bool {
+    let b = b.max(1) as u32;
+    let plays = (cycle.wrapping_sub(1) % b) + 1 == a as u32;
+    plays ^ invert
+}
+
 #[derive(Debug, Clone)]
 pub struct Clip {
     pub notes: Vec<Note>,
     /// Sparse parameter-automation locks (p-lock model); unlocked steps play
     /// the lane base value (revert-to-base).
     pub locks: Vec<Lock>,
+    /// Sparse per-trig probability/condition overrides (absent = defaults).
+    pub trigs: Vec<Trig>,
     /// Loop window length in steps (16 per bar). 0 = empty slot (no clip).
     pub length_steps: u16,
     /// First step of the loop window (bar-aligned). Playback wraps inside
@@ -63,6 +99,7 @@ impl Clip {
         Clip {
             notes: Vec::new(),
             locks: Vec::new(),
+            trigs: Vec::new(),
             length_steps: 0,
             loop_start_steps: 0,
         }
@@ -89,8 +126,47 @@ impl Clip {
     pub fn clear(&mut self) {
         self.notes.clear();
         self.locks.clear();
+        self.trigs.clear();
         self.length_steps = 0;
         self.loop_start_steps = 0;
+    }
+
+    /// Resolved trig props for a note at (step, pitch): the most specific row
+    /// wins — a (step, Some(pitch)) row, else a (step, None) row, else defaults.
+    pub fn governing_trig(&self, step: u16, pitch: u8) -> TrigProps {
+        if let Some(t) = self.trigs.iter().find(|t| t.step == step && t.lane == Some(pitch)) {
+            return t.props;
+        }
+        self.trigs.iter()
+            .find(|t| t.step == step && t.lane.is_none())
+            .map_or(TrigProps::DEFAULT, |t| t.props)
+    }
+
+    fn edit_trig(&mut self, s0: u16, s1: u16, lane: Option<u8>, f: impl Fn(&mut TrigProps)) {
+        for step in s0..=s1 {
+            let idx = self.trigs.iter().position(|t| t.step == step && t.lane == lane);
+            let mut props = idx.map_or(TrigProps::DEFAULT, |i| self.trigs[i].props);
+            f(&mut props);
+            match idx {
+                Some(i) if props.is_default() => { self.trigs.swap_remove(i); }
+                Some(i) => { self.trigs[i].props = props; }
+                None if props.is_default() => {}
+                None if self.trigs.len() < MAX_TRIGS => {
+                    self.trigs.push(Trig { step, lane, props });
+                }
+                None => {}
+            }
+        }
+    }
+
+    pub fn set_trig_prob(&mut self, s0: u16, s1: u16, lane: Option<u8>, pct: u8) {
+        self.edit_trig(s0, s1, lane, |p| p.prob = pct.min(100));
+    }
+    pub fn set_trig_cond(&mut self, s0: u16, s1: u16, lane: Option<u8>, a: u8, b: u8) {
+        self.edit_trig(s0, s1, lane, |p| { p.cond_a = a.max(1); p.cond_b = b.max(1); });
+    }
+    pub fn set_trig_invert(&mut self, s0: u16, s1: u16, lane: Option<u8>, inv: bool) {
+        self.edit_trig(s0, s1, lane, |p| p.invert = inv);
     }
 
     /// Upsert a lock for (lane, step). Caps at MAX_LOCKS (drops new ones over).
@@ -479,6 +555,69 @@ impl Clip {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn trig_defaults_when_absent() {
+        let c = Clip::new();
+        let t = c.governing_trig(5, 60);
+        assert_eq!((t.prob, t.cond_a, t.cond_b, t.invert), (100, 1, 1, false));
+    }
+
+    #[test]
+    fn set_and_read_trig_props_over_range() {
+        let mut c = Clip::new();
+        c.set_trig_prob(0, 3, None, 50);
+        c.set_trig_cond(0, 3, None, 2, 4);
+        c.set_trig_invert(0, 3, None, true);
+        let t = c.governing_trig(2, 60);
+        assert_eq!((t.prob, t.cond_a, t.cond_b, t.invert), (50, 2, 4, true));
+        let u = c.governing_trig(9, 60);
+        assert_eq!((u.prob, u.cond_a, u.cond_b, u.invert), (100, 1, 1, false));
+    }
+
+    #[test]
+    fn drum_lane_trig_is_pitch_specific() {
+        let mut c = Clip::new();
+        c.set_trig_prob(0, 0, Some(36), 25);
+        assert_eq!(c.governing_trig(0, 36).prob, 25);
+        assert_eq!(c.governing_trig(0, 38).prob, 100);
+    }
+
+    #[test]
+    fn lane_specific_trig_overrides_step_wide() {
+        let mut c = Clip::new();
+        c.set_trig_prob(0, 0, None, 80);
+        c.set_trig_prob(0, 0, Some(36), 10);
+        assert_eq!(c.governing_trig(0, 36).prob, 10);
+        assert_eq!(c.governing_trig(0, 38).prob, 80);
+    }
+
+    #[test]
+    fn trig_pruned_when_back_to_defaults() {
+        let mut c = Clip::new();
+        c.set_trig_prob(0, 0, None, 50);
+        assert_eq!(c.trigs.len(), 1);
+        c.set_trig_prob(0, 0, None, 100);
+        assert!(c.trigs.is_empty());
+    }
+
+    #[test]
+    fn condition_truth_table() {
+        for n in 1..=5 { assert!(condition_plays(1, 1, false, n)); }
+        assert!(condition_plays(1, 2, false, 1));
+        assert!(!condition_plays(1, 2, false, 2));
+        assert!(condition_plays(1, 2, false, 3));
+        assert!(!condition_plays(2, 2, false, 1));
+        assert!(condition_plays(2, 2, false, 2));
+        assert!(condition_plays(2, 4, false, 2));
+        assert!(condition_plays(2, 4, false, 6));
+        assert!(!condition_plays(2, 4, false, 3));
+        assert!(condition_plays(4, 7, false, 4));
+        assert!(condition_plays(4, 7, false, 11));
+        assert!(!condition_plays(4, 7, false, 5));
+        assert!(!condition_plays(1, 2, true, 1));
+        assert!(condition_plays(1, 2, true, 2));
+    }
 
     #[test]
     fn toggle_adds_then_removes() {

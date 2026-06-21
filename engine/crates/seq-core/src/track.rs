@@ -32,6 +32,9 @@ pub struct Track {
     /// yet → force emit). The latch carry: an unlocked, note-free step holds
     /// this. Runtime-only (derived; not persisted).
     pub auto_cur: [i16; 8],
+    /// 1-based pattern play count for the playing clip, for A:B trig conditions.
+    /// Reset to 1 on (re)start/launch, incremented on each loop wrap. Not persisted.
+    pub cycle: u32,
 }
 
 impl Default for Track {
@@ -55,6 +58,7 @@ impl Track {
             lane_label: Default::default(),
             last_auto_step: -1,
             auto_cur: [-1; 8],
+            cycle: 1,
         }
     }
 
@@ -82,6 +86,11 @@ impl Track {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn new_track_cycle_is_one() {
+        assert_eq!(Track::new().cycle, 1);
+    }
 
     #[test]
     fn new_track_has_unassigned_lanes() {

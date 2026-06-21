@@ -50,6 +50,21 @@ pub fn serialize(engine: &Engine) -> String {
                 }
                 s.push('\n');
             }
+            if !c.trigs.is_empty() {
+                s.push_str(&format!("tg {} {} ", ti, ci));
+                for (i, tr) in c.trigs.iter().enumerate() {
+                    if i > 0 {
+                        s.push(';');
+                    }
+                    // step:lane:prob:a:b:inv  (lane = pitch or -1 for melodic)
+                    let lane = tr.lane.map_or(-1i16, |p| p as i16);
+                    s.push_str(&format!(
+                        "{}:{}:{}:{}:{}:{}",
+                        tr.step, lane, tr.props.prob, tr.props.cond_a, tr.props.cond_b, tr.props.invert as u8
+                    ));
+                }
+                s.push('\n');
+            }
         }
     }
     s
@@ -109,6 +124,7 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
                 }
             }
             Some("lk") => load_locks(engine, &mut it),
+            Some("tg") => load_trigs(engine, &mut it),
             _ => {}
         }
     }
@@ -133,6 +149,39 @@ fn load_locks<'a>(engine: &mut Engine, it: &mut impl Iterator<Item = &'a str>) {
                 {
                     engine.tracks[track].clips[slot].set_lock(lane & 7, step, val.min(127));
                 }
+            }
+        }
+    }
+}
+
+fn load_trigs<'a>(engine: &mut Engine, it: &mut impl Iterator<Item = &'a str>) {
+    let track = it.next().and_then(|x| x.parse::<usize>().ok());
+    let slot = it.next().and_then(|x| x.parse::<usize>().ok());
+    let (Some(track), Some(slot)) = (track, slot) else {
+        return;
+    };
+    if track >= engine.tracks.len() || slot >= 8 {
+        return;
+    }
+    if let Some(list) = it.next() {
+        for tok in list.split(';') {
+            let p: Vec<&str> = tok.split(':').collect();
+            if p.len() != 6 {
+                continue;
+            }
+            if let (Some(step), Some(lane_raw), Some(prob), Some(a), Some(b), Some(inv)) = (
+                p[0].parse::<u16>().ok(),
+                p[1].parse::<i16>().ok(),
+                p[2].parse::<u8>().ok(),
+                p[3].parse::<u8>().ok(),
+                p[4].parse::<u8>().ok(),
+                p[5].parse::<u8>().ok(),
+            ) {
+                let lane = if (0..128).contains(&lane_raw) { Some(lane_raw as u8) } else { None };
+                let c = &mut engine.tracks[track].clips[slot];
+                c.set_trig_prob(step, step, lane, prob.min(100));
+                c.set_trig_cond(step, step, lane, a.max(1), b.max(1));
+                c.set_trig_invert(step, step, lane, inv != 0);
             }
         }
     }
@@ -213,6 +262,21 @@ mod tests {
         assert_eq!(e2.tracks[0].lane_label[1], "synth:cutoff");
         assert_eq!(e2.tracks[0].lane_base[1], 70);
         assert_eq!(e2.tracks[0].active().lock_at(1, 3), Some(55));
+    }
+
+    #[test]
+    fn round_trips_trigs() {
+        let mut e = Engine::new(44100, 12000);
+        e.tracks[0].active_mut().toggle_step(2, &[(60, 100)]);
+        e.tracks[0].active_mut().set_trig_prob(2, 2, None, 30);
+        e.tracks[0].active_mut().set_trig_cond(2, 2, None, 1, 4);
+        e.tracks[0].active_mut().set_trig_invert(2, 2, Some(36), true);
+        let s = serialize(&e);
+        let mut e2 = Engine::new(44100, 12000);
+        assert!(load(&mut e2, &s));
+        let a = e2.tracks[0].active().governing_trig(2, 60);
+        assert_eq!((a.prob, a.cond_a, a.cond_b), (30, 1, 4));
+        assert!(e2.tracks[0].active().governing_trig(2, 36).invert);
     }
 
     #[test]

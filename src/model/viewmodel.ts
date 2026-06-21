@@ -42,7 +42,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             const renorm = (val: number) => (p.min === p.max)
                 ? 0 : Math.max(0, Math.min(1, (val - p.min) / (p.max - p.min)));
             const nv = (v === null || v === undefined) ? 0 : renorm(v);
-            const enumIdx = (p.type === 'enum' && typeof v === 'number') ? Math.round(v) : 0;
+            let enumIdx = (p.type === 'enum' && typeof v === 'number') ? Math.round(v) : 0;
             const dv = p.type === 'file'
                 ? (s.fileValues[gi] ? basename(s.fileValues[gi] as string) : '—')
                 : p.nameKey
@@ -64,11 +64,13 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
                 touched = true;
                 displayValue = formatValue(p, hv);
                 arcValue = renorm(hv);
+                if (p.type === 'enum') enumIdx = Math.round(hv);
             } else if (!auto.held && lane >= 0 && auto.liveValues.has(lane)) {
                 const lv = auto.liveValues.get(lane) as number;
                 touched = true;
                 displayValue = formatValue(p, lv);
                 arcValue = renorm(lv);
+                if (p.type === 'enum') enumIdx = Math.round(lv);
             }
             rows[row].push({
                 shortName:       shortNames[physK],

@@ -42,7 +42,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             const renorm = (val: number) => (p.min === p.max)
                 ? 0 : Math.max(0, Math.min(1, (val - p.min) / (p.max - p.min)));
             const nv = (v === null || v === undefined) ? 0 : renorm(v);
-            let enumIdx = (p.type === 'enum' && typeof v === 'number') ? Math.round(v) : 0;
+            const enumIdx = (p.type === 'enum' && typeof v === 'number') ? Math.round(v) : 0;
             const dv = p.type === 'file'
                 ? (s.fileValues[gi] ? basename(s.fileValues[gi] as string) : '—')
                 : p.nameKey
@@ -64,13 +64,11 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
                 touched = true;
                 displayValue = formatValue(p, hv);
                 arcValue = renorm(hv);
-                if (p.type === 'enum') enumIdx = Math.round(hv);
             } else if (!auto.held && lane >= 0 && auto.liveValues.has(lane)) {
                 const lv = auto.liveValues.get(lane) as number;
                 touched = true;
                 displayValue = formatValue(p, lv);
                 arcValue = renorm(lv);
-                if (p.type === 'enum') enumIdx = Math.round(lv);
             }
             rows[row].push({
                 shortName:       shortNames[physK],
@@ -117,19 +115,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         touchedSlot:    primary >= 0 ? primary : null,
         toast,
         overlay: s.enumOverlay
-            ? { slot: s.enumOverlay.slot, options: s.enumOverlay.options, selected: (() => {
-                // Follow the held-step or live-record automation value so the
-                // overlay scrolls visually even though automation consumed the turns.
-                const op = s.knobParams[s.enumOverlay.gi];
-                if (op) {
-                    const ol = auto.laneForKey(op.key);
-                    if (auto.held && ol >= 0 && auto.heldValues.has(ol))
-                        return Math.round(auto.heldValues.get(ol) as number);
-                    if (!auto.held && ol >= 0 && auto.liveValues.has(ol))
-                        return Math.round(auto.liveValues.get(ol) as number);
-                }
-                return s.enumOverlay.selected;
-            })() }
+            ? { slot: s.enumOverlay.slot, options: s.enumOverlay.options, selected: s.enumOverlay.selected }
             : s.fileOverlay
             ? { slot: s.fileOverlay.slot, options: s.fileOverlay.items.map(p => basename(p).slice(0, 12)), selected: s.fileOverlay.selected }
             : null,

@@ -8,7 +8,6 @@
  * a per-(track,lane) live 0..127 accumulator, reseeded only when the edit
  * context changes (held step vs. base), and emit the engine command from it. */
 import type { KnobParamInfo } from '../model/store.js';
-import { ENUM_DELTA_DIV } from '../model/constants.js';
 import { seqCmd, requestLabelSync } from './engine.js';
 import { seqState } from './state.js';
 import { seqToast } from './render.js';
@@ -205,17 +204,7 @@ export function handleAutomationKnob(
     const seed = held
         ? (seqState.heldLocks.get(lane) ?? norm7(info.value, info.min, info.max))
         : norm7(info.value, info.min, info.max);
-    // Enum params work on a 0-127 accumulator but need ENUM_DELTA_DIV physical
-    // turns per option step, matching applyKnobDelta's feel. Scale the raw delta
-    // to the 0-127 range proportionally; Math.sign guard ensures a non-zero
-    // delta always produces at least ±1 movement (for large-option enums).
-    // Math.sign preserves direction; Math.max(1,…) ensures a non-zero delta never
-    // rounds to 0 (large-option enums). Using Math.abs avoids the pitfall of
-    // Math.max(-1, -11) = -1, which made CCW turns 11× too slow.
-    const effDelta = (info.type === 'enum' && info.max > info.min)
-        ? Math.sign(delta) * Math.max(1, Math.round(Math.abs(delta) * 127 / info.max / ENUM_DELTA_DIV))
-        : delta;
-    const next = accumLive(track, lane, ctx, seed, effDelta);
+    const next = accumLive(track, lane, ctx, seed, delta);
     // Holding a bar in Loop mode writes the value across the whole bar.
     const r = held ? heldRange() : null;
     if (r && r.s1 > r.s0) {

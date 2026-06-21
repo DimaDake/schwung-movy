@@ -127,7 +127,7 @@ export function loadHierarchy(s: ModelState): void {
                         options, min, max, step, renderStyle,
                         // Global-bank params aren't reachable as chain target:params
                         // (device spike), so they can't be automated.
-                        automatable: (type === 'float' || type === 'int' || type === 'enum') && max > min && !bank.global,
+                        automatable: (type === 'float' || type === 'int') && max > min && !bank.global,
                     };
                     /* File slots carry browse metadata. The module config (mrdrums.json)
                      * is authoritative; chain_params (root/filter/start_path) is the
@@ -329,7 +329,7 @@ export function loadHierarchy(s: ModelState): void {
                 // Config-less fallback: the `g_` global-naming convention is the
                 // only signal available here. Modules with a movy config use
                 // bank.global instead (see the config path above).
-                automatable: (type === 'float' || type === 'int' || type === 'enum') && max > min && !key.startsWith('g_'),
+                automatable: (type === 'float' || type === 'int') && max > min && !key.startsWith('g_'),
             });
         }
     }

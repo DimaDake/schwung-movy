@@ -209,8 +209,11 @@ export function handleAutomationKnob(
     // turns per option step, matching applyKnobDelta's feel. Scale the raw delta
     // to the 0-127 range proportionally; Math.sign guard ensures a non-zero
     // delta always produces at least ±1 movement (for large-option enums).
+    // Math.sign preserves direction; Math.max(1,…) ensures a non-zero delta never
+    // rounds to 0 (large-option enums). Using Math.abs avoids the pitfall of
+    // Math.max(-1, -11) = -1, which made CCW turns 11× too slow.
     const effDelta = (info.type === 'enum' && info.max > info.min)
-        ? Math.max(Math.sign(delta), Math.round(delta * 127 / info.max / ENUM_DELTA_DIV))
+        ? Math.sign(delta) * Math.max(1, Math.round(Math.abs(delta) * 127 / info.max / ENUM_DELTA_DIV))
         : delta;
     const next = accumLive(track, lane, ctx, seed, effDelta);
     // Holding a bar in Loop mode writes the value across the whole bar.

@@ -2778,6 +2778,84 @@ _log('\nautomation label sync:');
     eq('no aclr for the valid lane', q.includes('aclr 0 1'), false);
 }
 
+/* ── Bug fix: enum effDelta for negative (counterclockwise) turns ─────────── */
+_log('\nautomation: enum delta scaling (counterclockwise):');
+{
+    const { resetAutomation, handleAutomationKnob, norm7 } = await import('../dist/esm/seq/automation.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+
+    // 4-option enum starting at max (option 3), turning CCW.
+    const info = {
+        gi: 0, key: 'mode', ioKey: 'mode', target: 'synth',
+        value: 3, min: 0, max: 3, type: 'enum', automatable: true,
+    };
+
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    seqState.stepAutoMode = true; seqState.holdStep = 0;
+    // seed = norm7(3, 0, 3) = 127
+    // correct effDelta per turn = -(max(1, round(1*127/3/4))) = -11
+    // After 4 CCW turns: 127 - 44 = 83 (near option 2 "HP")
+    // broken effDelta (Math.max bug): -1 per turn → 127 - 4 = 123 (still option 3)
+    for (let i = 0; i < 4; i++) handleAutomationKnob(0, 0, info, -1, () => true);
+    const q = peekSeqCmdQueue();
+    const lastAset = q.filter((o) => o.startsWith('aset 0 0 0 ')).at(-1);
+    const v = parseInt(lastAset?.split(' ').at(-1) ?? '127');
+    eq('4 CCW turns move accumulator down by ~44 (v in 79..87)', v >= 79 && v <= 87, true);
+    eq('4 CCW turns NOT stuck near 127 (v < 117)', v < 117, true);
+}
+
+/* ── Bug fix: enum overlay selected follows held-step automation ──────────── */
+_log('\nautomation: enum overlay selected tracks held lock:');
+{
+    const m = bootModel(MOCK_SYNTHS.test_long_enum);
+    // knob 0 = mode (8 options ["Opt0".."Opt7"]), base = 0 (Opt0)
+    const modeKey = m.getKnobParamInfo(0)?.key;  // 'mode'
+    // Touch opens the overlay (8 options > 6 threshold)
+    m.handleKnobTouch(0);
+    const baseVm = m.getViewModel();
+    eq('overlay opens on touch', baseVm.overlay !== null, true);
+    eq('overlay initially shows base value (0)', baseVm.overlay?.selected, 0);
+
+    // Now simulate a held-step automation lock at option 5.
+    const heldAuto = {
+        assignedLanes: 0b1, activeLanes: 0b1, held: true, poolFull: false,
+        heldValues: new Map([[0, 5]]),   // lane 0 locked to value=5 (Opt5)
+        liveValues: new Map(),
+        laneForKey: (key) => (key === modeKey ? 0 : -1),
+    };
+    const autoVm = m.getViewModel(heldAuto);
+    eq('overlay selected follows held-step lock (5=Opt5)', autoVm.overlay?.selected, 5);
+    eq('overlay options unchanged', autoVm.overlay?.options.length, 8);
+
+    // Live-record: option 2
+    const liveAuto = {
+        assignedLanes: 0b1, activeLanes: 0b1, held: false, poolFull: false,
+        heldValues: new Map(), liveValues: new Map([[0, 2]]),
+        laneForKey: (key) => (key === modeKey ? 0 : -1),
+    };
+    const liveVm = m.getViewModel(liveAuto);
+    eq('overlay selected follows live value (2=Opt2)', liveVm.overlay?.selected, 2);
+}
+
+/* ── Bug fix: handleKnobRelease(k, false) closes overlay without commit ──── */
+_log('\nautomation: handleKnobRelease no-commit in step-auto:');
+{
+    const m = bootModel(MOCK_SYNTHS.test_long_enum);
+    m.handleKnobTouch(0);
+    eq('overlay open before release', m.getViewModel().overlay !== null, true);
+
+    // Track shadow_set_param calls during release
+    const calls = [];
+    const origSet = globalThis.shadow_set_param;
+    globalThis.shadow_set_param = (...args) => { calls.push(args); return true; };
+    m.handleKnobRelease(0, /* commit= */ false);
+    globalThis.shadow_set_param = origSet;
+
+    eq('no-commit release: shadow_set_param not called', calls.length, 0);
+    eq('no-commit release: overlay is closed', m.getViewModel().overlay, null);
+}
+
 /* ── automation: enum params are automatable ──────────────────────────────── */
 _log('\nautomation: enum params are automatable:');
 {

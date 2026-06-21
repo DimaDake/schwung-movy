@@ -62,6 +62,24 @@ export const MOCK_SYNTHS = {
         ),
     },
 
+    test_long_enum: {
+        "synth:name": "LongEnum",
+        "synth:ui_hierarchy": hier([
+            { key: "mode", label: "Mode", type: "enum",
+              options: ["Opt0","Opt1","Opt2","Opt3","Opt4","Opt5","Opt6","Opt7"] },
+            { key: "freq", label: "Freq", type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "res",  label: "Res",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "vol",  label: "Vol",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "atk",  label: "Atk",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "dcy",  label: "Dcy",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "sus",  label: "Sus",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "rel",  label: "Rel",  type: "float", min: 0, max: 1, step: 0.01 },
+        ]),
+        "synth:mode": "0",
+        "synth:freq": "0.50", "synth:res": "0.30", "synth:vol": "0.80",
+        "synth:atk":  "0.05", "synth:dcy": "0.40", "synth:sus": "0.60", "synth:rel": "0.30",
+    },
+
     test_enum: {
         "synth:name": "Enums",
         "synth:ui_hierarchy": hier([

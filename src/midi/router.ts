@@ -67,7 +67,10 @@ export function onMidiMessageInternal(data: number[]): void {
             automationKnobTouched(d1);    // arm tap-to-clear in step-auto mode
         } else {
             const info = knobModel()?.getKnobParamInfo(d1) ?? null;
-            if (knobModel()?.handleKnobRelease(d1)) seqToast('Wrong preset type');
+            // Don't commit the enum overlay selection in step-auto mode: automation
+            // owns the value; committing the base would overwrite the locked DSP param.
+            const commit = !(seqState.stepAutoMode && info?.automatable);
+            if (knobModel()?.handleKnobRelease(d1, commit)) seqToast('Wrong preset type');
             if (info) automationKnobReleased(appState.activeSlot, d1, info);
         }
         return;

@@ -124,13 +124,15 @@ export function createModel(slot: number, componentKey = 'synth') {
 
         /* Returns true if a file selection was rejected (wrong preset type) so
          * the router can surface a toast — keeps the model free of the seq layer. */
-        handleKnobRelease(k?: number): boolean {
+        handleKnobRelease(k?: number, commit = true): boolean {
             let fileRejected = false;
             if (s.enumOverlay && (k === undefined || k === s.enumOverlay.slot)) {
-                const p = s.knobParams[s.enumOverlay.gi];
-                if (p) {
-                    s.knobValues[s.enumOverlay.gi] = s.enumOverlay.selected;
-                    shadow_set_param(s.activeSlot, s.componentKey + ':' + p.key, String(s.enumOverlay.selected));
+                if (commit) {
+                    const p = s.knobParams[s.enumOverlay.gi];
+                    if (p) {
+                        s.knobValues[s.enumOverlay.gi] = s.enumOverlay.selected;
+                        shadow_set_param(s.activeSlot, s.componentKey + ':' + p.key, String(s.enumOverlay.selected));
+                    }
                 }
                 s.enumOverlay = null;
             }

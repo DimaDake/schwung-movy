@@ -4,6 +4,7 @@ import { applyKnobDelta, knobParamInfo, reseedPadParams }   from './store.js';
 import { buildViewModel }   from './viewmodel.js';
 import { processTick }      from './tick.js';
 import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV } from './constants.js';
+import { enumUsesIndex, enumSetValue } from './enum-value.js';
 import { basename, dirname } from './path.js';
 import { fileContentAllows } from './file-validate.js';
 import { mlog } from '../log.js';
@@ -127,10 +128,18 @@ export function createModel(slot: number, componentKey = 'synth') {
         handleKnobRelease(k?: number): boolean {
             let fileRejected = false;
             if (s.enumOverlay && (k === undefined || k === s.enumOverlay.slot)) {
-                const p = s.knobParams[s.enumOverlay.gi];
+                const gi = s.enumOverlay.gi;
+                const p = s.knobParams[gi];
                 if (p) {
-                    s.knobValues[s.enumOverlay.gi] = s.enumOverlay.selected;
-                    shadow_set_param(s.activeSlot, s.componentKey + ':' + p.key, String(s.enumOverlay.selected));
+                    const idx = s.enumOverlay.selected;
+                    s.knobValues[gi] = idx;
+                    // Send in the module's own enum format (name vs index), learned
+                    // on read; probe once if this enum was never read.
+                    if (s.enumFmt[gi] === undefined) {
+                        s.enumFmt[gi] = enumUsesIndex(p.options, shadow_get_param(s.activeSlot, s.componentKey + ':' + p.key));
+                    }
+                    shadow_set_param(s.activeSlot, s.componentKey + ':' + p.key,
+                                     enumSetValue(p.options, idx, s.enumFmt[gi] as boolean));
                 }
                 s.enumOverlay = null;
             }

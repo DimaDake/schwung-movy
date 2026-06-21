@@ -22,6 +22,10 @@ export interface ModelState {
     componentKey:        string;
     knobParams:          (KnobParam | null)[];
     knobValues:          (number | null)[];
+    /* Per-param (by gi) enum exchange format, learned on read: true = module
+     * uses the numeric index, false = option name. Drives set_param formatting
+     * without re-reading. Undefined until first read (defaults to index). */
+    enumFmt:             (boolean | undefined)[];
     fileValues:          (string | null)[];
     pendingDeltas:       number[];
     enumAccums:          number[];
@@ -55,6 +59,7 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         componentKey,
         knobParams:          [],
         knobValues:          [],
+        enumFmt:             [],
         fileValues:          [],
         pendingDeltas:       new Array(KNOBS_PER_PAGE).fill(0) as number[],
         enumAccums:          new Array(KNOBS_PER_PAGE).fill(0) as number[],

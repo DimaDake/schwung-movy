@@ -6,6 +6,7 @@
  */
 
 import { createModel }    from '../dist/esm/model/index.js';
+import { enumRawToIndex, enumUsesIndex, enumSetValue } from '../dist/esm/model/enum-value.js';
 import { MOCK_SYNTHS }    from './mock-synth.mjs';
 import { drumPadOn, drumPadOff } from '../dist/esm/keyboard/drum-handler.js';
 import { ENGINE_VERSION } from '../dist/esm/seq/constants.js';
@@ -288,6 +289,61 @@ _log('\nTest: file overlay commits on release');
     m.handleKnobRelease(0);
     eq('file overlay: committed to shadow', env.params['synth:sample'], '/data/UserData/Samples/snare.wav');
     eq('file overlay: dismissed',          m.getViewModel().overlay, null);
+}
+
+/* ── enum value format: name-based vs index-based modules ─────────────────── */
+
+_log('\nTest: enum value format helpers');
+
+{
+    const div = ["1/4.", "1/4", "1/4T", "1/8.", "1/8", "1/8T", "1/16.", "1/16", "1/16T", "1/32"];
+    eq('rawToIndex: name → index',        enumRawToIndex(div, "1/8."), 3);
+    eq('rawToIndex: index string → index', enumRawToIndex(div, "3"),    3);
+    eq('rawToIndex: out-of-range clamps',  enumRawToIndex(div, "99"),   9);
+    eq('rawToIndex: garbage → 0',          enumRawToIndex(div, "xyz"),  0);
+    eq('usesIndex: known name → false',    enumUsesIndex(div, "1/8."),  false);
+    eq('usesIndex: numeric → true',        enumUsesIndex(div, "2"),     true);
+    eq('usesIndex: null → true (legacy)',  enumUsesIndex(div, null),    true);
+    eq('setValue: name format',            enumSetValue(div, 3, false), "1/8.");
+    eq('setValue: index format',           enumSetValue(div, 3, true),  "3");
+}
+
+_log('\nTest: name-based enum reads back to the right option (not parseFloat-collapsed)');
+
+{
+    const m  = bootModel(MOCK_SYNTHS.name_enum);
+    for (let i = 0; i < 20; i++) m.tick();   // let staggered refresh read division
+    const vm = m.getViewModel();
+    // "1/8" is index 4; the old parseFloat("1/8")===1 bug pinned this to "1/4".
+    eq('name enum: division shows 1/8', vm.rows[0][0].displayValue, '1/8');
+    eq('name enum: enumIndex = 4',      vm.rows[0][0].enumIndex,    4);
+}
+
+_log('\nTest: name-based enum overlay commits the option NAME (arp-style module)');
+
+{
+    const m = bootModel(MOCK_SYNTHS.name_enum);
+    for (let i = 0; i < 20; i++) m.tick();
+    m.handleKnobTouch(0);                 // division has 10 options → overlay opens
+    eq('name enum: overlay seeded at 4', m.getViewModel().overlay?.selected, 4);
+    m.handleKnobDelta(0, -4);             // ENUM_DELTA_DIV=4 → one step back → index 3
+    m.handleKnobRelease(0);
+    eq('name enum: committed NAME 1/8.', env.params['synth:division'], '1/8.');
+    eq('name enum: not the index "3"',   env.params['synth:division'] === '3', false);
+}
+
+_log('\nTest: index-based enum (majority) is unchanged — reads + commits the INDEX');
+
+{
+    const m  = bootModel(MOCK_SYNTHS.index_enum);
+    for (let i = 0; i < 20; i++) m.tick();
+    const vm = m.getViewModel();
+    eq('index enum: model shows Wave', vm.rows[0][0].displayValue, 'Wave');  // index 2
+    eq('index enum: enumIndex = 2',    vm.rows[0][0].enumIndex,    2);
+    m.handleKnobTouch(0);                 // 8 options → overlay opens
+    m.handleKnobDelta(0, 4);              // one step forward → index 3
+    m.handleKnobRelease(0);
+    eq('index enum: committed INDEX "3"', env.params['synth:model'], '3');
 }
 
 /* ── viewmodel: file display value and browseHint ─────────────────────────── */

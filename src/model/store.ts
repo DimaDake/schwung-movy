@@ -3,6 +3,7 @@ import type { ModelState } from './state.js';
 import { KNOBS_PER_PAGE, ENUM_DELTA_DIV, ARC_DELTA_SCALE, REFRESH_SUPPRESS_TICKS } from './constants.js';
 import { moduleReadKey } from '../chain/config.js';
 import { concreteKey } from './pad-scope.js';
+import { enumRawToIndex, enumUsesIndex, enumSetValue } from './enum-value.js';
 import { mlog } from '../log.js';
 
 /* The key movy uses to read/write/automate a param. For a pad-scoped drum param
@@ -11,6 +12,16 @@ import { mlog } from '../log.js';
  * param's own key. */
 export function paramIoKey(s: ModelState, p: KnobParam): string {
     return concreteKey(s.moduleConfig?.drum?.padScoping, s.drumCurrentPad, p.key);
+}
+
+/* Cached enum exchange format for (gi). Learned on every enum read, so this is
+ * normally a hit; the get_param probe runs only for an enum never yet read
+ * (e.g. committed before its first refresh) — not per turn. */
+function enumFmtFor(s: ModelState, gi: number, p: KnobParam, ioKey: string): boolean {
+    if (s.enumFmt[gi] === undefined) {
+        s.enumFmt[gi] = enumUsesIndex(p.options, shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey));
+    }
+    return s.enumFmt[gi] as boolean;
 }
 
 export function formatValue(p: KnobParam, v: number | null | undefined): string {
@@ -62,8 +73,13 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
     if (s.knobValues[gi] === null || s.knobValues[gi] === undefined) {
         const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey);
         if (raw === null && !p.key.startsWith('test_')) return;
-        const v = parseFloat(raw ?? '');
-        s.knobValues[gi] = (raw === null || isNaN(v)) ? p.min : v;
+        if (p.type === 'enum') {
+            s.enumFmt[gi] = enumUsesIndex(p.options, raw);
+            s.knobValues[gi] = raw === null ? p.min : enumRawToIndex(p.options, raw);
+        } else {
+            const v = parseFloat(raw ?? '');
+            s.knobValues[gi] = (raw === null || isNaN(v)) ? p.min : v;
+        }
     }
 
     const arcScale = p.renderStyle === 'arc' ? ARC_DELTA_SCALE : 1;
@@ -74,7 +90,9 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
     // enum: store as float for fractional accumulation; read sites use Math.round
     s.knobValues[gi] = newVal;
 
-    const valStr = (p.type === 'float') ? newVal.toFixed(4) : String(Math.round(newVal));
+    const valStr = p.type === 'enum'
+        ? enumSetValue(p.options, Math.round(newVal), enumFmtFor(s, gi, p, ioKey))
+        : (p.type === 'float') ? newVal.toFixed(4) : String(Math.round(newVal));
     mlog('set slot=' + s.activeSlot + ' gi=' + gi + ' key=' + s.componentKey + ':' + ioKey + ' val=' + valStr);
     const ok = p.key.startsWith('test_') ? true : shadow_set_param(s.activeSlot, s.componentKey + ':' + ioKey, valStr);
     mlog('set_param returned ' + ok);
@@ -97,8 +115,13 @@ export function reseedPadParams(s: ModelState): void {
         if (p.type === 'file') {
             s.fileValues[i] = raw;
         } else if (raw !== null) {
-            const v = parseFloat(raw);
-            s.knobValues[i] = isNaN(v) ? p.min : v;
+            if (p.type === 'enum') {
+                s.enumFmt[i] = enumUsesIndex(p.options, raw);
+                s.knobValues[i] = enumRawToIndex(p.options, raw);
+            } else {
+                const v = parseFloat(raw);
+                s.knobValues[i] = isNaN(v) ? p.min : v;
+            }
         } else {
             s.knobValues[i] = null;
         }
@@ -132,6 +155,12 @@ export function refreshOneParam(s: ModelState, tickCount: number): void {
 
     const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey);
     if (raw === null) return;
+    if (p.type === 'enum') {
+        s.enumFmt[i] = enumUsesIndex(p.options, raw);
+        const idx = enumRawToIndex(p.options, raw);
+        if (idx !== s.knobValues[i]) { s.knobValues[i] = idx; s.dirty = true; }
+        return;
+    }
     const newVal = parseFloat(raw);
     if (!isNaN(newVal) && newVal !== s.knobValues[i]) {
         s.knobValues[i] = newVal;

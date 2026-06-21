@@ -146,6 +146,7 @@ export function loadHierarchy(s: ModelState): void {
         }
         mlog('loadHierarchy: config for ' + s.moduleId + ', ' + s.moduleConfig.banks.length + ' banks');
         s.knobValues = new Array(s.knobParams.length).fill(null) as (number | null)[];
+        s.enumFmt    = new Array(s.knobParams.length).fill(undefined) as (boolean | undefined)[];
         s.fileValues = new Array(s.knobParams.length).fill(null) as (string | null)[];
         s.dirty = true;
         return;
@@ -335,6 +336,7 @@ export function loadHierarchy(s: ModelState): void {
     }
 
     s.knobValues = new Array(s.knobParams.length).fill(null) as (number | null)[];
+    s.enumFmt    = new Array(s.knobParams.length).fill(undefined) as (boolean | undefined)[];
     s.fileValues = new Array(s.knobParams.length).fill(null) as (string | null)[];
     mlog('loadHierarchy: ' + s.knobParams.filter(Boolean).length + ' params, ' + bankEntries.length + ' banks');
     s.dirty = true;

@@ -84,6 +84,32 @@ export const MOCK_SYNTHS = {
         "synth:vel":    "0.50",
     },
 
+    /* Name-based enums (like the arp midi_fx): get/set speak the option NAME,
+     * not the index. `division` has >6 options → opens the overlay. */
+    name_enum: {
+        "synth:name": "ArpLike",
+        "synth:ui_hierarchy": hier([
+            { key: "division", label: "Div",  type: "enum",
+              options: ["1/4.", "1/4", "1/4T", "1/8.", "1/8", "1/8T", "1/16.", "1/16", "1/16T", "1/32"] },
+            { key: "sync",     label: "Sync", type: "enum", options: ["internal", "clock"] },
+        ]),
+        "synth:division": "1/8",   // name string (index 4), not "4"
+        "synth:sync":     "internal",
+    },
+
+    /* Index-based enum with >6 options (overlay) — the majority case; the value
+     * is reported/accepted as a numeric index. Must keep working unchanged. */
+    index_enum: {
+        "synth:name": "IdxSynth",
+        "synth:ui_hierarchy": hier([
+            { key: "model", label: "Model", type: "enum",
+              options: ["VA", "Phase", "Wave", "String", "VirtAn", "Shape", "FM", "Gran"] },
+            { key: "cutoff", label: "Cut", type: "float", min: 0, max: 1, step: 0.01 },
+        ]),
+        "synth:model":  "2",   // index string (→ "Wave"), not a name
+        "synth:cutoff": "0.50",
+    },
+
     plaits: {
         "synth:name":   "Plaits",
         "synth:module": "plaits",

@@ -8,7 +8,7 @@ import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
 import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteTrack, seqRestoreWatch } from '../seq/router.js';
 import { anyStepHeld, editStepPageKnob } from '../seq/step-edit.js';
-import { stepPageState, setStepPageSelected } from '../seq/step-page.js';
+import { stepPageState, setStepPageSelected, setStepTouchedKnob } from '../seq/step-page.js';
 import { seqState } from '../seq/state.js';
 import { WHITE_BRIGHT, WHITE_DIM } from '../seq/colors.js';
 import { momentaryDown, momentaryUp } from '../seq/momentary.js';
@@ -57,6 +57,13 @@ export function onMidiMessageInternal(data: number[]): void {
     /* Capacitive knob touch: NoteOn note=0..7. Hold-Clear (Delete) + touch
      * clears that knob's automation lane. */
     if ((status & 0xF0) === 0x90 && d1 < 8) {
+        // Step page owns the knobs: a touch shows that param's top toast; the
+        // step params are intrinsic (no automation lane / model touch).
+        if (seqState.stepAutoMode && stepPageState.selected) {
+            setStepTouchedKnob(d2 > 0 && d1 < 5 ? d1 : -1);
+            appState.dirty = true;
+            return;
+        }
         if (d2 > 0) {
             const info = knobModel()?.getKnobParamInfo(d1) ?? null;
             if (deleteActive() && info) {

@@ -79,6 +79,28 @@ function drawEnumSquare(kx: number, ky: number, options: string[] | null, enumIn
     }
 }
 
+/* Length square: a stacked fraction (numerator / 1px divider / denominator) for
+ * values like "1/4"; a single centered value otherwise (whole-bar counts, "..."). */
+function drawLengthSquare(kx: number, ky: number, text: string): void {
+    fill_rect(kx, ky, KW, 1, 1);
+    fill_rect(kx, ky + KW - 1, KW, 1, 1);
+    fill_rect(kx, ky, 1, KW, 1);
+    fill_rect(kx + KW - 1, ky, 1, KW, 1);
+    const inner = KW - 2;
+    const slash = text.indexOf('/');
+    if (slash > 0) {
+        const num = text.slice(0, slash), den = text.slice(slash + 1);
+        const nw = fontWidth5x3(num), dw = fontWidth5x3(den);
+        const lineW = Math.max(nw, dw);
+        fontPrint5x3(kx + 1 + Math.floor((inner - nw) / 2), ky + 2, num, 1);
+        fill_rect(kx + 1 + Math.floor((inner - lineW) / 2), ky + 7, lineW, 1, 1);
+        fontPrint5x3(kx + 1 + Math.floor((inner - dw) / 2), ky + 8, den, 1);
+    } else {
+        const w = fontWidth5x3(text);
+        fontPrint5x3(kx + 1 + Math.floor((inner - w) / 2), ky + 1 + Math.floor((inner - 5) / 2), text, 1);
+    }
+}
+
 /* Preset knob: the 1-based preset number rendered big in the Nokia font, no
  * frame, centered across the full cell (using the side margins beyond the
  * 16px box). Falls back to the small font if the number is too wide (>=4
@@ -105,6 +127,8 @@ export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
     const ky = rowY;
     if (pvm.renderStyle === 'preset') {
         drawPresetValue(col * CELL_W, ky, pvm);
+    } else if (pvm.type === 'len') {
+        drawLengthSquare(kx, ky, pvm.displayValue);
     } else if (pvm.type === 'file') {
         drawEnumSquare(kx, ky, [pvm.displayValue], 0);
     } else if (pvm.type === 'enum') {

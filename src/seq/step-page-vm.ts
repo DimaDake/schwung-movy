@@ -4,6 +4,7 @@
  * 3 probability (enum square), 4 condition (big preset font), 5 invert (enum
  * square). Knobs 6-8 blank. */
 import type { ViewModel, ParamVM } from '../types/viewmodel.js';
+import { stepPageState } from './step-page.js';
 
 /* Note-length values in ticks (TICKS_PER_STEP=24, whole note/bar=384). */
 export const LENGTH_TICKS: number[] = [
@@ -75,7 +76,8 @@ export function buildStepPageVM(h: HeldTrig): ViewModel {
         displayValue: String(h.holdVel),
     });
     const len = cell({
-        shortName: 'LEN', fullName: 'Length', type: 'enum', options: LENGTH_LABELS,
+        // type 'len' → drawn as a stacked fraction (e.g. 1/4) by drawKnobWidget.
+        shortName: 'LEN', fullName: 'Length', type: 'len', options: LENGTH_LABELS,
         enumIndex: lenIdx, displayValue: h.holdGateMixed ? '...' : LENGTH_LABELS[lenIdx],
     });
     const prob = cell({
@@ -91,10 +93,18 @@ export function buildStepPageVM(h: HeldTrig): ViewModel {
         enumIndex: h.holdInvert ? 1 : 0, displayValue: h.holdInvert ? 'ON' : 'OFF',
     });
 
+    // A touched/turned knob shows the shared top toast (full name + value),
+    // exactly like editing a synth param on a module page.
+    const cells = [vel, len, prob, cond, inv];
+    const tk = stepPageState.touchedKnob;
+    const toast = (tk >= 0 && tk < cells.length)
+        ? { fullName: cells[tk].fullName, value: cells[tk].displayValue, browseHint: false }
+        : null;
+
     return {
         moduleName: 'step', bankName: '', bankIndex: 0, bankCount: 1,
         rows: [[vel, len, prob, cond], [inv, null, null, null]],
-        touchedSlot: null, toast: null, overlay: null, isEmpty: false,
+        touchedSlot: null, toast, overlay: null, isEmpty: false,
         drumPadCount: 0, drumCurrentPad: 0, drumCurrentPhysPad: 0, isPadSpecific: false,
         // Not the automation-hold view: its params are intrinsic, not chain
         // lanes, so they must not be hidden by hiddenDuringHold.

@@ -791,6 +791,17 @@ impl Engine {
         ((sum / count) as u8, gate0.unwrap_or(0), mixed)
     }
 
+    /// Max gate ticks the held note can grow to (cap by next note / clip end),
+    /// 0 when none — lets the UI flag "can't be longer (blocked by next note)".
+    fn held_max_gate(&self) -> u32 {
+        match self.held_query {
+            Some((t, step)) if t < NUM_TRACKS => {
+                self.tracks[t].active().held_note_max_gate(step, self.watch_lane)
+            }
+            _ => 0,
+        }
+    }
+
     /// Resolved trig props at the held step (lane = watch_lane), defaults otherwise.
     fn held_trig(&self) -> crate::clip::TrigProps {
         match self.held_query {
@@ -850,8 +861,9 @@ impl Engine {
         };
         let (hvel, hgate, hgmix) = self.held_note_stats();
         let htp = self.held_trig();
+        let hlmax = self.held_max_gate();
         format!(
-            "play={} tick={} bpm={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={}",
+            "play={} tick={} bpm={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -879,7 +891,8 @@ impl Engine {
             htp.prob,
             htp.cond_a,
             htp.cond_b,
-            htp.invert as u8
+            htp.invert as u8,
+            hlmax
         )
     }
 

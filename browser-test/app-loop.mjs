@@ -395,8 +395,9 @@ _log('\napp-loop: step page navigation + knob editing');
     // Back on the step page, the 5 knobs edit trig props (not chain automation).
     stepPageState.selected = true;
     engine.ops.length = 0;
-    sendMidi([0xB0, 73, 8]); advance(1);      // knob 3 (probability) +1 detent
-    eq('probability knob emits eprob 90', engine.ops.some((o) => o === 'eprob 0 0 0 -1 90'), true);
+    // CW raises probability (already 100 = max → no change); CCW lowers it.
+    sendMidi([0xB0, 73, 120]); advance(1);    // knob 3 (probability) CCW (-8 → -1 detent)
+    eq('probability CCW lowers to 90', engine.ops.some((o) => o === 'eprob 0 0 0 -1 90'), true);
     eq('step page never emits automation aset', engine.ops.some((o) => o.startsWith('aset')), false);
 
     engine.ops.length = 0;
@@ -410,6 +411,14 @@ _log('\napp-loop: step page navigation + knob editing');
     engine.ops.length = 0;
     sendMidi([0xB0, 71, 1]); advance(1);      // knob 1 (velocity) up → evel delta
     eq('velocity knob uses evel delta', engine.ops.some((o) => /^evel 0 0 0 -1 \d+$/.test(o)), true);
+
+    // Length is capped by the next note: with max gate 96 ticks (1/4), turning
+    // length far up clamps to 96 rather than overrunning.
+    seqState.holdGate = 12; seqState.holdMaxGate = 96;
+    engine.ops.length = 0;
+    sendMidi([0xB0, 72, 63]); advance(1);     // knob 2 (length) hard CW
+    const slen = engine.ops.find((o) => o.startsWith('slen'));
+    eq('length clamps to the cap (96 ticks)', slen, 'slen 0 0 0 -1 96');
 
     sendMidi([0x80, 16, 0]);
     seqState.stepAutoMode = false;

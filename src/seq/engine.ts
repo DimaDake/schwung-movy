@@ -181,6 +181,7 @@ function parseStatus(s: string): void {
             seqState.holdCondB = b || 1;
         }
         else if (key === 'hinv') seqState.holdInvert = val === '1';
+        else if (key === 'hlmax') seqState.holdMaxGate = Number(val) || 0;
         else if (key === 'act') activeFromStr(val);
         else if (key === 'mute') muteFromStr(val);
         else if (key === 'sess') sessionFromStr(val);

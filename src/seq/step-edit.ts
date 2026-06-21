@@ -12,7 +12,7 @@ import { NUM_STEP_BUTTONS } from './constants.js';
 import { seqCmd } from './engine.js';
 import { seqToast } from './render.js';
 import { seqState } from './state.js';
-import { onSessionStart, onSessionEnd } from './step-page.js';
+import { onSessionStart, onSessionEnd, setStepTouchedKnob } from './step-page.js';
 import {
     LENGTH_TICKS, PROB_VALUES, COND_PAIRS,
     lengthIndexForTicks, probIndexForPct, condIndexFor,
@@ -107,7 +107,10 @@ export function stepAutoTick(): void {
 
 /* Leave step-automation mode (called on step release when nothing is held). */
 export function endStepAutomation(): void {
-    onSessionEnd();                       // remember if the step page was open
+    // Only record the page memory when a session was actually active — a plain
+    // step tap (no promotion) also lands here and must not clobber the
+    // "reopen step page" flag with the (false) non-session selection state.
+    if (seqState.stepAutoMode) onSessionEnd();
     seqState.stepAutoMode = false;
     seqState.heldLocks.clear();
 }
@@ -266,38 +269,46 @@ export function editStepPageKnob(knob: number, delta: number): boolean {
     if (!anyStepHeld()) return false;
     const t = seqState.watchTrack;
     const ln = lane();
+    setStepTouchedKnob(knob);             // drives the top param toast
     if (knob === 0) {
         // Velocity: delta nudge (preserves chord spread; full CW clamps to max).
         const d = (delta > 0 ? 1 : -1) * VEL_STEP;
         forEach((r) => seqCmd(`evel ${t} ${r.s0} ${r.s1} ${ln} ${d}`));
-        seqToast(d > 0 ? 'Velocity +' : 'Velocity -');
         return true;
     }
     const n = detents(knob, delta);
     if (n === 0) { markGestured(); return true; } // consumed; below detent threshold
     if (knob === 1) {
-        const idx = clampIdx(lengthIndexForTicks(seqState.holdGate) + n, LENGTH_TICKS.length);
-        const ticks = LENGTH_TICKS[idx];
+        let idx = clampIdx(lengthIndexForTicks(seqState.holdGate) + n, LENGTH_TICKS.length);
+        let ticks = LENGTH_TICKS[idx];
+        // The engine caps a note's length at the next same-pitch note / clip end.
+        // When the request exceeds that cap, clamp to the longest length that
+        // fits and tell the user why it can't grow further.
+        const cap = seqState.holdMaxGate;
+        if (cap > 0 && ticks > cap) {
+            for (let i = LENGTH_TICKS.length - 1; i >= 0; i--) {
+                if (LENGTH_TICKS[i] <= cap) { idx = i; break; }
+            }
+            ticks = LENGTH_TICKS[idx];
+            seqToast('Max — blocked by next note');
+        }
         forEach((r) => seqCmd(`slen ${t} ${r.s0} ${r.s1} ${ln} ${ticks}`));
         seqState.holdGate = ticks; seqState.holdGateMixed = false;
-        seqToast('Length ' + idx);
     } else if (knob === 2) {
-        const idx = clampIdx(probIndexForPct(seqState.holdProb) + n, PROB_VALUES.length);
+        // CW (n>0) raises probability; PROB_VALUES is descending, so subtract n.
+        const idx = clampIdx(probIndexForPct(seqState.holdProb) - n, PROB_VALUES.length);
         const pct = PROB_VALUES[idx];
         forEach((r) => seqCmd(`eprob ${t} ${r.s0} ${r.s1} ${ln} ${pct}`));
         seqState.holdProb = pct;
-        seqToast('Prob ' + pct + '%');
     } else if (knob === 3) {
         const idx = clampIdx(condIndexFor(seqState.holdCondA, seqState.holdCondB) + n, COND_PAIRS.length);
         const [a, b] = COND_PAIRS[idx];
         forEach((r) => seqCmd(`econd ${t} ${r.s0} ${r.s1} ${ln} ${a} ${b}`));
         seqState.holdCondA = a; seqState.holdCondB = b;
-        seqToast('Cond ' + a + ':' + b);
     } else if (knob === 4) {
         const on = !seqState.holdInvert; // any turn toggles
         forEach((r) => seqCmd(`einv ${t} ${r.s0} ${r.s1} ${ln} ${on ? 1 : 0}`));
         seqState.holdInvert = on;
-        seqToast(on ? 'Invert On' : 'Invert Off');
     }
     return true;
 }

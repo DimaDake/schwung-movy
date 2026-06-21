@@ -2883,7 +2883,7 @@ _log('\nautomation label sync:');
     const c = vm.rows[0];
     eq('velocity = vbar', c[0].renderStyle, 'vbar');
     eq('velocity bar at avg', Math.abs(c[0].normalizedValue - 100 / 127) < 0.01, true);
-    eq('length = enum', c[1].type, 'enum');
+    eq('length = len (fraction render)', c[1].type, 'len');
     eq('length shows 1/8', c[1].displayValue, '1/8');
     eq('probability shows 40%', c[2].displayValue, '40%');
     eq('condition = preset', c[3].renderStyle, 'preset');
@@ -2892,6 +2892,23 @@ _log('\nautomation label sync:');
     const vm2 = buildStepPageVM({ holdVel: 80, holdGate: 24, holdGateMixed: true,
         holdProb: 100, holdCondA: 1, holdCondB: 1, holdInvert: false });
     eq('mixed length shows ...', vm2.rows[0][1].displayValue, '...');
+}
+
+/* ── step page: a touched knob produces the shared top toast ──────────────── */
+{
+    _log('\nstep page toast:');
+    const { buildStepPageVM } = await import('../dist/esm/seq/step-page-vm.js');
+    const { stepPageState, setStepTouchedKnob } = await import('../dist/esm/seq/step-page.js');
+    const h = { holdVel: 90, holdGate: 96, holdGateMixed: false,
+        holdProb: 70, holdCondA: 1, holdCondB: 2, holdInvert: false };
+    setStepTouchedKnob(-1);
+    eq('no toast when nothing touched', buildStepPageVM(h).toast, null);
+    setStepTouchedKnob(2);                 // probability knob
+    const t = buildStepPageVM(h).toast;
+    eq('touched knob → toast name', t.fullName, 'Probability');
+    eq('touched knob → toast value', t.value, '70%');
+    setStepTouchedKnob(-1);
+    stepPageState.touchedKnob = -1;
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

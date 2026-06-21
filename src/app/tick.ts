@@ -114,7 +114,7 @@ let lastStepTrigSig = '';
 function stepTrigSig(): string {
     return [seqState.holdVel, seqState.holdGate, seqState.holdGateMixed,
         seqState.holdProb, seqState.holdCondA, seqState.holdCondB, seqState.holdInvert,
-        stepPageState.selected].join(',');
+        seqState.holdMaxGate, stepPageState.selected, stepPageState.touchedKnob].join(',');
 }
 
 /* Same idea for the 4×4 drum grid: the drum-pad colors update at poll rate

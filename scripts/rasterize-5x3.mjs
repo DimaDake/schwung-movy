@@ -11,7 +11,7 @@ const __dir = dirname(fileURLToPath(import.meta.url));
 const fontBuf = readFileSync(resolve(__dir, '../../5x3-font.otf'));
 const font = parse(fontBuf.buffer.slice(fontBuf.byteOffset, fontBuf.byteOffset + fontBuf.byteLength));
 
-const CHARS    = ' !"\'()+,-./:0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const CHARS    = ' !"\'()+,-./:0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ%<>=?*';
 const TARGET_H = 5;
 const TARGET_W = 3;
 

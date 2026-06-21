@@ -9,7 +9,11 @@ export const stepPageState = {
     selected: false,
     /** Carried across sessions: the prior session ended on the step page. */
     lastSessionStepPage: false,
+    /** Step-page knob (0..4) currently touched/turned → drives the top toast. -1 = none. */
+    touchedKnob: -1,
 };
+
+export function setStepTouchedKnob(k: number): void { stepPageState.touchedKnob = k; }
 
 /** Session (parameter lock) begins: open the step page iff the last one did. */
 export function onSessionStart(): void {
@@ -34,4 +38,5 @@ export function stepPageActive(sessionActive: boolean): boolean {
 export function resetStepPage(): void {
     stepPageState.selected = false;
     stepPageState.lastSessionStepPage = false;
+    stepPageState.touchedKnob = -1;
 }

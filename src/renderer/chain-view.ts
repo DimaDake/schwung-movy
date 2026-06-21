@@ -14,7 +14,12 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
 
     if (vm.isEmpty) {
         drawHeader(trackLabel, effectiveSlotLabel, false);
-        drawBankBar(chainIndex, 4);
+        if (vm.stepPagePresent) {
+            const sel = vm.stepPageSelected ? 0 : chainIndex + 1;
+            drawBankBar(sel, 5, true);
+        } else {
+            drawBankBar(chainIndex, 4);
+        }
         const msg = 'CLICK JOG: ADD MODULE';
         fontPrint(Math.max(0, Math.floor((W - fontWidth(msg)) / 2)), 28, msg, 1);
         if (jogTouched) drawJogToast('CLICK: ADD MODULE');

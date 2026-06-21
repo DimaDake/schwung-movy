@@ -504,6 +504,22 @@ impl Clip {
         }
     }
 
+    /// Maximum gate (ticks) the first note at (step, lane) may grow to before it
+    /// hits the next same-pitch note or the clip end — the same cap `set_length`
+    /// applies. 0 when no such note. Lets the UI show "blocked by next note".
+    pub fn held_note_max_gate(&self, step: u16, lane: Option<u8>) -> u32 {
+        let Some(n) = self.notes.iter().find(|n| Clip::note_matches(n, step, step, lane)) else {
+            return 0;
+        };
+        let mut cap = self.length_ticks().saturating_sub(n.tick);
+        for o in &self.notes {
+            if o.pitch == n.pitch && o.tick > n.tick {
+                cap = cap.min(o.tick - n.tick);
+            }
+        }
+        cap.max(1)
+    }
+
     /// Remove notes whose step anchor is in [s0, s1] (optionally only the
     /// given pitch — drum-pad delete). Used by Delete gestures.
     pub fn delete_range(&mut self, s0: u16, s1: u16, lane: Option<u8>) {
@@ -599,6 +615,20 @@ mod tests {
         assert_eq!(c.trigs.len(), 1);
         c.set_trig_prob(0, 0, None, 100);
         assert!(c.trigs.is_empty());
+    }
+
+    #[test]
+    fn held_note_max_gate_caps_at_next_note() {
+        let mut c = Clip::new();
+        c.toggle_step(0, &[(60, 100)]);   // note at step 0
+        c.toggle_step(4, &[(60, 100)]);   // same pitch 4 steps later (96 ticks)
+        // The step-0 note can grow to at most 4 steps (96 ticks).
+        assert_eq!(c.held_note_max_gate(0, None), 4 * TICKS_PER_STEP);
+        // A different pitch after it does not cap.
+        let mut d = Clip::new();
+        d.toggle_step(0, &[(60, 100)]);
+        d.toggle_step(2, &[(64, 100)]);
+        assert_eq!(d.held_note_max_gate(0, None), d.length_ticks()); // only clip end caps
     }
 
     #[test]

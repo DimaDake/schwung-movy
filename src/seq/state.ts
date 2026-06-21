@@ -50,6 +50,7 @@ export interface SeqUiState {
     holdCondA: number;       // condition A (from `hcond`)
     holdCondB: number;       // condition B (from `hcond`)
     holdInvert: boolean;     // invert condition (from `hinv`)
+    holdMaxGate: number;     // max gate ticks the held note can grow to (from `hlmax`); 0 = none
 
     /* per-track mute, from `mute=` engine status field */
     muted: boolean[];
@@ -109,6 +110,7 @@ function defaults(): SeqUiState {
         holdCondA: 1,
         holdCondB: 1,
         holdInvert: false,
+        holdMaxGate: 0,
         muted: [false, false, false, false],
         sessionMode: false,
         session: emptySession(),

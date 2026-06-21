@@ -171,6 +171,16 @@ function parseStatus(s: string): void {
                 ? val.split('.').map(Number).filter((n) => n >= 0 && n <= 127)
                 : [];
         }
+        else if (key === 'hvel') seqState.holdVel = Number(val) || 0;
+        else if (key === 'hgate') seqState.holdGate = Number(val) || 0;
+        else if (key === 'hgmix') seqState.holdGateMixed = val === '1';
+        else if (key === 'hprob') seqState.holdProb = Number(val) || 0;
+        else if (key === 'hcond') {
+            const [a, b] = val.split(':').map(Number);
+            seqState.holdCondA = a || 1;
+            seqState.holdCondB = b || 1;
+        }
+        else if (key === 'hinv') seqState.holdInvert = val === '1';
         else if (key === 'act') activeFromStr(val);
         else if (key === 'mute') muteFromStr(val);
         else if (key === 'sess') sessionFromStr(val);

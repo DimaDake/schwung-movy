@@ -32,7 +32,12 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
         }
     }
 
-    drawBankBar(vm.bankIndex, vm.bankCount);
+    if (vm.stepPagePresent) {
+        const sel = vm.stepPageSelected ? 0 : vm.bankIndex + 1;
+        drawBankBar(sel, vm.bankCount + 1, true);
+    } else {
+        drawBankBar(vm.bankIndex, vm.bankCount);
+    }
     drawKnobParams(vm);
 
     if (vm.overlay) drawEnumOverlay(vm);

@@ -167,6 +167,8 @@ export function createModel(slot: number, componentKey = 'synth') {
             return fileRejected;
         },
 
+        getKnobPage(): number { return s.knobPage; },
+
         changePage(delta: number): void {
             if (s.enumOverlay) return;
             const nBanks = numBanks();

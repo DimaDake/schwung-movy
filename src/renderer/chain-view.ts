@@ -31,7 +31,12 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
         drawHeader(trackLabel, right, false);
     }
 
-    drawBankBar(chainIndex, 4);
+    if (vm.stepPagePresent) {
+        const sel = vm.stepPageSelected ? 0 : chainIndex + 1;
+        drawBankBar(sel, 5, true);
+    } else {
+        drawBankBar(chainIndex, 4);
+    }
     drawKnobParams(vm);
 
     if (vm.overlay) drawEnumOverlay(vm);

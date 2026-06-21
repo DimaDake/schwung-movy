@@ -86,8 +86,9 @@ function drawEnumSquare(kx: number, ky: number, options: string[] | null, enumIn
 function drawPresetValue(cellX: number, ky: number, pvm: ParamVM): void {
     const num = pvm.type === 'enum'
         ? pvm.enumIndex + 1
-        : Math.round(Number(pvm.displayValue));
-    const text = Number.isFinite(num) ? String(num) : '—';
+        : Number(pvm.displayValue);
+    // Numeric → render the number; non-numeric (e.g. condition "2:3") → the text.
+    const text = Number.isFinite(num) ? String(Math.round(num)) : (pvm.displayValue || '—');
     const bw = fontWidthBig(text);
     if (bw <= CELL_W) {
         fontPrintBig(cellX + Math.floor((CELL_W - bw) / 2),

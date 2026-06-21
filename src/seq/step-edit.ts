@@ -12,6 +12,11 @@ import { NUM_STEP_BUTTONS } from './constants.js';
 import { seqCmd } from './engine.js';
 import { seqToast } from './render.js';
 import { seqState } from './state.js';
+import { onSessionStart, onSessionEnd } from './step-page.js';
+import {
+    LENGTH_TICKS, PROB_VALUES, COND_PAIRS,
+    lengthIndexForTicks, probIndexForPct, condIndexFor,
+} from './step-page-vm.js';
 
 const TICKS_PER_STEP = 24;             // 96 PPQN / 4 (mirror of seq-core)
 const VEL_STEP = 4;                    // velocity per encoder detent
@@ -81,6 +86,7 @@ export function beginStepAutomation(): number {
     markGestured();                       // release is no longer a tap
     if (!seqState.stepAutoMode) {
         seqState.stepAutoMode = true;
+        onSessionStart();                 // restore step-vs-module page per memory
         seqState.holdStep = r.s0;         // representative step for the held-value display
         seqCmd('hold ' + seqState.watchTrack + ' ' + r.s0);
     }
@@ -101,6 +107,7 @@ export function stepAutoTick(): void {
 
 /* Leave step-automation mode (called on step release when nothing is held). */
 export function endStepAutomation(): void {
+    onSessionEnd();                       // remember if the step page was open
     seqState.stepAutoMode = false;
     seqState.heldLocks.clear();
 }
@@ -228,4 +235,69 @@ export function resetStepEdit(): void {
     coPressed.clear();
     pressMs.clear();
     lastLenTarget = null;
+    resetStepPageKnobs();
+}
+
+/* ── Step parameter page: knob turns edit intrinsic trig props ──────────────
+ * Knob 0 velocity (evel delta), 1 length (slen absolute), 2 probability
+ * (eprob), 3 condition (econd), 4 invert (einv). Enum knobs accumulate small
+ * deltas; one detent steps the value. */
+const STEP_ENUM_DIV = 8;
+const enumAccum = [0, 0, 0, 0, 0];
+
+function detents(knob: number, delta: number): number {
+    enumAccum[knob] += delta;
+    let n = 0;
+    while (enumAccum[knob] >= STEP_ENUM_DIV)  { enumAccum[knob] -= STEP_ENUM_DIV; n++; }
+    while (enumAccum[knob] <= -STEP_ENUM_DIV) { enumAccum[knob] += STEP_ENUM_DIV; n--; }
+    return n;
+}
+
+export function resetStepPageKnobs(): void { enumAccum.fill(0); }
+
+function clampIdx(i: number, len: number): number {
+    return Math.max(0, Math.min(len - 1, i));
+}
+
+/* Route a knob turn on the step page to the trig-property edit it represents.
+ * Returns true if consumed. Uses forEach over the held range(s) so multi-step
+ * and Loop-bar holds all get the edit (and their release won't toggle a note). */
+export function editStepPageKnob(knob: number, delta: number): boolean {
+    if (!anyStepHeld()) return false;
+    const t = seqState.watchTrack;
+    const ln = lane();
+    if (knob === 0) {
+        // Velocity: delta nudge (preserves chord spread; full CW clamps to max).
+        const d = (delta > 0 ? 1 : -1) * VEL_STEP;
+        forEach((r) => seqCmd(`evel ${t} ${r.s0} ${r.s1} ${ln} ${d}`));
+        seqToast(d > 0 ? 'Velocity +' : 'Velocity -');
+        return true;
+    }
+    const n = detents(knob, delta);
+    if (n === 0) { markGestured(); return true; } // consumed; below detent threshold
+    if (knob === 1) {
+        const idx = clampIdx(lengthIndexForTicks(seqState.holdGate) + n, LENGTH_TICKS.length);
+        const ticks = LENGTH_TICKS[idx];
+        forEach((r) => seqCmd(`slen ${t} ${r.s0} ${r.s1} ${ln} ${ticks}`));
+        seqState.holdGate = ticks; seqState.holdGateMixed = false;
+        seqToast('Length ' + idx);
+    } else if (knob === 2) {
+        const idx = clampIdx(probIndexForPct(seqState.holdProb) + n, PROB_VALUES.length);
+        const pct = PROB_VALUES[idx];
+        forEach((r) => seqCmd(`eprob ${t} ${r.s0} ${r.s1} ${ln} ${pct}`));
+        seqState.holdProb = pct;
+        seqToast('Prob ' + pct + '%');
+    } else if (knob === 3) {
+        const idx = clampIdx(condIndexFor(seqState.holdCondA, seqState.holdCondB) + n, COND_PAIRS.length);
+        const [a, b] = COND_PAIRS[idx];
+        forEach((r) => seqCmd(`econd ${t} ${r.s0} ${r.s1} ${ln} ${a} ${b}`));
+        seqState.holdCondA = a; seqState.holdCondB = b;
+        seqToast('Cond ' + a + ':' + b);
+    } else if (knob === 4) {
+        const on = !seqState.holdInvert; // any turn toggles
+        forEach((r) => seqCmd(`einv ${t} ${r.s0} ${r.s1} ${ln} ${on ? 1 : 0}`));
+        seqState.holdInvert = on;
+        seqToast(on ? 'Invert On' : 'Invert Off');
+    }
+    return true;
 }

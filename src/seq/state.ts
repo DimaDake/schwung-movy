@@ -42,6 +42,15 @@ export interface SeqUiState {
     holdLen: number;         // held note length in steps (from `hlen=`), 0 = none
     holdNotes: number[];     // pitches in the held step (from `hnotes=`), empty when none
 
+    /* held-step trig properties (step parameter page), mirrored from status */
+    holdVel: number;         // avg velocity at held step (from `hvel`)
+    holdGate: number;        // gate ticks of first held note (from `hgate`)
+    holdGateMixed: boolean;  // held notes differ in length (from `hgmix`)
+    holdProb: number;        // probability % (from `hprob`)
+    holdCondA: number;       // condition A (from `hcond`)
+    holdCondB: number;       // condition B (from `hcond`)
+    holdInvert: boolean;     // invert condition (from `hinv`)
+
     /* per-track mute, from `mute=` engine status field */
     muted: boolean[];
 
@@ -93,6 +102,13 @@ function defaults(): SeqUiState {
         holdStep: -1,
         holdLen: 0,
         holdNotes: [],
+        holdVel: 0,
+        holdGate: 0,
+        holdGateMixed: false,
+        holdProb: 100,
+        holdCondA: 1,
+        holdCondB: 1,
+        holdInvert: false,
         muted: [false, false, false, false],
         sessionMode: false,
         session: emptySession(),

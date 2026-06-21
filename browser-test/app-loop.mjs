@@ -371,6 +371,80 @@ _log('\napp-loop: Back while holding a step returns to chain view');
     sendMidi([0x80, 16, 0]);
 }
 
+/* ── step page: jog enters/leaves page 0; knobs edit trig props ───────────── */
+_log('\napp-loop: step page navigation + knob editing');
+{
+    const { stepPageState, resetStepPage } = await import('../dist/esm/seq/step-page.js');
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.test8);         // melodic → watchLane = -1
+    resetSeqState(); resetSeqEngine(); resetStepPage();
+    globalThis.init();
+    appState.trackModels[0][1].reload();
+    advance(12);
+    appState.currentView = VIEW_KNOBS;
+    appState.activeSlot = 0;
+
+    sendMidi([0x90, 16, 127]);                // hold step 1 (abs step 0)
+    seqState.stepAutoMode = true;             // session promoted
+    // Jog left from module bank 0 enters the step page; jog right leaves it.
+    sendMidi([0xB0, 14, 127]);                // jog CCW (-1)
+    eq('jog left enters the step page', stepPageState.selected, true);
+    sendMidi([0xB0, 14, 1]);                  // jog CW (+1)
+    eq('jog right leaves the step page', stepPageState.selected, false);
+
+    // Back on the step page, the 5 knobs edit trig props (not chain automation).
+    stepPageState.selected = true;
+    engine.ops.length = 0;
+    sendMidi([0xB0, 73, 8]); advance(1);      // knob 3 (probability) +1 detent
+    eq('probability knob emits eprob 90', engine.ops.some((o) => o === 'eprob 0 0 0 -1 90'), true);
+    eq('step page never emits automation aset', engine.ops.some((o) => o.startsWith('aset')), false);
+
+    engine.ops.length = 0;
+    sendMidi([0xB0, 74, 8]); advance(1);      // knob 4 (condition) +1 detent → 1:2
+    eq('condition knob emits econd 1 2', engine.ops.some((o) => o === 'econd 0 0 0 -1 1 2'), true);
+
+    engine.ops.length = 0;
+    sendMidi([0xB0, 75, 8]); advance(1);      // knob 5 (invert) → on
+    eq('invert knob emits einv 1', engine.ops.some((o) => o === 'einv 0 0 0 -1 1'), true);
+
+    engine.ops.length = 0;
+    sendMidi([0xB0, 71, 1]); advance(1);      // knob 1 (velocity) up → evel delta
+    eq('velocity knob uses evel delta', engine.ops.some((o) => /^evel 0 0 0 -1 \d+$/.test(o)), true);
+
+    sendMidi([0x80, 16, 0]);
+    seqState.stepAutoMode = false;
+}
+
+/* ── step page: tick() renders the step page when selected ────────────────── */
+_log('\napp-loop: tick renders the step page');
+{
+    const { stepPageState, resetStepPage } = await import('../dist/esm/seq/step-page.js');
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.test8);
+    resetSeqState(); resetSeqEngine(); resetStepPage();
+    globalThis.init();
+    appState.trackModels[0][1].reload();
+    advance(12);
+    appState.currentView = VIEW_KNOBS;
+    appState.activeSlot = 0;
+    sendMidi([0x90, 16, 127]);
+    seqState.stepAutoMode = true;
+    stepPageState.selected = true;
+
+    // renderKnobsView is the only param path that calls clear_screen, so a bump
+    // proves the step-page branch repainted without throwing.
+    let clears = 0;
+    const origClear = globalThis.clear_screen;
+    globalThis.clear_screen = () => { clears++; };
+    appState.dirty = true;
+    advance(1);
+    globalThis.clear_screen = origClear;
+    eq('tick repainted with the step page selected', clears > 0, true);
+
+    sendMidi([0x80, 16, 0]);
+    seqState.stepAutoMode = false;
+}
+
 /* ── automation: a module change re-validates lanes (purges now-stale) ─────── */
 _log('\napp-loop: module change purges lanes invalid for the new module');
 {

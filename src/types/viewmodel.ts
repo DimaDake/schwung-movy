@@ -54,4 +54,6 @@ export interface ViewModel {
     isPadSpecific:     boolean;
     automationHeld:    boolean;   // a step is held → automation-edit view
     automationPoolFull: boolean;  // 8-lane cap reached (limit toast)
+    stepPagePresent:   boolean;   // a parameter-lock session is active → indicator prepends dotted segment
+    stepPageSelected:  boolean;   // the step page is the selected page (render step params)
 }

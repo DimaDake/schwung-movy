@@ -126,5 +126,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         isPadSpecific:      (s.moduleConfig?.banks[s.knobPage]?.padSpecific) ?? false,
         automationHeld:     auto.held,
         automationPoolFull: auto.poolFull,
+        stepPagePresent:    false,
+        stepPageSelected:   false,
     };
 }

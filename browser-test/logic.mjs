@@ -2834,6 +2834,66 @@ _log('\nautomation label sync:');
     eq('no aclr for the valid lane', q.includes('aclr 0 1'), false);
 }
 
+/* ── step page: held trig values parse into the mirror ───────────────────── */
+{
+    _log('\nstep page status parse:');
+    const { parseStatusForTest } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    resetSeqState();
+    parseStatusForTest('play=0 trk=0 step=3 hvel=100 hgate=48 hgmix=1 hprob=40 hcond=2:3 hinv=1');
+    eq('holdVel parsed', seqState.holdVel, 100);
+    eq('holdGate parsed', seqState.holdGate, 48);
+    eq('holdGateMixed parsed', seqState.holdGateMixed, true);
+    eq('holdProb parsed', seqState.holdProb, 40);
+    eq('holdCondA parsed', seqState.holdCondA, 2);
+    eq('holdCondB parsed', seqState.holdCondB, 3);
+    eq('holdInvert parsed', seqState.holdInvert, true);
+}
+
+/* ── step page: session-memory selection rule ────────────────────────────── */
+{
+    _log('\nstep page memory:');
+    const { stepPageState, onSessionStart, onSessionEnd, setStepPageSelected, resetStepPage } =
+        await import('../dist/esm/seq/step-page.js');
+    resetStepPage();
+    onSessionStart();
+    eq('first session defaults to module page', stepPageState.selected, false);
+    setStepPageSelected(true);
+    onSessionEnd();
+    onSessionStart();
+    eq('step page reopens after a step-page session', stepPageState.selected, true);
+    setStepPageSelected(false);
+    onSessionEnd();
+    onSessionStart();
+    eq('module-page session does not reopen step page', stepPageState.selected, false);
+}
+
+/* ── step page: ViewModel builder + value mappings ───────────────────────── */
+{
+    _log('\nstep page viewmodel:');
+    const { buildStepPageVM, LENGTH_TICKS, lengthIndexForTicks } =
+        await import('../dist/esm/seq/step-page-vm.js');
+    eq('48 ticks -> 1/8 index', lengthIndexForTicks(48), 2);
+    eq('length list 1/8 = 48 ticks', LENGTH_TICKS[2], 48);
+    const vm = buildStepPageVM({
+        holdVel: 100, holdGate: 48, holdGateMixed: false,
+        holdProb: 40, holdCondA: 2, holdCondB: 3, holdInvert: true,
+    });
+    eq('title is step', vm.moduleName, 'step');
+    const c = vm.rows[0];
+    eq('velocity = vbar', c[0].renderStyle, 'vbar');
+    eq('velocity bar at avg', Math.abs(c[0].normalizedValue - 100 / 127) < 0.01, true);
+    eq('length = enum', c[1].type, 'enum');
+    eq('length shows 1/8', c[1].displayValue, '1/8');
+    eq('probability shows 40%', c[2].displayValue, '40%');
+    eq('condition = preset', c[3].renderStyle, 'preset');
+    eq('condition shows 2:3', c[3].displayValue, '2:3');
+    eq('invert ON', vm.rows[1][0].displayValue, 'ON');
+    const vm2 = buildStepPageVM({ holdVel: 80, holdGate: 24, holdGateMixed: true,
+        holdProb: 100, holdCondA: 1, holdCondB: 1, holdInvert: false });
+    eq('mixed length shows ...', vm2.rows[0][1].displayValue, '...');
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

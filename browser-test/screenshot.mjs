@@ -38,6 +38,7 @@ const PRESETS = [
     'chain_t2', 'chain_t4',
     'drum-mrdrums-pad5', 'drum-mrdrums-global',
     'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
+    'step_page_knobs', 'step_page_chain', 'step_indicator',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -49,6 +50,16 @@ const BASE = {
     knobs_jog_toast: 'test8', chain_t2: 'test8', chain_t4: 'test8',
     'drum-mrdrums-pad5': 'mrdrums', 'drum-mrdrums-global': 'mrdrums',
     auto_dot: 'test8', auto_held: 'test8', auto_live: 'test8', auto_limit: 'test8',
+    step_page_knobs: 'test8', step_page_chain: 'test8', step_indicator: 'test8',
+};
+
+const STEP_VM_A = {
+    holdVel: 100, holdGate: 48, holdGateMixed: false,
+    holdProb: 40, holdCondA: 2, holdCondB: 3, holdInvert: true,
+};
+const STEP_VM_B = {
+    holdVel: 64, holdGate: 24, holdGateMixed: true,
+    holdProb: 100, holdCondA: 1, holdCondB: 1, holdInvert: false,
 };
 
 const W = 128, H = 64;
@@ -80,6 +91,7 @@ const { renderKnobsView }  = await import('../dist/esm/renderer/knob-view.js');
 const { renderKeysView }   = await import('../dist/esm/renderer/keys-view.js');
 const { renderBrowseView } = await import('../dist/esm/renderer/browse-view.js');
 const { renderChainView }  = await import('../dist/esm/renderer/chain-view.js');
+const { buildStepPageVM }  = await import('../dist/esm/seq/step-page-vm.js');
 const { MOCK_SYNTHS }      = await import('./mock-synth.mjs');
 
 const COMPONENT_KEYS = ['midi_fx1', 'synth', 'fx1', 'fx2'];
@@ -159,6 +171,18 @@ function applyView(preset) {
         case 'auto_held':        showKnobsAuto(autoView({ held: true, heldVal: model.getKnobParamInfo(0).max })); break;
         case 'auto_live':        showKnobsAuto(autoView({ held: false, liveVal: model.getKnobParamInfo(0).max })); break;
         case 'auto_limit':       showKnobsAuto(autoView({ held: true, poolFull: true, assignedLanes: 0xFF })); break;
+        case 'step_page_knobs':  lastRender = () => renderKnobsView(buildStepPageVM(STEP_VM_A), false, 0); lastRender(); break;
+        case 'step_page_chain':  lastRender = () => renderChainView(buildStepPageVM(STEP_VM_B), 1, false, 'T1'); lastRender(); break;
+        case 'step_indicator': {
+            // Module page during a session: dotted leading segment, not selected.
+            lastRender = () => {
+                const vm = model.getViewModel();
+                vm.stepPagePresent = true; vm.stepPageSelected = false;
+                renderKnobsView(vm, false, 0);
+            };
+            lastRender();
+            break;
+        }
         default:                 forceRender(); break;                       // plain knobs view
     }
 }

@@ -22,6 +22,8 @@ import { seqPersistTick } from '../seq/persist.js';
 import { seqLedsTick, seqLedsInvalidate } from '../seq/leds.js';
 import { seqSetLane } from '../seq/router.js';
 import { stepAutoTick } from '../seq/step-edit.js';
+import { stepPageState } from '../seq/step-page.js';
+import { buildStepPageVM } from '../seq/step-page-vm.js';
 import { activeHasNote, maxBarOffset, seqState } from '../seq/state.js';
 import { engineReady } from '../seq/engine.js';
 import {
@@ -99,6 +101,22 @@ function diagAutoRender(vm: ViewModel): void {
     if (line !== _autoRenderLog) { _autoRenderLog = line; mlog('auto render ' + line); }
 }
 
+/* The held-step trig mirror as the step-page VM input. */
+function heldTrigInput() {
+    return {
+        holdVel: seqState.holdVel, holdGate: seqState.holdGate, holdGateMixed: seqState.holdGateMixed,
+        holdProb: seqState.holdProb, holdCondA: seqState.holdCondA, holdCondB: seqState.holdCondB,
+        holdInvert: seqState.holdInvert,
+    };
+}
+
+let lastStepTrigSig = '';
+function stepTrigSig(): string {
+    return [seqState.holdVel, seqState.holdGate, seqState.holdGateMixed,
+        seqState.holdProb, seqState.holdCondA, seqState.holdCondB, seqState.holdInvert,
+        stepPageState.selected].join(',');
+}
+
 /* Same idea for the 4×4 drum grid: the drum-pad colors update at poll rate
  * (green follows the sequencer gate / held pads), so cache-diffing keeps the
  * LED traffic to actual changes. */
@@ -111,6 +129,8 @@ export function tick(): void {
     // change via consumed knob turns and the status poll — both outside the
     // param page's normal dirty path. Repaint when that display state changes.
     if (automationDisplayDirty()) appState.dirty = true;
+    // Repaint when the step page's selection or mirrored trig values change.
+    if (stepTrigSig() !== lastStepTrigSig) { lastStepTrigSig = stepTrigSig(); appState.dirty = true; }
     // Diagnostic (off unless debug_log_on): the UI lane registry mirrors the
     // engine's assigned lanes. Empty here means automation display + read-back
     // suppression are dead — the device automation test asserts it is populated.
@@ -234,7 +254,14 @@ export function tick(): void {
         } else if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
-            const vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot, activeModel!));
+            const sessionActive = seqState.stepAutoMode;
+            let vm;
+            if (sessionActive && stepPageState.selected) {
+                vm = buildStepPageVM(heldTrigInput());
+            } else {
+                vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot, activeModel!));
+                if (sessionActive) { vm.stepPagePresent = true; vm.stepPageSelected = false; }
+            }
             diagAutoRender(vm);
             renderKnobsView(vm, appState.jogTouched, appState.activeSlot);
             // The pool-full toast shares the bottom rows with the Loop strip;
@@ -243,7 +270,14 @@ export function tick(): void {
                 || !!vm.toast?.browseHint || appState.jogTouched;
             updateKnobLEDs(vm);
         } else if (appState.currentView === VIEW_CHAIN) {
-            const vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot, activeModel!));
+            const sessionActive = seqState.stepAutoMode;
+            let vm;
+            if (sessionActive && stepPageState.selected) {
+                vm = buildStepPageVM(heldTrigInput());
+            } else {
+                vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot, activeModel!));
+                if (sessionActive) { vm.stepPagePresent = true; vm.stepPageSelected = false; }
+            }
             diagAutoRender(vm);
             renderChainView(vm, chainIdx, appState.jogTouched, 'T' + (appState.activeSlot + 1));
             jogToastShown = appState.jogTouched;

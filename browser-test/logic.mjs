@@ -2955,8 +2955,11 @@ _log('\nautomation label sync:');
     } = await import('../dist/esm/seq/main-page.js');
     const { peekSeqCmdQueue, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
     const { keyboardState } = await import('../dist/esm/keyboard/state.js');
+    const { resetSeqState } = await import('../dist/esm/seq/state.js');
 
-    resetMainPage(); resetSeqEngine();
+    // resetSeqState restores bpmX100=12000 and swingPct=50 so the tempo/swing
+    // assertions below don't depend on test ordering.
+    resetMainPage(); resetSeqEngine(); resetSeqState();
     openMainPage(3);
     eq('page active after open', mainPageActive(), true);
     // Tempo: 8 raw delta units = 1 detent = +1 BPM. seqState.bpmX100 starts 12000.

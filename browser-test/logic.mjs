@@ -792,6 +792,16 @@ _log('\nTest: drumPadOn');
     eq('empty hauto clears heldLocks', seqState.heldLocks.size, 0);
 }
 
+/* ── swing: engine swing status field ────────────────────────────────────── */
+{
+    _log('\nswing status parse:');
+    const { parseStatusForTest } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    resetSeqState();
+    parseStatusForTest('play=1 bpm=12000 swing=66');
+    eq('swing mirrored from status', seqState.swingPct, 66);
+}
+
 /* ── seq router: step toggle, chords, drum lanes, bars, Play, watch ──────── */
 {
     _log('\nseq router:');

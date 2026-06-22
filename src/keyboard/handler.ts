@@ -1,6 +1,7 @@
 import { keyboardState } from './state.js';
 import { chromaticPadColor, chromaticPitch } from '../seq/pads.js';
 import { C_GREEN } from '../seq/colors.js';
+import { markUiStateDirty } from '../seq/persist.js';
 
 /* Live pad note on the chromatic layout. Emits on the track's MIDI channel
  * (0x9n) so it reaches that track's chain slot, carrying real velocity. The
@@ -36,4 +37,5 @@ export function changeRoot(semitones: number, track: number, padMin: number, pad
     for (let pad = padMin; pad <= padMax; pad++) {
         setLED(pad, chromaticPadColor(pad, padMin, keyboardState.rootNote, track, false, null, keyboardState.scale), true);
     }
+    markUiStateDirty();
 }

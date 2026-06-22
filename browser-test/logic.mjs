@@ -3008,6 +3008,37 @@ _log('\nautomation label sync:');
     eq('overlay selection from scaleSel', vm.overlay?.selected, 1);
 }
 
+/* ── UI-state persistence round-trip ──────────────────────────────────── */
+{
+    _log('\nUI-state persistence round-trip:');
+    const { serializeUiState, applyUiState } = await import('../dist/esm/seq/persist.js');
+    const { keyboardState } = await import('../dist/esm/keyboard/state.js');
+
+    keyboardState.rootNote = 50; keyboardState.scale = 2;
+    const blob = serializeUiState();
+    keyboardState.rootNote = 48; keyboardState.scale = 0;
+    applyUiState(blob);
+    eq('root restored', keyboardState.rootNote, 50);
+    eq('scale restored', keyboardState.scale, 2);
+
+    // Tolerant parse: unknown fields are ignored; missing fields keep current.
+    keyboardState.rootNote = 60; keyboardState.scale = 1;
+    applyUiState('{"root":36}');
+    eq('partial blob updates root', keyboardState.rootNote, 36);
+    eq('partial blob keeps scale', keyboardState.scale, 1);
+
+    // Clamping: root clamped to 0..103.
+    applyUiState('{"root":200,"scale":0}');
+    eq('root clamped to 103', keyboardState.rootNote, 103);
+
+    // Corrupt JSON is a no-op.
+    keyboardState.rootNote = 48; keyboardState.scale = 0;
+    applyUiState('not json');
+    eq('corrupt blob leaves root unchanged', keyboardState.rootNote, 48);
+    eq('corrupt blob leaves scale unchanged', keyboardState.scale, 0);
+}
+
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

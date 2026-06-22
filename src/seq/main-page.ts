@@ -10,6 +10,7 @@ import { keyboardState } from '../keyboard/state.js';
 import { changeRoot } from '../keyboard/handler.js';
 import { PAD_MIN, PAD_MAX } from './constants.js';
 import { countDetents } from './detent.js';
+import { markUiStateDirty } from './persist.js';
 
 const BPM_MIN_X100 = 2000, BPM_MAX_X100 = 30000;
 const SWING_MIN = 50, SWING_MAX = 80;
@@ -55,6 +56,7 @@ export function mainPageRelease(k: number): void {
     if (k === 3 && mainPageState.scaleOverlay) {
         keyboardState.scale = mainPageState.scaleSel;
         mainPageState.scaleOverlay = false;
+        markUiStateDirty();
     }
     if (mainPageState.touchedKnob === k) mainPageState.touchedKnob = -1;
 }
@@ -73,6 +75,7 @@ export function mainPageKnob(k: number, delta: number, track: number): void {
         // Root knob transposes the layout by n semitones (changeRoot clamps to
         // 0..103 and repaints the pads); octave buttons remain ±12.
         changeRoot(n, track, PAD_MIN, PAD_MAX);
+        markUiStateDirty();
     } else if (k === 3 && mainPageState.scaleOverlay) {
         mainPageState.scaleSel = Math.max(0, Math.min(SCALE_NAMES.length - 1, mainPageState.scaleSel + n));
     }

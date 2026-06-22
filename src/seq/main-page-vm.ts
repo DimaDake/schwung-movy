@@ -60,7 +60,7 @@ export function buildMainPageVM(): ViewModel {
         : null;
 
     return {
-        moduleName: 'SET PARAMS', headerOverride: 'SET PARAMS',
+        moduleName: 'SET PARAMETERS', headerOverride: 'SET PARAMETERS',
         bankName: '', bankIndex: 0, bankCount: 1,
         rows: [[tempo, sw, root, key], [null, null, null, null]],
         touchedSlot: null, toast, overlay, isEmpty: false,

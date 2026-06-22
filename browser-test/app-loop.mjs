@@ -595,6 +595,22 @@ _log('\napp-loop: main params page entry, knob routing, Back exit');
     eq('Back exits main params to origin view', appState.currentView, originView);
 }
 
+/* ── A track button closes the Set Parameters page (so per-track view memory
+ *    can't re-show it on return to that track) ───────────────────────────── */
+_log('\napp-loop: track button closes set parameters page');
+{
+    const { VIEW_MAIN_PARAMS } = await import('../dist/esm/app/state.js');
+    const { mainPageActive } = await import('../dist/esm/seq/main-page.js');
+    resetApp();
+    engine.reset();
+    sendMidi([0xB0, MoveShift, 127]); sendMidi([0x90, 16 + 4, 127]); sendMidi([0x80, 16 + 4, 0]); sendMidi([0xB0, MoveShift, 0]);
+    eq('set params open before track press', appState.currentView, VIEW_MAIN_PARAMS);
+    // Press the CURRENT track's button (CC43 = track 0): tap down+up.
+    sendMidi([0xB0, 43, 127]); sendMidi([0xB0, 43, 0]);
+    eq('track button leaves set params view', appState.currentView !== VIEW_MAIN_PARAMS, true);
+    eq('track button clears set params state', mainPageActive(), false);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

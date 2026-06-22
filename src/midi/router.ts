@@ -165,6 +165,10 @@ export function onMidiMessageInternal(data: number[]): void {
         const track = TRACK_CC_END - d1;
         if (d2 > 0) {
             if (muteHeld()) { muteTrack(track); appState.dirty = true; return; }
+            // A track button always exits the Set Parameters page first (it is a
+            // global page, not a per-track view), so it can't be saved into the
+            // per-track view memory below and re-shown on return to this track.
+            if (mainPageActive()) appState.currentView = closeMainPage();
             // Snapshot prior state so the restore closure can return exactly here.
             // Note: seqHandleMidi already ran above and updated watchTrack/barOffset,
             // so we capture the pre-switch slot to restore on hold release.

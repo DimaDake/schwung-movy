@@ -22,6 +22,7 @@ pub fn serialize(engine: &Engine) -> String {
     s.push_str(FORMAT_TAG);
     s.push('\n');
     s.push_str(&format!("bpm {}\n", engine.clock.bpm_x100()));
+    s.push_str(&format!("swing {}\n", engine.swing_pct));
     for (ti, t) in engine.tracks.iter().enumerate() {
         s.push_str(&format!("tk {} {} {}\n", ti, t.active_clip, t.muted as u8));
         for lane in 0..8 {
@@ -97,6 +98,11 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
             Some("bpm") => {
                 if let Some(v) = it.next().and_then(|x| x.parse::<u32>().ok()) {
                     engine.clock.set_bpm_x100(v);
+                }
+            }
+            Some("swing") => {
+                if let Some(v) = it.next().and_then(|x| x.parse::<u32>().ok()) {
+                    engine.swing_pct = v.clamp(50, 80);
                 }
             }
             Some("tk") => {
@@ -293,5 +299,15 @@ mod tests {
         // Load a state with no clips → track 0 should be empty after.
         assert!(load(&mut e, "movy1\nbpm 12000\n"));
         assert!(!e.tracks[0].active().exists());
+    }
+
+    #[test]
+    fn swing_round_trips() {
+        let mut e = Engine::new(44100, 12000);
+        e.swing_pct = 72;
+        let s = serialize(&e);
+        let mut e2 = Engine::new(44100, 12000);
+        assert!(load(&mut e2, &s));
+        assert_eq!(e2.swing_pct, 72);
     }
 }

@@ -880,7 +880,7 @@ impl Engine {
         let htp = self.held_trig();
         let hlmax = self.held_max_gate();
         format!(
-            "play={} tick={} bpm={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={}",
+            "play={} tick={} bpm={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -909,7 +909,8 @@ impl Engine {
             htp.cond_a,
             htp.cond_b,
             htp.invert as u8,
-            hlmax
+            hlmax,
+            self.swing_pct
         )
     }
 
@@ -1689,5 +1690,12 @@ mod tests {
         // Swing 80: even step unchanged, odd step delayed 12 ticks.
         assert_eq!(fire_tick(80, 0), 0);
         assert_eq!(fire_tick(80, 1), 24 + 12);
+    }
+
+    #[test]
+    fn status_reports_swing() {
+        let mut e = Engine::new(44100, 12000);
+        e.swing_pct = 66;
+        assert!(e.status().contains("swing=66"));
     }
 }

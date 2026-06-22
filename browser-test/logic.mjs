@@ -2921,6 +2921,20 @@ _log('\nautomation label sync:');
     stepPageState.touchedKnob = -1;
 }
 
+/* ── scales: musical scale definitions and in-scale testing ─────────────── */
+{
+    _log('\nscales:');
+    const { SCALES, SCALE_NAMES, inScaleFor } = await import('../dist/esm/seq/scales.js');
+    eq('thirteen scales', SCALES.length, 13);
+    eq('first scale is Major', SCALE_NAMES[0], 'Major');
+    // Major anchored to D (root 2): D E F# G A B C# in scale; F natural (5) out.
+    eq('root in scale', inScaleFor(2, 2, 0), true);     // D
+    eq('F# in D major', inScaleFor(6, 2, 0), true);     // F#
+    eq('F natural out of D major', inScaleFor(5, 2, 0), false);
+    // Chromatic (index 12): everything in scale.
+    eq('chromatic admits all', inScaleFor(5, 2, 12), true);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

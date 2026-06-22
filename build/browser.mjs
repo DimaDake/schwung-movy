@@ -29,6 +29,7 @@ await esbuild.build({
         resolve(root, 'src/seq/leds.ts'),
         resolve(root, 'src/seq/constants.ts'),
         resolve(root, 'src/seq/colors.ts'),
+        resolve(root, 'src/seq/scales.ts'),
         resolve(root, 'src/seq/render.ts'),
         resolve(root, 'src/seq/pads.ts'),
         resolve(root, 'src/seq/loop-mode.ts'),

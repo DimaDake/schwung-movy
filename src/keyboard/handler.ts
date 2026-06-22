@@ -19,7 +19,7 @@ export function noteOff(padNote: number, padMin: number, track: number): void {
     if (midiNote === undefined) return;
     shadow_send_midi_to_dsp([MidiNoteOff | track, midiNote, 0]);
     delete keyboardState.held[padNote];
-    setLED(padNote, chromaticPadColor(padNote, padMin, keyboardState.rootNote, track, false), true);
+    setLED(padNote, chromaticPadColor(padNote, padMin, keyboardState.rootNote, track, false, null, keyboardState.scale), true);
 }
 
 export function releaseAllNotes(track: number): void {
@@ -34,6 +34,6 @@ export function changeRoot(semitones: number, track: number, padMin: number, pad
     releaseAllNotes(track);
     keyboardState.rootNote = Math.max(0, Math.min(103, keyboardState.rootNote + semitones));
     for (let pad = padMin; pad <= padMax; pad++) {
-        setLED(pad, chromaticPadColor(pad, padMin, keyboardState.rootNote, track, false), true);
+        setLED(pad, chromaticPadColor(pad, padMin, keyboardState.rootNote, track, false, null, keyboardState.scale), true);
     }
 }

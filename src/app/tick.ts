@@ -191,7 +191,7 @@ export function tick(): void {
         const base  = keyboardState.rootNote;
         for (let i = appState.initLedIndex; i < end; i++) {
             const p = PAD_MIN + i;
-            const color = chromaticPadColor(p, PAD_MIN, base, appState.activeSlot, false);
+            const color = chromaticPadColor(p, PAD_MIN, base, appState.activeSlot, false, null, keyboardState.scale);
             chromaticCache[i] = color;
             setLED(p, color, true);
         }
@@ -358,7 +358,7 @@ export function tick(): void {
             const pitch = chromaticPitch(p, PAD_MIN, base);
             const isPlaying = keyboardState.held[p] !== undefined
                 || (pitch >= 0 && pitch <= 127 && activeHasNote(track, pitch));
-            const color = chromaticPadColor(p, PAD_MIN, base, track, isPlaying, holdNotes);
+            const color = chromaticPadColor(p, PAD_MIN, base, track, isPlaying, holdNotes, keyboardState.scale);
             if (chromaticCache[i] !== color) {
                 chromaticCache[i] = color;
                 setLED(p, color, true);

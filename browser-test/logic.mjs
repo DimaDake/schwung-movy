@@ -1148,8 +1148,8 @@ _log('\nTest: drumPadOn');
     // isPlaying=true → green (sounding, highest priority)
     eq('playing pad green', chromaticPadColor(69, PAD_MIN, base, 0, true), 11);
 
-    eq('C in major scale', inScale(60), true);
-    eq('C# not in major scale', inScale(61), false);
+    eq('C in C major scale', inScale(60, 48, 0), true);
+    eq('C# not in C major scale', inScale(61, 48, 0), false);
 }
 
 /* ── seq Full Velocity toggle (Shift+Step 10) ────────────────────────────── */
@@ -2919,6 +2919,17 @@ _log('\nautomation label sync:');
     eq('touched knob → toast value', t.value, '70%');
     setStepTouchedKnob(-1);
     stepPageState.touchedKnob = -1;
+}
+
+/* ── chromatic pad: root highlight follows baseNote pitch class ──────────── */
+{
+    _log('\nchromatic pad root highlight:');
+    const { chromaticPadColor } = await import('../dist/esm/seq/pads.js');
+    // PAD_MIN=68, baseNote=48 (C). Bottom-left pad (68) plays pitch 48 (C) → root.
+    // With baseNote=50 (D), pad 68 plays 50 (D) → root color; old code keyed on C only.
+    const ROOT_T0 = chromaticPadColor(68, 68, 50, 0, false, null, 0); // D major, root pad
+    const trackCol = chromaticPadColor(68, 68, 48, 0, false, null, 0); // C major, root pad
+    eq('root highlight follows baseNote pitch class', ROOT_T0, trackCol);
 }
 
 /* ── scales: musical scale definitions and in-scale testing ─────────────── */

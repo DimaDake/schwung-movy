@@ -74,8 +74,8 @@ export function mainPageKnob(k: number, delta: number, track: number): void {
     } else if (k === 2) {
         // Root knob transposes the layout by n semitones (changeRoot clamps to
         // 0..103 and repaints the pads); octave buttons remain ±12.
+        // markUiStateDirty is called inside changeRoot — no need to repeat it.
         changeRoot(n, track, PAD_MIN, PAD_MAX);
-        markUiStateDirty();
     } else if (k === 3 && mainPageState.scaleOverlay) {
         mainPageState.scaleSel = Math.max(0, Math.min(SCALE_NAMES.length - 1, mainPageState.scaleSel + n));
     }

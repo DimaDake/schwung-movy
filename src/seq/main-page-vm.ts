@@ -2,7 +2,8 @@
  * Big-font 'preset' cells for tempo/swing/root; key is an enum that opens the
  * scrollable scale overlay. Mirrors step-page-vm's cell/toast conventions. */
 
-import type { ViewModel, ParamVM } from '../types/viewmodel.js';
+import type { ViewModel } from '../types/viewmodel.js';
+import { paramCell as cell } from './param-vm.js';
 import { mainPageState } from './main-page.js';
 import { seqState } from './state.js';
 import { keyboardState } from '../keyboard/state.js';
@@ -12,15 +13,6 @@ import { midiNoteName } from '../keyboard/notes.js';
 /* Root note name without the octave (the layout tonic's pitch class). */
 function rootName(): string {
     return midiNoteName(keyboardState.rootNote).replace(/-?\d+$/, '');
-}
-
-function cell(p: Partial<ParamVM>): ParamVM {
-    return {
-        shortName: '', fullName: '', type: 'float', normalizedValue: 0,
-        displayValue: '', touched: false, isLongEnum: false, options: null,
-        enumIndex: 0, renderStyle: 'arc', automated: false, automatable: false,
-        assigned: false, ...p,
-    };
 }
 
 export function buildMainPageVM(): ViewModel {

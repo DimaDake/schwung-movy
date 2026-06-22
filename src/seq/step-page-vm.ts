@@ -3,7 +3,8 @@
  * bypasses model/viewmodel.ts. Knob 1 velocity (vbar), 2 length (enum square),
  * 3 probability (enum square), 4 condition (big preset font), 5 invert (enum
  * square). Knobs 6-8 blank. */
-import type { ViewModel, ParamVM } from '../types/viewmodel.js';
+import type { ViewModel } from '../types/viewmodel.js';
+import { paramCell as cell } from './param-vm.js';
 import { stepPageState } from './step-page.js';
 
 /* Note-length values in ticks (TICKS_PER_STEP=24, whole note/bar=384). */
@@ -56,14 +57,6 @@ export interface HeldTrig {
     holdProb: number; holdCondA: number; holdCondB: number; holdInvert: boolean;
 }
 
-function cell(p: Partial<ParamVM>): ParamVM {
-    return {
-        shortName: '', fullName: '', type: 'float', normalizedValue: 0,
-        displayValue: '', touched: false, isLongEnum: false, options: null,
-        enumIndex: 0, renderStyle: 'arc', automated: false, automatable: false,
-        assigned: false, ...p,
-    };
-}
 
 export function buildStepPageVM(h: HeldTrig, moduleBankCount = 1): ViewModel {
     const lenIdx  = lengthIndexForTicks(h.holdGate);

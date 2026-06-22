@@ -3,8 +3,9 @@
  * fourth) from the pad below it. padNote 68 is bottom-left (lowest); higher
  * rows are higher pitches.
  *
- * Coloring: root C = track color, sounding = green, last-held set = white,
- * other in-scale notes light gray, out-of-scale pads stay dark.
+ * Coloring: root (any pitch sharing baseNote's pitch class) = track color,
+ * sounding = green, last-held set = white, other in-scale notes light gray,
+ * out-of-scale pads stay dark.
  *
  * baseNote is the MIDI note of the bottom-left pad; the +/- buttons shift it
  * by an octave. */

@@ -15,6 +15,7 @@ import { mlog } from '../log.js';
 import { engineReady, requestLabelSync } from './engine.js';
 import { seqState } from './state.js';
 import { keyboardState } from '../keyboard/state.js';
+import { SCALES } from './scales.js';
 
 const STATE_PATH = '/data/UserData/schwung/modules/tools/movy/seq-state.json';
 const UI_STATE_PATH = '/data/UserData/schwung/modules/tools/movy/movy-ui.json';
@@ -37,7 +38,7 @@ export function applyUiState(blob: string): void {
     try {
         const o = JSON.parse(blob);
         if (typeof o.root === 'number') keyboardState.rootNote = Math.max(0, Math.min(103, o.root | 0));
-        if (typeof o.scale === 'number') keyboardState.scale = Math.max(0, o.scale | 0);
+        if (typeof o.scale === 'number') keyboardState.scale = Math.min(SCALES.length - 1, Math.max(0, o.scale | 0));
     } catch { /* corrupt file → keep defaults */ }
 }
 

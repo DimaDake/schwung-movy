@@ -35,6 +35,7 @@ await esbuild.build({
         resolve(root, 'src/seq/loop-mode.ts'),
         resolve(root, 'src/seq/step-edit.ts'),
         resolve(root, 'src/seq/step-page.ts'),
+        resolve(root, 'src/seq/param-vm.ts'),
         resolve(root, 'src/seq/step-page-vm.ts'),
         resolve(root, 'src/seq/edit-ops.ts'),
         resolve(root, 'src/seq/duplicate.ts'),

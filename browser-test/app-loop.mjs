@@ -79,6 +79,21 @@ _log('\napp-loop: selected pad is white when idle');
     eq('idle selected pad = white', padColor(PAD_KICK), 120);
 }
 
+_log('\napp-loop: drum pads + step lane stay live on a non-synth module slot');
+{
+    resetApp();                              // drum on synth (slot 1), focused on synth
+    appState.trackChainIndex[0] = 2;         // focus FX 1 slot (not the synth)
+    advance(2);                              // FX model ticks; drum status still from synth
+    eq('focused on FX slot: still a drum track (lane >= 0)', seqState.watchLane >= 0, true);
+
+    const PAD_SNARE = 69;                    // grid pad 2 → drumPad 2 → midi note 37
+    sendMidi([0x90, PAD_SNARE, 100]);        // press snare pad while the FX slot is focused
+    sendMidi([0x80, PAD_SNARE, 0]);
+    advance(2);
+    eq('FX slot focused: drum pad selects its lane', seqState.watchLane, 37);
+    eq('FX slot focused: selected drum pad lights white', padColor(PAD_SNARE), 120);
+}
+
 _log('\napp-loop: green wins over white (sequencer gate)');
 {
     resetApp();

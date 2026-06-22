@@ -33,6 +33,14 @@ function activeModel() {
 function chainIndex(): number { return appState.trackChainIndex[appState.activeSlot]; }
 function setChainIndex(i: number): void { appState.trackChainIndex[appState.activeSlot] = i; }
 
+/* The track's instrument always lives in chain slot 1 (synth). Drum pad input
+ * is keyed off it — not the focused chain slot — so pads keep sounding and
+ * selecting drum lanes while the user edits the MIDI FX or an audio-FX slot on
+ * the same track. (tick.ts already reads drum status/lane from this slot.) */
+function synthModel() {
+    return appState.trackModels[appState.activeSlot]?.[1];
+}
+
 function masterModel() { return appState.masterFxModels[appState.masterChainIndex]; }
 
 /* The model the 8 knobs edit and the screen shows: the master FX slot while the
@@ -104,7 +112,7 @@ export function onMidiMessageInternal(data: number[]): void {
 
     /* Pad notes */
     if (d1 >= PAD_MIN && d1 <= PAD_MAX) {
-        const model   = activeModel();
+        const model   = synthModel();
         const drumCfg = model?.getDrumConfig() ?? null;
         const track = appState.activeSlot;
         if ((status & 0xF0) === 0x90 && d2 > 0) {

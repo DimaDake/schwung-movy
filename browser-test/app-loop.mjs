@@ -562,6 +562,34 @@ _log('\napp-loop: full-screen file browser exits cleanly');
     globalThis.os = savedOs;
 }
 
+/* ── Main Params page: Shift+Step 5 opens, knob edits tempo, Back exits ────── */
+_log('\napp-loop: main params page entry, knob routing, Back exit');
+{
+    const { VIEW_MAIN_PARAMS } = await import('../dist/esm/app/state.js');
+    resetApp();
+    engine.reset();
+
+    // Shift+Step 5 (0-indexed button 4 = note STEP_NOTE_BASE+4 = 16+4 = 20)
+    sendMidi([0xB0, MoveShift, 127]);          // Shift down
+    sendMidi([0x90, 16 + 4, 127]);             // Step 5 on
+    sendMidi([0x80, 16 + 4, 0]);              // Step 5 off
+    sendMidi([0xB0, MoveShift, 0]);            // Shift up
+    eq('shift+step 5 opens main params', appState.currentView, VIEW_MAIN_PARAMS);
+
+    // Knob 0 turn (CC 71 = MoveKnob1, delta +1 encoded as value 1)
+    // The mock engine starts with bpm=12000 (120.00 BPM). A single +1 detent
+    // should raise it by 100 (to 12100 = 121 BPM) and emit a 'bpm ...' command.
+    engine.ops.length = 0;
+    sendMidi([0xB0, 71, 8]);                   // knob 0 (tempo) CW +1 detent (value 8 = +8 delta)
+    advance(1);
+    eq('knob 0 edits tempo on main page',
+        engine.ops.some((c) => c.startsWith('bpm ')), true);
+
+    // Back exits the page, restoring the origin view
+    sendMidi([0xB0, MoveBack, 127]);
+    eq('Back exits main params', appState.currentView !== VIEW_MAIN_PARAMS, true);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

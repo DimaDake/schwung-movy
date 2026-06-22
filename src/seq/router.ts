@@ -13,6 +13,8 @@ import {
     NUM_STEP_BUTTONS, PAD_MAX, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
 import { mlog } from '../log.js';
+import { openMainPage } from './main-page.js';
+import { appState, VIEW_MAIN_PARAMS } from '../app/state.js';
 
 const CC_MUTE = 88;
 
@@ -63,6 +65,10 @@ const STEP_METRO = 5;     // Step 6  — Shift+Step 6  = Metronome
 const STEP_FULL_VEL = 9;  // Step 10 — Shift+Step 10 = Full Velocity
 const STEP_DOUBLE_LOOP = 14; // Step 15 — Shift+Step 15 = Double Loop
 const STEP_QUANTIZE = 15; // Step 16 — Shift+Step 16 = Quantize
+
+/* Shift+Step 5/7/9 all open the Main Params page (page 0). The map keeps room
+ * for future pages — point a step at a different page index here. */
+const MAIN_PAGE_STEPS: Record<number, number> = { 4: 0, 6: 0, 8: 0 };
 
 /* Pads currently held, padNote → midiNote, for chord step entry. Mirrors the
  * pads physically down so a step press can place the whole chord. */
@@ -247,8 +253,16 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
 
 /* Shift + step button = Move's shifted step functions. Step 10 toggles Full
  * Velocity; further entries (Double Loop = Step 15, Quantize = Step 16) land
- * in later steps. */
+ * in later steps. Steps 5/7/9 (0-indexed 4/6/8) open the Main Params page. */
 function shiftStepFunction(step: number): void {
+    if (step in MAIN_PAGE_STEPS) {
+        if (appState.currentView !== VIEW_MAIN_PARAMS) {
+            openMainPage(appState.currentView);
+            appState.currentView = VIEW_MAIN_PARAMS;
+        }
+        appState.dirty = true;
+        return;
+    }
     if (step === STEP_FULL_VEL) {
         seqState.fullVelocity = !seqState.fullVelocity;
         seqToast(seqState.fullVelocity ? 'Full Velocity On' : 'Full Velocity Off');

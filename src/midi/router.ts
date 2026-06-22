@@ -1,4 +1,5 @@
-import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE } from '../app/state.js';
+import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } from '../app/state.js';
+import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease, closeMainPage } from '../seq/main-page.js';
 import { CHAIN_SLOTS, MASTER_FX_SLOTS } from '../chain/config.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
@@ -61,6 +62,14 @@ export function onMidiMessageInternal(data: number[]): void {
         // step params are intrinsic (no automation lane / model touch).
         if (stepPageAvailable() && stepPageState.selected) {
             setStepTouchedKnob(d2 > 0 && d1 < 5 ? d1 : -1);
+            appState.dirty = true;
+            return;
+        }
+        if (mainPageActive()) {
+            if (d1 < 4) {
+                if (d2 > 0) mainPageTouch(d1, true);
+                else mainPageRelease(d1);
+            }
             appState.dirty = true;
             return;
         }
@@ -131,6 +140,11 @@ export function onMidiMessageInternal(data: number[]): void {
             if (k < 5) editStepPageKnob(k, delta);
             return;
         }
+        if (mainPageActive()) {
+            if (k < 4) mainPageKnob(k, delta, appState.activeSlot);
+            appState.dirty = true;
+            return;
+        }
         mlog('knobCC k=' + k + ' d2=' + d2 + ' delta=' + delta);
         const model = knobModel();
         const info  = model?.getKnobParamInfo(k) ?? null;
@@ -190,6 +204,11 @@ export function onMidiMessageInternal(data: number[]): void {
     /* Back */
     if (d1 === MoveBack && d2 > 0) {
         appState.jogTouched = false;
+        if (mainPageActive()) {
+            appState.currentView = closeMainPage();
+            appState.dirty = true;
+            return;
+        }
         if (appState.currentView === VIEW_BROWSE) {
             appState.currentView = appState.browseOrigin;
             appState.dirty = true;

@@ -6,6 +6,7 @@ export const VIEW_KNOBS       = 1;
 export const VIEW_BROWSE      = 2;
 export const VIEW_CHAIN       = 3;
 export const VIEW_FILE_BROWSE = 4;
+export const VIEW_MAIN_PARAMS = 6;
 
 export interface FileBrowserItem {
     name:  string;

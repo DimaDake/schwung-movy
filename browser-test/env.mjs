@@ -20,6 +20,7 @@ export function installEnv() {
     globalThis.shadow_send_midi_to_dsp = () => {};
     globalThis.host_read_file     = () => null;
     globalThis.host_write_file    = () => true;
+    globalThis.host_exit_module   = () => {};
     globalThis.setLED             = () => {};
     globalThis.setButtonLED       = () => {};
     globalThis.MoveKnob1          = 71;

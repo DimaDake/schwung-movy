@@ -1,4 +1,6 @@
-import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE } from './state.js';
+import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } from './state.js';
+import { mainPageActive, mainPageState } from '../seq/main-page.js';
+import { buildMainPageVM } from '../seq/main-page-vm.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
 import { MASTER_FX_SLOTS } from '../chain/config.js';
@@ -117,6 +119,13 @@ function stepTrigSig(): string {
         seqState.holdMaxGate, stepPageState.selected, stepPageState.touchedKnob].join(',');
 }
 
+let lastMainSig = '';
+function mainSig(): string {
+    return [mainPageState.active, mainPageState.touchedKnob, mainPageState.scaleOverlay,
+        mainPageState.scaleSel, seqState.bpmX100, seqState.swingPct,
+        keyboardState.rootNote, keyboardState.scale].join(',');
+}
+
 /* Same idea for the 4×4 drum grid: the drum-pad colors update at poll rate
  * (green follows the sequencer gate / held pads), so cache-diffing keeps the
  * LED traffic to actual changes. */
@@ -131,6 +140,8 @@ export function tick(): void {
     if (automationDisplayDirty()) appState.dirty = true;
     // Repaint when the step page's selection or mirrored trig values change.
     if (stepTrigSig() !== lastStepTrigSig) { lastStepTrigSig = stepTrigSig(); appState.dirty = true; }
+    // Repaint when main params page values or touch/overlay state change.
+    if (mainSig() !== lastMainSig) { lastMainSig = mainSig(); appState.dirty = true; }
     // Diagnostic (off unless debug_log_on): the UI lane registry mirrors the
     // engine's assigned lanes. Empty here means automation display + read-back
     // suppression are dead — the device automation test asserts it is populated.
@@ -251,6 +262,8 @@ export function tick(): void {
             renderChainView(vm, mIdx, appState.jogTouched, 'MASTER', MASTER_FX_SLOTS[mIdx]?.label);
             jogToastShown = appState.jogTouched;
             updateKnobLEDs(vm);
+        } else if (appState.currentView === VIEW_MAIN_PARAMS) {
+            renderKnobsView(buildMainPageVM(), false, appState.activeSlot);
         } else if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {

@@ -8,7 +8,6 @@ import { seqCmd } from './engine.js';
 import { SCALE_NAMES } from './scales.js';
 import { keyboardState } from '../keyboard/state.js';
 import { setRoot } from '../keyboard/handler.js';
-import { PAD_MIN, PAD_MAX } from './constants.js';
 import { countDetents } from './detent.js';
 import { markUiStateDirty } from './persist.js';
 
@@ -74,11 +73,12 @@ export function mainPageKnob(k: number, delta: number, track: number): void {
     } else if (k === 2) {
         // Root knob cycles the pitch class within the current octave, wrapping at
         // the octave edges (B↔C); the +/- octave buttons change octave. setRoot
-        // repaints the pads and marks UI state dirty.
+        // only updates state (the track-aware tick loop repaints pads), so this
+        // never disturbs a drum rack / clip grid when used on a non-chromatic track.
         const base = keyboardState.rootNote;
         const oct  = Math.floor(base / 12) * 12;
         const pc   = (((base - oct + n) % 12) + 12) % 12;
-        setRoot(oct + pc, track, PAD_MIN, PAD_MAX);
+        setRoot(oct + pc, track);
     } else if (k === 3 && mainPageState.scaleOverlay) {
         mainPageState.scaleSel = Math.max(0, Math.min(SCALE_NAMES.length - 1, mainPageState.scaleSel + n));
     }

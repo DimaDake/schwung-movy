@@ -31,17 +31,17 @@ export function releaseAllNotes(track: number): void {
 }
 
 /* Set the chromatic layout's base note to an absolute MIDI note (clamped),
- * releasing held notes and repainting the pads. */
-export function setRoot(absNote: number, track: number, padMin: number, padMax: number): void {
+ * releasing held notes. Pads are deliberately NOT painted here: app/tick.ts owns
+ * pad LEDs and is track-aware (chromatic vs drum vs Session clip grid), so a root
+ * change repaints chromatic pads on the next tick without ever overwriting a drum
+ * rack or clip grid. */
+export function setRoot(absNote: number, track: number): void {
     releaseAllNotes(track);
     keyboardState.rootNote = Math.max(0, Math.min(103, absNote));
-    for (let pad = padMin; pad <= padMax; pad++) {
-        setLED(pad, chromaticPadColor(pad, padMin, keyboardState.rootNote, track, false, null, keyboardState.scale), true);
-    }
     markUiStateDirty();
 }
 
 /* Shift the chromatic layout's base note. +/- move by an octave. */
-export function changeRoot(semitones: number, track: number, padMin: number, padMax: number): void {
-    setRoot(keyboardState.rootNote + semitones, track, padMin, padMax);
+export function changeRoot(semitones: number, track: number): void {
+    setRoot(keyboardState.rootNote + semitones, track);
 }

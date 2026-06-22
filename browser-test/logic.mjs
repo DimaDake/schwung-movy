@@ -2993,6 +2993,22 @@ _log('\nautomation label sync:');
     eq('page inactive after close', mainPageActive(), false);
 }
 
+/* ── root change never paints pads directly (drum/Session grids stay fixed) ── */
+{
+    _log('\nroot change does not paint pads directly:');
+    const { mainPageKnob, resetMainPage } = await import('../dist/esm/seq/main-page.js');
+    const { keyboardState } = await import('../dist/esm/keyboard/state.js');
+    resetMainPage();
+    keyboardState.rootNote = 48; // C
+    let padPaints = 0;
+    const origSetLED = globalThis.setLED;
+    globalThis.setLED = (idx) => { if (idx >= 68 && idx <= 99) padPaints++; }; // pad note range
+    mainPageKnob(2, 8, 0);       // +1 detent on the root knob (→ setRoot)
+    globalThis.setLED = origSetLED;
+    eq('root knob turn changes rootNote', keyboardState.rootNote, 49);
+    eq('root knob paints no pad LEDs (per-tick track-aware loop owns pads)', padPaints, 0);
+}
+
 /* ── main params page ViewModel ──────────────────────────────────────────── */
 {
     _log('\nmain params page ViewModel:');

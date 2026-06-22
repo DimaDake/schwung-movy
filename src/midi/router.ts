@@ -376,7 +376,7 @@ export function onMidiMessageInternal(data: number[]): void {
     if (d1 === MoveUp || d1 === MoveDown) {
         if (trackIsDrum(appState.activeSlot)) return;
         if (d2 > 0) {
-            changeRoot(d1 === MoveUp ? 12 : -12, appState.activeSlot, PAD_MIN, PAD_MAX);
+            changeRoot(d1 === MoveUp ? 12 : -12, appState.activeSlot);
             setButtonLED(d1, WHITE_BRIGHT, true);
         } else {
             setButtonLED(d1, WHITE_DIM, true);

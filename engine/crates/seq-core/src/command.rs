@@ -32,6 +32,11 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 engine.clock.set_bpm_x100(v.clamp(0, u32::MAX as i64) as u32);
             }
         }
+        "swing" => {
+            if let Some(v) = next() {
+                engine.swing_pct = v.clamp(50, 80) as u32;
+            }
+        }
         "watch" => {
             if let Some(t) = next() {
                 if (t as usize) < NUM_TRACKS {
@@ -693,5 +698,17 @@ mod tests {
         assert_eq!(e.watch_lane, None);
         let occ = e.status().split("occ=").nth(1).unwrap().to_string();
         assert_eq!(&occ[0..2], "88"); // both lanes visible
+    }
+
+    #[test]
+    fn swing_command_sets_and_clamps() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "swing 70", &mut out);
+        assert_eq!(e.swing_pct, 70);
+        apply_batch(&mut e, "swing 90", &mut out); // above max
+        assert_eq!(e.swing_pct, 80);
+        apply_batch(&mut e, "swing 10", &mut out); // below min
+        assert_eq!(e.swing_pct, 50);
     }
 }

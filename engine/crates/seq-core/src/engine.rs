@@ -72,6 +72,9 @@ pub struct Engine {
     held_query: Option<(usize, u16)>,
     /// Free-running PRNG state for trig probability rolls (xorshift64*).
     rng_state: u64,
+    /// Off-beat shuffle amount, percent (50 = straight … 80 = max). Applied by
+    /// the scheduler to odd-indexed 16th steps. UI-set via the `swing` command.
+    pub swing_pct: u32,
 }
 
 #[derive(Clone, Copy)]
@@ -106,6 +109,7 @@ impl Engine {
             gates: Vec::with_capacity(128),
             held_query: None,
             rng_state: 0x9E3779B97F4A7C15,
+            swing_pct: 50,
         }
     }
 

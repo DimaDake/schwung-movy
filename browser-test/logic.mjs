@@ -1969,6 +1969,10 @@ _log('\nautomation: restore re-requests label sync:');
     eq('shift shows dbl-loop dim', stepIconColor(14, { shift: true, metro: false, fullVel: false }), 16);
     eq('shift shows quant dim',  stepIconColor(15, { shift: true, metro: false, fullVel: false }), 16);
     eq('non-shortcut idx dark',  stepIconColor(0, { shift: true, metro: false, fullVel: false }), 0);
+    // Set Params openers (steps 5/7/9 = idx 4/6/8): dim while Shift held, full bright while page open.
+    eq('shift shows set-params step dim', stepIconColor(4, { shift: true, metro: false, fullVel: false }), 16);
+    eq('set-params step bright when page open', stepIconColor(6, { shift: false, metro: false, fullVel: false, mainPage: true }), 124);
+    eq('set-params step dark when closed+noshift', stepIconColor(8, { shift: false, metro: false, fullVel: false, mainPage: false }), 0);
 }
 
 /* ── track-button LEDs ───────────────────────────────────────────────────── */
@@ -2978,6 +2982,12 @@ _log('\nautomation label sync:');
     mainPageRelease(3);
     eq('scale committed on release', keyboardState.scale, 1);
     eq('overlay closed on release', mainPageState.scaleOverlay, false);
+    // Root knob wraps the pitch class within the current octave (B↔C); octave fixed.
+    keyboardState.rootNote = 59;           // B3 (octave base 48, pitch class 11)
+    mainPageKnob(2, 8, 0);                  // +1 detent
+    eq('root wraps B->C within octave', keyboardState.rootNote, 48);
+    mainPageKnob(2, -8, 0);                 // -1 detent
+    eq('root wraps C->B within octave', keyboardState.rootNote, 59);
     // Close returns origin.
     eq('close returns origin view', closeMainPage(), 3);
     eq('page inactive after close', mainPageActive(), false);

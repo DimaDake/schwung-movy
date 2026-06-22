@@ -7,7 +7,7 @@ import { seqState } from './state.js';
 import { seqCmd } from './engine.js';
 import { SCALE_NAMES } from './scales.js';
 import { keyboardState } from '../keyboard/state.js';
-import { changeRoot } from '../keyboard/handler.js';
+import { setRoot } from '../keyboard/handler.js';
 import { PAD_MIN, PAD_MAX } from './constants.js';
 import { countDetents } from './detent.js';
 import { markUiStateDirty } from './persist.js';
@@ -72,10 +72,13 @@ export function mainPageKnob(k: number, delta: number, track: number): void {
         const next = Math.max(SWING_MIN, Math.min(SWING_MAX, seqState.swingPct + n));
         if (next !== seqState.swingPct) { seqState.swingPct = next; seqCmd('swing ' + next); }
     } else if (k === 2) {
-        // Root knob transposes the layout by n semitones (changeRoot clamps to
-        // 0..103 and repaints the pads); octave buttons remain ±12.
-        // markUiStateDirty is called inside changeRoot — no need to repeat it.
-        changeRoot(n, track, PAD_MIN, PAD_MAX);
+        // Root knob cycles the pitch class within the current octave, wrapping at
+        // the octave edges (B↔C); the +/- octave buttons change octave. setRoot
+        // repaints the pads and marks UI state dirty.
+        const base = keyboardState.rootNote;
+        const oct  = Math.floor(base / 12) * 12;
+        const pc   = (((base - oct + n) % 12) + 12) % 12;
+        setRoot(oct + pc, track, PAD_MIN, PAD_MAX);
     } else if (k === 3 && mainPageState.scaleOverlay) {
         mainPageState.scaleSel = Math.max(0, Math.min(SCALE_NAMES.length - 1, mainPageState.scaleSel + n));
     }

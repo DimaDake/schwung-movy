@@ -16,7 +16,7 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
         const rightW   = vm.bankName ? fontWidth(vm.bankName) + iconW + 4 : 0;
         const maxLeftW = W - rightW - 4;
         const trackLabel = 'T' + (activeSlot + 1);
-        let dispName     = trackLabel + ' > ' + vm.moduleName;
+        let dispName     = vm.headerOverride ?? (trackLabel + ' > ' + vm.moduleName);
         while (dispName.length > 1 && fontWidth(dispName) > maxLeftW) {
             dispName = dispName.slice(0, -1);
         }

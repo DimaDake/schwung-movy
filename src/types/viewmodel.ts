@@ -40,6 +40,9 @@ export interface OverlayState {
 
 export interface ViewModel {
     moduleName:     string;
+    /* When set, the header shows this verbatim instead of the "T<n> > module"
+     * label — for non-track pages (e.g. the Set Params page). */
+    headerOverride?: string;
     bankName:       string;
     bankIndex:      number;
     bankCount:      number;

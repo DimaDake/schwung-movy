@@ -258,7 +258,9 @@ export function tick(): void {
         } else if (appState.currentView === VIEW_FILE_BROWSE) {
             if (appState.fileBrowserState) renderFileBrowseView(appState.fileBrowserState);
         } else if (appState.currentView === VIEW_MAIN_PARAMS) {
-            renderKnobsView(buildMainPageVM(), false, appState.activeSlot);
+            const vm = buildMainPageVM();
+            renderKnobsView(vm, false, appState.activeSlot);
+            updateKnobLEDs(vm); // knobs 0-3 reflect value; 4-7 (null cells) off
         } else if (seqState.sessionMode) {
             const vm = masterModel!.getViewModel();
             renderChainView(vm, mIdx, appState.jogTouched, 'MASTER', MASTER_FX_SLOTS[mIdx]?.label);

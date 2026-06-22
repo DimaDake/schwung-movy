@@ -1,20 +1,23 @@
 /* Generic momentary view-switch. A button-down shows the target view
  * immediately; the release decides what sticks:
- *   - HOLD (>= HOLD_TICKS) or a modifier-gesture happened while held  → revert
+ *   - HOLD (>= HOLD_MS) or a modifier-gesture happened while held  → revert
  *     to the prior state (temporary peek / modifier use); restore() runs.
- *   - clean quick TAP, nothing done while held                       → 'tap';
+ *   - clean quick TAP, nothing done while held                     → 'tap';
  *     the caller latches (or toggles off if it was already in the view).
- * One active button at a time. The *At variants take an explicit tick for
- * testability; the plain variants read uiTick(). */
+ * One active button at a time. The *At variants take an explicit timestamp
+ * (ms) for testability; the plain variants read Date.now().
+ *
+ * The threshold is wall-clock, not tick-counted: the device tick rate is not a
+ * stable constant (it has run ~94 Hz and ~205 Hz across schwung builds), so a
+ * tick-based hold window silently changes length when the rate moves. A track
+ * switch is a sub-second tap; a hold-to-peek is a deliberate ~1 s press. */
 
-import { uiTick } from './engine.js';
+const HOLD_MS = 1000;
 
-const HOLD_TICKS = 94; // ~1 s at the ~94 Hz device tick rate
+let active: { button: number; pressMs: number; restore: () => void; gestured: boolean } | null = null;
 
-let active: { button: number; pressTick: number; restore: () => void; gestured: boolean } | null = null;
-
-export function momentaryDownAt(button: number, now: number, restore: () => void): void {
-    active = { button, pressTick: now, restore, gestured: false };
+export function momentaryDownAt(button: number, nowMs: number, restore: () => void): void {
+    active = { button, pressMs: nowMs, restore, gestured: false };
 }
 
 /* Mark the in-progress momentary as a modifier use (wheel resize, clip launch,
@@ -24,9 +27,9 @@ export function momentaryGesture(): void {
     if (active) active.gestured = true;
 }
 
-export function momentaryUpAt(button: number, now: number): 'revert' | 'tap' | 'none' {
+export function momentaryUpAt(button: number, nowMs: number): 'revert' | 'tap' | 'none' {
     if (!active || active.button !== button) return 'none';
-    const revert = active.gestured || now - active.pressTick >= HOLD_TICKS;
+    const revert = active.gestured || nowMs - active.pressMs >= HOLD_MS;
     const restore = active.restore;
     active = null;
     if (revert) {
@@ -37,11 +40,11 @@ export function momentaryUpAt(button: number, now: number): 'revert' | 'tap' | '
 }
 
 export function momentaryDown(button: number, restore: () => void): void {
-    momentaryDownAt(button, uiTick(), restore);
+    momentaryDownAt(button, Date.now(), restore);
 }
 
 export function momentaryUp(button: number): 'revert' | 'tap' | 'none' {
-    return momentaryUpAt(button, uiTick());
+    return momentaryUpAt(button, Date.now());
 }
 
 export function resetMomentary(): void {

@@ -2099,41 +2099,42 @@ _log('\nautomation: restore re-requests label sync:');
     let restored = 0;
     const restore = () => { restored++; };
 
-    // Quick tap (< 94 ticks elapsed) → latch, restore NOT called.
+    // Timestamps are wall-clock ms (HOLD_MS = 1000). A quick tap (< 1 s) → latch,
+    // restore NOT called.
     resetMomentary();
-    momentaryDownAt(40, 100, restore);
-    eq('tap returns tap', momentaryUpAt(40, 110), 'tap'); // 10 ticks
+    momentaryDownAt(40, 1000, restore);
+    eq('tap returns tap', momentaryUpAt(40, 1300), 'tap'); // 300 ms
     eq('tap does not restore', restored, 0);
 
-    // Hold (>= 94 ticks ~1 s) → revert, restore called.
+    // Hold (>= 1 s) → revert, restore called.
     resetMomentary();
-    momentaryDownAt(40, 100, restore);
-    eq('hold returns revert', momentaryUpAt(40, 200), 'revert'); // 100 ticks
+    momentaryDownAt(40, 1000, restore);
+    eq('hold returns revert', momentaryUpAt(40, 2200), 'revert'); // 1200 ms
     eq('hold restores', restored, 1);
 
-    // 93 ticks is still a tap (one tick below threshold).
+    // 999 ms is still a tap (one ms below threshold).
     resetMomentary();
     momentaryDownAt(40, 0, restore);
-    eq('93 ticks is still tap', momentaryUpAt(40, 93), 'tap');
-    eq('93-tick does not restore', restored, 1);
+    eq('999 ms is still tap', momentaryUpAt(40, 999), 'tap');
+    eq('999-ms does not restore', restored, 1);
 
-    // 94 ticks exactly → revert.
+    // 1000 ms exactly → revert.
     resetMomentary();
     momentaryDownAt(40, 0, restore);
-    eq('94 ticks is hold', momentaryUpAt(40, 94), 'revert');
-    eq('94-tick restores', restored, 2);
+    eq('1000 ms is hold', momentaryUpAt(40, 1000), 'revert');
+    eq('1000-ms restores', restored, 2);
 
     // Gesture while held → revert even on a quick release.
     resetMomentary();
-    momentaryDownAt(40, 100, restore);
+    momentaryDownAt(40, 1000, restore);
     momentaryGesture();
-    eq('gesture returns revert', momentaryUpAt(40, 105), 'revert'); // 5 ticks
+    eq('gesture returns revert', momentaryUpAt(40, 1050), 'revert'); // 50 ms
     eq('gesture restores', restored, 3);
 
     // Up for a different button is ignored.
     resetMomentary();
-    momentaryDownAt(40, 100, restore);
-    eq('other-button up none', momentaryUpAt(58, 200), 'none');
+    momentaryDownAt(40, 1000, restore);
+    eq('other-button up none', momentaryUpAt(58, 2000), 'none');
     eq('other-button up ignored', restored, 3);
 }
 

@@ -39,6 +39,8 @@ const PRESETS = [
     'drum-mrdrums-pad5', 'drum-mrdrums-global',
     'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
     'step_page_knobs', 'step_page_chain', 'step_indicator',
+    'main-default', 'main-tempo-touched', 'main-swing-touched',
+    'main-root-touched', 'main-key-overlay',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -51,6 +53,9 @@ const BASE = {
     'drum-mrdrums-pad5': 'mrdrums', 'drum-mrdrums-global': 'mrdrums',
     auto_dot: 'test8', auto_held: 'test8', auto_live: 'test8', auto_limit: 'test8',
     step_page_knobs: 'test8', step_page_chain: 'test8', step_indicator: 'test8',
+    'main-default': 'test8', 'main-tempo-touched': 'test8',
+    'main-swing-touched': 'test8', 'main-root-touched': 'test8',
+    'main-key-overlay': 'test8',
 };
 
 const STEP_VM_A = {
@@ -92,6 +97,10 @@ const { renderKeysView }   = await import('../dist/esm/renderer/keys-view.js');
 const { renderBrowseView } = await import('../dist/esm/renderer/browse-view.js');
 const { renderChainView }  = await import('../dist/esm/renderer/chain-view.js');
 const { buildStepPageVM }  = await import('../dist/esm/seq/step-page-vm.js');
+const { buildMainPageVM }  = await import('../dist/esm/seq/main-page-vm.js');
+const { mainPageState, resetMainPage } = await import('../dist/esm/seq/main-page.js');
+const { seqState, resetSeqState }      = await import('../dist/esm/seq/state.js');
+const { keyboardState }                = await import('../dist/esm/keyboard/state.js');
 const { MOCK_SYNTHS }      = await import('./mock-synth.mjs');
 
 const COMPONENT_KEYS = ['midi_fx1', 'synth', 'fx1', 'fx2'];
@@ -180,6 +189,50 @@ function applyView(preset) {
                 vm.stepPagePresent = true; vm.stepPageSelected = false;
                 renderKnobsView(vm, false, 0);
             };
+            lastRender();
+            break;
+        }
+        case 'main-default': {
+            resetSeqState(); resetMainPage();
+            keyboardState.rootNote = 48; keyboardState.scale = 0;
+            seqState.bpmX100 = 12000; seqState.swingPct = 50;
+            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
+            lastRender();
+            break;
+        }
+        case 'main-tempo-touched': {
+            resetSeqState(); resetMainPage();
+            keyboardState.rootNote = 48; keyboardState.scale = 0;
+            seqState.bpmX100 = 12000; seqState.swingPct = 50;
+            mainPageState.touchedKnob = 0;
+            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
+            lastRender();
+            break;
+        }
+        case 'main-swing-touched': {
+            resetSeqState(); resetMainPage();
+            keyboardState.rootNote = 48; keyboardState.scale = 0;
+            seqState.bpmX100 = 12000; seqState.swingPct = 50;
+            mainPageState.touchedKnob = 1;
+            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
+            lastRender();
+            break;
+        }
+        case 'main-root-touched': {
+            resetSeqState(); resetMainPage();
+            keyboardState.rootNote = 51; keyboardState.scale = 0;   // D#
+            seqState.bpmX100 = 12000; seqState.swingPct = 50;
+            mainPageState.touchedKnob = 2;
+            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
+            lastRender();
+            break;
+        }
+        case 'main-key-overlay': {
+            resetSeqState(); resetMainPage();
+            keyboardState.rootNote = 48; keyboardState.scale = 0;
+            seqState.bpmX100 = 12000; seqState.swingPct = 50;
+            mainPageState.scaleOverlay = true; mainPageState.scaleSel = 1;
+            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
             lastRender();
             break;
         }

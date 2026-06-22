@@ -113,6 +113,15 @@ impl Engine {
         }
     }
 
+    /// Ticks to delay an odd-indexed 16th step (the off-beat) for swing.
+    /// 0 at 50% (straight) … TICKS_PER_STEP/2 (12) at 80%. Even steps: 0.
+    fn swing_delay(&self, step: u16) -> u32 {
+        if self.swing_pct <= 50 || step % 2 == 0 {
+            return 0;
+        }
+        (self.swing_pct - 50) * TICKS_PER_STEP / 60
+    }
+
     /// xorshift64* → a 0..=99 percent roll. Free-running (Elektron-style).
     fn roll_pct(&mut self) -> u8 {
         let mut x = self.rng_state;
@@ -572,8 +581,12 @@ impl Engine {
                     let mut decided: Vec<((u16, Option<u8>), bool)> = Vec::new();
                     for ni in 0..len {
                         let n = self.tracks[ti].clips[slot].notes[ni];
-                        // Skip notes just recorded this pass (suppress_until_wrap).
-                        if n.tick != pos || n.suppress {
+                        // Swing shifts an off-beat step's note later within its
+                        // own cell (delay < TICKS_PER_STEP, so it never collides
+                        // with the next step). Recorded micro-timed notes keep
+                        // their stored tick + the step-parity offset.
+                        let fire_tick = n.tick + self.swing_delay(n.step);
+                        if fire_tick != pos || n.suppress {
                             continue;
                         }
                         let clip = &self.tracks[ti].clips[slot];
@@ -1641,5 +1654,40 @@ mod tests {
         let before = e.tracks[0].clips[2].length_steps;
         run_ticks(&mut e, crate::TICKS_PER_BAR as u64);
         assert!(e.tracks[0].clips[2].length_steps > before, "new clip did not auto-extend");
+    }
+
+    #[test]
+    fn swing_delays_offbeat_steps_only() {
+        // Returns the clip-position tick at which the note on `step` fires.
+        // Advances in 8-frame chunks (≈0.03 ticks each, so ≤1 tick fires per
+        // chunk) and reads the master tick from status. status `tick=` is
+        // post-increment, and the note fires while pos == master_tick - 1, so
+        // the firing position is (status tick − 1).
+        fn fire_tick(swing: u32, step: u16) -> u64 {
+            let mut e = Engine::new(44100, 12000);
+            e.swing_pct = swing;
+            let mut out = Vec::new();
+            apply_batch(&mut e, &format!("tog 0 {step} 60 100"), &mut out);
+            e.play();
+            for _ in 0..5000 {
+                out.clear();
+                e.advance_block(8, &mut out);
+                if out.iter().any(|ev| matches!(ev, OutEvent::NoteOn { pitch: 60, .. })) {
+                    let st = e.status();
+                    let tick = st.split_whitespace()
+                        .find_map(|kv| kv.strip_prefix("tick="))
+                        .and_then(|v| v.parse::<u64>().ok())
+                        .expect("status has tick=");
+                    return tick - 1;
+                }
+            }
+            panic!("note on step {step} never fired (swing {swing})");
+        }
+        // Straight: step 0 at tick 0, step 1 at tick 24.
+        assert_eq!(fire_tick(50, 0), 0);
+        assert_eq!(fire_tick(50, 1), 24);
+        // Swing 80: even step unchanged, odd step delayed 12 ticks.
+        assert_eq!(fire_tick(80, 0), 0);
+        assert_eq!(fire_tick(80, 1), 24 + 12);
     }
 }

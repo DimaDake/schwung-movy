@@ -569,6 +569,10 @@ _log('\napp-loop: main params page entry, knob routing, Back exit');
     resetApp();
     engine.reset();
 
+    // resetApp() settles on VIEW_CHAIN (drum track default); capture it as the
+    // expected origin so Back must restore exactly this view.
+    const originView = appState.currentView;   // VIEW_CHAIN
+
     // Shift+Step 5 (0-indexed button 4 = note STEP_NOTE_BASE+4 = 16+4 = 20)
     sendMidi([0xB0, MoveShift, 127]);          // Shift down
     sendMidi([0x90, 16 + 4, 127]);             // Step 5 on
@@ -585,9 +589,10 @@ _log('\napp-loop: main params page entry, knob routing, Back exit');
     eq('knob 0 edits tempo on main page',
         engine.ops.some((c) => c.startsWith('bpm ')), true);
 
-    // Back exits the page, restoring the origin view
+    // Back exits the page and must restore exactly the origin view (VIEW_CHAIN),
+    // not just any view other than VIEW_MAIN_PARAMS.
     sendMidi([0xB0, MoveBack, 127]);
-    eq('Back exits main params', appState.currentView !== VIEW_MAIN_PARAMS, true);
+    eq('Back exits main params to origin view', appState.currentView, originView);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

@@ -257,13 +257,13 @@ export function tick(): void {
             renderBrowseView(browserState.modules, browserState.browseIndex, browseTitle);
         } else if (appState.currentView === VIEW_FILE_BROWSE) {
             if (appState.fileBrowserState) renderFileBrowseView(appState.fileBrowserState);
+        } else if (appState.currentView === VIEW_MAIN_PARAMS) {
+            renderKnobsView(buildMainPageVM(), false, appState.activeSlot);
         } else if (seqState.sessionMode) {
             const vm = masterModel!.getViewModel();
             renderChainView(vm, mIdx, appState.jogTouched, 'MASTER', MASTER_FX_SLOTS[mIdx]?.label);
             jogToastShown = appState.jogTouched;
             updateKnobLEDs(vm);
-        } else if (appState.currentView === VIEW_MAIN_PARAMS) {
-            renderKnobsView(buildMainPageVM(), false, appState.activeSlot);
         } else if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {

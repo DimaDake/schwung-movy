@@ -141,8 +141,7 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         if (mainPageActive()) {
-            if (k < 4) mainPageKnob(k, delta, appState.activeSlot);
-            appState.dirty = true;
+            if (k < 4) { mainPageKnob(k, delta, appState.activeSlot); appState.dirty = true; }
             return;
         }
         mlog('knobCC k=' + k + ' d2=' + d2 + ' delta=' + delta);

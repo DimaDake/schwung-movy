@@ -2983,6 +2983,31 @@ _log('\nautomation label sync:');
     eq('page inactive after close', mainPageActive(), false);
 }
 
+/* ── main params page ViewModel ──────────────────────────────────────────── */
+{
+    _log('\nmain params page ViewModel:');
+    const { buildMainPageVM } = await import('../dist/esm/seq/main-page-vm.js');
+    const { mainPageState, resetMainPage } = await import('../dist/esm/seq/main-page.js');
+    const { seqState } = await import('../dist/esm/seq/state.js');
+    const { keyboardState } = await import('../dist/esm/keyboard/state.js');
+
+    resetMainPage();
+    seqState.bpmX100 = 12000; seqState.swingPct = 50;
+    keyboardState.rootNote = 48; keyboardState.scale = 0; // C, Major
+    mainPageState.active = true; mainPageState.touchedKnob = 0;
+    let vm = buildMainPageVM();
+    eq('tempo cell shows 120', vm.rows[0][0].displayValue, '120');
+    eq('root cell shows C', vm.rows[0][2].displayValue, 'C');
+    eq('key cell shows Major', vm.rows[0][3].displayValue, 'Major');
+    eq('toast names tempo', vm.toast.fullName, 'Tempo');
+    eq('tempo toast value', vm.toast.value, '120 bpm');
+    // Overlay present when scale list open.
+    mainPageState.scaleOverlay = true; mainPageState.scaleSel = 1; mainPageState.touchedKnob = 3;
+    vm = buildMainPageVM();
+    eq('overlay carries 13 scales', vm.overlay && vm.overlay.options.length, 13);
+    eq('overlay selection from scaleSel', vm.overlay?.selected, 1);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

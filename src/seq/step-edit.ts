@@ -17,6 +17,7 @@ import {
     LENGTH_TICKS, PROB_VALUES, COND_PAIRS,
     lengthIndexForTicks, probIndexForPct, condIndexFor,
 } from './step-page-vm.js';
+import { countDetents } from './detent.js';
 
 const TICKS_PER_STEP = 24;             // 96 PPQN / 4 (mirror of seq-core)
 const VEL_STEP = 4;                    // velocity per encoder detent
@@ -245,16 +246,7 @@ export function resetStepEdit(): void {
  * Knob 0 velocity (evel delta), 1 length (slen absolute), 2 probability
  * (eprob), 3 condition (econd), 4 invert (einv). Enum knobs accumulate small
  * deltas; one detent steps the value. */
-const STEP_ENUM_DIV = 8;
 const enumAccum = [0, 0, 0, 0, 0];
-
-function detents(knob: number, delta: number): number {
-    enumAccum[knob] += delta;
-    let n = 0;
-    while (enumAccum[knob] >= STEP_ENUM_DIV)  { enumAccum[knob] -= STEP_ENUM_DIV; n++; }
-    while (enumAccum[knob] <= -STEP_ENUM_DIV) { enumAccum[knob] += STEP_ENUM_DIV; n--; }
-    return n;
-}
 
 export function resetStepPageKnobs(): void { enumAccum.fill(0); }
 
@@ -276,7 +268,7 @@ export function editStepPageKnob(knob: number, delta: number): boolean {
         forEach((r) => seqCmd(`evel ${t} ${r.s0} ${r.s1} ${ln} ${d}`));
         return true;
     }
-    const n = detents(knob, delta);
+    const n = countDetents(enumAccum, knob, delta);
     if (n === 0) { markGestured(); return true; } // consumed; below detent threshold
     if (knob === 1) {
         let idx = clampIdx(lengthIndexForTicks(seqState.holdGate) + n, LENGTH_TICKS.length);

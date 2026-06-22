@@ -45,6 +45,8 @@ await esbuild.build({
         resolve(root, 'src/keyboard/leds.ts'),
         resolve(root, 'src/app/state.ts'),
         resolve(root, 'src/seq/momentary.ts'),
+        resolve(root, 'src/seq/detent.ts'),
+        resolve(root, 'src/seq/main-page.ts'),
     ],
     bundle:    true,
     splitting: true,

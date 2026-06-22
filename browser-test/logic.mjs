@@ -2946,6 +2946,40 @@ _log('\nautomation label sync:');
     eq('chromatic admits all', inScaleFor(5, 2, 12), true);
 }
 
+/* ── main params page: state machine + knob/touch/release handlers ──────── */
+{
+    _log('\nmain params page:');
+    const {
+        mainPageState, openMainPage, closeMainPage, mainPageActive,
+        mainPageKnob, mainPageTouch, mainPageRelease, resetMainPage,
+    } = await import('../dist/esm/seq/main-page.js');
+    const { peekSeqCmdQueue, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { keyboardState } = await import('../dist/esm/keyboard/state.js');
+
+    resetMainPage(); resetSeqEngine();
+    openMainPage(3);
+    eq('page active after open', mainPageActive(), true);
+    // Tempo: 8 raw delta units = 1 detent = +1 BPM. seqState.bpmX100 starts 12000.
+    mainPageKnob(0, 8, 0);
+    const q1 = peekSeqCmdQueue();
+    eq('tempo +1 BPM emits bpm 12100', q1.some((c) => c.startsWith('bpm 12100')), true);
+    // Swing: +1 detent → swing 51.
+    mainPageKnob(1, 8, 0);
+    const q2 = peekSeqCmdQueue();
+    eq('swing +1 emits swing 51', q2.some((c) => c === 'swing 51'), true);
+    // Key overlay: touch opens, turn scrolls, release commits.
+    mainPageTouch(3, true);
+    eq('overlay opens on key touch', mainPageState.scaleOverlay, true);
+    mainPageKnob(3, 8, 0);                 // scroll to scale index 1
+    eq('overlay scrolled', mainPageState.scaleSel, 1);
+    mainPageRelease(3);
+    eq('scale committed on release', keyboardState.scale, 1);
+    eq('overlay closed on release', mainPageState.scaleOverlay, false);
+    // Close returns origin.
+    eq('close returns origin view', closeMainPage(), 3);
+    eq('page inactive after close', mainPageActive(), false);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

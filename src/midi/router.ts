@@ -8,7 +8,7 @@ import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
 import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteTrack, seqRestoreWatch } from '../seq/router.js';
 import { anyStepHeld, editStepPageKnob } from '../seq/step-edit.js';
-import { stepPageState, setStepPageSelected, setStepTouchedKnob } from '../seq/step-page.js';
+import { stepPageState, setStepPageSelected, setStepTouchedKnob, stepPageAvailable } from '../seq/step-page.js';
 import { seqState } from '../seq/state.js';
 import { WHITE_BRIGHT, WHITE_DIM } from '../seq/colors.js';
 import { momentaryDown, momentaryUp } from '../seq/momentary.js';
@@ -59,7 +59,7 @@ export function onMidiMessageInternal(data: number[]): void {
     if ((status & 0xF0) === 0x90 && d1 < 8) {
         // Step page owns the knobs: a touch shows that param's top toast; the
         // step params are intrinsic (no automation lane / model touch).
-        if (seqState.stepAutoMode && stepPageState.selected) {
+        if (stepPageAvailable() && stepPageState.selected) {
             setStepTouchedKnob(d2 > 0 && d1 < 5 ? d1 : -1);
             appState.dirty = true;
             return;
@@ -127,7 +127,7 @@ export function onMidiMessageInternal(data: number[]): void {
         const delta = decodeDelta(d2);
         // Step page owns the knobs while it is selected (intrinsic trig props,
         // never chain automation). Knobs 5..7 are blank → ignored.
-        if (seqState.stepAutoMode && stepPageState.selected) {
+        if (stepPageAvailable() && stepPageState.selected) {
             if (k < 5) editStepPageKnob(k, delta);
             return;
         }
@@ -284,7 +284,7 @@ export function onMidiMessageInternal(data: number[]): void {
                 appState.masterChainIndex = Math.max(0, Math.min(3, appState.masterChainIndex + (delta > 0 ? 1 : -1)));
             } else if (appState.currentView === VIEW_CHAIN) {
                 const dir = delta > 0 ? 1 : -1;
-                if (seqState.stepAutoMode) {
+                if (stepPageAvailable()) {
                     if (stepPageState.selected) {
                         if (dir > 0) setStepPageSelected(false);       // leave step → slots
                     } else if (dir < 0 && chainIndex() === 0) {
@@ -299,7 +299,7 @@ export function onMidiMessageInternal(data: number[]): void {
             } else if (appState.currentView === VIEW_KNOBS) {
                 const dir = delta > 0 ? 1 : -1;
                 const m = activeModel();
-                if (seqState.stepAutoMode) {
+                if (stepPageAvailable()) {
                     const onBank0 = (m?.getKnobPage?.() ?? 0) === 0;
                     if (stepPageState.selected) {
                         if (dir > 0) setStepPageSelected(false);
@@ -327,12 +327,12 @@ export function onMidiMessageInternal(data: number[]): void {
         if (masterChainActive()) {
             appState.masterChainIndex = Math.max(0, appState.masterChainIndex - 1);
         } else if (appState.currentView === VIEW_CHAIN) {
-            if (seqState.stepAutoMode && !stepPageState.selected && chainIndex() === 0) setStepPageSelected(true);
-            else if (!(seqState.stepAutoMode && stepPageState.selected)) setChainIndex(Math.max(0, chainIndex() - 1));
+            if (stepPageAvailable() && !stepPageState.selected && chainIndex() === 0) setStepPageSelected(true);
+            else if (!(stepPageAvailable() && stepPageState.selected)) setChainIndex(Math.max(0, chainIndex() - 1));
         } else if (appState.currentView === VIEW_KNOBS) {
             const m = activeModel();
-            if (seqState.stepAutoMode && !stepPageState.selected && (m?.getKnobPage?.() ?? 0) === 0) setStepPageSelected(true);
-            else if (!(seqState.stepAutoMode && stepPageState.selected)) m?.changePage(-1);
+            if (stepPageAvailable() && !stepPageState.selected && (m?.getKnobPage?.() ?? 0) === 0) setStepPageSelected(true);
+            else if (!(stepPageAvailable() && stepPageState.selected)) m?.changePage(-1);
         }
         appState.dirty = true;
         return;
@@ -341,11 +341,11 @@ export function onMidiMessageInternal(data: number[]): void {
         if (masterChainActive()) {
             appState.masterChainIndex = Math.min(3, appState.masterChainIndex + 1);
         } else if (appState.currentView === VIEW_CHAIN) {
-            if (seqState.stepAutoMode && stepPageState.selected) setStepPageSelected(false);
+            if (stepPageAvailable() && stepPageState.selected) setStepPageSelected(false);
             else setChainIndex(Math.min(3, chainIndex() + 1));
         } else if (appState.currentView === VIEW_KNOBS) {
             const m = activeModel();
-            if (seqState.stepAutoMode && stepPageState.selected) setStepPageSelected(false);
+            if (stepPageAvailable() && stepPageState.selected) setStepPageSelected(false);
             else m?.changePage(1);
         }
         appState.dirty = true;

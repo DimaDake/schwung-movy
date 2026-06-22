@@ -22,7 +22,7 @@ import { seqPersistTick } from '../seq/persist.js';
 import { seqLedsTick, seqLedsInvalidate } from '../seq/leds.js';
 import { seqSetLane } from '../seq/router.js';
 import { stepAutoTick } from '../seq/step-edit.js';
-import { stepPageState } from '../seq/step-page.js';
+import { stepPageState, stepPageAvailable } from '../seq/step-page.js';
 import { buildStepPageVM } from '../seq/step-page-vm.js';
 import { activeHasNote, maxBarOffset, seqState } from '../seq/state.js';
 import { engineReady } from '../seq/engine.js';
@@ -254,13 +254,13 @@ export function tick(): void {
         } else if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
-            const sessionActive = seqState.stepAutoMode;
+            const stepAvail = stepPageAvailable();
             let vm;
-            if (sessionActive && stepPageState.selected) {
-                vm = buildStepPageVM(heldTrigInput());
+            if (stepAvail && stepPageState.selected) {
+                vm = buildStepPageVM(heldTrigInput(), activeModel!.getBankCount());
             } else {
                 vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot, activeModel!));
-                if (sessionActive) { vm.stepPagePresent = true; vm.stepPageSelected = false; }
+                if (stepAvail) { vm.stepPagePresent = true; vm.stepPageSelected = false; }
             }
             diagAutoRender(vm);
             renderKnobsView(vm, appState.jogTouched, appState.activeSlot);
@@ -270,13 +270,13 @@ export function tick(): void {
                 || !!vm.toast?.browseHint || appState.jogTouched;
             updateKnobLEDs(vm);
         } else if (appState.currentView === VIEW_CHAIN) {
-            const sessionActive = seqState.stepAutoMode;
+            const stepAvail = stepPageAvailable();
             let vm;
-            if (sessionActive && stepPageState.selected) {
-                vm = buildStepPageVM(heldTrigInput());
+            if (stepAvail && stepPageState.selected) {
+                vm = buildStepPageVM(heldTrigInput(), activeModel?.getBankCount() ?? 1);
             } else {
                 vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot, activeModel!));
-                if (sessionActive) { vm.stepPagePresent = true; vm.stepPageSelected = false; }
+                if (stepAvail) { vm.stepPagePresent = true; vm.stepPageSelected = false; }
             }
             diagAutoRender(vm);
             renderChainView(vm, chainIdx, appState.jogTouched, 'T' + (appState.activeSlot + 1));

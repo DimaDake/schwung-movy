@@ -4,6 +4,8 @@
  * there next time (the page does not exist outside a session, so a flag carries
  * that intent). Knob/value editing lives in step-edit.ts; rendering reads this. */
 
+import { seqState, occHasStep } from './state.js';
+
 export const stepPageState = {
     /** The step page (page 0) is the currently selected page this session. */
     selected: false,
@@ -33,6 +35,14 @@ export function setStepPageSelected(v: boolean): void {
 /** True when the step page should be rendered/edited (session active + selected). */
 export function stepPageActive(sessionActive: boolean): boolean {
     return sessionActive && stepPageState.selected;
+}
+
+/* The step page only exists for a held step that actually HAS a note on the
+ * watched lane — there are no per-trig params to edit on an empty step (occ is
+ * already lane-filtered by the engine). Empty held steps fall back to the normal
+ * module page so chain-automation (hold-step) editing still works there. */
+export function stepPageAvailable(): boolean {
+    return seqState.stepAutoMode && occHasStep(seqState.holdStep);
 }
 
 export function resetStepPage(): void {

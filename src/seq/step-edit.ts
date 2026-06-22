@@ -306,7 +306,9 @@ export function editStepPageKnob(knob: number, delta: number): boolean {
         forEach((r) => seqCmd(`econd ${t} ${r.s0} ${r.s1} ${ln} ${a} ${b}`));
         seqState.holdCondA = a; seqState.holdCondB = b;
     } else if (knob === 4) {
-        const on = !seqState.holdInvert; // any turn toggles
+        // Boolean: CW = on, CCW = off. Never toggle, so holding the turn doesn't
+        // cycle the value back and forth.
+        const on = n > 0;
         forEach((r) => seqCmd(`einv ${t} ${r.s0} ${r.s1} ${ln} ${on ? 1 : 0}`));
         seqState.holdInvert = on;
     }

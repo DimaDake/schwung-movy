@@ -65,7 +65,7 @@ function cell(p: Partial<ParamVM>): ParamVM {
     };
 }
 
-export function buildStepPageVM(h: HeldTrig): ViewModel {
+export function buildStepPageVM(h: HeldTrig, moduleBankCount = 1): ViewModel {
     const lenIdx  = lengthIndexForTicks(h.holdGate);
     const probIdx = probIndexForPct(h.holdProb);
     const condIdx = condIndexFor(h.holdCondA, h.holdCondB);
@@ -93,16 +93,21 @@ export function buildStepPageVM(h: HeldTrig): ViewModel {
         enumIndex: h.holdInvert ? 1 : 0, displayValue: h.holdInvert ? 'ON' : 'OFF',
     });
 
-    // A touched/turned knob shows the shared top toast (full name + value),
-    // exactly like editing a synth param on a module page.
+    // A touched/turned knob shows the shared top toast (full name + value) AND
+    // its label cell shows the value inverted — exactly like editing a synth
+    // param on a module page.
     const cells = [vel, len, prob, cond, inv];
     const tk = stepPageState.touchedKnob;
-    const toast = (tk >= 0 && tk < cells.length)
-        ? { fullName: cells[tk].fullName, value: cells[tk].displayValue, browseHint: false }
-        : null;
+    let toast = null;
+    if (tk >= 0 && tk < cells.length) {
+        cells[tk].touched = true;
+        toast = { fullName: cells[tk].fullName, value: cells[tk].displayValue, browseHint: false };
+    }
 
     return {
-        moduleName: 'step', bankName: '', bankIndex: 0, bankCount: 1,
+        // bankCount mirrors the underlying module's pages so the indicator shows
+        // step + all module banks (e.g. Mr Hyde's 8), not just step + 1.
+        moduleName: 'step', bankName: '', bankIndex: 0, bankCount: moduleBankCount,
         rows: [[vel, len, prob, cond], [inv, null, null, null]],
         touchedSlot: null, toast, overlay: null, isEmpty: false,
         drumPadCount: 0, drumCurrentPad: 0, drumCurrentPhysPad: 0, isPadSpecific: false,

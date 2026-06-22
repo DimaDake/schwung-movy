@@ -171,7 +171,7 @@ function applyView(preset) {
         case 'auto_held':        showKnobsAuto(autoView({ held: true, heldVal: model.getKnobParamInfo(0).max })); break;
         case 'auto_live':        showKnobsAuto(autoView({ held: false, liveVal: model.getKnobParamInfo(0).max })); break;
         case 'auto_limit':       showKnobsAuto(autoView({ held: true, poolFull: true, assignedLanes: 0xFF })); break;
-        case 'step_page_knobs':  lastRender = () => renderKnobsView(buildStepPageVM(STEP_VM_A), false, 0); lastRender(); break;
+        case 'step_page_knobs':  lastRender = () => renderKnobsView(buildStepPageVM(STEP_VM_A, 4), false, 0); lastRender(); break;
         case 'step_page_chain':  lastRender = () => renderChainView(buildStepPageVM(STEP_VM_B), 1, false, 'T1'); lastRender(); break;
         case 'step_indicator': {
             // Module page during a session: dotted leading segment, not selected.

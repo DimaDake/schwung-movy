@@ -375,6 +375,7 @@ _log('\napp-loop: Back while holding a step returns to chain view');
 _log('\napp-loop: step page navigation + knob editing');
 {
     const { stepPageState, resetStepPage } = await import('../dist/esm/seq/step-page.js');
+    const { occToggleStep } = await import('../dist/esm/seq/state.js');
     engine.reset();
     env.setParams(MOCK_SYNTHS.test8);         // melodic → watchLane = -1
     resetSeqState(); resetSeqEngine(); resetStepPage();
@@ -385,6 +386,7 @@ _log('\napp-loop: step page navigation + knob editing');
     appState.activeSlot = 0;
 
     sendMidi([0x90, 16, 127]);                // hold step 1 (abs step 0)
+    occToggleStep(0);                         // the held step has a note (step page available)
     seqState.stepAutoMode = true;             // session promoted
     // Jog left from module bank 0 enters the step page; jog right leaves it.
     sendMidi([0xB0, 14, 127]);                // jog CCW (-1)
@@ -420,6 +422,13 @@ _log('\napp-loop: step page navigation + knob editing');
     const slen = engine.ops.find((o) => o.startsWith('slen'));
     eq('length clamps to the cap (96 ticks)', slen, 'slen 0 0 0 -1 96');
 
+    // A held step with NO note has no per-trig params → the step page is not
+    // available; jog falls back to normal page nav.
+    stepPageState.selected = false;
+    occToggleStep(0);                         // clear the note on the held step
+    sendMidi([0xB0, 14, 127]);                // jog CCW
+    eq('empty step does not open the step page', stepPageState.selected, false);
+
     sendMidi([0x80, 16, 0]);
     seqState.stepAutoMode = false;
 }
@@ -428,6 +437,7 @@ _log('\napp-loop: step page navigation + knob editing');
 _log('\napp-loop: tick renders the step page');
 {
     const { stepPageState, resetStepPage } = await import('../dist/esm/seq/step-page.js');
+    const { occToggleStep } = await import('../dist/esm/seq/state.js');
     engine.reset();
     env.setParams(MOCK_SYNTHS.test8);
     resetSeqState(); resetSeqEngine(); resetStepPage();
@@ -437,6 +447,7 @@ _log('\napp-loop: tick renders the step page');
     appState.currentView = VIEW_KNOBS;
     appState.activeSlot = 0;
     sendMidi([0x90, 16, 127]);
+    occToggleStep(0);                         // held step has a note
     seqState.stepAutoMode = true;
     stepPageState.selected = true;
 

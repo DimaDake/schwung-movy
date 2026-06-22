@@ -12,6 +12,10 @@
 import { performance } from 'perf_hooks';
 import { createModel }     from '../dist/esm/model/index.js';
 import { renderKnobsView } from '../dist/esm/renderer/knob-view.js';
+import { buildMainPageVM } from '../dist/esm/seq/main-page-vm.js';
+import { mainPageState, resetMainPage } from '../dist/esm/seq/main-page.js';
+import { seqState, resetSeqState } from '../dist/esm/seq/state.js';
+import { keyboardState } from '../dist/esm/keyboard/state.js';
 import { MOCK_SYNTHS }     from './mock-synth.mjs';
 
 /* ── Thresholds ──────────────────────────────────────────────────────────── */
@@ -211,6 +215,53 @@ _origLog('\nTest 4: fill_rect calls per renderKnobsView (test_enum)');
 
     check('fill_rect calls (enum view)', fillRectCount, FILL_RECT_PER_RENDER_MAX);
     _origLog(`    (baseline: ${fillRectCount} calls)`);
+}
+
+/* ── Test 4b: Main Params page (4-knob Tempo/Swing/Root/Key view) ──────────── */
+
+_origLog('\nTest 4b: fill_rect calls per renderKnobsView (main params page)');
+
+{
+    /* Initialize sequencer and keyboard state. */
+    resetSeqState();
+    resetMainPage();
+    keyboardState.rootNote = 60;
+    keyboardState.scale = 0;
+    seqState.bpmX100 = 12000;  // 120 bpm
+    seqState.swingPct = 50;
+
+    const vm = buildMainPageVM();
+
+    fillRectCount = 0;
+    renderKnobsView(vm, false);
+
+    check('fill_rect calls (main params page)', fillRectCount, FILL_RECT_PER_RENDER_MAX);
+    _origLog(`    (baseline: ${fillRectCount} calls — 4 knobs, mostly preset/enum)`);
+}
+
+/* ── Test 4c: Main Params page with overlay open (scale selector) ────────── */
+
+_origLog('\nTest 4c: fill_rect calls with overlay open (main params scale list)');
+
+{
+    resetSeqState();
+    resetMainPage();
+    keyboardState.rootNote = 60;
+    keyboardState.scale = 0;
+    seqState.bpmX100 = 12000;
+    seqState.swingPct = 50;
+
+    /* Simulate the scale overlay being open. */
+    mainPageState.scaleOverlay = true;
+    mainPageState.scaleSel = 5;
+
+    const vm = buildMainPageVM();
+
+    fillRectCount = 0;
+    renderKnobsView(vm, false);
+
+    check('fill_rect calls (main params + overlay)', fillRectCount, FILL_RECT_PER_RENDER_MAX);
+    _origLog(`    (baseline: ${fillRectCount} calls — 4 cells + scrollable enum overlay)`);
 }
 
 /* ── Test 5: sequencer LED cache + IPC + strip budgets ───────────────────── */

@@ -1,6 +1,8 @@
-import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } from './state.js';
+import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from './state.js';
 import { mainPageActive, mainPageState } from '../seq/main-page.js';
 import { buildMainPageVM } from '../seq/main-page-vm.js';
+import { clipPageState } from '../seq/clip-page.js';
+import { buildClipPageVM } from '../seq/clip-page-vm.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
 import { MASTER_FX_SLOTS } from '../chain/config.js';
@@ -126,6 +128,13 @@ function mainSig(): string {
         keyboardState.rootNote, keyboardState.scale].join(',');
 }
 
+let lastClipSig = '';
+function clipSig(): string {
+    return [clipPageState.active, clipPageState.touchedKnob, clipPageState.scaleOverlay,
+        clipPageState.scaleSel, seqState.clipScaleIdx, seqState.lenSteps,
+        seqState.clipTranspose].join(',');
+}
+
 /* Same idea for the 4×4 drum grid: the drum-pad colors update at poll rate
  * (green follows the sequencer gate / held pads), so cache-diffing keeps the
  * LED traffic to actual changes. */
@@ -152,6 +161,8 @@ export function tick(): void {
     if (stepTrigSig() !== lastStepTrigSig) { lastStepTrigSig = stepTrigSig(); appState.dirty = true; }
     // Repaint when main params page values or touch/overlay state change.
     if (mainSig() !== lastMainSig) { lastMainSig = mainSig(); appState.dirty = true; }
+    // Repaint when clip params page values or touch/overlay state change.
+    if (clipSig() !== lastClipSig) { lastClipSig = clipSig(); appState.dirty = true; }
     // Diagnostic (off unless debug_log_on): the UI lane registry mirrors the
     // engine's assigned lanes. Empty here means automation display + read-back
     // suppression are dead — the device automation test asserts it is populated.
@@ -280,6 +291,10 @@ export function tick(): void {
             const vm = buildMainPageVM();
             renderKnobsView(vm, false, appState.activeSlot);
             updateKnobLEDs(vm); // knobs 0-3 reflect value; 4-7 (null cells) off
+        } else if (appState.currentView === VIEW_CLIP_PARAMS) {
+            const vm = buildClipPageVM();
+            renderKnobsView(vm, false, appState.activeSlot);
+            updateKnobLEDs(vm); // knobs 0-2 reflect value; 3-7 (null cells) off
         } else if (seqState.sessionMode) {
             const vm = masterModel!.getViewModel();
             renderChainView(vm, mIdx, appState.jogTouched, 'MASTER', MASTER_FX_SLOTS[mIdx]?.label);

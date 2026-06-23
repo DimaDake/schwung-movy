@@ -1,5 +1,6 @@
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } from '../app/state.js';
 import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease, closeMainPage } from '../seq/main-page.js';
+import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease, closeClipPage } from '../seq/clip-page.js';
 import { CHAIN_SLOTS, MASTER_FX_SLOTS } from '../chain/config.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
@@ -81,6 +82,14 @@ export function onMidiMessageInternal(data: number[]): void {
             appState.dirty = true;
             return;
         }
+        if (clipPageActive()) {
+            if (d1 < 3) {
+                if (d2 > 0) clipPageTouch(d1, true);
+                else clipPageRelease(d1, appState.activeSlot);
+            }
+            appState.dirty = true;
+            return;
+        }
         if (d2 > 0) {
             const info = knobModel()?.getKnobParamInfo(d1) ?? null;
             if (deleteActive() && info) {
@@ -152,6 +161,10 @@ export function onMidiMessageInternal(data: number[]): void {
             if (k < 4) { mainPageKnob(k, delta, appState.activeSlot); appState.dirty = true; }
             return;
         }
+        if (clipPageActive()) {
+            if (k < 3) { clipPageKnob(k, delta, appState.activeSlot); appState.dirty = true; }
+            return;
+        }
         mlog('knobCC k=' + k + ' d2=' + d2 + ' delta=' + delta);
         const model = knobModel();
         const info  = model?.getKnobParamInfo(k) ?? null;
@@ -177,6 +190,7 @@ export function onMidiMessageInternal(data: number[]): void {
             // global page, not a per-track view), so it can't be saved into the
             // per-track view memory below and re-shown on return to this track.
             if (mainPageActive()) appState.currentView = closeMainPage();
+            if (clipPageActive()) appState.currentView = closeClipPage();
             // Snapshot prior state so the restore closure can return exactly here.
             // Note: seqHandleMidi already ran above and updated watchTrack/barOffset,
             // so we capture the pre-switch slot to restore on hold release.
@@ -217,6 +231,11 @@ export function onMidiMessageInternal(data: number[]): void {
         appState.jogTouched = false;
         if (mainPageActive()) {
             appState.currentView = closeMainPage();
+            appState.dirty = true;
+            return;
+        }
+        if (clipPageActive()) {
+            appState.currentView = closeClipPage();
             appState.dirty = true;
             return;
         }

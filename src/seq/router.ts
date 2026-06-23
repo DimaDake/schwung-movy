@@ -14,7 +14,8 @@ import {
 } from './constants.js';
 import { mlog } from '../log.js';
 import { openMainPage } from './main-page.js';
-import { appState, VIEW_MAIN_PARAMS } from '../app/state.js';
+import { openClipPage, closeClipPage, clipPageActive } from './clip-page.js';
+import { appState, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from '../app/state.js';
 
 const CC_MUTE = 88;
 
@@ -69,6 +70,9 @@ const STEP_QUANTIZE = 15; // Step 16 — Shift+Step 16 = Quantize
 /* Shift+Step 5/7/9 all open the Main Params page (page 0). The map keeps room
  * for future pages — point a step at a different page index here. */
 const MAIN_PAGE_STEPS: Record<number, number> = { 4: 0, 6: 0, 8: 0 };
+
+/* Shift+Step 3 (0-indexed 2) opens the Clip Params page — Track view only. */
+const STEP_CLIP_PARAMS = 2;
 
 /* Pads currently held, padNote → midiNote, for chord step entry. Mirrors the
  * pads physically down so a step press can place the whole chord. */
@@ -172,6 +176,8 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         if (d2 > 0) {
             sessionPrev = seqState.sessionMode;
             momentaryDown(d1, () => { seqState.sessionMode = sessionPrev; });
+            // Clip Params is Track-view only: leaving for Session closes it.
+            if (clipPageActive()) appState.currentView = closeClipPage();
             seqState.sessionMode = true;
         } else if (momentaryUp(d1) === 'tap' && sessionPrev) {
             seqState.sessionMode = false; // tap while already in Session → back to Note
@@ -259,6 +265,16 @@ function shiftStepFunction(step: number): void {
         if (appState.currentView !== VIEW_MAIN_PARAMS) {
             openMainPage(appState.currentView);
             appState.currentView = VIEW_MAIN_PARAMS;
+        }
+        appState.dirty = true;
+        return;
+    }
+    // Clip Params edits the active/playing clip, so it only opens in Track view
+    // (Session view shows the clip grid, not a single clip's params).
+    if (step === STEP_CLIP_PARAMS) {
+        if (!seqState.sessionMode && appState.currentView !== VIEW_CLIP_PARAMS) {
+            openClipPage(appState.currentView, appState.activeSlot);
+            appState.currentView = VIEW_CLIP_PARAMS;
         }
         appState.dirty = true;
         return;

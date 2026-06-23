@@ -114,6 +114,34 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 }
             }
         }
+        // clen <track> <steps> — set active clip length in steps (LENGTH knob).
+        "clen" => {
+            if let (Some(t), Some(s)) = (next(), next()) {
+                if (t as usize) < NUM_TRACKS {
+                    engine.tracks[t as usize]
+                        .active_mut()
+                        .set_clip_length(s.clamp(0, 65535) as u16);
+                }
+            }
+        }
+        // cscl <track> <num> <den> — set active clip playback scale (rational).
+        "cscl" => {
+            if let (Some(t), Some(n), Some(d)) = (next(), next(), next()) {
+                if (t as usize) < NUM_TRACKS {
+                    let c = engine.tracks[t as usize].active_mut();
+                    c.scale_num = n.clamp(1, 255) as u8;
+                    c.scale_den = d.clamp(1, 255) as u8;
+                }
+            }
+        }
+        // ctr <track> <semitones> — set active clip transpose (non-destructive).
+        "ctr" => {
+            if let (Some(t), Some(v)) = (next(), next()) {
+                if (t as usize) < NUM_TRACKS {
+                    engine.tracks[t as usize].active_mut().transpose = v.clamp(-36, 36) as i8;
+                }
+            }
+        }
         // eprob <t> <s0> <s1> <p> <pct>; econd <t> <s0> <s1> <p> <a> <b>;
         // einv <t> <s0> <s1> <p> <0|1>. p = lane pitch or -1 (whole step).
         "eprob" => {
@@ -570,6 +598,21 @@ mod tests {
         apply_batch(&mut e, "loop 0 16 16", &mut out);
         assert_eq!(e.tracks[0].active().loop_start_steps, 16);
         assert_eq!(e.tracks[0].active().length_steps, 16);
+    }
+
+    #[test]
+    fn clip_param_commands_set_active_clip() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "loop 0 0 16", &mut out); // make the clip exist
+        apply_batch(&mut e, "clen 0 9;cscl 0 3 4;ctr 0 -40", &mut out);
+        let c = e.tracks[0].active();
+        assert_eq!(c.length_steps, 9);
+        assert_eq!((c.scale_num, c.scale_den), (3, 4));
+        assert_eq!(c.transpose, -36); // clamped to -36
+        // length clamps to [1, MAX_STEPS]
+        apply_batch(&mut e, "clen 0 0", &mut out);
+        assert_eq!(e.tracks[0].active().length_steps, 1);
     }
 
     #[test]

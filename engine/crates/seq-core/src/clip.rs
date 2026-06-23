@@ -283,6 +283,14 @@ impl Clip {
         self.length_steps = len.min(MAX_STEPS - start);
     }
 
+    /// Set the loop length in steps from the LENGTH knob, preserving
+    /// `loop_start_steps`. Clamped to [1, MAX_STEPS - loop_start_steps]. Unlike
+    /// `set_loop`, this is step-granular (not bar-aligned).
+    pub fn set_clip_length(&mut self, steps: u16) {
+        let max = MAX_STEPS - self.loop_start_steps;
+        self.length_steps = steps.clamp(1, max);
+    }
+
     /// Double the loop: copy the window's notes into the following window and
     /// double the length (native Double Loop; capped at 16 bars).
     pub fn double_loop(&mut self) {

@@ -131,6 +131,16 @@ function mainSig(): string {
  * LED traffic to actual changes. */
 const drumCache = new Uint8Array(32);
 
+/* Ticks to keep re-asserting the full drum grid after a track switch. The host
+ * repaints the native pad layout on a track-button press, landing just after
+ * movy's one-shot drum paint; re-sending the grid for a short window lets movy
+ * win that race, after which the per-pad cache resumes zero idle LED traffic.
+ * Coarse (tick-based) on purpose — it only needs to outlast a one-shot repaint,
+ * not measure a precise duration. */
+const DRUM_REPAINT_TICKS = 40;
+let drumRepaintTicks = 0;
+let lastActiveSlot   = -1;
+
 export function tick(): void {
     seqEngineTick();
     stepAutoTick(); // promote a long single-step hold to step-automation mode
@@ -186,6 +196,15 @@ export function tick(): void {
     const synthModel = appState.trackModels[appState.activeSlot]?.[1];
     const synthDvm   = synthModel?.getViewModel();
     const isDrum     = (synthDvm?.drumPadCount ?? 0) > 0;
+
+    /* A track switch means the host has repainted the native pad layout; open a
+     * repaint window so the drum grid re-asserts over it. Detected here (before
+     * the chromatic-init early-return below) so it fires regardless of whether
+     * the new track is a drum or melodic track. */
+    if (appState.activeSlot !== lastActiveSlot) {
+        lastActiveSlot   = appState.activeSlot;
+        drumRepaintTicks = DRUM_REPAINT_TICKS;
+    }
     if (isDrum) {
         const cfg = synthModel!.getDrumConfig();
         seqSetLane(cfg ? cfg.padNoteStart + (synthDvm!.drumCurrentPad - 1) : -1);
@@ -324,10 +343,20 @@ export function tick(): void {
         if (drumCfg) {
             // On entry from a non-drum track, force a full repaint so non-grid pads
             // (col >= 4 → Black) overwrite any stale chromatic colors left behind.
+            // On entry from a non-drum view (e.g. Session clip grid → Note), open
+            // a repaint window too, so the grid fully overwrites whatever owned the
+            // pads. (A track switch already opened one above.)
             if (!appState.drumActive) {
-                drumCache.fill(0xFF);
+                drumRepaintTicks = DRUM_REPAINT_TICKS;
                 setButtonLED(MoveUp, Black, true);
                 setButtonLED(MoveDown, Black, true);
+            }
+            // While the window is open, force a full repaint (ignore the per-pad
+            // cache) so non-grid pads (col >= 4 → Black) and every grid pad win
+            // over stale chromatic colors and the host's post-switch repaint.
+            if (drumRepaintTicks > 0) {
+                drumCache.fill(0xFF);
+                drumRepaintTicks--;
             }
             const track = seqState.watchTrack;
             const sel   = synthDvm!.drumCurrentPhysPad;

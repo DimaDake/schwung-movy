@@ -70,6 +70,36 @@ _log('\napp-loop: drum grid loads');
     eq('drum lane selected (watchLane = note of current pad)', seqState.watchLane >= 0, true);
 }
 
+_log('\napp-loop: drum grid re-asserts after a track switch, then idles');
+{
+    // The host repaints the native pad layout on a track-button press, landing
+    // after movy's drum paint; movy must re-send the grid for a short window so
+    // it wins that race (the per-pad cache alone would never correct it).
+    resetApp();
+    advance(45);                            // let the initial repaint window expire
+    const corrupt = () => { ledByPad[PAD_KICK] = 999; }; // simulate the host overwrite
+
+    // Steady state (no recent switch): movy trusts its cache and does NOT re-send.
+    corrupt();
+    advance(1);
+    eq('idle: external overwrite NOT corrected (cache-diffed, zero traffic)', padColor(PAD_KICK), 999);
+
+    // Track switch T1→T2→T1 opens a repaint window on return.
+    sendMidi([0xB0, 42, 127]); sendMidi([0xB0, 42, 0]);  // → T2
+    advance(2);
+    sendMidi([0xB0, 43, 127]); sendMidi([0xB0, 43, 0]);  // → back to T1
+    advance(2);
+    corrupt();
+    advance(1);
+    eq('post-switch window: external overwrite corrected', padColor(PAD_KICK) !== 999, true);
+
+    // Window is bounded — after it expires, traffic returns to zero (no perf hit).
+    advance(45);
+    corrupt();
+    advance(1);
+    eq('after window expires: back to cache-diffed (no re-send)', padColor(PAD_KICK), 999);
+}
+
 _log('\napp-loop: selected pad is white when idle');
 {
     resetApp();

@@ -917,7 +917,7 @@ impl Engine {
         let htp = self.held_trig();
         let hlmax = self.held_max_gate();
         format!(
-            "play={} tick={} bpm={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={}",
+            "play={} tick={} bpm={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -947,7 +947,10 @@ impl Engine {
             htp.cond_b,
             htp.invert as u8,
             hlmax,
-            self.swing_pct
+            self.swing_pct,
+            clip.scale_num,
+            clip.scale_den,
+            clip.transpose,
         )
     }
 
@@ -1049,6 +1052,18 @@ mod tests {
         e.play();
         run_ticks(&mut e, master_ticks);
         e.tracks[0].pos_tick
+    }
+
+    #[test]
+    fn status_reports_clip_scale_and_transpose() {
+        let mut e = engine();
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.tracks[0].active_mut().scale_num = 3;
+        e.tracks[0].active_mut().scale_den = 2;
+        e.tracks[0].active_mut().transpose = -7;
+        let s = e.status();
+        assert!(s.contains("csc=3/2"), "{s}");
+        assert!(s.contains("ctr=-7"), "{s}");
     }
 
     #[test]

@@ -133,6 +133,13 @@ export function lengthSpanColor(absStep: number, holdStep: number, holdLen: numb
     return -1;
 }
 
+/* Held-step notes shown transposed so the highlighted pads line up with what
+ * actually sounds (playback re-adds the clip transpose at emit); the live pads
+ * themselves stay at concert pitch. Mirrors the engine's emit-time transpose. */
+export function displayHoldNotes(): number[] {
+    return seqState.holdNotes.map((p) => Math.max(0, Math.min(127, p + seqState.clipTranspose)));
+}
+
 /* Empty-clip visual metronome: which 4-step beat-group is lit (one per beat, cycling). */
 export function metronomeStep(stepInBar: number, engineTick: number): boolean {
     return Math.floor(stepInBar / 4) === Math.floor(engineTick / 96) % 4; // 96 = PPQN

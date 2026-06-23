@@ -1043,7 +1043,7 @@ _log('\nTest: drumPadOn');
     _log('\nseq LEDs:');
     const { seqLedsTick, seqLedsInvalidate } = await import('../dist/esm/seq/leds.js');
     const { seqState, resetSeqState, occToggleStep } = await import('../dist/esm/seq/state.js');
-    const { C_WHITE, C_DARKGREY, C_GREEN, trackColorDim } =
+    const { C_WHITE, C_DARKGREY, C_GREEN, C_BLACK, trackColorDim } =
         await import('../dist/esm/seq/colors.js');
 
     const ledCalls = [];
@@ -1089,13 +1089,13 @@ _log('\nTest: drumPadOn');
     byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
     eq('bar 2 in-loop dim track color', byNote[16], trackColorDim(0));
 
-    // Empty bar past the loop → dim gray.
+    // Steps past the clip length are not part of the pattern → fully off.
     ledCalls.length = 0;
-    seqState.lenSteps = 16;       // shrink to 1 bar; bar 1 now outside loop
+    seqState.lenSteps = 16;       // shrink to 1 bar; bar 2 now beyond the clip
     seqLedsInvalidate();
     seqLedsTick();
     byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
-    eq('bar past loop dim gray', byNote[16], C_DARKGREY);
+    eq('step beyond clip length is off', byNote[16], C_BLACK);
 
     // Recording: playhead step is red instead of green.
     resetSeqState(); seqLedsInvalidate();
@@ -3082,6 +3082,22 @@ _log('\nautomation label sync:');
     vm = buildClipPageVM();
     eq('scale toast 1/2X', vm.toast.value, '1/2X');
     eq('overlay on slot 0', vm.overlay && vm.overlay.slot, 0);
+}
+
+/* ── held-step notes display transposed (match live pads) ─────────────────── */
+{
+    _log('\nheld-step transpose display:');
+    const { displayHoldNotes } = await import('../dist/esm/seq/leds.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    resetSeqState();
+    seqState.holdNotes = [60, 64];
+    seqState.clipTranspose = 3;
+    eq('hold notes shifted +3', JSON.stringify(displayHoldNotes()), '[63,67]');
+    seqState.clipTranspose = 0;
+    eq('no transpose passes through', JSON.stringify(displayHoldNotes()), '[60,64]');
+    seqState.holdNotes = [126]; seqState.clipTranspose = 36;
+    eq('clamps to MIDI 127', JSON.stringify(displayHoldNotes()), '[127]');
+    resetSeqState();
 }
 
 /* ── root change never paints pads directly (drum/Session grids stay fixed) ── */

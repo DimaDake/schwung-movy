@@ -23,7 +23,7 @@ import type { Model } from '../model/index.js';
 import { concreteKey } from '../model/pad-scope.js';
 import { mlog } from '../log.js';
 import { seqPersistTick } from '../seq/persist.js';
-import { seqLedsTick, seqLedsInvalidate } from '../seq/leds.js';
+import { seqLedsTick, seqLedsInvalidate, displayHoldNotes } from '../seq/leds.js';
 import { seqSetLane } from '../seq/router.js';
 import { stepAutoTick } from '../seq/step-edit.js';
 import { stepPageState, stepPageAvailable } from '../seq/step-page.js';
@@ -411,7 +411,7 @@ export function tick(): void {
         const base      = keyboardState.rootNote;
         const track     = appState.activeSlot;
         const holdNotes = seqState.holdStep >= 0 && seqState.holdNotes.length > 0
-            ? seqState.holdNotes : null;
+            ? displayHoldNotes() : null;
         for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {
             const p     = PAD_MIN + i;
             const pitch = chromaticPitch(p, PAD_MIN, base);

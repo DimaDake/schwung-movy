@@ -5,6 +5,7 @@
 export const STEP_NOTE_BASE = 16;   // step buttons = notes 16..31, each with an LED
 export const NUM_STEP_BUTTONS = 16;
 export const STEPS_PER_BAR = 16;    // fixed 1/16 grid
+export const MAX_STEPS = 256;       // 16 bars; mirrors engine clip::MAX_STEPS
 
 export const PAD_MIN = 68;          // 32-pad grid = notes 68..99
 export const PAD_MAX = 99;

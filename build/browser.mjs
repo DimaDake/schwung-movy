@@ -50,6 +50,7 @@ await esbuild.build({
         resolve(root, 'src/seq/main-page.ts'),
         resolve(root, 'src/seq/main-page-vm.ts'),
         resolve(root, 'src/seq/clip-scale.ts'),
+        resolve(root, 'src/seq/clip-page.ts'),
     ],
     bundle:    true,
     splitting: true,

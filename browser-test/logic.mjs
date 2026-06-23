@@ -3017,6 +3017,46 @@ _log('\nautomation label sync:');
     eq('rationalToIdx 3/4 -> 3', rationalToIdx(3, 4), 3);
 }
 
+/* ── clip params page: state machine + knob/touch/release handlers ──────── */
+{
+    _log('\nclip params page:');
+    const {
+        clipPageState, openClipPage, closeClipPage, clipPageActive,
+        clipPageKnob, clipPageTouch, clipPageRelease, resetClipPage,
+    } = await import('../dist/esm/seq/clip-page.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
+
+    resetClipPage(); resetSeqEngine(); resetSeqState();
+    openClipPage(2, 0);
+    eq('clip page active after open', clipPageActive(), true);
+    // Transpose: knob 2, +1 detent (8 raw units) → +1 semitone + ctr command.
+    seqState.clipTranspose = 0;
+    clipPageKnob(2, 8, 0);
+    eq('transpose +1', seqState.clipTranspose, 1);
+    eq('emits ctr 0 1', peekSeqCmdQueue().some((c) => c === 'ctr 0 1'), true);
+    clipPageKnob(2, -8 * 60, 0);            // drive well past -36
+    eq('transpose clamped to -36', seqState.clipTranspose, -36);
+    // Length: knob 1, +1 detent → +1 step + clen command.
+    seqState.lenSteps = 16;
+    clipPageKnob(1, 8, 0);
+    eq('length +1 step', seqState.lenSteps, 17);
+    eq('emits clen 0 17', peekSeqCmdQueue().some((c) => c === 'clen 0 17'), true);
+    // SCALE overlay: knob 0 touch opens, scroll, release commits + emits cscl.
+    seqState.clipScaleIdx = 4;
+    clipPageTouch(0, true);
+    eq('scale overlay opens on touch', clipPageState.scaleOverlay, true);
+    clipPageKnob(0, 8, 0);                  // scroll idx 4 -> 5 (3/2)
+    eq('overlay scrolled', clipPageState.scaleSel, 5);
+    clipPageRelease(0, 0);
+    eq('scale committed on release', seqState.clipScaleIdx, 5);
+    eq('emits cscl 0 3 2', peekSeqCmdQueue().some((c) => c === 'cscl 0 3 2'), true);
+    eq('overlay closed on release', clipPageState.scaleOverlay, false);
+    // Close returns the origin view.
+    eq('close returns origin view', closeClipPage(), 2);
+    eq('clip page inactive after close', clipPageActive(), false);
+}
+
 /* ── root change never paints pads directly (drum/Session grids stay fixed) ── */
 {
     _log('\nroot change does not paint pads directly:');

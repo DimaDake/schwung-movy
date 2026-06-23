@@ -3057,6 +3057,33 @@ _log('\nautomation label sync:');
     eq('clip page inactive after close', clipPageActive(), false);
 }
 
+/* ── clip params page: ViewModel ──────────────────────────────────────────── */
+{
+    _log('\nclip params page VM:');
+    const { buildClipPageVM } = await import('../dist/esm/seq/clip-page-vm.js');
+    const { openClipPage, clipPageTouch, resetClipPage } = await import('../dist/esm/seq/clip-page.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+
+    resetClipPage(); resetSeqState();
+    seqState.clipScaleIdx = 2; seqState.lenSteps = 16; seqState.clipTranspose = 12;
+    openClipPage(0, 0);
+    let vm = buildClipPageVM();
+    eq('header is CLIP PARAMETERS', vm.headerOverride, 'CLIP PARAMETERS');
+    eq('scale cell stacked text 1/2', vm.rows[0][0].displayValue, '1/2');
+    eq('scale cell type len', vm.rows[0][0].type, 'len');
+    eq('length cell big 16', vm.rows[0][1].displayValue, '16');
+    eq('transpose cell big 12', vm.rows[0][2].displayValue, '12');
+    // Toasts carry units.
+    clipPageTouch(2, true);
+    eq('transpose toast +12 ct', buildClipPageVM().toast.value, '+12 ct');
+    clipPageTouch(1, true);
+    eq('length toast 16 steps', buildClipPageVM().toast.value, '16 steps');
+    clipPageTouch(0, true);                 // opens SCALE overlay
+    vm = buildClipPageVM();
+    eq('scale toast 1/2X', vm.toast.value, '1/2X');
+    eq('overlay on slot 0', vm.overlay && vm.overlay.slot, 0);
+}
+
 /* ── root change never paints pads directly (drum/Session grids stay fixed) ── */
 {
     _log('\nroot change does not paint pads directly:');

@@ -656,6 +656,49 @@ _log('\napp-loop: track button closes set parameters page');
     eq('track button clears set params state', mainPageActive(), false);
 }
 
+/* ── Master FX: jog-click adds a module by DSP path (not id) ──────────────── */
+_log('\napp-loop: master FX slot adds a module by DSP path');
+{
+    // Master FX modules live under modules/audio_fx; schwung resolves
+    // master_fx:fxN:module as a DSP PATH (track slots use the bare id).
+    const prevOs = globalThis.os;
+    const prevRead = globalThis.host_read_file;
+    globalThis.os = {
+        readdir: (p) => (p.endsWith('/audio_fx') ? [['reverb'], 0] : [[], 0]),
+        stat: () => [{ mode: 0x4000 }, 0],
+    };
+    globalThis.host_read_file = (p) =>
+        p.endsWith('/audio_fx/reverb/module.json')
+            ? JSON.stringify({ id: 'reverb', name: 'Reverb', dsp: 'dsp.so', component_type: 'audio_fx' })
+            : null;
+
+    const sets = [];
+    const realSet = globalThis.shadow_set_param;
+    globalThis.shadow_set_param = (s, k, v) => { sets.push(`${s}|${k}=${v}`); return realSet(s, k, v); };
+
+    resetApp();
+    seqState.sessionMode = true;          // master FX chain is shown in Session mode
+    appState.masterChainIndex = 0;
+    appState.currentView = VIEW_CHAIN;
+    advance(2);
+
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);   // jog-click on empty master slot
+    eq('master jog-click opens the module browser', appState.currentView, VIEW_BROWSE);
+
+    sendMidi([0xB0, globalThis.MoveMainKnob, 1]);        // jog → select Reverb (index 1; 0 = NONE)
+    sets.length = 0;
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);    // jog-click → load selection
+
+    const moduleSet = sets.find((s) => s.includes('master_fx:fx1:module='));
+    eq('master load writes master_fx:fx1:module', !!moduleSet, true);
+    eq('master load writes the DSP path, not the id',
+        moduleSet?.endsWith('/audio_fx/reverb/dsp.so'), true);
+
+    globalThis.shadow_set_param = realSet;
+    globalThis.os = prevOs;
+    globalThis.host_read_file = prevRead;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

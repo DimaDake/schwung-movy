@@ -4,9 +4,9 @@ import { moduleReadKey, type ChainSlot } from '../chain/config.js';
 
 const MODULES_BASE = '/data/UserData/schwung/modules';
 
-function scanModules(slot: ChainSlot): { id: string; name: string }[] {
+function scanModules(slot: ChainSlot): { id: string; name: string; path: string }[] {
     const dir    = `${MODULES_BASE}/${slot.scanDir}`;
-    const result: { id: string; name: string }[] = [];
+    const result: { id: string; name: string; path: string }[] = [];
     try {
         const [entries] = os.readdir(dir) as [string[], number];
         if (!Array.isArray(entries)) return result;
@@ -16,13 +16,16 @@ function scanModules(slot: ChainSlot): { id: string; name: string }[] {
                 const raw = host_read_file(`${dir}/${entry}/module.json`);
                 if (!raw) continue;
                 const json = JSON.parse(raw) as {
-                    id?: string; name?: string;
+                    id?: string; name?: string; dsp?: string;
                     component_type?: string;
                     capabilities?: { component_type?: string };
                 };
                 const ct = json.component_type || json.capabilities?.component_type;
                 if (ct === slot.expectedType) {
-                    result.push({ id: json.id || entry, name: json.name || entry });
+                    // Master FX slots load by DSP path (see loadSelectedModule); track
+                    // slots load by id. Capture both so either can be written.
+                    const path = `${dir}/${entry}/${json.dsp || 'dsp.so'}`;
+                    result.push({ id: json.id || entry, name: json.name || entry, path });
                 }
             } catch {}
         }
@@ -39,7 +42,7 @@ export function openBrowser(slot: ChainSlot, paramSlot: number, reload: () => vo
     browserState.componentKey = slot.componentKey;
     browserState.paramSlot    = paramSlot;
     browserState.reload       = reload;
-    browserState.modules      = [{ id: '', name: 'NONE' }, ...scanModules(slot)];
+    browserState.modules      = [{ id: '', name: 'NONE', path: '' }, ...scanModules(slot)];
     browserState.browseIndex  = 0;
     const activeId = shadow_get_param(paramSlot, moduleReadKey(slot.componentKey)) || '';
     const idx = browserState.modules.findIndex(m => m.id === activeId);
@@ -51,7 +54,13 @@ export function openBrowser(slot: ChainSlot, paramSlot: number, reload: () => vo
 export function loadSelectedModule(): void {
     if (browserState.modules.length === 0) return;
     const mod = browserState.modules[browserState.browseIndex];
-    shadow_set_param(browserState.paramSlot, browserState.componentKey + ':module', mod.id);
+    // Track chain slots load a module by its id (`fx1:module` = "reverb"); master
+    // FX slots (colon-namespaced componentKey, e.g. `master_fx:fx1`) instead take
+    // the full DSP path — schwung's master bus resolves `master_fx:fxN:module`
+    // as a path, not an id, so writing the id silently no-ops.
+    const isMaster = browserState.componentKey.includes(':');
+    const value    = isMaster ? mod.path : mod.id;
+    shadow_set_param(browserState.paramSlot, browserState.componentKey + ':module', value);
     appState.currentView = appState.browseOrigin;
     appState.dirty = true;
     browserState.reload?.();

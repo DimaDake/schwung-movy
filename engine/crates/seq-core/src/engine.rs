@@ -493,7 +493,12 @@ impl Engine {
             } else {
                 span - p.start_tick + now
             };
-            self.tracks[track].active_mut().record_note(p.start_tick, gate.max(1), pitch, p.vel);
+            // Store the pad's concert pitch minus the clip transpose, so playback
+            // (which re-adds transpose at emit) reproduces exactly what the pad
+            // played. Keeps recorded notes aligned with the untransposed pads.
+            let transpose = self.tracks[track].active().transpose as i32;
+            let stored = (pitch as i32 - transpose).clamp(0, 127) as u8;
+            self.tracks[track].active_mut().record_note(p.start_tick, gate.max(1), stored, p.vel);
         }
     }
 
@@ -606,10 +611,16 @@ impl Engine {
                         if !play {
                             continue;
                         }
-                        out.push(OutEvent::NoteOn { track: ti as u8, pitch: n.pitch, vel: n.vel });
+                        // Non-destructive clip transpose: shift only the emitted
+                        // pitch (and its gate, so note-off matches); stored notes
+                        // and live pads stay at concert pitch.
+                        let emit_pitch = (n.pitch as i32
+                            + self.tracks[ti].clips[slot].transpose as i32)
+                            .clamp(0, 127) as u8;
+                        out.push(OutEvent::NoteOn { track: ti as u8, pitch: emit_pitch, vel: n.vel });
                         self.gates.push(Gate {
                             track: ti as u8,
-                            pitch: n.pitch,
+                            pitch: emit_pitch,
                             ticks_left: n.gate.max(1),
                         });
                     }
@@ -1000,6 +1011,36 @@ mod tests {
             e.advance_block(FRAMES, &mut out);
         }
         out
+    }
+
+    #[test]
+    fn transpose_shifts_emitted_pitch_only() {
+        let mut e = engine();
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[0].active_mut().transpose = 12;
+        e.play();
+        let out = run_ticks(&mut e, 4);
+        let on = out.iter().find_map(|x| match x {
+            OutEvent::NoteOn { pitch, .. } => Some(*pitch),
+            _ => None,
+        });
+        assert_eq!(on, Some(72)); // 60 + 12, emitted only
+        assert_eq!(e.tracks[0].active().notes[0].pitch, 60); // stored pitch untouched
+    }
+
+    #[test]
+    fn recording_stores_untransposed_pitch() {
+        let mut e = engine();
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.tracks[0].active_mut().transpose = 5;
+        e.play();
+        e.toggle_record(0); // punch-in (already playing → no count-in)
+        e.live_note_on(0, 67, 100); // pad plays raw 67
+        e.tracks[0].pos_tick += 4;
+        e.live_note_off(0, 67);
+        // Stored as 67 - 5 = 62, so emit re-adds 5 -> 67 (matches the pad).
+        assert_eq!(e.tracks[0].active().notes.last().unwrap().pitch, 62);
     }
 
     #[test]

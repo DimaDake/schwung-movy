@@ -12,7 +12,7 @@
  * tick-based hold window silently changes length when the rate moves. A track
  * switch is a sub-second tap; a hold-to-peek is a deliberate ~1 s press. */
 
-const HOLD_MS = 1000;
+const HOLD_MS = 500;
 
 let active: { button: number; pressMs: number; restore: () => void; gestured: boolean } | null = null;
 

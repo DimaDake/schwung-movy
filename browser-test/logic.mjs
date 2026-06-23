@@ -2099,30 +2099,30 @@ _log('\nautomation: restore re-requests label sync:');
     let restored = 0;
     const restore = () => { restored++; };
 
-    // Timestamps are wall-clock ms (HOLD_MS = 1000). A quick tap (< 1 s) → latch,
-    // restore NOT called.
+    // Timestamps are wall-clock ms (HOLD_MS = 500). A quick tap (< 500 ms) →
+    // latch, restore NOT called.
     resetMomentary();
     momentaryDownAt(40, 1000, restore);
     eq('tap returns tap', momentaryUpAt(40, 1300), 'tap'); // 300 ms
     eq('tap does not restore', restored, 0);
 
-    // Hold (>= 1 s) → revert, restore called.
+    // Hold (>= 500 ms) → revert, restore called.
     resetMomentary();
     momentaryDownAt(40, 1000, restore);
-    eq('hold returns revert', momentaryUpAt(40, 2200), 'revert'); // 1200 ms
+    eq('hold returns revert', momentaryUpAt(40, 1700), 'revert'); // 700 ms
     eq('hold restores', restored, 1);
 
-    // 999 ms is still a tap (one ms below threshold).
+    // 499 ms is still a tap (one ms below threshold).
     resetMomentary();
     momentaryDownAt(40, 0, restore);
-    eq('999 ms is still tap', momentaryUpAt(40, 999), 'tap');
-    eq('999-ms does not restore', restored, 1);
+    eq('499 ms is still tap', momentaryUpAt(40, 499), 'tap');
+    eq('499-ms does not restore', restored, 1);
 
-    // 1000 ms exactly → revert.
+    // 500 ms exactly → revert.
     resetMomentary();
     momentaryDownAt(40, 0, restore);
-    eq('1000 ms is hold', momentaryUpAt(40, 1000), 'revert');
-    eq('1000-ms restores', restored, 2);
+    eq('500 ms is hold', momentaryUpAt(40, 500), 'revert');
+    eq('500-ms restores', restored, 2);
 
     // Gesture while held → revert even on a quick release.
     resetMomentary();

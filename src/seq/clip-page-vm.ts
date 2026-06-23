@@ -23,12 +23,14 @@ export function buildClipPageVM(): ViewModel {
         displayValue: scaleCellText(sIdx),
         normalizedValue: SCALE_RATIONALS.length > 1 ? sIdx / (SCALE_RATIONALS.length - 1) : 0,
     });
+    // shortName ≤5 chars (under-knob label); fullName carries the full word in
+    // the toast above.
     const length = cell({
-        shortName: 'LENGTH', fullName: 'Length', renderStyle: 'preset',
+        shortName: 'LEN', fullName: 'Length', renderStyle: 'preset',
         displayValue: String(len), normalizedValue: clamp01((len - 1) / (MAX_STEPS - 1)),
     });
     const transpose = cell({
-        shortName: 'TRANSPOSE', fullName: 'Transpose', renderStyle: 'preset',
+        shortName: 'TRANS', fullName: 'Transpose', renderStyle: 'preset',
         displayValue: String(tr), normalizedValue: clamp01((tr + 36) / 72),
     });
 

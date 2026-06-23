@@ -1981,6 +1981,12 @@ _log('\nautomation: restore re-requests label sync:');
     eq('shift shows set-params step dim', stepIconColor(4, { shift: true, metro: false, fullVel: false }), 16);
     eq('set-params step bright when page open', stepIconColor(6, { shift: false, metro: false, fullVel: false, mainPage: true }), 124);
     eq('set-params step dark when closed+noshift', stepIconColor(8, { shift: false, metro: false, fullVel: false, mainPage: false }), 0);
+    // Clip Params opener (Step 3 = idx 2): dim while Shift held in Track view,
+    // full bright while the page is open, off in Session view (not available there).
+    eq('shift shows clip-params step dim', stepIconColor(2, { shift: true, metro: false, fullVel: false }), 16);
+    eq('clip-params step bright when page open', stepIconColor(2, { shift: false, metro: false, fullVel: false, clipPage: true }), 124);
+    eq('clip-params step dark when closed+noshift', stepIconColor(2, { shift: false, metro: false, fullVel: false, clipPage: false }), 0);
+    eq('clip-params step off in Session even with Shift', stepIconColor(2, { shift: true, metro: false, fullVel: false, session: true }), 0);
 }
 
 /* ── track-button LEDs ───────────────────────────────────────────────────── */

@@ -7,6 +7,7 @@ import {
     CC_PLAY, CC_REC, CC_TRACK_END, NUM_STEP_BUTTONS, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
 import { mainPageActive } from './main-page.js';
+import { clipPageActive } from './clip-page.js';
 import { sessionPaintGrid } from './session.js';
 import { loopEndBar, loopStartBar, occHasStep, seqState } from './state.js';
 import { cachedSetLED, cachedSetButtonLED, cachedSetAnimLED, ledFrameReset, seqLedsInvalidate } from './led-cache.js';
@@ -24,6 +25,7 @@ const STEP_ICON_CC_BASE = 16; // step-icon LEDs = CC 16..31
 const ICON_METRO = 5, ICON_FULLVEL = 9, ICON_DBLLOOP = 14, ICON_QUANT = 15;
 // Steps 5/7/9 (0-based 4/6/8) open the Set Params page.
 const ICON_MAIN: readonly number[] = [4, 6, 8];
+const ICON_CLIP = 2; // Shift+Step 3 opens Clip Params (Track view only)
 
 function barHasContent(bar: number): boolean {
     const b = bar * NUM_STEP_BUTTONS;
@@ -74,22 +76,26 @@ function paintTransport(): void {
 /* Step-icon LEDs are CC 16..31 (the printed icons under each step), separate
  * from the step buttons' RGB LEDs at notes 16..31. They show latched feature
  * state, and — while Shift is held — the full set of combinable shortcuts. */
-interface IconCtx { shift: boolean; metro: boolean; fullVel: boolean; mainPage: boolean; }
+interface IconCtx { shift: boolean; metro: boolean; fullVel: boolean; mainPage?: boolean; clipPage?: boolean; session?: boolean; }
 
 export function stepIconColor(idx: number, c: IconCtx): number {
     const active = (idx === ICON_METRO && c.metro) || (idx === ICON_FULLVEL && c.fullVel)
-                || (c.mainPage && ICON_MAIN.includes(idx)); // page open → full bright
+                || (c.mainPage && ICON_MAIN.includes(idx)) // page open → full bright
+                || (c.clipPage && idx === ICON_CLIP);
     if (active) return WHITE_BRIGHT;
+    // Clip Params only opens in Track view, so its icon is unavailable in Session.
+    const clipAvail = idx === ICON_CLIP && !c.session;
     if (c.shift && (idx === ICON_METRO || idx === ICON_FULLVEL
                     || idx === ICON_DBLLOOP || idx === ICON_QUANT
-                    || ICON_MAIN.includes(idx))) {            // shift held → available
+                    || ICON_MAIN.includes(idx) || clipAvail)) { // shift held → available
         return WHITE_DIM;
     }
     return WHITE_OFF;
 }
 
 function paintStepIcons(shift: boolean): void {
-    const ctx = { shift, metro: seqState.metro, fullVel: seqState.fullVelocity, mainPage: mainPageActive() };
+    const ctx = { shift, metro: seqState.metro, fullVel: seqState.fullVelocity,
+        mainPage: mainPageActive(), clipPage: clipPageActive(), session: seqState.sessionMode };
     for (let i = 0; i < NUM_STEP_BUTTONS; i++) {
         cachedSetButtonLED(STEP_ICON_CC_BASE + i, stepIconColor(i, ctx));
     }

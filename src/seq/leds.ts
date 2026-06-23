@@ -182,6 +182,10 @@ export function seqLedsTick(
         let color: number;
         if (emptyMetro) {
             color = metronomeStep(i, seqState.engineTick) ? C_GREEN : C_BLACK;
+        } else if (seqState.lenSteps > 0 && step >= seqState.lenSteps) {
+            // Steps past the clip length are not part of the pattern → fully off
+            // (overrides occupancy/playhead, which never land out here anyway).
+            color = C_BLACK;
         } else {
             const span = lengthSpanColor(step, holdStep, holdLen, watchTrack);
             if (span >= 0) color = span;

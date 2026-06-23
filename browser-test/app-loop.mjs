@@ -296,6 +296,19 @@ _log('\napp-loop: param page repaints when held-step automation changes');
     seqState.holdStep = -1; seqState.holdLen = 0;
 }
 
+/* ── steps beyond clip length are fully off ──────────────────────────────── */
+{
+    _log('\nsteps beyond clip length off:');
+    resetApp();
+    seqState.watchLane = -1;          // melodic
+    seqState.lenSteps = 4;            // clip is 4 steps; steps 5..16 are not in it
+    seqState.holdStep = -1; seqState.holdLen = 0;
+    advance(4);                       // let the step row paint
+    eq('step 3 (in clip) is lit, not black', padColor(16 + 3) !== 0, true);
+    eq('step 5 (beyond length) is fully off', padColor(16 + 5), 0);
+    seqState.lenSteps = 16;
+}
+
 /* ── drum LED cleanup: non-grid pads cleared on drum entry ───────────────── */
 _log('\napp-loop: drum LED cleanup on entry');
 {

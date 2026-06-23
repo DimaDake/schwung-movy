@@ -1425,6 +1425,14 @@ _log('\nTest: drumPadOn');
     seqEngineTick();
     eq('Delete tap deletes clip', lastOp(), 'clipdel 0');
 
+    // Delete tap while on a later bar refocuses to bar 0, so new steps go to the
+    // first bar (not the bar that was on screen when the now-empty clip vanished).
+    reset(); seqEngineTick();
+    seqState.barOffset = 1;                      // viewing the second bar
+    seqHandleMidi([0xB0, 119, 127], false);
+    seqHandleMidi([0xB0, 119, 0], false);
+    eq('clip delete refocuses to bar 0', seqState.barOffset, 0);
+
     // Delete + step → delete that step's notes (no clip delete on release).
     reset(); seqEngineTick();
     seqHandleMidi([0xB0, 119, 127], false);    // Delete down

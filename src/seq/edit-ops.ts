@@ -58,6 +58,10 @@ export function deleteButton(down: boolean): void {
         if (!delActed) {
             seqCmd('clipdel ' + seqState.watchTrack);
             requestLabelSync(); // freed lanes (clip's automation gone) → re-sync
+            // The clip is now empty (no bars), so refocus to bar 0 — otherwise a
+            // stale barOffset would place freshly-added steps on a later bar and
+            // leave the first bar empty.
+            seqState.barOffset = 0;
             seqToast('Clip deleted');
         }
     }

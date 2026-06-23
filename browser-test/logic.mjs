@@ -3090,6 +3090,39 @@ _log('\nautomation label sync:');
     eq('overlay on slot 0', vm.overlay && vm.overlay.slot, 0);
 }
 
+/* ── step entry is clamped beyond the clip length ────────────────────────── */
+{
+    _log('\nstep entry clamped beyond length:');
+    const { installMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi, seqNotePadPlayed } = await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState, occHasStep } = await import('../dist/esm/seq/state.js');
+
+    const engine = installMockEngine();
+    resetSeqEngine(); resetSeqState();
+    seqEngineTick();
+    const lastOp = () => engine.ops[engine.ops.length - 1];
+    const tapStep = (b) => { seqHandleMidi([0x90, 16 + b, 127], false); seqHandleMidi([0x80, 16 + b, 0], false); };
+
+    seqNotePadPlayed(0, 80, 72, 110);   // sets the step-entry pitch
+    seqState.lenSteps = 4;              // sub-bar clip; steps 4..15 are hidden
+    tapStep(8);                          // step 8 is in the hidden remainder
+    seqEngineTick();
+    eq('no tog for hidden sub-bar step', engine.ops.some((o) => o.startsWith('tog 0 8')), false);
+    eq('occ not set beyond length', occHasStep(8), false);
+    // A step within the length still places a note (and does not extend it).
+    tapStep(2);
+    seqEngineTick();
+    eq('within-length step places note', occHasStep(2), true);
+    eq('tog emitted within length', lastOp(), 'tog 0 2 72 110');
+    eq('length unchanged by in-bounds entry', seqState.lenSteps, 4);
+    // The next empty bar stays tappable to grow the clip (bar-aligned growth).
+    seqState.lenSteps = 16; seqState.barOffset = 1;
+    tapStep(0);                          // absolute step 16 → extends to bar 2
+    seqEngineTick();
+    eq('next empty bar still grows clip', lastOp(), 'tog 0 16 72 110');
+}
+
 /* ── held-step notes display transposed (match live pads) ─────────────────── */
 {
     _log('\nheld-step transpose display:');

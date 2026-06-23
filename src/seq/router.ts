@@ -301,6 +301,12 @@ function navigateBar(delta: number): void {
 function toggleStep(button: number): void {
     const step = seqState.barOffset * NUM_STEP_BUTTONS + button;
     const t = seqState.watchTrack;
+    // A sub-bar clip length (LENGTH knob) hides the steps in the rest of that
+    // bar; pressing one is inert (no entry). The next empty bar stays tappable
+    // so the native "tap into the next bar to grow the clip" still works, and a
+    // pre-existing note past the length can still be cleared.
+    const barEnd = Math.ceil(seqState.lenSteps / NUM_STEP_BUTTONS) * NUM_STEP_BUTTONS;
+    if (seqState.lenSteps > 0 && step >= seqState.lenSteps && step < barEnd && !occHasStep(step)) return;
     const wasSet = occHasStep(step);
 
     if (seqState.watchLane >= 0) {

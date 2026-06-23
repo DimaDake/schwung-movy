@@ -19,6 +19,18 @@ pub fn apply_batch(engine: &mut Engine, batch: &str, out: &mut Vec<OutEvent>) {
     }
 }
 
+/// Concert pitch (as played on a pad / entered on a step) → stored pitch,
+/// undoing the active clip's transpose so playback — which re-adds it at emit —
+/// reproduces exactly what was played. Keeps step entry consistent with live
+/// recording (live_note_off does the same).
+fn untranspose(engine: &Engine, track: usize, pitch: u8) -> u8 {
+    if track >= NUM_TRACKS {
+        return pitch;
+    }
+    let tr = engine.tracks[track].active().transpose as i32;
+    (pitch as i32 - tr).clamp(0, 127) as u8
+}
+
 fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
     let mut it = op.split_whitespace();
     let verb = it.next().unwrap_or("");
@@ -64,7 +76,7 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 let mut chord: Vec<(u8, u8)> = Vec::new();
                 while let (Some(p), Some(v)) = (next(), next()) {
                     if (0..128).contains(&p) {
-                        chord.push((p as u8, v.clamp(1, 127) as u8));
+                        chord.push((untranspose(engine, t as usize, p as u8), v.clamp(1, 127) as u8));
                     }
                 }
                 if (t as usize) < NUM_TRACKS {
@@ -282,10 +294,11 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 (next(), next(), next(), next(), next())
             {
                 if (t as usize) < NUM_TRACKS && (0..128).contains(&p) {
+                    let pitch = untranspose(engine, t as usize, p as u8);
                     engine.tracks[t as usize].active_mut().add_pitch_range(
                         s0.clamp(0, 255) as u16,
                         s1.clamp(0, 255) as u16,
-                        p as u8,
+                        pitch,
                         v.clamp(1, 127) as u8,
                     );
                 }
@@ -313,9 +326,10 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
         "ltog" => {
             if let (Some(t), Some(s), Some(p), Some(v)) = (next(), next(), next(), next()) {
                 if (t as usize) < NUM_TRACKS && (0..128).contains(&p) {
+                    let pitch = untranspose(engine, t as usize, p as u8);
                     engine.tracks[t as usize].active_mut().toggle_step_pitch(
                         s.clamp(0, 255) as u16,
-                        p as u8,
+                        pitch,
                         v.clamp(1, 127) as u8,
                     );
                     engine.ensure_selected_playing(t as usize);
@@ -598,6 +612,23 @@ mod tests {
         apply_batch(&mut e, "loop 0 16 16", &mut out);
         assert_eq!(e.tracks[0].active().loop_start_steps, 16);
         assert_eq!(e.tracks[0].active().length_steps, 16);
+    }
+
+    #[test]
+    fn step_entry_untransposes_like_live_record() {
+        let mut e = engine();
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.tracks[0].active_mut().transpose = 5;
+        let mut out = Vec::new();
+        // Melodic step entry of pad pitch 67 → stored 62 so emit re-adds 5 → 67.
+        apply_batch(&mut e, "tog 0 0 67 100", &mut out);
+        assert!(e.tracks[0].active().notes.iter().any(|n| n.step == 0 && n.pitch == 62));
+        // Drum-lane entry likewise: 38 → 33.
+        apply_batch(&mut e, "ltog 0 4 38 100", &mut out);
+        assert!(e.tracks[0].active().notes.iter().any(|n| n.step == 4 && n.pitch == 33));
+        // Range add (Loop-mode bar + pad) likewise: 60 → 55.
+        apply_batch(&mut e, "addp 0 8 8 60 100", &mut out);
+        assert!(e.tracks[0].active().notes.iter().any(|n| n.step == 8 && n.pitch == 55));
     }
 
     #[test]

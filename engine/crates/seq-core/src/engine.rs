@@ -1091,6 +1091,24 @@ mod tests {
     }
 
     #[test]
+    fn live_record_captures_at_scaled_position() {
+        let mut e = engine();
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.tracks[0].active_mut().scale_num = 2; // 2X: playhead advances 2 ticks/master tick
+        e.tracks[0].active_mut().scale_den = 1;
+        e.play();
+        e.toggle_record(0);                 // punch-in (already playing → no count-in)
+        let mut out = Vec::new();
+        for _ in 0..3 { e.service_tick(&mut out); }
+        let start = e.tracks[0].pos_tick;
+        assert_eq!(start, 6);               // 2 ticks per master tick over 3 ticks
+        e.live_note_on(0, 64, 100);
+        e.live_note_off(0, 64);
+        let n = e.tracks[0].active().notes.iter().find(|n| n.pitch == 64).unwrap();
+        assert_eq!(n.tick, start);          // captured at the scaled playhead position
+    }
+
+    #[test]
     fn recording_stores_untransposed_pitch() {
         let mut e = engine();
         e.tracks[0].active_mut().set_loop(0, 16);

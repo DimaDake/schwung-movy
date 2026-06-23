@@ -310,6 +310,7 @@ impl Engine {
             t.last_auto_step = -1; // re-emit automation from step 0 on (re)start
             t.auto_cur = [-1; 8];
             t.cycle = 1;           // restart the A:B trig-condition play count
+            t.scale_acc = 0;       // phase-align the clip-scale accumulator
         }
         self.clock.reset();
         self.master_tick = 0;
@@ -565,7 +566,9 @@ impl Engine {
 
         // No clip playback (and no playhead advance) during the count-in: the
         // pre-roll bar only clicks; playback starts cleanly from loop-start on
-        // the tick the count-in reaches 0.
+        // the tick the count-in reaches 0. Each track runs `step_tick` 0..N
+        // times this master tick, where N is set by the clip's playback scale
+        // accumulator (faster clips advance several ticks, slower ones skip).
         if self.count_in_left == 0 {
             for ti in 0..NUM_TRACKS {
                 let Some(slot) = self.tracks[ti].playing_slot else {
@@ -574,9 +577,33 @@ impl Engine {
                 if !self.tracks[ti].clips[slot].exists() {
                     continue;
                 }
-                let muted = self.tracks[ti].muted;
-                let pos = self.tracks[ti].pos_tick;
-                if !muted {
+                let (num, den) = {
+                    let c = &self.tracks[ti].clips[slot];
+                    (c.scale_num.max(1) as u32, c.scale_den.max(1) as u32)
+                };
+                self.tracks[ti].scale_acc += num;
+                while self.tracks[ti].scale_acc >= den {
+                    self.tracks[ti].scale_acc -= den;
+                    self.step_tick(ti, out);
+                }
+            }
+        }
+    }
+
+    /// One sequencer tick for a single playing track: emit due notes, advance +
+    /// wrap the playhead, latch parameter automation. Driven 0..N times per
+    /// master tick by the clip-scale accumulator (see service_tick).
+    fn step_tick(&mut self, ti: usize, out: &mut Vec<OutEvent>) {
+        let Some(slot) = self.tracks[ti].playing_slot else {
+            return;
+        };
+        if !self.tracks[ti].clips[slot].exists() {
+            return;
+        }
+        {
+            let muted = self.tracks[ti].muted;
+            let pos = self.tracks[ti].pos_tick;
+            if !muted {
                     let len = self.tracks[ti].clips[slot].notes.len();
                     let cycle = self.tracks[ti].cycle;
                     // Per-tick decision cache: (note.step, governing-lane) -> play?
@@ -652,7 +679,6 @@ impl Engine {
                     self.tracks[ti].last_auto_step = cur;
                     self.emit_automation(ti, slot, cur as u16, out);
                 }
-            }
         }
     }
 
@@ -1011,6 +1037,26 @@ mod tests {
             e.advance_block(FRAMES, &mut out);
         }
         out
+    }
+
+    // Playhead tick after `master_ticks` master ticks at the given scale, using
+    // a 2-bar loop (768 ticks) so none of the cases wrap.
+    fn pos_after(scale_num: u8, scale_den: u8, master_ticks: u64) -> u32 {
+        let mut e = engine();
+        e.tracks[0].active_mut().set_loop(0, 32);
+        e.tracks[0].active_mut().scale_num = scale_num;
+        e.tracks[0].active_mut().scale_den = scale_den;
+        e.play();
+        run_ticks(&mut e, master_ticks);
+        e.tracks[0].pos_tick
+    }
+
+    #[test]
+    fn scale_changes_playhead_rate() {
+        assert_eq!(pos_after(1, 1, 48), 48); // 1X  → 1:1
+        assert_eq!(pos_after(2, 1, 48), 96); // 2X  → 2 ticks per master tick
+        assert_eq!(pos_after(1, 2, 48), 24); // 1/2X → 1 tick per 2 master ticks
+        assert_eq!(pos_after(3, 4, 48), 36); // 3/4X → 36 ticks
     }
 
     #[test]

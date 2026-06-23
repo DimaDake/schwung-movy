@@ -35,6 +35,11 @@ pub struct Track {
     /// 1-based pattern play count for the playing clip, for A:B trig conditions.
     /// Reset to 1 on (re)start/launch, incremented on each loop wrap. Not persisted.
     pub cycle: u32,
+    /// Fixed-point accumulator for the clip's playback scale: each master tick
+    /// adds `scale_num`; while it reaches `scale_den` one clip tick fires. Lets
+    /// scales >1 run several ticks per master tick and <1 run one every few.
+    /// Runtime-only (not persisted).
+    pub scale_acc: u32,
 }
 
 impl Default for Track {
@@ -59,6 +64,7 @@ impl Track {
             last_auto_step: -1,
             auto_cur: [-1; 8],
             cycle: 1,
+            scale_acc: 0,
         }
     }
 

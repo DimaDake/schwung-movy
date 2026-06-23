@@ -86,6 +86,16 @@ pub struct Clip {
     /// First step of the loop window (bar-aligned). Playback wraps inside
     /// [loop_start_steps, loop_start_steps + length_steps).
     pub loop_start_steps: u16,
+    /// Playback-speed multiplier as a rational num/den; 1/1 = 1X (default).
+    /// Higher = faster: the per-track accumulator runs `num` clip ticks per
+    /// `den` master ticks (engine::service_tick).
+    pub scale_num: u8,
+    pub scale_den: u8,
+    /// Non-destructive sequence transpose in semitones (-36..=36), applied only
+    /// at note emission so `notes[].pitch` and the live pads stay untouched.
+    /// (Distinct from the `transpose(..)` method, which is the destructive
+    /// per-step note-edit gesture.)
+    pub transpose: i8,
 }
 
 impl Default for Clip {
@@ -102,6 +112,9 @@ impl Clip {
             trigs: Vec::new(),
             length_steps: 0,
             loop_start_steps: 0,
+            scale_num: 1,
+            scale_den: 1,
+            transpose: 0,
         }
     }
 
@@ -129,6 +142,9 @@ impl Clip {
         self.trigs.clear();
         self.length_steps = 0;
         self.loop_start_steps = 0;
+        self.scale_num = 1;
+        self.scale_den = 1;
+        self.transpose = 0;
     }
 
     /// Resolved trig props for a note at (step, pitch): the most specific row

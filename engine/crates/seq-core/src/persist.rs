@@ -9,7 +9,9 @@
 //!   bpm <bpm_x100>
 //!   tk <track> <active_clip> <muted0|1>
 //!   cl <track> <slot> <len_steps> <loop_start_steps> <notes>
+//!   cp <track> <slot> <scale_num> <scale_den> <transpose>
 //! where <notes> is `tick:gate:pitch:vel;…` (omitted when the clip is empty).
+//! The `cp` line is optional — clips from older saves load with defaults.
 //! Unknown lines are ignored so the format can grow.
 
 use crate::clip::Clip;
@@ -40,6 +42,12 @@ pub fn serialize(engine: &Engine) -> String {
                     s.push_str(&format!("{}:{}:{}:{}", n.tick, n.gate, n.pitch, n.vel));
                 }
                 s.push('\n');
+                // Clip params on their own line (after `cl`, since load_clip
+                // recreates the clip): omitted-on-legacy → defaults.
+                s.push_str(&format!(
+                    "cp {} {} {} {} {}\n",
+                    ti, ci, c.scale_num, c.scale_den, c.transpose
+                ));
             }
             if !c.locks.is_empty() {
                 s.push_str(&format!("lk {} {} ", ti, ci));
@@ -115,6 +123,24 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
                 }
             }
             Some("cl") => load_clip(engine, &mut it),
+            Some("cp") => {
+                // cp <track> <slot> <scale_num> <scale_den> <transpose>
+                let track = it.next().and_then(|x| x.parse::<usize>().ok());
+                let slot = it.next().and_then(|x| x.parse::<usize>().ok());
+                let sn = it.next().and_then(|x| x.parse::<u8>().ok());
+                let sd = it.next().and_then(|x| x.parse::<u8>().ok());
+                let tr = it.next().and_then(|x| x.parse::<i8>().ok());
+                if let (Some(track), Some(slot), Some(sn), Some(sd), Some(tr)) =
+                    (track, slot, sn, sd, tr)
+                {
+                    if track < engine.tracks.len() && slot < 8 {
+                        let c = &mut engine.tracks[track].clips[slot];
+                        c.scale_num = sn.max(1);
+                        c.scale_den = sd.max(1);
+                        c.transpose = tr.clamp(-36, 36);
+                    }
+                }
+            }
             Some("au") => {
                 // au <track> <lane> <base> <label>
                 let track = it.next().and_then(|x| x.parse::<usize>().ok());
@@ -252,6 +278,29 @@ mod tests {
         // Transport never persists.
         assert!(!e2.playing);
         assert_eq!(e2.tracks[0].playing_slot, None);
+    }
+
+    #[test]
+    fn clip_params_round_trip_and_default() {
+        let mut e = Engine::new(44100, 12000);
+        {
+            let c = e.tracks[1].active_mut();
+            c.set_loop(0, 16); // make the clip exist
+            c.scale_num = 3;
+            c.scale_den = 2;
+            c.transpose = -5;
+        }
+        let saved = serialize(&e);
+        let mut e2 = Engine::new(44100, 12000);
+        assert!(load(&mut e2, &saved));
+        let c2 = e2.tracks[1].active();
+        assert_eq!((c2.scale_num, c2.scale_den, c2.transpose), (3, 2, -5));
+
+        // A legacy line without `cp` parses to defaults (back-compatible).
+        let mut e3 = Engine::new(44100, 12000);
+        assert!(load(&mut e3, "movy1\ncl 0 0 16 0 \n"));
+        let c3 = e3.tracks[0].active();
+        assert_eq!((c3.scale_num, c3.scale_den, c3.transpose), (1, 1, 0));
     }
 
     #[test]

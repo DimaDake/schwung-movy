@@ -18,6 +18,8 @@ export interface SeqUiState {
     curStep: number;         // playhead step within the watched clip
     lenSteps: number;        // watched clip loop length in steps (0 = empty)
     loopStart: number;       // watched clip loop-window start step
+    clipScaleIdx: number;    // active clip playback-scale enum index (from `csc=`)
+    clipTranspose: number;   // active clip transpose in semitones (from `ctr=`)
     occ: Uint8Array;         // 256-bit step occupancy bitmap
 
     /* loop mode */
@@ -90,6 +92,8 @@ function defaults(): SeqUiState {
         curStep: 0,
         lenSteps: 0,
         loopStart: 0,
+        clipScaleIdx: 4,         // SCALE_DEFAULT_IDX (1X)
+        clipTranspose: 0,
         occ: new Uint8Array(32),
         loopMode: false,
         recording: false,

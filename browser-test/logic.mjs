@@ -3002,6 +3002,21 @@ _log('\nautomation label sync:');
     eq('page inactive after close', mainPageActive(), false);
 }
 
+/* ── clip-scale tables ──────────────────────────────────────────────────── */
+{
+    _log('\nclip-scale tables:');
+    const { SCALE_LABELS, SCALE_RATIONALS, scaleCellText, scaleToastText, rationalToIdx, SCALE_DEFAULT_IDX }
+      = await import('../dist/esm/seq/clip-scale.js');
+    eq('8 scale values', SCALE_LABELS.length, 8);
+    eq('default idx 4', SCALE_DEFAULT_IDX, 4);
+    eq('idx4 is 1/1', JSON.stringify(SCALE_RATIONALS[4]), '[1,1]');
+    eq('cell whole 1X', scaleCellText(4), '1X');
+    eq('cell fraction 1/2', scaleCellText(2), '1/2');
+    eq('toast fraction 1/2X', scaleToastText(2), '1/2X');
+    eq('toast whole 2X', scaleToastText(6), '2X');
+    eq('rationalToIdx 3/4 -> 3', rationalToIdx(3, 4), 3);
+}
+
 /* ── root change never paints pads directly (drum/Session grids stay fixed) ── */
 {
     _log('\nroot change does not paint pads directly:');

@@ -16,6 +16,7 @@
 import { mlog } from '../log.js';
 import { ENGINE_DSP_PATH, ENGINE_VERSION } from './constants.js';
 import { activeFromStr, muteFromStr, occFromHex, seqState, sessionFromStr } from './state.js';
+import { rationalToIdx } from './clip-scale.js';
 
 const STATUS_POLL_TICKS = 8;  // ~24 Hz at the ~196 Hz device tick rate
 const PROBE_TICKS = 30;       // ping cadence while booting
@@ -161,6 +162,11 @@ function parseStatus(s: string): void {
         else if (key === 'step') seqState.curStep = Number(val) || 0;
         else if (key === 'len') seqState.lenSteps = Number(val) || 0;
         else if (key === 'lstart') seqState.loopStart = Number(val) || 0;
+        else if (key === 'csc') {
+            const [n, d] = val.split('/').map(Number);
+            seqState.clipScaleIdx = rationalToIdx(n || 1, d || 1);
+        }
+        else if (key === 'ctr') seqState.clipTranspose = Number(val) || 0;
         else if (key === 'rec') seqState.recording = val === '1';
         else if (key === 'cin') seqState.countingIn = val === '1';
         else if (key === 'metro') seqState.metro = val === '1';

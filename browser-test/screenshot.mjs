@@ -41,6 +41,7 @@ const PRESETS = [
     'step_page_knobs', 'step_page_chain', 'step_indicator',
     'main-default', 'main-tempo-touched', 'main-swing-touched',
     'main-root-touched', 'main-key-overlay',
+    'clip-default', 'clip-fraction', 'clip-overlay',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -56,6 +57,7 @@ const BASE = {
     'main-default': 'test8', 'main-tempo-touched': 'test8',
     'main-swing-touched': 'test8', 'main-root-touched': 'test8',
     'main-key-overlay': 'test8',
+    'clip-default': 'test8', 'clip-fraction': 'test8', 'clip-overlay': 'test8',
 };
 
 const STEP_VM_A = {
@@ -99,6 +101,8 @@ const { renderChainView }  = await import('../dist/esm/renderer/chain-view.js');
 const { buildStepPageVM }  = await import('../dist/esm/seq/step-page-vm.js');
 const { buildMainPageVM }  = await import('../dist/esm/seq/main-page-vm.js');
 const { mainPageState, resetMainPage } = await import('../dist/esm/seq/main-page.js');
+const { buildClipPageVM }  = await import('../dist/esm/seq/clip-page-vm.js');
+const { clipPageState, resetClipPage } = await import('../dist/esm/seq/clip-page.js');
 const { seqState, resetSeqState }      = await import('../dist/esm/seq/state.js');
 const { keyboardState }                = await import('../dist/esm/keyboard/state.js');
 const { MOCK_SYNTHS }      = await import('./mock-synth.mjs');
@@ -233,6 +237,29 @@ function applyView(preset) {
             seqState.bpmX100 = 12000; seqState.swingPct = 50;
             mainPageState.scaleOverlay = true; mainPageState.scaleSel = 1;
             lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
+            lastRender();
+            break;
+        }
+        case 'clip-default': {       // 1X / len 16 / transpose 0
+            resetSeqState(); resetClipPage();
+            seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
+            lastRender = () => renderKnobsView(buildClipPageVM(), false, 0);
+            lastRender();
+            break;
+        }
+        case 'clip-fraction': {      // stacked 1/4 scale, length 9, transpose -5
+            resetSeqState(); resetClipPage();
+            seqState.clipScaleIdx = 1; seqState.lenSteps = 9; seqState.clipTranspose = -5;
+            clipPageState.touchedKnob = 2;   // transpose toast (+/- ct)
+            lastRender = () => renderKnobsView(buildClipPageVM(), false, 0);
+            lastRender();
+            break;
+        }
+        case 'clip-overlay': {       // SCALE long-enum overlay open
+            resetSeqState(); resetClipPage();
+            seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
+            clipPageState.scaleOverlay = true; clipPageState.scaleSel = 6; // 2X
+            lastRender = () => renderKnobsView(buildClipPageVM(), false, 0);
             lastRender();
             break;
         }

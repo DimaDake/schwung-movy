@@ -615,6 +615,19 @@ mod tests {
     }
 
     #[test]
+    fn note_within_sub_bar_length_does_not_extend() {
+        let mut e = engine();
+        e.tracks[0].active_mut().set_clip_length(12); // custom 12-step clip
+        let mut out = Vec::new();
+        // Placing/recording a note inside the 12 steps must not grow it to a bar.
+        apply_batch(&mut e, "tog 0 4 60 100", &mut out);
+        assert_eq!(e.tracks[0].active().length_steps, 12);
+        // A note past the length still grows (bar-aligned), as before.
+        apply_batch(&mut e, "tog 0 20 60 100", &mut out);
+        assert_eq!(e.tracks[0].active().length_steps, 32);
+    }
+
+    #[test]
     fn step_entry_untransposes_like_live_record() {
         let mut e = engine();
         e.tracks[0].active_mut().set_loop(0, 16);

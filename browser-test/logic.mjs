@@ -3292,6 +3292,33 @@ const P = (key, label, env) => ({ key, label, shortLabel: null, type: 'float',
 }
 
 
+_log('\n── Envelope viewmodel ──');
+// test8: row1 = attack/decay/sustain/release → envelope on line 1
+{
+    const m = bootModel(MOCK_SYNTHS.test8);
+    const vm = m.getViewModel();
+    eq('test8: line1 is envelope', !!vm.envelopeLines?.[1], true);
+    eq('test8: line0 not envelope', !!vm.envelopeLines?.[0], false);
+    eq('test8: line1 col0 = Atk', vm.rows[1][0]?.shortName, 'ATK');
+    eq('test8: line1 col3 = Rel', vm.rows[1][3]?.shortName, 'REL');
+    eq('test8: line0 col0 = Freq', vm.rows[0][0]?.shortName, 'FREQ');
+}
+// test16: no ADSR → no envelope
+{
+    const m = bootModel(MOCK_SYNTHS.test16);
+    eq('test16: no envelope line0', !!m.getViewModel().envelopeLines?.[0], false);
+    eq('test16: no envelope line1', !!m.getViewModel().envelopeLines?.[1], false);
+}
+// Touch maps to the right cell on the envelope line (knob 6 = sustain)
+{
+    const m = bootModel(MOCK_SYNTHS.test8);
+    m.handleKnobTouch(6);
+    const vm = m.getViewModel();
+    eq('test8: touching knob6 marks Sus cell', vm.rows[1][2]?.touched, true);
+    eq('test8: Atk cell not touched', vm.rows[1][0]?.touched, false);
+}
+
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

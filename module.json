@@ -1,9 +1,9 @@
 {
     "id": "movy",
     "name": "Movy",
-    "version": "0.1.0",
+    "version": "0.21.0",
     "author": "megadake",
-    "description": "Piano keyboard + module host for Schwung",
+    "description": "Elektron-style knob UI + 4-track sequencer for Schwung on Ableton Move",
     "component_type": "tool",
     "tool_config": {
         "interactive": true,

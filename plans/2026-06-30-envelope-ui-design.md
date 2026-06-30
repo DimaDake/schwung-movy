@@ -112,8 +112,13 @@ knob *widgets* are replaced by the single envelope.
   cols 0-3** (normalizedValue per role drives the geometry).
 - `drawKnobParams`: per line, if `envelopeLines[line]` is set → draw the
   envelope graphic + the four label cells; else draw the normal knob row.
-- **No change** to touch / toast / automation logic — the envelope changes only
-  the widget drawing, not the label/value path.
+- **Physical-knob remap:** a shared `pageSlotMap` (screen slot → page-relative
+  param index, cached per page) is applied everywhere a physical knob maps to a
+  param (`applyKnobDelta`, `knobParamInfo`, long-press/enum/file overlays,
+  file-browse) and `touched`/toast are keyed off the screen slot. This keeps the
+  knob at a screen position bound to the param shown there even when a scattered
+  ADSR (e.g. OB-Xd, whose ADSR sits at page indices 3–6) is consolidated onto
+  one line.
 
 ## Apply across schwung layouts where needed
 

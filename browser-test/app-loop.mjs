@@ -736,7 +736,14 @@ _log('\napp-loop: master FX slot drills into detail params on jog-click');
     sendMidi([0xB0, globalThis.MoveMainKnob, 1]);
     eq('jog rotation in detail does not switch master slot', appState.masterChainIndex, 0);
 
-    // Back returns to the master grid (not exit, not the track chain).
+    // Second jog-click (now in detail) opens the module browser to swap, like
+    // the track chain's VIEW_KNOBS. Back returns to the detail page (not grid).
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);
+    eq('second jog-click opens the module browser', appState.currentView, VIEW_BROWSE);
+    sendMidi([0xB0, globalThis.MoveBack, 127]);
+    eq('Back from browser returns to the detail page', appState.masterDetail, true);
+
+    // Back from the detail page returns to the master grid (not exit, not track).
     sendMidi([0xB0, globalThis.MoveBack, 127]);
     eq('Back returns to the master chain grid', appState.masterDetail, false);
     eq('Back stays in session mode', seqState.sessionMode, true);

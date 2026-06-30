@@ -285,16 +285,17 @@ export function onMidiMessageInternal(data: number[]): void {
         } else if (appState.currentView === VIEW_FILE_BROWSE) {
             activateFileBrowserItem();
         } else if (masterChainActive()) {
-            // Master FX chain: an empty slot (or Shift) opens the module browser
-            // to add/swap; a loaded slot drills into its module detail page —
-            // mirroring the track chain. Back returns to the grid.
+            // Master FX chain, mirroring the track chain:
+            //  - in the detail page, a click opens the browser to swap the module
+            //    (browseOrigin VIEW_CHAIN + masterDetail kept → Back returns to detail);
+            //  - on the grid, an empty slot (or Shift) opens the browser to add/swap,
+            //    and a loaded slot drills into its detail page.
             const mi = appState.masterChainIndex;
             const isEmpty = masterModel()?.getViewModel().isEmpty ?? false;
-            if (appState.shiftHeld || isEmpty) {
-                appState.masterDetail = false;
+            if (appState.masterDetail || appState.shiftHeld || isEmpty) {
                 openBrowser(MASTER_FX_SLOTS[mi], 0, () => masterModel()?.reload());
                 appState.browseOrigin = VIEW_CHAIN;
-            } else if (!appState.masterDetail) {
+            } else {
                 appState.masterDetail = true;
                 appState.dirty = true;
             }

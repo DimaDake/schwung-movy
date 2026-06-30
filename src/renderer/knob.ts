@@ -4,6 +4,7 @@ import { fontPrint5x3, fontWidth5x3 } from '../font/index5x3.js';
 import { fontPrint, fontWidth, FONT_HEIGHT } from '../font/index.js';
 import { fontPrintBig, fontWidthBig, BIG_FONT_HEIGHT } from '../font/big.js';
 import { enumSquareLines } from './shorten.js';
+import { drawLine } from './primitives.js';
 
 function drawCircleBorder(cx: number, cy: number, r: number): void {
     let x = r, y = 0, err = 0;
@@ -15,19 +16,6 @@ function drawCircleBorder(cx: number, cy: number, r: number): void {
         y++;
         if (err <= 0) { err += 2 * y + 1; }
         if (err > 0)  { x--; err -= 2 * x + 1; }
-    }
-}
-
-function drawLine(x0: number, y0: number, x1: number, y1: number): void {
-    const dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-    const dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-    let err = dx + dy;
-    while (true) {
-        fill_rect(x0, y0, 1, 1, 1);
-        if (x0 === x1 && y0 === y1) break;
-        const e2 = 2 * err;
-        if (e2 >= dy) { err += dy; x0 += sx; }
-        if (e2 <= dx) { err += dx; y0 += sy; }
     }
 }
 

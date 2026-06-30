@@ -26,6 +26,10 @@ export interface AutomationView {
     laneForKey:    (key: string) => number; // param key -> lane (-1 none)
 }
 
+export interface EnvelopeVM {
+    name: string;   // qualifier label ("Filter"/"Amp"/""); not rendered, kept for tests/future
+}
+
 export interface ToastState {
     fullName:   string;
     value:      string;
@@ -47,6 +51,9 @@ export interface ViewModel {
     bankIndex:      number;
     bankCount:      number;
     rows:           (ParamVM | null)[][];
+    /* When a knob line is an ADSR envelope, envelopeLines[line] is set and that
+     * line's rows[line][0..3] hold the A,D,S,R ParamVMs in column order. */
+    envelopeLines?:  (EnvelopeVM | null)[];
     touchedSlot:    number | null;
     toast:          ToastState | null;
     overlay:        OverlayState | null;

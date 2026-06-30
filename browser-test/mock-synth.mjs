@@ -62,6 +62,22 @@ export const MOCK_SYNTHS = {
         ),
     },
 
+    env_dual: {
+        "synth:name": "Dual Env",
+        "synth:ui_hierarchy": hier([
+            { key: "attack",   label: "Attack",   type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "decay",    label: "Decay",    type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "sustain","label": "Sustain",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "release","label": "Release",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "f_attack", label: "F Attack", type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "f_decay",  label: "F Decay",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "f_sustain","label": "F Sustain", type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "f_release","label": "F Release", type: "float", min: 0, max: 1, step: 0.01 },
+        ]),
+        "synth:attack": "0.10",  "synth:decay": "0.35", "synth:sustain": "0.70", "synth:release": "0.45",
+        "synth:f_attack": "0.40","synth:f_decay": "0.25","synth:f_sustain": "0.30","synth:f_release": "0.20",
+    },
+
     test_enum: {
         "synth:name": "Enums",
         "synth:ui_hierarchy": hier([

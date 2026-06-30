@@ -1,6 +1,7 @@
-import type { ViewModel, AutomationView } from '../types/viewmodel.js';
+import type { ViewModel, AutomationView, EnvelopeVM } from '../types/viewmodel.js';
 import type { ModelState } from './state.js';
 import { formatValue } from './store.js';
+import { planPageLayout } from './envelope.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
 import { dedupShortNames } from '../renderer/shorten.js';
 import { basename } from './path.js';
@@ -31,67 +32,69 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     });
     const shortNames = dedupShortNames(pageEntries, 5);
 
-    const rows: ViewModel['rows'] = [[], []];
-    for (let row = 0; row < 2; row++) {
-        for (let col = 0; col < KNOBS_PER_ROW; col++) {
-            const physK = row * KNOBS_PER_ROW + col;
-            const gi    = pageStart + physK;
-            const p     = s.knobParams[gi];
-            if (!p) { rows[row].push(null); continue; }
-            const v  = s.knobValues[gi];
-            const renorm = (val: number) => (p.min === p.max)
-                ? 0 : Math.max(0, Math.min(1, (val - p.min) / (p.max - p.min)));
-            const nv = (v === null || v === undefined) ? 0 : renorm(v);
-            const enumIdx = (p.type === 'enum' && typeof v === 'number') ? Math.round(v) : 0;
-            const dv = p.type === 'file'
-                ? (s.fileValues[gi] ? basename(s.fileValues[gi] as string) : '—')
-                : p.nameKey
-                    ? (shadow_get_param(s.activeSlot, s.componentKey + ':' + p.nameKey) ?? formatValue(p, v))
-                    : formatValue(p, v);
-            const lane = auto.laneForKey(p.key);
-            const automated = lane >= 0 && (auto.activeLanes & (1 << lane)) !== 0;
-            const automatable = p.automatable;
-            // An automation edit drives BOTH the value text (inverted, like a
-            // knob touch) and the knob's arc/bar position, so editing automation
-            // looks like normal value editing — without touching the base value.
-            // Held step: show that step's locked value. Live record: follow the
-            // knob while it's being turned (cleared on release → snaps to base).
-            let touched = s.touchedSlots.includes(physK);
-            let displayValue = dv;
-            let arcValue = nv;
-            if (auto.held && lane >= 0 && auto.heldValues.has(lane)) {
-                const hv = auto.heldValues.get(lane) as number;
-                touched = true;
-                displayValue = formatValue(p, hv);
-                arcValue = renorm(hv);
-            } else if (!auto.held && lane >= 0 && auto.liveValues.has(lane)) {
-                const lv = auto.liveValues.get(lane) as number;
-                touched = true;
-                displayValue = formatValue(p, lv);
-                arcValue = renorm(lv);
-            }
-            rows[row].push({
-                shortName:       shortNames[physK],
-                fullName:        p.label,
-                type:            p.type,
-                normalizedValue: arcValue,
-                displayValue,
-                touched,
-                isLongEnum:      p.type === 'enum' && (p.options?.length ?? 0) > 6,
-                options:         p.options,
-                enumIndex:       enumIdx,
-                renderStyle:     p.renderStyle,
-                automated,
-                automatable,
-                assigned:        lane >= 0,
-            });
+    const layout = planPageLayout(s.knobParams.slice(pageStart, pageStart + KNOBS_PER_PAGE));
+    const rows: ViewModel['rows'] = [[null, null, null, null], [null, null, null, null]];
+    const envelopeLines: (EnvelopeVM | null)[] = [null, null];
+    for (const e of layout.envelopes) envelopeLines[e.line] = { name: e.name };
+
+    for (const cell of layout.cells) {
+        const localIdx   = cell.idx;                          // page-relative param index
+        const screenSlot = cell.line * KNOBS_PER_ROW + cell.col;  // physical knob position
+        const gi    = pageStart + localIdx;
+        const p     = s.knobParams[gi];
+        if (!p) continue;
+        const v  = s.knobValues[gi];
+        const renorm = (val: number) => (p.min === p.max)
+            ? 0 : Math.max(0, Math.min(1, (val - p.min) / (p.max - p.min)));
+        const nv = (v === null || v === undefined) ? 0 : renorm(v);
+        const enumIdx = (p.type === 'enum' && typeof v === 'number') ? Math.round(v) : 0;
+        const dv = p.type === 'file'
+            ? (s.fileValues[gi] ? basename(s.fileValues[gi] as string) : '—')
+            : p.nameKey
+                ? (shadow_get_param(s.activeSlot, s.componentKey + ':' + p.nameKey) ?? formatValue(p, v))
+                : formatValue(p, v);
+        const lane = auto.laneForKey(p.key);
+        const automated = lane >= 0 && (auto.activeLanes & (1 << lane)) !== 0;
+        // An automation edit drives BOTH the value text (inverted, like a knob
+        // touch) and the arc/envelope position, so editing automation looks like
+        // normal value editing — without touching the base value. Held step:
+        // show that step's locked value. Live record: follow the knob while it's
+        // being turned (cleared on release → snaps to base).
+        let touched = s.touchedSlots.includes(screenSlot);
+        let displayValue = dv;
+        let arcValue = nv;
+        if (auto.held && lane >= 0 && auto.heldValues.has(lane)) {
+            const hv = auto.heldValues.get(lane) as number;
+            touched = true; displayValue = formatValue(p, hv); arcValue = renorm(hv);
+        } else if (!auto.held && lane >= 0 && auto.liveValues.has(lane)) {
+            const lv = auto.liveValues.get(lane) as number;
+            touched = true; displayValue = formatValue(p, lv); arcValue = renorm(lv);
         }
+        rows[cell.line][cell.col] = {
+            shortName:       shortNames[localIdx],
+            fullName:        p.label,
+            type:            p.type,
+            normalizedValue: arcValue,
+            displayValue,
+            touched,
+            isLongEnum:      p.type === 'enum' && (p.options?.length ?? 0) > 6,
+            options:         p.options,
+            enumIndex:       enumIdx,
+            renderStyle:     p.renderStyle,
+            automated,
+            automatable:     p.automatable,
+            assigned:        lane >= 0,
+        };
     }
 
+    // Toast follows the physical knob last touched → its displayed param (the
+    // rearrange means screen slot ≠ page index).
+    const slotMap = new Array(KNOBS_PER_PAGE).fill(-1);
+    for (const c of layout.cells) slotMap[c.line * KNOBS_PER_ROW + c.col] = c.idx;
     const primary = s.touchedSlots.length > 0 ? s.touchedSlots[s.touchedSlots.length - 1] : -1;
     let toast: ViewModel['toast'] = null;
-    if (primary >= 0) {
-        const gi = pageStart + primary;
+    if (primary >= 0 && slotMap[primary] >= 0) {
+        const gi = pageStart + slotMap[primary];
         const p  = s.knobParams[gi];
         if (p) {
             let tv: string;
@@ -112,6 +115,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         bankIndex:      s.knobPage,
         bankCount:      nBanks,
         rows,
+        envelopeLines,
         touchedSlot:    primary >= 0 ? primary : null,
         toast,
         overlay: s.enumOverlay

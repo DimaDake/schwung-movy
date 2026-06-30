@@ -15,6 +15,20 @@ far. Earlier work is summarised in the timeline below for context.
 
 - _Nothing yet._
 
+## [0.22.0] — 2026-07-01
+
+### Added
+- **Per-set state** — the sequencer and UI state (root note + scale) are now
+  stored per Ableton Move *set*, keyed by the active set's UUID (read from
+  `active_set.txt`). Switching sets recalls an independent Movy project,
+  aligned with how Schwung stores its tracks per set. Duplicating a set in Move
+  (Copy/Paste) inherits the parent set's Movy state.
+
+### Changed
+- Movy no longer keeps a single global sequencer state. **Breaking:** the old
+  global `seq-state.json` is abandoned and not migrated; each set starts from
+  its own per-set state (blank unless inherited from a copied parent).
+
 ## [0.21.0] — 2026-06-30
 
 First documented release. Highlights of everything built to date:

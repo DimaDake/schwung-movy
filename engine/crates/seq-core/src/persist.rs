@@ -232,10 +232,6 @@ fn load_clip<'a>(engine: &mut Engine, it: &mut impl Iterator<Item = &'a str>) {
     }
     let clip = &mut engine.tracks[track].clips[slot];
     *clip = Clip::new();
-    // Restore the exact saved window — not via set_loop, which rounds the
-    // length up to a whole bar and would clobber a custom (sub-bar) LENGTH.
-    clip.loop_start_steps = lstart.min(crate::clip::MAX_STEPS - 1);
-    clip.length_steps = len.clamp(1, crate::clip::MAX_STEPS - clip.loop_start_steps);
     if let Some(notes) = it.next() {
         for tok in notes.split(';') {
             let parts: Vec<&str> = tok.split(':').collect();
@@ -252,6 +248,12 @@ fn load_clip<'a>(engine: &mut Engine, it: &mut impl Iterator<Item = &'a str>) {
             }
         }
     }
+    // Restore the exact saved window LAST. add_note_raw extends the length to
+    // cover each note, but a note may sit beyond a deliberately shrunk custom
+    // length — the saved length is authoritative. (Also avoids set_loop, which
+    // would round a sub-bar length up to a whole bar.)
+    clip.loop_start_steps = lstart.min(crate::clip::MAX_STEPS - 1);
+    clip.length_steps = len.clamp(1, crate::clip::MAX_STEPS - clip.loop_start_steps);
 }
 
 #[cfg(test)]
@@ -281,6 +283,23 @@ mod tests {
         // Transport never persists.
         assert!(!e2.playing);
         assert_eq!(e2.tracks[0].playing_slot, None);
+    }
+
+    #[test]
+    fn clip_length_preserved_with_note_beyond_it() {
+        // A custom length shorter than a note's step (user shrank a longer clip)
+        // must survive a round-trip — loading the note must not re-extend it.
+        let mut e = Engine::new(44100, 12000);
+        {
+            let c = e.tracks[1].active_mut();
+            c.toggle_step(7, &[(60, 100)]); // note at step 7
+            c.set_clip_length(7);           // shrink length below the note
+        }
+        assert_eq!(e.tracks[1].active().length_steps, 7);
+        let saved = serialize(&e);
+        let mut e2 = Engine::new(44100, 12000);
+        assert!(load(&mut e2, &saved));
+        assert_eq!(e2.tracks[1].active().length_steps, 7);
     }
 
     #[test]

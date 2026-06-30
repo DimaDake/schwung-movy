@@ -42,6 +42,7 @@ const PRESETS = [
     'main-default', 'main-tempo-touched', 'main-swing-touched',
     'main-root-touched', 'main-key-overlay',
     'clip-default', 'clip-fraction', 'clip-overlay',
+    'env_dual', 'env_touched',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -58,6 +59,7 @@ const BASE = {
     'main-swing-touched': 'test8', 'main-root-touched': 'test8',
     'main-key-overlay': 'test8',
     'clip-default': 'test8', 'clip-fraction': 'test8', 'clip-overlay': 'test8',
+    env_dual: 'env_dual', env_touched: 'env_dual',
 };
 
 const STEP_VM_A = {
@@ -169,6 +171,8 @@ function applyView(preset) {
         case 'knob_toast':       model.handleKnobTouch(2); forceRender(); break;
         case 'keys_view':        showKeys(); break;
         case 'browse_view':      showBrowse([{ name: 'Plaits' }, { name: 'Wurl' }, { name: 'Bass' }], 1); break;
+        case 'env_dual':    forceRender(); break;
+        case 'env_touched': model.handleKnobTouch(2); forceRender(); break;   // touch Sustain
         case 'obxd_preset_page': forceRender(); break;                       // page 0
         case 'obxd_main_page':   model.changePage(1); forceRender(); break;
         case 'obxd_filter_page': model.changePage(3); forceRender(); break;

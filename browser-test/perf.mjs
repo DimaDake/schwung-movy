@@ -264,6 +264,29 @@ _origLog('\nTest 4c: fill_rect calls with overlay open (main params scale list)'
     _origLog(`    (baseline: ${fillRectCount} calls — 4 cells + scrollable enum overlay)`);
 }
 
+/* ── Test 4d: envelope page draws fewer rects than the 4 arc knobs it replaces ── */
+
+_origLog('\nTest 4d: fill_rect calls per renderKnobsView (env_dual, two envelopes)');
+
+/* Each envelope is a handful of 1px lines + dots — one line is cheaper than the
+ * 4 arc-knob circle borders it replaces. env_dual has TWO envelopes (both rows)
+ * so the whole-page count lands near a full arc page; the bound mainly guards
+ * against a regression that fills the area under the curve (would be 1000s). */
+const ENVELOPE_FILL_RECT_MAX = 700;
+
+{
+    mockState = { ...MOCK_SYNTHS.env_dual };
+    const model = createModel(0, 'synth');
+    model.tick();
+
+    const vm = model.getViewModel();
+    fillRectCount = 0;
+    renderKnobsView(vm, false);
+
+    check('fill_rect calls (envelope page)', fillRectCount, ENVELOPE_FILL_RECT_MAX);
+    _origLog(`    (baseline: ${fillRectCount} calls — two ADSR envelopes)`);
+}
+
 /* ── Test 5: sequencer LED cache + IPC + strip budgets ───────────────────── */
 
 _origLog('\nTest 5: sequencer perf budgets');

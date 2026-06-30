@@ -1,6 +1,7 @@
 import type { ParamVM, ViewModel } from '../types/viewmodel.js';
 import { fontPrint, fontWidth } from '../font/index.js';
 import { drawKnobWidget } from './knob.js';
+import { drawEnvelope } from './envelope.js';
 import { CELL_W, LBL_H, ROW0_Y, LBL0_Y, ROW1_Y, LBL1_Y } from './layout.js';
 
 export function drawLabelCell(col: number, lblY: number, pvm: ParamVM): void {
@@ -33,13 +34,16 @@ function hiddenDuringHold(pvm: ParamVM, held: boolean, poolFull: boolean): boole
 
 export function drawKnobRow(
     params: (ParamVM | null)[], rowY: number, lblY: number,
-    held = false, poolFull = false,
+    held = false, poolFull = false, env = false,
 ): void {
+    // An envelope line draws one graphic across all four cells in place of the
+    // four knob widgets; the label cells (touch/value/automation) are unchanged.
+    if (env) drawEnvelope(rowY, params);
     for (let col = 0; col < 4; col++) {
         const pvm = params[col];
         if (!pvm) continue;
         if (hiddenDuringHold(pvm, held, poolFull)) continue;
-        drawKnobWidget(col, rowY, pvm);
+        if (!env) drawKnobWidget(col, rowY, pvm);
         drawLabelCell(col, lblY, pvm);
     }
 }
@@ -50,7 +54,7 @@ export function drawKnobParams(vm: ViewModel): void {
     if (!hasParams) {
         fontPrint(2, ROW0_Y + 4, 'No params', 1);
     } else {
-        drawKnobRow(vm.rows[0], ROW0_Y, LBL0_Y, vm.automationHeld, vm.automationPoolFull);
-        drawKnobRow(vm.rows[1], ROW1_Y, LBL1_Y, vm.automationHeld, vm.automationPoolFull);
+        drawKnobRow(vm.rows[0], ROW0_Y, LBL0_Y, vm.automationHeld, vm.automationPoolFull, !!vm.envelopeLines?.[0]);
+        drawKnobRow(vm.rows[1], ROW1_Y, LBL1_Y, vm.automationHeld, vm.automationPoolFull, !!vm.envelopeLines?.[1]);
     }
 }

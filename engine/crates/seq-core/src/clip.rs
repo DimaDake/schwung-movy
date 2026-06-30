@@ -331,11 +331,15 @@ impl Clip {
     /// `step`'s bar (native: adding notes past the loop end extends it).
     fn extend_to_step(&mut self, step: u16) {
         self.ensure_exists();
+        // Only grow when the step falls outside the current window — a note that
+        // fits inside a custom (e.g. sub-bar) length must never round it up to a
+        // bar boundary. When it does fall outside, grow to the step's bar end.
+        if step < self.loop_start_steps + self.length_steps {
+            return;
+        }
         let bar = STEPS_PER_BAR as u16;
         let end_of_bar = (step / bar + 1) * bar;
-        if end_of_bar > self.loop_start_steps + self.length_steps {
-            self.length_steps = (end_of_bar - self.loop_start_steps).min(MAX_STEPS - self.loop_start_steps);
-        }
+        self.length_steps = (end_of_bar - self.loop_start_steps).min(MAX_STEPS - self.loop_start_steps);
     }
 
     pub fn notes_at_step(&self, step: u16) -> impl Iterator<Item = &Note> {

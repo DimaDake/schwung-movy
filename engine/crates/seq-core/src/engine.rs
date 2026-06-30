@@ -540,27 +540,29 @@ impl Engine {
                 }
             }
         }
+        // Gate countdown now lives in step_tick (scaled per track), which only
+        // runs for a track playing an existing clip. Flush hanging note-offs for
+        // any track that is not (stopped/cleared) so notes never stick.
+        let mut gi = 0;
+        while gi < self.gates.len() {
+            let t = self.gates[gi].track as usize;
+            let serviced = self.tracks[t]
+                .playing_slot
+                .map(|s| self.tracks[t].clips[s].exists())
+                .unwrap_or(false);
+            if serviced {
+                gi += 1;
+            } else {
+                let g = self.gates.swap_remove(gi);
+                out.push(OutEvent::NoteOff { track: g.track, pitch: g.pitch });
+            }
+        }
         self.master_tick += 1;
         // Count-in elapses → capture begins.
         if self.count_in_left > 0 {
             self.count_in_left -= 1;
             if self.count_in_left == 0 {
                 self.recording = true;
-            }
-        }
-
-        // Note-offs first so a same-pitch note starting this tick retriggers.
-        let mut i = 0;
-        while i < self.gates.len() {
-            self.gates[i].ticks_left -= 1;
-            if self.gates[i].ticks_left == 0 {
-                let g = self.gates.swap_remove(i);
-                out.push(OutEvent::NoteOff {
-                    track: g.track,
-                    pitch: g.pitch,
-                });
-            } else {
-                i += 1;
             }
         }
 
@@ -599,6 +601,22 @@ impl Engine {
         };
         if !self.tracks[ti].clips[slot].exists() {
             return;
+        }
+        // Count this track's note gates down at the clip's scaled rate (this fn
+        // runs N times per master tick), emitting note-offs first so a same-pitch
+        // note starting this tick retriggers. Keeping the whole note lifecycle on
+        // the scaled clock makes gate length scale with the clip speed.
+        let mut gi = 0;
+        while gi < self.gates.len() {
+            if self.gates[gi].track == ti as u8 {
+                self.gates[gi].ticks_left -= 1;
+                if self.gates[gi].ticks_left == 0 {
+                    let g = self.gates.swap_remove(gi);
+                    out.push(OutEvent::NoteOff { track: g.track, pitch: g.pitch });
+                    continue; // re-examine the element swapped into this slot
+                }
+            }
+            gi += 1;
         }
         {
             let muted = self.tracks[ti].muted;
@@ -663,7 +681,11 @@ impl Engine {
                 self.tracks[ti].pos_tick += 1;
                 if self.tracks[ti].pos_tick >= end {
                     let c = &mut self.tracks[ti].clips[slot];
+                    // "Record until stop" grows a fresh clip bar by bar — but a
+                    // sub-bar length is a deliberate LENGTH-knob choice, so only
+                    // auto-grow bar-aligned clips and leave custom lengths fixed.
                     if recording_here && self.rec_empty_start
+                        && c.length_steps % bar == 0
                         && c.loop_start_steps + c.length_steps + bar <= crate::clip::MAX_STEPS
                     {
                         c.set_loop(c.loop_start_steps, c.length_steps + bar);
@@ -1072,6 +1094,51 @@ mod tests {
         assert_eq!(pos_after(2, 1, 48), 96); // 2X  → 2 ticks per master tick
         assert_eq!(pos_after(1, 2, 48), 24); // 1/2X → 1 tick per 2 master ticks
         assert_eq!(pos_after(3, 4, 48), 36); // 3/4X → 36 ticks
+    }
+
+    // Master tick at which a 1-step note (gate 24) at the given scale note-offs.
+    fn note_off_master_tick(scale_num: u8, scale_den: u8) -> usize {
+        let mut e = engine();
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[0].active_mut().scale_num = scale_num;
+        e.tracks[0].active_mut().scale_den = scale_den;
+        e.play();
+        let mut out = Vec::new();
+        for m in 0..400 {
+            out.clear();
+            e.service_tick(&mut out);
+            if out.iter().any(|x| matches!(x, OutEvent::NoteOff { track: 0, pitch: 60 })) {
+                return m;
+            }
+        }
+        panic!("no note-off within range");
+    }
+
+    #[test]
+    fn stopped_track_flushes_hanging_notes() {
+        let mut e = engine();
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.play();
+        let mut out = Vec::new();
+        e.service_tick(&mut out); // emits NoteOn(60); gate active for ~24 ticks
+        assert!(out.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 60, .. })));
+        // Stop the track mid-note (Session stop): step_tick no longer runs, so
+        // the gate would hang — the safety flush must note it off instead.
+        e.tracks[0].playing_slot = None;
+        out.clear();
+        e.service_tick(&mut out);
+        assert!(out.iter().any(|x| matches!(x, OutEvent::NoteOff { track: 0, pitch: 60 })));
+        assert!(e.gates.is_empty());
+    }
+
+    #[test]
+    fn note_gate_scales_with_clip_scale() {
+        // At 2X the note lifecycle runs twice as fast, so a 1-step note lasts
+        // half the real-time (master ticks) of the 1X note.
+        assert_eq!(note_off_master_tick(1, 1), 24);
+        assert_eq!(note_off_master_tick(2, 1), 12);
     }
 
     #[test]

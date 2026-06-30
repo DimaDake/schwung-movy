@@ -57,6 +57,12 @@ function masterChainActive(): boolean {
         && appState.currentView !== VIEW_FILE_BROWSE;
 }
 
+/* The master slot grid is on screen (jog scrolls slots, click adds/drills). */
+function masterGridActive(): boolean { return masterChainActive() && !appState.masterDetail; }
+
+/* A master slot's module detail page is on screen (jog scrolls param banks). */
+function masterDetailActive(): boolean { return masterChainActive() && appState.masterDetail; }
+
 export function onMidiMessageInternal(data: number[]): void {
     if (!data || data.length < 3) return;
     if (seqHandleMidi(data, appState.shiftHeld)) return;
@@ -211,6 +217,7 @@ export function onMidiMessageInternal(data: number[]): void {
             appState.trackView[appState.activeSlot] = prevView;
             seqState.sessionMode = false;
             seqState.loopMode = false;
+            appState.masterDetail = false;
             appState.activeSlot = track;
             appState.currentView = appState.trackView[track];
             appState.jogTouched = false;
@@ -229,6 +236,11 @@ export function onMidiMessageInternal(data: number[]): void {
     /* Back */
     if (d1 === MoveBack && d2 > 0) {
         appState.jogTouched = false;
+        if (masterDetailActive()) {
+            appState.masterDetail = false;   // master detail → back to the slot grid
+            appState.dirty = true;
+            return;
+        }
         if (mainPageActive()) {
             appState.currentView = closeMainPage();
             appState.dirty = true;
@@ -273,13 +285,18 @@ export function onMidiMessageInternal(data: number[]): void {
         } else if (appState.currentView === VIEW_FILE_BROWSE) {
             activateFileBrowserItem();
         } else if (masterChainActive()) {
-            // Master FX chain: click opens the module browser for the focused
-            // master slot (empty slot adds; Shift swaps an existing module).
+            // Master FX chain: an empty slot (or Shift) opens the module browser
+            // to add/swap; a loaded slot drills into its module detail page —
+            // mirroring the track chain. Back returns to the grid.
             const mi = appState.masterChainIndex;
             const isEmpty = masterModel()?.getViewModel().isEmpty ?? false;
             if (appState.shiftHeld || isEmpty) {
+                appState.masterDetail = false;
                 openBrowser(MASTER_FX_SLOTS[mi], 0, () => masterModel()?.reload());
                 appState.browseOrigin = VIEW_CHAIN;
+            } else if (!appState.masterDetail) {
+                appState.masterDetail = true;
+                appState.dirty = true;
             }
         } else if (appState.currentView === VIEW_KEYS) {
             appState.currentView = VIEW_CHAIN;
@@ -329,7 +346,9 @@ export function onMidiMessageInternal(data: number[]): void {
     if (d1 === MoveMainKnob) {
         const delta = decodeDelta(d2);
         if (delta !== 0) {
-            if (masterChainActive()) {
+            if (masterDetailActive()) {
+                masterModel()?.changePage(delta > 0 ? 1 : -1);
+            } else if (masterGridActive()) {
                 appState.masterChainIndex = Math.max(0, Math.min(3, appState.masterChainIndex + (delta > 0 ? 1 : -1)));
             } else if (appState.currentView === VIEW_CHAIN) {
                 const dir = delta > 0 ? 1 : -1;
@@ -373,7 +392,9 @@ export function onMidiMessageInternal(data: number[]): void {
     /* Left/Right — master FX slot nav in session mode; page nav in VIEW_KNOBS;
      * chain-slot nav in VIEW_CHAIN. */
     if (d1 === MoveLeft && d2 > 0) {
-        if (masterChainActive()) {
+        if (masterDetailActive()) {
+            masterModel()?.changePage(-1);
+        } else if (masterGridActive()) {
             appState.masterChainIndex = Math.max(0, appState.masterChainIndex - 1);
         } else if (appState.currentView === VIEW_CHAIN) {
             if (stepPageAvailable() && !stepPageState.selected && chainIndex() === 0) setStepPageSelected(true);
@@ -387,7 +408,9 @@ export function onMidiMessageInternal(data: number[]): void {
         return;
     }
     if (d1 === MoveRight && d2 > 0) {
-        if (masterChainActive()) {
+        if (masterDetailActive()) {
+            masterModel()?.changePage(1);
+        } else if (masterGridActive()) {
             appState.masterChainIndex = Math.min(3, appState.masterChainIndex + 1);
         } else if (appState.currentView === VIEW_CHAIN) {
             if (stepPageAvailable() && stepPageState.selected) setStepPageSelected(false);

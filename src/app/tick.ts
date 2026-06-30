@@ -297,7 +297,13 @@ export function tick(): void {
             updateKnobLEDs(vm); // knobs 0-2 reflect value; 3-7 (null cells) off
         } else if (seqState.sessionMode) {
             const vm = masterModel!.getViewModel();
-            renderChainView(vm, mIdx, appState.jogTouched, 'MASTER', MASTER_FX_SLOTS[mIdx]?.label);
+            if (appState.masterDetail) {
+                // Drilled into the focused master slot's module: show its knob
+                // detail page (param banks scroll via jog), same as a track slot.
+                renderKnobsView(vm, appState.jogTouched, appState.activeSlot);
+            } else {
+                renderChainView(vm, mIdx, appState.jogTouched, 'MASTER', MASTER_FX_SLOTS[mIdx]?.label);
+            }
             jogToastShown = appState.jogTouched;
             updateKnobLEDs(vm);
         } else if (appState.currentView === VIEW_KEYS) {

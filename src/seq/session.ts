@@ -15,6 +15,7 @@ import { C_BLACK, C_DARKGREY, C_WHITE, trackColor, ANIM_NONE, ANIM_PULSE, ANIM_P
 import { seqCmd, requestLabelSync } from './engine.js';
 import { seqToast } from './render.js';
 import { seqState } from './state.js';
+import { appState } from '../app/state.js';
 import { dupActive, onUnit as dupOnUnit } from './duplicate.js';
 
 const COLS = 8;
@@ -39,6 +40,7 @@ export function sessionActive(): boolean {
 
 export function sessionToggle(): void {
     seqState.sessionMode = !seqState.sessionMode;
+    appState.masterDetail = false;   // always (re)enter the master chain on the slot grid
     seqToast(seqState.sessionMode ? 'Session' : 'Note');
 }
 

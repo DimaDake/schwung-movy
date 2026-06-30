@@ -712,6 +712,36 @@ _log('\napp-loop: master FX slot adds a module by DSP path');
     globalThis.host_read_file = prevRead;
 }
 
+/* ── Master FX: jog-click on a loaded slot drills into its detail params ───── */
+_log('\napp-loop: master FX slot drills into detail params on jog-click');
+{
+    resetApp();
+    // master_fx:fx1:name reads back → masterModel[0] polls non-empty (slot loaded).
+    env.setParams({ ...MOCK_SYNTHS.mrdrums, 'master_fx:fx1:name': 'Reverb' });
+    seqState.sessionMode = true;
+    appState.masterChainIndex = 0;
+    appState.currentView = VIEW_CHAIN;
+    appState.masterDetail = false;
+    appState.masterFxModels[0].reload();   // pollCountdown=1 → next tick reads the name
+    advance(2);
+
+    eq('master slot reads as loaded', appState.masterFxModels[0].getViewModel().isEmpty, false);
+
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);   // jog-click on a loaded master slot
+    eq('jog-click drills into master detail params', appState.masterDetail, true);
+
+    // Jog rotation while in detail scrolls the module's param pages — it must
+    // NOT switch master slots (that is grid-view navigation).
+    appState.masterChainIndex = 0;
+    sendMidi([0xB0, globalThis.MoveMainKnob, 1]);
+    eq('jog rotation in detail does not switch master slot', appState.masterChainIndex, 0);
+
+    // Back returns to the master grid (not exit, not the track chain).
+    sendMidi([0xB0, globalThis.MoveBack, 127]);
+    eq('Back returns to the master chain grid', appState.masterDetail, false);
+    eq('Back stays in session mode', seqState.sessionMode, true);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

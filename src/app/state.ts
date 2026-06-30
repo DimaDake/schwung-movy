@@ -40,6 +40,11 @@ export const appState = {
     trackModels:      [] as Model[][],
     masterFxModels:   [] as Model[],
     masterChainIndex: 0,
+    /* In the master FX chain (Session mode), true once the user has drilled from
+     * the slot grid into the focused slot's module detail (knob) page. There is
+     * no master VIEW_KNOBS: rendering keys off sessionMode, so this flag — not
+     * currentView — distinguishes the master grid from the master detail page. */
+    masterDetail:     false,
     jogTouched:       false,
     browseOrigin:     VIEW_CHAIN as number,
     fileBrowserState: null as FileBrowserState | null,

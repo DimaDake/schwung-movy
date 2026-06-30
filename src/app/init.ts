@@ -14,6 +14,7 @@ export function init(): void {
     );
     appState.masterFxModels  = MASTER_FX_SLOTS.map(s => createModel(0, s.componentKey));
     appState.masterChainIndex = 0;
+    appState.masterDetail     = false;
     appState.trackChainIndex = [1, 1, 1, 1];
     appState.trackView       = [VIEW_CHAIN, VIEW_CHAIN, VIEW_CHAIN, VIEW_CHAIN];
     appState.currentView     = VIEW_CHAIN;

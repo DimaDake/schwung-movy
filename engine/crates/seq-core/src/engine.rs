@@ -115,11 +115,22 @@ impl Engine {
 
     /// Ticks to delay an odd-indexed 16th step (the off-beat) for swing.
     /// 0 at 50% (straight) … TICKS_PER_STEP/2 (12) at 80%. Even steps: 0.
-    fn swing_delay(&self, step: u16) -> u32 {
-        if self.swing_pct <= 50 || step % 2 == 0 {
+    /// Swing delay (clip-ticks) for a note on `step`, anchored to real 16th
+    /// notes so scaled clips swing the 16th feel rather than their (faster or
+    /// slower) step grid. A clip step lands on real-16th index `step*den/num`;
+    /// swing applies only when that is an odd integer (an off-beat 16th), and
+    /// the delay is a fraction of a real 16th (= num/den clip-steps).
+    fn swing_delay(&self, step: u16, scale_num: u8, scale_den: u8) -> u32 {
+        if self.swing_pct <= 50 {
             return 0;
         }
-        (self.swing_pct - 50) * TICKS_PER_STEP / 60
+        let (num, den) = (scale_num.max(1) as u32, scale_den.max(1) as u32);
+        let numer = step as u32 * den;
+        if numer % num != 0 || (numer / num) % 2 == 0 {
+            return 0; // not an off-beat 16th (on-beat, or a sub-16th position)
+        }
+        let sixteenth_ticks = num * TICKS_PER_STEP / den;
+        (self.swing_pct - 50) * sixteenth_ticks / 60
     }
 
     /// xorshift64* → a 0..=99 percent roll. Free-running (Elektron-style).
@@ -624,6 +635,10 @@ impl Engine {
             if !muted {
                     let len = self.tracks[ti].clips[slot].notes.len();
                     let cycle = self.tracks[ti].cycle;
+                    let (snum, sden) = (
+                        self.tracks[ti].clips[slot].scale_num,
+                        self.tracks[ti].clips[slot].scale_den,
+                    );
                     // Per-tick decision cache: (note.step, governing-lane) -> play?
                     // so a chord on one trig shares a single condition+probability
                     // decision (all notes play or all skip). Few notes fire per
@@ -635,7 +650,7 @@ impl Engine {
                         // own cell (delay < TICKS_PER_STEP, so it never collides
                         // with the next step). Recorded micro-timed notes keep
                         // their stored tick + the step-parity offset.
-                        let fire_tick = n.tick + self.swing_delay(n.step);
+                        let fire_tick = n.tick + self.swing_delay(n.step, snum, sden);
                         if fire_tick != pos || n.suppress {
                             continue;
                         }
@@ -1113,6 +1128,26 @@ mod tests {
             }
         }
         panic!("no note-off within range");
+    }
+
+    #[test]
+    fn swing_anchors_to_real_16ths_under_scale() {
+        let mut e = engine();
+        e.swing_pct = 80;
+        // 1X: off-beats are the odd steps (unchanged behaviour).
+        assert_eq!(e.swing_delay(0, 1, 1), 0);
+        assert!(e.swing_delay(1, 1, 1) > 0);
+        // 2X: steps are 32nds; only the real off-beat 16ths (2,6,10,…) swing.
+        assert_eq!(e.swing_delay(0, 2, 1), 0); // on-beat 16th
+        assert_eq!(e.swing_delay(1, 2, 1), 0); // 32nd, not a 16th
+        assert!(e.swing_delay(2, 2, 1) > 0);   // off-beat 16th
+        assert_eq!(e.swing_delay(4, 2, 1), 0); // on-beat 16th (4/2 even)
+        assert!(e.swing_delay(6, 2, 1) > 0);
+        // Magnitude scales to a real 16th (2 clip-steps at 2X).
+        assert_eq!(e.swing_delay(2, 2, 1), e.swing_delay(1, 1, 1) * 2);
+        // 1/2X: no clip-step lands on an off-beat 16th, so nothing swings.
+        assert_eq!(e.swing_delay(1, 1, 2), 0);
+        assert_eq!(e.swing_delay(2, 1, 2), 0);
     }
 
     #[test]

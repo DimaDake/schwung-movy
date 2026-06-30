@@ -1,0 +1,70 @@
+name: "🐛 Bug report"
+description: Report something that doesn't work. Reproducible reports help most.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Movy is an early prototype, so clear, **reproducible**
+        steps are the single most useful thing you can give. A numbered list of
+        what you did beats a screenshot of a broken screen.
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: A numbered list of exactly what you did.
+      placeholder: |
+        1. Load Mr Drums on track 1
+        2. Hold step 5
+        3. Turn knob 3
+        ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What you thought would happen.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: What actually happened.
+    validations:
+      required: true
+  - type: textarea
+    id: modules
+    attributes:
+      label: Modules loaded
+      description: Which modules were in the chain, and on which track(s)?
+      placeholder: "Track 1: Mr Drums (synth); Track 2: Plaits + reverb (FX 1)"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Movy version (`module.json`), Schwung version, anything relevant.
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs (optional)
+      description: |
+        Anything from the device log helps. See the manual's troubleshooting
+        section for how to grab it. This will be rendered as code automatically.
+      render: shell
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I can reproduce this reliably with the steps above.
+          required: false
+        - label: I searched existing issues and this isn't a duplicate.
+          required: false

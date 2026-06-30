@@ -1,0 +1,43 @@
+name: "✨ Feature request"
+description: Suggest an improvement or a Move feature you'd like Movy to match.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! Movy is a prototype maintained for fun, so not every
+        request can be built — but well-described ones (especially "Move does X,
+        I'd like Movy to match it") are very welcome, and PRs even more so.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's the problem or missing capability?
+      description: |
+        If this mirrors a Move behaviour, describe how Move does it.
+      placeholder: "On Move I can ... but in Movy I can't ..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How would you like it to work in Movy? Which controls/gestures?
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds you currently use, or other approaches.
+    validations:
+      required: false
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: Would you be willing to contribute this?
+      options:
+        - "Maybe — with guidance"
+        - "Yes, I'd like to try a PR"
+        - "No, just suggesting"
+    validations:
+      required: false

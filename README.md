@@ -7,7 +7,9 @@ parameters land on the 8 knobs as clean, readable pages, and a 4-track
 sequencer — modelled closely on Move's own — sits underneath, driven by a small
 Rust engine.
 
-![Synth parameter page](docs/assets/obxd_main_page.png)
+![Movy UI tour](docs/assets/demo.gif)
+
+<sub>A tour of Movy's screens — a montage of UI states, not a live capture.</sub>
 
 > ### ⚠️ Early prototype
 >
@@ -23,7 +25,7 @@ Rust engine.
 >   did, what you expected, what happened, which modules were loaded). A vague
 >   "it crashed" is hard to act on; a numbered list of steps is gold.
 >
-> 📖 **Full guide: [MANUAL.md](MANUAL.md)**
+> 📖 **Full guide: [MANUAL.md](MANUAL.md)** · 📜 **[Changelog](CHANGELOG.md)**
 
 ---
 

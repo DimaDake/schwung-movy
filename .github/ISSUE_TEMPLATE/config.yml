@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📖 Manual
+    url: https://github.com/DimaDake/schwung-movy/blob/main/MANUAL.md
+    about: How to use Movy — check here before filing a "how do I…" issue.
+  - name: 🛠️ Contributing
+    url: https://github.com/DimaDake/schwung-movy/blob/main/CONTRIBUTING.md
+    about: Build, test, and how to add a module layout template.

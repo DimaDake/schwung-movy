@@ -31,6 +31,7 @@ await import('../dist/esm/app/globals.js');
 const { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_BROWSE, VIEW_FILE_BROWSE } = await import('../dist/esm/app/state.js');
 const { seqState, resetSeqState, occHasStep } = await import('../dist/esm/seq/state.js');
 const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+const { resetSeqPersist } = await import('../dist/esm/seq/persist.js');
 
 let failures = 0;
 const _log = _origLog.bind(console);
@@ -747,6 +748,31 @@ _log('\napp-loop: master FX slot drills into detail params on jog-click');
     sendMidi([0xB0, globalThis.MoveBack, 127]);
     eq('Back returns to the master chain grid', appState.masterDetail, false);
     eq('Back stays in session mode', seqState.sessionMode, true);
+}
+
+_log('\napp-loop: active-set switch reloads the engine');
+{
+    // Back the host filesystem with an in-memory map and an active set "S1".
+    const fs = {};
+    globalThis.host_read_file  = (p) => (p in fs ? fs[p] : null);
+    globalThis.host_write_file = (p, c) => { fs[p] = c; return true; };
+    globalThis.host_file_exists = (p) => p in fs;
+    globalThis.host_ensure_dir = () => true;
+    const ACTIVE = '/data/UserData/schwung/active_set.txt';
+    const stPath = (u) => '/data/UserData/schwung/modules/tools/movy/sets/' + u + '/seq-state.json';
+
+    fs[ACTIVE] = 's1-uuid\nSet One\n';
+    resetSeqPersist();                       // force a fresh boot-load
+    resetApp();                              // init() + settle; boot-load reads S1
+    advance(4);
+    const loadsAfterBoot = engine.stateLoads.length;
+    eq('boot loaded a set blob', loadsAfterBoot >= 1, true);
+
+    // Switch the active set; the poll (~96 ticks) must reload for the new UUID.
+    fs[ACTIVE] = 's2-uuid\nSet Two\n';
+    advance(120);
+    eq('set switch triggered a fresh engine load', engine.stateLoads.length > loadsAfterBoot, true);
+    eq('S1 saved on switch-out', typeof fs[stPath('s1-uuid')], 'string');
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

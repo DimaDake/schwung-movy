@@ -138,8 +138,9 @@ sleep 0.5
 
 info "Persistence: waiting for autosave, then reopening Movy to restore..."
 sleep 4   # autosave fires ~3s after the last edit
-STATE_FILE="/data/UserData/schwung/modules/tools/movy/seq-state.json"
-STATE_OK=$(ssh "ableton@$HOST" "test -s $STATE_FILE && echo yes || echo no")
+# State is now per-set under sets/<uuid>/seq-state.json (keyed by active_set.txt).
+SETS_DIR="/data/UserData/schwung/modules/tools/movy/sets"
+STATE_OK=$(ssh "ableton@$HOST" "find $SETS_DIR -name seq-state.json -size +0c 2>/dev/null | grep -q . && echo yes || echo no")
 ssh "ableton@$HOST" 'python3 -c "
 import mmap, json
 with open(\"/data/UserData/schwung/open_tool_cmd.json\", \"w\") as f:
@@ -164,9 +165,9 @@ echo "$LOG" | grep -q "seq: play=1" \
     && pass "Play button started the transport" || fail "Play did not start (seq: play=1 missing)"
 
 [[ "$STATE_OK" == "yes" ]] \
-    && pass "Autosave wrote a non-empty state file" || fail "No autosave file at $STATE_FILE"
-echo "$LOG" | grep -q "seq: restored state" \
-    && pass "State restored on reopen" || fail "No restore on reopen (seq: restored state missing)"
+    && pass "Autosave wrote a non-empty per-set state file" || fail "No autosave file under $SETS_DIR"
+echo "$LOG" | grep -q "seq: loaded set" \
+    && pass "Set state loaded on reopen" || fail "No set load on reopen (seq: loaded set missing)"
 
 # Drum multi-step: each step entered on a drum lane logs "seq: step <n> lane <l>".
 # Holding step 1 + pressing step 5 must enter BOTH (>= 2 lines). Only meaningful

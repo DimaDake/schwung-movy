@@ -11,6 +11,14 @@ import { enumRawToIndex, enumUsesIndex, enumSetValue } from '../dist/esm/model/e
 import { MOCK_SYNTHS }    from './mock-synth.mjs';
 import { drumPadOn, drumPadOff } from '../dist/esm/keyboard/drum-handler.js';
 import { ENGINE_VERSION } from '../dist/esm/seq/constants.js';
+import {
+    readActiveSet, uuidToStatePath, uuidToUiStatePath,
+    loadNameIndex, rememberSet, BLANK_STATE,
+    stripCopySuffix, findInheritCandidates, resolveStateBlob, resolveUiBlob,
+} from '../dist/esm/seq/set-context.js';
+import { switchToSet, currentSetUuid, resetSeqPersist } from '../dist/esm/seq/persist.js';
+import { keyboardState } from '../dist/esm/keyboard/state.js';
+import { installMockEngine } from './mock-engine.mjs';
 import { installEnv } from './env.mjs';
 
 /* ── Mock globals ─────────────────────────────────────────────────────────── */
@@ -1772,9 +1780,10 @@ _log('\nTest: drumPadOn');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
     const { seqPersistTick, resetSeqPersist } = await import('../dist/esm/seq/persist.js');
 
-    // Mock the device filesystem.
+    // Mock the device filesystem. With no active_set.txt present, persist falls
+    // back to the per-set "_default" path (off-device / no native set).
     const files = {};
-    const PATH = '/data/UserData/schwung/modules/tools/movy/seq-state.json';
+    const PATH = '/data/UserData/schwung/modules/tools/movy/sets/_default/seq-state.json';
     globalThis.host_read_file  = (p) => files[p] ?? null;
     globalThis.host_write_file = (p, c) => { files[p] = c; return true; };
 
@@ -3383,6 +3392,111 @@ _log('\n── Envelope knob↔screen mapping (rearrange) ──');
     eq('obxd: knob0 leaves cutoff', m.getValueByKey('cutoff'), c0);
 }
 
+
+/* ── Per-set state ───────────────────────────────────────────────────────── */
+
+_log('\nTest: set-context paths + active-set reader + name index');
+{
+    const fs = {};
+    globalThis.host_read_file  = (p) => (p in fs ? fs[p] : null);
+    globalThis.host_write_file = (p, c) => { fs[p] = c; return true; };
+    globalThis.host_file_exists = (p) => p in fs;
+    globalThis.host_ensure_dir = () => true;
+
+    fs['/data/UserData/schwung/active_set.txt'] = 'abc-123\nMy Song\n';
+    const as = readActiveSet();
+    eq('readActiveSet uuid', as.uuid, 'abc-123');
+    eq('readActiveSet name', as.name, 'My Song');
+
+    eq('state path keyed by uuid', uuidToStatePath('abc-123'),
+        '/data/UserData/schwung/modules/tools/movy/sets/abc-123/seq-state.json');
+    eq('ui path keyed by uuid', uuidToUiStatePath('abc-123'),
+        '/data/UserData/schwung/modules/tools/movy/sets/abc-123/ui-state.json');
+    eq('empty uuid → _default state path', uuidToStatePath(''),
+        '/data/UserData/schwung/modules/tools/movy/sets/_default/seq-state.json');
+
+    eq('BLANK_STATE is the format tag', BLANK_STATE, 'movy1\n');
+
+    rememberSet('My Song', 'abc-123');
+    eq('name index round-trips', loadNameIndex()['My Song'], 'abc-123');
+
+    delete fs['/data/UserData/schwung/active_set.txt'];
+    eq('missing active_set → empty uuid', readActiveSet().uuid, '');
+}
+
+_log('\nTest: inherit-on-copy resolution');
+{
+    const fs = {};
+    globalThis.host_read_file  = (p) => (p in fs ? fs[p] : null);
+    globalThis.host_write_file = (p, c) => { fs[p] = c; return true; };
+    globalThis.host_file_exists = (p) => p in fs;
+    globalThis.host_ensure_dir = () => true;
+    const stPath = (u) => '/data/UserData/schwung/modules/tools/movy/sets/' + u + '/seq-state.json';
+    const uiPath = (u) => '/data/UserData/schwung/modules/tools/movy/sets/' + u + '/ui-state.json';
+    const setDir = (u) => '/data/UserData/UserLibrary/Sets/' + u;
+
+    eq('strip " Copy"',   stripCopySuffix('My Song Copy'),   'My Song');
+    eq('strip " Copy 2"', stripCopySuffix('My Song Copy 2'), 'My Song');
+    eq('no suffix → null', stripCopySuffix('My Song'),        null);
+
+    // Parent "p-uuid" (name "My Song") has state + a live Move set.
+    fs[stPath('p-uuid')] = 'movy1\nbpm 12000\n';
+    fs[uiPath('p-uuid')] = '{"root":50,"scale":1}';
+    fs[setDir('p-uuid')] = '';            // dir marker
+    fs[setDir('c-uuid')] = '';            // the copy's Move set exists too
+    const idx = { 'My Song': 'p-uuid' };
+
+    const cands = findInheritCandidates('My Song Copy', idx);
+    eq('one inherit candidate found', cands.length, 1);
+    eq('candidate is the parent', cands[0].uuid, 'p-uuid');
+
+    // Resolving a copy with no own state seeds + returns the parent's blob.
+    fs['/data/UserData/schwung/modules/tools/movy/sets/name-index.json'] = JSON.stringify(idx);
+    const blob = resolveStateBlob('c-uuid', 'My Song Copy');
+    eq('inherited state blob', blob, 'movy1\nbpm 12000\n');
+    eq('copy seeded into dst state file', fs[stPath('c-uuid')], 'movy1\nbpm 12000\n');
+    eq('copy seeded dst ui file', resolveUiBlob('c-uuid'), '{"root":50,"scale":1}');
+
+    // Unknown brand-new set with no family → blank.
+    eq('unknown set → blank', resolveStateBlob('z-uuid', 'Fresh'), 'movy1\n');
+
+    // A set that already has its own state returns it (no inherit).
+    fs[stPath('own')] = 'movy1\nswing 60\n';
+    eq('own state wins', resolveStateBlob('own', 'Whatever'), 'movy1\nswing 60\n');
+}
+
+_log('\nTest: switchToSet save-then-load orchestration');
+{
+    const eng = installMockEngine();         // installs host_module_* on globalThis
+    const fs = {};
+    globalThis.host_read_file  = (p) => (p in fs ? fs[p] : null);
+    globalThis.host_write_file = (p, c) => { fs[p] = c; return true; };
+    globalThis.host_file_exists = (p) => p in fs;
+    globalThis.host_ensure_dir = () => true;
+    const stPath = (u) => '/data/UserData/schwung/modules/tools/movy/sets/' + u + '/seq-state.json';
+    const uiPath = (u) => '/data/UserData/schwung/modules/tools/movy/sets/' + u + '/ui-state.json';
+
+    resetSeqPersist();
+    eng.reset();
+
+    // Set A has saved state + ui; load it (no old to save on first switch).
+    fs[stPath('A')] = 'movy1\nbpm 13000\n';
+    fs[uiPath('A')] = '{"root":55,"scale":2}';
+    switchToSet('A', 'Song A', false);
+    eq('loaded A blob into engine', eng.stateLoads[eng.stateLoads.length - 1], 'movy1\nbpm 13000\n');
+    eq('applied A ui root', keyboardState.rootNote, 55);
+    eq('applied A ui scale', keyboardState.scale, 2);
+    eq('current uuid is A', currentSetUuid(), 'A');
+
+    // The engine now "holds" A's state; switching to fresh B must SAVE A first.
+    eng.stateBlob = 'movy1\nbpm 13000\nEDITED\n';     // simulate edited engine state
+    switchToSet('B', 'Song B', true);
+    eq('A saved before B load', fs[stPath('A')], 'movy1\nbpm 13000\nEDITED\n');
+    eq('B is blank (no file, no family)', eng.stateLoads[eng.stateLoads.length - 1], 'movy1\n');
+    eq('B ui reset to defaults (root 48)', keyboardState.rootNote, 48);
+    eq('B ui reset to defaults (scale 0)', keyboardState.scale, 0);
+    eq('current uuid is B', currentSetUuid(), 'B');
+}
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 

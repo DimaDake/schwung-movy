@@ -22,6 +22,9 @@ export function installMockEngine() {
         /* persisted automation lane labels reported via get_param('alabels');
          * an `aclr <t> <l>` op blanks the matching lane (faithful engine). */
         alabels: null,
+        /* blocking `state` loads, in order; stateBlob = last loaded blob */
+        stateLoads: [],
+        stateBlob: null,
 
         reset() {
             this.cmdBatches = [];
@@ -32,6 +35,8 @@ export function installMockEngine() {
             this.getParamCalls = 0;
             this.loadRequests = [];
             this.alabels = null;
+            this.stateLoads = [];
+            this.stateBlob = null;
         },
     };
 
@@ -63,6 +68,9 @@ export function installMockEngine() {
             }
         } else if (key === 'load') {
             engine.loadRequests.push(value);
+        } else if (key === 'state') {
+            engine.stateLoads.push(value);
+            engine.stateBlob = value;
         }
         return true;
     };
@@ -82,6 +90,7 @@ export function installMockEngine() {
         }
         if (key === 'ping') return 'pong ' + ENGINE_VERSION;
         if (key === 'alabels') return engine.alabels;
+        if (key === 'state') return engine.stateBlob;
         return null;
     };
 

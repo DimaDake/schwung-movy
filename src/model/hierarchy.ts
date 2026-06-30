@@ -35,6 +35,7 @@ export function loadHierarchy(s: ModelState): void {
     s.knobValues   = [];
     s.moduleConfig = null;
     s.bankNames    = [];
+    s.slotMapCache = null;
     s.hierarchyKey = s.activeModuleName;
 
     mlog('loadHierarchy: slot=' + s.activeSlot + ' module=' + s.activeModuleName);

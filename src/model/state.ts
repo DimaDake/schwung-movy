@@ -31,6 +31,9 @@ export interface ModelState {
     enumAccums:          number[];
     knobPage:            number;
     touchedSlots:        number[];
+    /* Memoized physical-knob → page-param permutation for the current page (set
+     * by store.slotToLocal; invalidated on hierarchy reload). */
+    slotMapCache:        { page: number; map: number[] } | null;
     longPressCountdown:  number;
     enumOverlay:         EnumOverlay | null;
     fileOverlay:         FileOverlay | null;
@@ -65,6 +68,7 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         enumAccums:          new Array(KNOBS_PER_PAGE).fill(0) as number[],
         knobPage:            0,
         touchedSlots:        [],
+        slotMapCache:        null,
         longPressCountdown:  -1,
         enumOverlay:         null,
         fileOverlay:         null,

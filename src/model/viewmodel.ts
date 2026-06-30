@@ -2,7 +2,7 @@ import type { ViewModel, AutomationView, EnvelopeVM } from '../types/viewmodel.j
 import type { ModelState } from './state.js';
 import { formatValue } from './store.js';
 import { planPageLayout } from './envelope.js';
-import { KNOBS_PER_PAGE } from './constants.js';
+import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
 import { dedupShortNames } from '../renderer/shorten.js';
 import { basename } from './path.js';
 
@@ -38,8 +38,9 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     for (const e of layout.envelopes) envelopeLines[e.line] = { name: e.name };
 
     for (const cell of layout.cells) {
-        const physK = cell.idx;                 // page-relative index == physical knob
-        const gi    = pageStart + physK;
+        const localIdx   = cell.idx;                          // page-relative param index
+        const screenSlot = cell.line * KNOBS_PER_ROW + cell.col;  // physical knob position
+        const gi    = pageStart + localIdx;
         const p     = s.knobParams[gi];
         if (!p) continue;
         const v  = s.knobValues[gi];
@@ -59,7 +60,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         // normal value editing — without touching the base value. Held step:
         // show that step's locked value. Live record: follow the knob while it's
         // being turned (cleared on release → snaps to base).
-        let touched = s.touchedSlots.includes(physK);
+        let touched = s.touchedSlots.includes(screenSlot);
         let displayValue = dv;
         let arcValue = nv;
         if (auto.held && lane >= 0 && auto.heldValues.has(lane)) {
@@ -70,7 +71,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             touched = true; displayValue = formatValue(p, lv); arcValue = renorm(lv);
         }
         rows[cell.line][cell.col] = {
-            shortName:       shortNames[physK],
+            shortName:       shortNames[localIdx],
             fullName:        p.label,
             type:            p.type,
             normalizedValue: arcValue,
@@ -86,10 +87,14 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         };
     }
 
+    // Toast follows the physical knob last touched → its displayed param (the
+    // rearrange means screen slot ≠ page index).
+    const slotMap = new Array(KNOBS_PER_PAGE).fill(-1);
+    for (const c of layout.cells) slotMap[c.line * KNOBS_PER_ROW + c.col] = c.idx;
     const primary = s.touchedSlots.length > 0 ? s.touchedSlots[s.touchedSlots.length - 1] : -1;
     let toast: ViewModel['toast'] = null;
-    if (primary >= 0) {
-        const gi = pageStart + primary;
+    if (primary >= 0 && slotMap[primary] >= 0) {
+        const gi = pageStart + slotMap[primary];
         const p  = s.knobParams[gi];
         if (p) {
             let tv: string;

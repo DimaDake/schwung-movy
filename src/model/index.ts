@@ -1,6 +1,6 @@
 import { createModelState } from './state.js';
 import { loadHierarchy }    from './hierarchy.js';
-import { applyKnobDelta, knobParamInfo, reseedPadParams }   from './store.js';
+import { applyKnobDelta, knobParamInfo, reseedPadParams, slotToLocal }   from './store.js';
 import { buildViewModel }   from './viewmodel.js';
 import { processTick }      from './tick.js';
 import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV } from './constants.js';
@@ -101,8 +101,9 @@ export function createModel(slot: number, componentKey = 'synth') {
             if (idx >= 0) s.touchedSlots.splice(idx, 1);
             s.touchedSlots.push(k);
             s.dirty = true;
-            const gi = s.knobPage * KNOBS_PER_PAGE + k;
-            const p  = s.knobParams[gi];
+            const local = slotToLocal(s, k);
+            const gi = local < 0 ? -1 : s.knobPage * KNOBS_PER_PAGE + local;
+            const p  = gi < 0 ? undefined : s.knobParams[gi];
             if (p && p.type === 'enum' && p.options && p.options.length > 6) {
                 s.enumOverlay = { slot: k, gi, options: p.options, selected: Math.round((s.knobValues[gi] ?? 0) as number) };
                 s.enumAccums[k] = 0;
@@ -202,7 +203,9 @@ export function createModel(slot: number, componentKey = 'synth') {
         getFileBrowseTarget(): { key: string; gi: number; root: string; filter: string[]; startPath: string; currentPath: string | null; requireContains?: string } | null {
             const primary = primarySlot();
             if (primary < 0) return null;
-            const gi = s.knobPage * KNOBS_PER_PAGE + primary;
+            const local = slotToLocal(s, primary);
+            if (local < 0) return null;
+            const gi = s.knobPage * KNOBS_PER_PAGE + local;
             const p  = s.knobParams[gi];
             if (!p || p.type !== 'file') return null;
             return {

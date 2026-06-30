@@ -4,7 +4,20 @@ import { KNOBS_PER_PAGE, ENUM_DELTA_DIV, ARC_DELTA_SCALE, REFRESH_SUPPRESS_TICKS
 import { moduleReadKey } from '../chain/config.js';
 import { concreteKey } from './pad-scope.js';
 import { enumRawToIndex, enumUsesIndex, enumSetValue } from './enum-value.js';
+import { pageSlotMap } from './envelope.js';
 import { mlog } from '../log.js';
+
+/* Physical knob (screen slot 0..7) → page-relative param index, honoring the
+ * envelope rearrange so a knob always drives the param shown at its position.
+ * Cached per page; -1 when the slot holds no param. Cache is invalidated on
+ * hierarchy reload (loadHierarchy clears slotMapCache). */
+export function slotToLocal(s: ModelState, physK: number): number {
+    if (!s.slotMapCache || s.slotMapCache.page !== s.knobPage) {
+        const start = s.knobPage * KNOBS_PER_PAGE;
+        s.slotMapCache = { page: s.knobPage, map: pageSlotMap(s.knobParams.slice(start, start + KNOBS_PER_PAGE)) };
+    }
+    return s.slotMapCache.map[physK] ?? -1;
+}
 
 /* The key movy uses to read/write/automate a param. For a pad-scoped drum param
  * this is the focused pad's concrete key (e.g. "p03_vol"), so all I/O targets the
@@ -52,7 +65,9 @@ export interface KnobParamInfo {
  * not a file/global param (globals like g_* aren't reachable as target:param in
  * the chain's knob mapping; see the device spike). */
 export function knobParamInfo(s: ModelState, physK: number): KnobParamInfo | null {
-    const gi = s.knobPage * KNOBS_PER_PAGE + physK;
+    const local = slotToLocal(s, physK);
+    if (local < 0) return null;
+    const gi = s.knobPage * KNOBS_PER_PAGE + local;
     const p = s.knobParams[gi];
     if (!p) return null;
     const v = s.knobValues[gi];
@@ -64,7 +79,9 @@ export function knobParamInfo(s: ModelState, physK: number): KnobParamInfo | nul
 }
 
 export function applyKnobDelta(s: ModelState, physK: number, delta: number): void {
-    const gi = s.knobPage * KNOBS_PER_PAGE + physK;
+    const local = slotToLocal(s, physK);
+    if (local < 0) return;
+    const gi = s.knobPage * KNOBS_PER_PAGE + local;
     const p  = s.knobParams[gi];
     if (!p) return;
     if (p.type === 'file') return;

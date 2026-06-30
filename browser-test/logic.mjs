@@ -3319,6 +3319,35 @@ _log('\n── Envelope viewmodel ──');
 }
 
 
+_log('\n── Envelope knob↔screen mapping (rearrange) ──');
+// OB-Xd main page: ADSR scattered at page idx 3-6 → consolidated to line 0.
+// Physical knob 0 (top-left) must drive the param shown top-left (attack).
+{
+    const m = bootModel(MOCK_SYNTHS.obxd_like);
+    m.changePage(1);                       // preset page is 0; Main is 1
+    const vm = m.getViewModel();
+    eq('obxd: line0 is envelope', !!vm.envelopeLines?.[0], true);
+    eq('obxd: top-left cell = Attack', vm.rows[0][0]?.shortName, 'ATTAC');
+    eq('obxd: bottom-left cell = Cutoff', vm.rows[1][0]?.shortName, 'CUTOF');
+
+    // Touch physical knob 0 → top-left (attack) highlights, not the param that
+    // used to live at page index 0 (cutoff, now bottom-left).
+    m.handleKnobTouch(0);
+    const vt = m.getViewModel();
+    eq('obxd: knob0 touches top-left (attack)', vt.rows[0][0]?.touched, true);
+    eq('obxd: cutoff cell not touched', vt.rows[1][0]?.touched, false);
+    eq('obxd: toast names Attack', vt.toast?.fullName, 'Attack');
+
+    // Turn physical knob 0 → attack changes, cutoff unchanged.
+    const a0 = m.getValueByKey('attack'), c0 = m.getValueByKey('cutoff');
+    m.handleKnobDelta(0, 20);
+    m.tick();
+    const moved = m.getValueByKey('attack') !== a0;
+    eq('obxd: knob0 moves attack', moved, true);
+    eq('obxd: knob0 leaves cutoff', m.getValueByKey('cutoff'), c0);
+}
+
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

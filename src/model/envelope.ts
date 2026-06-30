@@ -81,6 +81,15 @@ export function detectEnvelopes(params: (KnobParam | null)[]): EnvGroup[] {
 export interface PageCell { line: 0 | 1; col: 0 | 1 | 2 | 3; idx: number }
 export interface PageLayout { cells: PageCell[]; envelopes: { line: 0 | 1; name: string }[] }
 
+/* Physical knob (screen slot 0..7, slot = line*4 + col) → page-relative param
+ * index, honoring the envelope rearrange so a knob always drives the param shown
+ * at its position. -1 for a slot that holds no param. Identity when no rearrange. */
+export function pageSlotMap(params: (KnobParam | null)[]): number[] {
+    const map = new Array(8).fill(-1);
+    for (const c of planPageLayout(params).cells) map[c.line * 4 + c.col] = c.idx;
+    return map;
+}
+
 /* Decide which knob line each envelope occupies and where the remaining params
  * sit. Each cell keeps its page-relative index (idx) so touch/value stay mapped
  * to the physical knob even when params are rearranged onto one line. */

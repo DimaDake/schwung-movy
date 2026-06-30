@@ -1,6 +1,6 @@
 import type { ModelState } from './state.js';
 import { loadHierarchy } from './hierarchy.js';
-import { applyKnobDelta, refreshOneParam, pollModuleName } from './store.js';
+import { applyKnobDelta, refreshOneParam, pollModuleName, slotToLocal } from './store.js';
 import { KNOBS_PER_PAGE, NAME_POLL_TICKS } from './constants.js';
 import { mlog } from '../log.js';
 
@@ -30,8 +30,9 @@ export function processTick(s: ModelState): boolean {
         s.longPressCountdown--;
         if (s.longPressCountdown === 0) {
             const k = s.touchedSlots.length > 0 ? s.touchedSlots[s.touchedSlots.length - 1] : -1;
-            if (k >= 0) {
-                const gi = s.knobPage * KNOBS_PER_PAGE + k;
+            const local = k >= 0 ? slotToLocal(s, k) : -1;
+            if (local >= 0) {
+                const gi = s.knobPage * KNOBS_PER_PAGE + local;
                 const p  = s.knobParams[gi];
                 if (p && p.type === 'enum' && p.options) {
                     s.enumOverlay = {

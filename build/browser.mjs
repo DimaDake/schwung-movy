@@ -10,6 +10,7 @@ const root  = resolve(__dir, '..');
 await esbuild.build({
     entryPoints: [
         resolve(root, 'src/model/index.ts'),
+        resolve(root, 'src/model/envelope.ts'),
         resolve(root, 'src/model/enum-value.ts'),
         resolve(root, 'src/model/file-validate.ts'),
         resolve(root, 'src/model/pad-scope.ts'),

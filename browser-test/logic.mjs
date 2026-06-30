@@ -6,6 +6,7 @@
  */
 
 import { createModel }    from '../dist/esm/model/index.js';
+import { detectEnvelopes, planPageLayout } from '../dist/esm/model/envelope.js';
 import { enumRawToIndex, enumUsesIndex, enumSetValue } from '../dist/esm/model/enum-value.js';
 import { MOCK_SYNTHS }    from './mock-synth.mjs';
 import { drumPadOn, drumPadOff } from '../dist/esm/keyboard/drum-handler.js';
@@ -3208,6 +3209,86 @@ _log('\nautomation label sync:');
     applyUiState('not json');
     eq('corrupt blob leaves root unchanged', keyboardState.rootNote, 48);
     eq('corrupt blob leaves scale unchanged', keyboardState.scale, 0);
+}
+
+
+_log('\n── Envelope detection ──');
+const P = (key, label, env) => ({ key, label, shortLabel: null, type: 'float',
+    min: 0, max: 1, step: 0.01, options: null, renderStyle: 'arc', automatable: true, env });
+
+// Full-word amp ADSR + 4 other params (Moog/OB-Xd main shape)
+{
+    const page = [
+        P('cutoff','Cutoff'), P('resonance','Resonance'), P('contour','Contour'), P('glide','Glide'),
+        P('attack','Attack'), P('decay','Decay'), P('sustain','Sustain'), P('release','Release'),
+    ];
+    const g = detectEnvelopes(page);
+    eq('amp ADSR: one group', g.length, 1);
+    eq('amp ADSR: a index', g[0]?.a, 4);
+    eq('amp ADSR: r index', g[0]?.r, 7);
+}
+// Two qualified groups: amp (plain) + filter (f_ prefix)
+{
+    const page = [
+        P('attack','Attack'), P('decay','Decay'), P('sustain','Sustain'), P('release','Release'),
+        P('f_attack','F Attack'), P('f_decay','F Decay'), P('f_sustain','F Sustain'), P('f_release','F Release'),
+    ];
+    const g = detectEnvelopes(page);
+    eq('dual env: two groups', g.length, 2);
+    eq('dual env: amp first (idx0)', g[0]?.a, 0);
+    eq('dual env: filter second (idx4)', g[1]?.a, 4);
+}
+// Partial set (attack+decay only) → no envelope
+{
+    const page = [ P('attack','Attack'), P('decay','Decay'), P('cutoff','Cut'), P('reso','Res') ];
+    eq('partial set: no group', detectEnvelopes(page).length, 0);
+}
+// Abbreviations
+{
+    const page = [ P('atk','Atk'), P('dcy','Dcy'), P('sus','Sus'), P('rel','Rel') ];
+    eq('abbrev set: one group', detectEnvelopes(page).length, 1);
+}
+// Bare single letters — all four present → group
+{
+    const page = [ P('a','A'), P('d','D'), P('s','S'), P('r','R') ];
+    eq('bare letters all four: group', detectEnvelopes(page).length, 1);
+}
+// Bare single letters — only three present → no group (guard)
+{
+    const page = [ P('a','A'), P('d','D'), P('s','S'), P('cutoff','Cut') ];
+    eq('bare letters partial: no group', detectEnvelopes(page).length, 0);
+}
+// Explicit env tag overrides naming
+{
+    const page = [ P('h1','Harm',undefined), P('p2','Punch'),
+        P('e_a','EA','a'), P('e_d','ED','d'), P('e_s','ES','s'), P('e_r','ER','r') ];
+    const g = detectEnvelopes(page);
+    eq('env tag: one group', g.length, 1);
+    eq('env tag: a index', g[0]?.a, 2);
+}
+// Layout: amp ADSR on second row, others consolidated to first line
+{
+    const page = [
+        P('cutoff','Cutoff'), P('resonance','Resonance'), P('contour','Contour'), P('glide','Glide'),
+        P('attack','Attack'), P('decay','Decay'), P('sustain','Sustain'), P('release','Release'),
+    ];
+    const L = planPageLayout(page);
+    eq('layout: env on line 1', L.envelopes[0]?.line, 1);
+    const env = L.cells.filter(c => c.line === 1).map(c => c.idx);
+    eq('layout: line1 = a,d,s,r order', JSON.stringify(env), JSON.stringify([4,5,6,7]));
+    const knobs = L.cells.filter(c => c.line === 0).map(c => c.idx);
+    eq('layout: line0 = the others', JSON.stringify(knobs), JSON.stringify([0,1,2,3]));
+}
+// Layout: scattered ADSR rearranged onto one line, leftovers on the other
+{
+    const page = [
+        P('attack','Attack'), P('cutoff','Cut'), P('sustain','Sustain'), P('reso','Res'),
+        P('decay','Decay'), P('glide','Glide'), P('release','Release'), P('tone','Tone'),
+    ];
+    const L = planPageLayout(page);
+    eq('scattered: one envelope', L.envelopes.length, 1);
+    const env = L.cells.filter(c => c.line === L.envelopes[0].line).map(c => c.idx);
+    eq('scattered: a,d,s,r order', JSON.stringify(env), JSON.stringify([0,4,2,6]));
 }
 
 

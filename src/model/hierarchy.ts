@@ -125,6 +125,7 @@ export function loadHierarchy(s: ModelState): void {
                         shortLabel: slot.short ?? null,
                         type:       type as KnobParam['type'],
                         options, min, max, step, renderStyle,
+                        env:        slot.env,
                         // Global-bank params aren't reachable as chain target:params
                         // (device spike), so they can't be automated.
                         automatable: (type === 'float' || type === 'int') && max > min && !bank.global,

@@ -4,6 +4,7 @@ export interface KnobSlot {
     full:           string;
     type:           'float' | 'int' | 'enum' | 'file';
     render?:        'arc' | 'hbar' | 'vbar' | 'preset';
+    env?:           'a' | 'd' | 's' | 'r';
     options?:       string[];
     min?:           number;
     max?:           number;
@@ -59,6 +60,7 @@ export interface KnobParam {
     options:        string[] | null;
     nameKey?:       string;
     renderStyle:    'arc' | 'hbar' | 'vbar' | 'preset';
+    env?:           'a' | 'd' | 's' | 'r';
     automatable:    boolean;
     fileRoot?:      string;
     fileFilter?:    string[];

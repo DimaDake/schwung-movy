@@ -2092,6 +2092,42 @@ _log('\nautomation: restore re-requests label sync:');
     uninstallMockEngine();
 }
 
+/* ── mute tap: Track view tap mutes the active track ─────────────────────── */
+{
+    _log('\nmute tap:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi } = await import('../dist/esm/seq/router.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { resetMomentary } = await import('../dist/esm/seq/momentary.js');
+    const { appState } = await import('../dist/esm/app/state.js');
+
+    const CC_MUTE = 88;
+    installMockEngine();
+    resetSeqEngine(); resetSeqState(); resetMomentary();
+
+    // A quick down+up (< HOLD_MS) is a tap. In Track view it mutes the active
+    // track (activeSlot), even though no track button was pressed while held.
+    appState.activeSlot = 1;
+    seqState.sessionMode = false;
+    seqState.muted[1] = false;
+    seqHandleMidi([0xB0, CC_MUTE, 127], false);
+    seqHandleMidi([0xB0, CC_MUTE, 0], false);
+    eq('track-view tap mutes active track', peekSeqCmdQueue().some(c => c === 'mute 1 1'), true);
+
+    // Session view: a Mute tap must NOT mute (Mute stays a pure modifier there).
+    resetSeqEngine(); resetMomentary();
+    appState.activeSlot = 2;
+    seqState.sessionMode = true;
+    seqState.muted[2] = false;
+    seqHandleMidi([0xB0, CC_MUTE, 127], false);
+    seqHandleMidi([0xB0, CC_MUTE, 0], false);
+    eq('session-view tap does not mute', peekSeqCmdQueue().some(c => c.startsWith('mute 2')), false);
+
+    seqState.sessionMode = false;
+    uninstallMockEngine();
+}
+
 /* ── mute mirror ─────────────────────────────────────────────────────────── */
 {
     _log('\nmute mirror:');

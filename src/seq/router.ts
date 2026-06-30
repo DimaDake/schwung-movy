@@ -157,9 +157,22 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
 
     if (statusType !== 0xB0) return false;
 
-    /* Mute button: held state gates track-button mute gesture (midi/router.ts). */
+    /* Mute button: held state gates the Mute+track mute gesture (midi/router.ts).
+     * In Track view a clean tap (no track-button mute used while held) instead
+     * mutes the active track on release; Session view keeps Mute as a pure
+     * held modifier. The Mute+track gesture marks the momentary (momentaryGesture
+     * in midi/router.ts) so it reverts rather than double-firing as a tap. */
     if (d1 === CC_MUTE) {
-        setMuteHeld(d2 > 0);
+        if (d2 > 0) {
+            setMuteHeld(true);
+            momentaryDown(CC_MUTE, () => {});
+        } else {
+            setMuteHeld(false);
+            if (momentaryUp(CC_MUTE) === 'tap' && !seqState.sessionMode) {
+                muteTrack(appState.activeSlot);
+                appState.dirty = true;
+            }
+        }
         return true;
     }
 

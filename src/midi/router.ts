@@ -13,7 +13,7 @@ import { anyStepHeld, editStepPageKnob } from '../seq/step-edit.js';
 import { stepPageState, setStepPageSelected, setStepTouchedKnob, stepPageAvailable } from '../seq/step-page.js';
 import { seqState } from '../seq/state.js';
 import { WHITE_BRIGHT, WHITE_DIM } from '../seq/colors.js';
-import { momentaryDown, momentaryUp } from '../seq/momentary.js';
+import { momentaryDown, momentaryGesture, momentaryUp } from '../seq/momentary.js';
 import { handleAutomationKnob, clearLaneForKnob, automationKnobReleased, automationKnobTouched } from '../seq/automation.js';
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
@@ -191,7 +191,7 @@ export function onMidiMessageInternal(data: number[]): void {
     if (d1 >= TRACK_CC_START && d1 <= TRACK_CC_END) {
         const track = TRACK_CC_END - d1;
         if (d2 > 0) {
-            if (muteHeld()) { muteTrack(track); appState.dirty = true; return; }
+            if (muteHeld()) { muteTrack(track); momentaryGesture(); appState.dirty = true; return; }
             // A track button always exits the Set Parameters page first (it is a
             // global page, not a per-track view), so it can't be saved into the
             // per-track view memory below and re-shown on return to this track.

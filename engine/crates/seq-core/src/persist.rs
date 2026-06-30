@@ -232,7 +232,10 @@ fn load_clip<'a>(engine: &mut Engine, it: &mut impl Iterator<Item = &'a str>) {
     }
     let clip = &mut engine.tracks[track].clips[slot];
     *clip = Clip::new();
-    clip.set_loop(lstart, len);
+    // Restore the exact saved window — not via set_loop, which rounds the
+    // length up to a whole bar and would clobber a custom (sub-bar) LENGTH.
+    clip.loop_start_steps = lstart.min(crate::clip::MAX_STEPS - 1);
+    clip.length_steps = len.clamp(1, crate::clip::MAX_STEPS - clip.loop_start_steps);
     if let Some(notes) = it.next() {
         for tok in notes.split(';') {
             let parts: Vec<&str> = tok.split(':').collect();
@@ -278,6 +281,16 @@ mod tests {
         // Transport never persists.
         assert!(!e2.playing);
         assert_eq!(e2.tracks[0].playing_slot, None);
+    }
+
+    #[test]
+    fn sub_bar_clip_length_is_preserved() {
+        let mut e = Engine::new(44100, 12000);
+        e.tracks[0].active_mut().set_clip_length(12); // custom sub-bar length
+        let saved = serialize(&e);
+        let mut e2 = Engine::new(44100, 12000);
+        assert!(load(&mut e2, &saved));
+        assert_eq!(e2.tracks[0].active().length_steps, 12); // not rounded to a bar
     }
 
     #[test]

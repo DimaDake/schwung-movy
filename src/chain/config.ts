@@ -10,7 +10,13 @@ export const CHAIN_SLOTS: ChainSlot[] = [
     { componentKey: 'synth',    label: 'SYNTH',   scanDir: 'sound_generators', expectedType: 'sound_generator' },
     { componentKey: 'fx1',      label: 'FX 1',    scanDir: 'audio_fx',         expectedType: 'audio_fx'        },
     { componentKey: 'fx2',      label: 'FX 2',    scanDir: 'audio_fx',         expectedType: 'audio_fx'        },
+    { componentKey: 'lfo',      label: 'LFO',     scanDir: '',                 expectedType: ''                },
 ];
+
+/* The LFO is a virtual last chain slot (no module to scan/swap) — it edits the
+ * track's two schwung slot LFOs. */
+export const LFO_CHAIN_INDEX = CHAIN_SLOTS.length - 1;
+export function isLfoSlot(chainIndex: number): boolean { return chainIndex === LFO_CHAIN_INDEX; }
 
 export const MASTER_FX_SLOTS: ChainSlot[] = [
     { componentKey: 'master_fx:fx1', label: 'MFX 1', scanDir: 'audio_fx', expectedType: 'audio_fx' },

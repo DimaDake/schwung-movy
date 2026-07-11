@@ -20,6 +20,14 @@ import { switchToSet, currentSetUuid, resetSeqPersist } from '../dist/esm/seq/pe
 import { keyboardState } from '../dist/esm/keyboard/state.js';
 import { installMockEngine } from './mock-engine.mjs';
 import { installEnv } from './env.mjs';
+import {
+    buildTargetOptions, shortenTarget, targetIndex, formatDepth, formatPhase,
+    LFO_SHAPES, LFO_DIVISIONS, compLabel,
+} from '../dist/esm/lfo/params.js';
+import { createLfoModel } from '../dist/esm/lfo/model.js';
+import { CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../dist/esm/chain/config.js';
+import { init } from '../dist/esm/app/init.js';
+import { appState } from '../dist/esm/app/state.js';
 
 /* ── Mock globals ─────────────────────────────────────────────────────────── */
 
@@ -3496,6 +3504,144 @@ _log('\nTest: switchToSet save-then-load orchestration');
     eq('B ui reset to defaults (root 48)', keyboardState.rootNote, 48);
     eq('B ui reset to defaults (scale 0)', keyboardState.scale, 0);
     eq('current uuid is B', currentSetUuid(), 'B');
+}
+
+_log('\nTest: LFO param helpers');
+{
+    env.setParams({
+        'synth:chain_params': JSON.stringify([
+            { key: 'cutoff', name: 'Cutoff', type: 'float' },
+            { key: 'reso',   name: 'Resonance', type: 'float' },
+            { key: 'wave',   name: 'Wave', type: 'enum' },
+            { key: 'label',  name: 'Label', type: 'string' },   // filtered out
+        ]),
+        'fx1:chain_params': JSON.stringify([
+            { key: 'mix', name: 'Mix', type: 'float' },
+        ]),
+    });
+    const opts = buildTargetOptions(0, 0);
+    eq('target[0] is None', opts[0].label, 'None');
+    eq('target[0] target null', opts[0].target, null);
+    // Synth: Cutoff/Resonance/Wave (3) + FX1 Mix (1) + other-LFO params (3) = 7, +None = 8
+    eq('target option count (string filtered)', opts.length, 8);
+    eq('cutoff mapped', JSON.stringify(opts[1]), JSON.stringify({ label: shortenTarget(compLabel('synth'), 'Cutoff'), target: 'synth', param: 'cutoff' }));
+    eq('no string-typed param', opts.some(o => o.param === 'label'), false);
+    eq('other-LFO target present', opts.some(o => o.target === 'lfo2' && o.param === 'depth'), true);
+
+    eq('shorten fits 11', shortenTarget('Syn', 'Resonance').length <= 11, true);
+    eq('shorten format', shortenTarget('Syn', 'Cutoff'), 'Syn:Cutoff');
+
+    eq('targetIndex finds mix', targetIndex(opts, 'fx1', 'mix') > 0, true);
+    eq('targetIndex none→0', targetIndex(opts, '', ''), 0);
+
+    eq('shapes count', LFO_SHAPES.length, 6);
+    eq('divisions count', LFO_DIVISIONS.length, 27);
+    eq('depth +65%', formatDepth(0.65), '+65%');
+    eq('depth -65%', formatDepth(-0.65), '-65%');
+    eq('depth 0%', formatDepth(0), '0%');
+    eq('phase 180°', formatPhase(0.5), '180°');
+}
+
+_log('\nTest: LFO model');
+{
+    const DETENT = 8; // detent.ts DETENT_DIV — raw delta per ±1 step
+    env.setParams({
+        'synth:chain_params': JSON.stringify([
+            { key: 'cutoff', name: 'Cutoff', type: 'float' },
+            { key: 'reso',   name: 'Resonance', type: 'float' },
+        ]),
+        'lfo1:shape': '0', 'lfo1:polarity': '0', 'lfo1:sync': '0',
+        'lfo1:rate_hz': '1.0', 'lfo1:rate_div': '19', 'lfo1:depth': '0',
+        'lfo1:phase_offset': '0', 'lfo1:retrigger': '0', 'lfo1:target': '', 'lfo1:target_param': '',
+        'lfo2:shape': '1', 'lfo2:sync': '0', 'lfo2:rate_hz': '2.0', 'lfo2:depth': '0',
+    });
+    const m = createLfoModel(0);
+    m.tick();
+    let vm = m.getViewModel();
+    eq('lfo bankCount', vm.bankCount, 2);
+    eq('lfo bank 0 name', vm.moduleName, 'LFO 1');
+    eq('pos0 is TARGET', vm.rows[0][0].shortName, 'TARGET');
+    eq('pos1 is SHAPE', vm.rows[0][1].shortName, 'SHAPE');
+    eq('pos4 is RATE', vm.rows[1][0].shortName, 'RATE');
+    eq('pos7 is RETRIG', vm.rows[1][3].shortName, 'RETRIG');
+    eq('no LFO cell is automatable', [...vm.rows[0], ...vm.rows[1]].every(c => c && c.automatable === false), true);
+    eq('getKnobParamInfo null (not automatable)', m.getKnobParamInfo(0), null);
+    eq('componentKey', m.getComponentKey(), 'lfo');
+
+    m.handleKnobDelta(2, DETENT);
+    eq('polarity set to Bipolar', env.params['lfo1:polarity'], '1');
+    eq('mode display BI', m.getViewModel().rows[0][2].displayValue, 'BI');
+
+    eq('rate shows Hz when free', m.getViewModel().rows[1][0].displayValue, '1.0 Hz');
+    m.handleKnobDelta(3, DETENT);
+    eq('sync set', env.params['lfo1:sync'], '1');
+    eq('rate shows division when sync', m.getViewModel().rows[1][0].displayValue, '1/4');
+
+    m.handleKnobDelta(4, DETENT);
+    eq('rate_div incremented', env.params['lfo1:rate_div'], '20');
+    m.handleKnobDelta(3, -DETENT);
+    eq('sync cleared', env.params['lfo1:sync'], '0');
+    m.handleKnobDelta(4, DETENT * 200);
+    eq('rate_hz clamped ≤ 20', parseFloat(env.params['lfo1:rate_hz']) <= 20.0, true);
+    m.handleKnobDelta(4, -DETENT * 400);
+    eq('rate_hz clamped ≥ 0.1', parseFloat(env.params['lfo1:rate_hz']) >= 0.1, true);
+
+    m.handleKnobDelta(5, -1000);
+    eq('depth clamped ≥ -1', parseFloat(env.params['lfo1:depth']) >= -1, true);
+    eq('depth clamped exactly -1', parseFloat(env.params['lfo1:depth']), -1);
+
+    m.handleKnobTouch(0);
+    vm = m.getViewModel();
+    eq('overlay open on target', vm.overlay !== null, true);
+    eq('overlay slot 0', vm.overlay.slot, 0);
+    eq('overlay first option None', vm.overlay.options[0], 'None');
+    m.handleKnobDelta(0, DETENT);       // select option 1 (first real target)
+    m.handleKnobRelease(0);
+    eq('target committed', env.params['lfo1:target'], 'synth');
+    eq('target_param committed', env.params['lfo1:target_param'], 'cutoff');
+    eq('auto-enabled on target', env.params['lfo1:enabled'], '1');
+    eq('overlay closed', m.getViewModel().overlay, null);
+
+    m.handleKnobTouch(0);
+    m.handleKnobDelta(0, -DETENT * 10); // clamp to index 0 (None)
+    m.handleKnobRelease(0);
+    eq('target cleared', env.params['lfo1:target'], '');
+    eq('disabled on None', env.params['lfo1:enabled'], '0');
+
+    m.handleKnobTouch(1);
+    m.handleKnobDelta(1, DETENT * 2);   // +2 shapes → index 2 (Saw)
+    m.handleKnobRelease(1);
+    eq('shape committed', env.params['lfo1:shape'], '2');
+
+    m.handleKnobDelta(7, DETENT);
+    eq('retrigger on', env.params['lfo1:retrigger'], '1');
+
+    m.changePage(1);
+    vm = m.getViewModel();
+    eq('bank 1 name', vm.moduleName, 'LFO 2');
+    eq('bank index', vm.bankIndex, 1);
+    m.handleKnobDelta(2, DETENT);
+    eq('lfo2 polarity written', env.params['lfo2:polarity'], '1');
+    eq('lfo1 polarity untouched', env.params['lfo1:polarity'], '1');
+
+    eq('lfo never empty', m.getViewModel().isEmpty, false);
+    eq('getDrumConfig null', m.getDrumConfig(), null);
+    eq('getFileBrowseTarget null', m.getFileBrowseTarget(), null);
+}
+
+_log('\nTest: LFO chain slot wiring');
+{
+    eq('CHAIN_SLOTS has 5 entries', CHAIN_SLOTS.length, 5);
+    eq('slot 4 is LFO', CHAIN_SLOTS[4].componentKey, 'lfo');
+    eq('LFO_CHAIN_INDEX', LFO_CHAIN_INDEX, 4);
+    eq('isLfoSlot(4)', isLfoSlot(4), true);
+    eq('isLfoSlot(1)', isLfoSlot(1), false);
+
+    env.setParams({});
+    init();
+    eq('each track has 5 models', appState.trackModels[0].length, 5);
+    eq('track model 4 is LFO', appState.trackModels[0][4].getComponentKey(), 'lfo');
+    eq('track model 1 is a module', appState.trackModels[0][1].getComponentKey(), 'synth');
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

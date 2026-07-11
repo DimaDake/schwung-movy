@@ -1,7 +1,7 @@
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } from '../app/state.js';
 import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease, closeMainPage } from '../seq/main-page.js';
 import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease, closeClipPage } from '../seq/clip-page.js';
-import { CHAIN_SLOTS, MASTER_FX_SLOTS } from '../chain/config.js';
+import { CHAIN_SLOTS, MASTER_FX_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../chain/config.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
 import { noteOn, noteOff, changeRoot, releaseAllNotes } from '../keyboard/handler.js';
@@ -327,15 +327,17 @@ export function onMidiMessageInternal(data: number[]): void {
                 );
             } else if (appState.currentView === VIEW_CHAIN) {
                 const isEmpty = activeModel()?.getViewModel().isEmpty ?? false;
-                if (appState.shiftHeld || isEmpty) {
+                // The LFO slot has no module to add/swap — a click always drills.
+                if (!isLfoSlot(chainIndex()) && (appState.shiftHeld || isEmpty)) {
                     openBrowser(CHAIN_SLOTS[chainIndex()], appState.activeSlot, () => activeModel()?.reload());
                     appState.browseOrigin = VIEW_CHAIN;
                 } else {
                     appState.currentView = VIEW_KNOBS;
                     appState.dirty = true;
                 }
-            } else {
-                // VIEW_KNOBS with no file param held → module browser.
+            } else if (!isLfoSlot(chainIndex())) {
+                // VIEW_KNOBS with no file param held → module browser (the LFO
+                // slot has no module to swap, so a click is a no-op there).
                 openBrowser(CHAIN_SLOTS[chainIndex()], appState.activeSlot, () => activeModel()?.reload());
                 appState.browseOrigin = VIEW_KNOBS;
             }
@@ -359,10 +361,10 @@ export function onMidiMessageInternal(data: number[]): void {
                     } else if (dir < 0 && chainIndex() === 0) {
                         setStepPageSelected(true);                     // enter step page
                     } else {
-                        setChainIndex(Math.max(0, Math.min(3, chainIndex() + dir)));
+                        setChainIndex(Math.max(0, Math.min(LFO_CHAIN_INDEX, chainIndex() + dir)));
                     }
                 } else {
-                    setChainIndex(Math.max(0, Math.min(3, chainIndex() + dir)));
+                    setChainIndex(Math.max(0, Math.min(LFO_CHAIN_INDEX, chainIndex() + dir)));
                 }
                 mlog('chain chainIndex=' + chainIndex());
             } else if (appState.currentView === VIEW_KNOBS) {
@@ -415,7 +417,7 @@ export function onMidiMessageInternal(data: number[]): void {
             appState.masterChainIndex = Math.min(3, appState.masterChainIndex + 1);
         } else if (appState.currentView === VIEW_CHAIN) {
             if (stepPageAvailable() && stepPageState.selected) setStepPageSelected(false);
-            else setChainIndex(Math.min(3, chainIndex() + 1));
+            else setChainIndex(Math.min(LFO_CHAIN_INDEX, chainIndex() + 1));
         } else if (appState.currentView === VIEW_KNOBS) {
             const m = activeModel();
             if (stepPageAvailable() && stepPageState.selected) setStepPageSelected(false);

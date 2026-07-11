@@ -1,8 +1,9 @@
 import { createModel }  from '../model/index.js';
+import { createLfoModel } from '../lfo/model.js';
 import { appState, VIEW_CHAIN } from './state.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
-import { CHAIN_SLOTS, MASTER_FX_SLOTS } from '../chain/config.js';
+import { CHAIN_SLOTS, MASTER_FX_SLOTS, isLfoSlot } from '../chain/config.js';
 import { mlog } from '../log.js';
 
 export function init(): void {
@@ -10,7 +11,7 @@ export function init(): void {
     mlog('init: activeSlot=' + appState.activeSlot);
 
     appState.trackModels = Array.from({ length: 4 }, (_, slot) =>
-        CHAIN_SLOTS.map(s => createModel(slot, s.componentKey))
+        CHAIN_SLOTS.map((s, i) => isLfoSlot(i) ? createLfoModel(slot) : createModel(slot, s.componentKey))
     );
     appState.masterFxModels  = MASTER_FX_SLOTS.map(s => createModel(0, s.componentKey));
     appState.masterChainIndex = 0;

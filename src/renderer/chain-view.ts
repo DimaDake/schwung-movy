@@ -4,7 +4,7 @@ import { drawHeader, drawBankBar } from './header.js';
 import { drawKnobParams } from './label.js';
 import { drawEnumOverlay, drawJogToast } from './overlay.js';
 import { W, ROW0_Y } from './layout.js';
-import { CHAIN_SLOTS } from '../chain/config.js';
+import { CHAIN_SLOTS, isLfoSlot } from '../chain/config.js';
 
 export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: boolean, trackLabel: string, slotLabel?: string): void {
     clear_screen();
@@ -16,9 +16,9 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
         drawHeader(trackLabel, effectiveSlotLabel, false);
         if (vm.stepPagePresent) {
             const sel = vm.stepPageSelected ? 0 : chainIndex + 1;
-            drawBankBar(sel, 5, true);
+            drawBankBar(sel, CHAIN_SLOTS.length + 1, true);
         } else {
-            drawBankBar(chainIndex, 4);
+            drawBankBar(chainIndex, CHAIN_SLOTS.length);
         }
         const msg = 'CLICK JOG: ADD MODULE';
         fontPrint(Math.max(0, Math.floor((W - fontWidth(msg)) / 2)), 28, msg, 1);
@@ -38,12 +38,12 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
 
     if (vm.stepPagePresent) {
         const sel = vm.stepPageSelected ? 0 : chainIndex + 1;
-        drawBankBar(sel, 5, true);
+        drawBankBar(sel, CHAIN_SLOTS.length + 1, true);
     } else {
-        drawBankBar(chainIndex, 4);
+        drawBankBar(chainIndex, CHAIN_SLOTS.length);
     }
     drawKnobParams(vm);
 
     if (vm.overlay) drawEnumOverlay(vm);
-    if (jogTouched) drawJogToast('SHIFT+CLICK SWAP  CLICK OPEN');
+    if (jogTouched) drawJogToast(isLfoSlot(chainIndex) ? 'CLICK JOG: EDIT LFOS' : 'SHIFT+CLICK SWAP  CLICK OPEN');
 }

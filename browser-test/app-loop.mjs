@@ -775,6 +775,35 @@ _log('\napp-loop: active-set switch reloads the engine');
     eq('S1 saved on switch-out', typeof fs[stPath('s1-uuid')], 'string');
 }
 
+_log('\napp-loop: LFO chain slot reachable + drill');
+{
+    resetApp();
+    appState.currentView = VIEW_CHAIN;
+    appState.trackChainIndex[0] = 1;          // start on SYNTH
+
+    // Jog right 3 detents: 1→2→3→4 (LFO).
+    sendMidi([0xB0, 14, 1]); advance(1);
+    sendMidi([0xB0, 14, 1]); advance(1);
+    sendMidi([0xB0, 14, 1]); advance(1);
+    eq('jog reaches LFO slot (index 4)', appState.trackChainIndex[0], 4);
+
+    // Jog-click drills into the LFO detail (VIEW_KNOBS), never a browser.
+    sendMidi([0xB0, 3, 127]); advance(1);
+    eq('LFO jog-click drills to VIEW_KNOBS', appState.currentView, VIEW_KNOBS);
+    eq('active model is the LFO', appState.trackModels[0][4].getComponentKey(), 'lfo');
+
+    // Jog in detail scrolls banks LFO1↔LFO2.
+    sendMidi([0xB0, 14, 1]); advance(1);
+    eq('detail jog scrolls to LFO 2', appState.trackModels[0][4].getKnobPage(), 1);
+
+    // Shift+jog-click on the LFO chain page also drills (no browser to swap).
+    appState.currentView = VIEW_CHAIN;
+    appState.shiftHeld = true;
+    sendMidi([0xB0, 3, 127]); advance(1);
+    eq('shift+click on LFO drills, no browser', appState.currentView, VIEW_KNOBS);
+    appState.shiftHeld = false;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

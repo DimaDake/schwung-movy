@@ -36,6 +36,7 @@ const PRESETS = [
     'lfo_prefix',
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
     'chain_t2', 'chain_t4',
+    'lfo_chain', 'lfo_lfo1', 'lfo_lfo2', 'lfo_target_overlay', 'lfo_shape_overlay',
     'drum-mrdrums-pad5', 'drum-mrdrums-global',
     'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
     'step_page_knobs', 'step_page_chain', 'step_indicator',
@@ -60,6 +61,8 @@ const BASE = {
     'main-key-overlay': 'test8',
     'clip-default': 'test8', 'clip-fraction': 'test8', 'clip-overlay': 'test8',
     env_dual: 'env_dual', env_touched: 'env_dual',
+    lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
+    lfo_target_overlay: 'test8', lfo_shape_overlay: 'test8',
 };
 
 const STEP_VM_A = {
@@ -96,6 +99,7 @@ globalThis.clear_screen = () => paint(0, 0, W, H, OFF);
 /* ── Model + renderers (imported after env so bundled globals resolve) ───── */
 
 const { createModel }      = await import('../dist/esm/model/index.js');
+const { createLfoModel }   = await import('../dist/esm/lfo/model.js');
 const { renderKnobsView }  = await import('../dist/esm/renderer/knob-view.js');
 const { renderKeysView }   = await import('../dist/esm/renderer/keys-view.js');
 const { renderBrowseView } = await import('../dist/esm/renderer/browse-view.js');
@@ -264,6 +268,30 @@ function applyView(preset) {
             seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
             clipPageState.scaleOverlay = true; clipPageState.scaleSel = 6; // 2X
             lastRender = () => renderKnobsView(buildClipPageVM(), false, 0);
+            lastRender();
+            break;
+        }
+        case 'lfo_chain':
+        case 'lfo_lfo1':
+        case 'lfo_lfo2':
+        case 'lfo_target_overlay':
+        case 'lfo_shape_overlay': {
+            env.setParams({
+                'synth:chain_params': JSON.stringify([
+                    { key: 'cutoff', name: 'Cutoff', type: 'float' },
+                    { key: 'reso',   name: 'Resonance', type: 'float' },
+                ]),
+                'fx1:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float' }]),
+                'lfo1:sync': '0', 'lfo1:rate_hz': '2.0', 'lfo1:depth': '0.65', 'lfo1:shape': '0',
+                'lfo2:sync': '1', 'lfo2:rate_div': '19', 'lfo2:shape': '3',
+            });
+            const lm = createLfoModel(0);
+            lm.tick();
+            if (preset === 'lfo_lfo2') lm.changePage(1);
+            if (preset === 'lfo_target_overlay') lm.handleKnobTouch(0);
+            if (preset === 'lfo_shape_overlay') lm.handleKnobTouch(1);
+            if (preset === 'lfo_chain') lastRender = () => renderChainView(lm.getViewModel(), 4, false, 'T1', 'LFO');
+            else lastRender = () => renderKnobsView(lm.getViewModel(), false, 0);
             lastRender();
             break;
         }

@@ -3621,6 +3621,13 @@ _log('\nTest: LFO model');
     eq('shape touch does NOT open overlay', m.getViewModel().overlay, null);
     m.handleKnobRelease(4);
 
+    // Phase — pos 5 — snaps to a 15° grid (exact 45/90/180 selectable).
+    m.handleKnobDelta(5, DETENT * 3);   // +3 steps × 15° = 45°
+    eq('phase snaps to 45°', m.getViewModel().rows[1][1].displayValue, '45°');
+    m.handleKnobDelta(5, DETENT * 3);   // +45° → 90°
+    eq('phase snaps to 90°', m.getViewModel().rows[1][1].displayValue, '90°');
+    eq('phase exact 0.25', parseFloat(env.params['lfo1:phase_offset']), 0.25);
+
     // Retrigger — pos 6.
     m.handleKnobDelta(6, DETENT);
     eq('retrigger on', env.params['lfo1:retrigger'], '1');

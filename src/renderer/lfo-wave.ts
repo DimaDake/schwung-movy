@@ -3,7 +3,7 @@
  * retrigger from the LfoVizVM. Reusable by the track LFO and synth layouts. */
 
 import type { LfoVizVM } from '../types/viewmodel.js';
-import { drawLine, drawDot, drawDottedH } from './primitives.js';
+import { drawLine, drawDottedH } from './primitives.js';
 import { CELL_W } from './layout.js';
 
 const CYCLES = 2;
@@ -59,5 +59,9 @@ export function drawLfoWave(rowY: number, g: LfoVizVM): void {
         prevX = px; prevY = y;
     }
 
-    if (g.retrigger) drawDot(x0, Math.max(topY, Math.min(botY - 1, yAt(x0) - 1)));
+    // Retrigger: bold 3×3 dot at the start of the LFO line.
+    if (g.retrigger) {
+        const dy = Math.max(topY, Math.min(botY - 2, yAt(x0) - 1));
+        fill_rect(x0, dy, 3, 3, 1);
+    }
 }

@@ -16,8 +16,8 @@ import {
 
 /* Continuous-knob sensitivity for the arc params (device delta ≈ ±1..3/tick).
  * Full sweep ≈ range / step ticks; tuned for feel on device. */
-const DEPTH_STEP = 0.02;   // range 2.0 → ~100 ticks
-const PHASE_STEP = 0.02;   // range 1.0 → ~50 ticks
+const DEPTH_STEP = 0.02;         // continuous; range 2.0 → ~100 ticks
+const PHASE_DIVISIONS = 24;      // phase snaps to a 15° grid (exact 45/90/180)
 
 interface LfoVals {
     target: string; targetParam: string;
@@ -204,7 +204,15 @@ export function createLfoModel(track: number): Model {
                 return;
             }
             const v = vals[bank];
-            if (k === 5) { v.phase = clampF(v.phase + delta * PHASE_STEP, 0, 1); setP(bank, 'phase_offset', v.phase.toFixed(4)); }
+            if (k === 5) {
+                // Phase snaps to the 15° grid so exact 45/90/180 are selectable.
+                const n = countDetents(accum, k, delta);
+                if (n !== 0) {
+                    const idx = clampI(Math.round(v.phase * PHASE_DIVISIONS) + n, 0, PHASE_DIVISIONS);
+                    v.phase = idx / PHASE_DIVISIONS;
+                    setP(bank, 'phase_offset', v.phase.toFixed(4));
+                }
+            }
             else if (k === 7) { v.depth = clampF(v.depth + delta * DEPTH_STEP, -1, 1); setP(bank, 'depth', v.depth.toFixed(4)); }
             else if (k === 0 || k === 1 || k === 2 || k === 4 || k === 6) { stepDiscrete(k, delta); }
             // k === 3 (Target) is overlay-only; a bare turn is ignored.

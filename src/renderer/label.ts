@@ -5,14 +5,13 @@ import { drawEnvelope } from './envelope.js';
 import { drawLfoWave } from './lfo-wave.js';
 import { CELL_W, LBL_H, ROW0_Y, LBL0_Y, ROW1_Y, LBL1_Y } from './layout.js';
 
-/* Small drawn tilde (~5×3) — the modulation mark, mirror of the automation dot. */
+/* Modulation mark — a 4×2 dither: top row 1010, bottom row 0101. Mirror of the
+ * automation dot (a solid 2×2), visually distinct at a glance. */
 function drawWaveMark(x: number, y: number, on: number): void {
-    fill_rect(x,     y + 1, 1, 1, on);
-    fill_rect(x + 1, y,     1, 1, on);
+    fill_rect(x,     y,     1, 1, on);   // 1 0 1 0
     fill_rect(x + 2, y,     1, 1, on);
-    fill_rect(x + 2, y + 1, 1, 1, on);
-    fill_rect(x + 3, y + 2, 1, 1, on);
-    fill_rect(x + 4, y + 2, 1, 1, on);
+    fill_rect(x + 1, y + 1, 1, 1, on);   // 0 1 0 1
+    fill_rect(x + 3, y + 1, 1, 1, on);
 }
 
 export function drawLabelCell(col: number, lblY: number, pvm: ParamVM): void {

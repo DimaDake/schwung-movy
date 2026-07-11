@@ -318,7 +318,7 @@ function applyView(preset) {
             for (let i = 0; i < 6; i++) chainModels[1].tick();
             const realNow = Date.now; let t = 1000; Date.now = () => t;
             resetAssignMode();
-            holdTouch(0, 0, chainModels[1].getKnobParamInfo(0)); t = 1600; holdTick();
+            holdTouch(0, 0, chainModels[1].getKnobParamInfo(0)); t = 2100; holdTick();
             Date.now = realNow;
             lastRender = () => { renderKnobsView(chainModels[1].getViewModel(), false, 0); drawJogToast(assignToastText()); };
             lastRender();

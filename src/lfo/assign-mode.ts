@@ -6,7 +6,7 @@
 import type { KnobParamInfo } from '../model/store.js';
 import { assignLfoTarget, clearLfoTarget, lfoTargetsParam } from './assign.js';
 
-const HOLD_MS = 500;
+const HOLD_MS = 1000;
 
 interface Held { track: number; physK: number; info: KnobParamInfo; pressMs: number; }
 const state = { held: null as Held | null, active: false, lfoSel: 0 };

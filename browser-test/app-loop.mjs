@@ -822,7 +822,7 @@ _log('\napp-loop: hold-knob → assign LFO target');
     const realNow = Date.now; let t = 10000; Date.now = () => t;
     sendMidi([0x90, 0, 100]);             // touch knob 0 (automatable synth param)
     advance(1);
-    t = 10600; advance(1);                // > 500ms → holdTick activates assign mode
+    t = 11100; advance(1);                // > 1000ms → holdTick activates assign mode
     eq('assign mode active after hold', assignActive(), true);
 
     sendMidi([0xB0, 3, 127]);             // jog-click → assign LFO1

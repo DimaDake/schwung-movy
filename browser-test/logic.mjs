@@ -3803,8 +3803,8 @@ _log('\nTest: LFO assign-mode gesture');
     const realNow = Date.now;
     let t = 1000; Date.now = () => t;
     holdTouch(0, 0, info());
-    t = 1400; eq('still not active at 400ms', holdTick(), false);
-    t = 1600; eq('activates at ≥500ms', holdTick(), true);
+    t = 1600; eq('not active before hold time', holdTick(), false);
+    t = 2100; eq('activates after hold time', holdTick(), true);
     eq('active flag set', assignActive(), true);
     eq('toast = modulate LFO1', assignToastText(), 'CLICK: MODULATE <LFO1>');
 
@@ -3816,14 +3816,14 @@ _log('\nTest: LFO assign-mode gesture');
     eq('lfo2 target written', env.params['lfo2:target'], 'synth');
     eq('mode exited after commit', assignActive(), false);
 
-    t = 2000; holdTouch(0, 0, info()); t = 2600;
+    t = 3000; holdTouch(0, 0, info()); t = 4200;
     eq('re-activates', holdTick(), true);
     eq('starts on assigned LFO2', assignToastText(), 'CLICK: REMOVE <LFO2> MOD');
     const r2 = assignCommit();
     eq('commit removed', JSON.stringify(r2), JSON.stringify({ assigned: false, lfoIdx: 1 }));
     eq('lfo2 target cleared', env.params['lfo2:target'], '');
 
-    t = 3000; holdTouch(0, 0, info()); t = 3600; holdTick();
+    t = 5000; holdTouch(0, 0, info()); t = 6200; holdTick();
     eq('active before release', assignActive(), true);
     holdRelease(0);
     eq('release cancels', assignActive(), false);

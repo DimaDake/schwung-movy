@@ -1,6 +1,6 @@
 import type { ViewModel, AutomationView, EnvelopeVM, LfoVizVM } from '../types/viewmodel.js';
 import type { ModelState } from './state.js';
-import { formatValue } from './store.js';
+import { formatValue, paramIoKey } from './store.js';
 import { planPageLayout } from './envelope.js';
 import { detectLfoViz } from './lfo-viz.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
@@ -37,6 +37,18 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     const rows: ViewModel['rows'] = [[null, null, null, null], [null, null, null, null]];
     const envelopeLines: (EnvelopeVM | null)[] = [null, null];
     for (const e of layout.envelopes) envelopeLines[e.line] = { name: e.name };
+
+    // LFO modulation marks — track-chain modules only (master FX LFOs live in a
+    // separate key space; the LFO page's own params aren't targets here).
+    const lfoTargets: Array<[string, string]> = [];
+    if (!s.componentKey.startsWith('master_fx')) {
+        for (let i = 1; i <= 2; i++) {
+            const t = shadow_get_param(s.activeSlot, 'lfo' + i + ':target') || '';
+            if (t) lfoTargets.push([t, shadow_get_param(s.activeSlot, 'lfo' + i + ':target_param') || '']);
+        }
+    }
+    const isModulated = (p: import('../types/param.js').KnobParam): boolean =>
+        lfoTargets.length > 0 && lfoTargets.some(([t, tp]) => t === s.componentKey && tp === paramIoKey(s, p));
 
     for (const cell of layout.cells) {
         const localIdx   = cell.idx;                          // page-relative param index
@@ -85,6 +97,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             automated,
             automatable:     p.automatable,
             assigned:        lane >= 0,
+            modulated:       isModulated(p),
         };
     }
 

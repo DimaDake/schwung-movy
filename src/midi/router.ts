@@ -15,6 +15,7 @@ import { seqState } from '../seq/state.js';
 import { WHITE_BRIGHT, WHITE_DIM } from '../seq/colors.js';
 import { momentaryDown, momentaryGesture, momentaryUp } from '../seq/momentary.js';
 import { handleAutomationKnob, clearLaneForKnob, automationKnobReleased, automationKnobTouched } from '../seq/automation.js';
+import { holdTouch, holdRelease, holdTurnCancel, assignActive, assignCycle, assignCommit } from '../lfo/assign-mode.js';
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
 import { mlog } from '../log.js';
@@ -105,10 +106,12 @@ export function onMidiMessageInternal(data: number[]): void {
             }
             knobModel()?.handleKnobTouch(d1);
             automationKnobTouched(d1);    // arm tap-to-clear in step-auto mode
+            holdTouch(appState.activeSlot, d1, info);   // arm hold-to-modulate
         } else {
             const info = knobModel()?.getKnobParamInfo(d1) ?? null;
             if (knobModel()?.handleKnobRelease(d1)) seqToast('Wrong preset type');
             if (info) automationKnobReleased(appState.activeSlot, d1, info);
+            holdRelease(d1);
         }
         return;
     }
@@ -157,6 +160,7 @@ export function onMidiMessageInternal(data: number[]): void {
     if ((status & 0xF0) === 0xB0 && d1 >= KNOB_CC_BASE && d1 < KNOB_CC_BASE + NUM_KNOBS) {
         const k     = d1 - KNOB_CC_BASE;
         const delta = decodeDelta(d2);
+        holdTurnCancel();   // a knob turn cancels a pending / active hold-to-modulate
         // Step page owns the knobs while it is selected (intrinsic trig props,
         // never chain automation). Knobs 5..7 are blank → ignored.
         if (stepPageAvailable() && stepPageState.selected) {
@@ -236,6 +240,7 @@ export function onMidiMessageInternal(data: number[]): void {
     /* Back */
     if (d1 === MoveBack && d2 > 0) {
         appState.jogTouched = false;
+        holdTurnCancel();   // Back cancels an active hold-to-modulate
         if (masterDetailActive()) {
             appState.masterDetail = false;   // master detail → back to the slot grid
             appState.dirty = true;
@@ -270,6 +275,23 @@ export function onMidiMessageInternal(data: number[]): void {
 
     /* Jog click */
     if (d1 === MoveMainButton && d2 > 0) {
+        // Assign-mode: commit the LFO modulation (assign → jump to that LFO's
+        // chain page; remove → stay + toast). Consumes the click.
+        if (assignActive()) {
+            const r = assignCommit();
+            if (r) {
+                if (r.assigned) {
+                    appState.trackChainIndex[appState.activeSlot] = LFO_CHAIN_INDEX;
+                    appState.currentView = VIEW_CHAIN;
+                    const lm = appState.trackModels[appState.activeSlot]?.[LFO_CHAIN_INDEX];
+                    if (lm) lm.changePage(r.lfoIdx - lm.getKnobPage());
+                } else {
+                    seqToast('LFO' + (r.lfoIdx + 1) + ' mod removed');
+                }
+                appState.dirty = true;
+            }
+            return;
+        }
         // While a step is held, the jog click is navigation-only: drill from the
         // chain into the focused module's params, never open a browser (Back
         // returns to the chain). Lets one held step automate across modules.
@@ -349,6 +371,7 @@ export function onMidiMessageInternal(data: number[]): void {
     if (d1 === MoveMainKnob) {
         const delta = decodeDelta(d2);
         if (delta !== 0) {
+            if (assignActive()) { assignCycle(delta); appState.dirty = true; return; }
             if (masterDetailActive()) {
                 masterModel()?.changePage(delta > 0 ? 1 : -1);
             } else if (masterGridActive()) {

@@ -26,6 +26,8 @@ import { seqPersistTick } from '../seq/persist.js';
 import { seqLedsTick, seqLedsInvalidate, displayHoldNotes } from '../seq/leds.js';
 import { seqSetLane } from '../seq/router.js';
 import { stepAutoTick } from '../seq/step-edit.js';
+import { holdTick, assignActive, assignToastText } from '../lfo/assign-mode.js';
+import { drawJogToast } from '../renderer/overlay.js';
 import { stepPageState, stepPageAvailable } from '../seq/step-page.js';
 import { buildStepPageVM } from '../seq/step-page-vm.js';
 import { activeHasNote, maxBarOffset, seqState } from '../seq/state.js';
@@ -153,6 +155,7 @@ let lastActiveSlot   = -1;
 export function tick(): void {
     seqEngineTick();
     stepAutoTick(); // promote a long single-step hold to step-automation mode
+    if (holdTick()) appState.dirty = true; // 500ms knob-hold → LFO assign mode
     // The held-step value display is driven by stepAutoMode + heldLocks, which
     // change via consumed knob turns and the status poll — both outside the
     // param page's normal dirty path. Repaint when that display state changes.
@@ -338,6 +341,7 @@ export function tick(): void {
             jogToastShown = appState.jogTouched;
             updateKnobLEDs(vm);
         }
+        if (assignActive()) { drawJogToast(assignToastText()); jogToastShown = true; }
         if (toastShowing) drawSeqToast();
         if (headerShowing) drawSeqHeader();
         lastToastShowing = toastShowing;

@@ -8,6 +8,6 @@ export function paramCell(p: Partial<ParamVM> = {}): ParamVM {
         shortName: '', fullName: '', type: 'float', normalizedValue: 0,
         displayValue: '', touched: false, isLongEnum: false, options: null,
         enumIndex: 0, renderStyle: 'arc', automated: false, automatable: false,
-        assigned: false, ...p,
+        assigned: false, modulated: false, ...p,
     };
 }

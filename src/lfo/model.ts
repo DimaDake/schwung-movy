@@ -8,6 +8,7 @@ import type { Model } from '../model/index.js';
 import type { ViewModel, ParamVM } from '../types/viewmodel.js';
 import { paramCell as cell } from '../seq/param-vm.js';
 import { countDetents } from '../seq/detent.js';
+import { assignLfoTarget, clearLfoTarget } from './assign.js';
 import {
     LFO_SHAPES, LFO_DIVISIONS, LFO_BANK_COUNT, RATE_HZ_MIN, RATE_HZ_MAX, RATE_HZ_FACTOR,
     lfoPrefix, compLabel, buildTargetOptions, shortenTarget, targetIndex, formatDepth, formatPhase,
@@ -67,17 +68,6 @@ export function createLfoModel(track: number): Model {
 
     function setP(lfoIdx: number, key: string, val: string): void {
         shadow_set_param(track, lfoPrefix(lfoIdx) + key, val);
-    }
-
-    /* Blocking write for multi-field commits (target+target_param+enabled): the
-     * overtake param SHM is a single slot, so three consecutive non-blocking
-     * writes clobber each other and the target never persists on device. */
-    function setPBlocking(lfoIdx: number, key: string, val: string): void {
-        if (typeof shadow_set_param_timeout === 'function') {
-            shadow_set_param_timeout(track, lfoPrefix(lfoIdx) + key, val, 100);
-        } else {
-            shadow_set_param(track, lfoPrefix(lfoIdx) + key, val);
-        }
     }
 
     /* Current target's compact label for the resting enum box. */
@@ -171,10 +161,10 @@ export function createLfoModel(track: number): Model {
         if (overlay.opts) {
             const opt = overlay.opts[overlay.selected];
             if (!opt.target) {
-                setPBlocking(bank, 'target', ''); setPBlocking(bank, 'target_param', ''); setPBlocking(bank, 'enabled', '0');
+                clearLfoTarget(track, bank);
                 v.target = ''; v.targetParam = '';
             } else {
-                setPBlocking(bank, 'target', opt.target); setPBlocking(bank, 'target_param', opt.param!); setPBlocking(bank, 'enabled', '1');
+                assignLfoTarget(track, bank, opt.target, opt.param!);
                 v.target = opt.target; v.targetParam = opt.param!;
             }
         }

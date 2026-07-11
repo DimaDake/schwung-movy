@@ -37,6 +37,7 @@ const PRESETS = [
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
     'chain_t2', 'chain_t4',
     'lfo_chain', 'lfo_lfo1', 'lfo_lfo2', 'lfo_target_overlay', 'lfo_viz_unipolar', 'lfo_viz_retrig',
+    'lfo_mod_mark', 'lfo_mod_and_auto', 'lfo_assign_toast',
     'drum-mrdrums-pad5', 'drum-mrdrums-global',
     'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
     'step_page_knobs', 'step_page_chain', 'step_indicator',
@@ -63,6 +64,7 @@ const BASE = {
     env_dual: 'env_dual', env_touched: 'env_dual',
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
     lfo_target_overlay: 'test8', lfo_viz_unipolar: 'test8', lfo_viz_retrig: 'test8',
+    lfo_mod_mark: 'test8', lfo_mod_and_auto: 'test8', lfo_assign_toast: 'test8',
 };
 
 const STEP_VM_A = {
@@ -100,6 +102,8 @@ globalThis.clear_screen = () => paint(0, 0, W, H, OFF);
 
 const { createModel }      = await import('../dist/esm/model/index.js');
 const { createLfoModel }   = await import('../dist/esm/lfo/model.js');
+const { holdTouch, holdTick, assignToastText, resetAssignMode } = await import('../dist/esm/lfo/assign-mode.js');
+const { drawJogToast }     = await import('../dist/esm/renderer/overlay.js');
 const { renderKnobsView }  = await import('../dist/esm/renderer/knob-view.js');
 const { renderKeysView }   = await import('../dist/esm/renderer/keys-view.js');
 const { renderBrowseView } = await import('../dist/esm/renderer/browse-view.js');
@@ -296,6 +300,27 @@ function applyView(preset) {
             if (preset === 'lfo_target_overlay') lm.handleKnobTouch(3);
             if (preset === 'lfo_chain') lastRender = () => renderChainView(lm.getViewModel(), 4, false, 'T1', 'LFO');
             else lastRender = () => renderKnobsView(lm.getViewModel(), false, 0);
+            lastRender();
+            break;
+        }
+        case 'lfo_mod_mark':
+        case 'lfo_mod_and_auto': {
+            loadPreset('test8');
+            for (let i = 0; i < 6; i++) chainModels[1].tick();
+            env.setParams({ ...env.params, 'lfo1:target': 'synth', 'lfo1:target_param': chainModels[1].getKnobParamInfo(0).ioKey });
+            const auto = preset === 'lfo_mod_and_auto' ? autoView() : undefined;
+            lastRender = () => renderKnobsView(chainModels[1].getViewModel(auto), false, 0);
+            lastRender();
+            break;
+        }
+        case 'lfo_assign_toast': {
+            loadPreset('test8');
+            for (let i = 0; i < 6; i++) chainModels[1].tick();
+            const realNow = Date.now; let t = 1000; Date.now = () => t;
+            resetAssignMode();
+            holdTouch(0, 0, chainModels[1].getKnobParamInfo(0)); t = 1600; holdTick();
+            Date.now = realNow;
+            lastRender = () => { renderKnobsView(chainModels[1].getViewModel(), false, 0); drawJogToast(assignToastText()); };
             lastRender();
             break;
         }

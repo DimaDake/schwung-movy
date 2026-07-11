@@ -804,6 +804,35 @@ _log('\napp-loop: LFO chain slot reachable + drill');
     appState.shiftHeld = false;
 }
 
+_log('\napp-loop: hold-knob → assign LFO target');
+{
+    const { appState, VIEW_CHAIN, VIEW_KNOBS } = await import('../dist/esm/app/state.js');
+    const { resetAssignMode, assignActive } = await import('../dist/esm/lfo/assign-mode.js');
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.test8);
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    appState.trackModels[0][1].reload();  // load the synth hierarchy
+    advance(12);                          // settle hierarchy + engine
+    appState.trackChainIndex[0] = 1;      // synth
+    appState.currentView = VIEW_KNOBS;
+    resetAssignMode();
+    eq('synth param 0 is automatable', appState.trackModels[0][1].getKnobParamInfo(0)?.automatable, true);
+
+    const realNow = Date.now; let t = 10000; Date.now = () => t;
+    sendMidi([0x90, 0, 100]);             // touch knob 0 (automatable synth param)
+    advance(1);
+    t = 10600; advance(1);                // > 500ms → holdTick activates assign mode
+    eq('assign mode active after hold', assignActive(), true);
+
+    sendMidi([0xB0, 3, 127]);             // jog-click → assign LFO1
+    advance(1);
+    eq('assigned: navigated to LFO slot', appState.trackChainIndex[0], 4);
+    eq('assigned: on chain view', appState.currentView, VIEW_CHAIN);
+    eq('assign mode exited', assignActive(), false);
+    Date.now = realNow;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

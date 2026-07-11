@@ -5,6 +5,16 @@ import { drawEnvelope } from './envelope.js';
 import { drawLfoWave } from './lfo-wave.js';
 import { CELL_W, LBL_H, ROW0_Y, LBL0_Y, ROW1_Y, LBL1_Y } from './layout.js';
 
+/* Small drawn tilde (~5×3) — the modulation mark, mirror of the automation dot. */
+function drawWaveMark(x: number, y: number, on: number): void {
+    fill_rect(x,     y + 1, 1, 1, on);
+    fill_rect(x + 1, y,     1, 1, on);
+    fill_rect(x + 2, y,     1, 1, on);
+    fill_rect(x + 2, y + 1, 1, 1, on);
+    fill_rect(x + 3, y + 2, 1, 1, on);
+    fill_rect(x + 4, y + 2, 1, 1, on);
+}
+
 export function drawLabelCell(col: number, lblY: number, pvm: ParamVM): void {
     const knobCenterX = col * CELL_W + Math.floor(CELL_W / 2);
     const text = pvm.touched ? pvm.displayValue : pvm.shortName;
@@ -22,6 +32,12 @@ export function drawLabelCell(col: number, lblY: number, pvm: ParamVM): void {
         const cellRight = col * CELL_W + CELL_W;
         const dx = Math.min(tx + tw + 1, cellRight - 2);
         fill_rect(dx, lblY, 2, 2, pvm.touched ? 0 : 1);
+    }
+    // Modulation marker: a small tilde at the top-left of the text — coexists
+    // with the automation dot (top-right). Inverted when the cell is filled.
+    if (pvm.modulated) {
+        const wx = Math.max(col * CELL_W, tx - 6);
+        drawWaveMark(wx, lblY, pvm.touched ? 0 : 1);
     }
 }
 

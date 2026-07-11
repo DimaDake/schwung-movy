@@ -151,6 +151,7 @@ const drumCache = new Uint8Array(32);
 const DRUM_REPAINT_TICKS = 40;
 let drumRepaintTicks = 0;
 let lastActiveSlot   = -1;
+let lastShownKey     = '';   // identity of the on-screen param page (for touch reset)
 
 export function tick(): void {
     seqEngineTick();
@@ -269,6 +270,18 @@ export function tick(): void {
     const mIdx        = appState.masterChainIndex;
     const masterModel = seqState.sessionMode ? appState.masterFxModels[mIdx] : null;
     const masterDirty = masterModel?.tick() ?? false;
+
+    // Reset knob touch/hold state whenever the shown param page changes, so a
+    // held knob's highlight never persists after navigating away and back (e.g.
+    // after assigning an LFO from a held knob — the release lands on the LFO
+    // model, not the module, so the module's touch would otherwise stick).
+    const shownKey = seqState.sessionMode
+        ? 'M' + mIdx + (appState.masterDetail ? 'd' : '')
+        : appState.activeSlot + ':' + chainIdx;
+    if (shownKey !== lastShownKey) {
+        lastShownKey = shownKey;
+        (seqState.sessionMode ? masterModel : activeModel)?.clearTouch();
+    }
 
     seqToastTick();
     seqHeaderTick();

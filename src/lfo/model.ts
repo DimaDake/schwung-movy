@@ -223,6 +223,7 @@ export function createLfoModel(track: number): Model {
             dirty = true;
             return false;
         },
+        clearTouch(): void { if (touched.length) { touched.length = 0; dirty = true; } },
         getKnobPage(): number { return bank; },
         getBankCount(): number { return LFO_BANK_COUNT; },
         changePage(delta: number): void {

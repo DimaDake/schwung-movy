@@ -285,7 +285,10 @@ export function onMidiMessageInternal(data: number[]): void {
                     appState.trackChainIndex[appState.activeSlot] = LFO_CHAIN_INDEX;
                     appState.currentView = VIEW_CHAIN;
                     const lm = appState.trackModels[appState.activeSlot]?.[LFO_CHAIN_INDEX];
-                    if (lm) lm.changePage(r.lfoIdx - lm.getKnobPage());
+                    if (lm) {
+                        lm.changePage(r.lfoIdx - lm.getKnobPage());
+                        lm.reload();   // re-read the freshly-written target (cache was stale)
+                    }
                 } else {
                     seqToast('LFO' + (r.lfoIdx + 1) + ' mod removed');
                 }

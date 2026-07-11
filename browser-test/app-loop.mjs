@@ -830,6 +830,22 @@ _log('\napp-loop: hold-knob → assign LFO target');
     eq('assigned: navigated to LFO slot', appState.trackChainIndex[0], 4);
     eq('assigned: on chain view', appState.currentView, VIEW_CHAIN);
     eq('assign mode exited', assignActive(), false);
+
+    // Bug 1: the LFO page must show the freshly-assigned target, not "None"
+    // (the model's cached target was stale until reload()).
+    advance(3);
+    eq('LFO page shows the assigned target (not None)',
+        appState.trackModels[0][4].getViewModel().rows[0][3].displayValue !== 'None', true);
+
+    // Bug 2: the knob was never released (release landed on the LFO model), so
+    // the module's touch would stick — returning to the module page must clear
+    // it (touch reset on shown-page change).
+    eq('module still touched before return',
+        appState.trackModels[0][1].getViewModel().touchedSlot, 0);
+    appState.trackChainIndex[0] = 1;      // navigate back to the synth
+    advance(2);
+    eq('module touch cleared on return',
+        appState.trackModels[0][1].getViewModel().touchedSlot, null);
     Date.now = realNow;
 }
 

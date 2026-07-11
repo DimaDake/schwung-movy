@@ -168,6 +168,17 @@ export function createModel(slot: number, componentKey = 'synth') {
             return fileRejected;
         },
 
+        /* Clear only the knob touch/hold visual state — lighter than reset()
+         * (which reloads the hierarchy). Called when the shown param page
+         * changes so a held knob's highlight never persists after navigation. */
+        clearTouch(): void {
+            if (s.touchedSlots.length || s.longPressCountdown >= 0) {
+                s.touchedSlots.length = 0;
+                s.longPressCountdown = -1;
+                s.dirty = true;
+            }
+        },
+
         getKnobPage(): number { return s.knobPage; },
 
         getBankCount(): number { return numBanks(); },

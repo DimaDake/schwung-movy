@@ -30,6 +30,15 @@ export interface EnvelopeVM {
     name: string;   // qualifier label ("Filter"/"Amp"/""); not rendered, kept for tests/future
 }
 
+export interface LfoVizVM {
+    line:      0 | 1;
+    startCol:  number;   // graphic spans startCol..startCol+1
+    shape:     number;   // 0..5 (LFO_SHAPES order)
+    phase:     number;   // 0..1
+    mode:      number;   // 0 = unipolar, 1 = bipolar
+    retrigger: number;   // 0/1
+}
+
 export interface ToastState {
     fullName:   string;
     value:      string;
@@ -54,6 +63,8 @@ export interface ViewModel {
     /* When a knob line is an ADSR envelope, envelopeLines[line] is set and that
      * line's rows[line][0..3] hold the A,D,S,R ParamVMs in column order. */
     envelopeLines?:  (EnvelopeVM | null)[];
+    /* LFO waveform groups on this page (Shape+Phase cells drawn as a wave). */
+    lfoViz?:         LfoVizVM[];
     touchedSlot:    number | null;
     toast:          ToastState | null;
     overlay:        OverlayState | null;

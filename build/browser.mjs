@@ -11,6 +11,8 @@ await esbuild.build({
     entryPoints: [
         resolve(root, 'src/model/index.ts'),
         resolve(root, 'src/model/envelope.ts'),
+        resolve(root, 'src/model/lfo-viz.ts'),
+        resolve(root, 'src/model/viewmodel.ts'),
         resolve(root, 'src/model/enum-value.ts'),
         resolve(root, 'src/model/file-validate.ts'),
         resolve(root, 'src/model/pad-scope.ts'),
@@ -18,6 +20,7 @@ await esbuild.build({
         resolve(root, 'src/renderer/keys-view.ts'),
         resolve(root, 'src/renderer/browse-view.ts'),
         resolve(root, 'src/renderer/chain-view.ts'),
+        resolve(root, 'src/renderer/lfo-wave.ts'),
         resolve(root, 'src/keyboard/drum-handler.ts'),
         resolve(root, 'src/keyboard/state.ts'),
         resolve(root, 'src/app/globals.ts'),

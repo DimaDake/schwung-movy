@@ -36,7 +36,7 @@ const PRESETS = [
     'lfo_prefix',
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
     'chain_t2', 'chain_t4',
-    'lfo_chain', 'lfo_lfo1', 'lfo_lfo2', 'lfo_target_overlay', 'lfo_shape_overlay',
+    'lfo_chain', 'lfo_lfo1', 'lfo_lfo2', 'lfo_target_overlay', 'lfo_viz_unipolar', 'lfo_viz_retrig',
     'drum-mrdrums-pad5', 'drum-mrdrums-global',
     'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
     'step_page_knobs', 'step_page_chain', 'step_indicator',
@@ -62,7 +62,7 @@ const BASE = {
     'clip-default': 'test8', 'clip-fraction': 'test8', 'clip-overlay': 'test8',
     env_dual: 'env_dual', env_touched: 'env_dual',
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
-    lfo_target_overlay: 'test8', lfo_shape_overlay: 'test8',
+    lfo_target_overlay: 'test8', lfo_viz_unipolar: 'test8', lfo_viz_retrig: 'test8',
 };
 
 const STEP_VM_A = {
@@ -275,21 +275,25 @@ function applyView(preset) {
         case 'lfo_lfo1':
         case 'lfo_lfo2':
         case 'lfo_target_overlay':
-        case 'lfo_shape_overlay': {
+        case 'lfo_viz_unipolar':
+        case 'lfo_viz_retrig': {
             env.setParams({
                 'synth:chain_params': JSON.stringify([
                     { key: 'cutoff', name: 'Cutoff', type: 'float' },
                     { key: 'reso',   name: 'Resonance', type: 'float' },
                 ]),
                 'fx1:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float' }]),
-                'lfo1:sync': '0', 'lfo1:rate_hz': '2.0', 'lfo1:depth': '0.65', 'lfo1:shape': '0',
+                'lfo1:sync': '0', 'lfo1:rate_hz': '2.0', 'lfo1:depth': '0.65',
+                'lfo1:shape': (preset === 'lfo_viz_unipolar') ? '2' : (preset === 'lfo_viz_retrig') ? '1' : '0',
+                'lfo1:polarity': (preset === 'lfo_viz_unipolar') ? '0' : '1',
+                'lfo1:phase_offset': (preset === 'lfo_viz_unipolar') ? '0.25' : '0',
+                'lfo1:retrigger': (preset === 'lfo_viz_retrig') ? '1' : '0',
                 'lfo2:sync': '1', 'lfo2:rate_div': '19', 'lfo2:shape': '3',
             });
             const lm = createLfoModel(0);
             lm.tick();
             if (preset === 'lfo_lfo2') lm.changePage(1);
-            if (preset === 'lfo_target_overlay') lm.handleKnobTouch(0);
-            if (preset === 'lfo_shape_overlay') lm.handleKnobTouch(1);
+            if (preset === 'lfo_target_overlay') lm.handleKnobTouch(3);
             if (preset === 'lfo_chain') lastRender = () => renderChainView(lm.getViewModel(), 4, false, 'T1', 'LFO');
             else lastRender = () => renderKnobsView(lm.getViewModel(), false, 0);
             lastRender();

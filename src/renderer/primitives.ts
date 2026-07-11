@@ -25,3 +25,9 @@ export function drawDottedV(x: number, y0: number, y1: number): void {
     const lo = Math.min(y0, y1), hi = Math.max(y0, y1);
     for (let y = lo; y <= hi; y += 2) fill_rect(x, y, 1, 1, 1);
 }
+
+/* Dotted horizontal from x0 to x1 (inclusive), lit on every other column. */
+export function drawDottedH(x0: number, x1: number, y: number): void {
+    const lo = Math.min(x0, x1), hi = Math.max(x0, x1);
+    for (let x = lo; x <= hi; x += 2) fill_rect(x, y, 1, 1, 1);
+}

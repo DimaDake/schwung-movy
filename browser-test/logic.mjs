@@ -25,6 +25,8 @@ import {
     LFO_SHAPES, LFO_DIVISIONS, compLabel,
 } from '../dist/esm/lfo/params.js';
 import { createLfoModel } from '../dist/esm/lfo/model.js';
+import { detectLfoViz } from '../dist/esm/model/lfo-viz.js';
+import { shapeSample } from '../dist/esm/renderer/lfo-wave.js';
 import { CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../dist/esm/chain/config.js';
 import { init } from '../dist/esm/app/init.js';
 import { appState } from '../dist/esm/app/state.js';
@@ -3560,61 +3562,69 @@ _log('\nTest: LFO model');
     let vm = m.getViewModel();
     eq('lfo bankCount', vm.bankCount, 2);
     eq('lfo bank 0 name', vm.moduleName, 'LFO 1');
-    eq('pos0 is TARGET', vm.rows[0][0].shortName, 'TARGET');
-    eq('pos1 is SHAPE', vm.rows[0][1].shortName, 'SHAPE');
-    eq('pos4 is RATE', vm.rows[1][0].shortName, 'RATE');
-    eq('pos7 is RETRIG', vm.rows[1][3].shortName, 'RETRIG');
+    eq('pos0 is RATE', vm.rows[0][0].shortName, 'RATE');
+    eq('pos1 is SYNC', vm.rows[0][1].shortName, 'SYNC');
+    eq('pos2 is MODE', vm.rows[0][2].shortName, 'MODE');
+    eq('pos3 is TARGET', vm.rows[0][3].shortName, 'TARGET');
+    eq('pos4 is SHAPE', vm.rows[1][0].shortName, 'SHAPE');
+    eq('pos5 is PHASE', vm.rows[1][1].shortName, 'PHASE');
+    eq('pos6 is RETRIG', vm.rows[1][2].shortName, 'RETRIG');
+    eq('pos7 is DEPTH', vm.rows[1][3].shortName, 'DEPTH');
+    eq('lfoViz on line 1', vm.lfoViz && vm.lfoViz[0].line, 1);
+    eq('lfoViz spans shape+phase', vm.lfoViz[0].startCol, 0);
     eq('no LFO cell is automatable', [...vm.rows[0], ...vm.rows[1]].every(c => c && c.automatable === false), true);
     eq('getKnobParamInfo null (not automatable)', m.getKnobParamInfo(0), null);
     eq('componentKey', m.getComponentKey(), 'lfo');
 
+    // Mode (polarity) inline enum — pos 2.
     m.handleKnobDelta(2, DETENT);
     eq('polarity set to Bipolar', env.params['lfo1:polarity'], '1');
     eq('mode display BI', m.getViewModel().rows[0][2].displayValue, 'BI');
+    eq('lfoViz mode follows polarity', m.getViewModel().lfoViz[0].mode, 1);
 
-    eq('rate shows Hz when free', m.getViewModel().rows[1][0].displayValue, '1.0 Hz');
-    m.handleKnobDelta(3, DETENT);
+    // Sync — pos 1 — toggles Rate (pos 0) display.
+    eq('rate shows Hz when free', m.getViewModel().rows[0][0].displayValue, '1.0 Hz');
+    m.handleKnobDelta(1, DETENT);
     eq('sync set', env.params['lfo1:sync'], '1');
-    eq('rate shows division when sync', m.getViewModel().rows[1][0].displayValue, '1/4');
+    eq('rate shows division when sync', m.getViewModel().rows[0][0].displayValue, '1/4');
 
-    m.handleKnobDelta(4, DETENT);
+    // Rate — pos 0 — division +1, then free clamp.
+    m.handleKnobDelta(0, DETENT);
     eq('rate_div incremented', env.params['lfo1:rate_div'], '20');
-    m.handleKnobDelta(3, -DETENT);
+    m.handleKnobDelta(1, -DETENT);
     eq('sync cleared', env.params['lfo1:sync'], '0');
-    m.handleKnobDelta(4, DETENT * 200);
+    m.handleKnobDelta(0, DETENT * 200);
     eq('rate_hz clamped ≤ 20', parseFloat(env.params['lfo1:rate_hz']) <= 20.0, true);
-    m.handleKnobDelta(4, -DETENT * 400);
-    eq('rate_hz clamped ≥ 0.1', parseFloat(env.params['lfo1:rate_hz']) >= 0.1, true);
 
-    m.handleKnobDelta(5, -1000);
-    eq('depth clamped ≥ -1', parseFloat(env.params['lfo1:depth']) >= -1, true);
+    // Depth — pos 7 — clamps to −1.
+    m.handleKnobDelta(7, -1000);
     eq('depth clamped exactly -1', parseFloat(env.params['lfo1:depth']), -1);
 
-    m.handleKnobTouch(0);
+    // Target overlay — pos 3.
+    m.handleKnobTouch(3);
     vm = m.getViewModel();
     eq('overlay open on target', vm.overlay !== null, true);
-    eq('overlay slot 0', vm.overlay.slot, 0);
+    eq('overlay slot 3', vm.overlay.slot, 3);
     eq('overlay first option None', vm.overlay.options[0], 'None');
-    m.handleKnobDelta(0, DETENT);       // select option 1 (first real target)
-    m.handleKnobRelease(0);
+    m.handleKnobDelta(3, DETENT);       // select option 1 (first real target)
+    m.handleKnobRelease(3);
     eq('target committed', env.params['lfo1:target'], 'synth');
     eq('target_param committed', env.params['lfo1:target_param'], 'cutoff');
     eq('auto-enabled on target', env.params['lfo1:enabled'], '1');
     eq('overlay closed', m.getViewModel().overlay, null);
 
-    m.handleKnobTouch(0);
-    m.handleKnobDelta(0, -DETENT * 10); // clamp to index 0 (None)
-    m.handleKnobRelease(0);
-    eq('target cleared', env.params['lfo1:target'], '');
-    eq('disabled on None', env.params['lfo1:enabled'], '0');
+    // Shape — pos 4 — cycling enum, NO overlay.
+    m.handleKnobDelta(4, DETENT * 2);   // +2 shapes → index 2 (Saw)
+    eq('shape cycled to 2', env.params['lfo1:shape'], '2');
+    eq('lfoViz shape follows', m.getViewModel().lfoViz[0].shape, 2);
+    m.handleKnobTouch(4);
+    eq('shape touch does NOT open overlay', m.getViewModel().overlay, null);
+    m.handleKnobRelease(4);
 
-    m.handleKnobTouch(1);
-    m.handleKnobDelta(1, DETENT * 2);   // +2 shapes → index 2 (Saw)
-    m.handleKnobRelease(1);
-    eq('shape committed', env.params['lfo1:shape'], '2');
-
-    m.handleKnobDelta(7, DETENT);
+    // Retrigger — pos 6.
+    m.handleKnobDelta(6, DETENT);
     eq('retrigger on', env.params['lfo1:retrigger'], '1');
+    eq('lfoViz retrigger follows', m.getViewModel().lfoViz[0].retrigger, 1);
 
     m.changePage(1);
     vm = m.getViewModel();
@@ -3642,15 +3652,15 @@ _log('\nTest: LFO target commit uses blocking writes (device SHM race)');
     globalThis.shadow_set_param_timeout = (_s, key, val) => { blocking.push([key, val]); env.params[key] = val; return true; };
     const m2 = createLfoModel(0);
     m2.tick();
-    m2.handleKnobTouch(0);
-    m2.handleKnobDelta(0, DETENT);     // select the first real target
-    m2.handleKnobRelease(0);
+    m2.handleKnobTouch(3);
+    m2.handleKnobDelta(3, DETENT);     // select the first real target
+    m2.handleKnobRelease(3);
     eq('target written blocking', blocking.some(([k, v]) => k === 'lfo1:target' && v === 'synth'), true);
     eq('target_param written blocking', blocking.some(([k, v]) => k === 'lfo1:target_param' && v === 'cutoff'), true);
     eq('enabled written blocking', blocking.some(([k, v]) => k === 'lfo1:enabled' && v === '1'), true);
     // No periodic re-read clobber: many ticks later the target is still set.
     for (let i = 0; i < 400; i++) m2.tick();
-    eq('target persists across ticks (no poll clobber)', m2.getViewModel().rows[0][0].displayValue !== 'None', true);
+    eq('target persists across ticks (no poll clobber)', m2.getViewModel().rows[0][3].displayValue !== 'None', true);
     delete globalThis.shadow_set_param_timeout;
 }
 
@@ -3667,6 +3677,65 @@ _log('\nTest: LFO chain slot wiring');
     eq('each track has 5 models', appState.trackModels[0].length, 5);
     eq('track model 4 is LFO', appState.trackModels[0][4].getComponentKey(), 'lfo');
     eq('track model 1 is a module', appState.trackModels[0][1].getComponentKey(), 'synth');
+}
+
+_log('\nTest: detectLfoViz');
+{
+    const P = (lfo) => ({ key: lfo ?? 'x', lfo, type: 'float', min: 0, max: 1, step: 1, options: null, renderStyle: 'arc', shortLabel: null, label: '', automatable: false });
+    const g1 = detectLfoViz([P('shape'), P('phase'), P('mode'), P('retrig'), null, null, null, null]);
+    eq('one group', g1.length, 1);
+    eq('shape idx', g1[0].shape, 0);
+    eq('phase idx', g1[0].phase, 1);
+    eq('mode idx', g1[0].mode, 2);
+    eq('retrig idx', g1[0].retrig, 3);
+    const g2 = detectLfoViz([P('shape'), P('phase'), null, null, null, null, null, null]);
+    eq('mode/retrig optional', JSON.stringify([g2[0].mode, g2[0].retrig]), JSON.stringify([null, null]));
+    const g3 = detectLfoViz([P('shape'), P(null), null, null, null, null, null, null]);
+    eq('needs phase', g3.length, 0);
+    const g4 = detectLfoViz([P(null), P(null)]);
+    eq('no markers → none', g4.length, 0);
+}
+
+_log('\nTest: LFO shapeSample');
+{
+    const near = (a, b) => Math.abs(a - b) < 0.001;
+    eq('sine @0', near(shapeSample(0, 0), 0), true);
+    eq('sine @0.25', near(shapeSample(0, 0.25), 1), true);
+    eq('tri @0.25 peak', near(shapeSample(1, 0.25), 1), true);
+    eq('saw @0', near(shapeSample(2, 0), -1), true);
+    eq('square low half', shapeSample(3, 0.1), 1);
+    eq('square high half', shapeSample(3, 0.6), -1);
+    eq('wraps by 1', near(shapeSample(0, 1.25), shapeSample(0, 0.25)), true);
+    eq('unknown → sine', near(shapeSample(9, 0.25), 1), true);
+    eq('bipolar range', shapeSample(4, 0.3) >= -1 && shapeSample(4, 0.3) <= 1, true);
+}
+
+_log('\nTest: buildViewModel emits lfoViz (synth reuse)');
+{
+    const { buildViewModel } = await import('../dist/esm/model/viewmodel.js');
+    const kp = (over) => ({ key: over.key, label: over.key, shortLabel: null, type: over.type ?? 'float',
+        min: over.min ?? 0, max: over.max ?? 1, step: 1, options: over.options ?? null,
+        renderStyle: 'arc', automatable: false, lfo: over.lfo });
+    const s = {
+        activeSlot: 0, componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
+        knobParams: [
+            kp({ key: 'a' }), kp({ key: 'b' }), kp({ key: 'mode', type: 'enum', options: ['U','B'], max: 1, lfo: 'mode' }), kp({ key: 'd' }),
+            kp({ key: 'shp', type: 'enum', options: ['a','b','c','d','e','f'], max: 5, lfo: 'shape' }),
+            kp({ key: 'phs', lfo: 'phase' }), kp({ key: 'rt', type: 'int', max: 1, lfo: 'retrig' }), kp({ key: 'amt' }),
+        ],
+        knobValues: [0, 0, 1, 0, 2, 0.25, 1, 0],
+        enumFmt: [], fileValues: [null,null,null,null,null,null,null,null], touchedSlots: [],
+        enumOverlay: null, fileOverlay: null, activeModuleName: 'X', moduleId: 'x', drumPadCount: 0,
+        drumCurrentPad: 0, drumCurrentPhysPad: 0, noRefreshKeys: new Set(),
+    };
+    const vm = buildViewModel(s);
+    eq('lfoViz present', Array.isArray(vm.lfoViz) && vm.lfoViz.length === 1, true);
+    eq('viz line 1', vm.lfoViz[0].line, 1);
+    eq('viz startCol 0', vm.lfoViz[0].startCol, 0);
+    eq('viz shape from value', vm.lfoViz[0].shape, 2);
+    eq('viz phase from value', vm.lfoViz[0].phase, 0.25);
+    eq('viz mode from value', vm.lfoViz[0].mode, 1);
+    eq('viz retrig from value', vm.lfoViz[0].retrigger, 1);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

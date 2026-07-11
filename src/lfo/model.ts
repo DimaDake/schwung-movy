@@ -8,7 +8,6 @@ import type { Model } from '../model/index.js';
 import type { ViewModel, ParamVM } from '../types/viewmodel.js';
 import { paramCell as cell } from '../seq/param-vm.js';
 import { countDetents } from '../seq/detent.js';
-import { NAME_POLL_TICKS } from '../model/constants.js';
 import {
     LFO_SHAPES, LFO_DIVISIONS, LFO_BANK_COUNT, RATE_HZ_MIN, RATE_HZ_MAX, RATE_HZ_FACTOR,
     lfoPrefix, compLabel, buildTargetOptions, shortenTarget, targetIndex, formatDepth, formatPhase,
@@ -34,7 +33,6 @@ export function createLfoModel(track: number): Model {
     let bank = 0;                       // 0 or 1 → which LFO is shown
     let loaded = false;
     let dirty = true;
-    let pollCountdown = NAME_POLL_TICKS;
     const vals: LfoVals[] = [blank(), blank()];
     const touched: number[] = [];
     const accum = new Array(8).fill(0) as number[];
@@ -71,6 +69,17 @@ export function createLfoModel(track: number): Model {
         shadow_set_param(track, lfoPrefix(lfoIdx) + key, val);
     }
 
+    /* Blocking write for multi-field commits (target+target_param+enabled): the
+     * overtake param SHM is a single slot, so three consecutive non-blocking
+     * writes clobber each other and the target never persists on device. */
+    function setPBlocking(lfoIdx: number, key: string, val: string): void {
+        if (typeof shadow_set_param_timeout === 'function') {
+            shadow_set_param_timeout(track, lfoPrefix(lfoIdx) + key, val, 100);
+        } else {
+            shadow_set_param(track, lfoPrefix(lfoIdx) + key, val);
+        }
+    }
+
     /* Current target's compact label for the resting enum box. */
     function targetLabel(v: LfoVals): string {
         return v.target ? shortenTarget(compLabel(v.target), v.targetParam) : 'None';
@@ -86,9 +95,14 @@ export function createLfoModel(track: number): Model {
     }
 
     function buildCells(v: LfoVals): ParamVM[] {
+        // None → framed X box (drawn, not text); a real target → enum box label.
+        const targetCell = v.target
+            ? cell({ shortName: 'TARGET', fullName: 'Target', type: 'enum', isLongEnum: true,
+                options: [targetLabel(v)], enumIndex: 0, displayValue: targetLabel(v) })
+            : cell({ shortName: 'TARGET', fullName: 'Target', type: 'float', renderStyle: 'xbox',
+                displayValue: 'None' });
         return [
-            cell({ shortName: 'TARGET', fullName: 'Target', type: 'enum', isLongEnum: true,
-                options: [targetLabel(v)], enumIndex: 0, displayValue: targetLabel(v) }),
+            targetCell,
             cell({ shortName: 'SHAPE', fullName: 'Shape', type: 'enum', isLongEnum: true,
                 options: LFO_SHAPES, enumIndex: v.shape, displayValue: LFO_SHAPES[v.shape],
                 normalizedValue: v.shape / (LFO_SHAPES.length - 1) }),
@@ -154,10 +168,10 @@ export function createLfoModel(track: number): Model {
         if (overlay.kind === 'target' && overlay.opts) {
             const opt = overlay.opts[overlay.selected];
             if (!opt.target) {
-                setP(bank, 'target', ''); setP(bank, 'target_param', ''); setP(bank, 'enabled', '0');
+                setPBlocking(bank, 'target', ''); setPBlocking(bank, 'target_param', ''); setPBlocking(bank, 'enabled', '0');
                 v.target = ''; v.targetParam = '';
             } else {
-                setP(bank, 'target', opt.target); setP(bank, 'target_param', opt.param!); setP(bank, 'enabled', '1');
+                setPBlocking(bank, 'target', opt.target); setPBlocking(bank, 'target_param', opt.param!); setPBlocking(bank, 'enabled', '1');
                 v.target = opt.target; v.targetParam = opt.param!;
             }
         } else if (overlay.kind === 'shape') {
@@ -218,20 +232,13 @@ export function createLfoModel(track: number): Model {
             if (next !== bank) { bank = next; touched.length = 0; dirty = true; }
         },
         getModuleName(): string { return 'LFO'; },
-        reset(): void { bank = 0; touched.length = 0; overlay = null; accum.fill(0); loaded = false; pollCountdown = NAME_POLL_TICKS; dirty = true; },
+        reset(): void { bank = 0; touched.length = 0; overlay = null; accum.fill(0); loaded = false; dirty = true; },
+        // Values are movy-owned once loaded; they are read from shadow only on
+        // load/reload. No periodic re-read: a write's read-back can lag on
+        // device, and re-reading would clobber a just-committed value (that was
+        // the "target resets to None" bug). reload() picks up any external edit.
         tick(): boolean {
             if (!loaded) { load(); dirty = true; }
-            if (--pollCountdown <= 0) {
-                pollCountdown = NAME_POLL_TICKS;
-                // Re-sync from shadow (schwung's own UI may have changed a value)
-                // unless a knob/overlay is in flight (don't clobber the user).
-                if (touched.length === 0 && !overlay) {
-                    const a = readLfo(0), b = readLfo(1);
-                    if (JSON.stringify(a) !== JSON.stringify(vals[0]) || JSON.stringify(b) !== JSON.stringify(vals[1])) {
-                        vals[0] = a; vals[1] = b; dirty = true;
-                    }
-                }
-            }
             const d = dirty; dirty = false; return d;
         },
         getViewModel(_auto?: import('../types/viewmodel.js').AutomationView): ViewModel { return buildVM(); },

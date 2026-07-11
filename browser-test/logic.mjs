@@ -3629,6 +3629,31 @@ _log('\nTest: LFO model');
     eq('getFileBrowseTarget null', m.getFileBrowseTarget(), null);
 }
 
+_log('\nTest: LFO target commit uses blocking writes (device SHM race)');
+{
+    const DETENT = 8;
+    env.setParams({
+        'synth:chain_params': JSON.stringify([{ key: 'cutoff', name: 'Cutoff', type: 'float' }]),
+        'lfo1:target': '', 'lfo1:target_param': '',
+    });
+    // Capture blocking writes; the target commit must go through this path so
+    // target+target_param+enabled all land (non-blocking would clobber on device).
+    const blocking = [];
+    globalThis.shadow_set_param_timeout = (_s, key, val) => { blocking.push([key, val]); env.params[key] = val; return true; };
+    const m2 = createLfoModel(0);
+    m2.tick();
+    m2.handleKnobTouch(0);
+    m2.handleKnobDelta(0, DETENT);     // select the first real target
+    m2.handleKnobRelease(0);
+    eq('target written blocking', blocking.some(([k, v]) => k === 'lfo1:target' && v === 'synth'), true);
+    eq('target_param written blocking', blocking.some(([k, v]) => k === 'lfo1:target_param' && v === 'cutoff'), true);
+    eq('enabled written blocking', blocking.some(([k, v]) => k === 'lfo1:enabled' && v === '1'), true);
+    // No periodic re-read clobber: many ticks later the target is still set.
+    for (let i = 0; i < 400; i++) m2.tick();
+    eq('target persists across ticks (no poll clobber)', m2.getViewModel().rows[0][0].displayValue !== 'None', true);
+    delete globalThis.shadow_set_param_timeout;
+}
+
 _log('\nTest: LFO chain slot wiring');
 {
     eq('CHAIN_SLOTS has 5 entries', CHAIN_SLOTS.length, 5);

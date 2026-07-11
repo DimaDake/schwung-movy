@@ -6,6 +6,11 @@ declare function fill_rect(x: number, y: number, w: number, h: number, color: nu
 declare function clear_screen(): void;
 declare function shadow_get_param(slot: number, key: string): string | null;
 declare function shadow_set_param(slot: number, key: string, value: string): boolean;
+/* Blocking variant: waits (up to timeoutMs) for the write to be consumed. The
+ * overtake param SHM is a single slot, so consecutive non-blocking writes
+ * overwrite each other — multi-field commits (e.g. LFO target+param+enabled)
+ * must use this. May be absent in older shims / test env → guard with typeof. */
+declare function shadow_set_param_timeout(slot: number, key: string, value: string, timeoutMs: number): boolean;
 declare function shadow_get_ui_slot(): number;
 declare function shadow_send_midi_to_dsp(data: number[]): void;
 declare function host_exit_module(): void;

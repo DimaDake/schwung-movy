@@ -67,6 +67,18 @@ function drawEnumSquare(kx: number, ky: number, options: string[] | null, enumIn
     }
 }
 
+/* Framed X: an empty box with a big diagonal cross — the LFO target when it is
+ * None (drawn, not a font glyph). Same frame as the enum square. */
+function drawXBox(kx: number, ky: number): void {
+    fill_rect(kx, ky, KW, 1, 1);
+    fill_rect(kx, ky + KW - 1, KW, 1, 1);
+    fill_rect(kx, ky, 1, KW, 1);
+    fill_rect(kx + KW - 1, ky, 1, KW, 1);
+    const a = 3, b = KW - 1 - 3;   // inset the cross from the frame
+    drawLine(kx + a, ky + a, kx + b, ky + b);
+    drawLine(kx + b, ky + a, kx + a, ky + b);
+}
+
 /* Length square: a stacked fraction (numerator / 1px divider / denominator) for
  * values like "1/4"; a single centered value otherwise (whole-bar counts, "..."). */
 function drawLengthSquare(kx: number, ky: number, text: string): void {
@@ -121,6 +133,8 @@ export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
         drawEnumSquare(kx, ky, [pvm.displayValue], 0);
     } else if (pvm.type === 'enum') {
         drawEnumSquare(kx, ky, pvm.options, pvm.enumIndex);
+    } else if (pvm.renderStyle === 'xbox') {
+        drawXBox(kx, ky);
     } else if (pvm.renderStyle === 'hbar') {
         drawHorzBar(kx, ky, pvm.normalizedValue);
     } else if (pvm.renderStyle === 'vbar') {

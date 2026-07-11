@@ -308,6 +308,7 @@ function applyView(preset) {
             loadPreset('test8');
             for (let i = 0; i < 6; i++) chainModels[1].tick();
             env.setParams({ ...env.params, 'lfo1:target': 'synth', 'lfo1:target_param': chainModels[1].getKnobParamInfo(0).ioKey });
+            chainModels[1].refreshModulation();
             const auto = preset === 'lfo_mod_and_auto' ? autoView() : undefined;
             lastRender = () => renderKnobsView(chainModels[1].getViewModel(auto), false, 0);
             lastRender();

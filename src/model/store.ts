@@ -157,9 +157,9 @@ export function refreshOneParam(s: ModelState, tickCount: number): void {
     if (!p) return;
     const ioKey = paramIoKey(s, p);
 
-    // Automation lanes are driven by playback; reading the synth back would
-    // overwrite the UI-owned base value and repaint on every automation step.
-    if (s.noRefreshKeys.has(ioKey)) return;
+    // Automation lanes / LFO-modulated params are engine-driven; reading them
+    // back would overwrite the UI-owned base and repaint every tick. Show base.
+    if (s.noRefreshKeys.has(ioKey) || s.modulatedKeys.has(ioKey)) return;
 
     if (p.type === 'file') {
         const path = shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey);
@@ -194,4 +194,21 @@ export function pollModuleName(s: ModelState): void {
         s.hierarchyKey = '';
         s.dirty = true;
     }
+}
+
+/* Cache which of this component's params a slot LFO targets. Read on the poll
+ * cadence (2 reads normally) instead of per render — see modulatedKeys. Marks
+ * the ~ indicator and suppresses read-back so the knob shows its base value. */
+export function refreshModulatedKeys(s: ModelState): void {
+    const prev = s.modulatedKeys.size;
+    s.modulatedKeys.clear();
+    if (!s.componentKey.startsWith('master_fx')) {
+        for (let i = 1; i <= 2; i++) {
+            if (shadow_get_param(s.activeSlot, 'lfo' + i + ':target') === s.componentKey) {
+                const tp = shadow_get_param(s.activeSlot, 'lfo' + i + ':target_param');
+                if (tp) s.modulatedKeys.add(tp);
+            }
+        }
+    }
+    if (s.modulatedKeys.size !== prev) s.dirty = true;
 }

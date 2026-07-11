@@ -1,6 +1,6 @@
 import { createModelState } from './state.js';
 import { loadHierarchy }    from './hierarchy.js';
-import { applyKnobDelta, knobParamInfo, reseedPadParams, slotToLocal }   from './store.js';
+import { applyKnobDelta, knobParamInfo, reseedPadParams, refreshModulatedKeys, slotToLocal }   from './store.js';
 import { buildViewModel }   from './viewmodel.js';
 import { processTick }      from './tick.js';
 import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV } from './constants.js';
@@ -238,6 +238,11 @@ export function createModel(slot: number, componentKey = 'synth') {
             s.noRefreshKeys.clear();
             for (const k of keys) s.noRefreshKeys.add(k);
         },
+
+        /* Re-read which of this component's params a slot LFO targets (for the ~
+         * mark + read-back suppression). Called after an assign/remove so the
+         * change shows immediately without waiting for the poll. */
+        refreshModulation(): void { refreshModulatedKeys(s); },
 
         /* Range of a loaded param by key (for automation-lane validation), or
          * null if this module has no such param. Authoritative for config-driven

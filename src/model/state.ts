@@ -54,6 +54,11 @@ export interface ModelState {
      * automation playback, so the param page must NOT read it back (it shows
      * the UI-owned base). Set by the app from the automation registry. */
     noRefreshKeys:       Set<string>;
+    /* ioKeys on this component that a slot LFO targets. Cached (refreshed on the
+     * poll cadence, not per render) so buildViewModel does no per-frame IPC, and
+     * so refreshOneParam skips them — the knob shows the UI-owned base instead of
+     * following the LFO-modulated value (same idea as noRefreshKeys). */
+    modulatedKeys:       Set<string>;
 }
 
 export function createModelState(activeSlot: number, componentKey: string): ModelState {
@@ -86,5 +91,6 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         drumCurrentPad:      1,
         drumCurrentPhysPad:  0,
         noRefreshKeys:       new Set(),
+        modulatedKeys:       new Set(),
     };
 }

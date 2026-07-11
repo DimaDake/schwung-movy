@@ -38,17 +38,10 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     const envelopeLines: (EnvelopeVM | null)[] = [null, null];
     for (const e of layout.envelopes) envelopeLines[e.line] = { name: e.name };
 
-    // LFO modulation marks — track-chain modules only (master FX LFOs live in a
-    // separate key space; the LFO page's own params aren't targets here).
-    const lfoTargets: Array<[string, string]> = [];
-    if (!s.componentKey.startsWith('master_fx')) {
-        for (let i = 1; i <= 2; i++) {
-            const t = shadow_get_param(s.activeSlot, 'lfo' + i + ':target') || '';
-            if (t) lfoTargets.push([t, shadow_get_param(s.activeSlot, 'lfo' + i + ':target_param') || '']);
-        }
-    }
+    // LFO modulation marks — read from the cached target set (refreshed on the
+    // poll cadence in processTick), so this does no per-render IPC.
     const isModulated = (p: import('../types/param.js').KnobParam): boolean =>
-        lfoTargets.length > 0 && lfoTargets.some(([t, tp]) => t === s.componentKey && tp === paramIoKey(s, p));
+        s.modulatedKeys.size > 0 && s.modulatedKeys.has(paramIoKey(s, p));
 
     for (const cell of layout.cells) {
         const localIdx   = cell.idx;                          // page-relative param index

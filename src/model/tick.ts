@@ -1,6 +1,6 @@
 import type { ModelState } from './state.js';
 import { loadHierarchy } from './hierarchy.js';
-import { applyKnobDelta, refreshOneParam, pollModuleName, slotToLocal } from './store.js';
+import { applyKnobDelta, refreshOneParam, pollModuleName, refreshModulatedKeys, slotToLocal } from './store.js';
 import { KNOBS_PER_PAGE, NAME_POLL_TICKS } from './constants.js';
 import { mlog } from '../log.js';
 
@@ -14,6 +14,7 @@ export function processTick(s: ModelState): boolean {
         s.knobPage = 0;
         loadHierarchy(s);
         s.refreshParamCursor = 0;
+        refreshModulatedKeys(s);   // populate LFO-target cache for the new module
     }
 
     let hadDelta = false;
@@ -51,6 +52,7 @@ export function processTick(s: ModelState): boolean {
     if (--s.pollCountdown <= 0) {
         s.pollCountdown = NAME_POLL_TICKS;
         pollModuleName(s);
+        refreshModulatedKeys(s);   // pick up LFO (un)assignments made elsewhere
     }
 
     if (s.knobParams.length > 0) {

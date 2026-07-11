@@ -13,6 +13,7 @@ await esbuild.build({
         resolve(root, 'src/model/envelope.ts'),
         resolve(root, 'src/model/lfo-viz.ts'),
         resolve(root, 'src/model/viewmodel.ts'),
+        resolve(root, 'src/model/store.ts'),
         resolve(root, 'src/model/enum-value.ts'),
         resolve(root, 'src/model/file-validate.ts'),
         resolve(root, 'src/model/pad-scope.ts'),

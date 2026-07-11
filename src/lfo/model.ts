@@ -248,6 +248,7 @@ export function createLfoModel(track: number): Model {
         getComponentKey(): string { return 'lfo'; },
         getKnobParamInfo(_physK: number) { return null; },     // not automatable
         setNoRefreshKeys(_keys: string[]): void { /* no automation lanes */ },
+        refreshModulation(): void { /* LFO params aren't modulation targets */ },
         paramRangeByKey(_key: string) { return null; },
         hasLoadedParams(): boolean { return loaded; },
         getValueByKey(_key: string) { return null; },

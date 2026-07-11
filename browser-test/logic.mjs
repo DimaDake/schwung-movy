@@ -3735,7 +3735,7 @@ _log('\nTest: buildViewModel emits lfoViz (synth reuse)');
         knobValues: [0, 0, 1, 0, 2, 0.25, 1, 0],
         enumFmt: [], fileValues: [null,null,null,null,null,null,null,null], touchedSlots: [],
         enumOverlay: null, fileOverlay: null, activeModuleName: 'X', moduleId: 'x', drumPadCount: 0,
-        drumCurrentPad: 0, drumCurrentPhysPad: 0, noRefreshKeys: new Set(),
+        drumCurrentPad: 0, drumCurrentPhysPad: 0, noRefreshKeys: new Set(), modulatedKeys: new Set(),
     };
     const vm = buildViewModel(s);
     eq('lfoViz present', Array.isArray(vm.lfoViz) && vm.lfoViz.length === 1, true);
@@ -3763,9 +3763,10 @@ _log('\nTest: lfo assign helpers');
     eq('targets false after clear', lfoTargetsParam(0, 0, 'synth', 'cutoff'), false);
 }
 
-_log('\nTest: buildViewModel marks modulated params');
+_log('\nTest: buildViewModel marks modulated params (from cache)');
 {
     const { buildViewModel } = await import('../dist/esm/model/viewmodel.js');
+    const { refreshModulatedKeys } = await import('../dist/esm/model/store.js');
     const kp = (key) => ({ key, label: key, shortLabel: null, type: 'float', min: 0, max: 1, step: 1,
         options: null, renderStyle: 'arc', automatable: true });
     const s = {
@@ -3774,14 +3775,20 @@ _log('\nTest: buildViewModel marks modulated params');
         knobValues: [0, 0, null, null, null, null, null, null],
         enumFmt: [], fileValues: new Array(8).fill(null), touchedSlots: [],
         enumOverlay: null, fileOverlay: null, activeModuleName: 'X', moduleId: 'x', drumPadCount: 0,
-        drumCurrentPad: 0, drumCurrentPhysPad: 0, noRefreshKeys: new Set(),
+        drumCurrentPad: 0, drumCurrentPhysPad: 0, noRefreshKeys: new Set(), modulatedKeys: new Set(),
     };
     env.setParams({ 'lfo1:target': 'synth', 'lfo1:target_param': 'cutoff' });
+    refreshModulatedKeys(s);
+    eq('modulatedKeys cached cutoff', s.modulatedKeys.has('cutoff'), true);
     const vm = buildViewModel(s);
     eq('cutoff modulated', vm.rows[0][0].modulated, true);
     eq('reso not modulated', vm.rows[0][1].modulated, false);
-    env.setParams({});
+    env.setParams({}); refreshModulatedKeys(s);
     eq('none modulated when no target', buildViewModel(s).rows[0][0].modulated, false);
+    const sm = { ...s, componentKey: 'master_fx:fx1', modulatedKeys: new Set() };
+    env.setParams({ 'lfo1:target': 'master_fx:fx1', 'lfo1:target_param': 'cutoff' });
+    refreshModulatedKeys(sm);
+    eq('master_fx excluded', sm.modulatedKeys.size, 0);
 }
 
 _log('\nTest: LFO assign-mode gesture');

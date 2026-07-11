@@ -280,6 +280,7 @@ export function onMidiMessageInternal(data: number[]): void {
         if (assignActive()) {
             const r = assignCommit();
             if (r) {
+                activeModel()?.refreshModulation();   // update the ~ mark immediately
                 if (r.assigned) {
                     appState.trackChainIndex[appState.activeSlot] = LFO_CHAIN_INDEX;
                     appState.currentView = VIEW_CHAIN;

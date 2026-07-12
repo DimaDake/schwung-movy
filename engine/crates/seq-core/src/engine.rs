@@ -16,6 +16,12 @@ pub enum OutEvent {
     Click { accent: bool },
     /// Parameter automation: chain abs-CC 102+lane, value 0..=127.
     Cc { track: u8, lane: u8, val: u8 },
+    /// MIDI transport out (schwung transport service): 0xFA on play,
+    /// 0xF8 at 24 PPQN while playing, 0xFC on stop — so schwung's synced
+    /// LFOs/params phase-lock to this sequencer's grid.
+    Start,
+    Stop,
+    Clock,
 }
 
 struct RecPending {
@@ -75,6 +81,9 @@ pub struct Engine {
     /// Off-beat shuffle amount, percent (50 = straight … 80 = max). Applied by
     /// the scheduler to odd-indexed 16th steps. UI-set via the `swing` command.
     pub swing_pct: u32,
+    /// True while we are emitting MIDI transport clock (between Start and Stop).
+    /// Runtime-only edge tracker — never persisted.
+    emitting_clock: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -110,6 +119,7 @@ impl Engine {
             held_query: None,
             rng_state: 0x9E3779B97F4A7C15,
             swing_pct: 50,
+            emitting_clock: false,
         }
     }
 
@@ -517,10 +527,24 @@ impl Engine {
     /// Advance one audio block; pushes due MIDI into `out`.
     pub fn advance_block(&mut self, frames: u32, out: &mut Vec<OutEvent>) {
         let fired = self.clock.advance(frames);
+        // Transport edges are detected here (play/stop arrive via commands
+        // between blocks) so Start/Stop always pair correctly.
+        if self.playing && !self.emitting_clock {
+            self.emitting_clock = true;
+            out.push(OutEvent::Start);
+        } else if !self.playing && self.emitting_clock {
+            self.emitting_clock = false;
+            out.push(OutEvent::Stop);
+        }
         if !self.playing {
             return;
         }
         for _ in 0..fired {
+            // 96-PPQN master clock -> 24-PPQN MIDI clock, emitted before the
+            // tick is serviced so 0xF8 aligns with that tick's notes.
+            if self.master_tick % 4 == 0 {
+                out.push(OutEvent::Clock);
+            }
             self.service_tick(out);
         }
     }
@@ -1079,6 +1103,55 @@ mod tests {
         out
     }
 
+    #[test]
+    fn clock_emits_start_then_24ppqn_ticks() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.play();
+        // One beat = 96 master ticks; expect 0xFA once, then 96/4 = 24 clocks.
+        let ev = run_ticks(&mut e, 96);
+        let starts = ev.iter().filter(|x| matches!(x, OutEvent::Start)).count();
+        let clocks = ev.iter().filter(|x| matches!(x, OutEvent::Clock)).count();
+        assert_eq!(starts, 1);
+        assert_eq!(clocks, 24);
+        // The anchor tick precedes the first note of the pattern.
+        let first_clock = ev.iter().position(|x| matches!(x, OutEvent::Clock)).unwrap();
+        let first_note = ev
+            .iter()
+            .position(|x| matches!(x, OutEvent::NoteOn { .. }))
+            .unwrap();
+        assert!(first_clock < first_note);
+    }
+
+    #[test]
+    fn clock_stop_emits_stop_once_and_goes_silent() {
+        let mut e = engine();
+        e.play();
+        let _ = run_ticks(&mut e, 8);
+        let mut out = Vec::new();
+        e.stop(&mut out);
+        // Stop is edge-detected in advance_block, so run one more block.
+        e.advance_block(FRAMES, &mut out);
+        let stops = out.iter().filter(|x| matches!(x, OutEvent::Stop)).count();
+        assert_eq!(stops, 1);
+        out.clear();
+        for _ in 0..50 {
+            e.advance_block(FRAMES, &mut out);
+        }
+        assert!(out.iter().all(|x| !matches!(x, OutEvent::Clock | OutEvent::Start)));
+    }
+
+    #[test]
+    fn clock_exact_count_across_many_blocks() {
+        let mut e = engine();
+        e.play();
+        // 4 beats = 384 master ticks -> exactly 96 clocks regardless of
+        // block-boundary alignment (integer accumulator guarantees this).
+        let ev = run_ticks(&mut e, 384);
+        let clocks = ev.iter().filter(|x| matches!(x, OutEvent::Clock)).count();
+        assert_eq!(clocks, 96);
+    }
+
     // Playhead tick after `master_ticks` master ticks at the given scale, using
     // a 2-bar loop (768 ticks) so none of the cases wrap.
     fn pos_after(scale_num: u8, scale_den: u8, master_ticks: u64) -> u32 {
@@ -1507,7 +1580,12 @@ mod tests {
         e.tracks[0].muted = true;
         e.play();
         let ev = run_ticks(&mut e, 8);
-        assert!(ev.is_empty());
+        // Transport clock (Start/Clock) rides the stream now; the mute
+        // guarantee is only about musical output.
+        assert!(!ev.iter().any(|x| matches!(
+            x,
+            OutEvent::NoteOn { .. } | OutEvent::NoteOff { .. }
+        )));
         assert!(e.tracks[0].pos_tick > 0);
     }
 
@@ -1520,9 +1598,13 @@ mod tests {
         let mut out = Vec::new();
         e.stop(&mut out);
         assert!(out.contains(&OutEvent::NoteOff { track: 0, pitch: 60 }));
-        // After stop, nothing plays.
+        // After stop, nothing plays. A single Stop transport event is emitted
+        // on the play→stop edge; no musical events follow.
         let ev = run_ticks(&mut e, 50);
-        assert!(ev.is_empty());
+        assert!(!ev.iter().any(|x| matches!(
+            x,
+            OutEvent::NoteOn { .. } | OutEvent::NoteOff { .. }
+        )));
     }
 
     #[test]

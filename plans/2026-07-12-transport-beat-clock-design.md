@@ -180,6 +180,40 @@ also locks; verify movy tempo change speeds the LFO. Extend
 `scripts/test-seq.sh` with a clock-emission assertion (log shows slot
 receiving movy `0xF8` while playing, none when stopped).
 
+## 5b. Performance & latency (live playing / recording must not regress)
+
+**Why no latency is added structurally:**
+
+- **Live pads** (`shadow_send_midi_to_dsp` → slot DSP, same-block render) are
+  untouched — clock work lives in `render_block` and on the `status >= 0xF8`
+  branch of `overtake_midi_send_internal`; a live note pays one extra branch.
+- **No new stages:** nothing buffers, defers, or re-orders audio or notes. No
+  new SHM/IPC hops, no locks (single audio thread, fixed-size state).
+- **Per-block cost:** beat interpolation is a few arithmetic ops; the LFO
+  phase-lock swaps a phase accumulate for a divide+`fmod` at the same call
+  site. Clock emission is one 4-byte packet per 24-PPQN tick (~48/s at
+  120 BPM ≈ one per 7 blocks) — sparser than a busy pattern's note traffic.
+- **Fan-out is a proven load:** each `0xF8` reaching all slots' `v2_on_midi`
+  is the exact traffic Move's native clock already produces via the cable-0
+  broadcast whenever Move plays. Movy's clock only flows while Move is
+  stopped, so the loads never stack.
+- **Recording path** (engine live-note capture/quantize) is untouched.
+
+**Guardrails (part of implementation, not optional):**
+
+1. **Engine:** cargo test asserting `render_block` emits ≤ 1 realtime packet
+   per block in steady state and that a block with clock emission performs no
+   allocation (emit path is plain host-callback calls).
+2. **Schwung:** transport-service unit test doubles as a cost pin — the
+   per-tick and per-block functions must be branch+arithmetic only (no
+   syscalls, no I/O, no allocation; enforced by review + the RT rules in §6).
+3. **Device before/after:** run `scripts/test.sh` perf timing and
+   `test-seq.sh` on the current build, then on the Phase 1 build; render/tick
+   timings must be within noise. Add a manual spot-check: pad-to-sound feel
+   with a synced LFO active on the same track while the sequencer plays.
+4. **Movy UI suites** (`browser-test/perf.mjs`) must stay green — Phase 1 has
+   no UI-side changes, so any drift there is a red flag, not noise.
+
 ## 6. Risks / edge cases
 
 - **RT safety:** all transport-service calls run in the SPI/audio path —

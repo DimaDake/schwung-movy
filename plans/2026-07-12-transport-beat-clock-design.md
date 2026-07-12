@@ -228,7 +228,41 @@ receiving movy `0xF8` while playing, none when stopped).
   ignore it unless they opt in. LFO change is behavior-improving only when a
   transport runs; otherwise identical to today.
 
-## 7. Phase 2 (future, builds on this unchanged)
+## 7. Later phases (future, build on this unchanged)
+
+### Phase 2 — background mode (movy keeps running under Move's native UI)
+
+Schwung already ships the mechanism (davebox uses it): the
+`suspend_keeps_js` capability parks a tool on Back — shadow UI dismissed,
+Move's UI returns, but the overtake DSP keeps rendering every block
+(unconditional in the shim render path) and the tool's JS keeps ticking via
+the parked-tick loop (`shadow_ui.js` ~13745, param shims swapped in).
+Shift+Back = real exit; reopening resumes (LED snapshot restored, slot-0 DSP
+reloaded if clobbered). With Phase 1, a parked movy keeps sequencing *and*
+keeps emitting clock — LFOs stay locked while the user works in Move's UI.
+
+Gaps to close:
+
+1. **Back conflict:** the host intercepts Back before `suspend_keeps_js`
+   modules see it, but movy uses Back for internal navigation. Schwung
+   change: `host_suspend_overtake()` JS host function + a
+   `suspend_self_managed` capability so the module decides when to suspend
+   (movy: Back at root view). Upstreamable — any tool with Back navigation
+   needs it.
+2. **Parked signal:** parked modules tick blind. Schwung change (one-liner):
+   parked-tick loop sets a well-known global around parked ticks. Movy skips
+   display/LED work while parked and forces LED/render refresh on the
+   parked→active transition.
+3. **Movy:** capability flag in module.json, suspend gesture, stuck-note
+   check across the suspend edge, persistence-while-parked test, resume
+   re-sync e2e.
+
+Note: background mode makes dual transports routine (user presses Play in
+Move's UI). Phase 1 arbitration handles it safely (LFOs follow Move), but
+movy's notes ride movy's grid until Phase 3 — which is why Clock Follow
+comes right after.
+
+### Phase 3 — movy ↔ native Move transport
 
 1. **Movy Clock Follow:** advance movy's playhead from cable-0 ticks when
    Move's transport runs (davebox `clock_follow` seam: ×4 to 96 PPQN,

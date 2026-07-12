@@ -15,7 +15,7 @@ use seq_core::engine::{Engine, OutEvent};
 use std::ffi::{CStr, CString};
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.22.0";
+const ENGINE_VERSION: &str = "0.23.0";
 
 struct Instance {
     engine: Engine,
@@ -93,6 +93,15 @@ impl Instance {
                 }
                 OutEvent::Cc { track, lane, val } => {
                     host::midi_send_internal(0xB0 | track, 102 + lane, val);
+                }
+                OutEvent::Start => {
+                    host::midi_send_internal(0xFA, 0, 0);
+                }
+                OutEvent::Stop => {
+                    host::midi_send_internal(0xFC, 0, 0);
+                }
+                OutEvent::Clock => {
+                    host::midi_send_internal(0xF8, 0, 0);
                 }
             }
         }

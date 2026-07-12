@@ -133,6 +133,36 @@ respawn it, so the device UI breaks until a full reboot.
 
 ---
 
+## Documentation
+
+**Update the user docs for any significant, user-facing change** — a new
+feature, page, gesture, control, or a behaviour change a user would notice. Part
+of the task, like tests and the commit. (Purely internal/dev-only changes —
+refactors, test infra, perf fixes with no visible effect — don't need doc
+edits.)
+
+Two docs, two granularities — read them before editing to match their voice:
+
+- **`MANUAL.md`** — the detailed how-to. Every feature/gesture gets explained in
+  its section, and every control goes in the **Controls reference** tables
+  (section 8). This is where a new gesture or page is documented step by step.
+- **`README.md`** — the short marketing overview. Only **headline** features get
+  a one-line bullet (in *Features*) with a single screenshot. Update the chain
+  description / feature list when a headline capability lands; skip minor tweaks.
+
+**Screenshots:** add them where they help, reusing the **test baselines** so the
+docs stay in sync with what the UI actually renders. If a new UI state has no
+screenshot yet, add a `browser-test/screenshot.mjs` scene for it first. Then:
+
+```bash
+node scripts/make-doc-assets.mjs <baseline-name> [<baseline-name> ...]
+# 4× upscales browser-test/screenshots/baseline/<name>.png → docs/assets/<name>.png
+```
+
+Reference the result as `docs/assets/<name>.png` in the Markdown.
+
+---
+
 ## Source architecture
 
 All source lives in `src/` (TypeScript). The device build bundles everything into

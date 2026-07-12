@@ -46,10 +46,10 @@ and the Schwung audio chain keep running underneath — Movy just takes over the
 screen, pads, knobs, and buttons.
 
 You're always working with **one of four tracks** at a time. Each track is a
-Schwung chain of up to four module slots:
+Schwung chain of up to four module slots, plus a per-track **LFO** page:
 
 ```
-MIDI FX  →  SYNTH  →  FX 1  →  FX 2
+MIDI FX  →  SYNTH  →  FX 1  →  FX 2  →  LFO
 ```
 
 The **screen** is the 128×64 OLED. A typical parameter page looks like this:
@@ -69,7 +69,7 @@ lit**, and a button glows at full brightness while it's actively doing its job.
 
 | View | What it shows |
 | --- | --- |
-| **Chain** | The four module slots of the current track; jog scrolls slots. |
+| **Chain** | The current track's module slots (MIDI FX, Synth, FX 1, FX 2) and the LFO page; jog scrolls them. |
 | **Knobs** | One module's parameter page; jog scrolls that module's pages. |
 | **Keys** | The chromatic keyboard (or a drum rack on drum tracks). |
 | **Browse** | The module browser (pick a module to load into a slot). |
@@ -111,11 +111,12 @@ its exact value at the top of the screen.
 
 ## 3. The module chain
 
-In **Chain** view you see the four slots of the current track:
+In **Chain** view you see the slots of the current track:
 
 ![Chain view](docs/assets/chain_synth.png)
 
-- **Jog wheel** scrolls between slots (MIDI FX, Synth, FX 1, FX 2).
+- **Jog wheel** scrolls between slots (MIDI FX, Synth, FX 1, FX 2, and the LFO
+  page).
 - **Jog click** on a loaded slot **drills into** that module's parameter pages.
 - **Jog click** on an empty slot — or **Shift + jog click** on any slot — opens
   the **module browser** to load/swap the module in that slot:
@@ -129,6 +130,55 @@ In **Chain** view you see the four slots of the current track:
 
 In **Session** view, the same navigation applies to a **master FX chain**
 (MFX 1–4) that processes the whole mix.
+
+### The LFO page
+
+The last page in the chain is **LFO** — two low-frequency oscillators that can
+modulate any automatable parameter in the track's chain. Jog-click it to drill
+in; the jog then scrolls between **LFO 1** and **LFO 2**.
+
+![LFO page](docs/assets/lfo_lfo1.png)
+
+Each LFO has eight controls:
+
+| Knob | Control | Notes |
+| --- | --- | --- |
+| **RATE** | Rate | Free-running Hz, or a musical division when **Sync** is on. |
+| **SYNC** | Sync | Free-running vs tempo-synced. |
+| **MODE** | Mode | Unipolar (`UNI`) or bipolar (`BI`). |
+| **TARGET** | Target | The parameter this LFO modulates (see below); `✕` = none. |
+| **SHAPE** | Shape | Sine / Tri / Saw / Square / S&H / Swishy. |
+| **PHASE** | Phase | Start-phase offset, in 15° steps. |
+| **RETRIG** | Retrigger | Reset the LFO on each new note. |
+| **DEPTH** | Depth | Modulation amount. |
+
+**Shape** and **Phase** are drawn together as a live **waveform preview**: turn
+Shape to morph the wave, Phase to slide it along. A dotted baseline shows the
+mode (centred = bipolar, along the bottom = unipolar), and a bold dot marks the
+start when Retrigger is on.
+
+You can pick an LFO's Target here (an overlay lists every modulatable parameter
+in the chain), but the easy way is to assign it from the parameter itself:
+
+### Modulating a parameter with an LFO
+
+On any module's parameter page, **hold an (automatable) knob** for about a second
+without turning it. A prompt appears at the bottom:
+
+![Assign an LFO](docs/assets/lfo_assign_toast.png)
+
+- **Turn the jog** to choose `LFO1` or `LFO2`.
+- **Click the jog** to assign — that LFO now modulates the parameter, and you
+  jump to its LFO page to set rate, shape, and depth.
+
+Hold the same knob again to **remove** the modulation (or, from the other LFO,
+add a second one to the same parameter). A modulated parameter shows a small
+**`~` mark** by its label — alongside the automation dot if it's also automated:
+
+![Modulation mark](docs/assets/lfo_mod_and_auto.png)
+
+While a parameter is modulated its on-screen knob stays at your **base value** —
+the LFO moves the sound, not the displayed knob.
 
 ---
 
@@ -295,7 +345,8 @@ behaviour you'd like — or, better, a PR.
 | Control | Action |
 | --- | --- |
 | **Knobs 1–8** | Edit the current page's parameters. Touch (no turn) shows the exact value. |
-| **Jog wheel — turn** | Scroll chain slots (Chain view) or module pages (Knobs view) / browser list. |
+| **Hold a knob (~1 s)** | Assign that parameter as an **LFO target**: jog picks LFO 1/2, jog-click assigns (hold again to remove). Automatable parameters only. |
+| **Jog wheel — turn** | Scroll chain slots (Chain view) or module pages (Knobs view) / browser list. On the LFO page, scroll between LFO 1 and LFO 2. |
 | **Jog wheel — click** | Drill Chain → module pages; on Knobs (or an empty slot) open the module browser; in a browser, load the selection. |
 | **Shift + jog click** | Open the module browser to swap the current slot's module. |
 | **Back** | Module pages → Chain; Chain → exit Movy; browser → cancel. |

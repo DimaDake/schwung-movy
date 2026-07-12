@@ -39,7 +39,7 @@ that gap with two things:
 1. **A parameter UI** — pick up any Schwung module and its parameters are laid
    out on the 8 knobs as tidy pages, with arc knobs, enum lists, and even
    auto-detected ADSR envelope graphics. Walk the whole chain (MIDI FX → Synth →
-   FX 1 → FX 2) with the jog wheel.
+   FX 1 → FX 2 → LFO) with the jog wheel.
 2. **A sequencer** — a 4-track step sequencer whose behaviour is aligned as
    closely as possible with Move's native sequencer (clips, session view, live +
    step recording, automation), but driving four Schwung tracks instead of
@@ -69,6 +69,12 @@ Movy stands on the shoulders of several projects:
   master FX chain in Session view.
 
   ![Chain view](docs/assets/chain_synth.png)
+
+- **Per-track LFOs** — two LFOs per track with a live waveform display
+  (shape, rate/sync, depth, phase, retrigger). **Hold any knob** to modulate
+  that parameter with an LFO; modulated params are marked with a `~`.
+
+  ![LFO page](docs/assets/lfo_lfo1.png)
 
 - **4-track sequencer**, aligned with Move: clips, Session view & clip
   launching, live recording (with count-in/metronome), step entry, loop/bar

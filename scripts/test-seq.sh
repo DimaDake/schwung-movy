@@ -177,6 +177,18 @@ STEP_LINES=$(echo "$LOG" | grep -c "seq: step" || true)
     && pass "Drum multi-step entered $STEP_LINES steps while one was held" \
     || fail "Multi-step not observed (expected >=2 'seq: step' lines, got $STEP_LINES)"
 
+# Background mode (Phase 2) cannot be auto-driven here: the suspend gesture is
+# Back (a CC), and CC injection does not reach the overtake UI (only notes do —
+# the pre-existing schwung-midi-inject-ui.py limitation). It also needs a host
+# that supports self-managed suspend. Verify manually on such a host:
+info "MANUAL: background mode — with a self-managed-suspend host:"
+info "  MANUAL:  1. Play the sequencer, enable a synced slot LFO (slow division)."
+info "  MANUAL:  2. Back at the root (Chain) view → Move's UI returns; the"
+info "  MANUAL:     sequence keeps playing and the synced LFO stays locked."
+info "  MANUAL:  3. Reopen Movy (Tools) → LEDs/screen repaint; debug.log shows"
+info "  MANUAL:     '[movy] resume from background'; no stuck notes."
+info "  MANUAL:  4. Shift+Back → Movy fully exits."
+
 echo ""
 if [[ $FAILURES -eq 0 ]]; then
     echo -e "${GRN}${BLD}SEQ DEVICE TEST PASSED${RST} — the placed note should have been looping audibly"

@@ -144,7 +144,7 @@ Each LFO has eight controls:
 | Knob | Control | Notes |
 | --- | --- | --- |
 | **RATE** | Rate | Free-running Hz, or a musical division when **Sync** is on. |
-| **SYNC** | Sync | Free-running vs tempo-synced. |
+| **SYNC** | Sync | Free-running vs tempo-synced. When synced, the LFO **phase-locks** to the playing transport (see below). |
 | **MODE** | Mode | Unipolar (`UNI`) or bipolar (`BI`). |
 | **TARGET** | Target | The parameter this LFO modulates (see below); `✕` = none. |
 | **SHAPE** | Shape | Sine / Tri / Saw / Square / S&H / Swishy. |
@@ -156,6 +156,16 @@ Each LFO has eight controls:
 Shape to morph the wave, Phase to slide it along. A dotted baseline shows the
 mode (centred = bipolar, along the bottom = unipolar), and a bold dot marks the
 start when Retrigger is on.
+
+**Synced LFOs phase-lock to the transport.** With **Sync** on, a running
+transport drives the LFO's phase directly from song position — the cycle is
+bar-aligned and stays drift-free no matter how long it plays. It follows
+whichever transport is playing: Movy's own sequencer, or Move's native
+sequencer when that is running. **Phase** then becomes a musical offset against
+the bar. When the transport **stops**, the LFO keeps breathing — it free-runs
+from where it was, at the tempo it was last playing (it does not snap to a
+different rate). One caveat: changing the tempo *while stopped* doesn't change a
+free-running synced LFO's rate until you play again.
 
 You can pick an LFO's Target here (an overlay lists every modulatable parameter
 in the chain), but the easy way is to assign it from the parameter itself:

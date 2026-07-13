@@ -157,7 +157,17 @@ pattern, adapted to the **internal** send path):
 | Movy playing, Move stopped | phase-locked to movy bars | movy tempo |
 | Move native playing | phase-locked to Move bars | Move tempo |
 | Both playing (pre-Phase-2) | follows Move (arbitration) | Move tempo |
-| Nothing playing | free-run at last-known tempo | fallback chain |
+| Movy stopped (was last transport) | free-run at movy's last-played tempo | movy's last-played tempo |
+| Nothing ever played | free-run at fallback tempo | fallback chain |
+
+**Retained tempo (added during device verification, 2026-07-12).** The
+transport service keeps the last actively-measured tempo + its source after
+stop; `sampler_get_bpm` returns it (ranked below a running clock, above the Set
+tempo). Without this, stopping snapped a free-running synced LFO to the Set /
+default tempo (an audible rate jump). **Known limitation (Phase 2):** the shim
+only learns tempo from emitted clock, so changing the sequencer tempo *while
+stopped* is not reflected in a free-running LFO until it plays again — the
+desired-tempo path (§7 Phase 2) closes this.
 
 ## 5. Testing
 

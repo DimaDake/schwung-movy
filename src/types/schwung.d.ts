@@ -14,6 +14,13 @@ declare function shadow_set_param_timeout(slot: number, key: string, value: stri
 declare function shadow_get_ui_slot(): number;
 declare function shadow_send_midi_to_dsp(data: number[]): void;
 declare function host_exit_module(): void;
+/* Background mode (Phase 2). host_suspend_overtake() parks movy under Move's
+ * native UI; it is ABSENT on hosts that predate the capability, so always
+ * guard with `typeof host_suspend_overtake === 'function'`. overtakeParked is
+ * set true by the host only while a parked module's tick() runs — read it as
+ * `globalThis.overtakeParked` (a bare unset global identifier throws). */
+declare function host_suspend_overtake(): void;
+declare var overtakeParked: boolean | undefined;
 declare function host_read_file(path: string): string | null;
 declare function host_write_file(path: string, content: string): boolean;
 declare function host_file_exists(path: string): boolean;

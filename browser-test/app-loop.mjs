@@ -849,6 +849,34 @@ _log('\napp-loop: hold-knob → assign LFO target');
     Date.now = realNow;
 }
 
+_log('\napp-loop: root-view Back suspends when host supports it');
+{
+    const { keyboardState } = await import('../dist/esm/keyboard/state.js');
+    resetApp();
+    appState.currentView = VIEW_CHAIN;           // root view
+    // Physically hold a pad so we can prove notes are released on suspend.
+    sendMidi([0x90, PAD_KICK, 100]);
+    let suspended = 0;
+    globalThis.host_suspend_overtake = () => { suspended++; };
+    sendMidi([0xB0, globalThis.MoveBack, 127]);
+    eq('root Back called host_suspend_overtake', suspended, 1);
+    eq('held pad released before suspend', Object.keys(keyboardState.held).length, 0);
+    delete globalThis.host_suspend_overtake;
+}
+
+_log('\napp-loop: root-view Back exits when host lacks background mode');
+{
+    resetApp();
+    appState.currentView = VIEW_CHAIN;
+    let exited = 0;
+    const realExit = globalThis.host_exit_module;
+    globalThis.host_exit_module = () => { exited++; };
+    delete globalThis.host_suspend_overtake;      // simulate old host
+    sendMidi([0xB0, globalThis.MoveBack, 127]);
+    eq('root Back fell back to host_exit_module', exited, 1);
+    globalThis.host_exit_module = realExit;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

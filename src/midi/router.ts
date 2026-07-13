@@ -267,8 +267,17 @@ export function onMidiMessageInternal(data: number[]): void {
             appState.currentView = VIEW_CHAIN;
             appState.dirty = true;
         } else {
+            // Root view. Release live notes first: once parked, movy stops
+            // receiving MIDI, so a held pad would hang across the suspend edge.
             releaseAllNotes(appState.activeSlot);
-            host_exit_module();
+            // Background mode: Back parks movy (sequencer + Phase 1 clock keep
+            // running under Move's native UI; Shift+Back is the host's full
+            // exit). Absent on older hosts → plain exit, unchanged behaviour.
+            if (typeof host_suspend_overtake === 'function') {
+                host_suspend_overtake();
+            } else {
+                host_exit_module();
+            }
         }
         return;
     }

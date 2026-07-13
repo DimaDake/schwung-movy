@@ -153,6 +153,22 @@ let drumRepaintTicks = 0;
 let lastActiveSlot   = -1;
 let lastShownKey     = '';   // identity of the on-screen param page (for touch reset)
 
+/* Return from background: the host restored the suspend-time LED snapshot to
+ * hardware, but the sequencer advanced while we were parked, so every on-change
+ * LED cache is now stale. Drop them all and force a full repaint so the first
+ * active frame repaints the pads, knob LEDs, and screen from current state. */
+export function invalidateLedCachesOnResume(): void {
+    chromaticCache.fill(0);
+    drumCache.fill(0);
+    seqLedsInvalidate();
+    lastActiveSlot = -1;      // re-open the drum-repaint window on the next tick
+    drumRepaintTicks = 0;
+    appState.drumActive = false;
+    appState.initLedsDone = false;
+    appState.initLedIndex = 0;
+    appState.dirty = true;
+}
+
 export function tick(): void {
     // Keep the engine mirror synced first (flushes any queued command, polls
     // status) — the mock/real engine reports transport + step state regardless

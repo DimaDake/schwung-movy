@@ -898,6 +898,25 @@ _log('\napp-loop: parked tick does no LED work, keeps engine synced');
     globalThis.fill_rect = realFillRect;
 }
 
+_log('\napp-loop: onResume invalidates caches and repaints');
+{
+    resetApp();
+    advance(6);
+    globalThis.overtakeParked = true;             // park, advance blind
+    advance(8);
+    globalThis.overtakeParked = false;
+    let ledWrites = 0;
+    const realSetLED = globalThis.setLED;
+    globalThis.setLED = (n, c) => { ledWrites++; realSetLED(n, c); };
+    globalThis.onResume();
+    eq('onResume set dirty', appState.dirty, true);
+    eq('onResume reset init-LEDs flag', appState.initLedsDone, false);
+    advance(3);
+    if (ledWrites > 0) ok('resume repainted LEDs');
+    else fail('resume repainted LEDs', 'no LED writes after resume');
+    globalThis.setLED = realSetLED;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

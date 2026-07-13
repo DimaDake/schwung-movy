@@ -877,6 +877,27 @@ _log('\napp-loop: root-view Back exits when host lacks background mode');
     globalThis.host_exit_module = realExit;
 }
 
+_log('\napp-loop: parked tick does no LED work, keeps engine synced');
+{
+    const { uiTick } = await import('../dist/esm/seq/engine.js');
+    resetApp();
+    advance(4);                                   // let LEDs settle
+    let ledWrites = 0, fillRects = 0;
+    const realSetLED = globalThis.setLED;
+    const realFillRect = globalThis.fill_rect;
+    globalThis.setLED = (n, c) => { ledWrites++; realSetLED(n, c); };
+    globalThis.fill_rect = (...a) => { fillRects++; if (realFillRect) realFillRect(...a); };
+    const beforeUi = uiTick();
+    globalThis.overtakeParked = true;
+    advance(8);
+    eq('parked: zero LED writes', ledWrites, 0);
+    eq('parked: zero fill_rect (no render)', fillRects, 0);   // perf: parked path skips the draw pipeline
+    eq('parked: engine still ticked (uiTick advanced)', uiTick() - beforeUi, 8);
+    globalThis.overtakeParked = false;
+    globalThis.setLED = realSetLED;
+    globalThis.fill_rect = realFillRect;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

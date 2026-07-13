@@ -154,7 +154,20 @@ let lastActiveSlot   = -1;
 let lastShownKey     = '';   // identity of the on-screen param page (for touch reset)
 
 export function tick(): void {
+    // Keep the engine mirror synced first (flushes any queued command, polls
+    // status) — the mock/real engine reports transport + step state regardless
+    // of whether we are on screen.
     seqEngineTick();
+    // Parked in the background: Move's native UI is on screen and the host
+    // no-ops our draw calls. The DSP keeps sequencing + emitting Phase 1 clock
+    // on its own, so the JS side only has to stay synced (above) and keep
+    // autosaving. Skip the whole render + LED pipeline — this saves the
+    // per-frame ViewModel build and LED diffs. onResume() forces a full repaint
+    // when we return, so nothing on screen is stale.
+    if (globalThis.overtakeParked === true) {
+        seqPersistTick();
+        return;
+    }
     stepAutoTick(); // promote a long single-step hold to step-automation mode
     if (holdTick()) appState.dirty = true; // 500ms knob-hold → LFO assign mode
     // The held-step value display is driven by stepAutoMode + heldLocks, which

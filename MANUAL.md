@@ -259,6 +259,26 @@ red, only actionable buttons lit, the playhead sweeps the step row, etc.).
 > **Note:** Movy's sequencer intentionally does **not** copy Davebox's timing
 > where Davebox deviates from Move — the goal is to match native Move.
 
+### Background mode — keep playing under Move's UI
+
+Movy can drop into the background and keep sequencing while you use Move's own
+screens (Session, Note, the mixer, etc.). Because the sequencer engine and its
+clock keep running, tempo-synced LFOs stay phase-locked the whole time.
+
+- **Background it:** press **Back** at the **root** view (the chain page). Movy
+  hands the screen back to Move but keeps playing — held pad notes are released
+  first so nothing hangs. (Back still steps *backwards* through Movy's own
+  sub-views — the browser, keyboard/knob pages, the master-FX detail, and the
+  Step/Clip/Set pages — as usual; only Back at the root backgrounds Movy.)
+- **Return to it:** reopen Movy from the Tools menu (or the last-tool shortcut).
+  The screen and LEDs repaint from the current state; the sequence never
+  stopped.
+- **Fully exit:** **Shift + Back**, from anywhere, unloads Movy.
+
+> **Host requirement:** background mode needs a Schwung host that supports
+> self-managed suspend. On an older host, Back at the root simply exits Movy (as
+> it always did).
+
 ---
 
 ## 6. Beyond Move: Step, Clip & Set parameters
@@ -359,7 +379,8 @@ behaviour you'd like — or, better, a PR.
 | **Jog wheel — turn** | Scroll chain slots (Chain view) or module pages (Knobs view) / browser list. On the LFO page, scroll between LFO 1 and LFO 2. |
 | **Jog wheel — click** | Drill Chain → module pages; on Knobs (or an empty slot) open the module browser; in a browser, load the selection. |
 | **Shift + jog click** | Open the module browser to swap the current slot's module. |
-| **Back** | Module pages → Chain; Chain → exit Movy; browser → cancel. |
+| **Back** | Module pages → Chain; browser → cancel; **at the root (Chain) → background Movy** (keeps playing). |
+| **Shift + Back** | Fully exit Movy (unload), from anywhere. |
 | **+ / −** (Up/Down) | Shift the chromatic keyboard by an octave (melodic tracks only). |
 
 ### Sequencer

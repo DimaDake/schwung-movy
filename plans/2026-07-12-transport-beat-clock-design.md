@@ -291,8 +291,10 @@ today — Phase 3 implements it.
 **Automatic follow semantics (decided 2026-07-14 — no toggle):**
 
 - Follow engages only when **movy is playing AND Move's transport runs**.
-  Move's Play never force-starts movy; movy's Play never starts Move
-  (MovePlay CC 85 injection: explicitly out of scope, revisit if wanted).
+  Move's Play never force-starts movy; movy's Play never starts Move.
+  **(SUPERSEDED by Phase 4, decided later the same day: transport link is
+  always on — see the Phase 4 section. The clock-follow mechanics of this
+  phase are unchanged.)**
 - While following: movy's playhead advances from Move's 24-PPQN ticks (×4 to
   96 PPQN, block-interpolated, runaway-clamped); movy's internal accumulator
   is bypassed; movy **stops emitting its own clock** (the transport service
@@ -319,6 +321,43 @@ today — Phase 3 implements it.
 4. **Ableton Link as clock source:** a Link beat feed can become a third
    `transport_on_*` source under the same `get_beat_position()` API
    (unchanged, still future).
+
+### Phase 4 — bidirectional transport link (decided 2026-07-14; ALWAYS ON)
+
+**Zero schwung changes** (the overtake host API already has
+`midi_inject_to_move`). **Always on — no setting, no persistence, no UI
+surface** (user decision; a disable flag is a trivial later addition if a
+workflow ever needs it). One transport: movy is effectively extra tracks of
+the set. This SUPERSEDES two Phase 3 bullets: Move's Play now DOES start
+movy, and movy's Play now DOES start Move.
+
+- **Move Play (`0xFA`) starts movy** (normal `play()` semantics — selected
+  clips, no count-in/recording), including while parked in the background.
+- **Move Stop (`0xFC`) stops movy.** Staleness does NOT (a wedged clock is
+  a glitch, not intent — it reverts to internal clock, Phase 3 style).
+- **Movy Play injects MovePlay (CC 85)** into Move (davebox pattern:
+  press/release two-phase, fired from `render_block` only — set_param-context
+  injects are unreliable). Movy then **arms pending-start** and waits for
+  Move's `0xFA` (Move delays its start up to ~1 bar for the Link grid); a
+  ~2-bar timeout starts movy internally anyway (davebox's fallback, minus
+  its count-in complexity). Injects are fire-and-forget, driven only by
+  explicit transport commands — never by state changes — so no feedback
+  loops; a Stop during pending-start cancels it and toggles Move back.
+- **Movy Stop injects MovePlay** to stop Move when Move is running; Move's
+  answering `0xFC` finds movy already stopped.
+- Scope: the movy Play/Stop *transport commands* propagate. Session-launch
+  auto-start does not inject (known follow-up if it feels wrong on device).
+- Workflow notes: movy-only playback = keep the native set silent;
+  Move-only playback = stop/mute movy's tracks individually.
+
+Implementation is engine-side (testable): branches in the `0xFA`/`0xFC`
+handlers, a pending-start state (`pending_play` + frame deadline), and
+`OutEvent::MoveInject { val }` pairs (press 127 / release 0, spaced by the
+davebox release gap) drained by movy-dsp to
+`host_api.midi_inject_to_move([0x0B, 0xB0, 85, val])` — the ffi mirror must
+insert `midi_inject_to_move` at its exact position in `host_api_v1_t`
+(ABI field order). Phase 3's "Move Play never starts movy" test is
+rewritten to assert the start.
 
 ## 8. Source pointers (verified on `origin/main`, 2026-07-12)
 

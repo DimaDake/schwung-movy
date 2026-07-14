@@ -266,6 +266,14 @@ Gaps to close:
 3. **Movy:** capability flag in module.json, suspend gesture, stuck-note
    check across the suspend edge, persistence-while-parked test, resume
    re-sync e2e.
+4. **Leave-Movy modal (decided 2026-07-13):** Back at the root view does NOT
+   park instantly — it opens a modal: **[Background]** (default; jog-click
+   parks — 2 presses total) / **Close Movy** (full exit via
+   `host_exit_module`) / **Back cancels** (stay in movy). This keeps the
+   old "Back closes movy at empty stack" reachable, guarded by an explicit
+   choice. Notes are released when the modal *opens* (pad MIDI is swallowed
+   while it's up — releasing on leave would strand a held pad). On hosts
+   without `host_suspend_overtake`, the modal shows only Close Movy.
 
 Note: background mode makes dual transports routine (user presses Play in
 Move's UI). Phase 1 arbitration handles it safely (LFOs follow Move), but
@@ -274,16 +282,43 @@ comes right after.
 
 ### Phase 3 — movy ↔ native Move transport
 
-1. **Movy Clock Follow:** advance movy's playhead from cable-0 ticks when
-   Move's transport runs (davebox `clock_follow` seam: ×4 to 96 PPQN,
-   re-anchor on `0xFA`, stop on `0xFC`/staleness); self-gate clock emission
-   while following.
-2. **Tempo knob:** movy tempo page writes
-   `/data/UserData/schwung/desired-tempo` (existing Link-override protocol) →
-   Move's tempo follows; works when Move is the sole Link peer. Optional
-   MovePlay (CC 85) injection so movy's Play drives Move's transport.
-3. **Ableton Link as clock source:** a Link beat feed can become a third
-   `transport_on_*` source under the same `get_beat_position()` API.
+**Zero schwung changes.** Everything needed already exists: the shim delivers
+Move's cable-0 realtime to the overtake DSP unconditionally (even parked),
+`desired-tempo` → Link → Move tempo is live infrastructure, and the transport
+service already arbitrates the source switch. movy-dsp's `on_midi` is a no-op
+today — Phase 3 implements it.
+
+**Automatic follow semantics (decided 2026-07-14 — no toggle):**
+
+- Follow engages only when **movy is playing AND Move's transport runs**.
+  Move's Play never force-starts movy; movy's Play never starts Move
+  (MovePlay CC 85 injection: explicitly out of scope, revisit if wanted).
+- While following: movy's playhead advances from Move's 24-PPQN ticks (×4 to
+  96 PPQN, block-interpolated, runaway-clamped); movy's internal accumulator
+  is bypassed; movy **stops emitting its own clock** (the transport service
+  switches to `SRC_MOVE` — LFOs and movy notes ride the same grid).
+- Move `0xFA` while movy plays → movy re-anchors: open gates flushed,
+  pattern restarts from tick 0 (both start the bar together).
+- Tempo is EMA-captured from tick intervals into the engine's `bpm_x100`
+  continuously, so the UI shows Move's tempo and a revert continues at it.
+- Move stops (`0xFC`, or 0.5 s tick staleness) → movy **keeps playing** on
+  its internal clock at the captured tempo; internal clock emission resumes
+  aligned to movy's own grid (`0xFA` at the next bar boundary — LFOs
+  free-run for under a bar, then re-lock).
+
+1. **Movy Clock Follow:** as above (davebox `clock_follow` seam adapted;
+   engine-side, pure and cargo-testable; `on_midi` routes `0xF8+` in).
+2. **Tempo knob:** the Main-params tempo knob, besides `seqCmd('bpm …')`,
+   debounce-writes `/data/UserData/schwung/desired-tempo` → Move follows
+   (Link sidecar applies it only when Move is the sole peer — with Live
+   connected the session owns tempo, which is correct). While following,
+   the knob converges: engine takes the value, Move follows via Link, ticks
+   confirm — brief rubber-banding is expected and honest.
+3. **UI:** the tempo cell shows an `EXT` marker while following (engine
+   status gains `ext=0|1`), which doubles as the device-verification signal.
+4. **Ableton Link as clock source:** a Link beat feed can become a third
+   `transport_on_*` source under the same `get_beat_position()` API
+   (unchanged, still future).
 
 ## 8. Source pointers (verified on `origin/main`, 2026-07-12)
 

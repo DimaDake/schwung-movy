@@ -282,7 +282,16 @@ pub fn midi_inject_to_move(cin: u8, status: u8, d1: u8, d2: u8) -> bool {
 3. Move Play (movy open but stopped): movy starts with it; same from the background (movy parked).
 4. Move Stop: movy stops.
 5. Double-press safety: mash movy Play/Stop quickly — transports settle consistent (no stuck toggle), no MIDI runaway in the log.
-6. Phase 3 checks still hold: tempo follow, EXT badge, LFO lock.
+6. Phase 3 checks still hold: Move→movy tempo follow, EXT badge, LFO lock.
+
+> **Known limitation — NOT a P4 failure:** the movy TEMPO knob does not change
+> Move's tempo (schwung's Link sidecar is dormant unless Link Audio routing is
+> on — root cause and fix options in
+> `docs/tempo-knob-move-override-not-applied.md`; fix deferred, user decision
+> 2026-07-15). Under P4, Move owns tempo during playback: set it on Move's
+> hardware; movy follows. Do not spend device time debugging the knob→Move
+> direction, and do not "fix" the knob's brief tease-and-snap-back — it becomes
+> correct optimistic feedback once the schwung tempo bridge lands.
 
 - [ ] **Step 3: Docs.** `MANUAL.md`: update the Move-sync section — one transport, either Play/Stop drives both; the ~1-bar wait on movy-initiated starts (Move's Link grid); the two workflow notes (movy-only ⇒ silent native set; Move-only ⇒ stop movy tracks individually). Controls reference: Play/Stop rows gain the propagation note. `README.md`: fold into the existing Move-sync bullet ("one transport").
 

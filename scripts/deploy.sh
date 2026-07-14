@@ -15,6 +15,11 @@ node build/device.mjs
 ./scripts/build-dsp.sh
 ssh "ableton@$HOST" "mkdir -p $REMOTE"
 scp "$DIR/ui.js" "ableton@$HOST:$REMOTE/"
+# Ship module.json too — capabilities (e.g. suspend_self_managed) live here and
+# are read by the host at module-scan time. NOTE: the host caches module
+# metadata at boot, so a *capability* change only takes effect after a host
+# reboot/rescan (ui.js/dsp.so hot-reload without one).
+scp "$DIR/module.json" "ableton@$HOST:$REMOTE/"
 # NEVER overwrite dsp.so in place: it may be dlopen'd by the shim, and
 # clobbering a mapped .so's inode corrupts its pages (crashes MoveOriginal).
 # scp to a temp name + mv gives the new file a fresh inode while the old

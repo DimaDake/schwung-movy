@@ -183,8 +183,8 @@ STEP_LINES=$(echo "$LOG" | grep -c "seq: step" || true)
 # that supports self-managed suspend. Verify manually on such a host:
 info "MANUAL: background mode — with a self-managed-suspend host:"
 info "  MANUAL:  1. Play the sequencer, enable a synced slot LFO (slow division)."
-info "  MANUAL:  2. Back at the root (Chain) view → Move's UI returns; the"
-info "  MANUAL:     sequence keeps playing and the synced LFO stays locked."
+info "  MANUAL:  2. Back at root → Leave Movy menu; jog-click Background →"
+info "  MANUAL:     Move's UI returns; sequence keeps playing, synced LFO locked."
 info "  MANUAL:  3. Reopen Movy (Tools) → LEDs/screen repaint; debug.log shows"
 info "  MANUAL:     '[movy] resume from background'; no stuck notes."
 info "  MANUAL:  4. Shift+Back → Movy fully exits."

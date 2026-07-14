@@ -28,6 +28,8 @@ import { seqSetLane } from '../seq/router.js';
 import { stepAutoTick } from '../seq/step-edit.js';
 import { holdTick, assignActive, assignToastText } from '../lfo/assign-mode.js';
 import { drawJogToast } from '../renderer/overlay.js';
+import { leaveModalActive, leaveModalLabels, leaveModalSel } from './leave-modal.js';
+import { drawLeaveModal } from '../renderer/leave-modal-view.js';
 import { stepPageState, stepPageAvailable } from '../seq/step-page.js';
 import { buildStepPageVM } from '../seq/step-page-vm.js';
 import { activeHasNote, maxBarOffset, seqState } from '../seq/state.js';
@@ -386,6 +388,8 @@ export function tick(): void {
         if (assignActive()) { drawJogToast(assignToastText()); jogToastShown = true; }
         if (toastShowing) drawSeqToast();
         if (headerShowing) drawSeqHeader();
+        // Leave-Movy modal draws on top of everything else.
+        if (leaveModalActive()) drawLeaveModal(leaveModalLabels(), leaveModalSel());
         lastToastShowing = toastShowing;
         lastHeaderShowing = headerShowing;
         appState.dirty = false;

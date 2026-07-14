@@ -18,6 +18,7 @@ import { handleAutomationKnob, clearLaneForKnob, automationKnobReleased, automat
 import { holdTouch, holdRelease, holdTurnCancel, assignActive, assignCycle, assignCommit } from '../lfo/assign-mode.js';
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
+import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm } from '../app/leave-modal.js';
 import { mlog } from '../log.js';
 
 const PAD_MIN        = MovePads[0];
@@ -66,6 +67,30 @@ function masterDetailActive(): boolean { return masterChainActive() && appState.
 
 export function onMidiMessageInternal(data: number[]): void {
     if (!data || data.length < 3) return;
+
+    // The Leave-Movy modal owns all input while it is up: jog turn moves the
+    // highlight, jog click confirms (Background parks / Close exits), Back
+    // cancels. Everything else is swallowed so nothing fires behind it.
+    if (leaveModalActive()) {
+        if ((data[0] & 0xF0) === 0xB0) {
+            const k = data[1], v = data[2];
+            if (k === MoveBack && v > 0) { closeLeaveModal(); appState.dirty = true; return; }
+            if (k === MoveMainKnob) {
+                const delta = decodeDelta(v);
+                if (delta !== 0) { leaveModalMove(delta); appState.dirty = true; }
+                return;
+            }
+            if (k === MoveMainButton && v > 0) {
+                const action = leaveModalConfirm();
+                appState.dirty = true;
+                if (action === 'background') host_suspend_overtake();
+                else if (action === 'close') host_exit_module();
+                return;
+            }
+        }
+        return;
+    }
+
     if (seqHandleMidi(data, appState.shiftHeld)) return;
     const status = data[0];
     const d1     = data[1];
@@ -267,17 +292,14 @@ export function onMidiMessageInternal(data: number[]): void {
             appState.currentView = VIEW_CHAIN;
             appState.dirty = true;
         } else {
-            // Root view. Release live notes first: once parked, movy stops
-            // receiving MIDI, so a held pad would hang across the suspend edge.
+            // Root view → open the Leave-Movy modal (Background vs Close Movy).
+            // Release live notes now: the modal swallows pad MIDI while it's up,
+            // so a physically-held pad would otherwise strand. Background then
+            // parks (sequencer + Phase 1 clock keep running under Move's UI);
+            // Shift+Back stays the host's instant full-exit.
             releaseAllNotes(appState.activeSlot);
-            // Background mode: Back parks movy (sequencer + Phase 1 clock keep
-            // running under Move's native UI; Shift+Back is the host's full
-            // exit). Absent on older hosts → plain exit, unchanged behaviour.
-            if (typeof host_suspend_overtake === 'function') {
-                host_suspend_overtake();
-            } else {
-                host_exit_module();
-            }
+            openLeaveModal();
+            appState.dirty = true;
         }
         return;
     }

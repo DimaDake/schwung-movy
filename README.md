@@ -99,8 +99,9 @@ Movy stands on the shoulders of several projects:
 
   ![Step parameters](docs/assets/step_page_knobs.png)
 
-- **Background mode** — press Back at the root to keep Movy sequencing under
-  Move's own screens (synced LFOs stay locked); Shift + Back exits.
+- **Background mode** — Back at the root opens a Leave menu; choose Background
+  to keep Movy sequencing under Move's own screens (synced LFOs stay locked).
+  Shift + Back exits instantly.
 
 See the [manual](MANUAL.md) for how each of these works.
 

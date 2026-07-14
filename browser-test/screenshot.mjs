@@ -45,6 +45,7 @@ const PRESETS = [
     'main-root-touched', 'main-key-overlay',
     'clip-default', 'clip-fraction', 'clip-overlay',
     'env_dual', 'env_touched',
+    'leave_modal',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -65,6 +66,7 @@ const BASE = {
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
     lfo_target_overlay: 'test8', lfo_viz_unipolar: 'test8', lfo_viz_retrig: 'test8',
     lfo_mod_mark: 'test8', lfo_mod_and_auto: 'test8', lfo_assign_toast: 'test8',
+    leave_modal: 'test8',
 };
 
 const STEP_VM_A = {
@@ -104,6 +106,7 @@ const { createModel }      = await import('../dist/esm/model/index.js');
 const { createLfoModel }   = await import('../dist/esm/lfo/model.js');
 const { holdTouch, holdTick, assignToastText, resetAssignMode } = await import('../dist/esm/lfo/assign-mode.js');
 const { drawJogToast }     = await import('../dist/esm/renderer/overlay.js');
+const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view.js');
 const { renderKnobsView }  = await import('../dist/esm/renderer/knob-view.js');
 const { renderKeysView }   = await import('../dist/esm/renderer/keys-view.js');
 const { renderBrowseView } = await import('../dist/esm/renderer/browse-view.js');
@@ -188,6 +191,13 @@ function applyView(preset) {
         case 'chain_empty':      showChain(2, false); break;                 // fx1 = empty
         case 'chain_jog_toast':  showChain(1, true); break;
         case 'knobs_jog_toast':  showKnobsJogToast(); break;
+        case 'leave_modal': {
+            showChain(1, false);
+            const base = lastRender;
+            lastRender = () => { base(); drawLeaveModal(['Background', 'Close Movy'], 0); };
+            lastRender();
+            break;
+        }
         case 'chain_t2':         showChain(1, false, 1); break;
         case 'chain_t4':         showChain(1, false, 3); break;
         case 'drum-mrdrums-pad5':   model.tick(); model.tick(); model.updateDrumPad(5, 76); forceRender(); break;

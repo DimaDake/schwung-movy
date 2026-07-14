@@ -265,19 +265,30 @@ Movy can drop into the background and keep sequencing while you use Move's own
 screens (Session, Note, the mixer, etc.). Because the sequencer engine and its
 clock keep running, tempo-synced LFOs stay phase-locked the whole time.
 
-- **Background it:** press **Back** at the **root** view (the chain page). Movy
-  hands the screen back to Move but keeps playing — held pad notes are released
-  first so nothing hangs. (Back still steps *backwards* through Movy's own
-  sub-views — the browser, keyboard/knob pages, the master-FX detail, and the
-  Step/Clip/Set pages — as usual; only Back at the root backgrounds Movy.)
-- **Return to it:** reopen Movy from the Tools menu (or the last-tool shortcut).
-  The screen and LEDs repaint from the current state; the sequence never
-  stopped.
-- **Fully exit:** **Shift + Back**, from anywhere, unloads Movy.
+Pressing **Back** at the **root** view (the chain page) opens a **Leave Movy**
+menu — it does *not* leave instantly, so you can't drop into the background by
+accident:
 
-> **Host requirement:** background mode needs a Schwung host that supports
-> self-managed suspend. On an older host, Back at the root simply exits Movy (as
-> it always did).
+![Leave Movy menu](docs/assets/leave_modal.png)
+
+- **Background** (highlighted by default) — jog-**click** to park Movy: the
+  screen returns to Move but Movy keeps playing. So backgrounding is **Back then
+  jog-click**. Held pad notes are released when the menu opens so nothing hangs.
+- **Close Movy** — jog-**turn** to it, then jog-click, to fully unload Movy.
+- **Back** again **cancels** and returns you to Movy.
+
+(Back still steps *backwards* through Movy's own sub-views — the browser,
+keyboard/knob pages, the master-FX detail, and the Step/Clip/Set pages — as
+usual; the menu only appears when you press Back at the root.)
+
+- **Return from background:** reopen Movy from the Tools menu (or the last-tool
+  shortcut). The screen and LEDs repaint from the current state; the sequence
+  never stopped.
+- **Fully exit instantly:** **Shift + Back**, from anywhere, unloads Movy
+  without the menu.
+
+> **Host requirement:** the Background option needs a Schwung host that supports
+> self-managed suspend. On an older host the menu shows **Close Movy** only.
 
 ---
 
@@ -379,8 +390,9 @@ behaviour you'd like — or, better, a PR.
 | **Jog wheel — turn** | Scroll chain slots (Chain view) or module pages (Knobs view) / browser list. On the LFO page, scroll between LFO 1 and LFO 2. |
 | **Jog wheel — click** | Drill Chain → module pages; on Knobs (or an empty slot) open the module browser; in a browser, load the selection. |
 | **Shift + jog click** | Open the module browser to swap the current slot's module. |
-| **Back** | Module pages → Chain; browser → cancel; **at the root (Chain) → background Movy** (keeps playing). |
-| **Shift + Back** | Fully exit Movy (unload), from anywhere. |
+| **Back** | Module pages → Chain; browser → cancel; **at the root (Chain) → open the Leave Movy menu** (Background / Close Movy). |
+| **Back then jog-click** | From the root: background Movy (keeps playing under Move's UI). |
+| **Shift + Back** | Fully exit Movy (unload), instantly, from anywhere. |
 | **+ / −** (Up/Down) | Shift the chromatic keyboard by an octave (melodic tracks only). |
 
 ### Sequencer

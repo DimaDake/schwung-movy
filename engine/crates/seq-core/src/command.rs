@@ -42,6 +42,13 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
         // stay un-propagated.
         "play" => engine.request_play(out),
         "stop" => engine.request_stop(out),
+        // link <0|1> — enable/disable the bidirectional Move transport link
+        // (Set-page LINK toggle; persisted per set).
+        "link" => {
+            if let Some(v) = next() {
+                engine.link_enabled = v != 0;
+            }
+        }
         "bpm" => {
             if let Some(v) = next() {
                 engine.clock.set_bpm_x100(v.clamp(0, u32::MAX as i64) as u32);
@@ -490,6 +497,7 @@ mod tests {
         // (design §7 Phase 4): with Move stopped, "play" arms a pending-start
         // (MovePlay inject) instead of starting immediately, and "stop" cancels.
         let mut e = engine();
+        e.link_enabled = true;
         let mut out = Vec::new();
         apply_batch(&mut e, "play", &mut out);
         assert!(!e.playing, "linked: play waits for Move's FA");

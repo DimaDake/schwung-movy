@@ -25,6 +25,7 @@ pub fn serialize(engine: &Engine) -> String {
     s.push('\n');
     s.push_str(&format!("bpm {}\n", engine.clock.bpm_x100()));
     s.push_str(&format!("swing {}\n", engine.swing_pct));
+    s.push_str(&format!("link {}\n", engine.link_enabled as u8));
     for (ti, t) in engine.tracks.iter().enumerate() {
         s.push_str(&format!("tk {} {} {}\n", ti, t.active_clip, t.muted as u8));
         for lane in 0..8 {
@@ -100,6 +101,8 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
         t.lane_base = [0u8; 8];
         t.lane_label = Default::default();
     }
+    // Link defaults off; a legacy save without a `link` line loads with it off.
+    engine.link_enabled = false;
     for line in lines {
         let mut it = line.split_whitespace();
         match it.next() {
@@ -111,6 +114,11 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
             Some("swing") => {
                 if let Some(v) = it.next().and_then(|x| x.parse::<u32>().ok()) {
                     engine.swing_pct = v.clamp(50, 80);
+                }
+            }
+            Some("link") => {
+                if let Some(v) = it.next().and_then(|x| x.parse::<u8>().ok()) {
+                    engine.link_enabled = v != 0;
                 }
             }
             Some("tk") => {
@@ -390,5 +398,21 @@ mod tests {
         let mut e2 = Engine::new(44100, 12000);
         assert!(load(&mut e2, &s));
         assert_eq!(e2.swing_pct, 72);
+    }
+
+    #[test]
+    fn link_enabled_round_trips_and_defaults_off() {
+        let mut e = Engine::new(44100, 12000);
+        e.link_enabled = true;
+        let s = serialize(&e);
+        let mut e2 = Engine::new(44100, 12000);
+        assert!(load(&mut e2, &s));
+        assert!(e2.link_enabled, "link state round-trips");
+
+        // A legacy save without a `link` line loads with the link off.
+        let mut e3 = Engine::new(44100, 12000);
+        e3.link_enabled = true; // pre-set to prove load() clears it
+        assert!(load(&mut e3, "movy1\nbpm 12000\n"));
+        assert!(!e3.link_enabled, "legacy save → link off");
     }
 }

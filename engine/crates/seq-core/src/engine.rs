@@ -132,6 +132,10 @@ pub struct Engine {
     /// `frame_now` at which the in-flight toggle's release fires; 0 = no toggle
     /// currently pressed.
     inject_release_at: u64,
+    /// User toggle (Set-page LINK cell): when false, the Play/Stop propagation
+    /// above is disabled — movy's transport is independent of Move's (Phase 3
+    /// clock-follow still applies). Persisted per set; default off.
+    pub link_enabled: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -182,6 +186,7 @@ impl Engine {
             pending_play_deadline: 0,
             move_toggle_queue: 0,
             inject_release_at: 0,
+            link_enabled: false,
         }
     }
 
@@ -512,6 +517,12 @@ impl Engine {
     /// 2-bar timeout fallback onto the internal clock.
     pub fn request_play(&mut self, out: &mut Vec<OutEvent>) {
         let _ = out;
+        if !self.link_enabled {
+            // Link off: independent transport, just play (Phase 3 clock-follow
+            // still engages if Move happens to be running).
+            self.play();
+            return;
+        }
         if self.ext_running {
             self.play();
             return;
@@ -527,6 +538,10 @@ impl Engine {
     /// cancels (toggling Move back, since it may already be starting);
     /// otherwise stop, and if Move is running toggle it to stop too.
     pub fn request_stop(&mut self, out: &mut Vec<OutEvent>) {
+        if !self.link_enabled {
+            self.stop(out);
+            return;
+        }
         if self.pending_play {
             self.pending_play = false;
             self.queue_move_play_toggle(); // Move may already be starting: toggle back
@@ -644,9 +659,10 @@ impl Engine {
         match status {
             0xFA => {
                 // Linked transport (design §7 Phase 4): Move's Play starts movy
-                // (and resolves a movy-initiated pending-start). Note: play()
-                // sets ext_base=0 via the anchor below, so bar 0 stays anchored.
-                if !self.playing {
+                // (and resolves a movy-initiated pending-start) — only when the
+                // link is enabled. Note: play() sets ext_base=0 via the anchor
+                // below, so bar 0 stays anchored.
+                if self.link_enabled && !self.playing {
                     self.pending_play = false;
                     self.play();
                 }
@@ -664,10 +680,11 @@ impl Engine {
             }
             0xFB => self.ext_running = true,
             0xFC => {
-                // Linked transport: Move's Stop stops movy (staleness does NOT
-                // — that reverts to internal clock, handled in advance_block).
-                // Stop first, while gates are still known, then drop the source.
-                if self.playing {
+                // Linked transport: Move's Stop stops movy (only when the link
+                // is enabled; staleness never stops it — that reverts to the
+                // internal clock, handled in advance_block). Stop first, while
+                // gates are still known, then drop the source.
+                if self.link_enabled && self.playing {
                     self.stop(out);
                 }
                 self.ext_running = false;
@@ -1246,11 +1263,12 @@ impl Engine {
         let htp = self.held_trig();
         let hlmax = self.held_max_gate();
         format!(
-            "play={} tick={} bpm={} ext={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={}",
+            "play={} tick={} bpm={} ext={} link={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
             self.follow_active() as u8,
+            self.link_enabled as u8,
             self.watch_track,
             wt.current_step(),
             wt.pos_tick,
@@ -1401,9 +1419,9 @@ mod tests {
 
     #[test]
     fn move_play_starts_movy_when_stopped() {
-        // Rewrites Phase 3's ext_clock_ignored_while_stopped: under the
-        // always-on link (design §7 Phase 4) Move's Play starts movy.
+        // With the link ON, Move's Play starts movy (design §7 Phase 4).
         let mut e = engine();
+        e.link_enabled = true;
         e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
         let mut out = Vec::new();
         e.on_external_realtime(0xFA, &mut out);
@@ -1524,6 +1542,7 @@ mod tests {
     #[test]
     fn move_stop_stops_movy() {
         let mut e = engine();
+        e.link_enabled = true;
         e.play();
         let mut out = Vec::new();
         e.on_external_realtime(0xFA, &mut out);
@@ -1536,6 +1555,7 @@ mod tests {
     #[test]
     fn movy_play_injects_and_waits_for_moves_fa() {
         let mut e = engine();
+        e.link_enabled = true;
         e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
         let mut out = Vec::new();
         e.request_play(&mut out);                 // Move not running
@@ -1554,6 +1574,7 @@ mod tests {
     #[test]
     fn pending_start_times_out_to_internal_clock() {
         let mut e = engine();
+        e.link_enabled = true;
         let mut out = Vec::new();
         e.request_play(&mut out);
         // 2 bars at 120 BPM = 4 s = 176400 frames; run 5 s.
@@ -1566,6 +1587,7 @@ mod tests {
     #[test]
     fn movy_stop_injects_when_move_running_and_cancels_pending() {
         let mut e = engine();
+        e.link_enabled = true;
         let mut out = Vec::new();
         // Case A: playing + Move running -> stop injects a toggle.
         e.on_external_realtime(0xFA, &mut out);
@@ -1577,6 +1599,7 @@ mod tests {
         assert!(out.iter().any(|x| matches!(x, OutEvent::MoveInject { val: 127 })));
         // Case B: cancel during pending-start toggles Move back.
         let mut e = engine();
+        e.link_enabled = true;
         let mut out = Vec::new();
         e.request_play(&mut out);                 // pending, inject armed
         e.request_stop(&mut out);                 // cancel
@@ -1585,6 +1608,47 @@ mod tests {
         assert!(!e.playing);
         let presses = out.iter().filter(|x| matches!(x, OutEvent::MoveInject { val: 127 })).count();
         assert_eq!(presses, 2, "start toggle + cancel toggle");
+    }
+
+    // ── Link toggle OFF (default): Phase 3 semantics, no Play/Stop propagation ──
+
+    #[test]
+    fn link_off_movy_play_starts_without_inject() {
+        let mut e = engine(); // link_enabled defaults false
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        let mut out = Vec::new();
+        e.request_play(&mut out);
+        assert!(e.playing, "link off: Play starts movy immediately");
+        e.advance_block(FRAMES, &mut out);
+        assert!(out.iter().all(|x| !matches!(x, OutEvent::MoveInject { .. })),
+                "link off: no MovePlay inject");
+    }
+
+    #[test]
+    fn link_off_move_fa_does_not_start_movy() {
+        // Phase 3 behavior retained while the link is off: Move's Play does not
+        // start a stopped movy.
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        let mut out = Vec::new();
+        e.on_external_realtime(0xFA, &mut out);
+        run_ext_ticks(&mut e, 96, &mut out);
+        assert_eq!(e.master_tick, 0);
+        assert!(out.iter().all(|x| !matches!(x, OutEvent::NoteOn { .. })));
+    }
+
+    #[test]
+    fn link_off_move_fc_keeps_movy_playing() {
+        // Phase 3 revert-keeps-playing: with the link off, Move's Stop does not
+        // stop movy (it reverts to the internal clock and keeps going).
+        let mut e = engine();
+        e.play();
+        let mut out = Vec::new();
+        e.on_external_realtime(0xFA, &mut out);
+        e.on_external_realtime(0xF8, &mut out);
+        run_ext_ticks(&mut e, 24, &mut out);
+        e.on_external_realtime(0xFC, &mut out);
+        assert!(e.playing, "link off: Move Stop leaves movy playing");
     }
 
     #[test]

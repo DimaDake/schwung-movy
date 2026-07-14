@@ -44,6 +44,9 @@ pub struct host_api_v1_t {
     pub mod_clear_source: Option<unsafe extern "C" fn(ctx: *mut c_void, source_id: *const c_char)>,
     pub mod_host_ctx: *mut c_void,
     pub get_bpm: Option<unsafe extern "C" fn() -> f32>,
+    // Field order mirrors host_api_v1_t — NEVER reorder or skip. midi_inject_to_move
+    // sits immediately after get_bpm; the C struct's trailing slot_recv_channel is
+    // intentionally omitted (unused here — a shorter prefix of an over-allocated struct).
     pub midi_inject_to_move: Option<unsafe extern "C" fn(msg: *const u8, len: c_int) -> c_int>,
 }
 

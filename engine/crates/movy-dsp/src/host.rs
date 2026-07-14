@@ -48,3 +48,17 @@ pub fn midi_send_internal(status: u8, d1: u8, d2: u8) -> bool {
     }
     false
 }
+
+/// Inject a USB-MIDI packet into Move's MIDI_IN as if it were native hardware
+/// input (the always-on transport link's MovePlay toggle — design §7 Phase 4).
+/// `cin` is passed explicitly (davebox packet shape `[0x0B, 0xB0, 85, val]`);
+/// the host's drain forces cable 0. Absent on non-shadow hosts → false.
+pub fn midi_inject_to_move(cin: u8, status: u8, d1: u8, d2: u8) -> bool {
+    if let Some(h) = host() {
+        if let Some(f) = h.midi_inject_to_move {
+            let pkt = [cin, status, d1, d2];
+            return unsafe { f(pkt.as_ptr(), pkt.len() as c_int) } > 0;
+        }
+    }
+    false
+}

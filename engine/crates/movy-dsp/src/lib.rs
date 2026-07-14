@@ -15,7 +15,7 @@ use seq_core::engine::{Engine, OutEvent};
 use std::ffi::{CStr, CString};
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.24.0";
+const ENGINE_VERSION: &str = "0.25.0";
 
 struct Instance {
     engine: Engine,
@@ -102,6 +102,11 @@ impl Instance {
                 }
                 OutEvent::Clock => {
                     host::midi_send_internal(0xF8, 0, 0);
+                }
+                OutEvent::MoveInject { val } => {
+                    // MovePlay (CC 85) toward Move's firmware — davebox packet
+                    // shape [0x0B, 0xB0, 85, val] (design §7 Phase 4).
+                    host::midi_inject_to_move(0x0B, 0xB0, 85, val);
                 }
             }
         }

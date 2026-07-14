@@ -320,7 +320,12 @@ While locked:
 > **Tempo & Ableton Link:** Movy's TEMPO knob sets the device tempo through
 > Move's Link connection, which only takes effect while Move is the sole Link
 > peer. With Ableton Live (or another Link peer) connected, the session owns the
-> tempo and Movy's knob won't override it — which is the correct behaviour.
+> tempo and Movy's knob won't override it — which is the correct behaviour. It
+> also requires schwung's **Link Audio** to be enabled (Global Settings → Audio);
+> with Link Audio off the knob can't reach Move's tempo, so set the tempo from
+> Move instead. (Move → Movy tempo follow is unaffected — it always works.) See
+> [docs/tempo-knob-move-override-not-applied.md](docs/tempo-knob-move-override-not-applied.md)
+> for details.
 
 ---
 

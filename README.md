@@ -102,9 +102,10 @@ Movy stands on the shoulders of several projects:
 - **Background mode** — Back at the root opens a Leave menu; choose Background
   to keep Movy sequencing under Move's own screens (synced LFOs stay locked).
   Shift + Back exits instantly.
-- **One transport with Move** — Play or Stop on either Movy or Move starts and
-  stops both; Movy locks to Move's transport (drift-free), follows its tempo,
-  and shares tempo back through the TEMPO knob.
+- **One transport with Move** — Movy locks to Move's transport (drift-free),
+  follows its tempo, and shares tempo back through the TEMPO knob. Flip on the
+  **LINK** toggle (Set page) and Play/Stop on either Movy or Move starts and
+  stops both.
 
 See the [manual](MANUAL.md) for how each of these works.
 

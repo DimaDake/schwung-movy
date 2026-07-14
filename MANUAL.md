@@ -292,10 +292,15 @@ usual; the menu only appears when you press Back at the root.)
 
 ### Syncing with Move's sequencer
 
-Movy and Move share **one transport** — always, no button, no setting. Press
-Play (or Stop) on **either** and both start (or stop) together; Movy is
-effectively four extra tracks of your Move set. This is what makes background
-mode musical: run Move's sequencer and Movy rides along, locked.
+Turn on **LINK** (the Set page's fifth cell — knob 4; **OFF** by default) and
+Movy and Move share **one transport**: press Play (or Stop) on **either** and
+both start (or stop) together, making Movy four extra tracks of your Move set.
+This is what makes background mode musical: run Move's sequencer and Movy rides
+along, locked. The setting is saved with each set.
+
+![Set page — LINK on](docs/assets/main-link-on.png)
+
+With **LINK on**:
 
 - **Play in Move** starts Movy too (even while Movy is parked in the
   background); **Stop in Move** stops it.
@@ -303,6 +308,10 @@ mode musical: run Move's sequencer and Movy rides along, locked.
   bar grid, Movy waits — silently — up to about a bar for Move's downbeat, then
   both begin the bar together. (If Move never answers within ~2 bars, Movy
   starts on its own clock anyway.) **Stop in Movy** stops Move.
+
+With **LINK off** (the default) each transport is independent — Movy's Play/Stop
+never touches Move's, and Move's never starts or stops Movy. The tempo/grid
+locking below still happens automatically whenever both are playing, LINK or not.
 
 While both run, they lock as one grid:
 
@@ -323,9 +332,9 @@ While both run, they lock as one grid:
   playing at the captured tempo on its own clock; within a bar the synced LFOs
   re-lock to Movy's grid.
 
-**Working with one transport:** for **Movy-only** playback, keep the native
-Move set silent (no clips playing). For **Move-only** playback, stop or mute
-Movy's four tracks individually. (The shared transport propagates the Play/Stop
+**Working with one transport (LINK on):** for **Movy-only** playback, keep the
+native Move set silent (no clips playing). For **Move-only** playback, stop or
+mute Movy's four tracks individually. (The link propagates the Play/Stop
 *buttons*; launching a Session clip does not reach across to Move.)
 
 > **Tempo & Ableton Link:** Movy's TEMPO knob sets the device tempo through
@@ -454,7 +463,7 @@ behaviour you'd like — or, better, a PR.
 | **Hold a step** | Edit that step; opens its **Step parameters** (page 0). |
 | **Hold step A + press step B** | Set step A's note length up to B. |
 | **Hold a step + pad** | Edit that step's notes from the keyboard. |
-| **Play** | Start / stop the transport. Shared with Move: also starts / stops Move's native sequencer (a Movy-initiated start waits ~1 bar for Move's Link grid). |
+| **Play** | Start / stop the transport. When **LINK** is on, also starts / stops Move's native sequencer (a Movy-initiated start waits ~1 bar for Move's Link grid). |
 | **Rec** | Arm recording (one-bar count-in). |
 | **Note / Session** | Show the Session clip grid (momentary hold = peek, tap = latch). Pads launch clips. |
 | **Loop** | Toggle the bar/loop overview; hold + jog resizes the loop. |
@@ -465,6 +474,7 @@ behaviour you'd like — or, better, a PR.
 | **Track buttons 1–4** | Select a track (hold = momentary peek). |
 | **Volume encoder** | Adjust held steps' velocity. |
 | **TEMPO knob** (Set page) | Set the tempo; also sets Move's device-wide tempo via Link. **EXT** on the cell = locked to Move's transport. |
+| **LINK knob** (Set page) | Turn right = ON, left = OFF. Enables the shared Play/Stop transport with Move (default OFF; saved per set). Clock/tempo follow works regardless. |
 
 ### Shift + Step shortcuts
 

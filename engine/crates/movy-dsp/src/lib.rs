@@ -15,7 +15,7 @@ use seq_core::engine::{Engine, OutEvent};
 use std::ffi::{CStr, CString};
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.23.0";
+const ENGINE_VERSION: &str = "0.24.0";
 
 struct Instance {
     engine: Engine,
@@ -108,6 +108,11 @@ impl Instance {
         self.out.clear();
     }
 
+    fn on_external_realtime(&mut self, status: u8) {
+        // Events queue into self.out and drain on the next render_block.
+        self.engine.on_external_realtime(status, &mut self.out);
+    }
+
     fn render(&mut self, out_audio: &mut [i16]) {
         self.blocks += 1;
         self.engine
@@ -174,8 +179,21 @@ unsafe extern "C" fn destroy_instance(instance: *mut c_void) {
     });
 }
 
-unsafe extern "C" fn on_midi(_instance: *mut c_void, _msg: *const u8, _len: c_int, _source: c_int) {
-    // The UI owns all surface input and forwards via the cmd protocol.
+unsafe extern "C" fn on_midi(instance: *mut c_void, msg: *const u8, len: c_int, _source: c_int) {
+    guard((), || {
+        // Surface input arrives via the cmd protocol; the only raw MIDI the
+        // shim delivers here is Move's cable-0 system realtime (1 byte).
+        if msg.is_null() || len < 1 {
+            return;
+        }
+        let status = unsafe { *msg };
+        if status < 0xF8 {
+            return;
+        }
+        if let Some(i) = inst(instance) {
+            i.on_external_realtime(status);
+        }
+    });
 }
 
 unsafe extern "C" fn set_param(instance: *mut c_void, key: *const c_char, val: *const c_char) {

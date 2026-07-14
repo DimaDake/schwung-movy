@@ -290,6 +290,38 @@ usual; the menu only appears when you press Back at the root.)
 > **Host requirement:** the Background option needs a Schwung host that supports
 > self-managed suspend. On an older host the menu shows **Close Movy** only.
 
+### Syncing with Move's sequencer
+
+When Movy is playing **and** Move's native sequencer is playing, Movy
+**automatically locks to Move's transport** — no button, no setting. This is
+what makes background mode musical: press Play in Move's UI and both sequencers
+run as one.
+
+While locked:
+
+- Movy rides Move's clock, so both grids stay **drift-free** — their downbeats
+  line up and stay lined up. The Set page's **TEMPO** cell shows **EXT** and
+  displays Move's tempo:
+
+  ![Following Move — EXT](docs/assets/main-ext-sync.png)
+
+- Pressing **Play in Move** re-anchors Movy to the bar — Movy restarts its
+  pattern so both start the bar together.
+- **Change Move's tempo** (from Move's screen) and Movy follows within about a
+  second; the notes stay locked.
+- **Turn Movy's TEMPO knob** and Move's tempo changes to match — Movy writes the
+  device-wide tempo, and both stay locked. (The display may rubber-band briefly
+  as the two converge — that's normal.)
+- **Stop Move** and Movy keeps playing at the captured tempo on its own clock;
+  within a bar the synced LFOs re-lock to Movy's grid.
+- With Movy **stopped**, pressing Play in Move does **not** start Movy — each
+  transport still starts on its own.
+
+> **Tempo & Ableton Link:** Movy's TEMPO knob sets the device tempo through
+> Move's Link connection, which only takes effect while Move is the sole Link
+> peer. With Ableton Live (or another Link peer) connected, the session owns the
+> tempo and Movy's knob won't override it — which is the correct behaviour.
+
 ---
 
 ## 6. Beyond Move: Step, Clip & Set parameters
@@ -348,7 +380,10 @@ elsewhere):
 
 ![Set parameters — key overlay](docs/assets/main-key-overlay.png)
 
-These are set-wide (they affect all tracks).
+These are set-wide (they affect all tracks). **TEMPO** also sets Move's
+device-wide tempo through Ableton Link, so a following Move tracks the knob;
+the cell shows **EXT** while Movy is locked to Move's transport (see
+[Syncing with Move's sequencer](#syncing-with-moves-sequencer)).
 
 Press **Back** (or a track button) to close any of these pages and return to
 where you were.
@@ -413,6 +448,7 @@ behaviour you'd like — or, better, a PR.
 | **Mute + track** | Mute that track. |
 | **Track buttons 1–4** | Select a track (hold = momentary peek). |
 | **Volume encoder** | Adjust held steps' velocity. |
+| **TEMPO knob** (Set page) | Set the tempo; also sets Move's device-wide tempo via Link. **EXT** on the cell = locked to Move's transport. |
 
 ### Shift + Step shortcuts
 

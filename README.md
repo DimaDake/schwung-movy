@@ -102,6 +102,9 @@ Movy stands on the shoulders of several projects:
 - **Background mode** — Back at the root opens a Leave menu; choose Background
   to keep Movy sequencing under Move's own screens (synced LFOs stay locked).
   Shift + Back exits instantly.
+- **Syncs with Move's sequencer** — play Move's native sequencer and Movy
+  automatically locks to its transport (drift-free), follows its tempo, and
+  shares tempo back through the TEMPO knob.
 
 See the [manual](MANUAL.md) for how each of these works.
 

@@ -37,8 +37,11 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
     let mut next = || it.next().and_then(|s| s.parse::<i64>().ok());
 
     match verb {
-        "play" => engine.play(),
-        "stop" => engine.stop(out),
+        // Transport buttons route through the always-on Move link (design §7
+        // Phase 4); other play()/stop() callers (session auto-start, record)
+        // stay un-propagated.
+        "play" => engine.request_play(out),
+        "stop" => engine.request_stop(out),
         "bpm" => {
             if let Some(v) = next() {
                 engine.clock.set_bpm_x100(v.clamp(0, u32::MAX as i64) as u32);
@@ -443,7 +446,9 @@ mod tests {
         let mut e = engine();
         let mut out = Vec::new();
         // Transport running, track 0's selected slot empty + never launched.
-        apply_batch(&mut e, "play", &mut out);
+        // Start directly: this exercises launch-queue mechanics, not the Move
+        // link (whose "play" command now waits for Move — covered separately).
+        e.play();
         assert_eq!(e.tracks[0].playing_slot, None, "empty selected slot isn't playing yet");
         apply_batch(&mut e, "tog 0 4 60 100", &mut out);
         assert!(e.playing);
@@ -463,7 +468,7 @@ mod tests {
     fn ltog_while_playing_queues_selected_slot() {
         let mut e = engine();
         let mut out = Vec::new();
-        apply_batch(&mut e, "play", &mut out);
+        e.play(); // launch-queue mechanics; the "play" command's link path is tested separately
         apply_batch(&mut e, "ltog 0 4 36 100", &mut out);
         assert_eq!(e.tracks[0].queued_slot, Some(e.tracks[0].active_clip));
         assert_eq!(e.tracks[0].playing_slot, None);
@@ -480,11 +485,17 @@ mod tests {
     }
 
     #[test]
-    fn play_stop_roundtrip() {
+    fn play_stop_commands_route_through_move_link() {
+        // The "play"/"stop" command strings dispatch to the always-on Move link
+        // (design §7 Phase 4): with Move stopped, "play" arms a pending-start
+        // (MovePlay inject) instead of starting immediately, and "stop" cancels.
         let mut e = engine();
         let mut out = Vec::new();
         apply_batch(&mut e, "play", &mut out);
-        assert!(e.playing);
+        assert!(!e.playing, "linked: play waits for Move's FA");
+        e.advance_block(128, &mut out);
+        assert!(out.iter().any(|x| matches!(x, OutEvent::MoveInject { val: 127 })),
+                "play command injects MovePlay toward Move");
         apply_batch(&mut e, "stop", &mut out);
         assert!(!e.playing);
     }

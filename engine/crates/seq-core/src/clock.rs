@@ -8,7 +8,6 @@ use crate::PPQN;
 
 #[derive(Debug, Clone)]
 pub struct Clock {
-    #[allow(dead_code)] // kept for diagnostics; threshold derives from it
     sample_rate: u32,
     /// BPM stored as hundredths (12000 = 120.00 BPM) so fractional tempos
     /// stay exact in integer math.
@@ -35,6 +34,10 @@ impl Clock {
 
     pub fn bpm_x100(&self) -> u32 {
         self.bpm_x100
+    }
+
+    pub fn sample_rate(&self) -> u32 {
+        self.sample_rate
     }
 
     /// Tempo changes take effect from the next block; the accumulator is

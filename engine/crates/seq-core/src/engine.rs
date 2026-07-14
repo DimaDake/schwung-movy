@@ -84,6 +84,30 @@ pub struct Engine {
     /// True while we are emitting MIDI transport clock (between Start and Stop).
     /// Runtime-only edge tracker — never persisted.
     emitting_clock: bool,
+
+    // --- external (Move native) clock follow — design §7 Phase 3 ---
+    // All runtime-only (never persisted): they model Move's cable-0 transport,
+    // delivered to movy-dsp's on_midi and forwarded here.
+    /// Move's transport is running (between its 0xFA/first-tick and 0xFC).
+    ext_running: bool,
+    /// The next 0xF8 is the anchor tick — it seeds timing, no interval yet.
+    ext_awaiting_first: bool,
+    /// External 24-PPQN ticks counted since the anchor.
+    ext_ticks: u64,
+    /// `frame_now` at the last external tick (drives interval + staleness).
+    ext_last_frame: u64,
+    /// EMA-smoothed frames-per-external-tick (→ captured tempo).
+    ext_interval: f64,
+    /// Launch-quantize base: the external tick index of our bar-0 downbeat.
+    ext_base: u64,
+    /// `ext_base` is set — 0xFA anchors it; engaging mid-song sets it once.
+    ext_base_set: bool,
+    /// Monotonic audio-frame clock; advances once per block.
+    frame_now: u64,
+    /// Were we following on the previous block? (engage/disengage edges)
+    was_following: bool,
+    /// After a revert to internal clock, re-anchor emission at our next bar.
+    resume_anchor_pending: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -120,6 +144,16 @@ impl Engine {
             rng_state: 0x9E3779B97F4A7C15,
             swing_pct: 50,
             emitting_clock: false,
+            ext_running: false,
+            ext_awaiting_first: false,
+            ext_ticks: 0,
+            ext_last_frame: 0,
+            ext_interval: 0.0,
+            ext_base: 0,
+            ext_base_set: false,
+            frame_now: 0,
+            was_following: false,
+            resume_anchor_pending: false,
         }
     }
 
@@ -424,6 +458,11 @@ impl Engine {
             t.last_auto_step = -1;
             t.auto_cur = [-1; 8];
         }
+        self.flush_gates(out);
+    }
+
+    /// Release every note still sounding (all open gates → NoteOff).
+    fn flush_gates(&mut self, out: &mut Vec<OutEvent>) {
         for g in self.gates.drain(..) {
             out.push(OutEvent::NoteOff {
                 track: g.track,
@@ -524,8 +563,69 @@ impl Engine {
         }
     }
 
+    /// Follow is automatic (design §7 Phase 3): engaged while we play and
+    /// Move's transport runs.
+    fn follow_active(&self) -> bool {
+        self.playing && self.ext_running
+    }
+
+    /// Move's cable-0 transport, delivered by the shim to movy-dsp on_midi.
+    /// Follow is automatic: engaged while we play and Move's transport runs
+    /// (design §7 Phase 3). Engage/disengage edges are handled in
+    /// advance_block; this only maintains the external-clock model.
+    pub fn on_external_realtime(&mut self, status: u8, out: &mut Vec<OutEvent>) {
+        match status {
+            0xFA => {
+                self.ext_running = true;
+                self.ext_awaiting_first = true;
+                self.ext_ticks = 0;
+                self.ext_base = 0;
+                self.ext_base_set = true; // FA anchors bar 0; engage must not re-quantize
+                self.ext_last_frame = self.frame_now;
+                if self.playing {
+                    // Both transports start the bar together.
+                    self.flush_gates(out);
+                    self.start_transport();
+                }
+            }
+            0xFB => self.ext_running = true,
+            0xFC => self.ext_running = false,
+            0xF8 => {
+                if !self.ext_running {
+                    // Attached mid-song (no 0xFA): tempo is right immediately,
+                    // bar alignment arrives with the next 0xFA.
+                    self.ext_running = true;
+                    self.ext_awaiting_first = true;
+                }
+                if self.ext_awaiting_first {
+                    self.ext_awaiting_first = false;
+                    self.ext_ticks = 0;
+                } else {
+                    self.ext_ticks += 1;
+                    let delta = (self.frame_now - self.ext_last_frame) as f64;
+                    let sr = self.clock.sample_rate() as f64;
+                    // Accept only intervals inside 20–999 BPM at 24 PPQN.
+                    if delta >= 60.0 * sr / (999.0 * 24.0) && delta <= 60.0 * sr / (20.0 * 24.0) {
+                        self.ext_interval = if self.ext_interval <= 0.0 {
+                            delta
+                        } else {
+                            self.ext_interval + 0.25 * (delta - self.ext_interval)
+                        };
+                        // Continuous capture: the UI shows Move's tempo and a
+                        // revert keeps playing at it.
+                        let bpm = (60.0 * 100.0 * sr / (self.ext_interval * 24.0)).round() as u32;
+                        self.clock.set_bpm_x100(bpm);
+                    }
+                }
+                self.ext_last_frame = self.frame_now;
+            }
+            _ => {}
+        }
+    }
+
     /// Advance one audio block; pushes due MIDI into `out`.
     pub fn advance_block(&mut self, frames: u32, out: &mut Vec<OutEvent>) {
+        self.frame_now += frames as u64;
         let fired = self.clock.advance(frames);
         // Transport edges are detected here (play/stop arrive via commands
         // between blocks) so Start/Stop always pair correctly.
@@ -1101,6 +1201,44 @@ mod tests {
             e.advance_block(FRAMES, &mut out);
         }
         out
+    }
+
+    /// 125 BPM at 24 PPQN / 44100 Hz = exactly 882 frames per external tick.
+    const EXT_TICK_FRAMES: u32 = 882;
+
+    /// Feed `n` external ticks with real frame spacing.
+    fn run_ext_ticks(e: &mut Engine, n: u32, out: &mut Vec<OutEvent>) {
+        for _ in 0..n {
+            let mut left = EXT_TICK_FRAMES;
+            while left > 0 {
+                let step = left.min(FRAMES);
+                e.advance_block(step, out);
+                left -= step;
+            }
+            e.on_external_realtime(0xF8, out);
+        }
+    }
+
+    #[test]
+    fn ext_tempo_is_captured_into_engine_bpm() {
+        let mut e = engine(); // 120.00 BPM internally
+        let mut out = Vec::new();
+        e.on_external_realtime(0xFA, &mut out);
+        e.on_external_realtime(0xF8, &mut out); // anchor tick 0
+        run_ext_ticks(&mut e, 24, &mut out);
+        let bpm = e.clock.bpm_x100();
+        assert!((12450..=12550).contains(&bpm), "captured {bpm}, want ~12500");
+    }
+
+    #[test]
+    fn ext_clock_ignored_while_stopped() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        let mut out = Vec::new();
+        e.on_external_realtime(0xFA, &mut out);
+        run_ext_ticks(&mut e, 96, &mut out);
+        assert_eq!(e.master_tick, 0);
+        assert!(out.iter().all(|x| !matches!(x, OutEvent::NoteOn { .. })));
     }
 
     #[test]

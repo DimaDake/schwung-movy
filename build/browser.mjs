@@ -63,6 +63,7 @@ await esbuild.build({
         resolve(root, 'src/seq/detent.ts'),
         resolve(root, 'src/seq/main-page.ts'),
         resolve(root, 'src/seq/main-page-vm.ts'),
+        resolve(root, 'src/seq/tempo-override.ts'),
         resolve(root, 'src/seq/clip-scale.ts'),
         resolve(root, 'src/seq/clip-page.ts'),
         resolve(root, 'src/seq/clip-page-vm.ts'),

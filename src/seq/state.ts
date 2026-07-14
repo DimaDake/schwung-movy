@@ -10,6 +10,7 @@ export interface SeqUiState {
     playing: boolean;        // transport running
     engineTick: number;      // engine master tick (96 PPQN) at last poll
     bpmX100: number;         // engine tempo, hundredths of BPM
+    extSync: boolean;        // following Move's external transport (from `ext=`)
     swingPct: number;        // engine swing %, 50..80 (from `swing=`)
     activeNotes: Uint8Array; // track*128 + pitch, 1 = sounding (from `act=`)
 
@@ -86,6 +87,7 @@ function defaults(): SeqUiState {
         playing: false,
         engineTick: 0,
         bpmX100: 12000,
+        extSync: false,
         swingPct: 50,
         activeNotes: new Uint8Array(512),
         watchTrack: 0,

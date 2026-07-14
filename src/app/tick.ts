@@ -23,6 +23,7 @@ import type { Model } from '../model/index.js';
 import { concreteKey } from '../model/pad-scope.js';
 import { mlog } from '../log.js';
 import { seqPersistTick } from '../seq/persist.js';
+import { tempoOverrideTick } from '../seq/tempo-override.js';
 import { seqLedsTick, seqLedsInvalidate, displayHoldNotes } from '../seq/leds.js';
 import { seqSetLane } from '../seq/router.js';
 import { stepAutoTick } from '../seq/step-edit.js';
@@ -176,6 +177,10 @@ export function tick(): void {
     // status) — the mock/real engine reports transport + step state regardless
     // of whether we are on screen.
     seqEngineTick();
+    // Flush a debounced tempo-knob change to Move's Link override before the
+    // parked early-return, so a tempo edit made just before backgrounding
+    // still reaches Move (the write is cheap and independent of the display).
+    tempoOverrideTick();
     // Parked in the background: Move's native UI is on screen and the host
     // no-ops our draw calls. The DSP keeps sequencing + emitting Phase 1 clock
     // on its own, so the JS side only has to stay synced (above) and keep

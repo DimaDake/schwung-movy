@@ -5,6 +5,7 @@
 
 import { seqState } from './state.js';
 import { seqCmd } from './engine.js';
+import { scheduleTempoOverride } from './tempo-override.js';
 import { SCALE_NAMES } from './scales.js';
 import { keyboardState } from '../keyboard/state.js';
 import { setRoot } from '../keyboard/handler.js';
@@ -66,7 +67,13 @@ export function mainPageKnob(k: number, delta: number, track: number): void {
     if (n === 0) return;
     if (k === 0) {
         const next = Math.max(BPM_MIN_X100, Math.min(BPM_MAX_X100, seqState.bpmX100 + n * 100));
-        if (next !== seqState.bpmX100) { seqState.bpmX100 = next; seqCmd('bpm ' + next); }
+        if (next !== seqState.bpmX100) {
+            seqState.bpmX100 = next;
+            seqCmd('bpm ' + next);
+            // Also drive Move's device-wide tempo via the Link override, so a
+            // following Move tracks the knob (design §7 Phase 3).
+            scheduleTempoOverride(next);
+        }
     } else if (k === 1) {
         const next = Math.max(SWING_MIN, Math.min(SWING_MAX, seqState.swingPct + n));
         if (next !== seqState.swingPct) { seqState.swingPct = next; seqCmd('swing ' + next); }

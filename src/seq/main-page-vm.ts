@@ -26,9 +26,12 @@ export function buildMainPageVM(): ViewModel {
     // normalizedValue drives the under-knob LED brightness (knobs 0-3 lit, 4-7
     // off): tempo over 20-300, swing over 50-80, root over its 12 pitch classes,
     // key over the scale list.
+    // While following Move's transport the tempo is Move's; mark the cell EXT
+    // (the preset cell drops to the small font for the non-numeric value).
     const tempo = cell({
         shortName: 'TEMPO', fullName: 'Tempo', renderStyle: 'preset',
-        displayValue: String(bpm), normalizedValue: clamp01((bpm - 20) / 280),
+        displayValue: seqState.extSync ? bpm + ' EXT' : String(bpm),
+        normalizedValue: clamp01((bpm - 20) / 280),
     });
     const sw = cell({
         shortName: 'SWING', fullName: 'Swing', renderStyle: 'preset',

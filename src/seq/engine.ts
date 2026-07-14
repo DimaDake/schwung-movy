@@ -157,6 +157,7 @@ function parseStatus(s: string): void {
         if (key === 'play') seqState.playing = val === '1';
         else if (key === 'tick') seqState.engineTick = Number(val) || 0;
         else if (key === 'bpm') seqState.bpmX100 = Number(val) || seqState.bpmX100;
+        else if (key === 'ext') seqState.extSync = val === '1';
         else if (key === 'swing') seqState.swingPct = Number(val) || seqState.swingPct;
         else if (key === 'trk') seqState.watchTrack = Number(val) || 0;
         else if (key === 'step') seqState.curStep = Number(val) || 0;

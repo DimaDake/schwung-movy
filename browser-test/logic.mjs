@@ -813,6 +813,37 @@ _log('\nTest: drumPadOn');
     eq('empty hauto clears heldLocks', seqState.heldLocks.size, 0);
 }
 
+/* ── EXT follow: engine ext= status field ────────────────────────────────── */
+{
+    _log('\nEXT follow status parse:');
+    const { parseStatusForTest } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    resetSeqState();
+    eq('extSync defaults false', seqState.extSync, false);
+    parseStatusForTest('play=1 bpm=12500 ext=1 trk=0');
+    eq('ext=1 sets extSync', seqState.extSync, true);
+    parseStatusForTest('play=1 bpm=12500 ext=0 trk=0');
+    eq('ext=0 clears extSync', seqState.extSync, false);
+}
+
+/* ── tempo override: debounced desired-tempo write ───────────────────────── */
+{
+    _log('\ntempo override: debounced desired-tempo write');
+    const { scheduleTempoOverride, tempoOverrideTick } =
+        await import('../dist/esm/seq/tempo-override.js');
+    const writes = [];
+    globalThis.host_write_file = (p, v) => { writes.push([p, v]); return true; };
+    scheduleTempoOverride(12500);
+    scheduleTempoOverride(12600);           // knob still turning — supersedes
+    for (let i = 0; i < 59; i++) tempoOverrideTick();
+    eq('no write during debounce', writes.length, 0);
+    tempoOverrideTick();
+    eq('single write after debounce', writes.length, 1);
+    eq('path', writes[0][0], '/data/UserData/schwung/desired-tempo');
+    eq('value is the LAST bpm, 4 decimals', writes[0][1], '126.0000\n');
+    delete globalThis.host_write_file;
+}
+
 /* ── swing: engine swing status field ────────────────────────────────────── */
 {
     _log('\nswing status parse:');

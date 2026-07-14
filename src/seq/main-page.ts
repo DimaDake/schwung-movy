@@ -23,7 +23,7 @@ export const mainPageState = {
     scaleSel: 0,                        // highlighted scale while the list is open
 };
 
-const accum = [0, 0, 0, 0];
+const accum = [0, 0, 0, 0, 0];   // knobs 0-3 + LINK (knob 4)
 
 export function mainPageActive(): boolean { return mainPageState.active; }
 
@@ -88,6 +88,14 @@ export function mainPageKnob(k: number, delta: number, track: number): void {
         setRoot(oct + pc, track);
     } else if (k === 3 && mainPageState.scaleOverlay) {
         mainPageState.scaleSel = Math.max(0, Math.min(SCALE_NAMES.length - 1, mainPageState.scaleSel + n));
+    } else if (k === 4) {
+        // LINK toggle: turn right = ON, left = OFF. Persisted per set.
+        const on = n > 0;
+        if (on !== seqState.linkEnabled) {
+            seqState.linkEnabled = on;
+            seqCmd('link ' + (on ? 1 : 0));
+            markUiStateDirty();
+        }
     }
 }
 

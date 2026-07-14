@@ -826,6 +826,22 @@ _log('\nTest: drumPadOn');
     eq('ext=0 clears extSync', seqState.extSync, false);
 }
 
+/* ── Play-link toggle: link= status field + LINK Set-page cell ────────────── */
+{
+    _log('\nPlay-link toggle:');
+    const { parseStatusForTest } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { buildMainPageVM } = await import('../dist/esm/seq/main-page-vm.js');
+    resetSeqState();
+    eq('linkEnabled defaults false', seqState.linkEnabled, false);
+    eq('LINK cell shows OFF by default', buildMainPageVM().rows[1][0].displayValue, 'OFF');
+    parseStatusForTest('play=0 ext=0 link=1 trk=0');
+    eq('link=1 sets linkEnabled', seqState.linkEnabled, true);
+    eq('LINK cell shows ON', buildMainPageVM().rows[1][0].displayValue, 'ON');
+    parseStatusForTest('play=0 ext=0 link=0 trk=0');
+    eq('link=0 clears linkEnabled', seqState.linkEnabled, false);
+}
+
 /* ── tempo override: debounced desired-tempo write ───────────────────────── */
 {
     _log('\ntempo override: debounced desired-tempo write');

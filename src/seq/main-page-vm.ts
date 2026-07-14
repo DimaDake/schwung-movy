@@ -47,8 +47,16 @@ export function buildMainPageVM(): ViewModel {
         enumIndex: scale, displayValue: SCALE_NAMES[scale],
         normalizedValue: SCALE_NAMES.length > 1 ? scale / (SCALE_NAMES.length - 1) : 0,
     });
+    // Knob 4: bidirectional Move transport link (Play/Stop propagation). OFF by
+    // default; clock-follow (EXT) works regardless. A plain on/off enum.
+    const linkOn = seqState.linkEnabled;
+    const link = cell({
+        shortName: 'LINK', fullName: 'Play Link', type: 'enum',
+        options: ['OFF', 'ON'], enumIndex: linkOn ? 1 : 0,
+        displayValue: linkOn ? 'ON' : 'OFF', normalizedValue: linkOn ? 1 : 0,
+    });
 
-    const cells = [tempo, sw, root, key];
+    const cells = [tempo, sw, root, key, link];
     const tk = mainPageState.touchedKnob;
     let toast = null;
     if (tk >= 0 && tk < cells.length) {
@@ -65,7 +73,7 @@ export function buildMainPageVM(): ViewModel {
     return {
         moduleName: 'SET PARAMETERS', headerOverride: 'SET PARAMETERS',
         bankName: '', bankIndex: 0, bankCount: 1,
-        rows: [[tempo, sw, root, key], [null, null, null, null]],
+        rows: [[tempo, sw, root, key], [link, null, null, null]],
         touchedSlot: null, toast, overlay, isEmpty: false,
         drumPadCount: 0, drumCurrentPad: 0, drumCurrentPhysPad: 0, isPadSpecific: false,
         automationHeld: false, automationPoolFull: false,

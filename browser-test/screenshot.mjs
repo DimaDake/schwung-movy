@@ -42,7 +42,7 @@ const PRESETS = [
     'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
     'step_page_knobs', 'step_page_chain', 'step_indicator',
     'main-default', 'main-tempo-touched', 'main-swing-touched',
-    'main-root-touched', 'main-key-overlay', 'main-ext-sync',
+    'main-root-touched', 'main-key-overlay', 'main-ext-sync', 'main-link-on',
     'clip-default', 'clip-fraction', 'clip-overlay',
     'env_dual', 'env_touched',
     'leave_modal',
@@ -60,7 +60,7 @@ const BASE = {
     step_page_knobs: 'test8', step_page_chain: 'test8', step_indicator: 'test8',
     'main-default': 'test8', 'main-tempo-touched': 'test8',
     'main-swing-touched': 'test8', 'main-root-touched': 'test8',
-    'main-key-overlay': 'test8', 'main-ext-sync': 'test8',
+    'main-key-overlay': 'test8', 'main-ext-sync': 'test8', 'main-link-on': 'test8',
     'clip-default': 'test8', 'clip-fraction': 'test8', 'clip-overlay': 'test8',
     env_dual: 'env_dual', env_touched: 'env_dual',
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
@@ -267,6 +267,14 @@ function applyView(preset) {
             keyboardState.rootNote = 48; keyboardState.scale = 0;
             seqState.bpmX100 = 12500; seqState.swingPct = 50;
             seqState.extSync = true;
+            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
+            lastRender();
+            break;
+        }
+        case 'main-link-on': {       // Play-link enabled: LINK cell shows ON
+            resetSeqState(); resetMainPage();
+            keyboardState.rootNote = 48; keyboardState.scale = 0;
+            seqState.linkEnabled = true;
             lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
             lastRender();
             break;

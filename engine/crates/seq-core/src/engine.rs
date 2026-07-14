@@ -626,10 +626,66 @@ impl Engine {
     /// Advance one audio block; pushes due MIDI into `out`.
     pub fn advance_block(&mut self, frames: u32, out: &mut Vec<OutEvent>) {
         self.frame_now += frames as u64;
-        let fired = self.clock.advance(frames);
-        // Transport edges are detected here (play/stop arrive via commands
-        // between blocks) so Start/Stop always pair correctly.
-        if self.playing && !self.emitting_clock {
+
+        // Staleness: Move wedged without 0xFC must not freeze the playhead
+        // (0.5 s, mirrors schwung's transport service).
+        if self.ext_running
+            && self.ext_last_frame > 0
+            && self.frame_now - self.ext_last_frame > self.clock.sample_rate() as u64 / 2
+        {
+            self.ext_running = false;
+        }
+
+        // Follow engage/disengage edges (design §7 Phase 3).
+        let following = self.follow_active();
+        if following && !self.was_following {
+            // Close the internal clock session; schwung's transport service
+            // switches to Move's clock.
+            if self.emitting_clock {
+                self.emitting_clock = false;
+                out.push(OutEvent::Stop);
+            }
+            self.resume_anchor_pending = false;
+            if !self.ext_base_set {
+                // Joined an already-running Move: launch-quantize to Move's
+                // next bar so we start on the downbeat (0xFA anchors base 0
+                // itself). 96 ext ticks = one 4/4 bar at 24 PPQN.
+                self.ext_base = (self.ext_ticks / 96 + 1) * 96;
+                self.ext_base_set = true;
+                self.start_transport();
+            }
+        } else if !following && self.was_following {
+            // Move stopped (or we did): resume the internal accumulator from
+            // the current position; re-anchor emission at our next bar.
+            self.clock.reset();
+            self.clock.tick = self.master_tick;
+            self.ext_base_set = false;
+            if self.playing {
+                self.resume_anchor_pending = true;
+            }
+        }
+        self.was_following = following;
+
+        let fired: u64 = if following {
+            // Playhead target from Move's ticks: 24 → 96 PPQN, plus a
+            // block-interpolated fraction, clamped to one beat per block.
+            let mut abs = self.ext_ticks * 4;
+            if self.ext_interval > 0.0 {
+                let frac =
+                    ((self.frame_now - self.ext_last_frame) as f64 / self.ext_interval).min(1.0);
+                abs += (frac * 4.0) as u64;
+            }
+            abs.saturating_sub(self.ext_base * 4)
+                .saturating_sub(self.master_tick)
+                .min(96)
+        } else {
+            self.clock.advance(frames) as u64
+        };
+
+        // Internal transport edges (play/stop arrive via commands between
+        // blocks) so Start/Stop always pair correctly. Suppressed while
+        // following — a revert re-anchors at the bar boundary in the loop.
+        if self.playing && !self.emitting_clock && !following && !self.resume_anchor_pending {
             self.emitting_clock = true;
             out.push(OutEvent::Start);
         } else if !self.playing && self.emitting_clock {
@@ -640,9 +696,20 @@ impl Engine {
             return;
         }
         for _ in 0..fired {
+            // After reverting to internal clock, re-open the session (0xFA)
+            // at movy's own next bar boundary so LFOs re-lock to our grid.
+            if self.resume_anchor_pending
+                && !following
+                && self.master_tick % crate::TICKS_PER_BAR as u64 == 0
+            {
+                self.resume_anchor_pending = false;
+                self.emitting_clock = true;
+                out.push(OutEvent::Start);
+            }
             // 96-PPQN master clock -> 24-PPQN MIDI clock, emitted before the
-            // tick is serviced so 0xF8 aligns with that tick's notes.
-            if self.master_tick % 4 == 0 {
+            // tick is serviced so 0xF8 aligns with that tick's notes. Silent
+            // while following (Move's clock drives the slots instead).
+            if self.emitting_clock && !following && self.master_tick % 4 == 0 {
                 out.push(OutEvent::Clock);
             }
             self.service_tick(out);
@@ -1239,6 +1306,106 @@ mod tests {
         run_ext_ticks(&mut e, 96, &mut out);
         assert_eq!(e.master_tick, 0);
         assert!(out.iter().all(|x| !matches!(x, OutEvent::NoteOn { .. })));
+    }
+
+    #[test]
+    fn follow_locks_playhead_to_ext_ticks() {
+        let mut e = engine();
+        e.play();
+        let mut out = Vec::new();
+        e.on_external_realtime(0xFA, &mut out);
+        e.on_external_realtime(0xF8, &mut out);
+        run_ext_ticks(&mut e, 24, &mut out); // one external beat
+        // 24 ext ticks × 4 = 96 master ticks, ± the interpolated tail.
+        assert!((92..=100).contains(&e.master_tick), "master {}", e.master_tick);
+    }
+
+    #[test]
+    fn no_internal_clock_emission_while_following() {
+        let mut e = engine();
+        e.play();
+        let mut out = Vec::new();
+        e.advance_block(FRAMES, &mut out); // internal Start fires first
+        out.clear();
+        e.on_external_realtime(0xFA, &mut out);
+        e.on_external_realtime(0xF8, &mut out);
+        run_ext_ticks(&mut e, 48, &mut out);
+        let stops = out.iter().filter(|x| matches!(x, OutEvent::Stop)).count();
+        assert_eq!(stops, 1, "internal session closed exactly once on engage");
+        assert!(out.iter().all(|x| !matches!(x, OutEvent::Clock | OutEvent::Start)));
+    }
+
+    #[test]
+    fn fa_reanchors_pattern_and_flushes_gates() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.play();
+        // A toggled step's gate is TICKS_PER_STEP (24), so run only 10 ticks —
+        // the note is still sounding when Move's FA re-anchors.
+        let _ = run_ticks(&mut e, 10); // internal playback, gate open
+        let mut out = Vec::new();
+        e.on_external_realtime(0xFA, &mut out);
+        assert!(out.contains(&OutEvent::NoteOff { track: 0, pitch: 60 }));
+        assert_eq!(e.master_tick, 0);
+        assert!(e.playing);
+    }
+
+    #[test]
+    fn engaging_mid_song_waits_for_moves_next_bar() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        let mut out = Vec::new();
+        // Move already running, unanchored, 10 ticks into wherever.
+        e.on_external_realtime(0xF8, &mut out);
+        run_ext_ticks(&mut e, 10, &mut out);
+        e.play();
+        // Up to the bar boundary (96 ext ticks) movy holds at 0…
+        run_ext_ticks(&mut e, 40, &mut out);
+        assert_eq!(e.master_tick, 0, "waits for Move's bar");
+        // …then starts on the downbeat.
+        run_ext_ticks(&mut e, 50, &mut out);
+        assert!(e.master_tick > 0, "started after Move's bar boundary");
+        assert!(out.iter().any(|x| matches!(x, OutEvent::NoteOn { .. })));
+    }
+
+    #[test]
+    fn move_stop_reverts_to_internal_with_bar_anchored_emission() {
+        let mut e = engine();
+        e.play();
+        let mut out = Vec::new();
+        e.on_external_realtime(0xFA, &mut out);
+        e.on_external_realtime(0xF8, &mut out);
+        run_ext_ticks(&mut e, 48, &mut out); // half a bar in (~192 master ticks)
+        e.on_external_realtime(0xFC, &mut out);
+        out.clear();
+        let before = e.master_tick;
+        // Internal clock drives again. run_ticks can't be used here: the revert
+        // jumps clock.tick to master_tick, collapsing its start+ticks window.
+        // Drive blocks directly, long enough to cross movy's next bar (384).
+        let mut ev = Vec::new();
+        for _ in 0..400 {
+            e.advance_block(FRAMES, &mut ev);
+        }
+        assert!(e.master_tick > before, "keeps playing after Move stops");
+        // Start re-emitted exactly once, at our next bar boundary, then clocks.
+        let starts = ev.iter().filter(|x| matches!(x, OutEvent::Start)).count();
+        assert_eq!(starts, 1);
+        assert!(ev.iter().any(|x| matches!(x, OutEvent::Clock)));
+    }
+
+    #[test]
+    fn stale_ext_clock_reverts_like_a_stop() {
+        let mut e = engine();
+        e.play();
+        let mut out = Vec::new();
+        e.on_external_realtime(0xFA, &mut out);
+        e.on_external_realtime(0xF8, &mut out);
+        run_ext_ticks(&mut e, 24, &mut out);
+        let frozen = e.master_tick;
+        // 1 s of silence (> 0.5 s staleness) then internal blocks.
+        let mut left = 44100u32;
+        while left > 0 { let s = left.min(FRAMES); e.advance_block(s, &mut out); left -= s; }
+        assert!(e.master_tick > frozen, "revived on internal clock");
     }
 
     #[test]

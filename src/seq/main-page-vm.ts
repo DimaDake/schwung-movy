@@ -48,11 +48,11 @@ export function buildMainPageVM(): ViewModel {
         normalizedValue: SCALE_NAMES.length > 1 ? scale / (SCALE_NAMES.length - 1) : 0,
     });
     // Knob 4: bidirectional Move transport link (Play/Stop propagation). OFF by
-    // default; clock-follow (EXT) works regardless. A plain on/off enum.
+    // default; clock-follow (EXT) works regardless. Rendered as the binary
+    // on/off horizontal bar (full = on, empty = off).
     const linkOn = seqState.linkEnabled;
     const link = cell({
-        shortName: 'LINK', fullName: 'Play Link', type: 'enum',
-        options: ['OFF', 'ON'], enumIndex: linkOn ? 1 : 0,
+        shortName: 'LINK', fullName: 'Play Link', renderStyle: 'hbar',
         displayValue: linkOn ? 'ON' : 'OFF', normalizedValue: linkOn ? 1 : 0,
     });
 

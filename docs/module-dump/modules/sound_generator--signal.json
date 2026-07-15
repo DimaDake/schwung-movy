@@ -1,0 +1,6771 @@
+{
+ "id": "signal",
+ "name": "Signal",
+ "version": "0.2.1",
+ "author": "fillioning",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 68,
+ "dsp_size": 142456,
+ "capabilities": {
+  "audio_out": true,
+  "midi_in": true,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy": {
+   "modes": null,
+   "levels": {
+    "root": {
+     "name": "Signal",
+     "knobs": [
+      "seq1",
+      "seq2",
+      "seq3",
+      "seq4",
+      "syn1",
+      "syn2",
+      "syn3",
+      "syn4"
+     ],
+     "params": [
+      {
+       "level": "generate",
+       "label": "Generate"
+      },
+      {
+       "level": "patch",
+       "label": "Patch"
+      },
+      {
+       "level": "params",
+       "label": "Sequences"
+      },
+      {
+       "level": "modulation",
+       "label": "Modulation"
+      },
+      {
+       "level": "mix",
+       "label": "Mix"
+      },
+      {
+       "level": "voice1",
+       "label": "Voice 1"
+      },
+      {
+       "level": "voice2",
+       "label": "Voice 2"
+      },
+      {
+       "level": "voice3",
+       "label": "Voice 3"
+      },
+      {
+       "level": "voice4",
+       "label": "Voice 4"
+      },
+      {
+       "level": "general",
+       "label": "General"
+      }
+     ]
+    },
+    "generate": {
+     "name": "Generate",
+     "knobs": [
+      "seq1",
+      "seq2",
+      "seq3",
+      "seq4",
+      "syn1",
+      "syn2",
+      "syn3",
+      "syn4"
+     ],
+     "params": [
+      "seq1",
+      "seq2",
+      "seq3",
+      "seq4",
+      "syn1",
+      "syn2",
+      "syn3",
+      "syn4"
+     ]
+    },
+    "patch": {
+     "name": "Patch",
+     "knobs": [
+      "patch",
+      "rnd_patch",
+      "rnd_rytm",
+      "rnd_voices",
+      "rnd_mod",
+      "rnd_pitch",
+      "rnd_pan",
+      "all_decay"
+     ],
+     "params": [
+      "patch",
+      "rnd_patch",
+      "rnd_rytm",
+      "rnd_voices",
+      "rnd_mod",
+      "rnd_pitch",
+      "rnd_pan",
+      "all_decay",
+      "same_voice"
+     ]
+    },
+    "params": {
+     "name": "Sequences",
+     "knobs": [
+      "root",
+      "scale",
+      "density",
+      "chaos",
+      "gravity",
+      "clk_div",
+      "morse_spd",
+      "swing"
+     ],
+     "params": [
+      "root",
+      "scale",
+      "density",
+      "chaos",
+      "gravity",
+      "clk_div",
+      "morse_spd",
+      "swing"
+     ]
+    },
+    "modulation": {
+     "name": "Modulation",
+     "knobs": [
+      "mod_amount",
+      "mod_speed",
+      "mod_freq",
+      "mod_decay",
+      "mod_pan",
+      "mod_density",
+      "mod_shape",
+      "mod_reset"
+     ],
+     "params": [
+      "mod_amount",
+      "mod_speed",
+      "mod_freq",
+      "mod_decay",
+      "mod_pan",
+      "mod_density",
+      "mod_shape",
+      "mod_reset",
+      "mod_offset"
+     ]
+    },
+    "mix": {
+     "name": "Mix",
+     "knobs": [
+      "v1_level",
+      "v2_level",
+      "v3_level",
+      "v4_level",
+      "v1_freq",
+      "v2_freq",
+      "v3_freq",
+      "v4_freq"
+     ],
+     "params": [
+      "v1_level",
+      "v2_level",
+      "v3_level",
+      "v4_level",
+      "v1_freq",
+      "v2_freq",
+      "v3_freq",
+      "v4_freq"
+     ]
+    },
+    "voice1": {
+     "name": "Voice 1",
+     "knobs": [
+      "v1_preset",
+      "v1_vol",
+      "v1_vfreq",
+      "v1_wave",
+      "v1_tone",
+      "v1_decay",
+      "v1_detune",
+      "v1_pan"
+     ],
+     "params": [
+      "v1_preset",
+      "v1_vol",
+      "v1_vfreq",
+      "v1_wave",
+      "v1_tone",
+      "v1_decay",
+      "v1_detune",
+      "v1_pan",
+      "v1_attack",
+      "v1_sub_div",
+      "v1_sweep",
+      "v1_tone_rnd",
+      "v1_improv",
+      "v1_push_pull",
+      "v1_bank_mode",
+      "v1_bank_pitch_0",
+      "v1_bank_pitch_1",
+      "v1_bank_pitch_2",
+      "v1_bank_pitch_3",
+      "v1_bank_pitch_4",
+      "v1_ghost_crescendo"
+     ]
+    },
+    "voice2": {
+     "name": "Voice 2",
+     "knobs": [
+      "v2_preset",
+      "v2_vol",
+      "v2_vfreq",
+      "v2_wave",
+      "v2_tone",
+      "v2_decay",
+      "v2_detune",
+      "v2_pan"
+     ],
+     "params": [
+      "v2_preset",
+      "v2_vol",
+      "v2_vfreq",
+      "v2_wave",
+      "v2_tone",
+      "v2_decay",
+      "v2_detune",
+      "v2_pan",
+      "v2_attack",
+      "v2_sub_div",
+      "v2_sweep",
+      "v2_tone_rnd",
+      "v2_improv",
+      "v2_push_pull",
+      "v2_bank_mode",
+      "v2_bank_pitch_0",
+      "v2_bank_pitch_1",
+      "v2_bank_pitch_2",
+      "v2_bank_pitch_3",
+      "v2_bank_pitch_4",
+      "v2_ghost_crescendo"
+     ]
+    },
+    "voice3": {
+     "name": "Voice 3",
+     "knobs": [
+      "v3_preset",
+      "v3_vol",
+      "v3_vfreq",
+      "v3_wave",
+      "v3_tone",
+      "v3_decay",
+      "v3_detune",
+      "v3_pan"
+     ],
+     "params": [
+      "v3_preset",
+      "v3_vol",
+      "v3_vfreq",
+      "v3_wave",
+      "v3_tone",
+      "v3_decay",
+      "v3_detune",
+      "v3_pan",
+      "v3_attack",
+      "v3_sub_div",
+      "v3_sweep",
+      "v3_tone_rnd",
+      "v3_improv",
+      "v3_push_pull",
+      "v3_bank_mode",
+      "v3_bank_pitch_0",
+      "v3_bank_pitch_1",
+      "v3_bank_pitch_2",
+      "v3_bank_pitch_3",
+      "v3_bank_pitch_4",
+      "v3_ghost_crescendo"
+     ]
+    },
+    "voice4": {
+     "name": "Voice 4",
+     "knobs": [
+      "v4_preset",
+      "v4_vol",
+      "v4_vfreq",
+      "v4_wave",
+      "v4_tone",
+      "v4_decay",
+      "v4_detune",
+      "v4_pan"
+     ],
+     "params": [
+      "v4_preset",
+      "v4_vol",
+      "v4_vfreq",
+      "v4_wave",
+      "v4_tone",
+      "v4_decay",
+      "v4_detune",
+      "v4_pan",
+      "v4_attack",
+      "v4_sub_div",
+      "v4_sweep",
+      "v4_tone_rnd",
+      "v4_improv",
+      "v4_push_pull",
+      "v4_bank_mode",
+      "v4_bank_pitch_0",
+      "v4_bank_pitch_1",
+      "v4_bank_pitch_2",
+      "v4_bank_pitch_3",
+      "v4_bank_pitch_4",
+      "v4_ghost_crescendo"
+     ]
+    },
+    "general": {
+     "name": "General",
+     "knobs": [
+      "bpm",
+      "drift",
+      "jitter",
+      "bit_crush",
+      "bit_rate",
+      "stereo_w",
+      "scene_morph",
+      "master_vol"
+     ],
+     "params": [
+      "bpm",
+      "drift",
+      "jitter",
+      "bit_crush",
+      "bit_rate",
+      "stereo_w",
+      "scene_morph",
+      "master_vol",
+      "tempo_sync",
+      "dc_filter",
+      "out_mode",
+      "save_scene_a",
+      "save_scene_b",
+      "morph_curve",
+      "morph_smooth",
+      "phrase_length",
+      "fill_shape",
+      "step_grid",
+      "retrig_rate",
+      "drummer_brain"
+     ]
+    }
+   }
+  },
+  "chain_params": [
+   {
+    "key": "seq1",
+    "name": "Seq 1",
+    "type": "int",
+    "min": 0,
+    "max": 35,
+    "step": 1
+   },
+   {
+    "key": "seq2",
+    "name": "Seq 2",
+    "type": "int",
+    "min": 0,
+    "max": 35,
+    "step": 1
+   },
+   {
+    "key": "seq3",
+    "name": "Seq 3",
+    "type": "int",
+    "min": 0,
+    "max": 35,
+    "step": 1
+   },
+   {
+    "key": "seq4",
+    "name": "Seq 4",
+    "type": "int",
+    "min": 0,
+    "max": 35,
+    "step": 1
+   },
+   {
+    "key": "syn1",
+    "name": "Syn 1",
+    "type": "int",
+    "min": 0,
+    "max": 50,
+    "step": 1
+   },
+   {
+    "key": "syn2",
+    "name": "Syn 2",
+    "type": "int",
+    "min": 0,
+    "max": 50,
+    "step": 1
+   },
+   {
+    "key": "syn3",
+    "name": "Syn 3",
+    "type": "int",
+    "min": 0,
+    "max": 50,
+    "step": 1
+   },
+   {
+    "key": "syn4",
+    "name": "Syn 4",
+    "type": "int",
+    "min": 0,
+    "max": 50,
+    "step": 1
+   },
+   {
+    "key": "patch",
+    "name": "Patch",
+    "type": "enum",
+    "options": [
+     "Init",
+     "Ikeda Grid",
+     "Bernier",
+     "Morse CQ",
+     "Mathcore",
+     "Pink Rain",
+     "Heterodyne",
+     "Sub Harm",
+     "CA Automata",
+     "FM Bell",
+     "AM Texture",
+     "Brown Pulse",
+     "Clk Matrix",
+     "Sweep Casc",
+     "Fibonacci",
+     "Digi Glitch",
+     "Chirp Field",
+     "Phase Cloud",
+     "Test Signal",
+     "CW Radio",
+     "Cantor",
+     "Noise Gate",
+     "Sub Bass",
+     "Thue-Morse",
+     "Pink Grid",
+     "Metallic FM",
+     "Minimal",
+     "Maximum",
+     "Rule 30",
+     "Freq Lat.",
+     "Gauss Pings",
+     "Ikeda Data",
+     "Tuning Fork",
+     "Fork Harmony",
+     "BL Square",
+     "Data Quanta",
+     "Resonant Bell",
+     "Sine Study",
+     "Noise Field",
+     "Aleatoric",
+     "Amen",
+     "Think",
+     "Funky Drummer",
+     "Piccolo Jungle",
+     "Liquid DnB",
+     "Holzman Live",
+     "Microsound Jungle",
+     "Bernier Jungle",
+     "Mathcore Break",
+     "Bretschneider Roll"
+    ]
+   },
+   {
+    "key": "rnd_patch",
+    "name": "Rnd Patch",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1
+   },
+   {
+    "key": "rnd_rytm",
+    "name": "Rnd Rytm",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1
+   },
+   {
+    "key": "rnd_voices",
+    "name": "Rnd Voices",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1
+   },
+   {
+    "key": "rnd_mod",
+    "name": "Rnd Mod",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1
+   },
+   {
+    "key": "rnd_pitch",
+    "name": "Rnd Pitch",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1
+   },
+   {
+    "key": "rnd_pan",
+    "name": "Rnd Pan",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1
+   },
+   {
+    "key": "all_decay",
+    "name": "All Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "same_voice",
+    "name": "Same Voice",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1
+   },
+   {
+    "key": "v1_level",
+    "name": "V1 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v2_level",
+    "name": "V2 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v3_level",
+    "name": "V3 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v4_level",
+    "name": "V4 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v1_freq",
+    "name": "V1 Freq",
+    "type": "float",
+    "min": 20,
+    "max": 20000,
+    "step": 1
+   },
+   {
+    "key": "v2_freq",
+    "name": "V2 Freq",
+    "type": "float",
+    "min": 20,
+    "max": 20000,
+    "step": 1
+   },
+   {
+    "key": "v3_freq",
+    "name": "V3 Freq",
+    "type": "float",
+    "min": 20,
+    "max": 20000,
+    "step": 1
+   },
+   {
+    "key": "v4_freq",
+    "name": "V4 Freq",
+    "type": "float",
+    "min": 20,
+    "max": 20000,
+    "step": 1
+   },
+   {
+    "key": "root",
+    "name": "Root",
+    "type": "enum",
+    "options": [
+     "Free",
+     "C",
+     "C#",
+     "D",
+     "D#",
+     "E",
+     "F",
+     "F#",
+     "G",
+     "G#",
+     "A",
+     "A#",
+     "B"
+    ]
+   },
+   {
+    "key": "scale",
+    "name": "Scale",
+    "type": "enum",
+    "options": [
+     "Free",
+     "Chromatic",
+     "Major",
+     "Minor",
+     "Pentatonic",
+     "WholeTone",
+     "Diminished",
+     "HarmMin"
+    ]
+   },
+   {
+    "key": "density",
+    "name": "Density",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "chaos",
+    "name": "Chaos",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "gravity",
+    "name": "Gravity",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "clk_div",
+    "name": "Clk Div",
+    "type": "int",
+    "min": 1,
+    "max": 32,
+    "step": 1
+   },
+   {
+    "key": "morse_spd",
+    "name": "Morse Spd",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "swing",
+    "name": "Swing",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "mod_amount",
+    "name": "Mod Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "mod_speed",
+    "name": "Mod Speed",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "mod_offset",
+    "name": "Mod Offset",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "mod_freq",
+    "name": "Freq Mod",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "mod_decay",
+    "name": "Decay Mod",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "mod_pan",
+    "name": "Pan Mod",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "mod_density",
+    "name": "Density Mod",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "mod_shape",
+    "name": "Mod Shape",
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Square",
+     "S&H",
+     "Random"
+    ]
+   },
+   {
+    "key": "mod_reset",
+    "name": "Mod Reset",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1
+   },
+   {
+    "key": "v1_preset",
+    "name": "V1 Preset",
+    "type": "int",
+    "min": 0,
+    "max": 50,
+    "step": 1
+   },
+   {
+    "key": "v1_vol",
+    "name": "V1 Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v1_vfreq",
+    "name": "V1 Freq",
+    "type": "float",
+    "min": 20,
+    "max": 20000,
+    "step": 1
+   },
+   {
+    "key": "v1_wave",
+    "name": "V1 Wave",
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Impulse",
+     "Noise",
+     "Damped",
+     "Click",
+     "Square",
+     "Tri",
+     "FM",
+     "Pink",
+     "Brown",
+     "AM",
+     "Ping",
+     "Train",
+     "Kick",
+     "Snare",
+     "Hat"
+    ]
+   },
+   {
+    "key": "v1_tone",
+    "name": "V1 Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v1_decay",
+    "name": "V1 Decay",
+    "type": "float",
+    "min": 0.0001,
+    "max": 0.5,
+    "step": 0.001
+   },
+   {
+    "key": "v1_detune",
+    "name": "V1 Detune",
+    "type": "float",
+    "min": 0,
+    "max": 20,
+    "step": 0.1
+   },
+   {
+    "key": "v1_pan",
+    "name": "V1 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v1_attack",
+    "name": "V1 Attack",
+    "type": "float",
+    "min": 0.0001,
+    "max": 0.05,
+    "step": 0.0001
+   },
+   {
+    "key": "v1_sub_div",
+    "name": "V1 Sub Div",
+    "type": "int",
+    "min": 1,
+    "max": 8,
+    "step": 1
+   },
+   {
+    "key": "v1_sweep",
+    "name": "V1 Sweep",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v1_tone_rnd",
+    "name": "Tone Rnd",
+    "type": "enum",
+    "options": [
+     "0%",
+     "1%",
+     "2%",
+     "3%",
+     "4%",
+     "5%",
+     "6%",
+     "7%",
+     "8%",
+     "9%",
+     "10%",
+     "11%",
+     "12%",
+     "13%",
+     "14%",
+     "15%",
+     "16%",
+     "17%",
+     "18%",
+     "19%",
+     "20%",
+     "21%",
+     "22%",
+     "23%",
+     "24%",
+     "25%",
+     "26%",
+     "27%",
+     "28%",
+     "29%",
+     "30%",
+     "31%",
+     "32%",
+     "33%",
+     "34%",
+     "35%",
+     "36%",
+     "37%",
+     "38%",
+     "39%",
+     "40%",
+     "41%",
+     "42%",
+     "43%",
+     "44%",
+     "45%",
+     "46%",
+     "47%",
+     "48%",
+     "49%",
+     "50%",
+     "51%",
+     "52%",
+     "53%",
+     "54%",
+     "55%",
+     "56%",
+     "57%",
+     "58%",
+     "59%",
+     "60%",
+     "61%",
+     "62%",
+     "63%",
+     "64%",
+     "65%",
+     "66%",
+     "67%",
+     "68%",
+     "69%",
+     "70%",
+     "71%",
+     "72%",
+     "73%",
+     "74%",
+     "75%",
+     "76%",
+     "77%",
+     "78%",
+     "79%",
+     "80%",
+     "81%",
+     "82%",
+     "83%",
+     "84%",
+     "85%",
+     "86%",
+     "87%",
+     "88%",
+     "89%",
+     "90%",
+     "91%",
+     "92%",
+     "93%",
+     "94%",
+     "95%",
+     "96%",
+     "97%",
+     "98%",
+     "99%",
+     "100%"
+    ]
+   },
+   {
+    "key": "v1_improv",
+    "name": "V1 Improv",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v1_push_pull",
+    "name": "V1 Push/Pull",
+    "type": "float",
+    "min": -20,
+    "max": 20,
+    "step": 0.5
+   },
+   {
+    "key": "v1_bank_mode",
+    "name": "V1 Bank",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Rule",
+     "Random"
+    ]
+   },
+   {
+    "key": "v1_bank_pitch_0",
+    "name": "V1 Bank 0",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v1_bank_pitch_1",
+    "name": "V1 Bank 1",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v1_bank_pitch_2",
+    "name": "V1 Bank 2",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v1_bank_pitch_3",
+    "name": "V1 Bank 3",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v1_bank_pitch_4",
+    "name": "V1 Bank 4",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v1_ghost_crescendo",
+    "name": "V1 Ghost Cresc",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ]
+   },
+   {
+    "key": "v2_preset",
+    "name": "V2 Preset",
+    "type": "int",
+    "min": 0,
+    "max": 50,
+    "step": 1
+   },
+   {
+    "key": "v2_vol",
+    "name": "V2 Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v2_vfreq",
+    "name": "V2 Freq",
+    "type": "float",
+    "min": 20,
+    "max": 20000,
+    "step": 1
+   },
+   {
+    "key": "v2_wave",
+    "name": "V2 Wave",
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Impulse",
+     "Noise",
+     "Damped",
+     "Click",
+     "Square",
+     "Tri",
+     "FM",
+     "Pink",
+     "Brown",
+     "AM",
+     "Ping",
+     "Train",
+     "Kick",
+     "Snare",
+     "Hat"
+    ]
+   },
+   {
+    "key": "v2_tone",
+    "name": "V2 Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v2_decay",
+    "name": "V2 Decay",
+    "type": "float",
+    "min": 0.0001,
+    "max": 0.5,
+    "step": 0.001
+   },
+   {
+    "key": "v2_detune",
+    "name": "V2 Detune",
+    "type": "float",
+    "min": 0,
+    "max": 20,
+    "step": 0.1
+   },
+   {
+    "key": "v2_pan",
+    "name": "V2 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v2_attack",
+    "name": "V2 Attack",
+    "type": "float",
+    "min": 0.0001,
+    "max": 0.05,
+    "step": 0.0001
+   },
+   {
+    "key": "v2_sub_div",
+    "name": "V2 Sub Div",
+    "type": "int",
+    "min": 1,
+    "max": 8,
+    "step": 1
+   },
+   {
+    "key": "v2_sweep",
+    "name": "V2 Sweep",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v2_tone_rnd",
+    "name": "Tone Rnd",
+    "type": "enum",
+    "options": [
+     "0%",
+     "1%",
+     "2%",
+     "3%",
+     "4%",
+     "5%",
+     "6%",
+     "7%",
+     "8%",
+     "9%",
+     "10%",
+     "11%",
+     "12%",
+     "13%",
+     "14%",
+     "15%",
+     "16%",
+     "17%",
+     "18%",
+     "19%",
+     "20%",
+     "21%",
+     "22%",
+     "23%",
+     "24%",
+     "25%",
+     "26%",
+     "27%",
+     "28%",
+     "29%",
+     "30%",
+     "31%",
+     "32%",
+     "33%",
+     "34%",
+     "35%",
+     "36%",
+     "37%",
+     "38%",
+     "39%",
+     "40%",
+     "41%",
+     "42%",
+     "43%",
+     "44%",
+     "45%",
+     "46%",
+     "47%",
+     "48%",
+     "49%",
+     "50%",
+     "51%",
+     "52%",
+     "53%",
+     "54%",
+     "55%",
+     "56%",
+     "57%",
+     "58%",
+     "59%",
+     "60%",
+     "61%",
+     "62%",
+     "63%",
+     "64%",
+     "65%",
+     "66%",
+     "67%",
+     "68%",
+     "69%",
+     "70%",
+     "71%",
+     "72%",
+     "73%",
+     "74%",
+     "75%",
+     "76%",
+     "77%",
+     "78%",
+     "79%",
+     "80%",
+     "81%",
+     "82%",
+     "83%",
+     "84%",
+     "85%",
+     "86%",
+     "87%",
+     "88%",
+     "89%",
+     "90%",
+     "91%",
+     "92%",
+     "93%",
+     "94%",
+     "95%",
+     "96%",
+     "97%",
+     "98%",
+     "99%",
+     "100%"
+    ]
+   },
+   {
+    "key": "v2_improv",
+    "name": "V2 Improv",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v2_push_pull",
+    "name": "V2 Push/Pull",
+    "type": "float",
+    "min": -20,
+    "max": 20,
+    "step": 0.5
+   },
+   {
+    "key": "v2_bank_mode",
+    "name": "V2 Bank",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Rule",
+     "Random"
+    ]
+   },
+   {
+    "key": "v2_bank_pitch_0",
+    "name": "V2 Bank 0",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v2_bank_pitch_1",
+    "name": "V2 Bank 1",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v2_bank_pitch_2",
+    "name": "V2 Bank 2",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v2_bank_pitch_3",
+    "name": "V2 Bank 3",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v2_bank_pitch_4",
+    "name": "V2 Bank 4",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v2_ghost_crescendo",
+    "name": "V2 Ghost Cresc",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ]
+   },
+   {
+    "key": "v3_preset",
+    "name": "V3 Preset",
+    "type": "int",
+    "min": 0,
+    "max": 50,
+    "step": 1
+   },
+   {
+    "key": "v3_vol",
+    "name": "V3 Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v3_vfreq",
+    "name": "V3 Freq",
+    "type": "float",
+    "min": 20,
+    "max": 20000,
+    "step": 1
+   },
+   {
+    "key": "v3_wave",
+    "name": "V3 Wave",
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Impulse",
+     "Noise",
+     "Damped",
+     "Click",
+     "Square",
+     "Tri",
+     "FM",
+     "Pink",
+     "Brown",
+     "AM",
+     "Ping",
+     "Train",
+     "Kick",
+     "Snare",
+     "Hat"
+    ]
+   },
+   {
+    "key": "v3_tone",
+    "name": "V3 Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v3_decay",
+    "name": "V3 Decay",
+    "type": "float",
+    "min": 0.0001,
+    "max": 0.5,
+    "step": 0.001
+   },
+   {
+    "key": "v3_detune",
+    "name": "V3 Detune",
+    "type": "float",
+    "min": 0,
+    "max": 20,
+    "step": 0.1
+   },
+   {
+    "key": "v3_pan",
+    "name": "V3 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v3_attack",
+    "name": "V3 Attack",
+    "type": "float",
+    "min": 0.0001,
+    "max": 0.05,
+    "step": 0.0001
+   },
+   {
+    "key": "v3_sub_div",
+    "name": "V3 Sub Div",
+    "type": "int",
+    "min": 1,
+    "max": 8,
+    "step": 1
+   },
+   {
+    "key": "v3_sweep",
+    "name": "V3 Sweep",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v3_tone_rnd",
+    "name": "Tone Rnd",
+    "type": "enum",
+    "options": [
+     "0%",
+     "1%",
+     "2%",
+     "3%",
+     "4%",
+     "5%",
+     "6%",
+     "7%",
+     "8%",
+     "9%",
+     "10%",
+     "11%",
+     "12%",
+     "13%",
+     "14%",
+     "15%",
+     "16%",
+     "17%",
+     "18%",
+     "19%",
+     "20%",
+     "21%",
+     "22%",
+     "23%",
+     "24%",
+     "25%",
+     "26%",
+     "27%",
+     "28%",
+     "29%",
+     "30%",
+     "31%",
+     "32%",
+     "33%",
+     "34%",
+     "35%",
+     "36%",
+     "37%",
+     "38%",
+     "39%",
+     "40%",
+     "41%",
+     "42%",
+     "43%",
+     "44%",
+     "45%",
+     "46%",
+     "47%",
+     "48%",
+     "49%",
+     "50%",
+     "51%",
+     "52%",
+     "53%",
+     "54%",
+     "55%",
+     "56%",
+     "57%",
+     "58%",
+     "59%",
+     "60%",
+     "61%",
+     "62%",
+     "63%",
+     "64%",
+     "65%",
+     "66%",
+     "67%",
+     "68%",
+     "69%",
+     "70%",
+     "71%",
+     "72%",
+     "73%",
+     "74%",
+     "75%",
+     "76%",
+     "77%",
+     "78%",
+     "79%",
+     "80%",
+     "81%",
+     "82%",
+     "83%",
+     "84%",
+     "85%",
+     "86%",
+     "87%",
+     "88%",
+     "89%",
+     "90%",
+     "91%",
+     "92%",
+     "93%",
+     "94%",
+     "95%",
+     "96%",
+     "97%",
+     "98%",
+     "99%",
+     "100%"
+    ]
+   },
+   {
+    "key": "v3_improv",
+    "name": "V3 Improv",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v3_push_pull",
+    "name": "V3 Push/Pull",
+    "type": "float",
+    "min": -20,
+    "max": 20,
+    "step": 0.5
+   },
+   {
+    "key": "v3_bank_mode",
+    "name": "V3 Bank",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Rule",
+     "Random"
+    ]
+   },
+   {
+    "key": "v3_bank_pitch_0",
+    "name": "V3 Bank 0",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v3_bank_pitch_1",
+    "name": "V3 Bank 1",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v3_bank_pitch_2",
+    "name": "V3 Bank 2",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v3_bank_pitch_3",
+    "name": "V3 Bank 3",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v3_bank_pitch_4",
+    "name": "V3 Bank 4",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v3_ghost_crescendo",
+    "name": "V3 Ghost Cresc",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ]
+   },
+   {
+    "key": "v4_preset",
+    "name": "V4 Preset",
+    "type": "int",
+    "min": 0,
+    "max": 50,
+    "step": 1
+   },
+   {
+    "key": "v4_vol",
+    "name": "V4 Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v4_vfreq",
+    "name": "V4 Freq",
+    "type": "float",
+    "min": 20,
+    "max": 20000,
+    "step": 1
+   },
+   {
+    "key": "v4_wave",
+    "name": "V4 Wave",
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Impulse",
+     "Noise",
+     "Damped",
+     "Click",
+     "Square",
+     "Tri",
+     "FM",
+     "Pink",
+     "Brown",
+     "AM",
+     "Ping",
+     "Train",
+     "Kick",
+     "Snare",
+     "Hat"
+    ]
+   },
+   {
+    "key": "v4_tone",
+    "name": "V4 Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v4_decay",
+    "name": "V4 Decay",
+    "type": "float",
+    "min": 0.0001,
+    "max": 0.5,
+    "step": 0.001
+   },
+   {
+    "key": "v4_detune",
+    "name": "V4 Detune",
+    "type": "float",
+    "min": 0,
+    "max": 20,
+    "step": 0.1
+   },
+   {
+    "key": "v4_pan",
+    "name": "V4 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v4_attack",
+    "name": "V4 Attack",
+    "type": "float",
+    "min": 0.0001,
+    "max": 0.05,
+    "step": 0.0001
+   },
+   {
+    "key": "v4_sub_div",
+    "name": "V4 Sub Div",
+    "type": "int",
+    "min": 1,
+    "max": 8,
+    "step": 1
+   },
+   {
+    "key": "v4_sweep",
+    "name": "V4 Sweep",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v4_tone_rnd",
+    "name": "Tone Rnd",
+    "type": "enum",
+    "options": [
+     "0%",
+     "1%",
+     "2%",
+     "3%",
+     "4%",
+     "5%",
+     "6%",
+     "7%",
+     "8%",
+     "9%",
+     "10%",
+     "11%",
+     "12%",
+     "13%",
+     "14%",
+     "15%",
+     "16%",
+     "17%",
+     "18%",
+     "19%",
+     "20%",
+     "21%",
+     "22%",
+     "23%",
+     "24%",
+     "25%",
+     "26%",
+     "27%",
+     "28%",
+     "29%",
+     "30%",
+     "31%",
+     "32%",
+     "33%",
+     "34%",
+     "35%",
+     "36%",
+     "37%",
+     "38%",
+     "39%",
+     "40%",
+     "41%",
+     "42%",
+     "43%",
+     "44%",
+     "45%",
+     "46%",
+     "47%",
+     "48%",
+     "49%",
+     "50%",
+     "51%",
+     "52%",
+     "53%",
+     "54%",
+     "55%",
+     "56%",
+     "57%",
+     "58%",
+     "59%",
+     "60%",
+     "61%",
+     "62%",
+     "63%",
+     "64%",
+     "65%",
+     "66%",
+     "67%",
+     "68%",
+     "69%",
+     "70%",
+     "71%",
+     "72%",
+     "73%",
+     "74%",
+     "75%",
+     "76%",
+     "77%",
+     "78%",
+     "79%",
+     "80%",
+     "81%",
+     "82%",
+     "83%",
+     "84%",
+     "85%",
+     "86%",
+     "87%",
+     "88%",
+     "89%",
+     "90%",
+     "91%",
+     "92%",
+     "93%",
+     "94%",
+     "95%",
+     "96%",
+     "97%",
+     "98%",
+     "99%",
+     "100%"
+    ]
+   },
+   {
+    "key": "v4_improv",
+    "name": "V4 Improv",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v4_push_pull",
+    "name": "V4 Push/Pull",
+    "type": "float",
+    "min": -20,
+    "max": 20,
+    "step": 0.5
+   },
+   {
+    "key": "v4_bank_mode",
+    "name": "V4 Bank",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Rule",
+     "Random"
+    ]
+   },
+   {
+    "key": "v4_bank_pitch_0",
+    "name": "V4 Bank 0",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v4_bank_pitch_1",
+    "name": "V4 Bank 1",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v4_bank_pitch_2",
+    "name": "V4 Bank 2",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v4_bank_pitch_3",
+    "name": "V4 Bank 3",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v4_bank_pitch_4",
+    "name": "V4 Bank 4",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "v4_ghost_crescendo",
+    "name": "V4 Ghost Cresc",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ]
+   },
+   {
+    "key": "master_vol",
+    "name": "Volume",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "tempo_sync",
+    "name": "Sync",
+    "type": "enum",
+    "options": [
+     "Free",
+     "Sync"
+    ]
+   },
+   {
+    "key": "bpm",
+    "name": "BPM",
+    "type": "float",
+    "min": 20,
+    "max": 500,
+    "step": 1
+   },
+   {
+    "key": "bit_crush",
+    "name": "Bit Crush",
+    "type": "int",
+    "min": 1,
+    "max": 16,
+    "step": 1
+   },
+   {
+    "key": "bit_rate",
+    "name": "Bit Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "stereo_w",
+    "name": "Stereo W",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "drift",
+    "name": "Drift",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "jitter",
+    "name": "Jitter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "dc_filter",
+    "name": "DC Filt",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ]
+   },
+   {
+    "key": "out_mode",
+    "name": "Out Mode",
+    "type": "enum",
+    "options": [
+     "Stereo",
+     "Mono",
+     "Spread"
+    ]
+   },
+   {
+    "key": "scene_morph",
+    "name": "Scene",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "save_scene_a",
+    "name": "Save A",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1
+   },
+   {
+    "key": "save_scene_b",
+    "name": "Save B",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1
+   },
+   {
+    "key": "morph_curve",
+    "name": "Morph Curve",
+    "type": "enum",
+    "options": [
+     "Linear",
+     "Exp",
+     "Stepped"
+    ]
+   },
+   {
+    "key": "morph_smooth",
+    "name": "Morph Smooth",
+    "type": "float",
+    "min": 0,
+    "max": 200,
+    "step": 1
+   },
+   {
+    "key": "phrase_length",
+    "name": "Phrase",
+    "type": "enum",
+    "options": [
+     "Off",
+     "2",
+     "4",
+     "8",
+     "16"
+    ]
+   },
+   {
+    "key": "fill_shape",
+    "name": "Fill",
+    "type": "enum",
+    "options": [
+     "Snare Roll",
+     "Tom Run",
+     "Kick Fill",
+     "Hat Splatter",
+     "Crash Drop",
+     "Random"
+    ]
+   },
+   {
+    "key": "step_grid",
+    "name": "Step Grid",
+    "type": "enum",
+    "options": [
+     "8",
+     "16",
+     "32"
+    ]
+   },
+   {
+    "key": "retrig_rate",
+    "name": "Retrig Rate",
+    "type": "enum",
+    "options": [
+     "2x",
+     "3x",
+     "4x",
+     "8x",
+     "Rand"
+    ]
+   },
+   {
+    "key": "drummer_brain",
+    "name": "Drummer Brain",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Light",
+     "Heavy"
+    ]
+   }
+  ]
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "generate",
+   "params",
+   "modulation",
+   "patch",
+   "mix",
+   "voice1",
+   "voice2",
+   "voice3",
+   "voice4",
+   "general"
+  ],
+  "params": [
+   {
+    "key": "seq1",
+    "name": "Seq 1",
+    "type": "int",
+    "min": 0,
+    "max": 35,
+    "step": 1,
+    "options": null,
+    "default": "11"
+   },
+   {
+    "key": "seq2",
+    "name": "Seq 2",
+    "type": "int",
+    "min": 0,
+    "max": 35,
+    "step": 1,
+    "options": null,
+    "default": "12"
+   },
+   {
+    "key": "seq3",
+    "name": "Seq 3",
+    "type": "int",
+    "min": 0,
+    "max": 35,
+    "step": 1,
+    "options": null,
+    "default": "13"
+   },
+   {
+    "key": "seq4",
+    "name": "Seq 4",
+    "type": "int",
+    "min": 0,
+    "max": 35,
+    "step": 1,
+    "options": null,
+    "default": "14"
+   },
+   {
+    "key": "syn1",
+    "name": "Syn 1",
+    "type": "int",
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "syn2",
+    "name": "Syn 2",
+    "type": "int",
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "options": null,
+    "default": "2"
+   },
+   {
+    "key": "syn3",
+    "name": "Syn 3",
+    "type": "int",
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "options": null,
+    "default": "3"
+   },
+   {
+    "key": "syn4",
+    "name": "Syn 4",
+    "type": "int",
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "v1_level",
+    "name": "V1 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "v2_level",
+    "name": "V2 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "v3_level",
+    "name": "V3 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "v4_level",
+    "name": "V4 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "v1_freq",
+    "name": "V1 Freq",
+    "type": "float",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "1000.00"
+   },
+   {
+    "key": "v2_freq",
+    "name": "V2 Freq",
+    "type": "float",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "2000.00"
+   },
+   {
+    "key": "v3_freq",
+    "name": "V3 Freq",
+    "type": "float",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "4000.00"
+   },
+   {
+    "key": "v4_freq",
+    "name": "V4 Freq",
+    "type": "float",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "500.00"
+   },
+   {
+    "key": "root",
+    "name": "Root",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Free",
+     "C",
+     "C#",
+     "D",
+     "D#",
+     "E",
+     "F",
+     "F#",
+     "G",
+     "G#",
+     "A",
+     "A#",
+     "B"
+    ],
+    "default": "Free"
+   },
+   {
+    "key": "scale",
+    "name": "Scale",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Free",
+     "Chromatic",
+     "Major",
+     "Minor",
+     "Pentatonic",
+     "WholeTone",
+     "Diminished",
+     "HarmMin"
+    ],
+    "default": "Free"
+   },
+   {
+    "key": "density",
+    "name": "Density",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "chaos",
+    "name": "Chaos",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.1000"
+   },
+   {
+    "key": "gravity",
+    "name": "Gravity",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "clk_div",
+    "name": "Clk Div",
+    "type": "int",
+    "min": 1,
+    "max": 32,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "morse_spd",
+    "name": "Morse Spd",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "swing",
+    "name": "Swing",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v1_preset",
+    "name": "V1 Preset",
+    "type": "int",
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "v1_vol",
+    "name": "V1 Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "v1_vfreq",
+    "name": "V1 Freq",
+    "type": "float",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "1000.00"
+   },
+   {
+    "key": "v1_wave",
+    "name": "V1 Wave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Sine",
+     "Impulse",
+     "Noise",
+     "Damped",
+     "Click",
+     "Square",
+     "Tri",
+     "FM",
+     "Pink",
+     "Brown",
+     "AM",
+     "Ping",
+     "Train",
+     "Kick",
+     "Snare",
+     "Hat"
+    ],
+    "default": "Sine"
+   },
+   {
+    "key": "v1_tone",
+    "name": "V1 Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "v1_attack",
+    "name": "V1 Attack",
+    "type": "float",
+    "min": 0.0001,
+    "max": 0.05,
+    "step": 0.0001,
+    "options": null,
+    "default": "0.0001"
+   },
+   {
+    "key": "v1_decay",
+    "name": "V1 Decay",
+    "type": "float",
+    "min": 0.0001,
+    "max": 0.5,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0020"
+   },
+   {
+    "key": "v1_pan",
+    "name": "V1 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "-0.5000"
+   },
+   {
+    "key": "v1_sub_div",
+    "name": "V1 Sub Div",
+    "type": "int",
+    "min": 1,
+    "max": 8,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "v1_sweep",
+    "name": "V1 Sweep",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7000"
+   },
+   {
+    "key": "v1_detune",
+    "name": "V1 Detune",
+    "type": "float",
+    "min": 0,
+    "max": 20,
+    "step": 0.1,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v1_tone_rnd",
+    "name": "Tone Rnd",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0%",
+     "1%",
+     "2%",
+     "3%",
+     "4%",
+     "5%",
+     "6%",
+     "7%",
+     "8%",
+     "9%",
+     "10%",
+     "11%",
+     "12%",
+     "13%",
+     "14%",
+     "15%",
+     "16%",
+     "17%",
+     "18%",
+     "19%",
+     "20%",
+     "21%",
+     "22%",
+     "23%",
+     "24%",
+     "25%",
+     "26%",
+     "27%",
+     "28%",
+     "29%",
+     "30%",
+     "31%",
+     "32%",
+     "33%",
+     "34%",
+     "35%",
+     "36%",
+     "37%",
+     "38%",
+     "39%",
+     "40%",
+     "41%",
+     "42%",
+     "43%",
+     "44%",
+     "45%",
+     "46%",
+     "47%",
+     "48%",
+     "49%",
+     "50%",
+     "51%",
+     "52%",
+     "53%",
+     "54%",
+     "55%",
+     "56%",
+     "57%",
+     "58%",
+     "59%",
+     "60%",
+     "61%",
+     "62%",
+     "63%",
+     "64%",
+     "65%",
+     "66%",
+     "67%",
+     "68%",
+     "69%",
+     "70%",
+     "71%",
+     "72%",
+     "73%",
+     "74%",
+     "75%",
+     "76%",
+     "77%",
+     "78%",
+     "79%",
+     "80%",
+     "81%",
+     "82%",
+     "83%",
+     "84%",
+     "85%",
+     "86%",
+     "87%",
+     "88%",
+     "89%",
+     "90%",
+     "91%",
+     "92%",
+     "93%",
+     "94%",
+     "95%",
+     "96%",
+     "97%",
+     "98%",
+     "99%",
+     "100%"
+    ],
+    "default": "0%"
+   },
+   {
+    "key": "v2_preset",
+    "name": "V2 Preset",
+    "type": "int",
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "options": null,
+    "default": "2"
+   },
+   {
+    "key": "v2_vol",
+    "name": "V2 Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "v2_vfreq",
+    "name": "V2 Freq",
+    "type": "float",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "2000.00"
+   },
+   {
+    "key": "v2_wave",
+    "name": "V2 Wave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Sine",
+     "Impulse",
+     "Noise",
+     "Damped",
+     "Click",
+     "Square",
+     "Tri",
+     "FM",
+     "Pink",
+     "Brown",
+     "AM",
+     "Ping",
+     "Train",
+     "Kick",
+     "Snare",
+     "Hat"
+    ],
+    "default": "Sine"
+   },
+   {
+    "key": "v2_tone",
+    "name": "V2 Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "v2_attack",
+    "name": "V2 Attack",
+    "type": "float",
+    "min": 0.0001,
+    "max": 0.05,
+    "step": 0.0001,
+    "options": null,
+    "default": "0.0001"
+   },
+   {
+    "key": "v2_decay",
+    "name": "V2 Decay",
+    "type": "float",
+    "min": 0.0001,
+    "max": 0.5,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0010"
+   },
+   {
+    "key": "v2_pan",
+    "name": "V2 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "v2_sub_div",
+    "name": "V2 Sub Div",
+    "type": "int",
+    "min": 1,
+    "max": 8,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "v2_sweep",
+    "name": "V2 Sweep",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v2_detune",
+    "name": "V2 Detune",
+    "type": "float",
+    "min": 0,
+    "max": 20,
+    "step": 0.1,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v2_tone_rnd",
+    "name": "Tone Rnd",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0%",
+     "1%",
+     "2%",
+     "3%",
+     "4%",
+     "5%",
+     "6%",
+     "7%",
+     "8%",
+     "9%",
+     "10%",
+     "11%",
+     "12%",
+     "13%",
+     "14%",
+     "15%",
+     "16%",
+     "17%",
+     "18%",
+     "19%",
+     "20%",
+     "21%",
+     "22%",
+     "23%",
+     "24%",
+     "25%",
+     "26%",
+     "27%",
+     "28%",
+     "29%",
+     "30%",
+     "31%",
+     "32%",
+     "33%",
+     "34%",
+     "35%",
+     "36%",
+     "37%",
+     "38%",
+     "39%",
+     "40%",
+     "41%",
+     "42%",
+     "43%",
+     "44%",
+     "45%",
+     "46%",
+     "47%",
+     "48%",
+     "49%",
+     "50%",
+     "51%",
+     "52%",
+     "53%",
+     "54%",
+     "55%",
+     "56%",
+     "57%",
+     "58%",
+     "59%",
+     "60%",
+     "61%",
+     "62%",
+     "63%",
+     "64%",
+     "65%",
+     "66%",
+     "67%",
+     "68%",
+     "69%",
+     "70%",
+     "71%",
+     "72%",
+     "73%",
+     "74%",
+     "75%",
+     "76%",
+     "77%",
+     "78%",
+     "79%",
+     "80%",
+     "81%",
+     "82%",
+     "83%",
+     "84%",
+     "85%",
+     "86%",
+     "87%",
+     "88%",
+     "89%",
+     "90%",
+     "91%",
+     "92%",
+     "93%",
+     "94%",
+     "95%",
+     "96%",
+     "97%",
+     "98%",
+     "99%",
+     "100%"
+    ],
+    "default": "0%"
+   },
+   {
+    "key": "v3_preset",
+    "name": "V3 Preset",
+    "type": "int",
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "options": null,
+    "default": "3"
+   },
+   {
+    "key": "v3_vol",
+    "name": "V3 Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "v3_vfreq",
+    "name": "V3 Freq",
+    "type": "float",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "4000.00"
+   },
+   {
+    "key": "v3_wave",
+    "name": "V3 Wave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Sine",
+     "Impulse",
+     "Noise",
+     "Damped",
+     "Click",
+     "Square",
+     "Tri",
+     "FM",
+     "Pink",
+     "Brown",
+     "AM",
+     "Ping",
+     "Train",
+     "Kick",
+     "Snare",
+     "Hat"
+    ],
+    "default": "Sine"
+   },
+   {
+    "key": "v3_tone",
+    "name": "V3 Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "v3_attack",
+    "name": "V3 Attack",
+    "type": "float",
+    "min": 0.0001,
+    "max": 0.05,
+    "step": 0.0001,
+    "options": null,
+    "default": "0.0001"
+   },
+   {
+    "key": "v3_decay",
+    "name": "V3 Decay",
+    "type": "float",
+    "min": 0.0001,
+    "max": 0.5,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0030"
+   },
+   {
+    "key": "v3_pan",
+    "name": "V3 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "-0.3000"
+   },
+   {
+    "key": "v3_sub_div",
+    "name": "V3 Sub Div",
+    "type": "int",
+    "min": 1,
+    "max": 8,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "v3_sweep",
+    "name": "V3 Sweep",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v3_detune",
+    "name": "V3 Detune",
+    "type": "float",
+    "min": 0,
+    "max": 20,
+    "step": 0.1,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v3_tone_rnd",
+    "name": "Tone Rnd",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0%",
+     "1%",
+     "2%",
+     "3%",
+     "4%",
+     "5%",
+     "6%",
+     "7%",
+     "8%",
+     "9%",
+     "10%",
+     "11%",
+     "12%",
+     "13%",
+     "14%",
+     "15%",
+     "16%",
+     "17%",
+     "18%",
+     "19%",
+     "20%",
+     "21%",
+     "22%",
+     "23%",
+     "24%",
+     "25%",
+     "26%",
+     "27%",
+     "28%",
+     "29%",
+     "30%",
+     "31%",
+     "32%",
+     "33%",
+     "34%",
+     "35%",
+     "36%",
+     "37%",
+     "38%",
+     "39%",
+     "40%",
+     "41%",
+     "42%",
+     "43%",
+     "44%",
+     "45%",
+     "46%",
+     "47%",
+     "48%",
+     "49%",
+     "50%",
+     "51%",
+     "52%",
+     "53%",
+     "54%",
+     "55%",
+     "56%",
+     "57%",
+     "58%",
+     "59%",
+     "60%",
+     "61%",
+     "62%",
+     "63%",
+     "64%",
+     "65%",
+     "66%",
+     "67%",
+     "68%",
+     "69%",
+     "70%",
+     "71%",
+     "72%",
+     "73%",
+     "74%",
+     "75%",
+     "76%",
+     "77%",
+     "78%",
+     "79%",
+     "80%",
+     "81%",
+     "82%",
+     "83%",
+     "84%",
+     "85%",
+     "86%",
+     "87%",
+     "88%",
+     "89%",
+     "90%",
+     "91%",
+     "92%",
+     "93%",
+     "94%",
+     "95%",
+     "96%",
+     "97%",
+     "98%",
+     "99%",
+     "100%"
+    ],
+    "default": "0%"
+   },
+   {
+    "key": "v4_preset",
+    "name": "V4 Preset",
+    "type": "int",
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "v4_vol",
+    "name": "V4 Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "v4_vfreq",
+    "name": "V4 Freq",
+    "type": "float",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "500.00"
+   },
+   {
+    "key": "v4_wave",
+    "name": "V4 Wave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Sine",
+     "Impulse",
+     "Noise",
+     "Damped",
+     "Click",
+     "Square",
+     "Tri",
+     "FM",
+     "Pink",
+     "Brown",
+     "AM",
+     "Ping",
+     "Train",
+     "Kick",
+     "Snare",
+     "Hat"
+    ],
+    "default": "Sine"
+   },
+   {
+    "key": "v4_tone",
+    "name": "V4 Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "v4_attack",
+    "name": "V4 Attack",
+    "type": "float",
+    "min": 0.0001,
+    "max": 0.05,
+    "step": 0.0001,
+    "options": null,
+    "default": "0.0001"
+   },
+   {
+    "key": "v4_decay",
+    "name": "V4 Decay",
+    "type": "float",
+    "min": 0.0001,
+    "max": 0.5,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0010"
+   },
+   {
+    "key": "v4_pan",
+    "name": "V4 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3000"
+   },
+   {
+    "key": "v4_sub_div",
+    "name": "V4 Sub Div",
+    "type": "int",
+    "min": 1,
+    "max": 8,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "v4_sweep",
+    "name": "V4 Sweep",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v4_detune",
+    "name": "V4 Detune",
+    "type": "float",
+    "min": 0,
+    "max": 20,
+    "step": 0.1,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v4_tone_rnd",
+    "name": "Tone Rnd",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0%",
+     "1%",
+     "2%",
+     "3%",
+     "4%",
+     "5%",
+     "6%",
+     "7%",
+     "8%",
+     "9%",
+     "10%",
+     "11%",
+     "12%",
+     "13%",
+     "14%",
+     "15%",
+     "16%",
+     "17%",
+     "18%",
+     "19%",
+     "20%",
+     "21%",
+     "22%",
+     "23%",
+     "24%",
+     "25%",
+     "26%",
+     "27%",
+     "28%",
+     "29%",
+     "30%",
+     "31%",
+     "32%",
+     "33%",
+     "34%",
+     "35%",
+     "36%",
+     "37%",
+     "38%",
+     "39%",
+     "40%",
+     "41%",
+     "42%",
+     "43%",
+     "44%",
+     "45%",
+     "46%",
+     "47%",
+     "48%",
+     "49%",
+     "50%",
+     "51%",
+     "52%",
+     "53%",
+     "54%",
+     "55%",
+     "56%",
+     "57%",
+     "58%",
+     "59%",
+     "60%",
+     "61%",
+     "62%",
+     "63%",
+     "64%",
+     "65%",
+     "66%",
+     "67%",
+     "68%",
+     "69%",
+     "70%",
+     "71%",
+     "72%",
+     "73%",
+     "74%",
+     "75%",
+     "76%",
+     "77%",
+     "78%",
+     "79%",
+     "80%",
+     "81%",
+     "82%",
+     "83%",
+     "84%",
+     "85%",
+     "86%",
+     "87%",
+     "88%",
+     "89%",
+     "90%",
+     "91%",
+     "92%",
+     "93%",
+     "94%",
+     "95%",
+     "96%",
+     "97%",
+     "98%",
+     "99%",
+     "100%"
+    ],
+    "default": "0%"
+   },
+   {
+    "key": "patch",
+    "name": "Patch",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Init",
+     "Ikeda Grid",
+     "Bernier",
+     "Morse CQ",
+     "Mathcore",
+     "Pink Rain",
+     "Heterodyne",
+     "Sub Harm",
+     "CA Automata",
+     "FM Bell",
+     "AM Texture",
+     "Brown Pulse",
+     "Clk Matrix",
+     "Sweep Casc",
+     "Fibonacci",
+     "Digi Glitch",
+     "Chirp Field",
+     "Phase Cloud",
+     "Test Signal",
+     "CW Radio",
+     "Cantor",
+     "Noise Gate",
+     "Sub Bass",
+     "Thue-Morse",
+     "Pink Grid",
+     "Metallic FM",
+     "Minimal",
+     "Maximum",
+     "Rule 30",
+     "Freq Lat.",
+     "Gauss Pings",
+     "Ikeda Data",
+     "Tuning Fork",
+     "Fork Harmony",
+     "BL Square",
+     "Data Quanta",
+     "Resonant Bell",
+     "Sine Study",
+     "Noise Field",
+     "Aleatoric",
+     "Amen",
+     "Think",
+     "Funky Drummer",
+     "Piccolo Jungle",
+     "Liquid DnB",
+     "Holzman Live",
+     "Microsound Jungle",
+     "Bernier Jungle",
+     "Mathcore Break",
+     "Bretschneider Roll"
+    ],
+    "default": "Ikeda Grid"
+   },
+   {
+    "key": "rnd_patch",
+    "name": "Rnd Patch",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "rnd_rytm",
+    "name": "Rnd Rytm",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "rnd_voices",
+    "name": "Rnd Voices",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "same_voice",
+    "name": "Same Voice",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "rnd_mod",
+    "name": "Rnd Mod",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "rnd_pitch",
+    "name": "Rnd Pitch",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "rnd_pan",
+    "name": "Rnd Pan",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "all_decay",
+    "name": "All Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "mod_amount",
+    "name": "Mod Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "mod_speed",
+    "name": "Mod Speed",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "mod_offset",
+    "name": "Mod Offset",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "mod_freq",
+    "name": "Freq Mod",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "mod_decay",
+    "name": "Decay Mod",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "mod_pan",
+    "name": "Pan Mod",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "mod_density",
+    "name": "Density Mod",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "mod_shape",
+    "name": "Mod Shape",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Square",
+     "S&H",
+     "Random"
+    ],
+    "default": "Sine"
+   },
+   {
+    "key": "mod_reset",
+    "name": "Mod Reset",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "master_vol",
+    "name": "Volume",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "tempo_sync",
+    "name": "Sync",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Free",
+     "Sync"
+    ],
+    "default": "Sync"
+   },
+   {
+    "key": "bpm",
+    "name": "BPM",
+    "type": "float",
+    "min": 20,
+    "max": 500,
+    "step": 1,
+    "options": null,
+    "default": "120.0"
+   },
+   {
+    "key": "bit_crush",
+    "name": "Bit Crush",
+    "type": "int",
+    "min": 1,
+    "max": 16,
+    "step": 1,
+    "options": null,
+    "default": "16"
+   },
+   {
+    "key": "bit_rate",
+    "name": "Bit Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "stereo_w",
+    "name": "Stereo W",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "drift",
+    "name": "Drift",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "jitter",
+    "name": "Jitter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "dc_filter",
+    "name": "DC Filt",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "On"
+   },
+   {
+    "key": "out_mode",
+    "name": "Out Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Stereo",
+     "Mono",
+     "Spread"
+    ],
+    "default": "Stereo"
+   },
+   {
+    "key": "scene_morph",
+    "name": "Scene",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "save_scene_a",
+    "name": "Save → A",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "save_scene_b",
+    "name": "Save → B",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "morph_curve",
+    "name": "Morph Curve",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Linear",
+     "Exp",
+     "Stepped"
+    ],
+    "default": "Linear"
+   },
+   {
+    "key": "morph_smooth",
+    "name": "Morph Smooth",
+    "type": "float",
+    "min": 0,
+    "max": 200,
+    "step": 1,
+    "options": null,
+    "default": "50.0"
+   },
+   {
+    "key": "phrase_length",
+    "name": "Phrase",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "2",
+     "4",
+     "8",
+     "16"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "fill_shape",
+    "name": "Fill",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Snare Roll",
+     "Tom Run",
+     "Kick Fill",
+     "Hat Splatter",
+     "Crash Drop",
+     "Random"
+    ],
+    "default": "Snare Roll"
+   },
+   {
+    "key": "step_grid",
+    "name": "Step Grid",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "8",
+     "16",
+     "32"
+    ],
+    "default": "8"
+   },
+   {
+    "key": "retrig_rate",
+    "name": "Retrig Rate",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "2x",
+     "3x",
+     "4x",
+     "8x",
+     "Rand"
+    ],
+    "default": "2x"
+   },
+   {
+    "key": "drummer_brain",
+    "name": "Drummer Brain",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Light",
+     "Heavy"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "v1_improv",
+    "name": "V1 Improv",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v1_push_pull",
+    "name": "V1 Push/Pull",
+    "type": "float",
+    "min": -20,
+    "max": 20,
+    "step": 0.5,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v1_bank_mode",
+    "name": "V1 Bank",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Rule",
+     "Random"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "v1_bank_pitch_0",
+    "name": "V1 Bank 0",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v1_bank_pitch_1",
+    "name": "V1 Bank 1",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v1_bank_pitch_2",
+    "name": "V1 Bank 2",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v1_bank_pitch_3",
+    "name": "V1 Bank 3",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v1_bank_pitch_4",
+    "name": "V1 Bank 4",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v1_ghost_crescendo",
+    "name": "V1 Ghost Cresc",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "v2_improv",
+    "name": "V2 Improv",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v2_push_pull",
+    "name": "V2 Push/Pull",
+    "type": "float",
+    "min": -20,
+    "max": 20,
+    "step": 0.5,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v2_bank_mode",
+    "name": "V2 Bank",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Rule",
+     "Random"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "v2_bank_pitch_0",
+    "name": "V2 Bank 0",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v2_bank_pitch_1",
+    "name": "V2 Bank 1",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v2_bank_pitch_2",
+    "name": "V2 Bank 2",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v2_bank_pitch_3",
+    "name": "V2 Bank 3",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v2_bank_pitch_4",
+    "name": "V2 Bank 4",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v2_ghost_crescendo",
+    "name": "V2 Ghost Cresc",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "v3_improv",
+    "name": "V3 Improv",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v3_push_pull",
+    "name": "V3 Push/Pull",
+    "type": "float",
+    "min": -20,
+    "max": 20,
+    "step": 0.5,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v3_bank_mode",
+    "name": "V3 Bank",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Rule",
+     "Random"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "v3_bank_pitch_0",
+    "name": "V3 Bank 0",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v3_bank_pitch_1",
+    "name": "V3 Bank 1",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v3_bank_pitch_2",
+    "name": "V3 Bank 2",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v3_bank_pitch_3",
+    "name": "V3 Bank 3",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v3_bank_pitch_4",
+    "name": "V3 Bank 4",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v3_ghost_crescendo",
+    "name": "V3 Ghost Cresc",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "v4_improv",
+    "name": "V4 Improv",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v4_push_pull",
+    "name": "V4 Push/Pull",
+    "type": "float",
+    "min": -20,
+    "max": 20,
+    "step": 0.5,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v4_bank_mode",
+    "name": "V4 Bank",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Rule",
+     "Random"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "v4_bank_pitch_0",
+    "name": "V4 Bank 0",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v4_bank_pitch_1",
+    "name": "V4 Bank 1",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v4_bank_pitch_2",
+    "name": "V4 Bank 2",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v4_bank_pitch_3",
+    "name": "V4 Bank 3",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v4_bank_pitch_4",
+    "name": "V4 Bank 4",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "v4_ghost_crescendo",
+    "name": "V4 Ghost Cresc",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Generate",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Patch",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Sequences",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Modulation",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Mix",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Voice 1",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Voice 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Voice 3",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Voice 4",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "General",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SEQ 1",
+       "fullName": "Seq 1",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "11"
+      },
+      {
+       "shortName": "SEQ 2",
+       "fullName": "Seq 2",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SEQ 3",
+       "fullName": "Seq 3",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SEQ 4",
+       "fullName": "Seq 4",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SYN 1",
+       "fullName": "Syn 1",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SYN 2",
+       "fullName": "Syn 2",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SYN 3",
+       "fullName": "Syn 3",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SYN 4",
+       "fullName": "Syn 4",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Generate",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SEQ 1",
+       "fullName": "Seq 1",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SEQ 2",
+       "fullName": "Seq 2",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SEQ 3",
+       "fullName": "Seq 3",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SEQ 4",
+       "fullName": "Seq 4",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SYN 1",
+       "fullName": "Syn 1",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SYN 2",
+       "fullName": "Syn 2",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SYN 3",
+       "fullName": "Syn 3",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SYN 4",
+       "fullName": "Syn 4",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Patch",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PATCH",
+       "fullName": "Patch",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PATCH",
+       "fullName": "Rnd Patch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RYTM",
+       "fullName": "Rnd Rytm",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOICE",
+       "fullName": "Rnd Voices",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "MOD",
+       "fullName": "Rnd Mod",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PITCH",
+       "fullName": "Rnd Pitch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN",
+       "fullName": "Rnd Pan",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ALL",
+       "fullName": "All Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Sequences",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ROOT",
+       "fullName": "Root",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SCALE",
+       "fullName": "Scale",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DENSI",
+       "fullName": "Density",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CHAOS",
+       "fullName": "Chaos",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "GRAVI",
+       "fullName": "Gravity",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CLK",
+       "fullName": "Clk Div",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MORSE",
+       "fullName": "Morse Spd",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SWING",
+       "fullName": "Swing",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Modulation",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "AMT",
+       "fullName": "Mod Amt",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPEED",
+       "fullName": "Mod Speed",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "Freq Mod",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay Mod",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PAN",
+       "fullName": "Pan Mod",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DM",
+       "fullName": "Density Mod",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SHAPE",
+       "fullName": "Mod Shape",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RESET",
+       "fullName": "Mod Reset",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Mix",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LEVEL",
+       "fullName": "V1 Level",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LEVEL",
+       "fullName": "V2 Level",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LEVEL",
+       "fullName": "V3 Level",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LEVEL",
+       "fullName": "V4 Level",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "FREQ",
+       "fullName": "V1 Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "V2 Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "V3 Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "V4 Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Voice 1",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "V1 Preset",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOL",
+       "fullName": "V1 Vol",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "V1 Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WAVE",
+       "fullName": "V1 Wave",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TONE",
+       "fullName": "V1 Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "V1 Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DETUN",
+       "fullName": "V1 Detune",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN",
+       "fullName": "V1 Pan",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Voice 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "V2 Preset",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOL",
+       "fullName": "V2 Vol",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "V2 Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WAVE",
+       "fullName": "V2 Wave",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TONE",
+       "fullName": "V2 Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "V2 Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DETUN",
+       "fullName": "V2 Detune",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN",
+       "fullName": "V2 Pan",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Voice 3",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "V3 Preset",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOL",
+       "fullName": "V3 Vol",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "V3 Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WAVE",
+       "fullName": "V3 Wave",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TONE",
+       "fullName": "V3 Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "V3 Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DETUN",
+       "fullName": "V3 Detune",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN",
+       "fullName": "V3 Pan",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Voice 4",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "V4 Preset",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOL",
+       "fullName": "V4 Vol",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "V4 Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WAVE",
+       "fullName": "V4 Wave",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TONE",
+       "fullName": "V4 Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "V4 Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DETUN",
+       "fullName": "V4 Detune",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN",
+       "fullName": "V4 Pan",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "General",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "BPM",
+       "fullName": "BPM",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIFT",
+       "fullName": "Drift",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "JITTE",
+       "fullName": "Jitter",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CRUSH",
+       "fullName": "Bit Crush",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RATE",
+       "fullName": "Bit Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SW",
+       "fullName": "Stereo W",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SCENE",
+       "fullName": "Scene",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOLUM",
+       "fullName": "Volume",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "seq1",
+    "label": "Seq 1",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 35,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 70
+    }
+   },
+   {
+    "key": "seq2",
+    "label": "Seq 2",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 35,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 70
+    }
+   },
+   {
+    "key": "seq3",
+    "label": "Seq 3",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 35,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 70
+    }
+   },
+   {
+    "key": "seq4",
+    "label": "Seq 4",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 35,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 70
+    }
+   },
+   {
+    "key": "syn1",
+    "label": "Syn 1",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "syn2",
+    "label": "Syn 2",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "syn3",
+    "label": "Syn 3",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "syn4",
+    "label": "Syn 4",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "seq1",
+    "label": "Seq 1",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 35,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 70
+    }
+   },
+   {
+    "key": "seq2",
+    "label": "Seq 2",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 35,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 70
+    }
+   },
+   {
+    "key": "seq3",
+    "label": "Seq 3",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 35,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 70
+    }
+   },
+   {
+    "key": "seq4",
+    "label": "Seq 4",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 35,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 70
+    }
+   },
+   {
+    "key": "syn1",
+    "label": "Syn 1",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "syn2",
+    "label": "Syn 2",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "syn3",
+    "label": "Syn 3",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "syn4",
+    "label": "Syn 4",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "patch",
+    "label": "Patch",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Init",
+     "Ikeda Grid",
+     "Bernier",
+     "Morse CQ",
+     "Mathcore",
+     "Pink Rain",
+     "Heterodyne",
+     "Sub Harm",
+     "CA Automata",
+     "FM Bell",
+     "AM Texture",
+     "Brown Pulse",
+     "Clk Matrix",
+     "Sweep Casc",
+     "Fibonacci",
+     "Digi Glitch",
+     "Chirp Field",
+     "Phase Cloud",
+     "Test Signal",
+     "CW Radio",
+     "Cantor",
+     "Noise Gate",
+     "Sub Bass",
+     "Thue-Morse",
+     "Pink Grid",
+     "Metallic FM",
+     "Minimal",
+     "Maximum",
+     "Rule 30",
+     "Freq Lat.",
+     "Gauss Pings",
+     "Ikeda Data",
+     "Tuning Fork",
+     "Fork Harmony",
+     "BL Square",
+     "Data Quanta",
+     "Resonant Bell",
+     "Sine Study",
+     "Noise Field",
+     "Aleatoric",
+     "Amen",
+     "Think",
+     "Funky Drummer",
+     "Piccolo Jungle",
+     "Liquid DnB",
+     "Holzman Live",
+     "Microsound Jungle",
+     "Bernier Jungle",
+     "Mathcore Break",
+     "Bretschneider Roll"
+    ],
+    "min": 0,
+    "max": 49,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 50
+    }
+   },
+   {
+    "key": "rnd_patch",
+    "label": "Rnd Patch",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rnd_rytm",
+    "label": "Rnd Rytm",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rnd_voices",
+    "label": "Rnd Voices",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rnd_mod",
+    "label": "Rnd Mod",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rnd_pitch",
+    "label": "Rnd Pitch",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rnd_pan",
+    "label": "Rnd Pan",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "all_decay",
+    "label": "All Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "root",
+    "label": "Root",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Free",
+     "C",
+     "C#",
+     "D",
+     "D#",
+     "E",
+     "F",
+     "F#",
+     "G",
+     "G#",
+     "A",
+     "A#",
+     "B"
+    ],
+    "min": 0,
+    "max": 12,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 13
+    }
+   },
+   {
+    "key": "scale",
+    "label": "Scale",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Free",
+     "Chromatic",
+     "Major",
+     "Minor",
+     "Pentatonic",
+     "WholeTone",
+     "Diminished",
+     "HarmMin"
+    ],
+    "min": 0,
+    "max": 7,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 8
+    }
+   },
+   {
+    "key": "density",
+    "label": "Density",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "chaos",
+    "label": "Chaos",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "gravity",
+    "label": "Gravity",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "clk_div",
+    "label": "Clk Div",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 32,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 62
+    }
+   },
+   {
+    "key": "morse_spd",
+    "label": "Morse Spd",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "swing",
+    "label": "Swing",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mod_amount",
+    "label": "Mod Amt",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mod_speed",
+    "label": "Mod Speed",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mod_freq",
+    "label": "Freq Mod",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mod_decay",
+    "label": "Decay Mod",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mod_pan",
+    "label": "Pan Mod",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mod_density",
+    "label": "Density Mod",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mod_shape",
+    "label": "Mod Shape",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Square",
+     "S&H",
+     "Random"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
+   {
+    "key": "mod_reset",
+    "label": "Mod Reset",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "v1_level",
+    "label": "V1 Level",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v2_level",
+    "label": "V2 Level",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v3_level",
+    "label": "V3 Level",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v4_level",
+    "label": "V4 Level",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v1_freq",
+    "label": "V1 Freq",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 39960
+    }
+   },
+   {
+    "key": "v2_freq",
+    "label": "V2 Freq",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 39960
+    }
+   },
+   {
+    "key": "v3_freq",
+    "label": "V3 Freq",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 39960
+    }
+   },
+   {
+    "key": "v4_freq",
+    "label": "V4 Freq",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 39960
+    }
+   },
+   {
+    "key": "v1_preset",
+    "label": "V1 Preset",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "v1_vol",
+    "label": "V1 Vol",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v1_vfreq",
+    "label": "V1 Freq",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 39960
+    }
+   },
+   {
+    "key": "v1_wave",
+    "label": "V1 Wave",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Impulse",
+     "Noise",
+     "Damped",
+     "Click",
+     "Square",
+     "Tri",
+     "FM",
+     "Pink",
+     "Brown",
+     "AM",
+     "Ping",
+     "Train",
+     "Kick",
+     "Snare",
+     "Hat"
+    ],
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 16
+    }
+   },
+   {
+    "key": "v1_tone",
+    "label": "V1 Tone",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v1_decay",
+    "label": "V1 Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.0001,
+    "max": 0.5,
+    "step": 0.001,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0005,
+     "detentsFullSweep": 1000
+    }
+   },
+   {
+    "key": "v1_detune",
+    "label": "V1 Detune",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 20,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "v1_pan",
+    "label": "V1 Pan",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "v2_preset",
+    "label": "V2 Preset",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "v2_vol",
+    "label": "V2 Vol",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v2_vfreq",
+    "label": "V2 Freq",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 39960
+    }
+   },
+   {
+    "key": "v2_wave",
+    "label": "V2 Wave",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Impulse",
+     "Noise",
+     "Damped",
+     "Click",
+     "Square",
+     "Tri",
+     "FM",
+     "Pink",
+     "Brown",
+     "AM",
+     "Ping",
+     "Train",
+     "Kick",
+     "Snare",
+     "Hat"
+    ],
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 16
+    }
+   },
+   {
+    "key": "v2_tone",
+    "label": "V2 Tone",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v2_decay",
+    "label": "V2 Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.0001,
+    "max": 0.5,
+    "step": 0.001,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0005,
+     "detentsFullSweep": 1000
+    }
+   },
+   {
+    "key": "v2_detune",
+    "label": "V2 Detune",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 20,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "v2_pan",
+    "label": "V2 Pan",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "v3_preset",
+    "label": "V3 Preset",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "v3_vol",
+    "label": "V3 Vol",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v3_vfreq",
+    "label": "V3 Freq",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 39960
+    }
+   },
+   {
+    "key": "v3_wave",
+    "label": "V3 Wave",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Impulse",
+     "Noise",
+     "Damped",
+     "Click",
+     "Square",
+     "Tri",
+     "FM",
+     "Pink",
+     "Brown",
+     "AM",
+     "Ping",
+     "Train",
+     "Kick",
+     "Snare",
+     "Hat"
+    ],
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 16
+    }
+   },
+   {
+    "key": "v3_tone",
+    "label": "V3 Tone",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v3_decay",
+    "label": "V3 Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.0001,
+    "max": 0.5,
+    "step": 0.001,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0005,
+     "detentsFullSweep": 1000
+    }
+   },
+   {
+    "key": "v3_detune",
+    "label": "V3 Detune",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 20,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "v3_pan",
+    "label": "V3 Pan",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "v4_preset",
+    "label": "V4 Preset",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "v4_vol",
+    "label": "V4 Vol",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v4_vfreq",
+    "label": "V4 Freq",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 39960
+    }
+   },
+   {
+    "key": "v4_wave",
+    "label": "V4 Wave",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Impulse",
+     "Noise",
+     "Damped",
+     "Click",
+     "Square",
+     "Tri",
+     "FM",
+     "Pink",
+     "Brown",
+     "AM",
+     "Ping",
+     "Train",
+     "Kick",
+     "Snare",
+     "Hat"
+    ],
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 16
+    }
+   },
+   {
+    "key": "v4_tone",
+    "label": "V4 Tone",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v4_decay",
+    "label": "V4 Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.0001,
+    "max": 0.5,
+    "step": 0.001,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0005,
+     "detentsFullSweep": 1000
+    }
+   },
+   {
+    "key": "v4_detune",
+    "label": "V4 Detune",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 20,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "v4_pan",
+    "label": "V4 Pan",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "bpm",
+    "label": "BPM",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 20,
+    "max": 500,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 960
+    }
+   },
+   {
+    "key": "drift",
+    "label": "Drift",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "jitter",
+    "label": "Jitter",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "bit_crush",
+    "label": "Bit Crush",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 30
+    }
+   },
+   {
+    "key": "bit_rate",
+    "label": "Bit Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "stereo_w",
+    "label": "Stereo W",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "scene_morph",
+    "label": "Scene",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "master_vol",
+    "label": "Volume",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "v1_attack",
+   "v1_sub_div",
+   "v1_sweep",
+   "v1_tone_rnd",
+   "v2_attack",
+   "v2_sub_div",
+   "v2_sweep",
+   "v2_tone_rnd",
+   "v3_attack",
+   "v3_sub_div",
+   "v3_sweep",
+   "v3_tone_rnd",
+   "v4_attack",
+   "v4_sub_div",
+   "v4_sweep",
+   "v4_tone_rnd",
+   "same_voice",
+   "mod_offset",
+   "tempo_sync",
+   "dc_filter",
+   "out_mode",
+   "save_scene_a",
+   "save_scene_b",
+   "morph_curve",
+   "morph_smooth",
+   "phrase_length",
+   "fill_shape",
+   "step_grid",
+   "retrig_rate",
+   "drummer_brain",
+   "v1_improv",
+   "v1_push_pull",
+   "v1_bank_mode",
+   "v1_bank_pitch_0",
+   "v1_bank_pitch_1",
+   "v1_bank_pitch_2",
+   "v1_bank_pitch_3",
+   "v1_bank_pitch_4",
+   "v1_ghost_crescendo",
+   "v2_improv",
+   "v2_push_pull",
+   "v2_bank_mode",
+   "v2_bank_pitch_0",
+   "v2_bank_pitch_1",
+   "v2_bank_pitch_2",
+   "v2_bank_pitch_3",
+   "v2_bank_pitch_4",
+   "v2_ghost_crescendo",
+   "v3_improv",
+   "v3_push_pull",
+   "v3_bank_mode",
+   "v3_bank_pitch_0",
+   "v3_bank_pitch_1",
+   "v3_bank_pitch_2",
+   "v3_bank_pitch_3",
+   "v3_bank_pitch_4",
+   "v3_ghost_crescendo",
+   "v4_improv",
+   "v4_push_pull",
+   "v4_bank_mode",
+   "v4_bank_pitch_0",
+   "v4_bank_pitch_1",
+   "v4_bank_pitch_2",
+   "v4_bank_pitch_3",
+   "v4_bank_pitch_4",
+   "v4_ghost_crescendo"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "66 chain_params not reachable in movy: v1_attack, v1_sub_div, v1_sweep, v1_tone_rnd, v2_attack, v2_sub_div, v2_sweep, v2_tone_rnd, v3_attack, v3_sub_div, v3_sweep, v3_tone_rnd, …",
+   "page \"Patch\": duplicate on-screen names PATCH",
+   "page \"Mix\": duplicate on-screen names LEVEL, FREQ"
+  ]
+ }
+}

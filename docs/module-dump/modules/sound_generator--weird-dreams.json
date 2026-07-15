@@ -1,0 +1,3115 @@
+{
+ "id": "weird-dreams",
+ "name": "Weird Dreams",
+ "version": "0.2.6",
+ "author": "Vincent Fillion (DSP: Daniele Filaretti, MIT)",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 54,
+ "dsp_size": 90384,
+ "capabilities": {
+  "audio_out": true,
+  "midi_in": true,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Weird Dreams",
+     "knobs": [
+      "cv_vol",
+      "cv_pan",
+      "cv_freq",
+      "cv_decay",
+      "cv_wave",
+      "cv_mix",
+      "cv_cutoff",
+      "cv_preset"
+     ],
+     "params": [
+      {
+       "level": "Patch",
+       "label": "Patch"
+      },
+      {
+       "level": "General",
+       "label": "General"
+      },
+      {
+       "level": "Voice",
+       "label": "Voice"
+      },
+      {
+       "level": "FX",
+       "label": "FX"
+      }
+     ]
+    },
+    "Patch": {
+     "label": "Patch",
+     "knobs": [
+      "kit",
+      "rnd_kit",
+      "rnd_voice",
+      "rnd_pitch",
+      "same_freq",
+      "init_freq",
+      "rnd_pan",
+      "all_mono"
+     ],
+     "params": [
+      "kit",
+      "rnd_kit",
+      "rnd_voice",
+      "rnd_pitch",
+      "same_freq",
+      "init_freq",
+      "rnd_pan",
+      "all_mono"
+     ]
+    },
+    "General": {
+     "label": "General",
+     "knobs": [
+      "comp",
+      "dj_filter",
+      "eq_lo",
+      "lo_freq",
+      "eq_mid",
+      "mid_freq",
+      "eq_hi",
+      "hi_freq"
+     ],
+     "params": [
+      "comp",
+      "dj_filter",
+      "eq_lo",
+      "lo_freq",
+      "eq_mid",
+      "mid_freq",
+      "eq_hi",
+      "hi_freq",
+      "q_lo",
+      "q_mid",
+      "q_hi",
+      "reset_eq",
+      "master"
+     ]
+    },
+    "Voice": {
+     "label": "Voice",
+     "knobs": [
+      "cv_vol",
+      "cv_pan",
+      "cv_freq",
+      "cv_decay",
+      "cv_wave",
+      "cv_mix",
+      "cv_cutoff",
+      "cv_preset"
+     ],
+     "params": [
+      "cv_vol",
+      "cv_pan",
+      "cv_freq",
+      "cv_attack",
+      "cv_decay",
+      "cv_wave",
+      "cv_penv",
+      "cv_prate",
+      "cv_lamt",
+      "cv_lrate",
+      "cv_ftype",
+      "cv_cutoff",
+      "cv_fres",
+      "cv_nattack",
+      "cv_ndecay",
+      "cv_mix",
+      "cv_dist",
+      "cv_level",
+      "cv_preset",
+      "cv_rsend",
+      "cv_dsend"
+     ]
+    },
+    "FX": {
+     "label": "FX",
+     "knobs": [
+      "rev_mix",
+      "rev_type",
+      "rev_size",
+      "rev_decay",
+      "dly_mix",
+      "dly_rate",
+      "dly_fdbk",
+      "dly_tone"
+     ],
+     "params": [
+      "rev_mix",
+      "rev_type",
+      "rev_size",
+      "rev_decay",
+      "dly_mix",
+      "dly_rate",
+      "dly_fdbk",
+      "dly_tone"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "Patch",
+   "General",
+   "Voice",
+   "FX"
+  ],
+  "params": [
+   {
+    "key": "v1_vol",
+    "name": "V1 Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.9500"
+   },
+   {
+    "key": "v2_vol",
+    "name": "V2 Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "v3_vol",
+    "name": "V3 Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "v4_vol",
+    "name": "V4 Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7000"
+   },
+   {
+    "key": "v5_vol",
+    "name": "V5 Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7500"
+   },
+   {
+    "key": "v6_vol",
+    "name": "V6 Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5500"
+   },
+   {
+    "key": "v7_vol",
+    "name": "V7 Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "v8_vol",
+    "name": "V8 Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4500"
+   },
+   {
+    "key": "comp",
+    "name": "Compress",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "dj_filter",
+    "name": "Filter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.005,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "eq_lo",
+    "name": "EQ Low",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 0.24,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "eq_mid",
+    "name": "EQ Mid",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 0.24,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "eq_hi",
+    "name": "EQ High",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 0.24,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "lo_freq",
+    "name": "Lo Freq",
+    "type": "int",
+    "min": 20,
+    "max": 500,
+    "step": 5,
+    "options": null,
+    "default": "200"
+   },
+   {
+    "key": "mid_freq",
+    "name": "Mid Freq",
+    "type": "int",
+    "min": 200,
+    "max": 8000,
+    "step": 80,
+    "options": null,
+    "default": "1000"
+   },
+   {
+    "key": "hi_freq",
+    "name": "Hi Freq",
+    "type": "int",
+    "min": 2000,
+    "max": 18000,
+    "step": 160,
+    "options": null,
+    "default": "5000"
+   },
+   {
+    "key": "q_lo",
+    "name": "Lo Q",
+    "type": "float",
+    "min": 0.3,
+    "max": 8,
+    "step": 0.1,
+    "options": null,
+    "default": "0.7000"
+   },
+   {
+    "key": "q_mid",
+    "name": "Mid Q",
+    "type": "float",
+    "min": 0.3,
+    "max": 8,
+    "step": 0.1,
+    "options": null,
+    "default": "0.7000"
+   },
+   {
+    "key": "q_hi",
+    "name": "Hi Q",
+    "type": "float",
+    "min": 0.3,
+    "max": 8,
+    "step": 0.1,
+    "options": null,
+    "default": "0.7000"
+   },
+   {
+    "key": "reset_eq",
+    "name": "Reset EQ",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "kit",
+    "name": "Kit",
+    "type": "int",
+    "min": 0,
+    "max": 63,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "rnd_kit",
+    "name": "Rnd Kit",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "rnd_voice",
+    "name": "Rnd Voice",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "rnd_pitch",
+    "name": "Rnd Pitch",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "init_freq",
+    "name": "Init Freq",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "rnd_pan",
+    "name": "Rnd Pan",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "all_mono",
+    "name": "All Mono",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "save_kit",
+    "name": "Save Kit",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Play",
+     "Save"
+    ],
+    "default": "Play"
+   },
+   {
+    "key": "v1_pan",
+    "name": "V1 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v2_pan",
+    "name": "V2 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v3_pan",
+    "name": "V3 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v4_pan",
+    "name": "V4 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v5_pan",
+    "name": "V5 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v6_pan",
+    "name": "V6 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v7_pan",
+    "name": "V7 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v8_pan",
+    "name": "V8 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "same_freq",
+    "name": "SameFreq",
+    "type": "int",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "master",
+    "name": "Master",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "v1_freq",
+    "name": "V1 Freq",
+    "type": "int",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "38"
+   },
+   {
+    "key": "v1_decay",
+    "name": "V1 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "v1_wave",
+    "name": "V1 Wave",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v1_penv",
+    "name": "V1 P.Env",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.9500"
+   },
+   {
+    "key": "v1_mix",
+    "name": "V1 Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0200"
+   },
+   {
+    "key": "v1_cutoff",
+    "name": "V1 Cutoff",
+    "type": "int",
+    "min": 20,
+    "max": 18000,
+    "step": 1,
+    "options": null,
+    "default": "250"
+   },
+   {
+    "key": "v1_dist",
+    "name": "V1 Distort",
+    "type": "float",
+    "min": 0,
+    "max": 50,
+    "step": 0.5,
+    "options": null,
+    "default": "5.0000"
+   },
+   {
+    "key": "v1_preset",
+    "name": "V1 Preset",
+    "type": "int",
+    "min": 0,
+    "max": 40,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "v2_freq",
+    "name": "V2 Freq",
+    "type": "int",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "190"
+   },
+   {
+    "key": "v2_decay",
+    "name": "V2 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.1600"
+   },
+   {
+    "key": "v2_wave",
+    "name": "V2 Wave",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v2_penv",
+    "name": "V2 P.Env",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3500"
+   },
+   {
+    "key": "v2_mix",
+    "name": "V2 Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.6000"
+   },
+   {
+    "key": "v2_cutoff",
+    "name": "V2 Cutoff",
+    "type": "int",
+    "min": 20,
+    "max": 18000,
+    "step": 1,
+    "options": null,
+    "default": "3500"
+   },
+   {
+    "key": "v2_dist",
+    "name": "V2 Distort",
+    "type": "float",
+    "min": 0,
+    "max": 50,
+    "step": 0.5,
+    "options": null,
+    "default": "4.0000"
+   },
+   {
+    "key": "v2_preset",
+    "name": "V2 Preset",
+    "type": "int",
+    "min": 0,
+    "max": 40,
+    "step": 1,
+    "options": null,
+    "default": "5"
+   },
+   {
+    "key": "v3_freq",
+    "name": "V3 Freq",
+    "type": "int",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "75"
+   },
+   {
+    "key": "v3_decay",
+    "name": "V3 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4000"
+   },
+   {
+    "key": "v3_wave",
+    "name": "V3 Wave",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v3_penv",
+    "name": "V3 P.Env",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5500"
+   },
+   {
+    "key": "v3_mix",
+    "name": "V3 Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.1000"
+   },
+   {
+    "key": "v3_cutoff",
+    "name": "V3 Cutoff",
+    "type": "int",
+    "min": 20,
+    "max": 18000,
+    "step": 1,
+    "options": null,
+    "default": "700"
+   },
+   {
+    "key": "v3_dist",
+    "name": "V3 Distort",
+    "type": "float",
+    "min": 0,
+    "max": 50,
+    "step": 0.5,
+    "options": null,
+    "default": "3.0000"
+   },
+   {
+    "key": "v3_preset",
+    "name": "V3 Preset",
+    "type": "int",
+    "min": 0,
+    "max": 40,
+    "step": 1,
+    "options": null,
+    "default": "10"
+   },
+   {
+    "key": "v4_freq",
+    "name": "V4 Freq",
+    "type": "int",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "800"
+   },
+   {
+    "key": "v4_decay",
+    "name": "V4 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2000"
+   },
+   {
+    "key": "v4_wave",
+    "name": "V4 Wave",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "v4_penv",
+    "name": "V4 P.Env",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v4_mix",
+    "name": "V4 Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.9500"
+   },
+   {
+    "key": "v4_cutoff",
+    "name": "V4 Cutoff",
+    "type": "int",
+    "min": 20,
+    "max": 18000,
+    "step": 1,
+    "options": null,
+    "default": "1800"
+   },
+   {
+    "key": "v4_dist",
+    "name": "V4 Distort",
+    "type": "float",
+    "min": 0,
+    "max": 50,
+    "step": 0.5,
+    "options": null,
+    "default": "4.0000"
+   },
+   {
+    "key": "v4_preset",
+    "name": "V4 Preset",
+    "type": "int",
+    "min": 0,
+    "max": 40,
+    "step": 1,
+    "options": null,
+    "default": "25"
+   },
+   {
+    "key": "v5_freq",
+    "name": "V5 Freq",
+    "type": "int",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "500"
+   },
+   {
+    "key": "v5_decay",
+    "name": "V5 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0350"
+   },
+   {
+    "key": "v5_wave",
+    "name": "V5 Wave",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "v5_penv",
+    "name": "V5 P.Env",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2500"
+   },
+   {
+    "key": "v5_mix",
+    "name": "V5 Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4000"
+   },
+   {
+    "key": "v5_cutoff",
+    "name": "V5 Cutoff",
+    "type": "int",
+    "min": 20,
+    "max": 18000,
+    "step": 1,
+    "options": null,
+    "default": "4000"
+   },
+   {
+    "key": "v5_dist",
+    "name": "V5 Distort",
+    "type": "float",
+    "min": 0,
+    "max": 50,
+    "step": 0.5,
+    "options": null,
+    "default": "8.0000"
+   },
+   {
+    "key": "v5_preset",
+    "name": "V5 Preset",
+    "type": "int",
+    "min": 0,
+    "max": 40,
+    "step": 1,
+    "options": null,
+    "default": "30"
+   },
+   {
+    "key": "v6_freq",
+    "name": "V6 Freq",
+    "type": "int",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "450"
+   },
+   {
+    "key": "v6_decay",
+    "name": "V6 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0350"
+   },
+   {
+    "key": "v6_wave",
+    "name": "V6 Wave",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "v6_penv",
+    "name": "V6 P.Env",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v6_mix",
+    "name": "V6 Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.9200"
+   },
+   {
+    "key": "v6_cutoff",
+    "name": "V6 Cutoff",
+    "type": "int",
+    "min": 20,
+    "max": 18000,
+    "step": 1,
+    "options": null,
+    "default": "9000"
+   },
+   {
+    "key": "v6_dist",
+    "name": "V6 Distort",
+    "type": "float",
+    "min": 0,
+    "max": 50,
+    "step": 0.5,
+    "options": null,
+    "default": "3.0000"
+   },
+   {
+    "key": "v6_preset",
+    "name": "V6 Preset",
+    "type": "int",
+    "min": 0,
+    "max": 40,
+    "step": 1,
+    "options": null,
+    "default": "15"
+   },
+   {
+    "key": "v7_freq",
+    "name": "V7 Freq",
+    "type": "int",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "420"
+   },
+   {
+    "key": "v7_decay",
+    "name": "V7 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3500"
+   },
+   {
+    "key": "v7_wave",
+    "name": "V7 Wave",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "v7_penv",
+    "name": "V7 P.Env",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v7_mix",
+    "name": "V7 Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.9300"
+   },
+   {
+    "key": "v7_cutoff",
+    "name": "V7 Cutoff",
+    "type": "int",
+    "min": 20,
+    "max": 18000,
+    "step": 1,
+    "options": null,
+    "default": "6500"
+   },
+   {
+    "key": "v7_dist",
+    "name": "V7 Distort",
+    "type": "float",
+    "min": 0,
+    "max": 50,
+    "step": 0.5,
+    "options": null,
+    "default": "2.0000"
+   },
+   {
+    "key": "v7_preset",
+    "name": "V7 Preset",
+    "type": "int",
+    "min": 0,
+    "max": 40,
+    "step": 1,
+    "options": null,
+    "default": "16"
+   },
+   {
+    "key": "v8_freq",
+    "name": "V8 Freq",
+    "type": "int",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "280"
+   },
+   {
+    "key": "v8_decay",
+    "name": "V8 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "1.2000"
+   },
+   {
+    "key": "v8_wave",
+    "name": "V8 Wave",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "v8_penv",
+    "name": "V8 P.Env",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v8_mix",
+    "name": "V8 Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8800"
+   },
+   {
+    "key": "v8_cutoff",
+    "name": "V8 Cutoff",
+    "type": "int",
+    "min": 20,
+    "max": 18000,
+    "step": 1,
+    "options": null,
+    "default": "4500"
+   },
+   {
+    "key": "v8_dist",
+    "name": "V8 Distort",
+    "type": "float",
+    "min": 0,
+    "max": 50,
+    "step": 0.5,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v8_preset",
+    "name": "V8 Preset",
+    "type": "int",
+    "min": 0,
+    "max": 40,
+    "step": 1,
+    "options": null,
+    "default": "20"
+   },
+   {
+    "key": "v1_attack",
+    "name": "V1 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0010"
+   },
+   {
+    "key": "v1_prate",
+    "name": "V1 P.Rate",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0700"
+   },
+   {
+    "key": "v1_lamt",
+    "name": "V1 LFO Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v1_lrate",
+    "name": "V1 LFO Rt",
+    "type": "float",
+    "min": 0.1,
+    "max": 80,
+    "step": 0.5,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "v1_ftype",
+    "name": "V1 F.Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LP",
+     "HP",
+     "BP"
+    ],
+    "default": "LP"
+   },
+   {
+    "key": "v1_fres",
+    "name": "V1 Reso",
+    "type": "float",
+    "min": 1,
+    "max": 5,
+    "step": 0.1,
+    "options": null,
+    "default": "1.2000"
+   },
+   {
+    "key": "v1_nattack",
+    "name": "V1 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0010"
+   },
+   {
+    "key": "v1_ndecay",
+    "name": "V1 N.Dec",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0200"
+   },
+   {
+    "key": "v1_level",
+    "name": "V1 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.9500"
+   },
+   {
+    "key": "v2_attack",
+    "name": "V2 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0005"
+   },
+   {
+    "key": "v2_prate",
+    "name": "V2 P.Rate",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0250"
+   },
+   {
+    "key": "v2_lamt",
+    "name": "V2 LFO Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v2_lrate",
+    "name": "V2 LFO Rt",
+    "type": "float",
+    "min": 0.1,
+    "max": 80,
+    "step": 0.5,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "v2_ftype",
+    "name": "V2 F.Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LP",
+     "HP",
+     "BP"
+    ],
+    "default": "BP"
+   },
+   {
+    "key": "v2_fres",
+    "name": "V2 Reso",
+    "type": "float",
+    "min": 1,
+    "max": 5,
+    "step": 0.1,
+    "options": null,
+    "default": "1.4000"
+   },
+   {
+    "key": "v2_nattack",
+    "name": "V2 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0010"
+   },
+   {
+    "key": "v2_ndecay",
+    "name": "V2 N.Dec",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.1600"
+   },
+   {
+    "key": "v2_level",
+    "name": "V2 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "v3_attack",
+    "name": "V3 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0010"
+   },
+   {
+    "key": "v3_prate",
+    "name": "V3 P.Rate",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0450"
+   },
+   {
+    "key": "v3_lamt",
+    "name": "V3 LFO Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v3_lrate",
+    "name": "V3 LFO Rt",
+    "type": "float",
+    "min": 0.1,
+    "max": 80,
+    "step": 0.5,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "v3_ftype",
+    "name": "V3 F.Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LP",
+     "HP",
+     "BP"
+    ],
+    "default": "LP"
+   },
+   {
+    "key": "v3_fres",
+    "name": "V3 Reso",
+    "type": "float",
+    "min": 1,
+    "max": 5,
+    "step": 0.1,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "v3_nattack",
+    "name": "V3 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0010"
+   },
+   {
+    "key": "v3_ndecay",
+    "name": "V3 N.Dec",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0800"
+   },
+   {
+    "key": "v3_level",
+    "name": "V3 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "v4_attack",
+    "name": "V4 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0001"
+   },
+   {
+    "key": "v4_prate",
+    "name": "V4 P.Rate",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0100"
+   },
+   {
+    "key": "v4_lamt",
+    "name": "V4 LFO Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v4_lrate",
+    "name": "V4 LFO Rt",
+    "type": "float",
+    "min": 0.1,
+    "max": 80,
+    "step": 0.5,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "v4_ftype",
+    "name": "V4 F.Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LP",
+     "HP",
+     "BP"
+    ],
+    "default": "BP"
+   },
+   {
+    "key": "v4_fres",
+    "name": "V4 Reso",
+    "type": "float",
+    "min": 1,
+    "max": 5,
+    "step": 0.1,
+    "options": null,
+    "default": "1.5000"
+   },
+   {
+    "key": "v4_nattack",
+    "name": "V4 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0001"
+   },
+   {
+    "key": "v4_ndecay",
+    "name": "V4 N.Dec",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2000"
+   },
+   {
+    "key": "v4_level",
+    "name": "V4 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7000"
+   },
+   {
+    "key": "v5_attack",
+    "name": "V5 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0001"
+   },
+   {
+    "key": "v5_prate",
+    "name": "V5 P.Rate",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0080"
+   },
+   {
+    "key": "v5_lamt",
+    "name": "V5 LFO Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v5_lrate",
+    "name": "V5 LFO Rt",
+    "type": "float",
+    "min": 0.1,
+    "max": 80,
+    "step": 0.5,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "v5_ftype",
+    "name": "V5 F.Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LP",
+     "HP",
+     "BP"
+    ],
+    "default": "BP"
+   },
+   {
+    "key": "v5_fres",
+    "name": "V5 Reso",
+    "type": "float",
+    "min": 1,
+    "max": 5,
+    "step": 0.1,
+    "options": null,
+    "default": "2.5000"
+   },
+   {
+    "key": "v5_nattack",
+    "name": "V5 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0001"
+   },
+   {
+    "key": "v5_ndecay",
+    "name": "V5 N.Dec",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0300"
+   },
+   {
+    "key": "v5_level",
+    "name": "V5 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7500"
+   },
+   {
+    "key": "v6_attack",
+    "name": "V6 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0001"
+   },
+   {
+    "key": "v6_prate",
+    "name": "V6 P.Rate",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0100"
+   },
+   {
+    "key": "v6_lamt",
+    "name": "V6 LFO Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0400"
+   },
+   {
+    "key": "v6_lrate",
+    "name": "V6 LFO Rt",
+    "type": "float",
+    "min": 0.1,
+    "max": 80,
+    "step": 0.5,
+    "options": null,
+    "default": "60.0000"
+   },
+   {
+    "key": "v6_ftype",
+    "name": "V6 F.Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LP",
+     "HP",
+     "BP"
+    ],
+    "default": "HP"
+   },
+   {
+    "key": "v6_fres",
+    "name": "V6 Reso",
+    "type": "float",
+    "min": 1,
+    "max": 5,
+    "step": 0.1,
+    "options": null,
+    "default": "2.0000"
+   },
+   {
+    "key": "v6_nattack",
+    "name": "V6 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0001"
+   },
+   {
+    "key": "v6_ndecay",
+    "name": "V6 N.Dec",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0350"
+   },
+   {
+    "key": "v6_level",
+    "name": "V6 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5500"
+   },
+   {
+    "key": "v7_attack",
+    "name": "V7 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0001"
+   },
+   {
+    "key": "v7_prate",
+    "name": "V7 P.Rate",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0100"
+   },
+   {
+    "key": "v7_lamt",
+    "name": "V7 LFO Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0600"
+   },
+   {
+    "key": "v7_lrate",
+    "name": "V7 LFO Rt",
+    "type": "float",
+    "min": 0.1,
+    "max": 80,
+    "step": 0.5,
+    "options": null,
+    "default": "40.0000"
+   },
+   {
+    "key": "v7_ftype",
+    "name": "V7 F.Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LP",
+     "HP",
+     "BP"
+    ],
+    "default": "HP"
+   },
+   {
+    "key": "v7_fres",
+    "name": "V7 Reso",
+    "type": "float",
+    "min": 1,
+    "max": 5,
+    "step": 0.1,
+    "options": null,
+    "default": "1.8000"
+   },
+   {
+    "key": "v7_nattack",
+    "name": "V7 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0001"
+   },
+   {
+    "key": "v7_ndecay",
+    "name": "V7 N.Dec",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3500"
+   },
+   {
+    "key": "v7_level",
+    "name": "V7 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "v8_attack",
+    "name": "V8 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0020"
+   },
+   {
+    "key": "v8_prate",
+    "name": "V8 P.Rate",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0100"
+   },
+   {
+    "key": "v8_lamt",
+    "name": "V8 LFO Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0700"
+   },
+   {
+    "key": "v8_lrate",
+    "name": "V8 LFO Rt",
+    "type": "float",
+    "min": 0.1,
+    "max": 80,
+    "step": 0.5,
+    "options": null,
+    "default": "4.0000"
+   },
+   {
+    "key": "v8_ftype",
+    "name": "V8 F.Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LP",
+     "HP",
+     "BP"
+    ],
+    "default": "HP"
+   },
+   {
+    "key": "v8_fres",
+    "name": "V8 Reso",
+    "type": "float",
+    "min": 1,
+    "max": 5,
+    "step": 0.1,
+    "options": null,
+    "default": "1.2000"
+   },
+   {
+    "key": "v8_nattack",
+    "name": "V8 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0020"
+   },
+   {
+    "key": "v8_ndecay",
+    "name": "V8 N.Dec",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.2000"
+   },
+   {
+    "key": "v8_level",
+    "name": "V8 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4500"
+   },
+   {
+    "key": "cv_vol",
+    "name": "Volume",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.9500"
+   },
+   {
+    "key": "cv_pan",
+    "name": "Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_freq",
+    "name": "Freq",
+    "type": "int",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "38"
+   },
+   {
+    "key": "cv_attack",
+    "name": "Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0010"
+   },
+   {
+    "key": "cv_decay",
+    "name": "Decay",
+    "type": "float",
+    "min": 0,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "cv_wave",
+    "name": "Wave",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_penv",
+    "name": "P.Env",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.9500"
+   },
+   {
+    "key": "cv_prate",
+    "name": "P.Rate",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0700"
+   },
+   {
+    "key": "cv_lamt",
+    "name": "LFO Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_lrate",
+    "name": "LFO Rate",
+    "type": "float",
+    "min": 0.1,
+    "max": 80,
+    "step": 0.5,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "cv_ftype",
+    "name": "Flt Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LP",
+     "HP",
+     "BP"
+    ],
+    "default": "LP"
+   },
+   {
+    "key": "cv_cutoff",
+    "name": "Cutoff",
+    "type": "int",
+    "min": 20,
+    "max": 18000,
+    "step": 1,
+    "options": null,
+    "default": "250"
+   },
+   {
+    "key": "cv_fres",
+    "name": "Reso",
+    "type": "float",
+    "min": 1,
+    "max": 5,
+    "step": 0.1,
+    "options": null,
+    "default": "1.2000"
+   },
+   {
+    "key": "cv_nattack",
+    "name": "N.Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0010"
+   },
+   {
+    "key": "cv_ndecay",
+    "name": "N.Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0200"
+   },
+   {
+    "key": "cv_mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0200"
+   },
+   {
+    "key": "cv_dist",
+    "name": "Distort",
+    "type": "float",
+    "min": 0,
+    "max": 50,
+    "step": 0.5,
+    "options": null,
+    "default": "5.0000"
+   },
+   {
+    "key": "cv_level",
+    "name": "Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.9500"
+   },
+   {
+    "key": "cv_preset",
+    "name": "Preset",
+    "type": "int",
+    "min": 0,
+    "max": 40,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "cv_rsend",
+    "name": "Rev Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0500"
+   },
+   {
+    "key": "cv_dsend",
+    "name": "Dly Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "rev_mix",
+    "name": "Rev Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "rev_type",
+    "name": "Rev Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Club",
+     "Garage",
+     "Studio"
+    ],
+    "default": "Club"
+   },
+   {
+    "key": "rev_size",
+    "name": "Rev Size",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "rev_decay",
+    "name": "Rev Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "dly_mix",
+    "name": "Dly Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "dly_rate",
+    "name": "Dly Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3000"
+   },
+   {
+    "key": "dly_fdbk",
+    "name": "Dly Fdbk",
+    "type": "float",
+    "min": 0,
+    "max": 0.95,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3000"
+   },
+   {
+    "key": "dly_tone",
+    "name": "Dly Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "v1_rsend",
+    "name": "V1 Rev Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0500"
+   },
+   {
+    "key": "v1_dsend",
+    "name": "V1 Dly Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v2_rsend",
+    "name": "V2 Rev Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2000"
+   },
+   {
+    "key": "v2_dsend",
+    "name": "V2 Dly Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0500"
+   },
+   {
+    "key": "v3_rsend",
+    "name": "V3 Rev Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2500"
+   },
+   {
+    "key": "v3_dsend",
+    "name": "V3 Dly Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v4_rsend",
+    "name": "V4 Rev Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4000"
+   },
+   {
+    "key": "v4_dsend",
+    "name": "V4 Dly Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.1500"
+   },
+   {
+    "key": "v5_rsend",
+    "name": "V5 Rev Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.1000"
+   },
+   {
+    "key": "v5_dsend",
+    "name": "V5 Dly Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0500"
+   },
+   {
+    "key": "v6_rsend",
+    "name": "V6 Rev Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.1000"
+   },
+   {
+    "key": "v6_dsend",
+    "name": "V6 Dly Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v7_rsend",
+    "name": "V7 Rev Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.1500"
+   },
+   {
+    "key": "v7_dsend",
+    "name": "V7 Dly Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0500"
+   },
+   {
+    "key": "v8_rsend",
+    "name": "V8 Rev Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3500"
+   },
+   {
+    "key": "v8_dsend",
+    "name": "V8 Dly Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": true,
+  "usesMovyConfigFile": false,
+  "drum": {
+   "padCount": 8,
+   "padNoteStart": 36,
+   "rawMidi": false,
+   "shiftSelectMidi": true,
+   "padScoping": {
+    "aliasPrefix": "cv_",
+    "concreteKeyTemplate": "v{pad}_{suffix}",
+    "padDigits": 1
+   }
+  },
+  "banks": [
+   {
+    "name": "Voice",
+    "global": false,
+    "padSpecific": true
+   },
+   {
+    "name": "Patch",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "FX",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Voice",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VOL",
+       "fullName": "Volume",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "95%"
+      },
+      {
+       "shortName": "PAN",
+       "fullName": "Pan",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "WAVE",
+       "fullName": "Wave",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CUTOF",
+       "fullName": "Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PRSET",
+       "fullName": "Preset",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Patch",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "KIT",
+       "fullName": "Kit",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RNKIT",
+       "fullName": "Rnd Kit",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RNDVC",
+       "fullName": "Rnd Voice",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RNDPT",
+       "fullName": "Rnd Pitch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RVMIX",
+       "fullName": "Rev Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RVTYP",
+       "fullName": "Rev Type",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RVSIZ",
+       "fullName": "Rev Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RVDCY",
+       "fullName": "Rev Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "FX",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DLMIX",
+       "fullName": "Dly Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DLRAT",
+       "fullName": "Dly Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DLFBK",
+       "fullName": "Dly Fdbk",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DLTON",
+       "fullName": "Dly Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "cv_vol",
+    "label": "Volume",
+    "shortLabel": "VOL",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_pan",
+    "label": "Pan",
+    "shortLabel": "PAN",
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_freq",
+    "label": "Freq",
+    "shortLabel": "FREQ",
+    "type": "float",
+    "options": null,
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 39960
+    }
+   },
+   {
+    "key": "cv_decay",
+    "label": "Decay",
+    "shortLabel": "DECAY",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_wave",
+    "label": "Wave",
+    "shortLabel": "WAVE",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_mix",
+    "label": "Mix",
+    "shortLabel": "MIX",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_cutoff",
+    "label": "Cutoff",
+    "shortLabel": "CUTOF",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 2
+    }
+   },
+   {
+    "key": "cv_preset",
+    "label": "Preset",
+    "shortLabel": "PRSET",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 40,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 80
+    }
+   },
+   {
+    "key": "kit",
+    "label": "Kit",
+    "shortLabel": "KIT",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 63,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 126
+    }
+   },
+   {
+    "key": "rnd_kit",
+    "label": "Rnd Kit",
+    "shortLabel": "RNKIT",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 2
+    }
+   },
+   {
+    "key": "rnd_voice",
+    "label": "Rnd Voice",
+    "shortLabel": "RNDVC",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 2
+    }
+   },
+   {
+    "key": "rnd_pitch",
+    "label": "Rnd Pitch",
+    "shortLabel": "RNDPT",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 2
+    }
+   },
+   {
+    "key": "rev_mix",
+    "label": "Rev Mix",
+    "shortLabel": "RVMIX",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rev_type",
+    "label": "Rev Type",
+    "shortLabel": "RVTYP",
+    "type": "int",
+    "options": [
+     "Club",
+     "Garage",
+     "Studio"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 4
+    }
+   },
+   {
+    "key": "rev_size",
+    "label": "Rev Size",
+    "shortLabel": "RVSIZ",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rev_decay",
+    "label": "Rev Decay",
+    "shortLabel": "RVDCY",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dly_mix",
+    "label": "Dly Mix",
+    "shortLabel": "DLMIX",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dly_rate",
+    "label": "Dly Rate",
+    "shortLabel": "DLRAT",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dly_fdbk",
+    "label": "Dly Fdbk",
+    "shortLabel": "DLFBK",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dly_tone",
+    "label": "Dly Tone",
+    "shortLabel": "DLTON",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "comp",
+   "dj_filter",
+   "eq_lo",
+   "eq_mid",
+   "eq_hi",
+   "lo_freq",
+   "mid_freq",
+   "hi_freq",
+   "q_lo",
+   "q_mid",
+   "q_hi",
+   "reset_eq",
+   "init_freq",
+   "rnd_pan",
+   "all_mono",
+   "save_kit",
+   "same_freq",
+   "master",
+   "v1_penv",
+   "v1_dist",
+   "v2_penv",
+   "v2_dist",
+   "v3_penv",
+   "v3_dist",
+   "v4_penv",
+   "v4_dist",
+   "v5_penv",
+   "v5_dist",
+   "v6_penv",
+   "v6_dist",
+   "v7_penv",
+   "v7_dist",
+   "v8_penv",
+   "v8_dist",
+   "v1_attack",
+   "v1_prate",
+   "v1_lamt",
+   "v1_lrate",
+   "v1_ftype",
+   "v1_fres",
+   "v1_nattack",
+   "v1_ndecay",
+   "v1_level",
+   "v2_attack",
+   "v2_prate",
+   "v2_lamt",
+   "v2_lrate",
+   "v2_ftype",
+   "v2_fres",
+   "v2_nattack",
+   "v2_ndecay",
+   "v2_level",
+   "v3_attack",
+   "v3_prate",
+   "v3_lamt",
+   "v3_lrate",
+   "v3_ftype",
+   "v3_fres",
+   "v3_nattack",
+   "v3_ndecay",
+   "v3_level",
+   "v4_attack",
+   "v4_prate",
+   "v4_lamt",
+   "v4_lrate",
+   "v4_ftype",
+   "v4_fres",
+   "v4_nattack",
+   "v4_ndecay",
+   "v4_level",
+   "v5_attack",
+   "v5_prate",
+   "v5_lamt",
+   "v5_lrate",
+   "v5_ftype",
+   "v5_fres",
+   "v5_nattack",
+   "v5_ndecay",
+   "v5_level",
+   "v6_attack",
+   "v6_prate",
+   "v6_lamt",
+   "v6_lrate",
+   "v6_ftype",
+   "v6_fres",
+   "v6_nattack",
+   "v6_ndecay",
+   "v6_level",
+   "v7_attack",
+   "v7_prate",
+   "v7_lamt",
+   "v7_lrate",
+   "v7_ftype",
+   "v7_fres",
+   "v7_nattack",
+   "v7_ndecay",
+   "v7_level",
+   "v8_attack",
+   "v8_prate",
+   "v8_lamt",
+   "v8_lrate",
+   "v8_ftype",
+   "v8_fres",
+   "v8_nattack",
+   "v8_ndecay",
+   "v8_level",
+   "cv_attack",
+   "cv_penv",
+   "cv_prate",
+   "cv_lamt",
+   "cv_lrate",
+   "cv_ftype",
+   "cv_fres",
+   "cv_nattack",
+   "cv_ndecay",
+   "cv_dist",
+   "cv_level",
+   "cv_rsend",
+   "cv_dsend",
+   "v1_rsend",
+   "v1_dsend",
+   "v2_rsend",
+   "v2_dsend",
+   "v3_rsend",
+   "v3_dsend",
+   "v4_rsend",
+   "v4_dsend",
+   "v5_rsend",
+   "v5_dsend",
+   "v6_rsend",
+   "v6_dsend",
+   "v7_rsend",
+   "v7_dsend",
+   "v8_rsend",
+   "v8_dsend"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "135 chain_params not reachable in movy: comp, dj_filter, eq_lo, eq_mid, eq_hi, lo_freq, mid_freq, hi_freq, q_lo, q_mid, q_hi, reset_eq, …"
+  ]
+ }
+}

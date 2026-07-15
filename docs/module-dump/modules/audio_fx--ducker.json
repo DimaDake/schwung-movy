@@ -1,0 +1,506 @@
+{
+ "id": "ducker",
+ "name": "Ducker",
+ "version": "0.1.2",
+ "author": "charlesvestal",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 58,
+ "dsp_size": 19000,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Ducker",
+     "params": [
+      {
+       "key": "channel",
+       "label": "Channel",
+       "type": "enum",
+       "options": [
+        "Omni",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16"
+       ],
+       "default": "1"
+      },
+      {
+       "key": "trigger_note",
+       "label": "Trigger",
+       "type": "int",
+       "min": 0,
+       "max": 127,
+       "default": 36,
+       "step": 1
+      },
+      {
+       "key": "mode",
+       "label": "Mode",
+       "type": "enum",
+       "options": [
+        "Trigger",
+        "Gate"
+       ],
+       "default": "Trigger"
+      },
+      {
+       "key": "depth",
+       "label": "Depth",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 1,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "attack",
+       "label": "Attack",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.1,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "hold",
+       "label": "Hold",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.2,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "release",
+       "label": "Release",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.3,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "curve",
+       "label": "Curve",
+       "type": "enum",
+       "options": [
+        "Linear",
+        "Expo",
+        "S-Curve",
+        "Pump"
+       ],
+       "default": "Linear"
+      },
+      {
+       "key": "vel_sens",
+       "label": "Vel Sens",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01,
+       "unit": "%"
+      }
+     ],
+     "knobs": [
+      "channel",
+      "trigger_note",
+      "mode",
+      "depth",
+      "attack",
+      "hold",
+      "release",
+      "curve"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root"
+  ],
+  "params": [
+   {
+    "key": "channel",
+    "name": "Channel",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Omni",
+     "1",
+     "2",
+     "3",
+     "4",
+     "5",
+     "6",
+     "7",
+     "8",
+     "9",
+     "10",
+     "11",
+     "12",
+     "13",
+     "14",
+     "15",
+     "16"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "trigger_note",
+    "name": "Trigger",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "36"
+   },
+   {
+    "key": "mode",
+    "name": "Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Trigger",
+     "Gate"
+    ],
+    "default": "Trigger"
+   },
+   {
+    "key": "depth",
+    "name": "Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.00"
+   },
+   {
+    "key": "attack",
+    "name": "Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.10"
+   },
+   {
+    "key": "hold",
+    "name": "Hold",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.20"
+   },
+   {
+    "key": "release",
+    "name": "Release",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.30"
+   },
+   {
+    "key": "curve",
+    "name": "Curve",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Linear",
+     "Expo",
+     "S-Curve",
+     "Pump"
+    ],
+    "default": "Linear"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CHANN",
+       "fullName": "Channel",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "1"
+      },
+      {
+       "shortName": "TRIGG",
+       "fullName": "Trigger",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MODE",
+       "fullName": "Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEPTH",
+       "fullName": "Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "ATTAC",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HOLD",
+       "fullName": "Hold",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RELEA",
+       "fullName": "Release",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CURVE",
+       "fullName": "Curve",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "channel",
+    "label": "Channel",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Omni",
+     "1",
+     "2",
+     "3",
+     "4",
+     "5",
+     "6",
+     "7",
+     "8",
+     "9",
+     "10",
+     "11",
+     "12",
+     "13",
+     "14",
+     "15",
+     "16"
+    ],
+    "min": 0,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 17
+    }
+   },
+   {
+    "key": "trigger_note",
+    "label": "Trigger",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "mode",
+    "label": "Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Trigger",
+     "Gate"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "depth",
+    "label": "Depth",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "attack",
+    "label": "Attack",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "hold",
+    "label": "Hold",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "release",
+    "label": "Release",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "curve",
+    "label": "Curve",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Linear",
+     "Expo",
+     "S-Curve",
+     "Pump"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": []
+ }
+}

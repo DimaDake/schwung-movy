@@ -3884,6 +3884,35 @@ _log('\nTest: LFO assign-mode gesture');
     Date.now = realNow;
 }
 
+/* ── dumpLayout: external layout snapshot (scripts/dump-movy-layout.mjs) ── */
+
+_log('\nTest: dumpLayout exposes banks + raw params');
+
+{
+    const m = bootModel(MOCK_SYNTHS.mrdrums);
+    const d = m.dumpLayout();
+    eq('dumpLayout: moduleId',        d.moduleId, 'mrdrums');
+    eq('dumpLayout: hasConfig',       d.hasConfig, true);
+    eq('dumpLayout: drum config exposed', d.drum !== null, true);
+    eq('dumpLayout: config bank names present', d.banks.length > 0 && typeof d.banks[0].name, 'string');
+    const first = d.params.find(p => p !== null);
+    eq('dumpLayout: param has step',  typeof first?.step, 'number');
+    eq('dumpLayout: param has renderStyle', typeof first?.renderStyle, 'string');
+    // snapshot is a copy — mutating it must not touch the live model
+    first.min = -999;
+    const range = m.paramRangeByKey(first.key);
+    eq('dumpLayout: copies, not references', range?.min === -999, false);
+}
+
+{
+    const m = bootModel(MOCK_SYNTHS.test8);
+    const d = m.dumpLayout();
+    eq('dumpLayout: generic path hasConfig=false', d.hasConfig, false);
+    eq('dumpLayout: generic path 8 params', d.params.filter(Boolean).length, 8);
+    eq('dumpLayout: generic bank count matches model', d.banks.length, m.getBankCount());
+    eq('dumpLayout: generic params = banks × 8', d.params.length, d.banks.length * 8);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

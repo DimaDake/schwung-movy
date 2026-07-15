@@ -1,0 +1,2961 @@
+{
+ "id": "eucalypso",
+ "name": "Eucalypso",
+ "version": "0.1.5",
+ "author": null,
+ "category": "midi_fx",
+ "status": "ok",
+ "load_ms": 46,
+ "dsp_size": 163584,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "midi_fx",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Eucalypso",
+     "params": [
+      {
+       "label": "Global",
+       "level": "global"
+      },
+      {
+       "label": "Note Register",
+       "level": "note_register"
+      },
+      {
+       "label": "Lane 1",
+       "level": "lane1"
+      },
+      {
+       "label": "Lane 2",
+       "level": "lane2"
+      },
+      {
+       "label": "Lane 3",
+       "level": "lane3"
+      },
+      {
+       "label": "Lane 4",
+       "level": "lane4"
+      }
+     ],
+     "knobs": [
+      "play_mode",
+      "global_velocity",
+      "global_gate",
+      "octave",
+      "lane1_enabled",
+      "lane2_enabled",
+      "lane3_enabled",
+      "lane4_enabled"
+     ]
+    },
+    "global": {
+     "name": "Global",
+     "params": [
+      "play_mode",
+      "rate",
+      "retrigger_mode",
+      "sync",
+      "bpm",
+      "swing",
+      "max_voices",
+      "global_velocity",
+      "global_v_rnd",
+      "global_gate",
+      "global_g_rnd",
+      "global_rnd_seed",
+      "rand_cycle"
+     ],
+     "knobs": [
+      "play_mode",
+      "max_voices",
+      "rate",
+      "sync",
+      "swing",
+      "global_gate",
+      "global_velocity",
+      "octave"
+     ]
+    },
+    "lane1": {
+     "name": "Lane 1",
+     "params": [
+      "lane1_enabled",
+      "lane1_steps",
+      "lane1_pulses",
+      "lane1_rotation",
+      "lane1_drop",
+      "lane1_drop_seed",
+      "lane1_note",
+      "lane1_n_rnd",
+      "lane1_n_seed",
+      "lane1_octave",
+      "lane1_oct_rnd",
+      "lane1_oct_seed",
+      "lane1_oct_rng",
+      "lane1_velocity",
+      "lane1_gate"
+     ],
+     "knobs": [
+      "lane1_enabled",
+      "lane1_steps",
+      "lane1_pulses",
+      "lane1_rotation",
+      "lane1_drop",
+      "lane1_note",
+      "lane1_octave",
+      "lane1_velocity",
+      "lane1_gate"
+     ]
+    },
+    "lane2": {
+     "name": "Lane 2",
+     "params": [
+      "lane2_enabled",
+      "lane2_steps",
+      "lane2_pulses",
+      "lane2_rotation",
+      "lane2_drop",
+      "lane2_drop_seed",
+      "lane2_note",
+      "lane2_n_rnd",
+      "lane2_n_seed",
+      "lane2_octave",
+      "lane2_oct_rnd",
+      "lane2_oct_seed",
+      "lane2_oct_rng",
+      "lane2_velocity",
+      "lane2_gate"
+     ],
+     "knobs": [
+      "lane2_enabled",
+      "lane2_steps",
+      "lane2_pulses",
+      "lane2_rotation",
+      "lane2_drop",
+      "lane2_note",
+      "lane2_octave",
+      "lane2_velocity",
+      "lane2_gate"
+     ]
+    },
+    "lane3": {
+     "name": "Lane 3",
+     "params": [
+      "lane3_enabled",
+      "lane3_steps",
+      "lane3_pulses",
+      "lane3_rotation",
+      "lane3_drop",
+      "lane3_drop_seed",
+      "lane3_note",
+      "lane3_n_rnd",
+      "lane3_n_seed",
+      "lane3_octave",
+      "lane3_oct_rnd",
+      "lane3_oct_seed",
+      "lane3_oct_rng",
+      "lane3_velocity",
+      "lane3_gate"
+     ],
+     "knobs": [
+      "lane3_enabled",
+      "lane3_steps",
+      "lane3_pulses",
+      "lane3_rotation",
+      "lane3_drop",
+      "lane3_note",
+      "lane3_octave",
+      "lane3_velocity",
+      "lane3_gate"
+     ]
+    },
+    "lane4": {
+     "name": "Lane 4",
+     "params": [
+      "lane4_enabled",
+      "lane4_steps",
+      "lane4_pulses",
+      "lane4_rotation",
+      "lane4_drop",
+      "lane4_drop_seed",
+      "lane4_note",
+      "lane4_n_rnd",
+      "lane4_n_seed",
+      "lane4_octave",
+      "lane4_oct_rnd",
+      "lane4_oct_seed",
+      "lane4_oct_rng",
+      "lane4_velocity",
+      "lane4_gate"
+     ],
+     "knobs": [
+      "lane4_enabled",
+      "lane4_steps",
+      "lane4_pulses",
+      "lane4_rotation",
+      "lane4_drop",
+      "lane4_note",
+      "lane4_octave",
+      "lane4_velocity",
+      "lane4_gate"
+     ]
+    },
+    "note_register": {
+     "name": "Note Register",
+     "params": [
+      "register_mode",
+      "held_order",
+      "held_order_seed",
+      "missing_note_policy",
+      "missing_note_seed",
+      "scale_mode",
+      "scale_rng",
+      "root_note",
+      "octave"
+     ],
+     "knobs": [
+      "register_mode",
+      "held_order",
+      "missing_note_policy",
+      "scale_mode",
+      "scale_rng",
+      "root_note",
+      "octave"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "global",
+   "lane1",
+   "lane2",
+   "lane3",
+   "lane4",
+   "note_register"
+  ],
+  "params": [
+   {
+    "key": "play_mode",
+    "name": "Play",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "hold",
+     "latch"
+    ],
+    "default": "hold"
+   },
+   {
+    "key": "rate",
+    "name": "Rate",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1/32",
+     "1/16T",
+     "1/16",
+     "1/8T",
+     "1/8",
+     "1/4T",
+     "1/4",
+     "1/2",
+     "1"
+    ],
+    "default": "1/16"
+   },
+   {
+    "key": "retrigger_mode",
+    "name": "Retrig",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "restart",
+     "cont"
+    ],
+    "default": "cont"
+   },
+   {
+    "key": "sync",
+    "name": "Sync",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "internal",
+     "clock"
+    ],
+    "default": "internal"
+   },
+   {
+    "key": "bpm",
+    "name": "BPM",
+    "type": "int",
+    "min": 40,
+    "max": 240,
+    "step": 1,
+    "options": null,
+    "default": "120"
+   },
+   {
+    "key": "swing",
+    "name": "Swing",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "max_voices",
+    "name": "Voices",
+    "type": "int",
+    "min": 1,
+    "max": 64,
+    "step": 1,
+    "options": null,
+    "default": "8"
+   },
+   {
+    "key": "global_velocity",
+    "name": "Vel",
+    "type": "int",
+    "min": 1,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "100"
+   },
+   {
+    "key": "global_v_rnd",
+    "name": "Vel Rnd",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "global_gate",
+    "name": "Gate",
+    "type": "int",
+    "min": 1,
+    "max": 1600,
+    "step": 1,
+    "options": null,
+    "default": "100"
+   },
+   {
+    "key": "global_g_rnd",
+    "name": "Gate Rand",
+    "type": "int",
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "global_rnd_seed",
+    "name": "Rnd Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "rand_cycle",
+    "name": "Rand Cyc",
+    "type": "int",
+    "min": 1,
+    "max": 128,
+    "step": 1,
+    "options": null,
+    "default": "16"
+   },
+   {
+    "key": "register_mode",
+    "name": "Reg Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "held",
+     "scale",
+     "drumpad"
+    ],
+    "default": "held"
+   },
+   {
+    "key": "held_order",
+    "name": "Note Ord",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "up",
+     "down",
+     "played",
+     "rand"
+    ],
+    "default": "up"
+   },
+   {
+    "key": "held_order_seed",
+    "name": "Rand Ord Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "missing_note_policy",
+    "name": "Miss Pol",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "skip",
+     "fold",
+     "wrap",
+     "random"
+    ],
+    "default": "skip"
+   },
+   {
+    "key": "missing_note_seed",
+    "name": "Miss Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "scale_mode",
+    "name": "Scale",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "major",
+     "natural_minor",
+     "harmonic_minor",
+     "melodic_minor",
+     "dorian",
+     "phrygian",
+     "lydian",
+     "mixolydian",
+     "locrian",
+     "pentatonic_major",
+     "pentatonic_minor",
+     "blues",
+     "whole_tone",
+     "chromatic"
+    ],
+    "default": "major"
+   },
+   {
+    "key": "scale_rng",
+    "name": "Scale Rng",
+    "type": "int",
+    "min": 1,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "8"
+   },
+   {
+    "key": "root_note",
+    "name": "Root",
+    "type": "int",
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "octave",
+    "name": "Oct",
+    "type": "int",
+    "min": -3,
+    "max": 3,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane1_enabled",
+    "name": "On",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "on"
+   },
+   {
+    "key": "lane1_steps",
+    "name": "Steps",
+    "type": "int",
+    "min": 1,
+    "max": 128,
+    "step": 1,
+    "options": null,
+    "default": "16"
+   },
+   {
+    "key": "lane1_pulses",
+    "name": "Pulse",
+    "type": "int",
+    "min": 0,
+    "max": 128,
+    "step": 1,
+    "options": null,
+    "default": "4"
+   },
+   {
+    "key": "lane1_rotation",
+    "name": "Rot",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane1_drop",
+    "name": "Drop %",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane1_drop_seed",
+    "name": "Drop Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane1_note",
+    "name": "Note",
+    "type": "int",
+    "min": 1,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "lane1_n_rnd",
+    "name": "Note Rand",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane1_n_seed",
+    "name": "Note Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane1_octave",
+    "name": "Oct",
+    "type": "int",
+    "min": -3,
+    "max": 3,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane1_oct_rnd",
+    "name": "Oct Rand",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane1_oct_seed",
+    "name": "Oct Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane1_oct_rng",
+    "name": "Oct Rng",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "+1",
+     "-1",
+     "+-1",
+     "+2",
+     "-2",
+     "+-2"
+    ],
+    "default": "+-1"
+   },
+   {
+    "key": "lane1_velocity",
+    "name": "Vel",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane1_gate",
+    "name": "Gate",
+    "type": "int",
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane2_enabled",
+    "name": "On",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "lane2_steps",
+    "name": "Steps",
+    "type": "int",
+    "min": 1,
+    "max": 128,
+    "step": 1,
+    "options": null,
+    "default": "16"
+   },
+   {
+    "key": "lane2_pulses",
+    "name": "Pulse",
+    "type": "int",
+    "min": 0,
+    "max": 128,
+    "step": 1,
+    "options": null,
+    "default": "4"
+   },
+   {
+    "key": "lane2_rotation",
+    "name": "Rot",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane2_drop",
+    "name": "Drop %",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane2_drop_seed",
+    "name": "Drop Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane2_note",
+    "name": "Note",
+    "type": "int",
+    "min": 1,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "2"
+   },
+   {
+    "key": "lane2_n_rnd",
+    "name": "Note Rand",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane2_n_seed",
+    "name": "Note Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane2_octave",
+    "name": "Oct",
+    "type": "int",
+    "min": -3,
+    "max": 3,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane2_oct_rnd",
+    "name": "Oct Rand",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane2_oct_seed",
+    "name": "Oct Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane2_oct_rng",
+    "name": "Oct Rng",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "+1",
+     "-1",
+     "+-1",
+     "+2",
+     "-2",
+     "+-2"
+    ],
+    "default": "+-1"
+   },
+   {
+    "key": "lane2_velocity",
+    "name": "Vel",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane2_gate",
+    "name": "Gate",
+    "type": "int",
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane3_enabled",
+    "name": "On",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "lane3_steps",
+    "name": "Steps",
+    "type": "int",
+    "min": 1,
+    "max": 128,
+    "step": 1,
+    "options": null,
+    "default": "16"
+   },
+   {
+    "key": "lane3_pulses",
+    "name": "Pulse",
+    "type": "int",
+    "min": 0,
+    "max": 128,
+    "step": 1,
+    "options": null,
+    "default": "4"
+   },
+   {
+    "key": "lane3_rotation",
+    "name": "Rot",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane3_drop",
+    "name": "Drop %",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane3_drop_seed",
+    "name": "Drop Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane3_note",
+    "name": "Note",
+    "type": "int",
+    "min": 1,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "3"
+   },
+   {
+    "key": "lane3_n_rnd",
+    "name": "Note Rand",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane3_n_seed",
+    "name": "Note Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane3_octave",
+    "name": "Oct",
+    "type": "int",
+    "min": -3,
+    "max": 3,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane3_oct_rnd",
+    "name": "Oct Rand",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane3_oct_seed",
+    "name": "Oct Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane3_oct_rng",
+    "name": "Oct Rng",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "+1",
+     "-1",
+     "+-1",
+     "+2",
+     "-2",
+     "+-2"
+    ],
+    "default": "+-1"
+   },
+   {
+    "key": "lane3_velocity",
+    "name": "Vel",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane3_gate",
+    "name": "Gate",
+    "type": "int",
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane4_enabled",
+    "name": "On",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "lane4_steps",
+    "name": "Steps",
+    "type": "int",
+    "min": 1,
+    "max": 128,
+    "step": 1,
+    "options": null,
+    "default": "16"
+   },
+   {
+    "key": "lane4_pulses",
+    "name": "Pulse",
+    "type": "int",
+    "min": 0,
+    "max": 128,
+    "step": 1,
+    "options": null,
+    "default": "4"
+   },
+   {
+    "key": "lane4_rotation",
+    "name": "Rot",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane4_drop",
+    "name": "Drop %",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane4_drop_seed",
+    "name": "Drop Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane4_note",
+    "name": "Note",
+    "type": "int",
+    "min": 1,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "4"
+   },
+   {
+    "key": "lane4_n_rnd",
+    "name": "Note Rand",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane4_n_seed",
+    "name": "Note Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane4_octave",
+    "name": "Oct",
+    "type": "int",
+    "min": -3,
+    "max": 3,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane4_oct_rnd",
+    "name": "Oct Rand",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane4_oct_seed",
+    "name": "Oct Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane4_oct_rng",
+    "name": "Oct Rng",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "+1",
+     "-1",
+     "+-1",
+     "+2",
+     "-2",
+     "+-2"
+    ],
+    "default": "+-1"
+   },
+   {
+    "key": "lane4_velocity",
+    "name": "Vel",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lane4_gate",
+    "name": "Gate",
+    "type": "int",
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Global",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Note Register",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Lane 1 - 1",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Lane 1 - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Lane 2 - 1",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Lane 2 - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Lane 3 - 1",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Lane 3 - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Lane 4 - 1",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Lane 4 - 2",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PLAY",
+       "fullName": "Play",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "hold"
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "Vel",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCT",
+       "fullName": "Oct",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "ON",
+       "fullName": "On",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ON",
+       "fullName": "On",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ON",
+       "fullName": "On",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ON",
+       "fullName": "On",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Global",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PLAY",
+       "fullName": "Play",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOICE",
+       "fullName": "Voices",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "Rate",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SYNC",
+       "fullName": "Sync",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SWING",
+       "fullName": "Swing",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "Vel",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCT",
+       "fullName": "Oct",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Note Register",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "REG",
+       "fullName": "Reg Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOTE",
+       "fullName": "Note Ord",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MISS",
+       "fullName": "Miss Pol",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SCALE",
+       "fullName": "Scale",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RNG",
+       "fullName": "Scale Rng",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ROOT",
+       "fullName": "Root",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCT",
+       "fullName": "Oct",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Lane 1 - 1",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ON",
+       "fullName": "On",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STEPS",
+       "fullName": "Steps",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PULSE",
+       "fullName": "Pulse",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ROT",
+       "fullName": "Rot",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "DROP",
+       "fullName": "Drop %",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOTE",
+       "fullName": "Note",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCT",
+       "fullName": "Oct",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "Vel",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Lane 1 - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Lane 2 - 1",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ON",
+       "fullName": "On",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STEPS",
+       "fullName": "Steps",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PULSE",
+       "fullName": "Pulse",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ROT",
+       "fullName": "Rot",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "DROP",
+       "fullName": "Drop %",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOTE",
+       "fullName": "Note",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCT",
+       "fullName": "Oct",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "Vel",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Lane 2 - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Lane 3 - 1",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ON",
+       "fullName": "On",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STEPS",
+       "fullName": "Steps",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PULSE",
+       "fullName": "Pulse",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ROT",
+       "fullName": "Rot",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "DROP",
+       "fullName": "Drop %",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOTE",
+       "fullName": "Note",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCT",
+       "fullName": "Oct",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "Vel",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Lane 3 - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Lane 4 - 1",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ON",
+       "fullName": "On",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STEPS",
+       "fullName": "Steps",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PULSE",
+       "fullName": "Pulse",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ROT",
+       "fullName": "Rot",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "DROP",
+       "fullName": "Drop %",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOTE",
+       "fullName": "Note",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCT",
+       "fullName": "Oct",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "Vel",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Lane 4 - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "play_mode",
+    "label": "Play",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "hold",
+     "latch"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "global_velocity",
+    "label": "Vel",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 252
+    }
+   },
+   {
+    "key": "global_gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3198
+    }
+   },
+   {
+    "key": "octave",
+    "label": "Oct",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -3,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 12
+    }
+   },
+   {
+    "key": "lane1_enabled",
+    "label": "On",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "lane2_enabled",
+    "label": "On",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "lane3_enabled",
+    "label": "On",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "lane4_enabled",
+    "label": "On",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "play_mode",
+    "label": "Play",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "hold",
+     "latch"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "max_voices",
+    "label": "Voices",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 126
+    }
+   },
+   {
+    "key": "rate",
+    "label": "Rate",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/32",
+     "1/16T",
+     "1/16",
+     "1/8T",
+     "1/8",
+     "1/4T",
+     "1/4",
+     "1/2",
+     "1"
+    ],
+    "min": 0,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 9
+    }
+   },
+   {
+    "key": "sync",
+    "label": "Sync",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "internal",
+     "clock"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "swing",
+    "label": "Swing",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "global_gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3198
+    }
+   },
+   {
+    "key": "global_velocity",
+    "label": "Vel",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 252
+    }
+   },
+   {
+    "key": "octave",
+    "label": "Oct",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -3,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 12
+    }
+   },
+   {
+    "key": "register_mode",
+    "label": "Reg Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "held",
+     "scale",
+     "drumpad"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "held_order",
+    "label": "Note Ord",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "up",
+     "down",
+     "played",
+     "rand"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "missing_note_policy",
+    "label": "Miss Pol",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "skip",
+     "fold",
+     "wrap",
+     "random"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "scale_mode",
+    "label": "Scale",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "major",
+     "natural_minor",
+     "harmonic_minor",
+     "melodic_minor",
+     "dorian",
+     "phrygian",
+     "lydian",
+     "mixolydian",
+     "locrian",
+     "pentatonic_major",
+     "pentatonic_minor",
+     "blues",
+     "whole_tone",
+     "chromatic"
+    ],
+    "min": 0,
+    "max": 13,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 14
+    }
+   },
+   {
+    "key": "scale_rng",
+    "label": "Scale Rng",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 46
+    }
+   },
+   {
+    "key": "root_note",
+    "label": "Root",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 22
+    }
+   },
+   {
+    "key": "octave",
+    "label": "Oct",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -3,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 12
+    }
+   },
+   null,
+   {
+    "key": "lane1_enabled",
+    "label": "On",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "lane1_steps",
+    "label": "Steps",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 128,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane1_pulses",
+    "label": "Pulse",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 128,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 256
+    }
+   },
+   {
+    "key": "lane1_rotation",
+    "label": "Rot",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane1_drop",
+    "label": "Drop %",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane1_note",
+    "label": "Note",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 46
+    }
+   },
+   {
+    "key": "lane1_octave",
+    "label": "Oct",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -3,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 12
+    }
+   },
+   {
+    "key": "lane1_velocity",
+    "label": "Vel",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane1_gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3200
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "lane2_enabled",
+    "label": "On",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "lane2_steps",
+    "label": "Steps",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 128,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane2_pulses",
+    "label": "Pulse",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 128,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 256
+    }
+   },
+   {
+    "key": "lane2_rotation",
+    "label": "Rot",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane2_drop",
+    "label": "Drop %",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane2_note",
+    "label": "Note",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 46
+    }
+   },
+   {
+    "key": "lane2_octave",
+    "label": "Oct",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -3,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 12
+    }
+   },
+   {
+    "key": "lane2_velocity",
+    "label": "Vel",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane2_gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3200
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "lane3_enabled",
+    "label": "On",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "lane3_steps",
+    "label": "Steps",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 128,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane3_pulses",
+    "label": "Pulse",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 128,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 256
+    }
+   },
+   {
+    "key": "lane3_rotation",
+    "label": "Rot",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane3_drop",
+    "label": "Drop %",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane3_note",
+    "label": "Note",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 46
+    }
+   },
+   {
+    "key": "lane3_octave",
+    "label": "Oct",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -3,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 12
+    }
+   },
+   {
+    "key": "lane3_velocity",
+    "label": "Vel",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane3_gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3200
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "lane4_enabled",
+    "label": "On",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "lane4_steps",
+    "label": "Steps",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 128,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane4_pulses",
+    "label": "Pulse",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 128,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 256
+    }
+   },
+   {
+    "key": "lane4_rotation",
+    "label": "Rot",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane4_drop",
+    "label": "Drop %",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane4_note",
+    "label": "Note",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 46
+    }
+   },
+   {
+    "key": "lane4_octave",
+    "label": "Oct",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -3,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 12
+    }
+   },
+   {
+    "key": "lane4_velocity",
+    "label": "Vel",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane4_gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3200
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "retrigger_mode",
+   "bpm",
+   "global_v_rnd",
+   "global_g_rnd",
+   "global_rnd_seed",
+   "rand_cycle",
+   "held_order_seed",
+   "missing_note_seed",
+   "lane1_drop_seed",
+   "lane1_n_rnd",
+   "lane1_n_seed",
+   "lane1_oct_rnd",
+   "lane1_oct_seed",
+   "lane1_oct_rng",
+   "lane2_drop_seed",
+   "lane2_n_rnd",
+   "lane2_n_seed",
+   "lane2_oct_rnd",
+   "lane2_oct_seed",
+   "lane2_oct_rng",
+   "lane3_drop_seed",
+   "lane3_n_rnd",
+   "lane3_n_seed",
+   "lane3_oct_rnd",
+   "lane3_oct_seed",
+   "lane3_oct_rng",
+   "lane4_drop_seed",
+   "lane4_n_rnd",
+   "lane4_n_seed",
+   "lane4_oct_rnd",
+   "lane4_oct_seed",
+   "lane4_oct_rng"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "32 chain_params not reachable in movy: retrigger_mode, bpm, global_v_rnd, global_g_rnd, global_rnd_seed, rand_cycle, held_order_seed, missing_note_seed, lane1_drop_seed, lane1_n_rnd, lane1_n_seed, lane1_oct_rnd, …",
+   "page \"Main\": duplicate on-screen names ON"
+  ]
+ }
+}

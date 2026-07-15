@@ -1,0 +1,942 @@
+{
+ "id": "ottx",
+ "name": "OTTx",
+ "version": "0.1.0",
+ "author": "Schwung OTTx port; DSP by Matt Tytel (Vital), Yegor Suslin (vitOTT)",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 49,
+ "dsp_size": 30096,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "OTTx",
+     "params": [
+      {
+       "key": "mix",
+       "name": "Mix",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 1,
+       "step": 0.02,
+       "unit": "%"
+      },
+      {
+       "key": "depth",
+       "name": "Depth",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 1,
+       "step": 0.02,
+       "unit": "%"
+      },
+      {
+       "key": "upward",
+       "name": "Upward",
+       "type": "float",
+       "min": 0,
+       "max": 2,
+       "default": 1,
+       "step": 0.02
+      },
+      {
+       "key": "downward",
+       "name": "Downward",
+       "type": "float",
+       "min": 0,
+       "max": 2,
+       "default": 1,
+       "step": 0.02
+      },
+      {
+       "key": "time",
+       "name": "Time",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.02,
+       "unit": "%"
+      },
+      {
+       "key": "in_gain",
+       "name": "In Gain",
+       "type": "float",
+       "min": -60,
+       "max": 30,
+       "default": 0,
+       "step": 0.5,
+       "unit": "dB"
+      },
+      {
+       "key": "out_gain",
+       "name": "Out Gain",
+       "type": "float",
+       "min": -60,
+       "max": 30,
+       "default": 0,
+       "step": 0.5,
+       "unit": "dB"
+      },
+      {
+       "key": "low_cross",
+       "name": "Low/Mid Hz",
+       "type": "float",
+       "min": 20,
+       "max": 18000,
+       "default": 120,
+       "step": 10,
+       "unit": "Hz"
+      },
+      {
+       "key": "high_cross",
+       "name": "Mid/Hi Hz",
+       "type": "float",
+       "min": 20,
+       "max": 18000,
+       "default": 2500,
+       "step": 10,
+       "unit": "Hz"
+      },
+      {
+       "level": "advanced",
+       "label": "Advanced"
+      }
+     ],
+     "knobs": [
+      "mix",
+      "depth",
+      "upward",
+      "downward",
+      "time",
+      "in_gain",
+      "out_gain"
+     ]
+    },
+    "advanced": {
+     "name": "Advanced",
+     "params": [
+      {
+       "key": "att_time",
+       "name": "Attack",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.02,
+       "unit": "%"
+      },
+      {
+       "key": "rel_time",
+       "name": "Release",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.02,
+       "unit": "%"
+      },
+      {
+       "key": "ll_thres",
+       "name": "Low Up Thr",
+       "type": "float",
+       "min": -80,
+       "max": 0,
+       "default": -35,
+       "step": 1,
+       "unit": "dB"
+      },
+      {
+       "key": "ll_ratio",
+       "name": "Low Up Ratio",
+       "type": "float",
+       "min": -1,
+       "max": 1,
+       "default": 0.8,
+       "step": 0.02,
+       "unit": "%"
+      },
+      {
+       "key": "lu_thres",
+       "name": "Low Dn Thr",
+       "type": "float",
+       "min": -80,
+       "max": 0,
+       "default": -28,
+       "step": 1,
+       "unit": "dB"
+      },
+      {
+       "key": "lu_ratio",
+       "name": "Low Dn Ratio",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.9,
+       "step": 0.02,
+       "unit": "%"
+      },
+      {
+       "key": "lgain",
+       "name": "Low Gain",
+       "type": "float",
+       "min": -30,
+       "max": 30,
+       "default": 16.3,
+       "step": 0.5,
+       "unit": "dB"
+      },
+      {
+       "key": "bl_thres",
+       "name": "Mid Up Thr",
+       "type": "float",
+       "min": -80,
+       "max": 0,
+       "default": -36,
+       "step": 1,
+       "unit": "dB"
+      },
+      {
+       "key": "bl_ratio",
+       "name": "Mid Up Ratio",
+       "type": "float",
+       "min": -1,
+       "max": 1,
+       "default": 0.8,
+       "step": 0.02,
+       "unit": "%"
+      },
+      {
+       "key": "bu_thres",
+       "name": "Mid Dn Thr",
+       "type": "float",
+       "min": -80,
+       "max": 0,
+       "default": -25,
+       "step": 1,
+       "unit": "dB"
+      },
+      {
+       "key": "bu_ratio",
+       "name": "Mid Dn Ratio",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.857,
+       "step": 0.02,
+       "unit": "%"
+      },
+      {
+       "key": "mgain",
+       "name": "Mid Gain",
+       "type": "float",
+       "min": -30,
+       "max": 30,
+       "default": 11.7,
+       "step": 0.5,
+       "unit": "dB"
+      },
+      {
+       "key": "hl_thres",
+       "name": "Hi Up Thr",
+       "type": "float",
+       "min": -80,
+       "max": 0,
+       "default": -35,
+       "step": 1,
+       "unit": "dB"
+      },
+      {
+       "key": "hl_ratio",
+       "name": "Hi Up Ratio",
+       "type": "float",
+       "min": -1,
+       "max": 1,
+       "default": 0.8,
+       "step": 0.02,
+       "unit": "%"
+      },
+      {
+       "key": "hu_thres",
+       "name": "Hi Dn Thr",
+       "type": "float",
+       "min": -80,
+       "max": 0,
+       "default": -30,
+       "step": 1,
+       "unit": "dB"
+      },
+      {
+       "key": "hu_ratio",
+       "name": "Hi Dn Ratio",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 1,
+       "step": 0.02,
+       "unit": "%"
+      },
+      {
+       "key": "hgain",
+       "name": "Hi Gain",
+       "type": "float",
+       "min": -30,
+       "max": 30,
+       "default": 16.3,
+       "step": 0.5,
+       "unit": "dB"
+      }
+     ],
+     "knobs": [
+      "att_time",
+      "rel_time",
+      "lgain",
+      "mgain",
+      "hgain"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "advanced"
+  ],
+  "params": [
+   {
+    "key": "mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "depth",
+    "name": "Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "upward",
+    "name": "Upward",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.02,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "downward",
+    "name": "Downward",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.02,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "time",
+    "name": "Time",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "in_gain",
+    "name": "In Gain",
+    "type": "float",
+    "min": -60,
+    "max": 30,
+    "step": 0.5,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "out_gain",
+    "name": "Out Gain",
+    "type": "float",
+    "min": -60,
+    "max": 30,
+    "step": 0.5,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "low_cross",
+    "name": "Low/Mid Hz",
+    "type": "float",
+    "min": 20,
+    "max": 18000,
+    "step": 10,
+    "options": null,
+    "default": "120.0000"
+   },
+   {
+    "key": "high_cross",
+    "name": "Mid/Hi Hz",
+    "type": "float",
+    "min": 20,
+    "max": 18000,
+    "step": 10,
+    "options": null,
+    "default": "2500.0000"
+   },
+   {
+    "key": "att_time",
+    "name": "Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "rel_time",
+    "name": "Release",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "ll_thres",
+    "name": "Low Up Thr",
+    "type": "float",
+    "min": -80,
+    "max": 0,
+    "step": 1,
+    "options": null,
+    "default": "-35.0000"
+   },
+   {
+    "key": "ll_ratio",
+    "name": "Low Up Ratio",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "lu_thres",
+    "name": "Low Dn Thr",
+    "type": "float",
+    "min": -80,
+    "max": 0,
+    "step": 1,
+    "options": null,
+    "default": "-28.0000"
+   },
+   {
+    "key": "lu_ratio",
+    "name": "Low Dn Ratio",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.9000"
+   },
+   {
+    "key": "lgain",
+    "name": "Low Gain",
+    "type": "float",
+    "min": -30,
+    "max": 30,
+    "step": 0.5,
+    "options": null,
+    "default": "16.3000"
+   },
+   {
+    "key": "bl_thres",
+    "name": "Mid Up Thr",
+    "type": "float",
+    "min": -80,
+    "max": 0,
+    "step": 1,
+    "options": null,
+    "default": "-36.0000"
+   },
+   {
+    "key": "bl_ratio",
+    "name": "Mid Up Ratio",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "bu_thres",
+    "name": "Mid Dn Thr",
+    "type": "float",
+    "min": -80,
+    "max": 0,
+    "step": 1,
+    "options": null,
+    "default": "-25.0000"
+   },
+   {
+    "key": "bu_ratio",
+    "name": "Mid Dn Ratio",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.8570"
+   },
+   {
+    "key": "mgain",
+    "name": "Mid Gain",
+    "type": "float",
+    "min": -30,
+    "max": 30,
+    "step": 0.5,
+    "options": null,
+    "default": "11.7000"
+   },
+   {
+    "key": "hl_thres",
+    "name": "Hi Up Thr",
+    "type": "float",
+    "min": -80,
+    "max": 0,
+    "step": 1,
+    "options": null,
+    "default": "-35.0000"
+   },
+   {
+    "key": "hl_ratio",
+    "name": "Hi Up Ratio",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "hu_thres",
+    "name": "Hi Dn Thr",
+    "type": "float",
+    "min": -80,
+    "max": 0,
+    "step": 1,
+    "options": null,
+    "default": "-30.0000"
+   },
+   {
+    "key": "hu_ratio",
+    "name": "Hi Dn Ratio",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "hgain",
+    "name": "Hi Gain",
+    "type": "float",
+    "min": -30,
+    "max": 30,
+    "step": 0.5,
+    "options": null,
+    "default": "16.3000"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Advanced",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "100%"
+      },
+      {
+       "shortName": "DEPTH",
+       "fullName": "Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "UPWAR",
+       "fullName": "Upward",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DOWNW",
+       "fullName": "Downward",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TIME",
+       "fullName": "Time",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "IN",
+       "fullName": "In Gain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OUT",
+       "fullName": "Out Gain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Advanced",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATTAC",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RELEA",
+       "fullName": "Release",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LOW",
+       "fullName": "Low Gain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MID",
+       "fullName": "Mid Gain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "HI",
+       "fullName": "Hi Gain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "mix",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "depth",
+    "label": "Depth",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "upward",
+    "label": "Upward",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "downward",
+    "label": "Downward",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "time",
+    "label": "Time",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "in_gain",
+    "label": "In Gain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -60,
+    "max": 30,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 360
+    }
+   },
+   {
+    "key": "out_gain",
+    "label": "Out Gain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -60,
+    "max": 30,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 360
+    }
+   },
+   null,
+   {
+    "key": "att_time",
+    "label": "Attack",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "rel_time",
+    "label": "Release",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "lgain",
+    "label": "Low Gain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -30,
+    "max": 30,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 240
+    }
+   },
+   {
+    "key": "mgain",
+    "label": "Mid Gain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -30,
+    "max": 30,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 240
+    }
+   },
+   {
+    "key": "hgain",
+    "label": "Hi Gain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -30,
+    "max": 30,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 240
+    }
+   },
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "low_cross",
+   "high_cross",
+   "ll_thres",
+   "ll_ratio",
+   "lu_thres",
+   "lu_ratio",
+   "bl_thres",
+   "bl_ratio",
+   "bu_thres",
+   "bu_ratio",
+   "hl_thres",
+   "hl_ratio",
+   "hu_thres",
+   "hu_ratio"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "14 chain_params not reachable in movy: low_cross, high_cross, ll_thres, ll_ratio, lu_thres, lu_ratio, bl_thres, bl_ratio, bu_thres, bu_ratio, hl_thres, hl_ratio, …"
+  ]
+ }
+}

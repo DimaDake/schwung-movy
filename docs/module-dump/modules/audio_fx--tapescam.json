@@ -1,0 +1,520 @@
+{
+ "id": "tapescam",
+ "name": "TAPESCAM",
+ "version": "0.5.3",
+ "author": "charlesvestal",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 62,
+ "dsp_size": 31920,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "TAPESCAM",
+     "params": [
+      {
+       "key": "input",
+       "label": "Input",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.7,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "drive",
+       "label": "Drive",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "color",
+       "label": "Color",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "wobble",
+       "label": "Wobble",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "noise",
+       "label": "Noise",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "tone",
+       "label": "Tone",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "output",
+       "label": "Output",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 1,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "age",
+       "label": "Age",
+       "type": "enum",
+       "options": [
+        "NEW",
+        "USED",
+        "WORN"
+       ],
+       "default": "NEW"
+      },
+      {
+       "key": "speed",
+       "label": "Speed",
+       "type": "enum",
+       "options": [
+        "HIGH",
+        "STD",
+        "LOW"
+       ],
+       "default": "HIGH"
+      },
+      {
+       "key": "compression",
+       "label": "Comp",
+       "type": "enum",
+       "options": [
+        "OFF",
+        "LITE",
+        "HEAVY"
+       ],
+       "default": "OFF"
+      },
+      {
+       "key": "widen",
+       "label": "Widen",
+       "type": "enum",
+       "options": [
+        "OFF",
+        "ON"
+       ],
+       "default": "ON"
+      }
+     ],
+     "knobs": [
+      "drive",
+      "color",
+      "wobble",
+      "noise",
+      "tone",
+      "output",
+      "age",
+      "compression"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root"
+  ],
+  "params": [
+   {
+    "key": "input",
+    "name": "Input",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.70"
+   },
+   {
+    "key": "drive",
+    "name": "Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "color",
+    "name": "Color",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "wobble",
+    "name": "Wobble",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "noise",
+    "name": "Noise",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "tone",
+    "name": "Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50"
+   },
+   {
+    "key": "output",
+    "name": "Output",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.00"
+   },
+   {
+    "key": "age",
+    "name": "Age",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "NEW",
+     "USED",
+     "WORN"
+    ],
+    "default": "NEW"
+   },
+   {
+    "key": "speed",
+    "name": "Speed",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "HIGH",
+     "STD",
+     "LOW"
+    ],
+    "default": "HIGH"
+   },
+   {
+    "key": "compression",
+    "name": "Compression",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "OFF",
+     "LITE",
+     "HEAVY"
+    ],
+    "default": "OFF"
+   },
+   {
+    "key": "widen",
+    "name": "Widen",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "OFF",
+     "ON"
+    ],
+    "default": "ON"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DRIVE",
+       "fullName": "Drive",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "0%"
+      },
+      {
+       "shortName": "COLOR",
+       "fullName": "Color",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WOBBL",
+       "fullName": "Wobble",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOISE",
+       "fullName": "Noise",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TONE",
+       "fullName": "Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OUTPU",
+       "fullName": "Output",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AGE",
+       "fullName": "Age",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "COMPR",
+       "fullName": "Compression",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "drive",
+    "label": "Drive",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "color",
+    "label": "Color",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "wobble",
+    "label": "Wobble",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "noise",
+    "label": "Noise",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "tone",
+    "label": "Tone",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "output",
+    "label": "Output",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "age",
+    "label": "Age",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "NEW",
+     "USED",
+     "WORN"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "compression",
+    "label": "Compression",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "OFF",
+     "LITE",
+     "HEAVY"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "input",
+   "speed",
+   "widen"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "3 chain_params not reachable in movy: input, speed, widen"
+  ]
+ }
+}

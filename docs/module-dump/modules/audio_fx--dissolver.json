@@ -1,0 +1,1224 @@
+{
+ "id": "dissolver",
+ "name": "Dissolver",
+ "version": "0.2.3",
+ "author": "fillioning",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 73,
+ "dsp_size": 74976,
+ "capabilities": {
+  "chain_params": [
+   {
+    "key": "smoothing",
+    "max": 1,
+    "min": 0,
+    "name": "Dissolve",
+    "step": 0.01,
+    "type": "float"
+   },
+   {
+    "key": "freeze",
+    "max": 1,
+    "min": 0,
+    "name": "Freeze",
+    "step": 0.01,
+    "type": "float"
+   },
+   {
+    "key": "grain_size",
+    "max": 1,
+    "min": 0,
+    "name": "Stretch",
+    "step": 0.01,
+    "type": "float"
+   },
+   {
+    "key": "density",
+    "max": 1,
+    "min": 0,
+    "name": "Spread",
+    "step": 0.01,
+    "type": "float"
+   },
+   {
+    "key": "evolution",
+    "max": 1,
+    "min": 0,
+    "name": "Evolution",
+    "step": 0.01,
+    "type": "float"
+   },
+   {
+    "key": "decay",
+    "max": 1,
+    "min": 0,
+    "name": "Decay",
+    "step": 0.01,
+    "type": "float"
+   },
+   {
+    "key": "brightness",
+    "max": 1,
+    "min": 0,
+    "name": "Tone",
+    "step": 0.01,
+    "type": "float"
+   },
+   {
+    "key": "mix",
+    "max": 1,
+    "min": 0,
+    "name": "Dry/Wet",
+    "step": 0.01,
+    "type": "float"
+   },
+   {
+    "key": "noise_mix",
+    "max": 1,
+    "min": 0,
+    "name": "Noise Mix",
+    "step": 0.01,
+    "type": "float"
+   },
+   {
+    "key": "noise_tone",
+    "max": 1,
+    "min": 0,
+    "name": "Noise Tone",
+    "step": 0.01,
+    "type": "float"
+   },
+   {
+    "key": "stereo_width",
+    "max": 1,
+    "min": 0,
+    "name": "Stereo Width",
+    "step": 0.01,
+    "type": "float"
+   },
+   {
+    "key": "grain_jitter",
+    "max": 1,
+    "min": 0,
+    "name": "Compress",
+    "step": 0.01,
+    "type": "float"
+   },
+   {
+    "key": "evo_depth",
+    "max": 1,
+    "min": 0,
+    "name": "Spread Depth",
+    "step": 0.01,
+    "type": "float"
+   },
+   {
+    "key": "feedback_cap",
+    "max": 1,
+    "min": 0,
+    "name": "Feedback Cap",
+    "step": 0.01,
+    "type": "float"
+   },
+   {
+    "key": "tilt_freq",
+    "max": 1,
+    "min": 0,
+    "name": "Tilt Freq",
+    "step": 0.01,
+    "type": "float"
+   },
+   {
+    "key": "output_level",
+    "max": 1,
+    "min": 0,
+    "name": "Output Level",
+    "step": 0.01,
+    "type": "float"
+   },
+   {
+    "key": "attack_time",
+    "max": 1,
+    "min": 0,
+    "name": "Attack Time",
+    "step": 0.01,
+    "type": "float"
+   },
+   {
+    "key": "release_time",
+    "max": 1,
+    "min": 0,
+    "name": "Release Time",
+    "step": 0.01,
+    "type": "float"
+   }
+  ],
+  "chainable": true,
+  "component_type": "audio_fx",
+  "ui_hierarchy": {
+   "levels": {
+    "Advanced": {
+     "knobs": [
+      "noise_mix",
+      "noise_tone",
+      "stereo_width",
+      "grain_jitter",
+      "evo_depth",
+      "feedback_cap",
+      "tilt_freq",
+      "output_level"
+     ],
+     "label": "Advanced",
+     "params": [
+      {
+       "default": 0,
+       "key": "noise_mix",
+       "label": "Noise Mix",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      },
+      {
+       "default": 0.5,
+       "key": "noise_tone",
+       "label": "Noise Tone",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      },
+      {
+       "default": 0.5,
+       "key": "stereo_width",
+       "label": "Stereo Width",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      },
+      {
+       "default": 0.2,
+       "key": "grain_jitter",
+       "label": "Compress",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      },
+      {
+       "default": 0.5,
+       "key": "evo_depth",
+       "label": "Spread Depth",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      },
+      {
+       "default": 0.85,
+       "key": "feedback_cap",
+       "label": "Feedback Cap",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      },
+      {
+       "default": 0.5,
+       "key": "tilt_freq",
+       "label": "Tilt Freq",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      },
+      {
+       "default": 0.8,
+       "key": "output_level",
+       "label": "Output Level",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      },
+      {
+       "default": 0.1,
+       "key": "attack_time",
+       "label": "Attack Time",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      },
+      {
+       "default": 0.5,
+       "key": "release_time",
+       "label": "Release Time",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      }
+     ]
+    },
+    "Dissolver": {
+     "knobs": [
+      "smoothing",
+      "freeze",
+      "grain_size",
+      "density",
+      "evolution",
+      "decay",
+      "brightness",
+      "mix"
+     ],
+     "label": "Dissolver",
+     "params": [
+      {
+       "default": 0.5,
+       "key": "smoothing",
+       "label": "Dissolve",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      },
+      {
+       "default": 0.3,
+       "key": "freeze",
+       "label": "Freeze",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      },
+      {
+       "default": 0.5,
+       "key": "grain_size",
+       "label": "Stretch",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      },
+      {
+       "default": 0.6,
+       "key": "density",
+       "label": "Spread",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      },
+      {
+       "default": 1,
+       "key": "evolution",
+       "label": "Evolution",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      },
+      {
+       "default": 0.6,
+       "key": "decay",
+       "label": "Decay",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      },
+      {
+       "default": 0.5,
+       "key": "brightness",
+       "label": "Tone",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      },
+      {
+       "default": 0.7,
+       "key": "mix",
+       "label": "Dry/Wet",
+       "max": 1,
+       "min": 0,
+       "step": 0.01,
+       "type": "float"
+      }
+     ]
+    },
+    "root": {
+     "knobs": [
+      "smoothing",
+      "freeze",
+      "grain_size",
+      "density",
+      "evolution",
+      "decay",
+      "brightness",
+      "mix"
+     ],
+     "name": "Dissolver",
+     "params": [
+      {
+       "label": "Dissolver",
+       "level": "Dissolver"
+      },
+      {
+       "label": "Advanced",
+       "level": "Advanced"
+      }
+     ]
+    }
+   },
+   "modes": null
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "Advanced",
+   "Dissolver",
+   "root"
+  ],
+  "params": [
+   {
+    "key": "smoothing",
+    "name": "Dissolve",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "freeze",
+    "name": "Freeze",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2000"
+   },
+   {
+    "key": "grain_size",
+    "name": "Stretch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "density",
+    "name": "Spread",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "evolution",
+    "name": "Evolution",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "decay",
+    "name": "Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "brightness",
+    "name": "Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "mix",
+    "name": "Dry/Wet",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "noise_mix",
+    "name": "Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "noise_tone",
+    "name": "Noise Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "stereo_width",
+    "name": "Stereo Width",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "grain_jitter",
+    "name": "Compress",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2000"
+   },
+   {
+    "key": "evo_depth",
+    "name": "Spread Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "feedback_cap",
+    "name": "Feedback Cap",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8500"
+   },
+   {
+    "key": "tilt_freq",
+    "name": "Tilt Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "output_level",
+    "name": "Output Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "attack_time",
+    "name": "Attack Time",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.1000"
+   },
+   {
+    "key": "release_time",
+    "name": "Release Time",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Dissolver",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Advanced",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DISSO",
+       "fullName": "Dissolve",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "100%"
+      },
+      {
+       "shortName": "FREEZ",
+       "fullName": "Freeze",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STRET",
+       "fullName": "Stretch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPREA",
+       "fullName": "Spread",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "EVOLU",
+       "fullName": "Evolution",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRY/W",
+       "fullName": "Dry/Wet",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Dissolver",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DISSO",
+       "fullName": "Dissolve",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREEZ",
+       "fullName": "Freeze",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STRET",
+       "fullName": "Stretch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPREA",
+       "fullName": "Spread",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "EVOLU",
+       "fullName": "Evolution",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRY/W",
+       "fullName": "Dry/Wet",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Advanced",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MIX",
+       "fullName": "Noise Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "Noise Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SW",
+       "fullName": "Stereo Width",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "COMPR",
+       "fullName": "Compress",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SD",
+       "fullName": "Spread Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FC",
+       "fullName": "Feedback Cap",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TILT",
+       "fullName": "Tilt Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OL",
+       "fullName": "Output Level",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "smoothing",
+    "label": "Dissolve",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "freeze",
+    "label": "Freeze",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "grain_size",
+    "label": "Stretch",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "density",
+    "label": "Spread",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "evolution",
+    "label": "Evolution",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "decay",
+    "label": "Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "brightness",
+    "label": "Tone",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Dry/Wet",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "smoothing",
+    "label": "Dissolve",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "freeze",
+    "label": "Freeze",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "grain_size",
+    "label": "Stretch",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "density",
+    "label": "Spread",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "evolution",
+    "label": "Evolution",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "decay",
+    "label": "Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "brightness",
+    "label": "Tone",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Dry/Wet",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "noise_mix",
+    "label": "Noise Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "noise_tone",
+    "label": "Noise Tone",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "stereo_width",
+    "label": "Stereo Width",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "grain_jitter",
+    "label": "Compress",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "evo_depth",
+    "label": "Spread Depth",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "feedback_cap",
+    "label": "Feedback Cap",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "tilt_freq",
+    "label": "Tilt Freq",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "output_level",
+    "label": "Output Level",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "attack_time",
+   "release_time"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "2 chain_params not reachable in movy: attack_time, release_time"
+  ]
+ }
+}

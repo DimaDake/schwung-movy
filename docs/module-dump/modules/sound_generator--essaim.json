@@ -1,0 +1,1256 @@
+{
+ "id": "essaim",
+ "name": "Essaim",
+ "version": "0.2.9",
+ "author": "fillioning",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 50,
+ "dsp_size": 73568,
+ "capabilities": {
+  "audio_out": true,
+  "midi_in": true,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy": {
+   "modes": null,
+   "levels": {
+    "root": {
+     "name": "Essaim",
+     "knobs": [
+      "root_note",
+      "scale",
+      "rnd_patch",
+      "same_freq",
+      "init_freq",
+      "same_speed",
+      "rnd_mod",
+      "rnd_pan"
+     ],
+     "params": [
+      {
+       "level": "Global",
+       "label": "Global"
+      },
+      {
+       "level": "FX",
+       "label": "FX"
+      },
+      {
+       "level": "Voice",
+       "label": "Voice"
+      }
+     ]
+    },
+    "Global": {
+     "name": "Global",
+     "knobs": [
+      "root_note",
+      "scale",
+      "rnd_patch",
+      "same_freq",
+      "init_freq",
+      "same_speed",
+      "rnd_mod",
+      "rnd_pan"
+     ],
+     "params": [
+      "root_note",
+      "scale",
+      "rnd_patch",
+      "same_freq",
+      "init_freq",
+      "same_speed",
+      "rnd_mod",
+      "rnd_pan",
+      "all_mono",
+      "rnd_voice",
+      "preset",
+      "mode"
+     ]
+    },
+    "FX": {
+     "name": "FX",
+     "knobs": [
+      "transpose",
+      "fine",
+      "saturation",
+      "filter",
+      "dly_mix",
+      "dly_rate",
+      "dly_feedback",
+      "dly_tone"
+     ],
+     "params": [
+      "transpose",
+      "fine",
+      "saturation",
+      "filter",
+      "dly_mix",
+      "dly_rate",
+      "dly_feedback",
+      "dly_tone",
+      "dly_mode"
+     ]
+    },
+    "Voice": {
+     "name": "Voice",
+     "knobs": [
+      "speed",
+      "mod",
+      "decay",
+      "timbre",
+      "frequency",
+      "noisiness",
+      "cutoff",
+      "volume"
+     ],
+     "params": [
+      "speed",
+      "mod",
+      "decay",
+      "timbre",
+      "frequency",
+      "noisiness",
+      "cutoff",
+      "volume",
+      "v_attack",
+      "v_pan",
+      "v_octave"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "Global",
+   "FX",
+   "Voice"
+  ],
+  "params": [
+   {
+    "key": "root_note",
+    "name": "Root Note",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "C",
+     "C#",
+     "D",
+     "D#",
+     "E",
+     "F",
+     "F#",
+     "G",
+     "G#",
+     "A",
+     "A#",
+     "B"
+    ],
+    "default": "B"
+   },
+   {
+    "key": "scale",
+    "name": "Scale",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Chromatic",
+     "Major",
+     "Minor",
+     "Pentatonic",
+     "Whole Tone",
+     "Harm Minor"
+    ],
+    "default": "Chromatic"
+   },
+   {
+    "key": "rnd_patch",
+    "name": "Rnd Patch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "same_freq",
+    "name": "Same Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.9338"
+   },
+   {
+    "key": "init_freq",
+    "name": "Init Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "same_speed",
+    "name": "Same Speed",
+    "type": "float",
+    "min": 0.05,
+    "max": 100,
+    "step": 0.05,
+    "options": null,
+    "default": "11.4130"
+   },
+   {
+    "key": "rnd_mod",
+    "name": "Rnd Mod",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "rnd_pan",
+    "name": "Rnd Pan",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "all_mono",
+    "name": "All Mono",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "rnd_voice",
+    "name": "Rnd Voice",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "preset",
+    "name": "Preset",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Init",
+     "Swarm",
+     "Drift",
+     "Pulse",
+     "Fog",
+     "Hive",
+     "Crystal",
+     "Rumble",
+     "Scatter",
+     "Choir",
+     "Glitch",
+     "Tide",
+     "Spark",
+     "Forest",
+     "Metal",
+     "Breath",
+     "Clockwork",
+     "Aurora",
+     "Dust",
+     "Thunder",
+     "Bells",
+     "Swamp",
+     "Firefly",
+     "Cascade",
+     "Zen"
+    ],
+    "default": "Init"
+   },
+   {
+    "key": "mode",
+    "name": "Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Play",
+     "Drone"
+    ],
+    "default": "Play"
+   },
+   {
+    "key": "transpose",
+    "name": "Transpose",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "-3oct",
+     "-2oct",
+     "-1oct",
+     "-3rd",
+     "0",
+     "+3rd",
+     "+5th",
+     "+1oct",
+     "+2oct"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "fine",
+    "name": "Fine",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "saturation",
+    "name": "Saturation",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0536"
+   },
+   {
+    "key": "filter",
+    "name": "Filter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4105"
+   },
+   {
+    "key": "dly_mix",
+    "name": "Dly Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2337"
+   },
+   {
+    "key": "dly_rate",
+    "name": "Dly Rate",
+    "type": "float",
+    "min": 0.004,
+    "max": 4,
+    "step": 0.001,
+    "options": null,
+    "default": "0.3687"
+   },
+   {
+    "key": "dly_feedback",
+    "name": "Dly Feed",
+    "type": "float",
+    "min": 0,
+    "max": 0.95,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4786"
+   },
+   {
+    "key": "dly_tone",
+    "name": "Dly Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2384"
+   },
+   {
+    "key": "dly_mode",
+    "name": "Dly Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Mono",
+     "Stereo",
+     "Ping-Pong"
+    ],
+    "default": "Ping-Pong"
+   },
+   {
+    "key": "speed",
+    "name": "Speed",
+    "type": "float",
+    "min": 0.1,
+    "max": 40,
+    "step": 0.1,
+    "options": null,
+    "default": "11.4130"
+   },
+   {
+    "key": "mod",
+    "name": "Mod",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3095"
+   },
+   {
+    "key": "decay",
+    "name": "Decay",
+    "type": "float",
+    "min": 0.005,
+    "max": 2,
+    "step": 0.005,
+    "options": null,
+    "default": "0.6201"
+   },
+   {
+    "key": "timbre",
+    "name": "Timbre",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0406"
+   },
+   {
+    "key": "frequency",
+    "name": "Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.9338"
+   },
+   {
+    "key": "noisiness",
+    "name": "Noise",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2789"
+   },
+   {
+    "key": "cutoff",
+    "name": "Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.6137"
+   },
+   {
+    "key": "volume",
+    "name": "Volume",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4236"
+   },
+   {
+    "key": "v_attack",
+    "name": "Attack",
+    "type": "float",
+    "min": 0.001,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0069"
+   },
+   {
+    "key": "v_pan",
+    "name": "Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2918"
+   },
+   {
+    "key": "v_octave",
+    "name": "Octave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "-3",
+     "-2",
+     "-1",
+     "0",
+     "+1",
+     "+2"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "v_lfo_shape",
+    "name": "LFO Shape",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Sine",
+     "Triangle",
+     "Soft Saw",
+     "Soft Square",
+     "Skewed Sine",
+     "Warm Pulse"
+    ],
+    "default": "Sine"
+   },
+   {
+    "key": "v_mod_dest",
+    "name": "Mod Dest",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Volume",
+     "Vol+Filt",
+     "Filter"
+    ],
+    "default": "Filter"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": true,
+  "usesMovyConfigFile": false,
+  "drum": {
+   "padCount": 32,
+   "padNoteStart": 68,
+   "rawMidi": true
+  },
+  "banks": [
+   {
+    "name": "Global",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "FX",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Voice",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Global",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ROOT",
+       "fullName": "Root Note",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SCALE",
+       "fullName": "Scale",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RNDPT",
+       "fullName": "Rnd Patch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SFREQ",
+       "fullName": "Same Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "IFREQ",
+       "fullName": "Init Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPEED",
+       "fullName": "Same Speed",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RNDMD",
+       "fullName": "Rnd Mod",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RNDPN",
+       "fullName": "Rnd Pan",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "FX",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "XPOSE",
+       "fullName": "Transpose",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FINE",
+       "fullName": "Fine",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SAT",
+       "fullName": "Saturation",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FILTR",
+       "fullName": "Filter",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "DLMIX",
+       "fullName": "Dly Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DLRAT",
+       "fullName": "Dly Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DLFBK",
+       "fullName": "Dly Fdbk",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DLTON",
+       "fullName": "Dly Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Voice",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SPEED",
+       "fullName": "Speed",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MOD",
+       "fullName": "Mod",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TIMBR",
+       "fullName": "Timbre",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "FREQ",
+       "fullName": "Frequency",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOISE",
+       "fullName": "Noisiness",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CUTOF",
+       "fullName": "Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOL",
+       "fullName": "Volume",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "root_note",
+    "label": "Root Note",
+    "shortLabel": "ROOT",
+    "type": "int",
+    "options": [
+     "C",
+     "C#",
+     "D",
+     "D#",
+     "E",
+     "F",
+     "F#",
+     "G",
+     "G#",
+     "A",
+     "A#",
+     "B"
+    ],
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "scale",
+    "label": "Scale",
+    "shortLabel": "SCALE",
+    "type": "int",
+    "options": [
+     "Chromatic",
+     "Major",
+     "Minor",
+     "Pentatonic",
+     "Whole Tone",
+     "Harm Minor"
+    ],
+    "min": 0,
+    "max": 95,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 190
+    }
+   },
+   {
+    "key": "rnd_patch",
+    "label": "Rnd Patch",
+    "shortLabel": "RNDPT",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 2
+    }
+   },
+   {
+    "key": "same_freq",
+    "label": "Same Freq",
+    "shortLabel": "SFREQ",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "init_freq",
+    "label": "Init Freq",
+    "shortLabel": "IFREQ",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 2
+    }
+   },
+   {
+    "key": "same_speed",
+    "label": "Same Speed",
+    "shortLabel": "SPEED",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "rnd_mod",
+    "label": "Rnd Mod",
+    "shortLabel": "RNDMD",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 2
+    }
+   },
+   {
+    "key": "rnd_pan",
+    "label": "Rnd Pan",
+    "shortLabel": "RNDPN",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 2
+    }
+   },
+   {
+    "key": "transpose",
+    "label": "Transpose",
+    "shortLabel": "XPOSE",
+    "type": "int",
+    "options": [
+     "-3oct",
+     "-2oct",
+     "-1oct",
+     "-3rd",
+     "0",
+     "+3rd",
+     "+5th",
+     "+1oct",
+     "+2oct"
+    ],
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "fine",
+    "label": "Fine",
+    "shortLabel": "FINE",
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "saturation",
+    "label": "Saturation",
+    "shortLabel": "SAT",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "filter",
+    "label": "Filter",
+    "shortLabel": "FILTR",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dly_mix",
+    "label": "Dly Mix",
+    "shortLabel": "DLMIX",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dly_rate",
+    "label": "Dly Rate",
+    "shortLabel": "DLRAT",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0005,
+     "detentsFullSweep": 2000
+    }
+   },
+   {
+    "key": "dly_feedback",
+    "label": "Dly Fdbk",
+    "shortLabel": "DLFBK",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dly_tone",
+    "label": "Dly Tone",
+    "shortLabel": "DLTON",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "speed",
+    "label": "Speed",
+    "shortLabel": "SPEED",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 20
+    }
+   },
+   {
+    "key": "mod",
+    "label": "Mod",
+    "shortLabel": "MOD",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "decay",
+    "label": "Decay",
+    "shortLabel": "DECAY",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.005,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0025,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "timbre",
+    "label": "Timbre",
+    "shortLabel": "TIMBR",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "frequency",
+    "label": "Frequency",
+    "shortLabel": "FREQ",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "noisiness",
+    "label": "Noisiness",
+    "shortLabel": "NOISE",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cutoff",
+    "label": "Cutoff",
+    "shortLabel": "CUTOF",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "volume",
+    "label": "Volume",
+    "shortLabel": "VOL",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "all_mono",
+   "rnd_voice",
+   "preset",
+   "mode",
+   "dly_mode",
+   "v_attack",
+   "v_pan",
+   "v_octave",
+   "v_lfo_shape",
+   "v_mod_dest"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "10 chain_params not reachable in movy: all_mono, rnd_voice, preset, mode, dly_mode, v_attack, v_pan, v_octave, v_lfo_shape, v_mod_dest"
+  ]
+ }
+}

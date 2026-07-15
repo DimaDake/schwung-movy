@@ -1,0 +1,1164 @@
+{
+ "id": "verglas",
+ "name": "Verglas",
+ "version": "1.2.2",
+ "author": "Emilie Gillet (DSP) / fillioning (port)",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 67,
+ "dsp_size": 122904,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "audio_in": true,
+  "chain_params": [
+   {
+    "key": "position",
+    "name": "Position",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 0.5,
+    "step": 0.01
+   },
+   {
+    "key": "size",
+    "name": "Size",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 0.5,
+    "step": 0.01
+   },
+   {
+    "key": "pitch",
+    "name": "Pitch",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "default": 0,
+    "step": 1
+   },
+   {
+    "key": "density",
+    "name": "Density",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 1,
+    "step": 0.01
+   },
+   {
+    "key": "texture",
+    "name": "Texture",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 0.5,
+    "step": 0.01
+   },
+   {
+    "key": "feedback",
+    "name": "Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 0,
+    "step": 0.01
+   },
+   {
+    "key": "reverb",
+    "name": "Reverb",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 0,
+    "step": 0.01
+   },
+   {
+    "key": "dry_wet",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 0.5,
+    "step": 0.01
+   },
+   {
+    "key": "mode",
+    "name": "Mode",
+    "type": "enum",
+    "options": [
+     "Granular",
+     "Stretch",
+     "Looper",
+     "Spectral"
+    ],
+    "default": 0
+   },
+   {
+    "key": "freeze",
+    "name": "Freeze",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": 0
+   },
+   {
+    "key": "quality",
+    "name": "Quality",
+    "type": "enum",
+    "options": [
+     "16-bit",
+     "Lo-Fi"
+    ],
+    "default": 0
+   },
+   {
+    "key": "stereo_spread",
+    "name": "Spread",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 1,
+    "step": 0.01
+   },
+   {
+    "key": "filter_hp",
+    "name": "HPF",
+    "type": "int",
+    "min": 0,
+    "max": 1000,
+    "default": 0,
+    "step": 10
+   },
+   {
+    "key": "filter_lp",
+    "name": "LPF",
+    "type": "int",
+    "min": 1000,
+    "max": 20000,
+    "default": 20000,
+    "step": 10
+   },
+   {
+    "key": "limiter_on",
+    "name": "Limiter",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": 0
+   },
+   {
+    "key": "limiter_pre",
+    "name": "Pre Gain",
+    "type": "float",
+    "min": -6,
+    "max": 6,
+    "default": 0,
+    "step": 0.5
+   },
+   {
+    "key": "limiter_post",
+    "name": "Post Gain",
+    "type": "float",
+    "min": -6,
+    "max": 6,
+    "default": 0,
+    "step": 0.5
+   },
+   {
+    "key": "low_boost",
+    "name": "Low Boost",
+    "type": "float",
+    "min": 0,
+    "max": 6,
+    "default": 0,
+    "step": 0.5
+   },
+   {
+    "key": "low_freq",
+    "name": "Low Freq",
+    "type": "int",
+    "min": 30,
+    "max": 400,
+    "default": 100,
+    "step": 10
+   },
+   {
+    "key": "low_q",
+    "name": "Low Q",
+    "type": "float",
+    "min": 0.1,
+    "max": 4,
+    "default": 0.7,
+    "step": 0.1
+   }
+  ],
+  "ui_hierarchy": {
+   "modes": null,
+   "levels": {
+    "root": {
+     "name": "Verglas",
+     "knobs": [
+      "position",
+      "size",
+      "pitch",
+      "density",
+      "texture",
+      "feedback",
+      "reverb",
+      "dry_wet"
+     ],
+     "params": [
+      {
+       "level": "Verglas",
+       "label": "Verglas"
+      },
+      {
+       "level": "Filters",
+       "label": "Filters"
+      }
+     ]
+    },
+    "Verglas": {
+     "label": "Verglas",
+     "knobs": [
+      "position",
+      "size",
+      "pitch",
+      "density",
+      "texture",
+      "feedback",
+      "reverb",
+      "dry_wet"
+     ],
+     "params": [
+      "position",
+      "size",
+      "pitch",
+      "density",
+      "texture",
+      "feedback",
+      "reverb",
+      "dry_wet",
+      "mode",
+      "freeze",
+      "quality",
+      "stereo_spread"
+     ]
+    },
+    "Filters": {
+     "label": "Filters",
+     "knobs": [
+      "filter_hp",
+      "filter_lp",
+      "limiter_on",
+      "limiter_pre",
+      "limiter_post",
+      "low_boost",
+      "low_freq",
+      "low_q"
+     ],
+     "params": [
+      "filter_hp",
+      "filter_lp",
+      "limiter_on",
+      "limiter_pre",
+      "limiter_post",
+      "low_boost",
+      "low_freq",
+      "low_q"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "Verglas",
+   "Filters"
+  ],
+  "params": [
+   {
+    "key": "position",
+    "name": "Position",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "size",
+    "name": "Size",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "pitch",
+    "name": "Pitch",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "density",
+    "name": "Density",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "texture",
+    "name": "Texture",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "feedback",
+    "name": "Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "reverb",
+    "name": "Reverb",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "dry_wet",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "mode",
+    "name": "Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Granular",
+     "Stretch",
+     "Looper",
+     "Spectral"
+    ],
+    "default": "Granular"
+   },
+   {
+    "key": "freeze",
+    "name": "Freeze",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "quality",
+    "name": "Quality",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "16-bit",
+     "Lo-Fi"
+    ],
+    "default": "16-bit"
+   },
+   {
+    "key": "stereo_spread",
+    "name": "Spread",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "filter_hp",
+    "name": "HPF",
+    "type": "int",
+    "min": 0,
+    "max": 1000,
+    "step": 10,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "filter_lp",
+    "name": "LPF",
+    "type": "int",
+    "min": 1000,
+    "max": 20000,
+    "step": 10,
+    "options": null,
+    "default": "20000"
+   },
+   {
+    "key": "limiter_on",
+    "name": "Limiter",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "limiter_pre",
+    "name": "Pre Gain",
+    "type": "float",
+    "min": -6,
+    "max": 6,
+    "step": 0.5,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "limiter_post",
+    "name": "Post Gain",
+    "type": "float",
+    "min": -6,
+    "max": 6,
+    "step": 0.5,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "low_boost",
+    "name": "Low Boost",
+    "type": "float",
+    "min": 0,
+    "max": 6,
+    "step": 0.5,
+    "options": null,
+    "default": "0.0"
+   },
+   {
+    "key": "low_freq",
+    "name": "Low Freq",
+    "type": "int",
+    "min": 30,
+    "max": 400,
+    "step": 10,
+    "options": null,
+    "default": "100"
+   },
+   {
+    "key": "low_q",
+    "name": "Low Q",
+    "type": "float",
+    "min": 0.1,
+    "max": 4,
+    "step": 0.1,
+    "options": null,
+    "default": "0.7"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Verglas",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Filters",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "POSIT",
+       "fullName": "Position",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "50%"
+      },
+      {
+       "shortName": "SIZE",
+       "fullName": "Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PITCH",
+       "fullName": "Pitch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DENSI",
+       "fullName": "Density",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TEXTU",
+       "fullName": "Texture",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FEEDB",
+       "fullName": "Feedback",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "REVER",
+       "fullName": "Reverb",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Verglas",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "POSIT",
+       "fullName": "Position",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SIZE",
+       "fullName": "Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PITCH",
+       "fullName": "Pitch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DENSI",
+       "fullName": "Density",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TEXTU",
+       "fullName": "Texture",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FEEDB",
+       "fullName": "Feedback",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "REVER",
+       "fullName": "Reverb",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Filters",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "HPF",
+       "fullName": "HPF",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LPF",
+       "fullName": "LPF",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LIMIT",
+       "fullName": "Limiter",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PRE",
+       "fullName": "Pre Gain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "POST",
+       "fullName": "Post Gain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BOOST",
+       "fullName": "Low Boost",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "Low Freq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LOW Q",
+       "fullName": "Low Q",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "position",
+    "label": "Position",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "size",
+    "label": "Size",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pitch",
+    "label": "Pitch",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "density",
+    "label": "Density",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "texture",
+    "label": "Texture",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "feedback",
+    "label": "Feedback",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "reverb",
+    "label": "Reverb",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dry_wet",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "position",
+    "label": "Position",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "size",
+    "label": "Size",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pitch",
+    "label": "Pitch",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "density",
+    "label": "Density",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "texture",
+    "label": "Texture",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "feedback",
+    "label": "Feedback",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "reverb",
+    "label": "Reverb",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dry_wet",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "filter_hp",
+    "label": "HPF",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1000,
+    "step": 10,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "filter_lp",
+    "label": "LPF",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1000,
+    "max": 20000,
+    "step": 10,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 5,
+     "detentsFullSweep": 3800
+    }
+   },
+   {
+    "key": "limiter_on",
+    "label": "Limiter",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "limiter_pre",
+    "label": "Pre Gain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -6,
+    "max": 6,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 48
+    }
+   },
+   {
+    "key": "limiter_post",
+    "label": "Post Gain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -6,
+    "max": 6,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 48
+    }
+   },
+   {
+    "key": "low_boost",
+    "label": "Low Boost",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 6,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 24
+    }
+   },
+   {
+    "key": "low_freq",
+    "label": "Low Freq",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 30,
+    "max": 400,
+    "step": 10,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 5,
+     "detentsFullSweep": 74
+    }
+   },
+   {
+    "key": "low_q",
+    "label": "Low Q",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.1,
+    "max": 4,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 78
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "mode",
+   "freeze",
+   "quality",
+   "stereo_spread"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "4 chain_params not reachable in movy: mode, freeze, quality, stereo_spread"
+  ]
+ }
+}

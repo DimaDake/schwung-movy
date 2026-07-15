@@ -1,0 +1,2494 @@
+{
+ "id": "palette",
+ "name": "PALETTE",
+ "version": "0.1.0",
+ "author": "Filliformes",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 69,
+ "dsp_size": 139152,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "audio_in": true,
+  "midi_in": true,
+  "ui_hierarchy": {
+   "modes": null,
+   "levels": {
+    "root": {
+     "name": "PALETTE",
+     "knobs": [
+      "fx1_amount",
+      "fx1_macro",
+      "fx2_amount",
+      "fx2_macro",
+      "fx3_amount",
+      "fx3_macro",
+      "fx4_amount",
+      "fx4_macro"
+     ],
+     "params": [
+      {
+       "level": "Console",
+       "label": "PALETTE"
+      },
+      {
+       "level": "Presets",
+       "label": "PRESETS&RND"
+      },
+      {
+       "level": "FX12",
+       "label": "FX 1&2"
+      },
+      {
+       "level": "FX34",
+       "label": "FX 3&4"
+      },
+      {
+       "level": "Global",
+       "label": "GLOBAL"
+      }
+     ]
+    },
+    "Console": {
+     "name": "PALETTE",
+     "knobs": [
+      "fx1_amount",
+      "fx1_macro",
+      "fx2_amount",
+      "fx2_macro",
+      "fx3_amount",
+      "fx3_macro",
+      "fx4_amount",
+      "fx4_macro"
+     ],
+     "params": [
+      "fx1_amount",
+      "fx1_macro",
+      "fx2_amount",
+      "fx2_macro",
+      "fx3_amount",
+      "fx3_macro",
+      "fx4_amount",
+      "fx4_macro"
+     ]
+    },
+    "Presets": {
+     "name": "PRESETS&RND",
+     "knobs": [
+      "current_preset",
+      "rnd_patch",
+      "rnd_effect",
+      "rnd_amount",
+      "rnd_macro",
+      "rnd_values",
+      "input_vol",
+      "mix"
+     ],
+     "params": [
+      "current_preset",
+      "rnd_patch",
+      "rnd_effect",
+      "rnd_amount",
+      "rnd_macro",
+      "rnd_values",
+      "input_vol",
+      "mix",
+      "fx_reorder"
+     ]
+    },
+    "FX12": {
+     "name": "FX 1&2",
+     "knobs": [
+      "fx1_select",
+      "fx1_amount",
+      "fx1_macro",
+      "fx1_drift",
+      "fx2_select",
+      "fx2_amount",
+      "fx2_macro",
+      "fx2_drift"
+     ],
+     "params": [
+      "fx1_select",
+      "fx1_amount",
+      "fx1_macro",
+      "fx1_drift",
+      "fx2_select",
+      "fx2_amount",
+      "fx2_macro",
+      "fx2_drift"
+     ]
+    },
+    "FX34": {
+     "name": "FX 3&4",
+     "knobs": [
+      "fx3_select",
+      "fx3_amount",
+      "fx3_macro",
+      "fx3_drift",
+      "fx4_select",
+      "fx4_amount",
+      "fx4_macro",
+      "fx4_drift"
+     ],
+     "params": [
+      "fx3_select",
+      "fx3_amount",
+      "fx3_macro",
+      "fx3_drift",
+      "fx4_select",
+      "fx4_amount",
+      "fx4_macro",
+      "fx4_drift"
+     ]
+    },
+    "Global": {
+     "name": "GLOBAL",
+     "knobs": [
+      "feedback",
+      "tempo_src",
+      "tempo_bpm",
+      "time_div"
+     ],
+     "params": [
+      "feedback",
+      "tempo_src",
+      "tempo_bpm",
+      "time_div"
+     ]
+    }
+   }
+  },
+  "chain_params": [
+   {
+    "key": "fx1_select",
+    "name": "FX1 Select",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Drive",
+     "Sweeten",
+     "Fuzz",
+     "Howl",
+     "Fold",
+     "Swell",
+     "Doubler",
+     "Vibrato",
+     "Phaser",
+     "Tremolo",
+     "Pitch",
+     "Shift",
+     "Cascade",
+     "Reels",
+     "Collage",
+     "Reverse",
+     "Space",
+     "Bloom",
+     "Filter",
+     "Squash",
+     "Cassette",
+     "Broken",
+     "Interference",
+     "Halo"
+    ]
+   },
+   {
+    "key": "fx1_amount",
+    "name": "FX1 Amount",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "fx1_macro",
+    "name": "FX1 Macro",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "fx1_drift",
+    "name": "FX1 Drift",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "fx2_select",
+    "name": "FX2 Select",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Drive",
+     "Sweeten",
+     "Fuzz",
+     "Howl",
+     "Fold",
+     "Swell",
+     "Doubler",
+     "Vibrato",
+     "Phaser",
+     "Tremolo",
+     "Pitch",
+     "Shift",
+     "Cascade",
+     "Reels",
+     "Collage",
+     "Reverse",
+     "Space",
+     "Bloom",
+     "Filter",
+     "Squash",
+     "Cassette",
+     "Broken",
+     "Interference",
+     "Halo"
+    ]
+   },
+   {
+    "key": "fx2_amount",
+    "name": "FX2 Amount",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "fx2_macro",
+    "name": "FX2 Macro",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "fx2_drift",
+    "name": "FX2 Drift",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "fx3_select",
+    "name": "FX3 Select",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Drive",
+     "Sweeten",
+     "Fuzz",
+     "Howl",
+     "Fold",
+     "Swell",
+     "Doubler",
+     "Vibrato",
+     "Phaser",
+     "Tremolo",
+     "Pitch",
+     "Shift",
+     "Cascade",
+     "Reels",
+     "Collage",
+     "Reverse",
+     "Space",
+     "Bloom",
+     "Filter",
+     "Squash",
+     "Cassette",
+     "Broken",
+     "Interference",
+     "Halo"
+    ]
+   },
+   {
+    "key": "fx3_amount",
+    "name": "FX3 Amount",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "fx3_macro",
+    "name": "FX3 Macro",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "fx3_drift",
+    "name": "FX3 Drift",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "fx4_select",
+    "name": "FX4 Select",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Drive",
+     "Sweeten",
+     "Fuzz",
+     "Howl",
+     "Fold",
+     "Swell",
+     "Doubler",
+     "Vibrato",
+     "Phaser",
+     "Tremolo",
+     "Pitch",
+     "Shift",
+     "Cascade",
+     "Reels",
+     "Collage",
+     "Reverse",
+     "Space",
+     "Bloom",
+     "Filter",
+     "Squash",
+     "Cassette",
+     "Broken",
+     "Interference",
+     "Halo"
+    ]
+   },
+   {
+    "key": "fx4_amount",
+    "name": "FX4 Amount",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "fx4_macro",
+    "name": "FX4 Macro",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "fx4_drift",
+    "name": "FX4 Drift",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "input_vol",
+    "name": "Input Vol",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01
+   },
+   {
+    "key": "mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "current_preset",
+    "name": "Preset",
+    "type": "enum",
+    "options": [
+     "1 Init",
+     "2 Delay + Verb",
+     "3 Tape Echo",
+     "4 Concert Hall",
+     "5 Plate Shimmer",
+     "6 Doubler Width",
+     "7 Slapback",
+     "8 Warm Drive",
+     "9 Console Glue",
+     "10 Vibrato Verb",
+     "11 Tape Slap",
+     "12 LP Sweep",
+     "13 HP Air",
+     "14 Tremolo Pan",
+     "15 Octave Up",
+     "16 Phaser Verb",
+     "17 Fuzz Phaze Vrb",
+     "18 West Coast",
+     "19 Howl Stab",
+     "20 Shimmer Drive",
+     "21 Swell Pad",
+     "22 Pitch Cloud",
+     "23 Lo-fi Tape",
+     "24 Squash Drive",
+     "25 Reverse Bloom",
+     "26 Fold Space",
+     "27 Shift Bloom",
+     "28 Dub Filter",
+     "29 Ambient Swell",
+     "30 Vibe Drive Vrb",
+     "31 Tape Phaser",
+     "32 Crush Verb",
+     "33 Grain Hall",
+     "34 Octave Drive",
+     "35 Broken Radio",
+     "36 Halo Reels",
+     "37 Glitch Cloud",
+     "38 Intf Halo",
+     "39 Reverse Shift",
+     "40 Fold Fuzz",
+     "41 Broken Tape",
+     "42 Crush Bloom",
+     "43 Stutter Verb",
+     "44 Howl Halo",
+     "45 Warble Shift",
+     "46 Ghost Pitch",
+     "47 Full Chain",
+     "48 Ambient Wash",
+     "49 Chaos Engine",
+     "50 Total Destroy"
+    ]
+   },
+   {
+    "key": "fx_reorder",
+    "name": "FX Reorder",
+    "type": "enum",
+    "options": [
+     "1-2-3-4",
+     "1-2-4-3",
+     "1-3-2-4",
+     "1-3-4-2",
+     "1-4-2-3",
+     "1-4-3-2",
+     "2-1-3-4",
+     "2-1-4-3",
+     "2-3-1-4",
+     "2-3-4-1",
+     "2-4-1-3",
+     "2-4-3-1",
+     "3-1-2-4",
+     "3-1-4-2",
+     "3-2-1-4",
+     "3-2-4-1",
+     "3-4-1-2",
+     "3-4-2-1",
+     "4-1-2-3",
+     "4-1-3-2",
+     "4-2-1-3",
+     "4-2-3-1",
+     "4-3-1-2",
+     "4-3-2-1"
+    ]
+   },
+   {
+    "key": "rnd_patch",
+    "name": "Rnd Patch",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "rnd_effect",
+    "name": "Rnd FX",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "rnd_amount",
+    "name": "Rnd Amt",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "rnd_macro",
+    "name": "Rnd Macro",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "rnd_values",
+    "name": "Rnd Values",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "feedback",
+    "name": "Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "tempo_src",
+    "name": "Tempo Src",
+    "type": "enum",
+    "options": [
+     "Move",
+     "Int"
+    ]
+   },
+   {
+    "key": "tempo_bpm",
+    "name": "Tempo",
+    "type": "int",
+    "min": 10,
+    "max": 500,
+    "step": 1
+   },
+   {
+    "key": "time_div",
+    "name": "Time Div",
+    "type": "enum",
+    "options": [
+     "Free",
+     "1/1",
+     "1/2",
+     "1/2T",
+     "1/2D",
+     "1/4",
+     "1/4T",
+     "1/4D",
+     "1/8",
+     "1/8T",
+     "1/8D",
+     "1/16",
+     "1/16T",
+     "1/16D",
+     "1/32"
+    ]
+   }
+  ]
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "Console",
+   "Presets",
+   "FX12",
+   "FX34",
+   "Global"
+  ],
+  "params": [
+   {
+    "key": "fx1_select",
+    "name": "FX1",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Drive",
+     "Sweeten",
+     "Fuzz",
+     "Howl",
+     "Fold",
+     "Swell",
+     "Doubler",
+     "Vibrato",
+     "Phaser",
+     "Tremolo",
+     "Pitch",
+     "Shift",
+     "Cascade",
+     "Reels",
+     "Collage",
+     "Reverse",
+     "Space",
+     "Bloom",
+     "Filter",
+     "Squash",
+     "Cassette",
+     "Broken",
+     "Interference",
+     "Halo"
+    ],
+    "default": "Drive"
+   },
+   {
+    "key": "fx1_amount",
+    "name": "FX1 Amount",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "fx1_macro",
+    "name": "FX1 Macro",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50"
+   },
+   {
+    "key": "fx1_drift",
+    "name": "FX1 Drift",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "fx2_select",
+    "name": "FX2",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Drive",
+     "Sweeten",
+     "Fuzz",
+     "Howl",
+     "Fold",
+     "Swell",
+     "Doubler",
+     "Vibrato",
+     "Phaser",
+     "Tremolo",
+     "Pitch",
+     "Shift",
+     "Cascade",
+     "Reels",
+     "Collage",
+     "Reverse",
+     "Space",
+     "Bloom",
+     "Filter",
+     "Squash",
+     "Cassette",
+     "Broken",
+     "Interference",
+     "Halo"
+    ],
+    "default": "Doubler"
+   },
+   {
+    "key": "fx2_amount",
+    "name": "FX2 Amount",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "fx2_macro",
+    "name": "FX2 Macro",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.40"
+   },
+   {
+    "key": "fx2_drift",
+    "name": "FX2 Drift",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "fx3_select",
+    "name": "FX3",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Drive",
+     "Sweeten",
+     "Fuzz",
+     "Howl",
+     "Fold",
+     "Swell",
+     "Doubler",
+     "Vibrato",
+     "Phaser",
+     "Tremolo",
+     "Pitch",
+     "Shift",
+     "Cascade",
+     "Reels",
+     "Collage",
+     "Reverse",
+     "Space",
+     "Bloom",
+     "Filter",
+     "Squash",
+     "Cassette",
+     "Broken",
+     "Interference",
+     "Halo"
+    ],
+    "default": "Cascade"
+   },
+   {
+    "key": "fx3_amount",
+    "name": "FX3 Amount",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "fx3_macro",
+    "name": "FX3 Macro",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.45"
+   },
+   {
+    "key": "fx3_drift",
+    "name": "FX3 Drift",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "fx4_select",
+    "name": "FX4",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Drive",
+     "Sweeten",
+     "Fuzz",
+     "Howl",
+     "Fold",
+     "Swell",
+     "Doubler",
+     "Vibrato",
+     "Phaser",
+     "Tremolo",
+     "Pitch",
+     "Shift",
+     "Cascade",
+     "Reels",
+     "Collage",
+     "Reverse",
+     "Space",
+     "Bloom",
+     "Filter",
+     "Squash",
+     "Cassette",
+     "Broken",
+     "Interference",
+     "Halo"
+    ],
+    "default": "Filter"
+   },
+   {
+    "key": "fx4_amount",
+    "name": "FX4 Amount",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50"
+   },
+   {
+    "key": "fx4_macro",
+    "name": "FX4 Macro",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.30"
+   },
+   {
+    "key": "fx4_drift",
+    "name": "FX4 Drift",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "input_vol",
+    "name": "Input Vol",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "1.00"
+   },
+   {
+    "key": "mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.00"
+   },
+   {
+    "key": "current_preset",
+    "name": "Preset",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1 Init",
+     "2 Delay + Verb",
+     "3 Tape Echo",
+     "4 Concert Hall",
+     "5 Plate Shimmer",
+     "6 Doubler Width",
+     "7 Slapback",
+     "8 Warm Drive",
+     "9 Console Glue",
+     "10 Vibrato Verb",
+     "11 Tape Slap",
+     "12 LP Sweep",
+     "13 HP Air",
+     "14 Tremolo Pan",
+     "15 Octave Up",
+     "16 Phaser Verb",
+     "17 Fuzz Phaze Vrb",
+     "18 West Coast",
+     "19 Howl Stab",
+     "20 Shimmer Drive",
+     "21 Swell Pad",
+     "22 Pitch Cloud",
+     "23 Lo-fi Tape",
+     "24 Squash Drive",
+     "25 Reverse Bloom",
+     "26 Fold Space",
+     "27 Shift Bloom",
+     "28 Dub Filter",
+     "29 Ambient Swell",
+     "30 Vibe Drive Vrb",
+     "31 Tape Phaser",
+     "32 Crush Verb",
+     "33 Grain Hall",
+     "34 Octave Drive",
+     "35 Broken Radio",
+     "36 Halo Reels",
+     "37 Glitch Cloud",
+     "38 Intf Halo",
+     "39 Reverse Shift",
+     "40 Fold Fuzz",
+     "41 Broken Tape",
+     "42 Crush Bloom",
+     "43 Stutter Verb",
+     "44 Howl Halo",
+     "45 Warble Shift",
+     "46 Ghost Pitch",
+     "47 Full Chain",
+     "48 Ambient Wash",
+     "49 Chaos Engine",
+     "50 Total Destroy"
+    ],
+    "default": "1 Init"
+   },
+   {
+    "key": "rnd_patch",
+    "name": "Rnd Patch",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "rnd_effect",
+    "name": "Rnd FX",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "rnd_amount",
+    "name": "Rnd Amt",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "rnd_macro",
+    "name": "Rnd Macro",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "rnd_values",
+    "name": "Rnd Values",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "fx_reorder",
+    "name": "FX Reorder",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1-2-3-4",
+     "1-2-4-3",
+     "1-3-2-4",
+     "1-3-4-2",
+     "1-4-2-3",
+     "1-4-3-2",
+     "2-1-3-4",
+     "2-1-4-3",
+     "2-3-1-4",
+     "2-3-4-1",
+     "2-4-1-3",
+     "2-4-3-1",
+     "3-1-2-4",
+     "3-1-4-2",
+     "3-2-1-4",
+     "3-2-4-1",
+     "3-4-1-2",
+     "3-4-2-1",
+     "4-1-2-3",
+     "4-1-3-2",
+     "4-2-1-3",
+     "4-2-3-1",
+     "4-3-1-2",
+     "4-3-2-1"
+    ],
+    "default": "1-2-3-4"
+   },
+   {
+    "key": "feedback",
+    "name": "Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "tempo_src",
+    "name": "Tempo Src",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Move",
+     "Int"
+    ],
+    "default": "Move"
+   },
+   {
+    "key": "tempo_bpm",
+    "name": "Tempo",
+    "type": "int",
+    "min": 10,
+    "max": 500,
+    "step": 1,
+    "options": null,
+    "default": "120"
+   },
+   {
+    "key": "time_div",
+    "name": "Time Div",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Free",
+     "1/1",
+     "1/2",
+     "1/2T",
+     "1/2D",
+     "1/4",
+     "1/4T",
+     "1/4D",
+     "1/8",
+     "1/8T",
+     "1/8D",
+     "1/16",
+     "1/16T",
+     "1/16D",
+     "1/32"
+    ],
+    "default": "Free"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "PALETTE",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "PRESETS&RND",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "FX 1&2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "FX 3&4",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "GLOBAL",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "AMOUN",
+       "fullName": "FX1 Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "0%"
+      },
+      {
+       "shortName": "MACRO",
+       "fullName": "FX1 Macro",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AMOUN",
+       "fullName": "FX2 Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MACRO",
+       "fullName": "FX2 Macro",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "AMOUN",
+       "fullName": "FX3 Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MACRO",
+       "fullName": "FX3 Macro",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AMOUN",
+       "fullName": "FX4 Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MACRO",
+       "fullName": "FX4 Macro",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "PALETTE",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "AMOUN",
+       "fullName": "FX1 Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MACRO",
+       "fullName": "FX1 Macro",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AMOUN",
+       "fullName": "FX2 Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MACRO",
+       "fullName": "FX2 Macro",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "AMOUN",
+       "fullName": "FX3 Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MACRO",
+       "fullName": "FX3 Macro",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AMOUN",
+       "fullName": "FX4 Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MACRO",
+       "fullName": "FX4 Macro",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "PRESETS&RND",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "Preset",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PATCH",
+       "fullName": "Rnd Patch",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FX",
+       "fullName": "Rnd FX",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AMT",
+       "fullName": "Rnd Amt",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "MACRO",
+       "fullName": "Rnd Macro",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VALUE",
+       "fullName": "Rnd Values",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "INPUT",
+       "fullName": "Input Vol",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "FX 1&2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "FX1",
+       "fullName": "FX1",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AMOUN",
+       "fullName": "FX1 Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MACRO",
+       "fullName": "FX1 Macro",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIFT",
+       "fullName": "FX1 Drift",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "FX2",
+       "fullName": "FX2",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AMOUN",
+       "fullName": "FX2 Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MACRO",
+       "fullName": "FX2 Macro",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIFT",
+       "fullName": "FX2 Drift",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "FX 3&4",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "FX3",
+       "fullName": "FX3",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AMOUN",
+       "fullName": "FX3 Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MACRO",
+       "fullName": "FX3 Macro",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIFT",
+       "fullName": "FX3 Drift",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "FX4",
+       "fullName": "FX4",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AMOUN",
+       "fullName": "FX4 Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MACRO",
+       "fullName": "FX4 Macro",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIFT",
+       "fullName": "FX4 Drift",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "GLOBAL",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "FEEDB",
+       "fullName": "Feedback",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SRC",
+       "fullName": "Tempo Src",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TEMPO",
+       "fullName": "Tempo",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TIME",
+       "fullName": "Time Div",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "fx1_amount",
+    "label": "FX1 Amount",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx1_macro",
+    "label": "FX1 Macro",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx2_amount",
+    "label": "FX2 Amount",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx2_macro",
+    "label": "FX2 Macro",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx3_amount",
+    "label": "FX3 Amount",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx3_macro",
+    "label": "FX3 Macro",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx4_amount",
+    "label": "FX4 Amount",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx4_macro",
+    "label": "FX4 Macro",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx1_amount",
+    "label": "FX1 Amount",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx1_macro",
+    "label": "FX1 Macro",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx2_amount",
+    "label": "FX2 Amount",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx2_macro",
+    "label": "FX2 Macro",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx3_amount",
+    "label": "FX3 Amount",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx3_macro",
+    "label": "FX3 Macro",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx4_amount",
+    "label": "FX4 Amount",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx4_macro",
+    "label": "FX4 Macro",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "current_preset",
+    "label": "Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1 Init",
+     "2 Delay + Verb",
+     "3 Tape Echo",
+     "4 Concert Hall",
+     "5 Plate Shimmer",
+     "6 Doubler Width",
+     "7 Slapback",
+     "8 Warm Drive",
+     "9 Console Glue",
+     "10 Vibrato Verb",
+     "11 Tape Slap",
+     "12 LP Sweep",
+     "13 HP Air",
+     "14 Tremolo Pan",
+     "15 Octave Up",
+     "16 Phaser Verb",
+     "17 Fuzz Phaze Vrb",
+     "18 West Coast",
+     "19 Howl Stab",
+     "20 Shimmer Drive",
+     "21 Swell Pad",
+     "22 Pitch Cloud",
+     "23 Lo-fi Tape",
+     "24 Squash Drive",
+     "25 Reverse Bloom",
+     "26 Fold Space",
+     "27 Shift Bloom",
+     "28 Dub Filter",
+     "29 Ambient Swell",
+     "30 Vibe Drive Vrb",
+     "31 Tape Phaser",
+     "32 Crush Verb",
+     "33 Grain Hall",
+     "34 Octave Drive",
+     "35 Broken Radio",
+     "36 Halo Reels",
+     "37 Glitch Cloud",
+     "38 Intf Halo",
+     "39 Reverse Shift",
+     "40 Fold Fuzz",
+     "41 Broken Tape",
+     "42 Crush Bloom",
+     "43 Stutter Verb",
+     "44 Howl Halo",
+     "45 Warble Shift",
+     "46 Ghost Pitch",
+     "47 Full Chain",
+     "48 Ambient Wash",
+     "49 Chaos Engine",
+     "50 Total Destroy"
+    ],
+    "min": 0,
+    "max": 49,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 50
+    }
+   },
+   {
+    "key": "rnd_patch",
+    "label": "Rnd Patch",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "rnd_effect",
+    "label": "Rnd FX",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "rnd_amount",
+    "label": "Rnd Amt",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "rnd_macro",
+    "label": "Rnd Macro",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "rnd_values",
+    "label": "Rnd Values",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "input_vol",
+    "label": "Input Vol",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx1_select",
+    "label": "FX1",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "Drive",
+     "Sweeten",
+     "Fuzz",
+     "Howl",
+     "Fold",
+     "Swell",
+     "Doubler",
+     "Vibrato",
+     "Phaser",
+     "Tremolo",
+     "Pitch",
+     "Shift",
+     "Cascade",
+     "Reels",
+     "Collage",
+     "Reverse",
+     "Space",
+     "Bloom",
+     "Filter",
+     "Squash",
+     "Cassette",
+     "Broken",
+     "Interference",
+     "Halo"
+    ],
+    "min": 0,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 25
+    }
+   },
+   {
+    "key": "fx1_amount",
+    "label": "FX1 Amount",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx1_macro",
+    "label": "FX1 Macro",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx1_drift",
+    "label": "FX1 Drift",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx2_select",
+    "label": "FX2",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "Drive",
+     "Sweeten",
+     "Fuzz",
+     "Howl",
+     "Fold",
+     "Swell",
+     "Doubler",
+     "Vibrato",
+     "Phaser",
+     "Tremolo",
+     "Pitch",
+     "Shift",
+     "Cascade",
+     "Reels",
+     "Collage",
+     "Reverse",
+     "Space",
+     "Bloom",
+     "Filter",
+     "Squash",
+     "Cassette",
+     "Broken",
+     "Interference",
+     "Halo"
+    ],
+    "min": 0,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 25
+    }
+   },
+   {
+    "key": "fx2_amount",
+    "label": "FX2 Amount",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx2_macro",
+    "label": "FX2 Macro",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx2_drift",
+    "label": "FX2 Drift",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx3_select",
+    "label": "FX3",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "Drive",
+     "Sweeten",
+     "Fuzz",
+     "Howl",
+     "Fold",
+     "Swell",
+     "Doubler",
+     "Vibrato",
+     "Phaser",
+     "Tremolo",
+     "Pitch",
+     "Shift",
+     "Cascade",
+     "Reels",
+     "Collage",
+     "Reverse",
+     "Space",
+     "Bloom",
+     "Filter",
+     "Squash",
+     "Cassette",
+     "Broken",
+     "Interference",
+     "Halo"
+    ],
+    "min": 0,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 25
+    }
+   },
+   {
+    "key": "fx3_amount",
+    "label": "FX3 Amount",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx3_macro",
+    "label": "FX3 Macro",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx3_drift",
+    "label": "FX3 Drift",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx4_select",
+    "label": "FX4",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "Drive",
+     "Sweeten",
+     "Fuzz",
+     "Howl",
+     "Fold",
+     "Swell",
+     "Doubler",
+     "Vibrato",
+     "Phaser",
+     "Tremolo",
+     "Pitch",
+     "Shift",
+     "Cascade",
+     "Reels",
+     "Collage",
+     "Reverse",
+     "Space",
+     "Bloom",
+     "Filter",
+     "Squash",
+     "Cassette",
+     "Broken",
+     "Interference",
+     "Halo"
+    ],
+    "min": 0,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 25
+    }
+   },
+   {
+    "key": "fx4_amount",
+    "label": "FX4 Amount",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx4_macro",
+    "label": "FX4 Macro",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx4_drift",
+    "label": "FX4 Drift",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "feedback",
+    "label": "Feedback",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "tempo_src",
+    "label": "Tempo Src",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Move",
+     "Int"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "tempo_bpm",
+    "label": "Tempo",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 10,
+    "max": 500,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 980
+    }
+   },
+   {
+    "key": "time_div",
+    "label": "Time Div",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Free",
+     "1/1",
+     "1/2",
+     "1/2T",
+     "1/2D",
+     "1/4",
+     "1/4T",
+     "1/4D",
+     "1/8",
+     "1/8T",
+     "1/8D",
+     "1/16",
+     "1/16T",
+     "1/16D",
+     "1/32"
+    ],
+    "min": 0,
+    "max": 14,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 15
+    }
+   },
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "fx_reorder"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "1 chain_params not reachable in movy: fx_reorder",
+   "page \"Main\": duplicate on-screen names AMOUN, MACRO",
+   "page \"PALETTE\": duplicate on-screen names AMOUN, MACRO",
+   "page \"FX 1&2\": duplicate on-screen names AMOUN, MACRO, DRIFT",
+   "page \"FX 3&4\": duplicate on-screen names AMOUN, MACRO, DRIFT"
+  ]
+ }
+}

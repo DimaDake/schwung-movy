@@ -1,0 +1,1307 @@
+{
+ "id": "genera",
+ "name": "Genera",
+ "version": "0.2.4",
+ "author": "Vincent Fillion",
+ "category": "midi_fx",
+ "status": "ok",
+ "load_ms": 71,
+ "dsp_size": 41192,
+ "capabilities": {
+  "chainable": true,
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Genera",
+     "knobs": [
+      "root",
+      "division",
+      "steps",
+      "capture",
+      "evolve",
+      "stutter",
+      "octaves",
+      "chord"
+     ],
+     "params": [
+      {
+       "label": "Genera",
+       "level": "genera"
+      },
+      {
+       "label": "Sync",
+       "level": "sync"
+      }
+     ]
+    },
+    "genera": {
+     "name": "Genera",
+     "knobs": [
+      "root",
+      "division",
+      "steps",
+      "capture",
+      "evolve",
+      "stutter",
+      "octaves",
+      "chord"
+     ],
+     "params": [
+      {
+       "key": "root",
+       "label": "Root",
+       "type": "enum",
+       "options": [
+        "C",
+        "C#",
+        "D",
+        "D#",
+        "E",
+        "F",
+        "F#",
+        "G",
+        "G#",
+        "A",
+        "A#",
+        "B"
+       ],
+       "default": "D"
+      },
+      {
+       "key": "division",
+       "label": "Division",
+       "type": "enum",
+       "options": [
+        "1/1D",
+        "1/1",
+        "1/1T",
+        "1/2D",
+        "1/2",
+        "1/2T",
+        "1/4D",
+        "1/4",
+        "1/4T",
+        "1/8D",
+        "1/8",
+        "1/8T",
+        "1/16D",
+        "1/16",
+        "1/16T",
+        "1/32D",
+        "1/32",
+        "1/32T"
+       ],
+       "default": "1/4"
+      },
+      {
+       "key": "steps",
+       "label": "Steps",
+       "type": "int",
+       "min": 1,
+       "max": 64,
+       "step": 1,
+       "default": 8
+      },
+      {
+       "key": "capture",
+       "label": "Capture",
+       "type": "int",
+       "min": 0,
+       "max": 64,
+       "step": 1,
+       "default": 0
+      },
+      {
+       "key": "evolve",
+       "label": "Evolve",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "step": 1,
+       "default": 0
+      },
+      {
+       "key": "stutter",
+       "label": "Stutter",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "step": 1,
+       "default": 0
+      },
+      {
+       "key": "octaves",
+       "label": "Octaves",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "step": 1,
+       "default": 0
+      },
+      {
+       "key": "chord",
+       "label": "Chord",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "step": 1,
+       "default": 0
+      },
+      {
+       "key": "scale",
+       "label": "Scale",
+       "type": "enum",
+       "options": [
+        "Major",
+        "Minor",
+        "Dorian",
+        "Phrygian",
+        "Lydian",
+        "Mixolydian",
+        "Aeolian",
+        "Locrian",
+        "Harm Min",
+        "Melod Min",
+        "Penta Maj",
+        "Penta Min",
+        "Blues",
+        "Whole Tone",
+        "Diminished",
+        "Augmented",
+        "Chromatic",
+        "Hung Min",
+        "Arabic",
+        "Japanese"
+       ],
+       "default": "Minor"
+      },
+      {
+       "key": "gen_mode",
+       "label": "Gen Mode",
+       "type": "enum",
+       "options": [
+        "Up",
+        "Down",
+        "Up/Down",
+        "Down/Up",
+        "Exclude",
+        "Walk",
+        "Random"
+       ],
+       "default": "Up"
+      }
+     ]
+    },
+    "sync": {
+     "name": "Sync",
+     "knobs": [
+      "sync",
+      "tempo",
+      "division",
+      "vel_mode",
+      "velocity",
+      "gate",
+      "stut_mode",
+      "humanize"
+     ],
+     "params": [
+      {
+       "key": "sync",
+       "label": "Sync",
+       "type": "enum",
+       "options": [
+        "Internal",
+        "Move"
+       ],
+       "default": "Move"
+      },
+      {
+       "key": "tempo",
+       "label": "Tempo",
+       "type": "int",
+       "min": 20,
+       "max": 500,
+       "step": 1,
+       "default": 120
+      },
+      {
+       "key": "division",
+       "label": "Division",
+       "type": "enum",
+       "options": [
+        "1/1D",
+        "1/1",
+        "1/1T",
+        "1/2D",
+        "1/2",
+        "1/2T",
+        "1/4D",
+        "1/4",
+        "1/4T",
+        "1/8D",
+        "1/8",
+        "1/8T",
+        "1/16D",
+        "1/16",
+        "1/16T",
+        "1/32D",
+        "1/32",
+        "1/32T"
+       ],
+       "default": "1/4"
+      },
+      {
+       "key": "vel_mode",
+       "label": "Vel Mode",
+       "type": "enum",
+       "options": [
+        "Human",
+        "Fixed",
+        "Random",
+        "Moving"
+       ],
+       "default": "Human"
+      },
+      {
+       "key": "velocity",
+       "label": "Velocity",
+       "type": "int",
+       "min": 0,
+       "max": 127,
+       "step": 1,
+       "default": 100
+      },
+      {
+       "key": "gate",
+       "label": "Gate",
+       "type": "int",
+       "min": 1,
+       "max": 200,
+       "step": 1,
+       "default": 80
+      },
+      {
+       "key": "stut_mode",
+       "label": "Stut Mode",
+       "type": "enum",
+       "options": [
+        "Chaos",
+        "Timed"
+       ],
+       "default": "Chaos"
+      },
+      {
+       "key": "humanize",
+       "label": "Humanize",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "step": 1,
+       "default": 0
+      }
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "genera",
+   "sync"
+  ],
+  "params": [
+   {
+    "key": "root",
+    "name": "Root",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "C",
+     "C#",
+     "D",
+     "D#",
+     "E",
+     "F",
+     "F#",
+     "G",
+     "G#",
+     "A",
+     "A#",
+     "B"
+    ],
+    "default": "D"
+   },
+   {
+    "key": "scale",
+    "name": "Scale",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Major",
+     "Minor",
+     "Dorian",
+     "Phrygian",
+     "Lydian",
+     "Mixolydian",
+     "Aeolian",
+     "Locrian",
+     "Harm Min",
+     "Melod Min",
+     "Penta Maj",
+     "Penta Min",
+     "Blues",
+     "Whole Tone",
+     "Diminished",
+     "Augmented",
+     "Chromatic",
+     "Hung Min",
+     "Arabic",
+     "Japanese"
+    ],
+    "default": "Minor"
+   },
+   {
+    "key": "steps",
+    "name": "Steps",
+    "type": "int",
+    "min": 1,
+    "max": 64,
+    "step": 1,
+    "options": null,
+    "default": "8"
+   },
+   {
+    "key": "capture",
+    "name": "Capture",
+    "type": "int",
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "evolve",
+    "name": "Evolve",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0%"
+   },
+   {
+    "key": "stutter",
+    "name": "Stutter",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0%"
+   },
+   {
+    "key": "octaves",
+    "name": "Octaves",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0%"
+   },
+   {
+    "key": "chord",
+    "name": "Chord",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0%"
+   },
+   {
+    "key": "gen_mode",
+    "name": "Gen Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Up",
+     "Down",
+     "Up/Down",
+     "Down/Up",
+     "Exclude",
+     "Walk",
+     "Random"
+    ],
+    "default": "Up"
+   },
+   {
+    "key": "sync",
+    "name": "Sync",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Internal",
+     "Move"
+    ],
+    "default": "Move"
+   },
+   {
+    "key": "tempo",
+    "name": "Tempo",
+    "type": "int",
+    "min": 20,
+    "max": 500,
+    "step": 1,
+    "options": null,
+    "default": "120"
+   },
+   {
+    "key": "division",
+    "name": "Division",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1/1D",
+     "1/1",
+     "1/1T",
+     "1/2D",
+     "1/2",
+     "1/2T",
+     "1/4D",
+     "1/4",
+     "1/4T",
+     "1/8D",
+     "1/8",
+     "1/8T",
+     "1/16D",
+     "1/16",
+     "1/16T",
+     "1/32D",
+     "1/32",
+     "1/32T"
+    ],
+    "default": "1/4"
+   },
+   {
+    "key": "vel_mode",
+    "name": "Vel Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Human",
+     "Fixed",
+     "Random",
+     "Moving"
+    ],
+    "default": "Human"
+   },
+   {
+    "key": "velocity",
+    "name": "Velocity",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "100"
+   },
+   {
+    "key": "gate",
+    "name": "Gate",
+    "type": "int",
+    "min": 1,
+    "max": 200,
+    "step": 1,
+    "options": null,
+    "default": "80"
+   },
+   {
+    "key": "stut_mode",
+    "name": "Stut Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Chaos",
+     "Timed"
+    ],
+    "default": "Chaos"
+   },
+   {
+    "key": "humanize",
+    "name": "Humanize",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0%"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Genera",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Sync",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ROOT",
+       "fullName": "Root",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "D"
+      },
+      {
+       "shortName": "DIVIS",
+       "fullName": "Division",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STEPS",
+       "fullName": "Steps",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CAPTU",
+       "fullName": "Capture",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "EVOLV",
+       "fullName": "Evolve",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STUTT",
+       "fullName": "Stutter",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCTAV",
+       "fullName": "Octaves",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CHORD",
+       "fullName": "Chord",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Genera",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ROOT",
+       "fullName": "Root",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIVIS",
+       "fullName": "Division",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STEPS",
+       "fullName": "Steps",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CAPTU",
+       "fullName": "Capture",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "EVOLV",
+       "fullName": "Evolve",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STUTT",
+       "fullName": "Stutter",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCTAV",
+       "fullName": "Octaves",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CHORD",
+       "fullName": "Chord",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Sync",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SYNC",
+       "fullName": "Sync",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TEMPO",
+       "fullName": "Tempo",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIVIS",
+       "fullName": "Division",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "Vel Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STUT",
+       "fullName": "Stut Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HUMAN",
+       "fullName": "Humanize",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "root",
+    "label": "Root",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "C",
+     "C#",
+     "D",
+     "D#",
+     "E",
+     "F",
+     "F#",
+     "G",
+     "G#",
+     "A",
+     "A#",
+     "B"
+    ],
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 12
+    }
+   },
+   {
+    "key": "division",
+    "label": "Division",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/1D",
+     "1/1",
+     "1/1T",
+     "1/2D",
+     "1/2",
+     "1/2T",
+     "1/4D",
+     "1/4",
+     "1/4T",
+     "1/8D",
+     "1/8",
+     "1/8T",
+     "1/16D",
+     "1/16",
+     "1/16T",
+     "1/32D",
+     "1/32",
+     "1/32T"
+    ],
+    "min": 0,
+    "max": 17,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 18
+    }
+   },
+   {
+    "key": "steps",
+    "label": "Steps",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 126
+    }
+   },
+   {
+    "key": "capture",
+    "label": "Capture",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "evolve",
+    "label": "Evolve",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "stutter",
+    "label": "Stutter",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "octaves",
+    "label": "Octaves",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "chord",
+    "label": "Chord",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "root",
+    "label": "Root",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "C",
+     "C#",
+     "D",
+     "D#",
+     "E",
+     "F",
+     "F#",
+     "G",
+     "G#",
+     "A",
+     "A#",
+     "B"
+    ],
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 12
+    }
+   },
+   {
+    "key": "division",
+    "label": "Division",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/1D",
+     "1/1",
+     "1/1T",
+     "1/2D",
+     "1/2",
+     "1/2T",
+     "1/4D",
+     "1/4",
+     "1/4T",
+     "1/8D",
+     "1/8",
+     "1/8T",
+     "1/16D",
+     "1/16",
+     "1/16T",
+     "1/32D",
+     "1/32",
+     "1/32T"
+    ],
+    "min": 0,
+    "max": 17,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 18
+    }
+   },
+   {
+    "key": "steps",
+    "label": "Steps",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 126
+    }
+   },
+   {
+    "key": "capture",
+    "label": "Capture",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "evolve",
+    "label": "Evolve",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "stutter",
+    "label": "Stutter",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "octaves",
+    "label": "Octaves",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "chord",
+    "label": "Chord",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "sync",
+    "label": "Sync",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Internal",
+     "Move"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "tempo",
+    "label": "Tempo",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 20,
+    "max": 500,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 960
+    }
+   },
+   {
+    "key": "division",
+    "label": "Division",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/1D",
+     "1/1",
+     "1/1T",
+     "1/2D",
+     "1/2",
+     "1/2T",
+     "1/4D",
+     "1/4",
+     "1/4T",
+     "1/8D",
+     "1/8",
+     "1/8T",
+     "1/16D",
+     "1/16",
+     "1/16T",
+     "1/32D",
+     "1/32",
+     "1/32T"
+    ],
+    "min": 0,
+    "max": 17,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 18
+    }
+   },
+   {
+    "key": "vel_mode",
+    "label": "Vel Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Human",
+     "Fixed",
+     "Random",
+     "Moving"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "velocity",
+    "label": "Velocity",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 200,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 398
+    }
+   },
+   {
+    "key": "stut_mode",
+    "label": "Stut Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Chaos",
+     "Timed"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "humanize",
+    "label": "Humanize",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "scale",
+   "gen_mode"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "2 chain_params not reachable in movy: scale, gen_mode"
+  ]
+ }
+}

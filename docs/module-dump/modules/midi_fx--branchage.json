@@ -1,0 +1,363 @@
+{
+ "id": "branchage",
+ "name": "Branchage",
+ "version": "0.4.1",
+ "author": "Mutable Instruments ideas / port for Schwung Move",
+ "category": "midi_fx",
+ "status": "ok",
+ "load_ms": 65,
+ "dsp_size": 72240,
+ "capabilities": {
+  "midi_in": true,
+  "midi_out": true,
+  "chainable": true,
+  "component_type": "midi_fx"
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [],
+  "params": [
+   {
+    "key": "map_x",
+    "name": "Map X",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.5020"
+   },
+   {
+    "key": "map_y",
+    "name": "Map Y",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.5020"
+   },
+   {
+    "key": "density_kick",
+    "name": "Kick",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.5020"
+   },
+   {
+    "key": "density_snare",
+    "name": "Snare",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.5020"
+   },
+   {
+    "key": "density_hat",
+    "name": "Hat",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.5020"
+   },
+   {
+    "key": "randomness",
+    "name": "Chaos",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "kick_note",
+    "name": "Kick Note",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "36"
+   },
+   {
+    "key": "snare_note",
+    "name": "Snare Note",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "38"
+   },
+   {
+    "key": "hat_note",
+    "name": "Hat Note",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "42"
+   },
+   {
+    "key": "steps",
+    "name": "Steps",
+    "type": "int",
+    "min": 1,
+    "max": 32,
+    "step": null,
+    "options": null,
+    "default": "16"
+   },
+   {
+    "key": "bpm",
+    "name": "BPM",
+    "type": "int",
+    "min": 40,
+    "max": 240,
+    "step": null,
+    "options": null,
+    "default": "120"
+   },
+   {
+    "key": "sync",
+    "name": "Sync",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "move",
+     "internal"
+    ],
+    "default": "move"
+   },
+   {
+    "key": "kick_branch_prob",
+    "name": "K Branch Prob",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.1500"
+   },
+   {
+    "key": "kick_branch_note",
+    "name": "K Branch Note",
+    "type": "int",
+    "min": -1,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "35"
+   },
+   {
+    "key": "kick_branch_enabled",
+    "name": "K Branch On",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "snare_branch_prob",
+    "name": "S Branch Prob",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.2000"
+   },
+   {
+    "key": "snare_branch_note",
+    "name": "S Branch Note",
+    "type": "int",
+    "min": -1,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "40"
+   },
+   {
+    "key": "snare_branch_enabled",
+    "name": "S Branch On",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "hat_branch_prob",
+    "name": "H Branch Prob",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.3000"
+   },
+   {
+    "key": "hat_branch_note",
+    "name": "H Branch Note",
+    "type": "int",
+    "min": -1,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "46"
+   },
+   {
+    "key": "hat_branch_enabled",
+    "name": "H Branch On",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "kick_branch_rand_low",
+    "name": "K Rand Lo",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "36"
+   },
+   {
+    "key": "kick_branch_rand_high",
+    "name": "K Rand Hi",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "84"
+   },
+   {
+    "key": "snare_branch_rand_low",
+    "name": "S Rand Lo",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "36"
+   },
+   {
+    "key": "snare_branch_rand_high",
+    "name": "S Rand Hi",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "84"
+   },
+   {
+    "key": "hat_branch_rand_low",
+    "name": "H Rand Lo",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "36"
+   },
+   {
+    "key": "hat_branch_rand_high",
+    "name": "H Rand Hi",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "84"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": []
+ },
+ "analysis": {
+  "hiddenParams": [
+   "map_x",
+   "map_y",
+   "density_kick",
+   "density_snare",
+   "density_hat",
+   "randomness",
+   "kick_note",
+   "snare_note",
+   "hat_note",
+   "steps",
+   "bpm",
+   "sync",
+   "kick_branch_prob",
+   "kick_branch_note",
+   "kick_branch_enabled",
+   "snare_branch_prob",
+   "snare_branch_note",
+   "snare_branch_enabled",
+   "hat_branch_prob",
+   "hat_branch_note",
+   "hat_branch_enabled",
+   "kick_branch_rand_low",
+   "kick_branch_rand_high",
+   "snare_branch_rand_low",
+   "snare_branch_rand_high",
+   "hat_branch_rand_low",
+   "hat_branch_rand_high"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "has chain_params but no ui_hierarchy and no movy config",
+   "movy shows NO params although the module exposes some",
+   "27 chain_params not reachable in movy: map_x, map_y, density_kick, density_snare, density_hat, randomness, kick_note, snare_note, hat_note, steps, bpm, sync, …"
+  ]
+ }
+}

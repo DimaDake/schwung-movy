@@ -1,0 +1,2439 @@
+{
+ "id": "hush1",
+ "name": "HUSH ONE",
+ "version": "0.2.6",
+ "author": "Move Everything Community",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 79,
+ "dsp_size": 264632,
+ "capabilities": {
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "midi_out": false,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "label": "HUSH ONE",
+     "params": [
+      {
+       "key": "preset",
+       "label": "Preset",
+       "type": "int",
+       "min": 0,
+       "max_param": "preset_count",
+       "default": 0
+      },
+      {
+       "key": "volume",
+       "label": "Volume",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.85,
+       "step": 0.01
+      },
+      {
+       "key": "bend_range",
+       "label": "Bend",
+       "type": "float",
+       "min": 0,
+       "max": 12,
+       "default": 2,
+       "step": 0.1
+      },
+      {
+       "level": "oscillator",
+       "label": "Oscillator"
+      },
+      {
+       "level": "filter",
+       "label": "Filter"
+      },
+      {
+       "level": "amp_env",
+       "label": "Amp Envelope"
+      },
+      {
+       "level": "filt_env",
+       "label": "Filter Envelope"
+      },
+      {
+       "level": "modulation",
+       "label": "Modulation"
+      },
+      {
+       "level": "performance",
+       "label": "Performance"
+      },
+      {
+       "level": "advanced",
+       "label": "Advanced"
+      }
+     ],
+     "knobs": [
+      "preset",
+      "volume",
+      "bend_range"
+     ]
+    },
+    "oscillator": {
+     "label": "Oscillator",
+     "params": [
+      {
+       "key": "saw",
+       "label": "Saw",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.7,
+       "step": 0.02
+      },
+      {
+       "key": "pulse",
+       "label": "Pulse",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.55,
+       "step": 0.02
+      },
+      {
+       "key": "sub",
+       "label": "Sub",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.35,
+       "step": 0.02
+      },
+      {
+       "key": "noise",
+       "label": "Noise",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.02
+      },
+      {
+       "key": "sub_mode",
+       "label": "Sub Mode",
+       "type": "enum",
+       "options": [
+        "-2 Oct 50% PW",
+        "-2 Oct",
+        "-1 Oct"
+       ],
+       "default": 1
+      },
+      {
+       "key": "white_noise",
+       "label": "White Noise",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": 0
+      },
+      {
+       "key": "pulse_width",
+       "label": "Pulse Width",
+       "type": "float",
+       "min": 0.05,
+       "max": 0.95,
+       "default": 0.5,
+       "step": 0.01
+      },
+      {
+       "key": "pwm_mode",
+       "label": "PWM Mode",
+       "type": "enum",
+       "options": [
+        "Env",
+        "Manual",
+        "LFO"
+       ],
+       "default": 1
+      },
+      {
+       "key": "pwm_depth",
+       "label": "PWM Depth",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      },
+      {
+       "key": "pwm_env_depth",
+       "label": "PWM Env",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      }
+     ],
+     "knobs": [
+      "saw",
+      "pulse",
+      "sub",
+      "noise"
+     ]
+    },
+    "filter": {
+     "label": "Filter",
+     "params": [
+      {
+       "key": "cutoff",
+       "label": "Cutoff",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.55,
+       "step": 0.01
+      },
+      {
+       "key": "resonance",
+       "label": "Res",
+       "type": "float",
+       "min": 0,
+       "max": 1.2,
+       "default": 0.2,
+       "step": 0.01
+      },
+      {
+       "key": "env_amt",
+       "label": "Env Amt",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.4,
+       "step": 0.01
+      },
+      {
+       "key": "key_follow",
+       "label": "Key Follow",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.01
+      },
+      {
+       "key": "filter_velocity_sens",
+       "label": "Vel Filt",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.25,
+       "step": 0.01
+      }
+     ],
+     "knobs": [
+      "cutoff",
+      "resonance",
+      "env_amt",
+      "key_follow"
+     ]
+    },
+    "amp_env": {
+     "label": "Amp Env",
+     "params": [
+      {
+       "key": "attack",
+       "label": "Attack",
+       "type": "float",
+       "min": 0.001,
+       "max": 4,
+       "default": 0.005,
+       "step": 0.001
+      },
+      {
+       "key": "decay",
+       "label": "Decay",
+       "type": "float",
+       "min": 0.001,
+       "max": 6,
+       "default": 0.12,
+       "step": 0.001
+      },
+      {
+       "key": "sustain",
+       "label": "Sustain",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.7,
+       "step": 0.01
+      },
+      {
+       "key": "release",
+       "label": "Release",
+       "type": "float",
+       "min": 0.001,
+       "max": 8,
+       "default": 0.2,
+       "step": 0.001
+      },
+      {
+       "key": "velocity_sens",
+       "label": "Vel Amp",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.7,
+       "step": 0.01
+      }
+     ],
+     "knobs": [
+      "attack",
+      "decay",
+      "sustain",
+      "release"
+     ]
+    },
+    "filt_env": {
+     "label": "Filter Env",
+     "params": [
+      {
+       "key": "f_attack",
+       "label": "F Attack",
+       "type": "float",
+       "min": 0.001,
+       "max": 4,
+       "default": 0.008,
+       "step": 0.001
+      },
+      {
+       "key": "f_decay",
+       "label": "F Decay",
+       "type": "float",
+       "min": 0.001,
+       "max": 6,
+       "default": 0.18,
+       "step": 0.001
+      },
+      {
+       "key": "f_sustain",
+       "label": "F Sustain",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.4,
+       "step": 0.01
+      },
+      {
+       "key": "f_release",
+       "label": "F Release",
+       "type": "float",
+       "min": 0.001,
+       "max": 8,
+       "default": 0.25,
+       "step": 0.001
+      }
+     ],
+     "knobs": [
+      "f_attack",
+      "f_decay",
+      "f_sustain",
+      "f_release"
+     ]
+    },
+    "modulation": {
+     "label": "Modulation",
+     "params": [
+      {
+       "key": "lfo_rate",
+       "label": "LFO Rate",
+       "type": "float",
+       "min": 0.02,
+       "max": 40,
+       "default": 5,
+       "step": 0.05
+      },
+      {
+       "key": "lfo_waveform",
+       "label": "LFO Wave",
+       "type": "enum",
+       "options": [
+        "Tri",
+        "Rect",
+        "Random",
+        "Noise"
+       ],
+       "default": 0
+      },
+      {
+       "key": "lfo_trigger",
+       "label": "LFO Trig",
+       "type": "enum",
+       "options": [
+        "Free",
+        "Retrig"
+       ],
+       "default": 0
+      },
+      {
+       "key": "lfo_sync",
+       "label": "LFO Sync",
+       "type": "enum",
+       "options": [
+        "Free",
+        "Sync"
+       ],
+       "default": 0
+      },
+      {
+       "key": "lfo_invert",
+       "label": "LFO Inv",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": 0
+      },
+      {
+       "key": "lfo_pitch_snap",
+       "label": "Pitch Snap",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": 0
+      },
+      {
+       "key": "lfo_pitch",
+       "label": "LFO Pitch",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      },
+      {
+       "key": "lfo_filter",
+       "label": "LFO Filter",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      },
+      {
+       "key": "lfo_pwm",
+       "label": "LFO PWM",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      }
+     ],
+     "knobs": [
+      "lfo_rate",
+      "lfo_pitch",
+      "lfo_filter",
+      "lfo_pwm"
+     ]
+    },
+    "performance": {
+     "label": "Performance",
+     "params": [
+      {
+       "key": "glide",
+       "label": "Glide",
+       "type": "float",
+       "min": 0,
+       "max": 500,
+       "default": 0,
+       "step": 1
+      },
+      {
+       "key": "portamento_mode",
+       "label": "Porta Mode",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On",
+        "Auto"
+       ],
+       "default": 2
+      },
+      {
+       "key": "portamento_linear",
+       "label": "Porta Curve",
+       "type": "enum",
+       "options": [
+        "Expo",
+        "Linear"
+       ],
+       "default": 0
+      },
+      {
+       "key": "retrigger",
+       "label": "Retrigger",
+       "type": "enum",
+       "options": [
+        "Legato",
+        "Trig"
+       ],
+       "default": 0
+      },
+      {
+       "key": "hold",
+       "label": "Hold",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": 0
+      },
+      {
+       "key": "transpose",
+       "label": "Transpose",
+       "type": "int",
+       "min": -24,
+       "max": 24,
+       "default": 0
+      },
+      {
+       "key": "octave_transpose",
+       "label": "Octave",
+       "type": "int",
+       "min": -2,
+       "max": 2,
+       "default": 0
+      },
+      {
+       "key": "fine_tune",
+       "label": "Fine Tune",
+       "type": "float",
+       "min": -100,
+       "max": 100,
+       "default": 0,
+       "step": 1
+      }
+     ],
+     "knobs": [
+      "glide",
+      "portamento_mode",
+      "transpose",
+      "octave_transpose"
+     ]
+    },
+    "advanced": {
+     "label": "Advanced",
+     "params": [
+      {
+       "key": "gate_trig_mode",
+       "label": "Gate Mode",
+       "type": "enum",
+       "options": [
+        "Gate",
+        "Gate+Trig",
+        "LFO"
+       ],
+       "default": 0
+      },
+      {
+       "key": "vca_mode",
+       "label": "VCA Mode",
+       "type": "enum",
+       "options": [
+        "Gate",
+        "Envelope"
+       ],
+       "default": 1
+      },
+      {
+       "key": "adsr_declick",
+       "label": "ADSR DeClick",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.65,
+       "step": 0.01
+      },
+      {
+       "key": "priority",
+       "label": "Priority",
+       "type": "enum",
+       "options": [
+        "Last",
+        "Low"
+       ],
+       "default": 0
+      },
+      {
+       "key": "velocity_mode",
+       "label": "Vel Mode",
+       "type": "enum",
+       "options": [
+        "Off",
+        "Trigger",
+        "Active"
+       ],
+       "default": 0
+      },
+      {
+       "key": "same_note_quirk",
+       "label": "Same-Note",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": 0
+      },
+      {
+       "key": "filter_env_full_range",
+       "label": "Env Full Range",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": 0
+      },
+      {
+       "key": "filter_env_polarity",
+       "label": "Env Polarity",
+       "type": "enum",
+       "options": [
+        "Positive",
+        "Negative"
+       ],
+       "default": 0
+      },
+      {
+       "key": "filter_volume_correction",
+       "label": "Vol Correction",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      }
+     ],
+     "knobs": [
+      "gate_trig_mode",
+      "priority",
+      "velocity_mode",
+      "same_note_quirk"
+     ]
+    }
+   }
+  }
+ },
+ "presets": {
+  "count": 11,
+  "sample": []
+ },
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "oscillator",
+   "filter",
+   "amp_env",
+   "filt_env",
+   "modulation",
+   "performance",
+   "advanced"
+  ],
+  "params": [
+   {
+    "key": "preset",
+    "name": "Preset",
+    "type": "int",
+    "min": 0,
+    "max": -1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "volume",
+    "name": "Volume",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.850000"
+   },
+   {
+    "key": "bend_range",
+    "name": "Bend",
+    "type": "float",
+    "min": 0,
+    "max": 12,
+    "step": null,
+    "options": null,
+    "default": "2.000000"
+   },
+   {
+    "key": "saw",
+    "name": "Saw",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.500000"
+   },
+   {
+    "key": "pulse",
+    "name": "Pulse",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "sub",
+    "name": "Sub",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "noise",
+    "name": "Noise",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "sub_mode",
+    "name": "Sub Mode",
+    "type": "enum",
+    "min": 0,
+    "max": 2,
+    "step": null,
+    "options": [
+     "-2 Oct 50% PW",
+     "-2 Oct",
+     "-1 Oct"
+    ],
+    "default": "-2 Oct 50% PW"
+   },
+   {
+    "key": "white_noise",
+    "name": "White Noise",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "pulse_width",
+    "name": "Pulse Width",
+    "type": "float",
+    "min": 0.05,
+    "max": 0.95,
+    "step": null,
+    "options": null,
+    "default": "0.500000"
+   },
+   {
+    "key": "pwm_mode",
+    "name": "PWM Mode",
+    "type": "enum",
+    "min": 0,
+    "max": 2,
+    "step": null,
+    "options": [
+     "Env",
+     "Manual",
+     "LFO"
+    ],
+    "default": "LFO"
+   },
+   {
+    "key": "pwm_depth",
+    "name": "PWM Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "pwm_env_depth",
+    "name": "PWM Env",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "cutoff",
+    "name": "Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "1.000000"
+   },
+   {
+    "key": "resonance",
+    "name": "Res",
+    "type": "float",
+    "min": 0,
+    "max": 1.2,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "env_amt",
+    "name": "Env Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "key_follow",
+    "name": "Key Follow",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.500000"
+   },
+   {
+    "key": "filter_velocity_sens",
+    "name": "Vel Filt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "attack",
+    "name": "Attack",
+    "type": "float",
+    "min": 0.001,
+    "max": 4,
+    "step": null,
+    "options": null,
+    "default": "0.005000"
+   },
+   {
+    "key": "decay",
+    "name": "Decay",
+    "type": "float",
+    "min": 0.001,
+    "max": 6,
+    "step": null,
+    "options": null,
+    "default": "0.200000"
+   },
+   {
+    "key": "sustain",
+    "name": "Sustain",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "1.000000"
+   },
+   {
+    "key": "release",
+    "name": "Release",
+    "type": "float",
+    "min": 0.001,
+    "max": 8,
+    "step": null,
+    "options": null,
+    "default": "0.200000"
+   },
+   {
+    "key": "velocity_sens",
+    "name": "Vel Amp",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.500000"
+   },
+   {
+    "key": "f_attack",
+    "name": "F Attack",
+    "type": "float",
+    "min": 0.001,
+    "max": 4,
+    "step": null,
+    "options": null,
+    "default": "0.005000"
+   },
+   {
+    "key": "f_decay",
+    "name": "F Decay",
+    "type": "float",
+    "min": 0.001,
+    "max": 6,
+    "step": null,
+    "options": null,
+    "default": "0.200000"
+   },
+   {
+    "key": "f_sustain",
+    "name": "F Sustain",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "f_release",
+    "name": "F Release",
+    "type": "float",
+    "min": 0.001,
+    "max": 8,
+    "step": null,
+    "options": null,
+    "default": "0.200000"
+   },
+   {
+    "key": "lfo_rate",
+    "name": "LFO Rate",
+    "type": "float",
+    "min": 0.02,
+    "max": 40,
+    "step": null,
+    "options": null,
+    "default": "5.000000"
+   },
+   {
+    "key": "lfo_waveform",
+    "name": "LFO Wave",
+    "type": "enum",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": [
+     "Tri",
+     "Rect",
+     "Random",
+     "Noise"
+    ],
+    "default": "Tri"
+   },
+   {
+    "key": "lfo_trigger",
+    "name": "LFO Trig",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Free",
+     "Retrig"
+    ],
+    "default": "Free"
+   },
+   {
+    "key": "lfo_sync",
+    "name": "LFO Sync",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Free",
+     "Sync"
+    ],
+    "default": "Free"
+   },
+   {
+    "key": "lfo_invert",
+    "name": "LFO Inv",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "lfo_pitch_snap",
+    "name": "Pitch Snap",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "lfo_pitch",
+    "name": "LFO Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "lfo_filter",
+    "name": "LFO Filter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "lfo_pwm",
+    "name": "LFO PWM",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "glide",
+    "name": "Glide",
+    "type": "float",
+    "min": 0,
+    "max": 500,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "portamento_mode",
+    "name": "Porta Mode",
+    "type": "enum",
+    "min": 0,
+    "max": 2,
+    "step": null,
+    "options": [
+     "Off",
+     "On",
+     "Auto"
+    ],
+    "default": "Auto"
+   },
+   {
+    "key": "portamento_linear",
+    "name": "Porta Curve",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Expo",
+     "Linear"
+    ],
+    "default": "Expo"
+   },
+   {
+    "key": "retrigger",
+    "name": "Retrigger",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Legato",
+     "Trig"
+    ],
+    "default": "Trig"
+   },
+   {
+    "key": "hold",
+    "name": "Hold",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "transpose",
+    "name": "Transpose",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "octave_transpose",
+    "name": "Octave",
+    "type": "int",
+    "min": -2,
+    "max": 2,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "fine_tune",
+    "name": "Fine Tune",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "gate_trig_mode",
+    "name": "Gate Mode",
+    "type": "enum",
+    "min": 0,
+    "max": 2,
+    "step": null,
+    "options": [
+     "Gate",
+     "Gate+Trig",
+     "LFO"
+    ],
+    "default": "Gate+Trig"
+   },
+   {
+    "key": "vca_mode",
+    "name": "VCA Mode",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Gate",
+     "Envelope"
+    ],
+    "default": "Envelope"
+   },
+   {
+    "key": "adsr_declick",
+    "name": "ADSR DeClick",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.650000"
+   },
+   {
+    "key": "priority",
+    "name": "Priority",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Last",
+     "Low"
+    ],
+    "default": "Last"
+   },
+   {
+    "key": "velocity_mode",
+    "name": "Vel Mode",
+    "type": "enum",
+    "min": 0,
+    "max": 2,
+    "step": null,
+    "options": [
+     "Off",
+     "Trigger",
+     "Active"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "same_note_quirk",
+    "name": "Same-Note",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "filter_env_full_range",
+    "name": "Env Full Range",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "filter_env_polarity",
+    "name": "Env Polarity",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Positive",
+     "Negative"
+    ],
+    "default": "Positive"
+   },
+   {
+    "key": "filter_volume_correction",
+    "name": "Vol Correction",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Preset",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Oscillator",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Filter",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Amp Envelope",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Filter Envelope",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Modulation",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Performance",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Advanced",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Preset",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "Preset",
+       "renderStyle": "preset",
+       "type": "enum",
+       "displayValue": "0"
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Main",
+    "envelopeLines": [
+     true,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATTAC",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SUSTA",
+       "fullName": "Sustain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RELEA",
+       "fullName": "Release",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "CUTOF",
+       "fullName": "Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RES",
+       "fullName": "Res",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ENV",
+       "fullName": "Env Amt",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOLUM",
+       "fullName": "Volume",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Oscillator",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SAW",
+       "fullName": "Saw",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PULSE",
+       "fullName": "Pulse",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SUB",
+       "fullName": "Sub",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOISE",
+       "fullName": "Noise",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Filter",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CUTOF",
+       "fullName": "Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RES",
+       "fullName": "Res",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ENV",
+       "fullName": "Env Amt",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "KEY",
+       "fullName": "Key Follow",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Amp Envelope",
+    "envelopeLines": [
+     true,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATTAC",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SUSTA",
+       "fullName": "Sustain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RELEA",
+       "fullName": "Release",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Filter Envelope",
+    "envelopeLines": [
+     true,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATTAC",
+       "fullName": "F Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "F Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SUSTA",
+       "fullName": "F Sustain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RELEA",
+       "fullName": "F Release",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Modulation",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "RATE",
+       "fullName": "LFO Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PITCH",
+       "fullName": "LFO Pitch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FILTE",
+       "fullName": "LFO Filter",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PWM",
+       "fullName": "LFO PWM",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Performance",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "GLIDE",
+       "fullName": "Glide",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PORTA",
+       "fullName": "Porta Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TRANS",
+       "fullName": "Transpose",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCTAV",
+       "fullName": "Octave",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Advanced",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "GATE",
+       "fullName": "Gate Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PRIOR",
+       "fullName": "Priority",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "Vel Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SAME-",
+       "fullName": "Same-Note",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "preset",
+    "label": "Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "min": 0,
+    "max": 10,
+    "step": 1,
+    "options": null,
+    "nameKey": "preset_name",
+    "renderStyle": "preset",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 11
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "cutoff",
+    "label": "Cutoff",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "resonance",
+    "label": "Res",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1.2,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 120
+    }
+   },
+   {
+    "key": "env_amt",
+    "label": "Env Amt",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "attack",
+    "label": "Attack",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.001,
+    "max": 4,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "decay",
+    "label": "Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.001,
+    "max": 6,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 600
+    }
+   },
+   {
+    "key": "sustain",
+    "label": "Sustain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "release",
+    "label": "Release",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.001,
+    "max": 8,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 800
+    }
+   },
+   {
+    "key": "volume",
+    "label": "Volume",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "saw",
+    "label": "Saw",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "pulse",
+    "label": "Pulse",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "sub",
+    "label": "Sub",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "noise",
+    "label": "Noise",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "cutoff",
+    "label": "Cutoff",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "resonance",
+    "label": "Res",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1.2,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 120
+    }
+   },
+   {
+    "key": "env_amt",
+    "label": "Env Amt",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "key_follow",
+    "label": "Key Follow",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "attack",
+    "label": "Attack",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.001,
+    "max": 4,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "decay",
+    "label": "Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.001,
+    "max": 6,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 600
+    }
+   },
+   {
+    "key": "sustain",
+    "label": "Sustain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "release",
+    "label": "Release",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.001,
+    "max": 8,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 800
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "f_attack",
+    "label": "F Attack",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.001,
+    "max": 4,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "f_decay",
+    "label": "F Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.001,
+    "max": 6,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 600
+    }
+   },
+   {
+    "key": "f_sustain",
+    "label": "F Sustain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "f_release",
+    "label": "F Release",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.001,
+    "max": 8,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 800
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "lfo_rate",
+    "label": "LFO Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.02,
+    "max": 40,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 3998
+    }
+   },
+   {
+    "key": "lfo_pitch",
+    "label": "LFO Pitch",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "lfo_filter",
+    "label": "LFO Filter",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "lfo_pwm",
+    "label": "LFO PWM",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "glide",
+    "label": "Glide",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 500,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 50000
+    }
+   },
+   {
+    "key": "portamento_mode",
+    "label": "Porta Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On",
+     "Auto"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "transpose",
+    "label": "Transpose",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "octave_transpose",
+    "label": "Octave",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -2,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 8
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "gate_trig_mode",
+    "label": "Gate Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Gate",
+     "Gate+Trig",
+     "LFO"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "priority",
+    "label": "Priority",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Last",
+     "Low"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "velocity_mode",
+    "label": "Vel Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "Trigger",
+     "Active"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "same_note_quirk",
+    "label": "Same-Note",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "bend_range",
+   "sub_mode",
+   "white_noise",
+   "pulse_width",
+   "pwm_mode",
+   "pwm_depth",
+   "pwm_env_depth",
+   "filter_velocity_sens",
+   "velocity_sens",
+   "lfo_waveform",
+   "lfo_trigger",
+   "lfo_sync",
+   "lfo_invert",
+   "lfo_pitch_snap",
+   "portamento_linear",
+   "retrigger",
+   "hold",
+   "fine_tune",
+   "vca_mode",
+   "adsr_declick",
+   "filter_env_full_range",
+   "filter_env_polarity",
+   "filter_volume_correction"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "23 chain_params not reachable in movy: bend_range, sub_mode, white_noise, pulse_width, pwm_mode, pwm_depth, pwm_env_depth, filter_velocity_sens, velocity_sens, lfo_waveform, lfo_trigger, lfo_sync, …"
+  ]
+ }
+}

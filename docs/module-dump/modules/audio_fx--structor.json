@@ -1,0 +1,1535 @@
+{
+ "id": "structor",
+ "name": "Structor",
+ "version": "0.3.1",
+ "author": "fillioning",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 49,
+ "dsp_size": 110088,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "audio_in": true,
+  "ui_hierarchy": {
+   "modes": null,
+   "levels": {
+    "root": {
+     "name": "Structor",
+     "knobs": [
+      "envelope",
+      "density",
+      "grain_size",
+      "time_warp",
+      "feedback",
+      "mode",
+      "Special",
+      "mix"
+     ],
+     "params": [
+      {
+       "level": "Structor",
+       "label": "Structor"
+      },
+      {
+       "level": "Randomize",
+       "label": "Randomize"
+      },
+      {
+       "level": "Presets",
+       "label": "Presets"
+      }
+     ]
+    },
+    "Structor": {
+     "label": "Structor",
+     "knobs": [
+      "envelope",
+      "density",
+      "grain_size",
+      "time_warp",
+      "feedback",
+      "mode",
+      "Special",
+      "mix"
+     ],
+     "params": [
+      "envelope",
+      "density",
+      "grain_size",
+      "time_warp",
+      "feedback",
+      "mode",
+      "Special",
+      "mix"
+     ]
+    },
+    "Randomize": {
+     "label": "Randomize",
+     "knobs": [
+      "rnd_envelope",
+      "rnd_density",
+      "rnd_grain",
+      "rnd_time",
+      "rnd_pan",
+      "seq_on",
+      "seq_time",
+      "seq_mult"
+     ],
+     "params": [
+      "rnd_envelope",
+      "rnd_density",
+      "rnd_grain",
+      "rnd_time",
+      "rnd_pan",
+      "seq_on",
+      "seq_time",
+      "seq_mult",
+      "detection",
+      "rnd_filter"
+     ]
+    },
+    "Presets": {
+     "label": "Presets",
+     "knobs": [
+      "preset",
+      "rnd_preset",
+      "master_filter",
+      "rnd_reverb",
+      "rev_mix",
+      "rev_size",
+      "rev_decay",
+      "rev_damp"
+     ],
+     "params": [
+      "preset",
+      "rnd_preset",
+      "master_filter",
+      "rnd_reverb",
+      "rev_mix",
+      "rev_size",
+      "rev_decay",
+      "rev_damp"
+     ]
+    }
+   }
+  },
+  "chain_params": [
+   {
+    "key": "envelope",
+    "name": "Envelope",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "density",
+    "name": "Density",
+    "type": "float",
+    "min": 0.05,
+    "max": 20,
+    "step": 0.05
+   },
+   {
+    "key": "grain_size",
+    "name": "Grain Size",
+    "type": "float",
+    "min": 0.1,
+    "max": 40,
+    "step": 0.2
+   },
+   {
+    "key": "time_warp",
+    "name": "Time Warp",
+    "type": "float",
+    "min": 0.25,
+    "max": 8,
+    "step": 0.05
+   },
+   {
+    "key": "feedback",
+    "name": "Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 0.95,
+    "step": 0.01
+   },
+   {
+    "key": "mode",
+    "name": "Mode",
+    "type": "enum",
+    "options": [
+     "Random",
+     "Pitch Up",
+     "Pitch Down",
+     "Density Up",
+     "Time Warp",
+     "Dens Arp",
+     "Deltarupt",
+     "Spec Warp"
+    ]
+   },
+   {
+    "key": "Special",
+    "name": "Special",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rnd_envelope",
+    "name": "Rnd Env",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "rnd_density",
+    "name": "Rnd Density",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "rnd_grain",
+    "name": "Rnd Grain",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "rnd_time",
+    "name": "Rnd Time",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "rnd_pan",
+    "name": "Rnd Pan",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "seq_on",
+    "name": "Sequence",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ]
+   },
+   {
+    "key": "seq_time",
+    "name": "Seq Time",
+    "type": "int",
+    "min": 10,
+    "max": 1000,
+    "step": 5
+   },
+   {
+    "key": "seq_mult",
+    "name": "Seq Mult",
+    "type": "enum",
+    "options": [
+     "1/8",
+     "1/4",
+     "1/2",
+     "3/4",
+     "1x",
+     "1.5x",
+     "2x",
+     "3x",
+     "4x"
+    ]
+   },
+   {
+    "key": "detection",
+    "name": "Detection",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rnd_filter",
+    "name": "Rnd Filter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "preset",
+    "name": "Preset",
+    "type": "int",
+    "min": 0,
+    "max": 19,
+    "step": 1
+   },
+   {
+    "key": "rnd_preset",
+    "name": "Rnd Preset",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "master_filter",
+    "name": "Filter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rnd_reverb",
+    "name": "Rnd Reverb",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rev_mix",
+    "name": "Rev Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rev_size",
+    "name": "Rev Size",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rev_decay",
+    "name": "Rev Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rev_damp",
+    "name": "Rev Damp",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   }
+  ]
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "Structor",
+   "Randomize",
+   "Presets"
+  ],
+  "params": [
+   {
+    "key": "envelope",
+    "name": "Envelope",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "density",
+    "name": "Density",
+    "type": "float",
+    "min": 0.05,
+    "max": 20,
+    "step": 0.05,
+    "options": null,
+    "default": "5.0000"
+   },
+   {
+    "key": "grain_size",
+    "name": "Grain Size",
+    "type": "float",
+    "min": 0.1,
+    "max": 40,
+    "step": 0.2,
+    "options": null,
+    "default": "5.0000"
+   },
+   {
+    "key": "time_warp",
+    "name": "Time Warp",
+    "type": "float",
+    "min": 0.25,
+    "max": 8,
+    "step": 0.05,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "feedback",
+    "name": "Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 0.95,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2000"
+   },
+   {
+    "key": "mode",
+    "name": "Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Random",
+     "Pitch Up",
+     "Pitch Down",
+     "Density Up",
+     "Time Warp",
+     "Dens Arp",
+     "Deltarupt",
+     "Spec Warp"
+    ],
+    "default": "Random"
+   },
+   {
+    "key": "Special",
+    "name": "Special",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "rnd_envelope",
+    "name": "Rnd Env",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "rnd_density",
+    "name": "Rnd Density",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "rnd_grain",
+    "name": "Rnd Grain",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "rnd_time",
+    "name": "Rnd Time",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "rnd_pan",
+    "name": "Rnd Pan",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.2500"
+   },
+   {
+    "key": "seq_on",
+    "name": "Sequence",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "seq_time",
+    "name": "Seq Time",
+    "type": "int",
+    "min": 10,
+    "max": 1000,
+    "step": 5,
+    "options": null,
+    "default": "200"
+   },
+   {
+    "key": "seq_mult",
+    "name": "Seq Mult",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1/8",
+     "1/4",
+     "1/2",
+     "3/4",
+     "1x",
+     "1.5x",
+     "2x",
+     "3x",
+     "4x"
+    ],
+    "default": "1x"
+   },
+   {
+    "key": "detection",
+    "name": "Detection",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "rnd_filter",
+    "name": "Rnd Filter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "preset",
+    "name": "Preset",
+    "type": "int",
+    "min": 0,
+    "max": 19,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "rnd_preset",
+    "name": "Rnd Preset",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "master_filter",
+    "name": "Filter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "rnd_reverb",
+    "name": "Rnd Reverb",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "rev_mix",
+    "name": "Rev Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "rev_size",
+    "name": "Rev Size",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "rev_decay",
+    "name": "Rev Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "rev_damp",
+    "name": "Rev Damp",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Structor",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Randomize",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Presets",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ENVEL",
+       "fullName": "Envelope",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "50%"
+      },
+      {
+       "shortName": "DENSI",
+       "fullName": "Density",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GRAIN",
+       "fullName": "Grain Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TIME",
+       "fullName": "Time Warp",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "FEEDB",
+       "fullName": "Feedback",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MODE",
+       "fullName": "Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPECI",
+       "fullName": "Special",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Structor",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ENVEL",
+       "fullName": "Envelope",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DENSI",
+       "fullName": "Density",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GRAIN",
+       "fullName": "Grain Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TIME",
+       "fullName": "Time Warp",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "FEEDB",
+       "fullName": "Feedback",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MODE",
+       "fullName": "Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPECI",
+       "fullName": "Special",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Randomize",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ENV",
+       "fullName": "Rnd Env",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DENSI",
+       "fullName": "Rnd Density",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GRAIN",
+       "fullName": "Rnd Grain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TIME",
+       "fullName": "Rnd Time",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PAN",
+       "fullName": "Rnd Pan",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SEQUE",
+       "fullName": "Sequence",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TIME",
+       "fullName": "Seq Time",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MULT",
+       "fullName": "Seq Mult",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Presets",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "Preset",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PRESE",
+       "fullName": "Rnd Preset",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FILTE",
+       "fullName": "Filter",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "REVER",
+       "fullName": "Rnd Reverb",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "MIX",
+       "fullName": "Rev Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SIZE",
+       "fullName": "Rev Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Rev Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DAMP",
+       "fullName": "Rev Damp",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "envelope",
+    "label": "Envelope",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "density",
+    "label": "Density",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.05,
+    "max": 20,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 798
+    }
+   },
+   {
+    "key": "grain_size",
+    "label": "Grain Size",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.1,
+    "max": 40,
+    "step": 0.2,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.1,
+     "detentsFullSweep": 399
+    }
+   },
+   {
+    "key": "time_warp",
+    "label": "Time Warp",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.25,
+    "max": 8,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 310
+    }
+   },
+   {
+    "key": "feedback",
+    "label": "Feedback",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 0.95,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 190
+    }
+   },
+   {
+    "key": "mode",
+    "label": "Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Random",
+     "Pitch Up",
+     "Pitch Down",
+     "Density Up",
+     "Time Warp",
+     "Dens Arp",
+     "Deltarupt",
+     "Spec Warp"
+    ],
+    "min": 0,
+    "max": 7,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 8
+    }
+   },
+   {
+    "key": "Special",
+    "label": "Special",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "envelope",
+    "label": "Envelope",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "density",
+    "label": "Density",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.05,
+    "max": 20,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 798
+    }
+   },
+   {
+    "key": "grain_size",
+    "label": "Grain Size",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.1,
+    "max": 40,
+    "step": 0.2,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.1,
+     "detentsFullSweep": 399
+    }
+   },
+   {
+    "key": "time_warp",
+    "label": "Time Warp",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.25,
+    "max": 8,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 310
+    }
+   },
+   {
+    "key": "feedback",
+    "label": "Feedback",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 0.95,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 190
+    }
+   },
+   {
+    "key": "mode",
+    "label": "Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Random",
+     "Pitch Up",
+     "Pitch Down",
+     "Density Up",
+     "Time Warp",
+     "Dens Arp",
+     "Deltarupt",
+     "Spec Warp"
+    ],
+    "min": 0,
+    "max": 7,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 8
+    }
+   },
+   {
+    "key": "Special",
+    "label": "Special",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rnd_envelope",
+    "label": "Rnd Env",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "rnd_density",
+    "label": "Rnd Density",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "rnd_grain",
+    "label": "Rnd Grain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "rnd_time",
+    "label": "Rnd Time",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "rnd_pan",
+    "label": "Rnd Pan",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "seq_on",
+    "label": "Sequence",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "seq_time",
+    "label": "Seq Time",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 10,
+    "max": 1000,
+    "step": 5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 2.5,
+     "detentsFullSweep": 396
+    }
+   },
+   {
+    "key": "seq_mult",
+    "label": "Seq Mult",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/8",
+     "1/4",
+     "1/2",
+     "3/4",
+     "1x",
+     "1.5x",
+     "2x",
+     "3x",
+     "4x"
+    ],
+    "min": 0,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 9
+    }
+   },
+   {
+    "key": "preset",
+    "label": "Preset",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 19,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 38
+    }
+   },
+   {
+    "key": "rnd_preset",
+    "label": "Rnd Preset",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "master_filter",
+    "label": "Filter",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rnd_reverb",
+    "label": "Rnd Reverb",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rev_mix",
+    "label": "Rev Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rev_size",
+    "label": "Rev Size",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rev_decay",
+    "label": "Rev Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rev_damp",
+    "label": "Rev Damp",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "detection",
+   "rnd_filter"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "2 chain_params not reachable in movy: detection, rnd_filter",
+   "page \"Randomize\": duplicate on-screen names TIME",
+   "page \"Presets\": duplicate on-screen names PRESE"
+  ]
+ }
+}

@@ -255,6 +255,11 @@ export function createLfoModel(track: number): Model {
         getValueByKey(_key: string) { return null; },
         getDrumConfig() { return null; },
         updateDrumPad(_pad: number, _physPad: number): void { /* not a drum */ },
+        /* The LFO page is fixed-function (no KnobParams); nothing to dump. */
+        dumpLayout() {
+            return { moduleId: 'lfo', moduleName: 'LFO', componentKey: 'lfo',
+                     banks: [], hasConfig: false, drum: null, params: [] };
+        },
     };
 
     return api;

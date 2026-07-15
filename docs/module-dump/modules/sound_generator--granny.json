@@ -1,0 +1,1757 @@
+{
+ "id": "granny",
+ "name": "Granny",
+ "version": "0.1.9",
+ "author": "move-anything contributors",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 72,
+ "dsp_size": 207224,
+ "capabilities": {
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "midi_out": false,
+  "aftertouch": false,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Granny",
+     "knobs": [
+      "position",
+      "size_ms",
+      "density",
+      "spray",
+      "jitter",
+      "scan",
+      "grain_gain",
+      "quality"
+     ],
+     "params": [
+      {
+       "label": "Main",
+       "level": "main"
+      },
+      {
+       "label": "Scan",
+       "level": "scan_menu"
+      },
+      {
+       "label": "Window / Tone",
+       "level": "window_tone"
+      },
+      {
+       "label": "Pitch / Voice",
+       "level": "pitch_voice"
+      },
+      {
+       "label": "ADSR Envelope",
+       "level": "amp_env"
+      }
+     ]
+    },
+    "main": {
+     "name": "Main",
+     "knobs": [
+      "position",
+      "size_ms",
+      "density",
+      "spray",
+      "jitter",
+      "grain_gain"
+     ],
+     "params": [
+      "sample_path",
+      "position",
+      "size_ms",
+      "density",
+      "spray",
+      "jitter",
+      "grain_gain"
+     ]
+    },
+    "pitch_voice": {
+     "name": "Pitch / Voice",
+     "knobs": [
+      "pitch_semi",
+      "fine_cents",
+      "keytrack",
+      "play_mode",
+      "polyphony",
+      "portamento_ms",
+      "spread"
+     ],
+     "params": [
+      "pitch_semi",
+      "fine_cents",
+      "keytrack",
+      "play_mode",
+      "polyphony",
+      "portamento_ms",
+      "spread"
+     ]
+    },
+    "window_tone": {
+     "name": "Window / Tone",
+     "knobs": [
+      "window_type",
+      "window_shape",
+      "grain_gain",
+      "quality",
+      "trigger_mode"
+     ],
+     "params": [
+      "window_type",
+      "window_shape",
+      "grain_gain",
+      "quality",
+      "trigger_mode"
+     ]
+    },
+    "amp_env": {
+     "name": "ADSR Envelope",
+     "knobs": [
+      "amp_attack_ms",
+      "amp_decay_ms",
+      "amp_sustain",
+      "amp_release_ms"
+     ],
+     "params": [
+      "amp_attack_ms",
+      "amp_decay_ms",
+      "amp_sustain",
+      "amp_release_ms"
+     ]
+    },
+    "scan_menu": {
+     "name": "Scan",
+     "knobs": [
+      "scan_enable",
+      "scan",
+      "scan_end_mode"
+     ],
+     "params": [
+      "scan_enable",
+      "scan",
+      "scan_end_mode"
+     ]
+    }
+   }
+  },
+  "chain_params": [
+   {
+    "key": "sample_path",
+    "name": "Sample File",
+    "type": "filepath",
+    "root": "/data/UserData/UserLibrary/Samples",
+    "filter": ".wav",
+    "live_preview": true,
+    "default": ""
+   },
+   {
+    "key": "position",
+    "name": "Position",
+    "type": "wav_position",
+    "display_unit": "percent",
+    "mode": "position",
+    "filepath_param": "sample_path",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.2
+   },
+   {
+    "key": "size_ms",
+    "name": "Size",
+    "type": "float",
+    "min": 5,
+    "max": 500,
+    "step": 0.5,
+    "default": 100
+   },
+   {
+    "key": "density",
+    "name": "Density",
+    "type": "float",
+    "min": 1,
+    "max": 60,
+    "step": 0.5,
+    "default": 40
+   },
+   {
+    "key": "spray",
+    "name": "Spray",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "default": 0.05
+   },
+   {
+    "key": "jitter",
+    "name": "Jitter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "default": 0.5
+   },
+   {
+    "key": "scan",
+    "name": "Scan",
+    "type": "float",
+    "min": -10,
+    "max": 10,
+    "step": 0.01,
+    "default": 0
+   },
+   {
+    "key": "pitch_semi",
+    "name": "Pitch",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "default": 0
+   },
+   {
+    "key": "fine_cents",
+    "name": "Fine",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "default": 0
+   },
+   {
+    "key": "keytrack",
+    "name": "KeyTrack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 1
+   },
+   {
+    "key": "window_type",
+    "name": "Window",
+    "type": "enum",
+    "options": [
+     "hann",
+     "triangle",
+     "blackman"
+    ],
+    "default": "hann"
+   },
+   {
+    "key": "window_shape",
+    "name": "Win Shape",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.35
+   },
+   {
+    "key": "grain_gain",
+    "name": "Grain Gain",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.72
+   },
+   {
+    "key": "amp_attack_ms",
+    "name": "Attack",
+    "type": "float",
+    "min": 0,
+    "max": 5000,
+    "step": 1,
+    "default": 25
+   },
+   {
+    "key": "amp_decay_ms",
+    "name": "Decay",
+    "type": "float",
+    "min": 0,
+    "max": 5000,
+    "step": 1,
+    "default": 200
+   },
+   {
+    "key": "amp_sustain",
+    "name": "Sustain",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 1
+   },
+   {
+    "key": "amp_release_ms",
+    "name": "Release",
+    "type": "float",
+    "min": 0,
+    "max": 5000,
+    "step": 1,
+    "default": 25
+   },
+   {
+    "key": "polyphony",
+    "name": "Poly Voices",
+    "type": "int",
+    "min": 1,
+    "max": 8,
+    "step": 1,
+    "default": 4
+   },
+   {
+    "key": "play_mode",
+    "name": "Play Mode",
+    "type": "enum",
+    "options": [
+     "mono",
+     "portamento",
+     "poly"
+    ],
+    "default": "poly"
+   },
+   {
+    "key": "portamento_ms",
+    "name": "Porta Time",
+    "type": "int",
+    "min": 0,
+    "max": 2000,
+    "step": 1,
+    "default": 120
+   },
+   {
+    "key": "trigger_mode",
+    "name": "Trigger",
+    "type": "enum",
+    "options": [
+     "per_voice",
+     "global_cloud"
+    ],
+    "default": "per_voice"
+   },
+   {
+    "key": "scan_enable",
+    "name": "Scan Enable",
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "on"
+   },
+   {
+    "key": "scan_end_mode",
+    "name": "Scan End",
+    "type": "enum",
+    "options": [
+     "wrap",
+     "pingpong",
+     "clamp",
+     "stop"
+    ],
+    "default": "wrap"
+   },
+   {
+    "key": "spread",
+    "name": "Spread",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.2
+   },
+   {
+    "key": "quality",
+    "name": "Quality",
+    "type": "enum",
+    "options": [
+     "eco",
+     "normal",
+     "high"
+    ],
+    "default": "normal"
+   }
+  ]
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "main",
+   "pitch_voice",
+   "window_tone",
+   "amp_env",
+   "scan_menu"
+  ],
+  "params": [
+   {
+    "key": "sample_path",
+    "name": "Sample File",
+    "type": "filepath",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "position",
+    "name": "Position",
+    "type": "wav_position",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2000"
+   },
+   {
+    "key": "size_ms",
+    "name": "Size",
+    "type": "float",
+    "min": 5,
+    "max": 500,
+    "step": 0.5,
+    "options": null,
+    "default": "100.0000"
+   },
+   {
+    "key": "density",
+    "name": "Density",
+    "type": "float",
+    "min": 1,
+    "max": 60,
+    "step": 0.5,
+    "options": null,
+    "default": "40.0000"
+   },
+   {
+    "key": "spray",
+    "name": "Spray",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0500"
+   },
+   {
+    "key": "jitter",
+    "name": "Jitter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "scan",
+    "name": "Scan",
+    "type": "float",
+    "min": -10,
+    "max": 10,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "pitch_semi",
+    "name": "Pitch",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "fine_cents",
+    "name": "Fine",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "keytrack",
+    "name": "KeyTrack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "window_type",
+    "name": "Window",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "hann",
+     "triangle",
+     "blackman"
+    ],
+    "default": "hann"
+   },
+   {
+    "key": "window_shape",
+    "name": "WinShape",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.3500"
+   },
+   {
+    "key": "grain_gain",
+    "name": "GrainGain",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.7200"
+   },
+   {
+    "key": "amp_attack_ms",
+    "name": "Attack",
+    "type": "float",
+    "min": 0,
+    "max": 5000,
+    "step": 1,
+    "options": null,
+    "default": "25.0000"
+   },
+   {
+    "key": "amp_decay_ms",
+    "name": "Decay",
+    "type": "float",
+    "min": 0,
+    "max": 5000,
+    "step": 1,
+    "options": null,
+    "default": "200.0000"
+   },
+   {
+    "key": "amp_sustain",
+    "name": "Sustain",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "amp_release_ms",
+    "name": "Release",
+    "type": "float",
+    "min": 0,
+    "max": 5000,
+    "step": 1,
+    "options": null,
+    "default": "25.0000"
+   },
+   {
+    "key": "polyphony",
+    "name": "PolyVoices",
+    "type": "int",
+    "min": 1,
+    "max": 8,
+    "step": null,
+    "options": null,
+    "default": "4"
+   },
+   {
+    "key": "play_mode",
+    "name": "Play Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "mono",
+     "portamento",
+     "poly"
+    ],
+    "default": "poly"
+   },
+   {
+    "key": "portamento_ms",
+    "name": "Porta Time",
+    "type": "float",
+    "min": 0,
+    "max": 2000,
+    "step": 1,
+    "options": null,
+    "default": "120.0000"
+   },
+   {
+    "key": "trigger_mode",
+    "name": "Trigger",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "per_voice",
+     "global_cloud"
+    ],
+    "default": "per_voice"
+   },
+   {
+    "key": "scan_enable",
+    "name": "Scan Enable",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "on"
+   },
+   {
+    "key": "scan_end_mode",
+    "name": "Scan End",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "wrap",
+     "pingpong",
+     "clamp",
+     "stop"
+    ],
+    "default": "wrap"
+   },
+   {
+    "key": "spread",
+    "name": "Spread",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.2000"
+   },
+   {
+    "key": "quality",
+    "name": "Quality",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "eco",
+     "normal",
+     "high"
+    ],
+    "default": "normal"
+   },
+   {
+    "key": "sample_count",
+    "name": "SampleCount",
+    "type": "int",
+    "min": 0,
+    "max": 128,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "sample_name",
+    "name": "SampleName",
+    "type": "string",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "active_grains",
+    "name": "ActiveGrains",
+    "type": "int",
+    "min": 0,
+    "max": 384,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "active_voices",
+    "name": "ActiveVoices",
+    "type": "int",
+    "min": 0,
+    "max": 8,
+    "step": null,
+    "options": null,
+    "default": "0"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main - 1",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Scan",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Window / Tone",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Pitch / Voice",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "ADSR Envelope",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main - 1",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SF",
+       "fullName": "Sample File",
+       "renderStyle": "arc",
+       "type": "file",
+       "displayValue": "—"
+      },
+      {
+       "shortName": "POSIT",
+       "fullName": "Position",
+       "renderStyle": "arc",
+       "type": "wav_position",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SIZE",
+       "fullName": "Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DENSI",
+       "fullName": "Density",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SPRAY",
+       "fullName": "Spray",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "JITTE",
+       "fullName": "Jitter",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SCAN",
+       "fullName": "Scan",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GRAIN",
+       "fullName": "GrainGain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "QUALI",
+       "fullName": "Quality",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "POSIT",
+       "fullName": "Position",
+       "renderStyle": "arc",
+       "type": "wav_position",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SIZE",
+       "fullName": "Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DENSI",
+       "fullName": "Density",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPRAY",
+       "fullName": "Spray",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "JITTE",
+       "fullName": "Jitter",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GRAIN",
+       "fullName": "GrainGain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Scan",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ENABL",
+       "fullName": "Scan Enable",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SCAN",
+       "fullName": "Scan",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "END",
+       "fullName": "Scan End",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Window / Tone",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "WINDO",
+       "fullName": "Window",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WINSH",
+       "fullName": "WinShape",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GRAIN",
+       "fullName": "GrainGain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "QUALI",
+       "fullName": "Quality",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TRIGG",
+       "fullName": "Trigger",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Pitch / Voice",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PITCH",
+       "fullName": "Pitch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FINE",
+       "fullName": "Fine",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "KEYTR",
+       "fullName": "KeyTrack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PLAY",
+       "fullName": "Play Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "POLYV",
+       "fullName": "PolyVoices",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PORTA",
+       "fullName": "Porta Time",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPREA",
+       "fullName": "Spread",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "ADSR Envelope",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATTAC",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SUSTA",
+       "fullName": "Sustain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RELEA",
+       "fullName": "Release",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "sample_path",
+    "label": "Sample File",
+    "shortLabel": null,
+    "type": "file",
+    "min": 0,
+    "max": 0,
+    "step": 0,
+    "options": null,
+    "renderStyle": "arc",
+    "automatable": false,
+    "fileRoot": "/data/UserData/UserLibrary/Samples",
+    "fileFilter": [
+     ".wav"
+    ],
+    "fileStartPath": "/data/UserData/UserLibrary/Samples",
+    "increment": {
+     "kind": "file-browse"
+    }
+   },
+   {
+    "key": "position",
+    "label": "Position",
+    "shortLabel": null,
+    "type": "wav_position",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "wav_position",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "size_ms",
+    "label": "Size",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 5,
+    "max": 500,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 1980
+    }
+   },
+   {
+    "key": "density",
+    "label": "Density",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 1,
+    "max": 60,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 236
+    }
+   },
+   {
+    "key": "spray",
+    "label": "Spray",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0005,
+     "detentsFullSweep": 2000
+    }
+   },
+   {
+    "key": "jitter",
+    "label": "Jitter",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0005,
+     "detentsFullSweep": 2000
+    }
+   },
+   {
+    "key": "scan",
+    "label": "Scan",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -10,
+    "max": 10,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 4000
+    }
+   },
+   {
+    "key": "grain_gain",
+    "label": "GrainGain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "quality",
+    "label": "Quality",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "eco",
+     "normal",
+     "high"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "position",
+    "label": "Position",
+    "shortLabel": null,
+    "type": "wav_position",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "wav_position",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "size_ms",
+    "label": "Size",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 5,
+    "max": 500,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 1980
+    }
+   },
+   {
+    "key": "density",
+    "label": "Density",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 1,
+    "max": 60,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 236
+    }
+   },
+   {
+    "key": "spray",
+    "label": "Spray",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0005,
+     "detentsFullSweep": 2000
+    }
+   },
+   {
+    "key": "jitter",
+    "label": "Jitter",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.001,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0005,
+     "detentsFullSweep": 2000
+    }
+   },
+   {
+    "key": "grain_gain",
+    "label": "GrainGain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   null,
+   null,
+   {
+    "key": "scan_enable",
+    "label": "Scan Enable",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "scan",
+    "label": "Scan",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -10,
+    "max": 10,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 4000
+    }
+   },
+   {
+    "key": "scan_end_mode",
+    "label": "Scan End",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "wrap",
+     "pingpong",
+     "clamp",
+     "stop"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "window_type",
+    "label": "Window",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "hann",
+     "triangle",
+     "blackman"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "window_shape",
+    "label": "WinShape",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "grain_gain",
+    "label": "GrainGain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "quality",
+    "label": "Quality",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "eco",
+     "normal",
+     "high"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "trigger_mode",
+    "label": "Trigger",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "per_voice",
+     "global_cloud"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "pitch_semi",
+    "label": "Pitch",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "fine_cents",
+    "label": "Fine",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 20000
+    }
+   },
+   {
+    "key": "keytrack",
+    "label": "KeyTrack",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "play_mode",
+    "label": "Play Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "mono",
+     "portamento",
+     "poly"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "polyphony",
+    "label": "PolyVoices",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 14
+    }
+   },
+   {
+    "key": "portamento_ms",
+    "label": "Porta Time",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 4000
+    }
+   },
+   {
+    "key": "spread",
+    "label": "Spread",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   null,
+   {
+    "key": "amp_attack_ms",
+    "label": "Attack",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 5000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 10000
+    }
+   },
+   {
+    "key": "amp_decay_ms",
+    "label": "Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 5000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 10000
+    }
+   },
+   {
+    "key": "amp_sustain",
+    "label": "Sustain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "amp_release_ms",
+    "label": "Release",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 5000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 10000
+    }
+   },
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "sample_count",
+   "sample_name",
+   "active_grains",
+   "active_voices"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "4 chain_params not reachable in movy: sample_count, sample_name, active_grains, active_voices"
+  ]
+ }
+}

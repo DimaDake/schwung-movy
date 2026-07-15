@@ -1,0 +1,6097 @@
+{
+ "id": "forge",
+ "name": "Forge",
+ "version": "0.2.0",
+ "author": "Vincent Fillion",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 53,
+ "dsp_size": 206328,
+ "capabilities": {
+  "audio_out": true,
+  "midi_in": true,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy": {
+   "modes": null,
+   "levels": {
+    "root": {
+     "name": "Forge",
+     "knobs": [
+      "kit",
+      "rnd_kit",
+      "rnd_kit_params",
+      "rnd_voice",
+      "morph",
+      "all_decay",
+      "rnd_pan",
+      "save_kit"
+     ],
+     "params": [
+      {
+       "level": "Patch",
+       "label": "Patch"
+      },
+      {
+       "level": "Perf",
+       "label": "Perf"
+      },
+      {
+       "level": "Voice",
+       "label": "Voice"
+      },
+      {
+       "level": "Mix",
+       "label": "Mix"
+      },
+      {
+       "level": "FX",
+       "label": "FX"
+      },
+      {
+       "level": "General",
+       "label": "General"
+      }
+     ]
+    },
+    "Perf": {
+     "name": "Perf",
+     "knobs": [
+      "all_punch",
+      "all_bright",
+      "all_decay",
+      "all_drive",
+      "all_snap",
+      "all_bend",
+      "all_tune",
+      "all_fx"
+     ],
+     "params": [
+      "all_punch",
+      "all_bright",
+      "all_decay",
+      "all_drive",
+      "all_snap",
+      "all_bend",
+      "all_tune",
+      "all_fx"
+     ]
+    },
+    "Patch": {
+     "name": "Patch",
+     "knobs": [
+      "kit",
+      "rnd_kit",
+      "rnd_kit_params",
+      "rnd_voice",
+      "morph",
+      "all_decay",
+      "rnd_pan",
+      "save_kit"
+     ],
+     "params": [
+      "kit",
+      "rnd_kit",
+      "rnd_kit_params",
+      "rnd_voice",
+      "morph",
+      "all_decay",
+      "rnd_pan",
+      "save_kit",
+      "all_mono",
+      "init_decay",
+      "rnd_pitch",
+      "init_freq",
+      "same_freq",
+      "copy_a_b",
+      "copy_b_a",
+      "swap_ab",
+      "rnd_b_from_a",
+      "morph_src",
+      "morph_curve"
+     ]
+    },
+    "Voice": {
+     "name": "Voice",
+     "knobs": [
+      "cv_m1",
+      "cv_m2",
+      "cv_m3",
+      "cv_m4",
+      "cv_m5",
+      "cv_m6",
+      "cv_m7",
+      "cv_m8"
+     ],
+     "params": [
+      "cv_vpreset",
+      {
+       "level": "Osc",
+       "label": "Osc"
+      },
+      {
+       "level": "Filter",
+       "label": "Filter"
+      },
+      {
+       "level": "Env",
+       "label": "Env"
+      },
+      {
+       "level": "Mod",
+       "label": "Mod"
+      },
+      {
+       "level": "Setup",
+       "label": "Setup"
+      },
+      "cv_m1",
+      "cv_m2",
+      "cv_m3",
+      "cv_m4",
+      "cv_m5",
+      "cv_m6",
+      "cv_m7",
+      "cv_m8"
+     ]
+    },
+    "Osc": {
+     "name": "Osc",
+     "knobs": [
+      "cv_wave",
+      "cv_ratio_c",
+      "cv_ratio_f",
+      "cv_detune",
+      "cv_level",
+      "cv_phase",
+      "cv_pwm",
+      "cv_fbk"
+     ],
+     "params": [
+      "cv_wave",
+      "cv_ratio_c",
+      "cv_ratio_f",
+      "cv_detune",
+      "cv_level",
+      "cv_phase",
+      "cv_pwm",
+      "cv_fbk",
+      "cv_op",
+      "cv_click_type",
+      "cv_click_smp",
+      "cv_click_lvl",
+      "cv_click_dec",
+      "cv_xfm",
+      "cv_noise_lvl",
+      "cv_noise_dec",
+      "cv_noise_base",
+      "cv_noise_width",
+      "cv_noise_type"
+     ]
+    },
+    "Filter": {
+     "name": "Filter",
+     "knobs": [
+      "cv_f1_cut",
+      "cv_f1_res",
+      "cv_f1_type",
+      "cv_bw_cut",
+      "cv_bw_w",
+      "cv_routing",
+      "cv_f1_drv",
+      "cv_f2_cut"
+     ],
+     "params": [
+      "cv_f1_cut",
+      "cv_f1_res",
+      "cv_f1_type",
+      "cv_bw_cut",
+      "cv_bw_w",
+      "cv_routing",
+      "cv_f1_drv",
+      "cv_f2_cut",
+      "cv_f2_res",
+      "cv_f2_type",
+      "cv_f2_drv",
+      "cv_bw_on",
+      "cv_bit",
+      "cv_rate",
+      "cv_kt1",
+      "cv_kt2",
+      "cv_e1_to_cut",
+      "cv_e2_to_cut"
+     ]
+    },
+    "Env": {
+     "name": "Env",
+     "knobs": [
+      "cv_e1_atk",
+      "cv_e1_dec",
+      "cv_e1_crv",
+      "cv_e1_rep",
+      "cv_e2_dec",
+      "cv_e2_crv",
+      "cv_pe_amt",
+      "cv_pe_dec"
+     ],
+     "params": [
+      "cv_e1_atk",
+      "cv_e1_dec",
+      "cv_e1_crv",
+      "cv_e1_rep",
+      "cv_e2_dec",
+      "cv_e2_crv",
+      "cv_pe_amt",
+      "cv_pe_dec",
+      "cv_e2_dest",
+      "cv_e1_rep_rate",
+      "cv_e2_atk",
+      "cv_pe_crv",
+      "cv_pe_dest",
+      "cv_v_e1_lvl",
+      "cv_v_e1_t",
+      "cv_v_e2_amt",
+      "cv_fie1_amt",
+      "cv_fie1_dec",
+      "cv_fie2_amt",
+      "cv_fie2_dec"
+     ]
+    },
+    "Mod": {
+     "name": "Mod",
+     "knobs": [
+      "cv_lfo_w",
+      "cv_lfo_r",
+      "cv_lfo_s",
+      "cv_lfo_d",
+      "cv_xlfo_src",
+      "cv_trig_rst",
+      "cv_mod_dest",
+      "cv_mod_dpth"
+     ],
+     "params": [
+      "cv_lfo_w",
+      "cv_lfo_r",
+      "cv_lfo_s",
+      "cv_lfo_d",
+      "cv_xlfo_src",
+      "cv_trig_rst",
+      "cv_mod_dest",
+      "cv_mod_dpth",
+      "cv_lfo_p",
+      "cv_lfo_pol",
+      "cv_lfo_rt",
+      "cv_mod_src",
+      "cv_mod_crv",
+      "cv_lfo_w2",
+      "cv_lfo_morph"
+     ]
+    },
+    "Setup": {
+     "name": "Setup",
+     "knobs": [
+      "cv_algo",
+      "cv_choke",
+      "cv_bus",
+      "cv_lvl",
+      "cv_tune",
+      "cv_poly",
+      "cv_glide",
+      "cv_init"
+     ],
+     "params": [
+      "cv_algo",
+      "cv_choke",
+      "cv_bus",
+      "cv_lvl",
+      "cv_tune",
+      "cv_poly",
+      "cv_glide",
+      "cv_init",
+      "cv_pan",
+      "cv_mute",
+      "cv_fx1",
+      "cv_fx2",
+      "cv_vsens",
+      "cv_note"
+     ]
+    },
+    "Mix": {
+     "name": "Mix",
+     "knobs": [
+      "v1_lvl",
+      "v2_lvl",
+      "v3_lvl",
+      "v4_lvl",
+      "v5_lvl",
+      "v6_lvl",
+      "v7_lvl",
+      "v8_lvl"
+     ],
+     "params": [
+      "v1_lvl",
+      "v2_lvl",
+      "v3_lvl",
+      "v4_lvl",
+      "v5_lvl",
+      "v6_lvl",
+      "v7_lvl",
+      "v8_lvl",
+      "v1_pan",
+      "v2_pan",
+      "v3_pan",
+      "v4_pan",
+      "v5_pan",
+      "v6_pan",
+      "v7_pan",
+      "v8_pan",
+      "v1_fx1",
+      "v2_fx1",
+      "v3_fx1",
+      "v4_fx1",
+      "v5_fx1",
+      "v6_fx1",
+      "v7_fx1",
+      "v8_fx1",
+      "v1_fx2",
+      "v2_fx2",
+      "v3_fx2",
+      "v4_fx2",
+      "v5_fx2",
+      "v6_fx2",
+      "v7_fx2",
+      "v8_fx2"
+     ]
+    },
+    "FX": {
+     "name": "FX",
+     "knobs": [
+      "rev_mix",
+      "rev_decay",
+      "rev_size",
+      "dly_mix",
+      "dly_rate",
+      "dly_fdbk",
+      "dly_tone",
+      "cho_mix"
+     ],
+     "params": [
+      "rev_mix",
+      "rev_decay",
+      "rev_size",
+      "dly_mix",
+      "dly_rate",
+      "dly_fdbk",
+      "dly_tone",
+      "cho_mix",
+      "rev_type",
+      "rev_gate",
+      "rev_predelay",
+      "rev_damping",
+      "dly_bpf_cut",
+      "dly_bpf_w",
+      "dly_pp",
+      "dly_sync",
+      "cho_rate",
+      "cho_depth",
+      "cho_width",
+      "cho_voices",
+      "cho_tone",
+      "cho_fb"
+     ]
+    },
+    "General": {
+     "name": "General",
+     "knobs": [
+      "comp",
+      "drive",
+      "bit",
+      "rate",
+      "eq_lo",
+      "eq_mid",
+      "eq_hi",
+      "master"
+     ],
+     "params": [
+      "comp",
+      "drive",
+      "bit",
+      "rate",
+      "eq_lo",
+      "eq_mid",
+      "eq_hi",
+      "master",
+      "drive_type",
+      "lo_freq",
+      "mid_freq",
+      "hi_freq",
+      "q_lo",
+      "q_mid",
+      "q_hi",
+      "limiter",
+      "master_tune",
+      "midi_ch"
+     ]
+    }
+   }
+  },
+  "chain_params": [
+   {
+    "key": "kit",
+    "name": "Kit",
+    "type": "int",
+    "min": 0,
+    "max": 136,
+    "step": 1
+   },
+   {
+    "key": "save_kit",
+    "name": "Save Kit",
+    "type": "enum",
+    "options": [
+     "Play",
+     "Save"
+    ]
+   },
+   {
+    "key": "rnd_kit",
+    "name": "Rnd Kit",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "rnd_kit_params",
+    "name": "Rnd Kit Params",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "rnd_voice",
+    "name": "Rnd Voice",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "rnd_pitch",
+    "name": "Rnd Pitch",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "morph",
+    "name": "Morph",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "all_decay",
+    "name": "All Decay",
+    "type": "float",
+    "min": 0.01,
+    "max": 4,
+    "step": 0.05
+   },
+   {
+    "key": "rnd_pan",
+    "name": "Rnd Pan",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "all_punch",
+    "name": "All Punch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.05
+   },
+   {
+    "key": "all_bright",
+    "name": "All Bright",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.05
+   },
+   {
+    "key": "all_drive",
+    "name": "All Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.05
+   },
+   {
+    "key": "all_snap",
+    "name": "All Snap",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.05
+   },
+   {
+    "key": "all_bend",
+    "name": "All Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.05
+   },
+   {
+    "key": "all_tune",
+    "name": "All Tune",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.05
+   },
+   {
+    "key": "all_fx",
+    "name": "All FX",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.05
+   },
+   {
+    "key": "all_mono",
+    "name": "All Mono",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "init_decay",
+    "name": "Init Decay",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "init_freq",
+    "name": "Init Freq",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "same_freq",
+    "name": "Same Freq",
+    "type": "int",
+    "min": 20,
+    "max": 20000,
+    "step": 1
+   },
+   {
+    "key": "copy_a_b",
+    "name": "Copy A→B",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "copy_b_a",
+    "name": "Copy B→A",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "swap_ab",
+    "name": "Swap A↔B",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "rnd_b_from_a",
+    "name": "Rnd B from A",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "morph_src",
+    "name": "Morph Src",
+    "type": "enum",
+    "options": [
+     "Knob",
+     "LFO",
+     "Macro",
+     "Wheel"
+    ]
+   },
+   {
+    "key": "morph_curve",
+    "name": "Morph Curve",
+    "type": "enum",
+    "options": [
+     "Linear",
+     "Exp",
+     "Log",
+     "S-Curve"
+    ]
+   },
+   {
+    "key": "cv_vpreset",
+    "name": "Preset",
+    "type": "enum",
+    "options": [
+     "808 Kick",
+     "909 Kick",
+     "Sub Boom",
+     "Click Kick",
+     "Punch Kick",
+     "Dist Kick",
+     "Deep Tom",
+     "Hi Tom",
+     "Zap",
+     "Rumble",
+     "909 Snare",
+     "Clap",
+     "Rimshot",
+     "Noise Snr",
+     "FM Snare",
+     "Fat Snare",
+     "Tight Snr",
+     "Brush",
+     "Sidestick",
+     "Crack",
+     "Ride",
+     "Crash",
+     "Splash",
+     "Bell",
+     "China",
+     "Gong",
+     "Ping",
+     "Metal Hit",
+     "Cluster",
+     "Trash",
+     "Closed Hat",
+     "Open Hat",
+     "Pedal Hat",
+     "Tight Hat",
+     "Sizzle",
+     "Long Hat",
+     "Metal Hat",
+     "Roll Hat",
+     "Shaker",
+     "Acid Hat",
+     "Laser Zap",
+     "FM Bass",
+     "Noise Burst",
+     "Metallic",
+     "Glitch",
+     "Pluck",
+     "Drone",
+     "Bleep",
+     "Acid Blip",
+     "Chaos"
+    ]
+   },
+   {
+    "key": "cv_m1",
+    "name": "Macro 1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_m2",
+    "name": "Macro 2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_m3",
+    "name": "Macro 3",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_m4",
+    "name": "Macro 4",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_m5",
+    "name": "Macro 5",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_m6",
+    "name": "Macro 6",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_m7",
+    "name": "Macro 7",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_m8",
+    "name": "Macro 8",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_wave",
+    "name": "Wave",
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Square",
+     "Noise"
+    ]
+   },
+   {
+    "key": "cv_ratio_c",
+    "name": "Ratio",
+    "type": "float",
+    "min": 0.5,
+    "max": 16,
+    "step": 0.01
+   },
+   {
+    "key": "cv_ratio_f",
+    "name": "Fine",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 0.01
+   },
+   {
+    "key": "cv_detune",
+    "name": "Detune",
+    "type": "float",
+    "min": -50,
+    "max": 50,
+    "step": 0.5
+   },
+   {
+    "key": "cv_level",
+    "name": "Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_phase",
+    "name": "Phase",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_pwm",
+    "name": "PWM",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_fbk",
+    "name": "Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_op",
+    "name": "Op",
+    "type": "enum",
+    "options": [
+     "A",
+     "B",
+     "C"
+    ]
+   },
+   {
+    "key": "cv_click_type",
+    "name": "Click Type",
+    "type": "enum",
+    "options": [
+     "Sample",
+     "Impulse",
+     "Phase"
+    ]
+   },
+   {
+    "key": "cv_click_smp",
+    "name": "Click Smp",
+    "type": "enum",
+    "options": [
+     "None",
+     "Kick",
+     "Rim",
+     "Hat",
+     "Clap",
+     "Tom",
+     "Snap"
+    ]
+   },
+   {
+    "key": "cv_click_lvl",
+    "name": "Click Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_click_dec",
+    "name": "Click Dec",
+    "type": "float",
+    "min": 0.001,
+    "max": 0.5,
+    "step": 0.001
+   },
+   {
+    "key": "cv_xfm",
+    "name": "Cross-FM",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ]
+   },
+   {
+    "key": "cv_noise_lvl",
+    "name": "Noise Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_noise_dec",
+    "name": "Noise Dec",
+    "type": "float",
+    "min": 0.005,
+    "max": 1.5,
+    "step": 0.005
+   },
+   {
+    "key": "cv_noise_base",
+    "name": "Noise Base",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_noise_width",
+    "name": "Noise Width",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_noise_type",
+    "name": "Noise Color",
+    "type": "enum",
+    "options": [
+     "White",
+     "Pink",
+     "Brown",
+     "Gaussian",
+     "Blue"
+    ]
+   },
+   {
+    "key": "cv_f1_cut",
+    "name": "F1 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.025
+   },
+   {
+    "key": "cv_f1_res",
+    "name": "F1 Reso",
+    "type": "float",
+    "min": 0.5,
+    "max": 20,
+    "step": 0.1
+   },
+   {
+    "key": "cv_f1_type",
+    "name": "F1 Type",
+    "type": "enum",
+    "options": [
+     "LP",
+     "HP",
+     "BP",
+     "BPu",
+     "Notch",
+     "Peak",
+     "Comb+",
+     "Comb-",
+     "LP2",
+     "Ladder",
+     "Ladder HP"
+    ]
+   },
+   {
+    "key": "cv_bw_cut",
+    "name": "BW Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.025
+   },
+   {
+    "key": "cv_bw_w",
+    "name": "BW Width",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_routing",
+    "name": "Routing",
+    "type": "enum",
+    "options": [
+     "Single",
+     "Per-Osc",
+     "Serial",
+     "Parallel"
+    ]
+   },
+   {
+    "key": "cv_f1_drv",
+    "name": "F1 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_f2_cut",
+    "name": "F2 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.025
+   },
+   {
+    "key": "cv_f2_res",
+    "name": "F2 Reso",
+    "type": "float",
+    "min": 0.5,
+    "max": 20,
+    "step": 0.1
+   },
+   {
+    "key": "cv_f2_type",
+    "name": "F2 Type",
+    "type": "enum",
+    "options": [
+     "LP",
+     "HP",
+     "BP",
+     "BPu",
+     "Notch",
+     "Peak",
+     "Comb+",
+     "Comb-",
+     "LP2",
+     "Ladder",
+     "Ladder HP"
+    ]
+   },
+   {
+    "key": "cv_f2_drv",
+    "name": "F2 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_bw_on",
+    "name": "BW On",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ]
+   },
+   {
+    "key": "cv_bit",
+    "name": "Bit Crush",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_rate",
+    "name": "Rate Crush",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_kt1",
+    "name": "F1 KeyTrk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_kt2",
+    "name": "F2 KeyTrk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_e1_to_cut",
+    "name": "E1→F1",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "cv_e2_to_cut",
+    "name": "E2→F2",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "cv_e1_atk",
+    "name": "E1 Atk",
+    "type": "float",
+    "min": 0.0001,
+    "max": 1,
+    "step": 0.001
+   },
+   {
+    "key": "cv_e1_dec",
+    "name": "E1 Dec",
+    "type": "float",
+    "min": 0.001,
+    "max": 4,
+    "step": 0.001
+   },
+   {
+    "key": "cv_e1_crv",
+    "name": "E1 Curve",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "cv_e1_rep",
+    "name": "E1 Repeat",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_e2_dec",
+    "name": "E2 Dec",
+    "type": "float",
+    "min": 0.001,
+    "max": 4,
+    "step": 0.001
+   },
+   {
+    "key": "cv_e2_crv",
+    "name": "E2 Curve",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "cv_pe_amt",
+    "name": "PE Amt",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "cv_pe_dec",
+    "name": "PE Dec",
+    "type": "float",
+    "min": 0.001,
+    "max": 4,
+    "step": 0.001
+   },
+   {
+    "key": "cv_e2_dest",
+    "name": "E2 Dest",
+    "type": "enum",
+    "options": [
+     "FM",
+     "Filter",
+     "Reso",
+     "Pan",
+     "Mod"
+    ]
+   },
+   {
+    "key": "cv_e1_rep_rate",
+    "name": "E1 Rep Rate",
+    "type": "float",
+    "min": 0.01,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_e2_atk",
+    "name": "E2 Atk",
+    "type": "float",
+    "min": 0.0001,
+    "max": 1,
+    "step": 0.001
+   },
+   {
+    "key": "cv_pe_crv",
+    "name": "PE Curve",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "cv_pe_dest",
+    "name": "PE Dest",
+    "type": "enum",
+    "options": [
+     "Pitch",
+     "FM",
+     "Filter",
+     "Reso"
+    ]
+   },
+   {
+    "key": "cv_v_e1_lvl",
+    "name": "Vel→E1 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_v_e1_t",
+    "name": "Vel→E1 Time",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "cv_v_e2_amt",
+    "name": "Vel→E2 Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_fie1_amt",
+    "name": "FM Env1 Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_fie1_dec",
+    "name": "FM Env1 Dec",
+    "type": "float",
+    "min": 0.002,
+    "max": 2,
+    "step": 0.002
+   },
+   {
+    "key": "cv_fie2_amt",
+    "name": "FM Env2 Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_fie2_dec",
+    "name": "FM Env2 Dec",
+    "type": "float",
+    "min": 0.002,
+    "max": 2,
+    "step": 0.002
+   },
+   {
+    "key": "cv_lfo_w",
+    "name": "LFO Wave",
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Square",
+     "S&H",
+     "Random"
+    ]
+   },
+   {
+    "key": "cv_lfo_w2",
+    "name": "LFO Wave 2",
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Square",
+     "S&H",
+     "Random"
+    ]
+   },
+   {
+    "key": "cv_lfo_morph",
+    "name": "LFO Morph",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_lfo_r",
+    "name": "LFO Rate",
+    "type": "float",
+    "min": 0.01,
+    "max": 200,
+    "step": 0.01
+   },
+   {
+    "key": "cv_lfo_s",
+    "name": "LFO Sync",
+    "type": "enum",
+    "options": [
+     "Free",
+     "1/1",
+     "1/2",
+     "1/4",
+     "1/8",
+     "1/16",
+     "1/32"
+    ]
+   },
+   {
+    "key": "cv_lfo_d",
+    "name": "LFO Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_xlfo_src",
+    "name": "XLFO Src",
+    "type": "enum",
+    "options": [
+     "Self",
+     "V1",
+     "V2",
+     "V3",
+     "V4",
+     "V5",
+     "V6",
+     "V7",
+     "V8"
+    ]
+   },
+   {
+    "key": "cv_trig_rst",
+    "name": "Trig Reset",
+    "type": "enum",
+    "options": [
+     "None",
+     "V1",
+     "V2",
+     "V3",
+     "V4",
+     "V5",
+     "V6",
+     "V7",
+     "V8"
+    ]
+   },
+   {
+    "key": "cv_mod_dest",
+    "name": "Mod Dest",
+    "type": "enum",
+    "options": [
+     "None",
+     "Pitch",
+     "FM Idx",
+     "Filt Cut",
+     "Reso FB",
+     "Body",
+     "Pan",
+     "Level"
+    ]
+   },
+   {
+    "key": "cv_mod_dpth",
+    "name": "Mod Depth",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "cv_lfo_p",
+    "name": "LFO Phase",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_lfo_pol",
+    "name": "LFO Polarity",
+    "type": "enum",
+    "options": [
+     "Bipolar",
+     "Unipolar"
+    ]
+   },
+   {
+    "key": "cv_lfo_rt",
+    "name": "LFO Restart",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ]
+   },
+   {
+    "key": "cv_mod_src",
+    "name": "Mod Src",
+    "type": "enum",
+    "options": [
+     "LFO",
+     "XLFO",
+     "E1",
+     "E2",
+     "PE",
+     "Vel",
+     "AT",
+     "MW"
+    ]
+   },
+   {
+    "key": "cv_mod_crv",
+    "name": "Mod Curve",
+    "type": "enum",
+    "options": [
+     "Linear",
+     "Exp",
+     "Log",
+     "S-Curve"
+    ]
+   },
+   {
+    "key": "cv_algo",
+    "name": "Algorithm",
+    "type": "enum",
+    "options": [
+     "Drum",
+     "Snare",
+     "Cymbal",
+     "Hat",
+     "Wild"
+    ]
+   },
+   {
+    "key": "cv_choke",
+    "name": "Choke",
+    "type": "enum",
+    "options": [
+     "None",
+     "A",
+     "B",
+     "C",
+     "D"
+    ]
+   },
+   {
+    "key": "cv_bus",
+    "name": "Output",
+    "type": "enum",
+    "options": [
+     "Main",
+     "Aux1",
+     "Aux2",
+     "FX-Only"
+    ]
+   },
+   {
+    "key": "cv_lvl",
+    "name": "Voice Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_tune",
+    "name": "Voice Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 0.1
+   },
+   {
+    "key": "cv_poly",
+    "name": "Polyphony",
+    "type": "enum",
+    "options": [
+     "One-Shot",
+     "Legato",
+     "Retrig",
+     "Roll"
+    ]
+   },
+   {
+    "key": "cv_glide",
+    "name": "Glide",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_init",
+    "name": "Init Voice",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ]
+   },
+   {
+    "key": "cv_pan",
+    "name": "Voice Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "cv_mute",
+    "name": "Voice Mute",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ]
+   },
+   {
+    "key": "cv_fx1",
+    "name": "FX1 Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_fx2",
+    "name": "FX2 Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_vsens",
+    "name": "Vel Sens",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cv_note",
+    "name": "MIDI Note",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1
+   },
+   {
+    "key": "v1_lvl",
+    "name": "V1 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v2_lvl",
+    "name": "V2 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v3_lvl",
+    "name": "V3 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v4_lvl",
+    "name": "V4 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v5_lvl",
+    "name": "V5 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v6_lvl",
+    "name": "V6 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v7_lvl",
+    "name": "V7 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v8_lvl",
+    "name": "V8 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v1_pan",
+    "name": "V1 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "v2_pan",
+    "name": "V2 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "v3_pan",
+    "name": "V3 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "v4_pan",
+    "name": "V4 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "v5_pan",
+    "name": "V5 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "v6_pan",
+    "name": "V6 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "v7_pan",
+    "name": "V7 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "v8_pan",
+    "name": "V8 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02
+   },
+   {
+    "key": "v1_fx1",
+    "name": "V1 FX1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v2_fx1",
+    "name": "V2 FX1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v3_fx1",
+    "name": "V3 FX1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v4_fx1",
+    "name": "V4 FX1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v5_fx1",
+    "name": "V5 FX1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v6_fx1",
+    "name": "V6 FX1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v7_fx1",
+    "name": "V7 FX1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v8_fx1",
+    "name": "V8 FX1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v1_fx2",
+    "name": "V1 FX2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v2_fx2",
+    "name": "V2 FX2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v3_fx2",
+    "name": "V3 FX2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v4_fx2",
+    "name": "V4 FX2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v5_fx2",
+    "name": "V5 FX2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v6_fx2",
+    "name": "V6 FX2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v7_fx2",
+    "name": "V7 FX2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v8_fx2",
+    "name": "V8 FX2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rev_mix",
+    "name": "Rev Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rev_decay",
+    "name": "Rev Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rev_size",
+    "name": "Rev Size",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "dly_mix",
+    "name": "Dly Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "dly_rate",
+    "name": "Dly Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "dly_fdbk",
+    "name": "Dly Fdbk",
+    "type": "float",
+    "min": 0,
+    "max": 0.95,
+    "step": 0.01
+   },
+   {
+    "key": "dly_tone",
+    "name": "Dly Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cho_mix",
+    "name": "Cho Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rev_type",
+    "name": "Rev Type",
+    "type": "enum",
+    "options": [
+     "Plate",
+     "Spring",
+     "Chamber"
+    ]
+   },
+   {
+    "key": "rev_gate",
+    "name": "Rev Gate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rev_predelay",
+    "name": "Rev Predly",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rev_damping",
+    "name": "Rev Damp",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "dly_bpf_cut",
+    "name": "Dly BPF Cut",
+    "type": "int",
+    "min": 100,
+    "max": 18000,
+    "step": 10
+   },
+   {
+    "key": "dly_bpf_w",
+    "name": "Dly BPF W",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "dly_pp",
+    "name": "Ping-Pong",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ]
+   },
+   {
+    "key": "dly_sync",
+    "name": "Sync",
+    "type": "enum",
+    "options": [
+     "Free",
+     "1/4",
+     "1/8",
+     "1/16",
+     "1/32"
+    ]
+   },
+   {
+    "key": "cho_rate",
+    "name": "Cho Rate",
+    "type": "float",
+    "min": 0.01,
+    "max": 5,
+    "step": 0.01
+   },
+   {
+    "key": "cho_depth",
+    "name": "Cho Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cho_width",
+    "name": "Cho Width",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cho_voices",
+    "name": "Cho Voices",
+    "type": "int",
+    "min": 2,
+    "max": 8,
+    "step": 1
+   },
+   {
+    "key": "cho_tone",
+    "name": "Cho Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cho_fb",
+    "name": "Cho Fb",
+    "type": "float",
+    "min": 0,
+    "max": 0.9,
+    "step": 0.01
+   },
+   {
+    "key": "comp",
+    "name": "Comp",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "drive",
+    "name": "Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "bit",
+    "name": "Bit",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rate",
+    "name": "Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "eq_lo",
+    "name": "EQ Lo",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 0.24
+   },
+   {
+    "key": "eq_mid",
+    "name": "EQ Mid",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 0.24
+   },
+   {
+    "key": "eq_hi",
+    "name": "EQ Hi",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 0.24
+   },
+   {
+    "key": "master",
+    "name": "Master",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "drive_type",
+    "name": "Drive Type",
+    "type": "enum",
+    "options": [
+     "Tube",
+     "Fold",
+     "Clip"
+    ]
+   },
+   {
+    "key": "lo_freq",
+    "name": "Lo Freq",
+    "type": "float",
+    "min": 20,
+    "max": 500,
+    "step": 1
+   },
+   {
+    "key": "mid_freq",
+    "name": "Mid Freq",
+    "type": "float",
+    "min": 200,
+    "max": 8000,
+    "step": 10
+   },
+   {
+    "key": "hi_freq",
+    "name": "Hi Freq",
+    "type": "float",
+    "min": 2000,
+    "max": 18000,
+    "step": 50
+   },
+   {
+    "key": "q_lo",
+    "name": "Q Lo",
+    "type": "float",
+    "min": 0.3,
+    "max": 8,
+    "step": 0.1
+   },
+   {
+    "key": "q_mid",
+    "name": "Q Mid",
+    "type": "float",
+    "min": 0.3,
+    "max": 8,
+    "step": 0.1
+   },
+   {
+    "key": "q_hi",
+    "name": "Q Hi",
+    "type": "float",
+    "min": 0.3,
+    "max": 8,
+    "step": 0.1
+   },
+   {
+    "key": "limiter",
+    "name": "Limiter",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ]
+   },
+   {
+    "key": "master_tune",
+    "name": "Master Tune",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1
+   },
+   {
+    "key": "midi_ch",
+    "name": "MIDI Ch",
+    "type": "int",
+    "min": 1,
+    "max": 16,
+    "step": 1
+   }
+  ]
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "Perf",
+   "Patch",
+   "Voice",
+   "Osc",
+   "Filter",
+   "Env",
+   "Mod",
+   "Setup",
+   "Mix",
+   "FX",
+   "General"
+  ],
+  "params": [
+   {
+    "key": "kit",
+    "name": "Kit",
+    "type": "int",
+    "min": 0,
+    "max": 136,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "save_kit",
+    "name": "Save Kit",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Play",
+     "Save"
+    ],
+    "default": "Play"
+   },
+   {
+    "key": "rnd_kit",
+    "name": "Rnd Kit",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "rnd_kit_params",
+    "name": "Rnd Kit Params",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "rnd_voice",
+    "name": "Rnd Voice",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "rnd_pitch",
+    "name": "Rnd Pitch",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "morph",
+    "name": "Morph",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "all_decay",
+    "name": "All Decay",
+    "type": "float",
+    "min": 0.01,
+    "max": 4,
+    "step": 0.05,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "rnd_pan",
+    "name": "Rnd Pan",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "all_punch",
+    "name": "All Punch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "all_bright",
+    "name": "All Bright",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "all_drive",
+    "name": "All Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "all_snap",
+    "name": "All Snap",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "all_bend",
+    "name": "All Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "all_tune",
+    "name": "All Tune",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "all_fx",
+    "name": "All FX",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "all_mono",
+    "name": "All Mono",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "init_decay",
+    "name": "Init Decay",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "init_freq",
+    "name": "Init Freq",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "same_freq",
+    "name": "Same Freq",
+    "type": "int",
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "options": null,
+    "default": "440"
+   },
+   {
+    "key": "copy_a_b",
+    "name": "Copy A→B",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "copy_b_a",
+    "name": "Copy B→A",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "swap_ab",
+    "name": "Swap A↔B",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "rnd_b_from_a",
+    "name": "Rnd B from A",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "morph_src",
+    "name": "Morph Src",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Knob",
+     "LFO",
+     "Macro",
+     "Wheel"
+    ],
+    "default": "Knob"
+   },
+   {
+    "key": "morph_curve",
+    "name": "Morph Curve",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Linear",
+     "Exp",
+     "Log",
+     "S-Curve"
+    ],
+    "default": "Linear"
+   },
+   {
+    "key": "cv_vpreset",
+    "name": "Preset",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "808 Kick",
+     "909 Kick",
+     "Sub Boom",
+     "Click Kick",
+     "Punch Kick",
+     "Dist Kick",
+     "Deep Tom",
+     "Hi Tom",
+     "Zap",
+     "Rumble",
+     "909 Snare",
+     "Clap",
+     "Rimshot",
+     "Noise Snr",
+     "FM Snare",
+     "Fat Snare",
+     "Tight Snr",
+     "Brush",
+     "Sidestick",
+     "Crack",
+     "Ride",
+     "Crash",
+     "Splash",
+     "Bell",
+     "China",
+     "Gong",
+     "Ping",
+     "Metal Hit",
+     "Cluster",
+     "Trash",
+     "Closed Hat",
+     "Open Hat",
+     "Pedal Hat",
+     "Tight Hat",
+     "Sizzle",
+     "Long Hat",
+     "Metal Hat",
+     "Roll Hat",
+     "Shaker",
+     "Acid Hat",
+     "Laser Zap",
+     "FM Bass",
+     "Noise Burst",
+     "Metallic",
+     "Glitch",
+     "Pluck",
+     "Drone",
+     "Bleep",
+     "Acid Blip",
+     "Chaos"
+    ],
+    "default": "808 Kick"
+   },
+   {
+    "key": "cv_m1",
+    "name": "Macro 1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "cv_m2",
+    "name": "Macro 2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "cv_m3",
+    "name": "Macro 3",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "cv_m4",
+    "name": "Macro 4",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0040"
+   },
+   {
+    "key": "cv_m5",
+    "name": "Macro 5",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7200"
+   },
+   {
+    "key": "cv_m6",
+    "name": "Macro 6",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0010"
+   },
+   {
+    "key": "cv_m7",
+    "name": "Macro 7",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "cv_m8",
+    "name": "Macro 8",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_wave",
+    "name": "Wave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Square",
+     "Noise"
+    ],
+    "default": "Sine"
+   },
+   {
+    "key": "cv_ratio_c",
+    "name": "Ratio",
+    "type": "float",
+    "min": 0.5,
+    "max": 16,
+    "step": 0.01,
+    "options": null,
+    "default": "16.0000"
+   },
+   {
+    "key": "cv_ratio_f",
+    "name": "Fine",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_detune",
+    "name": "Detune",
+    "type": "float",
+    "min": -50,
+    "max": 50,
+    "step": 0.5,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_level",
+    "name": "Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8500"
+   },
+   {
+    "key": "cv_phase",
+    "name": "Phase",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_pwm",
+    "name": "PWM",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "cv_fbk",
+    "name": "Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_op",
+    "name": "Op",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "A",
+     "B",
+     "C"
+    ],
+    "default": "A"
+   },
+   {
+    "key": "cv_click_type",
+    "name": "Click Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Sample",
+     "Impulse",
+     "Phase"
+    ],
+    "default": "Sample"
+   },
+   {
+    "key": "cv_click_smp",
+    "name": "Click Smp",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "None",
+     "Kick",
+     "Rim",
+     "Hat",
+     "Clap",
+     "Tom",
+     "Snap"
+    ],
+    "default": "Kick"
+   },
+   {
+    "key": "cv_click_lvl",
+    "name": "Click Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "cv_click_dec",
+    "name": "Click Dec",
+    "type": "float",
+    "min": 0.001,
+    "max": 0.5,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0050"
+   },
+   {
+    "key": "cv_xfm",
+    "name": "Cross-FM",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "cv_noise_lvl",
+    "name": "Noise Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_noise_dec",
+    "name": "Noise Dec",
+    "type": "float",
+    "min": 0.005,
+    "max": 1.5,
+    "step": 0.005,
+    "options": null,
+    "default": "0.1500"
+   },
+   {
+    "key": "cv_noise_base",
+    "name": "Noise Base",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.6000"
+   },
+   {
+    "key": "cv_noise_width",
+    "name": "Noise Width",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "cv_noise_type",
+    "name": "Noise Color",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "White",
+     "Pink",
+     "Brown",
+     "Gaussian",
+     "Blue"
+    ],
+    "default": "White"
+   },
+   {
+    "key": "cv_f1_cut",
+    "name": "F1 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.025,
+    "options": null,
+    "default": "0.8257"
+   },
+   {
+    "key": "cv_f1_res",
+    "name": "F1 Reso",
+    "type": "float",
+    "min": 0.5,
+    "max": 20,
+    "step": 0.1,
+    "options": null,
+    "default": "0.7000"
+   },
+   {
+    "key": "cv_f1_type",
+    "name": "F1 Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LP",
+     "HP",
+     "BP",
+     "BPu",
+     "Notch",
+     "Peak",
+     "Comb+",
+     "Comb-",
+     "LP2",
+     "Ladder",
+     "Ladder HP"
+    ],
+    "default": "LP"
+   },
+   {
+    "key": "cv_bw_cut",
+    "name": "BW Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.025,
+    "options": null,
+    "default": "0.5663"
+   },
+   {
+    "key": "cv_bw_w",
+    "name": "BW Width",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "cv_routing",
+    "name": "Routing",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Single",
+     "Per-Osc",
+     "Serial",
+     "Parallel"
+    ],
+    "default": "Single"
+   },
+   {
+    "key": "cv_f1_drv",
+    "name": "F1 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_f2_cut",
+    "name": "F2 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.025,
+    "options": null,
+    "default": "0.7670"
+   },
+   {
+    "key": "cv_f2_res",
+    "name": "F2 Reso",
+    "type": "float",
+    "min": 0.5,
+    "max": 20,
+    "step": 0.1,
+    "options": null,
+    "default": "0.7000"
+   },
+   {
+    "key": "cv_f2_type",
+    "name": "F2 Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LP",
+     "HP",
+     "BP",
+     "BPu",
+     "Notch",
+     "Peak",
+     "Comb+",
+     "Comb-",
+     "LP2",
+     "Ladder",
+     "Ladder HP"
+    ],
+    "default": "LP"
+   },
+   {
+    "key": "cv_f2_drv",
+    "name": "F2 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_bw_on",
+    "name": "BW On",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "cv_bit",
+    "name": "Bit Crush",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_rate",
+    "name": "Rate Crush",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_kt1",
+    "name": "F1 KeyTrk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_kt2",
+    "name": "F2 KeyTrk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_e1_to_cut",
+    "name": "E1→F1",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_e2_to_cut",
+    "name": "E2→F2",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_e1_atk",
+    "name": "E1 Atk",
+    "type": "float",
+    "min": 0.0001,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0010"
+   },
+   {
+    "key": "cv_e1_dec",
+    "name": "E1 Dec",
+    "type": "float",
+    "min": 0.001,
+    "max": 4,
+    "step": 0.001,
+    "options": null,
+    "default": "0.2340"
+   },
+   {
+    "key": "cv_e1_crv",
+    "name": "E1 Curve",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "-0.5000"
+   },
+   {
+    "key": "cv_e1_rep",
+    "name": "E1 Repeat",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_e2_dec",
+    "name": "E2 Dec",
+    "type": "float",
+    "min": 0.001,
+    "max": 4,
+    "step": 0.001,
+    "options": null,
+    "default": "0.1500"
+   },
+   {
+    "key": "cv_e2_crv",
+    "name": "E2 Curve",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "-0.5000"
+   },
+   {
+    "key": "cv_pe_amt",
+    "name": "PE Amt",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.6800"
+   },
+   {
+    "key": "cv_pe_dec",
+    "name": "PE Dec",
+    "type": "float",
+    "min": 0.001,
+    "max": 4,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0400"
+   },
+   {
+    "key": "cv_e2_dest",
+    "name": "E2 Dest",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "FM",
+     "Filter",
+     "Reso",
+     "Pan",
+     "Mod"
+    ],
+    "default": "Filter"
+   },
+   {
+    "key": "cv_e1_rep_rate",
+    "name": "E1 Rep Rate",
+    "type": "float",
+    "min": 0.01,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0500"
+   },
+   {
+    "key": "cv_e2_atk",
+    "name": "E2 Atk",
+    "type": "float",
+    "min": 0.0001,
+    "max": 1,
+    "step": 0.001,
+    "options": null,
+    "default": "0.0010"
+   },
+   {
+    "key": "cv_pe_crv",
+    "name": "PE Curve",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "-0.6000"
+   },
+   {
+    "key": "cv_pe_dest",
+    "name": "PE Dest",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Pitch",
+     "FM",
+     "Filter",
+     "Reso"
+    ],
+    "default": "Pitch"
+   },
+   {
+    "key": "cv_v_e1_lvl",
+    "name": "Vel→E1 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "cv_v_e1_t",
+    "name": "Vel→E1 Time",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_v_e2_amt",
+    "name": "Vel→E2 Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_fie1_amt",
+    "name": "FM Env1 Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3000"
+   },
+   {
+    "key": "cv_fie1_dec",
+    "name": "FM Env1 Dec",
+    "type": "float",
+    "min": 0.002,
+    "max": 2,
+    "step": 0.002,
+    "options": null,
+    "default": "0.0250"
+   },
+   {
+    "key": "cv_fie2_amt",
+    "name": "FM Env2 Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_fie2_dec",
+    "name": "FM Env2 Dec",
+    "type": "float",
+    "min": 0.002,
+    "max": 2,
+    "step": 0.002,
+    "options": null,
+    "default": "0.0500"
+   },
+   {
+    "key": "cv_lfo_w",
+    "name": "LFO Wave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Square",
+     "S&H",
+     "Random"
+    ],
+    "default": "Sine"
+   },
+   {
+    "key": "cv_lfo_w2",
+    "name": "LFO Wave 2",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Square",
+     "S&H",
+     "Random"
+    ],
+    "default": "Tri"
+   },
+   {
+    "key": "cv_lfo_morph",
+    "name": "LFO Morph",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_lfo_r",
+    "name": "LFO Rate",
+    "type": "float",
+    "min": 0.01,
+    "max": 200,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "cv_lfo_s",
+    "name": "LFO Sync",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Free",
+     "1/1",
+     "1/2",
+     "1/4",
+     "1/8",
+     "1/16",
+     "1/32"
+    ],
+    "default": "Free"
+   },
+   {
+    "key": "cv_lfo_d",
+    "name": "LFO Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_xlfo_src",
+    "name": "XLFO Src",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Self",
+     "V1",
+     "V2",
+     "V3",
+     "V4",
+     "V5",
+     "V6",
+     "V7",
+     "V8"
+    ],
+    "default": "Self"
+   },
+   {
+    "key": "cv_trig_rst",
+    "name": "Trig Reset",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "None",
+     "V1",
+     "V2",
+     "V3",
+     "V4",
+     "V5",
+     "V6",
+     "V7",
+     "V8"
+    ],
+    "default": "None"
+   },
+   {
+    "key": "cv_mod_dest",
+    "name": "Mod Dest",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "None",
+     "Pitch",
+     "FM Idx",
+     "Filt Cut",
+     "Reso FB",
+     "Body",
+     "Pan",
+     "Level"
+    ],
+    "default": "None"
+   },
+   {
+    "key": "cv_mod_dpth",
+    "name": "Mod Depth",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_lfo_p",
+    "name": "LFO Phase",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_lfo_pol",
+    "name": "LFO Polarity",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Bipolar",
+     "Unipolar"
+    ],
+    "default": "Bipolar"
+   },
+   {
+    "key": "cv_lfo_rt",
+    "name": "LFO Restart",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "cv_mod_src",
+    "name": "Mod Src",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LFO",
+     "XLFO",
+     "E1",
+     "E2",
+     "PE",
+     "Vel",
+     "AT",
+     "MW"
+    ],
+    "default": "LFO"
+   },
+   {
+    "key": "cv_mod_crv",
+    "name": "Mod Curve",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Linear",
+     "Exp",
+     "Log",
+     "S-Curve"
+    ],
+    "default": "Linear"
+   },
+   {
+    "key": "cv_algo",
+    "name": "Algorithm",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Drum",
+     "Snare",
+     "Cymbal",
+     "Hat",
+     "Wild"
+    ],
+    "default": "Drum"
+   },
+   {
+    "key": "cv_choke",
+    "name": "Choke",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "None",
+     "A",
+     "B",
+     "C",
+     "D"
+    ],
+    "default": "None"
+   },
+   {
+    "key": "cv_bus",
+    "name": "Output",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Main",
+     "Aux1",
+     "Aux2",
+     "FX-Only"
+    ],
+    "default": "Main"
+   },
+   {
+    "key": "cv_lvl",
+    "name": "Voice Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8500"
+   },
+   {
+    "key": "cv_tune",
+    "name": "Voice Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 0.1,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_poly",
+    "name": "Polyphony",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "One-Shot",
+     "Legato",
+     "Retrig",
+     "Roll"
+    ],
+    "default": "One-Shot"
+   },
+   {
+    "key": "cv_glide",
+    "name": "Glide",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_init",
+    "name": "Init Voice",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "cv_pan",
+    "name": "Voice Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_mute",
+    "name": "Voice Mute",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "cv_fx1",
+    "name": "FX1 Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cv_fx2",
+    "name": "FX2 Send",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3090"
+   },
+   {
+    "key": "cv_vsens",
+    "name": "Vel Sens",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7000"
+   },
+   {
+    "key": "cv_note",
+    "name": "MIDI Note",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "36"
+   },
+   {
+    "key": "v1_lvl",
+    "name": "V1 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8500"
+   },
+   {
+    "key": "v2_lvl",
+    "name": "V2 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8500"
+   },
+   {
+    "key": "v3_lvl",
+    "name": "V3 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8500"
+   },
+   {
+    "key": "v4_lvl",
+    "name": "V4 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8500"
+   },
+   {
+    "key": "v5_lvl",
+    "name": "V5 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8500"
+   },
+   {
+    "key": "v6_lvl",
+    "name": "V6 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8500"
+   },
+   {
+    "key": "v7_lvl",
+    "name": "V7 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8500"
+   },
+   {
+    "key": "v8_lvl",
+    "name": "V8 Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8500"
+   },
+   {
+    "key": "v1_pan",
+    "name": "V1 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v2_pan",
+    "name": "V2 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v3_pan",
+    "name": "V3 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v4_pan",
+    "name": "V4 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v5_pan",
+    "name": "V5 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v6_pan",
+    "name": "V6 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v7_pan",
+    "name": "V7 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v8_pan",
+    "name": "V8 Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v1_fx1",
+    "name": "V1 FX1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v2_fx1",
+    "name": "V2 FX1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v3_fx1",
+    "name": "V3 FX1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v4_fx1",
+    "name": "V4 FX1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v5_fx1",
+    "name": "V5 FX1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v6_fx1",
+    "name": "V6 FX1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v7_fx1",
+    "name": "V7 FX1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v8_fx1",
+    "name": "V8 FX1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v1_fx2",
+    "name": "V1 FX2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3090"
+   },
+   {
+    "key": "v2_fx2",
+    "name": "V2 FX2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3090"
+   },
+   {
+    "key": "v3_fx2",
+    "name": "V3 FX2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3090"
+   },
+   {
+    "key": "v4_fx2",
+    "name": "V4 FX2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3090"
+   },
+   {
+    "key": "v5_fx2",
+    "name": "V5 FX2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3090"
+   },
+   {
+    "key": "v6_fx2",
+    "name": "V6 FX2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3090"
+   },
+   {
+    "key": "v7_fx2",
+    "name": "V7 FX2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3090"
+   },
+   {
+    "key": "v8_fx2",
+    "name": "V8 FX2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3090"
+   },
+   {
+    "key": "rev_mix",
+    "name": "Rev Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0875"
+   },
+   {
+    "key": "rev_decay",
+    "name": "Rev Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "rev_size",
+    "name": "Rev Size",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "dly_mix",
+    "name": "Dly Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "dly_rate",
+    "name": "Dly Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3000"
+   },
+   {
+    "key": "dly_fdbk",
+    "name": "Dly Fdbk",
+    "type": "float",
+    "min": 0,
+    "max": 0.95,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3000"
+   },
+   {
+    "key": "dly_tone",
+    "name": "Dly Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "cho_mix",
+    "name": "Cho Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "rev_type",
+    "name": "Rev Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Plate",
+     "Spring",
+     "Chamber"
+    ],
+    "default": "Plate"
+   },
+   {
+    "key": "rev_gate",
+    "name": "Rev Gate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "rev_predelay",
+    "name": "Rev Predly",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0500"
+   },
+   {
+    "key": "rev_damping",
+    "name": "Rev Damp",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "dly_bpf_cut",
+    "name": "Dly BPF Cut",
+    "type": "int",
+    "min": 100,
+    "max": 18000,
+    "step": 10,
+    "options": null,
+    "default": "2000"
+   },
+   {
+    "key": "dly_bpf_w",
+    "name": "Dly BPF W",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "dly_pp",
+    "name": "Ping-Pong",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "dly_sync",
+    "name": "Sync",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Free",
+     "1/4",
+     "1/8",
+     "1/16",
+     "1/32"
+    ],
+    "default": "Free"
+   },
+   {
+    "key": "cho_rate",
+    "name": "Cho Rate",
+    "type": "float",
+    "min": 0.01,
+    "max": 5,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "cho_depth",
+    "name": "Cho Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3000"
+   },
+   {
+    "key": "cho_width",
+    "name": "Cho Width",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "cho_voices",
+    "name": "Cho Voices",
+    "type": "int",
+    "min": 2,
+    "max": 8,
+    "step": 1,
+    "options": null,
+    "default": "4"
+   },
+   {
+    "key": "cho_tone",
+    "name": "Cho Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "cho_fb",
+    "name": "Cho Fb",
+    "type": "float",
+    "min": 0,
+    "max": 0.9,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "comp",
+    "name": "Comp",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "drive",
+    "name": "Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "bit",
+    "name": "Bit",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "rate",
+    "name": "Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "eq_lo",
+    "name": "EQ Lo",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 0.24,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "eq_mid",
+    "name": "EQ Mid",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 0.24,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "eq_hi",
+    "name": "EQ Hi",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 0.24,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "master",
+    "name": "Master",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8500"
+   },
+   {
+    "key": "drive_type",
+    "name": "Drive Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Tube",
+     "Fold",
+     "Clip"
+    ],
+    "default": "Tube"
+   },
+   {
+    "key": "lo_freq",
+    "name": "Lo Freq",
+    "type": "float",
+    "min": 20,
+    "max": 500,
+    "step": 1,
+    "options": null,
+    "default": "200.0000"
+   },
+   {
+    "key": "mid_freq",
+    "name": "Mid Freq",
+    "type": "float",
+    "min": 200,
+    "max": 8000,
+    "step": 10,
+    "options": null,
+    "default": "1000.0000"
+   },
+   {
+    "key": "hi_freq",
+    "name": "Hi Freq",
+    "type": "float",
+    "min": 2000,
+    "max": 18000,
+    "step": 50,
+    "options": null,
+    "default": "5000.0000"
+   },
+   {
+    "key": "q_lo",
+    "name": "Q Lo",
+    "type": "float",
+    "min": 0.3,
+    "max": 8,
+    "step": 0.1,
+    "options": null,
+    "default": "0.7000"
+   },
+   {
+    "key": "q_mid",
+    "name": "Q Mid",
+    "type": "float",
+    "min": 0.3,
+    "max": 8,
+    "step": 0.1,
+    "options": null,
+    "default": "0.7000"
+   },
+   {
+    "key": "q_hi",
+    "name": "Q Hi",
+    "type": "float",
+    "min": 0.3,
+    "max": 8,
+    "step": 0.1,
+    "options": null,
+    "default": "0.7000"
+   },
+   {
+    "key": "limiter",
+    "name": "Limiter",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "On"
+   },
+   {
+    "key": "master_tune",
+    "name": "Master Tune",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "midi_ch",
+    "name": "MIDI Ch",
+    "type": "int",
+    "min": 1,
+    "max": 16,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Patch",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Perf",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Voice",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Mix",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "FX",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "General",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "KIT",
+       "fullName": "Kit",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "0"
+      },
+      {
+       "shortName": "KIT",
+       "fullName": "Rnd Kit",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "KIT",
+       "fullName": "Rnd Kit Params",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOICE",
+       "fullName": "Rnd Voice",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "MORPH",
+       "fullName": "Morph",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ALL",
+       "fullName": "All Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN",
+       "fullName": "Rnd Pan",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SAVE",
+       "fullName": "Save Kit",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Patch",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "KIT",
+       "fullName": "Kit",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "KIT",
+       "fullName": "Rnd Kit",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "KIT",
+       "fullName": "Rnd Kit Params",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOICE",
+       "fullName": "Rnd Voice",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "MORPH",
+       "fullName": "Morph",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ALL",
+       "fullName": "All Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN",
+       "fullName": "Rnd Pan",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SAVE",
+       "fullName": "Save Kit",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Perf",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PUNCH",
+       "fullName": "All Punch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BRIGH",
+       "fullName": "All Bright",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "All Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIVE",
+       "fullName": "All Drive",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SNAP",
+       "fullName": "All Snap",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BEND",
+       "fullName": "All Bend",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TUNE",
+       "fullName": "All Tune",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FX",
+       "fullName": "All FX",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Voice",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "1",
+       "fullName": "Macro 1",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "2",
+       "fullName": "Macro 2",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "3",
+       "fullName": "Macro 3",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "4",
+       "fullName": "Macro 4",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "5",
+       "fullName": "Macro 5",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "6",
+       "fullName": "Macro 6",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "7",
+       "fullName": "Macro 7",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "8",
+       "fullName": "Macro 8",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Mix",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "V1",
+       "fullName": "V1 Lvl",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "V2",
+       "fullName": "V2 Lvl",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "V3",
+       "fullName": "V3 Lvl",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "V4",
+       "fullName": "V4 Lvl",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "V5",
+       "fullName": "V5 Lvl",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "V6",
+       "fullName": "V6 Lvl",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "V7",
+       "fullName": "V7 Lvl",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "V8",
+       "fullName": "V8 Lvl",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "FX",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MIX",
+       "fullName": "Rev Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Rev Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SIZE",
+       "fullName": "Rev Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Dly Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RATE",
+       "fullName": "Dly Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FDBK",
+       "fullName": "Dly Fdbk",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "Dly Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CHO",
+       "fullName": "Cho Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "General",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "COMP",
+       "fullName": "Comp",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIVE",
+       "fullName": "Drive",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BIT",
+       "fullName": "Bit",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "EQ LO",
+       "fullName": "EQ Lo",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "EQ",
+       "fullName": "EQ Mid",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "EQ HI",
+       "fullName": "EQ Hi",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MASTE",
+       "fullName": "Master",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "kit",
+    "label": "Kit",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 136,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 272
+    }
+   },
+   {
+    "key": "rnd_kit",
+    "label": "Rnd Kit",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "rnd_kit_params",
+    "label": "Rnd Kit Params",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "rnd_voice",
+    "label": "Rnd Voice",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "morph",
+    "label": "Morph",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "all_decay",
+    "label": "All Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.01,
+    "max": 4,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 160
+    }
+   },
+   {
+    "key": "rnd_pan",
+    "label": "Rnd Pan",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "save_kit",
+    "label": "Save Kit",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Play",
+     "Save"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "kit",
+    "label": "Kit",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 136,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 272
+    }
+   },
+   {
+    "key": "rnd_kit",
+    "label": "Rnd Kit",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "rnd_kit_params",
+    "label": "Rnd Kit Params",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "rnd_voice",
+    "label": "Rnd Voice",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "morph",
+    "label": "Morph",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "all_decay",
+    "label": "All Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.01,
+    "max": 4,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 160
+    }
+   },
+   {
+    "key": "rnd_pan",
+    "label": "Rnd Pan",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "save_kit",
+    "label": "Save Kit",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Play",
+     "Save"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "all_punch",
+    "label": "All Punch",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "all_bright",
+    "label": "All Bright",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "all_decay",
+    "label": "All Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.01,
+    "max": 4,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 160
+    }
+   },
+   {
+    "key": "all_drive",
+    "label": "All Drive",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "all_snap",
+    "label": "All Snap",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "all_bend",
+    "label": "All Bend",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "all_tune",
+    "label": "All Tune",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "all_fx",
+    "label": "All FX",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "cv_m1",
+    "label": "Macro 1",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_m2",
+    "label": "Macro 2",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_m3",
+    "label": "Macro 3",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_m4",
+    "label": "Macro 4",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_m5",
+    "label": "Macro 5",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_m6",
+    "label": "Macro 6",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_m7",
+    "label": "Macro 7",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_m8",
+    "label": "Macro 8",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v1_lvl",
+    "label": "V1 Lvl",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v2_lvl",
+    "label": "V2 Lvl",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v3_lvl",
+    "label": "V3 Lvl",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v4_lvl",
+    "label": "V4 Lvl",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v5_lvl",
+    "label": "V5 Lvl",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v6_lvl",
+    "label": "V6 Lvl",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v7_lvl",
+    "label": "V7 Lvl",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v8_lvl",
+    "label": "V8 Lvl",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rev_mix",
+    "label": "Rev Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rev_decay",
+    "label": "Rev Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rev_size",
+    "label": "Rev Size",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dly_mix",
+    "label": "Dly Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dly_rate",
+    "label": "Dly Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dly_fdbk",
+    "label": "Dly Fdbk",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 0.95,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 190
+    }
+   },
+   {
+    "key": "dly_tone",
+    "label": "Dly Tone",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cho_mix",
+    "label": "Cho Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "comp",
+    "label": "Comp",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "drive",
+    "label": "Drive",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "bit",
+    "label": "Bit",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rate",
+    "label": "Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "eq_lo",
+    "label": "EQ Lo",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 0.24,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.12,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "eq_mid",
+    "label": "EQ Mid",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 0.24,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.12,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "eq_hi",
+    "label": "EQ Hi",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 0.24,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.12,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "master",
+    "label": "Master",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "rnd_pitch",
+   "all_mono",
+   "init_decay",
+   "init_freq",
+   "same_freq",
+   "copy_a_b",
+   "copy_b_a",
+   "swap_ab",
+   "rnd_b_from_a",
+   "morph_src",
+   "morph_curve",
+   "cv_vpreset",
+   "cv_wave",
+   "cv_ratio_c",
+   "cv_ratio_f",
+   "cv_detune",
+   "cv_level",
+   "cv_phase",
+   "cv_pwm",
+   "cv_fbk",
+   "cv_op",
+   "cv_click_type",
+   "cv_click_smp",
+   "cv_click_lvl",
+   "cv_click_dec",
+   "cv_xfm",
+   "cv_noise_lvl",
+   "cv_noise_dec",
+   "cv_noise_base",
+   "cv_noise_width",
+   "cv_noise_type",
+   "cv_f1_cut",
+   "cv_f1_res",
+   "cv_f1_type",
+   "cv_bw_cut",
+   "cv_bw_w",
+   "cv_routing",
+   "cv_f1_drv",
+   "cv_f2_cut",
+   "cv_f2_res",
+   "cv_f2_type",
+   "cv_f2_drv",
+   "cv_bw_on",
+   "cv_bit",
+   "cv_rate",
+   "cv_kt1",
+   "cv_kt2",
+   "cv_e1_to_cut",
+   "cv_e2_to_cut",
+   "cv_e1_atk",
+   "cv_e1_dec",
+   "cv_e1_crv",
+   "cv_e1_rep",
+   "cv_e2_dec",
+   "cv_e2_crv",
+   "cv_pe_amt",
+   "cv_pe_dec",
+   "cv_e2_dest",
+   "cv_e1_rep_rate",
+   "cv_e2_atk",
+   "cv_pe_crv",
+   "cv_pe_dest",
+   "cv_v_e1_lvl",
+   "cv_v_e1_t",
+   "cv_v_e2_amt",
+   "cv_fie1_amt",
+   "cv_fie1_dec",
+   "cv_fie2_amt",
+   "cv_fie2_dec",
+   "cv_lfo_w",
+   "cv_lfo_w2",
+   "cv_lfo_morph",
+   "cv_lfo_r",
+   "cv_lfo_s",
+   "cv_lfo_d",
+   "cv_xlfo_src",
+   "cv_trig_rst",
+   "cv_mod_dest",
+   "cv_mod_dpth",
+   "cv_lfo_p",
+   "cv_lfo_pol",
+   "cv_lfo_rt",
+   "cv_mod_src",
+   "cv_mod_crv",
+   "cv_algo",
+   "cv_choke",
+   "cv_bus",
+   "cv_lvl",
+   "cv_tune",
+   "cv_poly",
+   "cv_glide",
+   "cv_init",
+   "cv_pan",
+   "cv_mute",
+   "cv_fx1",
+   "cv_fx2",
+   "cv_vsens",
+   "cv_note",
+   "v1_pan",
+   "v2_pan",
+   "v3_pan",
+   "v4_pan",
+   "v5_pan",
+   "v6_pan",
+   "v7_pan",
+   "v8_pan",
+   "v1_fx1",
+   "v2_fx1",
+   "v3_fx1",
+   "v4_fx1",
+   "v5_fx1",
+   "v6_fx1",
+   "v7_fx1",
+   "v8_fx1",
+   "v1_fx2",
+   "v2_fx2",
+   "v3_fx2",
+   "v4_fx2",
+   "v5_fx2",
+   "v6_fx2",
+   "v7_fx2",
+   "v8_fx2",
+   "rev_type",
+   "rev_gate",
+   "rev_predelay",
+   "rev_damping",
+   "dly_bpf_cut",
+   "dly_bpf_w",
+   "dly_pp",
+   "dly_sync",
+   "cho_rate",
+   "cho_depth",
+   "cho_width",
+   "cho_voices",
+   "cho_tone",
+   "cho_fb",
+   "drive_type",
+   "lo_freq",
+   "mid_freq",
+   "hi_freq",
+   "q_lo",
+   "q_mid",
+   "q_hi",
+   "limiter",
+   "master_tune",
+   "midi_ch"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "146 chain_params not reachable in movy: rnd_pitch, all_mono, init_decay, init_freq, same_freq, copy_a_b, copy_b_a, swap_ab, rnd_b_from_a, morph_src, morph_curve, cv_vpreset, …",
+   "page \"Main\": duplicate on-screen names KIT",
+   "page \"Patch\": duplicate on-screen names KIT",
+   "page \"FX\": duplicate on-screen names MIX"
+  ]
+ }
+}

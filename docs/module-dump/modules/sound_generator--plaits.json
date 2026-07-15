@@ -1,0 +1,835 @@
+{
+ "id": "plaits",
+ "name": "Plaits",
+ "version": "0.5.1",
+ "author": "Emilie Gillet (port: Justin Joe)",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 2376,
+ "dsp_size": 1653896,
+ "capabilities": {
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "midi_out": false,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "label": "Plaits",
+     "knobs": [
+      "engine",
+      "harmonics",
+      "timbre",
+      "morph",
+      "decay",
+      "lpg_colour",
+      "fm_amount",
+      "aux_mix"
+     ],
+     "params": [
+      {
+       "key": "engine",
+       "label": "Engine",
+       "type": "enum",
+       "options": [
+        "VA VCF",
+        "Phase Dist",
+        "6-Op I",
+        "6-Op II",
+        "6-Op III",
+        "Wave Terr",
+        "Str Mach",
+        "Chiptune",
+        "V. Analog",
+        "Waveshape",
+        "FM",
+        "Grain",
+        "Additive",
+        "Wavetable",
+        "Chord",
+        "Speech",
+        "Swarm",
+        "Noise",
+        "Particle",
+        "String",
+        "Modal",
+        "Bass Drum",
+        "Snare Drum",
+        "Hi-Hat"
+       ],
+       "default": "VA VCF"
+      },
+      {
+       "key": "fm_preset",
+       "label": "FM Preset",
+       "type": "enum",
+       "options": [
+        "SOLID BASS",
+        "Mooger Low",
+        "LeaderTape",
+        "MORHOL TB1",
+        "BASS    3",
+        "BILL BASS",
+        "BASS    1",
+        "ELEC BASS",
+        "S.BAS 27.7",
+        "RESONANCES",
+        "SYN-BASS 2",
+        "PRC SYNTH1",
+        "CROMA 2",
+        "ANALOG  4",
+        "ANALOG A",
+        "ANALOG  6",
+        "CS 80",
+        "INSERT 1",
+        "SPIRAL",
+        "DX-TROTT",
+        "GASHAUS",
+        "RING DING",
+        "PAPAGAYO",
+        "WINEGLASS",
+        "AMYTAL",
+        "FAIRLIGHT",
+        "*PPG*Vol.1",
+        "*PPG*Vol.2",
+        "*Fairl. 3",
+        "*Vocoder 2",
+        "*Sequence",
+        "Bounce 4"
+       ],
+       "default": "SOLID BASS"
+      },
+      {
+       "key": "harmonics",
+       "label": "Harmonics",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "timbre",
+       "label": "Timbre",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "morph",
+       "label": "Morph",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "decay",
+       "label": "Decay",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "lpg_colour",
+       "label": "LPG Color",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "fm_amount",
+       "label": "FM",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "aux_mix",
+       "label": "Mix",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "attack",
+       "label": "Attack",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "timbre_mod",
+       "label": "Timbre Mod",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "morph_mod",
+       "label": "Morph Mod",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "legato",
+       "label": "Legato",
+       "type": "enum",
+       "options": [
+        "off",
+        "on"
+       ],
+       "default": "off"
+      },
+      {
+       "key": "velocity_sensitivity",
+       "label": "Vel Sens",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "octave_transpose",
+       "label": "Octave",
+       "type": "int",
+       "min": -3,
+       "max": 3,
+       "default": 0
+      }
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root"
+  ],
+  "params": [
+   {
+    "key": "engine",
+    "name": "Engine",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "VA VCF",
+     "Phase Dist",
+     "6-Op I",
+     "6-Op II",
+     "6-Op III",
+     "Wave Terr",
+     "Str Mach",
+     "Chiptune",
+     "V. Analog",
+     "Waveshape",
+     "FM",
+     "Grain",
+     "Additive",
+     "Wavetable",
+     "Chord",
+     "Speech",
+     "Swarm",
+     "Noise",
+     "Particle",
+     "String",
+     "Modal",
+     "Bass Drum",
+     "Snare Drum",
+     "Hi-Hat"
+    ],
+    "default": "VA VCF"
+   },
+   {
+    "key": "harmonics",
+    "name": "Detune",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.500"
+   },
+   {
+    "key": "timbre",
+    "name": "Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.500"
+   },
+   {
+    "key": "morph",
+    "name": "Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.500"
+   },
+   {
+    "key": "decay",
+    "name": "Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.500"
+   },
+   {
+    "key": "lpg_colour",
+    "name": "LPG Color",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.500"
+   },
+   {
+    "key": "fm_amount",
+    "name": "FM",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "aux_mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "attack",
+    "name": "Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "timbre_mod",
+    "name": "Timbre Mod",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "morph_mod",
+    "name": "Morph Mod",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "legato",
+    "name": "Legato",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "velocity_sensitivity",
+    "name": "Vel Sens",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.500"
+   },
+   {
+    "key": "octave_transpose",
+    "name": "Octave",
+    "type": "int",
+    "min": -3,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": true,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "OSC",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "MOD",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "OSC",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ENGI",
+       "fullName": "Engine",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "VA VC"
+      },
+      {
+       "shortName": "HARM",
+       "fullName": "Harmonics",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TIMB",
+       "fullName": "Timbre",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MRPH",
+       "fullName": "Morph",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "DCAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LPGC",
+       "fullName": "LPG Color",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FM",
+       "fullName": "FM Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Aux Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "MOD",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATK",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TMOD",
+       "fullName": "Timbre Mod",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MMOD",
+       "fullName": "Morph Mod",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "Vel Sens",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "LGTO",
+       "fullName": "Legato",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCT",
+       "fullName": "Octave",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "engine",
+    "label": "Engine",
+    "shortLabel": "ENGI",
+    "type": "enum",
+    "options": [
+     "VA VCF",
+     "Phase Dist",
+     "6-Op I",
+     "6-Op II",
+     "6-Op III",
+     "Wave Terr",
+     "Str Mach",
+     "Chiptune",
+     "V. Analog",
+     "Waveshape",
+     "FM",
+     "Grain",
+     "Additive",
+     "Wavetable",
+     "Chord",
+     "Speech",
+     "Swarm",
+     "Noise",
+     "Particle",
+     "String",
+     "Modal",
+     "Bass Drum",
+     "Snare Drum",
+     "Hi-Hat"
+    ],
+    "min": 0,
+    "max": 23,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 24
+    }
+   },
+   {
+    "key": "harmonics",
+    "label": "Harmonics",
+    "shortLabel": "HARM",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "timbre",
+    "label": "Timbre",
+    "shortLabel": "TIMB",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "morph",
+    "label": "Morph",
+    "shortLabel": "MRPH",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "decay",
+    "label": "Decay",
+    "shortLabel": "DCAY",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lpg_colour",
+    "label": "LPG Color",
+    "shortLabel": "LPGC",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fm_amount",
+    "label": "FM Amount",
+    "shortLabel": "FM",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "aux_mix",
+    "label": "Aux Mix",
+    "shortLabel": "MIX",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "attack",
+    "label": "Attack",
+    "shortLabel": "ATK",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "timbre_mod",
+    "label": "Timbre Mod",
+    "shortLabel": "TMOD",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "morph_mod",
+    "label": "Morph Mod",
+    "shortLabel": "MMOD",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "velocity_sensitivity",
+    "label": "Vel Sens",
+    "shortLabel": "VEL",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "legato",
+    "label": "Legato",
+    "shortLabel": "LGTO",
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "octave_transpose",
+    "label": "Octave",
+    "shortLabel": "OCT",
+    "type": "int",
+    "options": null,
+    "min": -3,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 12
+    }
+   },
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": []
+ }
+}

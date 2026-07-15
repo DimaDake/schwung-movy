@@ -1,0 +1,700 @@
+{
+ "id": "impressive-chords",
+ "name": "Impressive Chords",
+ "version": "0.1.24",
+ "author": "mestela",
+ "category": "midi_fx",
+ "status": "ok",
+ "load_ms": 80,
+ "dsp_size": 114896,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "midi_fx",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Impressive Chords",
+     "count_param": "preset_count",
+     "list_param": "preset_index",
+     "name_param": "preset_name",
+     "params": [
+      {
+       "key": "preset_index",
+       "name": "Preset",
+       "type": "int",
+       "min": 0,
+       "max": 500,
+       "default": 0
+      },
+      {
+       "key": "base_note",
+       "name": "Base Note",
+       "type": "int",
+       "min": 0,
+       "max": 127,
+       "default": 48,
+       "step": 1
+      },
+      {
+       "key": "transpose",
+       "name": "Transpose",
+       "type": "int",
+       "min": -24,
+       "max": 24,
+       "default": 0,
+       "step": 1
+      },
+      {
+       "key": "invert",
+       "name": "Invert",
+       "type": "int",
+       "min": -12,
+       "max": 12,
+       "default": 0,
+       "step": 1
+      },
+      {
+       "key": "strum",
+       "name": "Strum",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "default": 0,
+       "step": 1
+      },
+      {
+       "key": "tilt",
+       "name": "Tilt",
+       "type": "int",
+       "min": -100,
+       "max": 100,
+       "default": 0,
+       "step": 1
+      },
+      {
+       "key": "articulate",
+       "name": "Articulate",
+       "type": "int",
+       "min": 1,
+       "max": 8,
+       "default": 1,
+       "step": 1
+      },
+      {
+       "key": "length",
+       "name": "Length",
+       "type": "int",
+       "min": 10,
+       "max": 2000,
+       "default": 200,
+       "step": 10
+      },
+      {
+       "key": "retrig",
+       "name": "Retrigger",
+       "type": "enum",
+       "options": [
+        "0 Off",
+        "1 1B",
+        "2 1/2B",
+        "3 1b",
+        "4 1/2b",
+        "5 1/4b",
+        "6 1/8b",
+        "7 1/16b",
+        "8 1/32b"
+       ],
+       "default": 0
+      },
+      {
+       "key": "timing",
+       "name": "Timing",
+       "type": "enum",
+       "options": [
+        "Straight",
+        "Dotted",
+        "Triplet"
+       ],
+       "default": 0
+      },
+      {
+       "key": "choke",
+       "name": "Choke",
+       "type": "int",
+       "min": 0,
+       "max": 1,
+       "default": 0
+      },
+      {
+       "key": "notes",
+       "name": "Notes Limit",
+       "type": "int",
+       "min": 0,
+       "max": 12,
+       "default": 0
+      },
+      {
+       "key": "fit",
+       "name": "Fit Strum",
+       "type": "int",
+       "min": 0,
+       "max": 1,
+       "default": 0
+      },
+      {
+       "key": "gate",
+       "name": "Gate",
+       "type": "int",
+       "min": 0,
+       "max": 1,
+       "default": 0
+      },
+      {
+       "key": "scan",
+       "name": "Scan Presets",
+       "type": "int",
+       "min": 0,
+       "max": 1,
+       "default": 0
+      }
+     ],
+     "knobs": [
+      "preset_index",
+      "base_note",
+      "transpose",
+      "invert",
+      "strum",
+      "tilt",
+      "articulate",
+      "length",
+      "retrig",
+      "timing",
+      "choke",
+      "notes",
+      "fit",
+      "gate",
+      "scan"
+     ]
+    }
+   }
+  }
+ },
+ "presets": {
+  "count": 52,
+  "sample": []
+ },
+ "native": {
+  "hierarchy_levels": [
+   "root"
+  ],
+  "params": []
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Preset",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 1",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 2",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Preset",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "Preset",
+       "renderStyle": "preset",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Main - 1",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "Preset",
+       "renderStyle": "preset",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BASE",
+       "fullName": "base_note",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TRANS",
+       "fullName": "transpose",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "INVER",
+       "fullName": "invert",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "STRUM",
+       "fullName": "strum",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TILT",
+       "fullName": "tilt",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ARTIC",
+       "fullName": "articulate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LENGT",
+       "fullName": "length",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "RETRI",
+       "fullName": "retrig",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TIMIN",
+       "fullName": "timing",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CHOKE",
+       "fullName": "choke",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOTES",
+       "fullName": "notes",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "FIT",
+       "fullName": "fit",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GATE",
+       "fullName": "gate",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SCAN",
+       "fullName": "scan",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "preset_index",
+    "label": "Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "min": 0,
+    "max": 51,
+    "step": 1,
+    "options": null,
+    "nameKey": "preset_name",
+    "renderStyle": "preset",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 52
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "preset_index",
+    "label": "Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "min": 0,
+    "max": 51,
+    "step": 1,
+    "options": null,
+    "nameKey": "preset_name",
+    "renderStyle": "preset",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 52
+    }
+   },
+   {
+    "key": "base_note",
+    "label": "base_note",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "transpose",
+    "label": "transpose",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "invert",
+    "label": "invert",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 48
+    }
+   },
+   {
+    "key": "strum",
+    "label": "strum",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "tilt",
+    "label": "tilt",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "articulate",
+    "label": "articulate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 14
+    }
+   },
+   {
+    "key": "length",
+    "label": "length",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 10,
+    "max": 2000,
+    "step": 10,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 5,
+     "detentsFullSweep": 398
+    }
+   },
+   {
+    "key": "retrig",
+    "label": "retrig",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "0 Off",
+     "1 1B",
+     "2 1/2B",
+     "3 1b",
+     "4 1/2b",
+     "5 1/4b",
+     "6 1/8b",
+     "7 1/16b",
+     "8 1/32b"
+    ],
+    "min": 0,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 9
+    }
+   },
+   {
+    "key": "timing",
+    "label": "timing",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Straight",
+     "Dotted",
+     "Triplet"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "choke",
+    "label": "choke",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   {
+    "key": "notes",
+    "label": "notes",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 12,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 24
+    }
+   },
+   {
+    "key": "fit",
+    "label": "fit",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   {
+    "key": "gate",
+    "label": "gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   {
+    "key": "scan",
+    "label": "scan",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [
+   "preset_index",
+   "preset_index",
+   "base_note",
+   "transpose",
+   "invert",
+   "strum",
+   "tilt",
+   "articulate",
+   "length",
+   "retrig",
+   "timing",
+   "choke",
+   "notes",
+   "fit",
+   "gate",
+   "scan"
+  ],
+  "warnings": [
+   "16 shown params lack chain_params metadata (movy guesses type/range): preset_index, preset_index, base_note, transpose, invert, strum, tilt, articulate, length, retrig, timing, choke, …"
+  ]
+ }
+}

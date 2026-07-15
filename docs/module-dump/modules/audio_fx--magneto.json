@@ -1,0 +1,3071 @@
+{
+ "id": "magneto",
+ "name": "Magneto",
+ "version": "0.1.2",
+ "author": "Filliformes",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 53,
+ "dsp_size": 74480,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "audio_in": true,
+  "midi_in": true,
+  "ui_hierarchy": {
+   "modes": null,
+   "levels": {
+    "root": {
+     "name": "Magneto",
+     "knobs": [
+      "play",
+      "rec",
+      "varspeed",
+      "speed",
+      "side",
+      "tone",
+      "model",
+      "volume"
+     ],
+     "params": [
+      {
+       "level": "Main",
+       "label": "Magneto"
+      },
+      {
+       "level": "Perform",
+       "label": "Perform"
+      },
+      {
+       "level": "Channel",
+       "label": "Channel"
+      },
+      {
+       "level": "Tape",
+       "label": "Tape Model"
+      },
+      {
+       "level": "Deck",
+       "label": "Deck"
+      },
+      {
+       "level": "Recs",
+       "label": "Recordings"
+      }
+     ]
+    },
+    "Main": {
+     "label": "Magneto",
+     "knobs": [
+      "play",
+      "rec",
+      "varspeed",
+      "speed",
+      "side",
+      "tone",
+      "model",
+      "volume"
+     ],
+     "params": [
+      {
+       "key": "play",
+       "label": "Play",
+       "type": "enum",
+       "options": [
+        "Stopped",
+        "Playing"
+       ],
+       "default": 0
+      },
+      {
+       "key": "rec",
+       "label": "Rec",
+       "type": "enum",
+       "options": [
+        "Stopped",
+        "Rec"
+       ],
+       "default": 0
+      },
+      {
+       "key": "varspeed",
+       "label": "Var Speed",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.01
+      },
+      {
+       "key": "speed",
+       "label": "Speed",
+       "type": "enum",
+       "options": [
+        "1 7/8",
+        "15/16"
+       ],
+       "default": 0
+      },
+      {
+       "key": "side",
+       "label": "Side",
+       "type": "enum",
+       "options": [
+        "A 1-2",
+        "B 3-4"
+       ],
+       "default": 0
+      },
+      {
+       "key": "tone",
+       "label": "Tone",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.01
+      },
+      {
+       "key": "model",
+       "label": "Tape",
+       "type": "enum",
+       "options": [
+        "Type I",
+        "Type II",
+        "Type IV",
+        "Worn",
+        "Radio",
+        "VCR",
+        "Dictaphone",
+        "Microcass",
+        "Studio"
+       ],
+       "default": 0
+      },
+      {
+       "key": "volume",
+       "label": "Volume",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.8,
+       "step": 0.01
+      },
+      {
+       "key": "feedback",
+       "label": "Feedback",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.01
+      },
+      {
+       "key": "sync_mode",
+       "label": "Sync Mode",
+       "type": "enum",
+       "options": [
+        "Free",
+        "Sync"
+       ],
+       "default": 0
+      },
+      {
+       "key": "rec_length",
+       "label": "Rec Length",
+       "type": "float",
+       "min": 1,
+       "max": 30,
+       "default": 15,
+       "step": 1,
+       "unit": "sec"
+      },
+      {
+       "key": "sync_div",
+       "label": "Sync Div",
+       "type": "enum",
+       "options": [
+        "1 Beat",
+        "2 Beats",
+        "1 Bar",
+        "2 Bars",
+        "4 Bars",
+        "8 Bars",
+        "16 Bars"
+       ],
+       "default": 4
+      },
+      {
+       "key": "tempo",
+       "label": "Tempo",
+       "type": "int",
+       "min": 20,
+       "max": 999,
+       "default": 120,
+       "step": 1,
+       "unit": "BPM"
+      }
+     ]
+    },
+    "Perform": {
+     "label": "Perform",
+     "knobs": [
+      "scrub",
+      "jump",
+      "scan",
+      "reverse",
+      "stutter",
+      "failure",
+      "tape_stop",
+      "stop_speed"
+     ],
+     "params": [
+      {
+       "key": "scrub",
+       "label": "Scrub",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      },
+      {
+       "key": "jump",
+       "label": "Jump",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      },
+      {
+       "key": "scan",
+       "label": "Scan",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      },
+      {
+       "key": "reverse",
+       "label": "Reverse",
+       "type": "enum",
+       "options": [
+        "Fwd",
+        "Rev"
+       ],
+       "default": 0
+      },
+      {
+       "key": "stutter",
+       "label": "Stutter",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      },
+      {
+       "key": "failure",
+       "label": "Failure",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      },
+      {
+       "key": "tape_stop",
+       "label": "Tape Stop",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": 0
+      },
+      {
+       "key": "stop_speed",
+       "label": "Stop Speed",
+       "type": "float",
+       "min": 60,
+       "max": 10000,
+       "default": 600,
+       "step": 50,
+       "unit": "ms"
+      }
+     ]
+    },
+    "Channel": {
+     "label": "Channel",
+     "knobs": [
+      "trim",
+      "high",
+      "high_freq",
+      "mid_freq",
+      "mid",
+      "low",
+      "input_pan",
+      "chan_vol"
+     ],
+     "params": [
+      {
+       "key": "trim",
+       "label": "Trim",
+       "type": "float",
+       "min": -12,
+       "max": 12,
+       "default": 0,
+       "step": 0.5,
+       "unit": "dB"
+      },
+      {
+       "key": "high",
+       "label": "High",
+       "type": "float",
+       "min": -12,
+       "max": 12,
+       "default": 0,
+       "step": 0.5,
+       "unit": "dB"
+      },
+      {
+       "key": "high_freq",
+       "label": "High Freq",
+       "type": "float",
+       "min": 5000,
+       "max": 12000,
+       "default": 10000,
+       "step": 50,
+       "unit": "Hz"
+      },
+      {
+       "key": "mid_freq",
+       "label": "Mid Freq",
+       "type": "float",
+       "min": 250,
+       "max": 5000,
+       "default": 1000,
+       "step": 25,
+       "unit": "Hz"
+      },
+      {
+       "key": "mid",
+       "label": "Mid",
+       "type": "float",
+       "min": -12,
+       "max": 12,
+       "default": 0,
+       "step": 0.5,
+       "unit": "dB"
+      },
+      {
+       "key": "low",
+       "label": "Low",
+       "type": "float",
+       "min": -12,
+       "max": 12,
+       "default": 0,
+       "step": 0.5,
+       "unit": "dB"
+      },
+      {
+       "key": "input_pan",
+       "label": "Pan",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.01
+      },
+      {
+       "key": "chan_vol",
+       "label": "Volume",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 1,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "eq_in",
+       "label": "Channel Mode",
+       "type": "enum",
+       "options": [
+        "Input",
+        "Tape",
+        "Off"
+       ],
+       "default": 0
+      }
+     ]
+    },
+    "Tape": {
+     "label": "Tape Model",
+     "knobs": [
+      "model",
+      "wow",
+      "flutter",
+      "saturation",
+      "rolloff",
+      "lowcut",
+      "hiss",
+      "generations"
+     ],
+     "params": [
+      {
+       "key": "model",
+       "label": "Tape",
+       "type": "enum",
+       "options": [
+        "Type I",
+        "Type II",
+        "Type IV",
+        "Worn",
+        "Radio",
+        "VCR",
+        "Dictaphone",
+        "Microcass",
+        "Studio"
+       ],
+       "default": 0
+      },
+      {
+       "key": "wow",
+       "label": "Wow",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.18,
+       "step": 0.01
+      },
+      {
+       "key": "flutter",
+       "label": "Flutter",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.2,
+       "step": 0.01
+      },
+      {
+       "key": "saturation",
+       "label": "Saturation",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.3,
+       "step": 0.01
+      },
+      {
+       "key": "rolloff",
+       "label": "HF Rolloff",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.65,
+       "step": 0.01
+      },
+      {
+       "key": "lowcut",
+       "label": "Low Cut",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.05,
+       "step": 0.01
+      },
+      {
+       "key": "hiss",
+       "label": "Hiss",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.18,
+       "step": 0.01
+      },
+      {
+       "key": "generations",
+       "label": "Generations",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.15,
+       "step": 0.01
+      }
+     ]
+    },
+    "Deck": {
+     "label": "Deck",
+     "knobs": [
+      "play",
+      "fwd",
+      "bwd",
+      "rec",
+      "clear",
+      "input_pan",
+      "pan_mode",
+      "mix"
+     ],
+     "params": [
+      {
+       "key": "play",
+       "label": "Play",
+       "type": "enum",
+       "options": [
+        "Stopped",
+        "Playing"
+       ],
+       "default": 0
+      },
+      {
+       "key": "fwd",
+       "label": "Fwd",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": 0
+      },
+      {
+       "key": "bwd",
+       "label": "Bwd",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": 0
+      },
+      {
+       "key": "rec",
+       "label": "Rec",
+       "type": "enum",
+       "options": [
+        "Stopped",
+        "Rec"
+       ],
+       "default": 0
+      },
+      {
+       "key": "clear",
+       "label": "Clear",
+       "type": "enum",
+       "options": [
+        "Clear",
+        "Cleared"
+       ],
+       "default": 0
+      },
+      {
+       "key": "input_pan",
+       "label": "Pan",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.01
+      },
+      {
+       "key": "pan_mode",
+       "label": "Pan Mode",
+       "type": "enum",
+       "options": [
+        "Mono",
+        "Stereo"
+       ],
+       "default": 1
+      },
+      {
+       "key": "mix",
+       "label": "Mix",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 1,
+       "step": 0.01
+      }
+     ]
+    },
+    "Recs": {
+     "label": "Recordings",
+     "knobs": [],
+     "params": [
+      {
+       "key": "rec_mode",
+       "label": "Rec Mode",
+       "type": "enum",
+       "options": [
+        "Monitor",
+        "Loop Only"
+       ],
+       "default": 0
+      },
+      {
+       "key": "rec_length",
+       "label": "Rec Length",
+       "type": "float",
+       "min": 1,
+       "max": 30,
+       "default": 15,
+       "step": 1,
+       "unit": "sec"
+      },
+      {
+       "key": "load_a",
+       "label": "Load A",
+       "type": "filepath",
+       "root": "/data/UserData/UserLibrary",
+       "filter": ".wav",
+       "live_preview": true,
+       "default": ""
+      },
+      {
+       "key": "load_b",
+       "label": "Load B",
+       "type": "filepath",
+       "root": "/data/UserData/UserLibrary",
+       "filter": ".wav",
+       "live_preview": true,
+       "default": ""
+      },
+      {
+       "key": "blank_a",
+       "label": "Blank A",
+       "type": "enum",
+       "options": [
+        "Blank",
+        "Blanked"
+       ],
+       "default": 0
+      },
+      {
+       "key": "blank_b",
+       "label": "Blank B",
+       "type": "enum",
+       "options": [
+        "Blank",
+        "Blanked"
+       ],
+       "default": 0
+      },
+      {
+       "key": "save_recs",
+       "label": "Save to Recs",
+       "type": "enum",
+       "options": [
+        "Save",
+        "Saved"
+       ],
+       "default": 0
+      },
+      {
+       "key": "recover",
+       "label": "Recover Loop",
+       "type": "enum",
+       "options": [
+        "Recover",
+        "Recovered"
+       ],
+       "default": 0
+      }
+     ]
+    }
+   }
+  },
+  "chain_params": [
+   {
+    "key": "varspeed",
+    "name": "Var Speed",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "speed",
+    "name": "Speed",
+    "type": "enum",
+    "options": [
+     "1 7/8",
+     "15/16"
+    ]
+   },
+   {
+    "key": "side",
+    "name": "Side",
+    "type": "enum",
+    "options": [
+     "A 1-2",
+     "B 3-4"
+    ]
+   },
+   {
+    "key": "tone",
+    "name": "Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "volume",
+    "name": "Volume",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "model",
+    "name": "Tape",
+    "type": "enum",
+    "options": [
+     "Type I",
+     "Type II",
+     "Type IV",
+     "Worn",
+     "Radio",
+     "VCR",
+     "Dictaphone",
+     "Microcass",
+     "Studio"
+    ]
+   },
+   {
+    "key": "mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "feedback",
+    "name": "Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "wow",
+    "name": "Wow",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "flutter",
+    "name": "Flutter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "saturation",
+    "name": "Saturation",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rolloff",
+    "name": "HF Rolloff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "hiss",
+    "name": "Hiss",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "lowcut",
+    "name": "Low Cut",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "generations",
+    "name": "Generations",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "input_pan",
+    "name": "Pan",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "pan_mode",
+    "name": "Pan Mode",
+    "type": "enum",
+    "options": [
+     "Mono",
+     "Stereo"
+    ]
+   },
+   {
+    "key": "stutter",
+    "name": "Stutter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "failure",
+    "name": "Failure",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "scrub",
+    "name": "Scrub",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "jump",
+    "name": "Jump",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "unit": "%"
+   },
+   {
+    "key": "scan",
+    "name": "Scan",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "unit": "%"
+   },
+   {
+    "key": "tape_stop",
+    "name": "Tape Stop",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ]
+   },
+   {
+    "key": "stop_speed",
+    "name": "Stop Speed",
+    "type": "float",
+    "min": 60,
+    "max": 10000,
+    "step": 50,
+    "unit": "ms"
+   },
+   {
+    "key": "trim",
+    "name": "Trim",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 0.5,
+    "unit": "dB"
+   },
+   {
+    "key": "low",
+    "name": "Low",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 0.5,
+    "unit": "dB"
+   },
+   {
+    "key": "mid",
+    "name": "Mid",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 0.5,
+    "unit": "dB"
+   },
+   {
+    "key": "mid_freq",
+    "name": "Mid Freq",
+    "type": "float",
+    "min": 250,
+    "max": 5000,
+    "step": 25,
+    "unit": "Hz"
+   },
+   {
+    "key": "high",
+    "name": "High",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 0.5,
+    "unit": "dB"
+   },
+   {
+    "key": "high_freq",
+    "name": "High Freq",
+    "type": "float",
+    "min": 5000,
+    "max": 12000,
+    "step": 50,
+    "unit": "Hz"
+   },
+   {
+    "key": "chan_vol",
+    "name": "Volume",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "unit": "%"
+   },
+   {
+    "key": "eq_in",
+    "name": "Channel Mode",
+    "type": "enum",
+    "options": [
+     "Input",
+     "Tape",
+     "Off"
+    ]
+   },
+   {
+    "key": "rec_mode",
+    "name": "Rec Mode",
+    "type": "enum",
+    "options": [
+     "Monitor",
+     "Loop Only"
+    ]
+   },
+   {
+    "key": "rec_length",
+    "name": "Rec Length",
+    "type": "float",
+    "min": 1,
+    "max": 30,
+    "step": 1,
+    "unit": "sec"
+   },
+   {
+    "key": "sync_mode",
+    "name": "Sync Mode",
+    "type": "enum",
+    "options": [
+     "Free",
+     "Sync"
+    ]
+   },
+   {
+    "key": "sync_div",
+    "name": "Sync Div",
+    "type": "enum",
+    "options": [
+     "1 Beat",
+     "2 Beats",
+     "1 Bar",
+     "2 Bars",
+     "4 Bars",
+     "8 Bars",
+     "16 Bars"
+    ]
+   },
+   {
+    "key": "tempo",
+    "name": "Tempo",
+    "type": "int",
+    "min": 20,
+    "max": 999,
+    "step": 1,
+    "unit": "BPM"
+   },
+   {
+    "key": "fwd",
+    "name": "Fwd",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ]
+   },
+   {
+    "key": "bwd",
+    "name": "Bwd",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ]
+   },
+   {
+    "key": "load_a",
+    "name": "Load A",
+    "type": "filepath",
+    "root": "/data/UserData/UserLibrary",
+    "filter": ".wav",
+    "live_preview": true,
+    "default": ""
+   },
+   {
+    "key": "load_b",
+    "name": "Load B",
+    "type": "filepath",
+    "root": "/data/UserData/UserLibrary",
+    "filter": ".wav",
+    "live_preview": true,
+    "default": ""
+   },
+   {
+    "key": "blank_a",
+    "name": "Blank A",
+    "type": "enum",
+    "options": [
+     "Blank",
+     "Blanked"
+    ]
+   },
+   {
+    "key": "blank_b",
+    "name": "Blank B",
+    "type": "enum",
+    "options": [
+     "Blank",
+     "Blanked"
+    ]
+   },
+   {
+    "key": "save_recs",
+    "name": "Save to Recs",
+    "type": "enum",
+    "options": [
+     "Save",
+     "Saved"
+    ]
+   },
+   {
+    "key": "play",
+    "name": "Play",
+    "type": "enum",
+    "options": [
+     "Stopped",
+     "Playing"
+    ]
+   },
+   {
+    "key": "rec",
+    "name": "Rec",
+    "type": "enum",
+    "options": [
+     "Stopped",
+     "Rec"
+    ]
+   },
+   {
+    "key": "reverse",
+    "name": "Reverse",
+    "type": "enum",
+    "options": [
+     "Fwd",
+     "Rev"
+    ]
+   },
+   {
+    "key": "clear",
+    "name": "Clear",
+    "type": "enum",
+    "options": [
+     "Clear",
+     "Cleared"
+    ]
+   },
+   {
+    "key": "recover",
+    "name": "Recover Loop",
+    "type": "enum",
+    "options": [
+     "Recover",
+     "Recovered"
+    ]
+   }
+  ]
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "Main",
+   "Perform",
+   "Channel",
+   "Tape",
+   "Deck",
+   "Recs"
+  ],
+  "params": [
+   {
+    "key": "varspeed",
+    "name": "Var Speed",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.50"
+   },
+   {
+    "key": "speed",
+    "name": "Speed",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "1 7/8",
+     "15/16"
+    ],
+    "default": "1 7/8"
+   },
+   {
+    "key": "side",
+    "name": "Side",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "A 1-2",
+     "B 3-4"
+    ],
+    "default": "A 1-2"
+   },
+   {
+    "key": "tone",
+    "name": "Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.50"
+   },
+   {
+    "key": "volume",
+    "name": "Volume",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.80"
+   },
+   {
+    "key": "model",
+    "name": "Tape",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Type I",
+     "Type II",
+     "Type IV",
+     "Worn",
+     "Radio",
+     "VCR",
+     "Dictaphone",
+     "Microcass",
+     "Studio"
+    ],
+    "default": "Type I"
+   },
+   {
+    "key": "mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "1.00"
+   },
+   {
+    "key": "feedback",
+    "name": "Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.50"
+   },
+   {
+    "key": "wow",
+    "name": "Wow",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.18"
+   },
+   {
+    "key": "flutter",
+    "name": "Flutter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.20"
+   },
+   {
+    "key": "saturation",
+    "name": "Saturation",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.30"
+   },
+   {
+    "key": "rolloff",
+    "name": "HF Rolloff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.62"
+   },
+   {
+    "key": "hiss",
+    "name": "Hiss",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.20"
+   },
+   {
+    "key": "lowcut",
+    "name": "Low Cut",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.05"
+   },
+   {
+    "key": "generations",
+    "name": "Generations",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.12"
+   },
+   {
+    "key": "input_pan",
+    "name": "Pan",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.50"
+   },
+   {
+    "key": "pan_mode",
+    "name": "Pan Mode",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Mono",
+     "Stereo"
+    ],
+    "default": "Stereo"
+   },
+   {
+    "key": "stutter",
+    "name": "Stutter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "failure",
+    "name": "Failure",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "scrub",
+    "name": "Scrub",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "jump",
+    "name": "Jump",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "scan",
+    "name": "Scan",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "tape_stop",
+    "name": "Tape Stop",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "stop_speed",
+    "name": "Stop Speed",
+    "type": "float",
+    "min": 60,
+    "max": 10000,
+    "step": null,
+    "options": null,
+    "default": "600.00"
+   },
+   {
+    "key": "trim",
+    "name": "Trim",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "low",
+    "name": "Low",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "mid",
+    "name": "Mid",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "mid_freq",
+    "name": "Mid Freq",
+    "type": "float",
+    "min": 250,
+    "max": 5000,
+    "step": null,
+    "options": null,
+    "default": "1000.00"
+   },
+   {
+    "key": "high",
+    "name": "High",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "high_freq",
+    "name": "High Freq",
+    "type": "float",
+    "min": 5000,
+    "max": 12000,
+    "step": null,
+    "options": null,
+    "default": "10000.00"
+   },
+   {
+    "key": "chan_vol",
+    "name": "Volume",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "1.00"
+   },
+   {
+    "key": "eq_in",
+    "name": "Channel Mode",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Input",
+     "Tape",
+     "Off"
+    ],
+    "default": "Input"
+   },
+   {
+    "key": "rec_mode",
+    "name": "Rec Mode",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Monitor",
+     "Loop Only"
+    ],
+    "default": "Monitor"
+   },
+   {
+    "key": "rec_length",
+    "name": "Rec Length",
+    "type": "float",
+    "min": 1,
+    "max": 30,
+    "step": null,
+    "options": null,
+    "default": "15.00"
+   },
+   {
+    "key": "sync_mode",
+    "name": "Sync Mode",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Free",
+     "Sync"
+    ],
+    "default": "Free"
+   },
+   {
+    "key": "sync_div",
+    "name": "Sync Div",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "1 Beat",
+     "2 Beats",
+     "1 Bar",
+     "2 Bars",
+     "4 Bars",
+     "8 Bars",
+     "16 Bars"
+    ],
+    "default": "4 Bars"
+   },
+   {
+    "key": "tempo",
+    "name": "Tempo",
+    "type": "int",
+    "min": 20,
+    "max": 999,
+    "step": null,
+    "options": null,
+    "default": "120"
+   },
+   {
+    "key": "fwd",
+    "name": "Fwd",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "bwd",
+    "name": "Bwd",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "load_a",
+    "name": "Load A",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "load_b",
+    "name": "Load B",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "blank_a",
+    "name": "Blank A",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Blank",
+     "Blanked"
+    ],
+    "default": "Blank"
+   },
+   {
+    "key": "blank_b",
+    "name": "Blank B",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Blank",
+     "Blanked"
+    ],
+    "default": "Blank"
+   },
+   {
+    "key": "save_recs",
+    "name": "Save to Recs",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Save",
+     "Saved"
+    ],
+    "default": "Save"
+   },
+   {
+    "key": "play",
+    "name": "Play",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Stopped",
+     "Playing"
+    ],
+    "default": "Stopped"
+   },
+   {
+    "key": "rec",
+    "name": "Rec",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Stopped",
+     "Rec"
+    ],
+    "default": "Stopped"
+   },
+   {
+    "key": "reverse",
+    "name": "Reverse",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Fwd",
+     "Rev"
+    ],
+    "default": "Fwd"
+   },
+   {
+    "key": "clear",
+    "name": "Clear",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Clear",
+     "Cleared"
+    ],
+    "default": "Clear"
+   },
+   {
+    "key": "recover",
+    "name": "Recover Loop",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Recover",
+     "Recovered"
+    ],
+    "default": "Recover"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Magneto",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Perform",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Channel",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Tape Model",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Deck",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PLAY",
+       "fullName": "Play",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "Stopp"
+      },
+      {
+       "shortName": "REC",
+       "fullName": "Rec",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VAR",
+       "fullName": "Var Speed",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPEED",
+       "fullName": "Speed",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SIDE",
+       "fullName": "Side",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TAPE",
+       "fullName": "Tape",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOLUM",
+       "fullName": "Volume",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Magneto",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PLAY",
+       "fullName": "Play",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "REC",
+       "fullName": "Rec",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VAR",
+       "fullName": "Var Speed",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPEED",
+       "fullName": "Speed",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SIDE",
+       "fullName": "Side",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TAPE",
+       "fullName": "Tape",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOLUM",
+       "fullName": "Volume",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Perform",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SCRUB",
+       "fullName": "Scrub",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "JUMP",
+       "fullName": "Jump",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SCAN",
+       "fullName": "Scan",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "REVER",
+       "fullName": "Reverse",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "STUTT",
+       "fullName": "Stutter",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FAILU",
+       "fullName": "Failure",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TAPE",
+       "fullName": "Tape Stop",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STOP",
+       "fullName": "Stop Speed",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Channel",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TRIM",
+       "fullName": "Trim",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HIGH",
+       "fullName": "High",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "High Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "Mid Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "MID",
+       "fullName": "Mid",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LOW",
+       "fullName": "Low",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN",
+       "fullName": "Pan",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOLUM",
+       "fullName": "Volume",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Tape Model",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TAPE",
+       "fullName": "Tape",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WOW",
+       "fullName": "Wow",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FLUTT",
+       "fullName": "Flutter",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SATUR",
+       "fullName": "Saturation",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "HF",
+       "fullName": "HF Rolloff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LOW",
+       "fullName": "Low Cut",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HISS",
+       "fullName": "Hiss",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GENER",
+       "fullName": "Generations",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Deck",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PLAY",
+       "fullName": "Play",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FWD",
+       "fullName": "Fwd",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BWD",
+       "fullName": "Bwd",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "REC",
+       "fullName": "Rec",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "CLEAR",
+       "fullName": "Clear",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN",
+       "fullName": "Pan",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MODE",
+       "fullName": "Pan Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "play",
+    "label": "Play",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Stopped",
+     "Playing"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "rec",
+    "label": "Rec",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Stopped",
+     "Rec"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "varspeed",
+    "label": "Var Speed",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "speed",
+    "label": "Speed",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1 7/8",
+     "15/16"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "side",
+    "label": "Side",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "A 1-2",
+     "B 3-4"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "tone",
+    "label": "Tone",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "model",
+    "label": "Tape",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Type I",
+     "Type II",
+     "Type IV",
+     "Worn",
+     "Radio",
+     "VCR",
+     "Dictaphone",
+     "Microcass",
+     "Studio"
+    ],
+    "min": 0,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 9
+    }
+   },
+   {
+    "key": "volume",
+    "label": "Volume",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "play",
+    "label": "Play",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Stopped",
+     "Playing"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "rec",
+    "label": "Rec",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Stopped",
+     "Rec"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "varspeed",
+    "label": "Var Speed",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "speed",
+    "label": "Speed",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1 7/8",
+     "15/16"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "side",
+    "label": "Side",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "A 1-2",
+     "B 3-4"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "tone",
+    "label": "Tone",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "model",
+    "label": "Tape",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Type I",
+     "Type II",
+     "Type IV",
+     "Worn",
+     "Radio",
+     "VCR",
+     "Dictaphone",
+     "Microcass",
+     "Studio"
+    ],
+    "min": 0,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 9
+    }
+   },
+   {
+    "key": "volume",
+    "label": "Volume",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "scrub",
+    "label": "Scrub",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "jump",
+    "label": "Jump",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "scan",
+    "label": "Scan",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "reverse",
+    "label": "Reverse",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Fwd",
+     "Rev"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "stutter",
+    "label": "Stutter",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "failure",
+    "label": "Failure",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "tape_stop",
+    "label": "Tape Stop",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "stop_speed",
+    "label": "Stop Speed",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 60,
+    "max": 10000,
+    "step": 50,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 25,
+     "detentsFullSweep": 398
+    }
+   },
+   {
+    "key": "trim",
+    "label": "Trim",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "high",
+    "label": "High",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "high_freq",
+    "label": "High Freq",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 5000,
+    "max": 12000,
+    "step": 50,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 25,
+     "detentsFullSweep": 280
+    }
+   },
+   {
+    "key": "mid_freq",
+    "label": "Mid Freq",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 250,
+    "max": 5000,
+    "step": 25,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 12.5,
+     "detentsFullSweep": 380
+    }
+   },
+   {
+    "key": "mid",
+    "label": "Mid",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "low",
+    "label": "Low",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "input_pan",
+    "label": "Pan",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "chan_vol",
+    "label": "Volume",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "model",
+    "label": "Tape",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Type I",
+     "Type II",
+     "Type IV",
+     "Worn",
+     "Radio",
+     "VCR",
+     "Dictaphone",
+     "Microcass",
+     "Studio"
+    ],
+    "min": 0,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 9
+    }
+   },
+   {
+    "key": "wow",
+    "label": "Wow",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "flutter",
+    "label": "Flutter",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "saturation",
+    "label": "Saturation",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rolloff",
+    "label": "HF Rolloff",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lowcut",
+    "label": "Low Cut",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "hiss",
+    "label": "Hiss",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "generations",
+    "label": "Generations",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "play",
+    "label": "Play",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Stopped",
+     "Playing"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "fwd",
+    "label": "Fwd",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "bwd",
+    "label": "Bwd",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "rec",
+    "label": "Rec",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Stopped",
+     "Rec"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "clear",
+    "label": "Clear",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Clear",
+     "Cleared"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "input_pan",
+    "label": "Pan",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pan_mode",
+    "label": "Pan Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Mono",
+     "Stereo"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "feedback",
+   "eq_in",
+   "rec_mode",
+   "rec_length",
+   "sync_mode",
+   "sync_div",
+   "tempo",
+   "load_a",
+   "load_b",
+   "blank_a",
+   "blank_b",
+   "save_recs",
+   "recover"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "13 chain_params not reachable in movy: feedback, eq_in, rec_mode, rec_length, sync_mode, sync_div, tempo, load_a, load_b, blank_a, blank_b, save_recs, …",
+   "page \"Channel\": duplicate on-screen names FREQ"
+  ]
+ }
+}

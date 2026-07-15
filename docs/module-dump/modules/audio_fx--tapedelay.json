@@ -1,0 +1,378 @@
+{
+ "id": "tapedelay",
+ "name": "TapeDelay",
+ "version": "0.4.3",
+ "author": "cyrusasfa (port: charlesvestal)",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 70,
+ "dsp_size": 19000,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "TapeDelay",
+     "params": [
+      {
+       "key": "time",
+       "label": "Time",
+       "type": "int",
+       "min": 20,
+       "max": 2000,
+       "default": 400,
+       "step": 1,
+       "unit": "ms"
+      },
+      {
+       "key": "division",
+       "label": "Division",
+       "type": "enum",
+       "options": [
+        "free",
+        "1/1",
+        "1/2",
+        "1/2d",
+        "1/4",
+        "1/4d",
+        "1/4t",
+        "1/8",
+        "1/8d",
+        "1/8t",
+        "1/16",
+        "1/16t"
+       ],
+       "default": 0
+      },
+      {
+       "key": "feedback",
+       "label": "Feedback",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.4,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "mix",
+       "label": "Mix",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.35,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "tone",
+       "label": "Tone",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.6,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "stereo_width",
+       "label": "Stereo Width",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "default": 0,
+       "step": 1,
+       "unit": "%"
+      }
+     ],
+     "knobs": [
+      "time",
+      "division",
+      "feedback",
+      "mix",
+      "tone",
+      "stereo_width"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root"
+  ],
+  "params": [
+   {
+    "key": "time",
+    "name": "Time",
+    "type": "int",
+    "min": 20,
+    "max": 2000,
+    "step": 1,
+    "options": null,
+    "default": "400"
+   },
+   {
+    "key": "division",
+    "name": "Division",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "free",
+     "1/1",
+     "1/2",
+     "1/2d",
+     "1/4",
+     "1/4d",
+     "1/4t",
+     "1/8",
+     "1/8d",
+     "1/8t",
+     "1/16",
+     "1/16t"
+    ],
+    "default": "free"
+   },
+   {
+    "key": "feedback",
+    "name": "Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.40"
+   },
+   {
+    "key": "mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50"
+   },
+   {
+    "key": "tone",
+    "name": "Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50"
+   },
+   {
+    "key": "stereo_width",
+    "name": "Stereo Width",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TIME",
+       "fullName": "Time",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "400"
+      },
+      {
+       "shortName": "DIVIS",
+       "fullName": "Division",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FEEDB",
+       "fullName": "Feedback",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TONE",
+       "fullName": "Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SW",
+       "fullName": "Stereo Width",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "time",
+    "label": "Time",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 20,
+    "max": 2000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3960
+    }
+   },
+   {
+    "key": "division",
+    "label": "Division",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "free",
+     "1/1",
+     "1/2",
+     "1/2d",
+     "1/4",
+     "1/4d",
+     "1/4t",
+     "1/8",
+     "1/8d",
+     "1/8t",
+     "1/16",
+     "1/16t"
+    ],
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 12
+    }
+   },
+   {
+    "key": "feedback",
+    "label": "Feedback",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "tone",
+    "label": "Tone",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "stereo_width",
+    "label": "Stereo Width",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": []
+ }
+}

@@ -1,0 +1,2079 @@
+{
+ "id": "superboom",
+ "name": "Super Boom",
+ "version": "1.4.0",
+ "author": "fillioning",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 55,
+ "dsp_size": 36296,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "audio_in": true,
+  "chain_params": [
+   {
+    "key": "inputGain",
+    "name": "Input",
+    "type": "float",
+    "min": 0.5,
+    "max": 4,
+    "default": 1,
+    "step": 0.01
+   },
+   {
+    "key": "compAmount",
+    "name": "Comp",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 0,
+    "step": 0.01
+   },
+   {
+    "key": "drive",
+    "name": "Drive",
+    "type": "float",
+    "min": 1,
+    "max": 20,
+    "default": 1,
+    "step": 0.01
+   },
+   {
+    "key": "driveMix",
+    "name": "DrvMx",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 1,
+    "step": 0.01
+   },
+   {
+    "key": "distMode",
+    "name": "Mode",
+    "type": "enum",
+    "options": [
+     "Boost",
+     "Tube",
+     "Fuzz",
+     "Square"
+    ],
+    "default": 0
+   },
+   {
+    "key": "flavor",
+    "name": "Flavor",
+    "type": "enum",
+    "options": [
+     "Bal",
+     "Form",
+     "Oct",
+     "Thump",
+     "Radio",
+     "Acid",
+     "Motwn",
+     "West"
+    ],
+    "default": 0
+   },
+   {
+    "key": "shift",
+    "name": "Shift",
+    "type": "float",
+    "min": -2,
+    "max": 2,
+    "default": 0,
+    "step": 0.01
+   },
+   {
+    "key": "mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 1,
+    "step": 0.01
+   },
+   {
+    "key": "output",
+    "name": "Level",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "default": 1,
+    "step": 0.01
+   },
+   {
+    "key": "b1",
+    "name": "Low",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "default": 1,
+    "step": 0.01
+   },
+   {
+    "key": "b2",
+    "name": "B2",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "default": 1,
+    "step": 0.01
+   },
+   {
+    "key": "b3",
+    "name": "B3",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "default": 1,
+    "step": 0.01
+   },
+   {
+    "key": "b4",
+    "name": "Mid",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "default": 1,
+    "step": 0.01
+   },
+   {
+    "key": "b5",
+    "name": "B5",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "default": 1,
+    "step": 0.01
+   },
+   {
+    "key": "b6",
+    "name": "B6",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "default": 1,
+    "step": 0.01
+   },
+   {
+    "key": "b7",
+    "name": "B7",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "default": 1,
+    "step": 0.01
+   },
+   {
+    "key": "b8",
+    "name": "High",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "default": 1,
+    "step": 0.01
+   },
+   {
+    "key": "micControl",
+    "name": "Voc",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": 0
+   },
+   {
+    "key": "vocGain",
+    "name": "VocGn",
+    "type": "float",
+    "min": 0.5,
+    "max": 2,
+    "default": 1,
+    "step": 0.01
+   },
+   {
+    "key": "modShift",
+    "name": "M-Shft",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "default": 0,
+    "step": 0.01
+   },
+   {
+    "key": "atk",
+    "name": "Atk",
+    "type": "enum",
+    "options": [
+     "50us",
+     "330us",
+     "1ms",
+     "3.3ms",
+     "10ms",
+     "33ms"
+    ],
+    "default": 0
+   },
+   {
+    "key": "rel",
+    "name": "Rel",
+    "type": "enum",
+    "options": [
+     "50ms",
+     "100ms",
+     "250ms",
+     "350ms",
+     "500ms",
+     "1s"
+    ],
+    "default": 0
+   },
+   {
+    "key": "thresh",
+    "name": "Thresh",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 0.9,
+    "step": 0.01
+   },
+   {
+    "key": "modDrive",
+    "name": "M-Drv",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 0,
+    "step": 0.01
+   },
+   {
+    "key": "preType",
+    "name": "Pre",
+    "type": "enum",
+    "options": [
+     "Cass1",
+     "Cass2",
+     "Mast",
+     "Slam",
+     "Thick",
+     "12bit",
+     "8bit",
+     "Brit",
+     "USA",
+     "Cln"
+    ],
+    "default": 9
+   },
+   {
+    "key": "grit",
+    "name": "Grit",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 0,
+    "step": 0.01
+   },
+   {
+    "key": "gate",
+    "name": "Gate",
+    "type": "enum",
+    "options": [
+     "Off",
+     "-50dB",
+     "-40dB",
+     "-30dB",
+     "-20dB",
+     "-10dB",
+     "0dB"
+    ],
+    "default": 0
+   },
+   {
+    "key": "link",
+    "name": "Link",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 1,
+    "step": 0.01
+   },
+   {
+    "key": "loCut",
+    "name": "LoCut",
+    "type": "enum",
+    "options": [
+     "Off",
+     "75",
+     "150",
+     "300"
+    ],
+    "default": 0
+   },
+   {
+    "key": "hiCut",
+    "name": "HiCut",
+    "type": "int",
+    "min": 20,
+    "max": 20000,
+    "default": 20000,
+    "step": 10
+   },
+   {
+    "key": "sat",
+    "name": "Sat",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 0,
+    "step": 0.01
+   },
+   {
+    "key": "age",
+    "name": "Age",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 0,
+    "step": 0.01
+   },
+   {
+    "key": "flutter",
+    "name": "Flutter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 0,
+    "step": 0.01
+   },
+   {
+    "key": "bump",
+    "name": "Bump",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 0,
+    "step": 0.01
+   },
+   {
+    "key": "limiter",
+    "name": "Limit",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": 0
+   },
+   {
+    "key": "bypass",
+    "name": "Bypass",
+    "type": "enum",
+    "options": [
+     "On",
+     "Byp"
+    ],
+    "default": 0
+   }
+  ],
+  "ui_hierarchy": {
+   "modes": null,
+   "levels": {
+    "root": {
+     "name": "Super Boom",
+     "knobs": [
+      "inputGain",
+      "compAmount",
+      "drive",
+      "driveMix",
+      "distMode",
+      "shift",
+      "mix",
+      "output"
+     ],
+     "params": [
+      {
+       "level": "BOOM",
+       "label": "Boom"
+      },
+      {
+       "level": "SKULPT",
+       "label": "Skulpt"
+      },
+      {
+       "level": "PRECOMP",
+       "label": "Pre&Comp"
+      },
+      {
+       "level": "SEAL",
+       "label": "Seal"
+      }
+     ]
+    },
+    "BOOM": {
+     "label": "Boom",
+     "knobs": [
+      "inputGain",
+      "compAmount",
+      "drive",
+      "driveMix",
+      "distMode",
+      "shift",
+      "mix",
+      "output"
+     ],
+     "params": [
+      "inputGain",
+      "compAmount",
+      "drive",
+      "driveMix",
+      "distMode",
+      "shift",
+      "mix",
+      "output"
+     ]
+    },
+    "SKULPT": {
+     "label": "Skulpt",
+     "knobs": [
+      "b1",
+      "b2",
+      "b3",
+      "b4",
+      "b5",
+      "b6",
+      "b7",
+      "b8"
+     ],
+     "params": [
+      "b1",
+      "b2",
+      "b3",
+      "b4",
+      "b5",
+      "b6",
+      "b7",
+      "b8",
+      "modShift",
+      "flavor",
+      "micControl",
+      "vocGain"
+     ]
+    },
+    "PRECOMP": {
+     "label": "Pre&Comp",
+     "knobs": [
+      "atk",
+      "rel",
+      "thresh",
+      "modDrive",
+      "preType",
+      "grit",
+      "gate",
+      "link"
+     ],
+     "params": [
+      "atk",
+      "rel",
+      "thresh",
+      "modDrive",
+      "preType",
+      "grit",
+      "gate",
+      "link"
+     ]
+    },
+    "SEAL": {
+     "label": "Seal",
+     "knobs": [
+      "loCut",
+      "hiCut",
+      "sat",
+      "age",
+      "flutter",
+      "bump",
+      "limiter",
+      "bypass"
+     ],
+     "params": [
+      "loCut",
+      "hiCut",
+      "sat",
+      "age",
+      "flutter",
+      "bump",
+      "limiter",
+      "bypass"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "BOOM",
+   "SKULPT",
+   "PRECOMP",
+   "SEAL"
+  ],
+  "params": [
+   {
+    "key": "inputGain",
+    "name": "Input",
+    "type": "float",
+    "min": 0.5,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "compAmount",
+    "name": "Comp",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "drive",
+    "name": "Drive",
+    "type": "float",
+    "min": 1,
+    "max": 20,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "driveMix",
+    "name": "DrvMx",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "distMode",
+    "name": "Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Boost",
+     "Tube",
+     "Fuzz",
+     "Square"
+    ],
+    "default": "Boost"
+   },
+   {
+    "key": "flavor",
+    "name": "Flavor",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Bal",
+     "Form",
+     "Oct",
+     "Thump",
+     "Radio",
+     "Acid",
+     "Motwn",
+     "West"
+    ],
+    "default": "Bal"
+   },
+   {
+    "key": "shift",
+    "name": "Shift",
+    "type": "float",
+    "min": -2,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "output",
+    "name": "Level",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "b1",
+    "name": "Low",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "b2",
+    "name": "B2",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "b3",
+    "name": "B3",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "b4",
+    "name": "Mid",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "b5",
+    "name": "B5",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "b6",
+    "name": "B6",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "b7",
+    "name": "B7",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "b8",
+    "name": "High",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "micControl",
+    "name": "Voc",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "vocGain",
+    "name": "VocGn",
+    "type": "float",
+    "min": 0.5,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "modShift",
+    "name": "M-Shft",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "atk",
+    "name": "Atk",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "50us",
+     "330us",
+     "1ms",
+     "3.3ms",
+     "10ms",
+     "33ms"
+    ],
+    "default": "50us"
+   },
+   {
+    "key": "rel",
+    "name": "Rel",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "50ms",
+     "100ms",
+     "250ms",
+     "350ms",
+     "500ms",
+     "1s"
+    ],
+    "default": "50ms"
+   },
+   {
+    "key": "thresh",
+    "name": "Thresh",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.9000"
+   },
+   {
+    "key": "modDrive",
+    "name": "M-Drv",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "preType",
+    "name": "Pre",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Cass1",
+     "Cass2",
+     "Mast",
+     "Slam",
+     "Thick",
+     "12bit",
+     "8bit",
+     "Brit",
+     "USA",
+     "Cln"
+    ],
+    "default": "Cln"
+   },
+   {
+    "key": "grit",
+    "name": "Grit",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "gate",
+    "name": "Gate",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "-50dB",
+     "-40dB",
+     "-30dB",
+     "-20dB",
+     "-10dB",
+     "0dB"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "link",
+    "name": "Link",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "loCut",
+    "name": "LoCut",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "75",
+     "150",
+     "300"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "hiCut",
+    "name": "HiCut",
+    "type": "int",
+    "min": 20,
+    "max": 20000,
+    "step": 10,
+    "options": null,
+    "default": "20000"
+   },
+   {
+    "key": "sat",
+    "name": "Sat",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "age",
+    "name": "Age",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "flutter",
+    "name": "Flutter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "bump",
+    "name": "Bump",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "limiter",
+    "name": "Limit",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "bypass",
+    "name": "Bypass",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "On",
+     "Byp"
+    ],
+    "default": "On"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Boom",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Skulpt",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Pre&Comp",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Seal",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "INPUT",
+       "fullName": "Input",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "14%"
+      },
+      {
+       "shortName": "COMP",
+       "fullName": "Comp",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIVE",
+       "fullName": "Drive",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRVMX",
+       "fullName": "DrvMx",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "MODE",
+       "fullName": "Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SHIFT",
+       "fullName": "Shift",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LEVEL",
+       "fullName": "Level",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Boom",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "INPUT",
+       "fullName": "Input",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "COMP",
+       "fullName": "Comp",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIVE",
+       "fullName": "Drive",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRVMX",
+       "fullName": "DrvMx",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "MODE",
+       "fullName": "Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SHIFT",
+       "fullName": "Shift",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LEVEL",
+       "fullName": "Level",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Skulpt",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LOW",
+       "fullName": "Low",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "B2",
+       "fullName": "B2",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "B3",
+       "fullName": "B3",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MID",
+       "fullName": "Mid",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "B5",
+       "fullName": "B5",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "B6",
+       "fullName": "B6",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "B7",
+       "fullName": "B7",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HIGH",
+       "fullName": "High",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Pre&Comp",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATK",
+       "fullName": "Atk",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "REL",
+       "fullName": "Rel",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "THRES",
+       "fullName": "Thresh",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "M-DRV",
+       "fullName": "M-Drv",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PRE",
+       "fullName": "Pre",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GRIT",
+       "fullName": "Grit",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LINK",
+       "fullName": "Link",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Seal",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LOCUT",
+       "fullName": "LoCut",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HICUT",
+       "fullName": "HiCut",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SAT",
+       "fullName": "Sat",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AGE",
+       "fullName": "Age",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "FLUTT",
+       "fullName": "Flutter",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BUMP",
+       "fullName": "Bump",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LIMIT",
+       "fullName": "Limit",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BYPAS",
+       "fullName": "Bypass",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "inputGain",
+    "label": "Input",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.5,
+    "max": 4,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 700
+    }
+   },
+   {
+    "key": "compAmount",
+    "label": "Comp",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "drive",
+    "label": "Drive",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 1,
+    "max": 20,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 3800
+    }
+   },
+   {
+    "key": "driveMix",
+    "label": "DrvMx",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "distMode",
+    "label": "Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Boost",
+     "Tube",
+     "Fuzz",
+     "Square"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "shift",
+    "label": "Shift",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -2,
+    "max": 2,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 800
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "output",
+    "label": "Level",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "inputGain",
+    "label": "Input",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.5,
+    "max": 4,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 700
+    }
+   },
+   {
+    "key": "compAmount",
+    "label": "Comp",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "drive",
+    "label": "Drive",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 1,
+    "max": 20,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 3800
+    }
+   },
+   {
+    "key": "driveMix",
+    "label": "DrvMx",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "distMode",
+    "label": "Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Boost",
+     "Tube",
+     "Fuzz",
+     "Square"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "shift",
+    "label": "Shift",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -2,
+    "max": 2,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 800
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "output",
+    "label": "Level",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "b1",
+    "label": "Low",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "b2",
+    "label": "B2",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "b3",
+    "label": "B3",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "b4",
+    "label": "Mid",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "b5",
+    "label": "B5",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "b6",
+    "label": "B6",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "b7",
+    "label": "B7",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "b8",
+    "label": "High",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "atk",
+    "label": "Atk",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "50us",
+     "330us",
+     "1ms",
+     "3.3ms",
+     "10ms",
+     "33ms"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
+   {
+    "key": "rel",
+    "label": "Rel",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "50ms",
+     "100ms",
+     "250ms",
+     "350ms",
+     "500ms",
+     "1s"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
+   {
+    "key": "thresh",
+    "label": "Thresh",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "modDrive",
+    "label": "M-Drv",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "preType",
+    "label": "Pre",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Cass1",
+     "Cass2",
+     "Mast",
+     "Slam",
+     "Thick",
+     "12bit",
+     "8bit",
+     "Brit",
+     "USA",
+     "Cln"
+    ],
+    "min": 0,
+    "max": 9,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 10
+    }
+   },
+   {
+    "key": "grit",
+    "label": "Grit",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "-50dB",
+     "-40dB",
+     "-30dB",
+     "-20dB",
+     "-10dB",
+     "0dB"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "link",
+    "label": "Link",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "loCut",
+    "label": "LoCut",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "75",
+     "150",
+     "300"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "hiCut",
+    "label": "HiCut",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 20,
+    "max": 20000,
+    "step": 10,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 5,
+     "detentsFullSweep": 3996
+    }
+   },
+   {
+    "key": "sat",
+    "label": "Sat",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "age",
+    "label": "Age",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "flutter",
+    "label": "Flutter",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "bump",
+    "label": "Bump",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "limiter",
+    "label": "Limit",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "bypass",
+    "label": "Bypass",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "On",
+     "Byp"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "flavor",
+   "micControl",
+   "vocGain",
+   "modShift"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "4 chain_params not reachable in movy: flavor, micControl, vocGain, modShift"
+  ]
+ }
+}

@@ -1,0 +1,4051 @@
+{
+ "id": "fizzik",
+ "name": "Fizzik",
+ "version": "0.1.0",
+ "author": "Filliformes",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 71,
+ "dsp_size": 74160,
+ "capabilities": {
+  "audio_out": true,
+  "midi_in": true,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy": {
+   "modes": null,
+   "levels": {
+    "root": {
+     "name": "Fizzik",
+     "knobs": [
+      "preset",
+      "rnd_patch",
+      "rnd_exc",
+      "rnd_reson",
+      "rnd_all",
+      "cutoff",
+      "resonance",
+      "ftype"
+     ],
+     "params": [
+      {
+       "level": "Patch",
+       "label": "Patch"
+      },
+      {
+       "level": "Exciter",
+       "label": "Exciter"
+      },
+      {
+       "level": "ResonA",
+       "label": "Reson A"
+      },
+      {
+       "level": "ResonB",
+       "label": "Reson B"
+      },
+      {
+       "level": "Voice",
+       "label": "Voice"
+      },
+      {
+       "level": "FX",
+       "label": "FX"
+      },
+      {
+       "level": "FX2",
+       "label": "FX 2"
+      },
+      {
+       "level": "Mod",
+       "label": "Mod"
+      },
+      {
+       "level": "Touch",
+       "label": "Aftertouch"
+      }
+     ]
+    },
+    "Exciter": {
+     "name": "Exciter",
+     "knobs": [
+      "exc_mix",
+      "exc_crackle",
+      "exc_color",
+      "exc_attack",
+      "exc_decay",
+      "exc_reso",
+      "vel_level",
+      "vel_color"
+     ],
+     "params": [
+      "exc_mix",
+      "exc_crackle",
+      "exc_color",
+      "exc_attack",
+      "exc_decay",
+      "exc_reso",
+      "vel_level",
+      "vel_color"
+     ]
+    },
+    "ResonA": {
+     "name": "Reson A",
+     "knobs": [
+      "a_model",
+      "a_struct",
+      "a_decay",
+      "a_damp",
+      "a_pos",
+      "a_tone",
+      "a_tune",
+      "a_tension"
+     ],
+     "params": [
+      "a_model",
+      "a_struct",
+      "a_decay",
+      "a_damp",
+      "a_pos",
+      "a_tone",
+      "a_tune",
+      "a_tension"
+     ]
+    },
+    "ResonB": {
+     "name": "Reson B",
+     "knobs": [
+      "b_model",
+      "b_struct",
+      "b_decay",
+      "b_damp",
+      "b_pos",
+      "b_tone",
+      "b_tune",
+      "b_tension"
+     ],
+     "params": [
+      "b_model",
+      "b_struct",
+      "b_decay",
+      "b_damp",
+      "b_pos",
+      "b_tone",
+      "b_tune",
+      "b_tension"
+     ]
+    },
+    "Voice": {
+     "name": "Voice",
+     "knobs": [
+      "couple",
+      "balance",
+      "glide",
+      "amp_attack",
+      "amp_release",
+      "spread",
+      "drive",
+      "level"
+     ],
+     "params": [
+      "couple",
+      "balance",
+      "glide",
+      "amp_attack",
+      "amp_release",
+      "spread",
+      "drive",
+      "level"
+     ]
+    },
+    "FX": {
+     "name": "FX",
+     "knobs": [
+      "rev_mix",
+      "rev_size",
+      "rev_damp",
+      "dly_mix",
+      "dly_time",
+      "dly_fb",
+      "dly_tone",
+      "width"
+     ],
+     "params": [
+      "rev_mix",
+      "rev_size",
+      "rev_damp",
+      "dly_mix",
+      "dly_time",
+      "dly_fb",
+      "dly_tone",
+      "width"
+     ]
+    },
+    "FX2": {
+     "name": "FX 2",
+     "knobs": [
+      "eq_tone",
+      "eq_body",
+      "cho_mix",
+      "cho_rate",
+      "cho_depth",
+      "comp_amt",
+      "lim_drive",
+      "lim_ceil"
+     ],
+     "params": [
+      "eq_tone",
+      "eq_body",
+      "cho_mix",
+      "cho_rate",
+      "cho_depth",
+      "comp_amt",
+      "lim_drive",
+      "lim_ceil"
+     ]
+    },
+    "Mod": {
+     "name": "Mod",
+     "knobs": [
+      "lfo1_rate",
+      "lfo1_depth",
+      "lfo1_shape",
+      "lfo1_target",
+      "lfo2_rate",
+      "lfo2_depth",
+      "lfo2_shape",
+      "lfo2_target"
+     ],
+     "params": [
+      "lfo1_rate",
+      "lfo1_depth",
+      "lfo1_shape",
+      "lfo1_target",
+      "lfo2_rate",
+      "lfo2_depth",
+      "lfo2_shape",
+      "lfo2_target"
+     ]
+    },
+    "Touch": {
+     "name": "Aftertouch",
+     "knobs": [
+      "at_preset",
+      "at_bright",
+      "at_bow",
+      "at_cutoff",
+      "at_vib",
+      "at_bend",
+      "at_vrate",
+      "at_curve"
+     ],
+     "params": [
+      "at_preset",
+      "at_bright",
+      "at_bow",
+      "at_cutoff",
+      "at_vib",
+      "at_bend",
+      "at_vrate",
+      "at_curve"
+     ]
+    },
+    "Patch": {
+     "name": "Patch",
+     "knobs": [
+      "preset",
+      "rnd_patch",
+      "rnd_exc",
+      "rnd_reson",
+      "rnd_all",
+      "cutoff",
+      "resonance",
+      "ftype"
+     ],
+     "params": [
+      "preset",
+      "rnd_patch",
+      "rnd_exc",
+      "rnd_reson",
+      "rnd_all",
+      "cutoff",
+      "resonance",
+      "ftype",
+      "voicing"
+     ]
+    }
+   }
+  },
+  "chain_params": [
+   {
+    "key": "exc_mix",
+    "name": "Exc Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "exc_crackle",
+    "name": "Crackle",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "exc_color",
+    "name": "Color",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "exc_attack",
+    "name": "Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "exc_decay",
+    "name": "Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "exc_reso",
+    "name": "Exc Reso",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "vel_level",
+    "name": "Vel Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "vel_color",
+    "name": "Vel Color",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "a_model",
+    "name": "Model A",
+    "type": "enum",
+    "options": [
+     "String",
+     "Beam",
+     "Plate",
+     "Membrane"
+    ]
+   },
+   {
+    "key": "a_struct",
+    "name": "Structure A",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "a_decay",
+    "name": "Decay A",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "a_damp",
+    "name": "Damp A",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "a_pos",
+    "name": "Position A",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "a_tone",
+    "name": "Tone A",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "a_tune",
+    "name": "Tune A",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "a_tension",
+    "name": "Tension A",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "b_model",
+    "name": "Model B",
+    "type": "enum",
+    "options": [
+     "String",
+     "Beam",
+     "Plate",
+     "Membrane"
+    ]
+   },
+   {
+    "key": "b_struct",
+    "name": "Structure B",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "b_decay",
+    "name": "Decay B",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "b_damp",
+    "name": "Damp B",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "b_pos",
+    "name": "Position B",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "b_tone",
+    "name": "Tone B",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "b_tune",
+    "name": "Tune B",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": 1
+   },
+   {
+    "key": "b_tension",
+    "name": "Tension B",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "couple",
+    "name": "Couple",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "balance",
+    "name": "Balance",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "glide",
+    "name": "Glide",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "amp_attack",
+    "name": "Amp Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "amp_release",
+    "name": "Amp Rel",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "spread",
+    "name": "Spread",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "drive",
+    "name": "Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "level",
+    "name": "Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rev_mix",
+    "name": "Reverb",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rev_size",
+    "name": "Rev Size",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "rev_damp",
+    "name": "Rev Damp",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "dly_mix",
+    "name": "Delay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "dly_time",
+    "name": "Dly Time",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "dly_fb",
+    "name": "Dly Fbk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "dly_tone",
+    "name": "Dly Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "width",
+    "name": "Width",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cutoff",
+    "name": "Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "resonance",
+    "name": "Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "ftype",
+    "name": "Filter Type",
+    "type": "enum",
+    "options": [
+     "LP",
+     "HP",
+     "BP",
+     "Notch"
+    ]
+   },
+   {
+    "key": "voicing",
+    "name": "Voicing",
+    "type": "enum",
+    "options": [
+     "Clean SVF",
+     "SEM",
+     "MS-20",
+     "Steiner",
+     "Ladder 4P",
+     "Ladder 2P",
+     "Ladder 1P",
+     "Prophet",
+     "Oberheim",
+     "Diode",
+     "Sallen-Key",
+     "Vintage"
+    ]
+   },
+   {
+    "key": "eq_tone",
+    "name": "Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "eq_body",
+    "name": "Body",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cho_mix",
+    "name": "Chorus",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cho_rate",
+    "name": "Cho Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "cho_depth",
+    "name": "Cho Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "comp_amt",
+    "name": "Glue",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "lim_drive",
+    "name": "Lim Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "lim_ceil",
+    "name": "Lim Ceil",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "lfo1_rate",
+    "name": "LFO1 Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "lfo1_depth",
+    "name": "LFO1 Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "lfo1_shape",
+    "name": "LFO1 Shape",
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Square",
+     "S&H"
+    ]
+   },
+   {
+    "key": "lfo1_target",
+    "name": "LFO1 Target",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Cutoff",
+     "Pitch",
+     "Couple",
+     "Balance",
+     "Tension",
+     "Tone",
+     "Reso"
+    ]
+   },
+   {
+    "key": "lfo2_rate",
+    "name": "LFO2 Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "lfo2_depth",
+    "name": "LFO2 Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "lfo2_shape",
+    "name": "LFO2 Shape",
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Square",
+     "S&H"
+    ]
+   },
+   {
+    "key": "lfo2_target",
+    "name": "LFO2 Target",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Cutoff",
+     "Pitch",
+     "Couple",
+     "Balance",
+     "Tension",
+     "Tone",
+     "Reso"
+    ]
+   },
+   {
+    "key": "at_preset",
+    "name": "AT Preset",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Gentle",
+     "Brighten",
+     "Bow",
+     "Swell",
+     "Vibrato",
+     "Expressive",
+     "Cello",
+     "Wild",
+     "Sforzato"
+    ]
+   },
+   {
+    "key": "at_bright",
+    "name": "AT Bright",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "at_bow",
+    "name": "AT Bow",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "at_cutoff",
+    "name": "AT Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "at_vib",
+    "name": "AT Vib",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "at_bend",
+    "name": "AT Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "at_vrate",
+    "name": "AT Vib Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "at_curve",
+    "name": "AT Curve",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "preset",
+    "name": "Preset",
+    "type": "enum",
+    "options": [
+     "AlienChurch",
+     "BowedGlass",
+     "CaveStrings",
+     "CouncilsPiano",
+     "DistortedBass",
+     "FeedbackHarp",
+     "JudgementAwaits",
+     "OldResonances",
+     "PreparedPiano",
+     "RythmicBow",
+     "SensitiveSkin",
+     "Sharp",
+     "ShockingPluck",
+     "Slappy",
+     "SurroundedByBells",
+     "XyloStyle",
+     "GlassKalimba",
+     "IronLullaby",
+     "TidalGong",
+     "HollowReed",
+     "StarlightPad",
+     "BrokenMusicBox",
+     "DeepDiveBass",
+     "CopperTongue",
+     "GhostSitar",
+     "MarbleDrum",
+     "WhisperHarp",
+     "TitaniumBell",
+     "FrozenLake",
+     "PulseEngine"
+    ]
+   },
+   {
+    "key": "rnd_patch",
+    "name": "Rnd Patch",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1
+   },
+   {
+    "key": "rnd_exc",
+    "name": "Rnd Exciter",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1
+   },
+   {
+    "key": "rnd_reson",
+    "name": "Rnd Reson",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1
+   },
+   {
+    "key": "rnd_all",
+    "name": "Rnd All",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1
+   }
+  ]
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "Exciter",
+   "ResonA",
+   "ResonB",
+   "Voice",
+   "FX",
+   "FX2",
+   "Mod",
+   "Touch",
+   "Patch"
+  ],
+  "params": [
+   {
+    "key": "exc_mix",
+    "name": "Exc Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.10000"
+   },
+   {
+    "key": "exc_crackle",
+    "name": "Crackle",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.05000"
+   },
+   {
+    "key": "exc_color",
+    "name": "Color",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.60000"
+   },
+   {
+    "key": "exc_attack",
+    "name": "Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.10000"
+   },
+   {
+    "key": "exc_decay",
+    "name": "Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50000"
+   },
+   {
+    "key": "exc_reso",
+    "name": "Exc Reso",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.40000"
+   },
+   {
+    "key": "vel_level",
+    "name": "Vel Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.40000"
+   },
+   {
+    "key": "vel_color",
+    "name": "Vel Color",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.30000"
+   },
+   {
+    "key": "a_model",
+    "name": "Model A",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "String",
+     "Beam",
+     "Plate",
+     "Membrane"
+    ],
+    "default": "String"
+   },
+   {
+    "key": "a_struct",
+    "name": "Structure A",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.20000"
+   },
+   {
+    "key": "a_decay",
+    "name": "Decay A",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.85000"
+   },
+   {
+    "key": "a_damp",
+    "name": "Damp A",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.40000"
+   },
+   {
+    "key": "a_pos",
+    "name": "Position A",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.15000"
+   },
+   {
+    "key": "a_tone",
+    "name": "Tone A",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.60000"
+   },
+   {
+    "key": "a_tune",
+    "name": "Tune A",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "a_tension",
+    "name": "Tension A",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.20000"
+   },
+   {
+    "key": "b_model",
+    "name": "Model B",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "String",
+     "Beam",
+     "Plate",
+     "Membrane"
+    ],
+    "default": "String"
+   },
+   {
+    "key": "b_struct",
+    "name": "Structure B",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.10000"
+   },
+   {
+    "key": "b_decay",
+    "name": "Decay B",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.80000"
+   },
+   {
+    "key": "b_damp",
+    "name": "Damp B",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50000"
+   },
+   {
+    "key": "b_pos",
+    "name": "Position B",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.25000"
+   },
+   {
+    "key": "b_tone",
+    "name": "Tone B",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.55000"
+   },
+   {
+    "key": "b_tune",
+    "name": "Tune B",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "-12"
+   },
+   {
+    "key": "b_tension",
+    "name": "Tension B",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.15000"
+   },
+   {
+    "key": "couple",
+    "name": "Couple",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.30000"
+   },
+   {
+    "key": "balance",
+    "name": "Balance",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50000"
+   },
+   {
+    "key": "glide",
+    "name": "Glide",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.15000"
+   },
+   {
+    "key": "amp_attack",
+    "name": "Amp Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.05000"
+   },
+   {
+    "key": "amp_release",
+    "name": "Amp Rel",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50000"
+   },
+   {
+    "key": "spread",
+    "name": "Spread",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.60000"
+   },
+   {
+    "key": "drive",
+    "name": "Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00000"
+   },
+   {
+    "key": "level",
+    "name": "Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.60000"
+   },
+   {
+    "key": "rev_mix",
+    "name": "Reverb",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.70000"
+   },
+   {
+    "key": "rev_size",
+    "name": "Rev Size",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.55000"
+   },
+   {
+    "key": "rev_damp",
+    "name": "Rev Damp",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.40000"
+   },
+   {
+    "key": "dly_mix",
+    "name": "Delay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00000"
+   },
+   {
+    "key": "dly_time",
+    "name": "Dly Time",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.38000"
+   },
+   {
+    "key": "dly_fb",
+    "name": "Dly Fbk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.35000"
+   },
+   {
+    "key": "dly_tone",
+    "name": "Dly Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50000"
+   },
+   {
+    "key": "width",
+    "name": "Width",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50000"
+   },
+   {
+    "key": "cutoff",
+    "name": "Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.00000"
+   },
+   {
+    "key": "resonance",
+    "name": "Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00000"
+   },
+   {
+    "key": "ftype",
+    "name": "Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LP",
+     "HP",
+     "BP",
+     "Notch"
+    ],
+    "default": "LP"
+   },
+   {
+    "key": "voicing",
+    "name": "Voicing",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Clean SVF",
+     "SEM",
+     "MS-20",
+     "Steiner",
+     "Ladder 4P",
+     "Ladder 2P",
+     "Ladder 1P",
+     "Prophet",
+     "Oberheim",
+     "Diode",
+     "Sallen-Key",
+     "Vintage"
+    ],
+    "default": "Clean SVF"
+   },
+   {
+    "key": "eq_tone",
+    "name": "Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50000"
+   },
+   {
+    "key": "eq_body",
+    "name": "Body",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50000"
+   },
+   {
+    "key": "cho_mix",
+    "name": "Chorus",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00000"
+   },
+   {
+    "key": "cho_rate",
+    "name": "Cho Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.35000"
+   },
+   {
+    "key": "cho_depth",
+    "name": "Cho Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.40000"
+   },
+   {
+    "key": "comp_amt",
+    "name": "Glue",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00000"
+   },
+   {
+    "key": "lim_drive",
+    "name": "Lim Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00000"
+   },
+   {
+    "key": "lim_ceil",
+    "name": "Lim Ceil",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.35000"
+   },
+   {
+    "key": "lfo1_rate",
+    "name": "LFO1 Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.30000"
+   },
+   {
+    "key": "lfo1_depth",
+    "name": "LFO1 Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00000"
+   },
+   {
+    "key": "lfo1_shape",
+    "name": "LFO1 Shape",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Square",
+     "S&H"
+    ],
+    "default": "Sine"
+   },
+   {
+    "key": "lfo1_target",
+    "name": "LFO1 Target",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Cutoff",
+     "Pitch",
+     "Couple",
+     "Balance",
+     "Tension",
+     "Tone",
+     "Reso"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "lfo2_rate",
+    "name": "LFO2 Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.20000"
+   },
+   {
+    "key": "lfo2_depth",
+    "name": "LFO2 Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00000"
+   },
+   {
+    "key": "lfo2_shape",
+    "name": "LFO2 Shape",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Square",
+     "S&H"
+    ],
+    "default": "Tri"
+   },
+   {
+    "key": "lfo2_target",
+    "name": "LFO2 Target",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Cutoff",
+     "Pitch",
+     "Couple",
+     "Balance",
+     "Tension",
+     "Tone",
+     "Reso"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "at_preset",
+    "name": "AT Preset",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Gentle",
+     "Brighten",
+     "Bow",
+     "Swell",
+     "Vibrato",
+     "Expressive",
+     "Cello",
+     "Wild",
+     "Sforzato"
+    ],
+    "default": "Expressive"
+   },
+   {
+    "key": "at_bright",
+    "name": "AT Bright",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.60000"
+   },
+   {
+    "key": "at_bow",
+    "name": "AT Bow",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.40000"
+   },
+   {
+    "key": "at_cutoff",
+    "name": "AT Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.40000"
+   },
+   {
+    "key": "at_vib",
+    "name": "AT Vib",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.30000"
+   },
+   {
+    "key": "at_bend",
+    "name": "AT Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.10000"
+   },
+   {
+    "key": "at_vrate",
+    "name": "AT Vib Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50000"
+   },
+   {
+    "key": "at_curve",
+    "name": "AT Curve",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50000"
+   },
+   {
+    "key": "preset",
+    "name": "Preset",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "AlienChurch",
+     "BowedGlass",
+     "CaveStrings",
+     "CouncilsPiano",
+     "DistortedBass",
+     "FeedbackHarp",
+     "JudgementAwaits",
+     "OldResonances",
+     "PreparedPiano",
+     "RythmicBow",
+     "SensitiveSkin",
+     "Sharp",
+     "ShockingPluck",
+     "Slappy",
+     "SurroundedByBells",
+     "XyloStyle",
+     "GlassKalimba",
+     "IronLullaby",
+     "TidalGong",
+     "HollowReed",
+     "StarlightPad",
+     "BrokenMusicBox",
+     "DeepDiveBass",
+     "CopperTongue",
+     "GhostSitar",
+     "MarbleDrum",
+     "WhisperHarp",
+     "TitaniumBell",
+     "FrozenLake",
+     "PulseEngine"
+    ],
+    "default": "CaveStrings"
+   },
+   {
+    "key": "rnd_patch",
+    "name": "Rnd Patch",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "rnd_exc",
+    "name": "Rnd Exciter",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "rnd_reson",
+    "name": "Rnd Reson",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "rnd_all",
+    "name": "Rnd All",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Patch",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Exciter",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Reson A",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Reson B",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Voice",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "FX",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "FX 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Mod",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Aftertouch",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "Preset",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "CaveS"
+      },
+      {
+       "shortName": "PATCH",
+       "fullName": "Rnd Patch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "EXCIT",
+       "fullName": "Rnd Exciter",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RESON",
+       "fullName": "Rnd Reson",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "ALL",
+       "fullName": "Rnd All",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CUTOF",
+       "fullName": "Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RESON",
+       "fullName": "Resonance",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FT",
+       "fullName": "Filter Type",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Patch",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "Preset",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PATCH",
+       "fullName": "Rnd Patch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "EXCIT",
+       "fullName": "Rnd Exciter",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RESON",
+       "fullName": "Rnd Reson",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "ALL",
+       "fullName": "Rnd All",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CUTOF",
+       "fullName": "Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RESON",
+       "fullName": "Resonance",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FT",
+       "fullName": "Filter Type",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Exciter",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MIX",
+       "fullName": "Exc Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CRACK",
+       "fullName": "Crackle",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "COLOR",
+       "fullName": "Color",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ATTAC",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RESO",
+       "fullName": "Exc Reso",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LEVEL",
+       "fullName": "Vel Level",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "COLOR",
+       "fullName": "Vel Color",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Reson A",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MODEL",
+       "fullName": "Model A",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SA",
+       "fullName": "Structure A",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay A",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DAMP",
+       "fullName": "Damp A",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PA",
+       "fullName": "Position A",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "Tone A",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TUNE",
+       "fullName": "Tune A",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TA",
+       "fullName": "Tension A",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Reson B",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MODEL",
+       "fullName": "Model B",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SB",
+       "fullName": "Structure B",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay B",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DAMP",
+       "fullName": "Damp B",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PB",
+       "fullName": "Position B",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "Tone B",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TUNE",
+       "fullName": "Tune B",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TB",
+       "fullName": "Tension B",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Voice",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "COUPL",
+       "fullName": "Couple",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BALAN",
+       "fullName": "Balance",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GLIDE",
+       "fullName": "Glide",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ATK",
+       "fullName": "Amp Atk",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "REL",
+       "fullName": "Amp Rel",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPREA",
+       "fullName": "Spread",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIVE",
+       "fullName": "Drive",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LEVEL",
+       "fullName": "Level",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "FX",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "REVER",
+       "fullName": "Reverb",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SIZE",
+       "fullName": "Rev Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DAMP",
+       "fullName": "Rev Damp",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DELAY",
+       "fullName": "Delay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TIME",
+       "fullName": "Dly Time",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FBK",
+       "fullName": "Dly Fbk",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "Dly Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WIDTH",
+       "fullName": "Width",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "FX 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TONE",
+       "fullName": "Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BODY",
+       "fullName": "Body",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CHORU",
+       "fullName": "Chorus",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "Cho Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "DEPTH",
+       "fullName": "Cho Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GLUE",
+       "fullName": "Glue",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIVE",
+       "fullName": "Lim Drive",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CEIL",
+       "fullName": "Lim Ceil",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Mod",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "RATE",
+       "fullName": "LFO1 Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEPTH",
+       "fullName": "LFO1 Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SHAPE",
+       "fullName": "LFO1 Shape",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TARGE",
+       "fullName": "LFO1 Target",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RATE",
+       "fullName": "LFO2 Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEPTH",
+       "fullName": "LFO2 Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SHAPE",
+       "fullName": "LFO2 Shape",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TARGE",
+       "fullName": "LFO2 Target",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Aftertouch",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "AT Preset",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BRIGH",
+       "fullName": "AT Bright",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BOW",
+       "fullName": "AT Bow",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CUTOF",
+       "fullName": "AT Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "VIB",
+       "fullName": "AT Vib",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BEND",
+       "fullName": "AT Bend",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VIB",
+       "fullName": "AT Vib Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CURVE",
+       "fullName": "AT Curve",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "preset",
+    "label": "Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "AlienChurch",
+     "BowedGlass",
+     "CaveStrings",
+     "CouncilsPiano",
+     "DistortedBass",
+     "FeedbackHarp",
+     "JudgementAwaits",
+     "OldResonances",
+     "PreparedPiano",
+     "RythmicBow",
+     "SensitiveSkin",
+     "Sharp",
+     "ShockingPluck",
+     "Slappy",
+     "SurroundedByBells",
+     "XyloStyle",
+     "GlassKalimba",
+     "IronLullaby",
+     "TidalGong",
+     "HollowReed",
+     "StarlightPad",
+     "BrokenMusicBox",
+     "DeepDiveBass",
+     "CopperTongue",
+     "GhostSitar",
+     "MarbleDrum",
+     "WhisperHarp",
+     "TitaniumBell",
+     "FrozenLake",
+     "PulseEngine"
+    ],
+    "min": 0,
+    "max": 29,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 30
+    }
+   },
+   {
+    "key": "rnd_patch",
+    "label": "Rnd Patch",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rnd_exc",
+    "label": "Rnd Exciter",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rnd_reson",
+    "label": "Rnd Reson",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rnd_all",
+    "label": "Rnd All",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "cutoff",
+    "label": "Cutoff",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "resonance",
+    "label": "Resonance",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ftype",
+    "label": "Filter Type",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "LP",
+     "HP",
+     "BP",
+     "Notch"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "preset",
+    "label": "Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "AlienChurch",
+     "BowedGlass",
+     "CaveStrings",
+     "CouncilsPiano",
+     "DistortedBass",
+     "FeedbackHarp",
+     "JudgementAwaits",
+     "OldResonances",
+     "PreparedPiano",
+     "RythmicBow",
+     "SensitiveSkin",
+     "Sharp",
+     "ShockingPluck",
+     "Slappy",
+     "SurroundedByBells",
+     "XyloStyle",
+     "GlassKalimba",
+     "IronLullaby",
+     "TidalGong",
+     "HollowReed",
+     "StarlightPad",
+     "BrokenMusicBox",
+     "DeepDiveBass",
+     "CopperTongue",
+     "GhostSitar",
+     "MarbleDrum",
+     "WhisperHarp",
+     "TitaniumBell",
+     "FrozenLake",
+     "PulseEngine"
+    ],
+    "min": 0,
+    "max": 29,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 30
+    }
+   },
+   {
+    "key": "rnd_patch",
+    "label": "Rnd Patch",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rnd_exc",
+    "label": "Rnd Exciter",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rnd_reson",
+    "label": "Rnd Reson",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rnd_all",
+    "label": "Rnd All",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "cutoff",
+    "label": "Cutoff",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "resonance",
+    "label": "Resonance",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ftype",
+    "label": "Filter Type",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "LP",
+     "HP",
+     "BP",
+     "Notch"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "exc_mix",
+    "label": "Exc Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "exc_crackle",
+    "label": "Crackle",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "exc_color",
+    "label": "Color",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "exc_attack",
+    "label": "Attack",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "exc_decay",
+    "label": "Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "exc_reso",
+    "label": "Exc Reso",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "vel_level",
+    "label": "Vel Level",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "vel_color",
+    "label": "Vel Color",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "a_model",
+    "label": "Model A",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "String",
+     "Beam",
+     "Plate",
+     "Membrane"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "a_struct",
+    "label": "Structure A",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "a_decay",
+    "label": "Decay A",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "a_damp",
+    "label": "Damp A",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "a_pos",
+    "label": "Position A",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "a_tone",
+    "label": "Tone A",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "a_tune",
+    "label": "Tune A",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "a_tension",
+    "label": "Tension A",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "b_model",
+    "label": "Model B",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "String",
+     "Beam",
+     "Plate",
+     "Membrane"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "b_struct",
+    "label": "Structure B",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "b_decay",
+    "label": "Decay B",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "b_damp",
+    "label": "Damp B",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "b_pos",
+    "label": "Position B",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "b_tone",
+    "label": "Tone B",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "b_tune",
+    "label": "Tune B",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "b_tension",
+    "label": "Tension B",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "couple",
+    "label": "Couple",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "balance",
+    "label": "Balance",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "glide",
+    "label": "Glide",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "amp_attack",
+    "label": "Amp Atk",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "amp_release",
+    "label": "Amp Rel",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "spread",
+    "label": "Spread",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "drive",
+    "label": "Drive",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "level",
+    "label": "Level",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rev_mix",
+    "label": "Reverb",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rev_size",
+    "label": "Rev Size",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rev_damp",
+    "label": "Rev Damp",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dly_mix",
+    "label": "Delay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dly_time",
+    "label": "Dly Time",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dly_fb",
+    "label": "Dly Fbk",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dly_tone",
+    "label": "Dly Tone",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "width",
+    "label": "Width",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "eq_tone",
+    "label": "Tone",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "eq_body",
+    "label": "Body",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cho_mix",
+    "label": "Chorus",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cho_rate",
+    "label": "Cho Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cho_depth",
+    "label": "Cho Depth",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "comp_amt",
+    "label": "Glue",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lim_drive",
+    "label": "Lim Drive",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lim_ceil",
+    "label": "Lim Ceil",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lfo1_rate",
+    "label": "LFO1 Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lfo1_depth",
+    "label": "LFO1 Depth",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lfo1_shape",
+    "label": "LFO1 Shape",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Square",
+     "S&H"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   {
+    "key": "lfo1_target",
+    "label": "LFO1 Target",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "Cutoff",
+     "Pitch",
+     "Couple",
+     "Balance",
+     "Tension",
+     "Tone",
+     "Reso"
+    ],
+    "min": 0,
+    "max": 7,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 8
+    }
+   },
+   {
+    "key": "lfo2_rate",
+    "label": "LFO2 Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lfo2_depth",
+    "label": "LFO2 Depth",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lfo2_shape",
+    "label": "LFO2 Shape",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Square",
+     "S&H"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   {
+    "key": "lfo2_target",
+    "label": "LFO2 Target",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "Cutoff",
+     "Pitch",
+     "Couple",
+     "Balance",
+     "Tension",
+     "Tone",
+     "Reso"
+    ],
+    "min": 0,
+    "max": 7,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 8
+    }
+   },
+   {
+    "key": "at_preset",
+    "label": "AT Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "Gentle",
+     "Brighten",
+     "Bow",
+     "Swell",
+     "Vibrato",
+     "Expressive",
+     "Cello",
+     "Wild",
+     "Sforzato"
+    ],
+    "min": 0,
+    "max": 9,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 10
+    }
+   },
+   {
+    "key": "at_bright",
+    "label": "AT Bright",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "at_bow",
+    "label": "AT Bow",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "at_cutoff",
+    "label": "AT Cutoff",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "at_vib",
+    "label": "AT Vib",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "at_bend",
+    "label": "AT Bend",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "at_vrate",
+    "label": "AT Vib Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "at_curve",
+    "label": "AT Curve",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "voicing"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "1 chain_params not reachable in movy: voicing",
+   "page \"Main\": duplicate on-screen names RESON",
+   "page \"Patch\": duplicate on-screen names RESON",
+   "page \"Exciter\": duplicate on-screen names COLOR",
+   "page \"Mod\": duplicate on-screen names RATE, DEPTH, SHAPE, TARGE",
+   "page \"Aftertouch\": duplicate on-screen names VIB"
+  ]
+ }
+}

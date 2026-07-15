@@ -1,0 +1,197 @@
+{
+ "id": "sf2",
+ "name": "SF2 Player",
+ "version": "0.3.15",
+ "author": "FluidLite by Robin Lobel (port: charlesvestal)",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 55,
+ "dsp_size": 230688,
+ "capabilities": {
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "midi_out": true,
+  "aftertouch": true,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "SF2",
+     "params": [
+      {
+       "key": "preset",
+       "label": "Preset",
+       "type": "int",
+       "min": 0,
+       "max_param": "preset_count",
+       "default": 0
+      },
+      {
+       "key": "octave_transpose",
+       "label": "Octave",
+       "type": "int",
+       "min": -4,
+       "max": 4,
+       "default": 0
+      },
+      {
+       "key": "gain",
+       "label": "Gain",
+       "type": "float",
+       "min": 0,
+       "max": 2,
+       "default": 1
+      }
+     ],
+     "knobs": [
+      "octave_transpose",
+      "gain"
+     ]
+    }
+   }
+  }
+ },
+ "presets": {
+  "count": 0,
+  "sample": []
+ },
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "soundfont"
+  ],
+  "params": [
+   {
+    "key": "preset",
+    "name": "Preset",
+    "type": "int",
+    "min": 0,
+    "max": -1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "octave_transpose",
+    "name": "Octave",
+    "type": "int",
+    "min": -4,
+    "max": 4,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "gain",
+    "name": "Gain",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": null,
+    "options": null,
+    "default": "1.00"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "OCTAV",
+       "fullName": "Octave",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "0"
+      },
+      {
+       "shortName": "GAIN",
+       "fullName": "Gain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "octave_transpose",
+    "label": "Octave",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -4,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 16
+    }
+   },
+   {
+    "key": "gain",
+    "label": "Gain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "preset"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "1 chain_params not reachable in movy: preset"
+  ]
+ }
+}

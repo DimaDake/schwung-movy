@@ -1,0 +1,225 @@
+{
+ "id": "nam",
+ "name": "NAM",
+ "version": "0.1.5",
+ "author": "NeuralAudio by Mike Oliphant (port: charlesvestal)",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 71,
+ "dsp_size": 1163072,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "NAM",
+     "params": [
+      "input_level",
+      "output_level",
+      {
+       "key": "cab_bypass",
+       "label": "Cab Bypass"
+      },
+      {
+       "level": "models",
+       "label": "Choose Model"
+      },
+      {
+       "level": "cabs",
+       "label": "Choose Cabinet"
+      }
+     ],
+     "knobs": [
+      "input_level",
+      "output_level"
+     ]
+    },
+    "models": {
+     "label": "Model",
+     "items_param": "model_list",
+     "select_param": "model_index",
+     "children": null,
+     "knobs": [],
+     "params": []
+    },
+    "cabs": {
+     "label": "Cabinet",
+     "items_param": "cab_list",
+     "select_param": "cab_index",
+     "children": null,
+     "knobs": [],
+     "params": []
+    }
+   }
+  },
+  "chain_params": [
+   {
+    "key": "input_level",
+    "name": "Input",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 0.5,
+    "step": 0.01
+   },
+   {
+    "key": "output_level",
+    "name": "Output",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "default": 0.5,
+    "step": 0.01
+   },
+   {
+    "key": "cab_bypass",
+    "name": "Cab Bypass",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "default": 0,
+    "step": 1
+   }
+  ]
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "models",
+   "cabs"
+  ],
+  "params": [
+   {
+    "key": "input_level",
+    "name": "Input",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.50"
+   },
+   {
+    "key": "output_level",
+    "name": "Output",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.50"
+   },
+   {
+    "key": "cab_bypass",
+    "name": "Cab Bypass",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "INPUT",
+       "fullName": "Input",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "50%"
+      },
+      {
+       "shortName": "OUTPU",
+       "fullName": "Output",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "input_level",
+    "label": "Input",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "output_level",
+    "label": "Output",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "cab_bypass"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "1 chain_params not reachable in movy: cab_bypass"
+  ]
+ }
+}

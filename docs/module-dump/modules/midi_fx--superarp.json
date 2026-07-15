@@ -1,0 +1,1688 @@
+{
+ "id": "superarp",
+ "name": "Super Arp",
+ "version": "0.1.8",
+ "author": null,
+ "category": "midi_fx",
+ "status": "ok",
+ "load_ms": 52,
+ "dsp_size": 184224,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "midi_fx",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Super Arp",
+     "params": [
+      {
+       "label": "Global",
+       "level": "global"
+      },
+      {
+       "label": "Progression",
+       "level": "progression"
+      },
+      {
+       "label": "Rhythm",
+       "level": "rhythm"
+      },
+      {
+       "label": "Modifiers",
+       "level": "modifiers"
+      }
+     ],
+     "knobs": [
+      "latch",
+      "gate",
+      "velocity",
+      "drop_amount",
+      "gate_random_amount",
+      "velocity_random_amount",
+      "random_octave_amount",
+      "random_note_amount"
+     ]
+    },
+    "global": {
+     "name": "Global",
+     "params": [
+      "latch",
+      "max_voices",
+      "rate",
+      "triplet",
+      "swing",
+      "gate",
+      "velocity",
+      "octave_range",
+      "sync",
+      "bpm"
+     ],
+     "knobs": [
+      "latch",
+      "max_voices",
+      "rate",
+      "triplet",
+      "swing",
+      "gate",
+      "velocity",
+      "octave_range"
+     ]
+    },
+    "progression": {
+     "name": "Progression",
+     "params": [
+      "progression_mode",
+      "pattern_preset",
+      "progression_trigger",
+      "missing_note_policy",
+      "progression_seed",
+      "random_pattern_length",
+      "random_pattern_chords",
+      "random_pattern_chord_seed"
+     ],
+     "knobs": [
+      "progression_mode",
+      "pattern_preset",
+      "progression_trigger",
+      "missing_note_policy",
+      "progression_seed",
+      "random_pattern_length",
+      "random_pattern_chords",
+      "random_pattern_chord_seed"
+     ]
+    },
+    "rhythm": {
+     "name": "Rhythm",
+     "params": [
+      "rhythm_preset",
+      "rhythm_trigger"
+     ],
+     "knobs": [
+      "rhythm_preset",
+      "rhythm_trigger"
+     ]
+    },
+    "modifiers": {
+     "name": "Modifiers",
+     "params": [
+      "modifier_loop_length",
+      "modifier_trigger",
+      "drop_amount",
+      "drop_seed",
+      "velocity_random_amount",
+      "velocity_seed",
+      "gate_random_amount",
+      "gate_seed",
+      "random_octave_amount",
+      "random_octave_range",
+      "random_octave_seed",
+      "random_note_amount",
+      "random_note_seed"
+     ],
+     "knobs": [
+      "modifier_loop_length",
+      "drop_amount",
+      "drop_seed",
+      "velocity_random_amount",
+      "gate_random_amount",
+      "random_octave_amount",
+      "random_octave_range",
+      "random_note_amount"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "global",
+   "progression",
+   "rhythm",
+   "modifiers"
+  ],
+  "params": [
+   {
+    "key": "rate",
+    "name": "Rate",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1/32",
+     "1/16",
+     "1/8",
+     "1/4"
+    ],
+    "default": "1/16"
+   },
+   {
+    "key": "bpm",
+    "name": "BPM (internal)",
+    "type": "int",
+    "min": 40,
+    "max": 240,
+    "step": 1,
+    "options": null,
+    "default": "120"
+   },
+   {
+    "key": "triplet",
+    "name": "Triplet",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "gate",
+    "name": "Gate",
+    "type": "int",
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "options": null,
+    "default": "80"
+   },
+   {
+    "key": "velocity",
+    "name": "Velocity",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "sync",
+    "name": "Sync",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "internal",
+     "clock"
+    ],
+    "default": "internal"
+   },
+   {
+    "key": "swing",
+    "name": "Swing",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "latch",
+    "name": "Latch",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "max_voices",
+    "name": "Max Voices",
+    "type": "int",
+    "min": 1,
+    "max": 64,
+    "step": 1,
+    "options": null,
+    "default": "8"
+   },
+   {
+    "key": "octave_range",
+    "name": "Octave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "+1",
+     "-1",
+     "+2",
+     "-2"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "progression_mode",
+    "name": "Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "up",
+     "down",
+     "as_played",
+     "leap_inward",
+     "leap_outward",
+     "chord",
+     "pattern",
+     "random_pattern"
+    ],
+    "default": "up"
+   },
+   {
+    "key": "progression_seed",
+    "name": "Rand Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "progression_trigger",
+    "name": "Trigger",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "retrigger",
+     "continuous"
+    ],
+    "default": "retrigger"
+   },
+   {
+    "key": "missing_note_policy",
+    "name": "Note Policy",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "fold",
+     "wrap",
+     "clamp",
+     "skip"
+    ],
+    "default": "fold"
+   },
+   {
+    "key": "pattern_preset",
+    "name": "Pattern",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1-3-2-4",
+     "1-2-4-3",
+     "1-4-2-3",
+     "2-4-1-3",
+     "1-3-4-2",
+     "1-3-2-4-3-5",
+     "1-2-3-2-4-3",
+     "1-4-2-3-5-3",
+     "2-3-1-4-2-5",
+     "1-2-4-3-5-2",
+     "1-3-2-4-3-5-4-2",
+     "1-2-3-2-1-4-3-5",
+     "1-4-2-3-5-4-2-1",
+     "2-3-1-4-2-5-3-1",
+     "1-2-4-3-5-4-3-2",
+     "(1-2)-(3-4)",
+     "(1-3)-(2-4)",
+     "(1-2)-(1-2-3)",
+     "(1-3)-(1-4-5)",
+     "(2-3)-(1-4)",
+     "(1-2)-3-(3-4)",
+     "(1-2)-(3-4)-2",
+     "(1-3)-(2-4)-1",
+     "(1-2-3)-(1-4)-2",
+     "(2-3)-(1-4-5)-3",
+     "(1-2)-3-(3-4)-1",
+     "(1-2)-(3-4)-(2-3)-1",
+     "(1-3)-2-(2-4)-3",
+     "(1-2-3)-(2-4)-3-1",
+     "(2-3)-(1-4)-2-(3-5)",
+     "(1-2)-(1-2-3)-(3-4)",
+     "(1-3)-(2-4)-(1-4-5)",
+     "(1-2-3)-(1-4)-(2-3)",
+     "(2-3)-(1-4-5)-(1-2)",
+     "(1-3)-(2-4)-(3-5)",
+     "(1-2-3)-(2-3-4)-(1-4)",
+     "(1-2)-(2-3-4)-(1-4-5)",
+     "(1-3-4)-(2-4)-(1-2-5)",
+     "(2-3-5)-(1-4)-(1-2-3)",
+     "(1-2-4)-(2-3-5)-(1-3-4)"
+    ],
+    "default": "1-2-3"
+   },
+   {
+    "key": "random_pattern_length",
+    "name": "Rand Length",
+    "type": "int",
+    "min": 1,
+    "max": 32,
+    "step": 1,
+    "options": null,
+    "default": "8"
+   },
+   {
+    "key": "random_pattern_chords",
+    "name": "Rand Chords",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "random_pattern_chord_seed",
+    "name": "Rand Ch Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "rhythm_trigger",
+    "name": "Trigger",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "retrigger",
+     "continuous"
+    ],
+    "default": "retrigger"
+   },
+   {
+    "key": "rhythm_preset",
+    "name": "Pattern",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "00",
+     "0x",
+     "0x0",
+     "0xx",
+     "00x",
+     "00x0",
+     "0xx0",
+     "0x00",
+     "000x",
+     "0x0xx",
+     "0xx0x",
+     "0x00x",
+     "00xx0",
+     "0xxx0",
+     "000x0",
+     "0x0xx0",
+     "0xx00x",
+     "00x0xx",
+     "0xxx00",
+     "000xx0",
+     "0x00x0x",
+     "0xx0x0x",
+     "0xx0x00",
+     "0x0x0xx",
+     "0xx0xx0",
+     "00x00x0",
+     "0xxx0x0x",
+     "0x00x0xx",
+     "0x0xx0xx",
+     "00x0x00x",
+     "0x00xx0x",
+     "0xx00x0x",
+     "0xxx00x0",
+     "0x0xx0x0x0xx",
+     "0xx0x00x0xx",
+     "0xxx0x0xxx0",
+     "0x0x00xx0x0x",
+     "0x00x0xx0x00x",
+     "0xx0x0xx0xx0x",
+     "0xxx0xx0xxx0x"
+    ],
+    "default": "00"
+   },
+   {
+    "key": "drop_amount",
+    "name": "Drop",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "drop_seed",
+    "name": "Drop Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "velocity_random_amount",
+    "name": "Vel Rand",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "velocity_seed",
+    "name": "Vel Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "gate_random_amount",
+    "name": "Gate Rand",
+    "type": "int",
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "gate_seed",
+    "name": "Gate Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "modifier_loop_length",
+    "name": "Mod Loop",
+    "type": "int",
+    "min": 0,
+    "max": 128,
+    "step": 1,
+    "options": null,
+    "default": "16"
+   },
+   {
+    "key": "modifier_trigger",
+    "name": "Trigger",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "retrigger",
+     "continuous"
+    ],
+    "default": "retrigger"
+   },
+   {
+    "key": "random_octave_amount",
+    "name": "Oct Rand",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "random_octave_range",
+    "name": "Oct Range",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "+1",
+     "-1",
+     "+-1",
+     "+2",
+     "-2",
+     "+-2"
+    ],
+    "default": "+1"
+   },
+   {
+    "key": "random_octave_seed",
+    "name": "Oct Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "random_note_amount",
+    "name": "Note Rand",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "random_note_seed",
+    "name": "Note Seed",
+    "type": "int",
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Global",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Progression",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Rhythm",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Modifiers",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LATCH",
+       "fullName": "Latch",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "off"
+      },
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DROP",
+       "fullName": "Drop",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RAND",
+       "fullName": "Gate Rand",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "Vel Rand",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCT",
+       "fullName": "Oct Rand",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOTE",
+       "fullName": "Note Rand",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Global",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LATCH",
+       "fullName": "Latch",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MAX",
+       "fullName": "Max Voices",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "Rate",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TRIPL",
+       "fullName": "Triplet",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SWING",
+       "fullName": "Swing",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCTAV",
+       "fullName": "Octave",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Progression",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MODE",
+       "fullName": "Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PATTE",
+       "fullName": "Pattern",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TRIGG",
+       "fullName": "Trigger",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOTE",
+       "fullName": "Note Policy",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SEED",
+       "fullName": "Rand Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LENGT",
+       "fullName": "Rand Length",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CHORD",
+       "fullName": "Rand Chords",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CH",
+       "fullName": "Rand Ch Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Rhythm",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PATTE",
+       "fullName": "Pattern",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TRIGG",
+       "fullName": "Trigger",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Modifiers",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MOD",
+       "fullName": "Mod Loop",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DROP",
+       "fullName": "Drop",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SEED",
+       "fullName": "Drop Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "Vel Rand",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "GATE",
+       "fullName": "Gate Rand",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RAND",
+       "fullName": "Oct Rand",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RANGE",
+       "fullName": "Oct Range",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOTE",
+       "fullName": "Note Rand",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "latch",
+    "label": "Latch",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3200
+    }
+   },
+   {
+    "key": "velocity",
+    "label": "Velocity",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "drop_amount",
+    "label": "Drop",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "gate_random_amount",
+    "label": "Gate Rand",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3200
+    }
+   },
+   {
+    "key": "velocity_random_amount",
+    "label": "Vel Rand",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "random_octave_amount",
+    "label": "Oct Rand",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "random_note_amount",
+    "label": "Note Rand",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "latch",
+    "label": "Latch",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "max_voices",
+    "label": "Max Voices",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 126
+    }
+   },
+   {
+    "key": "rate",
+    "label": "Rate",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/32",
+     "1/16",
+     "1/8",
+     "1/4"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "triplet",
+    "label": "Triplet",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "swing",
+    "label": "Swing",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3200
+    }
+   },
+   {
+    "key": "velocity",
+    "label": "Velocity",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "octave_range",
+    "label": "Octave",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "0",
+     "+1",
+     "-1",
+     "+2",
+     "-2"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   {
+    "key": "progression_mode",
+    "label": "Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "up",
+     "down",
+     "as_played",
+     "leap_inward",
+     "leap_outward",
+     "chord",
+     "pattern",
+     "random_pattern"
+    ],
+    "min": 0,
+    "max": 7,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 8
+    }
+   },
+   {
+    "key": "pattern_preset",
+    "label": "Pattern",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1-3-2-4",
+     "1-2-4-3",
+     "1-4-2-3",
+     "2-4-1-3",
+     "1-3-4-2",
+     "1-3-2-4-3-5",
+     "1-2-3-2-4-3",
+     "1-4-2-3-5-3",
+     "2-3-1-4-2-5",
+     "1-2-4-3-5-2",
+     "1-3-2-4-3-5-4-2",
+     "1-2-3-2-1-4-3-5",
+     "1-4-2-3-5-4-2-1",
+     "2-3-1-4-2-5-3-1",
+     "1-2-4-3-5-4-3-2",
+     "(1-2)-(3-4)",
+     "(1-3)-(2-4)",
+     "(1-2)-(1-2-3)",
+     "(1-3)-(1-4-5)",
+     "(2-3)-(1-4)",
+     "(1-2)-3-(3-4)",
+     "(1-2)-(3-4)-2",
+     "(1-3)-(2-4)-1",
+     "(1-2-3)-(1-4)-2",
+     "(2-3)-(1-4-5)-3",
+     "(1-2)-3-(3-4)-1",
+     "(1-2)-(3-4)-(2-3)-1",
+     "(1-3)-2-(2-4)-3",
+     "(1-2-3)-(2-4)-3-1",
+     "(2-3)-(1-4)-2-(3-5)",
+     "(1-2)-(1-2-3)-(3-4)",
+     "(1-3)-(2-4)-(1-4-5)",
+     "(1-2-3)-(1-4)-(2-3)",
+     "(2-3)-(1-4-5)-(1-2)",
+     "(1-3)-(2-4)-(3-5)",
+     "(1-2-3)-(2-3-4)-(1-4)",
+     "(1-2)-(2-3-4)-(1-4-5)",
+     "(1-3-4)-(2-4)-(1-2-5)",
+     "(2-3-5)-(1-4)-(1-2-3)",
+     "(1-2-4)-(2-3-5)-(1-3-4)"
+    ],
+    "min": 0,
+    "max": 39,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 40
+    }
+   },
+   {
+    "key": "progression_trigger",
+    "label": "Trigger",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "retrigger",
+     "continuous"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "missing_note_policy",
+    "label": "Note Policy",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "fold",
+     "wrap",
+     "clamp",
+     "skip"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "progression_seed",
+    "label": "Rand Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "random_pattern_length",
+    "label": "Rand Length",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 32,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 62
+    }
+   },
+   {
+    "key": "random_pattern_chords",
+    "label": "Rand Chords",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "random_pattern_chord_seed",
+    "label": "Rand Ch Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "rhythm_preset",
+    "label": "Pattern",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "00",
+     "0x",
+     "0x0",
+     "0xx",
+     "00x",
+     "00x0",
+     "0xx0",
+     "0x00",
+     "000x",
+     "0x0xx",
+     "0xx0x",
+     "0x00x",
+     "00xx0",
+     "0xxx0",
+     "000x0",
+     "0x0xx0",
+     "0xx00x",
+     "00x0xx",
+     "0xxx00",
+     "000xx0",
+     "0x00x0x",
+     "0xx0x0x",
+     "0xx0x00",
+     "0x0x0xx",
+     "0xx0xx0",
+     "00x00x0",
+     "0xxx0x0x",
+     "0x00x0xx",
+     "0x0xx0xx",
+     "00x0x00x",
+     "0x00xx0x",
+     "0xx00x0x",
+     "0xxx00x0",
+     "0x0xx0x0x0xx",
+     "0xx0x00x0xx",
+     "0xxx0x0xxx0",
+     "0x0x00xx0x0x",
+     "0x00x0xx0x00x",
+     "0xx0x0xx0xx0x",
+     "0xxx0xx0xxx0x"
+    ],
+    "min": 0,
+    "max": 39,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 40
+    }
+   },
+   {
+    "key": "rhythm_trigger",
+    "label": "Trigger",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "retrigger",
+     "continuous"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "modifier_loop_length",
+    "label": "Mod Loop",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 128,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 256
+    }
+   },
+   {
+    "key": "drop_amount",
+    "label": "Drop",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "drop_seed",
+    "label": "Drop Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "velocity_random_amount",
+    "label": "Vel Rand",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "gate_random_amount",
+    "label": "Gate Rand",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3200
+    }
+   },
+   {
+    "key": "random_octave_amount",
+    "label": "Oct Rand",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "random_octave_range",
+    "label": "Oct Range",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "+1",
+     "-1",
+     "+-1",
+     "+2",
+     "-2",
+     "+-2"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
+   {
+    "key": "random_note_amount",
+    "label": "Note Rand",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "bpm",
+   "sync",
+   "velocity_seed",
+   "gate_seed",
+   "modifier_trigger",
+   "random_octave_seed",
+   "random_note_seed"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "7 chain_params not reachable in movy: bpm, sync, velocity_seed, gate_seed, modifier_trigger, random_octave_seed, random_note_seed"
+  ]
+ }
+}

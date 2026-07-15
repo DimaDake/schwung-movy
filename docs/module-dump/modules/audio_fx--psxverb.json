@@ -1,0 +1,298 @@
+{
+ "id": "psxverb",
+ "name": "PSX Verb",
+ "version": "0.5.3",
+ "author": "charlesvestal",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 47,
+ "dsp_size": 19032,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "PSX Verb",
+     "params": [
+      {
+       "key": "model",
+       "label": "Model",
+       "type": "enum",
+       "options": [
+        "Room",
+        "Studio S",
+        "Studio M",
+        "Studio L",
+        "Hall",
+        "Space Echo"
+       ],
+       "default": "Hall"
+      },
+      {
+       "key": "decay",
+       "label": "Decay",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.7,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "mix",
+       "label": "Mix",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.35,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "input_gain",
+       "label": "Input",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "reverb_level",
+       "label": "Level",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.01,
+       "unit": "%"
+      }
+     ],
+     "knobs": [
+      "model",
+      "decay",
+      "mix",
+      "reverb_level"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root"
+  ],
+  "params": [
+   {
+    "key": "model",
+    "name": "Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Room",
+     "Studio S",
+     "Studio M",
+     "Studio L",
+     "Hall",
+     "Space Echo"
+    ],
+    "default": "Hall"
+   },
+   {
+    "key": "decay",
+    "name": "Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.70"
+   },
+   {
+    "key": "mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.35"
+   },
+   {
+    "key": "input_gain",
+    "name": "Input",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50"
+   },
+   {
+    "key": "reverb_level",
+    "name": "Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MODEL",
+       "fullName": "Model",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "Hall"
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LEVEL",
+       "fullName": "Level",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "model",
+    "label": "Model",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Room",
+     "Studio S",
+     "Studio M",
+     "Studio L",
+     "Hall",
+     "Space Echo"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
+   {
+    "key": "decay",
+    "label": "Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "reverb_level",
+    "label": "Level",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "input_gain"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "1 chain_params not reachable in movy: input_gain"
+  ]
+ }
+}

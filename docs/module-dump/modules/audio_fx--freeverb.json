@@ -1,0 +1,285 @@
+{
+ "id": "freeverb",
+ "name": "Freeverb",
+ "version": "0.1.1",
+ "author": null,
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 51,
+ "dsp_size": 93456,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Freeverb",
+     "params": [
+      {
+       "key": "room_size",
+       "name": "Room Size",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.7,
+       "step": 0.05,
+       "unit": "%",
+       "display_format": "%.0f"
+      },
+      {
+       "key": "damping",
+       "name": "Damping",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.05,
+       "unit": "%",
+       "display_format": "%.0f"
+      },
+      {
+       "key": "wet",
+       "name": "Wet",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.35,
+       "step": 0.05,
+       "unit": "%",
+       "display_format": "%.0f"
+      },
+      {
+       "key": "dry",
+       "name": "Dry",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.65,
+       "step": 0.05,
+       "unit": "%",
+       "display_format": "%.0f"
+      },
+      {
+       "key": "width",
+       "name": "Width",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 1,
+       "step": 0.05,
+       "unit": "%",
+       "display_format": "%.0f"
+      }
+     ],
+     "knobs": [
+      "room_size",
+      "damping",
+      "wet",
+      "dry"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root"
+  ],
+  "params": [
+   {
+    "key": "room_size",
+    "name": "Room Size",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.50"
+   },
+   {
+    "key": "damping",
+    "name": "Damping",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.50"
+   },
+   {
+    "key": "wet",
+    "name": "Wet",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.30"
+   },
+   {
+    "key": "dry",
+    "name": "Dry",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.70"
+   },
+   {
+    "key": "width",
+    "name": "Width",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "1.00"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ROOM",
+       "fullName": "Room Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "50%"
+      },
+      {
+       "shortName": "DAMPI",
+       "fullName": "Damping",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WET",
+       "fullName": "Wet",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRY",
+       "fullName": "Dry",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "room_size",
+    "label": "Room Size",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "damping",
+    "label": "Damping",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "wet",
+    "label": "Wet",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "dry",
+    "label": "Dry",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 40
+    }
+   },
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "width"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "1 chain_params not reachable in movy: width"
+  ]
+ }
+}

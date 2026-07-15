@@ -1,0 +1,2474 @@
+{
+ "id": "krautdrums",
+ "name": "KrautDrums",
+ "version": "0.1.1",
+ "author": "Vincent Filliforme",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 73,
+ "dsp_size": 73664,
+ "capabilities": {
+  "audio_out": true,
+  "midi_in": true,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy": {
+   "modes": null,
+   "levels": {
+    "root": {
+     "name": "KD",
+     "knobs": [
+      "lvl_bass",
+      "lvl_conga",
+      "lvl_tom1",
+      "lvl_tom2",
+      "lvl_claves",
+      "lvl_snare",
+      "lvl_cowbell",
+      "lvl_cymbals"
+     ],
+     "params": [
+      {
+       "level": "Kraut",
+       "label": "Kraut"
+      },
+      {
+       "level": "FX",
+       "label": "FX"
+      },
+      {
+       "level": "Attitude",
+       "label": "Attitude"
+      },
+      {
+       "level": "General",
+       "label": "General"
+      },
+      {
+       "level": "Rhythms",
+       "label": "Rhythms"
+      }
+     ]
+    },
+    "Kraut": {
+     "label": "Kraut",
+     "knobs": [
+      "lvl_bass",
+      "lvl_conga",
+      "lvl_tom1",
+      "lvl_tom2",
+      "lvl_claves",
+      "lvl_snare",
+      "lvl_cowbell",
+      "lvl_cymbals"
+     ],
+     "params": [
+      {
+       "key": "lvl_bass",
+       "label": "Bass",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.85,
+       "step": 0.01
+      },
+      {
+       "key": "lvl_conga",
+       "label": "Conga",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.65,
+       "step": 0.01
+      },
+      {
+       "key": "lvl_tom1",
+       "label": "Tom 1",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.7,
+       "step": 0.01
+      },
+      {
+       "key": "lvl_tom2",
+       "label": "Tom 2",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.7,
+       "step": 0.01
+      },
+      {
+       "key": "lvl_claves",
+       "label": "Claves",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.55,
+       "step": 0.01
+      },
+      {
+       "key": "lvl_snare",
+       "label": "Snare",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.8,
+       "step": 0.01
+      },
+      {
+       "key": "lvl_cowbell",
+       "label": "Cow Bell",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.6,
+       "step": 0.01
+      },
+      {
+       "key": "lvl_cymbals",
+       "label": "Cymbals",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.55,
+       "step": 0.01
+      }
+     ]
+    },
+    "FX": {
+     "label": "FX",
+     "knobs": [
+      "delay_mix",
+      "delay_time",
+      "delay_fb",
+      "reverb_mix",
+      "reverb_decay",
+      "reverb_tone",
+      "bus_comp",
+      "all_decay"
+     ],
+     "params": [
+      {
+       "key": "delay_mix",
+       "label": "Delay Mix",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      },
+      {
+       "key": "delay_time",
+       "label": "Delay Time",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.35,
+       "step": 0.01
+      },
+      {
+       "key": "delay_fb",
+       "label": "Delay Fdbk",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.35,
+       "step": 0.01
+      },
+      {
+       "key": "reverb_mix",
+       "label": "Reverb Mix",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      },
+      {
+       "key": "reverb_decay",
+       "label": "Reverb Dcy",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.55,
+       "step": 0.01
+      },
+      {
+       "key": "reverb_tone",
+       "label": "Reverb Tone",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.01
+      },
+      {
+       "key": "bus_comp",
+       "label": "Bus Comp",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      },
+      {
+       "key": "all_decay",
+       "label": "All Decay",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      },
+      {
+       "key": "delay_sync",
+       "label": "Delay Sync",
+       "type": "enum",
+       "options": [
+        "Free",
+        "Synced"
+       ],
+       "default": "Free"
+      },
+      {
+       "key": "delay_type",
+       "label": "Delay Type",
+       "type": "enum",
+       "options": [
+        "Tape",
+        "Magnetic",
+        "Space"
+       ],
+       "default": "Tape"
+      },
+      {
+       "key": "reverb_type",
+       "label": "Reverb Mode",
+       "type": "enum",
+       "options": [
+        "Plate",
+        "Spring",
+        "Chamber"
+       ],
+       "default": "Plate"
+      }
+     ]
+    },
+    "Attitude": {
+     "label": "Attitude",
+     "knobs": [
+      "preamp_drive",
+      "tape_amount",
+      "hpf_freq",
+      "eq_body",
+      "eq_air",
+      "filter_cutoff",
+      "filter_reso",
+      "phaser_amount"
+     ],
+     "params": [
+      {
+       "key": "preamp_drive",
+       "label": "Drive",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      },
+      {
+       "key": "tape_amount",
+       "label": "Tape",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.25,
+       "step": 0.01
+      },
+      {
+       "key": "hpf_freq",
+       "label": "HPF",
+       "type": "float",
+       "min": 30,
+       "max": 500,
+       "default": 60,
+       "step": 1
+      },
+      {
+       "key": "eq_body",
+       "label": "Body",
+       "type": "float",
+       "min": -6,
+       "max": 6,
+       "default": 0,
+       "step": 0.1
+      },
+      {
+       "key": "eq_air",
+       "label": "Air",
+       "type": "float",
+       "min": -6,
+       "max": 6,
+       "default": 0,
+       "step": 0.1
+      },
+      {
+       "key": "filter_cutoff",
+       "label": "Cutoff",
+       "type": "float",
+       "min": 100,
+       "max": 15000,
+       "default": 15000,
+       "step": 50
+      },
+      {
+       "key": "filter_reso",
+       "label": "Reso",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.2,
+       "step": 0.01
+      },
+      {
+       "key": "phaser_amount",
+       "label": "Phaser",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      }
+     ]
+    },
+    "General": {
+     "label": "General",
+     "knobs": [
+      "tempo",
+      "tempo_mode",
+      "drift",
+      "limiter",
+      "master_vol",
+      "density"
+     ],
+     "params": [
+      {
+       "key": "tempo",
+       "label": "Tempo",
+       "type": "float",
+       "min": 60,
+       "max": 200,
+       "default": 120,
+       "step": 1
+      },
+      {
+       "key": "tempo_mode",
+       "label": "Tempo Mode",
+       "type": "enum",
+       "options": [
+        "Free",
+        "Sync"
+       ],
+       "default": "Sync"
+      },
+      {
+       "key": "drift",
+       "label": "Drift",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.15,
+       "step": 0.01
+      },
+      {
+       "key": "limiter",
+       "label": "Limiter",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": "On"
+      },
+      {
+       "key": "master_vol",
+       "label": "M.Volume",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.85,
+       "step": 0.01
+      },
+      {
+       "key": "density",
+       "label": "Density",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 1,
+       "step": 0.01
+      }
+     ]
+    },
+    "Rhythms": {
+     "label": "Rhythms",
+     "knobs": [
+      "rhythm_1",
+      "rhythm_2",
+      "rhythm_3",
+      "rhythm_4",
+      "rhythm_5",
+      "rhythm_6",
+      "rhythm_7",
+      "rhythm_8"
+     ],
+     "params": [
+      {
+       "key": "rhythm_1",
+       "label": "Rhythm 1",
+       "type": "enum",
+       "options": [
+        "Off",
+        "Waltz",
+        "Tango",
+        "Polka",
+        "Paso Doble",
+        "Swing",
+        "Slow",
+        "Beguine",
+        "Cha-Cha",
+        "Rumba",
+        "Samba",
+        "Mambo",
+        "Bossa-Nova",
+        "Rock",
+        "Slow Rock",
+        "Shake",
+        "R & Blues"
+       ],
+       "default": "Off"
+      },
+      {
+       "key": "rhythm_2",
+       "label": "Rhythm 2",
+       "type": "enum",
+       "options": [
+        "Off",
+        "Waltz",
+        "Tango",
+        "Polka",
+        "Paso Doble",
+        "Swing",
+        "Slow",
+        "Beguine",
+        "Cha-Cha",
+        "Rumba",
+        "Samba",
+        "Mambo",
+        "Bossa-Nova",
+        "Rock",
+        "Slow Rock",
+        "Shake",
+        "R & Blues"
+       ],
+       "default": "Off"
+      },
+      {
+       "key": "rhythm_3",
+       "label": "Rhythm 3",
+       "type": "enum",
+       "options": [
+        "Off",
+        "Waltz",
+        "Tango",
+        "Polka",
+        "Paso Doble",
+        "Swing",
+        "Slow",
+        "Beguine",
+        "Cha-Cha",
+        "Rumba",
+        "Samba",
+        "Mambo",
+        "Bossa-Nova",
+        "Rock",
+        "Slow Rock",
+        "Shake",
+        "R & Blues"
+       ],
+       "default": "Off"
+      },
+      {
+       "key": "rhythm_4",
+       "label": "Rhythm 4",
+       "type": "enum",
+       "options": [
+        "Off",
+        "Waltz",
+        "Tango",
+        "Polka",
+        "Paso Doble",
+        "Swing",
+        "Slow",
+        "Beguine",
+        "Cha-Cha",
+        "Rumba",
+        "Samba",
+        "Mambo",
+        "Bossa-Nova",
+        "Rock",
+        "Slow Rock",
+        "Shake",
+        "R & Blues"
+       ],
+       "default": "Off"
+      },
+      {
+       "key": "rhythm_5",
+       "label": "Rhythm 5",
+       "type": "enum",
+       "options": [
+        "Off",
+        "Waltz",
+        "Tango",
+        "Polka",
+        "Paso Doble",
+        "Swing",
+        "Slow",
+        "Beguine",
+        "Cha-Cha",
+        "Rumba",
+        "Samba",
+        "Mambo",
+        "Bossa-Nova",
+        "Rock",
+        "Slow Rock",
+        "Shake",
+        "R & Blues"
+       ],
+       "default": "Off"
+      },
+      {
+       "key": "rhythm_6",
+       "label": "Rhythm 6",
+       "type": "enum",
+       "options": [
+        "Off",
+        "Waltz",
+        "Tango",
+        "Polka",
+        "Paso Doble",
+        "Swing",
+        "Slow",
+        "Beguine",
+        "Cha-Cha",
+        "Rumba",
+        "Samba",
+        "Mambo",
+        "Bossa-Nova",
+        "Rock",
+        "Slow Rock",
+        "Shake",
+        "R & Blues"
+       ],
+       "default": "Off"
+      },
+      {
+       "key": "rhythm_7",
+       "label": "Rhythm 7",
+       "type": "enum",
+       "options": [
+        "Off",
+        "Waltz",
+        "Tango",
+        "Polka",
+        "Paso Doble",
+        "Swing",
+        "Slow",
+        "Beguine",
+        "Cha-Cha",
+        "Rumba",
+        "Samba",
+        "Mambo",
+        "Bossa-Nova",
+        "Rock",
+        "Slow Rock",
+        "Shake",
+        "R & Blues"
+       ],
+       "default": "Off"
+      },
+      {
+       "key": "rhythm_8",
+       "label": "Rhythm 8",
+       "type": "enum",
+       "options": [
+        "Off",
+        "Waltz",
+        "Tango",
+        "Polka",
+        "Paso Doble",
+        "Swing",
+        "Slow",
+        "Beguine",
+        "Cha-Cha",
+        "Rumba",
+        "Samba",
+        "Mambo",
+        "Bossa-Nova",
+        "Rock",
+        "Slow Rock",
+        "Shake",
+        "R & Blues"
+       ],
+       "default": "Off"
+      }
+     ]
+    }
+   }
+  },
+  "chain_params": [
+   {
+    "key": "lvl_bass",
+    "name": "Bass",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "lvl_conga",
+    "name": "Conga",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "lvl_tom1",
+    "name": "Tom 1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "lvl_tom2",
+    "name": "Tom 2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "lvl_claves",
+    "name": "Claves",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "lvl_snare",
+    "name": "Snare",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "lvl_cowbell",
+    "name": "Cow Bell",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "lvl_cymbals",
+    "name": "Cymbals",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "delay_mix",
+    "name": "Delay Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "delay_time",
+    "name": "Delay Time",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "delay_fb",
+    "name": "Delay Fdbk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "reverb_mix",
+    "name": "Reverb Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "reverb_decay",
+    "name": "Reverb Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "reverb_tone",
+    "name": "Reverb Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "bus_comp",
+    "name": "Bus Comp",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "all_decay",
+    "name": "All Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "preamp_drive",
+    "name": "Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "tape_amount",
+    "name": "Tape",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "hpf_freq",
+    "name": "HPF",
+    "type": "float",
+    "min": 30,
+    "max": 500,
+    "step": 1
+   },
+   {
+    "key": "eq_body",
+    "name": "Body",
+    "type": "float",
+    "min": -6,
+    "max": 6,
+    "step": 0.1
+   },
+   {
+    "key": "eq_air",
+    "name": "Air",
+    "type": "float",
+    "min": -6,
+    "max": 6,
+    "step": 0.1
+   },
+   {
+    "key": "filter_cutoff",
+    "name": "Cutoff",
+    "type": "float",
+    "min": 100,
+    "max": 15000,
+    "step": 50
+   },
+   {
+    "key": "filter_reso",
+    "name": "Reso",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "phaser_amount",
+    "name": "Phaser",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "tempo",
+    "name": "Tempo",
+    "type": "float",
+    "min": 60,
+    "max": 200,
+    "step": 1
+   },
+   {
+    "key": "tempo_mode",
+    "name": "Tempo Mode",
+    "type": "enum",
+    "options": [
+     "Free",
+     "Sync"
+    ]
+   },
+   {
+    "key": "drift",
+    "name": "Drift",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "limiter",
+    "name": "Limiter",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ]
+   },
+   {
+    "key": "delay_type",
+    "name": "Delay Type",
+    "type": "enum",
+    "options": [
+     "Tape",
+     "Magnetic",
+     "Space"
+    ]
+   },
+   {
+    "key": "reverb_type",
+    "name": "Reverb Mode",
+    "type": "enum",
+    "options": [
+     "Plate",
+     "Spring",
+     "Chamber"
+    ]
+   },
+   {
+    "key": "master_vol",
+    "name": "M.Volume",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "density",
+    "name": "Density",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "delay_sync",
+    "name": "Delay Sync",
+    "type": "enum",
+    "options": [
+     "Free",
+     "Synced"
+    ]
+   },
+   {
+    "key": "rhythm_1",
+    "name": "Rhythm 1",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ]
+   },
+   {
+    "key": "rhythm_2",
+    "name": "Rhythm 2",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ]
+   },
+   {
+    "key": "rhythm_3",
+    "name": "Rhythm 3",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ]
+   },
+   {
+    "key": "rhythm_4",
+    "name": "Rhythm 4",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ]
+   },
+   {
+    "key": "rhythm_5",
+    "name": "Rhythm 5",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ]
+   },
+   {
+    "key": "rhythm_6",
+    "name": "Rhythm 6",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ]
+   },
+   {
+    "key": "rhythm_7",
+    "name": "Rhythm 7",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ]
+   },
+   {
+    "key": "rhythm_8",
+    "name": "Rhythm 8",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ]
+   }
+  ]
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "Kraut",
+   "FX",
+   "Attitude",
+   "General",
+   "Rhythms"
+  ],
+  "params": [
+   {
+    "key": "lvl_bass",
+    "name": "Bass",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8500"
+   },
+   {
+    "key": "lvl_conga",
+    "name": "Conga",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.6500"
+   },
+   {
+    "key": "lvl_tom1",
+    "name": "Tom 1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7000"
+   },
+   {
+    "key": "lvl_tom2",
+    "name": "Tom 2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7000"
+   },
+   {
+    "key": "lvl_claves",
+    "name": "Claves",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5500"
+   },
+   {
+    "key": "lvl_snare",
+    "name": "Snare",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "lvl_cowbell",
+    "name": "Cow Bell",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.6000"
+   },
+   {
+    "key": "lvl_cymbals",
+    "name": "Cymbals",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5500"
+   },
+   {
+    "key": "delay_mix",
+    "name": "Delay Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "delay_time",
+    "name": "Delay Time",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3500"
+   },
+   {
+    "key": "delay_fb",
+    "name": "Delay Fdbk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3500"
+   },
+   {
+    "key": "reverb_mix",
+    "name": "Reverb Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "reverb_decay",
+    "name": "Reverb Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5500"
+   },
+   {
+    "key": "reverb_tone",
+    "name": "Reverb Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "bus_comp",
+    "name": "Bus Comp",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "all_decay",
+    "name": "All Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "preamp_drive",
+    "name": "Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "tape_amount",
+    "name": "Tape",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2500"
+   },
+   {
+    "key": "hpf_freq",
+    "name": "HPF",
+    "type": "float",
+    "min": 30,
+    "max": 500,
+    "step": 1,
+    "options": null,
+    "default": "60.00"
+   },
+   {
+    "key": "eq_body",
+    "name": "Body",
+    "type": "float",
+    "min": -6,
+    "max": 6,
+    "step": 0.1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "eq_air",
+    "name": "Air",
+    "type": "float",
+    "min": -6,
+    "max": 6,
+    "step": 0.1,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "filter_cutoff",
+    "name": "Cutoff",
+    "type": "float",
+    "min": 100,
+    "max": 15000,
+    "step": 50,
+    "options": null,
+    "default": "15000.00"
+   },
+   {
+    "key": "filter_reso",
+    "name": "Reso",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2000"
+   },
+   {
+    "key": "phaser_amount",
+    "name": "Phaser",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "tempo",
+    "name": "Tempo",
+    "type": "float",
+    "min": 60,
+    "max": 200,
+    "step": 1,
+    "options": null,
+    "default": "120.0"
+   },
+   {
+    "key": "tempo_mode",
+    "name": "Tempo Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Free",
+     "Sync"
+    ],
+    "default": "Sync"
+   },
+   {
+    "key": "drift",
+    "name": "Drift",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.1500"
+   },
+   {
+    "key": "limiter",
+    "name": "Limiter",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "On"
+   },
+   {
+    "key": "delay_type",
+    "name": "Delay Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Tape",
+     "Magnetic",
+     "Space"
+    ],
+    "default": "Tape"
+   },
+   {
+    "key": "reverb_type",
+    "name": "Reverb Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Plate",
+     "Spring",
+     "Chamber"
+    ],
+    "default": "Plate"
+   },
+   {
+    "key": "master_vol",
+    "name": "M.Volume",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8500"
+   },
+   {
+    "key": "density",
+    "name": "Density",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "delay_sync",
+    "name": "Delay Sync",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Free",
+     "Synced"
+    ],
+    "default": "Free"
+   },
+   {
+    "key": "rhythm_1",
+    "name": "Rhythm 1",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "rhythm_2",
+    "name": "Rhythm 2",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "rhythm_3",
+    "name": "Rhythm 3",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "rhythm_4",
+    "name": "Rhythm 4",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "rhythm_5",
+    "name": "Rhythm 5",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "rhythm_6",
+    "name": "Rhythm 6",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "rhythm_7",
+    "name": "Rhythm 7",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "rhythm_8",
+    "name": "Rhythm 8",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ],
+    "default": "Off"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": true,
+  "usesMovyConfigFile": false,
+  "drum": {
+   "padCount": 16,
+   "padNoteStart": 68,
+   "rawMidi": true
+  },
+  "banks": [
+   {
+    "name": "Levels",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "FX",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Attitude",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "General",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Levels",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "BASS",
+       "fullName": "Bass",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "85%"
+      },
+      {
+       "shortName": "CONGA",
+       "fullName": "Conga",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TOM1",
+       "fullName": "Tom 1",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TOM2",
+       "fullName": "Tom 2",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "CLVS",
+       "fullName": "Claves",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SNARE",
+       "fullName": "Snare",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "COWBL",
+       "fullName": "Cowbell",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CYMBL",
+       "fullName": "Cymbals",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "FX",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DLMIX",
+       "fullName": "Delay Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DLTIM",
+       "fullName": "Delay Time",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DLFBK",
+       "fullName": "Delay Fdbk",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RVMIX",
+       "fullName": "Reverb Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RVDCY",
+       "fullName": "Reverb Dcy",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RVTON",
+       "fullName": "Reverb Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "COMP",
+       "fullName": "Bus Comp",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ALDCY",
+       "fullName": "All Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Attitude",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DRIVE",
+       "fullName": "Drive",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TAPE",
+       "fullName": "Tape",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HPF",
+       "fullName": "HPF",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BODY",
+       "fullName": "Body",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "AIR",
+       "fullName": "Air",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CUTOF",
+       "fullName": "Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RESO",
+       "fullName": "Reso",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PHASE",
+       "fullName": "Phaser",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "General",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TEMPO",
+       "fullName": "Tempo",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIFT",
+       "fullName": "Drift",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MSVOL",
+       "fullName": "Master Vol",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DNSTY",
+       "fullName": "Density",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "lvl_bass",
+    "label": "Bass",
+    "shortLabel": "BASS",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lvl_conga",
+    "label": "Conga",
+    "shortLabel": "CONGA",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lvl_tom1",
+    "label": "Tom 1",
+    "shortLabel": "TOM1",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lvl_tom2",
+    "label": "Tom 2",
+    "shortLabel": "TOM2",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lvl_claves",
+    "label": "Claves",
+    "shortLabel": "CLVS",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lvl_snare",
+    "label": "Snare",
+    "shortLabel": "SNARE",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lvl_cowbell",
+    "label": "Cowbell",
+    "shortLabel": "COWBL",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lvl_cymbals",
+    "label": "Cymbals",
+    "shortLabel": "CYMBL",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "delay_mix",
+    "label": "Delay Mix",
+    "shortLabel": "DLMIX",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "delay_time",
+    "label": "Delay Time",
+    "shortLabel": "DLTIM",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "delay_fb",
+    "label": "Delay Fdbk",
+    "shortLabel": "DLFBK",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "reverb_mix",
+    "label": "Reverb Mix",
+    "shortLabel": "RVMIX",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "reverb_decay",
+    "label": "Reverb Dcy",
+    "shortLabel": "RVDCY",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "reverb_tone",
+    "label": "Reverb Tone",
+    "shortLabel": "RVTON",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "bus_comp",
+    "label": "Bus Comp",
+    "shortLabel": "COMP",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "all_decay",
+    "label": "All Decay",
+    "shortLabel": "ALDCY",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "preamp_drive",
+    "label": "Drive",
+    "shortLabel": "DRIVE",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "tape_amount",
+    "label": "Tape",
+    "shortLabel": "TAPE",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "hpf_freq",
+    "label": "HPF",
+    "shortLabel": "HPF",
+    "type": "float",
+    "options": null,
+    "min": 30,
+    "max": 500,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 940
+    }
+   },
+   {
+    "key": "eq_body",
+    "label": "Body",
+    "shortLabel": "BODY",
+    "type": "float",
+    "options": null,
+    "min": -6,
+    "max": 6,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 240
+    }
+   },
+   {
+    "key": "eq_air",
+    "label": "Air",
+    "shortLabel": "AIR",
+    "type": "float",
+    "options": null,
+    "min": -6,
+    "max": 6,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 240
+    }
+   },
+   {
+    "key": "filter_cutoff",
+    "label": "Cutoff",
+    "shortLabel": "CUTOF",
+    "type": "float",
+    "options": null,
+    "min": 100,
+    "max": 15000,
+    "step": 50,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 25,
+     "detentsFullSweep": 596
+    }
+   },
+   {
+    "key": "filter_reso",
+    "label": "Reso",
+    "shortLabel": "RESO",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "phaser_amount",
+    "label": "Phaser",
+    "shortLabel": "PHASE",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "tempo",
+    "label": "Tempo",
+    "shortLabel": "TEMPO",
+    "type": "float",
+    "options": null,
+    "min": 60,
+    "max": 200,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 280
+    }
+   },
+   {
+    "key": "drift",
+    "label": "Drift",
+    "shortLabel": "DRIFT",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "master_vol",
+    "label": "Master Vol",
+    "shortLabel": "MSVOL",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "density",
+    "label": "Density",
+    "shortLabel": "DNSTY",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "tempo_mode",
+   "limiter",
+   "delay_type",
+   "reverb_type",
+   "delay_sync",
+   "rhythm_1",
+   "rhythm_2",
+   "rhythm_3",
+   "rhythm_4",
+   "rhythm_5",
+   "rhythm_6",
+   "rhythm_7",
+   "rhythm_8"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "13 chain_params not reachable in movy: tempo_mode, limiter, delay_type, reverb_type, delay_sync, rhythm_1, rhythm_2, rhythm_3, rhythm_4, rhythm_5, rhythm_6, rhythm_7, …"
+  ]
+ }
+}

@@ -1,0 +1,557 @@
+{
+ "id": "usefulity",
+ "name": "Usefulity",
+ "version": "0.1.2",
+ "author": "charlesvestal",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 65,
+ "dsp_size": 18928,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Usefulity",
+     "params": [
+      {
+       "key": "channel_mode",
+       "label": "Channel",
+       "type": "enum",
+       "options": [
+        "Stereo",
+        "Left",
+        "Right",
+        "Swap"
+       ],
+       "default": "Stereo"
+      },
+      {
+       "key": "width",
+       "label": "Width",
+       "type": "float",
+       "min": 0,
+       "max": 2,
+       "default": 1,
+       "step": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "mono",
+       "label": "Mono",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": "Off"
+      },
+      {
+       "key": "bass_mono",
+       "label": "Bass Mono",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": "Off"
+      },
+      {
+       "key": "bass_freq",
+       "label": "Bass Freq",
+       "type": "int",
+       "min": 50,
+       "max": 500,
+       "default": 120,
+       "step": 1,
+       "unit": "Hz"
+      },
+      {
+       "key": "gain_db",
+       "label": "Gain",
+       "type": "float",
+       "min": -100,
+       "max": 35,
+       "default": 0,
+       "step": 0.5,
+       "unit": "dB"
+      },
+      {
+       "key": "pan",
+       "label": "Balance",
+       "type": "float",
+       "min": -1,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      },
+      {
+       "key": "mute",
+       "label": "Mute",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": "Off"
+      },
+      {
+       "key": "phase_l",
+       "label": "Phase L",
+       "type": "enum",
+       "options": [
+        "Normal",
+        "Invert"
+       ],
+       "default": "Normal"
+      },
+      {
+       "key": "phase_r",
+       "label": "Phase R",
+       "type": "enum",
+       "options": [
+        "Normal",
+        "Invert"
+       ],
+       "default": "Normal"
+      },
+      {
+       "key": "dc_filter",
+       "label": "DC Filter",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": "Off"
+      },
+      {
+       "key": "bass_audition",
+       "label": "Bass Audition",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": "Off"
+      }
+     ],
+     "knobs": [
+      "channel_mode",
+      "width",
+      "mono",
+      "bass_mono",
+      "bass_freq",
+      "gain_db",
+      "pan",
+      "mute"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root"
+  ],
+  "params": [
+   {
+    "key": "channel_mode",
+    "name": "Channel",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Stereo",
+     "Left",
+     "Right",
+     "Swap"
+    ],
+    "default": "Stereo"
+   },
+   {
+    "key": "width",
+    "name": "Width",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "options": null,
+    "default": "1.00"
+   },
+   {
+    "key": "mono",
+    "name": "Mono",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "bass_mono",
+    "name": "Bass Mono",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "bass_freq",
+    "name": "Bass Freq",
+    "type": "int",
+    "min": 50,
+    "max": 500,
+    "step": 1,
+    "options": null,
+    "default": "120"
+   },
+   {
+    "key": "gain_db",
+    "name": "Gain",
+    "type": "float",
+    "min": -100,
+    "max": 35,
+    "step": 0.5,
+    "options": null,
+    "default": "0.0"
+   },
+   {
+    "key": "pan",
+    "name": "Balance",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "mute",
+    "name": "Mute",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "phase_l",
+    "name": "Phase L",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Normal",
+     "Invert"
+    ],
+    "default": "Normal"
+   },
+   {
+    "key": "phase_r",
+    "name": "Phase R",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Normal",
+     "Invert"
+    ],
+    "default": "Normal"
+   },
+   {
+    "key": "dc_filter",
+    "name": "DC Filter",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "bass_audition",
+    "name": "Bass Audition",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CHANN",
+       "fullName": "Channel",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "Stere"
+      },
+      {
+       "shortName": "WIDTH",
+       "fullName": "Width",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MONO",
+       "fullName": "Mono",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MONO",
+       "fullName": "Bass Mono",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "FREQ",
+       "fullName": "Bass Freq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GAIN",
+       "fullName": "Gain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BALAN",
+       "fullName": "Balance",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MUTE",
+       "fullName": "Mute",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "channel_mode",
+    "label": "Channel",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Stereo",
+     "Left",
+     "Right",
+     "Swap"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "width",
+    "label": "Width",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "mono",
+    "label": "Mono",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "bass_mono",
+    "label": "Bass Mono",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "bass_freq",
+    "label": "Bass Freq",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 50,
+    "max": 500,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 900
+    }
+   },
+   {
+    "key": "gain_db",
+    "label": "Gain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -100,
+    "max": 35,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 540
+    }
+   },
+   {
+    "key": "pan",
+    "label": "Balance",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "mute",
+    "label": "Mute",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "phase_l",
+   "phase_r",
+   "dc_filter",
+   "bass_audition"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "4 chain_params not reachable in movy: phase_l, phase_r, dc_filter, bass_audition",
+   "page \"\": duplicate on-screen names MONO"
+  ]
+ }
+}

@@ -1,0 +1,484 @@
+{
+ "id": "dragonfly-hall",
+ "name": "Dragonfly Hall",
+ "version": "1.0.4",
+ "author": "bradcoomber",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 67,
+ "dsp_size": 174512,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx"
+ },
+ "presets": {
+  "count": 25,
+  "sample": []
+ },
+ "native": {
+  "hierarchy_levels": [
+   "root"
+  ],
+  "params": [
+   {
+    "key": "dry_level",
+    "name": "Dry",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "80.0000"
+   },
+   {
+    "key": "early_level",
+    "name": "Early",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "10.0000"
+   },
+   {
+    "key": "late_level",
+    "name": "Late",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "20.0000"
+   },
+   {
+    "key": "size",
+    "name": "Size",
+    "type": "float",
+    "min": 10,
+    "max": 60,
+    "step": 1,
+    "options": null,
+    "default": "24.0000"
+   },
+   {
+    "key": "decay",
+    "name": "Decay",
+    "type": "float",
+    "min": 0.1,
+    "max": 10,
+    "step": 0.1,
+    "options": null,
+    "default": "1.3000"
+   },
+   {
+    "key": "diffuse",
+    "name": "Diffuse",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "90.0000"
+   },
+   {
+    "key": "delay",
+    "name": "Predelay",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "12.0000"
+   },
+   {
+    "key": "width",
+    "name": "Width",
+    "type": "float",
+    "min": 50,
+    "max": 150,
+    "step": 1,
+    "options": null,
+    "default": "80.0000"
+   },
+   {
+    "key": "modulation",
+    "name": "Modulation",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "15.0000"
+   },
+   {
+    "key": "wander",
+    "name": "Wander",
+    "type": "float",
+    "min": 0,
+    "max": 40,
+    "step": 0.5,
+    "options": null,
+    "default": "13.0000"
+   },
+   {
+    "key": "high_cut",
+    "name": "High Cut",
+    "type": "float",
+    "min": 1000,
+    "max": 16000,
+    "step": 100,
+    "options": null,
+    "default": "11200.0000"
+   },
+   {
+    "key": "high_xo",
+    "name": "High Cross",
+    "type": "float",
+    "min": 1000,
+    "max": 16000,
+    "step": 100,
+    "options": null,
+    "default": "6250.0000"
+   },
+   {
+    "key": "high_mult",
+    "name": "High Mult",
+    "type": "float",
+    "min": 0.2,
+    "max": 1.2,
+    "step": 0.05,
+    "options": null,
+    "default": "0.7500"
+   },
+   {
+    "key": "low_cut",
+    "name": "Low Cut",
+    "type": "float",
+    "min": 0,
+    "max": 200,
+    "step": 1,
+    "options": null,
+    "default": "4.0000"
+   },
+   {
+    "key": "low_xo",
+    "name": "Low Cross",
+    "type": "float",
+    "min": 200,
+    "max": 1200,
+    "step": 10,
+    "options": null,
+    "default": "400.0000"
+   },
+   {
+    "key": "low_mult",
+    "name": "Low Mult",
+    "type": "float",
+    "min": 0.5,
+    "max": 2.5,
+    "step": 0.05,
+    "options": null,
+    "default": "1.1000"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Preset",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Preset",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "Preset",
+       "renderStyle": "preset",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DRY",
+       "fullName": "Dry",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "EARLY",
+       "fullName": "Early",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LATE",
+       "fullName": "Late",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SIZE",
+       "fullName": "Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIFFU",
+       "fullName": "Diffuse",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PREDE",
+       "fullName": "Predelay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WIDTH",
+       "fullName": "Width",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "preset",
+    "label": "Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "min": 0,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "nameKey": "preset_name",
+    "renderStyle": "preset",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 25
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "dry_level",
+    "label": "Dry",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "early_level",
+    "label": "Early",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "late_level",
+    "label": "Late",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "size",
+    "label": "Size",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 10,
+    "max": 60,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "decay",
+    "label": "Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.1,
+    "max": 10,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "diffuse",
+    "label": "Diffuse",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "delay",
+    "label": "Predelay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "width",
+    "label": "Width",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 50,
+    "max": 150,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "modulation",
+   "wander",
+   "high_cut",
+   "high_xo",
+   "high_mult",
+   "low_cut",
+   "low_xo",
+   "low_mult"
+  ],
+  "noMetadata": [
+   "preset"
+  ],
+  "warnings": [
+   "8 chain_params not reachable in movy: modulation, wander, high_cut, high_xo, high_mult, low_cut, low_xo, low_mult",
+   "1 shown params lack chain_params metadata (movy guesses type/range): preset"
+  ]
+ }
+}

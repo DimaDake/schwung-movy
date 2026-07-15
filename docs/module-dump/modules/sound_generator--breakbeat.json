@@ -1,0 +1,987 @@
+{
+ "id": "breakbeat",
+ "name": "Breakbeat v4.0",
+ "version": "0.4.0",
+ "author": "mestela",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 58,
+ "dsp_size": 46144,
+ "capabilities": {
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "midi_out": false,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "label": "Breakbeat Gen",
+     "params": [
+      {
+       "key": "preset",
+       "label": "Preset",
+       "type": "int",
+       "min": 0,
+       "max": 10,
+       "default": 0
+      },
+      {
+       "key": "A_sample_path",
+       "label": "A Sample",
+       "type": "filepath",
+       "root": "/data/UserData/breakbeat-samples",
+       "filter": ".wav",
+       "default": "/data/UserData/breakbeat-samples/Built-in/amen.wav"
+      },
+      {
+       "key": "A_sample_length",
+       "label": "A Length",
+       "type": "enum",
+       "options": [
+        "1/4 bar",
+        "1/2 bar",
+        "1 bar",
+        "2 bars",
+        "4 bars",
+        "8 bars"
+       ],
+       "default": 2
+      },
+      {
+       "key": "B_sample_path",
+       "label": "B Sample",
+       "type": "filepath",
+       "root": "/data/UserData/breakbeat-samples",
+       "filter": ".wav",
+       "default": "/data/UserData/breakbeat-samples/Built-in/amen09.wav"
+      },
+      {
+       "key": "B_sample_length",
+       "label": "B Length",
+       "type": "enum",
+       "options": [
+        "1/4 bar",
+        "1/2 bar",
+        "1 bar",
+        "2 bars",
+        "4 bars",
+        "8 bars"
+       ],
+       "default": 2
+      },
+      {
+       "key": "B_chance",
+       "label": "B Chance",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "default": 0
+      },
+      {
+       "key": "complexity",
+       "label": "Complexity",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "default": 50
+      },
+      {
+       "key": "phrase",
+       "label": "Phrase",
+       "type": "enum",
+       "options": [
+        "Off",
+        "2 bars",
+        "4 bars",
+        "8 bars",
+        "16 bars"
+       ],
+       "default": 0
+      },
+      {
+       "key": "anchor",
+       "label": "Anchor",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "default": 0
+      },
+      {
+       "key": "roll",
+       "label": "Roll",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "default": 0
+      },
+      {
+       "key": "fill",
+       "label": "Fill",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "default": 0
+      },
+      {
+       "key": "retrig_2x",
+       "label": "Retrig 2x",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "default": 0
+      },
+      {
+       "key": "retrig_3x",
+       "label": "Retrig 3x",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "default": 0
+      },
+      {
+       "key": "retrig_4x",
+       "label": "Retrig 4x",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "default": 0
+      },
+      {
+       "key": "retrig_8x",
+       "label": "Retrig 8x",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "default": 0
+      },
+      {
+       "key": "save_preset",
+       "label": "Save Preset",
+       "type": "int",
+       "min": 0,
+       "max": 1,
+       "default": 0
+      },
+      {
+       "key": "status",
+       "label": "Status",
+       "type": "enum",
+       "options": [
+        "-"
+       ],
+       "default": 0
+      }
+     ],
+     "knobs": [
+      "preset",
+      "A_sample_path",
+      "A_sample_length",
+      "B_sample_path",
+      "B_sample_length",
+      "B_chance",
+      "complexity",
+      "phrase",
+      "anchor",
+      "roll",
+      "fill",
+      "retrig_2x",
+      "retrig_3x",
+      "retrig_4x",
+      "retrig_8x",
+      "save_preset",
+      "status"
+     ]
+    }
+   }
+  }
+ },
+ "presets": {
+  "count": 3,
+  "sample": []
+ },
+ "native": {
+  "hierarchy_levels": [
+   "root"
+  ],
+  "params": [
+   {
+    "key": "preset",
+    "name": "Preset",
+    "type": "int",
+    "min": 0,
+    "max": 10,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "A_sample_path",
+    "name": "A Sample",
+    "type": "filepath",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": "/data/UserData/breakbeat-samples/Built-in/sesame.wav"
+   },
+   {
+    "key": "A_sample_length",
+    "name": "A Length",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1/4 bar",
+     "1/2 bar",
+     "1 bar",
+     "2 bars",
+     "4 bars",
+     "8 bars"
+    ],
+    "default": "2"
+   },
+   {
+    "key": "B_sample_path",
+    "name": "B Sample",
+    "type": "filepath",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": "/data/UserData/breakbeat-samples/Built-in/groove.wav"
+   },
+   {
+    "key": "B_sample_length",
+    "name": "B Length",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1/4 bar",
+     "1/2 bar",
+     "1 bar",
+     "2 bars",
+     "4 bars",
+     "8 bars"
+    ],
+    "default": "3"
+   },
+   {
+    "key": "B_chance",
+    "name": "B Chance",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "79"
+   },
+   {
+    "key": "complexity",
+    "name": "Complexity",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "3"
+   },
+   {
+    "key": "phrase",
+    "name": "Phrase",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "2 bars",
+     "4 bars",
+     "8 bars",
+     "16 bars"
+    ],
+    "default": "2"
+   },
+   {
+    "key": "anchor",
+    "name": "Anchor",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "roll",
+    "name": "Roll",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "fill",
+    "name": "Fill",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "retrig_2x",
+    "name": "Retrig 2x",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "8"
+   },
+   {
+    "key": "retrig_3x",
+    "name": "Retrig 3x",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "retrig_4x",
+    "name": "Retrig 4x",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "retrig_8x",
+    "name": "Retrig 8x",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "save_preset",
+    "name": "Save Preset",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "status",
+    "name": "Status",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "-"
+    ],
+    "default": "A_0_1x"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Preset",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 1",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 3",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Preset",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "Preset",
+       "renderStyle": "preset",
+       "type": "enum",
+       "displayValue": "0"
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Main - 1",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "Preset",
+       "renderStyle": "preset",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SAMPL",
+       "fullName": "A Sample",
+       "renderStyle": "arc",
+       "type": "file",
+       "displayValue": "—"
+      },
+      {
+       "shortName": "LENGT",
+       "fullName": "A Length",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SAMPL",
+       "fullName": "B Sample",
+       "renderStyle": "arc",
+       "type": "file",
+       "displayValue": "—"
+      }
+     ],
+     [
+      {
+       "shortName": "LENGT",
+       "fullName": "B Length",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CHANC",
+       "fullName": "B Chance",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "COMPL",
+       "fullName": "Complexity",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PHRAS",
+       "fullName": "Phrase",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ANCHO",
+       "fullName": "Anchor",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ROLL",
+       "fullName": "Roll",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FILL",
+       "fullName": "Fill",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "R2",
+       "fullName": "Retrig 2x",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "R3",
+       "fullName": "Retrig 3x",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "R4",
+       "fullName": "Retrig 4x",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "R8",
+       "fullName": "Retrig 8x",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SAVE",
+       "fullName": "Save Preset",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 3",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "STATU",
+       "fullName": "Status",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "preset",
+    "label": "Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "options": null,
+    "nameKey": "preset_name",
+    "renderStyle": "preset",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "preset",
+    "label": "Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "options": null,
+    "nameKey": "preset_name",
+    "renderStyle": "preset",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "A_sample_path",
+    "label": "A Sample",
+    "shortLabel": null,
+    "type": "file",
+    "min": 0,
+    "max": 0,
+    "step": 0,
+    "options": null,
+    "renderStyle": "arc",
+    "automatable": false,
+    "fileRoot": "/data/UserData/breakbeat-samples",
+    "fileFilter": [
+     ".wav"
+    ],
+    "fileStartPath": "/data/UserData/breakbeat-samples",
+    "increment": {
+     "kind": "file-browse"
+    }
+   },
+   {
+    "key": "A_sample_length",
+    "label": "A Length",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/4 bar",
+     "1/2 bar",
+     "1 bar",
+     "2 bars",
+     "4 bars",
+     "8 bars"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
+   {
+    "key": "B_sample_path",
+    "label": "B Sample",
+    "shortLabel": null,
+    "type": "file",
+    "min": 0,
+    "max": 0,
+    "step": 0,
+    "options": null,
+    "renderStyle": "arc",
+    "automatable": false,
+    "fileRoot": "/data/UserData/breakbeat-samples",
+    "fileFilter": [
+     ".wav"
+    ],
+    "fileStartPath": "/data/UserData/breakbeat-samples",
+    "increment": {
+     "kind": "file-browse"
+    }
+   },
+   {
+    "key": "B_sample_length",
+    "label": "B Length",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/4 bar",
+     "1/2 bar",
+     "1 bar",
+     "2 bars",
+     "4 bars",
+     "8 bars"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
+   {
+    "key": "B_chance",
+    "label": "B Chance",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "complexity",
+    "label": "Complexity",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "phrase",
+    "label": "Phrase",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "2 bars",
+     "4 bars",
+     "8 bars",
+     "16 bars"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   {
+    "key": "anchor",
+    "label": "Anchor",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "roll",
+    "label": "Roll",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fill",
+    "label": "Fill",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "retrig_2x",
+    "label": "Retrig 2x",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "retrig_3x",
+    "label": "Retrig 3x",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "retrig_4x",
+    "label": "Retrig 4x",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "retrig_8x",
+    "label": "Retrig 8x",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "save_preset",
+    "label": "Save Preset",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   {
+    "key": "status",
+    "label": "Status",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "-"
+    ],
+    "min": 0,
+    "max": 0,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 1
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": [
+   "page \"Main - 1\": duplicate on-screen names SAMPL, LENGT"
+  ]
+ }
+}

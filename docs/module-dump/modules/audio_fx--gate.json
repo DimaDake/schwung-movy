@@ -1,0 +1,434 @@
+{
+ "id": "gate",
+ "name": "GATE",
+ "version": "0.1.1",
+ "author": "charlesvestal",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 48,
+ "dsp_size": 18952,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "GATE",
+     "params": [
+      {
+       "key": "threshold",
+       "label": "Threshold",
+       "type": "float",
+       "min": -80,
+       "max": 0,
+       "default": -40,
+       "step": 1,
+       "unit": "dB"
+      },
+      {
+       "key": "attack",
+       "label": "Attack",
+       "type": "float",
+       "min": 0.1,
+       "max": 50,
+       "default": 3,
+       "step": 0.1,
+       "unit": "ms"
+      },
+      {
+       "key": "hold",
+       "label": "Hold",
+       "type": "float",
+       "min": 0,
+       "max": 500,
+       "default": 50,
+       "step": 1,
+       "unit": "ms"
+      },
+      {
+       "key": "release",
+       "label": "Release",
+       "type": "float",
+       "min": 10,
+       "max": 1000,
+       "default": 200,
+       "step": 1,
+       "unit": "ms"
+      },
+      {
+       "key": "range",
+       "label": "Range",
+       "type": "float",
+       "min": 0,
+       "max": 80,
+       "default": 80,
+       "step": 1,
+       "unit": "dB"
+      },
+      {
+       "key": "ratio",
+       "label": "Ratio",
+       "type": "float",
+       "min": 1,
+       "max": 20,
+       "default": 4,
+       "step": 0.5,
+       "unit": ":1"
+      },
+      {
+       "key": "hysteresis",
+       "label": "Hysteresis",
+       "type": "float",
+       "min": 0,
+       "max": 12,
+       "default": 4,
+       "step": 0.5,
+       "unit": "dB"
+      },
+      {
+       "key": "mode",
+       "label": "Mode",
+       "type": "enum",
+       "options": [
+        "GATE",
+        "EXPAND"
+       ],
+       "default": "GATE"
+      }
+     ],
+     "knobs": [
+      "threshold",
+      "attack",
+      "hold",
+      "release",
+      "range",
+      "ratio",
+      "hysteresis",
+      "mode"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root"
+  ],
+  "params": [
+   {
+    "key": "threshold",
+    "name": "Threshold",
+    "type": "float",
+    "min": -80,
+    "max": 0,
+    "step": 1,
+    "options": null,
+    "default": "-40"
+   },
+   {
+    "key": "attack",
+    "name": "Attack",
+    "type": "float",
+    "min": 0.1,
+    "max": 50,
+    "step": 0.1,
+    "options": null,
+    "default": "3.0"
+   },
+   {
+    "key": "hold",
+    "name": "Hold",
+    "type": "float",
+    "min": 0,
+    "max": 500,
+    "step": 1,
+    "options": null,
+    "default": "50"
+   },
+   {
+    "key": "release",
+    "name": "Release",
+    "type": "float",
+    "min": 10,
+    "max": 1000,
+    "step": 1,
+    "options": null,
+    "default": "200"
+   },
+   {
+    "key": "range",
+    "name": "Range",
+    "type": "float",
+    "min": 0,
+    "max": 80,
+    "step": 1,
+    "options": null,
+    "default": "80"
+   },
+   {
+    "key": "ratio",
+    "name": "Ratio",
+    "type": "float",
+    "min": 1,
+    "max": 20,
+    "step": 0.5,
+    "options": null,
+    "default": "4.0"
+   },
+   {
+    "key": "hysteresis",
+    "name": "Hysteresis",
+    "type": "float",
+    "min": 0,
+    "max": 12,
+    "step": 0.5,
+    "options": null,
+    "default": "4.0"
+   },
+   {
+    "key": "mode",
+    "name": "Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "GATE",
+     "EXPAND"
+    ],
+    "default": "GATE"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "THRES",
+       "fullName": "Threshold",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "50%"
+      },
+      {
+       "shortName": "ATTAC",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HOLD",
+       "fullName": "Hold",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RELEA",
+       "fullName": "Release",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RANGE",
+       "fullName": "Range",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATIO",
+       "fullName": "Ratio",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HYSTE",
+       "fullName": "Hysteresis",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MODE",
+       "fullName": "Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "threshold",
+    "label": "Threshold",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -80,
+    "max": 0,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 160
+    }
+   },
+   {
+    "key": "attack",
+    "label": "Attack",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.1,
+    "max": 50,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 998
+    }
+   },
+   {
+    "key": "hold",
+    "label": "Hold",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 500,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 1000
+    }
+   },
+   {
+    "key": "release",
+    "label": "Release",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 10,
+    "max": 1000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 1980
+    }
+   },
+   {
+    "key": "range",
+    "label": "Range",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 80,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 160
+    }
+   },
+   {
+    "key": "ratio",
+    "label": "Ratio",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 1,
+    "max": 20,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 76
+    }
+   },
+   {
+    "key": "hysteresis",
+    "label": "Hysteresis",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 12,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 48
+    }
+   },
+   {
+    "key": "mode",
+    "label": "Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "GATE",
+     "EXPAND"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": []
+ }
+}

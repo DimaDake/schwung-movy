@@ -1,0 +1,243 @@
+{
+ "id": "velocity_scale",
+ "name": "Velocity Scale",
+ "version": "0.2.0",
+ "author": null,
+ "category": "midi_fx",
+ "status": "ok",
+ "load_ms": 61,
+ "dsp_size": 84048,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "midi_fx",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Velocity Scale",
+     "params": [
+      {
+       "key": "min",
+       "name": "Min",
+       "type": "int",
+       "min": 1,
+       "max": 127,
+       "default": 1,
+       "step": 1
+      },
+      {
+       "key": "max",
+       "name": "Max",
+       "type": "int",
+       "min": 1,
+       "max": 127,
+       "default": 127,
+       "step": 1
+      },
+      {
+       "key": "curve",
+       "name": "Curve",
+       "type": "int",
+       "min": -100,
+       "max": 100,
+       "default": 0,
+       "step": 1
+      },
+      {
+       "key": "curve_preset",
+       "name": "Curve Preset",
+       "type": "enum",
+       "options": [
+        "Linear",
+        "Soft",
+        "Softer",
+        "Hard",
+        "Harder"
+       ],
+       "default": 0
+      }
+     ],
+     "knobs": [
+      "min",
+      "max",
+      "curve"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root"
+  ],
+  "params": [
+   {
+    "key": "min",
+    "name": "Min Velocity",
+    "type": "int",
+    "min": 1,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "max",
+    "name": "Max Velocity",
+    "type": "int",
+    "min": 1,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "127"
+   },
+   {
+    "key": "curve",
+    "name": "Curve",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "curve_preset",
+    "name": "Curve Preset",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Linear",
+     "Soft",
+     "Softer",
+     "Hard",
+     "Harder"
+    ],
+    "default": "Linear"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MIN",
+       "fullName": "Min Velocity",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "1"
+      },
+      {
+       "shortName": "MAX",
+       "fullName": "Max Velocity",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CURVE",
+       "fullName": "Curve",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "min",
+    "label": "Min Velocity",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 252
+    }
+   },
+   {
+    "key": "max",
+    "label": "Max Velocity",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 252
+    }
+   },
+   {
+    "key": "curve",
+    "label": "Curve",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "curve_preset"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "1 chain_params not reachable in movy: curve_preset"
+  ]
+ }
+}

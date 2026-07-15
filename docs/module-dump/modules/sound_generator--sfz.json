@@ -1,0 +1,470 @@
+{
+ "id": "sfz",
+ "name": "Multisampler",
+ "version": "0.6.0",
+ "author": "charlesvestal",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 164,
+ "dsp_size": 7159952,
+ "capabilities": {
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "midi_out": true,
+  "aftertouch": true,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Multisample",
+     "params": [
+      {
+       "key": "preset",
+       "label": "Instrument",
+       "type": "int",
+       "min": 0,
+       "max_param": "preset_count",
+       "default": 0
+      },
+      {
+       "key": "octave_transpose",
+       "label": "Octave",
+       "type": "int",
+       "min": -4,
+       "max": 4,
+       "default": 0
+      },
+      {
+       "key": "gain",
+       "label": "Gain",
+       "type": "float",
+       "min": 0,
+       "max": 2,
+       "default": 0.7
+      },
+      {
+       "key": "funverb",
+       "label": "Funverb",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0
+      },
+      {
+       "key": "voices",
+       "label": "Voices",
+       "type": "int",
+       "min": 4,
+       "max": 128,
+       "default": 14
+      },
+      {
+       "key": "knob_preset",
+       "label": "Knob Preset",
+       "type": "int",
+       "min": 0,
+       "max": 7,
+       "default": 0
+      }
+     ],
+     "knobs": [
+      "knob_0",
+      "knob_1",
+      "knob_2",
+      "knob_3",
+      "knob_4",
+      "knob_5",
+      "knob_6",
+      "knob_7"
+     ]
+    }
+   }
+  }
+ },
+ "presets": {
+  "count": 0,
+  "sample": []
+ },
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "jump"
+  ],
+  "params": [
+   {
+    "key": "preset",
+    "name": "Instrument",
+    "type": "int",
+    "min": 0,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "octave_transpose",
+    "name": "Octave",
+    "type": "int",
+    "min": -4,
+    "max": 4,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "gain",
+    "name": "Gain",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.02,
+    "options": null,
+    "default": "0.70"
+   },
+   {
+    "key": "voices",
+    "name": "Polyphony",
+    "type": "int",
+    "min": 1,
+    "max": 128,
+    "step": null,
+    "options": null,
+    "default": "14"
+   },
+   {
+    "key": "attack",
+    "name": "Atk +/-",
+    "type": "float",
+    "min": -50,
+    "max": 50,
+    "step": 1,
+    "options": null,
+    "default": "0.0"
+   },
+   {
+    "key": "decay",
+    "name": "Dec +/-",
+    "type": "float",
+    "min": -50,
+    "max": 50,
+    "step": 1,
+    "options": null,
+    "default": "0.0"
+   },
+   {
+    "key": "sustain",
+    "name": "Sus +/-",
+    "type": "float",
+    "min": -50,
+    "max": 50,
+    "step": 1,
+    "options": null,
+    "default": "0.0"
+   },
+   {
+    "key": "release",
+    "name": "Rel +/-",
+    "type": "float",
+    "min": -50,
+    "max": 50,
+    "step": 1,
+    "options": null,
+    "default": "0.0"
+   },
+   {
+    "key": "tune",
+    "name": "Tune +/-",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.0"
+   },
+   {
+    "key": "cutoff",
+    "name": "Cutoff +/-",
+    "type": "float",
+    "min": -50,
+    "max": 50,
+    "step": 1,
+    "options": null,
+    "default": "0.0"
+   },
+   {
+    "key": "reso",
+    "name": "Reso +/-",
+    "type": "float",
+    "min": -50,
+    "max": 50,
+    "step": 1,
+    "options": null,
+    "default": "0.0"
+   },
+   {
+    "key": "knob_preset",
+    "name": "Knob Preset",
+    "type": "int",
+    "min": 0,
+    "max": 0,
+    "step": null,
+    "options": null,
+    "default": "0"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "0",
+       "fullName": "knob_0",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "1",
+       "fullName": "knob_1",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "2",
+       "fullName": "knob_2",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "3",
+       "fullName": "knob_3",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "4",
+       "fullName": "knob_4",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "5",
+       "fullName": "knob_5",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "6",
+       "fullName": "knob_6",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "7",
+       "fullName": "knob_7",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "knob_0",
+    "label": "knob_0",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "knob_1",
+    "label": "knob_1",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "knob_2",
+    "label": "knob_2",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "knob_3",
+    "label": "knob_3",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "knob_4",
+    "label": "knob_4",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "knob_5",
+    "label": "knob_5",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "knob_6",
+    "label": "knob_6",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "knob_7",
+    "label": "knob_7",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "preset",
+   "octave_transpose",
+   "gain",
+   "voices",
+   "attack",
+   "decay",
+   "sustain",
+   "release",
+   "tune",
+   "cutoff",
+   "reso",
+   "knob_preset"
+  ],
+  "noMetadata": [
+   "knob_0",
+   "knob_1",
+   "knob_2",
+   "knob_3",
+   "knob_4",
+   "knob_5",
+   "knob_6",
+   "knob_7"
+  ],
+  "warnings": [
+   "12 chain_params not reachable in movy: preset, octave_transpose, gain, voices, attack, decay, sustain, release, tune, cutoff, reso, knob_preset",
+   "8 shown params lack chain_params metadata (movy guesses type/range): knob_0, knob_1, knob_2, knob_3, knob_4, knob_5, knob_6, knob_7"
+  ]
+ }
+}

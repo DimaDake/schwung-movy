@@ -1,0 +1,4655 @@
+{
+ "id": "freak",
+ "name": "MrHyde",
+ "version": "0.0.4",
+ "author": "move-anything contributors",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 55,
+ "dsp_size": 1938480,
+ "capabilities": {
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "midi_out": false,
+  "aftertouch": true,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "MrHyde",
+     "knobs": [
+      "model",
+      "harmonics",
+      "timbre",
+      "morph",
+      "fm_amount",
+      "lpg_decay",
+      "lpg_color",
+      "filter_cutoff"
+     ],
+     "params": [
+      {
+       "label": "Main",
+       "level": "main"
+      },
+      {
+       "label": "Filter",
+       "level": "filter"
+      },
+      {
+       "label": "Mod",
+       "level": "mod"
+      },
+      {
+       "label": "Mod Sources",
+       "level": "mod_sources"
+      },
+      {
+       "label": "Voice & Mix",
+       "level": "voice"
+      }
+     ]
+    },
+    "main": {
+     "name": "Main",
+     "knobs": [
+      "model",
+      "pitch",
+      "harmonics",
+      "timbre",
+      "morph",
+      "fm_amount",
+      "aux_mix",
+      "lpg_decay",
+      "lpg_color"
+     ],
+     "params": [
+      "model",
+      "pitch",
+      "harmonics",
+      "timbre",
+      "morph",
+      "fm_amount",
+      "aux_mix",
+      "lpg_decay",
+      "lpg_color"
+     ]
+    },
+    "filter": {
+     "name": "Filter",
+     "knobs": [
+      "filter_mode",
+      "filter_cutoff",
+      "filter_resonance"
+     ],
+     "params": [
+      "filter_mode",
+      "filter_cutoff",
+      "filter_resonance"
+     ]
+    },
+    "mod": {
+     "name": "Mod",
+     "params": [
+      {
+       "label": "Pitch",
+       "level": "pitch_mod"
+      },
+      {
+       "label": "Harmonics",
+       "level": "harmonics_mod"
+      },
+      {
+       "label": "Timbre",
+       "level": "timbre_mod"
+      },
+      {
+       "label": "Cutoff",
+       "level": "cutoff_mod"
+      },
+      {
+       "label": "Assign 1",
+       "level": "assign1_mod"
+      },
+      {
+       "label": "Assign 2",
+       "level": "assign2_mod"
+      }
+     ]
+    },
+    "assign1_mod": {
+     "name": "Assign 1",
+     "knobs": [
+      "assign1_target",
+      "assign1_mod_lfo_amt",
+      "assign1_mod_env_amt",
+      "assign1_mod_cycle_env_amt",
+      "assign1_mod_random_amt",
+      "assign1_mod_velocity_amt",
+      "assign1_mod_poly_aftertouch_amt"
+     ],
+     "params": [
+      "assign1_target",
+      "assign1_mod_lfo_amt",
+      "assign1_mod_env_amt",
+      "assign1_mod_cycle_env_amt",
+      "assign1_mod_random_amt",
+      "assign1_mod_velocity_amt",
+      "assign1_mod_poly_aftertouch_amt"
+     ]
+    },
+    "assign2_mod": {
+     "name": "Assign 2",
+     "knobs": [
+      "assign2_target",
+      "assign2_mod_lfo_amt",
+      "assign2_mod_env_amt",
+      "assign2_mod_cycle_env_amt",
+      "assign2_mod_random_amt",
+      "assign2_mod_velocity_amt",
+      "assign2_mod_poly_aftertouch_amt"
+     ],
+     "params": [
+      "assign2_target",
+      "assign2_mod_lfo_amt",
+      "assign2_mod_env_amt",
+      "assign2_mod_cycle_env_amt",
+      "assign2_mod_random_amt",
+      "assign2_mod_velocity_amt",
+      "assign2_mod_poly_aftertouch_amt"
+     ]
+    },
+    "pitch_mod": {
+     "name": "Pitch",
+     "knobs": [
+      "pitch_mod_lfo_amt",
+      "pitch_mod_env_amt",
+      "pitch_mod_cycle_env_amt",
+      "pitch_mod_random_amt",
+      "pitch_mod_velocity_amt",
+      "pitch_mod_poly_aftertouch_amt"
+     ],
+     "params": [
+      "pitch_mod_lfo_amt",
+      "pitch_mod_env_amt",
+      "pitch_mod_cycle_env_amt",
+      "pitch_mod_random_amt",
+      "pitch_mod_velocity_amt",
+      "pitch_mod_poly_aftertouch_amt"
+     ]
+    },
+    "harmonics_mod": {
+     "name": "Harmonics",
+     "knobs": [
+      "harmonics_mod_lfo_amt",
+      "harmonics_mod_env_amt",
+      "harmonics_mod_cycle_env_amt",
+      "harmonics_mod_random_amt",
+      "harmonics_mod_velocity_amt",
+      "harmonics_mod_poly_aftertouch_amt"
+     ],
+     "params": [
+      "harmonics_mod_lfo_amt",
+      "harmonics_mod_env_amt",
+      "harmonics_mod_cycle_env_amt",
+      "harmonics_mod_random_amt",
+      "harmonics_mod_velocity_amt",
+      "harmonics_mod_poly_aftertouch_amt"
+     ]
+    },
+    "timbre_mod": {
+     "name": "Timbre",
+     "knobs": [
+      "timbre_mod_lfo_amt",
+      "timbre_mod_env_amt",
+      "timbre_mod_cycle_env_amt",
+      "timbre_mod_random_amt",
+      "timbre_mod_velocity_amt",
+      "timbre_mod_poly_aftertouch_amt"
+     ],
+     "params": [
+      "timbre_mod_lfo_amt",
+      "timbre_mod_env_amt",
+      "timbre_mod_cycle_env_amt",
+      "timbre_mod_random_amt",
+      "timbre_mod_velocity_amt",
+      "timbre_mod_poly_aftertouch_amt"
+     ]
+    },
+    "cutoff_mod": {
+     "name": "Cutoff",
+     "knobs": [
+      "cutoff_mod_lfo_amt",
+      "cutoff_mod_env_amt",
+      "cutoff_mod_cycle_env_amt",
+      "cutoff_mod_random_amt",
+      "cutoff_mod_velocity_amt",
+      "cutoff_mod_poly_aftertouch_amt"
+     ],
+     "params": [
+      "cutoff_mod_lfo_amt",
+      "cutoff_mod_env_amt",
+      "cutoff_mod_cycle_env_amt",
+      "cutoff_mod_random_amt",
+      "cutoff_mod_velocity_amt",
+      "cutoff_mod_poly_aftertouch_amt"
+     ]
+    },
+    "mod_sources": {
+     "name": "Mod Sources",
+     "params": [
+      {
+       "label": "LFO",
+       "level": "lfo"
+      },
+      {
+       "label": "Envelope",
+       "level": "envelope"
+      },
+      {
+       "label": "Cycling Envelope",
+       "level": "cycle_env"
+      },
+      {
+       "label": "Random",
+       "level": "random"
+      },
+      {
+       "label": "Velocity",
+       "level": "velocity"
+      },
+      {
+       "label": "Poly Aftertouch",
+       "level": "poly_aftertouch"
+      }
+     ]
+    },
+    "lfo": {
+     "name": "LFO",
+     "knobs": [
+      "lfo_shape",
+      "lfo_rate",
+      "lfo_rate_mode",
+      "lfo_retrig",
+      "lfo_phase"
+     ],
+     "params": [
+      "lfo_shape",
+      "lfo_rate",
+      "lfo_rate_mode",
+      "lfo_retrig",
+      "lfo_phase"
+     ]
+    },
+    "envelope": {
+     "name": "Envelope",
+     "knobs": [
+      "env_attack_ms",
+      "env_decay_ms",
+      "env_sustain",
+      "env_release_ms",
+      "env_retrig"
+     ],
+     "params": [
+      "env_attack_ms",
+      "env_decay_ms",
+      "env_sustain",
+      "env_release_ms",
+      "env_retrig"
+     ]
+    },
+    "cycle_env": {
+     "name": "Cycling Envelope",
+     "knobs": [
+      "cycle_attack_ms",
+      "cycle_decay_ms",
+      "cycle_shape",
+      "cycle_sync",
+      "cycle_retrig",
+      "cycle_bipolar"
+     ],
+     "params": [
+      "cycle_attack_ms",
+      "cycle_decay_ms",
+      "cycle_shape",
+      "cycle_sync",
+      "cycle_retrig",
+      "cycle_bipolar"
+     ]
+    },
+    "random": {
+     "name": "Random",
+     "knobs": [
+      "random_mode",
+      "random_rate",
+      "random_rate_mode",
+      "random_slew",
+      "random_retrig"
+     ],
+     "params": [
+      "random_mode",
+      "random_rate",
+      "random_rate_mode",
+      "random_slew",
+      "random_retrig"
+     ]
+    },
+    "velocity": {
+     "name": "Velocity",
+     "knobs": [
+      "velocity_curve"
+     ],
+     "params": [
+      "velocity_curve"
+     ]
+    },
+    "poly_aftertouch": {
+     "name": "Poly Aftertouch",
+     "knobs": [
+      "poly_aftertouch_curve"
+     ],
+     "params": [
+      "poly_aftertouch_curve"
+     ]
+    },
+    "voice": {
+     "name": "Voice & Mix",
+     "knobs": [
+      "volume",
+      "pan",
+      "voice_mode",
+      "polyphony",
+      "unison",
+      "detune",
+      "spread",
+      "glide_ms"
+     ],
+     "params": [
+      "volume",
+      "pan",
+      "voice_mode",
+      "polyphony",
+      "unison",
+      "detune",
+      "spread",
+      "glide_ms"
+     ]
+    }
+   }
+  },
+  "chain_params": [
+   {
+    "key": "model",
+    "name": "Model",
+    "type": "enum",
+    "options": [
+     "VA VCF",
+     "Phase Distortion",
+     "Wave Terrain",
+     "String Machine",
+     "Virtual Analog",
+     "Waveshaping",
+     "FM 2-Op",
+     "Granular Formant",
+     "Harmonic",
+     "Wavetable",
+     "Chords",
+     "Vocal Speech",
+     "Swarm",
+     "Noise",
+     "Particle Noise",
+     "Inharmonic String",
+     "Modal Resonator"
+    ]
+   },
+   {
+    "key": "pitch",
+    "name": "Pitch",
+    "type": "float",
+    "min": -48,
+    "max": 48
+   },
+   {
+    "key": "harmonics",
+    "name": "Harmonics",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "timbre",
+    "name": "Timbre",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "morph",
+    "name": "Morph",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "fm_amount",
+    "name": "FM Amount",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "aux_mix",
+    "name": "Aux Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "lpg_decay",
+    "name": "LPG Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "lpg_color",
+    "name": "LPG Color",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "filter_mode",
+    "name": "Mode",
+    "type": "enum",
+    "options": [
+     "lp",
+     "bp",
+     "hp"
+    ]
+   },
+   {
+    "key": "filter_cutoff",
+    "name": "Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "filter_resonance",
+    "name": "Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "assign1_target",
+    "name": "Target",
+    "type": "enum",
+    "options": [
+     "off",
+     "morph",
+     "fm_amount",
+     "lpg_decay",
+     "lpg_color",
+     "filter_resonance",
+     "pitch",
+     "harmonics",
+     "timbre",
+     "filter_cutoff",
+     "volume",
+     "pan",
+     "detune",
+     "spread"
+    ]
+   },
+   {
+    "key": "assign1_mod_lfo_amt",
+    "name": "LFO",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "assign1_mod_env_amt",
+    "name": "Env",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "assign1_mod_cycle_env_amt",
+    "name": "Cycle Env",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "assign1_mod_random_amt",
+    "name": "Random",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "assign1_mod_velocity_amt",
+    "name": "Velocity",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "assign1_mod_poly_aftertouch_amt",
+    "name": "Poly Aftertouch",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "assign2_target",
+    "name": "Target",
+    "type": "enum",
+    "options": [
+     "off",
+     "morph",
+     "fm_amount",
+     "lpg_decay",
+     "lpg_color",
+     "filter_resonance",
+     "pitch",
+     "harmonics",
+     "timbre",
+     "filter_cutoff",
+     "volume",
+     "pan",
+     "detune",
+     "spread"
+    ]
+   },
+   {
+    "key": "assign2_mod_lfo_amt",
+    "name": "LFO",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "assign2_mod_env_amt",
+    "name": "Env",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "assign2_mod_cycle_env_amt",
+    "name": "Cycle Env",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "assign2_mod_random_amt",
+    "name": "Random",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "assign2_mod_velocity_amt",
+    "name": "Velocity",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "assign2_mod_poly_aftertouch_amt",
+    "name": "Poly Aftertouch",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "pitch_mod_lfo_amt",
+    "name": "LFO",
+    "type": "float",
+    "min": -48,
+    "max": 48,
+    "step": 0.1
+   },
+   {
+    "key": "pitch_mod_env_amt",
+    "name": "Env",
+    "type": "float",
+    "min": -48,
+    "max": 48,
+    "step": 0.1
+   },
+   {
+    "key": "pitch_mod_cycle_env_amt",
+    "name": "Cycle Env",
+    "type": "float",
+    "min": -48,
+    "max": 48,
+    "step": 0.1
+   },
+   {
+    "key": "pitch_mod_random_amt",
+    "name": "Random",
+    "type": "float",
+    "min": -48,
+    "max": 48,
+    "step": 0.1
+   },
+   {
+    "key": "pitch_mod_velocity_amt",
+    "name": "Velocity",
+    "type": "float",
+    "min": -48,
+    "max": 48,
+    "step": 0.1
+   },
+   {
+    "key": "pitch_mod_poly_aftertouch_amt",
+    "name": "Poly Aftertouch",
+    "type": "float",
+    "min": -48,
+    "max": 48,
+    "step": 0.1
+   },
+   {
+    "key": "harmonics_mod_lfo_amt",
+    "name": "LFO",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "harmonics_mod_env_amt",
+    "name": "Env",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "harmonics_mod_cycle_env_amt",
+    "name": "Cycle Env",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "harmonics_mod_random_amt",
+    "name": "Random",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "harmonics_mod_velocity_amt",
+    "name": "Velocity",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "harmonics_mod_poly_aftertouch_amt",
+    "name": "Poly Aftertouch",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "timbre_mod_lfo_amt",
+    "name": "LFO",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "timbre_mod_env_amt",
+    "name": "Env",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "timbre_mod_cycle_env_amt",
+    "name": "Cycle Env",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "timbre_mod_random_amt",
+    "name": "Random",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "timbre_mod_velocity_amt",
+    "name": "Velocity",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "timbre_mod_poly_aftertouch_amt",
+    "name": "Poly Aftertouch",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "cutoff_mod_lfo_amt",
+    "name": "LFO",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "cutoff_mod_env_amt",
+    "name": "Env",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "cutoff_mod_cycle_env_amt",
+    "name": "Cycle Env",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "cutoff_mod_random_amt",
+    "name": "Random",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "cutoff_mod_velocity_amt",
+    "name": "Velocity",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "cutoff_mod_poly_aftertouch_amt",
+    "name": "Poly Aftertouch",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "lfo_shape",
+    "name": "Shape",
+    "type": "enum",
+    "options": [
+     "sine",
+     "triangle",
+     "saw",
+     "square",
+     "random",
+     "smooth_random"
+    ]
+   },
+   {
+    "key": "lfo_rate",
+    "name": "Rate",
+    "type": "float",
+    "min": 0.01,
+    "max": 40
+   },
+   {
+    "key": "lfo_rate_mode",
+    "name": "Sync",
+    "type": "enum",
+    "options": [
+     "free",
+     "sync"
+    ]
+   },
+   {
+    "key": "lfo_retrig",
+    "name": "Retrig",
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ]
+   },
+   {
+    "key": "lfo_phase",
+    "name": "Phase",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "env_attack_ms",
+    "name": "Attack",
+    "type": "int",
+    "min": 0,
+    "max": 5000,
+    "step": 1
+   },
+   {
+    "key": "env_decay_ms",
+    "name": "Decay",
+    "type": "int",
+    "min": 0,
+    "max": 5000,
+    "step": 1
+   },
+   {
+    "key": "env_sustain",
+    "name": "Sustain",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "env_release_ms",
+    "name": "Release",
+    "type": "int",
+    "min": 0,
+    "max": 5000,
+    "step": 1
+   },
+   {
+    "key": "env_retrig",
+    "name": "Retrig",
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ]
+   },
+   {
+    "key": "cycle_attack_ms",
+    "name": "Attack",
+    "type": "int",
+    "min": 1,
+    "max": 5000,
+    "step": 1
+   },
+   {
+    "key": "cycle_decay_ms",
+    "name": "Decay",
+    "type": "int",
+    "min": 1,
+    "max": 5000,
+    "step": 1
+   },
+   {
+    "key": "cycle_shape",
+    "name": "Shape",
+    "type": "enum",
+    "options": [
+     "linear",
+     "exponential",
+     "logarithmic"
+    ]
+   },
+   {
+    "key": "cycle_sync",
+    "name": "Sync",
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ]
+   },
+   {
+    "key": "cycle_retrig",
+    "name": "Retrig",
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ]
+   },
+   {
+    "key": "cycle_bipolar",
+    "name": "Bipolar",
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ]
+   },
+   {
+    "key": "random_mode",
+    "name": "Mode",
+    "type": "enum",
+    "options": [
+     "sample_hold",
+     "smooth",
+     "drift"
+    ]
+   },
+   {
+    "key": "random_rate",
+    "name": "Rate",
+    "type": "float",
+    "min": 0.01,
+    "max": 40
+   },
+   {
+    "key": "random_rate_mode",
+    "name": "Sync",
+    "type": "enum",
+    "options": [
+     "free",
+     "sync"
+    ]
+   },
+   {
+    "key": "random_slew",
+    "name": "Slew",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "random_retrig",
+    "name": "Retrig",
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ]
+   },
+   {
+    "key": "velocity_curve",
+    "name": "Curve",
+    "type": "float",
+    "min": 0.1,
+    "max": 4
+   },
+   {
+    "key": "poly_aftertouch_curve",
+    "name": "Curve",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "volume",
+    "name": "Volume",
+    "type": "float",
+    "min": 0,
+    "max": 2
+   },
+   {
+    "key": "pan",
+    "name": "Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1
+   },
+   {
+    "key": "voice_mode",
+    "name": "Voice Mode",
+    "type": "enum",
+    "options": [
+     "mono",
+     "poly",
+     "mono_legato"
+    ]
+   },
+   {
+    "key": "polyphony",
+    "name": "Polyphony",
+    "type": "int",
+    "min": 1,
+    "max": 8
+   },
+   {
+    "key": "unison",
+    "name": "Unison",
+    "type": "int",
+    "min": 1,
+    "max": 8
+   },
+   {
+    "key": "detune",
+    "name": "Detune",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "spread",
+    "name": "Spread",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "glide_ms",
+    "name": "Glide",
+    "type": "int",
+    "min": 0,
+    "max": 2000,
+    "step": 5
+   }
+  ]
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "main",
+   "filter",
+   "mod",
+   "assign1_mod",
+   "assign2_mod",
+   "pitch_mod",
+   "harmonics_mod",
+   "timbre_mod",
+   "cutoff_mod",
+   "mod_sources",
+   "lfo",
+   "envelope",
+   "cycle_env",
+   "random",
+   "velocity",
+   "poly_aftertouch",
+   "voice"
+  ],
+  "params": [
+   {
+    "key": "model",
+    "name": "Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "VA VCF",
+     "Phase Distortion",
+     "Wave Terrain",
+     "String Machine",
+     "Virtual Analog",
+     "Waveshaping",
+     "FM 2-Op",
+     "Granular Formant",
+     "Harmonic",
+     "Wavetable",
+     "Chords",
+     "Vocal Speech",
+     "Swarm",
+     "Noise",
+     "Particle Noise",
+     "Inharmonic String",
+     "Modal Resonator"
+    ],
+    "default": "Virtual Analog"
+   },
+   {
+    "key": "pitch",
+    "name": "Pitch",
+    "type": "float",
+    "min": -48,
+    "max": 48,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "harmonics",
+    "name": "Harmonics",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.5"
+   },
+   {
+    "key": "timbre",
+    "name": "Timbre",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.5"
+   },
+   {
+    "key": "morph",
+    "name": "Morph",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.5"
+   },
+   {
+    "key": "fm_amount",
+    "name": "FM Amount",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "aux_mix",
+    "name": "Aux Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lpg_decay",
+    "name": "LPG Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.35"
+   },
+   {
+    "key": "lpg_color",
+    "name": "LPG Color",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.55"
+   },
+   {
+    "key": "filter_mode",
+    "name": "Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "lp",
+     "bp",
+     "hp"
+    ],
+    "default": "lp"
+   },
+   {
+    "key": "filter_cutoff",
+    "name": "Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "filter_resonance",
+    "name": "Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "assign1_target",
+    "name": "Target",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "morph",
+     "fm_amount",
+     "lpg_decay",
+     "lpg_color",
+     "filter_resonance",
+     "pitch",
+     "harmonics",
+     "timbre",
+     "filter_cutoff",
+     "volume",
+     "pan",
+     "detune",
+     "spread"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "assign1_mod_lfo_amt",
+    "name": "LFO",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "assign1_mod_env_amt",
+    "name": "Env",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "assign1_mod_cycle_env_amt",
+    "name": "Cycle Env",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "assign1_mod_random_amt",
+    "name": "Random",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "assign1_mod_velocity_amt",
+    "name": "Velocity",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "assign1_mod_poly_aftertouch_amt",
+    "name": "Poly Aftertouch",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "assign2_target",
+    "name": "Target",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "morph",
+     "fm_amount",
+     "lpg_decay",
+     "lpg_color",
+     "filter_resonance",
+     "pitch",
+     "harmonics",
+     "timbre",
+     "filter_cutoff",
+     "volume",
+     "pan",
+     "detune",
+     "spread"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "assign2_mod_lfo_amt",
+    "name": "LFO",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "assign2_mod_env_amt",
+    "name": "Env",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "assign2_mod_cycle_env_amt",
+    "name": "Cycle Env",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "assign2_mod_random_amt",
+    "name": "Random",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "assign2_mod_velocity_amt",
+    "name": "Velocity",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "assign2_mod_poly_aftertouch_amt",
+    "name": "Poly Aftertouch",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "pitch_mod_lfo_amt",
+    "name": "LFO",
+    "type": "float",
+    "min": -48,
+    "max": 48,
+    "step": 0.1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "pitch_mod_env_amt",
+    "name": "Env",
+    "type": "float",
+    "min": -48,
+    "max": 48,
+    "step": 0.1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "pitch_mod_cycle_env_amt",
+    "name": "Cycle Env",
+    "type": "float",
+    "min": -48,
+    "max": 48,
+    "step": 0.1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "pitch_mod_random_amt",
+    "name": "Random",
+    "type": "float",
+    "min": -48,
+    "max": 48,
+    "step": 0.1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "pitch_mod_velocity_amt",
+    "name": "Velocity",
+    "type": "float",
+    "min": -48,
+    "max": 48,
+    "step": 0.1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "pitch_mod_poly_aftertouch_amt",
+    "name": "Poly Aftertouch",
+    "type": "float",
+    "min": -48,
+    "max": 48,
+    "step": 0.1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "harmonics_mod_lfo_amt",
+    "name": "LFO",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "harmonics_mod_env_amt",
+    "name": "Env",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "harmonics_mod_cycle_env_amt",
+    "name": "Cycle Env",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "harmonics_mod_random_amt",
+    "name": "Random",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "harmonics_mod_velocity_amt",
+    "name": "Velocity",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "harmonics_mod_poly_aftertouch_amt",
+    "name": "Poly Aftertouch",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "timbre_mod_lfo_amt",
+    "name": "LFO",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "timbre_mod_env_amt",
+    "name": "Env",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "timbre_mod_cycle_env_amt",
+    "name": "Cycle Env",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "timbre_mod_random_amt",
+    "name": "Random",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "timbre_mod_velocity_amt",
+    "name": "Velocity",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "timbre_mod_poly_aftertouch_amt",
+    "name": "Poly Aftertouch",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "cutoff_mod_lfo_amt",
+    "name": "LFO",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "cutoff_mod_env_amt",
+    "name": "Env",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "cutoff_mod_cycle_env_amt",
+    "name": "Cycle Env",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "cutoff_mod_random_amt",
+    "name": "Random",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "cutoff_mod_velocity_amt",
+    "name": "Velocity",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "cutoff_mod_poly_aftertouch_amt",
+    "name": "Poly Aftertouch",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lfo_shape",
+    "name": "Shape",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "sine",
+     "triangle",
+     "saw",
+     "square",
+     "random",
+     "smooth_random"
+    ],
+    "default": "sine"
+   },
+   {
+    "key": "lfo_rate",
+    "name": "Rate",
+    "type": "float",
+    "min": 0.01,
+    "max": 40,
+    "step": 0.01,
+    "options": null,
+    "default": "2"
+   },
+   {
+    "key": "lfo_rate_mode",
+    "name": "Sync",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "free",
+     "sync"
+    ],
+    "default": "free"
+   },
+   {
+    "key": "lfo_retrig",
+    "name": "Retrig",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "lfo_phase",
+    "name": "Phase",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "env_attack_ms",
+    "name": "Attack",
+    "type": "int",
+    "min": 0,
+    "max": 5000,
+    "step": 1,
+    "options": null,
+    "default": "5"
+   },
+   {
+    "key": "env_decay_ms",
+    "name": "Decay",
+    "type": "int",
+    "min": 0,
+    "max": 5000,
+    "step": 1,
+    "options": null,
+    "default": "200"
+   },
+   {
+    "key": "env_sustain",
+    "name": "Sustain",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "env_release_ms",
+    "name": "Release",
+    "type": "int",
+    "min": 0,
+    "max": 5000,
+    "step": 1,
+    "options": null,
+    "default": "300"
+   },
+   {
+    "key": "env_retrig",
+    "name": "Retrig",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "on"
+   },
+   {
+    "key": "cycle_attack_ms",
+    "name": "Attack",
+    "type": "int",
+    "min": 1,
+    "max": 5000,
+    "step": 1,
+    "options": null,
+    "default": "300"
+   },
+   {
+    "key": "cycle_decay_ms",
+    "name": "Decay",
+    "type": "int",
+    "min": 1,
+    "max": 5000,
+    "step": 1,
+    "options": null,
+    "default": "300"
+   },
+   {
+    "key": "cycle_shape",
+    "name": "Shape",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "linear",
+     "exponential",
+     "logarithmic"
+    ],
+    "default": "linear"
+   },
+   {
+    "key": "cycle_sync",
+    "name": "Sync",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "cycle_retrig",
+    "name": "Retrig",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "cycle_bipolar",
+    "name": "Bipolar",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "on"
+   },
+   {
+    "key": "random_mode",
+    "name": "Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "sample_hold",
+     "smooth",
+     "drift"
+    ],
+    "default": "sample_hold"
+   },
+   {
+    "key": "random_rate",
+    "name": "Rate",
+    "type": "float",
+    "min": 0.01,
+    "max": 40,
+    "step": 0.01,
+    "options": null,
+    "default": "3"
+   },
+   {
+    "key": "random_rate_mode",
+    "name": "Sync",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "free",
+     "sync"
+    ],
+    "default": "free"
+   },
+   {
+    "key": "random_slew",
+    "name": "Slew",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.3"
+   },
+   {
+    "key": "random_retrig",
+    "name": "Retrig",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "on"
+   },
+   {
+    "key": "velocity_curve",
+    "name": "Curve",
+    "type": "float",
+    "min": 0.1,
+    "max": 4,
+    "step": null,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "poly_aftertouch_curve",
+    "name": "Curve",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "volume",
+    "name": "Volume",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": null,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "pan",
+    "name": "Pan",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "voice_mode",
+    "name": "Voice Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "mono",
+     "poly",
+     "mono_legato"
+    ],
+    "default": "poly"
+   },
+   {
+    "key": "polyphony",
+    "name": "Polyphony",
+    "type": "int",
+    "min": 1,
+    "max": 8,
+    "step": null,
+    "options": null,
+    "default": "4"
+   },
+   {
+    "key": "unison",
+    "name": "Unison",
+    "type": "int",
+    "min": 1,
+    "max": 8,
+    "step": null,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "detune",
+    "name": "Detune",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.1"
+   },
+   {
+    "key": "spread",
+    "name": "Spread",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.25"
+   },
+   {
+    "key": "glide_ms",
+    "name": "Glide",
+    "type": "int",
+    "min": 0,
+    "max": 2000,
+    "step": 5,
+    "options": null,
+    "default": "0"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 1",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Filter",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Mod/Pitch",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Mod/Harmonics",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Mod/Timbre",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Mod/Cutoff",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Mod/Assign 1",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Mod/Assign 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "ModS/LFO",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "ModS/Envelope",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "ModS/Cycling Envelope",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "ModS/Random",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "ModS/Velocity",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "ModS/Poly Aftertouch",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Voice & Mix",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MODEL",
+       "fullName": "Model",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "Virtu"
+      },
+      {
+       "shortName": "HARMO",
+       "fullName": "Harmonics",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TIMBR",
+       "fullName": "Timbre",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MORPH",
+       "fullName": "Morph",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "FM",
+       "fullName": "FM Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "LPG Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "COLOR",
+       "fullName": "LPG Color",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CUTOF",
+       "fullName": "Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 1",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MODEL",
+       "fullName": "Model",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PITCH",
+       "fullName": "Pitch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HARMO",
+       "fullName": "Harmonics",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TIMBR",
+       "fullName": "Timbre",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "MORPH",
+       "fullName": "Morph",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FM",
+       "fullName": "FM Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AUX",
+       "fullName": "Aux Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LPG",
+       "fullName": "LPG Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LPG",
+       "fullName": "LPG Color",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Filter",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MODE",
+       "fullName": "Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CUTOF",
+       "fullName": "Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RESON",
+       "fullName": "Resonance",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Mod/Pitch",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LFO",
+       "fullName": "LFO",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ENV",
+       "fullName": "Env",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CYCLE",
+       "fullName": "Cycle Env",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RANDO",
+       "fullName": "Random",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "POLY",
+       "fullName": "Poly Aftertouch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Mod/Harmonics",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LFO",
+       "fullName": "LFO",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ENV",
+       "fullName": "Env",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CYCLE",
+       "fullName": "Cycle Env",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RANDO",
+       "fullName": "Random",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "POLY",
+       "fullName": "Poly Aftertouch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Mod/Timbre",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LFO",
+       "fullName": "LFO",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ENV",
+       "fullName": "Env",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CYCLE",
+       "fullName": "Cycle Env",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RANDO",
+       "fullName": "Random",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "POLY",
+       "fullName": "Poly Aftertouch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Mod/Cutoff",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LFO",
+       "fullName": "LFO",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ENV",
+       "fullName": "Env",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CYCLE",
+       "fullName": "Cycle Env",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RANDO",
+       "fullName": "Random",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "POLY",
+       "fullName": "Poly Aftertouch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Mod/Assign 1",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TARGE",
+       "fullName": "Target",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LFO",
+       "fullName": "LFO",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ENV",
+       "fullName": "Env",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CYCLE",
+       "fullName": "Cycle Env",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RANDO",
+       "fullName": "Random",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "POLY",
+       "fullName": "Poly Aftertouch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Mod/Assign 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TARGE",
+       "fullName": "Target",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LFO",
+       "fullName": "LFO",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ENV",
+       "fullName": "Env",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CYCLE",
+       "fullName": "Cycle Env",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RANDO",
+       "fullName": "Random",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "POLY",
+       "fullName": "Poly Aftertouch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "ModS/LFO",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SHAPE",
+       "fullName": "Shape",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SYNC",
+       "fullName": "Sync",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RETRI",
+       "fullName": "Retrig",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PHASE",
+       "fullName": "Phase",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "ModS/Envelope",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATTAC",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SUSTA",
+       "fullName": "Sustain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RELEA",
+       "fullName": "Release",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RETRI",
+       "fullName": "Retrig",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "ModS/Cycling Envelope",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATTAC",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SHAPE",
+       "fullName": "Shape",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SYNC",
+       "fullName": "Sync",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RETRI",
+       "fullName": "Retrig",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BIPOL",
+       "fullName": "Bipolar",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "ModS/Random",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MODE",
+       "fullName": "Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SYNC",
+       "fullName": "Sync",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SLEW",
+       "fullName": "Slew",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RETRI",
+       "fullName": "Retrig",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "ModS/Velocity",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CURVE",
+       "fullName": "Curve",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "ModS/Poly Aftertouch",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CURVE",
+       "fullName": "Curve",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Voice & Mix",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VOLUM",
+       "fullName": "Volume",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN",
+       "fullName": "Pan",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOICE",
+       "fullName": "Voice Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "POLYP",
+       "fullName": "Polyphony",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "UNISO",
+       "fullName": "Unison",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DETUN",
+       "fullName": "Detune",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPREA",
+       "fullName": "Spread",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GLIDE",
+       "fullName": "Glide",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "model",
+    "label": "Model",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "VA VCF",
+     "Phase Distortion",
+     "Wave Terrain",
+     "String Machine",
+     "Virtual Analog",
+     "Waveshaping",
+     "FM 2-Op",
+     "Granular Formant",
+     "Harmonic",
+     "Wavetable",
+     "Chords",
+     "Vocal Speech",
+     "Swarm",
+     "Noise",
+     "Particle Noise",
+     "Inharmonic String",
+     "Modal Resonator"
+    ],
+    "min": 0,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 17
+    }
+   },
+   {
+    "key": "harmonics",
+    "label": "Harmonics",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "timbre",
+    "label": "Timbre",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "morph",
+    "label": "Morph",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "fm_amount",
+    "label": "FM Amount",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "lpg_decay",
+    "label": "LPG Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "lpg_color",
+    "label": "LPG Color",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "filter_cutoff",
+    "label": "Cutoff",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "model",
+    "label": "Model",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "VA VCF",
+     "Phase Distortion",
+     "Wave Terrain",
+     "String Machine",
+     "Virtual Analog",
+     "Waveshaping",
+     "FM 2-Op",
+     "Granular Formant",
+     "Harmonic",
+     "Wavetable",
+     "Chords",
+     "Vocal Speech",
+     "Swarm",
+     "Noise",
+     "Particle Noise",
+     "Inharmonic String",
+     "Modal Resonator"
+    ],
+    "min": 0,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 17
+    }
+   },
+   {
+    "key": "pitch",
+    "label": "Pitch",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -48,
+    "max": 48,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 9600
+    }
+   },
+   {
+    "key": "harmonics",
+    "label": "Harmonics",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "timbre",
+    "label": "Timbre",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "morph",
+    "label": "Morph",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "fm_amount",
+    "label": "FM Amount",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "aux_mix",
+    "label": "Aux Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "lpg_decay",
+    "label": "LPG Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "lpg_color",
+    "label": "LPG Color",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "filter_mode",
+    "label": "Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "lp",
+     "bp",
+     "hp"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "filter_cutoff",
+    "label": "Cutoff",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "filter_resonance",
+    "label": "Resonance",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "pitch_mod_lfo_amt",
+    "label": "LFO",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -48,
+    "max": 48,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 1920
+    }
+   },
+   {
+    "key": "pitch_mod_env_amt",
+    "label": "Env",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -48,
+    "max": 48,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 1920
+    }
+   },
+   {
+    "key": "pitch_mod_cycle_env_amt",
+    "label": "Cycle Env",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -48,
+    "max": 48,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 1920
+    }
+   },
+   {
+    "key": "pitch_mod_random_amt",
+    "label": "Random",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -48,
+    "max": 48,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 1920
+    }
+   },
+   {
+    "key": "pitch_mod_velocity_amt",
+    "label": "Velocity",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -48,
+    "max": 48,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 1920
+    }
+   },
+   {
+    "key": "pitch_mod_poly_aftertouch_amt",
+    "label": "Poly Aftertouch",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -48,
+    "max": 48,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 1920
+    }
+   },
+   null,
+   null,
+   {
+    "key": "harmonics_mod_lfo_amt",
+    "label": "LFO",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "harmonics_mod_env_amt",
+    "label": "Env",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "harmonics_mod_cycle_env_amt",
+    "label": "Cycle Env",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "harmonics_mod_random_amt",
+    "label": "Random",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "harmonics_mod_velocity_amt",
+    "label": "Velocity",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "harmonics_mod_poly_aftertouch_amt",
+    "label": "Poly Aftertouch",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   {
+    "key": "timbre_mod_lfo_amt",
+    "label": "LFO",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "timbre_mod_env_amt",
+    "label": "Env",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "timbre_mod_cycle_env_amt",
+    "label": "Cycle Env",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "timbre_mod_random_amt",
+    "label": "Random",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "timbre_mod_velocity_amt",
+    "label": "Velocity",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "timbre_mod_poly_aftertouch_amt",
+    "label": "Poly Aftertouch",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   {
+    "key": "cutoff_mod_lfo_amt",
+    "label": "LFO",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cutoff_mod_env_amt",
+    "label": "Env",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cutoff_mod_cycle_env_amt",
+    "label": "Cycle Env",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cutoff_mod_random_amt",
+    "label": "Random",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cutoff_mod_velocity_amt",
+    "label": "Velocity",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cutoff_mod_poly_aftertouch_amt",
+    "label": "Poly Aftertouch",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   {
+    "key": "assign1_target",
+    "label": "Target",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "morph",
+     "fm_amount",
+     "lpg_decay",
+     "lpg_color",
+     "filter_resonance",
+     "pitch",
+     "harmonics",
+     "timbre",
+     "filter_cutoff",
+     "volume",
+     "pan",
+     "detune",
+     "spread"
+    ],
+    "min": 0,
+    "max": 13,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 14
+    }
+   },
+   {
+    "key": "assign1_mod_lfo_amt",
+    "label": "LFO",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "assign1_mod_env_amt",
+    "label": "Env",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "assign1_mod_cycle_env_amt",
+    "label": "Cycle Env",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "assign1_mod_random_amt",
+    "label": "Random",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "assign1_mod_velocity_amt",
+    "label": "Velocity",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "assign1_mod_poly_aftertouch_amt",
+    "label": "Poly Aftertouch",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   {
+    "key": "assign2_target",
+    "label": "Target",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "morph",
+     "fm_amount",
+     "lpg_decay",
+     "lpg_color",
+     "filter_resonance",
+     "pitch",
+     "harmonics",
+     "timbre",
+     "filter_cutoff",
+     "volume",
+     "pan",
+     "detune",
+     "spread"
+    ],
+    "min": 0,
+    "max": 13,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 14
+    }
+   },
+   {
+    "key": "assign2_mod_lfo_amt",
+    "label": "LFO",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "assign2_mod_env_amt",
+    "label": "Env",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "assign2_mod_cycle_env_amt",
+    "label": "Cycle Env",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "assign2_mod_random_amt",
+    "label": "Random",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "assign2_mod_velocity_amt",
+    "label": "Velocity",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "assign2_mod_poly_aftertouch_amt",
+    "label": "Poly Aftertouch",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   {
+    "key": "lfo_shape",
+    "label": "Shape",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "sine",
+     "triangle",
+     "saw",
+     "square",
+     "random",
+     "smooth_random"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
+   {
+    "key": "lfo_rate",
+    "label": "Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.01,
+    "max": 40,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 7998
+    }
+   },
+   {
+    "key": "lfo_rate_mode",
+    "label": "Sync",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "free",
+     "sync"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "lfo_retrig",
+    "label": "Retrig",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "lfo_phase",
+    "label": "Phase",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "env_attack_ms",
+    "label": "Attack",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 5000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 10000
+    }
+   },
+   {
+    "key": "env_decay_ms",
+    "label": "Decay",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 5000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 10000
+    }
+   },
+   {
+    "key": "env_sustain",
+    "label": "Sustain",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "env_release_ms",
+    "label": "Release",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 5000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 10000
+    }
+   },
+   {
+    "key": "env_retrig",
+    "label": "Retrig",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "cycle_attack_ms",
+    "label": "Attack",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 5000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 9998
+    }
+   },
+   {
+    "key": "cycle_decay_ms",
+    "label": "Decay",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 5000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 9998
+    }
+   },
+   {
+    "key": "cycle_shape",
+    "label": "Shape",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "linear",
+     "exponential",
+     "logarithmic"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "cycle_sync",
+    "label": "Sync",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "cycle_retrig",
+    "label": "Retrig",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "cycle_bipolar",
+    "label": "Bipolar",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   {
+    "key": "random_mode",
+    "label": "Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "sample_hold",
+     "smooth",
+     "drift"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "random_rate",
+    "label": "Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.01,
+    "max": 40,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 7998
+    }
+   },
+   {
+    "key": "random_rate_mode",
+    "label": "Sync",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "free",
+     "sync"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "random_slew",
+    "label": "Slew",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "random_retrig",
+    "label": "Retrig",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "velocity_curve",
+    "label": "Curve",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.1,
+    "max": 4,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 390
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "poly_aftertouch_curve",
+    "label": "Curve",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "volume",
+    "label": "Volume",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pan",
+    "label": "Pan",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "voice_mode",
+    "label": "Voice Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "mono",
+     "poly",
+     "mono_legato"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "polyphony",
+    "label": "Polyphony",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 14
+    }
+   },
+   {
+    "key": "unison",
+    "label": "Unison",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 14
+    }
+   },
+   {
+    "key": "detune",
+    "label": "Detune",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "spread",
+    "label": "Spread",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "glide_ms",
+    "label": "Glide",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 2000,
+    "step": 5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 2.5,
+     "detentsFullSweep": 800
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": []
+ }
+}

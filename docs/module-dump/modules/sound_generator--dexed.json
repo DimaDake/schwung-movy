@@ -1,0 +1,2667 @@
+{
+ "id": "dexed",
+ "name": "Dexed",
+ "version": "0.5.11",
+ "author": "Dexed/MSFA by google/asb2m10 (port: charlesvestal)",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 55,
+ "dsp_size": 538792,
+ "capabilities": {
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "midi_out": false,
+  "aftertouch": true,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Dexed",
+     "params": [
+      {
+       "key": "preset",
+       "label": "Preset",
+       "type": "int",
+       "min": 0,
+       "max": 31,
+       "default": 0
+      },
+      {
+       "key": "output_level",
+       "label": "Output",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "default": 50
+      },
+      {
+       "key": "octave_transpose",
+       "label": "Octave",
+       "type": "int",
+       "min": -3,
+       "max": 3,
+       "default": 0
+      },
+      {
+       "key": "algorithm",
+       "label": "Algorithm",
+       "type": "int",
+       "min": 1,
+       "max": 32,
+       "default": 1
+      },
+      {
+       "key": "feedback",
+       "label": "Feedback",
+       "type": "int",
+       "min": 0,
+       "max": 7,
+       "default": 0
+      },
+      {
+       "key": "osc_sync",
+       "label": "Osc Sync",
+       "type": "int",
+       "min": 0,
+       "max": 1,
+       "default": 0
+      },
+      {
+       "key": "transpose",
+       "label": "Transpose",
+       "type": "int",
+       "min": 0,
+       "max": 48,
+       "default": 24
+      },
+      {
+       "key": "lfo_speed",
+       "label": "LFO Spd",
+       "type": "int",
+       "min": 0,
+       "max": 99,
+       "default": 35
+      },
+      {
+       "key": "lfo_delay",
+       "label": "LFO Dly",
+       "type": "int",
+       "min": 0,
+       "max": 99,
+       "default": 0
+      },
+      {
+       "key": "lfo_pmd",
+       "label": "LFO PMD",
+       "type": "int",
+       "min": 0,
+       "max": 99,
+       "default": 0
+      },
+      {
+       "key": "lfo_amd",
+       "label": "LFO AMD",
+       "type": "int",
+       "min": 0,
+       "max": 99,
+       "default": 0
+      },
+      {
+       "key": "lfo_pms",
+       "label": "LFO PMS",
+       "type": "int",
+       "min": 0,
+       "max": 7,
+       "default": 0
+      },
+      {
+       "key": "lfo_wave",
+       "label": "LFO Wave",
+       "type": "int",
+       "min": 0,
+       "max": 5,
+       "default": 0
+      },
+      {
+       "key": "lfo_sync",
+       "label": "LFO Sync",
+       "type": "int",
+       "min": 0,
+       "max": 1,
+       "default": 0
+      },
+      {
+       "key": "op1_level",
+       "label": "Op1 Lvl",
+       "type": "int",
+       "min": 0,
+       "max": 99,
+       "default": 0
+      },
+      {
+       "key": "op2_level",
+       "label": "Op2 Lvl",
+       "type": "int",
+       "min": 0,
+       "max": 99,
+       "default": 0
+      },
+      {
+       "key": "op3_level",
+       "label": "Op3 Lvl",
+       "type": "int",
+       "min": 0,
+       "max": 99,
+       "default": 0
+      },
+      {
+       "key": "op4_level",
+       "label": "Op4 Lvl",
+       "type": "int",
+       "min": 0,
+       "max": 99,
+       "default": 0
+      },
+      {
+       "key": "op5_level",
+       "label": "Op5 Lvl",
+       "type": "int",
+       "min": 0,
+       "max": 99,
+       "default": 0
+      },
+      {
+       "key": "op6_level",
+       "label": "Op6 Lvl",
+       "type": "int",
+       "min": 0,
+       "max": 99,
+       "default": 0
+      }
+     ],
+     "knobs": [
+      "preset",
+      "output_level",
+      "octave_transpose",
+      "algorithm",
+      "feedback"
+     ]
+    }
+   }
+  }
+ },
+ "presets": {
+  "count": 32,
+  "sample": []
+ },
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "global",
+   "lfo",
+   "pitch_eg",
+   "operators",
+   "op1",
+   "op1_eg",
+   "op1_kbd",
+   "op2",
+   "op2_eg",
+   "op2_kbd",
+   "op3",
+   "op3_eg",
+   "op3_kbd",
+   "op4",
+   "op4_eg",
+   "op4_kbd",
+   "op5",
+   "op5_eg",
+   "op5_kbd",
+   "op6",
+   "op6_eg",
+   "op6_kbd",
+   "banks"
+  ],
+  "params": [
+   {
+    "key": "preset",
+    "name": "Preset",
+    "type": "int",
+    "min": 0,
+    "max": 31,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "output_level",
+    "name": "Output",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "50"
+   },
+   {
+    "key": "octave_transpose",
+    "name": "Octave",
+    "type": "int",
+    "min": -3,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "algorithm",
+    "name": "Algorithm",
+    "type": "int",
+    "min": 1,
+    "max": 32,
+    "step": null,
+    "options": null,
+    "default": "32"
+   },
+   {
+    "key": "feedback",
+    "name": "Feedback",
+    "type": "int",
+    "min": 0,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "7"
+   },
+   {
+    "key": "osc_sync",
+    "name": "Osc Sync",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "transpose",
+    "name": "Transpose",
+    "type": "int",
+    "min": 0,
+    "max": 48,
+    "step": null,
+    "options": null,
+    "default": "24"
+   },
+   {
+    "key": "lfo_speed",
+    "name": "LFO Spd",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "35"
+   },
+   {
+    "key": "lfo_delay",
+    "name": "LFO Dly",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lfo_pmd",
+    "name": "LFO PMD",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lfo_amd",
+    "name": "LFO AMD",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lfo_pms",
+    "name": "LFO PMS",
+    "type": "int",
+    "min": 0,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "3"
+   },
+   {
+    "key": "lfo_wave",
+    "name": "LFO Wave",
+    "type": "int",
+    "min": 0,
+    "max": 5,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lfo_sync",
+    "name": "LFO Sync",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "pitch_eg_r1",
+    "name": "PEG R1",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "pitch_eg_r2",
+    "name": "PEG R2",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "pitch_eg_r3",
+    "name": "PEG R3",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "pitch_eg_r4",
+    "name": "PEG R4",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "pitch_eg_l1",
+    "name": "PEG L1",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "50"
+   },
+   {
+    "key": "pitch_eg_l2",
+    "name": "PEG L2",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "50"
+   },
+   {
+    "key": "pitch_eg_l3",
+    "name": "PEG L3",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "50"
+   },
+   {
+    "key": "pitch_eg_l4",
+    "name": "PEG L4",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "50"
+   },
+   {
+    "key": "op1_level",
+    "name": "Op1 Lvl",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op1_coarse",
+    "name": "Op1 Crs",
+    "type": "int",
+    "min": 0,
+    "max": 31,
+    "step": null,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "op1_fine",
+    "name": "Op1 Fin",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op1_detune",
+    "name": "Op1 Det",
+    "type": "int",
+    "min": -7,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op1_osc_mode",
+    "name": "Op1 Mode",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op1_vel_sens",
+    "name": "Op1 Vel",
+    "type": "int",
+    "min": 0,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op1_amp_mod",
+    "name": "Op1 AMS",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op1_rate_scale",
+    "name": "Op1 RS",
+    "type": "int",
+    "min": 0,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op1_eg_r1",
+    "name": "Op1 R1",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "70"
+   },
+   {
+    "key": "op1_eg_r2",
+    "name": "Op1 R2",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "40"
+   },
+   {
+    "key": "op1_eg_r3",
+    "name": "Op1 R3",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "49"
+   },
+   {
+    "key": "op1_eg_r4",
+    "name": "Op1 R4",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op1_eg_l1",
+    "name": "Op1 L1",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op1_eg_l2",
+    "name": "Op1 L2",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "92"
+   },
+   {
+    "key": "op1_eg_l3",
+    "name": "Op1 L3",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op1_eg_l4",
+    "name": "Op1 L4",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op1_key_bp",
+    "name": "Op1 BP",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op1_key_ld",
+    "name": "Op1 LD",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op1_key_rd",
+    "name": "Op1 RD",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op1_key_lc",
+    "name": "Op1 LC",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op1_key_rc",
+    "name": "Op1 RC",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op2_level",
+    "name": "Op2 Lvl",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op2_coarse",
+    "name": "Op2 Crs",
+    "type": "int",
+    "min": 0,
+    "max": 31,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op2_fine",
+    "name": "Op2 Fin",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op2_detune",
+    "name": "Op2 Det",
+    "type": "int",
+    "min": -7,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op2_osc_mode",
+    "name": "Op2 Mode",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op2_vel_sens",
+    "name": "Op2 Vel",
+    "type": "int",
+    "min": 0,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op2_amp_mod",
+    "name": "Op2 AMS",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op2_rate_scale",
+    "name": "Op2 RS",
+    "type": "int",
+    "min": 0,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op2_eg_r1",
+    "name": "Op2 R1",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "25"
+   },
+   {
+    "key": "op2_eg_r2",
+    "name": "Op2 R2",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "op2_eg_r3",
+    "name": "Op2 R3",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "49"
+   },
+   {
+    "key": "op2_eg_r4",
+    "name": "Op2 R4",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op2_eg_l1",
+    "name": "Op2 L1",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "50"
+   },
+   {
+    "key": "op2_eg_l2",
+    "name": "Op2 L2",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op2_eg_l3",
+    "name": "Op2 L3",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op2_eg_l4",
+    "name": "Op2 L4",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op2_key_bp",
+    "name": "Op2 BP",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op2_key_ld",
+    "name": "Op2 LD",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op2_key_rd",
+    "name": "Op2 RD",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op2_key_lc",
+    "name": "Op2 LC",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op2_key_rc",
+    "name": "Op2 RC",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op3_level",
+    "name": "Op3 Lvl",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op3_coarse",
+    "name": "Op3 Crs",
+    "type": "int",
+    "min": 0,
+    "max": 31,
+    "step": null,
+    "options": null,
+    "default": "2"
+   },
+   {
+    "key": "op3_fine",
+    "name": "Op3 Fin",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op3_detune",
+    "name": "Op3 Det",
+    "type": "int",
+    "min": -7,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op3_osc_mode",
+    "name": "Op3 Mode",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op3_vel_sens",
+    "name": "Op3 Vel",
+    "type": "int",
+    "min": 0,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op3_amp_mod",
+    "name": "Op3 AMS",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op3_rate_scale",
+    "name": "Op3 RS",
+    "type": "int",
+    "min": 0,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op3_eg_r1",
+    "name": "Op3 R1",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "15"
+   },
+   {
+    "key": "op3_eg_r2",
+    "name": "Op3 R2",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "op3_eg_r3",
+    "name": "Op3 R3",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "49"
+   },
+   {
+    "key": "op3_eg_r4",
+    "name": "Op3 R4",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op3_eg_l1",
+    "name": "Op3 L1",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "44"
+   },
+   {
+    "key": "op3_eg_l2",
+    "name": "Op3 L2",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op3_eg_l3",
+    "name": "Op3 L3",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op3_eg_l4",
+    "name": "Op3 L4",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op3_key_bp",
+    "name": "Op3 BP",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op3_key_ld",
+    "name": "Op3 LD",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op3_key_rd",
+    "name": "Op3 RD",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op3_key_lc",
+    "name": "Op3 LC",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op3_key_rc",
+    "name": "Op3 RC",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op4_level",
+    "name": "Op4 Lvl",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op4_coarse",
+    "name": "Op4 Crs",
+    "type": "int",
+    "min": 0,
+    "max": 31,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op4_fine",
+    "name": "Op4 Fin",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op4_detune",
+    "name": "Op4 Det",
+    "type": "int",
+    "min": -7,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op4_osc_mode",
+    "name": "Op4 Mode",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op4_vel_sens",
+    "name": "Op4 Vel",
+    "type": "int",
+    "min": 0,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op4_amp_mod",
+    "name": "Op4 AMS",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op4_rate_scale",
+    "name": "Op4 RS",
+    "type": "int",
+    "min": 0,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op4_eg_r1",
+    "name": "Op4 R1",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "13"
+   },
+   {
+    "key": "op4_eg_r2",
+    "name": "Op4 R2",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "op4_eg_r3",
+    "name": "Op4 R3",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "49"
+   },
+   {
+    "key": "op4_eg_r4",
+    "name": "Op4 R4",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op4_eg_l1",
+    "name": "Op4 L1",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "46"
+   },
+   {
+    "key": "op4_eg_l2",
+    "name": "Op4 L2",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op4_eg_l3",
+    "name": "Op4 L3",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op4_eg_l4",
+    "name": "Op4 L4",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op4_key_bp",
+    "name": "Op4 BP",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op4_key_ld",
+    "name": "Op4 LD",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op4_key_rd",
+    "name": "Op4 RD",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op4_key_lc",
+    "name": "Op4 LC",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op4_key_rc",
+    "name": "Op4 RC",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op5_level",
+    "name": "Op5 Lvl",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op5_coarse",
+    "name": "Op5 Crs",
+    "type": "int",
+    "min": 0,
+    "max": 31,
+    "step": null,
+    "options": null,
+    "default": "2"
+   },
+   {
+    "key": "op5_fine",
+    "name": "Op5 Fin",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op5_detune",
+    "name": "Op5 Det",
+    "type": "int",
+    "min": -7,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op5_osc_mode",
+    "name": "Op5 Mode",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op5_vel_sens",
+    "name": "Op5 Vel",
+    "type": "int",
+    "min": 0,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op5_amp_mod",
+    "name": "Op5 AMS",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op5_rate_scale",
+    "name": "Op5 RS",
+    "type": "int",
+    "min": 0,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op5_eg_r1",
+    "name": "Op5 R1",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "10"
+   },
+   {
+    "key": "op5_eg_r2",
+    "name": "Op5 R2",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "op5_eg_r3",
+    "name": "Op5 R3",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "49"
+   },
+   {
+    "key": "op5_eg_r4",
+    "name": "Op5 R4",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op5_eg_l1",
+    "name": "Op5 L1",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "46"
+   },
+   {
+    "key": "op5_eg_l2",
+    "name": "Op5 L2",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op5_eg_l3",
+    "name": "Op5 L3",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op5_eg_l4",
+    "name": "Op5 L4",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op5_key_bp",
+    "name": "Op5 BP",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op5_key_ld",
+    "name": "Op5 LD",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op5_key_rd",
+    "name": "Op5 RD",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op5_key_lc",
+    "name": "Op5 LC",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op5_key_rc",
+    "name": "Op5 RC",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op6_level",
+    "name": "Op6 Lvl",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op6_coarse",
+    "name": "Op6 Crs",
+    "type": "int",
+    "min": 0,
+    "max": 31,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op6_fine",
+    "name": "Op6 Fin",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op6_detune",
+    "name": "Op6 Det",
+    "type": "int",
+    "min": -7,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op6_osc_mode",
+    "name": "Op6 Mode",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op6_vel_sens",
+    "name": "Op6 Vel",
+    "type": "int",
+    "min": 0,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op6_amp_mod",
+    "name": "Op6 AMS",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op6_rate_scale",
+    "name": "Op6 RS",
+    "type": "int",
+    "min": 0,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op6_eg_r1",
+    "name": "Op6 R1",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "7"
+   },
+   {
+    "key": "op6_eg_r2",
+    "name": "Op6 R2",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "op6_eg_r3",
+    "name": "Op6 R3",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "45"
+   },
+   {
+    "key": "op6_eg_r4",
+    "name": "Op6 R4",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op6_eg_l1",
+    "name": "Op6 L1",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "45"
+   },
+   {
+    "key": "op6_eg_l2",
+    "name": "Op6 L2",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "99"
+   },
+   {
+    "key": "op6_eg_l3",
+    "name": "Op6 L3",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op6_eg_l4",
+    "name": "Op6 L4",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op6_key_bp",
+    "name": "Op6 BP",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op6_key_ld",
+    "name": "Op6 LD",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op6_key_rd",
+    "name": "Op6 RD",
+    "type": "int",
+    "min": 0,
+    "max": 99,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op6_key_lc",
+    "name": "Op6 LC",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "op6_key_rc",
+    "name": "Op6 RC",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Global",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "LFO",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Pitch EG",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Operators",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "Preset",
+       "renderStyle": "preset",
+       "type": "enum",
+       "displayValue": "0"
+      },
+      {
+       "shortName": "OUTPU",
+       "fullName": "Output",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCTAV",
+       "fullName": "Octave",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FEEDB",
+       "fullName": "Feedback",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SPD",
+       "fullName": "LFO Spd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PMD",
+       "fullName": "LFO PMD",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AMD",
+       "fullName": "LFO AMD",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Global",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "OUTPU",
+       "fullName": "Output",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCTAV",
+       "fullName": "Octave",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ALGOR",
+       "fullName": "Algorithm",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FEEDB",
+       "fullName": "Feedback",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "LFO",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SPD",
+       "fullName": "LFO Spd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DLY",
+       "fullName": "LFO Dly",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PMD",
+       "fullName": "LFO PMD",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AMD",
+       "fullName": "LFO AMD",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PMS",
+       "fullName": "LFO PMS",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WAVE",
+       "fullName": "LFO Wave",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Pitch EG",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "R1",
+       "fullName": "PEG R1",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "R2",
+       "fullName": "PEG R2",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "R3",
+       "fullName": "PEG R3",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "R4",
+       "fullName": "PEG R4",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "L1",
+       "fullName": "PEG L1",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "L2",
+       "fullName": "PEG L2",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Operators",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "OP1",
+       "fullName": "Op1 Lvl",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OP2",
+       "fullName": "Op2 Lvl",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OP3",
+       "fullName": "Op3 Lvl",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OP4",
+       "fullName": "Op4 Lvl",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "OP5",
+       "fullName": "Op5 Lvl",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OP6",
+       "fullName": "Op6 Lvl",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "preset",
+    "label": "Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "min": 0,
+    "max": 31,
+    "step": 1,
+    "options": null,
+    "nameKey": "preset_name",
+    "renderStyle": "preset",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 32
+    }
+   },
+   {
+    "key": "output_level",
+    "label": "Output",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "octave_transpose",
+    "label": "Octave",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -3,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 12
+    }
+   },
+   {
+    "key": "feedback",
+    "label": "Feedback",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 7,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 14
+    }
+   },
+   {
+    "key": "lfo_speed",
+    "label": "LFO Spd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "lfo_pmd",
+    "label": "LFO PMD",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "lfo_amd",
+    "label": "LFO AMD",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   null,
+   {
+    "key": "output_level",
+    "label": "Output",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "octave_transpose",
+    "label": "Octave",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -3,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 12
+    }
+   },
+   {
+    "key": "algorithm",
+    "label": "Algorithm",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 32,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 62
+    }
+   },
+   {
+    "key": "feedback",
+    "label": "Feedback",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 7,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 14
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "lfo_speed",
+    "label": "LFO Spd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "lfo_delay",
+    "label": "LFO Dly",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "lfo_pmd",
+    "label": "LFO PMD",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "lfo_amd",
+    "label": "LFO AMD",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "lfo_pms",
+    "label": "LFO PMS",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 7,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 14
+    }
+   },
+   {
+    "key": "lfo_wave",
+    "label": "LFO Wave",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 10
+    }
+   },
+   null,
+   null,
+   {
+    "key": "pitch_eg_r1",
+    "label": "PEG R1",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "pitch_eg_r2",
+    "label": "PEG R2",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "pitch_eg_r3",
+    "label": "PEG R3",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "pitch_eg_r4",
+    "label": "PEG R4",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "pitch_eg_l1",
+    "label": "PEG L1",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "pitch_eg_l2",
+    "label": "PEG L2",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   null,
+   null,
+   {
+    "key": "op1_level",
+    "label": "Op1 Lvl",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "op2_level",
+    "label": "Op2 Lvl",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "op3_level",
+    "label": "Op3 Lvl",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "op4_level",
+    "label": "Op4 Lvl",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "op5_level",
+    "label": "Op5 Lvl",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "op6_level",
+    "label": "Op6 Lvl",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 99,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 198
+    }
+   },
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "osc_sync",
+   "transpose",
+   "lfo_sync",
+   "pitch_eg_l3",
+   "pitch_eg_l4",
+   "op1_coarse",
+   "op1_fine",
+   "op1_detune",
+   "op1_osc_mode",
+   "op1_vel_sens",
+   "op1_amp_mod",
+   "op1_rate_scale",
+   "op1_eg_r1",
+   "op1_eg_r2",
+   "op1_eg_r3",
+   "op1_eg_r4",
+   "op1_eg_l1",
+   "op1_eg_l2",
+   "op1_eg_l3",
+   "op1_eg_l4",
+   "op1_key_bp",
+   "op1_key_ld",
+   "op1_key_rd",
+   "op1_key_lc",
+   "op1_key_rc",
+   "op2_coarse",
+   "op2_fine",
+   "op2_detune",
+   "op2_osc_mode",
+   "op2_vel_sens",
+   "op2_amp_mod",
+   "op2_rate_scale",
+   "op2_eg_r1",
+   "op2_eg_r2",
+   "op2_eg_r3",
+   "op2_eg_r4",
+   "op2_eg_l1",
+   "op2_eg_l2",
+   "op2_eg_l3",
+   "op2_eg_l4",
+   "op2_key_bp",
+   "op2_key_ld",
+   "op2_key_rd",
+   "op2_key_lc",
+   "op2_key_rc",
+   "op3_coarse",
+   "op3_fine",
+   "op3_detune",
+   "op3_osc_mode",
+   "op3_vel_sens",
+   "op3_amp_mod",
+   "op3_rate_scale",
+   "op3_eg_r1",
+   "op3_eg_r2",
+   "op3_eg_r3",
+   "op3_eg_r4",
+   "op3_eg_l1",
+   "op3_eg_l2",
+   "op3_eg_l3",
+   "op3_eg_l4",
+   "op3_key_bp",
+   "op3_key_ld",
+   "op3_key_rd",
+   "op3_key_lc",
+   "op3_key_rc",
+   "op4_coarse",
+   "op4_fine",
+   "op4_detune",
+   "op4_osc_mode",
+   "op4_vel_sens",
+   "op4_amp_mod",
+   "op4_rate_scale",
+   "op4_eg_r1",
+   "op4_eg_r2",
+   "op4_eg_r3",
+   "op4_eg_r4",
+   "op4_eg_l1",
+   "op4_eg_l2",
+   "op4_eg_l3",
+   "op4_eg_l4",
+   "op4_key_bp",
+   "op4_key_ld",
+   "op4_key_rd",
+   "op4_key_lc",
+   "op4_key_rc",
+   "op5_coarse",
+   "op5_fine",
+   "op5_detune",
+   "op5_osc_mode",
+   "op5_vel_sens",
+   "op5_amp_mod",
+   "op5_rate_scale",
+   "op5_eg_r1",
+   "op5_eg_r2",
+   "op5_eg_r3",
+   "op5_eg_r4",
+   "op5_eg_l1",
+   "op5_eg_l2",
+   "op5_eg_l3",
+   "op5_eg_l4",
+   "op5_key_bp",
+   "op5_key_ld",
+   "op5_key_rd",
+   "op5_key_lc",
+   "op5_key_rc",
+   "op6_coarse",
+   "op6_fine",
+   "op6_detune",
+   "op6_osc_mode",
+   "op6_vel_sens",
+   "op6_amp_mod",
+   "op6_rate_scale",
+   "op6_eg_r1",
+   "op6_eg_r2",
+   "op6_eg_r3",
+   "op6_eg_r4",
+   "op6_eg_l1",
+   "op6_eg_l2",
+   "op6_eg_l3",
+   "op6_eg_l4",
+   "op6_key_bp",
+   "op6_key_ld",
+   "op6_key_rd",
+   "op6_key_lc",
+   "op6_key_rc"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "125 chain_params not reachable in movy: osc_sync, transpose, lfo_sync, pitch_eg_l3, pitch_eg_l4, op1_coarse, op1_fine, op1_detune, op1_osc_mode, op1_vel_sens, op1_amp_mod, op1_rate_scale, …"
+  ]
+ }
+}

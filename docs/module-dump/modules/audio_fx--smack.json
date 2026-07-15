@@ -1,0 +1,957 @@
+{
+ "id": "smack",
+ "name": "Smack",
+ "version": "0.13.1",
+ "author": "timncox",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 67,
+ "dsp_size": 193848,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Smack",
+     "params": [
+      {
+       "key": "loop_len",
+       "name": "Loop Len",
+       "type": "enum",
+       "options": [
+        "1 Step",
+        "2 Steps",
+        "1 Beat",
+        "2 Beats",
+        "1 Bar",
+        "2 Bars",
+        "4 Bars",
+        "8 Bars",
+        "16 Bars"
+       ],
+       "default": 4
+      },
+      {
+       "key": "slice_res",
+       "name": "Slice Res",
+       "type": "enum",
+       "options": [
+        "1/2 Step",
+        "1 Step",
+        "2 Steps",
+        "4 Steps"
+       ],
+       "default": 1
+      },
+      {
+       "key": "fx_density",
+       "name": "FX Density",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 50,
+       "step": 5,
+       "unit": "%",
+       "display_format": "%.0f"
+      },
+      {
+       "key": "order_density",
+       "name": "Order",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 0,
+       "step": 5,
+       "unit": "%",
+       "display_format": "%.0f"
+      },
+      {
+       "level": "perform",
+       "name": "Perform"
+      },
+      {
+       "level": "setup",
+       "name": "Setup"
+      }
+     ],
+     "knobs": [
+      "loop_len",
+      "slice_res",
+      "fx_density",
+      "order_density"
+     ]
+    },
+    "perform": {
+     "name": "Perform",
+     "params": [
+      {
+       "key": "capture",
+       "name": "Capture Now",
+       "type": "enum",
+       "default": 0,
+       "options": [
+        "idle",
+        "trigger"
+       ]
+      },
+      {
+       "key": "arm",
+       "name": "Arm Record",
+       "type": "enum",
+       "default": 0,
+       "options": [
+        "idle",
+        "trigger"
+       ]
+      },
+      {
+       "key": "ab",
+       "name": "A/B",
+       "type": "enum",
+       "options": [
+        "A Clean",
+        "B Pattern"
+       ],
+       "default": 1
+      },
+      {
+       "key": "reroll",
+       "name": "Re-Roll",
+       "type": "enum",
+       "default": 0,
+       "options": [
+        "idle",
+        "trigger"
+       ]
+      },
+      {
+       "key": "clear",
+       "name": "Clear Loop",
+       "type": "enum",
+       "default": 0,
+       "options": [
+        "idle",
+        "trigger"
+       ]
+      },
+      {
+       "key": "detect_bpm",
+       "name": "Detect BPM",
+       "type": "enum",
+       "default": 0,
+       "options": [
+        "idle",
+        "trigger"
+       ]
+      }
+     ],
+     "knobs": [
+      "capture",
+      "ab",
+      "reroll",
+      "clear"
+     ]
+    },
+    "setup": {
+     "name": "Setup",
+     "params": [
+      {
+       "key": "wet",
+       "name": "Wet",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 100,
+       "step": 5,
+       "unit": "%",
+       "display_format": "%.0f"
+      },
+      {
+       "key": "pitch_range",
+       "name": "Pitch Range",
+       "type": "int",
+       "min": 1,
+       "max": 24,
+       "default": 12,
+       "unit": "st"
+      },
+      {
+       "key": "quantize",
+       "name": "AB Quantize",
+       "type": "enum",
+       "options": [
+        "Instant",
+        "Slice",
+        "Loop"
+       ],
+       "default": 1
+      },
+      {
+       "key": "pad_play",
+       "name": "Pad Play",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": 0
+      },
+      {
+       "key": "pad_rate",
+       "name": "Pad Rate",
+       "type": "enum",
+       "options": [
+        "1/16",
+        "1/8",
+        "1/4",
+        "1/2",
+        "1 Bar"
+       ],
+       "default": 2
+      },
+      {
+       "key": "seed",
+       "name": "Seed",
+       "type": "int",
+       "min": 1,
+       "max": 9999,
+       "default": 4303
+      },
+      {
+       "key": "transport",
+       "name": "Transport",
+       "type": "enum",
+       "options": [
+        "Follow",
+        "Free"
+       ],
+       "default": 0
+      },
+      {
+       "key": "channel_mode",
+       "name": "Channels",
+       "type": "enum",
+       "options": [
+        "Stereo",
+        "Dual Mono"
+       ],
+       "default": 0
+      },
+      {
+       "key": "pan_l",
+       "name": "Pan L",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "default": 0
+      },
+      {
+       "key": "pan_r",
+       "name": "Pan R",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "default": 100
+      }
+     ],
+     "knobs": [
+      "wet",
+      "pitch_range",
+      "quantize",
+      "seed"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "perform",
+   "setup"
+  ],
+  "params": [
+   {
+    "key": "loop_len",
+    "name": "Loop Len",
+    "type": "enum",
+    "min": 0,
+    "max": 8,
+    "step": null,
+    "options": [
+     "1 Step",
+     "2 Steps",
+     "1 Beat",
+     "2 Beats",
+     "1 Bar",
+     "2 Bars",
+     "4 Bars",
+     "8 Bars",
+     "16 Bars"
+    ],
+    "default": "4"
+   },
+   {
+    "key": "slice_res",
+    "name": "Slice Res",
+    "type": "enum",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": [
+     "1/2 Step",
+     "1 Step",
+     "2 Steps",
+     "4 Steps"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "fx_density",
+    "name": "FX Density",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "50"
+   },
+   {
+    "key": "order_density",
+    "name": "Order",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "capture",
+    "name": "Capture Now",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "arm",
+    "name": "Arm Record",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "ab",
+    "name": "A/B",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "A Clean",
+     "B Pattern"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "reroll",
+    "name": "Re-Roll",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "clear",
+    "name": "Clear Loop",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "detect_bpm",
+    "name": "Detect BPM",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "wet",
+    "name": "Wet",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100"
+   },
+   {
+    "key": "pitch_range",
+    "name": "Pitch Range",
+    "type": "int",
+    "min": 1,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "12"
+   },
+   {
+    "key": "quantize",
+    "name": "AB Quantize",
+    "type": "enum",
+    "min": 0,
+    "max": 2,
+    "step": null,
+    "options": [
+     "Instant",
+     "Slice",
+     "Loop"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "pad_play",
+    "name": "Pad Play",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "pad_rate",
+    "name": "Pad Rate",
+    "type": "enum",
+    "min": 0,
+    "max": 4,
+    "step": null,
+    "options": [
+     "1/16",
+     "1/8",
+     "1/4",
+     "1/2",
+     "1 Bar"
+    ],
+    "default": "2"
+   },
+   {
+    "key": "seed",
+    "name": "Seed",
+    "type": "int",
+    "min": 1,
+    "max": 9999,
+    "step": null,
+    "options": null,
+    "default": "4303"
+   },
+   {
+    "key": "transport",
+    "name": "Transport",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Follow",
+     "Free"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "channel_mode",
+    "name": "Channels",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Stereo",
+     "Dual Mono"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "pan_l",
+    "name": "Pan L",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "pan_r",
+    "name": "Pan R",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Perform",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Setup",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LOOP",
+       "fullName": "Loop Len",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "1 Bar"
+      },
+      {
+       "shortName": "SLICE",
+       "fullName": "Slice Res",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FX",
+       "fullName": "FX Density",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ORDER",
+       "fullName": "Order",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Perform",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CN",
+       "fullName": "Capture Now",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "A/B",
+       "fullName": "A/B",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RE-RO",
+       "fullName": "Re-Roll",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CLEAR",
+       "fullName": "Clear Loop",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Setup",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "WET",
+       "fullName": "Wet",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PITCH",
+       "fullName": "Pitch Range",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AB",
+       "fullName": "AB Quantize",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SEED",
+       "fullName": "Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "loop_len",
+    "label": "Loop Len",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1 Step",
+     "2 Steps",
+     "1 Beat",
+     "2 Beats",
+     "1 Bar",
+     "2 Bars",
+     "4 Bars",
+     "8 Bars",
+     "16 Bars"
+    ],
+    "min": 0,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 9
+    }
+   },
+   {
+    "key": "slice_res",
+    "label": "Slice Res",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/2 Step",
+     "1 Step",
+     "2 Steps",
+     "4 Steps"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "fx_density",
+    "label": "FX Density",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 2.5,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "order_density",
+    "label": "Order",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 2.5,
+     "detentsFullSweep": 40
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "capture",
+    "label": "Capture Now",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "ab",
+    "label": "A/B",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "A Clean",
+     "B Pattern"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "reroll",
+    "label": "Re-Roll",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "clear",
+    "label": "Clear Loop",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "wet",
+    "label": "Wet",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 2.5,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "pitch_range",
+    "label": "Pitch Range",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 46
+    }
+   },
+   {
+    "key": "quantize",
+    "label": "AB Quantize",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Instant",
+     "Slice",
+     "Loop"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "seed",
+    "label": "Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 9999,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 19996
+    }
+   },
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "arm",
+   "detect_bpm",
+   "pad_play",
+   "pad_rate",
+   "transport",
+   "channel_mode",
+   "pan_l",
+   "pan_r"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "8 chain_params not reachable in movy: arm, detect_bpm, pad_play, pad_rate, transport, channel_mode, pan_l, pan_r"
+  ]
+ }
+}

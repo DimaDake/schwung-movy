@@ -1,0 +1,1235 @@
+{
+ "id": "linein",
+ "name": "Line In",
+ "version": "0.2.0",
+ "author": null,
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 91,
+ "dsp_size": 126368,
+ "capabilities": {
+  "audio_in": true,
+  "audio_out": true,
+  "midi_in": false,
+  "midi_out": false,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "label": "Line In",
+     "params": [
+      {
+       "key": "input_type",
+       "label": "Input Type",
+       "type": "enum",
+       "options": [
+        "Line",
+        "Guitar",
+        "Phono"
+       ],
+       "default": 0
+      },
+      {
+       "key": "input_mode",
+       "label": "Input Mode",
+       "type": "enum",
+       "options": [
+        "Stereo",
+        "Mono (L)",
+        "Mono (R)"
+       ],
+       "default": 0
+      },
+      {
+       "key": "input_trim",
+       "label": "Input Trim",
+       "type": "float",
+       "min": -12,
+       "max": 40,
+       "default": 0,
+       "step": 0.5,
+       "unit": "dB",
+       "display_format": "%.1f"
+      },
+      {
+       "key": "output_trim",
+       "label": "Output Trim",
+       "type": "float",
+       "min": -24,
+       "max": 12,
+       "default": 0,
+       "step": 0.5,
+       "unit": "dB",
+       "display_format": "%.1f"
+      },
+      {
+       "key": "gate_mode",
+       "label": "Gate",
+       "type": "enum",
+       "options": [
+        "Off",
+        "Auto",
+        "Manual"
+       ],
+       "default": 0
+      },
+      {
+       "key": "gate_amount",
+       "label": "Gate Amount",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 50,
+       "step": 1,
+       "unit": "%",
+       "display_format": "%.0f"
+      },
+      {
+       "level": "noise_reduction",
+       "label": "Noise Reduction"
+      },
+      {
+       "level": "gate_settings",
+       "label": "Gate Settings"
+      },
+      {
+       "level": "line_settings",
+       "label": "Line Settings"
+      },
+      {
+       "level": "guitar_settings",
+       "label": "Guitar Settings"
+      },
+      {
+       "level": "phono_settings",
+       "label": "Phono Settings"
+      }
+     ],
+     "knobs": [
+      "input_type",
+      "input_mode",
+      "input_trim",
+      "output_trim"
+     ]
+    },
+    "gate_settings": {
+     "label": "Gate",
+     "params": [
+      {
+       "key": "gate_threshold",
+       "label": "Threshold",
+       "type": "float",
+       "min": -80,
+       "max": 0,
+       "default": -40,
+       "step": 1,
+       "unit": "dB",
+       "display_format": "%.0f"
+      },
+      {
+       "key": "gate_attack",
+       "label": "Attack",
+       "type": "float",
+       "min": 0.5,
+       "max": 50,
+       "default": 3,
+       "step": 0.5,
+       "unit": "ms",
+       "display_format": "%.1f"
+      },
+      {
+       "key": "gate_hold",
+       "label": "Hold",
+       "type": "float",
+       "min": 5,
+       "max": 500,
+       "default": 80,
+       "step": 5,
+       "unit": "ms",
+       "display_format": "%.0f"
+      },
+      {
+       "key": "gate_release",
+       "label": "Release",
+       "type": "float",
+       "min": 10,
+       "max": 1000,
+       "default": 200,
+       "step": 10,
+       "unit": "ms",
+       "display_format": "%.0f"
+      },
+      {
+       "key": "gate_range",
+       "label": "Range",
+       "type": "float",
+       "min": 0,
+       "max": 80,
+       "default": 18,
+       "step": 1,
+       "unit": "dB",
+       "display_format": "%.0f"
+      }
+     ],
+     "knobs": [
+      "gate_threshold",
+      "gate_attack",
+      "gate_release",
+      "gate_range"
+     ]
+    },
+    "line_settings": {
+     "label": "Line",
+     "params": [
+      {
+       "key": "hpf_freq",
+       "label": "HPF",
+       "type": "enum",
+       "options": [
+        "Off",
+        "20 Hz",
+        "40 Hz",
+        "60 Hz",
+        "80 Hz",
+        "120 Hz"
+       ],
+       "default": 0
+      },
+      {
+       "key": "safety_limiter",
+       "label": "Limiter",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": 0
+      }
+     ],
+     "knobs": [
+      "hpf_freq",
+      "safety_limiter"
+     ]
+    },
+    "guitar_settings": {
+     "label": "Guitar",
+     "params": [
+      {
+       "key": "cable_comp",
+       "label": "Cable Comp",
+       "type": "enum",
+       "options": [
+        "Off",
+        "Low",
+        "Med",
+        "High"
+       ],
+       "default": 2
+      },
+      {
+       "key": "soft_clip",
+       "label": "Soft Clip",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": 0
+      }
+     ],
+     "knobs": [
+      "cable_comp",
+      "soft_clip"
+     ]
+    },
+    "phono_settings": {
+     "label": "Phono",
+     "params": [
+      {
+       "key": "riaa_eq",
+       "label": "RIAA EQ",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": 1
+      },
+      {
+       "key": "subsonic_freq",
+       "label": "Sub Filter",
+       "type": "enum",
+       "options": [
+        "10 Hz",
+        "15 Hz",
+        "20 Hz",
+        "30 Hz",
+        "40 Hz"
+       ],
+       "default": 2
+      },
+      {
+       "key": "hum_notch",
+       "label": "Hum Notch",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": 1
+      },
+      {
+       "key": "hum_freq",
+       "label": "Hum Freq",
+       "type": "enum",
+       "options": [
+        "50 Hz",
+        "60 Hz"
+       ],
+       "default": 1
+      }
+     ],
+     "knobs": [
+      "riaa_eq",
+      "subsonic_freq",
+      "hum_notch",
+      "hum_freq"
+     ]
+    },
+    "noise_reduction": {
+     "label": "Noise Reduction",
+     "params": [
+      {
+       "key": "hum_filter",
+       "label": "Hum Filter",
+       "type": "enum",
+       "options": [
+        "Off",
+        "50 Hz",
+        "60 Hz"
+       ],
+       "default": 0
+      }
+     ],
+     "knobs": [
+      "hum_filter"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "gate_settings",
+   "line_settings",
+   "guitar_settings",
+   "phono_settings",
+   "noise_reduction"
+  ],
+  "params": [
+   {
+    "key": "input_type",
+    "name": "Input Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Line",
+     "Guitar",
+     "Phono"
+    ],
+    "default": "Line"
+   },
+   {
+    "key": "input_mode",
+    "name": "Input Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Stereo",
+     "Mono (L)",
+     "Mono (R)"
+    ],
+    "default": "Stereo"
+   },
+   {
+    "key": "input_trim",
+    "name": "Input Trim",
+    "type": "float",
+    "min": -12,
+    "max": 40,
+    "step": 0.5,
+    "options": null,
+    "default": "0.0"
+   },
+   {
+    "key": "output_trim",
+    "name": "Output Trim",
+    "type": "float",
+    "min": -24,
+    "max": 12,
+    "step": 0.5,
+    "options": null,
+    "default": "0.0"
+   },
+   {
+    "key": "gate_mode",
+    "name": "Gate",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Auto",
+     "Manual"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "gate_amount",
+    "name": "Gate Amount",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "50"
+   },
+   {
+    "key": "gate_threshold",
+    "name": "Threshold",
+    "type": "float",
+    "min": -80,
+    "max": 0,
+    "step": 1,
+    "options": null,
+    "default": "-40"
+   },
+   {
+    "key": "gate_attack",
+    "name": "Attack",
+    "type": "float",
+    "min": 0.5,
+    "max": 50,
+    "step": 0.5,
+    "options": null,
+    "default": "3.0"
+   },
+   {
+    "key": "gate_hold",
+    "name": "Hold",
+    "type": "float",
+    "min": 5,
+    "max": 500,
+    "step": 5,
+    "options": null,
+    "default": "80"
+   },
+   {
+    "key": "gate_release",
+    "name": "Release",
+    "type": "float",
+    "min": 10,
+    "max": 1000,
+    "step": 10,
+    "options": null,
+    "default": "200"
+   },
+   {
+    "key": "gate_range",
+    "name": "Range",
+    "type": "float",
+    "min": 0,
+    "max": 80,
+    "step": 1,
+    "options": null,
+    "default": "80"
+   },
+   {
+    "key": "hpf_freq",
+    "name": "HPF",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "20 Hz",
+     "40 Hz",
+     "60 Hz",
+     "80 Hz",
+     "120 Hz"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "safety_limiter",
+    "name": "Limiter",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "cable_comp",
+    "name": "Cable Comp",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Low",
+     "Med",
+     "High"
+    ],
+    "default": "Med"
+   },
+   {
+    "key": "soft_clip",
+    "name": "Soft Clip",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "riaa_eq",
+    "name": "RIAA EQ",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "On"
+   },
+   {
+    "key": "subsonic_freq",
+    "name": "Sub Filter",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "10 Hz",
+     "15 Hz",
+     "20 Hz",
+     "30 Hz",
+     "40 Hz"
+    ],
+    "default": "20 Hz"
+   },
+   {
+    "key": "hum_notch",
+    "name": "Hum Notch",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "On"
+   },
+   {
+    "key": "hum_freq",
+    "name": "Hum Freq",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "50 Hz",
+     "60 Hz"
+    ],
+    "default": "60 Hz"
+   },
+   {
+    "key": "hum_filter",
+    "name": "Hum Filter",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "50 Hz",
+     "60 Hz"
+    ],
+    "default": "Off"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Noise Reduction",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Gate Settings",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Line Settings",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Guitar Settings",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Phono Settings",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TYPE",
+       "fullName": "Input Type",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "Line"
+      },
+      {
+       "shortName": "MODE",
+       "fullName": "Input Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TRIM",
+       "fullName": "Input Trim",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OT",
+       "fullName": "Output Trim",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Noise Reduction",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "HUM",
+       "fullName": "Hum Filter",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Gate Settings",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "THRES",
+       "fullName": "Threshold",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ATTAC",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RELEA",
+       "fullName": "Release",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RANGE",
+       "fullName": "Range",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Line Settings",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "HPF",
+       "fullName": "HPF",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LIMIT",
+       "fullName": "Limiter",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Guitar Settings",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CABLE",
+       "fullName": "Cable Comp",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SOFT",
+       "fullName": "Soft Clip",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Phono Settings",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "RIAA",
+       "fullName": "RIAA EQ",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SUB",
+       "fullName": "Sub Filter",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOTCH",
+       "fullName": "Hum Notch",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "Hum Freq",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "input_type",
+    "label": "Input Type",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Line",
+     "Guitar",
+     "Phono"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "input_mode",
+    "label": "Input Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Stereo",
+     "Mono (L)",
+     "Mono (R)"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "input_trim",
+    "label": "Input Trim",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -12,
+    "max": 40,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 208
+    }
+   },
+   {
+    "key": "output_trim",
+    "label": "Output Trim",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -24,
+    "max": 12,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 144
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "hum_filter",
+    "label": "Hum Filter",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "50 Hz",
+     "60 Hz"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "gate_threshold",
+    "label": "Threshold",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -80,
+    "max": 0,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 160
+    }
+   },
+   {
+    "key": "gate_attack",
+    "label": "Attack",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.5,
+    "max": 50,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "gate_release",
+    "label": "Release",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 10,
+    "max": 1000,
+    "step": 10,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 5,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "gate_range",
+    "label": "Range",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 80,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 160
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "hpf_freq",
+    "label": "HPF",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "20 Hz",
+     "40 Hz",
+     "60 Hz",
+     "80 Hz",
+     "120 Hz"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
+   {
+    "key": "safety_limiter",
+    "label": "Limiter",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "cable_comp",
+    "label": "Cable Comp",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "Low",
+     "Med",
+     "High"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "soft_clip",
+    "label": "Soft Clip",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "riaa_eq",
+    "label": "RIAA EQ",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "subsonic_freq",
+    "label": "Sub Filter",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "10 Hz",
+     "15 Hz",
+     "20 Hz",
+     "30 Hz",
+     "40 Hz"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   {
+    "key": "hum_notch",
+    "label": "Hum Notch",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "hum_freq",
+    "label": "Hum Freq",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "50 Hz",
+     "60 Hz"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "gate_mode",
+   "gate_amount",
+   "gate_hold"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "3 chain_params not reachable in movy: gate_mode, gate_amount, gate_hold"
+  ]
+ }
+}

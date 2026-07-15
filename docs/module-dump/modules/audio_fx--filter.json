@@ -1,0 +1,1030 @@
+{
+ "id": "filter",
+ "name": "FILTER",
+ "version": "0.2.0",
+ "author": "charlesvestal",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 65,
+ "dsp_size": 28968,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "audio_in": true,
+  "ui_hierarchy": {
+   "modes": null,
+   "levels": {
+    "root": {
+     "name": "FILTER",
+     "knobs": [
+      "cutoff",
+      "resonance",
+      "drive",
+      "mix",
+      "env_amount",
+      "lfo_amount",
+      "lfo_rate_div",
+      "mode"
+     ],
+     "params": [
+      {
+       "key": "cutoff",
+       "label": "Cutoff",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.02,
+       "unit": "%"
+      },
+      {
+       "key": "resonance",
+       "label": "Resonance",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0.2,
+       "step": 0.02,
+       "unit": "%"
+      },
+      {
+       "key": "drive",
+       "label": "Drive",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.02,
+       "unit": "%"
+      },
+      {
+       "key": "mix",
+       "label": "Mix",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 1,
+       "step": 0.02,
+       "unit": "%"
+      },
+      {
+       "key": "env_amount",
+       "label": "Env Amt",
+       "type": "float",
+       "min": -1,
+       "max": 1,
+       "default": 0,
+       "step": 0.02
+      },
+      {
+       "key": "lfo_amount",
+       "label": "LFO Amt",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.02,
+       "unit": "%"
+      },
+      {
+       "key": "mode",
+       "label": "Mode",
+       "type": "enum",
+       "options": [
+        "LP",
+        "HP",
+        "BP",
+        "Notch",
+        "Peak",
+        "AP"
+       ],
+       "default": "LP"
+      },
+      {
+       "key": "model",
+       "label": "Model",
+       "type": "enum",
+       "options": [
+        "SVF",
+        "Schwoog"
+       ],
+       "default": "SVF"
+      },
+      {
+       "level": "envelope",
+       "label": "Envelope"
+      },
+      {
+       "level": "lfo",
+       "label": "LFO"
+      },
+      {
+       "level": "output",
+       "label": "Output"
+      }
+     ]
+    },
+    "envelope": {
+     "label": "Envelope",
+     "knobs": [
+      "env_amount",
+      "env_attack",
+      "env_release"
+     ],
+     "params": [
+      "env_amount",
+      {
+       "key": "env_attack",
+       "label": "Attack",
+       "type": "float",
+       "min": 1,
+       "max": 500,
+       "default": 10,
+       "step": 1,
+       "unit": "ms"
+      },
+      {
+       "key": "env_release",
+       "label": "Release",
+       "type": "float",
+       "min": 1,
+       "max": 500,
+       "default": 150,
+       "step": 1,
+       "unit": "ms"
+      }
+     ]
+    },
+    "lfo": {
+     "label": "LFO",
+     "knobs": [
+      "lfo_amount",
+      "lfo_rate_div",
+      "lfo_rate_hz",
+      "lfo_shape",
+      "lfo_sync"
+     ],
+     "params": [
+      "lfo_amount",
+      {
+       "key": "lfo_shape",
+       "label": "Shape",
+       "type": "enum",
+       "options": [
+        "Sine",
+        "Tri",
+        "Saw",
+        "Sqr",
+        "S&H"
+       ],
+       "default": "Sine"
+      },
+      {
+       "key": "lfo_sync",
+       "label": "Sync",
+       "type": "enum",
+       "options": [
+        "Free",
+        "Sync"
+       ],
+       "default": "Sync"
+      },
+      {
+       "key": "lfo_rate_div",
+       "label": "Division",
+       "type": "enum",
+       "options": [
+        "1/1",
+        "1/2",
+        "1/4",
+        "1/4.",
+        "1/8",
+        "1/8.",
+        "1/8T",
+        "1/16",
+        "1/16T",
+        "1/32"
+       ],
+       "default": "1/8"
+      },
+      {
+       "key": "lfo_rate_hz",
+       "label": "Rate Hz",
+       "type": "float",
+       "min": 0.01,
+       "max": 20,
+       "default": 1,
+       "step": 0.01,
+       "unit": "Hz"
+      }
+     ]
+    },
+    "output": {
+     "label": "Output",
+     "knobs": [
+      "mix",
+      "output"
+     ],
+     "params": [
+      "mix",
+      {
+       "key": "output",
+       "label": "Output",
+       "type": "float",
+       "min": -24,
+       "max": 12,
+       "default": 0,
+       "step": 0.5,
+       "unit": "dB"
+      }
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "envelope",
+   "lfo",
+   "output"
+  ],
+  "params": [
+   {
+    "key": "model",
+    "name": "Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "SVF",
+     "Schwoog"
+    ],
+    "default": "SVF"
+   },
+   {
+    "key": "mode",
+    "name": "Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LP",
+     "HP",
+     "BP",
+     "Notch",
+     "Peak",
+     "AP"
+    ],
+    "default": "LP"
+   },
+   {
+    "key": "cutoff",
+    "name": "Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.500"
+   },
+   {
+    "key": "resonance",
+    "name": "Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.20"
+   },
+   {
+    "key": "drive",
+    "name": "Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "1.00"
+   },
+   {
+    "key": "output",
+    "name": "Output",
+    "type": "float",
+    "min": -24,
+    "max": 12,
+    "step": 0.5,
+    "options": null,
+    "default": "0.0"
+   },
+   {
+    "key": "env_amount",
+    "name": "Env Amt",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "env_attack",
+    "name": "Env Atk",
+    "type": "float",
+    "min": 1,
+    "max": 500,
+    "step": 1,
+    "options": null,
+    "default": "10"
+   },
+   {
+    "key": "env_release",
+    "name": "Env Rel",
+    "type": "float",
+    "min": 1,
+    "max": 500,
+    "step": 1,
+    "options": null,
+    "default": "150"
+   },
+   {
+    "key": "lfo_amount",
+    "name": "LFO Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "lfo_shape",
+    "name": "LFO Shape",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Sqr",
+     "S&H"
+    ],
+    "default": "Sine"
+   },
+   {
+    "key": "lfo_sync",
+    "name": "LFO Sync",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Free",
+     "Sync"
+    ],
+    "default": "Sync"
+   },
+   {
+    "key": "lfo_rate_hz",
+    "name": "LFO Rate",
+    "type": "float",
+    "min": 0.01,
+    "max": 20,
+    "step": 0.01,
+    "options": null,
+    "default": "1.00"
+   },
+   {
+    "key": "lfo_rate_div",
+    "name": "LFO Div",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1/1",
+     "1/2",
+     "1/4",
+     "1/4.",
+     "1/8",
+     "1/8.",
+     "1/8T",
+     "1/16",
+     "1/16T",
+     "1/32"
+    ],
+    "default": "1/8"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Envelope",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "LFO",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Output",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CUTOF",
+       "fullName": "Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "50%"
+      },
+      {
+       "shortName": "RESON",
+       "fullName": "Resonance",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIVE",
+       "fullName": "Drive",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "ENV",
+       "fullName": "Env Amt",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AMT",
+       "fullName": "LFO Amt",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIV",
+       "fullName": "LFO Div",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MODE",
+       "fullName": "Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Envelope",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "AMT",
+       "fullName": "Env Amt",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ATK",
+       "fullName": "Env Atk",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "REL",
+       "fullName": "Env Rel",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "LFO",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "AMT",
+       "fullName": "LFO Amt",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIV",
+       "fullName": "LFO Div",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "LFO Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SHAPE",
+       "fullName": "LFO Shape",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SYNC",
+       "fullName": "LFO Sync",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Output",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OUTPU",
+       "fullName": "Output",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "cutoff",
+    "label": "Cutoff",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "resonance",
+    "label": "Resonance",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "drive",
+    "label": "Drive",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "env_amount",
+    "label": "Env Amt",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lfo_amount",
+    "label": "LFO Amt",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "lfo_rate_div",
+    "label": "LFO Div",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/1",
+     "1/2",
+     "1/4",
+     "1/4.",
+     "1/8",
+     "1/8.",
+     "1/8T",
+     "1/16",
+     "1/16T",
+     "1/32"
+    ],
+    "min": 0,
+    "max": 9,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 10
+    }
+   },
+   {
+    "key": "mode",
+    "label": "Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "LP",
+     "HP",
+     "BP",
+     "Notch",
+     "Peak",
+     "AP"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
+   {
+    "key": "env_amount",
+    "label": "Env Amt",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "env_attack",
+    "label": "Env Atk",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 1,
+    "max": 500,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 998
+    }
+   },
+   {
+    "key": "env_release",
+    "label": "Env Rel",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 1,
+    "max": 500,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 998
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "lfo_amount",
+    "label": "LFO Amt",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "lfo_rate_div",
+    "label": "LFO Div",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/1",
+     "1/2",
+     "1/4",
+     "1/4.",
+     "1/8",
+     "1/8.",
+     "1/8T",
+     "1/16",
+     "1/16T",
+     "1/32"
+    ],
+    "min": 0,
+    "max": 9,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 10
+    }
+   },
+   {
+    "key": "lfo_rate_hz",
+    "label": "LFO Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.01,
+    "max": 20,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 3998
+    }
+   },
+   {
+    "key": "lfo_shape",
+    "label": "LFO Shape",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Sqr",
+     "S&H"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   {
+    "key": "lfo_sync",
+    "label": "LFO Sync",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Free",
+     "Sync"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "mix",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "output",
+    "label": "Output",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -24,
+    "max": 12,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 144
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "model"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "1 chain_params not reachable in movy: model"
+  ]
+ }
+}

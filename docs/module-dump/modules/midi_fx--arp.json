@@ -1,0 +1,306 @@
+{
+ "id": "arp",
+ "name": "Arpeggiator",
+ "version": "0.3.0",
+ "author": null,
+ "category": "midi_fx",
+ "status": "ok",
+ "load_ms": 72,
+ "dsp_size": 93360,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "midi_fx",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Arpeggiator",
+     "params": [
+      {
+       "key": "mode",
+       "name": "Mode",
+       "type": "enum",
+       "options": [
+        "off",
+        "up",
+        "down",
+        "up_down",
+        "random"
+       ],
+       "default": 1
+      },
+      {
+       "key": "bpm",
+       "name": "BPM",
+       "type": "int",
+       "min": 40,
+       "max": 240,
+       "default": 120,
+       "step": 1
+      },
+      {
+       "key": "division",
+       "name": "Division",
+       "type": "enum",
+       "options": [
+        "1/4.",
+        "1/4",
+        "1/4T",
+        "1/8.",
+        "1/8",
+        "1/8T",
+        "1/16.",
+        "1/16",
+        "1/16T",
+        "1/32"
+       ],
+       "default": 7
+      },
+      {
+       "key": "sync",
+       "name": "Sync",
+       "type": "enum",
+       "options": [
+        "internal",
+        "clock"
+       ],
+       "default": 0
+      }
+     ],
+     "knobs": [
+      "mode",
+      "bpm",
+      "division",
+      "sync"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root"
+  ],
+  "params": [
+   {
+    "key": "mode",
+    "name": "Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "up",
+     "down",
+     "up_down",
+     "random"
+    ],
+    "default": "up"
+   },
+   {
+    "key": "bpm",
+    "name": "BPM",
+    "type": "int",
+    "min": 40,
+    "max": 240,
+    "step": 1,
+    "options": null,
+    "default": "120"
+   },
+   {
+    "key": "division",
+    "name": "Division",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1/4.",
+     "1/4",
+     "1/4T",
+     "1/8.",
+     "1/8",
+     "1/8T",
+     "1/16.",
+     "1/16",
+     "1/16T",
+     "1/32"
+    ],
+    "default": "1/16"
+   },
+   {
+    "key": "sync",
+    "name": "Sync",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "internal",
+     "clock"
+    ],
+    "default": "internal"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MODE",
+       "fullName": "Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "up"
+      },
+      {
+       "shortName": "BPM",
+       "fullName": "BPM",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIVIS",
+       "fullName": "Division",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SYNC",
+       "fullName": "Sync",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "mode",
+    "label": "Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "up",
+     "down",
+     "up_down",
+     "random"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   {
+    "key": "bpm",
+    "label": "BPM",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 40,
+    "max": 240,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "division",
+    "label": "Division",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/4.",
+     "1/4",
+     "1/4T",
+     "1/8.",
+     "1/8",
+     "1/8T",
+     "1/16.",
+     "1/16",
+     "1/16T",
+     "1/32"
+    ],
+    "min": 0,
+    "max": 9,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 10
+    }
+   },
+   {
+    "key": "sync",
+    "label": "Sync",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "internal",
+     "clock"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": []
+ }
+}

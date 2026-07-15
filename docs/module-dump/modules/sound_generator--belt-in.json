@@ -1,0 +1,589 @@
+{
+ "id": "belt-in",
+ "name": "Belt In",
+ "version": "0.1.2",
+ "author": "timncox",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 77,
+ "dsp_size": 116088,
+ "capabilities": {
+  "audio_in": true,
+  "audio_out": true,
+  "midi_in": true,
+  "midi_out": false,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Belt In",
+     "params": [
+      {
+       "key": "key",
+       "name": "Key",
+       "type": "enum",
+       "options": [
+        "C",
+        "C#",
+        "D",
+        "D#",
+        "E",
+        "F",
+        "F#",
+        "G",
+        "G#",
+        "A",
+        "A#",
+        "B"
+       ],
+       "default": 0
+      },
+      {
+       "key": "scale",
+       "name": "Scale",
+       "type": "enum",
+       "options": [
+        "Chromatic",
+        "Major",
+        "Minor",
+        "Harm Min",
+        "Dorian",
+        "Mixo",
+        "Maj Pent",
+        "Min Pent",
+        "Blues"
+       ],
+       "default": 1
+      },
+      {
+       "key": "retune",
+       "name": "Retune",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 25,
+       "step": 5,
+       "unit": "%",
+       "display_format": "%.0f"
+      },
+      {
+       "key": "amount",
+       "name": "Amount",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 100,
+       "step": 5,
+       "unit": "%",
+       "display_format": "%.0f"
+      },
+      {
+       "level": "harmony",
+       "name": "Harmony"
+      },
+      {
+       "level": "setup",
+       "name": "Setup"
+      }
+     ],
+     "knobs": [
+      "key",
+      "scale",
+      "retune",
+      "amount"
+     ]
+    },
+    "harmony": {
+     "name": "Harmony",
+     "params": [
+      {
+       "key": "harm1",
+       "name": "Voice 1",
+       "type": "enum",
+       "options": [
+        "Off",
+        "-Oct",
+        "-6th",
+        "-5th",
+        "-4th",
+        "-3rd",
+        "Unis",
+        "+3rd",
+        "+4th",
+        "+5th",
+        "+6th",
+        "+Oct"
+       ],
+       "default": 0
+      },
+      {
+       "key": "harm2",
+       "name": "Voice 2",
+       "type": "enum",
+       "options": [
+        "Off",
+        "-Oct",
+        "-6th",
+        "-5th",
+        "-4th",
+        "-3rd",
+        "Unis",
+        "+3rd",
+        "+4th",
+        "+5th",
+        "+6th",
+        "+Oct"
+       ],
+       "default": 0
+      },
+      {
+       "key": "harm3",
+       "name": "Voice 3",
+       "type": "enum",
+       "options": [
+        "Off",
+        "-Oct",
+        "-6th",
+        "-5th",
+        "-4th",
+        "-3rd",
+        "Unis",
+        "+3rd",
+        "+4th",
+        "+5th",
+        "+6th",
+        "+Oct"
+       ],
+       "default": 0
+      },
+      {
+       "key": "harm4",
+       "name": "Voice 4",
+       "type": "enum",
+       "options": [
+        "Off",
+        "-Oct",
+        "-6th",
+        "-5th",
+        "-4th",
+        "-3rd",
+        "Unis",
+        "+3rd",
+        "+4th",
+        "+5th",
+        "+6th",
+        "+Oct"
+       ],
+       "default": 0
+      },
+      {
+       "key": "harm_level",
+       "name": "Harm Level",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 80,
+       "step": 5,
+       "unit": "%",
+       "display_format": "%.0f"
+      },
+      {
+       "key": "spread",
+       "name": "Spread",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 70,
+       "step": 5,
+       "unit": "%",
+       "display_format": "%.0f"
+      },
+      {
+       "key": "double_amt",
+       "name": "Doubler",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 0,
+       "step": 5,
+       "unit": "%",
+       "display_format": "%.0f"
+      }
+     ],
+     "knobs": [
+      "harm1",
+      "harm2",
+      "harm_level",
+      "double_amt"
+     ]
+    },
+    "setup": {
+     "name": "Setup",
+     "params": [
+      {
+       "key": "hard",
+       "name": "Hard Tune",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": 0
+      },
+      {
+       "key": "wet",
+       "name": "Wet",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 100,
+       "step": 5,
+       "unit": "%",
+       "display_format": "%.0f"
+      },
+      {
+       "key": "formant",
+       "name": "Formant",
+       "type": "int",
+       "min": -100,
+       "max": 100,
+       "default": 0,
+       "step": 5
+      },
+      {
+       "key": "flex",
+       "name": "Flex",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 0,
+       "step": 5,
+       "unit": "%",
+       "display_format": "%.0f"
+      },
+      {
+       "key": "humanize",
+       "name": "Humanize",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 30,
+       "step": 5,
+       "unit": "%",
+       "display_format": "%.0f"
+      }
+     ],
+     "knobs": [
+      "hard",
+      "wet",
+      "formant",
+      "flex",
+      "humanize"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [],
+  "params": [
+   {
+    "key": "key",
+    "name": "Key",
+    "type": "enum",
+    "min": 0,
+    "max": 11,
+    "step": null,
+    "options": [
+     "C",
+     "C#",
+     "D",
+     "D#",
+     "E",
+     "F",
+     "F#",
+     "G",
+     "G#",
+     "A",
+     "A#",
+     "B"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "scale",
+    "name": "Scale",
+    "type": "enum",
+    "min": 0,
+    "max": 8,
+    "step": null,
+    "options": [
+     "Chromatic",
+     "Major",
+     "Minor",
+     "Harm Min",
+     "Dorian",
+     "Mixo",
+     "Maj Pent",
+     "Min Pent",
+     "Blues"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "retune",
+    "name": "Retune",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "25"
+   },
+   {
+    "key": "amount",
+    "name": "Amount",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100"
+   },
+   {
+    "key": "harm1",
+    "name": "Voice 1",
+    "type": "enum",
+    "min": 0,
+    "max": 11,
+    "step": null,
+    "options": [
+     "Off",
+     "-Oct",
+     "-6th",
+     "-5th",
+     "-4th",
+     "-3rd",
+     "Unis",
+     "+3rd",
+     "+4th",
+     "+5th",
+     "+6th",
+     "+Oct"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "harm2",
+    "name": "Voice 2",
+    "type": "enum",
+    "min": 0,
+    "max": 11,
+    "step": null,
+    "options": [
+     "Off",
+     "-Oct",
+     "-6th",
+     "-5th",
+     "-4th",
+     "-3rd",
+     "Unis",
+     "+3rd",
+     "+4th",
+     "+5th",
+     "+6th",
+     "+Oct"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "harm3",
+    "name": "Voice 3",
+    "type": "enum",
+    "min": 0,
+    "max": 11,
+    "step": null,
+    "options": [
+     "Off",
+     "-Oct",
+     "-6th",
+     "-5th",
+     "-4th",
+     "-3rd",
+     "Unis",
+     "+3rd",
+     "+4th",
+     "+5th",
+     "+6th",
+     "+Oct"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "harm4",
+    "name": "Voice 4",
+    "type": "enum",
+    "min": 0,
+    "max": 11,
+    "step": null,
+    "options": [
+     "Off",
+     "-Oct",
+     "-6th",
+     "-5th",
+     "-4th",
+     "-3rd",
+     "Unis",
+     "+3rd",
+     "+4th",
+     "+5th",
+     "+6th",
+     "+Oct"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "harm_level",
+    "name": "Harm Level",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "80"
+   },
+   {
+    "key": "spread",
+    "name": "Spread",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "70"
+   },
+   {
+    "key": "double_amt",
+    "name": "Doubler",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "hard",
+    "name": "Hard Tune",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "wet",
+    "name": "Wet",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100"
+   },
+   {
+    "key": "formant",
+    "name": "Formant",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "flex",
+    "name": "Flex",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "humanize",
+    "name": "Humanize",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "30"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": []
+ },
+ "analysis": {
+  "hiddenParams": [
+   "key",
+   "scale",
+   "retune",
+   "amount",
+   "harm1",
+   "harm2",
+   "harm3",
+   "harm4",
+   "harm_level",
+   "spread",
+   "double_amt",
+   "hard",
+   "wet",
+   "formant",
+   "flex",
+   "humanize"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "has chain_params but no ui_hierarchy and no movy config",
+   "movy shows NO params although the module exposes some",
+   "16 chain_params not reachable in movy: key, scale, retune, amount, harm1, harm2, harm3, harm4, harm_level, spread, double_amt, hard, …"
+  ]
+ }
+}

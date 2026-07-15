@@ -1,0 +1,210 @@
+{
+ "id": "po32-drum",
+ "name": "Libpo32",
+ "version": "1.0.6",
+ "author": "mestela",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 53,
+ "dsp_size": 106304,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Libpo32",
+     "count_param": "kit_count",
+     "list_param": "kit",
+     "name_param": "kit_name",
+     "params": [
+      {
+       "key": "kit",
+       "name": "Kit",
+       "type": "int",
+       "min": 0,
+       "max": 31,
+       "default": 0
+      },
+      {
+       "key": "level",
+       "name": "Level",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 1,
+       "step": 0.01
+      },
+      {
+       "key": "decay",
+       "name": "Decay",
+       "type": "float",
+       "min": 0.1,
+       "max": 3,
+       "default": 1,
+       "step": 0.05
+      }
+     ],
+     "knobs": [
+      "kit",
+      "level",
+      "decay"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [],
+  "params": [
+   {
+    "key": "kit",
+    "name": "Kit",
+    "type": "int",
+    "min": 0,
+    "max": 31,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "level",
+    "name": "Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "1.000"
+   },
+   {
+    "key": "decay",
+    "name": "Decay",
+    "type": "float",
+    "min": 0.1,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "1.000"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": true,
+  "usesMovyConfigFile": false,
+  "drum": {
+   "padCount": 8,
+   "padNoteStart": 36,
+   "rawMidi": false
+  },
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "KIT",
+       "fullName": "Kit",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "0"
+      },
+      {
+       "shortName": "LEVEL",
+       "fullName": "Level",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "kit",
+    "label": "Kit",
+    "shortLabel": "KIT",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 31,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 62
+    }
+   },
+   {
+    "key": "level",
+    "label": "Level",
+    "shortLabel": "LEVEL",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "decay",
+    "label": "Decay",
+    "shortLabel": "DECAY",
+    "type": "float",
+    "options": null,
+    "min": 0.1,
+    "max": 3,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 580
+    }
+   },
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": []
+ }
+}

@@ -1,0 +1,4900 @@
+{
+ "id": "chordism",
+ "name": "Chordism",
+ "version": "0.3.11",
+ "author": "charlesvestal",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 66,
+ "dsp_size": 359536,
+ "capabilities": {
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "midi_out": false,
+  "aftertouch": true,
+  "chainable": true,
+  "component_type": "sound_generator"
+ },
+ "presets": {
+  "count": 57,
+  "sample": [
+   "0",
+   "1",
+   "2",
+   "3",
+   "4",
+   "5",
+   "6",
+   "7",
+   "8",
+   "9"
+  ]
+ },
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "osc",
+   "filter",
+   "mod",
+   "env",
+   "fx",
+   "delay",
+   "arp",
+   "morph",
+   "mixer",
+   "scale",
+   "chordmulti",
+   "ctrl"
+  ],
+  "params": [
+   {
+    "key": "chord_type",
+    "name": "Chord",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Octaves",
+     "Fifth",
+     "Minor",
+     "Min 7",
+     "Min 9",
+     "Min 11",
+     "Major",
+     "Maj 7",
+     "Maj 9",
+     "Sus 4",
+     "6/9",
+     "Min 6",
+     "10th",
+     "Dom 7",
+     "Dom 7 b9",
+     "Half Dim"
+    ],
+    "default": "6"
+   },
+   {
+    "key": "detune",
+    "name": "Detune",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "width",
+    "name": "Width",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "filter_cutoff",
+    "name": "Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "filter_resonance",
+    "name": "Reso",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "filter_mode",
+    "name": "Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LP",
+     "HP",
+     "BP"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "filter_slope",
+    "name": "Slope",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "12 dB",
+     "24 dB"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "filter_lfo_rate",
+    "name": "Flt LFO Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "filter_lfo_depth",
+    "name": "Flt LFO Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "filter_lfo_spread",
+    "name": "Flt LFO Spread",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "filter_lfo_shape",
+    "name": "Flt LFO Wave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Triangle",
+     "Ramp Up",
+     "Ramp Down",
+     "Square"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "filter_env_attack",
+    "name": "Env A",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "filter_env_decay",
+    "name": "Env D",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3000"
+   },
+   {
+    "key": "filter_env_depth",
+    "name": "Env Amt",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "drive",
+    "name": "Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "volume",
+    "name": "Volume",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "wave_1",
+    "name": "Wave 1",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Sine",
+     "Triangle",
+     "Saw",
+     "Square",
+     "Pulse Tr",
+     "Wavetable"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "wave_2",
+    "name": "Wave 2",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Sine",
+     "Triangle",
+     "Saw",
+     "Square",
+     "Pulse Tr",
+     "Wavetable"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "wave_3",
+    "name": "Wave 3",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Sine",
+     "Triangle",
+     "Saw",
+     "Square",
+     "Pulse Tr",
+     "Wavetable"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "wave_4",
+    "name": "Wave 4",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Sine",
+     "Triangle",
+     "Saw",
+     "Square",
+     "Pulse Tr",
+     "Wavetable"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "shape",
+    "name": "Shape",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "shape_1",
+    "name": "Shape 1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "shape_2",
+    "name": "Shape 2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "shape_3",
+    "name": "Shape 3",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "shape_4",
+    "name": "Shape 4",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "morph_index",
+    "name": "Morph",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "morph_intensity",
+    "name": "Morph Int",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "pan_morph_index",
+    "name": "Pan Morph",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "pan_morph_intensity",
+    "name": "Pan Int",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "chord_spread",
+    "name": "Spread",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "chord_rotation",
+    "name": "Rotation",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "fm_modulator",
+    "name": "FM Modulator",
+    "type": "int",
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "fm_amount",
+    "name": "FM Amt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "lfo_shape",
+    "name": "LFO Wave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Triangle",
+     "Ramp Up",
+     "Ramp Down",
+     "Square"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "lfo_rate",
+    "name": "LFO Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "lfo_depth",
+    "name": "LFO Dpt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "vib_depth",
+    "name": "Vib Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "vib_speed",
+    "name": "Vib Speed",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "vib_delay",
+    "name": "Vib Delay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2000"
+   },
+   {
+    "key": "sweep_amount",
+    "name": "Sweep",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "sweep_rate",
+    "name": "Sweep Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "attack",
+    "name": "Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5478"
+   },
+   {
+    "key": "release",
+    "name": "Release",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7327"
+   },
+   {
+    "key": "reverb_mix",
+    "name": "Reverb Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "reverb_decay",
+    "name": "Reverb Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "reverb_damp",
+    "name": "Reverb Damp",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3000"
+   },
+   {
+    "key": "grind",
+    "name": "Grind",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "bit_shift",
+    "name": "Shift",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "decimator",
+    "name": "Decim",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "delay_mix",
+    "name": "Delay Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "delay_time",
+    "name": "Delay Time",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3000"
+   },
+   {
+    "key": "delay_feedback",
+    "name": "Delay Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4000"
+   },
+   {
+    "key": "delay_tone",
+    "name": "Delay Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7000"
+   },
+   {
+    "key": "glide_rate",
+    "name": "Glide",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "glide_legato",
+    "name": "Glide Legato",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Always",
+     "Legato"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "vib_stray",
+    "name": "Vibrato Stray",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LFO",
+     "Random"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "delay_mode",
+    "name": "Delay Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Stereo",
+     "Ping-Pong",
+     "Flip-Flop",
+     "Long",
+     "Zenith",
+     "Interval"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "delay_tone_hi",
+    "name": "Delay Tone Hi",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7000"
+   },
+   {
+    "key": "delay_tone_lo",
+    "name": "Delay Tone Lo",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "delay_mod_rate",
+    "name": "Delay Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "delay_mod_depth",
+    "name": "Delay Mod Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "reverb_shimmer",
+    "name": "Reverb Shimmer",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "reverb_lowcut",
+    "name": "Reverb Low Cut",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "reverb_size",
+    "name": "Reverb Size",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "reverb_mod_rate",
+    "name": "Reverb Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "reverb_mod_depth",
+    "name": "Reverb Mod Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "lm_lfo_rate",
+    "name": "Lvl Morph LFO Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "lm_lfo_depth",
+    "name": "Lvl Morph LFO Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "lm_lfo_shape",
+    "name": "Lvl Morph LFO Wave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Triangle",
+     "Ramp Up",
+     "Ramp Down",
+     "Square"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "pm_lfo_rate",
+    "name": "Pan Morph LFO Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "pm_lfo_depth",
+    "name": "Pan Morph LFO Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "pm_lfo_shape",
+    "name": "Pan Morph LFO Wave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Triangle",
+     "Ramp Up",
+     "Ramp Down",
+     "Square"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "amp_lfo_rate",
+    "name": "Tremolo Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "amp_lfo_depth",
+    "name": "Tremolo Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "amp_lfo_shape",
+    "name": "Tremolo Wave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Triangle",
+     "Ramp Up",
+     "Ramp Down",
+     "Square"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "vca_mode",
+    "name": "VCA Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "AD",
+     "ASR",
+     "Looping"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "vca_hard_reset",
+    "name": "VCA Hard Reset",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "vca_drone",
+    "name": "Drone",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "fenv_mode",
+    "name": "Flt Env Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "AD",
+     "ASR",
+     "Looping"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "fenv_hard_reset",
+    "name": "Flt Env Hard Reset",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "quality_position",
+    "name": "LoFi Position",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Post-Flt",
+     "Pre-Flt"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "fm_amount_1",
+    "name": "FM Amount 1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "fm_amount_2",
+    "name": "FM Amount 2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "fm_amount_3",
+    "name": "FM Amount 3",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "fm_amount_4",
+    "name": "FM Amount 4",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "mix_1",
+    "name": "Mix 1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "mix_2",
+    "name": "Mix 2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "mix_3",
+    "name": "Mix 3",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "mix_4",
+    "name": "Mix 4",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "vib_osc_enable",
+    "name": "Vib Osc Enable",
+    "type": "int",
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "options": null,
+    "default": "15"
+   },
+   {
+    "key": "sweep_osc_enable",
+    "name": "Sweep Osc Enable",
+    "type": "int",
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "options": null,
+    "default": "15"
+   },
+   {
+    "key": "shape_lfo_mode",
+    "name": "LFO Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Free",
+     "Note Reset",
+     "One Shot"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "filter_lfo_mode",
+    "name": "Flt LFO Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Free",
+     "Note Reset",
+     "One Shot"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "lm_lfo_mode",
+    "name": "Lvl Morph LFO Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Free",
+     "Note Reset",
+     "One Shot"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "pm_lfo_mode",
+    "name": "Pan Morph LFO Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Free",
+     "Note Reset",
+     "One Shot"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "fm_position",
+    "name": "FM Position",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Pre-Morph",
+     "Post-Morph"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "arp_hold",
+    "name": "Arp Hold",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "arp_euclid_steps",
+    "name": "Euclid Steps",
+    "type": "int",
+    "min": 1,
+    "max": 16,
+    "step": 1,
+    "options": null,
+    "default": "16"
+   },
+   {
+    "key": "arp_euclid_beats",
+    "name": "Euclid Beats",
+    "type": "int",
+    "min": 0,
+    "max": 16,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "arp_variation_interval",
+    "name": "Var Interval",
+    "type": "int",
+    "min": -12,
+    "max": 12,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "arp_variations",
+    "name": "Var Count",
+    "type": "int",
+    "min": 1,
+    "max": 8,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "arp_clock_sync",
+    "name": "Clock Sync",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Internal",
+     "MIDI Clk"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "arp_clock_division",
+    "name": "Clock Division",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1/4",
+     "1/4T",
+     "1/8",
+     "1/8T",
+     "1/16",
+     "1/32"
+    ],
+    "default": "2"
+   },
+   {
+    "key": "scale_index",
+    "name": "Scale",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Chromatic",
+     "Major",
+     "Minor",
+     "Harm Min",
+     "Pent Maj",
+     "Pent Min",
+     "Diminished",
+     "Dorian",
+     "Phrygian",
+     "Lydian",
+     "Mixolyd",
+     "Locrian",
+     "Blues Maj",
+     "Blues Min",
+     "Arabic",
+     "Arabic2",
+     "Hijaz",
+     "Iwato",
+     "Pelog",
+     "Slendro",
+     "Folk",
+     "Japanese",
+     "Gypsy",
+     "Flamenco",
+     "Whole Tone"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "scale_root",
+    "name": "Scale Root",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "C",
+     "C#",
+     "D",
+     "D#",
+     "E",
+     "F",
+     "F#",
+     "G",
+     "G#",
+     "A",
+     "A#",
+     "B"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "tuning_mode",
+    "name": "Tuning",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Chord",
+     "Interval",
+     "Chord Multi"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "chord_pc_0",
+    "name": "C",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "default": "6"
+   },
+   {
+    "key": "chord_pc_1",
+    "name": "C#",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "default": "6"
+   },
+   {
+    "key": "chord_pc_2",
+    "name": "D",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "default": "6"
+   },
+   {
+    "key": "chord_pc_3",
+    "name": "D#",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "default": "6"
+   },
+   {
+    "key": "chord_pc_4",
+    "name": "E",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "default": "6"
+   },
+   {
+    "key": "chord_pc_5",
+    "name": "F",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "default": "6"
+   },
+   {
+    "key": "chord_pc_6",
+    "name": "F#",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "default": "6"
+   },
+   {
+    "key": "chord_pc_7",
+    "name": "G",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "default": "6"
+   },
+   {
+    "key": "chord_pc_8",
+    "name": "G#",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "default": "6"
+   },
+   {
+    "key": "chord_pc_9",
+    "name": "A",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "default": "6"
+   },
+   {
+    "key": "chord_pc_10",
+    "name": "A#",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "default": "6"
+   },
+   {
+    "key": "chord_pc_11",
+    "name": "B",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "default": "6"
+   },
+   {
+    "key": "interval_1",
+    "name": "Interval 1",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "4"
+   },
+   {
+    "key": "interval_2",
+    "name": "Interval 2",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "7"
+   },
+   {
+    "key": "interval_3",
+    "name": "Interval 3",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "12"
+   },
+   {
+    "key": "lfo_phase_1",
+    "name": "Shape LFO Phase 1",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "lfo_phase_2",
+    "name": "Shape LFO Phase 2",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2500"
+   },
+   {
+    "key": "lfo_phase_3",
+    "name": "Shape LFO Phase 3",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "lfo_phase_4",
+    "name": "Shape LFO Phase 4",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7500"
+   },
+   {
+    "key": "ctrl_source",
+    "name": "Ctrl Src",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Aftertouch",
+     "Random",
+     "Coin Toss",
+     "MIDI CC",
+     "Velocity"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "ctrl_cc",
+    "name": "Ctrl CC",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "ctrl_to_cutoff",
+    "name": "Ctrl to Cutoff",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "ctrl_to_morph",
+    "name": "Ctrl to Morph",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "ctrl_to_vib",
+    "name": "Ctrl to Vibrato",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "ctrl_to_shape",
+    "name": "Ctrl to Shape",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "ctrl_to_fm",
+    "name": "Ctrl to FM",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "arp_enabled",
+    "name": "Arp",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "arp_tempo",
+    "name": "Arp Tempo",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4000"
+   },
+   {
+    "key": "arp_direction",
+    "name": "Arp Direction",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Up",
+     "Down",
+     "Up/Down",
+     "Random"
+    ],
+    "default": "0"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Preset",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Oscillators",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Filter",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Modulation",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Envelope",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "FX",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Delay",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Arp",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Morph",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Mixer",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Scale/Tune",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Ctrl Src",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Chord Multi",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Preset",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "Preset",
+       "renderStyle": "preset",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CHORD",
+       "fullName": "Chord",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WIDTH",
+       "fullName": "Width",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CUTOF",
+       "fullName": "Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RESO",
+       "fullName": "Reso",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "DRIVE",
+       "fullName": "Drive",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SHAPE",
+       "fullName": "Shape",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RM",
+       "fullName": "Reverb Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOLUM",
+       "fullName": "Volume",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Oscillators",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "1",
+       "fullName": "Wave 1",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "2",
+       "fullName": "Wave 2",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "3",
+       "fullName": "Wave 3",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "4",
+       "fullName": "Wave 4",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "1",
+       "fullName": "Shape 1",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "2",
+       "fullName": "Shape 2",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "3",
+       "fullName": "Shape 3",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "4",
+       "fullName": "Shape 4",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Filter",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CUTOF",
+       "fullName": "Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RESO",
+       "fullName": "Reso",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MODE",
+       "fullName": "Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SLOPE",
+       "fullName": "Slope",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "ENV A",
+       "fullName": "Env A",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ENV D",
+       "fullName": "Env D",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ENV",
+       "fullName": "Env Amt",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FLT",
+       "fullName": "Flt Env Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Modulation",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "WAVE",
+       "fullName": "LFO Wave",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "LFO Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DPT",
+       "fullName": "LFO Dpt",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEPTH",
+       "fullName": "Vib Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SPEED",
+       "fullName": "Vib Speed",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VS",
+       "fullName": "Vibrato Stray",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SWEEP",
+       "fullName": "Sweep",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GLIDE",
+       "fullName": "Glide",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Envelope",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATTAC",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RELEA",
+       "fullName": "Release",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOLUM",
+       "fullName": "Volume",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MODE",
+       "fullName": "VCA Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TR",
+       "fullName": "Tremolo Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TD",
+       "fullName": "Tremolo Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HARD",
+       "fullName": "VCA Hard Reset",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRONE",
+       "fullName": "Drone",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "FX",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "RM",
+       "fullName": "Reverb Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Reverb Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DAMP",
+       "fullName": "Reverb Damp",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SHIMM",
+       "fullName": "Reverb Shimmer",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RLC",
+       "fullName": "Reverb Low Cut",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SIZE",
+       "fullName": "Reverb Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GRIND",
+       "fullName": "Grind",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECIM",
+       "fullName": "Decim",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Delay",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MIX",
+       "fullName": "Delay Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TIME",
+       "fullName": "Delay Time",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FEEDB",
+       "fullName": "Delay Feedback",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "Delay Tone Hi",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TONE",
+       "fullName": "Delay Tone Lo",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MODE",
+       "fullName": "Delay Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MOD",
+       "fullName": "Delay Mod Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MOD",
+       "fullName": "Delay Mod Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Arp",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ARP",
+       "fullName": "Arp",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TEMPO",
+       "fullName": "Arp Tempo",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIREC",
+       "fullName": "Arp Direction",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HOLD",
+       "fullName": "Arp Hold",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "ES",
+       "fullName": "Euclid Steps",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "EB",
+       "fullName": "Euclid Beats",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SYNC",
+       "fullName": "Clock Sync",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIVIS",
+       "fullName": "Clock Division",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Morph",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MORPH",
+       "fullName": "Morph",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "INT",
+       "fullName": "Morph Int",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "Lvl Morph LFO Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEPTH",
+       "fullName": "Lvl Morph LFO Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "MORPH",
+       "fullName": "Pan Morph",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "INT",
+       "fullName": "Pan Int",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MORPH",
+       "fullName": "Pan Morph LFO Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MORPH",
+       "fullName": "Pan Morph LFO Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Mixer",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MIX 1",
+       "fullName": "Mix 1",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX 2",
+       "fullName": "Mix 2",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX 3",
+       "fullName": "Mix 3",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX 4",
+       "fullName": "Mix 4",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "1",
+       "fullName": "FM Amount 1",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "2",
+       "fullName": "FM Amount 2",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "3",
+       "fullName": "FM Amount 3",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "4",
+       "fullName": "FM Amount 4",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Scale/Tune",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SCALE",
+       "fullName": "Scale",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ROOT",
+       "fullName": "Scale Root",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TUNIN",
+       "fullName": "Tuning",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "I1",
+       "fullName": "Interval 1",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "I2",
+       "fullName": "Interval 2",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "I3",
+       "fullName": "Interval 3",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Ctrl Src",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SRC",
+       "fullName": "Ctrl Src",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CC",
+       "fullName": "Ctrl CC",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TO",
+       "fullName": "Ctrl to Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TO",
+       "fullName": "Ctrl to Morph",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TO",
+       "fullName": "Ctrl to Vibrato",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TO",
+       "fullName": "Ctrl to Shape",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TO FM",
+       "fullName": "Ctrl to FM",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Chord Multi",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "C",
+       "fullName": "C",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "C#",
+       "fullName": "C#",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "D",
+       "fullName": "D",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "D#",
+       "fullName": "D#",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "E",
+       "fullName": "E",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "F",
+       "fullName": "F",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "F#",
+       "fullName": "F#",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "G",
+       "fullName": "G",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "preset",
+    "label": "Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "min": 0,
+    "max": 56,
+    "step": 1,
+    "options": null,
+    "nameKey": "preset_name",
+    "renderStyle": "preset",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 57
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "chord_type",
+    "label": "Chord",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Octaves",
+     "Fifth",
+     "Minor",
+     "Min 7",
+     "Min 9",
+     "Min 11",
+     "Major",
+     "Maj 7",
+     "Maj 9",
+     "Sus 4",
+     "6/9",
+     "Min 6",
+     "10th",
+     "Dom 7",
+     "Dom 7 b9",
+     "Half Dim"
+    ],
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 16
+    }
+   },
+   {
+    "key": "width",
+    "label": "Width",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "filter_cutoff",
+    "label": "Cutoff",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "filter_resonance",
+    "label": "Reso",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "drive",
+    "label": "Drive",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "shape",
+    "label": "Shape",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "reverb_mix",
+    "label": "Reverb Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "volume",
+    "label": "Volume",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "wave_1",
+    "label": "Wave 1",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "Sine",
+     "Triangle",
+     "Saw",
+     "Square",
+     "Pulse Tr",
+     "Wavetable"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "wave_2",
+    "label": "Wave 2",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "Sine",
+     "Triangle",
+     "Saw",
+     "Square",
+     "Pulse Tr",
+     "Wavetable"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "wave_3",
+    "label": "Wave 3",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "Sine",
+     "Triangle",
+     "Saw",
+     "Square",
+     "Pulse Tr",
+     "Wavetable"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "wave_4",
+    "label": "Wave 4",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "Sine",
+     "Triangle",
+     "Saw",
+     "Square",
+     "Pulse Tr",
+     "Wavetable"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "shape_1",
+    "label": "Shape 1",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "shape_2",
+    "label": "Shape 2",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "shape_3",
+    "label": "Shape 3",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "shape_4",
+    "label": "Shape 4",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "filter_cutoff",
+    "label": "Cutoff",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "filter_resonance",
+    "label": "Reso",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "filter_mode",
+    "label": "Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "LP",
+     "HP",
+     "BP"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "filter_slope",
+    "label": "Slope",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "12 dB",
+     "24 dB"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "filter_env_attack",
+    "label": "Env A",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "filter_env_decay",
+    "label": "Env D",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "filter_env_depth",
+    "label": "Env Amt",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fenv_mode",
+    "label": "Flt Env Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "AD",
+     "ASR",
+     "Looping"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "lfo_shape",
+    "label": "LFO Wave",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Triangle",
+     "Ramp Up",
+     "Ramp Down",
+     "Square"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "lfo_rate",
+    "label": "LFO Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lfo_depth",
+    "label": "LFO Dpt",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "vib_depth",
+    "label": "Vib Depth",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "vib_speed",
+    "label": "Vib Speed",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "vib_stray",
+    "label": "Vibrato Stray",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "LFO",
+     "Random"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "sweep_amount",
+    "label": "Sweep",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "glide_rate",
+    "label": "Glide",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "attack",
+    "label": "Attack",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "release",
+    "label": "Release",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "volume",
+    "label": "Volume",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "vca_mode",
+    "label": "VCA Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "AD",
+     "ASR",
+     "Looping"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "amp_lfo_rate",
+    "label": "Tremolo Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "amp_lfo_depth",
+    "label": "Tremolo Depth",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "vca_hard_reset",
+    "label": "VCA Hard Reset",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "vca_drone",
+    "label": "Drone",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "reverb_mix",
+    "label": "Reverb Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "reverb_decay",
+    "label": "Reverb Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "reverb_damp",
+    "label": "Reverb Damp",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "reverb_shimmer",
+    "label": "Reverb Shimmer",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "reverb_lowcut",
+    "label": "Reverb Low Cut",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "reverb_size",
+    "label": "Reverb Size",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "grind",
+    "label": "Grind",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "decimator",
+    "label": "Decim",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "delay_mix",
+    "label": "Delay Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "delay_time",
+    "label": "Delay Time",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "delay_feedback",
+    "label": "Delay Feedback",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "delay_tone_hi",
+    "label": "Delay Tone Hi",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "delay_tone_lo",
+    "label": "Delay Tone Lo",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "delay_mode",
+    "label": "Delay Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Stereo",
+     "Ping-Pong",
+     "Flip-Flop",
+     "Long",
+     "Zenith",
+     "Interval"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
+   {
+    "key": "delay_mod_rate",
+    "label": "Delay Mod Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "delay_mod_depth",
+    "label": "Delay Mod Depth",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "arp_enabled",
+    "label": "Arp",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "arp_tempo",
+    "label": "Arp Tempo",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "arp_direction",
+    "label": "Arp Direction",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Up",
+     "Down",
+     "Up/Down",
+     "Random"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "arp_hold",
+    "label": "Arp Hold",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "arp_euclid_steps",
+    "label": "Euclid Steps",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 30
+    }
+   },
+   {
+    "key": "arp_euclid_beats",
+    "label": "Euclid Beats",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 32
+    }
+   },
+   {
+    "key": "arp_clock_sync",
+    "label": "Clock Sync",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Internal",
+     "MIDI Clk"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "arp_clock_division",
+    "label": "Clock Division",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/4",
+     "1/4T",
+     "1/8",
+     "1/8T",
+     "1/16",
+     "1/32"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
+   {
+    "key": "morph_index",
+    "label": "Morph",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "morph_intensity",
+    "label": "Morph Int",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lm_lfo_rate",
+    "label": "Lvl Morph LFO Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lm_lfo_depth",
+    "label": "Lvl Morph LFO Depth",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pan_morph_index",
+    "label": "Pan Morph",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pan_morph_intensity",
+    "label": "Pan Int",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pm_lfo_rate",
+    "label": "Pan Morph LFO Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pm_lfo_depth",
+    "label": "Pan Morph LFO Depth",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mix_1",
+    "label": "Mix 1",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mix_2",
+    "label": "Mix 2",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mix_3",
+    "label": "Mix 3",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mix_4",
+    "label": "Mix 4",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fm_amount_1",
+    "label": "FM Amount 1",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fm_amount_2",
+    "label": "FM Amount 2",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fm_amount_3",
+    "label": "FM Amount 3",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fm_amount_4",
+    "label": "FM Amount 4",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "scale_index",
+    "label": "Scale",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Chromatic",
+     "Major",
+     "Minor",
+     "Harm Min",
+     "Pent Maj",
+     "Pent Min",
+     "Diminished",
+     "Dorian",
+     "Phrygian",
+     "Lydian",
+     "Mixolyd",
+     "Locrian",
+     "Blues Maj",
+     "Blues Min",
+     "Arabic",
+     "Arabic2",
+     "Hijaz",
+     "Iwato",
+     "Pelog",
+     "Slendro",
+     "Folk",
+     "Japanese",
+     "Gypsy",
+     "Flamenco",
+     "Whole Tone"
+    ],
+    "min": 0,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 25
+    }
+   },
+   {
+    "key": "scale_root",
+    "label": "Scale Root",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "C",
+     "C#",
+     "D",
+     "D#",
+     "E",
+     "F",
+     "F#",
+     "G",
+     "G#",
+     "A",
+     "A#",
+     "B"
+    ],
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 12
+    }
+   },
+   {
+    "key": "tuning_mode",
+    "label": "Tuning",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Chord",
+     "Interval",
+     "Chord Multi"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "interval_1",
+    "label": "Interval 1",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "interval_2",
+    "label": "Interval 2",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "interval_3",
+    "label": "Interval 3",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   null,
+   null,
+   {
+    "key": "ctrl_source",
+    "label": "Ctrl Src",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Aftertouch",
+     "Random",
+     "Coin Toss",
+     "MIDI CC",
+     "Velocity"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   {
+    "key": "ctrl_cc",
+    "label": "Ctrl CC",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "ctrl_to_cutoff",
+    "label": "Ctrl to Cutoff",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ctrl_to_morph",
+    "label": "Ctrl to Morph",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ctrl_to_vib",
+    "label": "Ctrl to Vibrato",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ctrl_to_shape",
+    "label": "Ctrl to Shape",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ctrl_to_fm",
+    "label": "Ctrl to FM",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   {
+    "key": "chord_pc_0",
+    "label": "C",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 16
+    }
+   },
+   {
+    "key": "chord_pc_1",
+    "label": "C#",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 16
+    }
+   },
+   {
+    "key": "chord_pc_2",
+    "label": "D",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 16
+    }
+   },
+   {
+    "key": "chord_pc_3",
+    "label": "D#",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 16
+    }
+   },
+   {
+    "key": "chord_pc_4",
+    "label": "E",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 16
+    }
+   },
+   {
+    "key": "chord_pc_5",
+    "label": "F",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 16
+    }
+   },
+   {
+    "key": "chord_pc_6",
+    "label": "F#",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 16
+    }
+   },
+   {
+    "key": "chord_pc_7",
+    "label": "G",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Oct",
+     "5th",
+     "Min",
+     "Min7",
+     "Min9",
+     "Min11",
+     "Maj",
+     "Maj7",
+     "Maj9",
+     "Sus4",
+     "6/9",
+     "Min6",
+     "10",
+     "Dom7",
+     "Dom7b9",
+     "HalfDim"
+    ],
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 16
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "detune",
+   "filter_lfo_rate",
+   "filter_lfo_depth",
+   "filter_lfo_spread",
+   "filter_lfo_shape",
+   "chord_spread",
+   "chord_rotation",
+   "fm_modulator",
+   "fm_amount",
+   "vib_delay",
+   "sweep_rate",
+   "bit_shift",
+   "delay_tone",
+   "glide_legato",
+   "reverb_mod_rate",
+   "reverb_mod_depth",
+   "lm_lfo_shape",
+   "pm_lfo_shape",
+   "amp_lfo_shape",
+   "fenv_hard_reset",
+   "quality_position",
+   "vib_osc_enable",
+   "sweep_osc_enable",
+   "shape_lfo_mode",
+   "filter_lfo_mode",
+   "lm_lfo_mode",
+   "pm_lfo_mode",
+   "fm_position",
+   "arp_variation_interval",
+   "arp_variations",
+   "chord_pc_8",
+   "chord_pc_9",
+   "chord_pc_10",
+   "chord_pc_11",
+   "lfo_phase_1",
+   "lfo_phase_2",
+   "lfo_phase_3",
+   "lfo_phase_4"
+  ],
+  "noMetadata": [
+   "preset"
+  ],
+  "warnings": [
+   "38 chain_params not reachable in movy: detune, filter_lfo_rate, filter_lfo_depth, filter_lfo_spread, filter_lfo_shape, chord_spread, chord_rotation, fm_modulator, fm_amount, vib_delay, sweep_rate, bit_shift, …",
+   "1 shown params lack chain_params metadata (movy guesses type/range): preset",
+   "page \"Oscillators\": duplicate on-screen names 1, 2, 3, 4",
+   "page \"Delay\": duplicate on-screen names TONE, MOD",
+   "page \"Morph\": duplicate on-screen names MORPH, INT",
+   "page \"Ctrl Src\": duplicate on-screen names TO"
+  ]
+ }
+}

@@ -1,0 +1,1406 @@
+{
+ "id": "granular",
+ "name": "Boris Granular",
+ "version": "0.3.1",
+ "author": "Boris (port: charlesvestal)",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 69,
+ "dsp_size": 31664,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "ui_hierarchy": {
+   "modes": null,
+   "levels": {
+    "root": {
+     "name": "Boris Granular",
+     "knobs": [
+      "density",
+      "grain_size",
+      "position",
+      "pitch",
+      "feedback",
+      "pan_width",
+      "freeze",
+      "mix"
+     ],
+     "params": [
+      {
+       "level": "Granular",
+       "label": "Granular"
+      },
+      {
+       "level": "Randomize",
+       "label": "Randomize"
+      },
+      {
+       "level": "Sync",
+       "label": "Sync"
+      },
+      {
+       "level": "Advanced",
+       "label": "Advanced"
+      }
+     ]
+    },
+    "Granular": {
+     "label": "Granular",
+     "knobs": [
+      "density",
+      "grain_size",
+      "position",
+      "pitch",
+      "feedback",
+      "pan_width",
+      "freeze",
+      "mix"
+     ],
+     "params": [
+      {
+       "key": "density",
+       "label": "Density",
+       "type": "float",
+       "min": 0.04,
+       "max": 1,
+       "default": 0.5,
+       "step": 0.01
+      },
+      {
+       "key": "grain_size",
+       "label": "Size",
+       "type": "float",
+       "min": 20,
+       "max": 2000,
+       "default": 200,
+       "step": 1,
+       "unit": "ms"
+      },
+      {
+       "key": "position",
+       "label": "Position",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      },
+      {
+       "key": "pitch",
+       "label": "Pitch Shift",
+       "type": "float",
+       "min": 0.25,
+       "max": 4,
+       "default": 1,
+       "step": 0.01
+      },
+      {
+       "key": "feedback",
+       "label": "Feedback",
+       "type": "float",
+       "min": 0,
+       "max": 90,
+       "default": 0,
+       "step": 1,
+       "unit": "%"
+      },
+      {
+       "key": "pan_width",
+       "label": "Pan Width",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 50,
+       "step": 1,
+       "unit": "%"
+      },
+      {
+       "key": "freeze",
+       "label": "Freeze",
+       "type": "enum",
+       "options": [
+        "off",
+        "on"
+       ],
+       "default": 0
+      },
+      {
+       "key": "mix",
+       "label": "Dry/Wet",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 50,
+       "step": 1,
+       "unit": "%"
+      },
+      {
+       "key": "envelope",
+       "label": "Envelope",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      },
+      {
+       "key": "drift",
+       "label": "Drift",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "default": 0,
+       "step": 0.01
+      }
+     ]
+    },
+    "Randomize": {
+     "label": "Randomize",
+     "knobs": [
+      "random_length",
+      "random_delay",
+      "random_pitch",
+      "reverse_prob",
+      "random_vol",
+      "chance"
+     ],
+     "params": [
+      {
+       "key": "random_length",
+       "label": "Rdm Size",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 0,
+       "step": 1,
+       "unit": "%"
+      },
+      {
+       "key": "random_delay",
+       "label": "Rdm Delay",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 0,
+       "step": 1,
+       "unit": "%"
+      },
+      {
+       "key": "random_pitch",
+       "label": "Rdm Shift",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 0,
+       "step": 1,
+       "unit": "%"
+      },
+      {
+       "key": "reverse_prob",
+       "label": "Reverse",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 0,
+       "step": 1,
+       "unit": "%"
+      },
+      {
+       "key": "random_vol",
+       "label": "Rdm Vol",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 0,
+       "step": 1,
+       "unit": "%"
+      },
+      {
+       "key": "chance",
+       "label": "Chance",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 100,
+       "step": 1,
+       "unit": "%"
+      }
+     ]
+    },
+    "Sync": {
+     "label": "Sync",
+     "knobs": [
+      "sync",
+      "division",
+      "rhythm"
+     ],
+     "params": [
+      {
+       "key": "sync",
+       "label": "Sync",
+       "type": "enum",
+       "options": [
+        "off",
+        "on"
+       ],
+       "default": 0
+      },
+      {
+       "key": "division",
+       "label": "Division",
+       "type": "enum",
+       "options": [
+        "1/16",
+        "1/8",
+        "1/4",
+        "1/2",
+        "1/1",
+        "2/1",
+        "4/1"
+       ],
+       "default": 3
+      },
+      {
+       "key": "rhythm",
+       "label": "Rhythm",
+       "type": "enum",
+       "options": [
+        "normal",
+        "dotted",
+        "triplet"
+       ],
+       "default": 0
+      }
+     ]
+    },
+    "Advanced": {
+     "label": "Advanced",
+     "knobs": [
+      "gain",
+      "mute",
+      "voice_count"
+     ],
+     "params": [
+      {
+       "key": "gain",
+       "label": "Input",
+       "type": "float",
+       "min": 0,
+       "max": 1.5,
+       "default": 1,
+       "step": 0.01
+      },
+      {
+       "key": "mute",
+       "label": "Mute",
+       "type": "enum",
+       "options": [
+        "off",
+        "on"
+       ],
+       "default": 0
+      },
+      {
+       "key": "voice_count",
+       "label": "Voices",
+       "type": "int",
+       "min": 1,
+       "max": 24,
+       "default": 24,
+       "step": 1
+      }
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "Granular",
+   "Randomize",
+   "Sync",
+   "Advanced"
+  ],
+  "params": [
+   {
+    "key": "density",
+    "name": "Density",
+    "type": "float",
+    "min": 0.04,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.50"
+   },
+   {
+    "key": "grain_size",
+    "name": "Size",
+    "type": "float",
+    "min": 20,
+    "max": 2000,
+    "step": 1,
+    "options": null,
+    "default": "200.0"
+   },
+   {
+    "key": "pitch",
+    "name": "Pitch Shift",
+    "type": "float",
+    "min": 0.25,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "1.00"
+   },
+   {
+    "key": "envelope",
+    "name": "Envelope",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "position",
+    "name": "Position",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "drift",
+    "name": "Drift",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "mix",
+    "name": "Dry/Wet",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "50"
+   },
+   {
+    "key": "freeze",
+    "name": "Freeze",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "random_length",
+    "name": "Rdm Size",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "random_delay",
+    "name": "Rdm Delay",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "random_pitch",
+    "name": "Rdm Shift",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "reverse_prob",
+    "name": "Reverse",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "pan_width",
+    "name": "Pan Width",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "50"
+   },
+   {
+    "key": "random_vol",
+    "name": "Rdm Vol",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "chance",
+    "name": "Chance",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100"
+   },
+   {
+    "key": "feedback",
+    "name": "Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 90,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "sync",
+    "name": "Sync",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "division",
+    "name": "Division",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1/16",
+     "1/8",
+     "1/4",
+     "1/2",
+     "1/1",
+     "2/1",
+     "4/1"
+    ],
+    "default": "1/4"
+   },
+   {
+    "key": "rhythm",
+    "name": "Rhythm",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "normal",
+     "dotted",
+     "triplet"
+    ],
+    "default": "normal"
+   },
+   {
+    "key": "gain",
+    "name": "Input",
+    "type": "float",
+    "min": 0,
+    "max": 1.5,
+    "step": 0.01,
+    "options": null,
+    "default": "1.00"
+   },
+   {
+    "key": "mute",
+    "name": "Mute",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "on"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "voice_count",
+    "name": "Voices",
+    "type": "int",
+    "min": 1,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "24"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Granular",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Randomize",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Sync",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Advanced",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DENSI",
+       "fullName": "Density",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "48%"
+      },
+      {
+       "shortName": "SIZE",
+       "fullName": "Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "POSIT",
+       "fullName": "Position",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PITCH",
+       "fullName": "Pitch Shift",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "FEEDB",
+       "fullName": "Feedback",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN",
+       "fullName": "Pan Width",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREEZ",
+       "fullName": "Freeze",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRY/W",
+       "fullName": "Dry/Wet",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Granular",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DENSI",
+       "fullName": "Density",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SIZE",
+       "fullName": "Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "POSIT",
+       "fullName": "Position",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PITCH",
+       "fullName": "Pitch Shift",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "FEEDB",
+       "fullName": "Feedback",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN",
+       "fullName": "Pan Width",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREEZ",
+       "fullName": "Freeze",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRY/W",
+       "fullName": "Dry/Wet",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Randomize",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SIZE",
+       "fullName": "Rdm Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DELAY",
+       "fullName": "Rdm Delay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SHIFT",
+       "fullName": "Rdm Shift",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "REVER",
+       "fullName": "Reverse",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "VOL",
+       "fullName": "Rdm Vol",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CHANC",
+       "fullName": "Chance",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Sync",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SYNC",
+       "fullName": "Sync",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIVIS",
+       "fullName": "Division",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RHYTH",
+       "fullName": "Rhythm",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Advanced",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "INPUT",
+       "fullName": "Input",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MUTE",
+       "fullName": "Mute",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOICE",
+       "fullName": "Voices",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "density",
+    "label": "Density",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.04,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 192
+    }
+   },
+   {
+    "key": "grain_size",
+    "label": "Size",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 20,
+    "max": 2000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3960
+    }
+   },
+   {
+    "key": "position",
+    "label": "Position",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pitch",
+    "label": "Pitch Shift",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.25,
+    "max": 4,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 750
+    }
+   },
+   {
+    "key": "feedback",
+    "label": "Feedback",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 90,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 180
+    }
+   },
+   {
+    "key": "pan_width",
+    "label": "Pan Width",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "freeze",
+    "label": "Freeze",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Dry/Wet",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "density",
+    "label": "Density",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.04,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 192
+    }
+   },
+   {
+    "key": "grain_size",
+    "label": "Size",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 20,
+    "max": 2000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3960
+    }
+   },
+   {
+    "key": "position",
+    "label": "Position",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pitch",
+    "label": "Pitch Shift",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.25,
+    "max": 4,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 750
+    }
+   },
+   {
+    "key": "feedback",
+    "label": "Feedback",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 90,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 180
+    }
+   },
+   {
+    "key": "pan_width",
+    "label": "Pan Width",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "freeze",
+    "label": "Freeze",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Dry/Wet",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "random_length",
+    "label": "Rdm Size",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "random_delay",
+    "label": "Rdm Delay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "random_pitch",
+    "label": "Rdm Shift",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "reverse_prob",
+    "label": "Reverse",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "random_vol",
+    "label": "Rdm Vol",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "chance",
+    "label": "Chance",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   {
+    "key": "sync",
+    "label": "Sync",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "division",
+    "label": "Division",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/16",
+     "1/8",
+     "1/4",
+     "1/2",
+     "1/1",
+     "2/1",
+     "4/1"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "rhythm",
+    "label": "Rhythm",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "normal",
+     "dotted",
+     "triplet"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "gain",
+    "label": "Input",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1.5,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 300
+    }
+   },
+   {
+    "key": "mute",
+    "label": "Mute",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "voice_count",
+    "label": "Voices",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 46
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "envelope",
+   "drift"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "2 chain_params not reachable in movy: envelope, drift"
+  ]
+ }
+}

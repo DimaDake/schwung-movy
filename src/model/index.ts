@@ -278,6 +278,33 @@ export function createModel(slot: number, componentKey = 'synth') {
             return s.moduleConfig?.drum ?? null;
         },
 
+        /* Read-only layout snapshot for external tooling (scripts/dump-movy-layout.mjs).
+         * Exposes raw KnobParams (incl. step, which no other public accessor has). */
+        dumpLayout(): {
+            moduleId:     string;
+            moduleName:   string;
+            componentKey: string;
+            banks:        { name: string; global: boolean; padSpecific: boolean }[];
+            hasConfig:    boolean;
+            drum:         import('../types/param.js').DrumConfig | null;
+            params:       (import('../types/param.js').KnobParam | null)[];
+        } {
+            // Config modules keep bank names in moduleConfig.banks; the generic
+            // path keeps them in s.bankNames (see loadHierarchy).
+            const banks = s.moduleConfig
+                ? s.moduleConfig.banks.map(b => ({ name: b.name, global: !!b.global, padSpecific: !!b.padSpecific }))
+                : s.bankNames.map(n => ({ name: n, global: false, padSpecific: false }));
+            return {
+                moduleId:     s.moduleId,
+                moduleName:   s.activeModuleName,
+                componentKey: s.componentKey,
+                banks,
+                hasConfig:    s.moduleConfig !== null,
+                drum:         s.moduleConfig?.drum ?? null,
+                params:       s.knobParams.map(p => p ? { ...p } : null),
+            };
+        },
+
         updateDrumPad(pad: number, physPad: number): void {
             s.drumCurrentPad     = pad;
             s.drumCurrentPhysPad = physPad;

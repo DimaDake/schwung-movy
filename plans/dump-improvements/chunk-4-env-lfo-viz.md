@@ -66,7 +66,8 @@ config `lfo:` tags. Extend it (keep pure; split a helper file if it
 outgrows the 200-line limit) to also detect **module** LFO clusters by
 name. Explicit tags keep priority over inference. Also extend the
 `KnobSlot.lfo` tag union (`src/types/param.ts`) with
-`'rate' | 'depth' | 'sync' | 'deform'` so later module configs can opt
+`'rate' | 'depth' | 'deform'` (rate/depth mark span-partner cells only,
+never drawn; deform feeds the skew) so later module configs can opt
 in precisely.
 
 **Grouping:** qualifier-based like the envelope detector — strip the
@@ -82,18 +83,19 @@ on one page; the VM array already supports this.
   drawable shapes (table below). Unmapped *values* of a qualifying enum
   draw a generic glyph — never collapse the viz mid-scroll (layout
   stability while turning the shape knob through osirus's 68 entries).
-- rate: `rate|speed|freq` numeric (free-running); rate_div: enum whose
-  options parse as divisions (`1/4`, `1/8T`, `Off|1/64|…`).
-- sync: enum with `free/sync` options (`lfo_sync`, freak's
-  `lfo_rate_mode`) — its live value selects which rate source drives the
-  cycle count.
-- depth: `depth|magnitude|amount|amt` **without a destination word**
-  after stripping the qualifier (`pitch/filter/pwm/osc/pan/cutoff/
-  tva/tvf/amt1/amt2` → excluded: moog `lfo_pitch`, hush1 `lfo_filter`,
-  osirus `osc1_lfo1_amount` are per-destination amounts, NOT master
-  depth; filter's `lfo_amount` and surge's `magnitude` ARE).
+- rate: `rate|speed|freq` numeric, or an enum whose options parse as
+  divisions (`1/4`, `1/8T`, `Off|1/64|…`). **Used only as the preferred
+  span partner cell — rate is NOT drawn.** The waveform stays at the
+  fixed 2 cycles / full amplitude the renderer uses today: encoding
+  rate (cycle density) or depth (amplitude) into the drawing makes the
+  shape itself hard to read at 62×14 px, and both already have knobs
+  with numeric labels. Do not add `cycles`/`depth` fields to the VM.
+- depth: `depth|magnitude|amount|amt` — span-partner fallback only,
+  same rule: never drawn.
 - phase: `phase` 0..1; deform: `deform|symmetry` numeric (normalize
-  osirus 0..127 → −1..1 around 64).
+  osirus 0..127 → −1..1 around 64) — deform IS drawn: it changes the
+  actual output waveform, so skewing the specimen is truthful shape
+  information, unlike rate/depth which are magnitude/speed.
 - polarity: options must contain `bipolar/unipolar` (forge `cv_lfo_pol`,
   surge `unipolar`); **osirus `lfoN_mode: Poly|Mono` is a voice mode and
   must NOT match** — vocabulary check, never key name alone.
@@ -127,14 +129,12 @@ lowercase, strip `&`/spaces):
 All fixed patterns must be deterministic (screenshot stability — see the
 existing s&h/swishy comment in `shapeSample`).
 
-**Rate → cycles:** extend `LfoVizVM` with `cycles: number` (1..6 whole
-cycles, default 2 — the current constant; keeps the track-LFO page
-pixel-identical), `depth: number` (0..1 amplitude scale, default 1 —
-depth 0 draws a flat baseline, a deliberate "LFO inactive" cue) and
-`deform?: number`. Cycle mapping: log-normalize numeric rates over the
-param's min..max when max/min > 100 (fleet Hz ranges span 0.01..500),
-linear otherwise; division enums map by ordinal position; the sync
-enum's live value picks the active source. Integer cycles only.
+**VM:** `LfoVizVM` gains only `deform?: number` (−1..1). No `cycles`,
+no `depth` — the wave is a fixed-size specimen of the shape (2 cycles,
+full amplitude, exactly as the renderer draws today), so the track-LFO
+page stays pixel-identical by construction. Phase, polarity baseline,
+retrigger dot, and deform skew are the only live inputs besides the
+shape itself.
 
 **Explicitly out of scope** (document in code comments): delay/fade/LFO
 envelopes (surge's DAHDSR — seconds don't belong on a cycles axis),
@@ -160,14 +160,12 @@ freak ModS/LFO. Correctly still knob-only: moog/hera/mrsample/midiverb
   the LFO part: chordism-like positive (shape+rate span, saw-down maps
   to id 6); fizzik-like page yields two groups with correct spans and
   the target knob untouched; osirus-like `Poly|Mono` mode param does
-  NOT set polarity; master-depth vs destination-amount discrimination
-  (filter `lfo_amount` in, moog `lfo_pitch` out); depth 0 → flat-line
-  VM (`depth === 0`); rate→cycles mapping at min/mid/max for a wide Hz
-  range and for a division enum with a live sync switch; a qualifying
-  shape enum at an unmapped value (osirus "Wave 17") draws the generic
-  glyph rather than dropping the viz; explicit `lfo:` tags still win
-  over name inference (track-LFO page VM unchanged, cycles defaults
-  to 2).
+  NOT set polarity; rate/depth affect span placement only — assert the
+  VM carries no cycles/depth fields and the drawing inputs are limited
+  to shape/phase/mode/retrigger/deform; a qualifying shape enum at an
+  unmapped value (osirus "Wave 17") draws the generic glyph rather than
+  dropping the viz; explicit `lfo:` tags still win over name inference
+  (track-LFO page VM unchanged).
 - Screenshot scenes for a 2-stage and a 3-stage envelope page; regenerate
   baselines (`node browser-test/screenshot.mjs --update`) and verify
   existing envelope scenes did NOT change. `node browser-test/perf.mjs`

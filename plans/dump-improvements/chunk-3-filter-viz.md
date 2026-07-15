@@ -62,11 +62,33 @@ Real mode sources in the dump: `filter`/`pushnpull` (`mode`), chordism
 (`filter_mode` lp/bp/hp), aphex (`filter_mode`), denis (`filter_type`),
 mrsample (`filter_type`).
 
-Mode **value** resolution (in `buildViewModel`, no extra IPC):
-1. mode param on the same page → its live `knobValues` entry (turning
+When **no mode enum exists**, infer a static type from the pair's own
+key/label/qualifier tokens (whole-token match on the cutoff param and/or
+the shared qualifier):
+- → **HP**: `hp`, `hpf`, `highpass`, `high pass`, and the inverted cut
+  forms `locut`, `lo_cut`, `low_cut`, `lowcut` ("cut the lows" =
+  high-pass — surge's key `lowcut` is literally labeled "Highpass");
+- → **LP**: `lp`, `lpf`, `lowpass`, `low pass`, `hicut`, `hi_cut`,
+  `high_cut`, `highcut`;
+- → **BP**: `bp`/`bpf` **only with filter context** (`bpf`, or `bp`
+  adjacent to `filter`/`cut`/`freq` tokens, e.g. forge `dly_bpf_cut`).
+  Guard: dexed `opN_key_bp` is a keyboard-scaling *breakpoint* — a bare
+  `bp` token without cut/freq context must NOT match.
+Key motivating case: aphex's Main page has BOTH `lpf_cut`+`lpf_reso` and
+`hpf_cut`+`hpf_reso` — two viz groups on one page that must render as LP
+and HP respectively (an LP-only default would draw the HPF wrong). This
+also requires the cutoff-role word list to include bare `cut` when a
+type-token qualifier like `lpf`/`hpf` is present. Lone type-named knobs
+without a resonance partner (spectra `hpf`/`lpf`, hera `hpf`,
+krautdrums/linein `hpf_freq`, reverb low/high cuts) never form a pair
+and stay plain knobs — out of scope.
+
+Full mode resolution priority (in `buildViewModel`, no extra IPC):
+1. mode enum on the same page → its live `knobValues` entry (turning
    MODE morphs the curve immediately);
-2. mode param elsewhere in `knobParams` → its cached value when known;
-3. no mappable mode param (moog, 303, obxd, …) → default **LP**.
+2. mode enum elsewhere in `knobParams` → its cached value when known;
+3. type token in the pair's key/label/qualifier → that static type;
+4. otherwise (moog, 303, obxd, …) → default **LP**.
 
 Real modules that must detect (verify against
 `docs/module-dump/modules/…json` — `movy.params[].key` and page rows):
@@ -114,7 +136,10 @@ word to be the label/key head, not a `rnd_`-prefixed key).
   case, non-adjacent, cross-row), mode-source vocabulary rule (a
   filter-like `mode` enum detects; an ambiotica-like `mode` enum does
   not), mode value resolution (same-page live value; default LP when
-  absent), `"HP+LP"` → bp mapping, claim-priority vs envelope (a page where
+  absent), `"HP+LP"` → bp mapping, name-token inference (aphex-like page
+  with `lpf_cut/lpf_reso` + `hpf_cut/hpf_reso` → one LP and one HP viz;
+  `low_cut` naming → HP inversion; dexed-like `op1_key_bp` must not
+  match BP), claim-priority vs envelope (a page where
   attack/decay/sustain/release + cutoff/reso coexist — envelope wins its
   cells, filter viz still claims its own pair).
 - Screenshot tests: add scene(s) in `browser-test/screenshot.mjs` for a

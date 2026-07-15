@@ -930,6 +930,25 @@ _log('\napp-loop: onResume invalidates caches and repaints');
     globalThis.setLED = realSetLED;
 }
 
+_log('\napp-loop: LINK toggle routes through knob 4 on the Set page');
+{
+    const { mainPageActive } = await import('../dist/esm/seq/main-page.js');
+    resetApp();
+    eq('link off initially', seqState.linkEnabled, false);
+    // Open the Set page: Shift + Step 5 (step-button index 4 = note 20).
+    appState.shiftHeld = true;
+    sendMidi([0x90, 20, 100]);          // Step 5 press → opens Main Params (page 0)
+    sendMidi([0x80, 20, 0]);
+    appState.shiftHeld = false;
+    eq('Set page open', mainPageActive(), true);
+    // Regression: the knob-dispatch gate must include knob 4, or the LINK cell
+    // is dead on device. Clockwise → LINK on.
+    sendMidi([0xB0, 75, 40]); advance(1);
+    eq('knob 4 CW enables link', seqState.linkEnabled, true);
+    sendMidi([0xB0, 75, 88]); advance(1);   // counter-clockwise → LINK off
+    eq('knob 4 CCW disables link', seqState.linkEnabled, false);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

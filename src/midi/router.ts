@@ -107,7 +107,7 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         if (mainPageActive()) {
-            if (d1 < 4) {
+            if (d1 < 5) {   // knobs 0-3 + LINK (knob 4)
                 if (d2 > 0) mainPageTouch(d1, true);
                 else mainPageRelease(d1);
             }
@@ -193,7 +193,8 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         if (mainPageActive()) {
-            if (k < 4) { mainPageKnob(k, delta, appState.activeSlot); appState.dirty = true; }
+            // Knobs 0-3 = tempo/swing/root/key; knob 4 = LINK toggle.
+            if (k < 5) { mainPageKnob(k, delta, appState.activeSlot); appState.dirty = true; }
             return;
         }
         if (clipPageActive()) {

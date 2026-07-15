@@ -47,6 +47,27 @@ qualifier-aware like the envelope detector (`roleOf` in
   must not be claimed again — check integration order in
   `buildViewModel` and claim after envelopes/LFO viz.
 
+Additionally resolve the **filter type (mode)** so the curve draws the
+right shape. Detect the mode source by its **option vocabulary, not its
+key** — bare `mode` keys are ambiguous (`filter`/`pushnpull` `mode` =
+`["LP","HP","BP","Notch","Peak","AP"]` is a filter type; ambiotica's
+`mode` = `["Mismember","Loona","NAPS","Flow"]` is an algorithm picker and
+must NOT match). Rule: a same-qualifier enum param qualifies as the mode
+source iff ≥ half its options normalize to filter-type words:
+`lp|lowpass|low pass` → LP, `hp|high*` → HP, `bp|band*` → BP, `notch` →
+NOTCH, `peak|bell` → PEAK, `ap|allpass` → AP, `off` → OFF; combined names
+like aphex's `"HP+LP"` → BP, `"LP only"` → LP, `"HP only"` → HP.
+Real mode sources in the dump: `filter`/`pushnpull` (`mode`), chordism
+(`filter_mode` LP/HP/BP, plus `filter_slope` 12/24 dB), freak
+(`filter_mode` lp/bp/hp), aphex (`filter_mode`), denis (`filter_type`),
+mrsample (`filter_type`).
+
+Mode **value** resolution (in `buildViewModel`, no extra IPC):
+1. mode param on the same page → its live `knobValues` entry (turning
+   MODE morphs the curve immediately);
+2. mode param elsewhere in `knobParams` → its cached value when known;
+3. no mappable mode param (moog, 303, obxd, …) → default **LP**.
+
 Real modules that must detect (verify against
 `docs/module-dump/modules/…json` — `movy.params[].key` and page rows):
 `filter` (audio_fx: cutoff+resonance), `303`, `moog`, `obxd`, `hush1`,
@@ -61,17 +82,28 @@ word to be the label/key head, not a `rnd_`-prefixed key).
 ### ViewModel + rendering
 
 - Add `FilterVizVM` to `src/types/viewmodel.ts`:
-  `{ line: 0|1; startCol: number; cutoff: number; resonance: number }`
+  `{ line: 0|1; startCol: number; cutoff: number; resonance: number;
+  mode: 'lp'|'hp'|'bp'|'notch'|'peak'|'ap'|'off'; slope?: 0|1 }`
   (cutoff/resonance normalized 0..1 from the params' min/max/current
-  values) and `filterViz?: FilterVizVM[]` on `ViewModel`, mirroring
-  `LfoVizVM`/`lfoViz`.
+  values; `slope` set only when a same-qualifier 12/24 dB-style enum
+  exists, e.g. chordism's `filter_slope`) and `filterViz?: FilterVizVM[]`
+  on `ViewModel`, mirroring `LfoVizVM`/`lfoViz`.
 - `src/renderer/filter-curve.ts`: pure `drawFilterCurve(rowY, viz)`
   drawing across the 2-cell span (64×~20px area — reuse the exact
-  geometry `drawLfoWave` uses): a low-pass response — flat passband, a
-  resonance peak whose height scales with `resonance`, corner x-position
-  from `cutoff`, then a falling slope. 1-bit pixels via `fill_rect` only.
-  Label cells below stay untouched (touch/value/automation behaviors
-  unchanged — labels and knob turning still work per param).
+  geometry `drawLfoWave` uses). In every shape, cutoff = the feature's
+  x-position and resonance = the bump/dip magnitude:
+  - **lp**: flat passband from the left, resonance bump at the corner,
+    falling slope to the right (steeper when `slope === 1`);
+  - **hp**: mirrored — rising slope from the left, bump at corner, flat
+    passband to the right;
+  - **bp**: single hump centered at cutoff; resonance raises/narrows it;
+  - **notch**: flat line with a V dip at cutoff; resonance deepens it;
+  - **peak**: flat line with a bell bump at cutoff;
+  - **ap**: plain flat line (no spectral shape to show);
+  - **off**: dashed flat line.
+  1-bit pixels via `fill_rect` only. Label cells below stay untouched
+  (touch/value/automation behaviors unchanged — labels and knob turning
+  still work per param).
 - Wire into `drawKnobRow` (`src/renderer/label.ts`) and `renderKnobsView`
   the same way `lfoViz` is passed through.
 
@@ -79,11 +111,16 @@ word to be the label/key head, not a `rnd_`-prefixed key).
 
 - Logic tests (`browser-test/logic.mjs`): detection positives (moog-like
   mock, qualifier pairing, chordism two-pages case), negatives (spectra
-  case, non-adjacent, cross-row), claim-priority vs envelope (a page where
+  case, non-adjacent, cross-row), mode-source vocabulary rule (a
+  filter-like `mode` enum detects; an ambiotica-like `mode` enum does
+  not), mode value resolution (same-page live value; default LP when
+  absent), `"HP+LP"` → bp mapping, claim-priority vs envelope (a page where
   attack/decay/sustain/release + cutoff/reso coexist — envelope wins its
   cells, filter viz still claims its own pair).
 - Screenshot tests: add scene(s) in `browser-test/screenshot.mjs` for a
-  filter page at low and high resonance; regenerate baselines
+  filter page at low and high resonance, plus one per mode shape
+  (lp/hp/bp/notch at least — one scene each, or a composite via the
+  filter module's LP/HP/BP/Notch enum); regenerate baselines
   (`node browser-test/screenshot.mjs --update`) and check diffs. Run
   `node browser-test/perf.mjs` — the curve must not blow the fill_rect
   budget (compare to the LFO wave's cost).

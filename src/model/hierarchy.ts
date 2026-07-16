@@ -30,6 +30,39 @@ function parseFilter(filter: unknown): string[] {
         .map(v => v.toLowerCase().startsWith('.') ? v.toLowerCase() : '.' + v.toLowerCase());
 }
 
+/* Build the name-polled preset knob from a list/count/name param triple.
+ * Names come from a bulk `preset_names` JSON array, else per-index
+ * `preset_name_N`, else live polling of `nameKey`. Returns null when there's
+ * no list+count or the count is empty — callers then fall back (config: a plain
+ * indexed knob; generic: no preset knob). Shared by the hierarchy and config
+ * paths so both render identical named presets. */
+function buildPresetParam(
+    s: ModelState, listParam?: string, countParam?: string, nameParam?: string,
+): KnobParam | null {
+    if (!listParam || !countParam) return null;
+    const countRaw = shadow_get_param(s.activeSlot, s.componentKey + ':' + countParam);
+    const presetCount = countRaw ? parseInt(countRaw) : 0;
+    if (!(presetCount > 0)) return null;
+
+    let allNames: string[] | null = null;
+    const namesRaw = shadow_get_param(s.activeSlot, s.componentKey + ':preset_names');
+    if (namesRaw) { try { allNames = JSON.parse(namesRaw) as string[]; } catch {} }
+    if (!allNames && shadow_get_param(s.activeSlot, s.componentKey + ':preset_name_0') !== null) {
+        allNames = [];
+        for (let i = 0; i < presetCount; i++) {
+            allNames.push(shadow_get_param(s.activeSlot, s.componentKey + ':preset_name_' + i) ?? String(i));
+        }
+    }
+    return {
+        key: listParam, label: 'Preset', shortLabel: null,
+        type: 'enum', min: 0, max: presetCount - 1, step: 1,
+        options: allNames,
+        nameKey: allNames ? undefined : (nameParam ?? undefined),
+        renderStyle: 'preset',
+        automatable: false,
+    };
+}
+
 export function loadHierarchy(s: ModelState): void {
     s.knobParams   = [];
     s.knobValues   = [];
@@ -112,10 +145,31 @@ export function loadHierarchy(s: ModelState): void {
 
     /* ── Custom config path (Plaits, Wurl, etc.) ─────────────────────────── */
     if (s.moduleConfig) {
+        // Root level of the runtime hierarchy supplies preset count/name param
+        // keys for `render: 'preset'` slots (no per-module hardcoding).
+        const cfgRoot = allLevels['root'] || Object.values(allLevels)[0] || null;
         for (const bank of s.moduleConfig.banks) {
+            const bankStart = s.knobParams.length;
             for (const row of bank.rows) {
                 for (const slot of row) {
                     if (!slot?.key) { s.knobParams.push(null); continue; }
+                    /* Named preset knob: reuse the generic name-polling builder,
+                     * pulling count/name keys from the hierarchy root unless the
+                     * slot overrides them. Falls through to a plain knob when no
+                     * preset list is resolvable (indexed value shown). */
+                    if (slot.render === 'preset') {
+                        const pp = buildPresetParam(
+                            s, slot.key,
+                            slot.presetCountKey ?? cfgRoot?.count_param,
+                            slot.presetNameKey  ?? cfgRoot?.name_param,
+                        );
+                        if (pp) {
+                            if (slot.short) pp.shortLabel = slot.short;
+                            if (slot.full)  pp.label      = slot.full;
+                            s.knobParams.push(pp);
+                            continue;
+                        }
+                    }
                     const cp   = cpMap[slot.key]   ?? {};
                     const hier = paramDefs[slot.key] ?? {};
                     const type = slot.type || cp.type || hier.type || 'float';
@@ -151,6 +205,12 @@ export function loadHierarchy(s: ModelState): void {
                     s.knobParams.push(param);
                 }
             }
+            /* Each bank owns exactly one knob page: pages are fixed
+             * knobPage*KNOBS_PER_PAGE slices and the bank name is looked up by
+             * knobPage, so a bank with a partial/single row must pad to a full
+             * page or every later bank's name desyncs from its params. */
+            const rem = (s.knobParams.length - bankStart) % KNOBS_PER_PAGE;
+            if (rem !== 0) for (let i = rem; i < KNOBS_PER_PAGE; i++) s.knobParams.push(null);
         }
         mlog('loadHierarchy: config for ' + s.moduleId + ', ' + s.moduleConfig.banks.length + ' banks');
         s.knobValues = new Array(s.knobParams.length).fill(null) as (number | null)[];
@@ -218,40 +278,9 @@ export function loadHierarchy(s: ModelState): void {
     }
 
     /* Preset detection */
-    listParam        = rootLevel.list_param;
-    const countParam = rootLevel.count_param;
-    const nameParam  = rootLevel.name_param;
-    let presetSeparate = false;
-
-    if (listParam && countParam) {
-        const countRaw    = shadow_get_param(s.activeSlot, s.componentKey + ':' + countParam);
-        const presetCount = countRaw ? parseInt(countRaw) : 0;
-        if (presetCount > 0) {
-            let allNames: string[] | null = null;
-
-            /* Strategy 1: bulk JSON array */
-            const namesRaw = shadow_get_param(s.activeSlot, s.componentKey + ':preset_names');
-            if (namesRaw) { try { allNames = JSON.parse(namesRaw) as string[]; } catch {} }
-
-            /* Strategy 2: per-index query */
-            if (!allNames && shadow_get_param(s.activeSlot, s.componentKey + ':preset_name_0') !== null) {
-                allNames = [];
-                for (let i = 0; i < presetCount; i++) {
-                    allNames.push(shadow_get_param(s.activeSlot, s.componentKey + ':preset_name_' + i) ?? String(i));
-                }
-            }
-
-            presetParam = {
-                key: listParam, label: 'Preset', shortLabel: null,
-                type: 'enum', min: 0, max: presetCount - 1, step: 1,
-                options: allNames,
-                nameKey: allNames ? undefined : (nameParam ?? undefined),
-                renderStyle: 'preset',
-                automatable: false,
-            };
-            presetSeparate = (rootLevel.knobs ?? []).length >= KNOBS_PER_PAGE;
-        }
-    }
+    listParam   = rootLevel.list_param;
+    presetParam = buildPresetParam(s, listParam, rootLevel.count_param, rootLevel.name_param);
+    const presetSeparate = presetParam != null && (rootLevel.knobs ?? []).length >= KNOBS_PER_PAGE;
 
     /* Dedicated Preset page before Main when Main is full */
     if (presetParam && presetSeparate) addPage('Preset', [listParam!]);

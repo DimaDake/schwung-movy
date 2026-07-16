@@ -9,6 +9,13 @@ export interface KnobSlot {
     options?:       string[];
     min?:           number;
     max?:           number;
+    /* For a `render: 'preset'` slot: the chain_params keys movy polls for the
+     * preset count and the live preset name. Both default to the module's
+     * ui_hierarchy root `count_param`/`name_param` when omitted, so a config
+     * usually only needs `render: 'preset'`. If no count is resolvable the slot
+     * degrades to a plain indexed knob. */
+    presetCountKey?: string;
+    presetNameKey?:  string;
     fileRoot?:      string;
     fileFilter?:    string[];
     fileStartPath?: string;

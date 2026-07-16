@@ -127,6 +127,20 @@ detents to sweep), surge = 675, clap = 509, obxd = 128**. Proposal: give
 names for the visible window (name_param per index is already supported by
 the loader) plus turn-acceleration.
 
+> **NOT ACTIONABLE as proposed (reviewed 2026-07-16 — chunk 5 dropped).**
+> The proposal's premise is self-contradicting against `loadHierarchy`
+> (`src/model/hierarchy.ts`): a preset param only becomes the overlay-less
+> `options: null` + `nameKey` flavor **when the module does not answer
+> `preset_name_0`**. If it did answer per-index names, the loader already
+> builds a full `options` array and it already gets the enum overlay. So
+> "poll `preset_name_<i>` for the visible window" returns null for exactly
+> the modules that need this — the device dump confirms empty `presets.sample`
+> and zero `preset_name_*` keys for minijv/surge/obxd/clap. The only name
+> obtainable is the *currently loaded* preset (`name_param`), so an overlay
+> could show nothing but `#index / total`. Judged not worth the interaction
+> surface; if revisited, it needs upstream modules to publish per-index names
+> (or a bulk `preset_names` array).
+
 ### C4. Metadata-less params get guessed ranges
 When neither `chain_params` nor hierarchy-inline metadata exists, movy
 assumes float 0..1 step 0.02 and shows `%`. `impressive-chords` (16

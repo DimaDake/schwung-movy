@@ -1,5 +1,23 @@
 # Chunk 5 — Preset browser overlay for name-polled presets (C3)
 
+> ## ⛔ DROPPED 2026-07-16 — DO NOT IMPLEMENT
+> Requirements review found the design self-contradicting. A preset param only
+> becomes the overlay-less `options: null` + `nameKey` flavor (this chunk's
+> target) **when the module does not answer `preset_name_0`** — see
+> `loadHierarchy` in `src/model/hierarchy.ts:237-248`. Modules that *do* answer
+> per-index names already get a full `options` array and the existing enum
+> overlay. So the headline "poll `preset_name_<i>` for the visible window"
+> returns null for every module this feature targets (device dump confirms
+> empty `presets.sample` + zero `preset_name_*` keys for minijv/surge/obxd/clap).
+> The only obtainable name is the currently *loaded* preset (`name_param`), so
+> the overlay could show nothing but `#index / total`. User decided the numbered
+> jog list isn't worth the interaction surface. Revisit only if upstream modules
+> start publishing per-index names or a bulk `preset_names` array. Prompt below
+> kept for historical context.
+
+---
+
+
 Owns: `src/renderer/overlay.ts`, overlay open/commit flow in
 `src/model/index.ts` (+ `src/model/state.ts` overlay state,
 `src/types/viewmodel.ts` OverlayState). Independent of other chunks

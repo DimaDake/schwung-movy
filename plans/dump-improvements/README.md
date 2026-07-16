@@ -15,7 +15,7 @@ possible so they can run in parallel.
 | [2](chunk-2-shortname-dedup.md) | C2 short-name collisions | `src/renderer/shorten.ts` |
 | [3](chunk-3-filter-viz.md) | A1 filter cutoff+reso graphic | new `src/model/filter-viz.ts`, `src/renderer/filter-curve.ts` |
 | [4](chunk-4-env-lfo-viz.md) | A2 2-stage envelopes, A3 module-LFO viz, C5 detector misses | `src/model/envelope.ts`, `src/model/lfo-viz.ts` |
-| [5](chunk-5-preset-overlay.md) | C3 preset browser overlay | `src/renderer/overlay.ts`, overlay flow in `src/model/index.ts` |
+| ~~[5](chunk-5-preset-overlay.md)~~ | ~~C3 preset browser overlay~~ **DROPPED 2026-07-16** — premise invalid (see chunk file / IMPROVEMENTS C3) | — |
 | [6](chunk-6-quick-configs.md) | B3 chordism, B4 sfz, B5 quick configs (303, chiptune, mrdrums, hush1) | new `src/modules/*.json`, `src/modules/loader.ts` |
 | [7](chunk-7-per-unit-configs.md) | B2 minus dexed: signal, forge, krautdrums rhythm bank, weird-dreams master bank (stretch: euclidrum/eucalypso lanes) | new `src/modules/*.json`, `src/modules/loader.ts` |
 | [8](chunk-8-dump-replay-harness.md) | D dump-driven regression harness | new `browser-test/dump-replay.mjs` |
@@ -26,7 +26,7 @@ Chunks merge straight to `main` (project convention). To keep merges
 trivial, launch in waves; **every agent must `git pull` before starting**
 and rebase before pushing.
 
-- **Wave 1 (parallel):** 1, 2, 5, 6, 8 — disjoint primary files.
+- **Wave 1 (parallel):** 1, 2, 6, 8 — disjoint primary files. (5 dropped.)
 - **Wave 2:** 4, then 3 — both wire into `src/model/viewmodel.ts` and
   `src/renderer/label.ts` (`drawKnobRow`), so run them sequentially
   (4 first: it only extends existing detectors; 3 adds a new viz channel).

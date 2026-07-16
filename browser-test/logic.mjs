@@ -198,6 +198,24 @@ _log('\nTest: moog hierarchy via children delegation (generic path)');
     }
 }
 
+/* ── C1: preset knob not duplicated across pages ─────────────────────────── */
+
+_log('\nTest: preset knob renders exactly once (C1)');
+
+{
+    const m = bootModel(MOCK_SYNTHS.preset_dup);
+    const params = m.dumpLayout().params.filter(Boolean);
+    const presetCells = params.filter(p => p.renderStyle === 'preset');
+    eq('preset_dup: exactly one preset knob across all pages', presetCells.length, 1);
+    eq('preset_dup: preset key is "preset"', presetCells[0]?.key, 'preset');
+    // Regular knobs survive the dedupe.
+    eq('preset_dup: base_note still present', params.some(p => p.key === 'base_note'), true);
+    // Dedicated Preset page exists (root has 8 knobs → presetSeparate).
+    eq('preset_dup: first bank = Preset', m.getViewModel().bankName, 'Preset');
+}
+
+/* ── B1: chain_params with no ui_hierarchy still builds param pages ───────── */
+
 _log('\nTest: chain_params-only module builds pages (B1)');
 
 {

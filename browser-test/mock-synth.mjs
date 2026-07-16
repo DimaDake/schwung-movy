@@ -430,6 +430,40 @@ export const MOCK_SYNTHS = {
         "synth:v3_pan":      "-0.50",
     },
 
+    /* C1: root has ≥8 knobs AND the preset key is also listed inside root.knobs.
+     * loadHierarchy adds a dedicated "Preset" page (presetSeparate) — the preset
+     * key must NOT also render on "Main - 1". Mirrors impressive-chords/breakbeat. */
+    preset_dup: {
+        "synth:name":         "PresetDup",
+        "synth:preset_count": "4",
+        "synth:ui_hierarchy": JSON.stringify({ levels: { root: {
+            list_param:  "preset",
+            count_param: "preset_count",
+            name_param:  "preset_name",
+            knobs: ["preset","base_note","transpose","invert","strum","tilt","length","choke"],
+        }}}),
+        "synth:chain_params": JSON.stringify([
+            { key: "base_note", name: "Base",   type: "int", min: 0, max: 127 },
+            { key: "transpose", name: "Trans",  type: "int", min: -24, max: 24 },
+            { key: "invert",    name: "Invert", type: "int", min: 0, max: 4 },
+            { key: "strum",     name: "Strum",  type: "float", min: 0, max: 1 },
+            { key: "tilt",      name: "Tilt",   type: "float", min: 0, max: 1 },
+            { key: "length",    name: "Length", type: "float", min: 0, max: 1 },
+            { key: "choke",     name: "Choke",  type: "int", min: 0, max: 1 },
+        ]),
+        "synth:preset":     "0",
+        "synth:base_note":  "60",
+        "synth:transpose":  "0",
+        "synth:invert":     "0",
+        "synth:strum":      "0.0",
+        "synth:tilt":       "0.5",
+        "synth:length":     "0.5",
+        "synth:choke":      "0",
+    },
+
+    /* B1: publishes chain_params but NO ui_hierarchy. Generic path must build
+     * pages straight from chain_params order. Mirrors branchage/smack-in/belt-in.
+     * Mixed float/enum/filepath + a ui_* internal key that must be skipped. */
     chainparams_only: {
         "synth:name": "ChainOnly",
         "synth:chain_params": JSON.stringify([

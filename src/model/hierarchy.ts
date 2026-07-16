@@ -258,6 +258,9 @@ export function loadHierarchy(s: ModelState): void {
 
     /* Main page from root.knobs (with preset prepended if there's room) */
     let rootKeys = (rootLevel.knobs ?? []).map(toKey).filter((k): k is string => k !== null);
+    // C1: the preset knob renders via presetParam (its own page, or prepended
+    // below) — drop it from root.knobs so it never renders a second time.
+    if (presetParam) rootKeys = rootKeys.filter(k => k !== listParam);
     if (presetParam && !presetSeparate) rootKeys = [listParam!, ...rootKeys];
 
     /* Inject filepath params from chain_params not already in any knobs array */
@@ -310,10 +313,10 @@ export function loadHierarchy(s: ModelState): void {
             addLevelOrExpand(entry.level, null, 0);
         }
     }
+    }  /* end hierarchy path (else of the chain_params fallback) */
 
     /* Build s.knobParams and s.bankNames from bankEntries */
     s.bankNames = bankEntries.map(e => e.name);
-    }  /* end hierarchy path (else of the chain_params fallback) */
     for (const entry of bankEntries) {
         for (const key of entry.keys) {
             if (!key) { s.knobParams.push(null); continue; }

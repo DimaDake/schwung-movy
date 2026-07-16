@@ -5,7 +5,18 @@ import { moduleReadKey } from '../chain/config.js';
 import { concreteKey } from './pad-scope.js';
 import { enumRawToIndex, enumUsesIndex, enumSetValue } from './enum-value.js';
 import { pageSlotMap } from './envelope.js';
+import { inferGuessedMeta } from './meta-infer.js';
 import { mlog } from '../log.js';
+
+/* First-read type/range inference for guessed params (C4). Mutates p in place
+ * (bounds must widen before the value is clamped/seeded) and clears the flag so
+ * inference runs once, like the enum-format probe. */
+function maybeInferMeta(p: KnobParam, raw: string | null): void {
+    if (!p.metaGuessed || raw === null) return;
+    const inf = inferGuessedMeta(p, raw);
+    if (inf) { p.type = inf.type; p.min = inf.min; p.max = inf.max; p.step = inf.step; }
+    delete p.metaGuessed;
+}
 
 /* Physical knob (screen slot 0..7) → page-relative param index, honoring the
  * envelope rearrange so a knob always drives the param shown at its position.
@@ -90,6 +101,7 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
     if (s.knobValues[gi] === null || s.knobValues[gi] === undefined) {
         const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey);
         if (raw === null && !p.key.startsWith('test_')) return;
+        maybeInferMeta(p, raw);
         if (p.type === 'enum') {
             s.enumFmt[gi] = enumUsesIndex(p.options, raw);
             s.knobValues[gi] = raw === null ? p.min : enumRawToIndex(p.options, raw);
@@ -172,6 +184,7 @@ export function refreshOneParam(s: ModelState, tickCount: number): void {
 
     const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey);
     if (raw === null) return;
+    maybeInferMeta(p, raw);
     if (p.type === 'enum') {
         s.enumFmt[i] = enumUsesIndex(p.options, raw);
         const idx = enumRawToIndex(p.options, raw);

@@ -254,6 +254,58 @@ _log('\nTest: chain_params-only module builds pages (B1)');
 
 /* ── C4: metadata-less params infer int type + range on first read ───────── */
 
+_log('\nTest: guessed-meta params infer int/range on read (C4)');
+
+{
+    const m = bootModel(MOCK_SYNTHS.guessed_meta);
+    // Right after load only knob 0 (base_note) has been refreshed; a later knob
+    // is still the raw float guess, flagged for inference.
+    const atLoad = m.dumpLayout().params.filter(Boolean);
+    eq('guessed_meta: plugin_index guessed float at load', atLoad.find(p => p.key === 'plugin_index')?.type, 'float');
+    eq('guessed_meta: plugin_index flagged metaGuessed',   atLoad.find(p => p.key === 'plugin_index')?.metaGuessed, true);
+
+    // Ticks cycle refreshOneParam over every param → first read triggers inference.
+    for (let i = 0; i < 60; i++) m.tick();
+
+    // Positive int → 0 .. smallest power-of-two ≥ value.
+    eq('guessed_meta: base_note inferred int',    m.paramRangeByKey('base_note')?.type, 'int');
+    eq('guessed_meta: base_note widened max = 64', m.paramRangeByKey('base_note')?.max, 64);
+    eq('guessed_meta: base_note value = 60',       m.getValueByKey('base_note'), 60);
+    eq('guessed_meta: plugin_index max = 4 (pow2 ≥ 3)', m.paramRangeByKey('plugin_index')?.max, 4);
+
+    // Negative → symmetric bounds.
+    eq('guessed_meta: transpose inferred int', m.paramRangeByKey('transpose')?.type, 'int');
+    eq('guessed_meta: transpose min = -24',    m.paramRangeByKey('transpose')?.min, -24);
+    eq('guessed_meta: transpose max = 24',     m.paramRangeByKey('transpose')?.max, 24);
+
+    // Float in [0,1] keeps the guess.
+    eq('guessed_meta: depth stays float', m.paramRangeByKey('depth')?.type, 'float');
+    eq('guessed_meta: depth max = 1',     m.paramRangeByKey('depth')?.max, 1);
+
+    // metaGuessed cleared after inference (learned once, like enumFmt).
+    eq('guessed_meta: base_note metaGuessed cleared',
+        m.dumpLayout().params.find(p => p?.key === 'base_note')?.metaGuessed, undefined);
+}
+
+/* meta-infer pure helper — direct unit tests. */
+_log('\nTest: inferGuessedMeta pure helper (C4)');
+{
+    const { inferGuessedMeta } = await import('../dist/esm/model/meta-infer.js');
+    const base = { type: 'float', min: 0, max: 1, step: 0.02 };
+    eq('infer: int 60 → int',          inferGuessedMeta(base, '60')?.type, 'int');
+    eq('infer: int 60 → max 64',       inferGuessedMeta(base, '60')?.max, 64);
+    eq('infer: int 60 → min 0',        inferGuessedMeta(base, '60')?.min, 0);
+    eq('infer: int 60 → step 1',       inferGuessedMeta(base, '60')?.step, 1);
+    eq('infer: int -24 → min -24',     inferGuessedMeta(base, '-24')?.min, -24);
+    eq('infer: int -24 → max 24',      inferGuessedMeta(base, '-24')?.max, 24);
+    eq('infer: int 30 → pow2 max 32',  inferGuessedMeta(base, '30')?.max, 32);
+    eq('infer: int 64 → max 64',       inferGuessedMeta(base, '64')?.max, 64);
+    eq('infer: float 0.5 → no change', inferGuessedMeta(base, '0.5'), null);
+    eq('infer: value 1 → no change',   inferGuessedMeta(base, '1'), null);
+    eq('infer: value 0 → no change',   inferGuessedMeta(base, '0'), null);
+    eq('infer: non-numeric → no change', inferGuessedMeta(base, 'abc'), null);
+}
+
 /* ── isEmpty flag ─────────────────────────────────────────────────────────── */
 
 _log('\nTest: vm.isEmpty');

@@ -104,6 +104,12 @@ automatically. You don't configure anything for most modules.
   (`MAIN`, `PAGE 1`, `PAGE 2`, …). Scroll them with the jog wheel (or Left/Right
   when the sequencer isn't using those buttons).
 
+Even a module that publishes no parameter hierarchy still gets pages — Movy lays
+its parameters out in the order the module exposes them (this is what brings
+modules like *Branchage*, *Smack-in* and *Belt-in* to life). When a parameter
+also ships no range information, Movy shows a best-guess control and refines it
+(for example to a whole-number range) the first time it reads the real value.
+
 Turning a knob edits the parameter live. Touching a knob (without turning) shows
 its exact value at the top of the screen.
 

@@ -342,10 +342,15 @@ export function loadHierarchy(s: ModelState): void {
                 continue;
             }
             const options = cp.options ?? def.options ?? null;
+            const hasRange = cp.min != null || cp.max != null || def.min != null || def.max != null;
             let min  = cp.min  != null ? cp.min  : (def.min  != null ? def.min  : 0);
             let max  = cp.max  != null ? cp.max  : (def.max  != null ? def.max  : 1);
             let step = cp.step != null ? cp.step : (def.step != null ? def.step : (type === 'float' ? 0.02 : 1));
             if (type === 'enum') { min = 0; max = options ? options.length - 1 : 127; step = 1; }
+            // C4: no metadata anywhere → movy guessed float 0..1 (numeric types
+            // only). Flag it so the first value read can infer the real int type
+            // and widen the range (see meta-infer.ts / store.ts).
+            const metaGuessed = !hasRange && (type === 'float' || type === 'int');
             s.knobParams.push({
                 key,
                 label:      cp.name || def.label || key,
@@ -357,6 +362,7 @@ export function loadHierarchy(s: ModelState): void {
                 // only signal available here. Modules with a movy config use
                 // bank.global instead (see the config path above).
                 automatable: (type === 'float' || type === 'int') && max > min && !key.startsWith('g_'),
+                ...(metaGuessed ? { metaGuessed: true } : {}),
             });
         }
     }

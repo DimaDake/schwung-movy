@@ -64,6 +64,10 @@ export interface KnobParam {
     env?:           'a' | 'd' | 's' | 'r';
     lfo?:           'shape' | 'phase' | 'mode' | 'retrig';
     automatable:    boolean;
+    /* Set when type/range were guessed (no chain_params or hierarchy metadata).
+     * The first successful value read infers the real type/range, then clears
+     * this. See model/meta-infer.ts. */
+    metaGuessed?:   boolean;
     fileRoot?:      string;
     fileFilter?:    string[];
     fileStartPath?: string;

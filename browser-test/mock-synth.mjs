@@ -494,6 +494,17 @@ export const MOCK_SYNTHS = {
     /* C4: params with NO chain_params entry and NO hierarchy metadata → movy
      * guesses float 0..1. An integer-valued read (base_note=60, transpose=-24)
      * should infer int type + widened range on first read. */
+    guessed_meta: {
+        "synth:name": "GuessedMeta",
+        "synth:ui_hierarchy": JSON.stringify({ levels: { root: {
+            knobs: ["base_note","transpose","depth","plugin_index"],
+        }}}),
+        "synth:base_note":    "60",
+        "synth:transpose":    "-24",
+        "synth:depth":        "0.5",
+        "synth:plugin_index": "3",
+    },
+
     /* No synth loaded — model falls back to fallback test params */
     no_params: {
         "synth:name": null,

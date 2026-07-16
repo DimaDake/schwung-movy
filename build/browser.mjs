@@ -15,6 +15,7 @@ await esbuild.build({
         resolve(root, 'src/model/viewmodel.ts'),
         resolve(root, 'src/model/store.ts'),
         resolve(root, 'src/model/enum-value.ts'),
+        resolve(root, 'src/model/meta-infer.ts'),
         resolve(root, 'src/model/file-validate.ts'),
         resolve(root, 'src/model/pad-scope.ts'),
         resolve(root, 'src/renderer/knob-view.ts'),

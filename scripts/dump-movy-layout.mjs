@@ -15,11 +15,10 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const MOVY = join(dirname(fileURLToPath(import.meta.url)), '..');
-const DUMP_DIR = join(MOVY, 'docs', 'module-dump');
+import { join } from 'node:path';
+import {
+    MOVY, DUMP_DIR, loadDump, createDumpBoot, serializePages, expandLayoutKeys,
+} from '../browser-test/dump-boot.mjs';
 
 /* Increment constants — read from the source of truth so they can't drift. */
 const constantsSrc = readFileSync(join(MOVY, 'src', 'model', 'constants.ts'), 'utf8');
@@ -30,28 +29,9 @@ const constOf = (name) => {
 };
 const ARC_DELTA_SCALE = constOf('ARC_DELTA_SCALE');
 const ENUM_DELTA_DIV  = constOf('ENUM_DELTA_DIV');
-const KNOBS_PER_PAGE  = 8;
 
-const { installEnv } = await import(join(MOVY, 'browser-test', 'env.mjs'));
-const env = installEnv();
-globalThis.os = {
-    readdir: () => [[], 0],
-    stat:    () => [{ mode: 0x8000, size: 0 }, 0],
-};
-
-/* movy_config.json overrides are looked up by module id under the
- * sound_generators root (src/modules/loader.ts). Serve the captured ones. */
-const dump = JSON.parse(readFileSync(join(DUMP_DIR, 'device-dump.json'), 'utf8'));
-const movyConfigByPath = {};
-for (const m of dump.modules) {
-    if (m.movy_config) {
-        movyConfigByPath[`/data/UserData/schwung/modules/sound_generators/${m.id}/movy_config.json`] =
-            JSON.stringify(m.movy_config);
-    }
-}
-globalThis.host_read_file = (path) => movyConfigByPath[path] ?? null;
-
-const { createModel } = await import(join(MOVY, 'dist', 'esm', 'model', 'index.js'));
+const dump = loadDump();
+const { bootFromDumpEntry } = await createDumpBoot(dump);
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
 
@@ -70,44 +50,6 @@ function incrementInfo(p) {
     };
 }
 
-/* Expand a drum pad-alias key ("pad_vol") into the concrete per-pad keys it
- * covers ("p01_vol".."p16_vol"), mirroring model/pad-scope.ts. */
-function expandLayoutKeys(layout) {
-    const keys = new Set();
-    const sc = layout.drum?.padScoping;
-    for (const p of layout.params) {
-        if (!p) continue;
-        keys.add(p.key);
-        if (sc && p.key.startsWith(sc.aliasPrefix)) {
-            const suffix = p.key.slice(sc.aliasPrefix.length);
-            for (let pad = 1; pad <= (layout.drum.padCount || 0); pad++) {
-                const padStr = String(pad).padStart(sc.padDigits, '0');
-                keys.add(sc.concreteKeyTemplate.replace('{pad}', padStr).replace('{suffix}', suffix));
-            }
-        }
-    }
-    return keys;
-}
-
-function bootModule(entry) {
-    const ck = entry.component_key;
-    const params = {};
-    for (const [k, v] of Object.entries(entry.params)) {
-        if (k.startsWith('__')) continue;
-        params[`${ck}:${k}`] = v;
-    }
-    params[`${ck}_module`] = entry.id;
-    if (params[`${ck}:name`] === undefined) {
-        params[`${ck}:name`] = entry.module_json?.name || entry.id;
-    }
-    env.setParams(params);
-    const m = createModel(0, ck);
-    m.reload();
-    m.tick();   // poll name → hierarchy key change
-    m.tick();   // load hierarchy
-    return m;
-}
-
 /* ── per-module processing ───────────────────────────────────────────────── */
 
 mkdirSync(join(DUMP_DIR, 'modules'), { recursive: true });
@@ -118,29 +60,18 @@ const summaryRows = { midi_fx: [], sound_generator: [], audio_fx: [] };
 const anomalies = [];
 
 for (const entry of dump.modules) {
-    const m = bootModule(entry);
+    const m = bootFromDumpEntry(entry);
     const layout = m.dumpLayout();
+    const pageCount = m.getBankCount();
 
     /* Per-page view (what the user actually sees, incl. envelope/LFO groups
      * and the deduped 5-char on-screen names). */
-    const pages = [];
-    const pageCount = m.getBankCount();
-    for (let pg = 0; pg < pageCount; pg++) {
-        const vm = m.getViewModel();
-        pages.push({
-            name: vm.bankName,
-            envelopeLines: (vm.envelopeLines ?? []).map(e => e !== null && e !== undefined),
-            lfoViz: (vm.lfoViz ?? []).length > 0,
-            rows: vm.rows.map(row => row.map(pvm => pvm && {
-                shortName:   pvm.shortName,
-                fullName:    pvm.fullName,
-                renderStyle: pvm.renderStyle,
-                type:        pvm.type,
-                displayValue: pvm.displayValue,
-            })),
-        });
-        m.changePage(1);
-    }
+    const pages = serializePages(m).map(p => ({
+        name: p.name,
+        envelopeLines: p.envelopeLines,
+        lfoViz: p.lfoVizCount > 0,
+        rows: p.rows,
+    }));
 
     /* Native param table: chain_params metadata + captured default value. */
     const cp = Array.isArray(entry.chain_params) ? entry.chain_params : [];

@@ -1,0 +1,4159 @@
+{
+ "audio_fx--ambiotica": {
+  "pageCount": 2,
+  "pageNames": [
+   "Preset",
+   "Main"
+  ],
+  "pageShortNames": [
+   [
+    "PRESE"
+   ],
+   [
+    "MIX",
+    "LOOP",
+    "GRAIN",
+    "SCATT",
+    "MICRO",
+    "DECAY",
+    "DEPTH",
+    "RATE"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 4
+ },
+ "audio_fx--belt": {
+  "pageCount": 3,
+  "pageNames": [
+   "Main",
+   "Harmony",
+   "Setup"
+  ],
+  "pageShortNames": [
+   [
+    "KEY",
+    "SCALE",
+    "RETUN",
+    "AMOUN"
+   ],
+   [
+    "VOIC1",
+    "VOIC2",
+    "HARM",
+    "DOUBL"
+   ],
+   [
+    "HARD",
+    "WET",
+    "FORMA",
+    "FLEX",
+    "HUMAN"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 3
+ },
+ "audio_fx--chowtape": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "DRIVE",
+    "SATUR",
+    "BIAS",
+    "TONE",
+    "SPEED",
+    "FLUTT",
+    "CHEW",
+    "MIX"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 2
+ },
+ "audio_fx--clap": {
+  "pageCount": 2,
+  "pageNames": [
+   "Preset",
+   "Main"
+  ],
+  "pageShortNames": [
+   [
+    "PRESE"
+   ],
+   [
+    "HEADR",
+    "AD",
+    "AL",
+    "BD",
+    "BL",
+    "OUTPU",
+    "PARA6",
+    "PARA7"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "audio_fx--cloudseed": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "MIX",
+    "DECAY",
+    "SIZE",
+    "PRE-D",
+    "DIFFU",
+    "LOW",
+    "HIGH",
+    "MOD"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 2
+ },
+ "audio_fx--dissolver": {
+  "pageCount": 3,
+  "pageNames": [
+   "Main",
+   "Dissolver",
+   "Advanced"
+  ],
+  "pageShortNames": [
+   [
+    "DISSO",
+    "FREEZ",
+    "STRET",
+    "SPREA",
+    "EVOLU",
+    "DECAY",
+    "TONE",
+    "DRY/W"
+   ],
+   [
+    "DISSO",
+    "FREEZ",
+    "STRET",
+    "SPREA",
+    "EVOLU",
+    "DECAY",
+    "TONE",
+    "DRY/W"
+   ],
+   [
+    "MIX",
+    "TONE",
+    "SW",
+    "COMPR",
+    "SD",
+    "FC",
+    "TILT",
+    "OL"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 2
+ },
+ "audio_fx--dragonfly-hall": {
+  "pageCount": 2,
+  "pageNames": [
+   "Preset",
+   "Main"
+  ],
+  "pageShortNames": [
+   [
+    "PRESE"
+   ],
+   [
+    "DRY",
+    "EARLY",
+    "LATE",
+    "SIZE",
+    "DECAY",
+    "DIFFU",
+    "PREDE",
+    "WIDTH"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 8
+ },
+ "audio_fx--ducker": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "CHANN",
+    "TRIGG",
+    "MODE",
+    "DEPTH",
+    "ATTAC",
+    "HOLD",
+    "RELEA",
+    "CURVE"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "audio_fx--filter": {
+  "pageCount": 4,
+  "pageNames": [
+   "Main",
+   "Envelope",
+   "LFO",
+   "Output"
+  ],
+  "pageShortNames": [
+   [
+    "CUTOF",
+    "RESON",
+    "DRIVE",
+    "MIX",
+    "ENV",
+    "AMT",
+    "DIV",
+    "MODE"
+   ],
+   [
+    "AMT",
+    "ATK",
+    "REL"
+   ],
+   [
+    "AMT",
+    "DIV",
+    "RATE",
+    "SHAPE",
+    "SYNC"
+   ],
+   [
+    "MIX",
+    "OUTPU"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 1
+ },
+ "audio_fx--freeverb": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "ROOM",
+    "DAMPI",
+    "WET",
+    "DRY"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 1
+ },
+ "audio_fx--gate": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "THRES",
+    "ATTAC",
+    "HOLD",
+    "RELEA",
+    "RANGE",
+    "RATIO",
+    "HYSTE",
+    "MODE"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "audio_fx--granular": {
+  "pageCount": 5,
+  "pageNames": [
+   "Main",
+   "Granular",
+   "Randomize",
+   "Sync",
+   "Advanced"
+  ],
+  "pageShortNames": [
+   [
+    "DENSI",
+    "SIZE",
+    "POSIT",
+    "PITCH",
+    "FEEDB",
+    "PAN",
+    "FREEZ",
+    "DRY/W"
+   ],
+   [
+    "DENSI",
+    "SIZE",
+    "POSIT",
+    "PITCH",
+    "FEEDB",
+    "PAN",
+    "FREEZ",
+    "DRY/W"
+   ],
+   [
+    "SIZE",
+    "DELAY",
+    "SHIFT",
+    "REVER",
+    "VOL",
+    "CHANC"
+   ],
+   [
+    "SYNC",
+    "DIVIS",
+    "RHYTH"
+   ],
+   [
+    "INPUT",
+    "MUTE",
+    "VOICE"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 2
+ },
+ "audio_fx--junologue-chorus": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "MODE",
+    "MIX",
+    "BRIGH"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "audio_fx--magneto": {
+  "pageCount": 6,
+  "pageNames": [
+   "Main",
+   "Magneto",
+   "Perform",
+   "Channel",
+   "Tape Model",
+   "Deck"
+  ],
+  "pageShortNames": [
+   [
+    "PLAY",
+    "REC",
+    "VAR",
+    "SPEED",
+    "SIDE",
+    "TONE",
+    "TAPE",
+    "VOLUM"
+   ],
+   [
+    "PLAY",
+    "REC",
+    "VAR",
+    "SPEED",
+    "SIDE",
+    "TONE",
+    "TAPE",
+    "VOLUM"
+   ],
+   [
+    "SCRUB",
+    "JUMP",
+    "SCAN",
+    "REVER",
+    "STUTT",
+    "FAILU",
+    "TAPE",
+    "STOP"
+   ],
+   [
+    "TRIM",
+    "HIGH",
+    "HF",
+    "MF",
+    "MID",
+    "LOW",
+    "PAN",
+    "VOLUM"
+   ],
+   [
+    "TAPE",
+    "WOW",
+    "FLUTT",
+    "SATUR",
+    "HF",
+    "LOW",
+    "HISS",
+    "GENER"
+   ],
+   [
+    "PLAY",
+    "FWD",
+    "BWD",
+    "REC",
+    "CLEAR",
+    "PAN",
+    "MODE",
+    "MIX"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 13
+ },
+ "audio_fx--midiverb": {
+  "pageCount": 3,
+  "pageNames": [
+   "Preset",
+   "Main",
+   "Extras"
+  ],
+  "pageShortNames": [
+   [
+    "PRESE"
+   ],
+   [
+    "MIX",
+    "FEEDB",
+    "INPUT",
+    "OG",
+    "PRE-D",
+    "LOW",
+    "HIGH",
+    "WIDTH"
+   ],
+   [
+    "DAMPI",
+    "TILT",
+    "RATE",
+    "DEPTH"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 1
+ },
+ "audio_fx--mverb": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "DAMPI",
+    "DENSI",
+    "BANDW",
+    "DECAY",
+    "PREDE",
+    "SIZE",
+    "GAIN",
+    "MIX"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 1
+ },
+ "audio_fx--nam": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "INPUT",
+    "OUTPU"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 1
+ },
+ "audio_fx--ottx": {
+  "pageCount": 2,
+  "pageNames": [
+   "Main",
+   "Advanced"
+  ],
+  "pageShortNames": [
+   [
+    "MIX",
+    "DEPTH",
+    "UPWAR",
+    "DOWNW",
+    "TIME",
+    "IN",
+    "OUT"
+   ],
+   [
+    "ATTAC",
+    "RELEA",
+    "LOW",
+    "MID",
+    "HI"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 14
+ },
+ "audio_fx--palette": {
+  "pageCount": 6,
+  "pageNames": [
+   "Main",
+   "PALETTE",
+   "PRESETS&RND",
+   "FX 1&2",
+   "FX 3&4",
+   "GLOBAL"
+  ],
+  "pageShortNames": [
+   [
+    "FX1AM",
+    "FX1MC",
+    "FX2AM",
+    "FX2MC",
+    "FX3AM",
+    "FX3MC",
+    "FX4AM",
+    "FX4MC"
+   ],
+   [
+    "FX1AM",
+    "FX1MC",
+    "FX2AM",
+    "FX2MC",
+    "FX3AM",
+    "FX3MC",
+    "FX4AM",
+    "FX4MC"
+   ],
+   [
+    "PRESE",
+    "PATCH",
+    "RNDFX",
+    "AMT",
+    "MACRO",
+    "VALUE",
+    "INPUT",
+    "MIX"
+   ],
+   [
+    "FX1",
+    "FX1AM",
+    "FX1MC",
+    "FX1DR",
+    "FX2",
+    "FX2AM",
+    "FX2MC",
+    "FX2DR"
+   ],
+   [
+    "FX3",
+    "FX3AM",
+    "FX3MC",
+    "FX3DR",
+    "FX4",
+    "FX4AM",
+    "FX4MC",
+    "FX4DR"
+   ],
+   [
+    "FEEDB",
+    "SRC",
+    "TEMPO",
+    "TIME"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 1
+ },
+ "audio_fx--psxverb": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "MODEL",
+    "DECAY",
+    "MIX",
+    "LEVEL"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 1
+ },
+ "audio_fx--punchfx": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "BPM",
+    "VOLUM",
+    "DRY/W"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "audio_fx--pushnpull": {
+  "pageCount": 2,
+  "pageNames": [
+   "Main",
+   "Filter"
+  ],
+  "pageShortNames": [
+   [
+    "CURVE",
+    "RATE",
+    "VOLUM",
+    "FILTE",
+    "SLOPE",
+    "SHIFT",
+    "BAND",
+    "OUTPU"
+   ],
+   [
+    "CUTOF",
+    "RESON",
+    "DRIVE",
+    "MODE",
+    "MODEL"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 3
+ },
+ "audio_fx--smack": {
+  "pageCount": 3,
+  "pageNames": [
+   "Main",
+   "Perform",
+   "Setup"
+  ],
+  "pageShortNames": [
+   [
+    "LOOP",
+    "SLICE",
+    "FX",
+    "ORDER"
+   ],
+   [
+    "CN",
+    "A/B",
+    "RE-RO",
+    "CLEAR"
+   ],
+   [
+    "WET",
+    "PITCH",
+    "AB",
+    "SEED"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 8
+ },
+ "audio_fx--spectra": {
+  "pageCount": 5,
+  "pageNames": [
+   "Main",
+   "Spectra",
+   "Control",
+   "Motion",
+   "Patch"
+  ],
+  "pageShortNames": [
+   [
+    "ONSET",
+    "FREQU",
+    "BRIGH",
+    "TIMBR",
+    "DECAY",
+    "ROOT",
+    "SCALE",
+    "MIX"
+   ],
+   [
+    "ONSET",
+    "FREQU",
+    "BRIGH",
+    "TIMBR",
+    "DECAY",
+    "ROOT",
+    "SCALE",
+    "MIX"
+   ],
+   [
+    "CHORD",
+    "RESON",
+    "OCT",
+    "COMPR",
+    "PRE",
+    "POST",
+    "HPF",
+    "LPF"
+   ],
+   [
+    "AR",
+    "PTRN",
+    "SYNC",
+    "DRIFT",
+    "MR",
+    "DEPTH",
+    "SHAPE",
+    "SCOOP"
+   ],
+   [
+    "PRESE",
+    "RP",
+    "SPECT",
+    "MOTIO",
+    "PAN",
+    "SW"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 2
+ },
+ "audio_fx--structor": {
+  "pageCount": 4,
+  "pageNames": [
+   "Main",
+   "Structor",
+   "Randomize",
+   "Presets"
+  ],
+  "pageShortNames": [
+   [
+    "ENVEL",
+    "DENSI",
+    "GRAIN",
+    "TIME",
+    "FEEDB",
+    "MODE",
+    "SPECI",
+    "MIX"
+   ],
+   [
+    "ENVEL",
+    "DENSI",
+    "GRAIN",
+    "TIME",
+    "FEEDB",
+    "MODE",
+    "SPECI",
+    "MIX"
+   ],
+   [
+    "ENV",
+    "DENSI",
+    "GRAIN",
+    "RT",
+    "PAN",
+    "SEQUE",
+    "ST",
+    "MULT"
+   ],
+   [
+    "PRESE",
+    "RP",
+    "FILTE",
+    "REVER",
+    "MIX",
+    "SIZE",
+    "DECAY",
+    "DAMP"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 2
+ },
+ "audio_fx--superboom": {
+  "pageCount": 5,
+  "pageNames": [
+   "Main",
+   "Boom",
+   "Skulpt",
+   "Pre&Comp",
+   "Seal"
+  ],
+  "pageShortNames": [
+   [
+    "INPUT",
+    "COMP",
+    "DRIVE",
+    "DRVMX",
+    "MODE",
+    "SHIFT",
+    "MIX",
+    "LEVEL"
+   ],
+   [
+    "INPUT",
+    "COMP",
+    "DRIVE",
+    "DRVMX",
+    "MODE",
+    "SHIFT",
+    "MIX",
+    "LEVEL"
+   ],
+   [
+    "LOW",
+    "B2",
+    "B3",
+    "MID",
+    "B5",
+    "B6",
+    "B7",
+    "HIGH"
+   ],
+   [
+    "ATK",
+    "REL",
+    "THRES",
+    "M-DRV",
+    "PRE",
+    "GRIT",
+    "GATE",
+    "LINK"
+   ],
+   [
+    "LOCUT",
+    "HICUT",
+    "SAT",
+    "AGE",
+    "FLUTT",
+    "BUMP",
+    "LIMIT",
+    "BYPAS"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 4
+ },
+ "audio_fx--tapedelay": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "TIME",
+    "DIVIS",
+    "FEEDB",
+    "MIX",
+    "TONE",
+    "SW"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "audio_fx--tapescam": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "DRIVE",
+    "COLOR",
+    "WOBBL",
+    "NOISE",
+    "TONE",
+    "OUTPU",
+    "AGE",
+    "COMPR"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 3
+ },
+ "audio_fx--usefulity": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "CHANN",
+    "WIDTH",
+    "MONO",
+    "BM",
+    "FREQ",
+    "GAIN",
+    "BALAN",
+    "MUTE"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 4
+ },
+ "audio_fx--verglas": {
+  "pageCount": 3,
+  "pageNames": [
+   "Main",
+   "Verglas",
+   "Filters"
+  ],
+  "pageShortNames": [
+   [
+    "POSIT",
+    "SIZE",
+    "PITCH",
+    "DENSI",
+    "TEXTU",
+    "FEEDB",
+    "REVER",
+    "MIX"
+   ],
+   [
+    "POSIT",
+    "SIZE",
+    "PITCH",
+    "DENSI",
+    "TEXTU",
+    "FEEDB",
+    "REVER",
+    "MIX"
+   ],
+   [
+    "HPF",
+    "LPF",
+    "LIMIT",
+    "PRE",
+    "POST",
+    "BOOST",
+    "FREQ",
+    "LOW Q"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 4
+ },
+ "audio_fx--vocoder": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "MOD",
+    "OUT",
+    "BANDS",
+    "MIX",
+    "LOW",
+    "HIGH",
+    "ATTAC",
+    "RELEA"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 1
+ },
+ "audio_fx--war_bells": {
+  "pageCount": 10,
+  "pageNames": [
+   "Main",
+   "Tone",
+   "Time",
+   "Space FX",
+   "Motion",
+   "Generate",
+   "Perform",
+   "Looper",
+   "User Slots",
+   "Config"
+  ],
+  "pageShortNames": [
+   [
+    "EFFEC",
+    "VAR",
+    "ACTIV",
+    "REPEA",
+    "RV",
+    "MIX",
+    "SPACE",
+    "FILTE"
+   ],
+   [
+    "SHAPE",
+    "RESO",
+    "FX",
+    "GRAIN",
+    "SCALE"
+   ],
+   [
+    "CLOCK",
+    "SUBDI",
+    "TEMPO"
+   ],
+   [
+    "REVER",
+    "SHIMM",
+    "WIDTH",
+    "STERE",
+    "SUSTA",
+    "WARP",
+    "DEP",
+    "RATE"
+   ],
+   [
+    "DEST",
+    "RATE",
+    "DEP",
+    "WAVE"
+   ],
+   [
+    "EVOLV",
+    "DRIFT",
+    "RANGE",
+    "DICE"
+   ],
+   [
+    "REVER",
+    "HOLD",
+    "MODE",
+    "BLOOM"
+   ],
+   [
+    "LOOPE",
+    "TRANS",
+    "LEVEL",
+    "SPEED",
+    "REVER",
+    "RECOR",
+    "SOLO"
+   ],
+   [
+    "SLOT",
+    "USEOP"
+   ],
+   [
+    "INPUT",
+    "IN",
+    "BYPAS",
+    "TRAIL",
+    "ECO"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 1
+ },
+ "midi_fx--arp": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "MODE",
+    "BPM",
+    "DIVIS",
+    "SYNC"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "midi_fx--branchage": {
+  "pageCount": 4,
+  "pageNames": [
+   "Main - 1",
+   "Main - 2",
+   "Main - 3",
+   "Main - 4"
+  ],
+  "pageShortNames": [
+   [
+    "MAP X",
+    "MAP Y",
+    "KICK",
+    "SNARE",
+    "HAT",
+    "CHAOS",
+    "KN",
+    "SN"
+   ],
+   [
+    "HAT",
+    "STEPS",
+    "BPM",
+    "SYNC",
+    "PROB",
+    "NOTE",
+    "BRAON",
+    "S"
+   ],
+   [
+    "BN",
+    "BO",
+    "PROB",
+    "NOTE",
+    "BRAON",
+    "RANLO",
+    "RANHI",
+    "RAND"
+   ],
+   [
+    "S",
+    "RANLO",
+    "RANHI"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "midi_fx--chord": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "CHORD",
+    "INVER",
+    "VOICI",
+    "STRUM"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 1
+ },
+ "midi_fx--eucalypso": {
+  "pageCount": 11,
+  "pageNames": [
+   "Main",
+   "Global",
+   "Note Register",
+   "Lane 1 - 1",
+   "Lane 1 - 2",
+   "Lane 2 - 1",
+   "Lane 2 - 2",
+   "Lane 3 - 1",
+   "Lane 3 - 2",
+   "Lane 4 - 1",
+   "Lane 4 - 2"
+  ],
+  "pageShortNames": [
+   [
+    "PLAY",
+    "VEL",
+    "GATE",
+    "OCT",
+    "ON",
+    "ON",
+    "ON",
+    "ON"
+   ],
+   [
+    "PLAY",
+    "VOICE",
+    "RATE",
+    "SYNC",
+    "SWING",
+    "GATE",
+    "VEL",
+    "OCT"
+   ],
+   [
+    "REG",
+    "NOTE",
+    "MISS",
+    "SCALE",
+    "RNG",
+    "ROOT",
+    "OCT"
+   ],
+   [
+    "ON",
+    "STEPS",
+    "PULSE",
+    "ROT",
+    "DROP",
+    "NOTE",
+    "OCT",
+    "VEL"
+   ],
+   [
+    "GATE"
+   ],
+   [
+    "ON",
+    "STEPS",
+    "PULSE",
+    "ROT",
+    "DROP",
+    "NOTE",
+    "OCT",
+    "VEL"
+   ],
+   [
+    "GATE"
+   ],
+   [
+    "ON",
+    "STEPS",
+    "PULSE",
+    "ROT",
+    "DROP",
+    "NOTE",
+    "OCT",
+    "VEL"
+   ],
+   [
+    "GATE"
+   ],
+   [
+    "ON",
+    "STEPS",
+    "PULSE",
+    "ROT",
+    "DROP",
+    "NOTE",
+    "OCT",
+    "VEL"
+   ],
+   [
+    "GATE"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 32
+ },
+ "midi_fx--euclidrum": {
+  "pageCount": 10,
+  "pageNames": [
+   "Main",
+   "Global",
+   "L1",
+   "L2",
+   "L3",
+   "L4",
+   "L5",
+   "L6",
+   "L7",
+   "L8"
+  ],
+  "pageShortNames": [
+   [
+    "L1",
+    "L2",
+    "L3",
+    "L4",
+    "L5",
+    "L6",
+    "L7",
+    "L8"
+   ],
+   [
+    "PRESE",
+    "RP",
+    "RATE",
+    "SWING",
+    "GATE",
+    "MUTAT",
+    "CYC",
+    "VEL"
+   ],
+   [
+    "L1",
+    "STEPS",
+    "PULSE",
+    "ROTAT",
+    "RATE",
+    "ACCEN",
+    "FREQ",
+    "DECAY"
+   ],
+   [
+    "L2",
+    "STEPS",
+    "PULSE",
+    "ROTAT",
+    "RATE",
+    "ACCEN",
+    "FREQ",
+    "DECAY"
+   ],
+   [
+    "L3",
+    "STEPS",
+    "PULSE",
+    "ROTAT",
+    "RATE",
+    "ACCEN",
+    "FREQ",
+    "DECAY"
+   ],
+   [
+    "L4",
+    "STEPS",
+    "PULSE",
+    "ROTAT",
+    "RATE",
+    "ACCEN",
+    "FREQ",
+    "DECAY"
+   ],
+   [
+    "L5",
+    "STEPS",
+    "PULSE",
+    "ROTAT",
+    "RATE",
+    "ACCEN",
+    "FREQ",
+    "DECAY"
+   ],
+   [
+    "L6",
+    "STEPS",
+    "PULSE",
+    "ROTAT",
+    "RATE",
+    "ACCEN",
+    "FREQ",
+    "DECAY"
+   ],
+   [
+    "L7",
+    "STEPS",
+    "PULSE",
+    "ROTAT",
+    "RATE",
+    "ACCEN",
+    "FREQ",
+    "DECAY"
+   ],
+   [
+    "L8",
+    "STEPS",
+    "PULSE",
+    "ROTAT",
+    "RATE",
+    "ACCEN",
+    "FREQ",
+    "DECAY"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 63
+ },
+ "midi_fx--genera": {
+  "pageCount": 3,
+  "pageNames": [
+   "Main",
+   "Genera",
+   "Sync"
+  ],
+  "pageShortNames": [
+   [
+    "ROOT",
+    "DIVIS",
+    "STEPS",
+    "CAPTU",
+    "EVOLV",
+    "STUTT",
+    "OCTAV",
+    "CHORD"
+   ],
+   [
+    "ROOT",
+    "DIVIS",
+    "STEPS",
+    "CAPTU",
+    "EVOLV",
+    "STUTT",
+    "OCTAV",
+    "CHORD"
+   ],
+   [
+    "SYNC",
+    "TEMPO",
+    "DIVIS",
+    "VEL",
+    "VELOC",
+    "GATE",
+    "STUT",
+    "HUMAN"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 2
+ },
+ "midi_fx--impressive-chords": {
+  "pageCount": 3,
+  "pageNames": [
+   "Preset",
+   "Main - 1",
+   "Main - 2"
+  ],
+  "pageShortNames": [
+   [
+    "PRESE"
+   ],
+   [
+    "BASE",
+    "TRANS",
+    "INVER",
+    "STRUM",
+    "TILT",
+    "ARTIC",
+    "LENGT",
+    "RETRI"
+   ],
+   [
+    "TIMIN",
+    "CHOKE",
+    "NOTES",
+    "FIT",
+    "GATE",
+    "SCAN"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "midi_fx--superarp": {
+  "pageCount": 5,
+  "pageNames": [
+   "Main",
+   "Global",
+   "Progression",
+   "Rhythm",
+   "Modifiers"
+  ],
+  "pageShortNames": [
+   [
+    "LATCH",
+    "GATE",
+    "VELOC",
+    "DROP",
+    "RAND",
+    "VEL",
+    "OCT",
+    "NOTE"
+   ],
+   [
+    "LATCH",
+    "MAX",
+    "RATE",
+    "TRIPL",
+    "SWING",
+    "GATE",
+    "VELOC",
+    "OCTAV"
+   ],
+   [
+    "MODE",
+    "PATTE",
+    "TRIGG",
+    "NOTE",
+    "SEED",
+    "LENGT",
+    "CHORD",
+    "CH"
+   ],
+   [
+    "PATTE",
+    "TRIGG"
+   ],
+   [
+    "MOD",
+    "DROP",
+    "SEED",
+    "VEL",
+    "GATE",
+    "RAND",
+    "RANGE",
+    "NOTE"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 7
+ },
+ "midi_fx--velocity_scale": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "MIN",
+    "MAX",
+    "CURVE"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 1
+ },
+ "sound_generator--303": {
+  "pageCount": 3,
+  "pageNames": [
+   "Main",
+   "Shape",
+   "Drive"
+  ],
+  "pageShortNames": [
+   [
+    "CUTOF",
+    "RESO",
+    "ENVMD",
+    "DECAY",
+    "ACCNT",
+    "WAVE",
+    "TUNE",
+    "VOL"
+   ],
+   [
+    "SATK",
+    "NDEC",
+    "ADEC",
+    "SLIDE",
+    "FBHPF",
+    "DEVIL"
+   ],
+   [
+    "MODEL",
+    "DRIVE",
+    "MIX",
+    "TANH"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "sound_generator--aphex": {
+  "pageCount": 9,
+  "pageNames": [
+   "Main",
+   "Patch",
+   "VCO 1+2",
+   "Mixer",
+   "Filter",
+   "Envelopes",
+   "MG / ESP",
+   "Patchbay",
+   "Modern"
+  ],
+  "pageShortNames": [
+   [
+    "LC",
+    "LP",
+    "HC",
+    "HP",
+    "FREQ",
+    "DEPTH",
+    "DRIVE",
+    "VOLUM"
+   ],
+   [
+    "PRESE",
+    "PATCH",
+    "MUTAT",
+    "MOD",
+    "RESET",
+    "OCTAV",
+    "M.TUN",
+    "PORTA"
+   ],
+   [
+    "WAVE",
+    "WAVE",
+    "PW",
+    "PITCH",
+    "SCAL1",
+    "SCAL2",
+    "PORTA",
+    "M.TUN"
+   ],
+   [
+    "VCO 1",
+    "VCO 2",
+    "MG/T.",
+    "EG1/E",
+    "ESP",
+    "SUB",
+    "NOISE",
+    "FB"
+   ],
+   [
+    "HC",
+    "HP",
+    "HPFMG",
+    "HPFEG",
+    "LC",
+    "LP",
+    "LPFMG",
+    "LPFEG"
+   ],
+   [
+    "DELAY",
+    "E1ATK",
+    "E1REL",
+    "HOLD",
+    "E2ATK",
+    "DCY",
+    "SUS",
+    "E2REL"
+   ],
+   [
+    "FREQ",
+    "SHAPE",
+    "SIG",
+    "LO",
+    "HI",
+    "CV",
+    "THRES",
+    "MG PW"
+   ],
+   [
+    "KBD",
+    "T.EXT",
+    "FREQ",
+    "HPF",
+    "LPF",
+    "IG",
+    "2 CV",
+    "EXT"
+   ],
+   [
+    "DRIFT",
+    "DRIVE",
+    "KEYTR",
+    "MS-10",
+    "V1",
+    "V2",
+    "MW→MG",
+    "MW→FI"
+   ]
+  ],
+  "envelopeLines": 1,
+  "lfoViz": 0,
+  "hidden": 19
+ },
+ "sound_generator--belt-in": {
+  "pageCount": 2,
+  "pageNames": [
+   "Main - 1",
+   "Main - 2"
+  ],
+  "pageShortNames": [
+   [
+    "KEY",
+    "SCALE",
+    "RETUN",
+    "AMOUN",
+    "VOIC1",
+    "VOIC2",
+    "VOIC3",
+    "VOIC4"
+   ],
+   [
+    "HARM",
+    "SPREA",
+    "DOUBL",
+    "HARD",
+    "WET",
+    "FORMA",
+    "FLEX",
+    "HUMAN"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "sound_generator--braids": {
+  "pageCount": 6,
+  "pageNames": [
+   "Preset",
+   "Main",
+   "Oscillator",
+   "Amp Envelope",
+   "Filter",
+   "Global"
+  ],
+  "pageShortNames": [
+   [
+    "PRESE"
+   ],
+   [
+    "ALGOR",
+    "TIMBR",
+    "COLOR",
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "CUTOF",
+    "FILT"
+   ],
+   [
+    "ALGOR",
+    "TIMBR",
+    "COLOR",
+    "FM"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA"
+   ],
+   [
+    "F.ATT",
+    "F.DEC",
+    "F.SUS",
+    "F.REL",
+    "CUTOF",
+    "RESON",
+    "FILT"
+   ],
+   [
+    "VOLUM",
+    "OCTAV"
+   ]
+  ],
+  "envelopeLines": 2,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "sound_generator--breakbeat": {
+  "pageCount": 3,
+  "pageNames": [
+   "Preset",
+   "Main - 1",
+   "Main - 2"
+  ],
+  "pageShortNames": [
+   [
+    "PRESE"
+   ],
+   [
+    "AS",
+    "AL",
+    "BS",
+    "BL",
+    "CHANC",
+    "COMPL",
+    "PHRAS",
+    "ANCHO"
+   ],
+   [
+    "ROLL",
+    "FILL",
+    "R2",
+    "R3",
+    "R4",
+    "R8",
+    "SAVE",
+    "STATU"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "sound_generator--chiptune": {
+  "pageCount": 3,
+  "pageNames": [
+   "Env",
+   "Chip",
+   "Pitch"
+  ],
+  "pageShortNames": [
+   [
+    "ATTK",
+    "DECAY",
+    "SUST",
+    "REL",
+    "DUTY",
+    "VOL",
+    "DTUNE",
+    "OCT"
+   ],
+   [
+    "CHIP",
+    "ALLOC",
+    "NOISE",
+    "WTBL",
+    "SWEEP",
+    "CHMSK",
+    "VIBD",
+    "VIBR"
+   ],
+   [
+    "PENVD",
+    "PENVS",
+    "PRSET"
+   ]
+  ],
+  "envelopeLines": 1,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "sound_generator--chordism": {
+  "pageCount": 17,
+  "pageNames": [
+   "Preset",
+   "Main",
+   "Osc Wave",
+   "Filter",
+   "Flt LFO",
+   "Vibrato",
+   "Amp",
+   "Chord A",
+   "Chord B",
+   "Spread/FM",
+   "FM/Intvl",
+   "Reverb",
+   "Delay",
+   "Morph",
+   "Amp LFO",
+   "Arp",
+   "Ctrl Src"
+  ],
+  "pageShortNames": [
+   [
+    "PRSET"
+   ],
+   [
+    "CHORD",
+    "WIDTH",
+    "CUTOF",
+    "RESO",
+    "DRIVE",
+    "SHAPE",
+    "DETUN",
+    "VOL"
+   ],
+   [
+    "WAV1",
+    "WAV2",
+    "WAV3",
+    "WAV4",
+    "SHP1",
+    "SHP2",
+    "SHP3",
+    "SHP4"
+   ],
+   [
+    "CUTOF",
+    "RESO",
+    "MODE",
+    "SLOPE",
+    "FEATK",
+    "FEDEC",
+    "FEDPT",
+    "FEMOD"
+   ],
+   [
+    "RATE",
+    "DEPTH",
+    "SHAPE",
+    "SPRD",
+    "MODE"
+   ],
+   [
+    "SHAPE",
+    "RATE",
+    "DEPTH",
+    "VIBD",
+    "VIBS",
+    "VIBDL",
+    "STRAY",
+    "SWEEP"
+   ],
+   [
+    "ATTK",
+    "REL",
+    "VOL",
+    "VCA",
+    "HARD",
+    "DRONE",
+    "GLIDE",
+    "LEGTO"
+   ],
+   [
+    "C",
+    "C#",
+    "D",
+    "D#",
+    "E",
+    "F",
+    "F#",
+    "G"
+   ],
+   [
+    "G#",
+    "A",
+    "A#",
+    "B",
+    "TUNE",
+    "SCALE",
+    "ROOT"
+   ],
+   [
+    "SPRD",
+    "ROT",
+    "FMMOD",
+    "FMAMT",
+    "MIX1",
+    "MIX2",
+    "MIX3",
+    "MIX4"
+   ],
+   [
+    "FMA1",
+    "FMA2",
+    "FMA3",
+    "FMA4",
+    "INT1",
+    "INT2",
+    "INT3"
+   ],
+   [
+    "MIX",
+    "DECAY",
+    "DAMP",
+    "SHIMM",
+    "LOCUT",
+    "SIZE",
+    "MODR",
+    "MODD"
+   ],
+   [
+    "MIX",
+    "TIME",
+    "FEEDB",
+    "MODE",
+    "TONE",
+    "TONHI",
+    "TONLO",
+    "MODR"
+   ],
+   [
+    "MRPH",
+    "MINT",
+    "PMRPH",
+    "PMINT",
+    "LMRAT",
+    "LMDPT",
+    "PMRAT",
+    "PMDPT"
+   ],
+   [
+    "RATE",
+    "DEPTH",
+    "SHAPE",
+    "PHS1",
+    "PHS2",
+    "PHS3",
+    "PHS4"
+   ],
+   [
+    "ARP",
+    "TEMPO",
+    "DIR",
+    "HOLD",
+    "STEPS",
+    "BEATS",
+    "SYNC",
+    "DIV"
+   ],
+   [
+    "SRC",
+    "CC",
+    ">CUT",
+    ">MRPH",
+    ">VIB",
+    ">SHP",
+    ">FM",
+    "SWPRT"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 16
+ },
+ "sound_generator--denis": {
+  "pageCount": 8,
+  "pageNames": [
+   "Main",
+   "Oscillators",
+   "Control",
+   "Mod & Patch",
+   "Mat: Env",
+   "Mat: LFO",
+   "Mat: S&H",
+   "Mat: Nz"
+  ],
+  "pageShortNames": [
+   [
+    "OSC1",
+    "TIMBR",
+    "OSC2",
+    "HARMO",
+    "OSC",
+    "MIX",
+    "TYPE",
+    "CUTOF"
+   ],
+   [
+    "OSC1",
+    "TIMBR",
+    "OSC2",
+    "HARMO",
+    "OSC",
+    "MIX",
+    "TYPE",
+    "CUTOF"
+   ],
+   [
+    "DEPTH",
+    "TYPE",
+    "CUTOF",
+    "Q",
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA"
+   ],
+   [
+    "LFO",
+    "S&H",
+    "ENV",
+    "NZ",
+    "DENIS",
+    "MOD",
+    "RESET",
+    "PATCH"
+   ],
+   [
+    "ENV->",
+    "ENV-2",
+    "ENV-3",
+    "ENV-4",
+    "ENV-5",
+    "ENV-6",
+    "ENV-7",
+    "ENV-8"
+   ],
+   [
+    "LF->P",
+    "LF->T",
+    "LF->2",
+    "LF->H",
+    "LF->F",
+    "LF->3",
+    "LF->C",
+    "LF->L"
+   ],
+   [
+    "S&H->",
+    "S&H-2",
+    "S&H-3",
+    "S&H-4",
+    "S&H-5",
+    "S&H-6",
+    "S&H-7",
+    "S&H-8"
+   ],
+   [
+    "NZ->P",
+    "NZ->T",
+    "NZ->2",
+    "NZ->H",
+    "NZ->F",
+    "NZ->3",
+    "NZ->C",
+    "NZ->L"
+   ]
+  ],
+  "envelopeLines": 1,
+  "lfoViz": 0,
+  "hidden": 6
+ },
+ "sound_generator--dexed": {
+  "pageCount": 5,
+  "pageNames": [
+   "Main",
+   "Global",
+   "LFO",
+   "Pitch EG",
+   "Operators"
+  ],
+  "pageShortNames": [
+   [
+    "PRESE",
+    "OUTPU",
+    "OCTAV",
+    "FEEDB",
+    "SPD",
+    "PMD",
+    "AMD"
+   ],
+   [
+    "OUTPU",
+    "OCTAV",
+    "ALGOR",
+    "FEEDB"
+   ],
+   [
+    "SPD",
+    "DLY",
+    "PMD",
+    "AMD",
+    "PMS",
+    "WAVE"
+   ],
+   [
+    "PEGR1",
+    "PEGR2",
+    "PEGR3",
+    "PEGR4",
+    "PEGL1",
+    "PEGL2"
+   ],
+   [
+    "OP1",
+    "OP2",
+    "OP3",
+    "OP4",
+    "OP5",
+    "OP6"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 125
+ },
+ "sound_generator--essaim": {
+  "pageCount": 3,
+  "pageNames": [
+   "Global",
+   "FX",
+   "Voice"
+  ],
+  "pageShortNames": [
+   [
+    "ROOT",
+    "SCALE",
+    "RNDPT",
+    "SFREQ",
+    "IFREQ",
+    "SPEED",
+    "RNDMD",
+    "RNDPN"
+   ],
+   [
+    "XPOSE",
+    "FINE",
+    "SAT",
+    "FILTR",
+    "DLMIX",
+    "DLRAT",
+    "DLFBK",
+    "DLTON"
+   ],
+   [
+    "SPEED",
+    "MOD",
+    "DECAY",
+    "TIMBR",
+    "FREQ",
+    "NOISE",
+    "CUTOF",
+    "VOL"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 10
+ },
+ "sound_generator--fizzik": {
+  "pageCount": 10,
+  "pageNames": [
+   "Main",
+   "Patch",
+   "Exciter",
+   "Reson A",
+   "Reson B",
+   "Voice",
+   "FX",
+   "FX 2",
+   "Mod",
+   "Aftertouch"
+  ],
+  "pageShortNames": [
+   [
+    "PRESE",
+    "PATCH",
+    "EXCIT",
+    "RR",
+    "ALL",
+    "CUTOF",
+    "RESON",
+    "FT"
+   ],
+   [
+    "PRESE",
+    "PATCH",
+    "EXCIT",
+    "RR",
+    "ALL",
+    "CUTOF",
+    "RESON",
+    "FT"
+   ],
+   [
+    "MIX",
+    "CRACK",
+    "COLOR",
+    "ATTAC",
+    "DECAY",
+    "RESO",
+    "LEVEL",
+    "VC"
+   ],
+   [
+    "MODEL",
+    "SA",
+    "DECAY",
+    "DAMP",
+    "PA",
+    "TONE",
+    "TUNE",
+    "TA"
+   ],
+   [
+    "MODEL",
+    "SB",
+    "DECAY",
+    "DAMP",
+    "PB",
+    "TONE",
+    "TUNE",
+    "TB"
+   ],
+   [
+    "COUPL",
+    "BALAN",
+    "GLIDE",
+    "ATK",
+    "REL",
+    "SPREA",
+    "DRIVE",
+    "LEVEL"
+   ],
+   [
+    "REVER",
+    "SIZE",
+    "DAMP",
+    "DELAY",
+    "TIME",
+    "FBK",
+    "TONE",
+    "WIDTH"
+   ],
+   [
+    "TONE",
+    "BODY",
+    "CHORU",
+    "RATE",
+    "DEPTH",
+    "GLUE",
+    "DRIVE",
+    "CEIL"
+   ],
+   [
+    "LF1RT",
+    "LF1DP",
+    "LF1SH",
+    "LF1TR",
+    "LF2RT",
+    "LF2DP",
+    "LF2SH",
+    "LF2TR"
+   ],
+   [
+    "PRESE",
+    "BRIGH",
+    "BOW",
+    "CUTOF",
+    "VIB",
+    "BEND",
+    "RATE",
+    "CURVE"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 1
+ },
+ "sound_generator--forge": {
+  "pageCount": 7,
+  "pageNames": [
+   "Main",
+   "Patch",
+   "Perf",
+   "Voice",
+   "Mix",
+   "FX",
+   "General"
+  ],
+  "pageShortNames": [
+   [
+    "KIT",
+    "RK",
+    "PARAM",
+    "VOICE",
+    "MORPH",
+    "ALL",
+    "PAN",
+    "SAVE"
+   ],
+   [
+    "KIT",
+    "RK",
+    "PARAM",
+    "VOICE",
+    "MORPH",
+    "ALL",
+    "PAN",
+    "SAVE"
+   ],
+   [
+    "PUNCH",
+    "BRIGH",
+    "DECAY",
+    "DRIVE",
+    "SNAP",
+    "BEND",
+    "TUNE",
+    "ALLFX"
+   ],
+   [
+    "MACR1",
+    "MACR2",
+    "MACR3",
+    "MACR4",
+    "MACR5",
+    "MACR6",
+    "MACR7",
+    "MACR8"
+   ],
+   [
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6",
+    "V7",
+    "V8"
+   ],
+   [
+    "RM",
+    "DECAY",
+    "SIZE",
+    "DM",
+    "RATE",
+    "FDBK",
+    "TONE",
+    "CHO"
+   ],
+   [
+    "COMP",
+    "DRIVE",
+    "BIT",
+    "RATE",
+    "EQ LO",
+    "EQ",
+    "EQ HI",
+    "MASTE"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 146
+ },
+ "sound_generator--freak": {
+  "pageCount": 17,
+  "pageNames": [
+   "Main",
+   "Main - 1",
+   "Main - 2",
+   "Filter",
+   "Mod/Pitch",
+   "Mod/Harmonics",
+   "Mod/Timbre",
+   "Mod/Cutoff",
+   "Mod/Assign 1",
+   "Mod/Assign 2",
+   "ModS/LFO",
+   "ModS/Envelope",
+   "ModS/Cycling Envelope",
+   "ModS/Random",
+   "ModS/Velocity",
+   "ModS/Poly Aftertouch",
+   "Voice & Mix"
+  ],
+  "pageShortNames": [
+   [
+    "MODEL",
+    "HARMO",
+    "TIMBR",
+    "MORPH",
+    "FM",
+    "DECAY",
+    "COLOR",
+    "CUTOF"
+   ],
+   [
+    "MODEL",
+    "PITCH",
+    "HARMO",
+    "TIMBR",
+    "MORPH",
+    "FM",
+    "AUX",
+    "LPG"
+   ],
+   [
+    "LPG"
+   ],
+   [
+    "MODE",
+    "CUTOF",
+    "RESON"
+   ],
+   [
+    "LFO",
+    "ENV",
+    "CYCLE",
+    "RANDO",
+    "VELOC",
+    "POLY"
+   ],
+   [
+    "LFO",
+    "ENV",
+    "CYCLE",
+    "RANDO",
+    "VELOC",
+    "POLY"
+   ],
+   [
+    "LFO",
+    "ENV",
+    "CYCLE",
+    "RANDO",
+    "VELOC",
+    "POLY"
+   ],
+   [
+    "LFO",
+    "ENV",
+    "CYCLE",
+    "RANDO",
+    "VELOC",
+    "POLY"
+   ],
+   [
+    "TARGE",
+    "LFO",
+    "ENV",
+    "CYCLE",
+    "RANDO",
+    "VELOC",
+    "POLY"
+   ],
+   [
+    "TARGE",
+    "LFO",
+    "ENV",
+    "CYCLE",
+    "RANDO",
+    "VELOC",
+    "POLY"
+   ],
+   [
+    "SHAPE",
+    "RATE",
+    "SYNC",
+    "RETRI",
+    "PHASE"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA",
+    "RETRI"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SHAPE",
+    "SYNC",
+    "RETRI",
+    "BIPOL"
+   ],
+   [
+    "MODE",
+    "RATE",
+    "SYNC",
+    "SLEW",
+    "RETRI"
+   ],
+   [
+    "CURVE"
+   ],
+   [
+    "CURVE"
+   ],
+   [
+    "VOLUM",
+    "PAN",
+    "VOICE",
+    "POLYP",
+    "UNISO",
+    "DETUN",
+    "SPREA",
+    "GLIDE"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "sound_generator--granny": {
+  "pageCount": 7,
+  "pageNames": [
+   "Main - 1",
+   "Main - 2",
+   "Main",
+   "Scan",
+   "Window / Tone",
+   "Pitch / Voice",
+   "ADSR Envelope"
+  ],
+  "pageShortNames": [
+   [
+    "SF",
+    "POSIT",
+    "SIZE",
+    "DENSI",
+    "SPRAY",
+    "JITTE",
+    "SCAN",
+    "GRAIN"
+   ],
+   [
+    "QUALI"
+   ],
+   [
+    "POSIT",
+    "SIZE",
+    "DENSI",
+    "SPRAY",
+    "JITTE",
+    "GRAIN"
+   ],
+   [
+    "ENABL",
+    "SCAN",
+    "END"
+   ],
+   [
+    "WINDO",
+    "WINSH",
+    "GRAIN",
+    "QUALI",
+    "TRIGG"
+   ],
+   [
+    "PITCH",
+    "FINE",
+    "KEYTR",
+    "PLAY",
+    "POLYV",
+    "PORTA",
+    "SPREA"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 4
+ },
+ "sound_generator--hera": {
+  "pageCount": 8,
+  "pageNames": [
+   "Preset",
+   "Main",
+   "DCO",
+   "VCF",
+   "VCA",
+   "Envelope",
+   "LFO",
+   "Effects"
+  ],
+  "pageShortNames": [
+   [
+    "PRESE"
+   ],
+   [
+    "VOLUM",
+    "CUTOF",
+    "RESO",
+    "ENV",
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "OCTAV"
+   ],
+   [
+    "SAW",
+    "PULSE",
+    "SUB",
+    "NOISE",
+    "DEPTH",
+    "MOD",
+    "RANGE",
+    "PITCH"
+   ],
+   [
+    "CUTOF",
+    "RESO",
+    "ENV",
+    "LFO",
+    "KEY",
+    "BEND"
+   ],
+   [
+    "DEPTH",
+    "TYPE"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA"
+   ],
+   [
+    "RATE",
+    "DELAY",
+    "TRIGG"
+   ],
+   [
+    "HPF",
+    "CHORI",
+    "CHOII"
+   ]
+  ],
+  "envelopeLines": 1,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "sound_generator--hush1": {
+  "pageCount": 7,
+  "pageNames": [
+   "Osc",
+   "PWM",
+   "Filter",
+   "Amp Env",
+   "LFO",
+   "Perf",
+   "Advanced"
+  ],
+  "pageShortNames": [
+   [
+    "VOL",
+    "SAW",
+    "PULSE",
+    "SUB",
+    "NOISE",
+    "SUBMD",
+    "WNOIS",
+    "PW"
+   ],
+   [
+    "PWMMD",
+    "PWMD",
+    "PWMEV",
+    "BEND",
+    "FINE",
+    "TRANS",
+    "OCT",
+    "GLIDE"
+   ],
+   [
+    "CUTOF",
+    "RESO",
+    "ENVAM",
+    "KEYFL",
+    "FATK",
+    "FDEC",
+    "FSUS",
+    "FREL"
+   ],
+   [
+    "ATTK",
+    "DECAY",
+    "SUST",
+    "REL",
+    "VELSN",
+    "DECLK",
+    "VCA",
+    "FVELS"
+   ],
+   [
+    "RATE",
+    "WAVE",
+    "TRIG",
+    "SYNC",
+    "LPTCH",
+    "LFILT",
+    "LPWM",
+    "INV"
+   ],
+   [
+    "SNAP",
+    "PORTA",
+    "PLIN",
+    "RETRG",
+    "HOLD",
+    "GATE",
+    "PRIO",
+    "VELMD"
+   ],
+   [
+    "QUIRK",
+    "FRANG",
+    "FPOL",
+    "FVCOR",
+    "PRSET"
+   ]
+  ],
+  "envelopeLines": 2,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "sound_generator--krautdrums": {
+  "pageCount": 4,
+  "pageNames": [
+   "Levels",
+   "FX",
+   "Attitude",
+   "General"
+  ],
+  "pageShortNames": [
+   [
+    "BASS",
+    "CONGA",
+    "TOM1",
+    "TOM2",
+    "CLVS",
+    "SNARE",
+    "COWBL",
+    "CYMBL"
+   ],
+   [
+    "DLMIX",
+    "DLTIM",
+    "DLFBK",
+    "RVMIX",
+    "RVDCY",
+    "RVTON",
+    "COMP",
+    "ALDCY"
+   ],
+   [
+    "DRIVE",
+    "TAPE",
+    "HPF",
+    "BODY",
+    "AIR",
+    "CUTOF",
+    "RESO",
+    "PHASE"
+   ],
+   [
+    "TEMPO",
+    "DRIFT",
+    "MSVOL",
+    "DNSTY"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 13
+ },
+ "sound_generator--linein": {
+  "pageCount": 6,
+  "pageNames": [
+   "Main",
+   "Noise Reduction",
+   "Gate Settings",
+   "Line Settings",
+   "Guitar Settings",
+   "Phono Settings"
+  ],
+  "pageShortNames": [
+   [
+    "TYPE",
+    "MODE",
+    "TRIM",
+    "OT"
+   ],
+   [
+    "HUM"
+   ],
+   [
+    "THRES",
+    "ATTAC",
+    "RELEA",
+    "RANGE"
+   ],
+   [
+    "HPF",
+    "LIMIT"
+   ],
+   [
+    "CABLE",
+    "SOFT"
+   ],
+   [
+    "RIAA",
+    "SUB",
+    "NOTCH",
+    "FREQ"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 3
+ },
+ "sound_generator--minijv": {
+  "pageCount": 8,
+  "pageNames": [
+   "Preset",
+   "Main",
+   "Common / Control",
+   "Effects",
+   "EditT/tone1",
+   "EditT/tone2",
+   "EditT/tone3",
+   "EditT/tone4"
+  ],
+  "pageShortNames": [
+   [
+    "PRESE"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA",
+    "CUTOF",
+    "RESON",
+    "FE",
+    "LFO"
+   ],
+   [
+    "LEVEL",
+    "PAN",
+    "AF",
+    "BENUP",
+    "DOWN",
+    "PORTA",
+    "PT",
+    "KEY"
+   ],
+   [
+    "TYPE",
+    "REVER",
+    "TIME",
+    "RF",
+    "CT",
+    "CHORU",
+    "CD",
+    "CR"
+   ],
+   [
+    "CUTOF",
+    "RESON",
+    "A.ET1",
+    "A.ET2",
+    "A.EL3",
+    "A.ET4",
+    "LEVEL",
+    "PAN"
+   ],
+   [
+    "CUTOF",
+    "RESON",
+    "A.ET1",
+    "A.ET2",
+    "A.EL3",
+    "A.ET4",
+    "LEVEL",
+    "PAN"
+   ],
+   [
+    "CUTOF",
+    "RESON",
+    "A.ET1",
+    "A.ET2",
+    "A.EL3",
+    "A.ET4",
+    "LEVEL",
+    "PAN"
+   ],
+   [
+    "CUTOF",
+    "RESON",
+    "A.ET1",
+    "A.ET2",
+    "A.EL3",
+    "A.ET4",
+    "LEVEL",
+    "PAN"
+   ]
+  ],
+  "envelopeLines": 1,
+  "lfoViz": 0,
+  "hidden": 361
+ },
+ "sound_generator--moog": {
+  "pageCount": 12,
+  "pageNames": [
+   "Preset",
+   "Main",
+   "Oscillator 1",
+   "Oscillator 2",
+   "Oscillator 3",
+   "Oscillator 4",
+   "Mixer",
+   "Filter",
+   "Filter Env",
+   "Amp Env",
+   "LFO",
+   "Performance"
+  ],
+  "pageShortNames": [
+   [
+    "PRESE"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA",
+    "CUTOF",
+    "RESON",
+    "CONTO",
+    "OCTAV"
+   ],
+   [
+    "WAVE",
+    "VOLUM",
+    "RANGE"
+   ],
+   [
+    "WAVE",
+    "VOLUM",
+    "RANGE",
+    "DETUN"
+   ],
+   [
+    "WAVE",
+    "VOLUM",
+    "RANGE",
+    "DETUN"
+   ],
+   [
+    "WAVE",
+    "VOLUM",
+    "RANGE",
+    "DETUN"
+   ],
+   [
+    "OSC1",
+    "OSC2",
+    "OSC3",
+    "OSC4",
+    "NOISE",
+    "VOLUM"
+   ],
+   [
+    "CUTOF",
+    "RESON",
+    "CONTO",
+    "KEY"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA"
+   ],
+   [
+    "LFO",
+    "LFO>P",
+    "LFO>F"
+   ],
+   [
+    "GLIDE",
+    "MOD>F",
+    "MOD>P",
+    "BEND",
+    "VEL",
+    "OCTAV"
+   ]
+  ],
+  "envelopeLines": 3,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "sound_generator--mrdrums": {
+  "pageCount": 4,
+  "pageNames": [
+   "Main",
+   "Rand",
+   "Global",
+   "Preset"
+  ],
+  "pageShortNames": [
+   [
+    "SAMPL",
+    "VOL",
+    "PAN",
+    "TUNE",
+    "START",
+    "ATTK",
+    "DECAY",
+    "MODE"
+   ],
+   [
+    "RNDPN",
+    "RNDVL",
+    "RNDDC",
+    "CHNCE",
+    "CHOKE"
+   ],
+   [
+    "MSVOL",
+    "POLY",
+    "VELCV",
+    "HUMAN"
+   ],
+   [
+    "PRSET"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 5
+ },
+ "sound_generator--mrsample": {
+  "pageCount": 8,
+  "pageNames": [
+   "Main - 1",
+   "Main - 2",
+   "Sample",
+   "Amp Env",
+   "Filter",
+   "LFO",
+   "Tuning",
+   "Global"
+  ],
+  "pageShortNames": [
+   [
+    "SAMPL",
+    "START",
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA",
+    "CUTOF",
+    "RESON"
+   ],
+   [
+    "GAIN"
+   ],
+   [
+    "START",
+    "LOOP",
+    "LS",
+    "END",
+    "XFADE"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA"
+   ],
+   [
+    "TYPE",
+    "CUTOF",
+    "RESON",
+    "ENV"
+   ],
+   [
+    "RATE",
+    "DEPTH"
+   ],
+   [
+    "ROOT",
+    "TRANS",
+    "FINE"
+   ],
+   [
+    "GAIN",
+    "POLYP"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "sound_generator--nusaw": {
+  "pageCount": 9,
+  "pageNames": [
+   "Preset",
+   "Main",
+   "Oscillator",
+   "Filter",
+   "Filter Env",
+   "Amp Env",
+   "Chorus",
+   "Delay",
+   "Performance"
+  ],
+  "pageShortNames": [
+   [
+    "PRESE"
+   ],
+   [
+    "CUTOF",
+    "RESON",
+    "DETUN",
+    "SPREA",
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA"
+   ],
+   [
+    "DETUN",
+    "SPREA",
+    "SAWS",
+    "SUB",
+    "OCT"
+   ],
+   [
+    "CUTOF",
+    "RESON",
+    "FILT"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA",
+    "FILT"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA"
+   ],
+   [
+    "CHORU",
+    "CHR"
+   ],
+   [
+    "TIME",
+    "FBACK",
+    "DELAY",
+    "TONE"
+   ],
+   [
+    "VOLUM",
+    "VEL",
+    "BEND",
+    "OCTAV"
+   ]
+  ],
+  "envelopeLines": 3,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "sound_generator--obxd": {
+  "pageCount": 13,
+  "pageNames": [
+   "Preset",
+   "Main",
+   "Global",
+   "Oscillator 1",
+   "Oscillator 2",
+   "Osc Common",
+   "Filter",
+   "Filter Env",
+   "Amp Env",
+   "LFO",
+   "LFO Dest",
+   "Pitch Mod",
+   "Voice Variation"
+  ],
+  "pageShortNames": [
+   [
+    "PRESE"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA",
+    "CUTOF",
+    "RESON",
+    "FE",
+    "OCTAV"
+   ],
+   [
+    "VOLUM",
+    "TUNE",
+    "OCTAV",
+    "PORTA",
+    "UNISO",
+    "UNI",
+    "LEGAT",
+    "OCTAV"
+   ],
+   [
+    "SAW",
+    "PULSE",
+    "PITCH",
+    "MIX"
+   ],
+   [
+    "SAW",
+    "PULSE",
+    "PITCH",
+    "MIX",
+    "DETUN",
+    "SYNC",
+    "OSC"
+   ],
+   [
+    "PULSE",
+    "PW",
+    "NOISE",
+    "X-MOD",
+    "BRIGH"
+   ],
+   [
+    "CUTOF",
+    "RESON",
+    "FE",
+    "KEY",
+    "MULTI",
+    "4-POL"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA",
+    "VEL>F"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA",
+    "VEL>A"
+   ],
+   [
+    "RATE",
+    "SINE",
+    "SQUAR",
+    "S&H",
+    "AMT 1",
+    "AMT 2"
+   ],
+   [
+    "LF>SC",
+    "LF>S2",
+    "LFO>F",
+    "LF>PW",
+    "LF>P2"
+   ],
+   [
+    "ENV>P",
+    "BEND",
+    "BEND>",
+    "VIBRA"
+   ],
+   [
+    "FV",
+    "PORTA",
+    "ENV",
+    "LEVEL",
+    "PAN 1",
+    "PAN 2",
+    "PAN 3",
+    "PAN 4"
+   ]
+  ],
+  "envelopeLines": 3,
+  "lfoViz": 0,
+  "hidden": 13
+ },
+ "sound_generator--osirus": {
+  "pageCount": 13,
+  "pageNames": [
+   "Main",
+   "Oscillators",
+   "Filters",
+   "Filter Env",
+   "Amp Env",
+   "LFO 1",
+   "LFO 2",
+   "LFO 3",
+   "Arpeggiator",
+   "Effects",
+   "Mod Matrix",
+   "Performance",
+   "Settings"
+  ],
+  "pageShortNames": [
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA",
+    "CUTOF",
+    "RESO",
+    "ENVAM",
+    "OCTAV"
+   ],
+   [
+    "OSC1",
+    "OSC2",
+    "BALAN",
+    "VOLUM"
+   ],
+   [
+    "CUTOF",
+    "RESO",
+    "MODE",
+    "FILT"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA"
+   ],
+   [
+    "RATE",
+    "SHAPE",
+    "SYMME",
+    "OSC1"
+   ],
+   [
+    "RATE",
+    "LS",
+    "SYMME",
+    "SL"
+   ],
+   [
+    "RATE",
+    "SHAPE",
+    "DEST",
+    "OSC"
+   ],
+   [
+    "MODE",
+    "PATTE",
+    "OCTAV",
+    "SWING"
+   ],
+   [
+    "CM",
+    "ES",
+    "TIME",
+    "FDBK"
+   ],
+   [
+    "ASGN1",
+    "ASGN2",
+    "ASGN3",
+    "LFO1"
+   ],
+   [
+    "VOLUM",
+    "PANOR",
+    "UM",
+    "PORTA"
+   ],
+   [
+    "DSP",
+    "GAIN"
+   ]
+  ],
+  "envelopeLines": 3,
+  "lfoViz": 0,
+  "hidden": 108
+ },
+ "sound_generator--plaits": {
+  "pageCount": 2,
+  "pageNames": [
+   "OSC",
+   "MOD"
+  ],
+  "pageShortNames": [
+   [
+    "ENGI",
+    "HARM",
+    "TIMB",
+    "MRPH",
+    "DCAY",
+    "LPGC",
+    "FM",
+    "MIX"
+   ],
+   [
+    "ATK",
+    "TMOD",
+    "MMOD",
+    "VEL",
+    "LGTO",
+    "OCT"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "sound_generator--po32-drum": {
+  "pageCount": 1,
+  "pageNames": [
+   "Main"
+  ],
+  "pageShortNames": [
+   [
+    "KIT",
+    "LEVEL",
+    "DECAY"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "sound_generator--rex": {
+  "pageCount": 2,
+  "pageNames": [
+   "Main - 1",
+   "Main - 2"
+  ],
+  "pageShortNames": [
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA",
+    "GAIN",
+    "START",
+    "TRANS",
+    "MODE"
+   ],
+   [
+    "CHOKE"
+   ]
+  ],
+  "envelopeLines": 1,
+  "lfoViz": 0,
+  "hidden": 1
+ },
+ "sound_generator--sf2": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "OCTAV",
+    "GAIN"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 1
+ },
+ "sound_generator--sfz": {
+  "pageCount": 3,
+  "pageNames": [
+   "Amp",
+   "Tune",
+   "Macros"
+  ],
+  "pageShortNames": [
+   [
+    "ATTK",
+    "DECAY",
+    "SUST",
+    "REL",
+    "CUTOF",
+    "RESO",
+    "GAIN",
+    "VOICE"
+   ],
+   [
+    "TUNE",
+    "OCT",
+    "PRSET"
+   ],
+   [
+    "MAC1",
+    "MAC2",
+    "MAC3",
+    "MAC4",
+    "MAC5",
+    "MAC6",
+    "MAC7",
+    "MAC8"
+   ]
+  ],
+  "envelopeLines": 1,
+  "lfoViz": 0,
+  "hidden": 1
+ },
+ "sound_generator--signal": {
+  "pageCount": 11,
+  "pageNames": [
+   "Main",
+   "Generate",
+   "Patch",
+   "Sequences",
+   "Modulation",
+   "Mix",
+   "Voice 1",
+   "Voice 2",
+   "Voice 3",
+   "Voice 4",
+   "General"
+  ],
+  "pageShortNames": [
+   [
+    "SEQ 1",
+    "SEQ 2",
+    "SEQ 3",
+    "SEQ 4",
+    "SYN 1",
+    "SYN 2",
+    "SYN 3",
+    "SYN 4"
+   ],
+   [
+    "SEQ 1",
+    "SEQ 2",
+    "SEQ 3",
+    "SEQ 4",
+    "SYN 1",
+    "SYN 2",
+    "SYN 3",
+    "SYN 4"
+   ],
+   [
+    "PATCH",
+    "RP",
+    "RYTM",
+    "VOICE",
+    "MOD",
+    "PITCH",
+    "PAN",
+    "ALL"
+   ],
+   [
+    "ROOT",
+    "SCALE",
+    "DENSI",
+    "CHAOS",
+    "GRAVI",
+    "CLK",
+    "MORSE",
+    "SWING"
+   ],
+   [
+    "AMT",
+    "SPEED",
+    "FREQ",
+    "DECAY",
+    "PAN",
+    "DM",
+    "SHAPE",
+    "RESET"
+   ],
+   [
+    "V1LVL",
+    "V2LVL",
+    "V3LVL",
+    "V4LVL",
+    "V1FRQ",
+    "V2FRQ",
+    "V3FRQ",
+    "V4FRQ"
+   ],
+   [
+    "PRESE",
+    "VOL",
+    "FREQ",
+    "WAVE",
+    "TONE",
+    "DECAY",
+    "DETUN",
+    "PAN"
+   ],
+   [
+    "PRESE",
+    "VOL",
+    "FREQ",
+    "WAVE",
+    "TONE",
+    "DECAY",
+    "DETUN",
+    "PAN"
+   ],
+   [
+    "PRESE",
+    "VOL",
+    "FREQ",
+    "WAVE",
+    "TONE",
+    "DECAY",
+    "DETUN",
+    "PAN"
+   ],
+   [
+    "PRESE",
+    "VOL",
+    "FREQ",
+    "WAVE",
+    "TONE",
+    "DECAY",
+    "DETUN",
+    "PAN"
+   ],
+   [
+    "BPM",
+    "DRIFT",
+    "JITTE",
+    "CRUSH",
+    "RATE",
+    "SW",
+    "SCENE",
+    "VOLUM"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 66
+ },
+ "sound_generator--smack-in": {
+  "pageCount": 3,
+  "pageNames": [
+   "Main - 1",
+   "Main - 2",
+   "Main - 3"
+  ],
+  "pageShortNames": [
+   [
+    "LOOP",
+    "SLICE",
+    "FX",
+    "ORDER",
+    "CN",
+    "ARM",
+    "A/B",
+    "RE-RO"
+   ],
+   [
+    "CLEAR",
+    "DB",
+    "WET",
+    "PITCH",
+    "AB",
+    "PLAY",
+    "RATE",
+    "SEED"
+   ],
+   [
+    "TRANS",
+    "CHANN",
+    "PAN L",
+    "PAN R"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0
+ },
+ "sound_generator--surge": {
+  "pageCount": 31,
+  "pageNames": [
+   "Preset",
+   "Main",
+   "Oscillator 1",
+   "Oscillator 2",
+   "Oscillator 3",
+   "Mixer",
+   "Scene - 1",
+   "Scene - 2",
+   "Filter 1",
+   "Filter 2",
+   "Amp Envelope",
+   "Filter Envelope",
+   "MPE",
+   "LFO 1",
+   "LFO 2",
+   "LFO 3",
+   "LFO 4",
+   "LFO 5",
+   "LFO 6",
+   "Scene LFO 1",
+   "Scene LFO 2",
+   "Scene LFO 3",
+   "Scene LFO 4",
+   "Scene LFO 5",
+   "Scene LFO 6",
+   "Mod Slot 1",
+   "Mod Slot 2",
+   "Mod Slot 3",
+   "Mod Slot 4",
+   "Mod Slot 5",
+   "Mod Slot 6"
+  ],
+  "pageShortNames": [
+   [
+    "PRESE"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA",
+    "F1C",
+    "F1R",
+    "F1FMA",
+    "VOLUM"
+   ],
+   [
+    "TYPE",
+    "PITCH",
+    "SHAPE",
+    "WIDT1",
+    "WIDT2",
+    "SUB",
+    "SYNC",
+    "UD"
+   ],
+   [
+    "TYPE",
+    "PITCH",
+    "SHAPE",
+    "WIDT1",
+    "WIDT2",
+    "SUB",
+    "SYNC",
+    "UD"
+   ],
+   [
+    "TYPE",
+    "PITCH",
+    "SHAPE",
+    "WIDT1",
+    "WIDT2",
+    "SUB",
+    "SYNC",
+    "UD"
+   ],
+   [
+    "1",
+    "2",
+    "3",
+    "NOISE",
+    "1X2",
+    "2X3",
+    "PG"
+   ],
+   [
+    "AUTO",
+    "BPM",
+    "OCTAV",
+    "VOLUM",
+    "PAN",
+    "WIDTH",
+    "PORTA",
+    "OSC"
+   ],
+   [
+    "FEEDB",
+    "WT",
+    "WD"
+   ],
+   [
+    "F1T",
+    "F1C",
+    "F1R",
+    "F1FMA",
+    "F1K",
+    "F1S"
+   ],
+   [
+    "F2T",
+    "F2C",
+    "F2R",
+    "F2FMA",
+    "F2K",
+    "F2S"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA",
+    "AS",
+    "SHAPE",
+    "RS",
+    "EM"
+   ],
+   [
+    "FEA",
+    "FED",
+    "FES",
+    "FER",
+    "FEAS",
+    "FEDS",
+    "FERS",
+    "FEEM"
+   ],
+   [
+    "ENABL",
+    "PB"
+   ],
+   [
+    "TYPE",
+    "RATE",
+    "AMPLI",
+    "DEFOR",
+    "PHASE",
+    "DELAY",
+    "ATTAC",
+    "DECAY"
+   ],
+   [
+    "TYPE",
+    "RATE",
+    "AMPLI",
+    "DEFOR",
+    "PHASE",
+    "DELAY",
+    "ATTAC",
+    "DECAY"
+   ],
+   [
+    "TYPE",
+    "RATE",
+    "AMPLI",
+    "DEFOR",
+    "PHASE",
+    "DELAY",
+    "ATTAC",
+    "DECAY"
+   ],
+   [
+    "TYPE",
+    "RATE",
+    "AMPLI",
+    "DEFOR",
+    "PHASE",
+    "DELAY",
+    "ATTAC",
+    "DECAY"
+   ],
+   [
+    "TYPE",
+    "RATE",
+    "AMPLI",
+    "DEFOR",
+    "PHASE",
+    "DELAY",
+    "ATTAC",
+    "DECAY"
+   ],
+   [
+    "TYPE",
+    "RATE",
+    "AMPLI",
+    "DEFOR",
+    "PHASE",
+    "DELAY",
+    "ATTAC",
+    "DECAY"
+   ],
+   [
+    "TYPE",
+    "RATE",
+    "AMPLI",
+    "DEFOR",
+    "PHASE",
+    "DELAY",
+    "ATTAC",
+    "DECAY"
+   ],
+   [
+    "TYPE",
+    "RATE",
+    "AMPLI",
+    "DEFOR",
+    "PHASE",
+    "DELAY",
+    "ATTAC",
+    "DECAY"
+   ],
+   [
+    "TYPE",
+    "RATE",
+    "AMPLI",
+    "DEFOR",
+    "PHASE",
+    "DELAY",
+    "ATTAC",
+    "DECAY"
+   ],
+   [
+    "TYPE",
+    "RATE",
+    "AMPLI",
+    "DEFOR",
+    "PHASE",
+    "DELAY",
+    "ATTAC",
+    "DECAY"
+   ],
+   [
+    "TYPE",
+    "RATE",
+    "AMPLI",
+    "DEFOR",
+    "PHASE",
+    "DELAY",
+    "ATTAC",
+    "DECAY"
+   ],
+   [
+    "TYPE",
+    "RATE",
+    "AMPLI",
+    "DEFOR",
+    "PHASE",
+    "DELAY",
+    "ATTAC",
+    "DECAY"
+   ],
+   [
+    "ENABL",
+    "SOURC",
+    "DEST",
+    "AMOUN"
+   ],
+   [
+    "ENABL",
+    "SOURC",
+    "DEST",
+    "AMOUN"
+   ],
+   [
+    "ENABL",
+    "SOURC",
+    "DEST",
+    "AMOUN"
+   ],
+   [
+    "ENABL",
+    "SOURC",
+    "DEST",
+    "AMOUN"
+   ],
+   [
+    "ENABL",
+    "SOURC",
+    "DEST",
+    "AMOUN"
+   ],
+   [
+    "ENABL",
+    "SOURC",
+    "DEST",
+    "AMOUN"
+   ]
+  ],
+  "envelopeLines": 3,
+  "lfoViz": 0,
+  "hidden": 110
+ },
+ "sound_generator--weird-dreams": {
+  "pageCount": 3,
+  "pageNames": [
+   "Voice",
+   "Patch",
+   "FX"
+  ],
+  "pageShortNames": [
+   [
+    "VOL",
+    "PAN",
+    "FREQ",
+    "DECAY",
+    "WAVE",
+    "MIX",
+    "CUTOF",
+    "PRSET"
+   ],
+   [
+    "KIT",
+    "RNKIT",
+    "RNDVC",
+    "RNDPT"
+   ],
+   [
+    "RVMIX",
+    "RVTYP",
+    "RVSIZ",
+    "RVDCY",
+    "DLMIX",
+    "DLRAT",
+    "DLFBK",
+    "DLTON"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 135
+ },
+ "sound_generator--wurl": {
+  "pageCount": 2,
+  "pageNames": [
+   "WURL",
+   "FX"
+  ],
+  "pageShortNames": [
+   [
+    "VOL",
+    "TREM",
+    "ATK",
+    "DCY",
+    "BGHT",
+    "DARK",
+    "BARK",
+    "REVB"
+   ],
+   [
+    "SPKR",
+    "TUNE"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 1
+ }
+}

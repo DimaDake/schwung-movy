@@ -76,11 +76,16 @@ the user must run it): stop `move-launcher`, pkill the schwung stack, start
 Run tests in this order at the end of every task:
 
 Run `npm run build:browser` first (refreshes `dist/esm`), then in order
-(or just `npm test`, which builds + runs all four):
+(or just `npm test`, which builds + runs all five):
 
 ```bash
 # 1. Local (always) — viewmodel/business logic assertions
 node browser-test/logic.mjs
+
+# 1a. Local (always) — replays all 76 dumped modules; asserts layout invariants
+#     + a per-module snapshot (browser-test/dump-expect.json). After an
+#     intentional layout change: node browser-test/dump-replay.mjs --update
+node browser-test/dump-replay.mjs
 
 # 1b. Local (always) — full init/tick/MIDI loop → setLED (drum grid, multi-step)
 node browser-test/app-loop.mjs

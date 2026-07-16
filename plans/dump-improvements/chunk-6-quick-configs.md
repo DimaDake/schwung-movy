@@ -1,5 +1,20 @@
 # Chunk 6 — Custom-config quick wins: chordism, sfz, 303, chiptune, mrdrums, hush1 (B3 + B4 + B5)
 
+> **IMPLEMENTED 2026-07-16.** Requirement corrections found against the dump
+> (the prompt below is left intact for context):
+> - **chord_pc_\* are 16-way chord-type ENUMs, not 0/1 hbar toggles.** The B3
+>   fix is reaching all 12 as enums (two Chord banks), not rendering toggles.
+> - **303 has no A/D/S/R quartet** (no `attack` param) → not env-tagged.
+> - **sfz preset count is 0 in the dump** (dynamic per instrument) → renders as
+>   an index, not a name browser; degenerate `knob_preset` (0..0) omitted.
+> - **hush1's LFO has no phase param**, so movy's shape+phase waveform viz can't
+>   engage; `lfo_waveform` is shown as a plain enum beside `lfo_rate`.
+> - Preset naming in configs uses the shared `buildPresetParam` path (option a).
+> - Envelope grouping is keyword-driven (correct Amp/Filter/Env labels), so no
+>   explicit `env:` tags are used.
+> - Enabling fix: config banks are padded to one knob page each (bank name was
+>   desyncing from params after any partial-row bank).
+
 Owns: new files in `src/modules/*.json` + registration lines in
 `src/modules/loader.ts`. Wave 1 (but chunk 7 also edits loader.ts —
 chunk 7 is scheduled after this one merges). Run `git -C movy pull`

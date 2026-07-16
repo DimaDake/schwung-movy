@@ -3586,6 +3586,36 @@ const P = (key, label, env) => ({ key, label, shortLabel: null, type: 'float',
     eq('env tag: one group', g.length, 1);
     eq('env tag: a index', g[0]?.a, 2);
 }
+// C5: noise suffix words (ms/time) ignored so *_ms keys still group (mrsample)
+{
+    const page = [ P('attack_ms','Attack'), P('decay_ms','Decay'),
+        P('sustain','Sustain'), P('release_ms','Release') ];
+    const g = detectEnvelopes(page);
+    eq('C5 ms-suffix: one group', g.length, 1);
+    eq('C5 ms-suffix: named Amp', g[0]?.name, 'Amp');
+}
+// C5: amp_/vca_ qualifier maps to the Amp group name (fizzik/osirus)
+{
+    const page = [ P('vca_attack','VCA Attack'), P('vca_decay','VCA Decay'),
+        P('vca_sustain','VCA Sustain'), P('vca_release','VCA Release') ];
+    const g = detectEnvelopes(page);
+    eq('C5 vca: one group', g.length, 1);
+    eq('C5 vca: named Amp', g[0]?.name, 'Amp');
+}
+// C5: env-qualified bare letters (env1 a/d/s/r) detect and name after the env
+{
+    const page = [ P('env1_a','Env1 A'), P('env1_d','Env1 D'),
+        P('env1_s','Env1 S'), P('env1_r','Env1 R') ];
+    const g = detectEnvelopes(page);
+    eq('C5 env1 bare: one group', g.length, 1);
+    eq('C5 env1 bare: named Env1', g[0]?.name, 'Env1');
+}
+// C5 guard: non-env bare letters (phase_r/pan_r/load_a) are NOT envelope roles
+{
+    const page = [ P('phase_r','Phase R'), P('pan_r','Pan R'),
+        P('load_a','Load A'), P('drive','Drive') ];
+    eq('C5 non-env bare letters: no group', detectEnvelopes(page).length, 0);
+}
 // Layout: amp ADSR on second row, others consolidated to first line
 {
     const page = [

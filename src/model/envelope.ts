@@ -12,13 +12,26 @@ const ROLE_WORDS: Record<EnvRole, string[]> = {
     r: ['release', 'rel', 'rls'],
 };
 const LETTER: Record<string, EnvRole> = { a: 'a', d: 'd', s: 's', r: 'r' };
+/* Unit/suffix noise words that carry no envelope identity: "attack_ms",
+ * "sustain_time" belong to the Amp group, not a group called "ms"/"time". */
+const NOISE = new Set(['ms', 'time', 'sec']);
+/* An env-cluster token ("env", "eg", "env1", "eg2") that licenses reading a
+ * bare a/d/s/r letter as a role — without it, letters like phase_r/pan_r/load_a
+ * would be misread as envelope stages. */
+const isEnvToken = (w: string) => /^(env|eg)[0-9]*$/.test(w);
 
 function words(text: string): string[] {
     return text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/).filter(Boolean);
 }
 
-/* Word/tag match → {role, qualifier}. Qualifier = the remaining words (the
- * envelope's identity, e.g. "f"/"filter"); '' for an unqualified set. */
+/* Qualifier = the words left after removing the role word at index `skip` and
+ * any unit-noise words. That remainder is the envelope's identity (e.g.
+ * "f"/"filter"/"env1"); '' for an unqualified set. */
+function qualifierFrom(ws: string[], skip: number): string {
+    return ws.filter((w, j) => j !== skip && !NOISE.has(w)).join(' ');
+}
+
+/* Word/tag match → {role, qualifier}. */
 function roleOf(p: KnobParam): { role: EnvRole; qualifier: string } | null {
     if (p.env) return { role: p.env, qualifier: '' };
     for (const text of [p.key, p.label]) {
@@ -26,8 +39,13 @@ function roleOf(p: KnobParam): { role: EnvRole; qualifier: string } | null {
         for (const role of ROLES) {
             for (const w of ROLE_WORDS[role]) {
                 const i = ws.indexOf(w);
-                if (i >= 0) return { role, qualifier: ws.filter((_, j) => j !== i).join(' ') };
+                if (i >= 0) return { role, qualifier: qualifierFrom(ws, i) };
             }
+        }
+        /* Bare a/d/s/r letter, but only when an env token names the cluster. */
+        if (ws.some(isEnvToken)) {
+            const j = ws.findIndex(w => LETTER[w] !== undefined);
+            if (j >= 0) return { role: LETTER[ws[j]], qualifier: qualifierFrom(ws, j) };
         }
     }
     return null;
@@ -36,7 +54,7 @@ function roleOf(p: KnobParam): { role: EnvRole; qualifier: string } | null {
 export interface EnvGroup { a: number; d: number; s: number; r: number; name: string }
 
 function qualName(q: string): string {
-    if (!q) return 'Amp';
+    if (!q || q === 'amp' || q === 'vca') return 'Amp';
     if (q === 'f' || q === 'flt' || q === 'filter') return 'Filter';
     return q.charAt(0).toUpperCase() + q.slice(1);
 }

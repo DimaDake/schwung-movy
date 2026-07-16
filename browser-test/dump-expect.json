@@ -2588,7 +2588,7 @@
     "GLIDE"
    ]
   ],
-  "envelopeLines": 0,
+  "envelopeLines": 1,
   "lfoViz": 0,
   "hidden": 0
  },
@@ -2653,7 +2653,7 @@
     "RELEA"
    ]
   ],
-  "envelopeLines": 0,
+  "envelopeLines": 1,
   "lfoViz": 0,
   "hidden": 4
  },
@@ -3147,12 +3147,12 @@
   ],
   "pageShortNames": [
    [
-    "SAMPL",
-    "START",
     "ATTAC",
     "DECAY",
     "SUSTA",
     "RELEA",
+    "SAMPL",
+    "START",
     "CUTOF",
     "RESON"
    ],
@@ -3192,7 +3192,7 @@
     "POLYP"
    ]
   ],
-  "envelopeLines": 0,
+  "envelopeLines": 2,
   "lfoViz": 0,
   "hidden": 0
  },

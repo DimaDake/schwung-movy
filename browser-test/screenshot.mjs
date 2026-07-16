@@ -33,7 +33,7 @@ const PRESETS = [
     'test8', 'test16', 'test_enum', 'plaits', 'wurl',
     'enum_overlay', 'knob_toast', 'no_params', 'keys_view', 'browse_view',
     'obxd_preset_page', 'obxd_main_page', 'obxd_filter_page',
-    'lfo_prefix',
+    'lfo_prefix', 'collide_osc',
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
     'chain_t2', 'chain_t4',
     'lfo_chain', 'lfo_lfo1', 'lfo_lfo2', 'lfo_target_overlay', 'lfo_viz_unipolar', 'lfo_viz_retrig',

@@ -505,6 +505,27 @@ export const MOCK_SYNTHS = {
         "synth:plugin_index": "3",
     },
 
+    /* C2: a page whose knob labels collide after 5-char shortening. "Wave 1..4"
+     * and "Shape 1..4" both used to render as bare digits (1 2 3 4 twice). */
+    collide_osc: {
+        "synth:name": "CollideOsc",
+        "synth:ui_hierarchy": JSON.stringify({ levels: { root: {
+            knobs: ["wave1","wave2","wave3","wave4","shape1","shape2","shape3","shape4"],
+        }}}),
+        "synth:chain_params": JSON.stringify([
+            { key: "wave1",  name: "Wave 1",  type: "float", min: 0, max: 1 },
+            { key: "wave2",  name: "Wave 2",  type: "float", min: 0, max: 1 },
+            { key: "wave3",  name: "Wave 3",  type: "float", min: 0, max: 1 },
+            { key: "wave4",  name: "Wave 4",  type: "float", min: 0, max: 1 },
+            { key: "shape1", name: "Shape 1", type: "float", min: 0, max: 1 },
+            { key: "shape2", name: "Shape 2", type: "float", min: 0, max: 1 },
+            { key: "shape3", name: "Shape 3", type: "float", min: 0, max: 1 },
+            { key: "shape4", name: "Shape 4", type: "float", min: 0, max: 1 },
+        ]),
+        ...Object.fromEntries(["wave1","wave2","wave3","wave4","shape1","shape2","shape3","shape4"]
+            .map(k => [`synth:${k}`, "0.50"])),
+    },
+
     /* No synth loaded — model falls back to fallback test params */
     no_params: {
         "synth:name": null,

@@ -6,6 +6,7 @@
  */
 
 import { createModel }    from '../dist/esm/model/index.js';
+import { dedupShortNames } from '../dist/esm/renderer/shorten.js';
 import { detectEnvelopes, planPageLayout } from '../dist/esm/model/envelope.js';
 import { enumRawToIndex, enumUsesIndex, enumSetValue } from '../dist/esm/model/enum-value.js';
 import { MOCK_SYNTHS }    from './mock-synth.mjs';
@@ -304,6 +305,113 @@ _log('\nTest: inferGuessedMeta pure helper (C4)');
     eq('infer: value 1 → no change',   inferGuessedMeta(base, '1'), null);
     eq('infer: value 0 → no change',   inferGuessedMeta(base, '0'), null);
     eq('infer: non-numeric → no change', inferGuessedMeta(base, 'abc'), null);
+}
+
+/* ── C2: on-screen short-name dedup ──────────────────────────────────────── */
+
+_log('\nTest: dedupShortNames — collisions resolved to unique names');
+
+function dedup(labels) {
+    return dedupShortNames(labels.map(l => ({ label: l, shortLabel: null })), 5);
+}
+function assertUnique(tag, labels, names) {
+    // Two names may match only if their labels are identical.
+    const seen = new Map();
+    let dup = null;
+    names.forEach((n, i) => {
+        if (seen.has(n) && seen.get(n) !== labels[i]) dup = `${n} (${labels[i]} vs ${seen.get(n)})`;
+        seen.set(n, labels[i]);
+    });
+    eq(`${tag}: all shortNames unique`, dup, null);
+    eq(`${tag}: all ≤ 5 chars`, names.every(n => n.length <= 5 && n.length > 0), true);
+}
+
+{
+    // chordism Oscillators — the headline bug: "Wave/Shape 1..4" → bare digits.
+    const osc = ["Wave 1","Wave 2","Wave 3","Wave 4","Shape 1","Shape 2","Shape 3","Shape 4"];
+    const n = dedup(osc);
+    assertUnique('osc', osc, n);
+    eq('osc: Wave 1 → WAVE1', n[0], 'WAVE1');
+    eq('osc: Wave 4 → WAVE4', n[3], 'WAVE4');
+    eq('osc: Shape 1 → SHAP1', n[4], 'SHAP1');
+    eq('osc: Shape 3 → SHAP3', n[6], 'SHAP3');
+}
+{
+    // chordism Delay — persisting collisions after one strip (TONE, MOD).
+    const delay = ["Delay Mix","Delay Time","Delay Feedback","Delay Tone Hi",
+                   "Delay Tone Lo","Delay Mode","Delay Mod Rate","Delay Mod Depth"];
+    const n = dedup(delay);
+    assertUnique('delay', delay, n);
+    eq('delay: Tone Hi → TONHI', n[3], 'TONHI');
+    eq('delay: Tone Lo → TONLO', n[4], 'TONLO');
+    eq('delay: Mod Rate → RATE',  n[6], 'RATE');
+    eq('delay: Mod Depth → DEPTH', n[7], 'DEPTH');
+}
+{
+    // chordism Ctrl Src — deep prefix ("Ctrl to ...") + a ≤2 tail ("FM").
+    const ctrl = ["Ctrl Src","Ctrl CC","Ctrl to Cutoff","Ctrl to Morph",
+                  "Ctrl to Vibrato","Ctrl to Shape","Ctrl to FM"];
+    const n = dedup(ctrl);
+    assertUnique('ctrl', ctrl, n);
+    eq('ctrl: to Cutoff → CUTOF', n[2], 'CUTOF');
+    // "Ctrl to FM" already shortens to a unique "TO FM" — a non-colliding name,
+    // so it must be left unchanged (per the no-baseline-shift rule).
+    eq('ctrl: to FM → TO FM',     n[6], 'TO FM');
+}
+{
+    // chordism Morph — a 4-way MORPH collision with no shared leading word.
+    const morph = ["Morph","Morph Int","Lvl Morph LFO Rate","Lvl Morph LFO Depth",
+                   "Pan Morph","Pan Int","Pan Morph LFO Rate","Pan Morph LFO Depth"];
+    const n = dedup(morph);
+    assertUnique('morph', morph, n);
+    eq('morph: plain Morph → MORPH', n[0], 'MORPH');
+}
+{
+    // surge Amp Envelope — DECAY vs DECAY SHAPE.
+    const amp = ["Amp EG Attack","Amp EG Decay","Amp EG Sustain","Amp EG Release",
+                 "Amp EG Attack Shape","Amp EG Decay Shape","Amp EG Release Shape","Amp EG Envelope Mode"];
+    const n = dedup(amp);
+    assertUnique('amp', amp, n);
+    eq('amp: Decay → DECAY',       n[1], 'DECAY');
+    eq('amp: Decay Shape → SHAPE', n[5], 'SHAPE');
+}
+{
+    // surge Oscillator 1 — WIDTH 1/2 with a deep common prefix.
+    const surgeOsc = ["Osc 1 Type","Osc 1 Pitch","Osc 1 Shape","Osc 1 Width 1",
+                      "Osc 1 Width 2","Osc 1 Sub Mix","Osc 1 Sync","Osc 1 Unison Detune"];
+    const n = dedup(surgeOsc);
+    assertUnique('surgeOsc', surgeOsc, n);
+    eq('surgeOsc: Width 1 → WIDT1', n[3], 'WIDT1');
+    eq('surgeOsc: Width 2 → WIDT2', n[4], 'WIDT2');
+}
+{
+    // palette Main — AMOUNT/MACRO ×4 with a distinguishing "FXn" head word.
+    const pal = ["FX1 Amount","FX1 Macro","FX2 Amount","FX2 Macro",
+                 "FX3 Amount","FX3 Macro","FX4 Amount","FX4 Macro"];
+    assertUnique('palette', pal, dedup(pal));
+}
+{
+    // Explicit shortLabels are never altered, even when they collide.
+    const entries = [
+        { label: "Foo Bar", shortLabel: "SAME" },
+        { label: "Baz Qux", shortLabel: "SAME" },
+    ];
+    const n = dedupShortNames(entries, 5);
+    eq('explicit shortLabels preserved', JSON.stringify(n), JSON.stringify(["SAME", "SAME"]));
+}
+{
+    // Non-colliding labels keep their plain autoShorten form.
+    const plain = ["Cutoff", "Reso", "Drive", "Volume"];
+    eq('non-colliding unchanged', JSON.stringify(dedup(plain)),
+        JSON.stringify(["CUTOF", "RESO", "DRIVE", "VOLUM"]));
+}
+
+_log('\nTest: colliding page renders unique shortNames through the model');
+{
+    const vm = bootModel(MOCK_SYNTHS.collide_osc).getViewModel();
+    const names = vm.rows.flat().filter(Boolean).map(c => c.shortName);
+    eq('collide_osc: 8 knobs shown', names.length, 8);
+    eq('collide_osc: all shortNames unique', new Set(names).size, 8);
 }
 
 /* ── isEmpty flag ─────────────────────────────────────────────────────────── */

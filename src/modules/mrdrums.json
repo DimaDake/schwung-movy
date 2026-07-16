@@ -37,6 +37,12 @@
           { "key": "pad_rand_vol_amt",   "short": "RNDVL", "full": "Rnd Vol",   "type": "float", "min": 0, "max": 1 },
           { "key": "pad_rand_decay_amt", "short": "RNDDC", "full": "Rnd Decay", "type": "float", "min": 0, "max": 1 },
           { "key": "pad_chance_pct",     "short": "CHNCE", "full": "Chance",    "type": "float", "min": 0, "max": 100 }
+        ],
+        [
+          { "key": "pad_choke_group",    "short": "CHOKE", "full": "Choke Group", "type": "int", "min": 0, "max": 16 },
+          null,
+          null,
+          null
         ]
       ]
     },

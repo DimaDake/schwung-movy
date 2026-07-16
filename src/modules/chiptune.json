@@ -1,0 +1,51 @@
+{
+  "id": "chiptune",
+  "name": "Chiptune",
+  "banks": [
+    {
+      "name": "Env",
+      "rows": [
+        [
+          { "key": "env_attack",  "short": "ATTK",  "full": "Attack",  "type": "int" },
+          { "key": "env_decay",   "short": "DECAY", "full": "Decay",   "type": "int" },
+          { "key": "env_sustain", "short": "SUST",  "full": "Sustain", "type": "int" },
+          { "key": "env_release", "short": "REL",   "full": "Release", "type": "int" }
+        ],
+        [
+          { "key": "duty",             "short": "DUTY",  "full": "Duty",     "type": "int" },
+          { "key": "volume",           "short": "VOL",   "full": "Volume",   "type": "int" },
+          { "key": "detune",           "short": "DTUNE", "full": "Detune",   "type": "int" },
+          { "key": "octave_transpose", "short": "OCT",   "full": "Octave",   "type": "int" }
+        ]
+      ]
+    },
+    {
+      "name": "Chip",
+      "rows": [
+        [
+          { "key": "chip",         "short": "CHIP",  "full": "Chip",       "type": "enum", "options": ["NES", "GB"] },
+          { "key": "alloc_mode",   "short": "ALLOC", "full": "Alloc Mode", "type": "enum", "options": ["Auto", "Lead", "Locked"] },
+          { "key": "noise_mode",   "short": "NOISE", "full": "Noise Mode", "type": "enum", "options": ["Long", "Short"] },
+          { "key": "wavetable",    "short": "WTBL",  "full": "Wavetable",  "type": "int" }
+        ],
+        [
+          { "key": "sweep",         "short": "SWEEP", "full": "Sweep",        "type": "int" },
+          { "key": "channel_mask",  "short": "CHMSK", "full": "Channel Mask", "type": "int" },
+          { "key": "vibrato_depth", "short": "VIBD",  "full": "Vibrato Depth","type": "int" },
+          { "key": "vibrato_rate",  "short": "VIBR",  "full": "Vibrato Rate", "type": "int" }
+        ]
+      ]
+    },
+    {
+      "name": "Pitch",
+      "rows": [
+        [
+          { "key": "pitch_env_depth", "short": "PENVD", "full": "Pitch Env Depth", "type": "int" },
+          { "key": "pitch_env_speed", "short": "PENVS", "full": "Pitch Env Speed", "type": "int" },
+          { "key": "preset",          "short": "PRSET", "full": "Preset",          "type": "enum", "render": "preset" },
+          null
+        ]
+      ]
+    }
+  ]
+}

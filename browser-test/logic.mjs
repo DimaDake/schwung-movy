@@ -657,10 +657,10 @@ const MRDRUMS_PRESET = {
 };
 const TRACK_PRESETS = '/data/UserData/UserLibrary/Track Presets';
 
-/* Navigate to the preset knob (custom-config bank flattening puts ui_preset_path
- * at global index 16 → page 2, physical slot 0) and touch it. */
+/* Navigate to the preset knob. Each config bank owns one full page, so
+ * ui_preset_path sits at physical slot 0 of the last bank (Preset). */
 function touchMrdrumsPreset(m) {
-  m.changePage(1); m.changePage(1);  // clamps to the last page holding the preset
+  m.changePage(m.getBankCount());  // clamps to the last page (Preset bank)
   m.handleKnobTouch(0);
 }
 
@@ -4127,6 +4127,132 @@ _log('\nTest: dumpLayout exposes banks + raw params');
     eq('dumpLayout: generic path 8 params', d.params.filter(Boolean).length, 8);
     eq('dumpLayout: generic bank count matches model', d.banks.length, m.getBankCount());
     eq('dumpLayout: generic params = banks × 8', d.params.length, d.banks.length * 8);
+}
+
+/* ── Chunk-6 custom configs: chordism, sfz, 303, chiptune, hush1 ──────────── */
+
+_log('\nTest: chunk-6 module configs (chordism/sfz/303/chiptune/hush1)');
+{
+    const { detectEnvelopes } = await import('../dist/esm/model/envelope.js');
+
+    const layout = (id) => bootModel(MOCK_SYNTHS[id]).dumpLayout();
+    const byKey  = (d, k) => d.params.find(p => p && p.key === k);
+    const idxOf  = (d, k) => d.params.findIndex(p => p && p.key === k);
+
+    // Every page's on-screen short names must be unique (the dump flagged
+    // duplicate "1/2/3/4" and "TO" collisions on the auto layout).
+    const noDupShorts = (id) => {
+        const m = bootModel(MOCK_SYNTHS[id]);
+        const n = m.getBankCount();
+        for (let b = 0; b < n; b++) {
+            m.changePage(b - m.getKnobPage());
+            const names = m.getViewModel().rows.flat().filter(Boolean).map(c => c.shortName);
+            if (new Set(names).size !== names.length) return `bank ${b}: ${names.join(',')}`;
+        }
+        return null;
+    };
+
+    // Bank counts
+    eq('chordism: 17 banks', layout('chordism').banks.length, 17);
+    eq('sfz: 3 banks',       layout('sfz').banks.length,      3);
+    eq('303: 3 banks',       layout('303').banks.length,      3);
+    eq('chiptune: 3 banks',  layout('chiptune').banks.length, 3);
+    eq('hush1: 7 banks',     layout('hush1').banks.length,    7);
+
+    // chordism B3 fix: all four top pitch classes reachable, as 16-way enums.
+    {
+        const d = layout('chordism');
+        for (const k of ['chord_pc_8', 'chord_pc_9', 'chord_pc_10', 'chord_pc_11']) {
+            const p = byKey(d, k);
+            eq(`chordism: ${k} reachable`, !!p, true);
+            eq(`chordism: ${k} is enum`, p?.type, 'enum');
+            eq(`chordism: ${k} has 16 options`, p?.options?.length, 16);
+        }
+        // Restored hidden params (a representative sample of the plan's list).
+        for (const k of ['detune', 'chord_spread', 'chord_rotation', 'fm_modulator',
+                         'fm_amount', 'filter_lfo_rate', 'vib_delay', 'delay_tone',
+                         'glide_legato', 'lfo_phase_1', 'sweep_rate']) {
+            eq(`chordism: restored ${k}`, !!byKey(d, k), true);
+        }
+        // Named preset knob (option-a shared path), not a bare index.
+        const pre = d.params.find(p => p && p.renderStyle === 'preset');
+        eq('chordism: preset renders as preset', !!pre, true);
+        eq('chordism: preset has names', Array.isArray(pre?.options), true);
+        eq('chordism: preset spans 57 entries (max 56)', pre?.max, 56);
+    }
+
+    // sfz B4: named params + ADSR envelope + adjacent cutoff/reso.
+    {
+        const d = layout('sfz');
+        const envs = detectEnvelopes(d.params.slice(0, 8));
+        eq('sfz: amp envelope detected', envs.length >= 1, true);
+        eq('sfz: envelope named Amp', envs[0]?.name, 'Amp');
+        eq('sfz: cutoff+reso adjacent', idxOf(d, 'reso') - idxOf(d, 'cutoff'), 1);
+        eq('sfz: voices is int', byKey(d, 'voices')?.type, 'int');
+        eq('sfz: gain max=2', byKey(d, 'gain')?.max, 2);
+        // count=0 in the dump → preset degrades to an indexed knob (no names).
+        const pre = d.params.find(p => p && p.renderStyle === 'preset');
+        eq('sfz: preset present', !!pre, true);
+        eq('sfz: preset has no names (indexed)', pre?.options, null);
+        eq('sfz: knob_preset (degenerate 0..0) omitted', !!byKey(d, 'knob_preset'), false);
+    }
+
+    // 303 B5: waveform enum surfaced; no forced ADSR (303 has no A/D/S/R quartet).
+    {
+        const d = layout('303');
+        eq('303: waveform is enum', byKey(d, 'waveform')?.type, 'enum');
+        eq('303: waveform options Saw/Square',
+            JSON.stringify(byKey(d, 'waveform')?.options), JSON.stringify(['Saw', 'Square']));
+        eq('303: drive_model reachable', !!byKey(d, 'drive_model'), true);
+        eq('303: devil_mod_switch reachable', !!byKey(d, 'devil_mod_switch'), true);
+        eq('303: cutoff+reso adjacent', idxOf(d, 'resonance') - idxOf(d, 'cutoff'), 1);
+        let envCount = 0;
+        for (let b = 0; b < d.banks.length; b++) envCount += detectEnvelopes(d.params.slice(b * 8, b * 8 + 8)).length;
+        eq('303: no envelope graphic forced', envCount, 0);
+    }
+
+    // chiptune B5: all hidden surfaced, int ADSR detected, named preset.
+    {
+        const d = layout('chiptune');
+        for (const k of ['chip', 'alloc_mode', 'noise_mode', 'sweep', 'wavetable',
+                         'channel_mask', 'detune', 'octave_transpose',
+                         'pitch_env_depth', 'pitch_env_speed']) {
+            eq(`chiptune: ${k} reachable`, !!byKey(d, k), true);
+        }
+        eq('chiptune: env detected', detectEnvelopes(d.params.slice(0, 8)).length, 1);
+        const pre = d.params.find(p => p && p.renderStyle === 'preset');
+        eq('chiptune: named preset (32)', pre?.max, 31);
+        eq('chiptune: preset has names', Array.isArray(pre?.options), true);
+    }
+
+    // hush1 B5: dual Amp+Filter envelopes, lfo_waveform adjacent to lfo_rate.
+    {
+        const d = layout('hush1');
+        const filtEnv = detectEnvelopes(d.params.slice(16, 24));  // bank 2 = Filter
+        const ampEnv  = detectEnvelopes(d.params.slice(24, 32));  // bank 3 = Amp Env
+        eq('hush1: filter envelope named Filter', filtEnv[0]?.name, 'Filter');
+        eq('hush1: amp envelope named Amp', ampEnv[0]?.name, 'Amp');
+        eq('hush1: lfo_waveform adjacent to lfo_rate', idxOf(d, 'lfo_waveform') - idxOf(d, 'lfo_rate'), 1);
+        eq('hush1: lfo_waveform is enum', byKey(d, 'lfo_waveform')?.type, 'enum');
+        for (const k of ['pulse_width', 'pwm_mode', 'sub_mode', 'white_noise',
+                         'bend_range', 'lfo_sync', 'retrigger', 'hold']) {
+            eq(`hush1: ${k} reachable`, !!byKey(d, k), true);
+        }
+        const pre = d.params.find(p => p && p.renderStyle === 'preset');
+        eq('hush1: named preset (11)', pre?.max, 10);
+    }
+
+    // mrdrums B5: pad-scoped choke group added.
+    {
+        const d = bootModel({ 'synth:name': 'MrDrums', 'synth_module': 'mrdrums' }).dumpLayout();
+        eq('mrdrums: pad_choke_group added', !!byKey(d, 'pad_choke_group'), true);
+        eq('mrdrums: choke group is int 0..16', byKey(d, 'pad_choke_group')?.max, 16);
+    }
+
+    // No duplicate on-screen short names on any page of any chunk-6 module.
+    for (const id of ['chordism', 'sfz', '303', 'chiptune', 'hush1']) {
+        eq(`${id}: no duplicate shortNames per page`, noDupShorts(id), null);
+    }
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

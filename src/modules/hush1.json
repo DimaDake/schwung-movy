@@ -1,0 +1,125 @@
+{
+  "id": "hush1",
+  "name": "Hush1",
+  "banks": [
+    {
+      "name": "Osc",
+      "rows": [
+        [
+          { "key": "volume", "short": "VOL",   "full": "Volume", "type": "float" },
+          { "key": "saw",    "short": "SAW",   "full": "Saw",    "type": "float" },
+          { "key": "pulse",  "short": "PULSE", "full": "Pulse",  "type": "float" },
+          { "key": "sub",    "short": "SUB",   "full": "Sub",    "type": "float" }
+        ],
+        [
+          { "key": "noise",       "short": "NOISE", "full": "Noise",       "type": "float" },
+          { "key": "sub_mode",    "short": "SUBMD", "full": "Sub Mode",    "type": "enum", "options": ["-2 Oct 50% PW", "-2 Oct", "-1 Oct"] },
+          { "key": "white_noise", "short": "WNOIS", "full": "White Noise", "type": "enum", "options": ["Off", "On"] },
+          { "key": "pulse_width", "short": "PW",    "full": "Pulse Width", "type": "float" }
+        ]
+      ]
+    },
+    {
+      "name": "PWM",
+      "rows": [
+        [
+          { "key": "pwm_mode",      "short": "PWMMD", "full": "PWM Mode",      "type": "enum", "options": ["Env", "Manual", "LFO"] },
+          { "key": "pwm_depth",     "short": "PWMD",  "full": "PWM Depth",     "type": "float" },
+          { "key": "pwm_env_depth", "short": "PWMEV", "full": "PWM Env Depth", "type": "float" },
+          { "key": "bend_range",    "short": "BEND",  "full": "Bend Range",    "type": "float" }
+        ],
+        [
+          { "key": "fine_tune",        "short": "FINE",  "full": "Fine Tune", "type": "float" },
+          { "key": "transpose",        "short": "TRANS", "full": "Transpose", "type": "int" },
+          { "key": "octave_transpose", "short": "OCT",   "full": "Octave",    "type": "int" },
+          { "key": "glide",            "short": "GLIDE", "full": "Glide",     "type": "float" }
+        ]
+      ]
+    },
+    {
+      "name": "Filter",
+      "rows": [
+        [
+          { "key": "cutoff",     "short": "CUTOF", "full": "Cutoff",     "type": "float" },
+          { "key": "resonance",  "short": "RESO",  "full": "Resonance",  "type": "float" },
+          { "key": "env_amt",    "short": "ENVAM", "full": "Env Amount", "type": "float" },
+          { "key": "key_follow", "short": "KEYFL", "full": "Key Follow", "type": "float" }
+        ],
+        [
+          { "key": "f_attack",  "short": "FATK", "full": "Filter Attack",  "type": "float" },
+          { "key": "f_decay",   "short": "FDEC", "full": "Filter Decay",   "type": "float" },
+          { "key": "f_sustain", "short": "FSUS", "full": "Filter Sustain", "type": "float" },
+          { "key": "f_release", "short": "FREL", "full": "Filter Release", "type": "float" }
+        ]
+      ]
+    },
+    {
+      "name": "Amp Env",
+      "rows": [
+        [
+          { "key": "attack",  "short": "ATTK",  "full": "Attack",  "type": "float" },
+          { "key": "decay",   "short": "DECAY", "full": "Decay",   "type": "float" },
+          { "key": "sustain", "short": "SUST",  "full": "Sustain", "type": "float" },
+          { "key": "release", "short": "REL",   "full": "Release", "type": "float" }
+        ],
+        [
+          { "key": "velocity_sens",        "short": "VELSN", "full": "Velocity Sens",     "type": "float" },
+          { "key": "adsr_declick",         "short": "DECLK", "full": "ADSR Declick",      "type": "float" },
+          { "key": "vca_mode",             "short": "VCA",   "full": "VCA Mode",          "type": "enum", "options": ["Gate", "Envelope"] },
+          { "key": "filter_velocity_sens", "short": "FVELS", "full": "Filter Vel Sens",   "type": "float" }
+        ]
+      ]
+    },
+    {
+      "name": "LFO",
+      "rows": [
+        [
+          { "key": "lfo_rate",     "short": "RATE",  "full": "LFO Rate",     "type": "float" },
+          { "key": "lfo_waveform", "short": "WAVE",  "full": "LFO Waveform", "type": "enum", "options": ["Tri", "Rect", "Random", "Noise"] },
+          { "key": "lfo_trigger",  "short": "TRIG",  "full": "LFO Trigger",  "type": "enum", "options": ["Free", "Retrig"] },
+          { "key": "lfo_sync",     "short": "SYNC",  "full": "LFO Sync",     "type": "enum", "options": ["Free", "Sync"] }
+        ],
+        [
+          { "key": "lfo_pitch",  "short": "LPTCH", "full": "LFO to Pitch",  "type": "float" },
+          { "key": "lfo_filter", "short": "LFILT", "full": "LFO to Filter", "type": "float" },
+          { "key": "lfo_pwm",    "short": "LPWM",  "full": "LFO to PWM",    "type": "float" },
+          { "key": "lfo_invert", "short": "INV",   "full": "LFO Invert",    "type": "enum", "options": ["Off", "On"] }
+        ]
+      ]
+    },
+    {
+      "name": "Perf",
+      "rows": [
+        [
+          { "key": "lfo_pitch_snap",   "short": "SNAP",  "full": "LFO Pitch Snap", "type": "enum", "options": ["Off", "On"] },
+          { "key": "portamento_mode",  "short": "PORTA", "full": "Portamento",     "type": "enum", "options": ["Off", "On", "Auto"] },
+          { "key": "portamento_linear","short": "PLIN",  "full": "Porta Curve",    "type": "enum", "options": ["Expo", "Linear"] },
+          { "key": "retrigger",        "short": "RETRG", "full": "Retrigger",      "type": "enum", "options": ["Legato", "Trig"] }
+        ],
+        [
+          { "key": "hold",           "short": "HOLD",  "full": "Hold",          "type": "enum", "options": ["Off", "On"] },
+          { "key": "gate_trig_mode", "short": "GATE",  "full": "Gate/Trig",     "type": "enum", "options": ["Gate", "Gate+Trig", "LFO"] },
+          { "key": "priority",       "short": "PRIO",  "full": "Note Priority", "type": "enum", "options": ["Last", "Low"] },
+          { "key": "velocity_mode",  "short": "VELMD", "full": "Velocity Mode", "type": "enum", "options": ["Off", "Trigger", "Active"] }
+        ]
+      ]
+    },
+    {
+      "name": "Advanced",
+      "rows": [
+        [
+          { "key": "same_note_quirk",         "short": "QUIRK", "full": "Same Note Quirk", "type": "enum", "options": ["Off", "On"] },
+          { "key": "filter_env_full_range",   "short": "FRANG", "full": "Filt Env Range",  "type": "enum", "options": ["Off", "On"] },
+          { "key": "filter_env_polarity",     "short": "FPOL",  "full": "Filt Env Polarity","type": "enum", "options": ["Positive", "Negative"] },
+          { "key": "filter_volume_correction","short": "FVCOR", "full": "Filt Vol Corr",   "type": "float" }
+        ],
+        [
+          { "key": "preset", "short": "PRSET", "full": "Preset", "type": "enum", "render": "preset" },
+          null,
+          null,
+          null
+        ]
+      ]
+    }
+  ]
+}

@@ -110,6 +110,16 @@ modules like *Branchage*, *Smack-in* and *Belt-in* to life). When a parameter
 also ships no range information, Movy shows a best-guess control and refines it
 (for example to a whole-number range) the first time it reads the real value.
 
+**Curated layouts.** A few modules get a hand-tuned page layout so their controls
+are grouped and named clearly, and so useful parameters the automatic layout
+would hide become reachable. These include *Plaits*, *Wurl*, *Chordism*, *SFZ*,
+*303*, *Chiptune* and *Hush1* (plus the drum modules). For instance, Chordism's
+**Chord Multi** mode now reaches **all twelve** pitch classes — the automatic
+layout could only expose the lower eight, so chords using the top four notes
+(G♯, A, A♯, B) were previously impossible to build:
+
+  ![Chordism Chord Multi](docs/assets/chordism-chordb.png)
+
 Turning a knob edits the parameter live. Touching a knob (without turning) shows
 its exact value at the top of the screen.
 

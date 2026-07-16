@@ -1,0 +1,51 @@
+{
+  "id": "303",
+  "name": "303",
+  "banks": [
+    {
+      "name": "Main",
+      "rows": [
+        [
+          { "key": "cutoff",    "short": "CUTOF", "full": "Cutoff",    "type": "float" },
+          { "key": "resonance", "short": "RESO",  "full": "Resonance", "type": "float" },
+          { "key": "env_mod",   "short": "ENVMD", "full": "Env Mod",   "type": "float" },
+          { "key": "decay",     "short": "DECAY", "full": "Decay",     "type": "float" }
+        ],
+        [
+          { "key": "accent",    "short": "ACCNT", "full": "Accent",    "type": "float" },
+          { "key": "waveform",  "short": "WAVE",  "full": "Waveform",  "type": "enum", "options": ["Saw", "Square"] },
+          { "key": "tuning",    "short": "TUNE",  "full": "Tuning",    "type": "float" },
+          { "key": "volume",    "short": "VOL",   "full": "Volume",    "type": "float" }
+        ]
+      ]
+    },
+    {
+      "name": "Shape",
+      "rows": [
+        [
+          { "key": "soft_attack",      "short": "SATK",  "full": "Soft Attack",  "type": "float" },
+          { "key": "normal_decay",     "short": "NDEC",  "full": "Normal Decay", "type": "float" },
+          { "key": "accent_decay",     "short": "ADEC",  "full": "Accent Decay", "type": "float" },
+          { "key": "slide_time",       "short": "SLIDE", "full": "Slide Time",   "type": "float" }
+        ],
+        [
+          { "key": "feedback_hpf",     "short": "FBHPF", "full": "Feedback HPF", "type": "float" },
+          { "key": "devil_mod_switch", "short": "DEVIL", "full": "Devil Mod",    "type": "enum", "options": ["Off", "On"] },
+          null,
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Drive",
+      "rows": [
+        [
+          { "key": "drive_model",       "short": "MODEL", "full": "Drive Model", "type": "enum", "options": ["Soft", "RAT"] },
+          { "key": "drive",             "short": "DRIVE", "full": "Drive",       "type": "float" },
+          { "key": "drive_mix",         "short": "MIX",   "full": "Drive Mix",   "type": "float" },
+          { "key": "tanh_shaper_drive", "short": "TANH",  "full": "Tanh Drive",  "type": "float" }
+        ]
+      ]
+    }
+  ]
+}

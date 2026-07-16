@@ -596,7 +596,8 @@ _log('\napp-loop: full-screen file browser exits cleanly');
 
     // Gesture: chain→knobs, jog to the Preset page, hold preset knob, jog-click.
     sendMidi([0xB0, 3, 127]); advance(1);            // jog-click: VIEW_CHAIN → VIEW_KNOBS
-    sendMidi([0xB0, 14, 1]); sendMidi([0xB0, 14, 1]); advance(1);  // → Preset page
+    // Each config bank is one page; Preset is the last of 4 (Main/Rand/Global/Preset).
+    sendMidi([0xB0, 14, 1]); sendMidi([0xB0, 14, 1]); sendMidi([0xB0, 14, 1]); advance(1);  // → Preset page
     sendMidi([0x90, 0, 127]);                         // touch preset knob 0
     sendMidi([0xB0, 3, 127]);                         // jog-click → open full browser
 

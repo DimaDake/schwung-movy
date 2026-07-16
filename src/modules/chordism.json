@@ -1,0 +1,285 @@
+{
+  "id": "chordism",
+  "name": "Chordism",
+  "banks": [
+    {
+      "name": "Preset",
+      "rows": [
+        [
+          { "key": "preset", "short": "PRSET", "full": "Preset", "type": "enum", "render": "preset" },
+          null, null, null
+        ]
+      ]
+    },
+    {
+      "name": "Main",
+      "rows": [
+        [
+          { "key": "chord_type",       "short": "CHORD", "full": "Chord Type", "type": "enum" },
+          { "key": "width",            "short": "WIDTH", "full": "Width",      "type": "float" },
+          { "key": "filter_cutoff",    "short": "CUTOF", "full": "Cutoff",     "type": "float" },
+          { "key": "filter_resonance", "short": "RESO",  "full": "Resonance",  "type": "float" }
+        ],
+        [
+          { "key": "drive",  "short": "DRIVE", "full": "Drive",  "type": "float" },
+          { "key": "shape",  "short": "SHAPE", "full": "Shape",  "type": "float" },
+          { "key": "detune", "short": "DETUN", "full": "Detune", "type": "float" },
+          { "key": "volume", "short": "VOL",   "full": "Volume", "type": "float" }
+        ]
+      ]
+    },
+    {
+      "name": "Osc Wave",
+      "rows": [
+        [
+          { "key": "wave_1", "short": "WAV1", "full": "Wave 1", "type": "enum" },
+          { "key": "wave_2", "short": "WAV2", "full": "Wave 2", "type": "enum" },
+          { "key": "wave_3", "short": "WAV3", "full": "Wave 3", "type": "enum" },
+          { "key": "wave_4", "short": "WAV4", "full": "Wave 4", "type": "enum" }
+        ],
+        [
+          { "key": "shape_1", "short": "SHP1", "full": "Shape 1", "type": "float" },
+          { "key": "shape_2", "short": "SHP2", "full": "Shape 2", "type": "float" },
+          { "key": "shape_3", "short": "SHP3", "full": "Shape 3", "type": "float" },
+          { "key": "shape_4", "short": "SHP4", "full": "Shape 4", "type": "float" }
+        ]
+      ]
+    },
+    {
+      "name": "Filter",
+      "rows": [
+        [
+          { "key": "filter_cutoff",    "short": "CUTOF", "full": "Cutoff",    "type": "float" },
+          { "key": "filter_resonance", "short": "RESO",  "full": "Resonance", "type": "float" },
+          { "key": "filter_mode",      "short": "MODE",  "full": "Mode",      "type": "enum" },
+          { "key": "filter_slope",     "short": "SLOPE", "full": "Slope",     "type": "enum" }
+        ],
+        [
+          { "key": "filter_env_attack", "short": "FEATK", "full": "Env Attack", "type": "float" },
+          { "key": "filter_env_decay",  "short": "FEDEC", "full": "Env Decay",  "type": "float" },
+          { "key": "filter_env_depth",  "short": "FEDPT", "full": "Env Depth",  "type": "float" },
+          { "key": "fenv_mode",         "short": "FEMOD", "full": "Env Mode",   "type": "enum" }
+        ]
+      ]
+    },
+    {
+      "name": "Flt LFO",
+      "rows": [
+        [
+          { "key": "filter_lfo_rate",   "short": "RATE",  "full": "Rate",   "type": "float" },
+          { "key": "filter_lfo_depth",  "short": "DEPTH", "full": "Depth",  "type": "float" },
+          { "key": "filter_lfo_shape",  "short": "SHAPE", "full": "Shape",  "type": "enum" },
+          { "key": "filter_lfo_spread", "short": "SPRD",  "full": "Spread", "type": "float" }
+        ],
+        [
+          { "key": "filter_lfo_mode", "short": "MODE", "full": "Mode", "type": "enum" },
+          null, null, null
+        ]
+      ]
+    },
+    {
+      "name": "Vibrato",
+      "rows": [
+        [
+          { "key": "lfo_shape", "short": "SHAPE", "full": "LFO Shape", "type": "enum" },
+          { "key": "lfo_rate",  "short": "RATE",  "full": "LFO Rate",  "type": "float" },
+          { "key": "lfo_depth", "short": "DEPTH", "full": "LFO Depth", "type": "float" },
+          { "key": "vib_depth", "short": "VIBD",  "full": "Vib Depth", "type": "float" }
+        ],
+        [
+          { "key": "vib_speed",    "short": "VIBS",  "full": "Vib Speed",  "type": "float" },
+          { "key": "vib_delay",    "short": "VIBDL", "full": "Vib Delay",  "type": "float" },
+          { "key": "vib_stray",    "short": "STRAY", "full": "Vib Stray",  "type": "enum" },
+          { "key": "sweep_amount", "short": "SWEEP", "full": "Sweep Amt",  "type": "float" }
+        ]
+      ]
+    },
+    {
+      "name": "Amp",
+      "rows": [
+        [
+          { "key": "attack",   "short": "ATTK",  "full": "Attack",   "type": "float" },
+          { "key": "release",  "short": "REL",   "full": "Release",  "type": "float" },
+          { "key": "volume",   "short": "VOL",   "full": "Volume",   "type": "float" },
+          { "key": "vca_mode", "short": "VCA",   "full": "VCA Mode", "type": "enum" }
+        ],
+        [
+          { "key": "vca_hard_reset", "short": "HARD",  "full": "Hard Reset",  "type": "enum" },
+          { "key": "vca_drone",      "short": "DRONE", "full": "Drone",       "type": "enum" },
+          { "key": "glide_rate",     "short": "GLIDE", "full": "Glide Rate",  "type": "float" },
+          { "key": "glide_legato",   "short": "LEGTO", "full": "Glide Legato","type": "enum" }
+        ]
+      ]
+    },
+    {
+      "name": "Chord A",
+      "rows": [
+        [
+          { "key": "chord_pc_0", "short": "C",  "full": "Chord C",  "type": "enum" },
+          { "key": "chord_pc_1", "short": "C#", "full": "Chord C#", "type": "enum" },
+          { "key": "chord_pc_2", "short": "D",  "full": "Chord D",  "type": "enum" },
+          { "key": "chord_pc_3", "short": "D#", "full": "Chord D#", "type": "enum" }
+        ],
+        [
+          { "key": "chord_pc_4", "short": "E",  "full": "Chord E",  "type": "enum" },
+          { "key": "chord_pc_5", "short": "F",  "full": "Chord F",  "type": "enum" },
+          { "key": "chord_pc_6", "short": "F#", "full": "Chord F#", "type": "enum" },
+          { "key": "chord_pc_7", "short": "G",  "full": "Chord G",  "type": "enum" }
+        ]
+      ]
+    },
+    {
+      "name": "Chord B",
+      "rows": [
+        [
+          { "key": "chord_pc_8",  "short": "G#", "full": "Chord G#", "type": "enum" },
+          { "key": "chord_pc_9",  "short": "A",  "full": "Chord A",  "type": "enum" },
+          { "key": "chord_pc_10", "short": "A#", "full": "Chord A#", "type": "enum" },
+          { "key": "chord_pc_11", "short": "B",  "full": "Chord B",  "type": "enum" }
+        ],
+        [
+          { "key": "tuning_mode", "short": "TUNE",  "full": "Tuning Mode", "type": "enum" },
+          { "key": "scale_index", "short": "SCALE", "full": "Scale",       "type": "enum" },
+          { "key": "scale_root",  "short": "ROOT",  "full": "Scale Root",  "type": "enum" },
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Spread/FM",
+      "rows": [
+        [
+          { "key": "chord_spread",   "short": "SPRD",  "full": "Chord Spread",   "type": "float" },
+          { "key": "chord_rotation", "short": "ROT",   "full": "Chord Rotation", "type": "float" },
+          { "key": "fm_modulator",   "short": "FMMOD", "full": "FM Modulator",   "type": "int" },
+          { "key": "fm_amount",      "short": "FMAMT", "full": "FM Amount",      "type": "float" }
+        ],
+        [
+          { "key": "mix_1", "short": "MIX1", "full": "Mix 1", "type": "float" },
+          { "key": "mix_2", "short": "MIX2", "full": "Mix 2", "type": "float" },
+          { "key": "mix_3", "short": "MIX3", "full": "Mix 3", "type": "float" },
+          { "key": "mix_4", "short": "MIX4", "full": "Mix 4", "type": "float" }
+        ]
+      ]
+    },
+    {
+      "name": "FM/Intvl",
+      "rows": [
+        [
+          { "key": "fm_amount_1", "short": "FMA1", "full": "FM Amount 1", "type": "float" },
+          { "key": "fm_amount_2", "short": "FMA2", "full": "FM Amount 2", "type": "float" },
+          { "key": "fm_amount_3", "short": "FMA3", "full": "FM Amount 3", "type": "float" },
+          { "key": "fm_amount_4", "short": "FMA4", "full": "FM Amount 4", "type": "float" }
+        ],
+        [
+          { "key": "interval_1", "short": "INT1", "full": "Interval 1", "type": "int" },
+          { "key": "interval_2", "short": "INT2", "full": "Interval 2", "type": "int" },
+          { "key": "interval_3", "short": "INT3", "full": "Interval 3", "type": "int" },
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Reverb",
+      "rows": [
+        [
+          { "key": "reverb_mix",     "short": "MIX",   "full": "Mix",     "type": "float" },
+          { "key": "reverb_decay",   "short": "DECAY", "full": "Decay",   "type": "float" },
+          { "key": "reverb_damp",    "short": "DAMP",  "full": "Damp",    "type": "float" },
+          { "key": "reverb_shimmer", "short": "SHIMM", "full": "Shimmer", "type": "float" }
+        ],
+        [
+          { "key": "reverb_lowcut",    "short": "LOCUT", "full": "Low Cut",  "type": "float" },
+          { "key": "reverb_size",      "short": "SIZE",  "full": "Size",     "type": "float" },
+          { "key": "reverb_mod_rate",  "short": "MODR",  "full": "Mod Rate", "type": "float" },
+          { "key": "reverb_mod_depth", "short": "MODD",  "full": "Mod Depth","type": "float" }
+        ]
+      ]
+    },
+    {
+      "name": "Delay",
+      "rows": [
+        [
+          { "key": "delay_mix",      "short": "MIX",   "full": "Mix",      "type": "float" },
+          { "key": "delay_time",     "short": "TIME",  "full": "Time",     "type": "float" },
+          { "key": "delay_feedback", "short": "FEEDB", "full": "Feedback", "type": "float" },
+          { "key": "delay_mode",     "short": "MODE",  "full": "Mode",     "type": "enum" }
+        ],
+        [
+          { "key": "delay_tone",     "short": "TONE",  "full": "Tone",     "type": "float" },
+          { "key": "delay_tone_hi",  "short": "TONHI", "full": "Tone Hi",  "type": "float" },
+          { "key": "delay_tone_lo",  "short": "TONLO", "full": "Tone Lo",  "type": "float" },
+          { "key": "delay_mod_rate", "short": "MODR",  "full": "Mod Rate", "type": "float" }
+        ]
+      ]
+    },
+    {
+      "name": "Morph",
+      "rows": [
+        [
+          { "key": "morph_index",         "short": "MRPH",  "full": "Morph",      "type": "float" },
+          { "key": "morph_intensity",     "short": "MINT",  "full": "Morph Int",  "type": "float" },
+          { "key": "pan_morph_index",     "short": "PMRPH", "full": "Pan Morph",  "type": "float" },
+          { "key": "pan_morph_intensity", "short": "PMINT", "full": "Pan Int",    "type": "float" }
+        ],
+        [
+          { "key": "lm_lfo_rate",  "short": "LMRAT", "full": "Lvl Morph Rate",  "type": "float" },
+          { "key": "lm_lfo_depth", "short": "LMDPT", "full": "Lvl Morph Depth", "type": "float" },
+          { "key": "pm_lfo_rate",  "short": "PMRAT", "full": "Pan Morph Rate",  "type": "float" },
+          { "key": "pm_lfo_depth", "short": "PMDPT", "full": "Pan Morph Depth", "type": "float" }
+        ]
+      ]
+    },
+    {
+      "name": "Amp LFO",
+      "rows": [
+        [
+          { "key": "amp_lfo_rate",  "short": "RATE",  "full": "Amp LFO Rate",  "type": "float" },
+          { "key": "amp_lfo_depth", "short": "DEPTH", "full": "Amp LFO Depth", "type": "float" },
+          { "key": "amp_lfo_shape", "short": "SHAPE", "full": "Amp LFO Shape", "type": "enum" },
+          { "key": "lfo_phase_1",   "short": "PHS1",  "full": "LFO Phase 1",   "type": "float" }
+        ],
+        [
+          { "key": "lfo_phase_2", "short": "PHS2", "full": "LFO Phase 2", "type": "float" },
+          { "key": "lfo_phase_3", "short": "PHS3", "full": "LFO Phase 3", "type": "float" },
+          { "key": "lfo_phase_4", "short": "PHS4", "full": "LFO Phase 4", "type": "float" },
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Arp",
+      "rows": [
+        [
+          { "key": "arp_enabled",   "short": "ARP",   "full": "Arp",       "type": "enum" },
+          { "key": "arp_tempo",     "short": "TEMPO", "full": "Tempo",     "type": "float" },
+          { "key": "arp_direction", "short": "DIR",   "full": "Direction", "type": "enum" },
+          { "key": "arp_hold",      "short": "HOLD",  "full": "Hold",      "type": "enum" }
+        ],
+        [
+          { "key": "arp_euclid_steps",   "short": "STEPS", "full": "Euclid Steps", "type": "int" },
+          { "key": "arp_euclid_beats",   "short": "BEATS", "full": "Euclid Beats", "type": "int" },
+          { "key": "arp_clock_sync",     "short": "SYNC",  "full": "Clock Sync",   "type": "enum" },
+          { "key": "arp_clock_division", "short": "DIV",   "full": "Clock Div",    "type": "enum" }
+        ]
+      ]
+    },
+    {
+      "name": "Ctrl Src",
+      "rows": [
+        [
+          { "key": "ctrl_source",    "short": "SRC",   "full": "Source",    "type": "enum" },
+          { "key": "ctrl_cc",        "short": "CC",    "full": "CC",        "type": "int" },
+          { "key": "ctrl_to_cutoff", "short": ">CUT",  "full": "To Cutoff", "type": "float" },
+          { "key": "ctrl_to_morph",  "short": ">MRPH", "full": "To Morph",  "type": "float" }
+        ],
+        [
+          { "key": "ctrl_to_vib",   "short": ">VIB",  "full": "To Vibrato", "type": "float" },
+          { "key": "ctrl_to_shape", "short": ">SHP",  "full": "To Shape",   "type": "float" },
+          { "key": "ctrl_to_fm",    "short": ">FM",   "full": "To FM",      "type": "float" },
+          { "key": "sweep_rate",    "short": "SWPRT", "full": "Sweep Rate", "type": "float" }
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "id": "sfz",
+  "name": "SFZ",
+  "banks": [
+    {
+      "name": "Amp",
+      "rows": [
+        [
+          { "key": "attack",  "short": "ATTK",  "full": "Attack",  "type": "float" },
+          { "key": "decay",   "short": "DECAY", "full": "Decay",   "type": "float" },
+          { "key": "sustain", "short": "SUST",  "full": "Sustain", "type": "float" },
+          { "key": "release", "short": "REL",   "full": "Release", "type": "float" }
+        ],
+        [
+          { "key": "cutoff",  "short": "CUTOF", "full": "Cutoff",  "type": "float" },
+          { "key": "reso",    "short": "RESO",  "full": "Resonance", "type": "float" },
+          { "key": "gain",    "short": "GAIN",  "full": "Gain",    "type": "float" },
+          { "key": "voices",  "short": "VOICE", "full": "Voices",  "type": "int" }
+        ]
+      ]
+    },
+    {
+      "name": "Tune",
+      "rows": [
+        [
+          { "key": "tune",             "short": "TUNE",  "full": "Tune",     "type": "float" },
+          { "key": "octave_transpose", "short": "OCT",   "full": "Octave",   "type": "int" },
+          { "key": "preset",           "short": "PRSET", "full": "Preset",   "type": "int", "render": "preset" },
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Macros",
+      "rows": [
+        [
+          { "key": "knob_0", "short": "MAC1", "full": "Macro 1", "type": "float" },
+          { "key": "knob_1", "short": "MAC2", "full": "Macro 2", "type": "float" },
+          { "key": "knob_2", "short": "MAC3", "full": "Macro 3", "type": "float" },
+          { "key": "knob_3", "short": "MAC4", "full": "Macro 4", "type": "float" }
+        ],
+        [
+          { "key": "knob_4", "short": "MAC5", "full": "Macro 5", "type": "float" },
+          { "key": "knob_5", "short": "MAC6", "full": "Macro 6", "type": "float" },
+          { "key": "knob_6", "short": "MAC7", "full": "Macro 7", "type": "float" },
+          { "key": "knob_7", "short": "MAC8", "full": "Macro 8", "type": "float" }
+        ]
+      ]
+    }
+  ]
+}

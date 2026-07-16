@@ -90,16 +90,26 @@ Full mode resolution priority (in `buildViewModel`, no extra IPC):
 3. type token in the pair's key/label/qualifier → that static type;
 4. otherwise (moog, 303, obxd, …) → default **LP**.
 
-Real modules that must detect (verify against
-`docs/module-dump/modules/…json` — `movy.params[].key` and page rows):
-`filter` (audio_fx: cutoff+resonance), `303`, `moog`, `obxd`, `hush1`,
-`nusaw`, `braids` (cutoff+resonance on its Filter page), `hera`
-(vcf_cutoff+vcf_resonance), `chordism` (Main page cutoff+reso AND Filter
-page filter_cutoff+filter_resonance), `freak`, `krautdrums`
-(filter_cutoff+filter_reso), `surge` (filter1_*). Non-detections that must
-stay plain: `spectra` (frequency+resonators — resonators is a mixer, not
-a Q), fizzik (`rnd_reson` is a randomizer, keep out: require the reso
-word to be the label/key head, not a `rnd_`-prefixed key).
+Adjacency was verified against the dump for the whole fleet: **39 pages
+across 20 modules already have the pair adjacent-same-row**, so no
+layout changes are needed anywhere. Must-detect list (pages in
+`movy.pages` of `docs/module-dump/modules/…json`): `filter` [Main],
+`pushnpull` [Filter], `303` [Main], `aphex` [Main: BOTH lpf_cut+lpf_reso
+AND hpf_cut+hpf_reso — two curves on one page, LP and HP; also its
+Filter page], `braids` [Filter], `chordism` [Main + Filter], `denis`
+[Control — pairs via `filter_q`], `fizzik` [Main + Patch —
+cutoff+resonance; its `rnd_reson` is a randomizer and must NOT pair],
+`freak` [Filter], `hera` [Main + VCF, vcf_ qualifier], `hush1`
+[Main + Filter], `krautdrums` [Attitude, filter_reso], `minijv` [Main
+macro_ pair + the four EditT/tone pages' nvram_tone_N_ pairs], `moog`
+[Main + Filter], `mrsample` [Main + Filter, filter_res], `nusaw`, `obxd`
+[Main + Filter], `osirus` [Main + Filters: `cutoff` + `filter1_resonance`
+— an unqualified cutoff may pair with a filter1-qualified reso when no
+same-qualifier competitor exists], `surge` [Main + Filter 1 + Filter 2,
+filter1_/filter2_ qualifiers]. Non-detections that must stay plain:
+`spectra` (frequency+resonators — a mixer, not a Q), aphex's cross-pair
+`lpf_reso`+`hpf_cut` adjacency (different qualifiers — the qualifier
+rule must reject it; add a test).
 
 ### ViewModel + rendering
 

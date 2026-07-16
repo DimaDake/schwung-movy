@@ -63,19 +63,24 @@ export function loadHierarchy(s: ModelState): void {
         s.drumPadCount = s.moduleConfig.drum.padCount;
     }
 
-    /* chain_params → cpMap for type/min/max/step/options/name lookups */
+    /* chain_params → cpMap for type/min/max/step/options/name lookups. cpOrder
+     * preserves the publish order for the no-hierarchy fallback (B1). */
     const cpMap: Record<string, HierParam & { name?: string }> = {};
+    const cpOrder: string[] = [];
     const chainParamsRaw = shadow_get_param(s.activeSlot, s.componentKey + ':chain_params');
     if (chainParamsRaw) {
         try {
             const arr = JSON.parse(chainParamsRaw) as Array<{ key?: string }>;
-            for (const cp of arr) { if (cp.key) cpMap[cp.key] = cp; }
+            for (const cp of arr) { if (cp.key) { cpMap[cp.key] = cp; cpOrder.push(cp.key); } }
             mlog('loadHierarchy: chain_params ' + arr.length + ' entries');
         } catch (e) { mlog('chain_params parse error: ' + e); }
     }
 
     const raw = shadow_get_param(s.activeSlot, s.componentKey + ':ui_hierarchy');
-    if (!raw && !s.moduleConfig) {
+    // B1: with no ui_hierarchy and no config we can still build pages from
+    // chain_params (handled by the fallback in the generic path below). Only bail
+    // when there's genuinely nothing — no hierarchy, no config, no chain_params.
+    if (!raw && !s.moduleConfig && cpOrder.length === 0) {
         mlog('loadHierarchy: ui_hierarchy null — no params');
         s.dirty = true;
         return;
@@ -157,7 +162,41 @@ export function loadHierarchy(s: ModelState): void {
 
     /* ── Generic no-config path: parse all levels ────────────────────────── */
     const rootLevel = allLevels['root'] || Object.values(allLevels)[0] || null;
-    if (!rootLevel) { s.dirty = true; return; }
+
+    /* Bank page accumulator: each entry is KNOBS_PER_PAGE keys (null = empty slot) */
+    const bankEntries: Array<{ name: string; keys: (string | null)[] }> = [];
+
+    function addPage(name: string, keys: (string | null)[]): void {
+        const padded = keys.slice(0, KNOBS_PER_PAGE);
+        while (padded.length < KNOBS_PER_PAGE) padded.push(null);
+        bankEntries.push({ name, keys: padded });
+    }
+
+    function addLevel(label: string, keys: string[]): void {
+        const pages = Math.max(1, Math.ceil(keys.length / KNOBS_PER_PAGE));
+        for (let i = 0; i < pages; i++) {
+            addPage(
+                pages === 1 ? label : label + ' - ' + (i + 1),
+                keys.slice(i * KNOBS_PER_PAGE, (i + 1) * KNOBS_PER_PAGE),
+            );
+        }
+    }
+
+    /* The preset param and its list key are consumed by the final build loop;
+     * declared here so both the hierarchy path and the chain_params fallback
+     * (which leaves them unset) can share that loop. */
+    let presetParam: KnobParam | null = null;
+    let listParam: string | undefined;
+
+    if (!rootLevel) {
+        /* B1: modules that publish chain_params but no ui_hierarchy would show an
+         * empty page. Build pages straight from the chain_params publish order.
+         * Filepath entries become file knobs in the final build loop below, so no
+         * orphan-filepath injection here (which would double-add them); ui_* keys
+         * are internal UI state, not user-facing params. */
+        const fallbackKeys = cpOrder.filter(k => !k.startsWith('ui_'));
+        if (fallbackKeys.length > 0) addLevel('Main', fallbackKeys);
+    } else {
 
     const hasNavEntries = (lvl: HierLevel | null): boolean =>
         Array.isArray(lvl?.params) && lvl!.params.some(p => typeof p === 'object' && (p as HierParam).level != null);
@@ -179,8 +218,7 @@ export function loadHierarchy(s: ModelState): void {
     }
 
     /* Preset detection */
-    let presetParam: KnobParam | null = null;
-    const listParam  = rootLevel.list_param;
+    listParam        = rootLevel.list_param;
     const countParam = rootLevel.count_param;
     const nameParam  = rootLevel.name_param;
     let presetSeparate = false;
@@ -212,25 +250,6 @@ export function loadHierarchy(s: ModelState): void {
                 automatable: false,
             };
             presetSeparate = (rootLevel.knobs ?? []).length >= KNOBS_PER_PAGE;
-        }
-    }
-
-    /* Bank page accumulator: each entry is KNOBS_PER_PAGE keys (null = empty slot) */
-    const bankEntries: Array<{ name: string; keys: (string | null)[] }> = [];
-
-    function addPage(name: string, keys: (string | null)[]): void {
-        const padded = keys.slice(0, KNOBS_PER_PAGE);
-        while (padded.length < KNOBS_PER_PAGE) padded.push(null);
-        bankEntries.push({ name, keys: padded });
-    }
-
-    function addLevel(label: string, keys: string[]): void {
-        const pages = Math.max(1, Math.ceil(keys.length / KNOBS_PER_PAGE));
-        for (let i = 0; i < pages; i++) {
-            addPage(
-                pages === 1 ? label : label + ' - ' + (i + 1),
-                keys.slice(i * KNOBS_PER_PAGE, (i + 1) * KNOBS_PER_PAGE),
-            );
         }
     }
 
@@ -294,6 +313,7 @@ export function loadHierarchy(s: ModelState): void {
 
     /* Build s.knobParams and s.bankNames from bankEntries */
     s.bankNames = bankEntries.map(e => e.name);
+    }  /* end hierarchy path (else of the chain_params fallback) */
     for (const entry of bankEntries) {
         for (const key of entry.keys) {
             if (!key) { s.knobParams.push(null); continue; }

@@ -198,6 +198,44 @@ _log('\nTest: moog hierarchy via children delegation (generic path)');
     }
 }
 
+_log('\nTest: chain_params-only module builds pages (B1)');
+
+{
+    const m = bootModel(MOCK_SYNTHS.chainparams_only);
+    const dump = m.dumpLayout();
+    const params = dump.params.filter(Boolean);
+    // 9 user params (ui_page skipped) → 2 pages of 8.
+    eq('chainparams_only: 9 params (ui_* skipped)', params.length, 9);
+    eq('chainparams_only: no ui_page param', params.some(p => p.key === 'ui_page'), false);
+    eq('chainparams_only: bankCount = 2', m.getBankCount(), 2);
+    // chain_params order preserved.
+    eq('chainparams_only: first param = map_x', params[0]?.key, 'map_x');
+    // Metadata carried through: enum, filepath, ranges.
+    const mode = params.find(p => p.key === 'mode');
+    eq('chainparams_only: mode is enum', mode?.type, 'enum');
+    eq('chainparams_only: mode options length 3', mode?.options?.length, 3);
+    const sample = params.find(p => p.key === 'sample');
+    eq('chainparams_only: sample is file', sample?.type, 'file');
+    const gain = params.find(p => p.key === 'gain');
+    eq('chainparams_only: gain max = 2', gain?.max, 2);
+    const spread = params.find(p => p.key === 'spread');
+    eq('chainparams_only: spread is int', spread?.type, 'int');
+    eq('chainparams_only: spread min = -12', spread?.min, -12);
+    // filepath must not be double-added by the orphan-filepath injection.
+    eq('chainparams_only: sample appears once', params.filter(p => p.key === 'sample').length, 1);
+}
+
+/* Existing hierarchy-driven mocks are unaffected by the B1 fallback. */
+{
+    eq('test8 unaffected: bankCount = 1', bootModel(MOCK_SYNTHS.test8).getBankCount(), 1);
+    eq('moog unaffected: bankCount = 12', bootModel(MOCK_SYNTHS.moog).getBankCount(), 12);
+    eq('granny unaffected: sample is file',
+        bootModel(MOCK_SYNTHS.granny_like).dumpLayout().params.find(p => p?.key === 'sample_path')?.type,
+        'file');
+}
+
+/* ── C4: metadata-less params infer int type + range on first read ───────── */
+
 /* ── isEmpty flag ─────────────────────────────────────────────────────────── */
 
 _log('\nTest: vm.isEmpty');

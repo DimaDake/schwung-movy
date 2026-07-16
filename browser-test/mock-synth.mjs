@@ -430,6 +430,36 @@ export const MOCK_SYNTHS = {
         "synth:v3_pan":      "-0.50",
     },
 
+    chainparams_only: {
+        "synth:name": "ChainOnly",
+        "synth:chain_params": JSON.stringify([
+            { key: "map_x",   name: "Map X",  type: "float", min: 0, max: 1 },
+            { key: "map_y",   name: "Map Y",  type: "float", min: 0, max: 1 },
+            { key: "density", name: "Dens",   type: "float", min: 0, max: 1 },
+            { key: "mode",    name: "Mode",   type: "enum",  options: ["A","B","C"] },
+            { key: "sample",  name: "Sample", type: "filepath",
+              root: "/data/UserData/Samples", filter: [".wav"], start_path: "/data/UserData/Samples" },
+            { key: "gain",    name: "Gain",   type: "float", min: 0, max: 2 },
+            { key: "spread",  name: "Spread", type: "int",   min: -12, max: 12 },
+            { key: "chaos",   name: "Chaos",  type: "float", min: 0, max: 1 },
+            { key: "swing",   name: "Swing",  type: "float", min: 0, max: 1 },
+            { key: "ui_page", name: "UIPage", type: "int",   min: 0, max: 3 },
+        ]),
+        "synth:map_x":   "0.5",
+        "synth:map_y":   "0.5",
+        "synth:density": "0.5",
+        "synth:mode":    "1",
+        "synth:sample":  "/data/UserData/Samples/kick.wav",
+        "synth:gain":    "1.0",
+        "synth:spread":  "0",
+        "synth:chaos":   "0.0",
+        "synth:swing":   "0.0",
+        "synth:ui_page": "0",
+    },
+
+    /* C4: params with NO chain_params entry and NO hierarchy metadata → movy
+     * guesses float 0..1. An integer-valued read (base_note=60, transpose=-24)
+     * should infer int type + widened range on first read. */
     /* No synth loaded — model falls back to fallback test params */
     no_params: {
         "synth:name": null,

@@ -4846,34 +4846,34 @@ _log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
         eq('signal: no duplicate shortNames per page', noDupShorts(bootModel(MOCK_SYNTHS.signal)), null);
     }
 
-    // forge: 16-pad, per-voice editing via DSP-native cv_* current-voice aliases
-    // (selected by pad note); no padScoping. Full per-voice detail across 5 banks.
+    // forge: 16-pad Kit A/B, per-voice editing is PLAYBACK-SAFE — padScoping
+    // remaps cv_* → pv{pad}_ concrete keys (patched DSP addresses a fixed
+    // voice/kit, independent of the playing note). Full detail across 5 banks.
     {
         const d = layout('forge', MOCK_SYNTHS.forge);
         eq('forge: 11 banks', d.banks.length, 11);
         eq('forge: 16 drum pads', d.drum?.padCount, 16);
-        eq('forge: no padScoping (cv_ is note-driven)', d.drum?.padScoping, undefined);
-        eq('forge: padSelectRefresh on', d.drum?.padSelectRefresh, true);
-        // Rich per-voice params exposed as cv_* (Osc/Filter/Env/Mod/Setup).
+        eq('forge: padScoping cv_ → pv{pad}_', d.drum?.padScoping?.concreteKeyTemplate, 'pv{pad}_{suffix}');
+        // Rich per-voice params exposed as cv_* aliases (Osc/Filter/Env/Mod/Setup).
         for (const k of ['cv_wave', 'cv_ratio_c', 'cv_f1_cut', 'cv_f1_type', 'cv_e1_atk',
                          'cv_e1_crv', 'cv_lfo_w', 'cv_mod_dest', 'cv_algo', 'cv_poly']) {
             eq(`forge: per-voice ${k}`, !!byKey(d, k), true);
         }
-        // Restored globals; action params still skipped.
         for (const k of ['morph_src', 'morph_curve', 'all_mono']) eq(`forge: restored ${k}`, !!byKey(d, k), true);
         for (const k of ['copy_a_b', 'swap_ab', 'rnd_b_from_a']) eq(`forge: skipped ${k}`, !!byKey(d, k), false);
 
         const fg = bootModel(MOCK_SYNTHS.forge);
-        for (let t = 0; t < 4; t++) fg.tick();     // let round-robin reach cv_wave (idx 0)
-        eq('forge: WAVE reads cv_wave', fg.getKnobParamInfo(0).ioKey, 'cv_wave');
-        eq('forge: cv_wave value (Tri=1)', fg.getKnobParamInfo(0).value, 1);
-        // A pad switch re-reads cv_* immediately (padSelectRefresh): the DSP now
-        // reports the newly-focused voice's value for the SAME cv_ key.
-        env.setParams({ ...env.params, 'synth:cv_wave': '3' });   // focused voice now Square
-        fg.updateDrumPad(6, 41);
-        eq('forge: focus moved to pad 6', fg.getViewModel().drumCurrentPad, 6);
-        eq('forge: cv_wave re-read on pad switch (3)', fg.getKnobParamInfo(0).value, 3);
-        // Concrete Mix bank (v<N>_lvl) unaffected by focus.
+        // Pad 1 (Kit A voice 1): WAVE alias cv_wave resolves to pv1_wave = 1 (Tri).
+        eq('forge: WAVE ioKey is pv1_wave', fg.getKnobParamInfo(0).ioKey, 'pv1_wave');
+        eq('forge: pv1_wave value (Tri=1)', fg.getKnobParamInfo(0).value, 1);
+        // Switch to pad 11 (Kit B voice 3): same knob now addresses pv11_wave = 3.
+        fg.updateDrumPad(11, 46);
+        eq('forge: focus moved to pad 11', fg.getViewModel().drumCurrentPad, 11);
+        eq('forge: WAVE ioKey follows to pv11_wave', fg.getKnobParamInfo(0).ioKey, 'pv11_wave');
+        eq('forge: pv11_wave re-read (Square=3)', fg.getKnobParamInfo(0).value, 3);
+        // Playback-safe: the key is a fixed pv-index, not note-driven.
+        fg.updateDrumPad(3, 38);
+        eq('forge: pad 3 → pv3_wave (Saw=2)', `${fg.getKnobParamInfo(0).ioKey}=${fg.getKnobParamInfo(0).value}`, 'pv3_wave=2');
         eq('forge: no duplicate shortNames per page', noDupShorts(bootModel(MOCK_SYNTHS.forge)), null);
     }
 }

@@ -515,14 +515,15 @@ export const MOCK_SYNTHS = {
         "synth:patch":       "2",
     },
 
-    // Chunk 7 B2: 16-pad 8-voice drum synth. Per-voice editing uses the DSP-
-    // native cv_* current-voice aliases (selected by pad note); the Mix bank
-    // uses concrete v<N>_lvl. cv_wave reads back the focused voice's value.
+    // Chunk 7 B2: 16-pad Kit A/B synth. Per-voice editing is playback-safe via
+    // padScoping cv_* → pv{pad}_ concrete keys (patched Forge DSP): pv1-8 = Kit A
+    // voices, pv9-16 = Kit B. Mix bank uses concrete v<N>_lvl.
     forge: {
         "synth:name":        "Forge",
         "synth_module":      "forge",
-        "synth:cv_wave":     "1", "synth:cv_level": "0.80",
-        "synth:v1_lvl":      "0.70", "synth:v5_lvl": "0.50",
+        "synth:pv1_wave":    "1",   "synth:pv1_f1_cut": "0.30",
+        "synth:pv3_wave":    "2",   "synth:pv11_wave":  "3",
+        "synth:v1_lvl":      "0.70", "synth:v5_lvl":    "0.50",
         "synth:kit":         "4",
     },
 

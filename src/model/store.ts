@@ -133,25 +133,13 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
  * values rather than the previous pad's cached ones. Non-pad params (ioKey ===
  * key) are left untouched. */
 export function reseedPadParams(s: ModelState): void {
-    const drum = s.moduleConfig?.drum;
-    const ps = drum?.padScoping;
-    // padSelectRefresh: the params are a single current-voice alias set (Forge's
-    // cv_*) whose value changes per focused pad even though the key is constant —
-    // re-read every param, not just the padScoping-aliased ones.
-    const refreshAll = !!drum?.padSelectRefresh;
-    if (!ps && !refreshAll) return;
-    // refreshAll re-reads only the visible page (the current-voice alias set is
-    // large; off-page values catch up via the round-robin) — cheap enough to run
-    // on every performance pad tap.
-    const pageLo = s.knobPage * KNOBS_PER_PAGE, pageHi = pageLo + KNOBS_PER_PAGE;
+    const ps = s.moduleConfig?.drum?.padScoping;
+    if (!ps) return;
     for (let i = 0; i < s.knobParams.length; i++) {
         const p = s.knobParams[i];
         if (!p) continue;
         const ioKey = concreteKey(ps, s.drumCurrentPad, p.key);
-        const aliased = ioKey !== p.key;
-        // padScoping reseeds every aliased param; padSelectRefresh reseeds the
-        // current page's params (aliased or not).
-        if (!aliased && !(refreshAll && i >= pageLo && i < pageHi)) continue;
+        if (ioKey === p.key) continue; // not pad-scoped
         const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey);
         if (p.type === 'file') {
             s.fileValues[i] = raw;

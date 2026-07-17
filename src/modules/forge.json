@@ -5,7 +5,11 @@
     "padCount": 16,
     "padNoteStart": 36,
     "rawMidi": false,
-    "padSelectRefresh": true
+    "padScoping": {
+      "aliasPrefix": "cv_",
+      "concreteKeyTemplate": "pv{pad}_{suffix}",
+      "padDigits": 1
+    }
   },
   "banks": [
     {

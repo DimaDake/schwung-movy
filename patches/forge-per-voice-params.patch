@@ -1,0 +1,66 @@
+diff --git a/src/dsp/forge.c b/src/dsp/forge.c
+index ac5155e..34079c8 100644
+--- a/src/dsp/forge.c
++++ b/src/dsp/forge.c
+@@ -3526,8 +3526,7 @@ static void on_midi(void *instance, const uint8_t *msg, int len, int source) {
+  * Parameters — cv_* routing
+  * ──────────────────────────────────────────────────────────────────────────── */
+ 
+-static int handle_cv_set(forge_instance_t *inst, const char *key, const char *val) {
+-    voice_bank_t *vb = cv_bank(inst);
++static int set_voice_field(voice_bank_t *vb, const char *key, const char *val) {
+     float f = (float)atof(val);
+     int   n = atoi(val);
+ 
+@@ -3731,7 +3730,24 @@ static void set_param(void *instance, const char *key, const char *val) {
+     if (!inst || !key || !val) return;
+ 
+     if (key[0] == 'c' && key[1] == 'v' && key[2] == '_') {
+-        if (handle_cv_set(inst, key, val)) return;
++        if (set_voice_field(cv_bank(inst), key, val)) return;
++    }
++
++    /* Per-voice direct addressing: pv<N>_<field>, N=1..16 (1-8 = Kit A voices,
++     * 9-16 = Kit B voices). Playback-safe — indexes a fixed voice/kit regardless
++     * of which pad last played, unlike the note-driven cv_* current-voice aliases.
++     * Reuses the cv_* field table by rewriting the key to its cv_ canonical form. */
++    if (key[0] == 'p' && key[1] == 'v') {
++        int idx = atoi(key + 2) - 1;                 /* 0..15 */
++        const char *us = strchr(key + 2, '_');       /* "_wave" */
++        if (idx >= 0 && idx < 2 * NUM_VOICES && us) {
++            kit_slot_t *k = &inst->kits[inst->current_kit];
++            voice_bank_t *vb = (idx >= NUM_VOICES) ? &k->kit_b[idx - NUM_VOICES]
++                                                   : &k->kit_a[idx];
++            char canon[48];
++            snprintf(canon, sizeof(canon), "cv%s", us);
++            if (set_voice_field(vb, canon, val)) return;
++        }
+     }
+ 
+     if (strcmp(key, "_level") == 0 || strcmp(key, "current_level") == 0) {
+@@ -3949,6 +3965,25 @@ static int get_param(void *instance, const char *key, char *buf, int buf_len) {
+ 
+     if (strcmp(key, "name") == 0) return snprintf(buf, buf_len, "Forge");
+ 
++    /* pv<N>_<field> readback (see set_param): point the current-voice context at
++     * the requested Kit A/B voice and delegate to the cv_* reader, then restore.
++     * Read-only, so a concurrent note-on selection is at worst transiently masked. */
++    if (key[0] == 'p' && key[1] == 'v') {
++        int idx = atoi(key + 2) - 1;
++        const char *us = strchr(key + 2, '_');
++        if (idx >= 0 && idx < 2 * NUM_VOICES && us) {
++            int sv = inst->current_voice, sc = inst->current_kit_context;
++            inst->current_voice = idx % NUM_VOICES;
++            inst->current_kit_context = (idx >= NUM_VOICES) ? 1 : 0;
++            char canon[48];
++            snprintf(canon, sizeof(canon), "cv%s", us);
++            int r = get_param(instance, canon, buf, buf_len);
++            inst->current_voice = sv;
++            inst->current_kit_context = sc;
++            return r;
++        }
++    }
++
+     /* Dynamic knob popup labels (Weird Dreams pattern).
+      * On voice-related pages, prefix with "V<N> " so the popup makes clear
+      * which voice the knob edits. Schwung calls this on every knob change. */

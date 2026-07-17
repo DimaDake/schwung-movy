@@ -47,12 +47,6 @@ export interface DrumConfig {
     rawMidi:          boolean;
     currentPadParam?: string;
     shiftSelectMidi?: boolean;
-    /* Re-read every knob on a pad switch (not just padScoping-aliased ones). For
-     * modules whose params are a single DSP-native "current voice/pad" alias set
-     * (e.g. Forge's cv_*, selected by the pad note) — the same key reads back a
-     * different value per focused voice, so the visible knobs must be re-read
-     * immediately on switch instead of waiting for the round-robin refresh. */
-    padSelectRefresh?: boolean;
     /* How an alias pad param ("pad_vol") maps to its concrete per-pad key
      * ("p03_vol"). Lets movy address the focused pad directly, with no key-shape
      * literal in code. */

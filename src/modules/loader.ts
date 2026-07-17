@@ -12,7 +12,6 @@ import s303Json        from './303.json';
 import chiptuneJson    from './chiptune.json';
 import hush1Json       from './hush1.json';
 import signalJson      from './signal.json';
-import forgeJson       from './forge.json';
 
 const MOVY_SG_ROOT = '/data/UserData/schwung/modules/sound_generators';
 
@@ -21,7 +20,6 @@ const CONFIGS: Record<string, ModuleConfig> = {
     chiptune:        chiptuneJson     as unknown as ModuleConfig,
     chordism:        chordismJson     as unknown as ModuleConfig,
     essaim:          essaimJson       as unknown as ModuleConfig,
-    forge:           forgeJson        as unknown as ModuleConfig,
     hush1:           hush1Json        as unknown as ModuleConfig,
     signal:          signalJson       as unknown as ModuleConfig,
     krautdrums:      krautdrumsJson   as unknown as ModuleConfig,
@@ -42,9 +40,14 @@ function tryFile(path: string): ModuleConfig | null {
     return null;
 }
 
+/* A module can ship its own layout: `movy-layout.json` in its module directory
+ * is read at load time, so a module is fully self-describing with no movy-side
+ * config (e.g. Forge). `movy_config.json` is the older per-module filename, kept
+ * as a fallback; bundled CONFIGS cover modules that don't ship a layout. */
 export function loadModuleConfig(moduleId: string): ModuleConfig | null {
     if (!moduleId) return null;
-    return tryFile(`${MOVY_SG_ROOT}/${moduleId}/movy_config.json`)
+    return tryFile(`${MOVY_SG_ROOT}/${moduleId}/movy-layout.json`)
+        ?? tryFile(`${MOVY_SG_ROOT}/${moduleId}/movy_config.json`)
         ?? CONFIGS[moduleId]
         ?? null;
 }

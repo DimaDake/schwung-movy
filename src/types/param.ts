@@ -6,6 +6,7 @@ export interface KnobSlot {
     render?:        'arc' | 'hbar' | 'vbar' | 'preset';
     env?:           'a' | 'd' | 's' | 'r';
     lfo?:           'shape' | 'phase' | 'mode' | 'retrig' | 'rate' | 'depth' | 'deform';
+    filter?:        'cutoff' | 'resonance' | 'mode' | 'slope';
     options?:       string[];
     min?:           number;
     max?:           number;
@@ -70,6 +71,7 @@ export interface KnobParam {
     renderStyle:    'arc' | 'hbar' | 'vbar' | 'preset' | 'xbox';
     env?:           'a' | 'd' | 's' | 'r';
     lfo?:           'shape' | 'phase' | 'mode' | 'retrig' | 'rate' | 'depth' | 'deform';
+    filter?:        'cutoff' | 'resonance' | 'mode' | 'slope';
     automatable:    boolean;
     /* Set when type/range were guessed (no chain_params or hierarchy metadata).
      * The first successful value read infers the real type/range, then clears

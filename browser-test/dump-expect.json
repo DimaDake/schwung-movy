@@ -2482,7 +2482,7 @@
    ]
   ],
   "envelopeLines": 1,
-  "lfoViz": 0,
+  "lfoViz": 1,
   "hidden": 106
  },
  "sound_generator--freak": {

@@ -5,6 +5,7 @@
  * Run from movy root: node browser-test/logic.mjs
  */
 
+import { readFileSync }   from 'node:fs';
 import { createModel }    from '../dist/esm/model/index.js';
 import { dedupShortNames } from '../dist/esm/renderer/shorten.js';
 import { detectEnvelopes } from '../dist/esm/model/envelope.js';
@@ -4849,7 +4850,11 @@ _log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
     // forge: 16-pad Kit A/B, per-voice editing is PLAYBACK-SAFE — padScoping
     // remaps cv_* → pv{pad}_ concrete keys (patched DSP addresses a fixed
     // voice/kit, independent of the playing note). Full detail across 5 banks.
+    // Forge is unbundled — serve its movy-layout.json (earlier tests reset the stub).
     {
+        const savedHRF = globalThis.host_read_file;
+        const forgeLayout = readFileSync(new URL('../src/modules/forge.json', import.meta.url), 'utf8');
+        globalThis.host_read_file = (p) => p.endsWith('/forge/movy-layout.json') ? forgeLayout : null;
         const d = layout('forge', MOCK_SYNTHS.forge);
         eq('forge: 11 banks', d.banks.length, 11);
         eq('forge: 16 drum pads', d.drum?.padCount, 16);
@@ -4875,6 +4880,29 @@ _log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
         fg.updateDrumPad(3, 38);
         eq('forge: pad 3 → pv3_wave (Saw=2)', `${fg.getKnobParamInfo(0).ioKey}=${fg.getKnobParamInfo(0).value}`, 'pv3_wave=2');
         eq('forge: no duplicate shortNames per page', noDupShorts(bootModel(MOCK_SYNTHS.forge)), null);
+
+        // Explicit filter:/lfo: tags in the layout drive the graphics — no
+        // name-inference. Filter bank (idx 1) → curve; Mod bank (idx 3) → wave.
+        const fv = bootModel(MOCK_SYNTHS.forge);
+        fv.changePage(1 - fv.getKnobPage());
+        eq('forge: Filter page draws a filter curve', (fv.getViewModel().filterViz ?? []).length, 1);
+        fv.changePage(3 - fv.getKnobPage());
+        eq('forge: Mod page draws an LFO wave', (fv.getViewModel().lfoViz ?? []).length, 1);
+        globalThis.host_read_file = savedHRF;
+    }
+
+    // Self-describing module: forge is NOT bundled in movy; its layout loads from
+    // the module's movy-layout.json (served here from the authoring copy).
+    {
+        const { loadModuleConfig } = await import('../dist/esm/modules/loader.js');
+        const saved = globalThis.host_read_file;
+        globalThis.host_read_file = () => null;   // no external file → not bundled
+        eq('forge unbundled: null without layout file', loadModuleConfig('forge'), null);
+        globalThis.host_read_file = (p) => p.endsWith('/forge/movy-layout.json')
+            ? JSON.stringify({ id: 'forge', name: 'Forge', banks: [{ name: 'X', rows: [[]] }] }) : null;
+        const cfg = loadModuleConfig('forge');
+        eq('forge: loaded from movy-layout.json', cfg?.name, 'Forge');
+        globalThis.host_read_file = saved;
     }
 }
 

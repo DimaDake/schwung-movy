@@ -44,3 +44,22 @@ ssh ableton@move.local 'cd /data/UserData/schwung/modules/sound_generators/forge
 The stock binary is backed up on the device at `…/forge/dsp.so.orig`.
 Upstreaming this as a PR to forge-move would remove the need to re-patch on
 module updates.
+
+## Self-describing layout: `movy-layout.json`
+
+Forge is **not** bundled into movy (`src/modules/loader.ts` has no forge entry).
+Instead the module ships its own layout: movy reads
+`sound_generators/<id>/movy-layout.json` at load time (see `loadModuleConfig`).
+Forge's layout is authored in `movy/src/modules/forge.json` and deployed to the
+module directory:
+
+```bash
+scp movy/src/modules/forge.json \
+    ableton@move.local:/data/UserData/schwung/modules/sound_generators/forge/movy-layout.json
+```
+
+The layout declares its **filter and LFO graphics explicitly** via per-slot tags
+— `"filter": "cutoff"|"resonance"|"mode"|"slope"` and
+`"lfo": "shape"|"rate"|"depth"|…` — so movy draws the Filter-page curve and
+Mod-page waveform with no name-inference (the `cv_*` alias keys wouldn't be
+detected anyway). Any module can become self-describing the same way.

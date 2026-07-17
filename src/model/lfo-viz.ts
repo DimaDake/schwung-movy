@@ -67,9 +67,12 @@ function fromTags(params: (KnobParam | null)[]): LfoVizGroup[] {
     params.forEach((p, i) => {
         if (p?.lfo && at[p.lfo] === undefined) at[p.lfo] = i;
     });
-    if (at.shape === undefined || at.phase === undefined) return [];
+    // Need a Shape plus at least one drawable partner (phase/rate/depth); phase
+    // is no longer mandatory so a rate- or depth-only LFO (e.g. Forge) can tag.
+    if (at.shape === undefined) return [];
+    if (at.phase === undefined && at.rate === undefined && at.depth === undefined) return [];
     return [{
-        shape: at.shape, phase: at.phase,
+        shape: at.shape, phase: at.phase ?? null,
         rate: at.rate ?? null, depth: at.depth ?? null, deform: at.deform ?? null,
         mode: at.mode ?? null, retrig: at.retrig ?? null,
         inferred: false, shapeOptions: null,

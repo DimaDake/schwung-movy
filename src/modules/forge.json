@@ -102,7 +102,8 @@
             "full": "F1 Cutoff",
             "type": "float",
             "min": 0,
-            "max": 1
+            "max": 1,
+            "filter": "cutoff"
           },
           {
             "key": "cv_f1_res",
@@ -110,7 +111,8 @@
             "full": "F1 Reso",
             "type": "float",
             "min": 0.5,
-            "max": 20
+            "max": 20,
+            "filter": "resonance"
           },
           {
             "key": "cv_f1_type",
@@ -129,7 +131,8 @@
               "LP2",
               "Ladder",
               "Ladder HP"
-            ]
+            ],
+            "filter": "mode"
           },
           {
             "key": "cv_bw_cut",
@@ -271,7 +274,8 @@
               "Square",
               "S&H",
               "Random"
-            ]
+            ],
+            "lfo": "shape"
           },
           {
             "key": "cv_lfo_r",
@@ -279,7 +283,8 @@
             "full": "LFO Rate",
             "type": "float",
             "min": 0.01,
-            "max": 200
+            "max": 200,
+            "lfo": "rate"
           },
           {
             "key": "cv_lfo_s",
@@ -302,7 +307,8 @@
             "full": "LFO Depth",
             "type": "float",
             "min": 0,
-            "max": 1
+            "max": 1,
+            "lfo": "depth"
           }
         ],
         [

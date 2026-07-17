@@ -5,6 +5,23 @@
  * mirror the real hardware palette indices (src/seq/colors.ts) so LED
  * assertions compare against the same values the device uses. */
 
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const MOD_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'modules');
+
+/* Simulate a module shipping its own layout: on the device Forge carries
+ * `sound_generators/forge/movy-layout.json`; here we serve it from the authoring
+ * copy in src/modules so the loader's self-describing path is exercised. */
+function serveModuleLayout(path) {
+    const m = /\/sound_generators\/([^/]+)\/movy-layout\.json$/.exec(path || '');
+    if (m && m[1] === 'forge') {
+        try { return readFileSync(join(MOD_DIR, 'forge.json'), 'utf8'); } catch { return null; }
+    }
+    return null;
+}
+
 export function installEnv() {
     let params = {};
     const env = {
@@ -18,7 +35,7 @@ export function installEnv() {
     globalThis.shadow_set_param   = (_s, key, val) => { params[key] = val; return true; };
     globalThis.shadow_get_ui_slot = () => 0;
     globalThis.shadow_send_midi_to_dsp = () => {};
-    globalThis.host_read_file     = () => null;
+    globalThis.host_read_file     = (path) => serveModuleLayout(path);
     globalThis.host_write_file    = () => true;
     globalThis.host_exit_module   = () => {};
     globalThis.setLED             = () => {};

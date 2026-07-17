@@ -38,6 +38,10 @@ export async function createDumpBoot(dump) {
                 JSON.stringify(m.movy_config);
         }
     }
+    // Forge ships its layout as movy-layout.json (unbundled from movy); serve it
+    // from the authoring copy so the replay matches the device.
+    const forgeLayout = readFileSync(join(MOVY, 'src', 'modules', 'forge.json'), 'utf8');
+    movyConfigByPath['/data/UserData/schwung/modules/sound_generators/forge/movy-layout.json'] = forgeLayout;
     globalThis.host_read_file = (path) => movyConfigByPath[path] ?? null;
 
     const { createModel } = await import(join(MOVY, 'dist', 'esm', 'model', 'index.js'));

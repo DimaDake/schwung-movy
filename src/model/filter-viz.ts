@@ -64,7 +64,33 @@ function cutoffTokens(p: KnobParam, qualifier: string): string[] {
     return [...words(p.key), ...words(p.label), ...words(qualifier)];
 }
 
+/* Explicit `filter:` config tags → groups by pairing tagged cutoff/resonance in
+ * order (config guarantees layout, like the env/LFO tag paths). Mode/slope tags
+ * bind to every group. Lets a self-describing module layout (movy-layout.json)
+ * force a filter graphic where name inference can't (Forge's cv_f1_cut/res/type). */
+function fromFilterTags(params: (KnobParam | null)[]): FilterGroup[] {
+    const cuts: number[] = [], reses: number[] = [];
+    let modeIdx: number | null = null, slopeIdx: number | null = null;
+    params.forEach((p, i) => {
+        if (p?.filter === 'cutoff') cuts.push(i);
+        else if (p?.filter === 'resonance') reses.push(i);
+        else if (p?.filter === 'mode') modeIdx = i;
+        else if (p?.filter === 'slope') slopeIdx = i;
+    });
+    const out: FilterGroup[] = [];
+    for (let i = 0; i < Math.min(cuts.length, reses.length); i++) {
+        out.push({
+            cutoff: cuts[i], resonance: reses[i], cutQual: '', resQual: '',
+            modeIdx, staticMode: null, slopeIdx,
+        });
+    }
+    return out;
+}
+
 export function detectFilterViz(params: (KnobParam | null)[]): FilterGroup[] {
+    const tagged = fromFilterTags(params);
+    if (tagged.length) return tagged;
+
     const cutoffs: { idx: number; qual: string }[] = [];
     const resos:   { idx: number; qual: string }[] = [];
     params.forEach((p, i) => {

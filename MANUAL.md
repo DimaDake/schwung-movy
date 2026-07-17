@@ -100,6 +100,21 @@ automatically. You don't configure anything for most modules.
 
   ![Envelope graphic](docs/assets/env_dual.png)
 
+  Shorter envelopes are drawn too: a two-stage **Attack/Decay** (or Attack/
+  Release) becomes a two-cell graphic, and a three-stage **Attack/Sustain/
+  Release** a three-cell one, leaving the other knobs on the line untouched.
+
+  ![Two-stage AD envelope](docs/assets/env_ad.png)
+  ![Three-stage ASR envelope](docs/assets/env_asr.png)
+
+- **LFO waveform graphics** — when a page carries a module's own LFO (a shape
+  parameter next to its rate, phase or depth), Movy replaces those two cells
+  with a live **waveform preview** of the shape — sine, triangle, saw, square,
+  sample & hold, noise, and more — skewed by the LFO's deform/symmetry and
+  flipped for uni/bipolar. The remaining LFO knobs stay put.
+
+  ![Module LFO waveform](docs/assets/lfo_mod.png)
+
 - **Multiple pages** — modules with more than 8 parameters split into pages
   (`MAIN`, `PAGE 1`, `PAGE 2`, …). Scroll them with the jog wheel (or Left/Right
   when the sequencer isn't using those buttons).

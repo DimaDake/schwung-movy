@@ -17,7 +17,7 @@ possible so they can run in parallel.
 | [4](chunk-4-env-lfo-viz.md) | ✅ done — [5 work items](chunk-4-workitems.md) | A2 2-stage envelopes, A3 module-LFO viz, C5 detector misses | `src/model/envelope.ts`, `src/model/lfo-viz.ts` |
 | ~~[5](chunk-5-preset-overlay.md)~~ | ❌ dropped | ~~C3 preset browser overlay~~ **DROPPED 2026-07-16** — premise invalid (see chunk file / IMPROVEMENTS C3) | — |
 | [6](chunk-6-quick-configs.md) | ✅ done | B3 chordism, B4 sfz, B5 quick configs (303, chiptune, mrdrums, hush1) | new `src/modules/*.json`, `src/modules/loader.ts` |
-| [7](chunk-7-per-unit-configs.md) | ⬜ todo | B2 minus dexed: signal, forge, krautdrums rhythm bank, weird-dreams master bank (stretch: euclidrum/eucalypso lanes) | new `src/modules/*.json`, `src/modules/loader.ts` |
+| [7](chunk-7-per-unit-configs.md) | ✅ done | B2 minus dexed: signal + forge pad-scoped voice configs, krautdrums Rhythm/Global banks, weird-dreams EQ/Master banks. Stretch (euclidrum/eucalypso lanes) **deferred** — not config-only; see [notes-lane-scoping.md](notes-lane-scoping.md) | new `src/modules/{signal,forge}.json`, `src/modules/loader.ts` |
 | [8](chunk-8-dump-replay-harness.md) | ✅ done | D dump-driven regression harness | `browser-test/dump-replay.mjs`, `browser-test/dump-boot.mjs`, `browser-test/dump-expect.json` |
 
 ## Launch order
@@ -32,8 +32,10 @@ and rebase before pushing.
   [5 work items](chunk-4-workitems.md)). 3 ✅ done (filter viz — cutoff+resonance
   reordered onto one line and drawn as a response curve; mode from a same-page
   enum, an off-page enum, or the param name; two-filter pages draw one curve per
-  line). **Remaining:** 7 (per-unit configs — `src/modules/*.json` +
-  `src/modules/loader.ts`, independent of 3).
+  line). 7 ✅ done (signal/forge pad-scoped voice configs, krautdrums Rhythm/
+  Global banks, weird-dreams EQ/Master banks; euclidrum/eucalypso lane stretch
+  deferred as not-config-only — see [notes-lane-scoping.md](notes-lane-scoping.md)).
+  **All chunks complete.**
 
 Chunk 8 landed the dump-replay regression net (`browser-test/dump-replay.mjs`
 + `dump-expect.json`, keyed `<category>--<id>`): when a later chunk

@@ -1578,17 +1578,17 @@
     "rows": [
      [
       {
-       "shortName": "RATE",
-       "fullName": "LFO Rate",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
        "shortName": "WAVE",
        "fullName": "LFO Waveform",
        "renderStyle": "arc",
        "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "LFO Rate",
+       "renderStyle": "arc",
+       "type": "float",
        "displayValue": "..."
       },
       {

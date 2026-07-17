@@ -2147,6 +2147,13 @@
     "rows": [
      [
       {
+       "shortName": "SHAPE",
+       "fullName": "Shape",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
        "shortName": "RATE",
        "fullName": "Rate",
        "renderStyle": "arc",
@@ -2158,13 +2165,6 @@
        "fullName": "Depth",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "SHAPE",
-       "fullName": "Shape",
-       "renderStyle": "arc",
-       "type": "enum",
        "displayValue": "..."
       },
       {
@@ -2817,6 +2817,13 @@
     "rows": [
      [
       {
+       "shortName": "SHAPE",
+       "fullName": "Amp LFO Shape",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
        "shortName": "RATE",
        "fullName": "Amp LFO Rate",
        "renderStyle": "arc",
@@ -2828,13 +2835,6 @@
        "fullName": "Amp LFO Depth",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "SHAPE",
-       "fullName": "Amp LFO Shape",
-       "renderStyle": "arc",
-       "type": "enum",
        "displayValue": "..."
       },
       {

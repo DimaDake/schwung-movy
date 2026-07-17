@@ -2417,6 +2417,13 @@
     "rows": [
      [
       {
+       "shortName": "LF1SH",
+       "fullName": "LFO1 Shape",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
        "shortName": "LF1RT",
        "fullName": "LFO1 Rate",
        "renderStyle": "arc",
@@ -2431,13 +2438,6 @@
        "displayValue": "..."
       },
       {
-       "shortName": "LF1SH",
-       "fullName": "LFO1 Shape",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "..."
-      },
-      {
        "shortName": "LF1TR",
        "fullName": "LFO1 Target",
        "renderStyle": "arc",
@@ -2446,6 +2446,13 @@
       }
      ],
      [
+      {
+       "shortName": "LF2SH",
+       "fullName": "LFO2 Shape",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
       {
        "shortName": "LF2RT",
        "fullName": "LFO2 Rate",
@@ -2458,13 +2465,6 @@
        "fullName": "LFO2 Depth",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "LF2SH",
-       "fullName": "LFO2 Shape",
-       "renderStyle": "arc",
-       "type": "enum",
        "displayValue": "..."
       },
       {

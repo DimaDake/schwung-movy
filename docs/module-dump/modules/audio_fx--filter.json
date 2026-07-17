@@ -576,14 +576,14 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
-       "shortName": "AMT",
-       "fullName": "LFO Amt",
+       "shortName": "SHAPE",
+       "fullName": "LFO Shape",
        "renderStyle": "arc",
-       "type": "float",
+       "type": "enum",
        "displayValue": "..."
       },
       {
@@ -594,17 +594,17 @@
        "displayValue": "..."
       },
       {
-       "shortName": "RATE",
-       "fullName": "LFO Rate",
+       "shortName": "AMT",
+       "fullName": "LFO Amt",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "SHAPE",
-       "fullName": "LFO Shape",
+       "shortName": "RATE",
+       "fullName": "LFO Rate",
        "renderStyle": "arc",
-       "type": "enum",
+       "type": "float",
        "displayValue": "..."
       }
      ],

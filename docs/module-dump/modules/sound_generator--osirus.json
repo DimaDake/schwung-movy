@@ -3670,17 +3670,17 @@
     "rows": [
      [
       {
-       "shortName": "RATE",
-       "fullName": "LFO1 Rate",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "..."
-      },
-      {
        "shortName": "SHAPE",
        "fullName": "LFO1 Shape",
        "renderStyle": "arc",
        "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "LFO1 Rate",
+       "renderStyle": "arc",
+       "type": "int",
        "displayValue": "..."
       },
       {
@@ -3716,17 +3716,17 @@
     "rows": [
      [
       {
-       "shortName": "RATE",
-       "fullName": "LFO2 Rate",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "..."
-      },
-      {
        "shortName": "LS",
        "fullName": "LFO2 Shape",
        "renderStyle": "arc",
        "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "LFO2 Rate",
+       "renderStyle": "arc",
+       "type": "int",
        "displayValue": "..."
       },
       {
@@ -3762,17 +3762,17 @@
     "rows": [
      [
       {
-       "shortName": "RATE",
-       "fullName": "LFO3 Rate",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "..."
-      },
-      {
        "shortName": "SHAPE",
        "fullName": "LFO3 Shape",
        "renderStyle": "arc",
        "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "LFO3 Rate",
+       "renderStyle": "arc",
+       "type": "int",
        "displayValue": "..."
       },
       {

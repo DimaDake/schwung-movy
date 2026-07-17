@@ -6808,6 +6808,13 @@
        "displayValue": "..."
       },
       {
+       "shortName": "PHASE",
+       "fullName": "LFO 1 Phase",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
        "shortName": "RATE",
        "fullName": "LFO 1 Rate",
        "renderStyle": "arc",
@@ -6820,19 +6827,12 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      },
-      {
-       "shortName": "DEFOR",
-       "fullName": "LFO 1 Deform",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "PHASE",
-       "fullName": "LFO 1 Phase",
+       "shortName": "DEFOR",
+       "fullName": "LFO 1 Deform",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -6878,6 +6878,13 @@
        "displayValue": "..."
       },
       {
+       "shortName": "PHASE",
+       "fullName": "LFO 2 Phase",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
        "shortName": "RATE",
        "fullName": "LFO 2 Rate",
        "renderStyle": "arc",
@@ -6890,19 +6897,12 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      },
-      {
-       "shortName": "DEFOR",
-       "fullName": "LFO 2 Deform",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "PHASE",
-       "fullName": "LFO 2 Phase",
+       "shortName": "DEFOR",
+       "fullName": "LFO 2 Deform",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -6948,6 +6948,13 @@
        "displayValue": "..."
       },
       {
+       "shortName": "PHASE",
+       "fullName": "LFO 3 Phase",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
        "shortName": "RATE",
        "fullName": "LFO 3 Rate",
        "renderStyle": "arc",
@@ -6960,19 +6967,12 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      },
-      {
-       "shortName": "DEFOR",
-       "fullName": "LFO 3 Deform",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "PHASE",
-       "fullName": "LFO 3 Phase",
+       "shortName": "DEFOR",
+       "fullName": "LFO 3 Deform",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -7018,6 +7018,13 @@
        "displayValue": "..."
       },
       {
+       "shortName": "PHASE",
+       "fullName": "LFO 4 Phase",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
        "shortName": "RATE",
        "fullName": "LFO 4 Rate",
        "renderStyle": "arc",
@@ -7030,19 +7037,12 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      },
-      {
-       "shortName": "DEFOR",
-       "fullName": "LFO 4 Deform",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "PHASE",
-       "fullName": "LFO 4 Phase",
+       "shortName": "DEFOR",
+       "fullName": "LFO 4 Deform",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -7088,6 +7088,13 @@
        "displayValue": "..."
       },
       {
+       "shortName": "PHASE",
+       "fullName": "LFO 5 Phase",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
        "shortName": "RATE",
        "fullName": "LFO 5 Rate",
        "renderStyle": "arc",
@@ -7100,19 +7107,12 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      },
-      {
-       "shortName": "DEFOR",
-       "fullName": "LFO 5 Deform",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "PHASE",
-       "fullName": "LFO 5 Phase",
+       "shortName": "DEFOR",
+       "fullName": "LFO 5 Deform",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -7158,6 +7158,13 @@
        "displayValue": "..."
       },
       {
+       "shortName": "PHASE",
+       "fullName": "LFO 6 Phase",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
        "shortName": "RATE",
        "fullName": "LFO 6 Rate",
        "renderStyle": "arc",
@@ -7170,19 +7177,12 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      },
-      {
-       "shortName": "DEFOR",
-       "fullName": "LFO 6 Deform",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "PHASE",
-       "fullName": "LFO 6 Phase",
+       "shortName": "DEFOR",
+       "fullName": "LFO 6 Deform",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -7228,6 +7228,13 @@
        "displayValue": "..."
       },
       {
+       "shortName": "PHASE",
+       "fullName": "Scene LFO 1 Phase",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
        "shortName": "RATE",
        "fullName": "Scene LFO 1 Rate",
        "renderStyle": "arc",
@@ -7240,19 +7247,12 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      },
-      {
-       "shortName": "DEFOR",
-       "fullName": "Scene LFO 1 Deform",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "PHASE",
-       "fullName": "Scene LFO 1 Phase",
+       "shortName": "DEFOR",
+       "fullName": "Scene LFO 1 Deform",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -7298,6 +7298,13 @@
        "displayValue": "..."
       },
       {
+       "shortName": "PHASE",
+       "fullName": "Scene LFO 2 Phase",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
        "shortName": "RATE",
        "fullName": "Scene LFO 2 Rate",
        "renderStyle": "arc",
@@ -7310,19 +7317,12 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      },
-      {
-       "shortName": "DEFOR",
-       "fullName": "Scene LFO 2 Deform",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "PHASE",
-       "fullName": "Scene LFO 2 Phase",
+       "shortName": "DEFOR",
+       "fullName": "Scene LFO 2 Deform",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -7368,6 +7368,13 @@
        "displayValue": "..."
       },
       {
+       "shortName": "PHASE",
+       "fullName": "Scene LFO 3 Phase",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
        "shortName": "RATE",
        "fullName": "Scene LFO 3 Rate",
        "renderStyle": "arc",
@@ -7380,19 +7387,12 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      },
-      {
-       "shortName": "DEFOR",
-       "fullName": "Scene LFO 3 Deform",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "PHASE",
-       "fullName": "Scene LFO 3 Phase",
+       "shortName": "DEFOR",
+       "fullName": "Scene LFO 3 Deform",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -7438,6 +7438,13 @@
        "displayValue": "..."
       },
       {
+       "shortName": "PHASE",
+       "fullName": "Scene LFO 4 Phase",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
        "shortName": "RATE",
        "fullName": "Scene LFO 4 Rate",
        "renderStyle": "arc",
@@ -7450,19 +7457,12 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      },
-      {
-       "shortName": "DEFOR",
-       "fullName": "Scene LFO 4 Deform",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "PHASE",
-       "fullName": "Scene LFO 4 Phase",
+       "shortName": "DEFOR",
+       "fullName": "Scene LFO 4 Deform",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -7508,6 +7508,13 @@
        "displayValue": "..."
       },
       {
+       "shortName": "PHASE",
+       "fullName": "Scene LFO 5 Phase",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
        "shortName": "RATE",
        "fullName": "Scene LFO 5 Rate",
        "renderStyle": "arc",
@@ -7520,19 +7527,12 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      },
-      {
-       "shortName": "DEFOR",
-       "fullName": "Scene LFO 5 Deform",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "PHASE",
-       "fullName": "Scene LFO 5 Phase",
+       "shortName": "DEFOR",
+       "fullName": "Scene LFO 5 Deform",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -7578,6 +7578,13 @@
        "displayValue": "..."
       },
       {
+       "shortName": "PHASE",
+       "fullName": "Scene LFO 6 Phase",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
        "shortName": "RATE",
        "fullName": "Scene LFO 6 Rate",
        "renderStyle": "arc",
@@ -7590,19 +7597,12 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      },
-      {
-       "shortName": "DEFOR",
-       "fullName": "Scene LFO 6 Deform",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "PHASE",
-       "fullName": "Scene LFO 6 Phase",
+       "shortName": "DEFOR",
+       "fullName": "Scene LFO 6 Deform",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."

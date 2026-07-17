@@ -2647,6 +2647,13 @@
        "displayValue": "..."
       },
       {
+       "shortName": "PHASE",
+       "fullName": "Phase",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
        "shortName": "RATE",
        "fullName": "Rate",
        "renderStyle": "arc",
@@ -2659,21 +2666,14 @@
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
-      },
+      }
+     ],
+     [
       {
        "shortName": "RETRI",
        "fullName": "Retrig",
        "renderStyle": "arc",
        "type": "enum",
-       "displayValue": "..."
-      }
-     ],
-     [
-      {
-       "shortName": "PHASE",
-       "fullName": "Phase",
-       "renderStyle": "arc",
-       "type": "float",
        "displayValue": "..."
       },
       null,

@@ -3,6 +3,7 @@ import type { ModelState } from './state.js';
 import { formatValue, paramIoKey } from './store.js';
 import { planPageLayout } from './page-layout.js';
 import { buildLfoViz } from './lfo-vm.js';
+import { buildFilterViz } from './filter-vm.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
 import { dedupShortNames } from '../renderer/shorten.js';
 import { basename } from './path.js';
@@ -100,6 +101,9 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     const pageParams = s.knobParams.slice(pageStart, pageStart + KNOBS_PER_PAGE);
     const pageValues = s.knobValues.slice(pageStart, pageStart + KNOBS_PER_PAGE);
     const lfoViz = buildLfoViz(layout.lfos, pageParams, pageValues);
+    // Filter-response groups: cutoff+resonance drawn as a curve. Mode may live on
+    // another page, so the resolver also reads the full cached param/value lists.
+    const filterViz = buildFilterViz(layout.filters, pageParams, pageValues, s.knobParams, s.knobValues);
 
     // Toast follows the physical knob last touched → its displayed param (the
     // rearrange means screen slot ≠ page index).
@@ -147,5 +151,6 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         stepPagePresent:    false,
         stepPageSelected:   false,
         lfoViz:             lfoViz.length ? lfoViz : undefined,
+        filterViz:          filterViz.length ? filterViz : undefined,
     };
 }

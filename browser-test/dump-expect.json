@@ -1604,10 +1604,10 @@
    [
     "LC",
     "LP",
-    "HC",
-    "HP",
     "FREQ",
     "DEPTH",
+    "HC",
+    "HP",
     "DRIVE",
     "VOLUM"
    ],
@@ -1882,10 +1882,10 @@
     "PRSET"
    ],
    [
-    "CHORD",
-    "WIDTH",
     "CUTOF",
     "RESO",
+    "CHORD",
+    "WIDTH",
     "DRIVE",
     "SHAPE",
     "DETUN",
@@ -2074,10 +2074,10 @@
     "CUTOF"
    ],
    [
-    "DEPTH",
-    "TYPE",
     "CUTOF",
     "Q",
+    "DEPTH",
+    "TYPE",
     "ATTAC",
     "DECAY",
     "SUSTA",
@@ -2255,9 +2255,9 @@
     "PATCH",
     "EXCIT",
     "RR",
-    "ALL",
     "CUTOF",
     "RESON",
+    "ALL",
     "FT"
    ],
    [
@@ -2265,9 +2265,9 @@
     "PATCH",
     "EXCIT",
     "RR",
-    "ALL",
     "CUTOF",
     "RESON",
+    "ALL",
     "FT"
    ],
    [
@@ -2488,9 +2488,9 @@
     "LPG"
    ],
    [
-    "MODE",
     "CUTOF",
-    "RESON"
+    "RESON",
+    "MODE"
    ],
    [
     "LFO",
@@ -2674,9 +2674,9 @@
     "PRESE"
    ],
    [
-    "VOLUM",
     "CUTOF",
     "RESO",
+    "VOLUM",
     "ENV",
     "ATTAC",
     "DECAY",
@@ -2844,9 +2844,9 @@
     "TAPE",
     "HPF",
     "BODY",
-    "AIR",
     "CUTOF",
     "RESO",
+    "AIR",
     "PHASE"
    ],
    [
@@ -3151,10 +3151,10 @@
     "DECAY",
     "SUSTA",
     "RELEA",
-    "SAMPL",
-    "START",
     "CUTOF",
-    "RESON"
+    "RESON",
+    "SAMPL",
+    "START"
    ],
    [
     "GAIN"
@@ -3173,9 +3173,9 @@
     "RELEA"
    ],
    [
-    "TYPE",
     "CUTOF",
     "RESON",
+    "TYPE",
     "ENV"
    ],
    [
@@ -3891,17 +3891,17 @@
     "WD"
    ],
    [
-    "F1T",
     "F1C",
     "F1R",
+    "F1T",
     "F1FMA",
     "F1K",
     "F1S"
    ],
    [
-    "F2T",
     "F2C",
     "F2R",
+    "F2T",
     "F2FMA",
     "F2K",
     "F2S"

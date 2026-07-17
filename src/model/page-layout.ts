@@ -7,6 +7,7 @@
 import type { KnobParam } from '../types/param.js';
 import { detectEnvelopes, type EnvRole } from './envelope.js';
 import { detectLfoViz } from './lfo-viz.js';
+import { detectFilterViz } from './filter-viz.js';
 
 export interface PageCell { line: 0 | 1; col: 0 | 1 | 2 | 3; idx: number }
 export interface EnvLine { line: 0 | 1; name: string; startCol: number; cellCount: number; roles: EnvRole[] }
@@ -21,7 +22,17 @@ export interface LfoLine {
     deform: number | null; mode: number | null; retrig: number | null;
     inferred: boolean; shapeOptions: string[] | null;
 }
-export interface PageLayout { cells: PageCell[]; envelopes: EnvLine[]; lfos: LfoLine[] }
+/* A filter placement: cutoff at startCol, resonance at startCol+1. Carries the
+ * mode-source hints resolved lazily against live values in filter-vm.ts. */
+export interface FilterLine {
+    line: 0 | 1; startCol: number;
+    cutoff: number; resonance: number;
+    cutQual: string; resQual: string;
+    modeIdx: number | null;
+    staticMode: import('./filter-mode.js').FilterMode | null;
+    slopeIdx: number | null;
+}
+export interface PageLayout { cells: PageCell[]; envelopes: EnvLine[]; lfos: LfoLine[]; filters: FilterLine[] }
 
 /* Physical knob (slot = line*4 + col) → page-relative param index, honoring the
  * rearrange so a knob always drives the param shown at its position. */
@@ -35,6 +46,7 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
     const rowCells: (number[] | null)[] = [null, null];   // cells claimed per line, in order
     const envelopes: EnvLine[] = [];
     const lfos: LfoLine[] = [];
+    const filters: FilterLine[] = [];
     const used = new Set<number>();
     const claimed = new Set<number>();
 
@@ -69,6 +81,19 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
         });
     }
 
+    // Filter groups last: cutoff then resonance on one line (see filter-viz.ts).
+    // Only a pair whose cells aren't already an envelope/LFO stage is placed.
+    for (const g of detectFilterViz(params)) {
+        if (used.size >= 2) break;
+        if (claimed.has(g.cutoff) || claimed.has(g.resonance)) continue;
+        const line = assign([g.cutoff, g.resonance], (Math.floor(Math.min(g.cutoff, g.resonance) / 4)) as 0 | 1);
+        if (line >= 0) filters.push({
+            line: line as 0 | 1, startCol: 0, cutoff: g.cutoff, resonance: g.resonance,
+            cutQual: g.cutQual, resQual: g.resQual, modeIdx: g.modeIdx,
+            staticMode: g.staticMode, slopeIdx: g.slopeIdx,
+        });
+    }
+
     const leftover: number[] = [];
     params.forEach((p, i) => { if (p && !claimed.has(i)) leftover.push(i); });
 
@@ -81,5 +106,5 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
         while (col <= 3 && li < leftover.length) cells.push({ line, col: (col++) as 0 | 1 | 2 | 3, idx: leftover[li++] });
         if (line === 1) break;
     }
-    return { cells, envelopes, lfos };
+    return { cells, envelopes, lfos, filters };
 }

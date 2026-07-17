@@ -46,6 +46,15 @@ export interface LfoVizVM {
     ampScale?: number;   // amplitude multiplier (depth partner: floor..1); default 1
 }
 
+export interface FilterVizVM {
+    line:      0 | 1;
+    startCol:  number;   // graphic spans startCol..startCol+1 (cutoff, resonance)
+    cutoff:    number;   // 0..1 → curve feature x-position
+    resonance: number;   // 0..1 → bump/dip magnitude
+    mode:      'lp' | 'hp' | 'bp' | 'notch' | 'peak' | 'ap' | 'off';
+    slope?:    0 | 1;    // 0 = 12 dB, 1 = 24 dB (steeper) — set only when known
+}
+
 export interface ToastState {
     fullName:   string;
     value:      string;
@@ -72,6 +81,8 @@ export interface ViewModel {
     envelopeLines?:  (EnvelopeVM | null)[];
     /* LFO waveform groups on this page (Shape+Phase cells drawn as a wave). */
     lfoViz?:         LfoVizVM[];
+    /* Filter-response groups on this page (cutoff+resonance drawn as a curve). */
+    filterViz?:      FilterVizVM[];
     touchedSlot:    number | null;
     toast:          ToastState | null;
     overlay:        OverlayState | null;

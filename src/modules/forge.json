@@ -2,53 +2,457 @@
   "id": "forge",
   "name": "Forge",
   "drum": {
-    "padCount": 8,
+    "padCount": 16,
     "padNoteStart": 36,
     "rawMidi": false,
-    "shiftSelectMidi": true,
-    "padScoping": {
-      "aliasPrefix": "pv_",
-      "concreteKeyTemplate": "v{pad}_{suffix}",
-      "padDigits": 1
-    }
+    "padSelectRefresh": true
   },
   "banks": [
     {
-      "name": "Voice",
+      "name": "Osc",
       "padSpecific": true,
       "rows": [
         [
           {
-            "key": "pv_lvl",
+            "key": "cv_wave",
+            "short": "WAVE",
+            "full": "Wave",
+            "type": "enum",
+            "options": [
+              "Sine",
+              "Tri",
+              "Saw",
+              "Square",
+              "Noise"
+            ]
+          },
+          {
+            "key": "cv_ratio_c",
+            "short": "RATC",
+            "full": "Coarse Ratio",
+            "type": "float",
+            "min": 0.5,
+            "max": 16
+          },
+          {
+            "key": "cv_ratio_f",
+            "short": "RATF",
+            "full": "Fine Ratio",
+            "type": "float",
+            "min": -12,
+            "max": 12
+          },
+          {
+            "key": "cv_detune",
+            "short": "DETUN",
+            "full": "Detune",
+            "type": "float",
+            "min": -50,
+            "max": 50
+          }
+        ],
+        [
+          {
+            "key": "cv_level",
             "short": "LEVEL",
-            "full": "Voice Level",
+            "full": "Level",
             "type": "float",
             "min": 0,
             "max": 1
           },
           {
-            "key": "pv_pan",
-            "short": "PAN",
-            "full": "Voice Pan",
+            "key": "cv_phase",
+            "short": "PHASE",
+            "full": "Phase",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "cv_pwm",
+            "short": "PWM",
+            "full": "PWM",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "cv_fbk",
+            "short": "FBK",
+            "full": "Feedback",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Filter",
+      "padSpecific": true,
+      "rows": [
+        [
+          {
+            "key": "cv_f1_cut",
+            "short": "F1CUT",
+            "full": "F1 Cutoff",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "cv_f1_res",
+            "short": "F1RES",
+            "full": "F1 Reso",
+            "type": "float",
+            "min": 0.5,
+            "max": 20
+          },
+          {
+            "key": "cv_f1_type",
+            "short": "F1TYP",
+            "full": "F1 Type",
+            "type": "enum",
+            "options": [
+              "LP",
+              "HP",
+              "BP",
+              "BPu",
+              "Notch",
+              "Peak",
+              "Comb+",
+              "Comb-",
+              "LP2",
+              "Ladder",
+              "Ladder HP"
+            ]
+          },
+          {
+            "key": "cv_bw_cut",
+            "short": "BWCUT",
+            "full": "BW Cutoff",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        [
+          {
+            "key": "cv_bw_w",
+            "short": "BWW",
+            "full": "BW Width",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "cv_routing",
+            "short": "ROUTE",
+            "full": "Routing",
+            "type": "enum",
+            "options": [
+              "Single",
+              "Per-Osc",
+              "Serial",
+              "Parallel"
+            ]
+          },
+          {
+            "key": "cv_f1_drv",
+            "short": "F1DRV",
+            "full": "F1 Drive",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "cv_f2_cut",
+            "short": "F2CUT",
+            "full": "F2 Cutoff",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Env",
+      "padSpecific": true,
+      "rows": [
+        [
+          {
+            "key": "cv_e1_atk",
+            "short": "E1ATK",
+            "full": "E1 Attack",
+            "type": "float",
+            "min": 0.0001,
+            "max": 1
+          },
+          {
+            "key": "cv_e1_dec",
+            "short": "E1DEC",
+            "full": "E1 Decay",
+            "type": "float",
+            "min": 0.001,
+            "max": 4
+          },
+          {
+            "key": "cv_e1_crv",
+            "short": "E1CRV",
+            "full": "E1 Curve",
             "type": "float",
             "min": -1,
             "max": 1
           },
           {
-            "key": "pv_fx1",
-            "short": "FX1",
-            "full": "Voice FX1",
+            "key": "cv_e1_rep",
+            "short": "E1REP",
+            "full": "E1 Repeat",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        [
+          {
+            "key": "cv_e2_dec",
+            "short": "E2DEC",
+            "full": "E2 Decay",
+            "type": "float",
+            "min": 0.001,
+            "max": 4
+          },
+          {
+            "key": "cv_e2_crv",
+            "short": "E2CRV",
+            "full": "E2 Curve",
+            "type": "float",
+            "min": -1,
+            "max": 1
+          },
+          {
+            "key": "cv_pe_amt",
+            "short": "PEAMT",
+            "full": "PE Amount",
+            "type": "float",
+            "min": -1,
+            "max": 1
+          },
+          {
+            "key": "cv_pe_dec",
+            "short": "PEDEC",
+            "full": "PE Decay",
+            "type": "float",
+            "min": 0.001,
+            "max": 4
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Mod",
+      "padSpecific": true,
+      "rows": [
+        [
+          {
+            "key": "cv_lfo_w",
+            "short": "LFOW",
+            "full": "LFO Wave",
+            "type": "enum",
+            "options": [
+              "Sine",
+              "Tri",
+              "Saw",
+              "Square",
+              "S&H",
+              "Random"
+            ]
+          },
+          {
+            "key": "cv_lfo_r",
+            "short": "LFOR",
+            "full": "LFO Rate",
+            "type": "float",
+            "min": 0.01,
+            "max": 200
+          },
+          {
+            "key": "cv_lfo_s",
+            "short": "LFOS",
+            "full": "LFO Sync",
+            "type": "enum",
+            "options": [
+              "Free",
+              "1/1",
+              "1/2",
+              "1/4",
+              "1/8",
+              "1/16",
+              "1/32"
+            ]
+          },
+          {
+            "key": "cv_lfo_d",
+            "short": "LFOD",
+            "full": "LFO Depth",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        [
+          {
+            "key": "cv_xlfo_src",
+            "short": "XLFO",
+            "full": "XLFO Source",
+            "type": "enum",
+            "options": [
+              "Self",
+              "V1",
+              "V2",
+              "V3",
+              "V4",
+              "V5",
+              "V6",
+              "V7",
+              "V8"
+            ]
+          },
+          {
+            "key": "cv_trig_rst",
+            "short": "TRST",
+            "full": "Trig Reset",
+            "type": "enum",
+            "options": [
+              "None",
+              "V1",
+              "V2",
+              "V3",
+              "V4",
+              "V5",
+              "V6",
+              "V7",
+              "V8"
+            ]
+          },
+          {
+            "key": "cv_mod_dest",
+            "short": "MDEST",
+            "full": "Mod Dest",
+            "type": "enum",
+            "options": [
+              "None",
+              "Pitch",
+              "FM Idx",
+              "Filt Cut",
+              "Reso FB",
+              "Body",
+              "Pan",
+              "Level"
+            ]
+          },
+          {
+            "key": "cv_mod_dpth",
+            "short": "MDPTH",
+            "full": "Mod Depth",
+            "type": "float",
+            "min": -1,
+            "max": 1
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Setup",
+      "padSpecific": true,
+      "rows": [
+        [
+          {
+            "key": "cv_algo",
+            "short": "ALGO",
+            "full": "Algorithm",
+            "type": "enum",
+            "options": [
+              "Drum",
+              "Snare",
+              "Cymbal",
+              "Hat",
+              "Wild"
+            ]
+          },
+          {
+            "key": "cv_choke",
+            "short": "CHOKE",
+            "full": "Choke",
+            "type": "enum",
+            "options": [
+              "None",
+              "A",
+              "B",
+              "C",
+              "D"
+            ]
+          },
+          {
+            "key": "cv_bus",
+            "short": "BUS",
+            "full": "Output Bus",
+            "type": "enum",
+            "options": [
+              "Main",
+              "Aux1",
+              "Aux2",
+              "FX-Only"
+            ]
+          },
+          {
+            "key": "cv_tune",
+            "short": "VTUNE",
+            "full": "Voice Tune",
+            "type": "float",
+            "min": -24,
+            "max": 24
+          }
+        ],
+        [
+          {
+            "key": "cv_poly",
+            "short": "POLY",
+            "full": "Polyphony",
+            "type": "enum",
+            "options": [
+              "One-Shot",
+              "Legato",
+              "Retrig",
+              "Roll"
+            ]
+          },
+          {
+            "key": "cv_glide",
+            "short": "GLIDE",
+            "full": "Glide",
             "type": "float",
             "min": 0,
             "max": 1
           },
           {
-            "key": "pv_fx2",
-            "short": "FX2",
-            "full": "Voice FX2",
+            "key": "cv_vsens",
+            "short": "VSENS",
+            "full": "Vel Sens",
             "type": "float",
             "min": 0,
             "max": 1
+          },
+          {
+            "key": "cv_init",
+            "short": "VINIT",
+            "full": "Init Voice",
+            "type": "enum",
+            "options": [
+              "0",
+              "1"
+            ]
           }
         ]
       ]
@@ -203,7 +607,7 @@
       ]
     },
     {
-      "name": "Mixer",
+      "name": "Mix",
       "rows": [
         [
           {
@@ -422,7 +826,7 @@
       ]
     },
     {
-      "name": "Setup",
+      "name": "Globals",
       "rows": [
         [
           {

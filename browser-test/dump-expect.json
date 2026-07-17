@@ -2356,22 +2356,70 @@
   "hidden": 1
  },
  "sound_generator--forge": {
-  "pageCount": 7,
+  "pageCount": 11,
   "pageNames": [
-   "Voice",
+   "Osc",
+   "Filter",
+   "Env",
+   "Mod",
+   "Setup",
    "Kit",
    "Perf",
-   "Mixer",
+   "Mix",
    "FX",
    "Master",
-   "Setup"
+   "Globals"
   ],
   "pageShortNames": [
    [
+    "WAVE",
+    "RATC",
+    "RATF",
+    "DETUN",
     "LEVEL",
-    "PAN",
-    "FX1",
-    "FX2"
+    "PHASE",
+    "PWM",
+    "FBK"
+   ],
+   [
+    "F1CUT",
+    "F1RES",
+    "F1TYP",
+    "BWCUT",
+    "BWW",
+    "ROUTE",
+    "F1DRV",
+    "F2CUT"
+   ],
+   [
+    "E1ATK",
+    "E1DEC",
+    "E1CRV",
+    "E1REP",
+    "E2DEC",
+    "E2CRV",
+    "PEAMT",
+    "PEDEC"
+   ],
+   [
+    "LFOW",
+    "LFOR",
+    "LFOS",
+    "LFOD",
+    "XLFO",
+    "TRST",
+    "MDEST",
+    "MDPTH"
+   ],
+   [
+    "ALGO",
+    "CHOKE",
+    "BUS",
+    "VTUNE",
+    "POLY",
+    "GLIDE",
+    "VSENS",
+    "VINIT"
    ],
    [
     "KIT",
@@ -2433,9 +2481,9 @@
     "MTUNE"
    ]
   ],
-  "envelopeLines": 0,
+  "envelopeLines": 1,
   "lfoViz": 0,
-  "hidden": 122
+  "hidden": 106
  },
  "sound_generator--freak": {
   "pageCount": 17,

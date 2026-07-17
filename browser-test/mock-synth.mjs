@@ -108,6 +108,38 @@ export const MOCK_SYNTHS = {
         "synth:cutoff": "0.60", "synth:reso": "0.30",
     },
 
+    // A1 filter-response viz: cutoff+resonance drawn as a curve; a same-page MODE
+    // enum morphs the shape and SLOPE picks 12/24 dB. The scene overrides
+    // synth:mode / synth:resonance / synth:slope per shot before rendering.
+    filter_demo: {
+        "synth:name": "Filter",
+        "synth:ui_hierarchy": hier([
+            { key: "cutoff",    label: "Cutoff",    type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "resonance", label: "Resonance", type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "drive",     label: "Drive",     type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "mix",       label: "Mix",       type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "mode",      label: "Mode",      type: "enum",  options: ["LP", "HP", "BP", "Notch", "Peak", "AP"] },
+            { key: "slope",     label: "Slope",     type: "enum",  options: ["12 dB", "24 dB"] },
+        ]),
+        "synth:cutoff": "0.55", "synth:resonance": "0.30", "synth:drive": "0.20",
+        "synth:mix": "1.00", "synth:mode": "0", "synth:slope": "0",
+    },
+    // A1 two curves on one page (aphex-like): lpf_cut/lpf_reso → LP on one line,
+    // hpf_cut/hpf_reso → HP on the other, both inferred from name tokens.
+    filter_dual: {
+        "synth:name": "Aphex",
+        "synth:ui_hierarchy": hier([
+            { key: "lpf_cut",  label: "LPF Cut",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "lpf_reso", label: "LPF Peak", type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "hpf_cut",  label: "HPF Cut",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "hpf_reso", label: "HPF Peak", type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "mg_freq",  label: "MG Freq",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "depth",    label: "Depth",    type: "float", min: 0, max: 1, step: 0.01 },
+        ]),
+        "synth:lpf_cut": "0.65", "synth:lpf_reso": "0.55", "synth:hpf_cut": "0.35",
+        "synth:hpf_reso": "0.45", "synth:mg_freq": "0.50", "synth:depth": "0.40",
+    },
+
     // A2 partial envelopes: 3-stage ASR (attack + sustain plateau + release).
     env_asr: {
         "synth:name": "ASR Env",

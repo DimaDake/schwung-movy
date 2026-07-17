@@ -46,6 +46,8 @@ const PRESETS = [
     'main-root-touched', 'main-key-overlay', 'main-ext-sync', 'main-link-on',
     'clip-default', 'clip-fraction', 'clip-overlay',
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
+    'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
+    'filter_slope24', 'filter_dual',
     'leave_modal',
 ];
 
@@ -65,6 +67,9 @@ const BASE = {
     'main-key-overlay': 'test8', 'main-ext-sync': 'test8', 'main-link-on': 'test8',
     'clip-default': 'test8', 'clip-fraction': 'test8', 'clip-overlay': 'test8',
     env_dual: 'env_dual', env_touched: 'env_dual', env_ad: 'env_ad', env_asr: 'env_asr', lfo_mod: 'lfo_mod',
+    filter_lp: 'filter_demo', filter_lp_reso: 'filter_demo', filter_hp: 'filter_demo',
+    filter_bp: 'filter_demo', filter_notch: 'filter_demo', filter_slope24: 'filter_demo',
+    filter_dual: 'filter_dual',
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
     lfo_target_overlay: 'test8', lfo_viz_unipolar: 'test8', lfo_viz_retrig: 'test8',
     lfo_mod_mark: 'test8', lfo_mod_and_auto: 'test8', lfo_assign_toast: 'test8',
@@ -140,6 +145,15 @@ function knobsRepaint() { renderKnobsView(model.getViewModel()); }
 let lastRender = knobsRepaint;
 function forceRender()  { lastRender = knobsRepaint; lastRender(); }
 
+/* Override synth params on the loaded mock and re-read, then repaint. */
+function setFilter(overrides) {
+    const patched = { ...env.params };
+    for (const [k, v] of Object.entries(overrides)) patched['synth:' + k] = v;
+    env.setParams(patched);
+    for (const m of chainModels) { m.reset(); m.reload(); }
+    forceRender(); settle();
+}
+
 /* Each helper sets lastRender so the post-state settle repaints THIS view. */
 function showKeys()  { lastRender = () => renderKeysView(model.getModuleName(), 60, midiName); lastRender(); }
 function showBrowse(mods, idx) { lastRender = () => renderBrowseView(mods, idx); lastRender(); }
@@ -189,6 +203,13 @@ function applyView(preset) {
         case 'env_ad':      forceRender(); break;
         case 'env_asr':     forceRender(); break;
         case 'lfo_mod':     forceRender(); break;
+        case 'filter_lp':      forceRender(); break;                         // demo defaults: LP, reso 0.30
+        case 'filter_lp_reso': setFilter({ resonance: '0.90' }); break;      // high resonance bump
+        case 'filter_hp':      setFilter({ mode: '1' }); break;
+        case 'filter_bp':      setFilter({ mode: '2' }); break;
+        case 'filter_notch':   setFilter({ mode: '3' }); break;
+        case 'filter_slope24': setFilter({ resonance: '0.70', slope: '1' }); break;
+        case 'filter_dual':    forceRender(); break;
         case 'obxd_preset_page': forceRender(); break;                       // page 0
         case 'obxd_main_page':   model.changePage(1); forceRender(); break;
         case 'obxd_filter_page': model.changePage(3); forceRender(); break;

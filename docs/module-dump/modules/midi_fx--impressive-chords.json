@@ -249,13 +249,6 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
-       "fullName": "Preset",
-       "renderStyle": "preset",
-       "type": "enum",
-       "displayValue": "..."
-      },
-      {
        "shortName": "BASE",
        "fullName": "base_note",
        "renderStyle": "arc",
@@ -275,16 +268,16 @@
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
-      }
-     ],
-     [
+      },
       {
        "shortName": "STRUM",
        "fullName": "strum",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
-      },
+      }
+     ],
+     [
       {
        "shortName": "TILT",
        "fullName": "tilt",
@@ -305,6 +298,13 @@
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
+      },
+      {
+       "shortName": "RETRI",
+       "fullName": "retrig",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
       }
      ]
     ]
@@ -318,13 +318,6 @@
     "lfoViz": false,
     "rows": [
      [
-      {
-       "shortName": "RETRI",
-       "fullName": "retrig",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "..."
-      },
       {
        "shortName": "TIMIN",
        "fullName": "timing",
@@ -345,16 +338,16 @@
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
-      }
-     ],
-     [
+      },
       {
        "shortName": "FIT",
        "fullName": "fit",
        "renderStyle": "hbar",
        "type": "int",
        "displayValue": "..."
-      },
+      }
+     ],
+     [
       {
        "shortName": "GATE",
        "fullName": "gate",
@@ -369,6 +362,7 @@
        "type": "int",
        "displayValue": "..."
       },
+      null,
       null
      ]
     ]
@@ -400,24 +394,6 @@
    null,
    null,
    null,
-   {
-    "key": "preset_index",
-    "label": "Preset",
-    "shortLabel": null,
-    "type": "enum",
-    "min": 0,
-    "max": 51,
-    "step": 1,
-    "options": null,
-    "nameKey": "preset_name",
-    "renderStyle": "preset",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 52
-    }
-   },
    {
     "key": "base_note",
     "label": "base_note",
@@ -670,13 +646,13 @@
      "detentsFullSweep": 1
     }
    },
+   null,
    null
   ]
  },
  "analysis": {
   "hiddenParams": [],
   "noMetadata": [
-   "preset_index",
    "preset_index",
    "base_note",
    "transpose",
@@ -694,7 +670,7 @@
    "scan"
   ],
   "warnings": [
-   "16 shown params lack chain_params metadata (movy guesses type/range): preset_index, preset_index, base_note, transpose, invert, strum, tilt, articulate, length, retrig, timing, choke, …"
+   "15 shown params lack chain_params metadata (movy guesses type/range): preset_index, base_note, transpose, invert, strum, tilt, articulate, length, retrig, timing, choke, notes, …"
   ]
  }
 }

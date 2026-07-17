@@ -531,10 +531,26 @@
   "hasConfig": false,
   "usesMovyConfigFile": false,
   "drum": null,
-  "banks": [],
+  "banks": [
+   {
+    "name": "Main - 1",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 3",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
   "pages": [
    {
-    "name": "",
+    "name": "Main - 1",
     "envelopeLines": [
      false,
      false
@@ -542,10 +558,174 @@
     "lfoViz": false,
     "rows": [
      [
-      null,
-      null,
-      null,
-      null
+      {
+       "shortName": "LOOP",
+       "fullName": "Loop Len",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "1 Bar"
+      },
+      {
+       "shortName": "SLICE",
+       "fullName": "Slice Res",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FX",
+       "fullName": "FX Density",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ORDER",
+       "fullName": "Order",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "CN",
+       "fullName": "Capture Now",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ARM",
+       "fullName": "Arm Record",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "A/B",
+       "fullName": "A/B",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RE-RO",
+       "fullName": "Re-Roll",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CLEAR",
+       "fullName": "Clear Loop",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DB",
+       "fullName": "Detect BPM",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WET",
+       "fullName": "Wet",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PITCH",
+       "fullName": "Pitch Range",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "AB",
+       "fullName": "AB Quantize",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PLAY",
+       "fullName": "Pad Play",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "Pad Rate",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SEED",
+       "fullName": "Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 3",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TRANS",
+       "fullName": "Transport",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CHANN",
+       "fullName": "Channels",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN L",
+       "fullName": "Pan L",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN R",
+       "fullName": "Pan R",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
      ],
      [
       null,
@@ -556,36 +736,410 @@
     ]
    }
   ],
-  "params": []
+  "params": [
+   {
+    "key": "loop_len",
+    "label": "Loop Len",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1 Step",
+     "2 Steps",
+     "1 Beat",
+     "2 Beats",
+     "1 Bar",
+     "2 Bars",
+     "4 Bars",
+     "8 Bars",
+     "16 Bars"
+    ],
+    "min": 0,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 9
+    }
+   },
+   {
+    "key": "slice_res",
+    "label": "Slice Res",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/2 Step",
+     "1 Step",
+     "2 Steps",
+     "4 Steps"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "fx_density",
+    "label": "FX Density",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 10000
+    }
+   },
+   {
+    "key": "order_density",
+    "label": "Order",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 10000
+    }
+   },
+   {
+    "key": "capture",
+    "label": "Capture Now",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "arm",
+    "label": "Arm Record",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "ab",
+    "label": "A/B",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "A Clean",
+     "B Pattern"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "reroll",
+    "label": "Re-Roll",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "clear",
+    "label": "Clear Loop",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "detect_bpm",
+    "label": "Detect BPM",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "wet",
+    "label": "Wet",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 10000
+    }
+   },
+   {
+    "key": "pitch_range",
+    "label": "Pitch Range",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 46
+    }
+   },
+   {
+    "key": "quantize",
+    "label": "AB Quantize",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Instant",
+     "Slice",
+     "Loop"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "pad_play",
+    "label": "Pad Play",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "pad_rate",
+    "label": "Pad Rate",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/16",
+     "1/8",
+     "1/4",
+     "1/2",
+     "1 Bar"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   {
+    "key": "seed",
+    "label": "Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 9999,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 19996
+    }
+   },
+   {
+    "key": "transport",
+    "label": "Transport",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Follow",
+     "Free"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "channel_mode",
+    "label": "Channels",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Stereo",
+     "Dual Mono"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "pan_l",
+    "label": "Pan L",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pan_r",
+    "label": "Pan R",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null
+  ]
  },
  "analysis": {
-  "hiddenParams": [
-   "loop_len",
-   "slice_res",
-   "fx_density",
-   "order_density",
-   "capture",
-   "arm",
-   "ab",
-   "reroll",
-   "clear",
-   "detect_bpm",
-   "wet",
-   "pitch_range",
-   "quantize",
-   "pad_play",
-   "pad_rate",
-   "seed",
-   "transport",
-   "channel_mode",
-   "pan_l",
-   "pan_r"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
   "warnings": [
-   "has chain_params but no ui_hierarchy and no movy config",
-   "movy shows NO params although the module exposes some",
-   "20 chain_params not reachable in movy: loop_len, slice_res, fx_density, order_density, capture, arm, ab, reroll, clear, detect_bpm, wet, pitch_range, …"
+   "has chain_params but no ui_hierarchy and no movy config"
   ]
  }
 }

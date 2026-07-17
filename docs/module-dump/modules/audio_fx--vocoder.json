@@ -130,7 +130,7 @@
     "name": "",
     "envelopeLines": [
      false,
-     false
+     true
     ],
     "lfoViz": false,
     "rows": [
@@ -166,20 +166,6 @@
      ],
      [
       {
-       "shortName": "LOW",
-       "fullName": "Low Freq",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "HIGH",
-       "fullName": "High Freq",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
        "shortName": "ATTAC",
        "fullName": "Attack",
        "renderStyle": "arc",
@@ -189,6 +175,20 @@
       {
        "shortName": "RELEA",
        "fullName": "Release",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LOW",
+       "fullName": "Low Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HIGH",
+       "fullName": "High Freq",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."

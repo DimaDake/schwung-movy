@@ -607,14 +607,14 @@
     "rows": [
      [
       {
-       "shortName": "1",
+       "shortName": "VOIC1",
        "fullName": "Voice 1",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "2",
+       "shortName": "VOIC2",
        "fullName": "Voice 2",
        "renderStyle": "arc",
        "type": "enum",

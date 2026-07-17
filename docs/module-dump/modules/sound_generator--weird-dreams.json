@@ -2544,6 +2544,22 @@
       }
      ],
      [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "FX",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
       {
        "shortName": "RVMIX",
        "fullName": "Rev Mix",
@@ -2572,17 +2588,7 @@
        "type": "float",
        "displayValue": "..."
       }
-     ]
-    ]
-   },
-   {
-    "name": "FX",
-    "envelopeLines": [
-     false,
-     false
-    ],
-    "lfoViz": false,
-    "rows": [
+     ],
      [
       {
        "shortName": "DLMIX",
@@ -2612,12 +2618,6 @@
        "type": "float",
        "displayValue": "..."
       }
-     ],
-     [
-      null,
-      null,
-      null,
-      null
      ]
     ]
    }
@@ -2827,6 +2827,10 @@
      "detentsFullSweep": 2
     }
    },
+   null,
+   null,
+   null,
+   null,
    {
     "key": "rev_mix",
     "label": "Rev Mix",

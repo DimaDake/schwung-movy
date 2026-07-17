@@ -519,7 +519,7 @@
     "name": "Main",
     "envelopeLines": [
      false,
-     false
+     true
     ],
     "lfoViz": false,
     "rows": [
@@ -850,14 +850,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "I",
+       "shortName": "CHORI",
        "fullName": "Chorus I",
        "renderStyle": "hbar",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "II",
+       "shortName": "CHOII",
        "fullName": "Chorus II",
        "renderStyle": "hbar",
        "type": "int",

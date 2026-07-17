@@ -296,10 +296,31 @@
   "hasConfig": false,
   "usesMovyConfigFile": false,
   "drum": null,
-  "banks": [],
+  "banks": [
+   {
+    "name": "Main - 1",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 3",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 4",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
   "pages": [
    {
-    "name": "",
+    "name": "Main - 1",
     "envelopeLines": [
      false,
      false
@@ -307,9 +328,237 @@
     "lfoViz": false,
     "rows": [
      [
-      null,
-      null,
-      null,
+      {
+       "shortName": "MAP X",
+       "fullName": "Map X",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "50%"
+      },
+      {
+       "shortName": "MAP Y",
+       "fullName": "Map Y",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "KICK",
+       "fullName": "Kick",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SNARE",
+       "fullName": "Snare",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "HAT",
+       "fullName": "Hat",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CHAOS",
+       "fullName": "Chaos",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "KN",
+       "fullName": "Kick Note",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SN",
+       "fullName": "Snare Note",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "HAT",
+       "fullName": "Hat Note",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STEPS",
+       "fullName": "Steps",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BPM",
+       "fullName": "BPM",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SYNC",
+       "fullName": "Sync",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PROB",
+       "fullName": "K Branch Prob",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOTE",
+       "fullName": "K Branch Note",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BRAON",
+       "fullName": "K Branch On",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "S",
+       "fullName": "S Branch Prob",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 3",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "BN",
+       "fullName": "S Branch Note",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BO",
+       "fullName": "S Branch On",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PROB",
+       "fullName": "H Branch Prob",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOTE",
+       "fullName": "H Branch Note",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "BRAON",
+       "fullName": "H Branch On",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RANLO",
+       "fullName": "K Rand Lo",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RANHI",
+       "fullName": "K Rand Hi",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RAND",
+       "fullName": "S Rand Lo",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 4",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "S",
+       "fullName": "S Rand Hi",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RANLO",
+       "fullName": "H Rand Lo",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RANHI",
+       "fullName": "H Rand Hi",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
       null
      ],
      [
@@ -321,43 +570,481 @@
     ]
    }
   ],
-  "params": []
+  "params": [
+   {
+    "key": "map_x",
+    "label": "Map X",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "map_y",
+    "label": "Map Y",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "density_kick",
+    "label": "Kick",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "density_snare",
+    "label": "Snare",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "density_hat",
+    "label": "Hat",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "randomness",
+    "label": "Chaos",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "kick_note",
+    "label": "Kick Note",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "snare_note",
+    "label": "Snare Note",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "hat_note",
+    "label": "Hat Note",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "steps",
+    "label": "Steps",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 32,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 62
+    }
+   },
+   {
+    "key": "bpm",
+    "label": "BPM",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 40,
+    "max": 240,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "sync",
+    "label": "Sync",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "move",
+     "internal"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "kick_branch_prob",
+    "label": "K Branch Prob",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "kick_branch_note",
+    "label": "K Branch Note",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -1,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 256
+    }
+   },
+   {
+    "key": "kick_branch_enabled",
+    "label": "K Branch On",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   {
+    "key": "snare_branch_prob",
+    "label": "S Branch Prob",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "snare_branch_note",
+    "label": "S Branch Note",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -1,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 256
+    }
+   },
+   {
+    "key": "snare_branch_enabled",
+    "label": "S Branch On",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   {
+    "key": "hat_branch_prob",
+    "label": "H Branch Prob",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "hat_branch_note",
+    "label": "H Branch Note",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -1,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 256
+    }
+   },
+   {
+    "key": "hat_branch_enabled",
+    "label": "H Branch On",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   {
+    "key": "kick_branch_rand_low",
+    "label": "K Rand Lo",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "kick_branch_rand_high",
+    "label": "K Rand Hi",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "snare_branch_rand_low",
+    "label": "S Rand Lo",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "snare_branch_rand_high",
+    "label": "S Rand Hi",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "hat_branch_rand_low",
+    "label": "H Rand Lo",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "hat_branch_rand_high",
+    "label": "H Rand Hi",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
  },
  "analysis": {
-  "hiddenParams": [
-   "map_x",
-   "map_y",
-   "density_kick",
-   "density_snare",
-   "density_hat",
-   "randomness",
-   "kick_note",
-   "snare_note",
-   "hat_note",
-   "steps",
-   "bpm",
-   "sync",
-   "kick_branch_prob",
-   "kick_branch_note",
-   "kick_branch_enabled",
-   "snare_branch_prob",
-   "snare_branch_note",
-   "snare_branch_enabled",
-   "hat_branch_prob",
-   "hat_branch_note",
-   "hat_branch_enabled",
-   "kick_branch_rand_low",
-   "kick_branch_rand_high",
-   "snare_branch_rand_low",
-   "snare_branch_rand_high",
-   "hat_branch_rand_low",
-   "hat_branch_rand_high"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
   "warnings": [
-   "has chain_params but no ui_hierarchy and no movy config",
-   "movy shows NO params although the module exposes some",
-   "27 chain_params not reachable in movy: map_x, map_y, density_kick, density_snare, density_hat, randomness, kick_note, snare_note, hat_note, steps, bpm, sync, …"
+   "has chain_params but no ui_hierarchy and no movy config"
   ]
  }
 }

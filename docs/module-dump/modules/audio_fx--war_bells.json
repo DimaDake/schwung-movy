@@ -1194,7 +1194,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OP",
+       "shortName": "USEOP",
        "fullName": "User Op",
        "renderStyle": "arc",
        "type": "enum",

@@ -4430,7 +4430,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PATCH",
+       "shortName": "RP",
        "fullName": "Rnd Patch",
        "renderStyle": "arc",
        "type": "int",
@@ -4633,28 +4633,28 @@
     "rows": [
      [
       {
-       "shortName": "LEVEL",
+       "shortName": "V1LVL",
        "fullName": "V1 Level",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LEVEL",
+       "shortName": "V2LVL",
        "fullName": "V2 Level",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LEVEL",
+       "shortName": "V3LVL",
        "fullName": "V3 Level",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LEVEL",
+       "shortName": "V4LVL",
        "fullName": "V4 Level",
        "renderStyle": "arc",
        "type": "float",
@@ -4663,28 +4663,28 @@
      ],
      [
       {
-       "shortName": "FREQ",
+       "shortName": "V1FRQ",
        "fullName": "V1 Freq",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "FREQ",
+       "shortName": "V2FRQ",
        "fullName": "V2 Freq",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "FREQ",
+       "shortName": "V3FRQ",
        "fullName": "V3 Freq",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "FREQ",
+       "shortName": "V4FRQ",
        "fullName": "V4 Freq",
        "renderStyle": "arc",
        "type": "float",
@@ -6763,9 +6763,7 @@
   ],
   "noMetadata": [],
   "warnings": [
-   "66 chain_params not reachable in movy: v1_attack, v1_sub_div, v1_sweep, v1_tone_rnd, v2_attack, v2_sub_div, v2_sweep, v2_tone_rnd, v3_attack, v3_sub_div, v3_sweep, v3_tone_rnd, …",
-   "page \"Patch\": duplicate on-screen names PATCH",
-   "page \"Mix\": duplicate on-screen names LEVEL, FREQ"
+   "66 chain_params not reachable in movy: v1_attack, v1_sub_div, v1_sweep, v1_tone_rnd, v2_attack, v2_sub_div, v2_sweep, v2_tone_rnd, v3_attack, v3_sub_div, v3_sweep, v3_tone_rnd, …"
   ]
  }
 }

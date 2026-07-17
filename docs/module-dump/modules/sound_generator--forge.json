@@ -4478,14 +4478,14 @@
        "displayValue": "0"
       },
       {
-       "shortName": "KIT",
+       "shortName": "RK",
        "fullName": "Rnd Kit",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "KIT",
+       "shortName": "PARAM",
        "fullName": "Rnd Kit Params",
        "renderStyle": "arc",
        "type": "enum",
@@ -4548,14 +4548,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "KIT",
+       "shortName": "RK",
        "fullName": "Rnd Kit",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "KIT",
+       "shortName": "PARAM",
        "fullName": "Rnd Kit Params",
        "renderStyle": "arc",
        "type": "enum",
@@ -4662,7 +4662,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FX",
+       "shortName": "ALLFX",
        "fullName": "All FX",
        "renderStyle": "arc",
        "type": "float",
@@ -4681,28 +4681,28 @@
     "rows": [
      [
       {
-       "shortName": "1",
+       "shortName": "MACR1",
        "fullName": "Macro 1",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "2",
+       "shortName": "MACR2",
        "fullName": "Macro 2",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "3",
+       "shortName": "MACR3",
        "fullName": "Macro 3",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "4",
+       "shortName": "MACR4",
        "fullName": "Macro 4",
        "renderStyle": "arc",
        "type": "float",
@@ -4711,28 +4711,28 @@
      ],
      [
       {
-       "shortName": "5",
+       "shortName": "MACR5",
        "fullName": "Macro 5",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "6",
+       "shortName": "MACR6",
        "fullName": "Macro 6",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "7",
+       "shortName": "MACR7",
        "fullName": "Macro 7",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "8",
+       "shortName": "MACR8",
        "fullName": "Macro 8",
        "renderStyle": "arc",
        "type": "float",
@@ -4821,7 +4821,7 @@
     "rows": [
      [
       {
-       "shortName": "MIX",
+       "shortName": "RM",
        "fullName": "Rev Mix",
        "renderStyle": "arc",
        "type": "float",
@@ -4842,7 +4842,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "MIX",
+       "shortName": "DM",
        "fullName": "Dly Mix",
        "renderStyle": "arc",
        "type": "float",
@@ -6088,10 +6088,7 @@
   ],
   "noMetadata": [],
   "warnings": [
-   "146 chain_params not reachable in movy: rnd_pitch, all_mono, init_decay, init_freq, same_freq, copy_a_b, copy_b_a, swap_ab, rnd_b_from_a, morph_src, morph_curve, cv_vpreset, …",
-   "page \"Main\": duplicate on-screen names KIT",
-   "page \"Patch\": duplicate on-screen names KIT",
-   "page \"FX\": duplicate on-screen names MIX"
+   "146 chain_params not reachable in movy: rnd_pitch, all_mono, init_decay, init_freq, same_freq, copy_a_b, copy_b_a, swap_ab, rnd_b_from_a, morph_src, morph_curve, cv_vpreset, …"
   ]
  }
 }

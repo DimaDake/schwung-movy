@@ -695,19 +695,12 @@
    {
     "name": "Gate Settings",
     "envelopeLines": [
-     false,
+     true,
      false
     ],
     "lfoViz": false,
     "rows": [
      [
-      {
-       "shortName": "THRES",
-       "fullName": "Threshold",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
       {
        "shortName": "ATTAC",
        "fullName": "Attack",
@@ -718,6 +711,13 @@
       {
        "shortName": "RELEA",
        "fullName": "Release",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "THRES",
+       "fullName": "Threshold",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."

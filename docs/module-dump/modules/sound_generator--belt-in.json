@@ -533,10 +533,21 @@
   "hasConfig": false,
   "usesMovyConfigFile": false,
   "drum": null,
-  "banks": [],
+  "banks": [
+   {
+    "name": "Main - 1",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 2",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
   "pages": [
    {
-    "name": "",
+    "name": "Main - 1",
     "envelopeLines": [
      false,
      false
@@ -544,46 +555,496 @@
     "lfoViz": false,
     "rows": [
      [
-      null,
-      null,
-      null,
-      null
+      {
+       "shortName": "KEY",
+       "fullName": "Key",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "C"
+      },
+      {
+       "shortName": "SCALE",
+       "fullName": "Scale",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RETUN",
+       "fullName": "Retune",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AMOUN",
+       "fullName": "Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
      ],
      [
-      null,
-      null,
-      null,
-      null
+      {
+       "shortName": "VOIC1",
+       "fullName": "Voice 1",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOIC2",
+       "fullName": "Voice 2",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOIC3",
+       "fullName": "Voice 3",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOIC4",
+       "fullName": "Voice 4",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "HARM",
+       "fullName": "Harm Level",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPREA",
+       "fullName": "Spread",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DOUBL",
+       "fullName": "Doubler",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HARD",
+       "fullName": "Hard Tune",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "WET",
+       "fullName": "Wet",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FORMA",
+       "fullName": "Formant",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FLEX",
+       "fullName": "Flex",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HUMAN",
+       "fullName": "Humanize",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
      ]
     ]
    }
   ],
-  "params": []
+  "params": [
+   {
+    "key": "key",
+    "label": "Key",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "C",
+     "C#",
+     "D",
+     "D#",
+     "E",
+     "F",
+     "F#",
+     "G",
+     "G#",
+     "A",
+     "A#",
+     "B"
+    ],
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 12
+    }
+   },
+   {
+    "key": "scale",
+    "label": "Scale",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Chromatic",
+     "Major",
+     "Minor",
+     "Harm Min",
+     "Dorian",
+     "Mixo",
+     "Maj Pent",
+     "Min Pent",
+     "Blues"
+    ],
+    "min": 0,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 9
+    }
+   },
+   {
+    "key": "retune",
+    "label": "Retune",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 10000
+    }
+   },
+   {
+    "key": "amount",
+    "label": "Amount",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 10000
+    }
+   },
+   {
+    "key": "harm1",
+    "label": "Voice 1",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "-Oct",
+     "-6th",
+     "-5th",
+     "-4th",
+     "-3rd",
+     "Unis",
+     "+3rd",
+     "+4th",
+     "+5th",
+     "+6th",
+     "+Oct"
+    ],
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 12
+    }
+   },
+   {
+    "key": "harm2",
+    "label": "Voice 2",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "-Oct",
+     "-6th",
+     "-5th",
+     "-4th",
+     "-3rd",
+     "Unis",
+     "+3rd",
+     "+4th",
+     "+5th",
+     "+6th",
+     "+Oct"
+    ],
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 12
+    }
+   },
+   {
+    "key": "harm3",
+    "label": "Voice 3",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "-Oct",
+     "-6th",
+     "-5th",
+     "-4th",
+     "-3rd",
+     "Unis",
+     "+3rd",
+     "+4th",
+     "+5th",
+     "+6th",
+     "+Oct"
+    ],
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 12
+    }
+   },
+   {
+    "key": "harm4",
+    "label": "Voice 4",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "-Oct",
+     "-6th",
+     "-5th",
+     "-4th",
+     "-3rd",
+     "Unis",
+     "+3rd",
+     "+4th",
+     "+5th",
+     "+6th",
+     "+Oct"
+    ],
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 12
+    }
+   },
+   {
+    "key": "harm_level",
+    "label": "Harm Level",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 10000
+    }
+   },
+   {
+    "key": "spread",
+    "label": "Spread",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 10000
+    }
+   },
+   {
+    "key": "double_amt",
+    "label": "Doubler",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 10000
+    }
+   },
+   {
+    "key": "hard",
+    "label": "Hard Tune",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "wet",
+    "label": "Wet",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 10000
+    }
+   },
+   {
+    "key": "formant",
+    "label": "Formant",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "flex",
+    "label": "Flex",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 10000
+    }
+   },
+   {
+    "key": "humanize",
+    "label": "Humanize",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 10000
+    }
+   }
+  ]
  },
  "analysis": {
-  "hiddenParams": [
-   "key",
-   "scale",
-   "retune",
-   "amount",
-   "harm1",
-   "harm2",
-   "harm3",
-   "harm4",
-   "harm_level",
-   "spread",
-   "double_amt",
-   "hard",
-   "wet",
-   "formant",
-   "flex",
-   "humanize"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
   "warnings": [
-   "has chain_params but no ui_hierarchy and no movy config",
-   "movy shows NO params although the module exposes some",
-   "16 chain_params not reachable in movy: key, scale, retune, amount, harm1, harm2, harm3, harm4, harm_level, spread, double_amt, hard, …"
+   "has chain_params but no ui_hierarchy and no movy config"
   ]
  }
 }

@@ -533,19 +533,12 @@
    {
     "name": "Envelope",
     "envelopeLines": [
-     false,
+     true,
      false
     ],
     "lfoViz": false,
     "rows": [
      [
-      {
-       "shortName": "AMT",
-       "fullName": "Env Amt",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
       {
        "shortName": "ATK",
        "fullName": "Env Atk",
@@ -556,6 +549,13 @@
       {
        "shortName": "REL",
        "fullName": "Env Rel",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AMT",
+       "fullName": "Env Amt",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."

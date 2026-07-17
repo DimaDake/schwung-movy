@@ -1962,14 +1962,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FREQ",
+       "shortName": "HF",
        "fullName": "High Freq",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "FREQ",
+       "shortName": "MF",
        "fullName": "Mid Freq",
        "renderStyle": "arc",
        "type": "float",
@@ -3064,8 +3064,7 @@
   ],
   "noMetadata": [],
   "warnings": [
-   "13 chain_params not reachable in movy: feedback, eq_in, rec_mode, rec_length, sync_mode, sync_div, tempo, load_a, load_b, blank_a, blank_b, save_recs, …",
-   "page \"Channel\": duplicate on-screen names FREQ"
+   "13 chain_params not reachable in movy: feedback, eq_in, rec_mode, rec_length, sync_mode, sync_div, tempo, load_a, load_b, blank_a, blank_b, save_recs, …"
   ]
  }
 }

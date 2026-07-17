@@ -1456,7 +1456,7 @@
     "rows": [
      [
       {
-       "shortName": "RATE",
+       "shortName": "AR",
        "fullName": "Arp Rate",
        "renderStyle": "arc",
        "type": "float",
@@ -1486,7 +1486,7 @@
      ],
      [
       {
-       "shortName": "RATE",
+       "shortName": "MR",
        "fullName": "Mot Rate",
        "renderStyle": "arc",
        "type": "float",
@@ -1533,7 +1533,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PRESE",
+       "shortName": "RP",
        "fullName": "Rnd Preset",
        "renderStyle": "hbar",
        "type": "int",
@@ -2339,9 +2339,7 @@
   ],
   "noMetadata": [],
   "warnings": [
-   "2 chain_params not reachable in movy: polyphony, limiter",
-   "page \"Motion\": duplicate on-screen names RATE",
-   "page \"Patch\": duplicate on-screen names PRESE"
+   "2 chain_params not reachable in movy: polyphony, limiter"
   ]
  }
 }

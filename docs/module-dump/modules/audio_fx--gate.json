@@ -216,19 +216,12 @@
    {
     "name": "",
     "envelopeLines": [
-     false,
+     true,
      false
     ],
     "lfoViz": false,
     "rows": [
      [
-      {
-       "shortName": "THRES",
-       "fullName": "Threshold",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "50%"
-      },
       {
        "shortName": "ATTAC",
        "fullName": "Attack",
@@ -237,15 +230,22 @@
        "displayValue": "..."
       },
       {
-       "shortName": "HOLD",
-       "fullName": "Hold",
+       "shortName": "RELEA",
+       "fullName": "Release",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "RELEA",
-       "fullName": "Release",
+       "shortName": "THRES",
+       "fullName": "Threshold",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "50%"
+      },
+      {
+       "shortName": "HOLD",
+       "fullName": "Hold",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."

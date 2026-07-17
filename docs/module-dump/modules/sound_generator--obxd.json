@@ -1736,14 +1736,14 @@
     "rows": [
      [
       {
-       "shortName": "LFO>O",
+       "shortName": "LF>SC",
        "fullName": "LFO>Osc1",
        "renderStyle": "hbar",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "LFO>O",
+       "shortName": "LF>S2",
        "fullName": "LFO>Osc2",
        "renderStyle": "hbar",
        "type": "int",
@@ -1757,7 +1757,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "LFO>P",
+       "shortName": "LF>PW",
        "fullName": "LFO>PW1",
        "renderStyle": "hbar",
        "type": "int",
@@ -1766,7 +1766,7 @@
      ],
      [
       {
-       "shortName": "LFO>P",
+       "shortName": "LF>P2",
        "fullName": "LFO>PW2",
        "renderStyle": "hbar",
        "type": "int",
@@ -3174,8 +3174,7 @@
   "noMetadata": [],
   "warnings": [
    "13 chain_params not reachable in movy: voice_count, pw_ofs, pw_env_both, bandpass, self_osc, fenv_inv, lfo_sync, env_pitch_both, as_played, pan_5, pan_6, pan_7, …",
-   "page \"Global\": duplicate on-screen names OCTAV",
-   "page \"LFO Dest\": duplicate on-screen names LFO>O, LFO>P"
+   "page \"Global\": duplicate on-screen names OCTAV"
   ]
  }
 }

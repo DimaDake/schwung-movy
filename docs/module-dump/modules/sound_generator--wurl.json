@@ -182,26 +182,12 @@
    {
     "name": "WURL",
     "envelopeLines": [
-     false,
+     true,
      false
     ],
     "lfoViz": false,
     "rows": [
      [
-      {
-       "shortName": "VOL",
-       "fullName": "Volume",
-       "renderStyle": "vbar",
-       "type": "float",
-       "displayValue": "50%"
-      },
-      {
-       "shortName": "TREM",
-       "fullName": "Tremolo",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
       {
        "shortName": "ATK",
        "fullName": "Attack",
@@ -212,6 +198,20 @@
       {
        "shortName": "DCY",
        "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOL",
+       "fullName": "Volume",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "50%"
+      },
+      {
+       "shortName": "TREM",
+       "fullName": "Tremolo",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."

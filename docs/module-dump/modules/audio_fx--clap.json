@@ -154,21 +154,21 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DELAY",
+       "shortName": "AD",
        "fullName": "A Delay",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LEVEL",
+       "shortName": "AL",
        "fullName": "A Level",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "DELAY",
+       "shortName": "BD",
        "fullName": "B Delay",
        "renderStyle": "arc",
        "type": "float",
@@ -177,7 +177,7 @@
      ],
      [
       {
-       "shortName": "LEVEL",
+       "shortName": "BL",
        "fullName": "B Level",
        "renderStyle": "arc",
        "type": "float",
@@ -191,14 +191,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "6",
+       "shortName": "PARA6",
        "fullName": "param_6",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "7",
+       "shortName": "PARA7",
        "fullName": "param_7",
        "renderStyle": "arc",
        "type": "float",
@@ -347,6 +347,7 @@
     "step": 0.02,
     "renderStyle": "arc",
     "automatable": true,
+    "metaGuessed": true,
     "increment": {
      "kind": "float",
      "perDetent": 0.01,
@@ -364,6 +365,7 @@
     "step": 0.02,
     "renderStyle": "arc",
     "automatable": true,
+    "metaGuessed": true,
     "increment": {
      "kind": "float",
      "perDetent": 0.01,
@@ -380,8 +382,7 @@
    "param_7"
   ],
   "warnings": [
-   "3 shown params lack chain_params metadata (movy guesses type/range): plugin_index, param_6, param_7",
-   "page \"Main\": duplicate on-screen names DELAY, LEVEL"
+   "3 shown params lack chain_params metadata (movy guesses type/range): plugin_index, param_6, param_7"
   ]
  }
 }

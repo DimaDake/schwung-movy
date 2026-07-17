@@ -1247,22 +1247,17 @@
   ]
  },
  "movy": {
-  "hasConfig": false,
+  "hasConfig": true,
   "usesMovyConfigFile": false,
   "drum": null,
   "banks": [
    {
-    "name": "Preset",
+    "name": "Osc",
     "global": false,
     "padSpecific": false
    },
    {
-    "name": "Main",
-    "global": false,
-    "padSpecific": false
-   },
-   {
-    "name": "Oscillator",
+    "name": "PWM",
     "global": false,
     "padSpecific": false
    },
@@ -1272,22 +1267,17 @@
     "padSpecific": false
    },
    {
-    "name": "Amp Envelope",
+    "name": "Amp Env",
     "global": false,
     "padSpecific": false
    },
    {
-    "name": "Filter Envelope",
+    "name": "LFO",
     "global": false,
     "padSpecific": false
    },
    {
-    "name": "Modulation",
-    "global": false,
-    "padSpecific": false
-   },
-   {
-    "name": "Performance",
+    "name": "Perf",
     "global": false,
     "padSpecific": false
    },
@@ -1299,7 +1289,7 @@
   ],
   "pages": [
    {
-    "name": "Preset",
+    "name": "Osc",
     "envelopeLines": [
      false,
      false
@@ -1308,103 +1298,12 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
-       "fullName": "Preset",
-       "renderStyle": "preset",
-       "type": "enum",
-       "displayValue": "0"
-      },
-      null,
-      null,
-      null
-     ],
-     [
-      null,
-      null,
-      null,
-      null
-     ]
-    ]
-   },
-   {
-    "name": "Main",
-    "envelopeLines": [
-     true,
-     false
-    ],
-    "lfoViz": false,
-    "rows": [
-     [
-      {
-       "shortName": "ATTAC",
-       "fullName": "Attack",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "DECAY",
-       "fullName": "Decay",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "SUSTA",
-       "fullName": "Sustain",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "RELEA",
-       "fullName": "Release",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
-     ],
-     [
-      {
-       "shortName": "CUTOF",
-       "fullName": "Cutoff",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "RES",
-       "fullName": "Res",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "ENV",
-       "fullName": "Env Amt",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "VOLUM",
+       "shortName": "VOL",
        "fullName": "Volume",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "..."
-      }
-     ]
-    ]
-   },
-   {
-    "name": "Oscillator",
-    "envelopeLines": [
-     false,
-     false
-    ],
-    "lfoViz": false,
-    "rows": [
-     [
+       "displayValue": "85%"
+      },
       {
        "shortName": "SAW",
        "fullName": "Saw",
@@ -1425,20 +1324,107 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      },
+      }
+     ],
+     [
       {
        "shortName": "NOISE",
        "fullName": "Noise",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
+      },
+      {
+       "shortName": "SUBMD",
+       "fullName": "Sub Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WNOIS",
+       "fullName": "White Noise",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PW",
+       "fullName": "Pulse Width",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "PWM",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PWMMD",
+       "fullName": "PWM Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PWMD",
+       "fullName": "PWM Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PWMEV",
+       "fullName": "PWM Env Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BEND",
+       "fullName": "Bend Range",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
       }
      ],
      [
-      null,
-      null,
-      null,
-      null
+      {
+       "shortName": "FINE",
+       "fullName": "Fine Tune",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TRANS",
+       "fullName": "Transpose",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCT",
+       "fullName": "Octave",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GLIDE",
+       "fullName": "Glide",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
      ]
     ]
    },
@@ -1446,7 +1432,7 @@
     "name": "Filter",
     "envelopeLines": [
      false,
-     false
+     true
     ],
     "lfoViz": false,
     "rows": [
@@ -1459,21 +1445,21 @@
        "displayValue": "..."
       },
       {
-       "shortName": "RES",
-       "fullName": "Res",
+       "shortName": "RESO",
+       "fullName": "Resonance",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "ENV",
-       "fullName": "Env Amt",
+       "shortName": "ENVAM",
+       "fullName": "Env Amount",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "KEY",
+       "shortName": "KEYFL",
        "fullName": "Key Follow",
        "renderStyle": "arc",
        "type": "float",
@@ -1481,15 +1467,39 @@
       }
      ],
      [
-      null,
-      null,
-      null,
-      null
+      {
+       "shortName": "FATK",
+       "fullName": "Filter Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FDEC",
+       "fullName": "Filter Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FSUS",
+       "fullName": "Filter Sustain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREL",
+       "fullName": "Filter Release",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
      ]
     ]
    },
    {
-    "name": "Amp Envelope",
+    "name": "Amp Env",
     "envelopeLines": [
      true,
      false
@@ -1498,7 +1508,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -1512,14 +1522,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUST",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "RELEA",
+       "shortName": "REL",
        "fullName": "Release",
        "renderStyle": "arc",
        "type": "float",
@@ -1527,66 +1537,44 @@
       }
      ],
      [
-      null,
-      null,
-      null,
-      null
-     ]
-    ]
-   },
-   {
-    "name": "Filter Envelope",
-    "envelopeLines": [
-     true,
-     false
-    ],
-    "lfoViz": false,
-    "rows": [
-     [
       {
-       "shortName": "ATTAC",
-       "fullName": "F Attack",
+       "shortName": "VELSN",
+       "fullName": "Velocity Sens",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "DECAY",
-       "fullName": "F Decay",
+       "shortName": "DECLK",
+       "fullName": "ADSR Declick",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
-       "fullName": "F Sustain",
+       "shortName": "VCA",
+       "fullName": "VCA Mode",
        "renderStyle": "arc",
-       "type": "float",
+       "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "RELEA",
-       "fullName": "F Release",
+       "shortName": "FVELS",
+       "fullName": "Filter Vel Sens",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       }
-     ],
-     [
-      null,
-      null,
-      null,
-      null
      ]
     ]
    },
    {
-    "name": "Modulation",
+    "name": "LFO",
     "envelopeLines": [
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
@@ -1597,37 +1585,61 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PITCH",
-       "fullName": "LFO Pitch",
+       "shortName": "WAVE",
+       "fullName": "LFO Waveform",
        "renderStyle": "arc",
-       "type": "float",
+       "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "FILTE",
-       "fullName": "LFO Filter",
+       "shortName": "TRIG",
+       "fullName": "LFO Trigger",
        "renderStyle": "arc",
-       "type": "float",
+       "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "PWM",
-       "fullName": "LFO PWM",
+       "shortName": "SYNC",
+       "fullName": "LFO Sync",
        "renderStyle": "arc",
-       "type": "float",
+       "type": "enum",
        "displayValue": "..."
       }
      ],
      [
-      null,
-      null,
-      null,
-      null
+      {
+       "shortName": "LPTCH",
+       "fullName": "LFO to Pitch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LFILT",
+       "fullName": "LFO to Filter",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LPWM",
+       "fullName": "LFO to PWM",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "INV",
+       "fullName": "LFO Invert",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
      ]
     ]
    },
    {
-    "name": "Performance",
+    "name": "Perf",
     "envelopeLines": [
      false,
      false
@@ -1636,39 +1648,63 @@
     "rows": [
      [
       {
-       "shortName": "GLIDE",
-       "fullName": "Glide",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "PORTA",
-       "fullName": "Porta Mode",
+       "shortName": "SNAP",
+       "fullName": "LFO Pitch Snap",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "TRANS",
-       "fullName": "Transpose",
+       "shortName": "PORTA",
+       "fullName": "Portamento",
        "renderStyle": "arc",
-       "type": "int",
+       "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "OCTAV",
-       "fullName": "Octave",
+       "shortName": "PLIN",
+       "fullName": "Porta Curve",
        "renderStyle": "arc",
-       "type": "int",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RETRG",
+       "fullName": "Retrigger",
+       "renderStyle": "arc",
+       "type": "enum",
        "displayValue": "..."
       }
      ],
      [
-      null,
-      null,
-      null,
-      null
+      {
+       "shortName": "HOLD",
+       "fullName": "Hold",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GATE",
+       "fullName": "Gate/Trig",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PRIO",
+       "fullName": "Note Priority",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VELMD",
+       "fullName": "Velocity Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
      ]
     ]
    },
@@ -1682,36 +1718,42 @@
     "rows": [
      [
       {
-       "shortName": "GATE",
-       "fullName": "Gate Mode",
+       "shortName": "QUIRK",
+       "fullName": "Same Note Quirk",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "PRIOR",
-       "fullName": "Priority",
+       "shortName": "FRANG",
+       "fullName": "Filt Env Range",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "VEL",
-       "fullName": "Vel Mode",
+       "shortName": "FPOL",
+       "fullName": "Filt Env Polarity",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "SAME-",
-       "fullName": "Same-Note",
+       "shortName": "FVCOR",
+       "fullName": "Filt Vol Corr",
        "renderStyle": "arc",
-       "type": "enum",
+       "type": "float",
        "displayValue": "..."
       }
      ],
      [
-      null,
+      {
+       "shortName": "PRSET",
+       "fullName": "Preset",
+       "renderStyle": "preset",
+       "type": "enum",
+       "displayValue": "..."
+      },
       null,
       null,
       null
@@ -1721,547 +1763,737 @@
   ],
   "params": [
    {
-    "key": "preset",
-    "label": "Preset",
-    "shortLabel": null,
-    "type": "enum",
-    "min": 0,
-    "max": 10,
-    "step": 1,
-    "options": null,
-    "nameKey": "preset_name",
-    "renderStyle": "preset",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 11
-    }
-   },
-   null,
-   null,
-   null,
-   null,
-   null,
-   null,
-   null,
-   {
-    "key": "cutoff",
-    "label": "Cutoff",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
-    }
-   },
-   {
-    "key": "resonance",
-    "label": "Res",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1.2,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 120
-    }
-   },
-   {
-    "key": "env_amt",
-    "label": "Env Amt",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
-    }
-   },
-   {
-    "key": "attack",
-    "label": "Attack",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0.001,
-    "max": 4,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 400
-    }
-   },
-   {
-    "key": "decay",
-    "label": "Decay",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0.001,
-    "max": 6,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 600
-    }
-   },
-   {
-    "key": "sustain",
-    "label": "Sustain",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
-    }
-   },
-   {
-    "key": "release",
-    "label": "Release",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0.001,
-    "max": 8,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 800
-    }
-   },
-   {
     "key": "volume",
     "label": "Volume",
-    "shortLabel": null,
+    "shortLabel": "VOL",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "saw",
     "label": "Saw",
-    "shortLabel": null,
+    "shortLabel": "SAW",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "pulse",
     "label": "Pulse",
-    "shortLabel": null,
+    "shortLabel": "PULSE",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "sub",
     "label": "Sub",
-    "shortLabel": null,
+    "shortLabel": "SUB",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "noise",
     "label": "Noise",
-    "shortLabel": null,
+    "shortLabel": "NOISE",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
-   null,
-   null,
-   null,
-   null,
+   {
+    "key": "sub_mode",
+    "label": "Sub Mode",
+    "shortLabel": "SUBMD",
+    "type": "enum",
+    "options": [
+     "-2 Oct 50% PW",
+     "-2 Oct",
+     "-1 Oct"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "white_noise",
+    "label": "White Noise",
+    "shortLabel": "WNOIS",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "pulse_width",
+    "label": "Pulse Width",
+    "shortLabel": "PW",
+    "type": "float",
+    "options": null,
+    "min": 0.05,
+    "max": 0.95,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 180
+    }
+   },
+   {
+    "key": "pwm_mode",
+    "label": "PWM Mode",
+    "shortLabel": "PWMMD",
+    "type": "enum",
+    "options": [
+     "Env",
+     "Manual",
+     "LFO"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "pwm_depth",
+    "label": "PWM Depth",
+    "shortLabel": "PWMD",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pwm_env_depth",
+    "label": "PWM Env Depth",
+    "shortLabel": "PWMEV",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "bend_range",
+    "label": "Bend Range",
+    "shortLabel": "BEND",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 12,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 2400
+    }
+   },
+   {
+    "key": "fine_tune",
+    "label": "Fine Tune",
+    "shortLabel": "FINE",
+    "type": "float",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 40000
+    }
+   },
+   {
+    "key": "transpose",
+    "label": "Transpose",
+    "shortLabel": "TRANS",
+    "type": "int",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "octave_transpose",
+    "label": "Octave",
+    "shortLabel": "OCT",
+    "type": "int",
+    "options": null,
+    "min": -2,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 8
+    }
+   },
+   {
+    "key": "glide",
+    "label": "Glide",
+    "shortLabel": "GLIDE",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 500,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 100000
+    }
+   },
    {
     "key": "cutoff",
     "label": "Cutoff",
-    "shortLabel": null,
+    "shortLabel": "CUTOF",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "resonance",
-    "label": "Res",
-    "shortLabel": null,
+    "label": "Resonance",
+    "shortLabel": "RESO",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1.2,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 120
+     "perDetent": 0.005,
+     "detentsFullSweep": 240
     }
    },
    {
     "key": "env_amt",
-    "label": "Env Amt",
-    "shortLabel": null,
+    "label": "Env Amount",
+    "shortLabel": "ENVAM",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "key_follow",
     "label": "Key Follow",
-    "shortLabel": null,
+    "shortLabel": "KEYFL",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
-   null,
-   null,
-   null,
-   null,
    {
-    "key": "attack",
-    "label": "Attack",
-    "shortLabel": null,
+    "key": "f_attack",
+    "label": "Filter Attack",
+    "shortLabel": "FATK",
     "type": "float",
     "options": null,
     "min": 0.001,
     "max": 4,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 400
+     "perDetent": 0.005,
+     "detentsFullSweep": 800
+    }
+   },
+   {
+    "key": "f_decay",
+    "label": "Filter Decay",
+    "shortLabel": "FDEC",
+    "type": "float",
+    "options": null,
+    "min": 0.001,
+    "max": 6,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 1200
+    }
+   },
+   {
+    "key": "f_sustain",
+    "label": "Filter Sustain",
+    "shortLabel": "FSUS",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "f_release",
+    "label": "Filter Release",
+    "shortLabel": "FREL",
+    "type": "float",
+    "options": null,
+    "min": 0.001,
+    "max": 8,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 1600
+    }
+   },
+   {
+    "key": "attack",
+    "label": "Attack",
+    "shortLabel": "ATTK",
+    "type": "float",
+    "options": null,
+    "min": 0.001,
+    "max": 4,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 800
     }
    },
    {
     "key": "decay",
     "label": "Decay",
-    "shortLabel": null,
+    "shortLabel": "DECAY",
     "type": "float",
     "options": null,
     "min": 0.001,
     "max": 6,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 600
+     "perDetent": 0.005,
+     "detentsFullSweep": 1200
     }
    },
    {
     "key": "sustain",
     "label": "Sustain",
-    "shortLabel": null,
+    "shortLabel": "SUST",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "release",
     "label": "Release",
-    "shortLabel": null,
+    "shortLabel": "REL",
     "type": "float",
     "options": null,
     "min": 0.001,
     "max": 8,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 800
-    }
-   },
-   null,
-   null,
-   null,
-   null,
-   {
-    "key": "f_attack",
-    "label": "F Attack",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0.001,
-    "max": 4,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 400
+     "perDetent": 0.005,
+     "detentsFullSweep": 1600
     }
    },
    {
-    "key": "f_decay",
-    "label": "F Decay",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0.001,
-    "max": 6,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 600
-    }
-   },
-   {
-    "key": "f_sustain",
-    "label": "F Sustain",
-    "shortLabel": null,
+    "key": "velocity_sens",
+    "label": "Velocity Sens",
+    "shortLabel": "VELSN",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
-    "key": "f_release",
-    "label": "F Release",
-    "shortLabel": null,
+    "key": "adsr_declick",
+    "label": "ADSR Declick",
+    "shortLabel": "DECLK",
     "type": "float",
     "options": null,
-    "min": 0.001,
-    "max": 8,
-    "step": 0.02,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 800
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
-   null,
-   null,
-   null,
-   null,
+   {
+    "key": "vca_mode",
+    "label": "VCA Mode",
+    "shortLabel": "VCA",
+    "type": "enum",
+    "options": [
+     "Gate",
+     "Envelope"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "filter_velocity_sens",
+    "label": "Filter Vel Sens",
+    "shortLabel": "FVELS",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
    {
     "key": "lfo_rate",
     "label": "LFO Rate",
-    "shortLabel": null,
+    "shortLabel": "RATE",
     "type": "float",
     "options": null,
     "min": 0.02,
     "max": 40,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 3998
+     "perDetent": 0.005,
+     "detentsFullSweep": 7996
+    }
+   },
+   {
+    "key": "lfo_waveform",
+    "label": "LFO Waveform",
+    "shortLabel": "WAVE",
+    "type": "enum",
+    "options": [
+     "Tri",
+     "Rect",
+     "Random",
+     "Noise"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "lfo_trigger",
+    "label": "LFO Trigger",
+    "shortLabel": "TRIG",
+    "type": "enum",
+    "options": [
+     "Free",
+     "Retrig"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "lfo_sync",
+    "label": "LFO Sync",
+    "shortLabel": "SYNC",
+    "type": "enum",
+    "options": [
+     "Free",
+     "Sync"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
     }
    },
    {
     "key": "lfo_pitch",
-    "label": "LFO Pitch",
-    "shortLabel": null,
+    "label": "LFO to Pitch",
+    "shortLabel": "LPTCH",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "lfo_filter",
-    "label": "LFO Filter",
-    "shortLabel": null,
+    "label": "LFO to Filter",
+    "shortLabel": "LFILT",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "lfo_pwm",
-    "label": "LFO PWM",
-    "shortLabel": null,
+    "label": "LFO to PWM",
+    "shortLabel": "LPWM",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
-   null,
-   null,
-   null,
-   null,
    {
-    "key": "glide",
-    "label": "Glide",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
+    "key": "lfo_invert",
+    "label": "LFO Invert",
+    "shortLabel": "INV",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
     "min": 0,
-    "max": 500,
-    "step": 0.02,
+    "max": 1,
+    "step": 1,
     "renderStyle": "arc",
-    "automatable": true,
+    "automatable": false,
     "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 50000
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "lfo_pitch_snap",
+    "label": "LFO Pitch Snap",
+    "shortLabel": "SNAP",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
     }
    },
    {
     "key": "portamento_mode",
-    "label": "Porta Mode",
-    "shortLabel": null,
+    "label": "Portamento",
+    "shortLabel": "PORTA",
     "type": "enum",
     "options": [
      "Off",
@@ -2280,47 +2512,69 @@
     }
    },
    {
-    "key": "transpose",
-    "label": "Transpose",
-    "shortLabel": null,
-    "type": "int",
-    "options": null,
-    "min": -24,
-    "max": 24,
+    "key": "portamento_linear",
+    "label": "Porta Curve",
+    "shortLabel": "PLIN",
+    "type": "enum",
+    "options": [
+     "Expo",
+     "Linear"
+    ],
+    "min": 0,
+    "max": 1,
     "step": 1,
     "renderStyle": "arc",
-    "automatable": true,
+    "automatable": false,
     "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 96
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
     }
    },
    {
-    "key": "octave_transpose",
-    "label": "Octave",
-    "shortLabel": null,
-    "type": "int",
-    "options": null,
-    "min": -2,
-    "max": 2,
+    "key": "retrigger",
+    "label": "Retrigger",
+    "shortLabel": "RETRG",
+    "type": "enum",
+    "options": [
+     "Legato",
+     "Trig"
+    ],
+    "min": 0,
+    "max": 1,
     "step": 1,
     "renderStyle": "arc",
-    "automatable": true,
+    "automatable": false,
     "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 8
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
     }
    },
-   null,
-   null,
-   null,
-   null,
+   {
+    "key": "hold",
+    "label": "Hold",
+    "shortLabel": "HOLD",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
    {
     "key": "gate_trig_mode",
-    "label": "Gate Mode",
-    "shortLabel": null,
+    "label": "Gate/Trig",
+    "shortLabel": "GATE",
     "type": "enum",
     "options": [
      "Gate",
@@ -2340,8 +2594,8 @@
    },
    {
     "key": "priority",
-    "label": "Priority",
-    "shortLabel": null,
+    "label": "Note Priority",
+    "shortLabel": "PRIO",
     "type": "enum",
     "options": [
      "Last",
@@ -2360,8 +2614,8 @@
    },
    {
     "key": "velocity_mode",
-    "label": "Vel Mode",
-    "shortLabel": null,
+    "label": "Velocity Mode",
+    "shortLabel": "VELMD",
     "type": "enum",
     "options": [
      "Off",
@@ -2381,8 +2635,8 @@
    },
    {
     "key": "same_note_quirk",
-    "label": "Same-Note",
-    "shortLabel": null,
+    "label": "Same Note Quirk",
+    "shortLabel": "QUIRK",
     "type": "enum",
     "options": [
      "Off",
@@ -2399,41 +2653,89 @@
      "steps": 2
     }
    },
-   null,
+   {
+    "key": "filter_env_full_range",
+    "label": "Filt Env Range",
+    "shortLabel": "FRANG",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "filter_env_polarity",
+    "label": "Filt Env Polarity",
+    "shortLabel": "FPOL",
+    "type": "enum",
+    "options": [
+     "Positive",
+     "Negative"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "filter_volume_correction",
+    "label": "Filt Vol Corr",
+    "shortLabel": "FVCOR",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "preset",
+    "label": "Preset",
+    "shortLabel": "PRSET",
+    "type": "enum",
+    "min": 0,
+    "max": 10,
+    "step": 1,
+    "options": null,
+    "nameKey": "preset_name",
+    "renderStyle": "preset",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 11
+    }
+   },
    null,
    null,
    null
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "bend_range",
-   "sub_mode",
-   "white_noise",
-   "pulse_width",
-   "pwm_mode",
-   "pwm_depth",
-   "pwm_env_depth",
-   "filter_velocity_sens",
-   "velocity_sens",
-   "lfo_waveform",
-   "lfo_trigger",
-   "lfo_sync",
-   "lfo_invert",
-   "lfo_pitch_snap",
-   "portamento_linear",
-   "retrigger",
-   "hold",
-   "fine_tune",
-   "vca_mode",
-   "adsr_declick",
-   "filter_env_full_range",
-   "filter_env_polarity",
-   "filter_volume_correction"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "23 chain_params not reachable in movy: bend_range, sub_mode, white_noise, pulse_width, pwm_mode, pwm_depth, pwm_env_depth, filter_velocity_sens, velocity_sens, lfo_waveform, lfo_trigger, lfo_sync, …"
-  ]
+  "warnings": []
  }
 }

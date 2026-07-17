@@ -2636,7 +2636,7 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
@@ -2685,7 +2685,7 @@
    {
     "name": "ModS/Envelope",
     "envelopeLines": [
-     false,
+     true,
      false
     ],
     "lfoViz": false,
@@ -2737,7 +2737,7 @@
    {
     "name": "ModS/Cycling Envelope",
     "envelopeLines": [
-     false,
+     true,
      false
     ],
     "lfoViz": false,

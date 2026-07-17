@@ -216,19 +216,99 @@
   ]
  },
  "movy": {
-  "hasConfig": false,
+  "hasConfig": true,
   "usesMovyConfigFile": false,
   "drum": null,
   "banks": [
    {
-    "name": "Main",
+    "name": "Amp",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Tune",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Macros",
     "global": false,
     "padSpecific": false
    }
   ],
   "pages": [
    {
-    "name": "",
+    "name": "Amp",
+    "envelopeLines": [
+     true,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATTK",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "50%"
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SUST",
+       "fullName": "Sustain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "REL",
+       "fullName": "Release",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "CUTOF",
+       "fullName": "Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RESO",
+       "fullName": "Resonance",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GAIN",
+       "fullName": "Gain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOICE",
+       "fullName": "Voices",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Tune",
     "envelopeLines": [
      false,
      false
@@ -237,29 +317,69 @@
     "rows": [
      [
       {
-       "shortName": "0",
-       "fullName": "knob_0",
+       "shortName": "TUNE",
+       "fullName": "Tune",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "1",
-       "fullName": "knob_1",
+       "shortName": "OCT",
+       "fullName": "Octave",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PRSET",
+       "fullName": "Preset",
+       "renderStyle": "preset",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Macros",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MAC1",
+       "fullName": "Macro 1",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "2",
-       "fullName": "knob_2",
+       "shortName": "MAC2",
+       "fullName": "Macro 2",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "3",
-       "fullName": "knob_3",
+       "shortName": "MAC3",
+       "fullName": "Macro 3",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MAC4",
+       "fullName": "Macro 4",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -267,29 +387,29 @@
      ],
      [
       {
-       "shortName": "4",
-       "fullName": "knob_4",
+       "shortName": "MAC5",
+       "fullName": "Macro 5",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "5",
-       "fullName": "knob_5",
+       "shortName": "MAC6",
+       "fullName": "Macro 6",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "6",
-       "fullName": "knob_6",
+       "shortName": "MAC7",
+       "fullName": "Macro 7",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "7",
-       "fullName": "knob_7",
+       "shortName": "MAC8",
+       "fullName": "Macro 8",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -300,156 +420,337 @@
   ],
   "params": [
    {
-    "key": "knob_0",
-    "label": "knob_0",
-    "shortLabel": null,
+    "key": "attack",
+    "label": "Attack",
+    "shortLabel": "ATTK",
+    "type": "float",
+    "options": null,
+    "min": -50,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "decay",
+    "label": "Decay",
+    "shortLabel": "DECAY",
+    "type": "float",
+    "options": null,
+    "min": -50,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "sustain",
+    "label": "Sustain",
+    "shortLabel": "SUST",
+    "type": "float",
+    "options": null,
+    "min": -50,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "release",
+    "label": "Release",
+    "shortLabel": "REL",
+    "type": "float",
+    "options": null,
+    "min": -50,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cutoff",
+    "label": "Cutoff",
+    "shortLabel": "CUTOF",
+    "type": "float",
+    "options": null,
+    "min": -50,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "reso",
+    "label": "Resonance",
+    "shortLabel": "RESO",
+    "type": "float",
+    "options": null,
+    "min": -50,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "gain",
+    "label": "Gain",
+    "shortLabel": "GAIN",
     "type": "float",
     "options": null,
     "min": 0,
-    "max": 1,
+    "max": 2,
     "step": 0.02,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
      "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "voices",
+    "label": "Voices",
+    "shortLabel": "VOICE",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 128,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "tune",
+    "label": "Tune",
+    "shortLabel": "TUNE",
+    "type": "float",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "octave_transpose",
+    "label": "Octave",
+    "shortLabel": "OCT",
+    "type": "int",
+    "options": null,
+    "min": -4,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 16
+    }
+   },
+   {
+    "key": "preset",
+    "label": "Preset",
+    "shortLabel": "PRSET",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "preset",
+    "automatable": true,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "knob_0",
+    "label": "Macro 1",
+    "shortLabel": "MAC1",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "knob_1",
-    "label": "knob_1",
-    "shortLabel": null,
+    "label": "Macro 2",
+    "shortLabel": "MAC2",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "knob_2",
-    "label": "knob_2",
-    "shortLabel": null,
+    "label": "Macro 3",
+    "shortLabel": "MAC3",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "knob_3",
-    "label": "knob_3",
-    "shortLabel": null,
+    "label": "Macro 4",
+    "shortLabel": "MAC4",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "knob_4",
-    "label": "knob_4",
-    "shortLabel": null,
+    "label": "Macro 5",
+    "shortLabel": "MAC5",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "knob_5",
-    "label": "knob_5",
-    "shortLabel": null,
+    "label": "Macro 6",
+    "shortLabel": "MAC6",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "knob_6",
-    "label": "knob_6",
-    "shortLabel": null,
+    "label": "Macro 7",
+    "shortLabel": "MAC7",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "knob_7",
-    "label": "knob_7",
-    "shortLabel": null,
+    "label": "Macro 8",
+    "shortLabel": "MAC8",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.02,
+    "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    }
   ]
  },
  "analysis": {
   "hiddenParams": [
-   "preset",
-   "octave_transpose",
-   "gain",
-   "voices",
-   "attack",
-   "decay",
-   "sustain",
-   "release",
-   "tune",
-   "cutoff",
-   "reso",
    "knob_preset"
   ],
   "noMetadata": [
@@ -463,8 +764,7 @@
    "knob_7"
   ],
   "warnings": [
-   "12 chain_params not reachable in movy: preset, octave_transpose, gain, voices, attack, decay, sustain, release, tune, cutoff, reso, knob_preset",
-   "8 shown params lack chain_params metadata (movy guesses type/range): knob_0, knob_1, knob_2, knob_3, knob_4, knob_5, knob_6, knob_7"
+   "1 chain_params not reachable in movy: knob_preset"
   ]
  }
 }

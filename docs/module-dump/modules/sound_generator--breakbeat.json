@@ -419,11 +419,6 @@
     "name": "Main - 2",
     "global": false,
     "padSpecific": false
-   },
-   {
-    "name": "Main - 3",
-    "global": false,
-    "padSpecific": false
    }
   ],
   "pages": [
@@ -465,42 +460,35 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
-       "fullName": "Preset",
-       "renderStyle": "preset",
-       "type": "enum",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "SAMPL",
+       "shortName": "AS",
        "fullName": "A Sample",
        "renderStyle": "arc",
        "type": "file",
        "displayValue": "—"
       },
       {
-       "shortName": "LENGT",
+       "shortName": "AL",
        "fullName": "A Length",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "SAMPL",
+       "shortName": "BS",
        "fullName": "B Sample",
        "renderStyle": "arc",
        "type": "file",
        "displayValue": "—"
-      }
-     ],
-     [
+      },
       {
-       "shortName": "LENGT",
+       "shortName": "BL",
        "fullName": "B Length",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
-      },
+      }
+     ],
+     [
       {
        "shortName": "CHANC",
        "fullName": "B Chance",
@@ -521,6 +509,13 @@
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
+      },
+      {
+       "shortName": "ANCHO",
+       "fullName": "Anchor",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
       }
      ]
     ]
@@ -534,13 +529,6 @@
     "lfoViz": false,
     "rows": [
      [
-      {
-       "shortName": "ANCHO",
-       "fullName": "Anchor",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "..."
-      },
       {
        "shortName": "ROLL",
        "fullName": "Roll",
@@ -561,16 +549,16 @@
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
-      }
-     ],
-     [
+      },
       {
        "shortName": "R3",
        "fullName": "Retrig 3x",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
-      },
+      }
+     ],
+     [
       {
        "shortName": "R4",
        "fullName": "Retrig 4x",
@@ -591,35 +579,14 @@
        "renderStyle": "hbar",
        "type": "int",
        "displayValue": "..."
-      }
-     ]
-    ]
-   },
-   {
-    "name": "Main - 3",
-    "envelopeLines": [
-     false,
-     false
-    ],
-    "lfoViz": false,
-    "rows": [
-     [
+      },
       {
        "shortName": "STATU",
        "fullName": "Status",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
-      },
-      null,
-      null,
-      null
-     ],
-     [
-      null,
-      null,
-      null,
-      null
+      }
      ]
     ]
    }
@@ -650,24 +617,6 @@
    null,
    null,
    null,
-   {
-    "key": "preset",
-    "label": "Preset",
-    "shortLabel": null,
-    "type": "enum",
-    "min": 0,
-    "max": 2,
-    "step": 1,
-    "options": null,
-    "nameKey": "preset_name",
-    "renderStyle": "preset",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 3
-    }
-   },
    {
     "key": "A_sample_path",
     "label": "A Sample",
@@ -967,21 +916,12 @@
      "detentsPerStep": 4,
      "steps": 1
     }
-   },
-   null,
-   null,
-   null,
-   null,
-   null,
-   null,
-   null
+   }
   ]
  },
  "analysis": {
   "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "page \"Main - 1\": duplicate on-screen names SAMPL, LENGT"
-  ]
+  "warnings": []
  }
 }

@@ -433,7 +433,7 @@
   ]
  },
  "movy": {
-  "hasConfig": false,
+  "hasConfig": true,
   "usesMovyConfigFile": false,
   "drum": null,
   "banks": [
@@ -443,7 +443,7 @@
     "padSpecific": false
    },
    {
-    "name": "Devilfish Mods",
+    "name": "Shape",
     "global": false,
     "padSpecific": false
    },
@@ -471,14 +471,14 @@
        "displayValue": "50%"
       },
       {
-       "shortName": "RESON",
+       "shortName": "RESO",
        "fullName": "Resonance",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "ENV",
+       "shortName": "ENVMD",
        "fullName": "Env Mod",
        "renderStyle": "arc",
        "type": "float",
@@ -494,29 +494,29 @@
      ],
      [
       {
-       "shortName": "ACCEN",
+       "shortName": "ACCNT",
        "fullName": "Accent",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "VOLUM",
+       "shortName": "WAVE",
+       "fullName": "Waveform",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TUNE",
+       "fullName": "Tuning",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOL",
        "fullName": "Volume",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "DRIVE",
-       "fullName": "Drive",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "MIX",
-       "fullName": "Mix",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -525,7 +525,7 @@
     ]
    },
    {
-    "name": "Devilfish Mods",
+    "name": "Shape",
     "envelopeLines": [
      false,
      false
@@ -534,29 +534,29 @@
     "rows": [
      [
       {
-       "shortName": "ND",
+       "shortName": "SATK",
+       "fullName": "Soft Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NDEC",
        "fullName": "Normal Decay",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "AD",
+       "shortName": "ADEC",
        "fullName": "Accent Decay",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "FH",
-       "fullName": "Feedback HPF",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "SOFT",
-       "fullName": "Soft Attack",
+       "shortName": "SLIDE",
+       "fullName": "Slide Time",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -564,17 +564,17 @@
      ],
      [
       {
-       "shortName": "SLIDE",
-       "fullName": "Slide Time",
+       "shortName": "FBHPF",
+       "fullName": "Feedback HPF",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "SD",
-       "fullName": "Shaper Drive",
+       "shortName": "DEVIL",
+       "fullName": "Devil Mod",
        "renderStyle": "arc",
-       "type": "float",
+       "type": "enum",
        "displayValue": "..."
       },
       null,
@@ -592,6 +592,13 @@
     "rows": [
      [
       {
+       "shortName": "MODEL",
+       "fullName": "Drive Model",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
        "shortName": "DRIVE",
        "fullName": "Drive",
        "renderStyle": "arc",
@@ -600,13 +607,18 @@
       },
       {
        "shortName": "MIX",
-       "fullName": "Mix",
+       "fullName": "Drive Mix",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
-      null,
-      null
+      {
+       "shortName": "TANH",
+       "fullName": "Tanh Drive",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
      ],
      [
       null,
@@ -621,7 +633,7 @@
    {
     "key": "cutoff",
     "label": "Cutoff",
-    "shortLabel": null,
+    "shortLabel": "CUTOF",
     "type": "float",
     "options": null,
     "min": 0,
@@ -638,7 +650,7 @@
    {
     "key": "resonance",
     "label": "Resonance",
-    "shortLabel": null,
+    "shortLabel": "RESO",
     "type": "float",
     "options": null,
     "min": 0,
@@ -655,7 +667,7 @@
    {
     "key": "env_mod",
     "label": "Env Mod",
-    "shortLabel": null,
+    "shortLabel": "ENVMD",
     "type": "float",
     "options": null,
     "min": 0,
@@ -672,7 +684,7 @@
    {
     "key": "decay",
     "label": "Decay",
-    "shortLabel": null,
+    "shortLabel": "DECAY",
     "type": "float",
     "options": null,
     "min": 0,
@@ -689,7 +701,7 @@
    {
     "key": "accent",
     "label": "Accent",
-    "shortLabel": null,
+    "shortLabel": "ACCNT",
     "type": "float",
     "options": null,
     "min": 0,
@@ -701,97 +713,49 @@
      "kind": "float",
      "perDetent": 0.01,
      "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "waveform",
+    "label": "Waveform",
+    "shortLabel": "WAVE",
+    "type": "enum",
+    "options": [
+     "Saw",
+     "Square"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "tuning",
+    "label": "Tuning",
+    "shortLabel": "TUNE",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "volume",
     "label": "Volume",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
-    }
-   },
-   {
-    "key": "drive",
-    "label": "Drive",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
-    }
-   },
-   {
-    "key": "drive_mix",
-    "label": "Mix",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
-    }
-   },
-   {
-    "key": "normal_decay",
-    "label": "Normal Decay",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
-    }
-   },
-   {
-    "key": "accent_decay",
-    "label": "Accent Decay",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
-    }
-   },
-   {
-    "key": "feedback_hpf",
-    "label": "Feedback HPF",
-    "shortLabel": null,
+    "shortLabel": "VOL",
     "type": "float",
     "options": null,
     "min": 0,
@@ -808,7 +772,41 @@
    {
     "key": "soft_attack",
     "label": "Soft Attack",
-    "shortLabel": null,
+    "shortLabel": "SATK",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "normal_decay",
+    "label": "Normal Decay",
+    "shortLabel": "NDEC",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "accent_decay",
+    "label": "Accent Decay",
+    "shortLabel": "ADEC",
     "type": "float",
     "options": null,
     "min": 0,
@@ -825,7 +823,7 @@
    {
     "key": "slide_time",
     "label": "Slide Time",
-    "shortLabel": null,
+    "shortLabel": "SLIDE",
     "type": "float",
     "options": null,
     "min": 0,
@@ -840,9 +838,9 @@
     }
    },
    {
-    "key": "tanh_shaper_drive",
-    "label": "Shaper Drive",
-    "shortLabel": null,
+    "key": "feedback_hpf",
+    "label": "Feedback HPF",
+    "shortLabel": "FBHPF",
     "type": "float",
     "options": null,
     "min": 0,
@@ -856,12 +854,52 @@
      "detentsFullSweep": 100
     }
    },
+   {
+    "key": "devil_mod_switch",
+    "label": "Devil Mod",
+    "shortLabel": "DEVIL",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
    null,
    null,
+   {
+    "key": "drive_model",
+    "label": "Drive Model",
+    "shortLabel": "MODEL",
+    "type": "enum",
+    "options": [
+     "Soft",
+     "RAT"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
    {
     "key": "drive",
     "label": "Drive",
-    "shortLabel": null,
+    "shortLabel": "DRIVE",
     "type": "float",
     "options": null,
     "min": 0,
@@ -877,8 +915,25 @@
    },
    {
     "key": "drive_mix",
-    "label": "Mix",
-    "shortLabel": null,
+    "label": "Drive Mix",
+    "shortLabel": "MIX",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "tanh_shaper_drive",
+    "label": "Tanh Drive",
+    "shortLabel": "TANH",
     "type": "float",
     "options": null,
     "min": 0,
@@ -895,21 +950,12 @@
    null,
    null,
    null,
-   null,
-   null,
    null
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "waveform",
-   "tuning",
-   "devil_mod_switch",
-   "drive_model"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "4 chain_params not reachable in movy: waveform, tuning, devil_mod_switch, drive_model"
-  ]
+  "warnings": []
  }
 }

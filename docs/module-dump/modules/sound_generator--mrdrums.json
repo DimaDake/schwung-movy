@@ -2611,7 +2611,7 @@
     "name": "Main",
     "envelopeLines": [
      false,
-     false
+     true
     ],
     "lfoViz": false,
     "rows": [
@@ -2647,13 +2647,6 @@
      ],
      [
       {
-       "shortName": "START",
-       "fullName": "Start",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
        "shortName": "ATTK",
        "fullName": "Attack",
        "renderStyle": "arc",
@@ -2663,6 +2656,13 @@
       {
        "shortName": "DECAY",
        "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "START",
+       "fullName": "Start",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -2717,6 +2717,28 @@
      ],
      [
       {
+       "shortName": "CHOKE",
+       "fullName": "Choke Group",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Global",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
        "shortName": "MSVOL",
        "fullName": "Master Vol",
        "renderStyle": "arc",
@@ -2744,11 +2766,17 @@
        "type": "float",
        "displayValue": "..."
       }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
      ]
     ]
    },
    {
-    "name": "Global",
+    "name": "Preset",
     "envelopeLines": [
      false,
      false
@@ -2989,6 +3017,26 @@
     }
    },
    {
+    "key": "pad_choke_group",
+    "label": "Choke Group",
+    "shortLabel": "CHOKE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 32
+    }
+   },
+   null,
+   null,
+   null,
+   {
     "key": "g_master_vol",
     "label": "Master Vol",
     "shortLabel": "MSVOL",
@@ -3060,6 +3108,10 @@
      "detentsFullSweep": 1000
     }
    },
+   null,
+   null,
+   null,
+   null,
    {
     "key": "ui_preset_path",
     "label": "Load Preset",
@@ -3080,7 +3132,14 @@
     "increment": {
      "kind": "file-browse"
     }
-   }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
   ]
  },
  "analysis": {
@@ -3089,28 +3148,11 @@
    "g_rand_loop_steps",
    "ui_auto_select_pad",
    "ui_current_pad",
-   "ui_pad_page",
-   "pad_choke_group",
-   "p01_choke_group",
-   "p02_choke_group",
-   "p03_choke_group",
-   "p04_choke_group",
-   "p05_choke_group",
-   "p06_choke_group",
-   "p07_choke_group",
-   "p08_choke_group",
-   "p09_choke_group",
-   "p10_choke_group",
-   "p11_choke_group",
-   "p12_choke_group",
-   "p13_choke_group",
-   "p14_choke_group",
-   "p15_choke_group",
-   "p16_choke_group"
+   "ui_pad_page"
   ],
   "noMetadata": [],
   "warnings": [
-   "22 chain_params not reachable in movy: g_rand_seed, g_rand_loop_steps, ui_auto_select_pad, ui_current_pad, ui_pad_page, pad_choke_group, p01_choke_group, p02_choke_group, p03_choke_group, p04_choke_group, p05_choke_group, p06_choke_group, …"
+   "5 chain_params not reachable in movy: g_rand_seed, g_rand_loop_steps, ui_auto_select_pad, ui_current_pad, ui_pad_page"
   ]
  }
 }

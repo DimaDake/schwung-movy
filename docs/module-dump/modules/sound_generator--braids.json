@@ -549,42 +549,19 @@
    {
     "name": "Main",
     "envelopeLines": [
-     false,
+     true,
      false
     ],
     "lfoViz": false,
     "rows": [
      [
       {
-       "shortName": "ALGOR",
-       "fullName": "Algorithm",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "TIMBR",
-       "fullName": "Timbre",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "COLOR",
-       "fullName": "Color",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
        "shortName": "ATTAC",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      }
-     ],
-     [
+      },
       {
        "shortName": "DECAY",
        "fullName": "Decay",
@@ -595,6 +572,29 @@
       {
        "shortName": "SUSTA",
        "fullName": "Sustain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ALGOR",
+       "fullName": "Algorithm",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TIMBR",
+       "fullName": "Timbre",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "COLOR",
+       "fullName": "Color",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."

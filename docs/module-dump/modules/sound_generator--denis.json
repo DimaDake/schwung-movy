@@ -1242,21 +1242,21 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ENV->",
+       "shortName": "ENV-2",
        "fullName": "Env->Timbre",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "ENV->",
+       "shortName": "ENV-3",
        "fullName": "Env->Pitch2",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "ENV->",
+       "shortName": "ENV-4",
        "fullName": "Env->Harm",
        "renderStyle": "arc",
        "type": "float",
@@ -1265,28 +1265,28 @@
      ],
      [
       {
-       "shortName": "ENV->",
+       "shortName": "ENV-5",
        "fullName": "Env->Fold",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "ENV->",
+       "shortName": "ENV-6",
        "fullName": "Env->FType",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "ENV->",
+       "shortName": "ENV-7",
        "fullName": "Env->Cutof",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "ENV->",
+       "shortName": "ENV-8",
        "fullName": "Env->Level",
        "renderStyle": "arc",
        "type": "float",
@@ -1305,28 +1305,28 @@
     "rows": [
      [
       {
-       "shortName": "LFO->",
+       "shortName": "LF->P",
        "fullName": "LFO->Pitch1",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LFO->",
+       "shortName": "LF->T",
        "fullName": "LFO->Timbre",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LFO->",
+       "shortName": "LF->2",
        "fullName": "LFO->Pitch2",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LFO->",
+       "shortName": "LF->H",
        "fullName": "LFO->Harm",
        "renderStyle": "arc",
        "type": "float",
@@ -1335,28 +1335,28 @@
      ],
      [
       {
-       "shortName": "LFO->",
+       "shortName": "LF->F",
        "fullName": "LFO->Fold",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LFO->",
+       "shortName": "LF->3",
        "fullName": "LFO->FType",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LFO->",
+       "shortName": "LF->C",
        "fullName": "LFO->Cutof",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LFO->",
+       "shortName": "LF->L",
        "fullName": "LFO->Level",
        "renderStyle": "arc",
        "type": "float",
@@ -1382,21 +1382,21 @@
        "displayValue": "..."
       },
       {
-       "shortName": "S&H->",
+       "shortName": "S&H-2",
        "fullName": "S&H->Timbre",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "S&H->",
+       "shortName": "S&H-3",
        "fullName": "S&H->Pitch2",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "S&H->",
+       "shortName": "S&H-4",
        "fullName": "S&H->Harm",
        "renderStyle": "arc",
        "type": "float",
@@ -1405,28 +1405,28 @@
      ],
      [
       {
-       "shortName": "S&H->",
+       "shortName": "S&H-5",
        "fullName": "S&H->Fold",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "S&H->",
+       "shortName": "S&H-6",
        "fullName": "S&H->FType",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "S&H->",
+       "shortName": "S&H-7",
        "fullName": "S&H->Cutof",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "S&H->",
+       "shortName": "S&H-8",
        "fullName": "S&H->Level",
        "renderStyle": "arc",
        "type": "float",
@@ -1459,7 +1459,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "NZ->P",
+       "shortName": "NZ->2",
        "fullName": "Nz->Pitch2",
        "renderStyle": "arc",
        "type": "float",
@@ -1482,7 +1482,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "NZ->F",
+       "shortName": "NZ->3",
        "fullName": "Nz->FType",
        "renderStyle": "arc",
        "type": "float",
@@ -2616,11 +2616,7 @@
   ],
   "noMetadata": [],
   "warnings": [
-   "6 chain_params not reachable in movy: filter_type, vel_to_filter, preset, portamento, legato, patch_mode",
-   "page \"Mat: Env\": duplicate on-screen names ENV->",
-   "page \"Mat: LFO\": duplicate on-screen names LFO->",
-   "page \"Mat: S&H\": duplicate on-screen names S&H->",
-   "page \"Mat: Nz\": duplicate on-screen names NZ->P, NZ->F"
+   "6 chain_params not reachable in movy: filter_type, vel_to_filter, preset, portamento, legato, patch_mode"
   ]
  }
 }

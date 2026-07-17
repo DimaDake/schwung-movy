@@ -832,7 +832,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "TIME",
+       "shortName": "RT",
        "fullName": "Rnd Time",
        "renderStyle": "arc",
        "type": "float",
@@ -855,7 +855,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "TIME",
+       "shortName": "ST",
        "fullName": "Seq Time",
        "renderStyle": "arc",
        "type": "int",
@@ -888,7 +888,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PRESE",
+       "shortName": "RP",
        "fullName": "Rnd Preset",
        "renderStyle": "arc",
        "type": "float",
@@ -1527,9 +1527,7 @@
   ],
   "noMetadata": [],
   "warnings": [
-   "2 chain_params not reachable in movy: detection, rnd_filter",
-   "page \"Randomize\": duplicate on-screen names TIME",
-   "page \"Presets\": duplicate on-screen names PRESE"
+   "2 chain_params not reachable in movy: detection, rnd_filter"
   ]
  }
 }

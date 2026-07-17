@@ -348,7 +348,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "MONO",
+       "shortName": "BM",
        "fullName": "Bass Mono",
        "renderStyle": "arc",
        "type": "enum",
@@ -550,8 +550,7 @@
   ],
   "noMetadata": [],
   "warnings": [
-   "4 chain_params not reachable in movy: phase_l, phase_r, dc_filter, bass_audition",
-   "page \"\": duplicate on-screen names MONO"
+   "4 chain_params not reachable in movy: phase_l, phase_r, dc_filter, bass_audition"
   ]
  }
 }

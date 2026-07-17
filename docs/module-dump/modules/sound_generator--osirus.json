@@ -3666,7 +3666,7 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
@@ -3712,7 +3712,7 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
@@ -3723,7 +3723,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SHAPE",
+       "shortName": "LS",
        "fullName": "LFO2 Shape",
        "renderStyle": "arc",
        "type": "enum",
@@ -3737,7 +3737,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SHAPE",
+       "shortName": "SL",
        "fullName": "Shape LFO2",
        "renderStyle": "arc",
        "type": "int",
@@ -3758,7 +3758,7 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
@@ -5359,8 +5359,7 @@
   ],
   "noMetadata": [],
   "warnings": [
-   "108 chain_params not reachable in movy: preset, bank_index, rom_index, osc1_pulsewidth, osc1_wave_select, osc1_semitone, osc1_keyfollow, osc2_pulsewidth, osc2_wave_select, osc2_semitone, osc2_detune, osc2_fm_amount, …",
-   "page \"LFO 2\": duplicate on-screen names SHAPE"
+   "108 chain_params not reachable in movy: preset, bank_index, rom_index, osc1_pulsewidth, osc1_wave_select, osc1_semitone, osc1_keyfollow, osc2_pulsewidth, osc2_wave_select, osc2_semitone, osc2_detune, osc2_fm_amount, …"
   ]
  }
 }

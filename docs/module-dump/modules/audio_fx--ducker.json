@@ -266,7 +266,7 @@
     "name": "",
     "envelopeLines": [
      false,
-     false
+     true
     ],
     "lfoViz": false,
     "rows": [
@@ -309,15 +309,15 @@
        "displayValue": "..."
       },
       {
-       "shortName": "HOLD",
-       "fullName": "Hold",
+       "shortName": "RELEA",
+       "fullName": "Release",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "RELEA",
-       "fullName": "Release",
+       "shortName": "HOLD",
+       "fullName": "Hold",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."

@@ -441,26 +441,12 @@
    {
     "name": "Main - 1",
     "envelopeLines": [
-     false,
+     true,
      false
     ],
     "lfoViz": false,
     "rows": [
      [
-      {
-       "shortName": "SAMPL",
-       "fullName": "Sample",
-       "renderStyle": "arc",
-       "type": "file",
-       "displayValue": "—"
-      },
-      {
-       "shortName": "START",
-       "fullName": "Start",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
       {
        "shortName": "ATTAC",
        "fullName": "Attack",
@@ -474,9 +460,7 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      }
-     ],
-     [
+      },
       {
        "shortName": "SUSTA",
        "fullName": "Sustain",
@@ -487,6 +471,22 @@
       {
        "shortName": "RELEA",
        "fullName": "Release",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SAMPL",
+       "fullName": "Sample",
+       "renderStyle": "arc",
+       "type": "file",
+       "displayValue": "—"
+      },
+      {
+       "shortName": "START",
+       "fullName": "Start",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -560,7 +560,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "START",
+       "shortName": "LS",
        "fullName": "Loop Start",
        "renderStyle": "arc",
        "type": "float",
@@ -591,7 +591,7 @@
    {
     "name": "Amp Env",
     "envelopeLines": [
-     false,
+     true,
      false
     ],
     "lfoViz": false,
@@ -1337,8 +1337,6 @@
  "analysis": {
   "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "page \"Sample\": duplicate on-screen names START"
-  ]
+  "warnings": []
  }
 }

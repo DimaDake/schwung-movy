@@ -5631,7 +5631,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "UP",
+       "shortName": "BENUP",
        "fullName": "Bend Up",
        "renderStyle": "arc",
        "type": "int",
@@ -5654,7 +5654,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PORTA",
+       "shortName": "PT",
        "fullName": "Porta Time",
        "renderStyle": "arc",
        "type": "int",
@@ -5764,14 +5764,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "T1",
+       "shortName": "A.ET1",
        "fullName": "A.Env T1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "T2",
+       "shortName": "A.ET2",
        "fullName": "A.Env T2",
        "renderStyle": "arc",
        "type": "int",
@@ -5780,14 +5780,14 @@
      ],
      [
       {
-       "shortName": "L3",
+       "shortName": "A.EL3",
        "fullName": "A.Env L3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "T4",
+       "shortName": "A.ET4",
        "fullName": "A.Env T4",
        "renderStyle": "arc",
        "type": "int",
@@ -5834,14 +5834,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "T1",
+       "shortName": "A.ET1",
        "fullName": "A.Env T1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "T2",
+       "shortName": "A.ET2",
        "fullName": "A.Env T2",
        "renderStyle": "arc",
        "type": "int",
@@ -5850,14 +5850,14 @@
      ],
      [
       {
-       "shortName": "L3",
+       "shortName": "A.EL3",
        "fullName": "A.Env L3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "T4",
+       "shortName": "A.ET4",
        "fullName": "A.Env T4",
        "renderStyle": "arc",
        "type": "int",
@@ -5904,14 +5904,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "T1",
+       "shortName": "A.ET1",
        "fullName": "A.Env T1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "T2",
+       "shortName": "A.ET2",
        "fullName": "A.Env T2",
        "renderStyle": "arc",
        "type": "int",
@@ -5920,14 +5920,14 @@
      ],
      [
       {
-       "shortName": "L3",
+       "shortName": "A.EL3",
        "fullName": "A.Env L3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "T4",
+       "shortName": "A.ET4",
        "fullName": "A.Env T4",
        "renderStyle": "arc",
        "type": "int",
@@ -5974,14 +5974,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "T1",
+       "shortName": "A.ET1",
        "fullName": "A.Env T1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "T2",
+       "shortName": "A.ET2",
        "fullName": "A.Env T2",
        "renderStyle": "arc",
        "type": "int",
@@ -5990,14 +5990,14 @@
      ],
      [
       {
-       "shortName": "L3",
+       "shortName": "A.EL3",
        "fullName": "A.Env L3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "T4",
+       "shortName": "A.ET4",
        "fullName": "A.Env T4",
        "renderStyle": "arc",
        "type": "int",
@@ -7386,8 +7386,7 @@
   ],
   "noMetadata": [],
   "warnings": [
-   "361 chain_params not reachable in movy: performance, part, octave_transpose, link_tones, nvram_patchCommon_chorusfeedback, nvram_patchCommon_chorusoutput, nvram_patchCommon_portamentomode, nvram_patchCommon_portamentotype, nvram_patchCommon_sololegato, nvram_patchCommon_velocityswitch, nvram_tone_0_toneswitch, nvram_tone_0_wavegroup, …",
-   "page \"Common / Control\": duplicate on-screen names PORTA"
+   "361 chain_params not reachable in movy: performance, part, octave_transpose, link_tones, nvram_patchCommon_chorusfeedback, nvram_patchCommon_chorusoutput, nvram_patchCommon_portamentomode, nvram_patchCommon_portamentotype, nvram_patchCommon_sololegato, nvram_patchCommon_velocityswitch, nvram_tone_0_toneswitch, nvram_tone_0_wavegroup, …"
   ]
  }
 }

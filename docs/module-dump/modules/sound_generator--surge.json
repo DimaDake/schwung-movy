@@ -6148,7 +6148,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "WIDTH",
+       "shortName": "WIDT1",
        "fullName": "Osc 1 Width 1",
        "renderStyle": "arc",
        "type": "float",
@@ -6157,7 +6157,7 @@
      ],
      [
       {
-       "shortName": "WIDTH",
+       "shortName": "WIDT2",
        "fullName": "Osc 1 Width 2",
        "renderStyle": "arc",
        "type": "float",
@@ -6218,7 +6218,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "WIDTH",
+       "shortName": "WIDT1",
        "fullName": "Osc 2 Width 1",
        "renderStyle": "arc",
        "type": "float",
@@ -6227,7 +6227,7 @@
      ],
      [
       {
-       "shortName": "WIDTH",
+       "shortName": "WIDT2",
        "fullName": "Osc 2 Width 2",
        "renderStyle": "arc",
        "type": "float",
@@ -6288,7 +6288,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "WIDTH",
+       "shortName": "WIDT1",
        "fullName": "Osc 3 Width 1",
        "renderStyle": "arc",
        "type": "float",
@@ -6297,7 +6297,7 @@
      ],
      [
       {
-       "shortName": "WIDTH",
+       "shortName": "WIDT2",
        "fullName": "Osc 3 Width 2",
        "renderStyle": "arc",
        "type": "float",
@@ -6664,7 +6664,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DECAY",
+       "shortName": "SHAPE",
        "fullName": "Amp EG Decay Shape",
        "renderStyle": "arc",
        "type": "enum",
@@ -6797,7 +6797,7 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
@@ -6867,7 +6867,7 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
@@ -6937,7 +6937,7 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
@@ -7007,7 +7007,7 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
@@ -7077,7 +7077,7 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
@@ -7147,7 +7147,7 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
@@ -7217,7 +7217,7 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
@@ -7287,7 +7287,7 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
@@ -7357,7 +7357,7 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
@@ -7427,7 +7427,7 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
@@ -7497,7 +7497,7 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
@@ -7567,7 +7567,7 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
@@ -13734,11 +13734,7 @@
   ],
   "noMetadata": [],
   "warnings": [
-   "110 chain_params not reachable in movy: octave, pitch, osc1_octave, osc1_param6, osc1_keytrack, osc1_retrigger, osc2_octave, osc2_param6, osc2_keytrack, osc2_retrigger, osc3_octave, osc3_param6, …",
-   "page \"Oscillator 1\": duplicate on-screen names WIDTH",
-   "page \"Oscillator 2\": duplicate on-screen names WIDTH",
-   "page \"Oscillator 3\": duplicate on-screen names WIDTH",
-   "page \"Amp Envelope\": duplicate on-screen names DECAY"
+   "110 chain_params not reachable in movy: octave, pitch, osc1_octave, osc1_param6, osc1_keytrack, osc1_retrigger, osc2_octave, osc2_param6, osc2_keytrack, osc2_retrigger, osc3_octave, osc3_param6, …"
   ]
  }
 }

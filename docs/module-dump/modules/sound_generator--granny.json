@@ -1065,7 +1065,7 @@
    {
     "name": "ADSR Envelope",
     "envelopeLines": [
-     false,
+     true,
      false
     ],
     "lfoViz": false,

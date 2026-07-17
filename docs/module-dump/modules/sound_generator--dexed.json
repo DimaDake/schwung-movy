@@ -1916,28 +1916,28 @@
     "rows": [
      [
       {
-       "shortName": "R1",
+       "shortName": "PEGR1",
        "fullName": "PEG R1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "R2",
+       "shortName": "PEGR2",
        "fullName": "PEG R2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "R3",
+       "shortName": "PEGR3",
        "fullName": "PEG R3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "R4",
+       "shortName": "PEGR4",
        "fullName": "PEG R4",
        "renderStyle": "arc",
        "type": "int",
@@ -1946,14 +1946,14 @@
      ],
      [
       {
-       "shortName": "L1",
+       "shortName": "PEGL1",
        "fullName": "PEG L1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "L2",
+       "shortName": "PEGL2",
        "fullName": "PEG L2",
        "renderStyle": "arc",
        "type": "int",

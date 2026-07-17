@@ -2310,28 +2310,28 @@
     "rows": [
      [
       {
-       "shortName": "CUT",
+       "shortName": "LC",
        "fullName": "LPF Cut",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "60%"
       },
       {
-       "shortName": "PEAK",
+       "shortName": "LP",
        "fullName": "LPF Peak",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "CUT",
+       "shortName": "HC",
        "fullName": "HPF Cut",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "PEAK",
+       "shortName": "HP",
        "fullName": "HPF Peak",
        "renderStyle": "arc",
        "type": "float",
@@ -2480,14 +2480,14 @@
      ],
      [
       {
-       "shortName": "1",
+       "shortName": "SCAL1",
        "fullName": "Scale 1",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "2",
+       "shortName": "SCAL2",
        "fullName": "Scale 2",
        "renderStyle": "arc",
        "type": "enum",
@@ -2590,28 +2590,28 @@
     "rows": [
      [
       {
-       "shortName": "CUT",
+       "shortName": "HC",
        "fullName": "HPF Cut",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "PEAK",
+       "shortName": "HP",
        "fullName": "HPF Peak",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "MG",
+       "shortName": "HPFMG",
        "fullName": "HPF MG",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "EG",
+       "shortName": "HPFEG",
        "fullName": "HPF EG",
        "renderStyle": "arc",
        "type": "float",
@@ -2620,28 +2620,28 @@
      ],
      [
       {
-       "shortName": "CUT",
+       "shortName": "LC",
        "fullName": "LPF Cut",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "PEAK",
+       "shortName": "LP",
        "fullName": "LPF Peak",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "MG",
+       "shortName": "LPFMG",
        "fullName": "LPF MG",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "EG",
+       "shortName": "LPFEG",
        "fullName": "LPF EG",
        "renderStyle": "arc",
        "type": "float",
@@ -2653,29 +2653,29 @@
    {
     "name": "Envelopes",
     "envelopeLines": [
-     false,
+     true,
      true
     ],
     "lfoViz": false,
     "rows": [
      [
       {
-       "shortName": "DELAY",
-       "fullName": "E1 Delay",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "ATK",
+       "shortName": "E1ATK",
        "fullName": "E1 Atk",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "REL",
+       "shortName": "E1REL",
        "fullName": "E1 Rel",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DELAY",
+       "fullName": "E1 Delay",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -2690,7 +2690,7 @@
      ],
      [
       {
-       "shortName": "ATK",
+       "shortName": "E2ATK",
        "fullName": "E2 Atk",
        "renderStyle": "arc",
        "type": "float",
@@ -2711,7 +2711,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "REL",
+       "shortName": "E2REL",
        "fullName": "E2 Rel",
        "renderStyle": "arc",
        "type": "float",
@@ -4312,10 +4312,7 @@
   "noMetadata": [],
   "warnings": [
    "19 chain_params not reachable in movy: trigger, v2_pw, v2_sync, v2_xmod, v2_detune, noise_color, filter_mode, esp_pitch_slew, esp_env_atk, esp_env_rel, esp_aud_mix, esp_pitch_mode, …",
-   "page \"Main\": duplicate on-screen names CUT, PEAK",
-   "page \"VCO 1+2\": duplicate on-screen names WAVE",
-   "page \"Filter\": duplicate on-screen names CUT, PEAK, MG, EG",
-   "page \"Envelopes\": duplicate on-screen names ATK, REL"
+   "page \"VCO 1+2\": duplicate on-screen names WAVE"
   ]
  }
 }

@@ -1147,28 +1147,28 @@
     "rows": [
      [
       {
-       "shortName": "AMOUN",
+       "shortName": "FX1AM",
        "fullName": "FX1 Amount",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "0%"
       },
       {
-       "shortName": "MACRO",
+       "shortName": "FX1MC",
        "fullName": "FX1 Macro",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "AMOUN",
+       "shortName": "FX2AM",
        "fullName": "FX2 Amount",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "MACRO",
+       "shortName": "FX2MC",
        "fullName": "FX2 Macro",
        "renderStyle": "arc",
        "type": "float",
@@ -1177,28 +1177,28 @@
      ],
      [
       {
-       "shortName": "AMOUN",
+       "shortName": "FX3AM",
        "fullName": "FX3 Amount",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "MACRO",
+       "shortName": "FX3MC",
        "fullName": "FX3 Macro",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "AMOUN",
+       "shortName": "FX4AM",
        "fullName": "FX4 Amount",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "MACRO",
+       "shortName": "FX4MC",
        "fullName": "FX4 Macro",
        "renderStyle": "arc",
        "type": "float",
@@ -1217,28 +1217,28 @@
     "rows": [
      [
       {
-       "shortName": "AMOUN",
+       "shortName": "FX1AM",
        "fullName": "FX1 Amount",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "MACRO",
+       "shortName": "FX1MC",
        "fullName": "FX1 Macro",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "AMOUN",
+       "shortName": "FX2AM",
        "fullName": "FX2 Amount",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "MACRO",
+       "shortName": "FX2MC",
        "fullName": "FX2 Macro",
        "renderStyle": "arc",
        "type": "float",
@@ -1247,28 +1247,28 @@
      ],
      [
       {
-       "shortName": "AMOUN",
+       "shortName": "FX3AM",
        "fullName": "FX3 Amount",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "MACRO",
+       "shortName": "FX3MC",
        "fullName": "FX3 Macro",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "AMOUN",
+       "shortName": "FX4AM",
        "fullName": "FX4 Amount",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "MACRO",
+       "shortName": "FX4MC",
        "fullName": "FX4 Macro",
        "renderStyle": "arc",
        "type": "float",
@@ -1301,7 +1301,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FX",
+       "shortName": "RNDFX",
        "fullName": "Rnd FX",
        "renderStyle": "arc",
        "type": "enum",
@@ -1364,21 +1364,21 @@
        "displayValue": "..."
       },
       {
-       "shortName": "AMOUN",
+       "shortName": "FX1AM",
        "fullName": "FX1 Amount",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "MACRO",
+       "shortName": "FX1MC",
        "fullName": "FX1 Macro",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "DRIFT",
+       "shortName": "FX1DR",
        "fullName": "FX1 Drift",
        "renderStyle": "arc",
        "type": "float",
@@ -1394,21 +1394,21 @@
        "displayValue": "..."
       },
       {
-       "shortName": "AMOUN",
+       "shortName": "FX2AM",
        "fullName": "FX2 Amount",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "MACRO",
+       "shortName": "FX2MC",
        "fullName": "FX2 Macro",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "DRIFT",
+       "shortName": "FX2DR",
        "fullName": "FX2 Drift",
        "renderStyle": "arc",
        "type": "float",
@@ -1434,21 +1434,21 @@
        "displayValue": "..."
       },
       {
-       "shortName": "AMOUN",
+       "shortName": "FX3AM",
        "fullName": "FX3 Amount",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "MACRO",
+       "shortName": "FX3MC",
        "fullName": "FX3 Macro",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "DRIFT",
+       "shortName": "FX3DR",
        "fullName": "FX3 Drift",
        "renderStyle": "arc",
        "type": "float",
@@ -1464,21 +1464,21 @@
        "displayValue": "..."
       },
       {
-       "shortName": "AMOUN",
+       "shortName": "FX4AM",
        "fullName": "FX4 Amount",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "MACRO",
+       "shortName": "FX4MC",
        "fullName": "FX4 Macro",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "DRIFT",
+       "shortName": "FX4DR",
        "fullName": "FX4 Drift",
        "renderStyle": "arc",
        "type": "float",
@@ -2484,11 +2484,7 @@
   ],
   "noMetadata": [],
   "warnings": [
-   "1 chain_params not reachable in movy: fx_reorder",
-   "page \"Main\": duplicate on-screen names AMOUN, MACRO",
-   "page \"PALETTE\": duplicate on-screen names AMOUN, MACRO",
-   "page \"FX 1&2\": duplicate on-screen names AMOUN, MACRO, DRIFT",
-   "page \"FX 3&4\": duplicate on-screen names AMOUN, MACRO, DRIFT"
+   "1 chain_params not reachable in movy: fx_reorder"
   ]
  }
 }

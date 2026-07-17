@@ -1878,7 +1878,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "RESON",
+       "shortName": "RR",
        "fullName": "Rnd Reson",
        "renderStyle": "arc",
        "type": "int",
@@ -1948,7 +1948,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "RESON",
+       "shortName": "RR",
        "fullName": "Rnd Reson",
        "renderStyle": "arc",
        "type": "int",
@@ -1990,12 +1990,26 @@
    {
     "name": "Exciter",
     "envelopeLines": [
-     false,
+     true,
      false
     ],
     "lfoViz": false,
     "rows": [
      [
+      {
+       "shortName": "ATTAC",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
       {
        "shortName": "MIX",
        "fullName": "Exc Mix",
@@ -2009,26 +2023,12 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      },
-      {
-       "shortName": "COLOR",
-       "fullName": "Color",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "ATTAC",
-       "fullName": "Attack",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "DECAY",
-       "fullName": "Decay",
+       "shortName": "COLOR",
+       "fullName": "Color",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -2048,7 +2048,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "COLOR",
+       "shortName": "VC",
        "fullName": "Vel Color",
        "renderStyle": "arc",
        "type": "float",
@@ -2200,12 +2200,26 @@
    {
     "name": "Voice",
     "envelopeLines": [
-     false,
+     true,
      false
     ],
     "lfoViz": false,
     "rows": [
      [
+      {
+       "shortName": "ATK",
+       "fullName": "Amp Atk",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "REL",
+       "fullName": "Amp Rel",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
       {
        "shortName": "COUPL",
        "fullName": "Couple",
@@ -2219,26 +2233,12 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      },
-      {
-       "shortName": "GLIDE",
-       "fullName": "Glide",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "ATK",
-       "fullName": "Amp Atk",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "REL",
-       "fullName": "Amp Rel",
+       "shortName": "GLIDE",
+       "fullName": "Glide",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -2413,32 +2413,32 @@
      false,
      false
     ],
-    "lfoViz": false,
+    "lfoViz": true,
     "rows": [
      [
       {
-       "shortName": "RATE",
+       "shortName": "LF1RT",
        "fullName": "LFO1 Rate",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "DEPTH",
+       "shortName": "LF1DP",
        "fullName": "LFO1 Depth",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "SHAPE",
+       "shortName": "LF1SH",
        "fullName": "LFO1 Shape",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "TARGE",
+       "shortName": "LF1TR",
        "fullName": "LFO1 Target",
        "renderStyle": "arc",
        "type": "enum",
@@ -2447,28 +2447,28 @@
      ],
      [
       {
-       "shortName": "RATE",
+       "shortName": "LF2RT",
        "fullName": "LFO2 Rate",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "DEPTH",
+       "shortName": "LF2DP",
        "fullName": "LFO2 Depth",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "SHAPE",
+       "shortName": "LF2SH",
        "fullName": "LFO2 Shape",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "TARGE",
+       "shortName": "LF2TR",
        "fullName": "LFO2 Target",
        "renderStyle": "arc",
        "type": "enum",
@@ -2531,7 +2531,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "VIB",
+       "shortName": "RATE",
        "fullName": "AT Vib Rate",
        "renderStyle": "arc",
        "type": "float",
@@ -4040,12 +4040,7 @@
   ],
   "noMetadata": [],
   "warnings": [
-   "1 chain_params not reachable in movy: voicing",
-   "page \"Main\": duplicate on-screen names RESON",
-   "page \"Patch\": duplicate on-screen names RESON",
-   "page \"Exciter\": duplicate on-screen names COLOR",
-   "page \"Mod\": duplicate on-screen names RATE, DEPTH, SHAPE, TARGE",
-   "page \"Aftertouch\": duplicate on-screen names VIB"
+   "1 chain_params not reachable in movy: voicing"
   ]
  }
 }

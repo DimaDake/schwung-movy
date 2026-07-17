@@ -269,9 +269,17 @@ page that controls just the selected drum voice — marked with a pad icon):
 
 ![Drum module page](docs/assets/drum-mrdrums-global.png)
 
+On a **per-pad** (or per-voice) page, **press a pad to pick which voice you're
+editing** — the knobs re-read that voice's values, and the pad icon in the
+header tracks the selection. This lets multi-voice synths expose one compact
+voice page instead of a page per voice. *Signal* (4 voices) and *Forge* (8
+voices) work this way:
+
+![Pad-selected voice page](docs/assets/signal_voice.png)
+
 Because there's no other way to choose a drum type on the device, drum modules
-rely on Movy's **layout templates**. Mr Drums and Weird Dreams are tested; other
-drum modules may need a template contributed (see
+rely on Movy's **layout templates**. Mr Drums, Weird Dreams, KrautDrums, Signal
+and Forge ship templates; other drum modules may need one contributed (see
 [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ---

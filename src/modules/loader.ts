@@ -11,6 +11,8 @@ import sfzJson         from './sfz.json';
 import s303Json        from './303.json';
 import chiptuneJson    from './chiptune.json';
 import hush1Json       from './hush1.json';
+import signalJson      from './signal.json';
+import forgeJson       from './forge.json';
 
 const MOVY_SG_ROOT = '/data/UserData/schwung/modules/sound_generators';
 
@@ -19,7 +21,9 @@ const CONFIGS: Record<string, ModuleConfig> = {
     chiptune:        chiptuneJson     as unknown as ModuleConfig,
     chordism:        chordismJson     as unknown as ModuleConfig,
     essaim:          essaimJson       as unknown as ModuleConfig,
+    forge:           forgeJson        as unknown as ModuleConfig,
     hush1:           hush1Json        as unknown as ModuleConfig,
+    signal:          signalJson       as unknown as ModuleConfig,
     krautdrums:      krautdrumsJson   as unknown as ModuleConfig,
     mrdrums:         mrdrumsJson      as unknown as ModuleConfig,
     plaits:          plaitsJson       as unknown as ModuleConfig,

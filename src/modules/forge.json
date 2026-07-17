@@ -1,0 +1,517 @@
+{
+  "id": "forge",
+  "name": "Forge",
+  "drum": {
+    "padCount": 8,
+    "padNoteStart": 36,
+    "rawMidi": false,
+    "shiftSelectMidi": true,
+    "padScoping": {
+      "aliasPrefix": "pv_",
+      "concreteKeyTemplate": "v{pad}_{suffix}",
+      "padDigits": 1
+    }
+  },
+  "banks": [
+    {
+      "name": "Voice",
+      "padSpecific": true,
+      "rows": [
+        [
+          {
+            "key": "pv_lvl",
+            "short": "LEVEL",
+            "full": "Voice Level",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "pv_pan",
+            "short": "PAN",
+            "full": "Voice Pan",
+            "type": "float",
+            "min": -1,
+            "max": 1
+          },
+          {
+            "key": "pv_fx1",
+            "short": "FX1",
+            "full": "Voice FX1",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "pv_fx2",
+            "short": "FX2",
+            "full": "Voice FX2",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Kit",
+      "rows": [
+        [
+          {
+            "key": "kit",
+            "short": "KIT",
+            "full": "Kit",
+            "type": "int",
+            "min": 0,
+            "max": 136
+          },
+          {
+            "key": "rnd_kit",
+            "short": "RKIT",
+            "full": "Rnd Kit",
+            "type": "enum",
+            "options": [
+              "0",
+              "1"
+            ]
+          },
+          {
+            "key": "rnd_kit_params",
+            "short": "RKPRM",
+            "full": "Rnd Params",
+            "type": "enum",
+            "options": [
+              "0",
+              "1"
+            ]
+          },
+          {
+            "key": "rnd_voice",
+            "short": "RVCE",
+            "full": "Rnd Voice",
+            "type": "enum",
+            "options": [
+              "0",
+              "1"
+            ]
+          }
+        ],
+        [
+          {
+            "key": "rnd_pan",
+            "short": "RPAN",
+            "full": "Rnd Pan",
+            "type": "enum",
+            "options": [
+              "0",
+              "1"
+            ]
+          },
+          {
+            "key": "morph",
+            "short": "MORPH",
+            "full": "Morph",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "save_kit",
+            "short": "SAVE",
+            "full": "Save Kit",
+            "type": "enum",
+            "options": [
+              "Play",
+              "Save"
+            ]
+          },
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Perf",
+      "rows": [
+        [
+          {
+            "key": "all_punch",
+            "short": "PUNCH",
+            "full": "Punch",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "all_bright",
+            "short": "BRGHT",
+            "full": "Bright",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "all_decay",
+            "short": "DECAY",
+            "full": "Decay",
+            "type": "float",
+            "min": 0.01,
+            "max": 4
+          },
+          {
+            "key": "all_drive",
+            "short": "DRIVE",
+            "full": "Drive",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        [
+          {
+            "key": "all_snap",
+            "short": "SNAP",
+            "full": "Snap",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "all_bend",
+            "short": "BEND",
+            "full": "Bend",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "all_tune",
+            "short": "TUNE",
+            "full": "Tune",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "all_fx",
+            "short": "ALLFX",
+            "full": "All FX",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Mixer",
+      "rows": [
+        [
+          {
+            "key": "v1_lvl",
+            "short": "V1",
+            "full": "Voice 1 Lvl",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "v2_lvl",
+            "short": "V2",
+            "full": "Voice 2 Lvl",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "v3_lvl",
+            "short": "V3",
+            "full": "Voice 3 Lvl",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "v4_lvl",
+            "short": "V4",
+            "full": "Voice 4 Lvl",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        [
+          {
+            "key": "v5_lvl",
+            "short": "V5",
+            "full": "Voice 5 Lvl",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "v6_lvl",
+            "short": "V6",
+            "full": "Voice 6 Lvl",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "v7_lvl",
+            "short": "V7",
+            "full": "Voice 7 Lvl",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "v8_lvl",
+            "short": "V8",
+            "full": "Voice 8 Lvl",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ]
+      ]
+    },
+    {
+      "name": "FX",
+      "rows": [
+        [
+          {
+            "key": "rev_mix",
+            "short": "RVMIX",
+            "full": "Reverb Mix",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "rev_decay",
+            "short": "RVDCY",
+            "full": "Reverb Dcy",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "rev_size",
+            "short": "RVSIZ",
+            "full": "Reverb Size",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "cho_mix",
+            "short": "CHMIX",
+            "full": "Chorus Mix",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        [
+          {
+            "key": "dly_mix",
+            "short": "DLMIX",
+            "full": "Delay Mix",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "dly_rate",
+            "short": "DLRAT",
+            "full": "Delay Rate",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "dly_fdbk",
+            "short": "DLFBK",
+            "full": "Delay Fdbk",
+            "type": "float",
+            "min": 0,
+            "max": 0.95
+          },
+          {
+            "key": "dly_tone",
+            "short": "DLTON",
+            "full": "Delay Tone",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Master",
+      "rows": [
+        [
+          {
+            "key": "comp",
+            "short": "COMP",
+            "full": "Comp",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "drive",
+            "short": "DRIVE",
+            "full": "Drive",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "bit",
+            "short": "BIT",
+            "full": "Bitcrush",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "rate",
+            "short": "RATE",
+            "full": "Rate",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        [
+          {
+            "key": "eq_lo",
+            "short": "EQLO",
+            "full": "EQ Low",
+            "type": "float",
+            "min": -12,
+            "max": 12
+          },
+          {
+            "key": "eq_mid",
+            "short": "EQMID",
+            "full": "EQ Mid",
+            "type": "float",
+            "min": -12,
+            "max": 12
+          },
+          {
+            "key": "eq_hi",
+            "short": "EQHI",
+            "full": "EQ High",
+            "type": "float",
+            "min": -12,
+            "max": 12
+          },
+          {
+            "key": "master",
+            "short": "MASTR",
+            "full": "Master",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Setup",
+      "rows": [
+        [
+          {
+            "key": "morph_src",
+            "short": "MSRC",
+            "full": "Morph Src",
+            "type": "enum",
+            "options": [
+              "Knob",
+              "LFO",
+              "Macro",
+              "Wheel"
+            ]
+          },
+          {
+            "key": "morph_curve",
+            "short": "MCRV",
+            "full": "Morph Crv",
+            "type": "enum",
+            "options": [
+              "Linear",
+              "Exp",
+              "Log",
+              "S-Curve"
+            ]
+          },
+          {
+            "key": "all_mono",
+            "short": "MONO",
+            "full": "Mono",
+            "type": "enum",
+            "options": [
+              "0",
+              "1"
+            ]
+          },
+          {
+            "key": "rnd_pitch",
+            "short": "RPTCH",
+            "full": "Rnd Pitch",
+            "type": "enum",
+            "options": [
+              "0",
+              "1"
+            ]
+          }
+        ],
+        [
+          {
+            "key": "init_decay",
+            "short": "IDECY",
+            "full": "Init Decay",
+            "type": "enum",
+            "options": [
+              "0",
+              "1"
+            ]
+          },
+          {
+            "key": "init_freq",
+            "short": "IFREQ",
+            "full": "Init Freq",
+            "type": "enum",
+            "options": [
+              "0",
+              "1"
+            ]
+          },
+          {
+            "key": "drive_type",
+            "short": "DTYPE",
+            "full": "Drive Type",
+            "type": "enum",
+            "options": [
+              "Tube",
+              "Fold",
+              "Clip"
+            ]
+          },
+          {
+            "key": "master_tune",
+            "short": "MTUNE",
+            "full": "Master Tune",
+            "type": "float",
+            "min": -100,
+            "max": 100
+          }
+        ]
+      ]
+    }
+  ]
+}

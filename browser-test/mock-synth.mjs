@@ -502,6 +502,27 @@ export const MOCK_SYNTHS = {
         "synth:v1_pan":      "0.00",
         "synth:v3_vol":      "0.33",
         "synth:v3_pan":      "-0.50",
+        "synth:eq_lo":       "3.0",
+        "synth:master":      "0.80",
+    },
+
+    // Chunk 7 B2: 4-voice pad-scoped synth (cv_ alias → v{pad}_ concrete).
+    signal: {
+        "synth:name":        "Signal",
+        "synth_module":      "signal",
+        "synth:v1_vol":      "0.11", "synth:v1_attack": "0.02",
+        "synth:v3_vol":      "0.33", "synth:v3_attack": "0.04",
+        "synth:patch":       "2",
+    },
+
+    // Chunk 7 B2: 8-voice pad-scoped drum synth (pv_ alias → v{pad}_ concrete,
+    // since forge's own cv_* keys are DSP-native current-voice aliases).
+    forge: {
+        "synth:name":        "Forge",
+        "synth_module":      "forge",
+        "synth:v1_lvl":      "0.70", "synth:v1_pan": "0.10",
+        "synth:v5_lvl":      "0.50", "synth:v5_pan": "-0.20",
+        "synth:kit":         "4",
     },
 
     /* C1: root has ≥8 knobs AND the preset key is also listed inside root.knobs.

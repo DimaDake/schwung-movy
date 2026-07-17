@@ -2358,54 +2358,39 @@
  "sound_generator--forge": {
   "pageCount": 7,
   "pageNames": [
-   "Main",
-   "Patch",
-   "Perf",
    "Voice",
-   "Mix",
+   "Kit",
+   "Perf",
+   "Mixer",
    "FX",
-   "General"
+   "Master",
+   "Setup"
   ],
   "pageShortNames": [
    [
-    "KIT",
-    "RK",
-    "PARAM",
-    "VOICE",
-    "MORPH",
-    "ALL",
+    "LEVEL",
     "PAN",
-    "SAVE"
+    "FX1",
+    "FX2"
    ],
    [
     "KIT",
-    "RK",
-    "PARAM",
-    "VOICE",
+    "RKIT",
+    "RKPRM",
+    "RVCE",
+    "RPAN",
     "MORPH",
-    "ALL",
-    "PAN",
     "SAVE"
    ],
    [
     "PUNCH",
-    "BRIGH",
+    "BRGHT",
     "DECAY",
     "DRIVE",
     "SNAP",
     "BEND",
     "TUNE",
     "ALLFX"
-   ],
-   [
-    "MACR1",
-    "MACR2",
-    "MACR3",
-    "MACR4",
-    "MACR5",
-    "MACR6",
-    "MACR7",
-    "MACR8"
    ],
    [
     "V1",
@@ -2418,29 +2403,39 @@
     "V8"
    ],
    [
-    "RM",
-    "DECAY",
-    "SIZE",
-    "DM",
-    "RATE",
-    "FDBK",
-    "TONE",
-    "CHO"
+    "RVMIX",
+    "RVDCY",
+    "RVSIZ",
+    "CHMIX",
+    "DLMIX",
+    "DLRAT",
+    "DLFBK",
+    "DLTON"
    ],
    [
     "COMP",
     "DRIVE",
     "BIT",
     "RATE",
-    "EQ LO",
-    "EQ",
-    "EQ HI",
-    "MASTE"
+    "EQLO",
+    "EQMID",
+    "EQHI",
+    "MASTR"
+   ],
+   [
+    "MSRC",
+    "MCRV",
+    "MONO",
+    "RPTCH",
+    "IDECY",
+    "IFREQ",
+    "DTYPE",
+    "MTUNE"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 146
+  "hidden": 122
  },
  "sound_generator--freak": {
   "pageCount": 17,
@@ -3637,57 +3632,64 @@
   "hidden": 1
  },
  "sound_generator--signal": {
-  "pageCount": 11,
+  "pageCount": 9,
   "pageNames": [
-   "Main",
-   "Generate",
+   "Voice",
+   "Voice+",
+   "Bank Pitch",
+   "Seq",
+   "Sequence",
+   "Mod",
    "Patch",
-   "Sequences",
-   "Modulation",
-   "Mix",
-   "Voice 1",
-   "Voice 2",
-   "Voice 3",
-   "Voice 4",
-   "General"
+   "General",
+   "Advanced"
   ],
   "pageShortNames": [
    [
-    "SEQ 1",
-    "SEQ 2",
-    "SEQ 3",
-    "SEQ 4",
-    "SYN 1",
-    "SYN 2",
-    "SYN 3",
-    "SYN 4"
+    "PRSET",
+    "VOL",
+    "FREQ",
+    "WAVE",
+    "TONE",
+    "DECAY",
+    "DETUN",
+    "PAN"
    ],
    [
-    "SEQ 1",
-    "SEQ 2",
-    "SEQ 3",
-    "SEQ 4",
-    "SYN 1",
-    "SYN 2",
-    "SYN 3",
-    "SYN 4"
+    "ATTK",
+    "SUBDV",
+    "SWEEP",
+    "TRND",
+    "LEVEL",
+    "VFREQ",
+    "PUSH",
+    "IMPRV"
    ],
    [
-    "PATCH",
-    "RP",
-    "RYTM",
-    "VOICE",
-    "MOD",
-    "PITCH",
-    "PAN",
-    "ALL"
+    "BMODE",
+    "GHOST",
+    "BP0",
+    "BP1",
+    "BP2",
+    "BP3",
+    "BP4"
+   ],
+   [
+    "SEQ1",
+    "SEQ2",
+    "SEQ3",
+    "SEQ4",
+    "SYN1",
+    "SYN2",
+    "SYN3",
+    "SYN4"
    ],
    [
     "ROOT",
     "SCALE",
-    "DENSI",
+    "DENS",
     "CHAOS",
-    "GRAVI",
+    "GRAV",
     "CLK",
     "MORSE",
     "SWING"
@@ -3698,74 +3700,44 @@
     "FREQ",
     "DECAY",
     "PAN",
-    "DM",
+    "DENS",
     "SHAPE",
     "RESET"
    ],
    [
-    "V1LVL",
-    "V2LVL",
-    "V3LVL",
-    "V4LVL",
-    "V1FRQ",
-    "V2FRQ",
-    "V3FRQ",
-    "V4FRQ"
-   ],
-   [
-    "PRESE",
-    "VOL",
-    "FREQ",
-    "WAVE",
-    "TONE",
-    "DECAY",
-    "DETUN",
-    "PAN"
-   ],
-   [
-    "PRESE",
-    "VOL",
-    "FREQ",
-    "WAVE",
-    "TONE",
-    "DECAY",
-    "DETUN",
-    "PAN"
-   ],
-   [
-    "PRESE",
-    "VOL",
-    "FREQ",
-    "WAVE",
-    "TONE",
-    "DECAY",
-    "DETUN",
-    "PAN"
-   ],
-   [
-    "PRESE",
-    "VOL",
-    "FREQ",
-    "WAVE",
-    "TONE",
-    "DECAY",
-    "DETUN",
-    "PAN"
+    "PATCH",
+    "MORPH",
+    "RPTCH",
+    "RRYTM",
+    "RVCE",
+    "RMOD",
+    "RPTCH2",
+    "RPAN"
    ],
    [
     "BPM",
     "DRIFT",
-    "JITTE",
+    "JITTR",
+    "WIDTH",
     "CRUSH",
     "RATE",
-    "SW",
-    "SCENE",
-    "VOLUM"
+    "ADCY",
+    "MSVOL"
+   ],
+   [
+    "BRAIN",
+    "FILL",
+    "PHRAS",
+    "RETRG",
+    "GRID",
+    "TSYNC",
+    "OUT",
+    "MCRV"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 66
+  "hidden": 6
  },
  "sound_generator--smack-in": {
   "pageCount": 3,

@@ -4824,6 +4824,50 @@ _log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
         eq('weird-dreams: VOL follows focus to v3_vol', wd.getKnobParamInfo(0).ioKey, 'v3_vol');
         eq('weird-dreams: no duplicate shortNames per page', noDupShorts(bootModel(MOCK_SYNTHS.weird_dreams)), null);
     }
+
+    // signal: new 4-voice pad-scoped config; cv_ alias → v{pad}_ concrete.
+    {
+        const d = layout('signal', MOCK_SYNTHS.signal);
+        eq('signal: 9 banks', d.banks.length, 9);
+        eq('signal: 4 drum pads', d.drum?.padCount, 4);
+        // Restored hidden per-voice + global params reachable (as cv_ aliases / keys).
+        for (const k of ['cv_attack', 'cv_sub_div', 'cv_sweep', 'cv_tone_rnd', 'cv_bank_pitch_0',
+                         'drummer_brain', 'fill_shape', 'step_grid', 'out_mode']) {
+            eq(`signal: reachable ${k}`, !!byKey(d, k), true);
+        }
+        const sg = bootModel(MOCK_SYNTHS.signal);
+        eq('signal: focus defaults to voice 1', sg.getViewModel().drumCurrentPad, 1);
+        for (let t = 0; t < 4; t++) sg.tick();   // round-robin refresh reaches row-0 knobs
+        eq('signal: VOL reads v1_vol (0.11)', sg.getKnobParamInfo(1).value, 0.11);
+        eq('signal: ioKey is v1_vol', sg.getKnobParamInfo(1).ioKey, 'v1_vol');
+        sg.updateDrumPad(3, 38);
+        eq('signal: VOL re-read for v3 (0.33)', sg.getKnobParamInfo(1).value, 0.33);
+        eq('signal: ioKey follows to v3_vol', sg.getKnobParamInfo(1).ioKey, 'v3_vol');
+        eq('signal: no duplicate shortNames per page', noDupShorts(bootModel(MOCK_SYNTHS.signal)), null);
+    }
+
+    // forge: new 8-voice pad-scoped config; pv_ alias → v{pad}_ concrete
+    // (cv_* is reserved for forge's own native aliases and must NOT be remapped).
+    {
+        const d = layout('forge', MOCK_SYNTHS.forge);
+        eq('forge: 7 banks', d.banks.length, 7);
+        eq('forge: 8 drum pads', d.drum?.padCount, 8);
+        eq('forge: alias prefix is pv_', d.drum?.padScoping?.aliasPrefix, 'pv_');
+        for (const k of ['morph_src', 'morph_curve', 'init_decay', 'init_freq', 'rnd_pitch', 'all_mono']) {
+            eq(`forge: restored ${k}`, !!byKey(d, k), true);
+        }
+        // Action params deliberately skipped.
+        for (const k of ['copy_a_b', 'copy_b_a', 'swap_ab', 'rnd_b_from_a']) {
+            eq(`forge: skipped action ${k}`, !!byKey(d, k), false);
+        }
+        const fg = bootModel(MOCK_SYNTHS.forge);
+        eq('forge: LEVEL reads v1_lvl (0.70)', fg.getKnobParamInfo(0).value, 0.70);
+        eq('forge: ioKey is v1_lvl', fg.getKnobParamInfo(0).ioKey, 'v1_lvl');
+        fg.updateDrumPad(5, 40);
+        eq('forge: LEVEL re-read for v5 (0.50)', fg.getKnobParamInfo(0).value, 0.50);
+        eq('forge: ioKey follows to v5_lvl', fg.getKnobParamInfo(0).ioKey, 'v5_lvl');
+        eq('forge: no duplicate shortNames per page', noDupShorts(bootModel(MOCK_SYNTHS.forge)), null);
+    }
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

@@ -48,6 +48,7 @@ const PRESETS = [
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
     'filter_slope24', 'filter_dual',
+    'signal_voice', 'forge_voice',
     'leave_modal',
 ];
 
@@ -70,6 +71,7 @@ const BASE = {
     filter_lp: 'filter_demo', filter_lp_reso: 'filter_demo', filter_hp: 'filter_demo',
     filter_bp: 'filter_demo', filter_notch: 'filter_demo', filter_slope24: 'filter_demo',
     filter_dual: 'filter_dual',
+    signal_voice: 'signal', forge_voice: 'forge',
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
     lfo_target_overlay: 'test8', lfo_viz_unipolar: 'test8', lfo_viz_retrig: 'test8',
     lfo_mod_mark: 'test8', lfo_mod_and_auto: 'test8', lfo_assign_toast: 'test8',
@@ -210,6 +212,9 @@ function applyView(preset) {
         case 'filter_notch':   setFilter({ mode: '3' }); break;
         case 'filter_slope24': setFilter({ resonance: '0.70', slope: '1' }); break;
         case 'filter_dual':    forceRender(); break;
+        // Pad-selected voice bank (padSpecific page 0) — pad-grid icon in header.
+        case 'signal_voice':   model.updateDrumPad(2, 37); settle(); forceRender(); break;
+        case 'forge_voice':    model.updateDrumPad(3, 38); settle(); forceRender(); break;
         case 'obxd_preset_page': forceRender(); break;                       // page 0
         case 'obxd_main_page':   model.changePage(1); forceRender(); break;
         case 'obxd_filter_page': model.changePage(3); forceRender(); break;

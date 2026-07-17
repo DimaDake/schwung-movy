@@ -1,0 +1,899 @@
+{
+  "id": "signal",
+  "name": "Signal",
+  "drum": {
+    "padCount": 4,
+    "padNoteStart": 36,
+    "rawMidi": false,
+    "shiftSelectMidi": true,
+    "padScoping": {
+      "aliasPrefix": "cv_",
+      "concreteKeyTemplate": "v{pad}_{suffix}",
+      "padDigits": 1
+    }
+  },
+  "banks": [
+    {
+      "name": "Voice",
+      "padSpecific": true,
+      "rows": [
+        [
+          {
+            "key": "cv_preset",
+            "short": "PRSET",
+            "full": "Preset",
+            "type": "int",
+            "min": 0,
+            "max": 50
+          },
+          {
+            "key": "cv_vol",
+            "short": "VOL",
+            "full": "Volume",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "cv_freq",
+            "short": "FREQ",
+            "full": "Freq",
+            "type": "float",
+            "min": 20,
+            "max": 20000
+          },
+          {
+            "key": "cv_wave",
+            "short": "WAVE",
+            "full": "Wave",
+            "type": "enum",
+            "options": [
+              "Sine",
+              "Impulse",
+              "Noise",
+              "Damped",
+              "Click",
+              "Square",
+              "Tri",
+              "FM",
+              "Pink",
+              "Brown",
+              "AM",
+              "Ping",
+              "Train",
+              "Kick",
+              "Snare",
+              "Hat"
+            ]
+          }
+        ],
+        [
+          {
+            "key": "cv_tone",
+            "short": "TONE",
+            "full": "Tone",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "cv_decay",
+            "short": "DECAY",
+            "full": "Decay",
+            "type": "float",
+            "min": 0.0001,
+            "max": 0.5
+          },
+          {
+            "key": "cv_detune",
+            "short": "DETUN",
+            "full": "Detune",
+            "type": "float",
+            "min": 0,
+            "max": 20
+          },
+          {
+            "key": "cv_pan",
+            "short": "PAN",
+            "full": "Pan",
+            "type": "float",
+            "min": -1,
+            "max": 1
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Voice+",
+      "padSpecific": true,
+      "rows": [
+        [
+          {
+            "key": "cv_attack",
+            "short": "ATTK",
+            "full": "Attack",
+            "type": "float",
+            "min": 0.0001,
+            "max": 0.05
+          },
+          {
+            "key": "cv_sub_div",
+            "short": "SUBDV",
+            "full": "Sub Div",
+            "type": "int",
+            "min": 1,
+            "max": 8
+          },
+          {
+            "key": "cv_sweep",
+            "short": "SWEEP",
+            "full": "Sweep",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "cv_tone_rnd",
+            "short": "TRND",
+            "full": "Tone Rnd",
+            "type": "enum",
+            "options": [
+              "0%",
+              "1%",
+              "2%",
+              "3%",
+              "4%",
+              "5%",
+              "6%",
+              "7%",
+              "8%",
+              "9%",
+              "10%",
+              "11%",
+              "12%",
+              "13%",
+              "14%",
+              "15%",
+              "16%",
+              "17%",
+              "18%",
+              "19%",
+              "20%",
+              "21%",
+              "22%",
+              "23%",
+              "24%",
+              "25%",
+              "26%",
+              "27%",
+              "28%",
+              "29%",
+              "30%",
+              "31%",
+              "32%",
+              "33%",
+              "34%",
+              "35%",
+              "36%",
+              "37%",
+              "38%",
+              "39%",
+              "40%",
+              "41%",
+              "42%",
+              "43%",
+              "44%",
+              "45%",
+              "46%",
+              "47%",
+              "48%",
+              "49%",
+              "50%",
+              "51%",
+              "52%",
+              "53%",
+              "54%",
+              "55%",
+              "56%",
+              "57%",
+              "58%",
+              "59%",
+              "60%",
+              "61%",
+              "62%",
+              "63%",
+              "64%",
+              "65%",
+              "66%",
+              "67%",
+              "68%",
+              "69%",
+              "70%",
+              "71%",
+              "72%",
+              "73%",
+              "74%",
+              "75%",
+              "76%",
+              "77%",
+              "78%",
+              "79%",
+              "80%",
+              "81%",
+              "82%",
+              "83%",
+              "84%",
+              "85%",
+              "86%",
+              "87%",
+              "88%",
+              "89%",
+              "90%",
+              "91%",
+              "92%",
+              "93%",
+              "94%",
+              "95%",
+              "96%",
+              "97%",
+              "98%",
+              "99%",
+              "100%"
+            ]
+          }
+        ],
+        [
+          {
+            "key": "cv_level",
+            "short": "LEVEL",
+            "full": "Level",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "cv_vfreq",
+            "short": "VFREQ",
+            "full": "Voice Freq",
+            "type": "float",
+            "min": 20,
+            "max": 20000
+          },
+          {
+            "key": "cv_push_pull",
+            "short": "PUSH",
+            "full": "Push/Pull",
+            "type": "float",
+            "min": -20,
+            "max": 20
+          },
+          {
+            "key": "cv_improv",
+            "short": "IMPRV",
+            "full": "Improv",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Bank Pitch",
+      "padSpecific": true,
+      "rows": [
+        [
+          {
+            "key": "cv_bank_mode",
+            "short": "BMODE",
+            "full": "Bank Mode",
+            "type": "enum",
+            "options": [
+              "Off",
+              "Rule",
+              "Random"
+            ]
+          },
+          {
+            "key": "cv_ghost_crescendo",
+            "short": "GHOST",
+            "full": "Ghost Cresc",
+            "type": "enum",
+            "options": [
+              "Off",
+              "On"
+            ]
+          },
+          {
+            "key": "cv_bank_pitch_0",
+            "short": "BP0",
+            "full": "Bank Pitch 0",
+            "type": "float",
+            "min": -24,
+            "max": 24
+          },
+          {
+            "key": "cv_bank_pitch_1",
+            "short": "BP1",
+            "full": "Bank Pitch 1",
+            "type": "float",
+            "min": -24,
+            "max": 24
+          }
+        ],
+        [
+          {
+            "key": "cv_bank_pitch_2",
+            "short": "BP2",
+            "full": "Bank Pitch 2",
+            "type": "float",
+            "min": -24,
+            "max": 24
+          },
+          {
+            "key": "cv_bank_pitch_3",
+            "short": "BP3",
+            "full": "Bank Pitch 3",
+            "type": "float",
+            "min": -24,
+            "max": 24
+          },
+          {
+            "key": "cv_bank_pitch_4",
+            "short": "BP4",
+            "full": "Bank Pitch 4",
+            "type": "float",
+            "min": -24,
+            "max": 24
+          },
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Seq",
+      "rows": [
+        [
+          {
+            "key": "seq1",
+            "short": "SEQ1",
+            "full": "Seq 1",
+            "type": "int",
+            "min": 0,
+            "max": 35
+          },
+          {
+            "key": "seq2",
+            "short": "SEQ2",
+            "full": "Seq 2",
+            "type": "int",
+            "min": 0,
+            "max": 35
+          },
+          {
+            "key": "seq3",
+            "short": "SEQ3",
+            "full": "Seq 3",
+            "type": "int",
+            "min": 0,
+            "max": 35
+          },
+          {
+            "key": "seq4",
+            "short": "SEQ4",
+            "full": "Seq 4",
+            "type": "int",
+            "min": 0,
+            "max": 35
+          }
+        ],
+        [
+          {
+            "key": "syn1",
+            "short": "SYN1",
+            "full": "Syn 1",
+            "type": "int",
+            "min": 0,
+            "max": 50
+          },
+          {
+            "key": "syn2",
+            "short": "SYN2",
+            "full": "Syn 2",
+            "type": "int",
+            "min": 0,
+            "max": 50
+          },
+          {
+            "key": "syn3",
+            "short": "SYN3",
+            "full": "Syn 3",
+            "type": "int",
+            "min": 0,
+            "max": 50
+          },
+          {
+            "key": "syn4",
+            "short": "SYN4",
+            "full": "Syn 4",
+            "type": "int",
+            "min": 0,
+            "max": 50
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Sequence",
+      "rows": [
+        [
+          {
+            "key": "root",
+            "short": "ROOT",
+            "full": "Root",
+            "type": "enum",
+            "options": [
+              "Free",
+              "C",
+              "C#",
+              "D",
+              "D#",
+              "E",
+              "F",
+              "F#",
+              "G",
+              "G#",
+              "A",
+              "A#",
+              "B"
+            ]
+          },
+          {
+            "key": "scale",
+            "short": "SCALE",
+            "full": "Scale",
+            "type": "enum",
+            "options": [
+              "Free",
+              "Chromatic",
+              "Major",
+              "Minor",
+              "Pentatonic",
+              "WholeTone",
+              "Diminished",
+              "HarmMin"
+            ]
+          },
+          {
+            "key": "density",
+            "short": "DENS",
+            "full": "Density",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "chaos",
+            "short": "CHAOS",
+            "full": "Chaos",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        [
+          {
+            "key": "gravity",
+            "short": "GRAV",
+            "full": "Gravity",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "clk_div",
+            "short": "CLK",
+            "full": "Clk Div",
+            "type": "int",
+            "min": 1,
+            "max": 32
+          },
+          {
+            "key": "morse_spd",
+            "short": "MORSE",
+            "full": "Morse Spd",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "swing",
+            "short": "SWING",
+            "full": "Swing",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Mod",
+      "rows": [
+        [
+          {
+            "key": "mod_amount",
+            "short": "AMT",
+            "full": "Mod Amt",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "mod_speed",
+            "short": "SPEED",
+            "full": "Mod Speed",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "mod_freq",
+            "short": "FREQ",
+            "full": "Mod Freq",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "mod_decay",
+            "short": "DECAY",
+            "full": "Mod Decay",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        [
+          {
+            "key": "mod_pan",
+            "short": "PAN",
+            "full": "Mod Pan",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "mod_density",
+            "short": "DENS",
+            "full": "Mod Dens",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "mod_shape",
+            "short": "SHAPE",
+            "full": "Mod Shape",
+            "type": "enum",
+            "options": [
+              "Sine",
+              "Tri",
+              "Saw",
+              "Square",
+              "S&H",
+              "Random"
+            ]
+          },
+          {
+            "key": "mod_reset",
+            "short": "RESET",
+            "full": "Mod Reset",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Patch",
+      "rows": [
+        [
+          {
+            "key": "patch",
+            "short": "PATCH",
+            "full": "Patch",
+            "type": "enum",
+            "options": [
+              "Init",
+              "Ikeda Grid",
+              "Bernier",
+              "Morse CQ",
+              "Mathcore",
+              "Pink Rain",
+              "Heterodyne",
+              "Sub Harm",
+              "CA Automata",
+              "FM Bell",
+              "AM Texture",
+              "Brown Pulse",
+              "Clk Matrix",
+              "Sweep Casc",
+              "Fibonacci",
+              "Digi Glitch",
+              "Chirp Field",
+              "Phase Cloud",
+              "Test Signal",
+              "CW Radio",
+              "Cantor",
+              "Noise Gate",
+              "Sub Bass",
+              "Thue-Morse",
+              "Pink Grid",
+              "Metallic FM",
+              "Minimal",
+              "Maximum",
+              "Rule 30",
+              "Freq Lat.",
+              "Gauss Pings",
+              "Ikeda Data",
+              "Tuning Fork",
+              "Fork Harmony",
+              "BL Square",
+              "Data Quanta",
+              "Resonant Bell",
+              "Sine Study",
+              "Noise Field",
+              "Aleatoric",
+              "Amen",
+              "Think",
+              "Funky Drummer",
+              "Piccolo Jungle",
+              "Liquid DnB",
+              "Holzman Live",
+              "Microsound Jungle",
+              "Bernier Jungle",
+              "Mathcore Break",
+              "Bretschneider Roll"
+            ]
+          },
+          {
+            "key": "scene_morph",
+            "short": "MORPH",
+            "full": "Scene Morph",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "rnd_patch",
+            "short": "RPTCH",
+            "full": "Rnd Patch",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "rnd_rytm",
+            "short": "RRYTM",
+            "full": "Rnd Rytm",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          }
+        ],
+        [
+          {
+            "key": "rnd_voices",
+            "short": "RVCE",
+            "full": "Rnd Voice",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "rnd_mod",
+            "short": "RMOD",
+            "full": "Rnd Mod",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "rnd_pitch",
+            "short": "RPTCH2",
+            "full": "Rnd Pitch",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "rnd_pan",
+            "short": "RPAN",
+            "full": "Rnd Pan",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          }
+        ]
+      ]
+    },
+    {
+      "name": "General",
+      "rows": [
+        [
+          {
+            "key": "bpm",
+            "short": "BPM",
+            "full": "BPM",
+            "type": "float",
+            "min": 20,
+            "max": 500
+          },
+          {
+            "key": "drift",
+            "short": "DRIFT",
+            "full": "Drift",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "jitter",
+            "short": "JITTR",
+            "full": "Jitter",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "stereo_w",
+            "short": "WIDTH",
+            "full": "Stereo W",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        [
+          {
+            "key": "bit_crush",
+            "short": "CRUSH",
+            "full": "Bit Crush",
+            "type": "int",
+            "min": 1,
+            "max": 16
+          },
+          {
+            "key": "bit_rate",
+            "short": "RATE",
+            "full": "Bit Rate",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "all_decay",
+            "short": "ADCY",
+            "full": "All Decay",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "master_vol",
+            "short": "MSVOL",
+            "full": "Master",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Advanced",
+      "rows": [
+        [
+          {
+            "key": "drummer_brain",
+            "short": "BRAIN",
+            "full": "Drummer",
+            "type": "enum",
+            "options": [
+              "Off",
+              "Light",
+              "Heavy"
+            ]
+          },
+          {
+            "key": "fill_shape",
+            "short": "FILL",
+            "full": "Fill Shape",
+            "type": "enum",
+            "options": [
+              "Snare Roll",
+              "Tom Run",
+              "Kick Fill",
+              "Hat Splatter",
+              "Crash Drop",
+              "Random"
+            ]
+          },
+          {
+            "key": "phrase_length",
+            "short": "PHRAS",
+            "full": "Phrase Len",
+            "type": "enum",
+            "options": [
+              "Off",
+              "2",
+              "4",
+              "8",
+              "16"
+            ]
+          },
+          {
+            "key": "retrig_rate",
+            "short": "RETRG",
+            "full": "Retrig",
+            "type": "enum",
+            "options": [
+              "2x",
+              "3x",
+              "4x",
+              "8x",
+              "Rand"
+            ]
+          }
+        ],
+        [
+          {
+            "key": "step_grid",
+            "short": "GRID",
+            "full": "Step Grid",
+            "type": "enum",
+            "options": [
+              "8",
+              "16",
+              "32"
+            ]
+          },
+          {
+            "key": "tempo_sync",
+            "short": "TSYNC",
+            "full": "Tempo Sync",
+            "type": "enum",
+            "options": [
+              "Free",
+              "Sync"
+            ]
+          },
+          {
+            "key": "out_mode",
+            "short": "OUT",
+            "full": "Out Mode",
+            "type": "enum",
+            "options": [
+              "Stereo",
+              "Mono",
+              "Spread"
+            ]
+          },
+          {
+            "key": "morph_curve",
+            "short": "MCRV",
+            "full": "Morph Crv",
+            "type": "enum",
+            "options": [
+              "Linear",
+              "Exp",
+              "Stepped"
+            ]
+          }
+        ]
+      ]
+    }
+  ]
+}

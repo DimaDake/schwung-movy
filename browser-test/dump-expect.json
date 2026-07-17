@@ -2037,7 +2037,7 @@
    ]
   ],
   "envelopeLines": 2,
-  "lfoViz": 0,
+  "lfoViz": 3,
   "hidden": 16
  },
  "sound_generator--denis": {
@@ -2352,7 +2352,7 @@
    ]
   ],
   "envelopeLines": 2,
-  "lfoViz": 0,
+  "lfoViz": 2,
   "hidden": 1
  },
  "sound_generator--forge": {
@@ -2589,7 +2589,7 @@
    ]
   ],
   "envelopeLines": 2,
-  "lfoViz": 0,
+  "lfoViz": 1,
   "hidden": 0
  },
  "sound_generator--granny": {
@@ -2807,7 +2807,7 @@
    ]
   ],
   "envelopeLines": 2,
-  "lfoViz": 0,
+  "lfoViz": 1,
   "hidden": 0
  },
  "sound_generator--krautdrums": {
@@ -3490,7 +3490,7 @@
    ]
   ],
   "envelopeLines": 3,
-  "lfoViz": 0,
+  "lfoViz": 3,
   "hidden": 108
  },
  "sound_generator--plaits": {
@@ -4088,7 +4088,7 @@
    ]
   ],
   "envelopeLines": 3,
-  "lfoViz": 0,
+  "lfoViz": 12,
   "hidden": 110
  },
  "sound_generator--weird-dreams": {

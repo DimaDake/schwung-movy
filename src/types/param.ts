@@ -5,7 +5,7 @@ export interface KnobSlot {
     type:           'float' | 'int' | 'enum' | 'file';
     render?:        'arc' | 'hbar' | 'vbar' | 'preset';
     env?:           'a' | 'd' | 's' | 'r';
-    lfo?:           'shape' | 'phase' | 'mode' | 'retrig';
+    lfo?:           'shape' | 'phase' | 'mode' | 'retrig' | 'rate' | 'depth' | 'deform';
     options?:       string[];
     min?:           number;
     max?:           number;
@@ -69,7 +69,7 @@ export interface KnobParam {
     nameKey?:       string;
     renderStyle:    'arc' | 'hbar' | 'vbar' | 'preset' | 'xbox';
     env?:           'a' | 'd' | 's' | 'r';
-    lfo?:           'shape' | 'phase' | 'mode' | 'retrig';
+    lfo?:           'shape' | 'phase' | 'mode' | 'retrig' | 'rate' | 'depth' | 'deform';
     automatable:    boolean;
     /* Set when type/range were guessed (no chain_params or hierarchy metadata).
      * The first successful value read infers the real type/range, then clears

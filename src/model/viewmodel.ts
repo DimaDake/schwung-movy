@@ -2,7 +2,7 @@ import type { ViewModel, AutomationView, EnvelopeVM, LfoVizVM } from '../types/v
 import type { ModelState } from './state.js';
 import { formatValue, paramIoKey } from './store.js';
 import { planPageLayout } from './envelope.js';
-import { detectLfoViz } from './lfo-viz.js';
+import { buildLfoViz } from './lfo-vm.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
 import { dedupShortNames } from '../renderer/shorten.js';
 import { basename } from './path.js';
@@ -95,32 +95,11 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         };
     }
 
-    // LFO waveform groups: resolve detected shape+phase indices to their placed
-    // (line,col), require adjacency, and read the live values off the page.
+    // LFO waveform groups: Shape + adjacent span partner render as one graphic
+    // (see model/lfo-vm.ts). Values read off the page live.
     const pageParams = s.knobParams.slice(pageStart, pageStart + KNOBS_PER_PAGE);
-    const lfoViz: LfoVizVM[] = [];
-    for (const g of detectLfoViz(pageParams)) {
-        const sc = layout.cells.find(c => c.idx === g.shape);
-        const pc = layout.cells.find(c => c.idx === g.phase);
-        if (!sc || !pc || sc.line !== pc.line || Math.abs(sc.col - pc.col) !== 1) continue;
-        const num = (idx: number | null): number => {
-            if (idx == null) return 0;
-            const v = s.knobValues[pageStart + idx];
-            return (v === null || v === undefined) ? 0 : (v as number);
-        };
-        const phaseP = s.knobParams[pageStart + g.phase];
-        const rawPhase = num(g.phase);
-        const phase = phaseP && phaseP.max !== phaseP.min
-            ? Math.max(0, Math.min(1, (rawPhase - phaseP.min) / (phaseP.max - phaseP.min)))
-            : Math.max(0, Math.min(1, rawPhase));
-        lfoViz.push({
-            line: sc.line, startCol: Math.min(sc.col, pc.col),
-            shape: Math.round(num(g.shape)),
-            phase,
-            mode: g.mode != null ? Math.round(num(g.mode)) : 1,
-            retrigger: g.retrig != null ? Math.round(num(g.retrig)) : 0,
-        });
-    }
+    const pageValues = s.knobValues.slice(pageStart, pageStart + KNOBS_PER_PAGE);
+    const lfoViz = buildLfoViz(pageParams, pageValues, layout.cells);
 
     // Toast follows the physical knob last touched → its displayed param (the
     // rearrange means screen slot ≠ page index).

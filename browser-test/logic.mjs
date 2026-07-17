@@ -27,6 +27,8 @@ import {
 } from '../dist/esm/lfo/params.js';
 import { createLfoModel } from '../dist/esm/lfo/model.js';
 import { detectLfoViz } from '../dist/esm/model/lfo-viz.js';
+import { buildLfoViz } from '../dist/esm/model/lfo-vm.js';
+import { shapeId as lfoShapeId, isShapeEnum } from '../dist/esm/model/lfo-shapes.js';
 import { lfoTargetsParam, assignLfoTarget, clearLfoTarget } from '../dist/esm/lfo/assign.js';
 import { holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle, assignCommit, assignToastText, resetAssignMode } from '../dist/esm/lfo/assign-mode.js';
 import { shapeSample } from '../dist/esm/renderer/lfo-wave.js';
@@ -4057,6 +4059,85 @@ _log('\nTest: detectLfoViz');
     eq('needs phase', g3.length, 0);
     const g4 = detectLfoViz([P(null), P(null)]);
     eq('no markers → none', g4.length, 0);
+}
+
+_log('\nTest: module-LFO viz inference (A3)');
+{
+    const LP = (key, label, type, options = null) => ({
+        key, label, type, options,
+        min: 0, max: type === 'enum' ? options.length - 1 : 1, step: type === 'enum' ? 1 : 0.01,
+        renderStyle: 'arc', shortLabel: null, automatable: true, lfo: undefined,
+    });
+    const cells = (n) => Array.from({ length: n }, (_, i) => ({ line: i < 4 ? 0 : 1, col: i % 4, idx: i }));
+
+    // Shape name → id mapping (renderer table).
+    eq('map: Ramp Down → saw-down 6', lfoShapeId('Ramp Down'), 6);
+    eq('map: Sample & Hold → 4', lfoShapeId('Sample & Hold'), 4);
+    eq('map: Step Sequencer → 9', lfoShapeId('Step Sequencer'), 9);
+    eq('map: Wave 3 → generic 10', lfoShapeId('Wave 3'), 10);
+    eq('map: Cutoff → not a shape', lfoShapeId('Cutoff'), null);
+    eq('isShapeEnum: division list is not a shape', isShapeEnum(['Off', '1/4', '1/8']), false);
+
+    // chordism-like: Shape(enum wave) + Rate adjacent → one inferred group.
+    {
+        const params = [
+            LP('lfo_shape', 'LFO Wave', 'enum', ['Triangle', 'Ramp Up', 'Ramp Down', 'Square']),
+            LP('lfo_rate', 'LFO Rate', 'float'),
+            LP('lfo_depth', 'LFO Depth', 'float'),
+            LP('cutoff', 'Cutoff', 'float'),
+        ];
+        const g = detectLfoViz(params);
+        eq('chordism: one group', g.length, 1);
+        eq('chordism: inferred', g[0].inferred, true);
+        eq('chordism: rate candidate', g[0].rate, 1);
+        const vm = buildLfoViz(params, [2, 0.5, 0.3, 0.4], cells(4));   // value 2 = Ramp Down
+        eq('chordism vm: shape id 6', vm[0].shape, 6);
+        eq('chordism vm: startCol 0 (shape+rate)', vm[0].startCol, 0);
+    }
+    // fizzik-like: two LFO rows → two groups; Target enum absorbed by neither.
+    {
+        const shp = ['Sine', 'Tri', 'Saw', 'Square', 'S&H'];
+        const tgt = ['Off', 'Cutoff', 'Pitch'];
+        const params = [
+            LP('lfo1_rate', 'LFO1 Rate', 'float'), LP('lfo1_depth', 'LFO1 Depth', 'float'),
+            LP('lfo1_shape', 'LFO1 Shape', 'enum', shp), LP('lfo1_target', 'LFO1 Target', 'enum', tgt),
+            LP('lfo2_rate', 'LFO2 Rate', 'float'), LP('lfo2_depth', 'LFO2 Depth', 'float'),
+            LP('lfo2_shape', 'LFO2 Shape', 'enum', shp), LP('lfo2_target', 'LFO2 Target', 'enum', tgt),
+        ];
+        eq('fizzik: two groups', detectLfoViz(params).length, 2);
+        const vm = buildLfoViz(params, [0.3, 0.5, 2, 1, 0.4, 0.6, 3, 0], cells(8));
+        eq('fizzik vm: two groups', vm.length, 2);
+        eq('fizzik vm: g0 startCol 1 (target col3 untouched)', vm[0].startCol, 1);
+        eq('fizzik vm: g1 line 1', vm[1].line, 1);
+    }
+    // osirus-like: Poly|Mono must NOT be polarity; Symmetry → deform.
+    {
+        const params = [
+            LP('lfo1_shape', 'LFO1 Shape', 'enum', ['Sine', 'Triangle', 'Saw', 'Square', 'S&H', 'S&G', 'Wave 3', 'Wave 4']),
+            LP('lfo1_rate', 'LFO1 Rate', 'float'),
+            LP('lfo1_mode', 'LFO1 Mode', 'enum', ['Poly', 'Mono']),
+            LP('lfo1_symmetry', 'LFO1 Symmetry', 'float'),
+        ];
+        const g = detectLfoViz(params);
+        eq('osirus: one group', g.length, 1);
+        eq('osirus: Poly|Mono not polarity', g[0].mode, null);
+        eq('osirus: symmetry → deform idx3', g[0].deform, 3);
+    }
+    // Unmapped shape value (Wave 17) → generic glyph 10; viz not dropped.
+    {
+        const opts = ['Sine', 'Triangle', 'Saw', 'Square', 'S&H', 'S&G', 'Wave 3', 'Wave 17'];
+        const params = [LP('lfo1_shape', 'LFO1 Shape', 'enum', opts), LP('lfo1_rate', 'LFO1 Rate', 'float'), null, null];
+        const vm = buildLfoViz(params, [7, 0.5, null, null], cells(4));
+        eq('unmapped: viz kept', vm.length, 1);
+        eq('unmapped: generic 10', vm[0].shape, 10);
+    }
+    // VM shape has no cycles/depth fields — wave is a fixed shape specimen.
+    {
+        const params = [LP('lfo_shape', 'LFO Wave', 'enum', ['Sine', 'Tri', 'Saw', 'Square']), LP('lfo_rate', 'LFO Rate', 'float'), null, null];
+        const vm = buildLfoViz(params, [0, 0.5, null, null], cells(4));
+        eq('vm: no cycles field', 'cycles' in vm[0], false);
+        eq('vm: no depth field', 'depth' in vm[0], false);
+    }
 }
 
 _log('\nTest: LFO shapeSample');

@@ -37,10 +37,11 @@ export interface EnvelopeVM {
 export interface LfoVizVM {
     line:      0 | 1;
     startCol:  number;   // graphic spans startCol..startCol+1
-    shape:     number;   // 0..5 (LFO_SHAPES order)
+    shape:     number;   // 0..10 (shapeSample id)
     phase:     number;   // 0..1
     mode:      number;   // 0 = unipolar, 1 = bipolar
     retrigger: number;   // 0/1
+    deform?:   number;   // −1..1 waveform skew (module LFOs); absent = no skew
 }
 
 export interface ToastState {

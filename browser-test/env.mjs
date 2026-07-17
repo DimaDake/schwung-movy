@@ -12,10 +12,10 @@ import { dirname, join } from 'node:path';
 const MOD_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'modules');
 
 /* Simulate a module shipping its own layout: on the device Forge carries
- * `sound_generators/forge/movy-layout.json`; here we serve it from the authoring
+ * `sound_generators/forge/movy_config.json`; here we serve it from the authoring
  * copy in src/modules so the loader's self-describing path is exercised. */
 function serveModuleLayout(path) {
-    const m = /\/sound_generators\/([^/]+)\/movy-layout\.json$/.exec(path || '');
+    const m = /\/sound_generators\/([^/]+)\/movy_config\.json$/.exec(path || '');
     if (m && m[1] === 'forge') {
         try { return readFileSync(join(MOD_DIR, 'forge.json'), 'utf8'); } catch { return null; }
     }

@@ -45,17 +45,17 @@ The stock binary is backed up on the device at `…/forge/dsp.so.orig`.
 Upstreaming this as a PR to forge-move would remove the need to re-patch on
 module updates.
 
-## Self-describing layout: `movy-layout.json`
+## Self-describing layout: `movy_config.json`
 
 Forge is **not** bundled into movy (`src/modules/loader.ts` has no forge entry).
 Instead the module ships its own layout: movy reads
-`sound_generators/<id>/movy-layout.json` at load time (see `loadModuleConfig`).
+`sound_generators/<id>/movy_config.json` at load time (see `loadModuleConfig`).
 Forge's layout is authored in `movy/src/modules/forge.json` and deployed to the
 module directory:
 
 ```bash
 scp movy/src/modules/forge.json \
-    ableton@move.local:/data/UserData/schwung/modules/sound_generators/forge/movy-layout.json
+    ableton@move.local:/data/UserData/schwung/modules/sound_generators/forge/movy_config.json
 ```
 
 The layout declares its **filter and LFO graphics explicitly** via per-slot tags

@@ -40,14 +40,12 @@ function tryFile(path: string): ModuleConfig | null {
     return null;
 }
 
-/* A module can ship its own layout: `movy-layout.json` in its module directory
+/* A module can ship its own layout: `movy_config.json` in its module directory
  * is read at load time, so a module is fully self-describing with no movy-side
- * config (e.g. Forge). `movy_config.json` is the older per-module filename, kept
- * as a fallback; bundled CONFIGS cover modules that don't ship a layout. */
+ * config (e.g. Forge). Bundled CONFIGS cover modules that don't ship one. */
 export function loadModuleConfig(moduleId: string): ModuleConfig | null {
     if (!moduleId) return null;
-    return tryFile(`${MOVY_SG_ROOT}/${moduleId}/movy-layout.json`)
-        ?? tryFile(`${MOVY_SG_ROOT}/${moduleId}/movy_config.json`)
+    return tryFile(`${MOVY_SG_ROOT}/${moduleId}/movy_config.json`)
         ?? CONFIGS[moduleId]
         ?? null;
 }

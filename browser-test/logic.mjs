@@ -3558,10 +3558,71 @@ const P = (key, label, env) => ({ key, label, shortLabel: null, type: 'float',
     eq('dual env: amp first (idx0)', g[0]?.a, 0);
     eq('dual env: filter second (idx4)', g[1]?.a, 4);
 }
-// Partial set (attack+decay only) → no envelope
+// A2: AD partial (attack+decay, word-matched) → one 2-cell group
 {
     const page = [ P('attack','Attack'), P('decay','Decay'), P('cutoff','Cut'), P('reso','Res') ];
-    eq('partial set: no group', detectEnvelopes(page).length, 0);
+    const g = detectEnvelopes(page);
+    eq('AD partial: one group', g.length, 1);
+    eq('AD partial: roles ad', g[0].roles.join(''), 'ad');
+    eq('AD partial: a=0 d=1', `${g[0].a},${g[0].d}`, '0,1');
+}
+// A2: single role (attack only) → no group (needs ≥2 roles incl. a)
+{
+    const page = [ P('attack','Attack'), P('cutoff','Cut'), P('reso','Res'), P('drive','Drive') ];
+    eq('single role: no group', detectEnvelopes(page).length, 0);
+}
+// A2: AR partial (qualified) → one group, roles ar
+{
+    const page = [ P('f_attack','F Attack'), P('f_release','F Release'), P('cut','Cut'), P('res','Res') ];
+    const g = detectEnvelopes(page);
+    eq('AR partial: one group', g.length, 1);
+    eq('AR partial: roles ar', g[0].roles.join(''), 'ar');
+    eq('AR partial: named Filter', g[0].name, 'Filter');
+}
+// A2: ASR partial (3 cells)
+{
+    const page = [ P('attack','Attack'), P('sustain','Sustain'), P('release','Release'), P('cut','Cut') ];
+    const g = detectEnvelopes(page);
+    eq('ASR partial: one group', g.length, 1);
+    eq('ASR partial: roles asr', g[0].roles.join(''), 'asr');
+}
+// A2: ADS partial (3 cells, no release)
+{
+    const page = [ P('attack','Attack'), P('decay','Decay'), P('sustain','Sustain'), P('cut','Cut') ];
+    const g = detectEnvelopes(page);
+    eq('ADS partial: one group', g.length, 1);
+    eq('ADS partial: roles ads', g[0].roles.join(''), 'ads');
+}
+// A2: surge Amp Envelope — shape/mode curve params are NOT extra env stages
+{
+    const page = [
+        P('env1_attack','Amp EG Attack'), P('env1_decay','Amp EG Decay'),
+        P('env1_sustain','Amp EG Sustain'), P('env1_release','Amp EG Release'),
+        P('env1_attack_shape','Amp EG Attack Shape'), P('env1_decay_shape','Amp EG Decay Shape'),
+        P('env1_release_shape','Amp EG Release Shape'), P('env1_mode','Amp EG Envelope Mode'),
+    ];
+    const g = detectEnvelopes(page);
+    eq('surge amp: one clean group', g.length, 1);
+    eq('surge amp: full ADSR', `${g[0].a},${g[0].d},${g[0].s},${g[0].r}`, '0,1,2,3');
+}
+// A2 out-of-scope: an LFO's own DAHDSR segments must NOT become an envelope
+{
+    const page = [
+        P('lfo0_delay','LFO 1 Delay'), P('lfo0_attack','LFO 1 Attack'),
+        P('lfo0_hold','LFO 1 Hold'), P('lfo0_decay','LFO 1 Decay'),
+        P('lfo0_sustain','LFO 1 Sustain'), P('lfo0_release','LFO 1 Release'),
+    ];
+    eq('LFO DAHDSR: no envelope', detectEnvelopes(page).length, 0);
+}
+// A2 layout: AD group occupies 2 adjacent cells, leftovers fill the rest
+{
+    const page = [ P('attack','Attack'), P('decay','Decay'), P('cutoff','Cut'), P('reso','Res') ];
+    const L = planPageLayout(page);
+    eq('AD layout: one envelope', L.envelopes.length, 1);
+    const e = L.envelopes[0];
+    eq('AD layout: startCol 0, count 2', `${e.startCol},${e.cellCount}`, '0,2');
+    const line = L.cells.filter(c => c.line === e.line).sort((x,y)=>x.col-y.col).map(c => c.idx);
+    eq('AD layout: env cells then leftovers', JSON.stringify(line), JSON.stringify([0,1,2,3]));
 }
 // Abbreviations
 {

@@ -203,12 +203,12 @@
     "MODE",
     "DEPTH",
     "ATTAC",
-    "HOLD",
     "RELEA",
+    "HOLD",
     "CURVE"
    ]
   ],
-  "envelopeLines": 0,
+  "envelopeLines": 1,
   "lfoViz": 0,
   "hidden": 0
  },
@@ -232,9 +232,9 @@
     "MODE"
    ],
    [
-    "AMT",
     "ATK",
-    "REL"
+    "REL",
+    "AMT"
    ],
    [
     "AMT",
@@ -248,7 +248,7 @@
     "OUTPU"
    ]
   ],
-  "envelopeLines": 0,
+  "envelopeLines": 1,
   "lfoViz": 0,
   "hidden": 1
  },
@@ -276,17 +276,17 @@
   ],
   "pageShortNames": [
    [
-    "THRES",
     "ATTAC",
-    "HOLD",
     "RELEA",
+    "THRES",
+    "HOLD",
     "RANGE",
     "RATIO",
     "HYSTE",
     "MODE"
    ]
   ],
-  "envelopeLines": 0,
+  "envelopeLines": 1,
   "lfoViz": 0,
   "hidden": 0
  },
@@ -527,7 +527,7 @@
     "HI"
    ]
   ],
-  "envelopeLines": 0,
+  "envelopeLines": 1,
   "lfoViz": 0,
   "hidden": 14
  },
@@ -874,7 +874,7 @@
     "BYPAS"
    ]
   ],
-  "envelopeLines": 0,
+  "envelopeLines": 1,
   "lfoViz": 0,
   "hidden": 4
  },
@@ -993,13 +993,13 @@
     "OUT",
     "BANDS",
     "MIX",
-    "LOW",
-    "HIGH",
     "ATTAC",
-    "RELEA"
+    "RELEA",
+    "LOW",
+    "HIGH"
    ]
   ],
-  "envelopeLines": 0,
+  "envelopeLines": 1,
   "lfoViz": 0,
   "hidden": 1
  },
@@ -1652,9 +1652,9 @@
     "LPFEG"
    ],
    [
-    "DELAY",
     "E1ATK",
     "E1REL",
+    "DELAY",
     "HOLD",
     "E2ATK",
     "DCY",
@@ -1692,7 +1692,7 @@
     "MW→FI"
    ]
   ],
-  "envelopeLines": 1,
+  "envelopeLines": 2,
   "lfoViz": 0,
   "hidden": 19
  },
@@ -1743,12 +1743,12 @@
     "PRESE"
    ],
    [
-    "ALGOR",
-    "TIMBR",
-    "COLOR",
     "ATTAC",
     "DECAY",
     "SUSTA",
+    "ALGOR",
+    "TIMBR",
+    "COLOR",
     "CUTOF",
     "FILT"
    ],
@@ -1778,7 +1778,7 @@
     "OCTAV"
    ]
   ],
-  "envelopeLines": 2,
+  "envelopeLines": 3,
   "lfoViz": 0,
   "hidden": 0
  },
@@ -2036,7 +2036,7 @@
     "SWPRT"
    ]
   ],
-  "envelopeLines": 0,
+  "envelopeLines": 2,
   "lfoViz": 0,
   "hidden": 16
  },
@@ -2271,11 +2271,11 @@
     "FT"
    ],
    [
+    "ATTAC",
+    "DECAY",
     "MIX",
     "CRACK",
     "COLOR",
-    "ATTAC",
-    "DECAY",
     "RESO",
     "LEVEL",
     "VC"
@@ -2301,11 +2301,11 @@
     "TB"
    ],
    [
+    "ATK",
+    "REL",
     "COUPL",
     "BALAN",
     "GLIDE",
-    "ATK",
-    "REL",
     "SPREA",
     "DRIVE",
     "LEVEL"
@@ -2351,7 +2351,7 @@
     "CURVE"
    ]
   ],
-  "envelopeLines": 0,
+  "envelopeLines": 2,
   "lfoViz": 0,
   "hidden": 1
  },
@@ -2588,7 +2588,7 @@
     "GLIDE"
    ]
   ],
-  "envelopeLines": 1,
+  "envelopeLines": 2,
   "lfoViz": 0,
   "hidden": 0
  },
@@ -2722,7 +2722,7 @@
     "CHOII"
    ]
   ],
-  "envelopeLines": 1,
+  "envelopeLines": 2,
   "lfoViz": 0,
   "hidden": 0
  },
@@ -2881,9 +2881,9 @@
     "HUM"
    ],
    [
-    "THRES",
     "ATTAC",
     "RELEA",
+    "THRES",
     "RANGE"
    ],
    [
@@ -2901,7 +2901,7 @@
     "FREQ"
    ]
   ],
-  "envelopeLines": 0,
+  "envelopeLines": 1,
   "lfoViz": 0,
   "hidden": 3
  },
@@ -3107,9 +3107,9 @@
     "VOL",
     "PAN",
     "TUNE",
-    "START",
     "ATTK",
     "DECAY",
+    "START",
     "MODE"
    ],
    [
@@ -3129,7 +3129,7 @@
     "PRSET"
    ]
   ],
-  "envelopeLines": 0,
+  "envelopeLines": 1,
   "lfoViz": 0,
   "hidden": 5
  },
@@ -4138,10 +4138,10 @@
   ],
   "pageShortNames": [
    [
-    "VOL",
-    "TREM",
     "ATK",
     "DCY",
+    "VOL",
+    "TREM",
     "BGHT",
     "DARK",
     "BARK",
@@ -4152,7 +4152,7 @@
     "TUNE"
    ]
   ],
-  "envelopeLines": 0,
+  "envelopeLines": 1,
   "lfoViz": 0,
   "hidden": 1
  }

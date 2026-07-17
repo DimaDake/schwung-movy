@@ -78,6 +78,29 @@ export const MOCK_SYNTHS = {
         "synth:f_attack": "0.40","synth:f_decay": "0.25","synth:f_sustain": "0.30","synth:f_release": "0.20",
     },
 
+    // A2 partial envelopes: 2-stage AD (attack+decay) beside two plain knobs.
+    env_ad: {
+        "synth:name": "AD Env",
+        "synth:ui_hierarchy": hier([
+            { key: "attack", label: "Attack", type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "decay",  label: "Decay",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "cutoff", label: "Cutoff", type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "reso",   label: "Reso",   type: "float", min: 0, max: 1, step: 0.01 },
+        ]),
+        "synth:attack": "0.20", "synth:decay": "0.50", "synth:cutoff": "0.60", "synth:reso": "0.30",
+    },
+    // A2 partial envelopes: 3-stage ASR (attack + sustain plateau + release).
+    env_asr: {
+        "synth:name": "ASR Env",
+        "synth:ui_hierarchy": hier([
+            { key: "attack",  label: "Attack",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "sustain", label: "Sustain", type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "release", label: "Release", type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "tone",    label: "Tone",    type: "float", min: 0, max: 1, step: 0.01 },
+        ]),
+        "synth:attack": "0.25", "synth:sustain": "0.65", "synth:release": "0.40", "synth:tone": "0.50",
+    },
+
     test_enum: {
         "synth:name": "Enums",
         "synth:ui_hierarchy": hier([

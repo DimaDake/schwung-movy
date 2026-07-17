@@ -36,7 +36,8 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     const layout = planPageLayout(s.knobParams.slice(pageStart, pageStart + KNOBS_PER_PAGE));
     const rows: ViewModel['rows'] = [[null, null, null, null], [null, null, null, null]];
     const envelopeLines: (EnvelopeVM | null)[] = [null, null];
-    for (const e of layout.envelopes) envelopeLines[e.line] = { name: e.name };
+    for (const e of layout.envelopes)
+        envelopeLines[e.line] = { name: e.name, startCol: e.startCol, cellCount: e.cellCount, roles: e.roles.join('') };
 
     // LFO modulation marks — read from the cached target set (refreshed on the
     // poll cadence in processTick), so this does no per-render IPC.

@@ -19,6 +19,13 @@ const NOISE = new Set(['ms', 'time', 'sec']);
  * bare a/d/s/r letter as a role — without it, letters like phase_r/pan_r/load_a
  * would be misread as envelope stages. */
 const isEnvToken = (w: string) => /^(env|eg)[0-9]*$/.test(w);
+/* Words that make a param a curve/mode control, not a time/level stage:
+ * "Attack Shape", "Envelope Mode" must not join the ADSR group (surge). */
+const VETO = new Set(['shape', 'curve', 'mode', 'slope']);
+/* An LFO-cluster token. An LFO's own DAHDSR segments (surge lfoN_attack/decay/
+ * sustain/release) are a modulator shape, not a synth amplitude envelope, and
+ * are out of scope for the envelope graphic — never group them. */
+const isLfoToken = (w: string) => /^lfo[0-9]*$/.test(w);
 
 function words(text: string): string[] {
     return text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/).filter(Boolean);
@@ -36,6 +43,7 @@ function roleOf(p: KnobParam): { role: EnvRole; qualifier: string } | null {
     if (p.env) return { role: p.env, qualifier: '' };
     for (const text of [p.key, p.label]) {
         const ws = words(text);
+        if (ws.some(w => VETO.has(w) || isLfoToken(w))) continue;   // curve/mode/LFO, not a stage
         for (const role of ROLES) {
             for (const w of ROLE_WORDS[role]) {
                 const i = ws.indexOf(w);
@@ -51,7 +59,14 @@ function roleOf(p: KnobParam): { role: EnvRole; qualifier: string } | null {
     return null;
 }
 
-export interface EnvGroup { a: number; d: number; s: number; r: number; name: string }
+/* a is always present; d/s/r optional so partial envelopes (AD/AR/ASR/ADS) can
+ * be emitted. `roles` lists the present stages in a,d,s,r order — the renderer
+ * uses it to choose the vertex shape. */
+export interface EnvGroup {
+    a: number; d?: number; s?: number; r?: number;
+    roles: EnvRole[]; name: string;
+}
+const minIdx = (g: EnvGroup): number => Math.min(...g.roles.map(r => g[r] as number));
 
 function qualName(q: string): string {
     if (!q || q === 'amp' || q === 'vca') return 'Amp';
@@ -59,9 +74,10 @@ function qualName(q: string): string {
     return q.charAt(0).toUpperCase() + q.slice(1);
 }
 
-/* Find every complete A/D/S/R group on a page (≤8 params). Word/tag matches
- * are grouped by qualifier; a single bare-letter group is added only when all
- * four letters a,d,s,r appear (the guard against false positives). */
+/* Find every A/D/S/R group on a page (≤8 params). Word/tag matches are grouped
+ * by qualifier and emitted when they hold ≥2 stages including attack (AD/AR/
+ * ASR/ADS/… up to full ADSR). A pure bare-letter group is merged into '' only
+ * when all four letters a,d,s,r appear (the guard against false positives). */
 export function detectEnvelopes(params: (KnobParam | null)[]): EnvGroup[] {
     const byQual = new Map<string, Partial<Record<EnvRole, number>>>();
     const claimed = new Set<number>();
@@ -88,16 +104,17 @@ export function detectEnvelopes(params: (KnobParam | null)[]): EnvGroup[] {
 
     const out: EnvGroup[] = [];
     for (const [qual, g] of byQual) {
-        if (ROLES.every(r => g[r] !== undefined)) {
-            out.push({ a: g.a!, d: g.d!, s: g.s!, r: g.r!, name: qualName(qual) });
-        }
+        const roles = ROLES.filter(r => g[r] !== undefined);
+        if (!roles.includes('a') || roles.length < 2) continue;
+        out.push({ a: g.a!, d: g.d, s: g.s, r: g.r, roles, name: qualName(qual) });
     }
-    out.sort((x, y) => Math.min(x.a, x.d, x.s, x.r) - Math.min(y.a, y.d, y.s, y.r));
+    out.sort((x, y) => minIdx(x) - minIdx(y));
     return out;
 }
 
 export interface PageCell { line: 0 | 1; col: 0 | 1 | 2 | 3; idx: number }
-export interface PageLayout { cells: PageCell[]; envelopes: { line: 0 | 1; name: string }[] }
+export interface EnvLine { line: 0 | 1; name: string; startCol: number; cellCount: number; roles: EnvRole[] }
+export interface PageLayout { cells: PageCell[]; envelopes: EnvLine[] }
 
 /* Physical knob (screen slot 0..7, slot = line*4 + col) → page-relative param
  * index, honoring the envelope rearrange so a knob always drives the param shown
@@ -113,20 +130,22 @@ export function pageSlotMap(params: (KnobParam | null)[]): number[] {
  * to the physical knob even when params are rearranged onto one line. */
 export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
     const envs = detectEnvelopes(params);
-    const envCols: (number[] | null)[] = [null, null];
-    const info: { line: 0 | 1; name: string }[] = [];
+    const envCells: (number[] | null)[] = [null, null];   // param indices in role order
+    const info: EnvLine[] = [];
     const used = new Set<number>();
     const claimed = new Set<number>();
 
     for (const e of envs) {
         if (info.length >= 2) break;
-        const desired = (Math.floor(Math.min(e.a, e.d, e.s, e.r) / 4)) as 0 | 1;
+        const idxs = e.roles.map(r => e[r] as number);       // 2..4 indices
+        const desired = (Math.floor(minIdx(e) / 4)) as 0 | 1;
         const line: 0 | 1 = used.has(desired) ? ((desired ^ 1) as 0 | 1) : desired;
         if (used.has(line)) continue;
         used.add(line);
-        envCols[line] = [e.a, e.d, e.s, e.r];
-        info.push({ line, name: e.name });
-        for (const i of [e.a, e.d, e.s, e.r]) claimed.add(i);
+        envCells[line] = idxs;
+        // Env cells are placed first (startCol 0); leftovers fill the rest.
+        info.push({ line, name: e.name, startCol: 0, cellCount: idxs.length, roles: e.roles });
+        for (const i of idxs) claimed.add(i);
     }
 
     const leftover: number[] = [];
@@ -135,12 +154,11 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
     const cells: PageCell[] = [];
     let li = 0;
     for (let line = 0 as 0 | 1; line <= 1; line = (line + 1) as 0 | 1) {
-        if (envCols[line]) {
-            envCols[line]!.forEach((idx, col) => cells.push({ line, col: col as 0 | 1 | 2 | 3, idx }));
-        } else {
-            for (let col = 0; col <= 3 && li < leftover.length; col++) {
-                cells.push({ line, col: col as 0 | 1 | 2 | 3, idx: leftover[li++] });
-            }
+        let col = 0;
+        const ec = envCells[line];
+        if (ec) for (const idx of ec) cells.push({ line, col: (col++) as 0 | 1 | 2 | 3, idx });
+        while (col <= 3 && li < leftover.length) {
+            cells.push({ line, col: (col++) as 0 | 1 | 2 | 3, idx: leftover[li++] });
         }
         if (line === 1) break;
     }

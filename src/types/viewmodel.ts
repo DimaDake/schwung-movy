@@ -28,7 +28,10 @@ export interface AutomationView {
 }
 
 export interface EnvelopeVM {
-    name: string;   // qualifier label ("Filter"/"Amp"/""); not rendered, kept for tests/future
+    name: string;       // qualifier label ("Filter"/"Amp"/""); not rendered, kept for tests
+    startCol: number;   // graphic spans startCol..startCol+cellCount-1
+    cellCount: number;  // 2..4 (partial AD/AR/ASR/ADS envelopes span fewer than 4)
+    roles: string;      // present stages in order, e.g. "adsr" | "ad" | "ar" | "asr" | "ads"
 }
 
 export interface LfoVizVM {

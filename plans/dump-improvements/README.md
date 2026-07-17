@@ -13,7 +13,7 @@ possible so they can run in parallel.
 |---|---|---|---|
 | [1](chunk-1-hierarchy-fixes.md) | ✅ done | C1 preset dup, B1 chain_params fallback, C4 guessed ranges | `src/model/hierarchy.ts` |
 | [2](chunk-2-shortname-dedup.md) | ✅ done | C2 short-name collisions | `src/renderer/shorten.ts` |
-| [3](chunk-3-filter-viz.md) | ⬜ todo | A1 filter cutoff+reso graphic | new `src/model/filter-viz.ts`, `src/renderer/filter-curve.ts` |
+| [3](chunk-3-filter-viz.md) | ✅ done | A1 filter cutoff+reso graphic (reorders the pair onto one line — cutoff then resonance — rather than requiring pre-existing adjacency) | `src/model/filter-viz.ts`, `src/model/filter-mode.ts`, `src/model/filter-vm.ts`, `src/renderer/filter-curve.ts` |
 | [4](chunk-4-env-lfo-viz.md) | ✅ done — [5 work items](chunk-4-workitems.md) | A2 2-stage envelopes, A3 module-LFO viz, C5 detector misses | `src/model/envelope.ts`, `src/model/lfo-viz.ts` |
 | ~~[5](chunk-5-preset-overlay.md)~~ | ❌ dropped | ~~C3 preset browser overlay~~ **DROPPED 2026-07-16** — premise invalid (see chunk file / IMPROVEMENTS C3) | — |
 | [6](chunk-6-quick-configs.md) | ✅ done | B3 chordism, B4 sfz, B5 quick configs (303, chiptune, mrdrums, hush1) | new `src/modules/*.json`, `src/modules/loader.ts` |
@@ -29,9 +29,10 @@ and rebase before pushing.
 - **Wave 1 (parallel):** 1, 2, 6, 8 — disjoint primary files. **✅ all
   landed** (chunk 5 dropped).
 - **Wave 2:** 4 ✅ done (envelope + module-LFO viz, split into
-  [5 work items](chunk-4-workitems.md)). **Remaining:** 3 (filter viz — wires
-  into `src/model/viewmodel.ts` and `src/renderer/label.ts`, now that 4 has
-  landed there) and 7 (per-unit configs — `src/modules/*.json` +
+  [5 work items](chunk-4-workitems.md)). 3 ✅ done (filter viz — cutoff+resonance
+  reordered onto one line and drawn as a response curve; mode from a same-page
+  enum, an off-page enum, or the param name; two-filter pages draw one curve per
+  line). **Remaining:** 7 (per-unit configs — `src/modules/*.json` +
   `src/modules/loader.ts`, independent of 3).
 
 Chunk 8 landed the dump-replay regression net (`browser-test/dump-replay.mjs`

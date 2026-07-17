@@ -59,10 +59,11 @@ Movy stands on the shoulders of several projects:
 ## Features
 
 - **Parameter pages for any module** — knobs, arc knobs, scrollable enum
-  overlays, and auto-detected ADSR **envelope graphics** instead of four
-  separate knobs.
+  overlays, auto-detected ADSR **envelope graphics**, module **LFO waveforms**,
+  and **filter-response curves** instead of separate knobs.
 
   ![Envelope graphic](docs/assets/env_dual.png)
+  ![Filter curve](docs/assets/filter_lp.png)
   ![Enum overlay](docs/assets/enum_overlay.png)
 
 - **Full chain navigation** — MIDI FX, Synth, FX 1, FX 2 per track, plus a

@@ -117,6 +117,26 @@ automatically. You don't configure anything for most modules.
 
   ![Module LFO waveform](docs/assets/lfo_mod.png)
 
+- **Filter graphics** — when a page carries a **cutoff + resonance** pair, Movy
+  reorders them onto the same line (cutoff, then resonance) and draws a live
+  **filter-response curve** across the two cells. Read it left-to-right as
+  frequency: the **corner sits at the cutoff** and **resonance is the size of
+  the bump** at that corner. The shape follows the filter type — a low-pass
+  passes the left and rolls off after the corner; a high-pass mirrors it; band-
+  pass is a hump; notch a dip:
+
+  ![Low-pass filter curve](docs/assets/filter_lp.png)
+  ![High-pass filter curve](docs/assets/filter_hp.png)
+  ![Band-pass filter curve](docs/assets/filter_bp.png)
+
+  The type is taken from a `MODE`/`TYPE` enum on the page (turning it re-shapes
+  the curve immediately), or from a filter-type control elsewhere in the module,
+  or inferred from the parameter's own name (`lpf_`/`hpf_` etc.). A `SLOPE`
+  control (12/24 dB) steepens the roll-off. Pages with two filters — e.g. a
+  separate low-pass and high-pass — draw one curve per line:
+
+  ![Two filter curves on one page](docs/assets/filter_dual.png)
+
 - **Multiple pages** — modules with more than 8 parameters split into pages
   (`MAIN`, `PAGE 1`, `PAGE 2`, …). Scroll them with the jog wheel (or Left/Right
   when the sequencer isn't using those buttons).

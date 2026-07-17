@@ -45,6 +45,14 @@ The stock binary is backed up on the device at `…/forge/dsp.so.orig`.
 Upstreaming this as a PR to forge-move would remove the need to re-patch on
 module updates.
 
+**Native schwung UI is unaffected.** The patch is purely additive: `pv<N>_`
+matches no native key (nothing native starts with `p`), and `set_voice_field`
+is a behaviour-preserving refactor of the `cv_*` setter. Verified by building
+stock vs patched and running an identical native-style session (page nav,
+pad-note auto-select, `cv_*`, `knob_adjust`, the `V<N>` prefix, Kit A/B,
+globals) — the readback output is byte-identical. A user running Forge in
+schwung without movy sees no change.
+
 ## Self-describing layout: `movy_config.json`
 
 Forge is **not** bundled into movy (`src/modules/loader.ts` has no forge entry).

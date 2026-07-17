@@ -63,6 +63,34 @@
           null, null, null, null
         ]
       ]
+    },
+    {
+      "name": "Rhythm",
+      "rows": [
+        [
+          { "key": "rhythm_1", "short": "R1", "full": "Rhythm 1", "type": "enum", "options": ["Off", "Waltz", "Tango", "Polka", "Paso Doble", "Swing", "Slow", "Beguine", "Cha-Cha", "Rumba", "Samba", "Mambo", "Bossa-Nova", "Rock", "Slow Rock", "Shake", "R & Blues"] },
+          { "key": "rhythm_2", "short": "R2", "full": "Rhythm 2", "type": "enum", "options": ["Off", "Waltz", "Tango", "Polka", "Paso Doble", "Swing", "Slow", "Beguine", "Cha-Cha", "Rumba", "Samba", "Mambo", "Bossa-Nova", "Rock", "Slow Rock", "Shake", "R & Blues"] },
+          { "key": "rhythm_3", "short": "R3", "full": "Rhythm 3", "type": "enum", "options": ["Off", "Waltz", "Tango", "Polka", "Paso Doble", "Swing", "Slow", "Beguine", "Cha-Cha", "Rumba", "Samba", "Mambo", "Bossa-Nova", "Rock", "Slow Rock", "Shake", "R & Blues"] },
+          { "key": "rhythm_4", "short": "R4", "full": "Rhythm 4", "type": "enum", "options": ["Off", "Waltz", "Tango", "Polka", "Paso Doble", "Swing", "Slow", "Beguine", "Cha-Cha", "Rumba", "Samba", "Mambo", "Bossa-Nova", "Rock", "Slow Rock", "Shake", "R & Blues"] },
+          { "key": "rhythm_5", "short": "R5", "full": "Rhythm 5", "type": "enum", "options": ["Off", "Waltz", "Tango", "Polka", "Paso Doble", "Swing", "Slow", "Beguine", "Cha-Cha", "Rumba", "Samba", "Mambo", "Bossa-Nova", "Rock", "Slow Rock", "Shake", "R & Blues"] },
+          { "key": "rhythm_6", "short": "R6", "full": "Rhythm 6", "type": "enum", "options": ["Off", "Waltz", "Tango", "Polka", "Paso Doble", "Swing", "Slow", "Beguine", "Cha-Cha", "Rumba", "Samba", "Mambo", "Bossa-Nova", "Rock", "Slow Rock", "Shake", "R & Blues"] },
+          { "key": "rhythm_7", "short": "R7", "full": "Rhythm 7", "type": "enum", "options": ["Off", "Waltz", "Tango", "Polka", "Paso Doble", "Swing", "Slow", "Beguine", "Cha-Cha", "Rumba", "Samba", "Mambo", "Bossa-Nova", "Rock", "Slow Rock", "Shake", "R & Blues"] },
+          { "key": "rhythm_8", "short": "R8", "full": "Rhythm 8", "type": "enum", "options": ["Off", "Waltz", "Tango", "Polka", "Paso Doble", "Swing", "Slow", "Beguine", "Cha-Cha", "Rumba", "Samba", "Mambo", "Bossa-Nova", "Rock", "Slow Rock", "Shake", "R & Blues"] }
+        ]
+      ]
+    },
+    {
+      "name": "Global",
+      "rows": [
+        [
+          { "key": "tempo_mode",  "short": "TMODE", "full": "Tempo Mode",  "type": "enum", "options": ["Free", "Sync"] },
+          { "key": "limiter",     "short": "LIMIT", "full": "Limiter",     "type": "enum", "options": ["Off", "On"] },
+          { "key": "delay_type",  "short": "DTYPE", "full": "Delay Type",  "type": "enum", "options": ["Tape", "Magnetic", "Space"] },
+          { "key": "reverb_type", "short": "RTYPE", "full": "Reverb Type", "type": "enum", "options": ["Plate", "Spring", "Chamber"] },
+          { "key": "delay_sync",  "short": "DSYNC", "full": "Delay Sync",  "type": "enum", "options": ["Free", "Synced"] },
+          null, null, null
+        ]
+      ]
     }
   ]
 }

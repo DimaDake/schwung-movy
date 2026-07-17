@@ -2811,12 +2811,14 @@
   "hidden": 0
  },
  "sound_generator--krautdrums": {
-  "pageCount": 4,
+  "pageCount": 6,
   "pageNames": [
    "Levels",
    "FX",
    "Attitude",
-   "General"
+   "General",
+   "Rhythm",
+   "Global"
   ],
   "pageShortNames": [
    [
@@ -2854,11 +2856,28 @@
     "DRIFT",
     "MSVOL",
     "DNSTY"
+   ],
+   [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6",
+    "R7",
+    "R8"
+   ],
+   [
+    "TMODE",
+    "LIMIT",
+    "DTYPE",
+    "RTYPE",
+    "DSYNC"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 13
+  "hidden": 0
  },
  "sound_generator--linein": {
   "pageCount": 6,
@@ -4092,11 +4111,13 @@
   "hidden": 110
  },
  "sound_generator--weird-dreams": {
-  "pageCount": 3,
+  "pageCount": 5,
   "pageNames": [
    "Voice",
    "Patch",
-   "FX"
+   "FX",
+   "EQ",
+   "Master"
   ],
   "pageShortNames": [
    [
@@ -4124,11 +4145,28 @@
     "DLRAT",
     "DLFBK",
     "DLTON"
+   ],
+   [
+    "EQLO",
+    "EQMID",
+    "EQHI",
+    "DJFLT",
+    "LOFRQ",
+    "MDFRQ",
+    "HIFRQ",
+    "COMP"
+   ],
+   [
+    "QLO",
+    "QMID",
+    "QHI",
+    "MASTR",
+    "MONO"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 135
+  "hidden": 122
  },
  "sound_generator--wurl": {
   "pageCount": 2,

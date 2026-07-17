@@ -54,6 +54,38 @@
           { "key": "dly_tone",  "short": "DLTON", "full": "Dly Tone",  "type": "float", "min": 0, "max": 1 }
         ]
       ]
+    },
+    {
+      "name": "EQ",
+      "rows": [
+        [
+          { "key": "eq_lo",     "short": "EQLO",  "full": "EQ Low",   "type": "float", "min": -12, "max": 12 },
+          { "key": "eq_mid",    "short": "EQMID", "full": "EQ Mid",   "type": "float", "min": -12, "max": 12 },
+          { "key": "eq_hi",     "short": "EQHI",  "full": "EQ High",  "type": "float", "min": -12, "max": 12 },
+          { "key": "dj_filter", "short": "DJFLT", "full": "DJ Filter","type": "float", "min": 0,   "max": 1 }
+        ],
+        [
+          { "key": "lo_freq",   "short": "LOFRQ", "full": "Low Freq", "type": "int",   "min": 20,   "max": 500 },
+          { "key": "mid_freq",  "short": "MDFRQ", "full": "Mid Freq", "type": "int",   "min": 200,  "max": 8000 },
+          { "key": "hi_freq",   "short": "HIFRQ", "full": "High Freq","type": "int",   "min": 2000, "max": 18000 },
+          { "key": "comp",      "short": "COMP",  "full": "Comp",     "type": "float", "min": 0,    "max": 1 }
+        ]
+      ]
+    },
+    {
+      "name": "Master",
+      "rows": [
+        [
+          { "key": "q_lo",     "short": "QLO",   "full": "Q Low",   "type": "float", "min": 0.3, "max": 8 },
+          { "key": "q_mid",    "short": "QMID",  "full": "Q Mid",   "type": "float", "min": 0.3, "max": 8 },
+          { "key": "q_hi",     "short": "QHI",   "full": "Q High",  "type": "float", "min": 0.3, "max": 8 },
+          { "key": "master",   "short": "MASTR", "full": "Master",  "type": "float", "min": 0,   "max": 1 }
+        ],
+        [
+          { "key": "all_mono", "short": "MONO",  "full": "Mono",    "type": "enum", "options": ["Stereo", "Mono"] },
+          null, null, null
+        ]
+      ]
     }
   ]
 }

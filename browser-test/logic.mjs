@@ -4767,6 +4767,65 @@ _log('\nTest: chunk-6 module configs (chordism/sfz/303/chiptune/hush1)');
     }
 }
 
+_log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
+{
+    const boot = (id, extra = {}) => bootModel({ 'synth:name': id, 'synth_module': id, ...extra });
+    const layout = (id, extra = {}) => boot(id, extra).dumpLayout();
+    const byKey  = (d, k) => d.params.find(p => p && p.key === k);
+    const noDupShorts = (m) => {
+        const n = m.getBankCount();
+        for (let b = 0; b < n; b++) {
+            m.changePage(b - m.getKnobPage());
+            const names = m.getViewModel().rows.flat().filter(Boolean).map(c => c.shortName);
+            if (new Set(names).size !== names.length) return `bank ${b}: ${names.join(',')}`;
+        }
+        return null;
+    };
+
+    // krautdrums: new Rhythm bank (rhythm_1..8 + 5 restored globals), others intact.
+    {
+        const d = layout('krautdrums');
+        eq('krautdrums: 6 banks (Levels/FX/Attitude/General/Rhythm/Global)', d.banks.length, 6);
+        eq('krautdrums: Rhythm bank present', d.banks.some(b => b.name === 'Rhythm'), true);
+        eq('krautdrums: Global bank present', d.banks.some(b => b.name === 'Global'), true);
+        for (let n = 1; n <= 8; n++) {
+            const p = byKey(d, `rhythm_${n}`);
+            eq(`krautdrums: rhythm_${n} is 17-way enum`, p?.type === 'enum' && p?.options?.length === 17, true);
+        }
+        for (const k of ['tempo_mode', 'limiter', 'delay_type', 'reverb_type', 'delay_sync']) {
+            eq(`krautdrums: restored ${k}`, !!byKey(d, k), true);
+        }
+        // Existing banks untouched.
+        for (const k of ['lvl_bass', 'filter_cutoff', 'tempo', 'master_vol']) {
+            eq(`krautdrums: kept ${k}`, !!byKey(d, k), true);
+        }
+        eq('krautdrums: no duplicate shortNames per page', noDupShorts(boot('krautdrums')), null);
+    }
+
+    // weird-dreams: new EQ + Master banks; padScoping Voice bank still resolves.
+    {
+        const d = layout('weird-dreams');
+        eq('weird-dreams: 5 banks (Voice/Patch/FX/EQ/Master)', d.banks.length, 5);
+        eq('weird-dreams: EQ bank present', d.banks.some(b => b.name === 'EQ'), true);
+        eq('weird-dreams: Master bank present', d.banks.some(b => b.name === 'Master'), true);
+        for (const k of ['eq_lo', 'eq_mid', 'eq_hi', 'dj_filter', 'lo_freq', 'mid_freq',
+                         'hi_freq', 'comp', 'q_lo', 'q_mid', 'q_hi', 'master', 'all_mono']) {
+            eq(`weird-dreams: restored ${k}`, !!byKey(d, k), true);
+        }
+        eq('weird-dreams: all_mono is enum', byKey(d, 'all_mono')?.type, 'enum');
+        // Action/init params deliberately skipped.
+        for (const k of ['reset_eq', 'init_freq', 'save_kit', 'same_freq', 'rnd_pan']) {
+            eq(`weird-dreams: skipped action ${k}`, !!byKey(d, k), false);
+        }
+        // Pad-scoped voice editing intact (Voice bank unchanged).
+        const wd = bootModel(MOCK_SYNTHS.weird_dreams);
+        eq('weird-dreams: VOL still reads v1_vol', wd.getKnobParamInfo(0).ioKey, 'v1_vol');
+        wd.updateDrumPad(3, 70);
+        eq('weird-dreams: VOL follows focus to v3_vol', wd.getKnobParamInfo(0).ioKey, 'v3_vol');
+        eq('weird-dreams: no duplicate shortNames per page', noDupShorts(bootModel(MOCK_SYNTHS.weird_dreams)), null);
+    }
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

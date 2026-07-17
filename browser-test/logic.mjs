@@ -4150,8 +4150,18 @@ _log('\nTest: LFO shapeSample');
     eq('square low half', shapeSample(3, 0.1), 1);
     eq('square high half', shapeSample(3, 0.6), -1);
     eq('wraps by 1', near(shapeSample(0, 1.25), shapeSample(0, 0.25)), true);
-    eq('unknown → sine', near(shapeSample(9, 0.25), 1), true);
+    eq('unknown → sine', near(shapeSample(99, 0.25), 1), true);
     eq('bipolar range', shapeSample(4, 0.3) >= -1 && shapeSample(4, 0.3) <= 1, true);
+    // A3 shapes 6..10 — deterministic and in bipolar range.
+    eq('saw down @0 = +1', near(shapeSample(6, 0), 1), true);
+    eq('saw down @0.5 = 0', near(shapeSample(6, 0.5), 0), true);
+    eq('noise deterministic', shapeSample(7, 0.3), shapeSample(7, 0.3));
+    eq('noise in range', shapeSample(7, 0.3) >= -1 && shapeSample(7, 0.3) <= 1, true);
+    eq('envelope glyph peaks early', near(shapeSample(8, 0.12), 1), true);
+    eq('staircase stepped', shapeSample(9, 0.05), shapeSample(9, 0.10));   // same step
+    eq('generic deterministic', shapeSample(10, 0.4), shapeSample(10, 0.4));
+    for (let s = 6; s <= 10; s++)
+        eq(`shape ${s} in range`, shapeSample(s, 0.37) >= -1.001 && shapeSample(s, 0.37) <= 1.001, true);
 }
 
 _log('\nTest: buildViewModel emits lfoViz (synth reuse)');

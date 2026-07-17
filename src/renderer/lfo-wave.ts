@@ -30,8 +30,30 @@ export function shapeSample(shape: number, t: number): number {
             const i = Math.floor(x), f = x - i;
             return pts[i] + (pts[Math.min(i + 1, pts.length - 1)] - pts[i]) * f;
         }
+        case 6: return 1 - ph * 2;                                 // saw down
+        case 7: {                                                  // noise (dense jitter)
+            const k = Math.floor(ph * 37);
+            return ((((k * 2654435761) >>> 0) % 2000) / 1000) - 1;
+        }
+        case 8:                                                    // envelope glyph (fast AD spike)
+            return ph < 0.12 ? -1 + (ph / 0.12) * 2 : 1 - ((ph - 0.12) / 0.88) * 2;
+        case 9: {                                                  // staircase glyph (step seq)
+            const steps = [-1, -0.3, 0.4, -0.6, 0.85, 0, 0.55, -0.85];
+            return steps[Math.floor(ph * steps.length) % steps.length];
+        }
+        case 10:                                                   // generic squiggle (mseg/wavetable)
+            return Math.sin(ph * 2 * Math.PI) * 0.5 + Math.sin(ph * 6 * Math.PI) * 0.3
+                 + Math.sin(ph * 10 * Math.PI) * 0.2;
         default: return Math.sin(ph * 2 * Math.PI);
     }
+}
+
+/* Deform (−1..1) skews the within-cycle phase so the specimen shows the warped
+ * output shape (peak shifts earlier/later). 0 = identity. */
+function skewPhase(ph: number, d: number): number {
+    if (!d) return ph;
+    const k = d > 0 ? 1 / (1 + d * 0.9) : 1 + (-d) * 0.9;
+    return Math.pow(ph, k);
 }
 
 export function drawLfoWave(rowY: number, g: LfoVizVM): void {
@@ -46,7 +68,9 @@ export function drawLfoWave(rowY: number, g: LfoVizVM): void {
 
     const yAt = (px: number): number => {
         const u = (px - x0) / spanW;                        // 0..1 across span
-        const v = shapeSample(g.shape, u * CYCLES + g.phase);
+        let t = u * CYCLES + g.phase;
+        if (g.deform) { const c = Math.floor(t); t = c + skewPhase(t - c, g.deform); }
+        const v = shapeSample(g.shape, t);
         return bipolar
             ? Math.round(baseY - v * amp)
             : Math.round(botY - ((v + 1) / 2) * amp);

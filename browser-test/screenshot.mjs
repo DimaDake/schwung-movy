@@ -45,7 +45,7 @@ const PRESETS = [
     'main-default', 'main-tempo-touched', 'main-swing-touched',
     'main-root-touched', 'main-key-overlay', 'main-ext-sync', 'main-link-on',
     'clip-default', 'clip-fraction', 'clip-overlay',
-    'env_dual', 'env_touched', 'env_ad', 'env_asr',
+    'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'leave_modal',
 ];
 
@@ -64,7 +64,7 @@ const BASE = {
     'main-swing-touched': 'test8', 'main-root-touched': 'test8',
     'main-key-overlay': 'test8', 'main-ext-sync': 'test8', 'main-link-on': 'test8',
     'clip-default': 'test8', 'clip-fraction': 'test8', 'clip-overlay': 'test8',
-    env_dual: 'env_dual', env_touched: 'env_dual', env_ad: 'env_ad', env_asr: 'env_asr',
+    env_dual: 'env_dual', env_touched: 'env_dual', env_ad: 'env_ad', env_asr: 'env_asr', lfo_mod: 'lfo_mod',
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
     lfo_target_overlay: 'test8', lfo_viz_unipolar: 'test8', lfo_viz_retrig: 'test8',
     lfo_mod_mark: 'test8', lfo_mod_and_auto: 'test8', lfo_assign_toast: 'test8',
@@ -188,6 +188,7 @@ function applyView(preset) {
         case 'env_touched': model.handleKnobTouch(2); forceRender(); break;   // touch Sustain
         case 'env_ad':      forceRender(); break;
         case 'env_asr':     forceRender(); break;
+        case 'lfo_mod':     forceRender(); break;
         case 'obxd_preset_page': forceRender(); break;                       // page 0
         case 'obxd_main_page':   model.changePage(1); forceRender(); break;
         case 'obxd_filter_page': model.changePage(3); forceRender(); break;

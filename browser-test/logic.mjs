@@ -7,7 +7,8 @@
 
 import { createModel }    from '../dist/esm/model/index.js';
 import { dedupShortNames } from '../dist/esm/renderer/shorten.js';
-import { detectEnvelopes, planPageLayout } from '../dist/esm/model/envelope.js';
+import { detectEnvelopes } from '../dist/esm/model/envelope.js';
+import { planPageLayout } from '../dist/esm/model/page-layout.js';
 import { enumRawToIndex, enumUsesIndex, enumSetValue } from '../dist/esm/model/enum-value.js';
 import { MOCK_SYNTHS }    from './mock-synth.mjs';
 import { drumPadOn, drumPadOff } from '../dist/esm/keyboard/drum-handler.js';
@@ -4068,7 +4069,8 @@ _log('\nTest: module-LFO viz inference (A3)');
         min: 0, max: type === 'enum' ? options.length - 1 : 1, step: type === 'enum' ? 1 : 0.01,
         renderStyle: 'arc', shortLabel: null, automatable: true, lfo: undefined,
     });
-    const cells = (n) => Array.from({ length: n }, (_, i) => ({ line: i < 4 ? 0 : 1, col: i % 4, idx: i }));
+    // Run detection + layout reorder + VM build the way the real pipeline does.
+    const viz = (params, values) => buildLfoViz(planPageLayout(params).lfos, params, values);
 
     // Shape name → id mapping (renderer table).
     eq('map: Ramp Down → saw-down 6', lfoShapeId('Ramp Down'), 6);
@@ -4078,7 +4080,7 @@ _log('\nTest: module-LFO viz inference (A3)');
     eq('map: Cutoff → not a shape', lfoShapeId('Cutoff'), null);
     eq('isShapeEnum: division list is not a shape', isShapeEnum(['Off', '1/4', '1/8']), false);
 
-    // chordism-like: Shape(enum wave) + Rate adjacent → one inferred group.
+    // chordism-like: Shape(enum wave) + Rate → reordered onto one line, rate encoded.
     {
         const params = [
             LP('lfo_shape', 'LFO Wave', 'enum', ['Triangle', 'Ramp Up', 'Ramp Down', 'Square']),
@@ -4089,12 +4091,16 @@ _log('\nTest: module-LFO viz inference (A3)');
         const g = detectLfoViz(params);
         eq('chordism: one group', g.length, 1);
         eq('chordism: inferred', g[0].inferred, true);
-        eq('chordism: rate candidate', g[0].rate, 1);
-        const vm = buildLfoViz(params, [2, 0.5, 0.3, 0.4], cells(4));   // value 2 = Ramp Down
+        // no phase → partner is rate; layout seats shape+rate at cols 0,1.
+        const L = planPageLayout(params);
+        eq('chordism layout: partner is rate', L.lfos[0].partnerRole, 'rate');
+        eq('chordism layout: shape col0, rate col1', `${L.cells.find(c => c.idx === 0).col},${L.cells.find(c => c.idx === 1).col}`, '0,1');
+        const vm = viz(params, [2, 0.5, 0.3, 0.4]);   // value 2 = Ramp Down, rate 0.5
         eq('chordism vm: shape id 6', vm[0].shape, 6);
-        eq('chordism vm: startCol 0 (shape+rate)', vm[0].startCol, 0);
+        eq('chordism vm: startCol 0', vm[0].startCol, 0);
+        eq('chordism vm: rate → 1.5 cycles', vm[0].cycles, 1.5);
     }
-    // fizzik-like: two LFO rows → two groups; Target enum absorbed by neither.
+    // fizzik-like: two LFO rows → two groups reordered onto their own lines.
     {
         const shp = ['Sine', 'Tri', 'Saw', 'Square', 'S&H'];
         const tgt = ['Off', 'Cutoff', 'Pitch'];
@@ -4105,10 +4111,14 @@ _log('\nTest: module-LFO viz inference (A3)');
             LP('lfo2_shape', 'LFO2 Shape', 'enum', shp), LP('lfo2_target', 'LFO2 Target', 'enum', tgt),
         ];
         eq('fizzik: two groups', detectLfoViz(params).length, 2);
-        const vm = buildLfoViz(params, [0.3, 0.5, 2, 1, 0.4, 0.6, 3, 0], cells(8));
+        const vm = viz(params, [0.3, 0.5, 2, 1, 0.4, 0.6, 3, 0]);
         eq('fizzik vm: two groups', vm.length, 2);
-        eq('fizzik vm: g0 startCol 1 (target col3 untouched)', vm[0].startCol, 1);
+        eq('fizzik vm: g0 startCol 0', vm[0].startCol, 0);
         eq('fizzik vm: g1 line 1', vm[1].line, 1);
+        // Shape(idx2) reordered to line0 col0, Rate(idx0) to col1; Target stays a knob.
+        const L = planPageLayout(params);
+        eq('fizzik layout: shape idx2 at col0', L.cells.find(c => c.idx === 2).col, 0);
+        eq('fizzik layout: target idx3 not col0/1', L.cells.find(c => c.idx === 3).col > 1, true);
     }
     // osirus-like: Poly|Mono must NOT be polarity; Symmetry → deform.
     {
@@ -4127,16 +4137,33 @@ _log('\nTest: module-LFO viz inference (A3)');
     {
         const opts = ['Sine', 'Triangle', 'Saw', 'Square', 'S&H', 'S&G', 'Wave 3', 'Wave 17'];
         const params = [LP('lfo1_shape', 'LFO1 Shape', 'enum', opts), LP('lfo1_rate', 'LFO1 Rate', 'float'), null, null];
-        const vm = buildLfoViz(params, [7, 0.5, null, null], cells(4));
+        const vm = viz(params, [7, 0.5, null, null]);
         eq('unmapped: viz kept', vm.length, 1);
         eq('unmapped: generic 10', vm[0].shape, 10);
     }
-    // VM shape has no cycles/depth fields — wave is a fixed shape specimen.
+    // Rate partner → cycle count (1..2), keeping the wave readable; depth not drawn.
     {
-        const params = [LP('lfo_shape', 'LFO Wave', 'enum', ['Sine', 'Tri', 'Saw', 'Square']), LP('lfo_rate', 'LFO Rate', 'float'), null, null];
-        const vm = buildLfoViz(params, [0, 0.5, null, null], cells(4));
-        eq('vm: no cycles field', 'cycles' in vm[0], false);
-        eq('vm: no depth field', 'depth' in vm[0], false);
+        const params = [LP('lfo_shape', 'LFO Wave', 'enum', ['Sine', 'Tri', 'Saw', 'Square']),
+            LP('lfo_rate', 'LFO Rate', 'float'), LP('lfo_depth', 'LFO Depth', 'float'), null];
+        eq('rate min → 1 cycle', viz(params, [0, 0, 0.5, null])[0].cycles, 1);
+        eq('rate max → 2 cycles', viz(params, [0, 1, 0.5, null])[0].cycles, 2);
+        eq('rate mid → 1.5 cycles', viz(params, [0, 0.5, 0.5, null])[0].cycles, 1.5);
+        eq('depth not the partner → no ampScale', 'ampScale' in viz(params, [0, 0.5, 0.5, null])[0], false);
+    }
+    // Phase partner (preferred) → fixed 2-cycle specimen, rate keeps its own knob.
+    {
+        const params = [LP('lfo_shape', 'LFO Wave', 'enum', ['Sine', 'Tri', 'Saw', 'Square']),
+            LP('lfo_phase', 'LFO Phase', 'float'), LP('lfo_rate', 'LFO Rate', 'float'), null];
+        eq('phase preferred: partner phase', planPageLayout(params).lfos[0].partnerRole, 'phase');
+        eq('phase partner → 2 cycles', viz(params, [0, 0.25, 0.9, null])[0].cycles, 2);
+    }
+    // Depth partner (no phase, no rate) → floored amplitude, never flat.
+    {
+        const params = [LP('lfo_shape', 'LFO Wave', 'enum', ['Sine', 'Tri', 'Saw', 'Square']),
+            LP('lfo_depth', 'LFO Depth', 'float'), null, null];
+        eq('depth partner', planPageLayout(params).lfos[0].partnerRole, 'depth');
+        eq('depth 0 → floored amp 0.35', viz(params, [0, 0, null, null])[0].ampScale, 0.35);
+        eq('depth 1 → full amp 1', viz(params, [0, 1, null, null])[0].ampScale, 1);
     }
 }
 

@@ -12,6 +12,7 @@ await esbuild.build({
         resolve(root, 'src/model/index.ts'),
         resolve(root, 'src/model/envelope.ts'),
         resolve(root, 'src/model/lfo-viz.ts'),
+        resolve(root, 'src/model/page-layout.ts'),
         resolve(root, 'src/model/lfo-vm.ts'),
         resolve(root, 'src/model/lfo-shapes.ts'),
         resolve(root, 'src/model/viewmodel.ts'),

@@ -1,22 +1,22 @@
-/* Builds the LfoVizVM list for a page: resolves each detected group's Shape +
- * adjacent span partner to a (line, startCol), maps the live shape option to a
- * drawable id, and reads phase / polarity / retrigger / deform off the page.
- * Rate and depth are span-partner candidates only — never drawn — so the wave
- * stays a fixed-size specimen of the shape (see the shape-truth-only rule). */
+/* Builds the LfoVizVM list from the page layout's arranged LFO placements. Each
+ * placement is Shape + one partner cell (phase/rate/depth) already sat together
+ * on a line by page-layout.ts. Only the partner is drawn "under" the graphic, so
+ * only it is encoded: rate → 1..2 cycle count, depth → amplitude (floored so the
+ * shape stays visible), phase → shift. Deform/polarity/retrigger feed the wave
+ * live from wherever they sit; rate/depth are never encoded off-partner. */
 
 import type { KnobParam } from '../types/param.js';
 import type { LfoVizVM } from '../types/viewmodel.js';
-import type { PageCell } from './envelope.js';
-import { detectLfoViz, type LfoVizGroup } from './lfo-viz.js';
+import type { LfoLine } from './page-layout.js';
 import { shapeIdOrGeneric } from './lfo-shapes.js';
 
 const RETRIG_ON  = /note reset|one shot|keytrigger|retrig|^on$/i;
 const RETRIG_OFF = /free|freerun|^off$|random/i;
+const DEPTH_FLOOR = 0.35;   // min amplitude when depth is the partner — never flat
 
 export function buildLfoViz(
-    params: (KnobParam | null)[], values: (number | null)[], cells: PageCell[],
+    lfos: LfoLine[], params: (KnobParam | null)[], values: (number | null)[],
 ): LfoVizVM[] {
-    const cellOf = (idx: number | null) => (idx == null ? null : cells.find(c => c.idx === idx) ?? null);
     const raw = (idx: number | null): number => {
         const v = idx == null ? null : values[idx];
         return (v === null || v === undefined) ? 0 : (v as number);
@@ -29,40 +29,26 @@ export function buildLfoViz(
             : Math.max(0, Math.min(1, v));
     };
 
-    const out: LfoVizVM[] = [];
-    for (const g of detectLfoViz(params)) {
-        const sc = cellOf(g.shape);
-        if (!sc) continue;
-        // Span partner adjacent to Shape: prefer rate, then phase, then depth.
-        const adj = (idx: number | null) => {
-            const c = cellOf(idx);
-            return c && c.line === sc.line && Math.abs(c.col - sc.col) === 1 ? c : null;
-        };
-        const pc = adj(g.rate) ?? adj(g.phase) ?? adj(g.depth);
-        if (!pc) continue;
-
+    return lfos.map((g) => {
         const vm: LfoVizVM = {
-            line: sc.line, startCol: Math.min(sc.col, pc.col),
-            shape: shapeId(g, raw(g.shape)),
+            line: g.line, startCol: g.startCol,
+            shape: g.inferred ? shapeIdOrGeneric(g.shapeOptions?.[Math.round(raw(g.shape))]) : Math.round(raw(g.shape)),
             phase: norm01(g.phase),
-            mode: polarity(g, params[g.mode ?? -1] ?? null, raw(g.mode)),
+            mode: polarity(g.mode, params[g.mode ?? -1] ?? null, raw(g.mode)),
             retrigger: retrigger(params[g.retrig ?? -1] ?? null, raw(g.retrig), g.retrig != null),
+            cycles: g.partnerRole === 'rate' ? 1 + norm01(g.rate) : 2,
         };
+        if (g.partnerRole === 'depth') vm.ampScale = DEPTH_FLOOR + (1 - DEPTH_FLOOR) * norm01(g.depth);
         const d = deform(params[g.deform ?? -1] ?? null, raw(g.deform), g.deform != null);
         if (d !== undefined) vm.deform = d;
-        out.push(vm);
-    }
-    return out;
-}
-
-function shapeId(g: LfoVizGroup, value: number): number {
-    return g.inferred ? shapeIdOrGeneric(g.shapeOptions?.[Math.round(value)]) : Math.round(value);
+        return vm;
+    });
 }
 
 /* 0 = unipolar, 1 = bipolar. Read from the option name (unipolar/bipolar), or an
  * On/Off "unipolar" toggle (On = unipolar); explicit tags keep the raw value. */
-function polarity(g: LfoVizGroup, p: KnobParam | null, value: number): number {
-    if (g.mode == null) return 1;
+function polarity(idx: number | null, p: KnobParam | null, value: number): number {
+    if (idx == null) return 1;
     const opt = (p?.options?.[Math.round(value)] ?? '').toLowerCase();
     if (opt.includes('uni')) return 0;
     if (opt.includes('bi')) return 1;

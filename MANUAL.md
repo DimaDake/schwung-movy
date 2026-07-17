@@ -107,11 +107,13 @@ automatically. You don't configure anything for most modules.
   ![Two-stage AD envelope](docs/assets/env_ad.png)
   ![Three-stage ASR envelope](docs/assets/env_asr.png)
 
-- **LFO waveform graphics** — when a page carries a module's own LFO (a shape
-  parameter next to its rate, phase or depth), Movy replaces those two cells
-  with a live **waveform preview** of the shape — sine, triangle, saw, square,
-  sample & hold, noise, and more — skewed by the LFO's deform/symmetry and
-  flipped for uni/bipolar. The remaining LFO knobs stay put.
+- **LFO waveform graphics** — when a page carries a module's own LFO, Movy
+  pairs its **Shape** with one neighbour and reorders them onto the same line,
+  drawing the two cells as a live **waveform preview** — sine, triangle, saw,
+  square, sample & hold, noise, and more. The partner shapes the drawing:
+  **phase** offsets it, **rate** sets the cycle count (1–2 cycles, so it stays
+  readable), and **depth** its height; the LFO's deform/symmetry skews it and
+  uni/bipolar flips the baseline. The other LFO knobs stay put.
 
   ![Module LFO waveform](docs/assets/lfo_mod.png)
 

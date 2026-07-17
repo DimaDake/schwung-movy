@@ -26,6 +26,9 @@ function words(text: string): string[] {
 }
 const isLfoToken  = (w: string) => /^lfo\d*$/.test(w);
 const isBareLfo   = (w: string) => w === 'lfo';
+/* Unit/format suffix words carry no LFO identity: lfo_rate_hz and lfo_rate_div
+ * must group with lfo_shape (all qualifier ''), not split into 'hz'/'div'. */
+const LFO_NOISE   = new Set(['hz', 'khz', 'div', 'ms', 'sec']);
 /* Words that name a role — stripped from the key to leave the LFO's qualifier. */
 const ROLE_VOCAB = new Set([
     'shape', 'wave', 'waveform', 'form', 'type',
@@ -54,7 +57,7 @@ function classify(p: KnobParam): { role: Role; qualifier: string } | null {
     else if (has(all, 'rate', 'speed', 'freq') || (isEnum && isDivisionEnum(p.options))) role = 'rate';
     else if (has(all, 'depth', 'magnitude', 'amount', 'amt', 'dpt')) role = 'depth';
     if (!role) return null;
-    const qualifier = kw.filter(w => !ROLE_VOCAB.has(w) && !isBareLfo(w)).join('');
+    const qualifier = kw.filter(w => !ROLE_VOCAB.has(w) && !isBareLfo(w) && !LFO_NOISE.has(w)).join('');
     return { role, qualifier };
 }
 

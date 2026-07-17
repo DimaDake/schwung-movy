@@ -237,10 +237,10 @@
     "AMT"
    ],
    [
-    "AMT",
-    "DIV",
-    "RATE",
     "SHAPE",
+    "DIV",
+    "AMT",
+    "RATE",
     "SYNC"
    ],
    [
@@ -249,7 +249,7 @@
    ]
   ],
   "envelopeLines": 1,
-  "lfoViz": 0,
+  "lfoViz": 1,
   "hidden": 1
  },
  "audio_fx--freeverb": {
@@ -1912,9 +1912,9 @@
     "FEMOD"
    ],
    [
+    "SHAPE",
     "RATE",
     "DEPTH",
-    "SHAPE",
     "SPRD",
     "MODE"
    ],
@@ -2007,9 +2007,9 @@
     "PMDPT"
    ],
    [
+    "SHAPE",
     "RATE",
     "DEPTH",
-    "SHAPE",
     "PHS1",
     "PHS2",
     "PHS3",
@@ -2331,13 +2331,13 @@
     "CEIL"
    ],
    [
+    "LF1SH",
     "LF1RT",
     "LF1DP",
-    "LF1SH",
     "LF1TR",
+    "LF2SH",
     "LF2RT",
     "LF2DP",
-    "LF2SH",
     "LF2TR"
    ],
    [
@@ -2544,10 +2544,10 @@
    ],
    [
     "SHAPE",
+    "PHASE",
     "RATE",
     "SYNC",
-    "RETRI",
-    "PHASE"
+    "RETRI"
    ],
    [
     "ATTAC",
@@ -2779,8 +2779,8 @@
     "FVELS"
    ],
    [
-    "RATE",
     "WAVE",
+    "RATE",
     "TRIG",
     "SYNC",
     "LPTCH",
@@ -3443,20 +3443,20 @@
     "RELEA"
    ],
    [
-    "RATE",
     "SHAPE",
+    "RATE",
     "SYMME",
     "OSC1"
    ],
    [
-    "RATE",
     "LS",
+    "RATE",
     "SYMME",
     "SL"
    ],
    [
-    "RATE",
     "SHAPE",
+    "RATE",
     "DEST",
     "OSC"
    ],
@@ -3932,120 +3932,120 @@
    ],
    [
     "TYPE",
+    "PHASE",
     "RATE",
     "AMPLI",
     "DEFOR",
-    "PHASE",
     "DELAY",
     "ATTAC",
     "DECAY"
    ],
    [
     "TYPE",
+    "PHASE",
     "RATE",
     "AMPLI",
     "DEFOR",
-    "PHASE",
     "DELAY",
     "ATTAC",
     "DECAY"
    ],
    [
     "TYPE",
+    "PHASE",
     "RATE",
     "AMPLI",
     "DEFOR",
-    "PHASE",
     "DELAY",
     "ATTAC",
     "DECAY"
    ],
    [
     "TYPE",
+    "PHASE",
     "RATE",
     "AMPLI",
     "DEFOR",
-    "PHASE",
     "DELAY",
     "ATTAC",
     "DECAY"
    ],
    [
     "TYPE",
+    "PHASE",
     "RATE",
     "AMPLI",
     "DEFOR",
-    "PHASE",
     "DELAY",
     "ATTAC",
     "DECAY"
    ],
    [
     "TYPE",
+    "PHASE",
     "RATE",
     "AMPLI",
     "DEFOR",
-    "PHASE",
     "DELAY",
     "ATTAC",
     "DECAY"
    ],
    [
     "TYPE",
+    "PHASE",
     "RATE",
     "AMPLI",
     "DEFOR",
-    "PHASE",
     "DELAY",
     "ATTAC",
     "DECAY"
    ],
    [
     "TYPE",
+    "PHASE",
     "RATE",
     "AMPLI",
     "DEFOR",
-    "PHASE",
     "DELAY",
     "ATTAC",
     "DECAY"
    ],
    [
     "TYPE",
+    "PHASE",
     "RATE",
     "AMPLI",
     "DEFOR",
-    "PHASE",
     "DELAY",
     "ATTAC",
     "DECAY"
    ],
    [
     "TYPE",
+    "PHASE",
     "RATE",
     "AMPLI",
     "DEFOR",
-    "PHASE",
     "DELAY",
     "ATTAC",
     "DECAY"
    ],
    [
     "TYPE",
+    "PHASE",
     "RATE",
     "AMPLI",
     "DEFOR",
-    "PHASE",
     "DELAY",
     "ATTAC",
     "DECAY"
    ],
    [
     "TYPE",
+    "PHASE",
     "RATE",
     "AMPLI",
     "DEFOR",
-    "PHASE",
     "DELAY",
     "ATTAC",
     "DECAY"

@@ -1,7 +1,7 @@
 import type { ViewModel, AutomationView, EnvelopeVM, LfoVizVM } from '../types/viewmodel.js';
 import type { ModelState } from './state.js';
 import { formatValue, paramIoKey } from './store.js';
-import { planPageLayout } from './envelope.js';
+import { planPageLayout } from './page-layout.js';
 import { buildLfoViz } from './lfo-vm.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
 import { dedupShortNames } from '../renderer/shorten.js';
@@ -99,7 +99,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     // (see model/lfo-vm.ts). Values read off the page live.
     const pageParams = s.knobParams.slice(pageStart, pageStart + KNOBS_PER_PAGE);
     const pageValues = s.knobValues.slice(pageStart, pageStart + KNOBS_PER_PAGE);
-    const lfoViz = buildLfoViz(pageParams, pageValues, layout.cells);
+    const lfoViz = buildLfoViz(layout.lfos, pageParams, pageValues);
 
     // Toast follows the physical knob last touched → its displayed param (the
     // rearrange means screen slot ≠ page index).

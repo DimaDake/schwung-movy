@@ -89,21 +89,22 @@ export const MOCK_SYNTHS = {
         ]),
         "synth:attack": "0.20", "synth:decay": "0.50", "synth:cutoff": "0.60", "synth:reso": "0.30",
     },
-    // A3 module-LFO viz: name-inferred Shape+Rate span, a new shape id (saw
-    // down) and a non-zero deform skew — no explicit lfo: tags.
+    // A3 module-LFO viz: name-inferred, no explicit lfo: tags. No phase, so the
+    // partner is Rate — the layout reorders Shape+Rate onto one line and the
+    // rate value drives the cycle count (~1.5 here); Deform skews the shape.
     lfo_mod: {
         "synth:name": "Mod LFO",
         "synth:ui_hierarchy": hier([
             { key: "lfo_shape", label: "LFO Shape", type: "enum",
               options: ["Sine", "Triangle", "Saw", "Square", "Ramp Down", "Noise", "Step Sequencer", "Wavetable 1"] },
             { key: "lfo_rate",   label: "LFO Rate",   type: "float", min: 0,  max: 1, step: 0.01 },
-            { key: "lfo_phase",  label: "LFO Phase",  type: "float", min: 0,  max: 1, step: 0.01 },
             { key: "lfo_deform", label: "LFO Deform", type: "float", min: -1, max: 1, step: 0.01 },
+            { key: "lfo_depth",  label: "LFO Depth",  type: "float", min: 0,  max: 1, step: 0.01 },
             { key: "cutoff",     label: "Cutoff",     type: "float", min: 0,  max: 1, step: 0.01 },
             { key: "reso",       label: "Reso",       type: "float", min: 0,  max: 1, step: 0.01 },
         ]),
         "synth:lfo_shape": "4",   // Ramp Down → shape id 6 (saw down)
-        "synth:lfo_rate": "0.50", "synth:lfo_phase": "0.00", "synth:lfo_deform": "0.70",
+        "synth:lfo_rate": "0.50", "synth:lfo_deform": "0.70", "synth:lfo_depth": "0.80",
         "synth:cutoff": "0.60", "synth:reso": "0.30",
     },
 

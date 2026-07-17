@@ -4,7 +4,7 @@ import { KNOBS_PER_PAGE, ENUM_DELTA_DIV, ARC_DELTA_SCALE, REFRESH_SUPPRESS_TICKS
 import { moduleReadKey } from '../chain/config.js';
 import { concreteKey } from './pad-scope.js';
 import { enumRawToIndex, enumUsesIndex, enumSetValue } from './enum-value.js';
-import { pageSlotMap } from './envelope.js';
+import { pageSlotMap } from './page-layout.js';
 import { inferGuessedMeta } from './meta-infer.js';
 import { mlog } from '../log.js';
 

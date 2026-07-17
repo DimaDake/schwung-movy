@@ -42,6 +42,8 @@ export interface LfoVizVM {
     mode:      number;   // 0 = unipolar, 1 = bipolar
     retrigger: number;   // 0/1
     deform?:   number;   // −1..1 waveform skew (module LFOs); absent = no skew
+    cycles?:   number;   // cycles drawn across the span (rate partner: 1..2); default 2
+    ampScale?: number;   // amplitude multiplier (depth partner: floor..1); default 1
 }
 
 export interface ToastState {

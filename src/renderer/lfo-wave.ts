@@ -6,7 +6,6 @@ import type { LfoVizVM } from '../types/viewmodel.js';
 import { drawLine, drawDottedH } from './primitives.js';
 import { CELL_W } from './layout.js';
 
-const CYCLES = 2;
 
 /* Bipolar (−1..1) sample of an LFO shape at phase `t` (one cycle = 1). s&h and
  * swishy use fixed deterministic patterns so screenshots are stable. */
@@ -62,13 +61,16 @@ export function drawLfoWave(rowY: number, g: LfoVizVM): void {
     const topY = rowY + 1, botY = rowY + 14;
     const bipolar = g.mode === 1;
     const baseY = bipolar ? Math.round((topY + botY) / 2) : botY;
-    const amp = bipolar ? (botY - topY) / 2 : (botY - topY);
+    // Rate → cycle density (1..2), depth → amplitude; both default to the fixed
+    // specimen (2 cycles, full amplitude) when their param isn't under the graphic.
+    const cycles = g.cycles ?? 2;
+    const amp = (g.ampScale ?? 1) * (bipolar ? (botY - topY) / 2 : (botY - topY));
 
     drawDottedH(x0, x0 + spanW, baseY);                    // baseline conveys mode
 
     const yAt = (px: number): number => {
         const u = (px - x0) / spanW;                        // 0..1 across span
-        let t = u * CYCLES + g.phase;
+        let t = u * cycles + g.phase;
         if (g.deform) { const c = Math.floor(t); t = c + skewPhase(t - c, g.deform); }
         const v = shapeSample(g.shape, t);
         return bipolar

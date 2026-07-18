@@ -66,6 +66,28 @@ scp movy/src/modules/forge.json \
     ableton@move.local:/data/UserData/schwung/modules/sound_generators/forge/movy_config.json
 ```
 
+### Per-voice filter automation (`forge-add-automation-params.py`)
+
+The chain host's step automation de-normalises a value by looking the target
+param up in the synth's `chain_params` (`knob_find_param`); an undeclared param
+**silently aborts** (`chain_midi.c`: `if (!pinfo) return;`). Forge's `pv<N>_`
+keys are handled by the DSP patch but not declared, so per-voice automation
+never applied. `forge-add-automation-params.py` adds the filter trio
+(`pv<N>_f1_cut/f1_res/f1_type`, 16 voices = 48 entries) to
+`module.json` → `capabilities.chain_params`, deployed to the module dir:
+
+```bash
+python3 forge-add-automation-params.py forge-move/src/module.json
+scp forge-move/src/module.json ableton@move.local:.../sound_generators/forge/module.json
+```
+
+**Limitation:** the chain caps params at 256 (`MAX_CHAIN_PARAMS`) and Forge
+already declares 193, so only the filter trio fits (241 total). Other per-voice
+params stay hand-editable but are **not** host-automatable. Stock module.json is
+backed up on the device at `…/forge/module.json.orig`.
+
+### Explicit filter/LFO graphics
+
 The layout declares its **filter and LFO graphics explicitly** via per-slot tags
 — `"filter": "cutoff"|"resonance"|"mode"|"slope"` and
 `"lfo": "shape"|"rate"|"depth"|…` — so movy draws the Filter-page curve and

@@ -17,12 +17,12 @@
           { "key": "cv_vol",    "short": "VOL",   "full": "Volume",  "type": "float", "min": 0, "max": 1 },
           { "key": "cv_pan",    "short": "PAN",   "full": "Pan",     "type": "float", "min": -1, "max": 1 },
           { "key": "cv_freq",   "short": "FREQ",  "full": "Freq",    "type": "float", "min": 20, "max": 20000 },
-          { "key": "cv_decay",  "short": "DECAY", "full": "Decay",   "type": "float", "min": 0, "max": 1 }
+          { "key": "cv_decay",  "short": "DECAY", "full": "Decay",   "type": "float", "min": 0, "max": 4 }
         ],
         [
           { "key": "cv_wave",   "short": "WAVE",  "full": "Wave",    "type": "float", "min": 0, "max": 1 },
           { "key": "cv_mix",    "short": "MIX",   "full": "Mix",     "type": "float", "min": 0, "max": 1 },
-          { "key": "cv_cutoff", "short": "CUTOF", "full": "Cutoff",  "type": "float", "min": 0, "max": 1 },
+          { "key": "cv_cutoff", "short": "CUTOF", "full": "Cutoff",  "type": "float", "min": 20, "max": 18000 },
           { "key": "cv_preset", "short": "PRSET", "full": "Preset",  "type": "int",   "min": 0, "max": 40 }
         ]
       ]
@@ -50,7 +50,7 @@
         [
           { "key": "dly_mix",   "short": "DLMIX", "full": "Dly Mix",   "type": "float", "min": 0, "max": 1 },
           { "key": "dly_rate",  "short": "DLRAT", "full": "Dly Rate",  "type": "float", "min": 0, "max": 1 },
-          { "key": "dly_fdbk",  "short": "DLFBK", "full": "Dly Fdbk", "type": "float", "min": 0, "max": 1 },
+          { "key": "dly_fdbk",  "short": "DLFBK", "full": "Dly Fdbk", "type": "float", "min": 0, "max": 0.95 },
           { "key": "dly_tone",  "short": "DLTON", "full": "Dly Tone",  "type": "float", "min": 0, "max": 1 }
         ]
       ]

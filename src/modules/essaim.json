@@ -16,7 +16,7 @@
           { "key": "rnd_patch",  "short": "RNDPT", "full": "Rnd Patch",  "type": "float", "min": 0,  "max": 1 },
           { "key": "same_freq",  "short": "SFREQ", "full": "Same Freq",  "type": "float", "min": 0,  "max": 1 },
           { "key": "init_freq",  "short": "IFREQ", "full": "Init Freq",  "type": "float", "min": 0,  "max": 1 },
-          { "key": "same_speed", "short": "SPEED", "full": "Same Speed", "type": "float", "min": 0,  "max": 1 },
+          { "key": "same_speed", "short": "SPEED", "full": "Same Speed", "type": "float", "min": 0.05, "max": 100 },
           { "key": "rnd_mod",    "short": "RNDMD", "full": "Rnd Mod",    "type": "float", "min": 0,  "max": 1 },
           { "key": "rnd_pan",    "short": "RNDPN", "full": "Rnd Pan",    "type": "float", "min": 0,  "max": 1 }
         ]
@@ -31,8 +31,8 @@
           { "key": "saturation",   "short": "SAT",   "full": "Saturation", "type": "float", "min": 0,   "max": 1 },
           { "key": "filter",       "short": "FILTR", "full": "Filter",     "type": "float", "min": 0,   "max": 1 },
           { "key": "dly_mix",      "short": "DLMIX", "full": "Dly Mix",    "type": "float", "min": 0,   "max": 1 },
-          { "key": "dly_rate",     "short": "DLRAT", "full": "Dly Rate",   "type": "float", "min": 0,   "max": 1 },
-          { "key": "dly_feedback", "short": "DLFBK", "full": "Dly Fdbk",  "type": "float", "min": 0,   "max": 1 },
+          { "key": "dly_rate",     "short": "DLRAT", "full": "Dly Rate",   "type": "float", "min": 0.004, "max": 4 },
+          { "key": "dly_feedback", "short": "DLFBK", "full": "Dly Fdbk",  "type": "float", "min": 0,   "max": 0.95 },
           { "key": "dly_tone",     "short": "DLTON", "full": "Dly Tone",   "type": "float", "min": 0,   "max": 1 }
         ]
       ]
@@ -41,9 +41,9 @@
       "name": "Voice",
       "rows": [
         [
-          { "key": "speed",     "short": "SPEED", "full": "Speed",     "type": "float", "min": 0, "max": 1 },
+          { "key": "speed",     "short": "SPEED", "full": "Speed",     "type": "float", "min": 0.1, "max": 40 },
           { "key": "mod",       "short": "MOD",   "full": "Mod",       "type": "float", "min": 0, "max": 1 },
-          { "key": "decay",     "short": "DECAY", "full": "Decay",     "type": "float", "min": 0, "max": 1 },
+          { "key": "decay",     "short": "DECAY", "full": "Decay",     "type": "float", "min": 0.005, "max": 2 },
           { "key": "timbre",    "short": "TIMBR", "full": "Timbre",    "type": "float", "min": 0, "max": 1 },
           { "key": "frequency", "short": "FREQ",  "full": "Frequency", "type": "float", "min": 0, "max": 1 },
           { "key": "noisiness", "short": "NOISE", "full": "Noisiness", "type": "float", "min": 0, "max": 1 },

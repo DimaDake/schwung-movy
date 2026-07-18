@@ -172,10 +172,16 @@ export function loadHierarchy(s: ModelState): void {
                     }
                     const cp   = cpMap[slot.key]   ?? {};
                     const hier = paramDefs[slot.key] ?? {};
-                    const type = slot.type || cp.type || hier.type || 'float';
-                    const options = slot.options ?? cp.options ?? hier.options ?? null;
-                    let min  = slot.min  != null ? slot.min  : (cp.min  != null ? cp.min  : (hier.min  != null ? hier.min  : 0));
-                    let max  = slot.max  != null ? slot.max  : (cp.max  != null ? cp.max  : (hier.max  != null ? hier.max  : 1));
+                    // The module is authoritative for value metadata (type/range/
+                    // options); the config's job is layout/presentation. A config
+                    // value is only a GAP-FILLER for params the module doesn't
+                    // report (e.g. moog osc3/4 wave enums absent from module.json),
+                    // never an override — that just drifts (weird-dreams cutoff was
+                    // pinned 0..1 while the DSP reports 20..18000).
+                    const type = cp.type || hier.type || slot.type || 'float';
+                    const options = cp.options ?? hier.options ?? slot.options ?? null;
+                    let min  = cp.min  != null ? cp.min  : (hier.min  != null ? hier.min  : (slot.min  != null ? slot.min  : 0));
+                    let max  = cp.max  != null ? cp.max  : (hier.max  != null ? hier.max  : (slot.max  != null ? slot.max  : 1));
                     let step = cp.step != null ? cp.step : (hier.step != null ? hier.step : (type === 'float' ? 0.01 : 1));
                     if (type === 'enum') { min = 0; max = options ? options.length - 1 : 127; step = 1; }
                     const renderStyle = slot.render ?? inferRenderStyle(type as KnobParam['type'], min, max);

@@ -4902,6 +4902,29 @@ _log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
         // Mix bank renders level faders as vertical bars.
         eq('forge: Mix v1_lvl is vbar', byKey(d, 'v1_lvl')?.renderStyle, 'vbar');
 
+        // Automatable set: continuous Kit-A params yes; set-and-forget/enum no;
+        // Kit B (pad > automatablePads=8) never automatable — no dead dot.
+        const infoByKey = (m, key) => {
+            for (let k = 0; k < 8; k++) { const i = m.getKnobParamInfo(k); if (i?.key === key) return i; }
+            return null;
+        };
+        const fa = bootModel(MOCK_SYNTHS.forge);
+        fa.changePage(1 - fa.getKnobPage());   // Filter page
+        fa.updateDrumPad(1, 36);               // Kit A voice 1
+        eq('forge: pad1 f1_cut automatable', infoByKey(fa, 'cv_f1_cut').automatable, true);
+        eq('forge: pad1 f1_drv automatable', infoByKey(fa, 'cv_f1_drv').automatable, true);
+        eq('forge: f1_type (enum) not automatable', infoByKey(fa, 'cv_f1_type').automatable, false);
+        eq('forge: bw_cut (set-and-forget) not automatable', infoByKey(fa, 'cv_bw_cut').automatable, false);
+        fa.updateDrumPad(9, 44);               // Kit B voice 1 → past automatablePads
+        eq('forge: pad9 (Kit B) f1_cut NOT automatable', infoByKey(fa, 'cv_f1_cut').automatable, false);
+        fa.updateDrumPad(1, 36);
+        fa.changePage(0 - fa.getKnobPage());   // Osc page (no reflow)
+        eq('forge: Osc level automatable', infoByKey(fa, 'cv_level').automatable, true);
+        eq('forge: Osc detune not automatable', infoByKey(fa, 'cv_detune').automatable, false);
+        fa.changePage(2 - fa.getKnobPage());   // Env page — all automatable
+        eq('forge: Env e1_atk automatable', infoByKey(fa, 'cv_e1_atk').automatable, true);
+        eq('forge: Env pe_dec automatable', infoByKey(fa, 'cv_pe_dec').automatable, true);
+
         // enumSetIndex: Forge's DSP writes enums by index but reports names, so
         // movy must commit an index — otherwise atoi(name)=0 collapses to LP/Sine.
         const fe = bootModel(MOCK_SYNTHS.forge);

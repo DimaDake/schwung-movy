@@ -76,6 +76,16 @@ export interface KnobParamInfo {
 /* Per-knob param facts the automation layer needs. Automatable = numeric range,
  * not a file/global param (globals like g_* aren't reachable as target:param in
  * the chain's knob mapping; see the device spike). */
+/* Effective automatability: a padScoped module can only declare concrete keys
+ * for pads 1..automatablePads (chain 256-param cap), so a param on a later pad
+ * has no host automation target and must not be offered. */
+export function paramAutomatable(s: ModelState, p: KnobParam): boolean {
+    if (!p.automatable) return false;
+    const drum = s.moduleConfig?.drum;
+    if (drum?.padScoping && drum.automatablePads && s.drumCurrentPad > drum.automatablePads) return false;
+    return true;
+}
+
 export function knobParamInfo(s: ModelState, physK: number): KnobParamInfo | null {
     const local = slotToLocal(s, physK);
     if (local < 0) return null;
@@ -86,7 +96,7 @@ export function knobParamInfo(s: ModelState, physK: number): KnobParamInfo | nul
     return {
         gi, key: p.key, ioKey: paramIoKey(s, p), target: s.componentKey,
         value: (v === null || v === undefined) ? p.min : (v as number),
-        min: p.min, max: p.max, type: p.type, automatable: p.automatable,
+        min: p.min, max: p.max, type: p.type, automatable: paramAutomatable(s, p),
     };
 }
 

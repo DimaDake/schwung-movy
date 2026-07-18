@@ -7,6 +7,10 @@ export interface KnobSlot {
     env?:           'a' | 'd' | 's' | 'r';
     lfo?:           'shape' | 'phase' | 'mode' | 'retrig' | 'rate' | 'depth' | 'deform';
     filter?:        'cutoff' | 'resonance' | 'mode' | 'slope';
+    /* Override movy's automatable heuristic: force a param on (an enum the host
+     * can still automate as an index) or off (a per-voice key the host can't
+     * resolve, so no misleading automation dot). */
+    automatable?:   boolean;
     options?:       string[];
     min?:           number;
     max?:           number;
@@ -53,6 +57,11 @@ export interface DrumConfig {
     rawMidi:          boolean;
     currentPadParam?: string;
     shiftSelectMidi?: boolean;
+    /* Only pads 1..N are host-automatable (the chain caps declared params at 256,
+     * so a padScoped module can only declare concrete keys for some voices —
+     * Forge: Kit A pv1-8). A param on a pad past this is not offered for
+     * automation, so no dead dot appears. Omit = all pads automatable. */
+    automatablePads?: number;
     /* How an alias pad param ("pad_vol") maps to its concrete per-pad key
      * ("p03_vol"). Lets movy address the focused pad directly, with no key-shape
      * literal in code. */

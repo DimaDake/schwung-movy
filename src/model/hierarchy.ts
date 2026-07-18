@@ -189,8 +189,10 @@ export function loadHierarchy(s: ModelState): void {
                         lfo:        slot.lfo,
                         filter:     slot.filter,
                         // Global-bank params aren't reachable as chain target:params
-                        // (device spike), so they can't be automated.
-                        automatable: (type === 'float' || type === 'int') && max > min && !bank.global,
+                        // (device spike), so they can't be automated. A config may
+                        // override per slot (host can't resolve some per-voice keys).
+                        automatable: slot.automatable ??
+                            ((type === 'float' || type === 'int') && max > min && !bank.global),
                     };
                     /* File slots carry browse metadata. The module config (mrdrums.json)
                      * is authoritative; chain_params (root/filter/start_path) is the

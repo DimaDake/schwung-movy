@@ -81,10 +81,19 @@ python3 forge-add-automation-params.py forge-move/src/module.json
 scp forge-move/src/module.json ableton@move.local:.../sound_generators/forge/module.json
 ```
 
-**Limitation:** the chain caps params at 256 (`MAX_CHAIN_PARAMS`) and Forge
-already declares 193, so only the filter trio fits (241 total). Other per-voice
-params stay hand-editable but are **not** host-automatable. Stock module.json is
-backed up on the device at `…/forge/module.json.orig`.
+Because the chain caps params at 256 (`MAX_CHAIN_PARAMS`) and Forge declares 193,
+the script also **drops the 95 `cv_*` current-voice aliases** to make room —
+they're only needed for *native* per-voice automation (movy uses `pv_`; native
+manual editing uses `knob_<N>_adjust`, neither needs `cv_` in `chain_params`).
+That frees the budget to declare **19 continuous params × Kit A's 8 voices = 152**
+(`pv1-8_*`): Osc level/pwm/fbk, Filter cut/res/drv/f2cut, all 8 Env stages, Mod
+lfo_r/lfo_d/mod_dpth, Setup tune.
+
+The rest are marked `automatable: false` in `movy_config.json` (discrete choices,
+set-and-forget floats), and `drum.automatablePads: 8` stops Kit B pads (9-16)
+from showing a dead automation dot. Trade-off: **native per-voice *automation* is
+lost** (native manual editing unaffected). Stock module.json backed up at
+`…/forge/module.json.orig`.
 
 ### Explicit filter/LFO graphics
 

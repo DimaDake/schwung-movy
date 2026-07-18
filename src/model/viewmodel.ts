@@ -1,6 +1,6 @@
 import type { ViewModel, AutomationView, EnvelopeVM, LfoVizVM } from '../types/viewmodel.js';
 import type { ModelState } from './state.js';
-import { formatValue, paramIoKey } from './store.js';
+import { formatValue, paramIoKey, paramAutomatable } from './store.js';
 import { planPageLayout } from './page-layout.js';
 import { buildLfoViz } from './lfo-vm.js';
 import { buildFilterViz } from './filter-vm.js';
@@ -90,7 +90,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             enumIndex:       enumIdx,
             renderStyle:     p.renderStyle,
             automated,
-            automatable:     p.automatable,
+            automatable:     paramAutomatable(s, p),
             assigned:        lane >= 0,
             modulated:       isModulated(p),
         };

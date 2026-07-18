@@ -4505,6 +4505,16 @@ _log('\nTest: buildViewModel emits filterViz + claim priority (A1)');
         eq('filterViz present', Array.isArray(vm.filterViz) && vm.filterViz.length === 1, true);
         eq('filterViz mode hp', vm.filterViz[0].mode, 'hp');
         eq('filterViz cutoff 0.5', vm.filterViz[0].cutoff, 0.5);
+
+        // Automation edit: the curve tracks the held-step cutoff, not the base.
+        const auto = {
+            assignedLanes: 1, activeLanes: 1, held: true, poolFull: false,
+            heldValues: new Map([[0, 0.9]]), liveValues: new Map(),
+            laneForKey: (k) => (k === 'cutoff' ? 0 : -1),
+        };
+        const vmA = buildViewModel({ ...base, knobParams, knobValues,
+            fileValues: knobParams.map(() => null) }, auto);
+        eq('filterViz cutoff follows held automation (0.9)', vmA.filterViz[0].cutoff, 0.9);
     }
     // Claim priority: ADSR env + cutoff/reso coexist — both graphics emitted.
     {

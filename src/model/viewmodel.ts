@@ -96,14 +96,24 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         };
     }
 
-    // LFO waveform groups: Shape + adjacent span partner render as one graphic
-    // (see model/lfo-vm.ts). Values read off the page live.
+    // LFO/filter graphics read the page values — but overlaid with the live
+    // automation value being edited (held-step lock or live take), so the curve/
+    // waveform tracks an automation edit the same way the knob label does.
     const pageParams = s.knobParams.slice(pageStart, pageStart + KNOBS_PER_PAGE);
-    const pageValues = s.knobValues.slice(pageStart, pageStart + KNOBS_PER_PAGE);
+    const autoValue = (p: import('../types/param.js').KnobParam | null, base: number | null): number | null => {
+        if (!p) return base;
+        const lane = auto.laneForKey(p.key);
+        if (lane < 0) return base;
+        if (auto.held && auto.heldValues.has(lane)) return auto.heldValues.get(lane) as number;
+        if (!auto.held && auto.liveValues.has(lane)) return auto.liveValues.get(lane) as number;
+        return base;
+    };
+    const pageValues = pageParams.map((p, i) => autoValue(p, s.knobValues[pageStart + i]));
+    const allValues  = s.knobParams.map((p, i) => autoValue(p, s.knobValues[i]));
     const lfoViz = buildLfoViz(layout.lfos, pageParams, pageValues);
     // Filter-response groups: cutoff+resonance drawn as a curve. Mode may live on
     // another page, so the resolver also reads the full cached param/value lists.
-    const filterViz = buildFilterViz(layout.filters, pageParams, pageValues, s.knobParams, s.knobValues);
+    const filterViz = buildFilterViz(layout.filters, pageParams, pageValues, s.knobParams, allValues);
 
     // Toast follows the physical knob last touched → its displayed param (the
     // rearrange means screen slot ≠ page index).

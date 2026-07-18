@@ -7,30 +7,36 @@ import type { FilterVizVM } from '../types/viewmodel.js';
 import { drawLine, drawDottedH } from './primitives.js';
 import { CELL_W } from './layout.js';
 
-const PASS = 0.62;                 // nominal pass-band gain (0..1 of the cell height)
+const PASS  = 0.62;   // nominal pass-band gain (0..1 of the cell height)
+const FLOOR = 0.04;   // stop-band gain — sits just above the frequency axis
+/* Keep the corner this far inside the span (fraction of width) so the roll-off
+ * stays visible even fully open/closed — never a bare flat line. */
+const EDGE  = 0.10;
 const bump  = (u: number, c: number, w: number) => Math.exp(-(((u - c) * w) ** 2));
 
 /* Gain 0..1 at horizontal position u (0..1 across the span) for the given mode.
- * cutoff c = corner/feature position; reso r = bump/dip magnitude; steep = 24 dB. */
+ * cutoff c = corner/feature position; reso r = bump/dip magnitude; steep = 24 dB.
+ * lp/hp roll off with a near-vertical drop (large slope) at the corner. */
 function gainAt(u: number, mode: FilterVizVM['mode'], c: number, r: number, steep: boolean): number {
-    const roll = steep ? 11 : 6;              // roll-off rate past the corner
-    const qw   = 9 - r * 3;                   // resonance narrows the peak
-    const peak = r * (1 - PASS);
+    const cx   = EDGE + c * (1 - 2 * EDGE);   // corner clamped inside the span
+    const drop = steep ? 26 : 15;             // gain lost per unit-u past the corner (steep = near-vertical)
+    const qw   = 9 - r * 3;                    // resonance narrows the peak
+    const peakG = r * (1 - PASS) * bump(u, cx, qw);
     switch (mode) {
         case 'lp': {
-            const d = Math.max(0, u - c);
-            return Math.min(1, PASS / (1 + (d * roll) ** 2) + peak * bump(u, c, qw));
+            const base = u <= cx ? PASS : Math.max(FLOOR, PASS - (u - cx) * drop);
+            return Math.min(1, base + peakG);
         }
         case 'hp': {
-            const d = Math.max(0, c - u);
-            return Math.min(1, PASS / (1 + (d * roll) ** 2) + peak * bump(u, c, qw));
+            const base = u >= cx ? PASS : Math.max(FLOOR, PASS - (cx - u) * drop);
+            return Math.min(1, base + peakG);
         }
         case 'bp':
-            return Math.min(1, 0.08 + (PASS + peak) * bump(u, c, 5 + r * 4));
+            return Math.min(1, FLOOR + (PASS + r * (1 - PASS)) * bump(u, cx, 5 + r * 4));
         case 'notch':
-            return Math.max(0, PASS - PASS * (0.5 + 0.5 * r) * bump(u, c, 7));
+            return Math.max(FLOOR, PASS - PASS * (0.5 + 0.5 * r) * bump(u, cx, 7));
         case 'peak':
-            return Math.min(1, PASS * 0.7 + (0.3 + 0.6 * r) * (1 - PASS * 0.7) * bump(u, c, 6));
+            return Math.min(1, PASS * 0.7 + (0.3 + 0.6 * r) * (1 - PASS * 0.7) * bump(u, cx, 6));
         case 'ap':
         case 'off':
         default:

@@ -47,7 +47,7 @@ const PRESETS = [
     'clip-default', 'clip-fraction', 'clip-overlay',
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
-    'filter_slope24', 'filter_dual',
+    'filter_slope24', 'filter_dual', 'filter_open',
     'signal_voice', 'forge_voice', 'forge_filter', 'forge_mod', 'forge_mix',
     'leave_modal',
 ];
@@ -70,7 +70,7 @@ const BASE = {
     env_dual: 'env_dual', env_touched: 'env_dual', env_ad: 'env_ad', env_asr: 'env_asr', lfo_mod: 'lfo_mod',
     filter_lp: 'filter_demo', filter_lp_reso: 'filter_demo', filter_hp: 'filter_demo',
     filter_bp: 'filter_demo', filter_notch: 'filter_demo', filter_slope24: 'filter_demo',
-    filter_dual: 'filter_dual',
+    filter_dual: 'filter_dual', filter_open: 'filter_demo',
     signal_voice: 'signal', forge_voice: 'forge',
     forge_filter: 'forge', forge_mod: 'forge', forge_mix: 'forge',
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
@@ -213,6 +213,7 @@ function applyView(preset) {
         case 'filter_notch':   setFilter({ mode: '3' }); break;
         case 'filter_slope24': setFilter({ resonance: '0.70', slope: '1' }); break;
         case 'filter_dual':    forceRender(); break;
+        case 'filter_open':    setFilter({ cutoff: '1.0', resonance: '0.05' }); break;   // fully open — corner still visible
         // Pad-selected voice bank (padSpecific page 0) — pad-grid icon in header.
         case 'signal_voice':   model.updateDrumPad(2, 37); settle(); forceRender(); break;
         case 'forge_voice':    model.updateDrumPad(3, 38); settle(); forceRender(); break;

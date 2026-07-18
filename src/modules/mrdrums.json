@@ -16,13 +16,13 @@
       "rows": [
         [
           { "key": "pad_sample_path", "short": "SAMPL", "full": "Sample",   "type": "file", "fileRoot": "/data/UserData", "fileFilter": [".wav"], "fileStartPath": "/data/UserData/UserLibrary/Samples" },
-          { "key": "pad_vol",         "short": "VOL",   "full": "Volume",   "type": "float", "min": 0, "max": 1 },
+          { "key": "pad_vol",         "short": "VOL",   "full": "Volume",   "type": "float", "min": 0, "max": 2 },
           { "key": "pad_pan",         "short": "PAN",   "full": "Pan",      "type": "float", "min": -1, "max": 1 },
           { "key": "pad_tune",        "short": "TUNE",  "full": "Tune",     "type": "float", "min": -24, "max": 24 }
         ],
         [
           { "key": "pad_start",       "short": "START", "full": "Start",    "type": "float", "min": 0, "max": 1 },
-          { "key": "pad_attack_ms",   "short": "ATTK",  "full": "Attack",   "type": "float", "min": 0, "max": 500 },
+          { "key": "pad_attack_ms",   "short": "ATTK",  "full": "Attack",   "type": "float", "min": 0, "max": 5000 },
           { "key": "pad_decay_ms",    "short": "DECAY", "full": "Decay",    "type": "float", "min": 0, "max": 5000 },
           { "key": "pad_mode",        "short": "MODE",  "full": "Mode",     "type": "enum", "options": ["oneshot", "loop", "gate"] }
         ]
@@ -51,8 +51,8 @@
       "global": true,
       "rows": [
         [
-          { "key": "g_master_vol",    "short": "MSVOL", "full": "Master Vol",  "type": "float", "min": 0, "max": 1 },
-          { "key": "g_polyphony",     "short": "POLY",  "full": "Polyphony",   "type": "int",   "min": 1, "max": 16 },
+          { "key": "g_master_vol",    "short": "MSVOL", "full": "Master Vol",  "type": "float", "min": 0, "max": 2 },
+          { "key": "g_polyphony",     "short": "POLY",  "full": "Polyphony",   "type": "int",   "min": 1, "max": 64 },
           { "key": "g_vel_curve",     "short": "VELCV", "full": "Vel Curve",   "type": "enum",  "options": ["linear", "soft", "hard"] },
           { "key": "g_humanize_ms",   "short": "HUMAN", "full": "Humanize",    "type": "float", "min": 0, "max": 50 }
         ]

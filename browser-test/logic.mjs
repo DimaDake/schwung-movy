@@ -590,6 +590,43 @@ _log('\nTest: index-based enum (majority) is unchanged — reads + commits the I
     eq('index enum: committed INDEX "3"', env.params['synth:model'], '3');
 }
 
+_log('\nTest: knob delta normalizes sweep across param ranges');
+{
+  const { applyKnobDelta } = await import('../dist/esm/model/store.js');
+  const mkP = (min, max, type = 'float', step = 0.01) => ({
+    key: 'p', label: 'p', shortLabel: null, type, min, max, step,
+    options: null, renderStyle: 'arc', automatable: true,
+  });
+  // Fraction of the param's range moved by one detent.
+  const fracPerDetent = (p, delta = 1) => {
+    const s = {
+      activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+      knobParams: [p], knobValues: [p.min], enumFmt: [undefined],
+      fileValues: [null], slotMapCache: null, dirty: false,
+    };
+    applyKnobDelta(s, 0, delta);
+    return (s.knobValues[0] - p.min) / (p.max - p.min);
+  };
+  const near = (a, b) => Math.abs(a - b) < 1e-6;
+  const REF = 0.01 * 0.5;   // MIN_STEP_RANGE_FRAC * ARC_DELTA_SCALE
+  // Every float moves the SAME fraction of its range per detent, regardless of units.
+  eq('0..1 float: 1% range × arc / detent', near(fracPerDetent(mkP(0, 1)), REF), true);
+  eq('0.5..20 float (reso): same fraction', near(fracPerDetent(mkP(0.5, 20)), REF), true);
+  eq('100..15000 float (Hz cutoff): same fraction', near(fracPerDetent(mkP(100, 15000)), REF), true);
+  // A float that was hair-trigger (coarse step) is normalized down to the same feel.
+  eq('coarse-step float normalized, not faster', near(fracPerDetent(mkP(0, 1, 'float', 0.2)), REF), true);
+  // Int keeps its natural step as a floor (small range still moves by ≥1).
+  const iMove = (min, max) => {
+    const s = { activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+      knobParams: [mkP(min, max, 'int', 1)], knobValues: [min], enumFmt: [undefined],
+      fileValues: [null], slotMapCache: null, dirty: false };
+    applyKnobDelta(s, 0, 1);
+    return s.knobValues[0] - min;
+  };
+  eq('int 0..7 moves by 1 (floor)', iMove(0, 7), 1);
+  eq('int 20..20000 moves fast (range/100)', iMove(20, 20000) >= 90, true);
+}
+
 /* ── viewmodel: file display value and browseHint ─────────────────────────── */
 
 _log('\nTest: file knob displayValue = basename of current path');

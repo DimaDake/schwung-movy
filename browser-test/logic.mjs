@@ -4888,6 +4888,28 @@ _log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
         eq('forge: Filter page draws a filter curve', (fv.getViewModel().filterViz ?? []).length, 1);
         fv.changePage(3 - fv.getKnobPage());
         eq('forge: Mod page draws an LFO wave', (fv.getViewModel().lfoViz ?? []).length, 1);
+
+        // Mix bank renders level faders as vertical bars.
+        eq('forge: Mix v1_lvl is vbar', byKey(d, 'v1_lvl')?.renderStyle, 'vbar');
+
+        // enumSetIndex: Forge's DSP writes enums by index but reports names, so
+        // movy must commit an index — otherwise atoi(name)=0 collapses to LP/Sine.
+        const fe = bootModel(MOCK_SYNTHS.forge);
+        fe.updateDrumPad(1, 36);
+        fe.handleKnobDelta(0, 8);        // Osc knob 0 = WAVE (cv_wave → pv1_wave), +2 steps
+        fe.handleKnobRelease(0);
+        eq('forge: enum committed as INDEX', /^\d+$/.test(env.params['synth:pv1_wave'] ?? ''), true);
+
+        // A filter type the curve can't draw (Comb) → fall back to plain knobs;
+        // a supported type still draws.
+        const fc = bootModel({ ...MOCK_SYNTHS.forge, 'synth:pv1_f1_type': 'Comb+' });
+        fc.changePage(1 - fc.getKnobPage());
+        fc.updateDrumPad(1, 36);         // reseed pad-1 values incl pv1_f1_type
+        eq('forge: unsupported filter type → no curve', (fc.getViewModel().filterViz ?? []).length, 0);
+        const fh = bootModel({ ...MOCK_SYNTHS.forge, 'synth:pv1_f1_type': 'HP' });
+        fh.changePage(1 - fh.getKnobPage());
+        fh.updateDrumPad(1, 36);
+        eq('forge: HP filter type draws an HP curve', fh.getViewModel().filterViz?.[0]?.mode, 'hp');
         globalThis.host_read_file = savedHRF;
     }
 

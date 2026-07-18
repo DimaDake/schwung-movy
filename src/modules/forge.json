@@ -1,6 +1,7 @@
 {
   "id": "forge",
   "name": "Forge",
+  "enumSetIndex": true,
   "drum": {
     "padCount": 16,
     "padNoteStart": 36,
@@ -626,7 +627,8 @@
             "full": "Voice 1 Lvl",
             "type": "float",
             "min": 0,
-            "max": 1
+            "max": 1,
+            "render": "vbar"
           },
           {
             "key": "v2_lvl",
@@ -634,7 +636,8 @@
             "full": "Voice 2 Lvl",
             "type": "float",
             "min": 0,
-            "max": 1
+            "max": 1,
+            "render": "vbar"
           },
           {
             "key": "v3_lvl",
@@ -642,7 +645,8 @@
             "full": "Voice 3 Lvl",
             "type": "float",
             "min": 0,
-            "max": 1
+            "max": 1,
+            "render": "vbar"
           },
           {
             "key": "v4_lvl",
@@ -650,7 +654,8 @@
             "full": "Voice 4 Lvl",
             "type": "float",
             "min": 0,
-            "max": 1
+            "max": 1,
+            "render": "vbar"
           }
         ],
         [
@@ -660,7 +665,8 @@
             "full": "Voice 5 Lvl",
             "type": "float",
             "min": 0,
-            "max": 1
+            "max": 1,
+            "render": "vbar"
           },
           {
             "key": "v6_lvl",
@@ -668,7 +674,8 @@
             "full": "Voice 6 Lvl",
             "type": "float",
             "min": 0,
-            "max": 1
+            "max": 1,
+            "render": "vbar"
           },
           {
             "key": "v7_lvl",
@@ -676,7 +683,8 @@
             "full": "Voice 7 Lvl",
             "type": "float",
             "min": 0,
-            "max": 1
+            "max": 1,
+            "render": "vbar"
           },
           {
             "key": "v8_lvl",
@@ -684,7 +692,8 @@
             "full": "Voice 8 Lvl",
             "type": "float",
             "min": 0,
-            "max": 1
+            "max": 1,
+            "render": "vbar"
           }
         ]
       ]

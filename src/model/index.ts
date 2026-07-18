@@ -139,8 +139,9 @@ export function createModel(slot: number, componentKey = 'synth') {
                     if (s.enumFmt[gi] === undefined) {
                         s.enumFmt[gi] = enumUsesIndex(p.options, shadow_get_param(s.activeSlot, s.componentKey + ':' + p.key));
                     }
+                    const usesIndex = s.moduleConfig?.enumSetIndex ? true : (s.enumFmt[gi] as boolean);
                     shadow_set_param(s.activeSlot, s.componentKey + ':' + p.key,
-                                     enumSetValue(p.options, idx, s.enumFmt[gi] as boolean));
+                                     enumSetValue(p.options, idx, usesIndex));
                 }
                 s.enumOverlay = null;
             }

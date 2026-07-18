@@ -11,17 +11,19 @@ const SPECTRAL = new Set<FilterMode>(['lp', 'hp', 'bp', 'notch', 'peak', 'ap']);
  * Combined names ("HP+LP") read as band-pass; "BandStop" reads as a notch. */
 export function normalizeFilterOption(opt: string): FilterMode | null {
     const s = opt.toLowerCase();
-    const hasLP = /lowpass|low pass|\blp\b/.test(s);
-    const hasHP = /highpass|high pass|\bhp\b/.test(s);
+    const hasLP = /lowpass|low pass|\blp\d?\b|\blp\d/.test(s);
+    const hasHP = /highpass|high pass|\bhp\d?\b|\bhp\d/.test(s);
+    // Moog-style ladder / roland variants read as the plain shape they colour.
+    if (/ladder/.test(s)) return hasHP || /\bhp/.test(s) ? 'hp' : 'lp';
     if (hasLP && hasHP) return 'bp';                         // "HP+LP"
-    if (/notch|bandstop|band stop/.test(s)) return 'notch';
-    if (/bandpass|band pass|\bbpf?\b/.test(s)) return 'bp';
+    if (/notch|bandstop|band stop|^n[\s\d]|^n$/.test(s)) return 'notch';
+    if (/bandpass|band pass|\bbpu?\b|\bbpf\b/.test(s)) return 'bp';
     if (hasHP) return 'hp';
     if (hasLP) return 'lp';
     if (/allpass|all ?pass|\bap\b/.test(s)) return 'ap';
     if (/peak|bell/.test(s)) return 'peak';
     if (/^\s*off\s*$/.test(s)) return 'off';
-    return null;
+    return null;   // Comb / unrecognised → not drawable (caller shows plain knobs)
 }
 
 /* True when an enum's options read as a filter-type picker: ≥2 spectral shapes

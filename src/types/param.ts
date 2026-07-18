@@ -40,6 +40,11 @@ export interface ModuleConfig {
     /* Params to set once when the module loads (e.g. disable a DSP auto-behavior
      * movy wants to own). Applied as componentKey-prefixed sets. */
     setOnLoad?: Record<string, string>;
+    /* Commit enum values by INDEX even when the DSP reports them by NAME on read.
+     * For modules whose set_param parses an integer index but whose get_param
+     * returns the option name (e.g. Forge) — without this movy would echo the
+     * name back and the DSP's atoi() would collapse every choice to index 0. */
+    enumSetIndex?: boolean;
 }
 
 export interface DrumConfig {

@@ -8,7 +8,7 @@
 import type { KnobParam } from '../types/param.js';
 import type { FilterVizVM } from '../types/viewmodel.js';
 import type { FilterLine } from './page-layout.js';
-import { filterModeFromEnum, isFilterModeEnum, slopeFromEnum, isSlopeEnum, type FilterMode } from './filter-mode.js';
+import { filterModeFromEnum, isFilterModeEnum, slopeFromEnum, isSlopeEnum, normalizeFilterOption, type FilterMode } from './filter-mode.js';
 
 const ENUM_ROLE = new Set(['mode', 'type', 'slope']);
 function words(text: string): string[] {
@@ -42,12 +42,20 @@ export function buildFilterViz(
         return null;
     };
 
-    return lines.map((g): FilterVizVM => {
+    const out: FilterVizVM[] = [];
+    for (const g of lines) {
         const quals = [g.cutQual, g.resQual];
         const modeP = g.modeIdx != null ? pageParams[g.modeIdx] : null;
-        const mode: FilterMode = modeP
-            ? filterModeFromEnum(modeP.options, raw(pageValues, g.modeIdx))
-            : offPageMode(quals) ?? g.staticMode ?? 'lp';
+        let mode: FilterMode | null;
+        if (modeP) {
+            // A same-page mode enum drives the shape directly; a type the curve
+            // can't draw (Forge Comb, unrecognised) → skip so cutoff/resonance
+            // render as ordinary knobs instead of a misleading LP curve.
+            mode = normalizeFilterOption(modeP.options?.[Math.round(raw(pageValues, g.modeIdx))] ?? '');
+            if (mode === null) continue;
+        } else {
+            mode = offPageMode(quals) ?? g.staticMode ?? 'lp';
+        }
 
         const vm: FilterVizVM = {
             line: g.line, startCol: g.startCol,
@@ -55,8 +63,9 @@ export function buildFilterViz(
         };
         const slope = resolveSlope(g, pageParams, pageValues, modeP);
         if (slope !== undefined) vm.slope = slope;
-        return vm;
-    });
+        out.push(vm);
+    }
+    return out;
 }
 
 /* Slope from a dedicated 12/24 dB enum (chordism), or baked into a mode option

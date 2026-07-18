@@ -42,6 +42,7 @@ export function paramIoKey(s: ModelState, p: KnobParam): string {
  * normally a hit; the get_param probe runs only for an enum never yet read
  * (e.g. committed before its first refresh) — not per turn. */
 function enumFmtFor(s: ModelState, gi: number, p: KnobParam, ioKey: string): boolean {
+    if (s.moduleConfig?.enumSetIndex) return true;   // DSP writes by index, reads by name
     if (s.enumFmt[gi] === undefined) {
         s.enumFmt[gi] = enumUsesIndex(p.options, shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey));
     }

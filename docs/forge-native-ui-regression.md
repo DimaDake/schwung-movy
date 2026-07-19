@@ -39,6 +39,11 @@ host-automatable `v{pad}_` keys on Kit A). Historical analysis follows.
   exist only for Kit A in the DSP, and `cv_lvl`-style keys were excluded
   because `v<N>_lvl` (mixer array) and `cv_lvl` (voice-bank level) are
   different DSP fields.
+- **Layout ownership:** the forge movy layout is canonical in the
+  **forge-move repo** (`src/movy_config.json`, shipped by its build/install
+  scripts to the module dir — the loader's self-describing path). movy
+  bundles no forge config; `browser-test/fixtures/forge-movy-config.json` is
+  a test-fixture snapshot of it.
 
 Related: [`forge-dependency.md`](forge-dependency.md) (the per-voice-CC feature
 this build introduced) and [`enum-automation-chain-fix.md`](enum-automation-chain-fix.md).

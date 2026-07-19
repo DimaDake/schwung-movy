@@ -4931,7 +4931,7 @@ _log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
     // Forge is unbundled — serve its movy_config.json (earlier tests reset the stub).
     {
         const savedHRF = globalThis.host_read_file;
-        const forgeLayout = readFileSync(new URL('../src/modules/forge.json', import.meta.url), 'utf8');
+        const forgeLayout = readFileSync(new URL('./fixtures/forge-movy-config.json', import.meta.url), 'utf8');
         globalThis.host_read_file = (p) => p.endsWith('/forge/movy_config.json') ? forgeLayout : null;
         const d = layout('forge', MOCK_SYNTHS.forge);
         eq('forge: 12 banks', d.banks.length, 12);

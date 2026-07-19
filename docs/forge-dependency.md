@@ -46,8 +46,12 @@ Once merged and released, this reduces to "requires Forge ≥ &lt;version&gt;".
 ## Notes
 
 - The `pv<N>_` DSP handling and its `chain_params` declarations live entirely in
-  Forge (the PR above). movy contributes only its own `src/modules/forge.json`
-  layout, which references the keys.
+  Forge (the PR above). The movy page/knob layout is **owned by Forge too**:
+  `src/movy_config.json` in the forge-move repo, packaged and deployed by its
+  build/install scripts to the module dir, where movy's loader picks it up
+  (self-describing module; movy bundles no forge config). movy keeps only a
+  fixture snapshot at `browser-test/fixtures/forge-movy-config.json` for its
+  tests — sync it when the forge-move layout changes.
 - The chain host caps declared params at 256, so the PR declares the per-voice
   set for **Kit A (voices 1–8)**; movy marks the rest `automatable: false` and
   gates Kit B via `drum.automatablePads`.

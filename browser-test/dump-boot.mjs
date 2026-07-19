@@ -38,9 +38,10 @@ export async function createDumpBoot(dump) {
                 JSON.stringify(m.movy_config);
         }
     }
-    // Forge ships its layout as movy_config.json (unbundled from movy); serve it
-    // from the authoring copy so the replay matches the device.
-    const forgeLayout = readFileSync(join(MOVY, 'src', 'modules', 'forge.json'), 'utf8');
+    // Forge ships its own movy_config.json (canonical: forge-move repo,
+    // src/movy_config.json); serve the fixture snapshot so the replay matches
+    // the device. Keep the fixture in sync when the forge-move layout changes.
+    const forgeLayout = readFileSync(join(MOVY, 'browser-test', 'fixtures', 'forge-movy-config.json'), 'utf8');
     movyConfigByPath['/data/UserData/schwung/modules/sound_generators/forge/movy_config.json'] = forgeLayout;
     globalThis.host_read_file = (path) => movyConfigByPath[path] ?? null;
 

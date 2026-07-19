@@ -2356,13 +2356,14 @@
   "hidden": 1
  },
  "sound_generator--forge": {
-  "pageCount": 11,
+  "pageCount": 12,
   "pageNames": [
    "Osc",
    "Filter",
    "Env",
    "Mod",
    "Setup",
+   "Send",
    "Kit",
    "Perf",
    "Mix",
@@ -2420,6 +2421,11 @@
     "GLIDE",
     "VSENS",
     "VINIT"
+   ],
+   [
+    "RVSND",
+    "DLSND",
+    "PAN"
    ],
    [
     "KIT",
@@ -2483,7 +2489,7 @@
   ],
   "envelopeLines": 1,
   "lfoViz": 1,
-  "hidden": 106
+  "hidden": 103
  },
  "sound_generator--freak": {
   "pageCount": 17,

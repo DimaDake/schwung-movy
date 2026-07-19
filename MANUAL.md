@@ -278,10 +278,17 @@ pages instead of a page per voice. *Signal* (4 voices) works this way:
 
 *Forge* takes it further: its **16 pads are a Kit A↔B performance grid** (lower
 two rows = Kit A, upper two = Kit B; the *Morph* knob crossfades them), and
-tapping any pad selects that voice for deep editing across five pages —
-**Osc, Filter, Env, Mod, Setup**:
+tapping any pad selects that voice for deep editing across six pages —
+**Osc, Filter, Env, Mod, Setup, Send**:
 
 ![Forge per-voice Osc page](docs/assets/forge_voice.png)
+
+The **Send** page holds the selected voice's mixer strip — **Reverb Send**,
+**Delay Send** and **Pan**. On Kit A pads these are automatable like any other
+per-voice parameter (classic per-step delay throws); Kit B pads can still be
+edited, just not automated:
+
+![Forge per-voice Send page](docs/assets/forge_send.png)
 
 Because there's no other way to choose a drum type on the device, drum modules
 rely on Movy's **layout templates**. Mr Drums, Weird Dreams, KrautDrums, Signal

@@ -1,10 +1,44 @@
 # Forge — native-UI regression & missing per-voice FX sends
 
-**Status:** open problem, no fix applied. This documents two defects in the
-Forge build currently deployed to the device (the `per-voice-cc` branch,
-filliformes/forge-move#1 / DimaDake/forge-move@`a30d6bc`), the full chain of
-requirements that produced them, and the design tension that any fix must
-resolve. It is the decision record for the fix; see **Fix options** at the end.
+**Status: RESOLVED (2026-07-19)** — by an option this doc originally missed
+(see **Resolution** below): schwung's shadow UI accepts param metadata **inline
+in `ui_hierarchy`** as an equal alternative to `chain_params`
+(`schwung/docs/MODULES.md`: *"Metadata (type, min, max) can come from either
+the hierarchy or `chain_params`"*; shipped 2026-03 in schwung `0b0747bf` with
+its own regression test). So the doc's central "three hard requirements in
+collision" framing was **false**: the native UI needs *metadata*, not
+`chain_params` membership. Fix (DimaDake/forge-move@`40d9d7f`, in
+filliformes/forge-move#1): every `cv_*` `ui_hierarchy` entry now carries its
+full metadata inline; `chain_params` keeps all 152 `pv_` — native UI restored
+**and** full 19-field × 8-voice automation kept. Problem 2 fixed in movy
+(`Send` bank + `suffixOverrides` padScoping, scoping sends/pan to the
+host-automatable `v{pad}_` keys on Kit A). Historical analysis follows.
+
+---
+
+## Resolution details (what shipped)
+
+- **forge-move `40d9d7f`** — `module.json` only (`dsp.so` unchanged): the 95
+  `cv_*` string entries in `ui_hierarchy` became metadata objects
+  (`{key, name, label, type, min/max/step | options}`, copied verbatim from the
+  stock `chain_params` definitions). The hierarchy editor resolves labels /
+  enum options / ranges from the merged metadata (`getParamMetadata`,
+  `{...hierarchyMeta, ...chainMeta}`) and edits via direct `set_param`, which
+  the DSP's `cv_*` handlers serve unchanged. `chain_params` stays 250/256.
+- **Side benefit:** chain-slot state snapshots (which iterate `chain_params`;
+  Forge has no `state` param) now capture `pv_` keys — a deterministic
+  all-voice snapshot — instead of racy current-voice `cv_` values.
+- **Known residual:** a user-saved chain patch whose *slot-global* CC knob
+  mapping (`knob_<N>_set`) targets a `cv_*` key no longer resolves via the
+  chain host's `knob_find_param` (needs `chain_params`); remap the knob to a
+  `pv<N>_`/`v<N>_` key. Hierarchy-editor knobs are unaffected (JS-side).
+- **Problem 2 (movy)** — new per-voice **Send** page (Reverb Send / Delay
+  Send / Pan). `padScoping.suffixOverrides` scopes these to `v{pad}_fx1/fx2/pan`
+  (declared in `chain_params` in every build → automatable) for pads ≤ 8,
+  falling back to `pv{pad}_*` (editable only) on Kit B pads — `v<N>_` keys
+  exist only for Kit A in the DSP, and `cv_lvl`-style keys were excluded
+  because `v<N>_lvl` (mixer array) and `cv_lvl` (voice-bank level) are
+  different DSP fields.
 
 Related: [`forge-dependency.md`](forge-dependency.md) (the per-voice-CC feature
 this build introduced) and [`enum-automation-chain-fix.md`](enum-automation-chain-fix.md).

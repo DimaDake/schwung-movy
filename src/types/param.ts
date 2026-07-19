@@ -69,6 +69,13 @@ export interface DrumConfig {
         aliasPrefix:         string;   // "pad_"
         concreteKeyTemplate: string;   // "p{pad}_{suffix}"
         padDigits:           number;   // 2
+        /* Per-suffix template overrides for params whose concrete keys follow a
+         * different shape than the module's main template (Forge: sends/pan are
+         * v{pad}_fx1, not pv{pad}_fx1 — only the v-form is host-automatable).
+         * `maxPad` bounds the override to pads whose v-form keys the DSP accepts
+         * (Forge: Kit A, 1-8); beyond it the main template applies, keeping the
+         * param editable (not automatable) on the remaining pads. */
+        suffixOverrides?: Record<string, { template: string; maxPad?: number }>;
     };
 }
 

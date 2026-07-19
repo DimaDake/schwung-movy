@@ -841,6 +841,15 @@ _log('\nTest: pad-scope concreteKey');
   // Genericness: a totally different scheme must work with zero code change.
   const alt = { aliasPrefix: 'v_', concreteKeyTemplate: 'voice{pad}.{suffix}', padDigits: 3 };
   eq('generic template', concreteKey(alt, 7, 'v_cut'), 'voice007.cut');
+  // suffixOverrides: an overridden suffix uses its own template within maxPad,
+  // falls back to the main template past it (Forge sends: v3_fx1 vs pv9_fx1).
+  const ov = {
+    aliasPrefix: 'cv_', concreteKeyTemplate: 'pv{pad}_{suffix}', padDigits: 1,
+    suffixOverrides: { fx1: { template: 'v{pad}_{suffix}', maxPad: 8 } },
+  };
+  eq('override within maxPad', concreteKey(ov, 3, 'cv_fx1'), 'v3_fx1');
+  eq('override past maxPad → main', concreteKey(ov, 9, 'cv_fx1'), 'pv9_fx1');
+  eq('non-override suffix → main', concreteKey(ov, 3, 'cv_wave'), 'pv3_wave');
 }
 
 /* ── Mr Drums: focused-pad scoping ───────────────────────────────────────── */
@@ -3146,6 +3155,16 @@ _log('\npad-scope aliasFromConcrete:');
     eq('bare alias is not concrete → null', aliasFromConcrete(ps, 'pad_pan'), null);
     eq('non-matching key → null', aliasFromConcrete(ps, 'timbre'), null);
     eq('no scoping → null', aliasFromConcrete(undefined, 'p07_pan'), null);
+    // suffixOverrides reverse-map ONLY their own literal suffix: v3_fx1 is the
+    // fx1 override's shape → cv_fx1, but v3_lvl (a Mix-bank concrete key that
+    // happens to share the template shape) must NOT alias-map.
+    const ov = {
+        aliasPrefix: 'cv_', concreteKeyTemplate: 'pv{pad}_{suffix}', padDigits: 1,
+        suffixOverrides: { fx1: { template: 'v{pad}_{suffix}', maxPad: 8 } },
+    };
+    eq('override concrete → alias', aliasFromConcrete(ov, 'v3_fx1'), 'cv_fx1');
+    eq('foreign key sharing shape → null', aliasFromConcrete(ov, 'v3_lvl'), null);
+    eq('main template still maps', aliasFromConcrete(ov, 'pv3_pwm'), 'cv_pwm');
 }
 
 /* ── automation: lane validation (purge stale / obsolete-alias lanes) ─────── */
@@ -3167,6 +3186,18 @@ _log('\nautomation validateLane:');
     eq('stale per-pad lane dropped', validateLane('synth:p07_cutoff', ps, lookup), 'drop');
     // Plain param not in the set (cross-module leftover) → stale → drop.
     eq('stale plain param dropped', validateLane('synth:timbre', ps, lookup), 'drop');
+    // A persisted lane on a suffix-override concrete key (Forge send: v3_fx1)
+    // validates through its alias; a Mix-bank concrete key sharing the shape
+    // (v3_lvl) validates as ITSELF (it's listed directly, never alias-mapped).
+    const ovPs = {
+        aliasPrefix: 'cv_', concreteKeyTemplate: 'pv{pad}_{suffix}', padDigits: 1,
+        suffixOverrides: { fx1: { template: 'v{pad}_{suffix}', maxPad: 8 } },
+    };
+    const ovMeta = { cv_fx1: { min: 0, max: 1, type: 'float' }, v3_lvl: { min: 0, max: 1, type: 'float' } };
+    const ovLookup = (k) => ovMeta[k] ?? null;
+    eq('override send lane kept', validateLane('synth:v3_fx1', ovPs, ovLookup).max, 1);
+    eq('direct concrete param kept', validateLane('synth:v3_lvl', ovPs, ovLookup).max, 1);
+    eq('stale override-shaped lane dropped', validateLane('synth:v3_zzz', ovPs, ovLookup), 'drop');
 }
 
 /* ── automation: clearing a clip's automation re-requests a label sync ─────── */
@@ -4903,7 +4934,12 @@ _log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
         const forgeLayout = readFileSync(new URL('../src/modules/forge.json', import.meta.url), 'utf8');
         globalThis.host_read_file = (p) => p.endsWith('/forge/movy_config.json') ? forgeLayout : null;
         const d = layout('forge', MOCK_SYNTHS.forge);
-        eq('forge: 11 banks', d.banks.length, 11);
+        eq('forge: 12 banks', d.banks.length, 12);
+        // Send bank: per-voice FX sends + pan, scoped v{pad}_ (host-automatable
+        // concrete keys) for Kit A via suffixOverrides.
+        eq('forge: send bank fx1', !!byKey(d, 'cv_fx1'), true);
+        eq('forge: send bank pan', !!byKey(d, 'cv_pan'), true);
+        eq('forge: fx1 override', d.drum?.padScoping?.suffixOverrides?.fx1?.template, 'v{pad}_{suffix}');
         eq('forge: 16 drum pads', d.drum?.padCount, 16);
         eq('forge: padScoping cv_ → pv{pad}_', d.drum?.padScoping?.concreteKeyTemplate, 'pv{pad}_{suffix}');
         // Rich per-voice params exposed as cv_* aliases (Osc/Filter/Env/Mod/Setup).

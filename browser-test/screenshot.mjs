@@ -48,7 +48,7 @@ const PRESETS = [
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
     'filter_slope24', 'filter_dual', 'filter_open',
-    'signal_voice', 'forge_voice', 'forge_filter', 'forge_mod', 'forge_mix',
+    'signal_voice', 'forge_voice', 'forge_filter', 'forge_mod', 'forge_send', 'forge_mix',
     'leave_modal',
 ];
 
@@ -72,7 +72,7 @@ const BASE = {
     filter_bp: 'filter_demo', filter_notch: 'filter_demo', filter_slope24: 'filter_demo',
     filter_dual: 'filter_dual', filter_open: 'filter_demo',
     signal_voice: 'signal', forge_voice: 'forge',
-    forge_filter: 'forge', forge_mod: 'forge', forge_mix: 'forge',
+    forge_filter: 'forge', forge_mod: 'forge', forge_send: 'forge', forge_mix: 'forge',
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
     lfo_target_overlay: 'test8', lfo_viz_unipolar: 'test8', lfo_viz_retrig: 'test8',
     lfo_mod_mark: 'test8', lfo_mod_and_auto: 'test8', lfo_assign_toast: 'test8',
@@ -220,7 +220,8 @@ function applyView(preset) {
         // Explicit filter:/lfo: tags in forge's movy-layout → curve / waveform.
         case 'forge_filter':   model.updateDrumPad(3, 38); model.changePage(1); settle(); forceRender(); break;
         case 'forge_mod':      model.updateDrumPad(3, 38); model.changePage(3); settle(); forceRender(); break;
-        case 'forge_mix':      model.changePage(7); settle(); forceRender(); break;   // Mix bank: vbar faders
+        case 'forge_send':     model.updateDrumPad(3, 38); model.changePage(5); settle(); forceRender(); break; // per-voice sends + pan
+        case 'forge_mix':      model.changePage(8); settle(); forceRender(); break;   // Mix bank: vbar faders
         case 'obxd_preset_page': forceRender(); break;                       // page 0
         case 'obxd_main_page':   model.changePage(1); forceRender(); break;
         case 'obxd_filter_page': model.changePage(3); forceRender(); break;

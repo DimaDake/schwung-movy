@@ -32,9 +32,13 @@ FAILURES=0
 inj() { python3 "$INJECT" "$HOST" "$@" >/dev/null 2>&1; }
 movylog() { ssh "ableton@$HOST" "grep '\[movy\]' $LOG 2>/dev/null || true"; }
 
-# CC numbers (shared/constants.mjs): jog-click=3, Play=85, Rec=86, knob2=72.
-CC_JOG=3; CC_PLAY=85; CC_REC=86; CC_KNOB2=72; CC_BACK=51
-STEP1=16; STEP5=20; PAD=80
+# CC numbers (shared/constants.mjs): jog-click=3, Play=85, Rec=86, knob5=75.
+# Knob 5 = LEVEL on Forge's Osc page — must be an AUTOMATABLE param (knob 2 =
+# Coarse Ratio is automatable:false since the Kit-A curation, which silently
+# broke the dot assertions). PAD=68 = drum pad 1 (bottom-left): the default
+# focused pad after a reopen, so the reopen dot check sees the lane's pad.
+CC_JOG=3; CC_PLAY=85; CC_REC=86; CC_KNOB2=75; CC_BACK=51
+STEP1=16; STEP5=20; PAD=68
 
 # ── Pre-flight + deploy ───────────────────────────────────────────────────────
 ssh -o ConnectTimeout=5 "ableton@$HOST" 'echo ok' >/dev/null 2>&1 || {
@@ -57,7 +61,7 @@ f=open(\"/dev/shm/schwung-control\",\"r+b\"); mm=mmap.mmap(f.fileno(),0); mm[56]
 sleep 3
 
 # ── 1. Create automation, verify it displays (P1, P2) ─────────────────────────
-info "Knobs view + clip + play, then hold step 5 and turn knob 2 down..."
+info "Knobs view + clip + play, then hold step 5 and turn knob 5 (automatable)..."
 inj cc $CC_JOG 127; sleep 0.1; inj cc $CC_JOG 0; sleep 0.3          # chain → knobs
 inj note_on $PAD 100; sleep 0.1; inj note_off $PAD; sleep 0.1       # set step-entry pitch
 inj note_on $STEP1 127; sleep 0.1; inj note_off $STEP1; sleep 0.2   # place note (auto-clip)
@@ -97,7 +101,7 @@ fi
 #       turn while recording. This is the path the held-step test misses: a live
 #       take is recArmed (recording+playing), NOT step-auto, so its repaint is
 #       driven by liveTurn, not heldLocks. Frozen screen here = the reported bug.
-info "Arming Record and turning knob 2 live (no step held)..."
+info "Arming Record and turning knob 5 live (no step held)..."
 inj cc $CC_REC 127; sleep 0.1; inj cc $CC_REC 0                     # arm record (one-bar count-in)
 sleep 3                                                             # let the count-in elapse → recording live
 # Drive to the floor first so the up-sweep below has full headroom and a known

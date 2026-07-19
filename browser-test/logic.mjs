@@ -3200,6 +3200,43 @@ _log('\nautomation validateLane:');
     eq('stale override-shaped lane dropped', validateLane('synth:v3_zzz', ovPs, ovLookup), 'drop');
 }
 
+/* ── automation: chain-mapping verify/re-apply after a module reload ──────── */
+_log('\nautomation verifyLaneMappings:');
+{
+    const { verifyLaneMappings, automationRegistry, resetAutomation } =
+        await import('../dist/esm/seq/automation.js');
+    resetAutomation();
+    const reg = automationRegistry();
+    reg[0][0] = { targetParam: 'synth:pv1_f1_cut', shortName: 'pv1_f1_cut', min: 0, max: 1, type: 'float' };
+    reg[0][3] = { targetParam: 'synth:v5_fx2', shortName: 'v5_fx2', min: 0, max: 1, type: 'float' };
+
+    // Mapping intact ("target: param" format) → no re-apply.
+    let applied = [];
+    let reads = 0;
+    const run = (name) => verifyLaneMappings(
+        () => { reads++; return name; },
+        (slot, lane, tp) => applied.push(slot + ':' + lane + ':' + tp),
+    );
+    // 4 calls round-robin all tracks; only track 0 has lanes → 1 read.
+    reads = 0; applied = [];
+    for (let i = 0; i < 4; i++) run('synth: pv1_f1_cut');
+    eq('intact mapping: no re-apply', applied.length, 0);
+    eq('only lane-bearing track reads', reads, 1);
+
+    // Mapping cleared (null name = chain returned "knob not mapped") → every
+    // assigned lane on that track re-applied.
+    applied = [];
+    for (let i = 0; i < 4; i++) run(null);
+    eq('cleared mapping: re-applies all lanes',
+        applied.join('|'), '0:0:synth:pv1_f1_cut|0:3:synth:v5_fx2');
+
+    // Foreign mapping (module swapped, knob remapped elsewhere) → re-apply.
+    applied = [];
+    for (let i = 0; i < 4; i++) run('synth: cutoff');
+    eq('foreign mapping: re-applies', applied.length, 2);
+    resetAutomation();
+}
+
 /* ── automation: clearing a clip's automation re-requests a label sync ─────── */
 /* The engine frees a lane when its last lock is removed; the UI must re-sync so
  * the freed lane leaves the registry (no phantom assigned lane). */

@@ -268,6 +268,36 @@ export function clearLaneForKnob(track: number, info: KnobParamInfo): void {
     if (lane >= 0) clearLane(track, lane);
 }
 
+/* Chain knob mappings are chain-side state: a module reload (user swap from
+ * the shadow UI, or a dev redeploy) silently clears them while the lane
+ * registry and the engine's lanes live on — automation then no-ops with a
+ * fully intact UI. Called on a slow cadence; verifies ONE track per call
+ * (round-robin) by reading the first assigned lane's knob_<N>_name and
+ * re-issuing every lane's knob_<N>_set on mismatch. The name check matches
+ * the chain's "target: param" format loosely (both halves present) so a
+ * formatting tweak can't trigger a re-apply storm. */
+let verifyTrack = 0;
+export function verifyLaneMappings(
+    readKnobName: (slot: number, lane: number) => string | null,
+    apply: (slot: number, lane: number, targetParam: string) => void,
+): void {
+    const t = verifyTrack;
+    verifyTrack = (verifyTrack + 1) & 3;
+    const lanes = registry[t];
+    const first = lanes.findIndex((e) => e !== null);
+    if (first < 0) return; // no lanes on this track → no IPC
+    const e = lanes[first]!;
+    const name = readKnobName(t, first);
+    const sep = e.targetParam.indexOf(':');
+    const target = e.targetParam.slice(0, sep);
+    const param  = e.targetParam.slice(sep + 1);
+    if (name && name.indexOf(target) >= 0 && name.indexOf(param) >= 0) return;
+    for (let l = 0; l < 8; l++) {
+        const le = lanes[l];
+        if (le) apply(t, l, le.targetParam);
+    }
+}
+
 export type LaneRange = { min: number; max: number; type: string };
 /* `drop` = purge the persisted lane (stale param / obsolete alias key);
  * `unknown` = chain not loaded yet, keep the lane untouched this pass. */

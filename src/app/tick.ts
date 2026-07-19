@@ -17,7 +17,7 @@ import { renderChainView }    from '../renderer/chain-view.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
-import { syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull } from '../seq/automation.js';
+import { syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull, verifyLaneMappings } from '../seq/automation.js';
 import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
 import { concreteKey } from '../model/pad-scope.js';
@@ -156,6 +156,11 @@ let drumRepaintTicks = 0;
 let lastActiveSlot   = -1;
 let lastShownKey     = '';   // identity of the on-screen param page (for touch reset)
 
+/* Device ticks ~90-205 Hz → verify one track's lane mappings every ~2-5 s;
+ * full 4-track coverage inside ~20 s of a module reload. */
+const LANE_VERIFY_TICKS = 400;
+let laneVerifyTicks = 0;
+
 /* Return from background: the host restored the suspend-time LED snapshot to
  * hardware, but the sequencer advanced while we were parked, so every on-change
  * LED cache is now stale. Drop them all and force a full repaint so the first
@@ -229,6 +234,20 @@ export function tick(): void {
                 },
             );
         }
+    }
+    // A chain module reload (user swap, dev redeploy) clears the chain-side
+    // knob mappings while the lane registry lives on — automation then no-ops
+    // with an intact UI. Slow round-robin verify + re-apply (1 IPC read per
+    // window, tracks with no lanes cost nothing).
+    if (++laneVerifyTicks >= LANE_VERIFY_TICKS) {
+        laneVerifyTicks = 0;
+        verifyLaneMappings(
+            (slot, lane) => shadow_get_param(slot, 'knob_' + (lane + 1) + '_name'),
+            (slot, lane, tp) => {
+                mlog('auto remap t=' + slot + ' lane=' + lane + ' ' + tp);
+                shadow_set_param(slot, 'knob_' + (lane + 1) + '_set', tp);
+            },
+        );
     }
     seqPersistTick();
     /* Session toggle changes pad ownership: invalidate the seq LED cache and

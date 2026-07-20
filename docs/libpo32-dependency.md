@@ -15,9 +15,12 @@ The per-voice keys are a general Libpo32 feature (not movy-specific):
 
 Writes go straight to the voice's patch and never touch the selected-voice
 state, so per-voice automation is safe while notes play and can drive several
-voices at once. A dynamically generated `chain_params` publishes a curated
-continuous set (12 fields × 16 voices + 3 globals = 195, under the chain's
-256-param cap); all 21 fields stay settable directly.
+voices at once. The curated continuous set (12 fields × 16 voices + 3 globals =
+195, under the chain's 256-param cap) is declared in the module's `module.json`
+`chain_params` — **required**: the chain host builds its knob/automation mapping
+table from `module.json` (not the plugin's `get_param`), and only maps
+`chain_params` when the `ui_hierarchy` root params carry no inline `type`
+metadata. All 21 fields stay settable directly.
 
 `movy_config.json` maps its `v_` aliases to `v{pad}_` concrete keys via
 padScoping (`padDigits: 2`, so voices 1–16 become `v01_`…`v16_`), so movy

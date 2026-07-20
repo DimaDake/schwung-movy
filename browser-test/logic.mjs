@@ -5056,6 +5056,51 @@ _log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
         globalThis.host_read_file = savedHRF;
     }
 
+    // libpo32: 16-voice PO-32/Microtonic drum synth. Per-voice editing is
+    // PLAYBACK-SAFE via padScoping v_ → v{pad}_ (padDigits 2, voices 1-16),
+    // addressing the DSP's direct per-index keys. Self-describing: layout loads
+    // from the module's movy_config.json (served from the fixture snapshot).
+    {
+        const savedHRF = globalThis.host_read_file;
+        const po32Layout = readFileSync(new URL('./fixtures/libpo32-movy-config.json', import.meta.url), 'utf8');
+        globalThis.host_read_file = (p) => p.endsWith('/po32-drum/movy_config.json') ? po32Layout : null;
+        const byKey = (dd, k) => dd.params.find(p => p && p.key === k);
+
+        const d = bootModel(MOCK_SYNTHS.libpo32).dumpLayout();
+        eq('libpo32: 5 banks', d.banks.length, 5);
+        eq('libpo32: 16 drum pads', d.drum?.padCount, 16);
+        eq('libpo32: padScoping v_ → v{pad}_', d.drum?.padScoping?.concreteKeyTemplate, 'v{pad}_{suffix}');
+        eq('libpo32: padDigits 2 (voices 1-16)', d.drum?.padScoping?.padDigits, 2);
+        for (const k of ['v_wave', 'v_freq', 'v_dcy', 'v_mmode', 'v_nfmode', 'v_nffrq', 'v_nfq', 'v_mix', 'v_lvl'])
+            eq(`libpo32: per-voice ${k}`, !!byKey(d, k), true);
+        for (const k of ['kit', 'level', 'decay']) eq(`libpo32: global ${k}`, !!byKey(d, k), true);
+
+        // padScoping: the focused pad drives the concrete key. Pad 1 → v01_freq,
+        // pad 16 → v16_freq — a fixed index, so per-voice edits are playback-safe.
+        const infoByKey = (mm, alias) => {
+            for (let k = 0; k < 8; k++) { const i = mm.getKnobParamInfo(k); if (i?.key === alias) return i; }
+            return null;
+        };
+        const pg = bootModel(MOCK_SYNTHS.libpo32);
+        for (let t = 0; t < 4; t++) pg.tick();   // round-robin refresh reaches row-0 knobs
+        eq('libpo32: pad 1 PITCH ioKey v01_freq', infoByKey(pg, 'v_freq').ioKey, 'v01_freq');
+        eq('libpo32: v01_freq value (0.25)', infoByKey(pg, 'v_freq').value, 0.25);
+        pg.updateDrumPad(16, 51);
+        eq('libpo32: focus moved to pad 16', pg.getViewModel().drumCurrentPad, 16);
+        eq('libpo32: PITCH follows to v16_freq', infoByKey(pg, 'v_freq').ioKey, 'v16_freq');
+        eq('libpo32: v16_freq re-read (0.50)', infoByKey(pg, 'v_freq').value, 0.5);
+        eq('libpo32: no duplicate shortNames per page', noDupShorts(bootModel(MOCK_SYNTHS.libpo32)), null);
+
+        // The Noise bank (index 2) carries the filter graphic via explicit
+        // filter: tags (cutoff=v_nffrq, resonance=v_nfq, mode=v_nfmode).
+        const fv = bootModel(MOCK_SYNTHS.libpo32);
+        fv.changePage(2 - fv.getKnobPage());
+        for (let t = 0; t < 4; t++) fv.tick();
+        eq('libpo32: Noise page draws a filter curve', (fv.getViewModel().filterViz ?? []).length, 1);
+
+        globalThis.host_read_file = savedHRF;
+    }
+
     // Self-describing module: forge is NOT bundled in movy; its layout loads from
     // the module's movy_config.json (served here from the authoring copy).
     {

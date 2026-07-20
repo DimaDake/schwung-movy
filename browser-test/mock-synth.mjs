@@ -527,6 +527,19 @@ export const MOCK_SYNTHS = {
         "synth:kit":         "4",
     },
 
+    /* libpo32: 16-voice PO-32/Microtonic drum synth. Per-voice editing is
+     * PLAYBACK-SAFE via padScoping v_ → v{pad}_ (padDigits 2 for voices 1-16),
+     * addressing the patched DSP's direct per-index keys. Layout loads from the
+     * module's movy_config.json (served by the test). */
+    libpo32: {
+        "synth:name":        "Libpo32",
+        "synth_module":      "po32-drum",
+        "synth:v01_wave":    "1",    "synth:v01_freq":  "0.25",
+        "synth:v03_freq":    "0.33", "synth:v16_freq":  "0.50",
+        "synth:v01_nfmode":  "1",    "synth:v01_nffrq": "0.60",
+        "synth:kit":         "2",    "synth:level":     "1.0",  "synth:decay": "1.0",
+    },
+
     /* C1: root has ≥8 knobs AND the preset key is also listed inside root.knobs.
      * loadHierarchy adds a dedicated "Preset" page (presetSeparate) — the preset
      * key must NOT also render on "Main - 1". Mirrors impressive-chords/breakbeat. */

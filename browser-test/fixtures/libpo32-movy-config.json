@@ -1,0 +1,94 @@
+{
+  "id": "po32-drum",
+  "name": "Libpo32",
+  "drum": {
+    "padCount": 16,
+    "padNoteStart": 36,
+    "rawMidi": false,
+    "padScoping": {
+      "aliasPrefix": "v_",
+      "concreteKeyTemplate": "v{pad}_{suffix}",
+      "padDigits": 2
+    }
+  },
+  "banks": [
+    {
+      "name": "Osc",
+      "padSpecific": true,
+      "rows": [
+        [
+          { "key": "v_wave", "short": "WAVE", "full": "Wave", "type": "enum", "options": ["Sine", "Tri", "Saw"] },
+          { "key": "v_freq", "short": "PITCH", "full": "Pitch", "type": "float", "min": 0, "max": 1 },
+          { "key": "v_atk",  "short": "ATK",  "full": "Attack", "type": "float", "min": 0, "max": 1 },
+          { "key": "v_dcy",  "short": "DECAY", "full": "Decay", "type": "float", "min": 0, "max": 1 }
+        ],
+        [
+          { "key": "v_lvl",  "short": "LEVEL", "full": "Level", "type": "float", "min": 0, "max": 1 },
+          { "key": "v_mix",  "short": "NOISE", "full": "Noise Mix", "type": "float", "min": 0, "max": 1 },
+          { "key": "v_dist", "short": "DIST", "full": "Distortion", "type": "float", "min": 0, "max": 1 },
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Mod",
+      "padSpecific": true,
+      "rows": [
+        [
+          { "key": "v_mmode", "short": "MOD", "full": "Mod Mode", "type": "enum", "options": ["Drop", "Sine", "Noise"] },
+          { "key": "v_mrate", "short": "MRATE", "full": "Mod Rate", "type": "float", "min": 0, "max": 1 },
+          { "key": "v_mamt",  "short": "BEND", "full": "Bend", "type": "float", "min": 0, "max": 1 },
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Noise",
+      "padSpecific": true,
+      "rows": [
+        [
+          { "key": "v_nfmode", "short": "NFILT", "full": "Noise Filter", "type": "enum", "options": ["LP", "BP", "HP"], "filter": "mode" },
+          { "key": "v_nffrq",  "short": "NFRQ", "full": "Noise Freq", "type": "float", "min": 0, "max": 1, "filter": "cutoff" },
+          { "key": "v_nfq",    "short": "NQ", "full": "Noise Q", "type": "float", "min": 0, "max": 1, "filter": "resonance" },
+          null
+        ],
+        [
+          { "key": "v_nemode", "short": "NENV", "full": "Noise Env", "type": "enum", "options": ["Exp", "Lin", "Clap"] },
+          { "key": "v_neatk",  "short": "NATK", "full": "Noise Attack", "type": "float", "min": 0, "max": 1 },
+          { "key": "v_nedcy",  "short": "NDCY", "full": "Noise Decay", "type": "float", "min": 0, "max": 1 },
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Voice",
+      "padSpecific": true,
+      "rows": [
+        [
+          { "key": "v_eqfrq",  "short": "EQFRQ", "full": "EQ Freq", "type": "float", "min": 0, "max": 1, "automatable": false },
+          { "key": "v_eqgain", "short": "EQGN", "full": "EQ Gain", "type": "float", "min": 0, "max": 1, "automatable": false },
+          { "key": "v_ovel",   "short": "OVEL", "full": "Osc Vel", "type": "float", "min": 0, "max": 1, "automatable": false },
+          { "key": "v_nvel",   "short": "NVEL", "full": "Noise Vel", "type": "float", "min": 0, "max": 1, "automatable": false }
+        ],
+        [
+          { "key": "v_mvel",   "short": "MVEL", "full": "Mod Vel", "type": "float", "min": 0, "max": 1, "automatable": false },
+          null,
+          null,
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Main",
+      "global": true,
+      "rows": [
+        [
+          { "key": "kit",   "short": "KIT",   "full": "Kit",   "type": "int",   "min": 0, "max": 31 },
+          { "key": "level", "short": "LEVEL", "full": "Level", "type": "float", "min": 0, "max": 1 },
+          { "key": "decay", "short": "DECAY", "full": "Decay", "type": "float", "min": 0.1, "max": 3 },
+          null
+        ]
+      ]
+    }
+  ]
+}

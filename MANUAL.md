@@ -290,10 +290,17 @@ edited, just not automated:
 
 ![Forge per-voice Send page](docs/assets/forge_send.png)
 
+*Libpo32* (a PO-32 / Microtonic-style engine) gives all **16 voices** the same
+treatment across **Osc, Mod, Noise and Voice** pages: pitch, decay, noise mix,
+distortion and level are per-voice automatable, and the Noise page draws the
+noise filter's response curve. Each voice is addressed by a fixed index, so
+per-voice automation is playback-safe regardless of which pad last played.
+
 Because there's no other way to choose a drum type on the device, drum modules
-rely on Movy's **layout templates**. Mr Drums, Weird Dreams, KrautDrums, Signal
-and Forge ship templates; other drum modules may need one contributed (see
-[CONTRIBUTING.md](CONTRIBUTING.md)).
+rely on Movy's **layout templates**. Mr Drums, Weird Dreams, KrautDrums and
+Signal ship Movy templates; Forge and Libpo32 are **self-describing** — they
+carry their own layout in the module. Other drum modules may need one
+contributed (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ---
 

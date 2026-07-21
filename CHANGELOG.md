@@ -15,6 +15,69 @@ far. Earlier work is summarised in the timeline below for context.
 
 - _Nothing yet._
 
+## [0.23.0] — 2026-07-21
+
+A large release focused on **synchronising Movy with Move's transport**, a new
+**per-track LFO page**, **parameter visualisations** (envelopes, filters, LFO
+waveforms), **per-voice drum editing**, and a fleet-wide pass over module
+layouts. Engine bumped `0.22.0` → `0.26.0`.
+
+### Added — one transport with Move
+- **Automatic clock follow** — Movy's playhead locks to Move's transport
+  (drift-free), captures its tempo, and shows an **EXT** indicator while
+  following. The TEMPO knob writes tempo back to the device.
+- **Background mode** — Back at the root view opens a **Leave** menu; choosing
+  Background parks Movy under Move's own screens while the sequencer keeps
+  running (render/LED work is skipped while parked; `onResume()` forces a full
+  repaint on return). **Shift + Back** exits instantly.
+- **LINK toggle** (Set page, knob 4) — opt in to a shared transport: Play/Stop
+  on either Movy or Move starts and stops both. Gated behind a per-set
+  `link_enabled` flag and persisted with the set.
+- **MIDI transport emission** — the engine emits Start / 24 ppqn Clock / Stop
+  while playing; synced LFOs phase-lock to the transport instead of free-running.
+
+### Added — per-track LFO page
+- A fifth chain slot exposing the track's **two Schwung slot LFOs** with a live
+  **waveform display** (shape, rate/sync, depth, phase, retrigger dot; skew
+  deformation and shapes 6–10).
+- **Hold any knob (1 s)** to assign it as an LFO modulation target; modulated
+  params are marked with a `~` and keep their base value underneath.
+
+### Added — parameter visualisations
+- **Envelope graphics** now cover **partial** envelopes — AD / AR / ASR / ADS
+  render as 2- or 3-stage shapes, not just full ADSR.
+- **Filter-response curves** — detect a cutoff+resonance pair, reorder them onto
+  one line, and draw a mode-aware curve (LP/HP/BP/open) with a rounded corner
+  and steep roll-off.
+- **Module-LFO waveforms** on any module — shape detection by name inference,
+  with rate (1–2 cycles) and depth encoded under the graphic.
+- Visualisations track the **automation value** currently being edited.
+
+### Added — per-voice drum editing
+- **Forge** — 16-pad Kit A/B layout with full **per-voice editing**
+  (playback-safe `pv<N>_` writes), a curated per-voice **automation** set
+  (Kit A), and a per-voice **Send** page (reverb/delay/pan). Driven by a
+  self-describing `movy_config.json` shipped with the module.
+- **libpo32** — consumes the module's self-describing per-voice layout
+  (`v<N>_` direct keys, dynamic `chain_params`).
+
+### Changed — module layouts (fleet-wide dump pass)
+- **Module metadata now wins over config** — `movy_config.json` only fills gaps
+  the module's own hierarchy leaves.
+- Curated layouts for chordism, sfz, 303, chiptune, hush1 (+ mrdrums choke);
+  param pages for `chain_params`-only modules; one-page-per-bank alignment and
+  named preset knobs.
+- **Knob sensitivity normalised** to a consistent per-range sweep.
+- Corrected param ranges to match DSP clamps (weird-dreams, essaim; mrdrums
+  vol/attack/polyphony expanded to native range).
+- On-screen short-name dedup overhaul; int type/range inferred for
+  metadata-less params; preset knobs no longer render on two pages.
+
+### Added — tooling
+- **Module inventory dump** — a device collector plus a Movy layout snapshot,
+  and a **dump-replay regression suite** over all 76 fleet modules wired into
+  `npm test`.
+
 ## [0.22.0] — 2026-07-01
 
 ### Added

@@ -1,6 +1,7 @@
 import { browserState } from './state.js';
 import { appState, VIEW_BROWSE } from '../app/state.js';
 import { moduleReadKey, type ChainSlot } from '../chain/config.js';
+import { requestLaneWarm } from '../seq/automation.js';
 
 const MODULES_BASE = '/data/UserData/schwung/modules';
 
@@ -61,6 +62,10 @@ export function loadSelectedModule(): void {
     const isMaster = browserState.componentKey.includes(':');
     const value    = isMaster ? mod.path : mod.id;
     shadow_set_param(browserState.paramSlot, browserState.componentKey + ':module', value);
+    // The reload empties the host's static param cache; a same-id reselect won't
+    // trip the module-name watcher, so schedule the warm here too (see
+    // warmLaneParams) — without it, abs-CC automation is inaudible until restart.
+    requestLaneWarm(browserState.paramSlot);
     appState.currentView = appState.browseOrigin;
     appState.dirty = true;
     browserState.reload?.();

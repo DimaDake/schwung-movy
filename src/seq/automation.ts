@@ -13,6 +13,7 @@ import { seqState } from './state.js';
 import { seqToast } from './render.js';
 import { beginStepAutomation, heldRange } from './step-edit.js';
 import { aliasFromConcrete, type PadScoping } from '../model/pad-scope.js';
+import { mlog } from '../log.js';
 
 export interface LaneEntry {
     targetParam: string;   // "synth:cutoff"
@@ -54,6 +55,7 @@ export function resetAutomation(): void {
     liveCtx.clear();
     liveTurn.clear();
     touchedNotTurned.clear();
+    warmPending.fill(0);
     lastDisplaySig = '';
 }
 
@@ -295,6 +297,56 @@ export function verifyLaneMappings(
     for (let l = 0; l < 8; l++) {
         const le = lanes[l];
         if (le) apply(t, l, le.targetParam);
+    }
+}
+
+/* A chain module (re)load leaves the host's per-component param-metadata cache
+ * (synth_params etc.) EMPTY for self-describing modules — they ship no static
+ * params in module.json, so the host only fills the cache from the plugin's
+ * DYNAMIC chain_params via a throttled runtime refresh. abs-CC playback resolves
+ * its target through find_param_info (the STATIC cache, no refresh), so it reads
+ * empty and silently drops the CC while the UI, manual edits and the plugin's
+ * own chain_params all still work — automation goes inaudible until a full
+ * chain re-init (what a tool reopen/"restart" does). Reading a mapped knob's
+ * `_value` routes through the host's find_param_by_key, which DOES run that
+ * refresh and repopulates the cache; one read per (track, component) is enough.
+ * Verified on device: obxd reselect → cache empty → one knob_N_value read →
+ * cache repopulated (POPULATED=false → true). */
+function warmLaneParams(track: number, readValue: (track: number, lane: number) => void): void {
+    const lanes = registry[track];
+    const seen = new Set<string>();
+    for (let l = 0; l < 8; l++) {
+        const e = lanes[l];
+        if (!e) continue;
+        const comp = e.targetParam.slice(0, e.targetParam.indexOf(':'));
+        if (seen.has(comp)) continue; // the refresh is per-component, not per-lane
+        seen.add(comp);
+        readValue(track, l);
+    }
+}
+
+/* A reselect's chain reload is async, so the warm must span a short window after
+ * it (not a single tick that might fire before the host finishes v2_load_synth).
+ * Event-driven — nothing runs when no reload is pending, so there is no idle IPC
+ * cost — and reads are strided so the window is a handful of reads, not a burst. */
+const warmPending = [0, 0, 0, 0];
+const WARM_WINDOW = 96;   // ~0.5 s at the ~205 Hz device tick
+const WARM_STRIDE = 16;   // → ~6 reads across the window
+
+/* Schedule `track`'s lane param-cache warm after a chain (re)load. */
+export function requestLaneWarm(track: number): void {
+    if (track < 0 || track >= 4) return;
+    warmPending[track] = WARM_WINDOW;
+    if (registry[track].some((e) => e !== null)) mlog('auto warm req t=' + track);
+}
+
+/* Per-tick pump for scheduled warms. Cheap when idle (all counters 0). */
+export function laneWarmTick(readValue: (track: number, lane: number) => void): void {
+    for (let t = 0; t < 4; t++) {
+        const c = warmPending[t];
+        if (c <= 0) continue;
+        warmPending[t] = c - 1;
+        if (c % WARM_STRIDE === 0) warmLaneParams(t, readValue);
     }
 }
 

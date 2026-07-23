@@ -17,7 +17,7 @@ import { renderChainView }    from '../renderer/chain-view.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
-import { syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull, verifyLaneMappings } from '../seq/automation.js';
+import { syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull, verifyLaneMappings, requestLaneWarm, laneWarmTick } from '../seq/automation.js';
 import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
 import { concreteKey } from '../model/pad-scope.js';
@@ -161,6 +161,12 @@ let lastShownKey     = '';   // identity of the on-screen param page (for touch 
 const LANE_VERIFY_TICKS = 400;
 let laneVerifyTicks = 0;
 
+/* Reading a mapped knob's `_value` routes through the host's find_param_by_key,
+ * which repopulates the per-component param cache abs-CC needs after a reload. */
+const warmReadValue = (slot: number, lane: number): void => {
+    shadow_get_param(slot, 'knob_' + (lane + 1) + '_value');
+};
+
 /* Return from background: the host restored the suspend-time LED snapshot to
  * hardware, but the sequencer advanced while we were parked, so every on-change
  * LED cache is now stale. Drop them all and force a full repaint so the first
@@ -249,6 +255,9 @@ export function tick(): void {
             },
         );
     }
+    // Drive any scheduled param-cache warms (spread across a short window after a
+    // reselect/reload; idle-cheap). Recovers abs-CC audibility without a restart.
+    laneWarmTick(warmReadValue);
     seqPersistTick();
     /* Session toggle changes pad ownership: invalidate the seq LED cache and
      * re-init the instrument pad LEDs when returning to Note mode. */
@@ -318,7 +327,12 @@ export function tick(): void {
     const mnKey = appState.activeSlot + ':' + chainIdx;
     const mn    = activeModel?.getModuleName() ?? '';
     if (mn && lastModuleName.get(mnKey) !== mn) {
-        if (lastModuleName.has(mnKey)) requestLabelSync();
+        if (lastModuleName.has(mnKey)) {
+            requestLabelSync();
+            // The reload emptied the host's static param cache; schedule the warm
+            // so abs-CC automation becomes audible again (see warmLaneParams).
+            requestLaneWarm(appState.activeSlot);
+        }
         lastModuleName.set(mnKey, mn);
     }
 

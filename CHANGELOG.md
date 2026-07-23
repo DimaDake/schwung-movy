@@ -13,7 +13,14 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
-- _Nothing yet._
+### Fixed
+
+- **Step automation is audible again after reselecting a module.** Reselecting a
+  self-describing module (OB-Xd, Weird Dreams, Noisemaker, …) hot-reloaded its
+  chain host and left the host's static param cache empty, so automation
+  playback was silently dropped while the UI still showed it — only a restart
+  recovered it. Movy now refreshes that cache after a reselect, so recorded
+  automation keeps playing without a restart.
 
 ## [0.23.0] — 2026-07-21
 

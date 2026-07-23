@@ -2863,6 +2863,56 @@ _log('\nautomation pool-full (lane count):');
     eq('after freeing one → not full', poolIsFull(0), false);
 }
 
+/* ── automation: lane param-cache warm after a chain reload ───────────────── */
+/* A reselect empties the host's static param cache (find_param_info source) for
+ * self-describing modules → abs-CC playback silently drops. Reading a mapped
+ * knob's _value triggers the host's refreshing lookup; warmLaneParams does that,
+ * scheduled over a short strided window so it spans the async reload. */
+_log('\nautomation lane warm:');
+{
+    const { resetAutomation, assignLane, requestLaneWarm, laneWarmTick } =
+        await import('../dist/esm/seq/automation.js');
+    const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const mk = (k) => ({ gi: 0, key: k, ioKey: k, target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true });
+
+    // Idle: no pending warm → no reads (zero idle IPC cost).
+    resetAutomation(); resetSeqEngine();
+    let reads = [];
+    const rec = (t, l) => reads.push(t + ':' + l);
+    for (let i = 0; i < 200; i++) laneWarmTick(rec);
+    eq('idle warm does nothing', reads.length, 0);
+
+    // One synth lane on track 0 → a scheduled window warms it a handful of times.
+    assignLane(0, 0, mk('cutoff'), () => true);
+    requestLaneWarm(0);
+    reads = [];
+    for (let i = 0; i < 96; i++) laneWarmTick(rec);
+    eq('warm window fires ~6 strided reads', reads.length, 6);
+    eq('warm reads the lane on its track', reads.every((r) => r === '0:0'), true);
+    // Window closes: further ticks are silent until the next request.
+    reads = [];
+    for (let i = 0; i < 96; i++) laneWarmTick(rec);
+    eq('warm stops after the window', reads.length, 0);
+
+    // Two lanes on the SAME component → deduped to one read per warm (the refresh
+    // repopulates the whole component's params, not just one param's).
+    resetAutomation(); resetSeqEngine();
+    assignLane(0, 0, mk('cutoff'), () => true);
+    assignLane(0, 0, mk('attack'), () => true);
+    requestLaneWarm(0);
+    reads = [];
+    for (let i = 0; i < 96; i++) laneWarmTick(rec);
+    eq('same-component lanes deduped to one read/warm', reads.length, 6);
+    eq('dedup keeps the first lane', reads.every((r) => r === '0:0'), true);
+
+    // A track with no lanes costs nothing even when a warm is requested.
+    resetAutomation(); resetSeqEngine();
+    requestLaneWarm(2);
+    reads = [];
+    for (let i = 0; i < 96; i++) laneWarmTick(rec);
+    eq('no-lane track warm is a no-op', reads.length, 0);
+}
+
 /* ── automation: knob-turn routing (hold-step / Rec / base) ──────────────── */
 _log('\nautomation knob routing:');
 {

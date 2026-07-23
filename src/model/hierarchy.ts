@@ -172,17 +172,38 @@ export function loadHierarchy(s: ModelState): void {
                     }
                     const cp   = cpMap[slot.key]   ?? {};
                     const hier = paramDefs[slot.key] ?? {};
-                    // The module is authoritative for value metadata (type/range/
-                    // options); the config's job is layout/presentation. A config
-                    // value is only a GAP-FILLER for params the module doesn't
-                    // report (e.g. moog osc3/4 wave enums absent from module.json),
-                    // never an override — that just drifts (weird-dreams cutoff was
-                    // pinned 0..1 while the DSP reports 20..18000).
-                    const type = cp.type || hier.type || slot.type || 'float';
-                    const options = cp.options ?? hier.options ?? slot.options ?? null;
+                    // Precedence is split by what the field means, not by param kind:
+                    //
+                    //  - Presentation (type, options): CONFIG-FIRST (slot -> hier -> cp).
+                    //    The UI config declares how a param is shown — file/enum types
+                    //    and option lists the DSP doesn't report. This is what makes the
+                    //    mrdrums Sample/Preset slots render as a file browser: the module
+                    //    reports pad_sample_path as a plain value, so if `type` were
+                    //    module-first it would never become 'file' and the browse block
+                    //    below (and its filter/start dir) would never run — the browser
+                    //    then lists everything and crashes mrdrums on load.
+                    //
+                    //  - Range (min, max): MODULE-FIRST (cp -> hier -> slot). The DSP owns
+                    //    real ranges (weird-dreams cutoff 20..18000); a config value only
+                    //    fills a gap the module leaves. INVARIANT: config min/max must
+                    //    match or fill gaps in the DSP — it can NOT intentionally narrow a
+                    //    range the DSP reports (that value is ignored). A UI-only tighter
+                    //    cap would need a separate displayMin/Max field, not min/max.
+                    //
+                    // `step` participates only weakly: applyKnobDelta (store.ts) recomputes
+                    // the per-detent step from the range for floats (sensitivity is
+                    // normalized to ~1% of range) and uses this value only as an int floor
+                    // or the max<=min fallback — so its source rarely changes knob feel.
+                    // Resolve through string: KnobSlot.type is a required literal
+                    // union that would otherwise mask the hier/cp fallback and the
+                    // 'filepath' compare. A module reporting 'filepath' is normalized
+                    // to movy's 'file' render type.
+                    const rawType = (slot.type || hier.type || cp.type || 'float') as string;
+                    let type = (rawType === 'filepath' ? 'file' : rawType) as KnobParam['type'];
+                    const options = slot.options ?? hier.options ?? cp.options ?? null;
                     let min  = cp.min  != null ? cp.min  : (hier.min  != null ? hier.min  : (slot.min  != null ? slot.min  : 0));
                     let max  = cp.max  != null ? cp.max  : (hier.max  != null ? hier.max  : (slot.max  != null ? slot.max  : 1));
-                    let step = cp.step != null ? cp.step : (hier.step != null ? hier.step : (type === 'float' ? 0.01 : 1));
+                    let step = cp.step != null ? cp.step : (hier.step != null ? hier.step : (slot.step != null ? slot.step : (type === 'float' ? 0.01 : 1)));
                     if (type === 'enum') { min = 0; max = options ? options.length - 1 : 127; step = 1; }
                     const renderStyle = slot.render ?? inferRenderStyle(type as KnobParam['type'], min, max);
                     const param: KnobParam = {

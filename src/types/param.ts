@@ -14,6 +14,9 @@ export interface KnobSlot {
     options?:       string[];
     min?:           number;
     max?:           number;
+    /* Rarely needed: applyKnobDelta normalizes float sensitivity from the range,
+     * so a config `step` only acts as an int floor / max<=min fallback. */
+    step?:          number;
     /* For a `render: 'preset'` slot: the chain_params keys movy polls for the
      * preset count and the live preset name. Both default to the module's
      * ui_hierarchy root `count_param`/`name_param` when omitted, so a config

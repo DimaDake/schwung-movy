@@ -257,7 +257,14 @@ export function tick(): void {
     }
     // Drive any scheduled param-cache warms (spread across a short window after a
     // reselect/reload; idle-cheap). Recovers abs-CC audibility without a restart.
-    laneWarmTick(warmReadValue);
+    // On window close, log the resulting cache state (knob_N_max is the fallback
+    // "1.00"/float when the host cache is still empty → abs-CC would be silent):
+    // field observability for this failure mode, and the reselect e2e's assertion.
+    laneWarmTick(warmReadValue, (t, l) => {
+        mlog('auto warm t=' + t
+            + ' cache=' + shadow_get_param(t, 'knob_' + (l + 1) + '_max')
+            + ' type=' + shadow_get_param(t, 'knob_' + (l + 1) + '_type'));
+    });
     seqPersistTick();
     /* Session toggle changes pad ownership: invalidate the seq LED cache and
      * re-init the instrument pad LEDs when returning to Note mode. */

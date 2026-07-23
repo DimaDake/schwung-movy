@@ -340,13 +340,22 @@ export function requestLaneWarm(track: number): void {
     if (registry[track].some((e) => e !== null)) mlog('auto warm req t=' + track);
 }
 
-/* Per-tick pump for scheduled warms. Cheap when idle (all counters 0). */
-export function laneWarmTick(readValue: (track: number, lane: number) => void): void {
+/* Per-tick pump for scheduled warms. Cheap when idle (all counters 0). `verify`,
+ * if given, is called once as each window closes with the track's first assigned
+ * lane — used to log/confirm the host cache actually repopulated. */
+export function laneWarmTick(
+    readValue: (track: number, lane: number) => void,
+    verify?: (track: number, lane: number) => void,
+): void {
     for (let t = 0; t < 4; t++) {
         const c = warmPending[t];
         if (c <= 0) continue;
         warmPending[t] = c - 1;
         if (c % WARM_STRIDE === 0) warmLaneParams(t, readValue);
+        if (c === 1 && verify) {                       // window just closed
+            const first = registry[t].findIndex((e) => e !== null);
+            if (first >= 0) verify(t, first);
+        }
     }
 }
 

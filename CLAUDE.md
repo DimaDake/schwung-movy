@@ -112,6 +112,9 @@ Other useful commands:
 # Full automated test — deploy, open movy, inject knob CCs, check log (PASS/FAIL)
 ./scripts/test.sh [move.local]
 
+# Device e2e: step automation stays audible after a real module reselect
+./scripts/test-reselect.sh [move.local]
+
 # Enable unified log (once per device boot; persists until cleared)
 ssh ableton@move.local 'touch /data/UserData/schwung/debug_log_on'
 

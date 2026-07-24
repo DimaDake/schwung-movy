@@ -53,7 +53,10 @@ export const appState = {
 
 /* True when slot's synth (chain index 1) is a drum module.
  * Always uses the synth slot — not the currently-viewed chain slot — so the
- * answer stays consistent regardless of which FX page is open. */
+ * answer stays consistent regardless of which FX page is open. Reads the drum
+ * config rather than the ViewModel (same answer — drumPadCount is derived from
+ * it in loadHierarchy) because this runs per tick for every track, and building
+ * a ViewModel four times a frame is not free. */
 export function trackIsDrum(slot: number): boolean {
-    return (appState.trackModels[slot]?.[1]?.getViewModel()?.drumPadCount ?? 0) > 0;
+    return (appState.trackModels[slot]?.[1]?.getDrumConfig()?.padCount ?? 0) > 0;
 }

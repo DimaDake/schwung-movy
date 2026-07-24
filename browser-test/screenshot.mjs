@@ -44,7 +44,7 @@ const PRESETS = [
     'step_page_knobs', 'step_page_chain', 'step_indicator',
     'main-default', 'main-tempo-touched', 'main-swing-touched',
     'main-root-touched', 'main-key-overlay', 'main-ext-sync', 'main-link-on',
-    'clip-default', 'clip-fraction', 'clip-overlay',
+    'clip-default', 'clip-fraction', 'clip-overlay', 'clip-drum',
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
     'filter_slope24', 'filter_dual', 'filter_open',
@@ -67,6 +67,7 @@ const BASE = {
     'main-swing-touched': 'test8', 'main-root-touched': 'test8',
     'main-key-overlay': 'test8', 'main-ext-sync': 'test8', 'main-link-on': 'test8',
     'clip-default': 'test8', 'clip-fraction': 'test8', 'clip-overlay': 'test8',
+    'clip-drum': 'test8',
     env_dual: 'env_dual', env_touched: 'env_dual', env_ad: 'env_ad', env_asr: 'env_asr', lfo_mod: 'lfo_mod',
     filter_lp: 'filter_demo', filter_lp_reso: 'filter_demo', filter_hp: 'filter_demo',
     filter_bp: 'filter_demo', filter_notch: 'filter_demo', filter_slope24: 'filter_demo',
@@ -127,6 +128,7 @@ const { mainPageState, resetMainPage } = await import('../dist/esm/seq/main-page
 const { buildClipPageVM }  = await import('../dist/esm/seq/clip-page-vm.js');
 const { clipPageState, resetClipPage } = await import('../dist/esm/seq/clip-page.js');
 const { seqState, resetSeqState }      = await import('../dist/esm/seq/state.js');
+const { appState }                     = await import('../dist/esm/app/state.js');
 const { keyboardState }                = await import('../dist/esm/keyboard/state.js');
 const { MOCK_SYNTHS }      = await import('./mock-synth.mjs');
 
@@ -339,6 +341,21 @@ function applyView(preset) {
             seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
             clipPageState.scaleOverlay = true; clipPageState.scaleSel = 6; // 2X
             lastRender = () => renderKnobsView(buildClipPageVM(), false, 0);
+            lastRender();
+            break;
+        }
+        case 'clip-drum': {          // drum track: transpose unavailable
+            resetSeqState(); resetClipPage();
+            seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
+            // Minimal stand-in for a loaded drum module on the active track's
+            // synth slot — trackIsDrum() only asks for the drum config.
+            const savedModels = appState.trackModels, savedSlot = appState.activeSlot;
+            appState.trackModels = [[null, { getDrumConfig: () => ({ padCount: 16 }) }]];
+            appState.activeSlot = 0;
+            clipPageState.touchedKnob = 2;   // 'n/a on drums' toast
+            const vm = buildClipPageVM();
+            appState.trackModels = savedModels; appState.activeSlot = savedSlot;
+            lastRender = () => renderKnobsView(vm, false, 0);
             lastRender();
             break;
         }

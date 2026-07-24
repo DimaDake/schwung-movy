@@ -6,6 +6,7 @@ import type { ViewModel } from '../types/viewmodel.js';
 import { paramCell as cell } from './param-vm.js';
 import { clipPageState } from './clip-page.js';
 import { seqState } from './state.js';
+import { appState, trackIsDrum } from '../app/state.js';
 import { MAX_STEPS } from './constants.js';
 import { SCALE_LABELS, SCALE_RATIONALS, scaleCellText, scaleToastText } from './clip-scale.js';
 
@@ -29,9 +30,14 @@ export function buildClipPageVM(): ViewModel {
         shortName: 'LEN', fullName: 'Length', renderStyle: 'preset',
         displayValue: String(len), normalizedValue: clamp01((len - 1) / (MAX_STEPS - 1)),
     });
+    // A drum track's pitches are pad addresses, so transpose can't apply (the
+    // engine ignores it there): show the cell as unavailable rather than
+    // offering a control whose value would never be heard.
+    const isDrum = trackIsDrum(appState.activeSlot);
     const transpose = cell({
         shortName: 'TRANS', fullName: 'Transpose', renderStyle: 'preset',
-        displayValue: String(tr), normalizedValue: clamp01((tr + 36) / 72),
+        displayValue: isDrum ? 'n/a' : String(tr),
+        normalizedValue: isDrum ? 0 : clamp01((tr + 36) / 72),
     });
 
     const cells = [scale, length, transpose];
@@ -41,6 +47,7 @@ export function buildClipPageVM(): ViewModel {
         cells[tk].touched = true;
         const value = tk === 0 ? scaleToastText(sIdx)
             : tk === 1 ? len + ' steps'
+            : isDrum ? 'n/a on drums'
             : (tr >= 0 ? '+' + tr : String(tr)) + ' ct';
         toast = { fullName: cells[tk].fullName, value, browseHint: false };
     }

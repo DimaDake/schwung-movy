@@ -27,8 +27,7 @@ fn untranspose(engine: &Engine, track: usize, pitch: u8) -> u8 {
     if track >= NUM_TRACKS {
         return pitch;
     }
-    let tr = engine.tracks[track].active().transpose as i32;
-    (pitch as i32 - tr).clamp(0, 127) as u8
+    (pitch as i32 - engine.active_clip_transpose(track)).clamp(0, 127) as u8
 }
 
 fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
@@ -70,6 +69,16 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
         "wlane" => {
             if let Some(p) = next() {
                 engine.watch_lane = if (0..128).contains(&p) { Some(p as u8) } else { None };
+            }
+        }
+        // tdrum <track> <0|1> — the track's slot holds a drum module, so clip
+        // transpose stops applying to it (pitches are pad addresses). The UI
+        // owns module identity, so it re-sends this on load and after a swap.
+        "tdrum" => {
+            if let (Some(t), Some(d)) = (next(), next()) {
+                if (t as usize) < NUM_TRACKS {
+                    engine.set_track_drum(t as usize, d != 0);
+                }
             }
         }
         "mute" => {
@@ -661,6 +670,24 @@ mod tests {
         // Range add (Loop-mode bar + pad) likewise: 60 → 55.
         apply_batch(&mut e, "addp 0 8 8 60 100", &mut out);
         assert!(e.tracks[0].active().notes.iter().any(|n| n.step == 8 && n.pitch == 55));
+    }
+
+    #[test]
+    fn tdrum_makes_step_entry_store_the_pad_pitch_verbatim() {
+        let mut e = engine();
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.tracks[0].active_mut().transpose = 5;
+        let mut out = Vec::new();
+        apply_batch(&mut e, "tdrum 0 1", &mut out);
+        assert!(e.track_is_drum(0));
+        // Nothing is re-added at emit on a drum track, so nothing is subtracted
+        // here — the stored pitch stays the pad's own address.
+        apply_batch(&mut e, "ltog 0 4 38 100", &mut out);
+        assert!(e.tracks[0].active().notes.iter().any(|n| n.step == 4 && n.pitch == 38));
+        // …and it reverts when a melodic module replaces the drum one.
+        apply_batch(&mut e, "tdrum 0 0", &mut out);
+        apply_batch(&mut e, "ltog 0 8 38 100", &mut out);
+        assert!(e.tracks[0].active().notes.iter().any(|n| n.step == 8 && n.pitch == 33));
     }
 
     #[test]

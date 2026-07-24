@@ -92,6 +92,11 @@ pub struct Engine {
     /// True while we are emitting MIDI transport clock (between Start and Stop).
     /// Runtime-only edge tracker — never persisted.
     emitting_clock: bool,
+    /// Per-track: the chain slot holds a drum module, so its pitches address
+    /// pads rather than notes and clip transpose must not shift them. Set by
+    /// the UI (`tdrum`), which owns module identity. Runtime-only: it is a
+    /// property of the loaded module, re-sent on load and after any swap.
+    track_drum: [bool; NUM_TRACKS],
 
     // --- external (Move native) clock follow — design §7 Phase 3 ---
     // All runtime-only (never persisted): they model Move's cable-0 transport,
@@ -172,6 +177,7 @@ impl Engine {
             rng_state: 0x9E3779B97F4A7C15,
             swing_pct: 50,
             emitting_clock: false,
+            track_drum: [false; NUM_TRACKS],
             ext_running: false,
             ext_awaiting_first: false,
             ext_ticks: 0,
@@ -188,6 +194,39 @@ impl Engine {
             inject_release_at: 0,
             link_enabled: false,
         }
+    }
+
+    /// Mark a track's slot as holding a drum module (UI-owned — see `track_drum`).
+    pub fn set_track_drum(&mut self, track: usize, drum: bool) {
+        if track < NUM_TRACKS {
+            self.track_drum[track] = drum;
+        }
+    }
+
+    pub fn track_is_drum(&self, track: usize) -> bool {
+        track < NUM_TRACKS && self.track_drum[track]
+    }
+
+    /// Clip transpose in effect for a track's clip — 0 on a drum track, whose
+    /// pitches are pad addresses. Single source of truth for every site that
+    /// applies or undoes transpose (emit, live record, step entry), so the
+    /// three can never disagree about what a stored pitch means.
+    pub fn clip_transpose(&self, track: usize, slot: usize) -> i32 {
+        if self.track_is_drum(track) {
+            return 0;
+        }
+        self.tracks
+            .get(track)
+            .and_then(|t| t.clips.get(slot))
+            .map_or(0, |c| c.transpose as i32)
+    }
+
+    /// `clip_transpose` for the track's active (edited) clip.
+    pub fn active_clip_transpose(&self, track: usize) -> i32 {
+        if track >= NUM_TRACKS {
+            return 0;
+        }
+        self.clip_transpose(track, self.tracks[track].active_clip)
     }
 
     /// Ticks to delay an odd-indexed 16th step (the off-beat) for swing.
@@ -639,8 +678,7 @@ impl Engine {
             // Store the pad's concert pitch minus the clip transpose, so playback
             // (which re-adds transpose at emit) reproduces exactly what the pad
             // played. Keeps recorded notes aligned with the untransposed pads.
-            let transpose = self.tracks[track].active().transpose as i32;
-            let stored = (pitch as i32 - transpose).clamp(0, 127) as u8;
+            let stored = (pitch as i32 - self.active_clip_transpose(track)).clamp(0, 127) as u8;
             self.tracks[track].active_mut().record_note(p.start_tick, gate.max(1), stored, p.vel);
         }
     }
@@ -983,9 +1021,8 @@ impl Engine {
                         // Non-destructive clip transpose: shift only the emitted
                         // pitch (and its gate, so note-off matches); stored notes
                         // and live pads stay at concert pitch.
-                        let emit_pitch = (n.pitch as i32
-                            + self.tracks[ti].clips[slot].transpose as i32)
-                            .clamp(0, 127) as u8;
+                        let emit_pitch =
+                            (n.pitch as i32 + self.clip_transpose(ti, slot)).clamp(0, 127) as u8;
                         out.push(OutEvent::NoteOn { track: ti as u8, pitch: emit_pitch, vel: n.vel });
                         self.gates.push(Gate {
                             track: ti as u8,
@@ -1811,6 +1848,73 @@ mod tests {
         });
         assert_eq!(on, Some(72)); // 60 + 12, emitted only
         assert_eq!(e.tracks[0].active().notes[0].pitch, 60); // stored pitch untouched
+    }
+
+    // A drum track's pitches are pad addresses, not notes: shifting them moves
+    // the hit to a different voice (or off the pad range entirely, silencing
+    // it). Clip transpose must be inert there — see the three sites below.
+    #[test]
+    fn drum_track_ignores_clip_transpose_on_emit() {
+        let mut e = engine();
+        e.set_track_drum(0, true);
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.tracks[0].active_mut().toggle_step(0, &[(36, 100)]); // kick pad
+        e.tracks[0].active_mut().transpose = -12;
+        e.play();
+        let out = run_ticks(&mut e, 4);
+        let on = out.iter().find_map(|x| match x {
+            OutEvent::NoteOn { pitch, .. } => Some(*pitch),
+            _ => None,
+        });
+        assert_eq!(on, Some(36)); // the kick, not 24
+    }
+
+    #[test]
+    fn drum_track_gate_matches_untransposed_pitch() {
+        let mut e = engine();
+        e.set_track_drum(0, true);
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.tracks[0].active_mut().toggle_step(0, &[(36, 100)]);
+        e.tracks[0].active_mut().transpose = -12;
+        e.play();
+        let out = run_ticks(&mut e, 4 + TICKS_PER_STEP as u64 * 2);
+        let off = out.iter().find_map(|x| match x {
+            OutEvent::NoteOff { pitch, .. } => Some(*pitch),
+            _ => None,
+        });
+        assert_eq!(off, Some(36)); // note-off must close the voice that opened
+    }
+
+    #[test]
+    fn drum_track_records_pad_pitch_verbatim() {
+        let mut e = engine();
+        e.set_track_drum(0, true);
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.tracks[0].active_mut().transpose = 5;
+        e.play();
+        e.toggle_record(0);
+        e.live_note_on(0, 38, 100); // snare pad
+        e.tracks[0].pos_tick += 4;
+        e.live_note_off(0, 38);
+        // No transpose is re-added at emit, so none may be subtracted here.
+        assert_eq!(e.tracks[0].active().notes.last().unwrap().pitch, 38);
+    }
+
+    #[test]
+    fn melodic_track_still_transposes_after_drum_guard() {
+        let mut e = engine();
+        e.set_track_drum(0, true);
+        e.set_track_drum(0, false); // flips back when a melodic module loads
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[0].active_mut().transpose = 12;
+        e.play();
+        let out = run_ticks(&mut e, 4);
+        let on = out.iter().find_map(|x| match x {
+            OutEvent::NoteOn { pitch, .. } => Some(*pitch),
+            _ => None,
+        });
+        assert_eq!(on, Some(72));
     }
 
     #[test]

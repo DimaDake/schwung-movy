@@ -76,6 +76,7 @@ await esbuild.build({
         resolve(root, 'src/seq/clip-scale.ts'),
         resolve(root, 'src/seq/clip-page.ts'),
         resolve(root, 'src/seq/clip-page-vm.ts'),
+        resolve(root, 'src/seq/drum-sync.ts'),
     ],
     bundle:    true,
     splitting: true,

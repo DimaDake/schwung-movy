@@ -464,9 +464,19 @@ In Track view, **Shift + Step 3** opens the **Clip** page for the active clip:
 | --- | --- |
 | 1 | **SCALE** — the clip's musical scale. |
 | 2 | **LEN** — clip length in steps. |
-| 3 | **TRANS** — transpose. |
+| 3 | **TRANS** — transpose. Reads `n/a` on a drum track (see below). |
 
 (Clip parameters apply to a single clip, so this page is Track-view only.)
+
+On a **drum track**, transpose is unavailable — the cell reads `n/a` and the knob
+does nothing:
+
+![Clip parameters on a drum track](docs/assets/clip-drum.png)
+
+A drum module's pitches are pad addresses, not notes, so shifting them fires a
+different pad — or, if the shift lands outside the module's pad range, nothing at
+all. The sequencer ignores clip transpose on those tracks, including for a clip
+that already carried one from before a drum module was loaded onto the track.
 
 ### Set parameters — Shift + Step 5 / 7 / 9
 

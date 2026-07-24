@@ -5,6 +5,7 @@
 
 import { seqState } from './state.js';
 import { seqCmd } from './engine.js';
+import { trackIsDrum } from '../app/state.js';
 import { countDetents } from './detent.js';
 import { MAX_STEPS } from './constants.js';
 import { SCALE_RATIONALS, SCALE_DEFAULT_IDX } from './clip-scale.js';
@@ -70,7 +71,10 @@ export function clipPageKnob(k: number, delta: number, track: number): void {
     } else if (k === 1) {
         const next = Math.max(1, Math.min(MAX_STEPS, seqState.lenSteps + n));
         if (next !== seqState.lenSteps) { seqState.lenSteps = next; seqCmd('clen ' + track + ' ' + next); }
-    } else if (k === 2) {
+    } else if (k === 2 && !trackIsDrum(track)) {
+        // Inert on a drum track: its pitches are pad addresses, so transposing
+        // them changes which voice fires. The engine ignores transpose there
+        // (`tdrum`); the knob refuses to set a value that could never apply.
         const next = Math.max(TRANSPOSE_MIN, Math.min(TRANSPOSE_MAX, seqState.clipTranspose + n));
         if (next !== seqState.clipTranspose) { seqState.clipTranspose = next; seqCmd('ctr ' + track + ' ' + next); }
     }

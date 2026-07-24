@@ -15,6 +15,14 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Clip transpose no longer shifts drum tracks.** A drum module's pitches are
+  pad addresses, so a transposed step fired the wrong pad — or nothing at all,
+  when the shift landed outside the module's pad range. The sequencer engine now
+  ignores clip transpose on a drum track (playback, live recording and step
+  entry alike, so stored pitches keep one meaning), including for clips that
+  already carried a transpose from before the drum module was loaded. On the
+  Clip page the TRANS cell reads `n/a` there instead of offering a control that
+  could never be heard. Engine `0.26.0` → `0.27.0` (new `tdrum` command).
 - **Step automation is audible again after reselecting a module.** Reselecting a
   self-describing module (OB-Xd, Weird Dreams, Noisemaker, …) hot-reloaded its
   chain host and left the host's static param cache empty, so automation

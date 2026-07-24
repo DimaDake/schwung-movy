@@ -3573,6 +3573,80 @@ _log('\nautomation label sync:');
     eq('overlay on slot 0', vm.overlay && vm.overlay.slot, 0);
 }
 
+/* ── clip transpose is inert on a drum track ──────────────────────────────
+ * A drum module's pitches address pads, so a transpose would fire a different
+ * voice (or none — schwung's per-slot transpose silences Forge exactly this
+ * way). The engine ignores it there; the UI must not offer it either. */
+{
+    _log('\nclip transpose on drum tracks:');
+    const { buildClipPageVM } = await import('../dist/esm/seq/clip-page-vm.js');
+    const { openClipPage, clipPageKnob, clipPageTouch, resetClipPage } = await import('../dist/esm/seq/clip-page.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
+    const { appState } = await import('../dist/esm/app/state.js');
+    const { drumSyncTick, resetDrumSync } = await import('../dist/esm/seq/drum-sync.js');
+
+    const fakeModel = (drum, loaded = true) => ({
+        getDrumConfig: () => (drum ? { padCount: 16, padNoteStart: 36, rawMidi: false } : null),
+        hasLoadedParams: () => loaded,
+    });
+    const savedModels = appState.trackModels;
+    appState.trackModels = [
+        [null, fakeModel(true)],    // track 0: drum
+        [null, fakeModel(false)],   // track 1: melodic
+    ];
+
+    resetClipPage(); resetSeqEngine(); resetSeqState(); resetDrumSync();
+    openClipPage(2, 0);
+    seqState.clipTranspose = 0;
+    clipPageKnob(2, 8, 0);                  // knob 2, +1 detent on the drum track
+    eq('drum track: transpose knob inert', seqState.clipTranspose, 0);
+    eq('drum track: no ctr command', peekSeqCmdQueue().some((c) => c.startsWith('ctr ')), false);
+    clipPageKnob(2, 8, 1);                  // same gesture on the melodic track
+    eq('melodic track: transpose still moves', seqState.clipTranspose, 1);
+    eq('melodic track: emits ctr 1 1', peekSeqCmdQueue().some((c) => c === 'ctr 1 1'), true);
+
+    // The cell reads as unavailable rather than showing a value that can't apply.
+    appState.activeSlot = 0;
+    eq('drum track: transpose cell shows n/a', buildClipPageVM().rows[0][2].displayValue, 'n/a');
+    clipPageTouch(2, true);
+    eq('drum track: transpose toast n/a', buildClipPageVM().toast.value, 'n/a on drums');
+    appState.activeSlot = 1;
+    eq('melodic track: cell shows the value', buildClipPageVM().rows[0][2].displayValue, '1');
+
+    // The engine is told, once per change, which tracks are drums.
+    resetSeqEngine(); resetDrumSync();
+    drumSyncTick();
+    let q = peekSeqCmdQueue();
+    eq('drum flag sent for track 0', q.some((c) => c === 'tdrum 0 1'), true);
+    eq('melodic flag sent for track 1', q.some((c) => c === 'tdrum 1 0'), true);
+    const n = q.length;
+    drumSyncTick();
+    eq('unchanged flags are not re-sent', peekSeqCmdQueue().length, n);
+    appState.trackModels[1][1] = fakeModel(true);   // module swapped to a drum
+    drumSyncTick();
+    eq('a swap re-sends the flag', peekSeqCmdQueue().some((c) => c === 'tdrum 1 1'), true);
+    // Only the active track's model ticks, so an unvisited track's drum identity
+    // is probed directly from its module id — otherwise a drum clip already
+    // playing on a never-visited track would still be transposed.
+    resetSeqEngine(); resetDrumSync();
+    const savedGet = globalThis.shadow_get_param;
+    appState.trackModels[0][1] = { ...fakeModel(true, false), getComponentKey: () => 'synth' };
+    globalThis.shadow_get_param = (slot, key) => (slot === 0 && key === 'synth_module' ? 'mrdrums' : null);
+    drumSyncTick();
+    eq('unvisited drum track probed from its module id', peekSeqCmdQueue().some((c) => c === 'tdrum 0 1'), true);
+    // …and an empty slot stays unanswered rather than being declared melodic.
+    resetSeqEngine(); resetDrumSync();
+    globalThis.shadow_get_param = () => null;
+    drumSyncTick();
+    eq('empty slot is not reported', peekSeqCmdQueue().some((c) => c.startsWith('tdrum 0')), false);
+    globalThis.shadow_get_param = savedGet;
+
+    appState.trackModels = savedModels;
+    appState.activeSlot = 0;
+    resetClipPage(); resetSeqEngine(); resetSeqState(); resetDrumSync();
+}
+
 /* ── step entry is clamped beyond the clip length ────────────────────────── */
 {
     _log('\nstep entry clamped beyond length:');

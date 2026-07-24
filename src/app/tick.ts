@@ -17,6 +17,7 @@ import { renderChainView }    from '../renderer/chain-view.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs }  from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
+import { drumSyncTick, resetDrumSync } from '../seq/drum-sync.js';
 import { syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull, verifyLaneMappings, requestLaneWarm, laneWarmTick } from '../seq/automation.js';
 import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
@@ -188,6 +189,10 @@ export function tick(): void {
     // status) — the mock/real engine reports transport + step state regardless
     // of whether we are on screen.
     seqEngineTick();
+    // Tell the engine which tracks are drum tracks (it suppresses clip transpose
+    // on those). Queued as a command, so it rides the same batch as everything
+    // else and is held through engine boot.
+    drumSyncTick();
     // Flush a debounced tempo-knob change to Move's Link override before the
     // parked early-return, so a tempo edit made just before backgrounding
     // still reaches Move (the write is cheap and independent of the display).
@@ -222,6 +227,7 @@ export function tick(): void {
     // Engine (re)booted: rebuild the automation registry from its labels and
     // re-apply each lane's chain knob mapping so playback CCs land.
     if (engineReady() && takeLabelSync()) {
+        resetDrumSync();   // a rebooted engine has lost the drum flags too
         const labels = host_module_get_param('alabels');
         if (labels) {
             syncLabelsFromEngine(

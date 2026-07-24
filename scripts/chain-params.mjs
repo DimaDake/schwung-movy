@@ -91,6 +91,32 @@ async function main() {
             return;
         }
 
+        if (mode === 'watch') {
+            // Subscribe and print live param_update diffs whose key matches `idArg`
+            // (default "cutoff") for `windowMs` (arg 5, default 6000). During
+            // playback a working abs-CC lane MOVES the synth param → updates print;
+            // a dropped (inaudible) lane → silence. This is the real audibility
+            // signal, independent of the synth_params cache.
+            const key = idArg || 'cutoff';
+            const durMs = parseInt(process.argv[5] ?? '6000', 10);
+            let hits = 0;
+            ws.addEventListener('message', (ev) => {
+                try {
+                    const m = JSON.parse(ev.data);
+                    if (m.type === 'param_update' && m.params) {
+                        for (const [k, v] of Object.entries(m.params)) {
+                            if (k.includes(key)) { hits++; console.log(`  ${Date.now() % 100000} ${k} = ${v}`); }
+                        }
+                    }
+                } catch {}
+            });
+            send(ws, { type: 'subscribe', slot });
+            console.log(`[watch] slot=${slot} key~="${key}" for ${durMs}ms …`);
+            await sleep(durMs);
+            console.log(`[watch] ${hits} update(s) for "${key}"`);
+            return;
+        }
+
         if (mode === 'probe') return;
         if (!id) { console.error('[chain-params] no synth module on this slot — pass an id'); exit = 2; return; }
 

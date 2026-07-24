@@ -137,6 +137,11 @@ export function assignLane(
     registry[track][lane] = { targetParam: tp, shortName: info.ioKey, min: info.min, max: info.max, type: info.type };
     seqCmd('alabel ' + track + ' ' + lane + ' ' + tp);
     seqCmd('abase ' + track + ' ' + lane + ' ' + norm7(info.value, info.min, info.max));
+    // Creating automation on a freshly (re)loaded module hits the same empty host
+    // param cache: this new lane's abs-CC would resolve through find_param_info on
+    // an empty synth_params and be dropped. Warm it so the first playback is
+    // audible (the reselect-time warm can't cover a lane that doesn't exist yet).
+    requestLaneWarm(track);
     return lane;
 }
 

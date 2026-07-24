@@ -125,6 +125,17 @@ ssh ableton@move.local 'tail -f /data/UserData/schwung/debug.log | grep "\[movy\
 ssh ableton@move.local '> /data/UserData/schwung/debug.log'
 ```
 
+### Device-test harness gotchas
+
+- Playhead only advances with a **playing clip that has notes** (`len>0` in
+  `status`); an empty clip freezes `step`/`pos` at 0 even when `play=1`.
+- MIDI-inject to overtake is device-state-flaky (notes vs CCs drop unpredictably),
+  so **build test scenes with engine commands** via `seqCmd`: `tog`/`clen`/`aset`/
+  `clipdel`; read `status`/`diag` via `host_module_get_param`.
+- Verify **audibility** (the synth's real param value moving), not a proxy like a
+  repopulated host cache. Full context: automation-reselect fix + engine-command
+  method are in `CHANGELOG.md` and the session's `project_reselect-synthparams-cache` note.
+
 **Build system:** All source lives in `src/` (TypeScript). `npm run build:device`
 bundles everything to `ui.js` via esbuild (single ESM file, no stale-module
 issues). `npm run build:browser` compiles to `dist/esm/` for browser tests.

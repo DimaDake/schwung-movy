@@ -5813,6 +5813,42 @@ _log('\nTest: mute releases only that track\'s live notes');
   globalThis.shadow_send_midi_to_dsp = origSendMidi;
 }
 
+/* ── teardown release ────────────────────────────────────────────────────── */
+
+_log('\nTest: onUnload releases live notes and sequencer gates');
+
+{
+  const L = await import('../dist/esm/keyboard/held-notes.js');
+  const { noteOn }   = await import('../dist/esm/keyboard/handler.js');
+  const { onUnload } = await import('../dist/esm/app/unload.js');
+  const { seqState } = await import('../dist/esm/seq/state.js');
+
+  let sentMidi = [];
+  const origSendMidi = globalThis.shadow_send_midi_to_dsp;
+  globalThis.shadow_send_midi_to_dsp = (msg) => { sentMidi.push([...msg]); };
+  const offs = () => sentMidi.filter(m => (m[0] & 0xF0) === 0x80);
+
+  L.drainAll();
+  seqState.activeNotes.fill(0);
+  seqState.activeNotes[0 * 128 + 60] = 1;   // sequencer gate: track 0, pitch 60
+  seqState.activeNotes[2 * 128 + 67] = 1;   // sequencer gate: track 2, pitch 67
+  noteOn(68, 68, 1, 100);                   // live pad note on track 1
+  sentMidi = [];
+
+  onUnload();
+
+  eq('releases three notes', offs().length, 3);
+  eq('sequencer gate t0 p60', offs().some(m => (m[0] & 0x0F) === 0 && m[1] === 60), true);
+  eq('sequencer gate t2 p67', offs().some(m => (m[0] & 0x0F) === 2 && m[1] === 67), true);
+  // Only tracks 0 and 2 hold gates, so a channel-1 off can only be the live note.
+  eq('live pad note t1',      offs().some(m => (m[0] & 0x0F) === 1), true);
+  eq('ledger emptied', L.soundingCount(), 0);
+
+  seqState.activeNotes.fill(0);
+  L.drainAll();
+  globalThis.shadow_send_midi_to_dsp = origSendMidi;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

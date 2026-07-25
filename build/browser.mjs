@@ -45,6 +45,7 @@ await esbuild.build({
         resolve(root, 'src/keyboard/handler.ts'),
         resolve(root, 'src/app/globals.ts'),
         resolve(root, 'src/app/init.ts'),
+        resolve(root, 'src/app/unload.ts'),
         resolve(root, 'src/app/leave-modal.ts'),
         resolve(root, 'src/chain/config.ts'),
         resolve(root, 'src/lfo/params.ts'),

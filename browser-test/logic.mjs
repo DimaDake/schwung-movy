@@ -2556,6 +2556,7 @@ _log('\nautomation: restore re-requests label sync:');
     const { toggleSolo, toggleMute, isSoloed, anySolo, isMuted, resetTrackMutes } =
         await import('../dist/esm/mixer/track-mutes.js');
     const { serializeUiState, applyUiState } = await import('../dist/esm/seq/persist.js');
+    const { seqToastText } = await import('../dist/esm/seq/render.js');
 
     const CC_MUTE = 88;
     const cmds = () => peekSeqCmdQueue().filter((c) => c.startsWith('mute '));
@@ -2586,6 +2587,20 @@ _log('\nautomation: restore re-requests label sync:');
     eq('user mute survives un-solo', seqState.muted[3], true);
     eq('no solo left', anySolo(), false);
 
+    // Solo overrides mute: soloing a track you had muted makes it audible, the
+    // way it does everywhere else. Deriving the mute as `base || !solo` instead
+    // left it silent, which is what made solo look broken with mutes around.
+    fresh();
+    muteTrack(2);
+    resetSeqEngine();
+    toggleSolo(2);                    // solo the muted track
+    eq('soloing a muted track unmutes it', seqState.muted[2], false);
+    eq('others muted by the solo', seqState.muted[0] && seqState.muted[1] && seqState.muted[3], true);
+    resetSeqEngine();
+    toggleSolo(2);                    // un-solo → its own mute comes back
+    eq('its mute returns on un-solo', seqState.muted[2], true);
+    eq('others restored', seqState.muted[0] || seqState.muted[1] || seqState.muted[3], false);
+
     // Several tracks can be soloed at once — solo is a per-track toggle.
     fresh();
     toggleSolo(0);
@@ -2599,11 +2614,12 @@ _log('\nautomation: restore re-requests label sync:');
     eq('dropping one re-mutes it', cmds().join(','), 'mute 0 1');
     eq('still soloing', anySolo(), true);
 
-    // Muting while a solo is up edits the underlying intent, so it survives.
+    // Muting while a solo is up edits the underlying intent. It is not audible
+    // yet — solo overrides mute — but it lands when the solo drops.
     fresh();
     toggleSolo(1);
     toggleMute(1);                    // mute the soloed track itself
-    eq('mute under solo silences it', seqState.muted[1], true);
+    eq('mute under solo is not audible yet', seqState.muted[1], false);
     eq('intent recorded', isMuted(1), true);
     resetSeqEngine();
     toggleSolo(1);                    // un-solo: track 1 stays muted, others return
@@ -2643,6 +2659,26 @@ _log('\nautomation: restore re-requests label sync:');
     toggleSolo(0);                     // un-solo now restores correctly
     eq('un-solo after reopen unmutes the others',
         cmds().sort().join(','), 'mute 1 0,mute 2 0,mute 3 0');
+
+    // Shift added AFTER Mute goes down still solos (either order is natural).
+    fresh();
+    appState.activeSlot = 2;
+    seqHandleMidi([0xB0, CC_MUTE, 127], /*shiftHeld*/ false);   // Mute first...
+    seqHandleMidi([0xB0, CC_MUTE, 0], /*shiftHeld*/ true);      // ...Shift after
+    eq('mute-then-shift still solos', isSoloed(2), true);
+
+    // Toasts name the track and the resulting solo set.
+    fresh();
+    toggleMute(1);
+    eq('mute toast', seqToastText(), 'T2 MUTED');
+    toggleMute(1);
+    eq('unmute toast', seqToastText(), 'T2 UNMUTED');
+    toggleSolo(0);
+    eq('single solo toast', seqToastText(), 'T1 SOLO');
+    toggleSolo(2);
+    eq('multi solo toast', seqToastText(), 'SOLO T1 T3');
+    toggleSolo(0); toggleSolo(2);
+    eq('solo off toast', seqToastText(), 'SOLO OFF');
 
     // Session view: no current track, so Shift+Mute does nothing there either.
     fresh();
@@ -3950,6 +3986,7 @@ _log('\nautomation label sync:');
 {
     _log('\nUI-state persistence round-trip:');
     const { serializeUiState, applyUiState } = await import('../dist/esm/seq/persist.js');
+    const { seqToastText } = await import('../dist/esm/seq/render.js');
     const { keyboardState } = await import('../dist/esm/keyboard/state.js');
 
     keyboardState.rootNote = 50; keyboardState.scale = 2;

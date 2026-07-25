@@ -1,6 +1,7 @@
 import { seqCmd } from '../seq/engine.js';
 import { seqState } from '../seq/state.js';
 import { markUiStateDirty } from '../seq/ui-dirty.js';
+import { seqToast } from '../seq/render.js';
 import { mlog } from '../log.js';
 
 /* Mute and solo, both expressed through the engine's per-track mute — the same
@@ -13,6 +14,12 @@ import { mlog } from '../log.js';
  * represent what the user asked for, so the user's own mutes are captured in
  * `base` when the first solo engages and restored when the last one drops.
  * Muting while soloing edits `base`, so it survives un-solo.
+ *
+ * Solo overrides mute, as everywhere else (Live, and schwung's own host gate):
+ * while a solo is up, what you hear is the soloed tracks — full stop. Deriving
+ * the engine mute as `base[t] || !solo[t]` instead left a track you had muted
+ * silent even once you soloed it, which made soloing look broken exactly when
+ * some tracks were muted.
  *
  * Several tracks can be soloed at once — solo is a per-track toggle, like mute.
  */
@@ -39,7 +46,7 @@ function setEngineMute(track: number, want: boolean): void {
 function apply(): void {
     if (anySoloOn()) {
         if (!base) base = [...seqState.muted];
-        for (let t = 0; t < 4; t++) setEngineMute(t, base[t] || !solo[t]);
+        for (let t = 0; t < 4; t++) setEngineMute(t, !solo[t]);
     } else if (base) {
         for (let t = 0; t < 4; t++) setEngineMute(t, base[t]);
         base = null;
@@ -53,6 +60,7 @@ export function toggleMute(track: number): void {
     mlog('mute t=' + track + ' -> ' + (isMuted(track) ? 1 : 0));
     apply();
     markUiStateDirty();
+    seqToast('T' + (track + 1) + (isMuted(track) ? ' MUTED' : ' UNMUTED'));
 }
 
 export function toggleSolo(track: number): void {
@@ -66,6 +74,18 @@ export function toggleSolo(track: number): void {
         + ' mutes=' + seqState.muted.map((m) => (m ? 1 : 0)).join('')
         + ' base=' + (base ? base.map((b) => (b ? 1 : 0)).join('') : '-'));
     markUiStateDirty();
+    seqToast(soloToast());
+}
+
+/* "T2 SOLO" for one, "SOLO T1 T3" for several, "SOLO OFF" for none — the whole
+ * solo set, not just the track that changed, since that is the state the user
+ * needs to see. */
+function soloToast(): string {
+    const on: number[] = [];
+    for (let t = 0; t < 4; t++) if (solo[t]) on.push(t + 1);
+    if (on.length === 0) return 'SOLO OFF';
+    if (on.length === 1) return 'T' + on[0] + ' SOLO';
+    return 'SOLO ' + on.map((n) => 'T' + n).join(' ');
 }
 
 export function resetTrackMutes(): void {

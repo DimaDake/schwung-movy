@@ -167,8 +167,9 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
      * Ungated release: how long the button was down is not a different intent
      * here, and the 500 ms hold rule silently swallowed any deliberate press.
      *
-     * Shift at press time selects solo instead of mute — read at the press
-     * because Shift is often released before the button it modifies. */
+     * Shift selects solo instead of mute. Taken at the press OR at the moment
+     * of the action, because either order is natural: Shift is often released
+     * before the button it modifies, and just as often added after it. */
     if (d1 === CC_MUTE) {
         if (d2 > 0) {
             setMuteHeld(true);
@@ -177,7 +178,7 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         } else {
             setMuteHeld(false);
             if (momentaryUpUngated(CC_MUTE) === 'clean' && !seqState.sessionMode) {
-                if (muteShift) toggleSolo(appState.activeSlot);
+                if (muteShift || shiftHeld) toggleSolo(appState.activeSlot);
                 else muteTrack(appState.activeSlot);
                 appState.dirty = true;
             }

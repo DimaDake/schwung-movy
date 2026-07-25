@@ -30,12 +30,16 @@ far. Earlier work is summarised in the timeline below for context.
 
 - **Solo** — **Shift + Mute** solos the current track, **Shift + Mute + track**
   solos that one; press again to un-solo, and several tracks can be soloed at
-  once. Implemented entirely in Movy on the engine's per-track mute (nothing
-  touches Schwung), so it gates sequenced notes — live pads on a silenced track
-  still sound. The user's own mutes are captured when a solo engages and
-  restored when the last one drops, and that bookkeeping is saved per set so a
-  reopen cannot strand the derived mutes. Inactive in Session view, which has no
-  current track.
+  once. Solo overrides mute, so soloing a muted track makes it audible; the
+  user's own mutes are captured when a solo engages and restored when the last
+  one drops. Implemented entirely in Movy on the engine's per-track mute
+  (nothing touches Schwung), so it gates sequenced notes — live pads on a
+  silenced track still sound. The bookkeeping is saved per set, so a reopen
+  cannot strand the derived mutes. Shift counts whether it goes down before or
+  after Mute. Inactive in Session view, which has no current track.
+
+- **Mute / solo toasts** — every mute or solo names the track (`T2 MUTED`) and,
+  for solo, the resulting set (`T1 SOLO`, `SOLO T1 T3`, `SOLO OFF`).
 
 ### Fixed
 

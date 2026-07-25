@@ -242,12 +242,14 @@ export function onMidiMessageInternal(data: number[]): void {
         const track = TRACK_CC_END - d1;
         if (d2 > 0) {
             volumeTrackDown(track);   // arm hold-track + volume knob
-            // Mute+track mutes that track; Shift+Mute+track solos it instead
-            // (Shift read from the Mute press, so releasing it early is fine).
+            // Mute+track mutes that track; Shift+Mute+track solos it instead.
+            // Shift counts if it was down at the Mute press or is down now, so
+            // neither ordering of the two modifiers loses the gesture.
             // Either marks the momentary as gestured, so the release no longer
             // toggles the *current* track as well.
             if (muteHeld()) {
-                if (muteShiftHeld()) toggleSolo(track); else muteTrack(track);
+                if (muteShiftHeld() || appState.shiftHeld) toggleSolo(track);
+                else muteTrack(track);
                 momentaryGesture(); appState.dirty = true; return;
             }
             // A track button always exits the Set Parameters page first (it is a

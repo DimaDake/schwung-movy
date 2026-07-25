@@ -374,12 +374,14 @@ for the concepts:
   pure modifier there.
 - **Solo** — the same two gestures with **Shift**: **Shift + Mute** solos the
   current track, **Shift + Mute + track button** solos that one. Press again to
-  un-solo, and solo several tracks at once if you like. Solo works by muting
-  everything else, so it silences their *sequenced notes* — pads you play by
-  hand on a silenced track still sound. Your own mutes are remembered
-  underneath: un-soloing puts them back exactly as they were. Silenced tracks
-  dim their track button like muted ones. Shift only has to be down when you
-  press Mute; you can let go of it before releasing.
+  un-solo, and solo several tracks at once if you like. **Solo overrides mute**,
+  so soloing a track you had muted makes it audible; your own mutes are
+  remembered underneath and put back exactly as they were when the last solo
+  drops. Solo works by muting everything else, so it silences their *sequenced
+  notes* — pads you play by hand on a silenced track still sound. Silenced
+  tracks dim their track button like muted ones, and every mute or solo shows a
+  toast naming the track (and the whole solo set, e.g. `SOLO T1 T3`). Shift can
+  go down before or after Mute — either order works.
 - **Automation** — turn a module knob while recording (or while holding a step)
   to record parameter automation; the on-screen knob arc follows the automation.
 

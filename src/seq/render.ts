@@ -103,6 +103,11 @@ export function seqToastActive(): boolean {
     return ttl > 0;
 }
 
+/* The toast currently showing ('' when none) — read by tests. */
+export function seqToastText(): string {
+    return ttl > 0 ? text : '';
+}
+
 /* Age the toast one tick. Returns true on the tick it expires, so the caller
  * can force one repaint of the underlying view to erase it. */
 export function seqToastTick(): boolean {

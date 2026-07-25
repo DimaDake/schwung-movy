@@ -206,6 +206,50 @@ _log('\nTest: moog hierarchy via children delegation (generic path)');
     }
 }
 
+/* ── full level-graph traversal (generic path) ───────────────────────────── */
+
+function bankNames(m) {
+    const n = m.getViewModel().bankCount;
+    const names = [];
+    for (let i = 0; i < n; i++) { if (i > 0) m.changePage(1); names.push(m.getViewModel().bankName); }
+    return names;
+}
+
+_log('\nTest: root.children nav list is traversed (helm shape)');
+{
+    const names = bankNames(bootModel(MOCK_SYNTHS.hier_children_nav));
+    eq('children_nav: bankCount = 3',       names.length, 3);
+    eq('children_nav: bank 0 = Main',       names[0], 'Main');
+    eq('children_nav: bank 1 = Oscillator', names[1], 'Oscillator');
+    eq('children_nav: bank 2 = Filter',     names[2], 'Filter');
+}
+
+_log('\nTest: a level with knobs AND sub-levels renders both (dexed shape)');
+{
+    const names = bankNames(bootModel(MOCK_SYNTHS.hier_knobs_and_children));
+    eq('knobs_and_children: bankCount = 4',      names.length, 4);
+    eq('knobs_and_children: bank 0 = Main',      names[0], 'Main');
+    eq('knobs_and_children: bank 1 = Operators', names[1], 'Operators');
+    eq('knobs_and_children: bank 2 (depth 2)',   names[2], 'Operat/Operator 1');
+    eq('knobs_and_children: bank 3 (depth 3)',   names[3], 'Oper1/Envelope');
+}
+
+_log('\nTest: a level duplicating root renders once, its children still render');
+{
+    const names = bankNames(bootModel(MOCK_SYNTHS.hier_alias_level));
+    eq('alias_level: bankCount = 2',           names.length, 2);
+    eq('alias_level: bank 0 = Main',           names[0], 'Main');
+    eq('alias_level: no duplicate Patch page', names.includes('Patch'), false);
+    eq('alias_level: bank 1 = Deep',           names[1], 'Deep');
+}
+
+_log('\nTest: orphan levels with knobs are swept in');
+{
+    const names = bankNames(bootModel(MOCK_SYNTHS.hier_orphan_level));
+    eq('orphan_level: bankCount = 2', names.length, 2);
+    eq('orphan_level: bank 1 = Perf', names[1], 'Perf');
+}
+
 /* ── C1: preset knob not duplicated across pages ─────────────────────────── */
 
 _log('\nTest: preset knob renders exactly once (C1)');

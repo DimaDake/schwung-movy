@@ -302,6 +302,93 @@ export const MOCK_SYNTHS = {
         "synth:tune":       "0.5",
     },
 
+    /* helm's shape: root's own nav list holds only an empty items-picker
+     * level; the real categories hang off root.children. */
+    hier_children_nav: {
+        "synth:name": "ChildNav",
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: {
+                    children: "main",
+                    knobs: ["cutoff", "reso"],
+                    params: [{ level: "jump", label: "Jump to Category" }],
+                },
+                jump: { knobs: [], params: [] },
+                main: {
+                    children: null,
+                    knobs: ["cutoff", "reso"],
+                    params: [
+                        { level: "osc",  label: "Oscillator" },
+                        { level: "filt", label: "Filter" },
+                    ],
+                },
+                osc:  { knobs: ["osc_wave", "osc_tune"] },
+                filt: { knobs: ["filt_a", "filt_b"] },
+            },
+        }),
+        "synth:chain_params": JSON.stringify([
+            { key: "cutoff",   name: "Cutoff", type: "float", min: 0, max: 1 },
+            { key: "reso",     name: "Reso",   type: "float", min: 0, max: 1 },
+            { key: "osc_wave", name: "Wave",   type: "float", min: 0, max: 1 },
+            { key: "osc_tune", name: "Tune",   type: "float", min: 0, max: 1 },
+            { key: "filt_a",   name: "Filt A", type: "float", min: 0, max: 1 },
+            { key: "filt_b",   name: "Filt B", type: "float", min: 0, max: 1 },
+        ]),
+    },
+
+    /* dexed's shape: a level with BOTH knobs and sub-levels. */
+    hier_knobs_and_children: {
+        "synth:name": "KnobsKids",
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: { knobs: ["vol"], params: [{ level: "ops", label: "Operators" }] },
+                ops:  { knobs: ["op_sel"], params: [{ level: "op1", label: "Operator 1" }] },
+                op1:  { knobs: ["op1_lvl"], params: [{ level: "op1_eg", label: "Envelope" }] },
+                op1_eg: { label: "Op1 Envelope", knobs: ["op1_atk", "op1_dec"] },
+            },
+        }),
+        "synth:chain_params": JSON.stringify([
+            { key: "vol",     name: "Vol",   type: "float", min: 0, max: 1 },
+            { key: "op_sel",  name: "Sel",   type: "int",   min: 0, max: 5 },
+            { key: "op1_lvl", name: "Level", type: "float", min: 0, max: 1 },
+            { key: "op1_atk", name: "Atk",   type: "float", min: 0, max: 1 },
+            { key: "op1_dec", name: "Dec",   type: "float", min: 0, max: 1 },
+        ]),
+    },
+
+    /* A level whose knob list exactly copies root's — one page, not two. */
+    hier_alias_level: {
+        "synth:name": "AliasDup",
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root:  { children: "patch", knobs: ["a", "b"] },
+                patch: { label: "Patch", knobs: ["a", "b"], params: [{ level: "deep", label: "Deep" }] },
+                deep:  { knobs: ["c"] },
+            },
+        }),
+        "synth:chain_params": JSON.stringify([
+            { key: "a", name: "A", type: "float", min: 0, max: 1 },
+            { key: "b", name: "B", type: "float", min: 0, max: 1 },
+            { key: "c", name: "C", type: "float", min: 0, max: 1 },
+        ]),
+    },
+
+    /* A level with knobs that nothing links to — swept in at the end. */
+    hier_orphan_level: {
+        "synth:name": "Orphan",
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: { knobs: ["a"] },
+                perf: { label: "Perf", knobs: ["p1", "p2"] },
+            },
+        }),
+        "synth:chain_params": JSON.stringify([
+            { key: "a",  name: "A",  type: "float", min: 0, max: 1 },
+            { key: "p1", name: "P1", type: "float", min: 0, max: 1 },
+            { key: "p2", name: "P2", type: "float", min: 0, max: 1 },
+        ]),
+    },
+
     nav_levels: {
         "synth:name": "NavTest",
         "synth:ui_hierarchy": JSON.stringify({

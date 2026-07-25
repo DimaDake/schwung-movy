@@ -15,11 +15,12 @@
  *    visible in the Shift variant. Drawing is unconditional — without Shift the
  *    frame simply is not pushed to the panel.
  *
- * The injection fires on knob *touch*, not on track-button down: the drain
- * (shadow_midi.c:530) defers while any hardware MIDI is present and needs two
- * idle frames, and a lone capacitive touch note is exactly that quiet moment —
- * whereas a live knob turn never is. Injecting on track-down would also
- * retarget Move's selected track on ordinary track switches.
+ * The injection fires on track-button **down**, not on knob touch. Move decides
+ * what the volume knob targets at touch time, so a hold injected in response to
+ * the touch arrives too late and the gesture moves the slot *and* master volume
+ * together (observed on device). Pressing first also matches Move's own
+ * ordering. The cost is that an ordinary track switch in movy now also moves
+ * Move's selected track, which is invisible under overtake.
  */
 
 import { mlog } from '../log.js';
@@ -51,12 +52,19 @@ function readVolume(track: number): number {
 }
 
 /* Take the gesture: tell Move a track is held so its volume knob stops driving
- * master, and snapshot the value we are about to move. */
+ * master, and snapshot the value we are about to move.
+ *
+ * This MUST happen on track-button down, before the knob is touched. Move
+ * decides what the volume knob targets when the touch arrives, so a track-hold
+ * injected in response to the touch lands too late — Move has already entered
+ * master-volume mode and the gesture moves both volumes at once. Injecting on
+ * the press reproduces the native order: hold the track, then touch the knob. */
 function beginDivert(): void {
     if (diverted >= 0 || heldTrack < 0) return;
     diverted = heldTrack;
     value    = readVolume(heldTrack);
     injectHold(heldTrack, true);
+    mlog('trackvol arm t=' + heldTrack + ' read=' + value.toFixed(2));
 }
 
 function endDivert(): void {
@@ -67,7 +75,7 @@ function endDivert(): void {
 
 export function volumeTrackDown(track: number): void {
     heldTrack = track;
-    if (touched) beginDivert();
+    beginDivert();
 }
 
 export function volumeTrackUp(track: number): void {
@@ -78,8 +86,6 @@ export function volumeTrackUp(track: number): void {
 
 export function volumeTouch(on: boolean): void {
     touched = on;
-    if (on) beginDivert();
-    else endDivert();
 }
 
 /* CC 79 is outside the 71-78 range shadow_ui re-encodes and accumulates, so it

@@ -5342,7 +5342,7 @@ _log('\nTest: track volume gesture (hold track + CC 79)');
         resetTrackVolume();
         env.setParams({ 'slot:volume': vol });
         env.clearInjected();
-        volumeTrackDown(track);
+        volumeTrackDown(track);   // divert must be injected here, before any touch
         volumeTouch(true);
     };
 
@@ -5355,11 +5355,20 @@ _log('\nTest: track volume gesture (hold track + CC 79)');
     eq('no track held: turn not consumed', volumeKnobDelta(CW), false);
     eq('no track held: volume untouched', env.params['slot:volume'], '1.00');
 
-    // Touch while holding a track diverts the knob at Move by injecting the
-    // track-hold Move never saw (CC 43 = track 1 → slot 0, so slot 1 = CC 42).
-    start(1);
-    eq('touch injects one packet', env.injected.length, 1);
+    // The divert must be injected on track-button DOWN, before the knob is
+    // touched: Move decides what the volume knob targets at touch time, so a
+    // hold injected in response to the touch arrives too late and the gesture
+    // moves master volume as well (CC 43 = track 1 → slot 0, so slot 1 = CC 42).
+    resetTrackVolume();
+    env.setParams({ 'slot:volume': '1.00' });
+    env.clearInjected();
+    volumeTrackDown(1);
+    eq('track-down injects the divert', env.injected.length, 1);
     eq('injected track-hold press', JSON.stringify(env.injected[0]), JSON.stringify([0x0B, 0xB0, 42, 127]));
+    volumeTouch(true);
+    eq('touch adds no further injection', env.injected.length, 1);
+
+    start(1);
 
     // 0.05 per detent, written back as the slot param.
     eq('CW detent consumed', volumeKnobDelta(CW), true);
@@ -5390,10 +5399,16 @@ _log('\nTest: track volume gesture (hold track + CC 79)');
     eq('overlay value', volumeOverlay()?.value, 1);
     volumeKnobDelta(CW);
     eq('overlay tracks the edit', volumeOverlay()?.value.toFixed(2), '1.05');
+    // Releasing the knob hides the slider but keeps the divert: the track button
+    // is still down, so a second touch-and-turn must not need a re-inject (and
+    // must not leave Move back in master-volume mode in between).
+    env.clearInjected();
     volumeTouch(false);
     eq('overlay hidden on touch release', volumeOverlay(), null);
-    eq('touch release injects hold-off', JSON.stringify(env.injected[env.injected.length - 1]),
-        JSON.stringify([0x0B, 0xB0, 40, 0]));
+    eq('touch release keeps the divert', env.injected.length, 0);
+    volumeTouch(true);
+    eq('re-touch shows the slider again', volumeOverlay()?.track, 3);
+    eq('re-touch needs no new injection', env.injected.length, 0);
 
     // Releasing the track button ends the divert even with the knob still held.
     start(1);
@@ -5403,14 +5418,16 @@ _log('\nTest: track volume gesture (hold track + CC 79)');
     eq('overlay hidden after track release', volumeOverlay(), null);
     eq('turn after release not consumed', volumeKnobDelta(CW), false);
 
-    // A missed capacitive touch must not lose the gesture: the turn arms it.
+    // A missed capacitive touch must not lose the gesture (the overlay stays
+    // hidden, but the turn still edits — the divert is already in place).
     resetTrackVolume();
     env.setParams({ 'slot:volume': '1.00' });
     env.clearInjected();
     volumeTrackDown(2);
+    eq('divert precedes any touch', JSON.stringify(env.injected[0]), JSON.stringify([0x0B, 0xB0, 41, 127]));
     eq('turn without touch is consumed', volumeKnobDelta(CW), true);
-    eq('turn without touch diverts Move', JSON.stringify(env.injected[0]), JSON.stringify([0x0B, 0xB0, 41, 127]));
     eq('turn without touch edits volume', env.params['slot:volume'], '1.05');
+    eq('no overlay without touch', volumeOverlay(), null);
 
     // Only one divert per gesture, however many detents arrive.
     env.clearInjected();

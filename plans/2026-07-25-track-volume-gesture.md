@@ -48,12 +48,23 @@ Move's MIDI_IN, and the drain runs *after* all filtering
 filter. With the hold established, Move routes CC 79 to its own track volume and
 master volume stays put.
 
-**Injection timing matters.** The drain defers while *any* hardware MIDI is
-present and needs 2 idle frames (~6 ms). A capacitive touch note is a lone event
-in a quiet frame, so the injection is triggered on master-knob touch while a
-track is held — not on every track-button press (which would retarget Move's
-selected track on ordinary track switches) and not per detent (which cannot land
-during an active turn).
+**Injection timing is the whole ballgame.** It must happen on track-button
+**down**, before the knob is touched.
+
+The first implementation injected on master-knob *touch* (reasoning that a lone
+capacitive note is a quiet frame for the drain, which defers while any hardware
+MIDI is present). On device that moved the slot volume *and* Move's master
+volume together: Move decides what the volume knob targets when the touch
+arrives, so a hold injected in response to that touch is already too late.
+Pressing first reproduces Move's own ordering — hold the track, then touch.
+
+The divert is held for the whole track press, not the touch, so releasing and
+re-touching the knob mid-hold does not drop Move back into master-volume mode.
+The cost is that an ordinary track switch in movy now also moves Move's selected
+track, which is invisible under overtake.
+
+Per-detent injection is not viable either way: the drain cannot land packets
+during an active turn.
 
 ### 2. Movy cannot draw while the volume knob is touched
 
@@ -126,17 +137,22 @@ gesture.
 - `scripts/inject-to-move.py` — device-side producer for the inject ring,
   mirroring `shadow_midi_inject_push()`.
 
-### Verification limits
+### Verification
 
-Everything movy owns is verified on device: the param write, the read-back, the
-overlay render, and delivery of the divert into Move's MIDI_IN.
+Automated (device): the param write, slot read-back across runs, overlay render,
+and delivery of the divert into Move's MIDI_IN.
 
-What is **not** verified is the consequence — that Move's master volume stays
-put during a real gesture. Move ignores synthetic knob input (120 injected
-detents moved neither `Settings.json` `globalVolume` nor the set's track
-volumes), and the only live master-volume readout schwung has is a pixel scan
-of Move's own overlay, gated on a *hardware* touch. That check needs a physical
-turn of the knob.
+The consequence — master volume staying put — needs a **physical** turn, because
+Move ignores synthetic knob input (120 injected detents moved neither
+`Settings.json` `globalVolume` nor the set's track volumes). Two signals confirm
+it after the timing fix: the user's direct observation, and zero `Master volume:`
+lines in `debug.log` across a gesture. That log line comes from the shim's pixel
+scan of Move's overlay, which runs precisely while the volume knob is touched
+and only logs on a change >0.003 — so silence during a gesture means master did
+not move.
+
+`trackvol arm t=<n> read=<v>` logs the value read at press time, which is the
+quickest way to tell a bad read from a bad write if this ever misbehaves.
 
 Note the inject ring is a Vyukov MPSC queue (`enqueue_pos`/`read_pos`, 8-byte
 slots keyed by `seq`) as of current schwung — an older layout with a

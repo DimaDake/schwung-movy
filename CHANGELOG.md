@@ -22,8 +22,10 @@ far. Earlier work is summarised in the timeline below for context.
   of a volume-knob touch.
 
   Move firmware always receives CC 79 in overtake, so Movy injects the
-  track-hold Move never sees (`move_midi_inject_to_move`) — Move then routes the
-  turn to its own track volume instead of master. See
+  track-hold Move never sees (`move_midi_inject_to_move`) on track-button down —
+  Move then routes the turn to its own track volume instead of master. The
+  injection must precede the knob touch, since Move picks the knob's target at
+  touch time; injecting on the touch moves both volumes at once. See
   `plans/2026-07-25-track-volume-gesture.md`.
 
 ### Fixed

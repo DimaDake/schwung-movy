@@ -40,6 +40,7 @@ await esbuild.build({
         resolve(root, 'src/seq/colors.ts'),
         resolve(root, 'src/keyboard/drum-handler.ts'),
         resolve(root, 'src/keyboard/state.ts'),
+        resolve(root, 'src/keyboard/held-notes.ts'),
         resolve(root, 'src/app/globals.ts'),
         resolve(root, 'src/app/init.ts'),
         resolve(root, 'src/app/leave-modal.ts'),

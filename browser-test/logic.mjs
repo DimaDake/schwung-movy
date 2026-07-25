@@ -5653,6 +5653,48 @@ _log('\nTest: track volume gesture (hold track + CC 79)');
     resetTrackVolume();
 }
 
+/* ── live-note ledger ────────────────────────────────────────────────────── */
+
+_log('\nTest: held-notes ledger');
+
+{
+  const L = await import('../dist/esm/keyboard/held-notes.js');
+
+  L.drainAll();
+  eq('ledger starts empty', L.soundingCount(), 0);
+
+  L.noteSounded(68, 1, 60);
+  eq('records pitch', L.noteReleased(68)?.pitch, 60);
+  eq('release removes it', L.soundingCount(), 0);
+  eq('second release is undefined', L.noteReleased(68), undefined);
+
+  // The owner track is what a later release must use, even if the UI has since
+  // moved to another track.
+  L.noteSounded(68, 1, 60);
+  eq('records owner track', L.soundingTrack(68), 1);
+  eq('isSounding true', L.isSounding(68), true);
+  eq('isSounding false for other pad', L.isSounding(69), false);
+  eq('released note carries owner track', L.noteReleased(68)?.track, 1);
+
+  // drainAll empties everything and hands back the owners.
+  L.noteSounded(68, 0, 60);
+  L.noteSounded(69, 2, 64);
+  const all = L.drainAll();
+  eq('drainAll returns both', all.length, 2);
+  eq('drainAll empties', L.soundingCount(), 0);
+  eq('drainAll entry has padNote', all.find(n => n.pitch === 64)?.padNote, 69);
+
+  // drainTrack takes only that track, leaving the rest sounding.
+  L.noteSounded(68, 0, 60);
+  L.noteSounded(69, 1, 64);
+  L.noteSounded(70, 0, 67);
+  const t0 = L.drainTrack(0);
+  eq('drainTrack returns that track only', t0.length, 2);
+  eq('drainTrack leaves others', L.soundingCount(), 1);
+  eq('survivor is track 1', L.soundingTrack(69), 1);
+  L.drainAll();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

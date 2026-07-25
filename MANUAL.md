@@ -141,6 +141,21 @@ automatically. You don't configure anything for most modules.
   (`MAIN`, `PAGE 1`, `PAGE 2`, …). Scroll them with the jog wheel (or Left/Right
   when the sequencer isn't using those buttons).
 
+**Every page a module offers.** Movy builds one page per section the module
+declares, following both its own menu and any section it delegates to, however
+deeply they nest. Param-dense synths therefore have a lot of pages — *Helm* has
+30, *MiniJV* 49, *Dexed* 23 — all reached by scrolling. Two details keep that
+readable:
+
+- A section nested inside another is named `Parent/Child`, with the parent
+  shortened to fit the header, so sibling sections stay apart (*Dexed*'s six
+  operator envelopes read `Oper1/Envelope`, `Oper2/Envelope`, …).
+
+  ![A nested parameter page](docs/assets/deep_page.png)
+
+- A section that merely repeats another one's knobs is shown once, so modules
+  that publish the same eight knobs twice no longer waste a page on it.
+
 Even a module that publishes no parameter hierarchy still gets pages — Movy lays
 its parameters out in the order the module exposes them (this is what brings
 modules like *Branchage*, *Smack-in* and *Belt-in* to life). When a parameter

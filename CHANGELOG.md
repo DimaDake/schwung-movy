@@ -15,6 +15,20 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Modules with deep parameter menus show all of their pages.** Movy read a
+  module's `ui_hierarchy` too narrowly: it took the section list from either the
+  module's own menu *or* the section it delegates to (never both), stopped
+  descending once a section had knobs of its own, and gave up below two levels.
+  Modules that publish their real menu one level down therefore collapsed to a
+  single page — **Helm** showed 1 of its 30 pages, hiding 152 parameters.
+  Movy now walks the whole section graph: **Helm 2 → 30 pages**, **MiniJV
+  7 → 49**, **Dexed 5 → 23**, and *Forge*, *Moog*, *Surge*, *Nusaw* and
+  *Chiptune* reach sections that were previously unreachable. Nested sections
+  are named `Parent/Child`, and a section that merely repeats another one's
+  knobs is now shown once instead of twice (11 modules had such a duplicate
+  page). No parameter that was reachable before became unreachable — the module
+  regression suite asserts it for all 77 captured modules.
+
 - **Clip transpose no longer shifts drum tracks.** A drum module's pitches are
   pad addresses, so a transposed step fired the wrong pad — or nothing at all,
   when the shift landed outside the module's pad range. The sequencer engine now

@@ -30,6 +30,12 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Mute button ignored anything but a quick tap.** Pressing Mute mutes the
+  current track, but the release ran through the momentary hold rule, so any
+  press of 500 ms or more silently did nothing. Duration is not a different
+  intent for Mute (its restore is a no-op), so the release is now ungated — only
+  a Mute+track use suppresses the current-track toggle. Session view still keeps
+  Mute as a pure modifier.
 - Knob-touch note mapping: note 8 is the master (volume) knob and note 9 the jog
   wheel, not the other way round. `jogTouched` was being driven by volume-knob
   touch.

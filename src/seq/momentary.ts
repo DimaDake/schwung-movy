@@ -39,6 +39,19 @@ export function momentaryUpAt(button: number, nowMs: number): 'revert' | 'tap' |
     return 'tap';
 }
 
+/* Release without the hold-duration rule: only a modifier gesture while held
+ * suppresses the action. For buttons where holding longer is not a different
+ * intent — Mute has no peek semantics (its restore is a no-op), so a deliberate
+ * press should mute the active track just like a quick tap does. */
+export function momentaryUpUngated(button: number): 'used' | 'clean' | 'none' {
+    if (!active || active.button !== button) return 'none';
+    const used    = active.gestured;
+    const restore = active.restore;
+    active = null;
+    if (used) { restore(); return 'used'; }
+    return 'clean';
+}
+
 export function momentaryDown(button: number, restore: () => void): void {
     momentaryDownAt(button, Date.now(), restore);
 }

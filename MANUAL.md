@@ -367,7 +367,11 @@ for the concepts:
 - **Duplicate / delete** — **Copy** and **Delete** (a.k.a. Clear) act on steps,
   clips, or bars depending on context.
 - **Quantize** — **Shift + Step 16**.
-- **Mute** — hold **Mute** and press a track button to mute that track.
+- **Mute** — press **Mute** on its own to mute the current track; or hold
+  **Mute** and press a track button to mute that one instead. Using the
+  track-button form suppresses the current-track toggle, so one press never
+  mutes two things. In Session view there is no current track, so Mute stays a
+  pure modifier there.
 - **Automation** — turn a module knob while recording (or while holding a step)
   to record parameter automation; the on-screen knob arc follows the automation.
 
@@ -604,7 +608,8 @@ behaviour you'd like — or, better, a PR.
 | **Left / Right** | Navigate bars (or nudge held steps). |
 | **Copy** | Duplicate a step / clip / bar (context-dependent). |
 | **Delete (Clear)** | Delete a step / clip / bar; in Session, delete a clip. Hold + knob-touch clears that knob's automation lane. |
-| **Mute + track** | Mute that track. |
+| **Mute** | Mute / unmute the current track (Track view only — Session view has no current track). |
+| **Mute + track** | Mute that track instead; suppresses the current-track toggle on release. |
 | **Track buttons 1–4** | Select a track (hold = momentary peek). |
 | **Volume encoder** | Adjust held steps' velocity. With a track button held instead, sets that track's volume; otherwise it stays Move's master volume. |
 | **TEMPO knob** (Set page) | Set the tempo; also sets Move's device-wide tempo via Link. **EXT** on the cell = locked to Move's transport. |

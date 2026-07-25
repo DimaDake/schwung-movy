@@ -30,6 +30,7 @@ export function muteTrack(track: number): void {
     const next = seqState.muted[track] ? 0 : 1;
     seqState.muted[track] = next === 1;
     seqCmd('mute ' + track + ' ' + next);
+    mlog('mute t=' + track + ' -> ' + next);
 }
 import {
     deleteActive, deleteButton, deletePad, deleteStep,
@@ -39,7 +40,7 @@ import { engineReady, seqCmd } from './engine.js';
 import {
     doubleLoop, loopButton, loopHeld, loopStepOff, loopStepOn, loopWheel,
 } from './loop-mode.js';
-import { momentaryDown, momentaryGesture, momentaryUp } from './momentary.js';
+import { momentaryDown, momentaryGesture, momentaryUp, momentaryUpUngated } from './momentary.js';
 import {
     anyStepHeld, editNudge, editPad, editStepDown, editStepUp,
     editTranspose, editVelocity, heldStepAbs, setLengthTo, endStepAutomation,
@@ -158,17 +159,20 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     if (statusType !== 0xB0) return false;
 
     /* Mute button: held state gates the Mute+track mute gesture (midi/router.ts).
-     * In Track view a clean tap (no track-button mute used while held) instead
+     * In Track view a press with no track-button mute used while held instead
      * mutes the active track on release; Session view keeps Mute as a pure
-     * held modifier. The Mute+track gesture marks the momentary (momentaryGesture
-     * in midi/router.ts) so it reverts rather than double-firing as a tap. */
+     * held modifier (no current track to mute). The Mute+track gesture marks the
+     * momentary (momentaryGesture in midi/router.ts) so it suppresses this.
+     *
+     * Ungated release: how long the button was down is not a different intent
+     * here, and the 500 ms hold rule silently swallowed any deliberate press. */
     if (d1 === CC_MUTE) {
         if (d2 > 0) {
             setMuteHeld(true);
             momentaryDown(CC_MUTE, () => {});
         } else {
             setMuteHeld(false);
-            if (momentaryUp(CC_MUTE) === 'tap' && !seqState.sessionMode) {
+            if (momentaryUpUngated(CC_MUTE) === 'clean' && !seqState.sessionMode) {
                 muteTrack(appState.activeSlot);
                 appState.dirty = true;
             }

@@ -2496,7 +2496,33 @@ _log('\nautomation: restore re-requests label sync:');
     seqHandleMidi([0xB0, CC_MUTE, 0], false);
     eq('track-view tap mutes active track', peekSeqCmdQueue().some(c => c === 'mute 1 1'), true);
 
-    // Session view: a Mute tap must NOT mute (Mute stays a pure modifier there).
+    // A deliberate press mutes too. Duration is not a different intent for Mute,
+    // and the old hold-gated release silently swallowed any press >= 500 ms.
+    resetSeqEngine(); resetMomentary();
+    appState.activeSlot = 3;
+    seqState.muted[3] = false;
+    const realNow = Date.now;
+    seqHandleMidi([0xB0, CC_MUTE, 127], false);
+    Date.now = () => realNow.call(Date) + 900;
+    seqHandleMidi([0xB0, CC_MUTE, 0], false);
+    Date.now = realNow;
+    eq('long press mutes active track', peekSeqCmdQueue().some(c => c === 'mute 3 1'), true);
+
+    // Mute+track must still suppress it: the track-button path marks the
+    // momentary as gestured (midi/router.ts), so the release mutes nothing more.
+    {
+        const { momentaryGesture } = await import('../dist/esm/seq/momentary.js');
+        resetSeqEngine(); resetMomentary();
+        appState.activeSlot = 0;
+        seqState.muted[0] = false;
+        seqHandleMidi([0xB0, CC_MUTE, 127], false);
+        momentaryGesture();   // stands in for Mute+track muting some other track
+        seqHandleMidi([0xB0, CC_MUTE, 0], false);
+        eq('mute+track suppresses active-track mute',
+            peekSeqCmdQueue().some(c => c === 'mute 0 1'), false);
+    }
+
+    // Session view: a Mute press must NOT mute (no current track there).
     resetSeqEngine(); resetMomentary();
     appState.activeSlot = 2;
     seqState.sessionMode = true;
@@ -2504,6 +2530,15 @@ _log('\nautomation: restore re-requests label sync:');
     seqHandleMidi([0xB0, CC_MUTE, 127], false);
     seqHandleMidi([0xB0, CC_MUTE, 0], false);
     eq('session-view tap does not mute', peekSeqCmdQueue().some(c => c.startsWith('mute 2')), false);
+
+    // ...including a long press, which now reaches the same branch.
+    resetSeqEngine(); resetMomentary();
+    const sessNow = Date.now;
+    seqHandleMidi([0xB0, CC_MUTE, 127], false);
+    Date.now = () => sessNow.call(Date) + 900;
+    seqHandleMidi([0xB0, CC_MUTE, 0], false);
+    Date.now = sessNow;
+    eq('session-view press does not mute', peekSeqCmdQueue().some(c => c.startsWith('mute 2')), false);
 
     seqState.sessionMode = false;
     uninstallMockEngine();
@@ -2568,6 +2603,24 @@ _log('\nautomation: restore re-requests label sync:');
     momentaryDownAt(40, 1000, restore);
     eq('other-button up none', momentaryUpAt(58, 2000), 'none');
     eq('other-button up ignored', restored, 3);
+
+    // Ungated release (Mute): duration is irrelevant, only a gesture suppresses.
+    const { momentaryUpUngated } = await import('../dist/esm/seq/momentary.js');
+    resetMomentary();
+    momentaryDownAt(88, 0, restore);
+    eq('ungated quick release is clean', momentaryUpUngated(88), 'clean');
+    resetMomentary();
+    momentaryDownAt(88, 0, restore);
+    eq('ungated long release is clean', momentaryUpUngated(88), 'clean');   // no time gate at all
+    eq('ungated clean does not restore', restored, 3);
+    resetMomentary();
+    momentaryDownAt(88, 0, restore);
+    momentaryGesture();
+    eq('ungated gesture returns used', momentaryUpUngated(88), 'used');
+    eq('ungated used restores', restored, 4);
+    resetMomentary();
+    momentaryDownAt(88, 0, restore);
+    eq('ungated other-button none', momentaryUpUngated(58), 'none');
 }
 
 /* ── seqRestoreWatch: restores watchTrack + barOffset ───────────────────── */

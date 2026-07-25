@@ -2548,100 +2548,111 @@ _log('\nautomation: restore re-requests label sync:');
 {
     _log('\nsolo gesture:');
     const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
-    const { seqHandleMidi, muteShiftHeld } = await import('../dist/esm/seq/router.js');
+    const { seqHandleMidi, muteShiftHeld, muteTrack } = await import('../dist/esm/seq/router.js');
     const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
     const { resetMomentary } = await import('../dist/esm/seq/momentary.js');
     const { appState } = await import('../dist/esm/app/state.js');
-    const { soloTrack, isSoloed, anySolo, silencedBySolo, refreshSolo, resetTrackSolo } =
-        await import('../dist/esm/mixer/track-solo.js');
-    const { trackButtonColor } = await import('../dist/esm/seq/leds.js');
-    const { trackColor, trackColorDim } = await import('../dist/esm/seq/colors.js');
-
-    // The shared env stub keys params by name only; solo is per-slot, so record
-    // (slot, key) here. Mirrors the host: setting one slot soloed clears the rest.
-    const slotParams = new Map();
-    const realSet = globalThis.shadow_set_param;
-    const realGet = globalThis.shadow_get_param;
-    globalThis.shadow_set_param = (slot, key, val) => {
-        if (key === 'slot:soloed') {
-            if (val === '1') for (const k of [...slotParams.keys()]) if (k.endsWith(':slot:soloed')) slotParams.set(k, '0');
-            slotParams.set(slot + ':' + key, val);
-            return true;
-        }
-        return realSet(slot, key, val);
-    };
-    globalThis.shadow_get_param = (slot, key) =>
-        key === 'slot:soloed' ? (slotParams.get(slot + ':' + key) ?? '0') : realGet(slot, key);
+    const { toggleSolo, toggleMute, isSoloed, anySolo, isMuted, resetTrackMutes } =
+        await import('../dist/esm/mixer/track-mutes.js');
+    const { serializeUiState, applyUiState } = await import('../dist/esm/seq/persist.js');
 
     const CC_MUTE = 88;
+    const cmds = () => peekSeqCmdQueue().filter((c) => c.startsWith('mute '));
+    const fresh = () => { resetSeqEngine(); resetSeqState(); resetMomentary(); resetTrackMutes(); };
+
     installMockEngine();
-    resetSeqEngine(); resetSeqState(); resetMomentary(); resetTrackSolo();
-    slotParams.clear();
 
-    soloTrack(2);
-    eq('solo writes slot:soloed=1', slotParams.get('2:slot:soloed'), '1');
-    eq('mirror: track 2 soloed', isSoloed(2), true);
+    // Solo mutes every other track in the engine and leaves the soloed one alone.
+    fresh();
+    toggleSolo(1);
+    eq('solo mutes the others', cmds().sort().join(','), 'mute 0 1,mute 2 1,mute 3 1');
+    eq('soloed track not muted', seqState.muted[1], false);
+    eq('others muted in the mirror', seqState.muted[0] && seqState.muted[3], true);
     eq('anySolo', anySolo(), true);
-    eq('other track silenced', silencedBySolo(0), true);
-    eq('soloed track not silenced', silencedBySolo(2), false);
+    eq('isSoloed', isSoloed(1), true);
 
-    // Exclusive: soloing another track moves the solo (the host clears the rest,
-    // so movy writes only the new one).
-    soloTrack(1);
-    eq('solo moves to track 1', isSoloed(1), true);
-    eq('track 2 no longer soloed', isSoloed(2), false);
-    eq('track 2 now silenced', silencedBySolo(2), true);
+    // Un-solo restores what was there before — including a track the user had
+    // muted themselves, which must stay muted.
+    fresh();
+    muteTrack(3);                     // user's own mute, before any solo
+    eq('user mute applied', seqState.muted[3], true);
+    resetSeqEngine();
+    toggleSolo(0);
+    eq('solo mutes others (3 already muted)', cmds().sort().join(','), 'mute 1 1,mute 2 1');
+    resetSeqEngine();
+    toggleSolo(0);                    // un-solo
+    eq('un-solo unmutes only the borrowed ones', cmds().sort().join(','), 'mute 1 0,mute 2 0');
+    eq('user mute survives un-solo', seqState.muted[3], true);
+    eq('no solo left', anySolo(), false);
 
-    // Same track again un-solos.
-    soloTrack(1);
-    eq('re-press un-solos', anySolo(), false);
-    eq('un-solo writes 0', slotParams.get('1:slot:soloed'), '0');
-    eq('nothing silenced', silencedBySolo(0), false);
+    // Several tracks can be soloed at once — solo is a per-track toggle.
+    fresh();
+    toggleSolo(0);
+    resetSeqEngine();
+    toggleSolo(2);
+    eq('second solo unmutes that track', cmds().join(','), 'mute 2 0');
+    eq('both soloed', isSoloed(0) && isSoloed(2), true);
+    eq('non-soloed still muted', seqState.muted[1], true);
+    resetSeqEngine();
+    toggleSolo(0);                    // drop one — the other still solos
+    eq('dropping one re-mutes it', cmds().join(','), 'mute 0 1');
+    eq('still soloing', anySolo(), true);
 
-    // LEDs: a track cut by another's solo dims exactly like a muted one.
-    soloTrack(3);
-    eq('silenced track dims', trackButtonColor(0, false, silencedBySolo(0)), trackColorDim(0));
-    eq('soloed track full colour', trackButtonColor(3, false, silencedBySolo(3)), trackColor(3));
-    resetTrackSolo();
-
-    // Read-back on open: a solo set outside movy shows up in the mirror.
-    slotParams.clear();
-    slotParams.set('2:slot:soloed', '1');
-    refreshSolo();
-    eq('refresh picks up host solo', isSoloed(2), true);
-    resetTrackSolo(); slotParams.clear();
+    // Muting while a solo is up edits the underlying intent, so it survives.
+    fresh();
+    toggleSolo(1);
+    toggleMute(1);                    // mute the soloed track itself
+    eq('mute under solo silences it', seqState.muted[1], true);
+    eq('intent recorded', isMuted(1), true);
+    resetSeqEngine();
+    toggleSolo(1);                    // un-solo: track 1 stays muted, others return
+    eq('intent survives un-solo', seqState.muted[1], true);
+    eq('others unmuted', seqState.muted[0] || seqState.muted[2] || seqState.muted[3], false);
 
     // Shift+Mute press solos the current track instead of muting it.
-    resetSeqEngine(); resetMomentary();
+    fresh();
     appState.activeSlot = 1;
     seqState.sessionMode = false;
-    seqState.muted[1] = false;
     seqHandleMidi([0xB0, CC_MUTE, 127], /*shiftHeld*/ true);
     eq('shift captured at press', muteShiftHeld(), true);
     seqHandleMidi([0xB0, CC_MUTE, 0], /*shiftHeld*/ false);   // Shift released early
     eq('shift+mute solos active track', isSoloed(1), true);
-    eq('shift+mute does not mute', peekSeqCmdQueue().some(c => c.startsWith('mute 1')), false);
+    eq('shift+mute does not mute it', seqState.muted[1], false);
     eq('shift flag cleared on release', muteShiftHeld(), false);
 
-    // Plain Mute still mutes and leaves solo alone.
-    resetSeqEngine(); resetMomentary(); resetTrackSolo(); slotParams.clear();
+    // Plain Mute still mutes and starts no solo.
+    fresh();
     seqHandleMidi([0xB0, CC_MUTE, 127], false);
     seqHandleMidi([0xB0, CC_MUTE, 0], false);
-    eq('plain mute still mutes', peekSeqCmdQueue().some(c => c === 'mute 1 1'), true);
+    eq('plain mute still mutes', cmds().join(','), 'mute 1 1');
     eq('plain mute sets no solo', anySolo(), false);
 
+    // Solo bookkeeping survives a reopen. The engine keeps the derived mutes,
+    // but movy's memory of *why* they are muted is per-set state — losing it
+    // would strand them as if the user had muted those tracks by hand.
+    fresh();
+    toggleSolo(0);
+    const blob = serializeUiState();
+    eq('solo is serialized', JSON.parse(blob).mutes.solo.join(''), '1000');
+    resetTrackMutes();                 // movy restarts: module state gone
+    eq('reset clears the mirror-side bookkeeping', anySolo(), false);
+    applyUiState(blob);                // ...restored from the set's UI blob
+    eq('solo restored after reopen', isSoloed(0), true);
+    resetSeqEngine();
+    toggleSolo(0);                     // un-solo now restores correctly
+    eq('un-solo after reopen unmutes the others',
+        cmds().sort().join(','), 'mute 1 0,mute 2 0,mute 3 0');
+
     // Session view: no current track, so Shift+Mute does nothing there either.
-    resetSeqEngine(); resetMomentary(); resetTrackSolo(); slotParams.clear();
+    fresh();
     seqState.sessionMode = true;
     seqHandleMidi([0xB0, CC_MUTE, 127], true);
     seqHandleMidi([0xB0, CC_MUTE, 0], true);
     eq('session-view shift+mute does not solo', anySolo(), false);
     seqState.sessionMode = false;
 
-    globalThis.shadow_set_param = realSet;
-    globalThis.shadow_get_param = realGet;
-    resetTrackSolo();
+    resetTrackMutes();
     uninstallMockEngine();
 }
 

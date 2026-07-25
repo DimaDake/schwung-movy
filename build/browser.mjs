@@ -35,7 +35,7 @@ await esbuild.build({
         resolve(root, 'src/renderer/leave-modal-view.ts'),
         resolve(root, 'src/renderer/volume-overlay.ts'),
         resolve(root, 'src/mixer/track-volume.ts'),
-        resolve(root, 'src/mixer/track-solo.ts'),
+        resolve(root, 'src/mixer/track-mutes.ts'),
         resolve(root, 'src/seq/leds.ts'),
         resolve(root, 'src/seq/colors.ts'),
         resolve(root, 'src/keyboard/drum-handler.ts'),

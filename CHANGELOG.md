@@ -29,11 +29,13 @@ far. Earlier work is summarised in the timeline below for context.
   `plans/2026-07-25-track-volume-gesture.md`.
 
 - **Solo** — **Shift + Mute** solos the current track, **Shift + Mute + track**
-  solos that one; press again to un-solo. Runs on the host's `slot:soloed`, the
-  same param schwung's own Shift+Mute+Track drives, so it is exclusive (one solo
-  at a time), beats mute, and silences everything else at the audio level —
-  live pads and FX tails included. Tracks cut by a solo dim their track button
-  like muted ones. Inactive in Session view, which has no current track.
+  solos that one; press again to un-solo, and several tracks can be soloed at
+  once. Implemented entirely in Movy on the engine's per-track mute (nothing
+  touches Schwung), so it gates sequenced notes — live pads on a silenced track
+  still sound. The user's own mutes are captured when a solo engages and
+  restored when the last one drops, and that bookkeeping is saved per set so a
+  reopen cannot strand the derived mutes. Inactive in Session view, which has no
+  current track.
 
 ### Fixed
 

@@ -10,7 +10,7 @@ import { SCALE_NAMES } from './scales.js';
 import { keyboardState } from '../keyboard/state.js';
 import { setRoot } from '../keyboard/handler.js';
 import { countDetents } from './detent.js';
-import { markUiStateDirty } from './persist.js';
+import { markUiStateDirty } from './ui-dirty.js';
 
 const BPM_MIN_X100 = 2000, BPM_MAX_X100 = 30000;
 const SWING_MIN = 50, SWING_MAX = 80;

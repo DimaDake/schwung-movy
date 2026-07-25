@@ -13,7 +13,7 @@ import {
     NUM_STEP_BUTTONS, PAD_MAX, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
 import { mlog } from '../log.js';
-import { soloTrack } from '../mixer/track-solo.js';
+import { toggleMute, toggleSolo } from '../mixer/track-mutes.js';
 import { openMainPage } from './main-page.js';
 import { openClipPage, closeClipPage, clipPageActive } from './clip-page.js';
 import { appState, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from '../app/state.js';
@@ -29,15 +29,9 @@ export function muteHeld(): boolean { return muteHeldState; }
 let muteShift = false;
 export function muteShiftHeld(): boolean { return muteShift; }
 
-/* Toggle a track's mute via the engine (mirror flips optimistically so the
- * track button dims this tick). */
-export function muteTrack(track: number): void {
-    if (track < 0 || track > 3) return;
-    const next = seqState.muted[track] ? 0 : 1;
-    seqState.muted[track] = next === 1;
-    seqCmd('mute ' + track + ' ' + next);
-    mlog('mute t=' + track + ' -> ' + next);
-}
+/* Mute and solo both live in mixer/track-mutes.ts, which owns the interaction
+ * between them (a solo derives the engine's mutes from the user's own). */
+export function muteTrack(track: number): void { toggleMute(track); }
 import {
     deleteActive, deleteButton, deletePad, deleteStep,
 } from './edit-ops.js';
@@ -183,7 +177,7 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         } else {
             setMuteHeld(false);
             if (momentaryUpUngated(CC_MUTE) === 'clean' && !seqState.sessionMode) {
-                if (muteShift) soloTrack(appState.activeSlot);
+                if (muteShift) toggleSolo(appState.activeSlot);
                 else muteTrack(appState.activeSlot);
                 appState.dirty = true;
             }

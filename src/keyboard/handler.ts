@@ -1,7 +1,7 @@
 import { keyboardState } from './state.js';
 import { chromaticPadColor, chromaticPitch } from '../seq/pads.js';
 import { C_GREEN } from '../seq/colors.js';
-import { markUiStateDirty } from '../seq/persist.js';
+import { markUiStateDirty } from '../seq/ui-dirty.js';
 
 /* Live pad note on the chromatic layout. Emits on the track's MIDI channel
  * (0x9n) so it reaches that track's chain slot, carrying real velocity. The

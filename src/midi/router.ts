@@ -20,7 +20,7 @@ import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
 import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm } from '../app/leave-modal.js';
 import { MASTER_CC, volumeTrackDown, volumeTrackUp, volumeTouch, volumeKnobDelta } from '../mixer/track-volume.js';
-import { soloTrack } from '../mixer/track-solo.js';
+import { toggleSolo } from '../mixer/track-mutes.js';
 import { mlog } from '../log.js';
 
 const PAD_MIN        = MovePads[0];
@@ -247,7 +247,7 @@ export function onMidiMessageInternal(data: number[]): void {
             // Either marks the momentary as gestured, so the release no longer
             // toggles the *current* track as well.
             if (muteHeld()) {
-                if (muteShiftHeld()) soloTrack(track); else muteTrack(track);
+                if (muteShiftHeld()) toggleSolo(track); else muteTrack(track);
                 momentaryGesture(); appState.dirty = true; return;
             }
             // A track button always exits the Set Parameters page first (it is a

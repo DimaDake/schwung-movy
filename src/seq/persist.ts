@@ -18,6 +18,8 @@ import { engineReady, requestLabelSync } from './engine.js';
 import { seqState } from './state.js';
 import { keyboardState } from '../keyboard/state.js';
 import { SCALES } from './scales.js';
+import { mutesSnapshot, restoreMutes, resetTrackMutes } from '../mixer/track-mutes.js';
+import { markUiStateDirty, takeUiDirty, clearUiDirty } from './ui-dirty.js';
 import {
     readActiveSet, resolveStateBlob, resolveUiBlob, rememberSet,
     writeStateFile, writeUiFile,
@@ -29,16 +31,18 @@ const SET_POLL_TICKS = 96;  // ~0.5s: catch native set switches (incl. on resume
 let loaded = false;
 let saveCountdown = SAVE_TICKS;
 let setPollCountdown = SET_POLL_TICKS;
-let uiDirty = false;
 let curUuid = '';
 let curName = '';
 
-export function markUiStateDirty(): void { uiDirty = true; }
+export { markUiStateDirty };
 export function currentSetUuid(): string { return curUuid; }
 
 /** `{root,scale}` JSON of the persisted UI keyboard state. */
 export function serializeUiState(): string {
-    return JSON.stringify({ root: keyboardState.rootNote, scale: keyboardState.scale });
+    return JSON.stringify({
+        root: keyboardState.rootNote, scale: keyboardState.scale,
+        mutes: mutesSnapshot(),
+    });
 }
 
 /** Apply a serialized UI-state blob (tolerant of missing/invalid fields). */
@@ -47,6 +51,7 @@ export function applyUiState(blob: string): void {
         const o = JSON.parse(blob);
         if (typeof o.root === 'number') keyboardState.rootNote = Math.max(0, Math.min(103, o.root | 0));
         if (typeof o.scale === 'number') keyboardState.scale = Math.min(SCALES.length - 1, Math.max(0, o.scale | 0));
+        if (o.mutes) restoreMutes(o.mutes);
     } catch { /* corrupt file → keep defaults */ }
 }
 
@@ -54,6 +59,7 @@ export function applyUiState(blob: string): void {
 function resetUiState(): void {
     keyboardState.rootNote = 48;
     keyboardState.scale = 0;
+    resetTrackMutes();
 }
 
 function filesAvailable(): boolean {
@@ -91,7 +97,7 @@ export function switchToSet(uuid: string, name: string, saveOld: boolean): void 
     curName = name;
     rememberSet(name, uuid);
     seqState.dirty = false;
-    uiDirty = false;
+    clearUiDirty();
 }
 
 export function seqPersistTick(): void {
@@ -118,8 +124,7 @@ export function seqPersistTick(): void {
     if (--saveCountdown > 0) return;
     saveCountdown = SAVE_TICKS;
 
-    if (uiDirty) {
-        uiDirty = false;
+    if (takeUiDirty()) {
         writeUiFile(curUuid, serializeUiState());
     }
 
@@ -138,7 +143,7 @@ export function resetSeqPersist(): void {
     loaded = false;
     saveCountdown = SAVE_TICKS;
     setPollCountdown = SET_POLL_TICKS;
-    uiDirty = false;
+    clearUiDirty();
     curUuid = '';
     curName = '';
 }

@@ -10,6 +10,9 @@
  */
 
 import { performance } from 'perf_hooks';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createModel }     from '../dist/esm/model/index.js';
 import { renderKnobsView } from '../dist/esm/renderer/knob-view.js';
 import { buildMainPageVM } from '../dist/esm/seq/main-page-vm.js';
@@ -35,6 +38,11 @@ const GET_PARAM_PER_TICK_MAX = 2;
  * fill_rect. Baseline: ~0.004ms. Threshold is generous (V8 is much faster
  * than device QuickJS) but catches catastrophic JS algorithmic regressions. */
 const RENDER_MEDIAN_MS_MAX = 2;
+
+/* Median buildViewModel() time (ms) for the most param-dense module in the
+ * fleet (helm, ~400 knob slots). Only this path scales with param count; the
+ * per-tick param refresh is a fixed-cost cursor. */
+const VM_MEDIAN_MS_MAX = 1;
 
 /* ── Globals ─────────────────────────────────────────────────────────────── */
 
@@ -197,6 +205,53 @@ _origLog('\nTest 3: renderKnobsView median time — Node.js V8 (no-op fill_rect)
 
     const med = median(times);
     check('median renderKnobsView time', med.toFixed(3), RENDER_MEDIAN_MS_MAX, 'ms');
+    _origLog(`    (baseline: ${med.toFixed(3)}ms median, ${Math.max(...times).toFixed(3)}ms worst)`);
+}
+
+/* ── Test 3b: param-heavy module (helm: ~400 knob slots over 30 pages) ───── */
+
+_origLog('\nTest 3b: helm-scale module (full ui_hierarchy traversal)');
+
+{
+    /* Real captured helm params, flattened the way the device serves them.
+     * Built here rather than via dump-boot.mjs, whose installEnv() would
+     * replace this file's counting globals. */
+    const helm = JSON.parse(readFileSync(
+        join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'dump-extra',
+             'sound_generator--helm.json'), 'utf8'));
+    mockState = {};
+    for (const [k, v] of Object.entries(helm.params)) mockState['synth:' + k] = v;
+    mockState['synth_module'] = 'helm';
+    mockState['synth:name']   = 'Helm';
+
+    const model = createModel(0, 'synth');
+    model.reload();
+    model.tick();
+    model.tick();
+    const paramCount = model.dumpLayout().params.filter(Boolean).length;
+    _origLog(`    (${paramCount} params, ${model.getViewModel().bankCount} pages)`);
+
+    /* Per-tick IPC must stay flat: refreshOneParam advances a cursor by one
+     * regardless of how many params the module has. */
+    let maxGets = 0;
+    for (let i = 0; i < 70; i++) {
+        getParamCount = 0;
+        model.tick();
+        if (getParamCount > maxGets) maxGets = getParamCount;
+    }
+    check('helm: max shadow_get_param calls per tick', maxGets, GET_PARAM_PER_TICK_MAX);
+
+    /* buildViewModel maps over every param (viewmodel.ts allValues), so it is
+     * the one path that grows with param count. */
+    for (let i = 0; i < 20; i++) model.getViewModel();
+    const times = [];
+    for (let i = 0; i < 200; i++) {
+        const t0 = performance.now();
+        model.getViewModel();
+        times.push(performance.now() - t0);
+    }
+    const med = median(times);
+    check('helm: buildViewModel median', +med.toFixed(3), VM_MEDIAN_MS_MAX, 'ms');
     _origLog(`    (baseline: ${med.toFixed(3)}ms median, ${Math.max(...times).toFixed(3)}ms worst)`);
 }
 

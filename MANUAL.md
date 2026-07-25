@@ -303,6 +303,16 @@ layout across two rows of white keys with the black keys above):
 > (*In Key* / in-scale, or the guitar-style in-scale layout). See
 > [Limitations](#7-limitations-vs-move).
 
+### Held notes stop when the context changes
+
+A note played on a pad is released when you switch tracks, enter Session mode,
+load a different module into the slot, change the octave/root, or mute that
+track — it never keeps ringing on a track you have left. Closing Movy releases
+everything, including whatever the sequencer was playing.
+
+Playing pads over a muted track still works: muting only stops notes that were
+already sounding, so you can keep jamming on a silenced track.
+
 ### Drums
 
 When a **drum module** is loaded, Movy switches the pads to a **4×4 drum rack**

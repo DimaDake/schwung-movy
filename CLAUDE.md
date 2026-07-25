@@ -44,6 +44,15 @@ mirror in the UI.
 - Live pad notes are sounded **directly** (`shadow_send_midi_to_dsp`,
   channel = track) for zero latency; the engine only **records** them (no
   double trigger). Recorded notes are suppressed until the clip wraps.
+- **Note-offs come from the ledger, never from current state.**
+  `keyboard/held-notes.ts` records `padNote → { track, pitch }` at note-on;
+  `noteOff`/`drumPadOff` take neither a track nor a `DrumConfig`. Deriving
+  either at release time strands notes whenever the active track, module, or
+  view changed mid-hold. All `0x8n` sends go through `release.ts:emitNoteOff`.
+  `app/unload.ts` (`globalThis.onUnload`, called by the host on *every*
+  teardown) releases the ledger plus the engine's open gates read from
+  `seqState.activeNotes` — the DSP is unloaded right after, so nothing else
+  can close them.
 - The engine has no filesystem; the UI ferries persisted state via
   `host_read_file`/`host_write_file` (`src/seq/persist.ts`).
 
@@ -114,6 +123,12 @@ Other useful commands:
 
 # Device e2e: step automation stays audible after a real module reselect
 ./scripts/test-reselect.sh [move.local]
+
+# Device e2e: closing Movy mid-sequence releases every sounding note.
+# Fills all 16 steps first — one note on one step is silent for most of the
+# loop, so a teardown sampled at random would find no open gate and prove
+# nothing. Asserts '[movy] unload: released N' with N > 0.
+./scripts/test-unload.sh [move.local]
 
 # Capture the device's live screen as a PNG — verify what the Move actually
 # shows instead of inferring it from log lines. Drive the UI with
@@ -237,9 +252,11 @@ src/
 
   keyboard/      Pad note-on/off, LED colours, root-note shifting
     notes.ts       midiNoteName(), PAD_MAP[]
-    state.ts       keyboardState: { rootNote, held }
+    state.ts       keyboardState: { rootNote, scale, lastPlayedNote }
+    held-notes.ts  live-note ledger: padNote → { track, pitch } (see below)
+    release.ts     emitNoteOff(), releaseAllLive(), releaseLiveOnTrack()
     leds.ts        padLedColor()
-    handler.ts     noteOn(), noteOff(), releaseAllNotes(), changeRoot()
+    handler.ts     noteOn(), noteOff(), setRoot(), changeRoot()
 
   browser/       Module browser (scan → select → load)
     state.ts       browserState: { modules[], browseIndex }

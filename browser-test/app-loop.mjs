@@ -32,6 +32,7 @@ const { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_BROWSE, VIEW_FILE_BROWSE } = awai
 const { seqState, resetSeqState, occHasStep } = await import('../dist/esm/seq/state.js');
 const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
 const { resetSeqPersist } = await import('../dist/esm/seq/persist.js');
+const { CC_NOTE_SESSION } = await import('../dist/esm/seq/constants.js');
 
 let failures = 0;
 const _log = _origLog.bind(console);
@@ -948,6 +949,62 @@ _log('\napp-loop: LINK toggle routes through knob 4 on the Set page');
     eq('knob 4 CW enables link', seqState.linkEnabled, true);
     sendMidi([0xB0, 75, 88]); advance(1);   // counter-clockwise → LINK off
     eq('knob 4 CCW disables link', seqState.linkEnabled, false);
+}
+
+/* Note conservation: every note-on movy sends must be answered by a note-off on
+ * the SAME channel by the end of a scenario. This is the assertion that catches
+ * leak paths nobody enumerated — it does not care which transition stranded the
+ * note, only that one did. */
+function makeNoteLedgerProbe() {
+    const open = new Map();   // `${ch}:${pitch}` → count
+    const orig = globalThis.shadow_send_midi_to_dsp;
+    globalThis.shadow_send_midi_to_dsp = (msg) => {
+        const [status, d1, d2] = msg;
+        const kind = status & 0xF0, ch = status & 0x0F, key = `${ch}:${d1}`;
+        if (kind === 0x90 && d2 > 0) open.set(key, (open.get(key) ?? 0) + 1);
+        else if (kind === 0x80 || (kind === 0x90 && d2 === 0)) {
+            const n = (open.get(key) ?? 0) - 1;
+            if (n > 0) open.set(key, n); else open.delete(key);
+        }
+        if (typeof orig === 'function') orig(msg);
+    };
+    return {
+        stranded: () => [...open.keys()],
+        restore:  () => { globalThis.shadow_send_midi_to_dsp = orig; },
+    };
+}
+
+_log('\napp-loop: note conservation across context changes');
+{
+    /* Hold a pad, switch tracks, release: the note must not outlive the switch. */
+    resetApp();
+    let probe = makeNoteLedgerProbe();
+    sendMidi([0x90, PAD_KICK, 100]);                     // pad down on track 1 (slot 0)
+    sendMidi([0xB0, 42, 127]); sendMidi([0xB0, 42, 0]);  // → track 2 (slot 1)
+    // Cut on switch: the note is already released before the pad comes up. The
+    // ledger alone would route the eventual off to the right channel anyway, so
+    // conservation cannot see this — only the timing can.
+    eq('track switch cut the note immediately', probe.stranded().join(','), '');
+    sendMidi([0x80, PAD_KICK, 0]);                       // pad up, now on another track
+    eq('no note stranded by a track switch', probe.stranded().join(','), '');
+    probe.restore();
+
+    /* Hold a pad, enter Session mode (which swallows pad note-offs), release. */
+    resetApp();
+    probe = makeNoteLedgerProbe();
+    sendMidi([0x90, PAD_KICK, 100]);
+    sendMidi([0xB0, CC_NOTE_SESSION, 127]);              // Note/Session button down
+    sendMidi([0x80, PAD_KICK, 0]);
+    eq('no note stranded by Session entry', probe.stranded().join(','), '');
+    probe.restore();
+
+    /* Hold a pad and close movy: teardown must release it. */
+    resetApp();
+    probe = makeNoteLedgerProbe();
+    sendMidi([0x90, PAD_KICK, 100]);
+    globalThis.onUnload();
+    eq('no note stranded by teardown', probe.stranded().join(','), '');
+    probe.restore();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

@@ -15,6 +15,18 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **LFO waveform graphics now recognise Helm's and MiniJV's LFOs.** The name
+  inference missed three things: shape lists using `Saw Up` / `Sample & Glide` /
+  `N Step` / `N Pyramid` (Helm's list scored below the "is this a shape enum?"
+  bar), rate and depth spelled `Frequency` and `Amp`, and keys that glue the
+  role onto the LFO token (MiniJV's `lfo1form` / `lfo1rate`, which landed the
+  shape and its rate in different groups). Helm's three LFO pages and MiniJV's
+  eight per-tone LFO pages now draw a live waveform instead of plain knobs.
+  Helm's stepped families get their own silhouettes rather than borrowing the
+  step-sequencer glyph: **N Step** climbs in levels, **N Pyramid** climbs and
+  falls. Verified across all 77 captured modules — no other module's graphics,
+  envelopes or parameter names changed.
+
 - **Modules with deep parameter menus show all of their pages.** Movy read a
   module's `ui_hierarchy` too narrowly: it took the section list from either the
   module's own menu *or* the section it delegates to (never both), stopped

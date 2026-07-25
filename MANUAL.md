@@ -117,6 +117,15 @@ automatically. You don't configure anything for most modules.
 
   ![Module LFO waveform](docs/assets/lfo_mod.png)
 
+  Modules name these things differently, and Movy reads the common variants —
+  a rate called *Frequency*, a depth called *Amp*, a shape list using *Saw Up*
+  or *Sample & Glide*, and keys that run the two together (`lfo1rate`). Helm's
+  stepped families get their own silhouettes: **N Step** climbs in levels,
+  **N Pyramid** climbs and falls again.
+
+  ![Stepped ramp LFO](docs/assets/lfo_helm_step.png)
+  ![Stepped triangle LFO](docs/assets/lfo_helm_pyramid.png)
+
 - **Filter graphics** — when a page carries a **cutoff + resonance** pair, Movy
   reorders them onto the same line (cutoff, then resonance) and draws a live
   **filter-response curve** across the two cells. Read it left-to-right as

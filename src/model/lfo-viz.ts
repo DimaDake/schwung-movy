@@ -22,7 +22,14 @@ export interface LfoVizGroup {
 type Role = 'shape' | 'phase' | 'rate' | 'depth' | 'deform' | 'polarity' | 'retrig';
 
 function words(text: string): string[] {
-    return text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+    return text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/).filter(Boolean)
+        /* Some modules glue the role onto the LFO token with no separator
+         * (MiniJV's lfo1form / lfo1rate), which would leave shape and rate in
+         * different qualifier groups. Split only that prefix. */
+        .flatMap(w => {
+            const m = /^(lfo\d*)([a-z].*)$/.exec(w);
+            return m ? [m[1], m[2]] : [w];
+        });
 }
 const isLfoToken  = (w: string) => /^lfo\d*$/.test(w);
 const isBareLfo   = (w: string) => w === 'lfo';
@@ -32,7 +39,7 @@ const LFO_NOISE   = new Set(['hz', 'khz', 'div', 'ms', 'sec']);
 /* Words that name a role — stripped from the key to leave the LFO's qualifier. */
 const ROLE_VOCAB = new Set([
     'shape', 'wave', 'waveform', 'form', 'type',
-    'phase', 'rate', 'speed', 'freq', 'depth', 'magnitude', 'amount', 'amt', 'dpt',
+    'phase', 'rate', 'speed', 'freq', 'frequency', 'depth', 'magnitude', 'amount', 'amt', 'dpt', 'amplitude',
     'deform', 'symmetry', 'unipolar', 'bipolar', 'polar', 'polarity',
     'retrig', 'retrigger', 'trigger', 'trigmode', 'keytrigger', 'keytrig', 'mode',
 ]);
@@ -54,8 +61,8 @@ function classify(p: KnobParam): { role: Role; qualifier: string } | null {
     else if (has(all, 'deform', 'symmetry')) role = 'deform';
     else if (isEnum && has(all, 'unipolar', 'bipolar', 'polar', 'polarity')) role = 'polarity';
     else if (has(all, 'retrig', 'retrigger', 'trigger', 'trigmode', 'keytrigger', 'keytrig')) role = 'retrig';
-    else if (has(all, 'rate', 'speed', 'freq') || (isEnum && isDivisionEnum(p.options))) role = 'rate';
-    else if (has(all, 'depth', 'magnitude', 'amount', 'amt', 'dpt')) role = 'depth';
+    else if (has(all, 'rate', 'speed', 'freq', 'frequency') || (isEnum && isDivisionEnum(p.options))) role = 'rate';
+    else if (has(all, 'depth', 'magnitude', 'amount', 'amt', 'dpt', 'amplitude')) role = 'depth';
     if (!role) return null;
     const qualifier = kw.filter(w => !ROLE_VOCAB.has(w) && !isBareLfo(w) && !LFO_NOISE.has(w)).join('');
     return { role, qualifier };

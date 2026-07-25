@@ -48,7 +48,7 @@ const PRESETS = [
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
     'filter_slope24', 'filter_dual', 'filter_open',
-    'deep_page',
+    'deep_page', 'lfo_helm_step', 'lfo_helm_pyramid',
     'signal_voice', 'forge_voice', 'forge_filter', 'forge_mod', 'forge_send', 'forge_mix',
     'leave_modal',
 ];
@@ -74,6 +74,7 @@ const BASE = {
     filter_bp: 'filter_demo', filter_notch: 'filter_demo', filter_slope24: 'filter_demo',
     filter_dual: 'filter_dual', filter_open: 'filter_demo',
     deep_page: 'hier_knobs_and_children',
+    lfo_helm_step: 'lfo_helm', lfo_helm_pyramid: 'lfo_helm',
     signal_voice: 'signal', forge_voice: 'forge',
     forge_filter: 'forge', forge_mod: 'forge', forge_send: 'forge', forge_mix: 'forge',
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
@@ -214,6 +215,8 @@ function applyView(preset) {
          * header shares 128 px with the module name, so this is reviewed as
          * pixels rather than assumed to fit. */
         case 'deep_page':   model.changePage(3); forceRender(); break;
+        case 'lfo_helm_step':    forceRender(); break;                       // "8 Step" → stepped ramp
+        case 'lfo_helm_pyramid': setFilter({ mono_lfo_1_waveform: '9' }); break;  // "5 Pyramid" → stepped triangle
         case 'filter_lp':      forceRender(); break;                         // demo defaults: LP, reso 0.30
         case 'filter_lp_reso': setFilter({ resonance: '0.90' }); break;      // high resonance bump
         case 'filter_hp':      setFilter({ mode: '1' }); break;

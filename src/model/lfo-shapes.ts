@@ -3,16 +3,17 @@
  * viz resolves the current option by name rather than by raw index. Ids:
  *   0 sine  1 tri  2 saw-up  3 square  4 s&h  5 smooth-random
  *   6 saw-down  7 noise  8 envelope glyph  9 staircase glyph  10 generic
+ *   11 stepped ramp  12 stepped triangle
  * Returns null when a name is not a shape at all (so a non-shape enum — e.g. a
  * clock-division or Off/On list — fails the "is this a shape enum?" test). */
 
 const NAMED: Record<string, number> = {
     sine: 0, sin: 0, skewedsine: 0, sink: 0, warp: 0,
     tri: 1, triangle: 1,
-    saw: 2, sawtooth: 2, rampup: 2, softsaw: 2,
+    saw: 2, sawtooth: 2, rampup: 2, softsaw: 2, sawup: 2,
     square: 3, sqr: 3, squ: 3, rect: 3, pulse: 3, warmpulse: 3, softsquare: 3,
     sh: 4, samplehold: 4, rnd1: 4, random: 4,
-    smoothrandom: 5, sg: 5, rnd2: 5, drift: 5,
+    smoothrandom: 5, sg: 5, rnd2: 5, drift: 5, sampleglide: 5,
     rampdown: 6, sawdown: 6,
     noise: 7,
     envelope: 8,
@@ -30,6 +31,13 @@ export function shapeId(name: string): number | null {
     const n = norm(name);
     if (n in NAMED) return NAMED[n];
     if (/^wave\d+$/.test(n)) return 10;   // Osirus/Virus digital wavetables
+    /* Helm's stepped families. They get their own silhouettes rather than
+     * reusing 9 (a step-SEQUENCER pattern, which reads as random) or 1 (a
+     * smooth triangle): "N Step" climbs in levels, "N Pyramid" climbs and
+     * falls. The step count in the name is not encoded — at two cells wide a
+     * 9-level staircase reads as noise, so the family is what's drawn. */
+    if (/^\d+step$/.test(n)) return 11;
+    if (/^\d+pyramid$/.test(n)) return 12;
     return null;
 }
 

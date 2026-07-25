@@ -5032,24 +5032,24 @@
    ],
    [
     "WAVEF",
-    "AMP",
     "FREQU",
+    "AMP",
     "SYNC",
     "TEMPO",
     "RETRI"
    ],
    [
     "WAVEF",
-    "AMP",
     "FREQU",
+    "AMP",
     "SYNC",
     "TEMPO",
     "RETRI"
    ],
    [
     "WAVEF",
-    "AMP",
     "FREQU",
+    "AMP",
     "SYNC",
     "TEMPO"
    ],
@@ -5168,7 +5168,7 @@
    ]
   ],
   "envelopeLines": 4,
-  "lfoViz": 0,
+  "lfoViz": 3,
   "hidden": 45,
   "shownKeys": [
    "amp_attack",
@@ -6235,7 +6235,7 @@
    ]
   ],
   "envelopeLines": 1,
-  "lfoViz": 0,
+  "lfoViz": 8,
   "hidden": 100,
   "shownKeys": [
    "chorusswitch",

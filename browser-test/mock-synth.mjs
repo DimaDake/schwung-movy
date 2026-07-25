@@ -108,6 +108,26 @@ export const MOCK_SYNTHS = {
         "synth:cutoff": "0.60", "synth:reso": "0.30",
     },
 
+    /* Helm's LFO page: shape names ("Saw Up", "N Step", "N Pyramid") and role
+     * words ("Frequency", "Amp") the name inference had to learn. The scene
+     * overrides synth:mono_lfo_1_waveform to shoot each new silhouette. */
+    lfo_helm: {
+        "synth:name": "Helm",
+        "synth:ui_hierarchy": hier([
+            { key: "mono_lfo_1_waveform", label: "Mono LFO 1 Waveform", type: "enum",
+              options: ["Sine", "Triangle", "Square", "Saw Up", "Saw Down",
+                        "3 Step", "4 Step", "8 Step", "3 Pyramid", "5 Pyramid",
+                        "9 Pyramid", "Sample & Hold", "Sample & Glide"] },
+            { key: "mono_lfo_1_amplitude", label: "Mono LFO 1 Amp",       type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "mono_lfo_1_frequency", label: "Mono LFO 1 Frequency", type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "mono_lfo_1_retrigger", label: "Mono LFO 1 Retrigger", type: "enum",
+              options: ["Free", "Retrigger", "Sync to Playhead"] },
+        ]),
+        "synth:mono_lfo_1_waveform": "7",   // "8 Step" → stepped ramp (11)
+        "synth:mono_lfo_1_amplitude": "0.80", "synth:mono_lfo_1_frequency": "0.50",
+        "synth:mono_lfo_1_retrigger": "0",
+    },
+
     // A1 filter-response viz: cutoff+resonance drawn as a curve; a same-page MODE
     // enum morphs the shape and SLOPE picks 12/24 dB. The scene overrides
     // synth:mode / synth:resonance / synth:slope per shot before rendering.

@@ -4378,6 +4378,47 @@ _log('\nTest: module-LFO viz inference (A3)');
         eq('chordism vm: startCol 0', vm[0].startCol, 0);
         eq('chordism vm: rate → 1.5 cycles', vm[0].cycles, 1.5);
     }
+    // helm-like: shape names and role words the vocabulary used to miss.
+    {
+        const HELM_SHAPES = ['Sine', 'Triangle', 'Square', 'Saw Up', 'Saw Down',
+            '3 Step', '4 Step', '8 Step', '3 Pyramid', '5 Pyramid', '9 Pyramid',
+            'Sample & Hold', 'Sample & Glide'];
+        eq('map: Saw Up → saw-up 2',            lfoShapeId('Saw Up'), 2);
+        eq('map: Sample & Glide → smooth 5',    lfoShapeId('Sample & Glide'), 5);
+        eq('map: 8 Step → stepped ramp 11',     lfoShapeId('8 Step'), 11);
+        eq('map: 5 Pyramid → stepped tri 12',   lfoShapeId('5 Pyramid'), 12);
+        eq('isShapeEnum: helm waveform list',   isShapeEnum(HELM_SHAPES), true);
+        // A quantize enum that merely mentions steps stays a non-shape list.
+        eq('isShapeEnum: smack quantize list is not a shape',
+            isShapeEnum(['1 Step', '1/2 Step', '2 Steps', '4 Steps']), false);
+
+        const params = [
+            LP('mono_lfo_1_waveform',  'Mono LFO 1 Waveform',  'enum', HELM_SHAPES),
+            LP('mono_lfo_1_amplitude', 'Mono LFO 1 Amp',       'float'),
+            LP('mono_lfo_1_frequency', 'Mono LFO 1 Frequency', 'float'),
+            LP('mono_lfo_1_sync',      'Mono LFO 1 Sync',      'enum', ['Seconds', 'Tempo']),
+        ];
+        const g = detectLfoViz(params);
+        eq('helm: one group', g.length, 1);
+        eq('helm: frequency is the rate role', g[0].rate, 2);
+        eq('helm: amplitude is the depth role', g[0].depth, 1);
+        const L = planPageLayout(params);
+        eq('helm layout: partner is rate', L.lfos[0].partnerRole, 'rate');
+        const vm = viz(params, [7, 0.5, 0.5, 0]);   // option 7 = "8 Step"
+        eq('helm vm: shape id 11', vm[0].shape, 11);
+    }
+    // minijv-like: the role word is glued onto the LFO token in the key.
+    {
+        const params = [
+            LP('nvram_tone_0_lfo1form', 'LFO1 Form', 'enum', ['TRI', 'SIN', 'SAW', 'SQU']),
+            LP('nvram_tone_0_lfo1rate', 'LFO1 Rate', 'float'),
+            LP('nvram_tone_0_lfo1delay', 'LFO1 Delay', 'float'),
+        ];
+        const g = detectLfoViz(params);
+        eq('minijv: one group', g.length, 1);
+        eq('minijv: rate grouped with shape', g[0].rate, 1);
+        eq('minijv layout: placed', planPageLayout(params).lfos.length, 1);
+    }
     // fizzik-like: two LFO rows → two groups reordered onto their own lines.
     {
         const shp = ['Sine', 'Tri', 'Saw', 'Square', 'S&H'];

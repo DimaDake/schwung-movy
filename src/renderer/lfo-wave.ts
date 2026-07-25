@@ -43,6 +43,16 @@ export function shapeSample(shape: number, t: number): number {
         case 10:                                                   // generic squiggle (mseg/wavetable)
             return Math.sin(ph * 2 * Math.PI) * 0.5 + Math.sin(ph * 6 * Math.PI) * 0.3
                  + Math.sin(ph * 10 * Math.PI) * 0.2;
+        case 11: {                                                 // stepped ramp ("3/4/8 Step")
+            const n = 4;
+            return (Math.floor(ph * n) / (n - 1)) * 2 - 1;
+        }
+        case 12: {                                                 // stepped triangle ("N Pyramid")
+            const n = 3;                                           // levels per side
+            const up = ph < 0.5;
+            const k = Math.floor((up ? ph : 1 - ph) * 2 * n);
+            return (Math.min(k, n - 1) / (n - 1)) * 2 - 1;
+        }
         default: return Math.sin(ph * 2 * Math.PI);
     }
 }

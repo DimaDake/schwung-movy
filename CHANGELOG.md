@@ -13,6 +13,15 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+## [0.24.0] — 2026-07-25
+
+A fix-focused release. The headline is **module coverage**: Movy now walks a
+module's whole parameter menu instead of the first level or two, so synths with
+deep menus (Helm, MiniJV, Dexed, Forge, Moog, Surge, Nusaw, Chiptune) expose
+every page they publish. Also: Helm's and MiniJV's LFOs draw waveforms, clip
+transpose leaves drum tracks alone (engine `0.26.0` → `0.27.0`), and step
+automation survives a module reselect.
+
 ### Fixed
 
 - **LFO waveform graphics now recognise Helm's and MiniJV's LFOs.** The name

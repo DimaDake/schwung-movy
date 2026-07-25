@@ -115,6 +115,12 @@ Other useful commands:
 # Device e2e: step automation stays audible after a real module reselect
 ./scripts/test-reselect.sh [move.local]
 
+# Capture the device's live screen as a PNG — verify what the Move actually
+# shows instead of inferring it from log lines. Drive the UI with
+# ../schwung-midi-inject-ui.py first (cc 40-43 tracks, cc 3 jog click,
+# cc 14 jog turn, cc 71-78 knobs), then grab.
+node scripts/grab-screen.mjs /tmp/shot.png [move.local] [scale]
+
 # Enable unified log (once per device boot; persists until cleared)
 ssh ableton@move.local 'touch /data/UserData/schwung/debug_log_on'
 

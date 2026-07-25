@@ -9,15 +9,27 @@
  */
 
 import { installEnv } from './env.mjs';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const MOVY = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const DUMP_DIR = join(MOVY, 'docs', 'module-dump');
+const EXTRA_DIR = join(MOVY, 'browser-test', 'fixtures', 'dump-extra');
 
+/* Device dump + one-off captures. Third-party modules installed after the fleet
+ * dump (scripts/capture-module.mjs) are merged here rather than written into
+ * device-dump.json, which dump-modules.sh regenerates wholesale. */
 export function loadDump() {
-    return JSON.parse(readFileSync(join(DUMP_DIR, 'device-dump.json'), 'utf8'));
+    const dump = JSON.parse(readFileSync(join(DUMP_DIR, 'device-dump.json'), 'utf8'));
+    if (existsSync(EXTRA_DIR)) {
+        for (const f of readdirSync(EXTRA_DIR).sort()) {
+            if (f.endsWith('.json')) {
+                dump.modules.push(JSON.parse(readFileSync(join(EXTRA_DIR, f), 'utf8')));
+            }
+        }
+    }
+    return dump;
 }
 
 /* Install the env/os/host stubs and return a boot function bound to this dump.

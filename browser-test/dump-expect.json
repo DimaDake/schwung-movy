@@ -2706,6 +2706,31 @@
   "lfoViz": 0,
   "hidden": 4
  },
+ "sound_generator--helm": {
+  "pageCount": 2,
+  "pageNames": [
+   "Preset",
+   "Main"
+  ],
+  "pageShortNames": [
+   [
+    "PRESE"
+   ],
+   [
+    "ATTAC",
+    "DECAY",
+    "SUSTA",
+    "RELEA",
+    "FC",
+    "FR",
+    "FED",
+    "VOLUM"
+   ]
+  ],
+  "envelopeLines": 1,
+  "lfoViz": 0,
+  "hidden": 152
+ },
  "sound_generator--hera": {
   "pageCount": 8,
   "pageNames": [

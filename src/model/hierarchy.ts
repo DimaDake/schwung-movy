@@ -4,6 +4,7 @@ import { loadModuleConfig } from '../modules/loader.js';
 import { mlog } from '../log.js';
 import { moduleReadKey } from '../chain/config.js';
 import { KNOBS_PER_PAGE } from './constants.js';
+import { buildLevelPages, knobKeys } from './hierarchy-walk.js';
 
 interface HierParam {
     key?: string; label?: string; level?: string;
@@ -288,25 +289,6 @@ export function loadHierarchy(s: ModelState): void {
         if (fallbackKeys.length > 0) addLevel('Main', fallbackKeys);
     } else {
 
-    const hasNavEntries = (lvl: HierLevel | null): boolean =>
-        Array.isArray(lvl?.params) && lvl!.params.some(p => typeof p === 'object' && (p as HierParam).level != null);
-    const navLevel: HierLevel | null =
-        hasNavEntries(rootLevel)
-            ? rootLevel
-            : (rootLevel?.children ? (allLevels[rootLevel.children] ?? rootLevel) : rootLevel);
-
-    function toKey(k: string | HierParam): string | null {
-        return typeof k === 'string' ? k : (k.key ?? null);
-    }
-
-    /* Level → display label map from navLevel.params navigation entries */
-    const levelLabel: Record<string, string> = {};
-    if (Array.isArray(navLevel?.params)) {
-        for (const p of navLevel!.params!) {
-            if (typeof p === 'object' && p.level && p.label) levelLabel[p.level] = p.label;
-        }
-    }
-
     /* Preset detection */
     listParam   = rootLevel.list_param;
     presetParam = buildPresetParam(s, listParam, rootLevel.count_param, rootLevel.name_param);
@@ -316,7 +298,7 @@ export function loadHierarchy(s: ModelState): void {
     if (presetParam && presetSeparate) addPage('Preset', [listParam!]);
 
     /* Main page from root.knobs (with preset prepended if there's room) */
-    let rootKeys = (rootLevel.knobs ?? []).map(toKey).filter((k): k is string => k !== null);
+    let rootKeys = knobKeys(rootLevel);
     // C1: the preset knob renders via presetParam (its own page, or prepended
     // below) — drop it from root.knobs so it never renders a second time.
     if (presetParam) rootKeys = rootKeys.filter(k => k !== listParam);
@@ -337,40 +319,10 @@ export function loadHierarchy(s: ModelState): void {
 
     if (rootKeys.length > 0) addLevel('Main', rootKeys);
 
-    /* Sub-levels from root.params — recurse into navigation-only levels */
-    function levelNameToPrefix(name: string): string {
-        const words = name.split(/\s+/).filter(Boolean);
-        if (words.length === 0) return '';
-        if (words.length === 1) return words[0].slice(0, 6);
-        return (words[0].slice(0, 4) + words.slice(1).map(w => w[0].toUpperCase()).join('')).slice(0, 6);
-    }
-
-    const visitedLevels = new Set<string>();
-
-    function addLevelOrExpand(levelKey: string, prefix: string | null, depth: number): void {
-        if (depth > 2 || visitedLevels.has(levelKey)) return;
-        visitedLevels.add(levelKey);
-        const lvl = allLevels[levelKey];
-        if (!lvl) return;
-        const name  = lvl.name || levelLabel[levelKey] || levelKey;
-        const label = prefix ? prefix + '/' + name : name;
-        if (Array.isArray(lvl.knobs) && lvl.knobs.length > 0) {
-            const keys = lvl.knobs.map(toKey).filter((k): k is string => k !== null);
-            if (keys.length > 0) addLevel(label, keys);
-        } else if (Array.isArray(lvl.params)) {
-            const nextPrefix = levelNameToPrefix(name);
-            for (const sub of lvl.params) {
-                if (typeof sub !== 'object' || !sub.level) continue;
-                addLevelOrExpand(sub.level, nextPrefix, depth + 1);
-            }
-        }
-    }
-
-    if (Array.isArray(navLevel?.params)) {
-        for (const entry of navLevel!.params!) {
-            if (typeof entry !== 'object' || !entry.level) continue;
-            addLevelOrExpand(entry.level, null, 0);
-        }
+    /* Every level below root comes from the shared walk. */
+    const rootLevelKey = allLevels['root'] ? 'root' : Object.keys(allLevels)[0];
+    for (const page of buildLevelPages(allLevels, rootLevelKey)) {
+        addLevel(page.name, page.keys);
     }
     }  /* end hierarchy path (else of the chain_params fallback) */
 

@@ -34,6 +34,10 @@ const KNOWN_COLLIDING_PAGES = new Set([
     'midi_fx--eucalypso::Main',
     'sound_generator--aphex::VCO 1+2',
     'sound_generator--obxd::Global',
+    // helm publishes two pairs of params with identical display names on this
+    // page (stutter_sync / stutter_resample_sync are both "Stutter Sync", same
+    // for tempo), so no shortener can tell them apart — an upstream fix.
+    'sound_generator--helm::Stutter',
 ]);
 
 let failures = 0;
@@ -58,6 +62,7 @@ function snapshot(model, entry) {
         envelopeLines: pages.reduce((n, p) => n + p.envelopeLines.filter(Boolean).length, 0),
         lfoViz: pages.reduce((n, p) => n + p.lfoVizCount, 0),
         hidden,
+        shownKeys: [...shown].sort(),
     };
 }
 
@@ -98,6 +103,30 @@ function checkExpect(key, snap, expect) {
         JSON.stringify(snap.pageNames) === JSON.stringify(expect.pageNames));
     check(`${key}: pageShortNames match`,
         JSON.stringify(snap.pageShortNames) === JSON.stringify(expect.pageShortNames));
+    check(`${key}: shownKeys match`,
+        JSON.stringify(snap.shownKeys) === JSON.stringify(expect.shownKeys));
+}
+
+/* Every knob a module declares in ANY hierarchy level must be reachable on some
+ * page. Derived from the raw ui_hierarchy, so it is independent of the walk it
+ * guards — this is the invariant helm violated (152 params declared, 9 shown).
+ * Modules with a movy config curate a subset on purpose and are exempt. */
+function checkDeclaredKnobsReachable(key, model, entry) {
+    const layout = model.dumpLayout();
+    if (layout.hasConfig) return;
+    const levels = entry.ui_hierarchy?.levels;
+    if (!levels) return;
+    const declared = new Set();
+    for (const lvl of Object.values(levels)) {
+        for (const k of (lvl.knobs ?? [])) {
+            const kk = typeof k === 'string' ? k : k?.key;
+            if (kk) declared.add(kk);
+        }
+    }
+    const shown = expandLayoutKeys(layout);
+    const missing = [...declared].filter(k => !shown.has(k));
+    check(`${key}: all ${declared.size} declared knobs reachable (missing: ${missing.slice(0, 5).join(',')})`,
+        missing.length === 0);
 }
 
 /* ── run ─────────────────────────────────────────────────────────────────── */
@@ -120,6 +149,7 @@ for (const entry of dump.modules) {
     const snap = snapshot(model, entry);
     snapshots[key] = snap;
     checkInvariants(key, model, snap);
+    checkDeclaredKnobsReachable(key, model, entry);
     if (!UPDATE) checkExpect(key, snap, expect[key]);
 }
 

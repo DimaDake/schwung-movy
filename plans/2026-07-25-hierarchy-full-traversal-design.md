@@ -83,6 +83,25 @@ Decisions:
   existing ` - N` suffix. Approved over full ancestor paths (header is 128 px,
   shared with the module name) and over bare names (minijv would show four
   pages called `Filter`).
+- **`children`-reached levels are prefix-transparent.** Such a level stands in
+  for its parent's menu (moog, helm and minijv all park root's menu there)
+  rather than being a category, so it neither takes nor contributes a prefix.
+  Without this every moog page would be renamed `main/Oscillator 1`. A level
+  reached through a `params` nav entry does contribute its name as the prefix —
+  that is what keeps `Mod/Pitch` and `Tone 1/Filter` apart.
+- **Label precedence: `level.name` → nav-entry label → `level.label` → key.**
+  Most modules carry a level's display name on the *parent's* nav entry, so the
+  label map must be collected from every level's nav entries, not just the
+  root's. Nav label beats the level's own `label` because that is the name movy
+  shows today: 24 levels across dexed/linein/minijv/obxd/sf2/sfz/nam disagree
+  between the two, and preferring the level's own label would rename them all.
+  The own-`label` fallback matters for the 11 levels reached only via
+  `children`, which no nav entry names (minijv `patch_main` → `Patch`).
+- **Orphan sweep.** After the walk, any level with knobs that no edge reached is
+  appended (prefix-free, declaration order). In the fleet this is only minijv's
+  `performance`, `perf_main` and `part_selector`; without it those 9 params stay
+  permanently invisible and the reachability invariant in §4 could not be
+  universal.
 - **Main keeps its name.** For the 16 modules where a level exactly duplicates
   root, the retained page is root's, labelled `Main` — not renamed to the
   module's own label (`Patch`, `Console`, `BOOM`). Consistency across modules
@@ -138,8 +157,10 @@ key list of a page that remains.
    and review the snapshot diff module by module; that diff is the review of
    this change.
 2. **New permanent invariants** in dump-replay:
-   - every level with knobs reachable from root appears in some page, unless
-     its key list duplicates an already-rendered page;
+   - **every knob key declared in any hierarchy level is reachable on some
+     page.** Derived from the raw `ui_hierarchy`, so it is independent of the
+     walk it guards (not a test of the code against itself). Scoped to modules
+     without a movy config, which curate a subset on purpose;
    - the shown-key set per module (add `shownKeys` to the snapshot) — the
      `--update` diff then makes any lost key visible and reviewable.
 3. **One-time regression gate:** compare pre-change and post-change snapshots

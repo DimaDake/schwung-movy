@@ -13,6 +13,7 @@ import {
     NUM_STEP_BUTTONS, PAD_MAX, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
 import { mlog } from '../log.js';
+import { soloTrack } from '../mixer/track-solo.js';
 import { openMainPage } from './main-page.js';
 import { openClipPage, closeClipPage, clipPageActive } from './clip-page.js';
 import { appState, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from '../app/state.js';
@@ -22,6 +23,11 @@ const CC_MUTE = 88;
 let muteHeldState = false;
 export function setMuteHeld(down: boolean): void { muteHeldState = down; }
 export function muteHeld(): boolean { return muteHeldState; }
+
+/* Shift state captured when Mute went down: selects solo over mute for the
+ * whole gesture, including the Mute+track form (midi/router.ts). */
+let muteShift = false;
+export function muteShiftHeld(): boolean { return muteShift; }
 
 /* Toggle a track's mute via the engine (mirror flips optimistically so the
  * track button dims this tick). */
@@ -165,17 +171,23 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
      * momentary (momentaryGesture in midi/router.ts) so it suppresses this.
      *
      * Ungated release: how long the button was down is not a different intent
-     * here, and the 500 ms hold rule silently swallowed any deliberate press. */
+     * here, and the 500 ms hold rule silently swallowed any deliberate press.
+     *
+     * Shift at press time selects solo instead of mute — read at the press
+     * because Shift is often released before the button it modifies. */
     if (d1 === CC_MUTE) {
         if (d2 > 0) {
             setMuteHeld(true);
+            muteShift = shiftHeld;
             momentaryDown(CC_MUTE, () => {});
         } else {
             setMuteHeld(false);
             if (momentaryUpUngated(CC_MUTE) === 'clean' && !seqState.sessionMode) {
-                muteTrack(appState.activeSlot);
+                if (muteShift) soloTrack(appState.activeSlot);
+                else muteTrack(appState.activeSlot);
                 appState.dirty = true;
             }
+            muteShift = false;
         }
         return true;
     }

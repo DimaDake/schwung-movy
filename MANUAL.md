@@ -372,6 +372,12 @@ for the concepts:
   track-button form suppresses the current-track toggle, so one press never
   mutes two things. In Session view there is no current track, so Mute stays a
   pure modifier there.
+- **Solo** — the same two gestures with **Shift**: **Shift + Mute** solos the
+  current track, **Shift + Mute + track button** solos that one. Press again to
+  un-solo. Only one track can be soloed at a time — soloing another moves it —
+  and solo beats mute, so a soloed track is heard even if it was muted. Tracks
+  silenced by a solo dim their track button, exactly like muted ones. Shift only
+  has to be down when you press Mute; you can let go of it before releasing.
 - **Automation** — turn a module knob while recording (or while holding a step)
   to record parameter automation; the on-screen knob arc follows the automation.
 
@@ -610,6 +616,8 @@ behaviour you'd like — or, better, a PR.
 | **Delete (Clear)** | Delete a step / clip / bar; in Session, delete a clip. Hold + knob-touch clears that knob's automation lane. |
 | **Mute** | Mute / unmute the current track (Track view only — Session view has no current track). |
 | **Mute + track** | Mute that track instead; suppresses the current-track toggle on release. |
+| **Shift + Mute** | Solo / un-solo the current track (Track view only). One solo at a time; solo beats mute. |
+| **Shift + Mute + track** | Solo that track instead. |
 | **Track buttons 1–4** | Select a track (hold = momentary peek). |
 | **Volume encoder** | Adjust held steps' velocity. With a track button held instead, sets that track's volume; otherwise it stays Move's master volume. |
 | **TEMPO knob** (Set page) | Set the tempo; also sets Move's device-wide tempo via Link. **EXT** on the cell = locked to Move's transport. |

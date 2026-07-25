@@ -4,6 +4,7 @@ import { appState, VIEW_CHAIN } from './state.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
 import { CHAIN_SLOTS, MASTER_FX_SLOTS, isLfoSlot } from '../chain/config.js';
+import { refreshSolo } from '../mixer/track-solo.js';
 import { resetDrumSync } from '../seq/drum-sync.js';
 import { mlog } from '../log.js';
 
@@ -34,6 +35,7 @@ export function init(): void {
     for (const m of appState.masterFxModels) m.reset();
 
     resetDrumSync();   // fresh models: re-tell the engine which tracks are drums
+    refreshSolo();     // solo lives in the host, so it may already be set elsewhere
 
     keyboardState.rootNote = 48;
     for (const k of Object.keys(keyboardState.held)) delete keyboardState.held[+k];

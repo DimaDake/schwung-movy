@@ -8,7 +8,7 @@ import { noteOn, noteOff, changeRoot, releaseAllNotes } from '../keyboard/handle
 import { drumPadOn, drumPadOff } from '../keyboard/drum-handler.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
-import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteTrack, seqRestoreWatch } from '../seq/router.js';
+import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteShiftHeld, muteTrack, seqRestoreWatch } from '../seq/router.js';
 import { anyStepHeld, editStepPageKnob } from '../seq/step-edit.js';
 import { stepPageState, setStepPageSelected, setStepTouchedKnob, stepPageAvailable } from '../seq/step-page.js';
 import { seqState } from '../seq/state.js';
@@ -20,6 +20,7 @@ import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
 import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm } from '../app/leave-modal.js';
 import { MASTER_CC, volumeTrackDown, volumeTrackUp, volumeTouch, volumeKnobDelta } from '../mixer/track-volume.js';
+import { soloTrack } from '../mixer/track-solo.js';
 import { mlog } from '../log.js';
 
 const PAD_MIN        = MovePads[0];
@@ -241,7 +242,14 @@ export function onMidiMessageInternal(data: number[]): void {
         const track = TRACK_CC_END - d1;
         if (d2 > 0) {
             volumeTrackDown(track);   // arm hold-track + volume knob
-            if (muteHeld()) { muteTrack(track); momentaryGesture(); appState.dirty = true; return; }
+            // Mute+track mutes that track; Shift+Mute+track solos it instead
+            // (Shift read from the Mute press, so releasing it early is fine).
+            // Either marks the momentary as gestured, so the release no longer
+            // toggles the *current* track as well.
+            if (muteHeld()) {
+                if (muteShiftHeld()) soloTrack(track); else muteTrack(track);
+                momentaryGesture(); appState.dirty = true; return;
+            }
             // A track button always exits the Set Parameters page first (it is a
             // global page, not a per-track view), so it can't be saved into the
             // per-track view memory below and re-shown on return to this track.

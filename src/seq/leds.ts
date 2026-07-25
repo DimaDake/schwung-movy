@@ -6,6 +6,7 @@ import { C_BLACK, C_DARKGREY, C_GREEN, C_LIGHTGREY, C_REC_RED, C_WHITE, WHITE_BR
 import {
     CC_PLAY, CC_REC, CC_TRACK_END, NUM_STEP_BUTTONS, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
+import { silencedBySolo } from '../mixer/track-solo.js';
 import { mainPageActive } from './main-page.js';
 import { clipPageActive } from './clip-page.js';
 import { sessionPaintGrid } from './session.js';
@@ -101,10 +102,12 @@ function paintStepIcons(shift: boolean): void {
     }
 }
 
-// Track buttons: sounding note → white; muted → dim; else base track color.
-export function trackButtonColor(track: number, active: boolean, muted: boolean): number {
+// Track buttons: sounding note → white; silenced → dim; else base track color.
+// "Silenced" covers both mute and being cut by another track's solo — they
+// sound the same, so they look the same.
+export function trackButtonColor(track: number, active: boolean, silenced: boolean): number {
     if (active) return C_WHITE;
-    return muted ? trackColorDim(track) : trackColor(track);
+    return silenced ? trackColorDim(track) : trackColor(track);
 }
 
 function trackHasActiveNote(track: number): boolean {
@@ -116,7 +119,8 @@ function trackHasActiveNote(track: number): boolean {
 function paintTrackButtons(): void {
     for (let t = 0; t < 4; t++) {
         const cc = CC_TRACK_END - t; // CC 43 = track 0
-        cachedSetButtonLED(cc, trackButtonColor(t, trackHasActiveNote(t), seqState.muted[t]));
+        cachedSetButtonLED(cc, trackButtonColor(t, trackHasActiveNote(t),
+            seqState.muted[t] || silencedBySolo(t)));
     }
 }
 

@@ -84,7 +84,14 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
         "mute" => {
             if let (Some(t), Some(m)) = (next(), next()) {
                 if (t as usize) < NUM_TRACKS {
-                    engine.tracks[t as usize].muted = m != 0;
+                    let muting = m != 0;
+                    engine.tracks[t as usize].muted = muting;
+                    // Mute is immediate: gate countdown runs even for muted
+                    // tracks (step_tick decrements before the !muted guard), so
+                    // without this the note keeps ringing until it expires.
+                    if muting {
+                        engine.flush_track_gates(t as usize, out);
+                    }
                 }
             }
         }

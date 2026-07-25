@@ -543,6 +543,24 @@ impl Engine {
         }
     }
 
+    /// Release every note still sounding on one track, leaving other tracks
+    /// alone. Mute uses this so silencing a track takes effect now rather than
+    /// whenever the current gate happens to expire.
+    pub fn flush_track_gates(&mut self, track: usize, out: &mut Vec<OutEvent>) {
+        let mut gi = 0;
+        while gi < self.gates.len() {
+            if self.gates[gi].track as usize == track {
+                let g = self.gates.swap_remove(gi);
+                out.push(OutEvent::NoteOff {
+                    track: g.track,
+                    pitch: g.pitch,
+                });
+                continue; // re-examine the element swapped into this slot
+            }
+            gi += 1;
+        }
+    }
+
     /// Queue a MovePlay toggle: press next `advance_block`, release after the
     /// davebox-verified gap. Fire-and-forget — only ever called from a
     /// transport command (design §7 Phase 4 no-feedback-loop invariant).
@@ -2239,6 +2257,59 @@ mod tests {
             OutEvent::NoteOn { .. } | OutEvent::NoteOff { .. }
         )));
         assert!(e.tracks[0].pos_tick > 0);
+    }
+
+    #[test]
+    fn mute_flushes_that_tracks_gates() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[1].active_mut().toggle_step(0, &[(64, 100)]);
+        e.play();
+        let ev = run_ticks(&mut e, 2); // note-ons fired, gates still open
+        // Precondition: both tracks are actually playing, or the "untouched"
+        // assertion below would pass vacuously.
+        assert!(
+            ev.iter().any(|x| matches!(x, OutEvent::NoteOn { track: 0, .. })),
+            "track 0 must be sounding"
+        );
+        assert!(
+            ev.iter().any(|x| matches!(x, OutEvent::NoteOn { track: 1, .. })),
+            "track 1 must be sounding"
+        );
+
+        let mut out = Vec::new();
+        apply_batch(&mut e, "mute 0 1", &mut out);
+        assert!(
+            out.contains(&OutEvent::NoteOff { track: 0, pitch: 60 }),
+            "muting flushes that track's open gate immediately"
+        );
+        assert!(
+            !out.iter().any(|x| matches!(x, OutEvent::NoteOff { track: 1, .. })),
+            "other tracks' gates are untouched"
+        );
+
+        // The flushed gate is gone, so it must not emit a second off later.
+        let after = run_ticks(&mut e, 48);
+        assert!(
+            !after.iter().any(|x| matches!(x, OutEvent::NoteOff { track: 0, pitch: 60 })),
+            "flushed gate does not fire a duplicate note-off"
+        );
+    }
+
+    #[test]
+    fn unmute_emits_nothing() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.play();
+        let _ = run_ticks(&mut e, 2);
+        let mut out = Vec::new();
+        apply_batch(&mut e, "mute 0 1", &mut out);
+        out.clear();
+        apply_batch(&mut e, "mute 0 0", &mut out);
+        assert!(
+            !out.iter().any(|x| matches!(x, OutEvent::NoteOff { .. })),
+            "unmuting releases nothing"
+        );
     }
 
     #[test]

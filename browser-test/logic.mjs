@@ -1008,18 +1008,19 @@ _log('\nTest: drumPadOn');
   eq('grid col>=4 → null', r6, null);
   eq('grid col>=4: no MIDI', sentMidi.length, 0);
 
-  // Held tracking: a sounding pad registers in keyboardState.held so the drum
-  // grid can light it green; release clears it. A shift-select makes no sound,
-  // so it must not register as held.
-  const { keyboardState } = await import('../dist/esm/keyboard/state.js');
-  for (const k of Object.keys(keyboardState.held)) delete keyboardState.held[+k];
+  // Held tracking: a sounding pad registers in the ledger so the drum grid can
+  // light it green; release clears it. A shift-select makes no sound, so it
+  // must not register as sounding.
+  const ledger = await import('../dist/esm/keyboard/held-notes.js');
+  ledger.drainAll();
   drumPadOn(76, 68, false, mrdCfg, 36, 'synth', 0, 100);   // sounds midiNote 40
-  eq('held pad tracked (phys→midi)', keyboardState.held[76], 40);
-  drumPadOff(76, 68, mrdCfg, 36, 0);
-  eq('held pad cleared on release', keyboardState.held[76], undefined);
+  eq('held pad tracked (phys→midi)', ledger.noteReleased(76)?.pitch, 40);
+  drumPadOn(76, 68, false, mrdCfg, 36, 'synth', 0, 100);   // sound it again
+  drumPadOff(76);
+  eq('held pad cleared on release', ledger.isSounding(76), false);
   drumPadOn(68, 68, true, mrdCfg, 36, 'synth', 0, 100);     // shift-select, silent
-  eq('shift-select not held', keyboardState.held[68], undefined);
-  for (const k of Object.keys(keyboardState.held)) delete keyboardState.held[+k];
+  eq('shift-select not held', ledger.isSounding(68), false);
+  ledger.drainAll();
 
   globalThis.shadow_send_midi_to_dsp = origSendMidi;
   globalThis.shadow_set_param = origSetParam;
@@ -1896,9 +1897,18 @@ _log('\nTest: drumPadOn');
     seqNotePadPlayed(0, 80, 67, 110);
     seqEngineTick();
     eq('pad-on forwards non', lastOp(), 'non 0 67 110');
-    seqNotePadReleased(80);
+    seqNotePadReleased(80, 0);
     seqEngineTick();
     eq('pad-off forwards nof', lastOp(), 'nof 0 67');
+
+    // The capture-off follows the track the note was played on, not whatever the
+    // UI is watching now — a track switch mid-hold used to misroute it.
+    reset(); seqEngineTick();
+    seqNotePadPlayed(0, 80, 67, 110);
+    seqEngineTick();
+    seqNotePadReleased(80, 2);
+    seqEngineTick();
+    eq('pad-off nof uses the owner track', lastOp(), 'nof 2 67');
 
     // Status mirrors recording flags for the Rec LED.
     engine.status.rec = 1; engine.status.cin = 0; engine.status.metro = 1;
@@ -3717,26 +3727,26 @@ _log('\nautomation label sync:');
     openMainPage(3);
     eq('page active after open', mainPageActive(), true);
     // Tempo: 8 raw delta units = 1 detent = +1 BPM. seqState.bpmX100 starts 12000.
-    mainPageKnob(0, 8, 0);
+    mainPageKnob(0, 8);
     const q1 = peekSeqCmdQueue();
     eq('tempo +1 BPM emits bpm 12100', q1.some((c) => c.startsWith('bpm 12100')), true);
     // Swing: +1 detent → swing 51.
-    mainPageKnob(1, 8, 0);
+    mainPageKnob(1, 8);
     const q2 = peekSeqCmdQueue();
     eq('swing +1 emits swing 51', q2.some((c) => c === 'swing 51'), true);
     // Key overlay: touch opens, turn scrolls, release commits.
     mainPageTouch(3, true);
     eq('overlay opens on key touch', mainPageState.scaleOverlay, true);
-    mainPageKnob(3, 8, 0);                 // scroll to scale index 1
+    mainPageKnob(3, 8);                 // scroll to scale index 1
     eq('overlay scrolled', mainPageState.scaleSel, 1);
     mainPageRelease(3);
     eq('scale committed on release', keyboardState.scale, 1);
     eq('overlay closed on release', mainPageState.scaleOverlay, false);
     // Root knob wraps the pitch class within the current octave (B↔C); octave fixed.
     keyboardState.rootNote = 59;           // B3 (octave base 48, pitch class 11)
-    mainPageKnob(2, 8, 0);                  // +1 detent
+    mainPageKnob(2, 8);                  // +1 detent
     eq('root wraps B->C within octave', keyboardState.rootNote, 48);
-    mainPageKnob(2, -8, 0);                 // -1 detent
+    mainPageKnob(2, -8);                 // -1 detent
     eq('root wraps C->B within octave', keyboardState.rootNote, 59);
     // Close returns origin.
     eq('close returns origin view', closeMainPage(), 3);
@@ -3958,7 +3968,7 @@ _log('\nautomation label sync:');
     let padPaints = 0;
     const origSetLED = globalThis.setLED;
     globalThis.setLED = (idx) => { if (idx >= 68 && idx <= 99) padPaints++; }; // pad note range
-    mainPageKnob(2, 8, 0);       // +1 detent on the root knob (→ setRoot)
+    mainPageKnob(2, 8);       // +1 detent on the root knob (→ setRoot)
     globalThis.setLED = origSetLED;
     eq('root knob turn changes rootNote', keyboardState.rootNote, 49);
     eq('root knob paints no pad LEDs (per-tick track-aware loop owns pads)', padPaints, 0);
@@ -5693,6 +5703,79 @@ _log('\nTest: held-notes ledger');
   eq('drainTrack leaves others', L.soundingCount(), 1);
   eq('survivor is track 1', L.soundingTrack(69), 1);
   L.drainAll();
+}
+
+/* ── release routing: the ledger owns the channel ────────────────────────── */
+
+_log('\nTest: note-off channel follows the ledger, not the active track');
+
+{
+  const L        = await import('../dist/esm/keyboard/held-notes.js');
+  const { noteOn, noteOff }        = await import('../dist/esm/keyboard/handler.js');
+  const { drumPadOn, drumPadOff }  = await import('../dist/esm/keyboard/drum-handler.js');
+  const { releaseAllLive, releaseLiveOnTrack } = await import('../dist/esm/keyboard/release.js');
+
+  let sentMidi = [];
+  const origSendMidi = globalThis.shadow_send_midi_to_dsp;
+  const origSetParam = globalThis.shadow_set_param;
+  globalThis.shadow_send_midi_to_dsp = (msg) => { sentMidi.push([...msg]); };
+  globalThis.shadow_set_param = () => true;
+
+  const offs = () => sentMidi.filter(m => (m[0] & 0xF0) === 0x80);
+
+  // Sound on track 1, release after the UI has moved on. The off must still go
+  // to channel 1 — this is the stuck-note bug.
+  L.drainAll(); sentMidi = [];
+  noteOn(68, 68, 1, 100);
+  eq('note-on goes to track 1', sentMidi[0][0] & 0x0F, 1);
+  sentMidi = [];
+  noteOff(68, 68);
+  eq('one note-off', offs().length, 1);
+  eq('note-off channel is the owner track', offs()[0][0] & 0x0F, 1);
+  eq('ledger emptied by release', L.soundingCount(), 0);
+
+  // releaseAllLive fans out per-note, each on its own recorded track.
+  L.drainAll(); sentMidi = [];
+  noteOn(68, 68, 0, 100);
+  noteOn(69, 68, 2, 100);
+  sentMidi = [];
+  releaseAllLive();
+  eq('releaseAllLive emits both offs', offs().length, 2);
+  eq('offs cover both tracks', offs().map(m => m[0] & 0x0F).sort().join(','), '0,2');
+  eq('releaseAllLive empties ledger', L.soundingCount(), 0);
+
+  // releaseLiveOnTrack touches only that track.
+  L.drainAll(); sentMidi = [];
+  noteOn(68, 68, 0, 100);
+  noteOn(69, 68, 1, 100);
+  sentMidi = [];
+  releaseLiveOnTrack(0);
+  eq('releaseLiveOnTrack emits one off', offs().length, 1);
+  eq('on the muted track', offs()[0][0] & 0x0F, 0);
+  eq('other track still sounding', L.soundingCount(), 1);
+  L.drainAll();
+
+  // Drum release uses the RECORDED pitch. Swapping the module between press and
+  // release used to recompute a different note (or bail) and strand it.
+  const mrdReleaseCfg = { padCount: 16, padNoteStart: 36, rawMidi: false, currentPadParam: 'ui_current_pad' };
+  L.drainAll(); sentMidi = [];
+  drumPadOn(76, 68, false, mrdReleaseCfg, 36, 'synth', 3, 100);   // → midiNote 40, track 3
+  sentMidi = [];
+  drumPadOff(76);                                                 // no config passed at all
+  eq('drum off uses recorded pitch', offs()[0][1], 40);
+  eq('drum off uses recorded track', offs()[0][0] & 0x0F, 3);
+  eq('drum release empties ledger', L.soundingCount(), 0);
+
+  // A shift-select drum pad never sounded, so its release emits nothing.
+  L.drainAll(); sentMidi = [];
+  drumPadOn(68, 68, true, mrdReleaseCfg, 36, 'synth', 0, 100);
+  sentMidi = [];
+  drumPadOff(68);
+  eq('silent shift-select emits no off', offs().length, 0);
+
+  L.drainAll();
+  globalThis.shadow_send_midi_to_dsp = origSendMidi;
+  globalThis.shadow_set_param = origSetParam;
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

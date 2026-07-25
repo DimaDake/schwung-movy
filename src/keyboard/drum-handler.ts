@@ -1,5 +1,7 @@
 import type { DrumConfig } from '../types/param.js';
 import { keyboardState } from './state.js';
+import { noteSounded, noteReleased } from './held-notes.js';
+import { emitNoteOff } from './release.js';
 
 export function drumPadOn(
     physPad:      number,
@@ -31,7 +33,7 @@ export function drumPadOn(
         keyboardState.lastPlayedNote = midiNote;
         // Track the sounding pad so the drum grid lights it green while held
         // (a shift-select makes no sound, so it must not register as playing).
-        keyboardState.held[physPad] = midiNote;
+        noteSounded(physPad, slot, midiNote);
         shadow_send_midi_to_dsp([MidiNoteOn | slot, midiNote, shiftHeld ? 1 : vel]);
     }
     if (drumConfig.currentPadParam) {
@@ -40,27 +42,13 @@ export function drumPadOn(
     return drumPad;
 }
 
-export function drumPadOff(
-    physPad:    number,
-    padMin:     number,
-    drumConfig: DrumConfig,
-    rootNote:   number,
-    slot:       number,
-): void {
-    let midiNote: number;
-    let drumPad:  number;
-    if (drumConfig.rawMidi) {
-        midiNote = physPad;
-        drumPad  = midiNote - drumConfig.padNoteStart + 1;
-    } else {
-        const padIdx = physPad - padMin;
-        const col    = padIdx % 8;
-        const row    = Math.floor(padIdx / 8);
-        if (col >= 4) return;
-        drumPad  = row * 4 + col + 1;
-        midiNote = drumConfig.padNoteStart + drumPad - 1;
-    }
-    if (drumPad < 1 || drumPad > drumConfig.padCount) return;
-    delete keyboardState.held[physPad];
-    shadow_send_midi_to_dsp([MidiNoteOff | slot, midiNote, 0]);
+/* Release takes no config: the pitch and channel come from the ledger. Deriving
+ * them from the live DrumConfig stranded the note whenever the module changed
+ * between press and release (the melodic/drum branches compute different
+ * notes). Pads that never sounded — a shift-select, an out-of-grid press — are
+ * simply absent from the ledger. */
+export function drumPadOff(physPad: number): void {
+    const n = noteReleased(physPad);
+    if (n === undefined) return;
+    emitNoteOff(n.track, n.pitch);
 }

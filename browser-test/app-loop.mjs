@@ -852,7 +852,7 @@ _log('\napp-loop: hold-knob → assign LFO target');
 
 _log('\napp-loop: root-view Back → Leave modal → Background parks');
 {
-    const { keyboardState } = await import('../dist/esm/keyboard/state.js');
+    const { soundingCount } = await import('../dist/esm/keyboard/held-notes.js');
     const { leaveModalActive } = await import('../dist/esm/app/leave-modal.js');
     resetApp();
     appState.currentView = VIEW_CHAIN;           // root view
@@ -861,7 +861,7 @@ _log('\napp-loop: root-view Back → Leave modal → Background parks');
     globalThis.host_suspend_overtake = () => { suspended++; };
     sendMidi([0xB0, globalThis.MoveBack, 127]);  // Back → open modal (no instant park)
     eq('Back opened the Leave modal', leaveModalActive(), true);
-    eq('opening the modal released the held pad', Object.keys(keyboardState.held).length, 0);
+    eq('opening the modal released the held pad', soundingCount(), 0);
     eq('Back did NOT park instantly', suspended, 0);
     sendMidi([0xB0, globalThis.MoveMainButton, 127]);  // jog-click → Background (default)
     eq('jog-click Background parked movy', suspended, 1);

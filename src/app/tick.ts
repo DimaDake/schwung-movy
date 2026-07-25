@@ -4,6 +4,7 @@ import { buildMainPageVM } from '../seq/main-page-vm.js';
 import { clipPageState } from '../seq/clip-page.js';
 import { buildClipPageVM } from '../seq/clip-page-vm.js';
 import { keyboardState } from '../keyboard/state.js';
+import { isSounding } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
 import { MASTER_FX_SLOTS } from '../chain/config.js';
 import { drumPadLedColor } from '../keyboard/leds.js';
@@ -457,7 +458,7 @@ export function tick(): void {
     /* ── Drum pad LEDs ──────────────────────────────────────────────────────
      * Painted every tick (not just on dirty frames) so a pad turns green the
      * moment its note sounds — from the sequencer gate (activeHasNote) or from
-     * the user physically holding it (keyboardState.held) — and reverts when it
+     * the user physically holding it (the live-note ledger) — and reverts when it
      * stops. Green wins over the white "selected" pad and the resting track
      * color (priority lives in drumPadLedColor). In Session mode the clip grid
      * owns the pads (painted by seqLedsTick). synthModel/synthDvm/isDrum come
@@ -496,7 +497,7 @@ export function tick(): void {
                 const idx = p - PAD_MIN, col = idx % 8, row = Math.floor(idx / 8);
                 const dp  = drumCfg.rawMidi ? p - drumCfg.padNoteStart + 1 : row * 4 + col + 1;
                 const note = drumCfg.rawMidi ? p : drumCfg.padNoteStart + dp - 1;
-                const playing = activeHasNote(track, note) || keyboardState.held[p] !== undefined;
+                const playing = activeHasNote(track, note) || isSounding(p);
                 const color = drumPadLedColor(p, PAD_MIN, drumCfg, keyboardState.rootNote, sel, track, playing);
                 if (drumCache[i] !== color) {
                     drumCache[i] = color;
@@ -530,7 +531,7 @@ export function tick(): void {
         for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {
             const p     = PAD_MIN + i;
             const pitch = chromaticPitch(p, PAD_MIN, base);
-            const isPlaying = keyboardState.held[p] !== undefined
+            const isPlaying = isSounding(p)
                 || (pitch >= 0 && pitch <= 127 && activeHasNote(track, pitch));
             const color = chromaticPadColor(p, PAD_MIN, base, track, isPlaying, holdNotes, keyboardState.scale);
             if (chromaticCache[i] !== color) {

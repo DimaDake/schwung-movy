@@ -61,7 +61,7 @@ export function mainPageRelease(k: number): void {
     if (mainPageState.touchedKnob === k) mainPageState.touchedKnob = -1;
 }
 
-export function mainPageKnob(k: number, delta: number, track: number): void {
+export function mainPageKnob(k: number, delta: number): void {
     mainPageState.touchedKnob = k;
     const n = countDetents(accum, k, delta);
     if (n === 0) return;
@@ -85,7 +85,7 @@ export function mainPageKnob(k: number, delta: number, track: number): void {
         const base = keyboardState.rootNote;
         const oct  = Math.floor(base / 12) * 12;
         const pc   = (((base - oct + n) % 12) + 12) % 12;
-        setRoot(oct + pc, track);
+        setRoot(oct + pc);
     } else if (k === 3 && mainPageState.scaleOverlay) {
         mainPageState.scaleSel = Math.max(0, Math.min(SCALE_NAMES.length - 1, mainPageState.scaleSel + n));
     } else if (k === 4) {

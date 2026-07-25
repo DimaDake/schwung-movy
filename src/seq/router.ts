@@ -385,12 +385,15 @@ export function seqNotePadPlayed(track: number, padNote: number, midiNote: numbe
     if (engineReady()) seqCmd(`non ${track} ${midiNote} ${vel}`);
 }
 
-/* Pad note-off: drop it from the held chord and end any recording capture. */
-export function seqNotePadReleased(padNote: number): void {
+/* Pad note-off: drop it from the held chord and end any recording capture. The
+ * track comes from the caller's ledger lookup, not seqState.watchTrack — a
+ * track switch mid-hold used to send the capture-off to the wrong track and
+ * leave a dangling rec_pending in the engine. */
+export function seqNotePadReleased(padNote: number, track: number): void {
     const midiNote = heldChord.get(padNote);
     heldChord.delete(padNote);
     if (midiNote !== undefined && engineReady()) {
-        seqCmd(`nof ${seqState.watchTrack} ${midiNote}`);
+        seqCmd(`nof ${track} ${midiNote}`);
     }
 }
 

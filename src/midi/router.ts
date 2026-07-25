@@ -4,7 +4,9 @@ import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease, closeClip
 import { CHAIN_SLOTS, MASTER_FX_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../chain/config.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
-import { noteOn, noteOff, changeRoot, releaseAllNotes } from '../keyboard/handler.js';
+import { noteOn, noteOff, changeRoot } from '../keyboard/handler.js';
+import { soundingTrack } from '../keyboard/held-notes.js';
+import { releaseAllLive } from '../keyboard/release.js';
 import { drumPadOn, drumPadOff } from '../keyboard/drum-handler.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
@@ -180,12 +182,15 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         if ((status & 0xF0) === 0x80 || ((status & 0xF0) === 0x90 && d2 === 0)) {
+            // Read the owner before the release drains it — the record-capture
+            // note-off has to reach the same track the note was played on.
+            const owner = soundingTrack(d1) ?? track;
             if (drumCfg) {
-                drumPadOff(d1, PAD_MIN, drumCfg, keyboardState.rootNote, track);
+                drumPadOff(d1);
             } else {
-                noteOff(d1, PAD_MIN, track);
+                noteOff(d1, PAD_MIN);
             }
-            seqNotePadReleased(d1);
+            seqNotePadReleased(d1, owner);
             return;
         }
     }
@@ -214,7 +219,7 @@ export function onMidiMessageInternal(data: number[]): void {
         }
         if (mainPageActive()) {
             // Knobs 0-3 = tempo/swing/root/key; knob 4 = LINK toggle.
-            if (k < 5) { mainPageKnob(k, delta, appState.activeSlot); appState.dirty = true; }
+            if (k < 5) { mainPageKnob(k, delta); appState.dirty = true; }
             return;
         }
         if (clipPageActive()) {
@@ -329,7 +334,7 @@ export function onMidiMessageInternal(data: number[]): void {
             // so a physically-held pad would otherwise strand. Background then
             // parks (sequencer + Phase 1 clock keep running under Move's UI);
             // Shift+Back stays the host's instant full-exit.
-            releaseAllNotes(appState.activeSlot);
+            releaseAllLive();
             openLeaveModal();
             appState.dirty = true;
         }
@@ -523,7 +528,7 @@ export function onMidiMessageInternal(data: number[]): void {
     if (d1 === MoveUp || d1 === MoveDown) {
         if (trackIsDrum(appState.activeSlot)) return;
         if (d2 > 0) {
-            changeRoot(d1 === MoveUp ? 12 : -12, appState.activeSlot);
+            changeRoot(d1 === MoveUp ? 12 : -12);
             setButtonLED(d1, WHITE_BRIGHT, true);
         } else {
             setButtonLED(d1, WHITE_DIM, true);

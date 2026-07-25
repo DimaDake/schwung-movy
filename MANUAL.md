@@ -374,7 +374,8 @@ for the concepts:
   pure modifier there.
 - **Solo** — the same two gestures with **Shift**: **Shift + Mute** solos the
   current track, **Shift + Mute + track button** solos that one. Press again to
-  un-solo, and solo several tracks at once if you like. **Solo overrides mute**,
+  un-solo. Solo is **exclusive** — soloing another track moves the solo rather
+  than adding to it. **Solo overrides mute**,
   so soloing a track you had muted makes it audible; your own mutes are
   remembered underneath and put back exactly as they were when the last solo
   drops. Solo works by muting everything else, so it silences their *sequenced
@@ -620,7 +621,7 @@ behaviour you'd like — or, better, a PR.
 | **Delete (Clear)** | Delete a step / clip / bar; in Session, delete a clip. Hold + knob-touch clears that knob's automation lane. |
 | **Mute** | Mute / unmute the current track (Track view only — Session view has no current track). |
 | **Mute + track** | Mute that track instead; suppresses the current-track toggle on release. |
-| **Shift + Mute** | Solo / un-solo the current track (Track view only). Several tracks can be soloed. |
+| **Shift + Mute** | Solo / un-solo the current track (Track view only). Exclusive — soloing another moves it. |
 | **Shift + Mute + track** | Solo that track instead. |
 | **Track buttons 1–4** | Select a track (hold = momentary peek). |
 | **Volume encoder** | Adjust held steps' velocity. With a track button held instead, sets that track's volume; otherwise it stays Move's master volume. |

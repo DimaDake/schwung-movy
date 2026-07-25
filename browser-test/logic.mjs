@@ -2601,18 +2601,19 @@ _log('\nautomation: restore re-requests label sync:');
     eq('its mute returns on un-solo', seqState.muted[2], true);
     eq('others restored', seqState.muted[0] || seqState.muted[1] || seqState.muted[3], false);
 
-    // Several tracks can be soloed at once — solo is a per-track toggle.
+    // Solo is exclusive: soloing another track moves the solo.
     fresh();
     toggleSolo(0);
     resetSeqEngine();
     toggleSolo(2);
-    eq('second solo unmutes that track', cmds().join(','), 'mute 2 0');
-    eq('both soloed', isSoloed(0) && isSoloed(2), true);
-    eq('non-soloed still muted', seqState.muted[1], true);
+    eq('solo moves to the new track', isSoloed(2), true);
+    eq('previous solo cleared', isSoloed(0), false);
+    eq('swap unmutes the new, mutes the old', cmds().sort().join(','), 'mute 0 1,mute 2 0');
+    eq('other tracks stay muted', seqState.muted[1] && seqState.muted[3], true);
     resetSeqEngine();
-    toggleSolo(0);                    // drop one — the other still solos
-    eq('dropping one re-mutes it', cmds().join(','), 'mute 0 1');
-    eq('still soloing', anySolo(), true);
+    toggleSolo(2);                    // same track again → no solo at all
+    eq('re-press clears the solo', anySolo(), false);
+    eq('everything unmuted again', cmds().sort().join(','), 'mute 0 0,mute 1 0,mute 3 0');
 
     // Muting while a solo is up edits the underlying intent. It is not audible
     // yet — solo overrides mute — but it lands when the solo drops.
@@ -2660,6 +2661,12 @@ _log('\nautomation: restore re-requests label sync:');
     eq('un-solo after reopen unmutes the others',
         cmds().sort().join(','), 'mute 1 0,mute 2 0,mute 3 0');
 
+    // A blob written before solo became exclusive can name several — keep the first.
+    resetTrackMutes();
+    applyUiState(JSON.stringify({ mutes: { solo: [0, 1, 1, 0], base: [0, 0, 0, 0] } }));
+    eq('legacy multi-solo blob keeps one', [0, 1, 2, 3].filter(isSoloed).join(','), '1');
+    resetTrackMutes();
+
     // Shift added AFTER Mute goes down still solos (either order is natural).
     fresh();
     appState.activeSlot = 2;
@@ -2674,10 +2681,10 @@ _log('\nautomation: restore re-requests label sync:');
     toggleMute(1);
     eq('unmute toast', seqToastText(), 'T2 UNMUTED');
     toggleSolo(0);
-    eq('single solo toast', seqToastText(), 'T1 SOLO');
+    eq('solo toast', seqToastText(), 'T1 SOLO');
     toggleSolo(2);
-    eq('multi solo toast', seqToastText(), 'SOLO T1 T3');
-    toggleSolo(0); toggleSolo(2);
+    eq('moved-solo toast names the new track', seqToastText(), 'T3 SOLO');
+    toggleSolo(2);
     eq('solo off toast', seqToastText(), 'SOLO OFF');
 
     // Session view: no current track, so Shift+Mute does nothing there either.

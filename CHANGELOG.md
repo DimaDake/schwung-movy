@@ -29,8 +29,8 @@ far. Earlier work is summarised in the timeline below for context.
   `plans/2026-07-25-track-volume-gesture.md`.
 
 - **Solo** — **Shift + Mute** solos the current track, **Shift + Mute + track**
-  solos that one; press again to un-solo, and several tracks can be soloed at
-  once. Solo overrides mute, so soloing a muted track makes it audible; the
+  solos that one; press again to un-solo. Solo is exclusive — soloing another
+  track moves it. Solo overrides mute, so soloing a muted track makes it audible; the
   user's own mutes are captured when a solo engages and restored when the last
   one drops. Implemented entirely in Movy on the engine's per-track mute
   (nothing touches Schwung), so it gates sequenced notes — live pads on a

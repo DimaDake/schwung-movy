@@ -21,7 +21,8 @@ import { mlog } from '../log.js';
  * silent even once you soloed it, which made soloing look broken exactly when
  * some tracks were muted.
  *
- * Several tracks can be soloed at once — solo is a per-track toggle, like mute.
+ * Solo is exclusive: soloing another track moves the solo rather than adding to
+ * it, and pressing the soloed track again clears it.
  */
 
 const solo: boolean[] = [false, false, false, false];
@@ -65,7 +66,9 @@ export function toggleMute(track: number): void {
 
 export function toggleSolo(track: number): void {
     if (track < 0 || track > 3) return;
-    solo[track] = !solo[track];
+    const was = solo[track];
+    for (let t = 0; t < 4; t++) solo[t] = false;   // exclusive — one solo at a time
+    solo[track] = !was;
     apply();
     /* mutes= is the mirror, which the engine's status poll overwrites — so a
      * line logged after the fact shows what the engine actually holds. */
@@ -77,15 +80,9 @@ export function toggleSolo(track: number): void {
     seqToast(soloToast());
 }
 
-/* "T2 SOLO" for one, "SOLO T1 T3" for several, "SOLO OFF" for none — the whole
- * solo set, not just the track that changed, since that is the state the user
- * needs to see. */
 function soloToast(): string {
-    const on: number[] = [];
-    for (let t = 0; t < 4; t++) if (solo[t]) on.push(t + 1);
-    if (on.length === 0) return 'SOLO OFF';
-    if (on.length === 1) return 'T' + on[0] + ' SOLO';
-    return 'SOLO ' + on.map((n) => 'T' + n).join(' ');
+    for (let t = 0; t < 4; t++) if (solo[t]) return 'T' + (t + 1) + ' SOLO';
+    return 'SOLO OFF';
 }
 
 export function resetTrackMutes(): void {
@@ -106,6 +103,14 @@ export function mutesSnapshot(): { solo: number[]; base: number[] | null } {
 
 /* Restores bookkeeping only — the engine already holds the derived mutes. */
 export function restoreMutes(o: { solo?: unknown; base?: unknown }): void {
-    if (Array.isArray(o?.solo)) for (let t = 0; t < 4; t++) solo[t] = o.solo[t] === 1;
+    /* Keeps the first soloed track only: blobs written before solo became
+     * exclusive can name several. */
+    if (Array.isArray(o?.solo)) {
+        let seen = false;
+        for (let t = 0; t < 4; t++) {
+            solo[t] = !seen && o.solo[t] === 1;
+            if (solo[t]) seen = true;
+        }
+    }
     base = Array.isArray(o?.base) ? [0, 1, 2, 3].map((t) => (o.base as unknown[])[t] === 1) : null;
 }

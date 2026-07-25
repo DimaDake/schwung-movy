@@ -5325,6 +5325,108 @@ _log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
     }
 }
 
+/* ── Track volume: hold track button + master volume knob ────────────────── */
+
+_log('\nTest: track volume gesture (hold track + CC 79)');
+
+{
+    const {
+        volumeTrackDown, volumeTrackUp, volumeTouch, volumeKnobDelta,
+        volumeOverlay, resetTrackVolume, MASTER_CC, MASTER_TOUCH_NOTE,
+    } = await import('../dist/esm/mixer/track-volume.js');
+
+    const CW  = 1;     // one detent clockwise
+    const CCW = 127;   // one detent counter-clockwise
+
+    const start = (track = 1, vol = '1.00') => {
+        resetTrackVolume();
+        env.setParams({ 'slot:volume': vol });
+        env.clearInjected();
+        volumeTrackDown(track);
+        volumeTouch(true);
+    };
+
+    eq('MASTER_CC is 79', MASTER_CC, 79);
+    eq('master touch note is 8', MASTER_TOUCH_NOTE, 8);
+
+    // Idle knob belongs to Move: not consumed, nothing written.
+    resetTrackVolume();
+    env.setParams({ 'slot:volume': '1.00' });
+    eq('no track held: turn not consumed', volumeKnobDelta(CW), false);
+    eq('no track held: volume untouched', env.params['slot:volume'], '1.00');
+
+    // Touch while holding a track diverts the knob at Move by injecting the
+    // track-hold Move never saw (CC 43 = track 1 → slot 0, so slot 1 = CC 42).
+    start(1);
+    eq('touch injects one packet', env.injected.length, 1);
+    eq('injected track-hold press', JSON.stringify(env.injected[0]), JSON.stringify([0x0B, 0xB0, 42, 127]));
+
+    // 0.05 per detent, written back as the slot param.
+    eq('CW detent consumed', volumeKnobDelta(CW), true);
+    eq('CW detent = +0.05', env.params['slot:volume'], '1.05');
+    volumeKnobDelta(CCW);
+    eq('CCW detent = -0.05', env.params['slot:volume'], '1.00');
+    for (let i = 0; i < 20; i++) volumeKnobDelta(CW);
+    eq('20 detents = +1.00', env.params['slot:volume'], '2.00');
+
+    // Range is the full schwung slot span, 0-4.
+    start(0, '0.10');
+    for (let i = 0; i < 10; i++) volumeKnobDelta(CCW);
+    eq('clamps at 0', env.params['slot:volume'], '0.00');
+    start(0, '3.90');
+    for (let i = 0; i < 10; i++) volumeKnobDelta(CW);
+    eq('clamps at 4', env.params['slot:volume'], '4.00');
+
+    // Multi-detent packets (d2 = accumulated detents) scale linearly.
+    start(2, '1.00');
+    volumeKnobDelta(4);
+    eq('4-detent packet = +0.20', env.params['slot:volume'], '1.20');
+    volumeKnobDelta(124);   // -4
+    eq('-4-detent packet = -0.20', env.params['slot:volume'], '1.00');
+
+    // Overlay follows the gesture, and reports the track being edited.
+    start(3, '1.00');
+    eq('overlay track', volumeOverlay()?.track, 3);
+    eq('overlay value', volumeOverlay()?.value, 1);
+    volumeKnobDelta(CW);
+    eq('overlay tracks the edit', volumeOverlay()?.value.toFixed(2), '1.05');
+    volumeTouch(false);
+    eq('overlay hidden on touch release', volumeOverlay(), null);
+    eq('touch release injects hold-off', JSON.stringify(env.injected[env.injected.length - 1]),
+        JSON.stringify([0x0B, 0xB0, 40, 0]));
+
+    // Releasing the track button ends the divert even with the knob still held.
+    start(1);
+    env.clearInjected();
+    volumeTrackUp(1);
+    eq('track release injects hold-off', JSON.stringify(env.injected[0]), JSON.stringify([0x0B, 0xB0, 42, 0]));
+    eq('overlay hidden after track release', volumeOverlay(), null);
+    eq('turn after release not consumed', volumeKnobDelta(CW), false);
+
+    // A missed capacitive touch must not lose the gesture: the turn arms it.
+    resetTrackVolume();
+    env.setParams({ 'slot:volume': '1.00' });
+    env.clearInjected();
+    volumeTrackDown(2);
+    eq('turn without touch is consumed', volumeKnobDelta(CW), true);
+    eq('turn without touch diverts Move', JSON.stringify(env.injected[0]), JSON.stringify([0x0B, 0xB0, 41, 127]));
+    eq('turn without touch edits volume', env.params['slot:volume'], '1.05');
+
+    // Only one divert per gesture, however many detents arrive.
+    env.clearInjected();
+    for (let i = 0; i < 5; i++) volumeKnobDelta(CW);
+    eq('no repeat injection while turning', env.injected.length, 0);
+
+    // Missing param reads as unity rather than NaN-ing the gesture.
+    resetTrackVolume();
+    env.setParams({});
+    volumeTrackDown(0);
+    volumeTouch(true);
+    eq('absent slot:volume defaults to unity', volumeOverlay()?.value, 1);
+
+    resetTrackVolume();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

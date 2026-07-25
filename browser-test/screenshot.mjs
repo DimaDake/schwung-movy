@@ -51,6 +51,7 @@ const PRESETS = [
     'deep_page', 'lfo_helm_step', 'lfo_helm_pyramid',
     'signal_voice', 'forge_voice', 'forge_filter', 'forge_mod', 'forge_send', 'forge_mix',
     'leave_modal',
+    'track_volume_unity', 'track_volume_min', 'track_volume_max',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -81,6 +82,7 @@ const BASE = {
     lfo_target_overlay: 'test8', lfo_viz_unipolar: 'test8', lfo_viz_retrig: 'test8',
     lfo_mod_mark: 'test8', lfo_mod_and_auto: 'test8', lfo_assign_toast: 'test8',
     leave_modal: 'test8',
+    track_volume_unity: 'test8', track_volume_min: 'test8', track_volume_max: 'test8',
 };
 
 const STEP_VM_A = {
@@ -121,6 +123,7 @@ const { createLfoModel }   = await import('../dist/esm/lfo/model.js');
 const { holdTouch, holdTick, assignToastText, resetAssignMode } = await import('../dist/esm/lfo/assign-mode.js');
 const { drawJogToast }     = await import('../dist/esm/renderer/overlay.js');
 const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view.js');
+const { drawVolumeOverlay } = await import('../dist/esm/renderer/volume-overlay.js');
 const { renderKnobsView }  = await import('../dist/esm/renderer/knob-view.js');
 const { renderKeysView }   = await import('../dist/esm/renderer/keys-view.js');
 const { renderBrowseView } = await import('../dist/esm/renderer/browse-view.js');
@@ -244,6 +247,18 @@ function applyView(preset) {
             showChain(1, false);
             const base = lastRender;
             lastRender = () => { base(); drawLeaveModal(['Background', 'Close Movy'], 0); };
+            lastRender();
+            break;
+        }
+        /* Track-volume slider over the chain view it is invoked from. */
+        case 'track_volume_unity':
+        case 'track_volume_min':
+        case 'track_volume_max': {
+            const vol = preset === 'track_volume_min' ? 0 : preset === 'track_volume_max' ? 4 : 1;
+            const trk = preset === 'track_volume_unity' ? 1 : 0;
+            showChain(1, false, trk);
+            const base = lastRender;
+            lastRender = () => { base(); drawVolumeOverlay(trk, vol); };
             lastRender();
             break;
         }

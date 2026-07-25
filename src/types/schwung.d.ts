@@ -39,6 +39,12 @@ declare function decodeDelta(d2: number): number;
  * channels. Absent in browser tests (guard with typeof). */
 declare function move_midi_internal_send(data: number[]): void;
 
+/* Inject USB-MIDI packets ([cin, status, d1, d2], cable 0 = control surface)
+ * into Move firmware's MIDI_IN. The shim drains these after all overtake
+ * filtering, so they reach Move even while it is blocked from the hardware.
+ * Absent in browser tests (guard with typeof). */
+declare function move_midi_inject_to_move(data: number[]): void;
+
 /* LED color constants */
 declare const Black: number;
 declare const DarkGrey: number;

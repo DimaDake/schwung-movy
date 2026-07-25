@@ -19,13 +19,15 @@ import { holdTouch, holdRelease, holdTurnCancel, assignActive, assignCycle, assi
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
 import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm } from '../app/leave-modal.js';
+import { MASTER_CC, volumeTrackDown, volumeTrackUp, volumeTouch, volumeKnobDelta } from '../mixer/track-volume.js';
 import { mlog } from '../log.js';
 
 const PAD_MIN        = MovePads[0];
 const PAD_MAX        = MovePads[MovePads.length - 1];
 const KNOB_CC_BASE   = MoveKnob1;
 const NUM_KNOBS      = 8;
-const JOG_TOUCH      = MoveKnob8Touch + 1;  /* note 8 = main encoder touch */
+const MASTER_TOUCH   = MoveKnob8Touch + 1;  /* note 8 = master (volume) knob touch */
+const JOG_TOUCH      = MoveKnob8Touch + 2;  /* note 9 = main encoder (jog) touch */
 const TRACK_CC_START = 40;                   /* MoveRow4 → slot 3 */
 const TRACK_CC_END   = 43;                   /* MoveRow1 → slot 0 */
 
@@ -141,7 +143,14 @@ export function onMidiMessageInternal(data: number[]): void {
         return;
     }
 
-    /* Main encoder (jog) touch: note=8 */
+    /* Master (volume) knob touch: note=8 — arms the track-volume gesture. */
+    if ((status & 0xF0) === 0x90 && d1 === MASTER_TOUCH) {
+        volumeTouch(d2 > 0);
+        appState.dirty = true;
+        return;
+    }
+
+    /* Main encoder (jog) touch: note=9 */
     if ((status & 0xF0) === 0x90 && d1 === JOG_TOUCH) {
         if (appState.currentView === VIEW_CHAIN || appState.currentView === VIEW_KNOBS) {
             appState.jogTouched = d2 > 0;
@@ -150,7 +159,7 @@ export function onMidiMessageInternal(data: number[]): void {
         return;
     }
 
-    /* Other encoder touch (note 9) — ignore */
+    /* Any other sub-10 note is an encoder touch we don't use */
     if ((status & 0xF0) === 0x90 && d1 < 10) return;
 
     /* Pad notes */
@@ -178,6 +187,16 @@ export function onMidiMessageInternal(data: number[]): void {
             seqNotePadReleased(d1);
             return;
         }
+    }
+
+    /* Master volume knob (CC 79): with a track button held it edits that track's
+     * slot volume; otherwise it stays Move's master volume and we ignore it. */
+    if ((status & 0xF0) === 0xB0 && d1 === MASTER_CC) {
+        if (volumeKnobDelta(d2)) {
+            momentaryGesture();   // a volume edit means the release must not latch
+            appState.dirty = true;
+        }
+        return;
     }
 
     /* Knob CC (71–78) — automation gets first refusal (hold-step / Rec / a
@@ -221,6 +240,7 @@ export function onMidiMessageInternal(data: number[]): void {
     if (d1 >= TRACK_CC_START && d1 <= TRACK_CC_END) {
         const track = TRACK_CC_END - d1;
         if (d2 > 0) {
+            volumeTrackDown(track);   // arm hold-track + volume knob
             if (muteHeld()) { muteTrack(track); momentaryGesture(); appState.dirty = true; return; }
             // A track button always exits the Set Parameters page first (it is a
             // global page, not a per-track view), so it can't be saved into the
@@ -254,6 +274,7 @@ export function onMidiMessageInternal(data: number[]): void {
             appState.initLedsDone = false; appState.initLedIndex = 0;
             appState.dirty = true;
         } else {
+            volumeTrackUp(track);
             momentaryUp(d1);
             appState.dirty = true;
         }

@@ -208,6 +208,24 @@ In **Chain** view you see the slots of the current track:
 In **Session** view, the same navigation applies to a **master FX chain**
 (MFX 1–4) that processes the whole mix.
 
+### Track volume
+
+**Hold a track button and turn the volume encoder** to set that track's volume.
+The range runs 0–400%, where **100% is unity** — the tick under the bar. Above
+that you are boosting, so watch for clipping.
+
+![Track volume](docs/assets/track_volume_unity.png)
+
+Whether you see *this* slider depends on Shift. Move's firmware takes over the
+screen for as long as you are touching the volume knob, so:
+
+- **Track + volume** — Move draws its own volume overlay. The track volume still
+  changes; you just see Move's display of it.
+- **Shift + track + volume** — Movy keeps the screen and shows the slider above.
+
+Either way the value belongs to the track's Schwung slot, and it survives
+leaving and re-entering Movy.
+
 ### The LFO page
 
 The last page in the chain is **LFO** — two low-frequency oscillators that can
@@ -568,6 +586,7 @@ behaviour you'd like — or, better, a PR.
 | **Back** | Module pages → Chain; browser → cancel; **at the root (Chain) → open the Leave Movy menu** (Background / Close Movy). |
 | **Back then jog-click** | From the root: background Movy (keeps playing under Move's UI). |
 | **Shift + Back** | Fully exit Movy (unload), instantly, from anywhere. |
+| **Hold track + volume encoder** | Set that track's volume (0–400%, 100% = unity). Add **Shift** to see Movy's slider instead of Move's native overlay. |
 | **+ / −** (Up/Down) | Shift the chromatic keyboard by an octave (melodic tracks only). |
 
 ### Sequencer
@@ -587,7 +606,7 @@ behaviour you'd like — or, better, a PR.
 | **Delete (Clear)** | Delete a step / clip / bar; in Session, delete a clip. Hold + knob-touch clears that knob's automation lane. |
 | **Mute + track** | Mute that track. |
 | **Track buttons 1–4** | Select a track (hold = momentary peek). |
-| **Volume encoder** | Adjust held steps' velocity. |
+| **Volume encoder** | Adjust held steps' velocity. With a track button held instead, sets that track's volume; otherwise it stays Move's master volume. |
 | **TEMPO knob** (Set page) | Set the tempo; also sets Move's device-wide tempo via Link. **EXT** on the cell = locked to Move's transport. |
 | **LINK knob** (Set page) | Turn right = ON, left = OFF. Enables the shared Play/Stop transport with Move (default OFF; saved per set). Clock/tempo follow works regardless. |
 

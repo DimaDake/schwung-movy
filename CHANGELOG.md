@@ -13,6 +13,25 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Added
+
+- **Track volume gesture** — hold a track button and turn the volume encoder to
+  set that track's Schwung slot volume (0–400%, unity marked). With Shift held
+  Movy draws its own slider; without it Move keeps the screen and shows its
+  native volume overlay, since the host hands the panel to Move for the duration
+  of a volume-knob touch.
+
+  Move firmware always receives CC 79 in overtake, so Movy injects the
+  track-hold Move never sees (`move_midi_inject_to_move`) — Move then routes the
+  turn to its own track volume instead of master. See
+  `plans/2026-07-25-track-volume-gesture.md`.
+
+### Fixed
+
+- Knob-touch note mapping: note 8 is the master (volume) knob and note 9 the jog
+  wheel, not the other way round. `jogTouched` was being driven by volume-knob
+  touch.
+
 ## [0.24.0] — 2026-07-25
 
 A fix-focused release. The headline is **module coverage**: Movy now walks a

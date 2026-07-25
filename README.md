@@ -72,6 +72,11 @@ Movy stands on the shoulders of several projects:
 
   ![Chain view](docs/assets/chain_synth.png)
 
+- **Track volume** — hold a track button and turn the volume encoder to set that
+  track's level (0–400%, unity marked). Add Shift for Movy's own slider.
+
+  ![Track volume](docs/assets/track_volume_unity.png)
+
 - **Per-track LFOs** — two LFOs per track with a live waveform display
   (shape, rate/sync, depth, phase, retrigger). **Hold any knob** to modulate
   that parameter with an LFO; modulated params are marked with a `~`.

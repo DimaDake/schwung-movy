@@ -33,6 +33,8 @@ await esbuild.build({
         resolve(root, 'src/renderer/lfo-wave.ts'),
         resolve(root, 'src/renderer/overlay.ts'),
         resolve(root, 'src/renderer/leave-modal-view.ts'),
+        resolve(root, 'src/renderer/volume-overlay.ts'),
+        resolve(root, 'src/mixer/track-volume.ts'),
         resolve(root, 'src/keyboard/drum-handler.ts'),
         resolve(root, 'src/keyboard/state.ts'),
         resolve(root, 'src/app/globals.ts'),

@@ -30,6 +30,8 @@ import { seqSetLane } from '../seq/router.js';
 import { stepAutoTick } from '../seq/step-edit.js';
 import { holdTick, assignActive, assignToastText } from '../lfo/assign-mode.js';
 import { drawJogToast } from '../renderer/overlay.js';
+import { volumeOverlay } from '../mixer/track-volume.js';
+import { drawVolumeOverlay } from '../renderer/volume-overlay.js';
 import { leaveModalActive, leaveModalLabels, leaveModalSel } from './leave-modal.js';
 import { drawLeaveModal } from '../renderer/leave-modal-view.js';
 import { stepPageState, stepPageAvailable } from '../seq/step-page.js';
@@ -436,6 +438,12 @@ export function tick(): void {
             jogToastShown = appState.jogTouched;
             updateKnobLEDs(vm);
         }
+        /* Track-volume slider sits above the view it was invoked from. Only
+         * visible in the Shift variant — without Shift the shim has handed the
+         * panel to Move for the duration of the knob touch (see
+         * mixer/track-volume.ts), so this frame is drawn but never pushed. */
+        const vol = volumeOverlay();
+        if (vol) drawVolumeOverlay(vol.track, vol.value);
         if (assignActive()) { drawJogToast(assignToastText()); jogToastShown = true; }
         if (toastShowing) drawSeqToast();
         if (headerShowing) drawSeqHeader();

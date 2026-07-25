@@ -2,6 +2,7 @@ import { browserState } from './state.js';
 import { appState, VIEW_BROWSE } from '../app/state.js';
 import { moduleReadKey, type ChainSlot } from '../chain/config.js';
 import { requestLaneWarm } from '../seq/automation.js';
+import { releaseAllLive } from '../keyboard/release.js';
 
 const MODULES_BASE = '/data/UserData/schwung/modules';
 
@@ -61,6 +62,9 @@ export function loadSelectedModule(): void {
     // as a path, not an id, so writing the id silently no-ops.
     const isMaster = browserState.componentKey.includes(':');
     const value    = isMaster ? mod.path : mod.id;
+    // The outgoing module is about to be torn down; its notes must be released
+    // while it is still there to receive the off.
+    releaseAllLive();
     shadow_set_param(browserState.paramSlot, browserState.componentKey + ':module', value);
     // The reload empties the host's static param cache; a same-id reselect won't
     // trip the module-name watcher, so schedule the warm here too (see

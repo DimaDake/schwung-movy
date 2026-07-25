@@ -5778,6 +5778,41 @@ _log('\nTest: note-off channel follows the ledger, not the active track');
   globalThis.shadow_set_param = origSetParam;
 }
 
+/* ── release points ──────────────────────────────────────────────────────── */
+
+_log('\nTest: mute releases only that track\'s live notes');
+
+{
+  const L = await import('../dist/esm/keyboard/held-notes.js');
+  const { noteOn } = await import('../dist/esm/keyboard/handler.js');
+  const { toggleMute } = await import('../dist/esm/mixer/track-mutes.js');
+  const { seqState } = await import('../dist/esm/seq/state.js');
+
+  let sentMidi = [];
+  const origSendMidi = globalThis.shadow_send_midi_to_dsp;
+  globalThis.shadow_send_midi_to_dsp = (msg) => { sentMidi.push([...msg]); };
+  const offs = () => sentMidi.filter(m => (m[0] & 0xF0) === 0x80);
+
+  L.drainAll();
+  seqState.muted = [false, false, false, false];
+  noteOn(68, 68, 0, 100);
+  noteOn(69, 68, 1, 100);
+  sentMidi = [];
+  toggleMute(0);
+  eq('mute releases the muted track', offs().filter(m => (m[0] & 0x0F) === 0).length, 1);
+  eq('mute leaves other tracks sounding', L.soundingCount(), 1);
+  eq('survivor is track 1', L.soundingTrack(69), 1);
+
+  // Unmuting must not emit anything — there is nothing to release.
+  sentMidi = [];
+  toggleMute(0);
+  eq('unmute emits no note-off', offs().length, 0);
+
+  L.drainAll();
+  seqState.muted = [false, false, false, false];
+  globalThis.shadow_send_midi_to_dsp = origSendMidi;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

@@ -271,6 +271,7 @@ export function onMidiMessageInternal(data: number[]): void {
             const prevLoop      = seqState.loopMode;
             const prevWatchTrack = prevSlot; // watchTrack should match active slot
             momentaryDown(d1, () => {
+                releaseAllLive();   // the peeked track's notes must not survive the revert
                 seqState.sessionMode = prevSession;
                 seqState.loopMode = prevLoop;
                 appState.activeSlot = prevSlot;
@@ -283,6 +284,8 @@ export function onMidiMessageInternal(data: number[]): void {
             seqState.sessionMode = false;
             seqState.loopMode = false;
             appState.masterDetail = false;
+            // Cut on switch: no live note outlives the track it was played on.
+            releaseAllLive();
             appState.activeSlot = track;
             appState.currentView = appState.trackView[track];
             appState.jogTouched = false;

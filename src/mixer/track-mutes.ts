@@ -1,4 +1,5 @@
 import { seqCmd } from '../seq/engine.js';
+import { releaseLiveOnTrack } from '../keyboard/release.js';
 import { seqState } from '../seq/state.js';
 import { markUiStateDirty } from '../seq/ui-dirty.js';
 import { seqToast } from '../seq/render.js';
@@ -37,10 +38,15 @@ export function isMuted(track: number): boolean {
     return base ? base[track] : seqState.muted[track];
 }
 
-/* The mirror flips optimistically so the track button dims this tick. */
+/* The mirror flips optimistically so the track button dims this tick. Muting
+ * also cuts any live pad note currently held on that track — mute means silence
+ * now, not at pad release. Notes pressed *after* the mute still sound: playing
+ * over a silenced track stays possible (see the module comment above); this only
+ * stops a note that was already ringing from outliving the mute. */
 function setEngineMute(track: number, want: boolean): void {
     if (seqState.muted[track] === want) return;
     seqState.muted[track] = want;
+    if (want) releaseLiveOnTrack(track);
     seqCmd('mute ' + track + ' ' + (want ? 1 : 0));
 }
 

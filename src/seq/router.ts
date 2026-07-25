@@ -17,6 +17,7 @@ import { toggleMute, toggleSolo } from '../mixer/track-mutes.js';
 import { openMainPage } from './main-page.js';
 import { openClipPage, closeClipPage, clipPageActive } from './clip-page.js';
 import { appState, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from '../app/state.js';
+import { releaseAllLive } from '../keyboard/release.js';
 
 const CC_MUTE = 88;
 
@@ -202,6 +203,9 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
             momentaryDown(d1, () => { seqState.sessionMode = sessionPrev; });
             // Clip Params is Track-view only: leaving for Session closes it.
             if (clipPageActive()) appState.currentView = closeClipPage();
+            // Session mode swallows pad note-offs (the pad branch above returns
+            // true for 0x80 too), so a pad held across the switch would strand.
+            releaseAllLive();
             seqState.sessionMode = true;
         } else if (momentaryUp(d1) === 'tap' && sessionPrev) {
             seqState.sessionMode = false; // tap while already in Session → back to Note

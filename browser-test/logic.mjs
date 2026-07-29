@@ -36,6 +36,7 @@ import { normalizeFilterOption, isFilterModeEnum, filterModeFromEnum, isSlopeEnu
 import { shapeId as lfoShapeId, isShapeEnum } from '../dist/esm/model/lfo-shapes.js';
 import { lfoTargetsParam, assignLfoTarget, clearLfoTarget } from '../dist/esm/lfo/assign.js';
 import { holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle, assignCommit, assignToastText, resetAssignMode } from '../dist/esm/lfo/assign-mode.js';
+import { jogHintTouch, jogHintTick, jogHintVisible } from '../dist/esm/app/jog-hint.js';
 import { shapeSample } from '../dist/esm/renderer/lfo-wave.js';
 import { CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../dist/esm/chain/config.js';
 import { init } from '../dist/esm/app/init.js';
@@ -5153,6 +5154,39 @@ _log('\nTest: LFO assign-mode gesture');
     eq('active before release', assignActive(), true);
     holdRelease(0);
     eq('release cancels', assignActive(), false);
+    Date.now = realNow;
+}
+
+_log('\nTest: jog hint waits out a hold');
+{
+    const realNow = Date.now;
+    let t = 1000; Date.now = () => t;
+
+    jogHintTouch(false);
+    eq('idle jog shows nothing', jogHintVisible(), false);
+
+    jogHintTouch(true);
+    eq('touch alone shows nothing', jogHintVisible(), false);
+    t = 1600; eq('not shown before hold time', jogHintTick(), false);
+    t = 2100; eq('shown after hold time', jogHintTick(), true);
+    eq('visible', jogHintVisible(), true);
+    eq('promotes once', jogHintTick(), false);
+
+    eq('release reports the repaint', jogHintTouch(false), true);
+    eq('hidden on release', jogHintVisible(), false);
+
+    // A turn during the wait cancels: no hint, no matter how long the finger stays.
+    t = 3000; jogHintTouch(true);
+    t = 3200; jogHintTouch(false);   // the turn
+    t = 9000; eq('turn cancels the pending hint', jogHintTick(), false);
+    eq('still hidden after a turn', jogHintVisible(), false);
+
+    // A turn while it is up takes it away and asks for a repaint.
+    t = 10000; jogHintTouch(true); t = 11100; jogHintTick();
+    eq('re-arms on the next touch', jogHintVisible(), true);
+    eq('turn while shown reports the repaint', jogHintTouch(false), true);
+    eq('gone after the turn', jogHintVisible(), false);
+
     Date.now = realNow;
 }
 

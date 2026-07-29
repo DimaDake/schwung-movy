@@ -1,6 +1,7 @@
 import { createModel }  from '../model/index.js';
 import { createLfoModel } from '../lfo/model.js';
 import { appState, VIEW_CHAIN } from './state.js';
+import { jogHintTouch } from './jog-hint.js';
 import { keyboardState } from '../keyboard/state.js';
 import { drainAll } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
@@ -23,7 +24,7 @@ export function init(): void {
     appState.trackView       = [VIEW_CHAIN, VIEW_CHAIN, VIEW_CHAIN, VIEW_CHAIN];
     appState.currentView     = VIEW_CHAIN;
     appState.shiftHeld    = false;
-    appState.jogTouched   = false;
+    jogHintTouch(false);
     appState.browseOrigin = VIEW_CHAIN;
     appState.dirty           = true;
     appState.initLedIndex    = 0;

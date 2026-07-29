@@ -30,6 +30,7 @@ import { seqLedsTick, seqLedsInvalidate, displayHoldNotes } from '../seq/leds.js
 import { seqSetLane } from '../seq/router.js';
 import { stepAutoTick } from '../seq/step-edit.js';
 import { holdTick, assignActive, assignToastText } from '../lfo/assign-mode.js';
+import { jogHintTick, jogHintVisible } from './jog-hint.js';
 import { drawJogToast } from '../renderer/overlay.js';
 import { volumeOverlay } from '../mixer/track-volume.js';
 import { drawVolumeOverlay } from '../renderer/volume-overlay.js';
@@ -211,7 +212,8 @@ export function tick(): void {
         return;
     }
     stepAutoTick(); // promote a long single-step hold to step-automation mode
-    if (holdTick()) appState.dirty = true; // 500ms knob-hold → LFO assign mode
+    if (holdTick()) appState.dirty = true;    // knob-hold → LFO assign mode
+    if (jogHintTick()) appState.dirty = true; // jog rested without turning → CLICK JOG hint
     // The held-step value display is driven by stepAutoMode + heldLocks, which
     // change via consumed knob turns and the status poll — both outside the
     // param page's normal dirty path. Repaint when that display state changes.
@@ -401,11 +403,11 @@ export function tick(): void {
             if (appState.masterDetail) {
                 // Drilled into the focused master slot's module: show its knob
                 // detail page (param banks scroll via jog), same as a track slot.
-                renderKnobsView(vm, appState.jogTouched, appState.activeSlot);
+                renderKnobsView(vm, jogHintVisible(), appState.activeSlot);
             } else {
-                renderChainView(vm, mIdx, appState.jogTouched, 'MASTER', MASTER_FX_SLOTS[mIdx]?.label);
+                renderChainView(vm, mIdx, jogHintVisible(), 'MASTER', MASTER_FX_SLOTS[mIdx]?.label);
             }
-            jogToastShown = appState.jogTouched;
+            jogToastShown = jogHintVisible();
             updateKnobLEDs(vm);
         } else if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
@@ -419,11 +421,11 @@ export function tick(): void {
                 if (stepAvail) { vm.stepPagePresent = true; vm.stepPageSelected = false; }
             }
             diagAutoRender(vm);
-            renderKnobsView(vm, appState.jogTouched, appState.activeSlot);
+            renderKnobsView(vm, jogHintVisible(), appState.activeSlot);
             // The pool-full toast shares the bottom rows with the Loop strip;
             // claim them so the strip yields to it (like every other toast).
             jogToastShown = (vm.automationHeld && vm.automationPoolFull)
-                || !!vm.toast?.browseHint || appState.jogTouched;
+                || !!vm.toast?.browseHint || jogHintVisible();
             updateKnobLEDs(vm);
         } else if (appState.currentView === VIEW_CHAIN) {
             const stepAvail = stepPageAvailable();
@@ -435,8 +437,8 @@ export function tick(): void {
                 if (stepAvail) { vm.stepPagePresent = true; vm.stepPageSelected = false; }
             }
             diagAutoRender(vm);
-            renderChainView(vm, chainIdx, appState.jogTouched, 'T' + (appState.activeSlot + 1));
-            jogToastShown = appState.jogTouched;
+            renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeSlot + 1));
+            jogToastShown = jogHintVisible();
             updateKnobLEDs(vm);
         }
         /* Track-volume slider sits above the view it was invoked from. Only

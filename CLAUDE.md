@@ -124,6 +124,10 @@ Other useful commands:
 # Device e2e: step automation stays audible after a real module reselect
 ./scripts/test-reselect.sh [move.local]
 
+# Device e2e: the bottom CLICK JOG hint only appears after a ~1 s jog hold
+# (asserts on the real framebuffer's toast band, not the log)
+node scripts/test-jog-hint.mjs [move.local]
+
 # Device e2e: closing Movy mid-sequence releases every sounding note.
 # Fills all 16 steps first — one note on one step is silent for most of the
 # loop, so a teardown sampled at random would find no open gate and prove

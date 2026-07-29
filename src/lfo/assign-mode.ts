@@ -5,8 +5,7 @@
 
 import type { KnobParamInfo } from '../model/store.js';
 import { assignLfoTarget, clearLfoTarget, lfoTargetsParam } from './assign.js';
-
-const HOLD_MS = 1000;
+import { HOLD_MS } from '../model/constants.js';
 
 interface Held { track: number; physK: number; info: KnobParamInfo; pressMs: number; }
 const state = { held: null as Held | null, active: false, lfoSel: 0 };
@@ -24,7 +23,7 @@ export function holdRelease(physK: number): void {
     if (state.active) resetAssignMode();
 }
 
-/* Promote a 500ms hold-without-turn to assign mode. Returns true on activation. */
+/* Promote a HOLD_MS hold-without-turn to assign mode. Returns true on activation. */
 export function holdTick(): boolean {
     if (state.active || !state.held) return false;
     if (Date.now() - state.held.pressMs < HOLD_MS) return false;

@@ -45,7 +45,6 @@ export const appState = {
      * no master VIEW_KNOBS: rendering keys off sessionMode, so this flag — not
      * currentView — distinguishes the master grid from the master detail page. */
     masterDetail:     false,
-    jogTouched:       false,
     browseOrigin:     VIEW_CHAIN as number,
     fileBrowserState: null as FileBrowserState | null,
     drumActive:       false,

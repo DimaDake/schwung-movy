@@ -851,6 +851,36 @@ _log('\napp-loop: hold-knob → assign LFO target');
     Date.now = realNow;
 }
 
+_log('\napp-loop: jog touch shows the CLICK JOG hint only after a hold');
+{
+    const { jogHintVisible, jogHintTouch } = await import('../dist/esm/app/jog-hint.js');
+    resetApp();
+    appState.currentView = VIEW_CHAIN;
+    jogHintTouch(false);
+
+    const realNow = Date.now; let t = 20000; Date.now = () => t;
+    sendMidi([0x90, 9, 127]);              // jog touch on
+    advance(1);
+    eq('no hint on touch', jogHintVisible(), false);
+    t = 20500; advance(1);
+    eq('no hint mid-hold', jogHintVisible(), false);
+    t = 21100; advance(1);                 // > HOLD_MS
+    eq('hint after the hold', jogHintVisible(), true);
+
+    sendMidi([0xB0, 14, 1]);               // jog turn
+    advance(1);
+    eq('turn removes the hint', jogHintVisible(), false);
+
+    // Touch → turn → keep resting: the turn already answered the question.
+    t = 30000; sendMidi([0x90, 9, 127]);
+    sendMidi([0xB0, 14, 1]);
+    t = 31500; advance(1);
+    eq('no hint after a turn, however long the hold', jogHintVisible(), false);
+
+    sendMidi([0x90, 9, 0]);                // release
+    Date.now = realNow;
+}
+
 _log('\napp-loop: root-view Back → Leave modal → Background parks');
 {
     const { soundingCount } = await import('../dist/esm/keyboard/held-notes.js');

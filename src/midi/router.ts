@@ -21,6 +21,7 @@ import { holdTouch, holdRelease, holdTurnCancel, assignActive, assignCycle, assi
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
 import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm } from '../app/leave-modal.js';
+import { jogHintTouch } from '../app/jog-hint.js';
 import { MASTER_CC, volumeTrackDown, volumeTrackUp, volumeTouch, volumeKnobDelta } from '../mixer/track-volume.js';
 import { toggleSolo } from '../mixer/track-mutes.js';
 import { mlog } from '../log.js';
@@ -153,11 +154,12 @@ export function onMidiMessageInternal(data: number[]): void {
         return;
     }
 
-    /* Main encoder (jog) touch: note=9 */
+    /* Main encoder (jog) touch: note=9. Arms the hint only — it appears a
+     * beat later (jogHintTick), so grabbing the jog to scroll shows nothing.
+     * The repaint is needed only when the release takes a visible hint away. */
     if ((status & 0xF0) === 0x90 && d1 === JOG_TOUCH) {
         if (appState.currentView === VIEW_CHAIN || appState.currentView === VIEW_KNOBS) {
-            appState.jogTouched = d2 > 0;
-            appState.dirty = true;
+            if (jogHintTouch(d2 > 0)) appState.dirty = true;
         }
         return;
     }
@@ -288,7 +290,7 @@ export function onMidiMessageInternal(data: number[]): void {
             releaseAllLive();
             appState.activeSlot = track;
             appState.currentView = appState.trackView[track];
-            appState.jogTouched = false;
+            jogHintTouch(false);
             appState.initLedsDone = false; appState.initLedIndex = 0;
             appState.dirty = true;
         } else {
@@ -304,7 +306,7 @@ export function onMidiMessageInternal(data: number[]): void {
 
     /* Back */
     if (d1 === MoveBack && d2 > 0) {
-        appState.jogTouched = false;
+        jogHintTouch(false);
         holdTurnCancel();   // Back cancels an active hold-to-modulate
         if (masterDetailActive()) {
             appState.masterDetail = false;   // master detail → back to the slot grid
@@ -446,6 +448,7 @@ export function onMidiMessageInternal(data: number[]): void {
     if (d1 === MoveMainKnob) {
         const delta = decodeDelta(d2);
         if (delta !== 0) {
+            jogHintTouch(false);   // a turn answers the hint's question — drop it
             if (assignActive()) { assignCycle(delta); appState.dirty = true; return; }
             if (masterDetailActive()) {
                 masterModel()?.changePage(delta > 0 ? 1 : -1);

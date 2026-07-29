@@ -78,6 +78,11 @@ lit**, and a button glows at full brightness while it's actively doing its job.
 You move between Chain → Knobs by **clicking the jog wheel** to drill in, and
 **Back** to step back out (and eventually out of Movy).
 
+Not sure what the jog does on the page you are on? **Rest a finger on it** for
+about a second without turning: a prompt at the bottom tells you what a click
+will do there. Turning it (or letting go) dismisses the prompt, so scrolling
+never puts it in your way.
+
 ---
 
 ## 2. Parameter pages
@@ -607,6 +612,7 @@ behaviour you'd like — or, better, a PR.
 | **Hold a knob (~1 s)** | Assign that parameter as an **LFO target**: jog picks LFO 1/2, jog-click assigns (hold again to remove). Automatable parameters only. |
 | **Jog wheel — turn** | Scroll chain slots (Chain view) or module pages (Knobs view) / browser list. On the LFO page, scroll between LFO 1 and LFO 2. |
 | **Jog wheel — click** | Drill Chain → module pages; on Knobs (or an empty slot) open the module browser; in a browser, load the selection. |
+| **Hold the jog (~1 s)** | Touch without turning: a bottom prompt spells out what a click does on this page. A turn or release clears it. |
 | **Shift + jog click** | Open the module browser to swap the current slot's module. |
 | **Back** | Module pages → Chain; browser → cancel; **at the root (Chain) → open the Leave Movy menu** (Background / Close Movy). |
 | **Back then jog-click** | From the root: background Movy (keeps playing under Move's UI). |

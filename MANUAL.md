@@ -178,26 +178,24 @@ also ships no range information, Movy shows a best-guess control and refines it
 
 **Action knobs.** A module can mark a parameter as a one-shot *action* rather
 than a value — Smack's Capture, Arm and Reroll, for example. Movy draws these as
-a **badge** instead of a knob, because there is no value to set:
+a **circle in a box** instead of a knob, because there is no value to set:
 
 ![Action knob, ready to fire](docs/assets/trigger_armed.png)
 
-The arrow always shows which way to turn next. Turn **clockwise** to fire. The
-badge fills solid and the label reads `FIRED`, and the knob's own LED flashes, so
-you know it happened without watching the screen:
+Turn the knob **clockwise** to fire. The circle blinks and the knob's own LED
+flashes, so you know it happened without watching the screen:
 
 ![Action knob firing](docs/assets/trigger_fired.png)
 
 One turn fires **once**, however far you keep turning — a whole sweep of the knob
-is a single action, not a burst of them. While it is spent the badge goes dashed,
-the arrow flips, and the label reads `<-TURN`. A small bar drains along the top
-showing when it re-arms by itself:
+is a single action, not a burst of them. While it is spent the box goes dashed and
+a small bar drains along the top, showing when it re-arms by itself:
 
 ![Action knob cooling down](docs/assets/trigger_cooling.png)
 
 So there are two ways to fire again: turn **counter-clockwise** to re-arm
-immediately, or just stop and let the bar run out. Either way the badge tells you
-where you stand — an action knob never sits on a value you did not choose.
+immediately, or just stop and let the bar run out. The name under the icon
+highlights while you are touching the knob, exactly like every other control.
 
 Wide-range controls can also opt into slow single-step turns plus fast
 acceleration through the module's `knob_acceleration` metadata, so a 1–9999 seed
@@ -637,7 +635,7 @@ behaviour you'd like — or, better, a PR.
 | Control | Action |
 | --- | --- |
 | **Knobs 1–8** | Edit the current page's parameters. Touch (no turn) shows the exact value. |
-| **Turn an action knob clockwise** | Fire a one-shot action (Capture, Reroll, …) once per turn, however far you keep turning. Badge fills, label reads `FIRED`, knob LED flashes. |
+| **Turn an action knob clockwise** | Fire a one-shot action (Capture, Reroll, …) once per turn, however far you keep turning. The circle blinks and the knob LED flashes. |
 | **Turn an action knob counter-clockwise** | Re-arm it immediately instead of waiting for the drain bar to run out. |
 | **Hold a knob (~1 s)** | Assign that parameter as an **LFO target**: jog picks LFO 1/2, jog-click assigns (hold again to remove). Automatable parameters only. |
 | **Jog wheel — turn** | Scroll chain slots (Chain view) or module pages (Knobs view) / browser list. On the LFO page, scroll between LFO 1 and LFO 2. |

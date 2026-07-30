@@ -36,6 +36,7 @@ export interface TriggerState {
      * times per cooldown instead of once per visible change. */
     paintedPhase: string;
     paintedCool:  number;
+    paintedBlink: boolean;
 }
 
 export interface ModelState {

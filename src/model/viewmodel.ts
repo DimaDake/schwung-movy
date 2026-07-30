@@ -95,7 +95,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             assigned:        lane >= 0,
             modulated:       isModulated(p),
             ...(p.behavior === 'trigger'
-                ? (() => { const t = triggerVisual(s, p.key); return { trigger: t.phase, triggerCool: t.coolSteps }; })()
+                ? (() => { const t = triggerVisual(s, p.key); return { trigger: t.phase, triggerCool: t.coolSteps, triggerBlink: t.blinkOn }; })()
                 : {}),
         };
     }
@@ -142,7 +142,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
              * exists to remove. Report the action's state instead. */
             if (p.behavior === 'trigger') {
                 const phase = triggerVisual(s, p.key).phase;
-                tv = phase === 'fired' ? 'FIRED' : phase === 'cooling' ? 'TURN BACK' : 'READY';
+                tv = phase === 'fired' ? 'FIRED' : phase === 'cooling' ? 'BUSY' : 'READY';
             }
             toast = { fullName: p.label, value: tv, browseHint: p.type === 'file' };
         }

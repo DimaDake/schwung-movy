@@ -16,30 +16,15 @@ function drawWaveMark(x: number, y: number, on: number): void {
 }
 
 /* A trigger's value is always "idle", which reads as a setting you failed to
- * change. Show the action name instead, and use the label to confirm the fire and
- * to name the way out of the cooling state. Both strings must fit CELL_W (32px):
- * FIRED = 23px, <-TURN = 28px. "TURN <-" is 33px and would bleed into the
- * neighbouring cells, which drawLabelCell does not clip. */
-function triggerLabel(pvm: ParamVM): string {
-    if (pvm.trigger === 'fired')   return 'FIRED';
-    if (pvm.trigger === 'cooling') return '<-TURN';
-    return pvm.shortName;
-}
-
+ * change — so a trigger shows its NAME rather than its value, and otherwise
+ * behaves exactly like any other knob's label: highlighted while touched. The
+ * fired confirmation lives in the blinking icon, not in the label. */
 export function drawLabelCell(col: number, lblY: number, pvm: ParamVM): void {
     const knobCenterX = col * CELL_W + Math.floor(CELL_W / 2);
-    const text = pvm.trigger ? triggerLabel(pvm)
-        : pvm.touched ? pvm.displayValue : pvm.shortName;
+    const text = (pvm.trigger || !pvm.touched) ? pvm.shortName : pvm.displayValue;
     const tw   = fontWidth(text);
     const tx   = knobCenterX - Math.floor(tw / 2);
-    /* A fired trigger inverts its label too, so the confirmation reads as one
-     * block with the filled badge above it. */
-    if (pvm.trigger === 'fired') {
-        fill_rect(col * CELL_W, lblY, CELL_W, LBL_H, 1);
-        fontPrint(tx, lblY + 1, text, 0);
-        return;
-    }
-    if (pvm.touched && !pvm.trigger) {
+    if (pvm.touched) {
         fill_rect(col * CELL_W, lblY, CELL_W, LBL_H, 1);
         fontPrint(tx, lblY + 1, text, 0);
     } else {

@@ -52,7 +52,8 @@ const PRESETS = [
     'signal_voice', 'forge_voice', 'forge_filter', 'forge_mod', 'forge_send', 'forge_mix',
     'leave_modal',
     'track_volume_unity', 'track_volume_min', 'track_volume_max',
-    'trigger_armed', 'trigger_fired', 'trigger_cooling', 'trigger_cooling_low',
+    'trigger_armed', 'trigger_fired', 'trigger_blink_off', 'trigger_touched',
+    'trigger_cooling', 'trigger_cooling_low',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -72,6 +73,7 @@ const BASE = {
     'clip-default': 'test8', 'clip-fraction': 'test8', 'clip-overlay': 'test8',
     'clip-drum': 'test8',
     trigger_armed: 'triggers', trigger_fired: 'triggers',
+    trigger_blink_off: 'triggers', trigger_touched: 'triggers',
     trigger_cooling: 'triggers', trigger_cooling_low: 'triggers',
     env_dual: 'env_dual', env_touched: 'env_dual', env_ad: 'env_ad', env_asr: 'env_asr', lfo_mod: 'lfo_mod',
     filter_lp: 'filter_demo', filter_lp_reso: 'filter_demo', filter_hp: 'filter_demo',
@@ -235,6 +237,8 @@ function applyView(preset) {
          * debounce visible, so it needs more than one sample pinned. */
         case 'trigger_armed':       settle(); forceRender(); break;
         case 'trigger_fired':       fireTrigger(0); break;
+        case 'trigger_blink_off':   fireTrigger(60); break;   // second half of the blink
+        case 'trigger_touched':     settle(); model.handleKnobTouch(0); forceRender(); break;
         case 'trigger_cooling':     fireTrigger(250); break;
         case 'trigger_cooling_low': fireTrigger(620); break;
         case 'env_dual':    forceRender(); break;

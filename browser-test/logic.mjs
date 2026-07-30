@@ -888,6 +888,45 @@ _log('\nTest: the badge phase and drain reach the ParamVM');
   globalThis.shadow_set_param = originalSet;
 }
 
+/* The fired confirmation is the icon blinking, not a whole-cell flash, so the
+ * phase alone is not enough — the renderer needs which half of the cycle it is in. */
+_log('\nTest: the fired icon blinks on a fixed half-period');
+{
+  const { applyKnobDelta } = await import('../dist/esm/model/store.js');
+  const { triggerVisual } = await import('../dist/esm/model/trigger.js');
+  const { TRIGGER_FLASH_MS, TRIGGER_BLINK_MS } = await import('../dist/esm/model/constants.js');
+  const TRIG = {
+    key: 'capture', label: 'Capture', shortLabel: null, type: 'enum',
+    min: 0, max: 1, step: 1, options: ['idle', 'trigger'],
+    renderStyle: 'arc', automatable: false, behavior: 'trigger',
+  };
+  const originalNow = Date.now, originalSet = globalThis.shadow_set_param;
+  let now = 40000;
+  Date.now = () => now;
+  globalThis.shadow_set_param = () => true;
+  const s = {
+    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    knobParams: [TRIG], knobValues: [0], enumFmt: [true], fileValues: [null],
+    slotMapCache: null, paramGestures: {}, triggerStates: {}, dirty: false,
+  };
+  const firedAt = now;
+  applyKnobDelta(s, 0, 1);
+
+  const at = (ms) => { now = firedAt + ms; return triggerVisual(s, 'capture'); };
+  eq('blink starts on', at(0).blinkOn, true);
+  eq('blink is off in the second half-period', at(TRIGGER_BLINK_MS + 5).blinkOn, false);
+  eq('blink is on again in the third', at(TRIGGER_BLINK_MS * 2 + 5).blinkOn, true);
+
+  const cycles = [];
+  for (let t = 0; t < TRIGGER_FLASH_MS; t += 5) cycles.push(at(t).blinkOn);
+  const alternations = cycles.filter((v, i) => i > 0 && v !== cycles[i - 1]).length;
+  eq('the flash window contains several alternations', alternations >= 3, true);
+  eq('blink is irrelevant once cooling', at(TRIGGER_FLASH_MS + 10).blinkOn, false);
+
+  Date.now = originalNow;
+  globalThis.shadow_set_param = originalSet;
+}
+
 /* Writes are IPC, and a trigger's displayed value never changes, so the only
  * writes worth making are the ones that change what the DSP sees. */
 _log('\nTest: a trigger writes only when the action actually changes');

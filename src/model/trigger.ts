@@ -14,7 +14,7 @@
  */
 import type { KnobParam } from '../types/param.js';
 import type { ModelState, TriggerState } from './state.js';
-import { TRIGGER_FLASH_MS, TRIGGER_REARM_MS } from './constants.js';
+import { TRIGGER_FLASH_MS, TRIGGER_REARM_MS, TRIGGER_BLINK_MS } from './constants.js';
 import { enumSetValue } from './enum-value.js';
 import { mlog } from '../log.js';
 
@@ -25,9 +25,10 @@ export const COOL_STEPS = 8;
 export interface TriggerVisual {
     phase:     'armed' | 'fired' | 'cooling';
     coolSteps: number;   // drain remaining, 0..COOL_STEPS
+    blinkOn:   boolean;  // fired only: which half of the blink cycle
 }
 
-const ARMED: TriggerVisual = { phase: 'armed', coolSteps: 0 };
+const ARMED: TriggerVisual = { phase: 'armed', coolSteps: 0, blinkOn: false };
 
 /* A trigger's idle/trigger option indexes. Named options win; an explicit
  * behavior:"trigger" on some other 2+ option enum falls back to 0/1. */
@@ -43,7 +44,7 @@ export function triggerIndices(p: KnobParam): { idle: number; trigger: number } 
 function stateFor(s: ModelState, key: string): TriggerState {
     return s.triggerStates[key] ??= {
         latched: false, autoRearm: true, lastTurnMs: 0, firedAtMs: 0,
-        paintedPhase: 'armed', paintedCool: 0,
+        paintedPhase: 'armed', paintedCool: 0, paintedBlink: false,
     };
 }
 
@@ -56,14 +57,16 @@ function latchReleased(t: TriggerState, now: number): boolean {
 export function triggerVisual(s: ModelState, key: string, now = Date.now()): TriggerVisual {
     const t = s.triggerStates?.[key];
     if (!t) return ARMED;
-    if (t.firedAtMs > 0 && now - t.firedAtMs < TRIGGER_FLASH_MS) {
-        return { phase: 'fired', coolSteps: COOL_STEPS };
+    const sinceFire = now - t.firedAtMs;
+    if (t.firedAtMs > 0 && sinceFire < TRIGGER_FLASH_MS) {
+        const blinkOn = Math.floor(sinceFire / TRIGGER_BLINK_MS) % 2 === 0;
+        return { phase: 'fired', coolSteps: COOL_STEPS, blinkOn };
     }
     if (!t.latched || latchReleased(t, now)) return ARMED;
-    if (!t.autoRearm) return { phase: 'cooling', coolSteps: 0 };
+    if (!t.autoRearm) return { phase: 'cooling', coolSteps: 0, blinkOn: false };
     const remaining = TRIGGER_REARM_MS - (now - t.lastTurnMs);
     const steps = Math.ceil(remaining / TRIGGER_REARM_MS * COOL_STEPS);
-    return { phase: 'cooling', coolSteps: Math.max(0, Math.min(COOL_STEPS, steps)) };
+    return { phase: 'cooling', coolSteps: Math.max(0, Math.min(COOL_STEPS, steps)), blinkOn: false };
 }
 
 /* Advance the badge animation: true only when a badge's APPEARANCE changed since
@@ -75,9 +78,11 @@ export function triggerAnimationTick(s: ModelState, now = Date.now()): boolean {
     for (const key of Object.keys(s.triggerStates)) {
         const t = s.triggerStates[key];
         const v = triggerVisual(s, key, now);
-        if (v.phase !== t.paintedPhase || v.coolSteps !== t.paintedCool) {
+        if (v.phase !== t.paintedPhase || v.coolSteps !== t.paintedCool
+            || v.blinkOn !== t.paintedBlink) {
             t.paintedPhase = v.phase;
             t.paintedCool  = v.coolSteps;
+            t.paintedBlink = v.blinkOn;
             changed = true;
         }
     }

@@ -16,12 +16,11 @@ far. Earlier work is summarised in the timeline below for context.
 ### Added
 
 - **Action knobs** — a parameter a module marks as a one-shot action is drawn as
-  a **badge** rather than a knob, with an arrow showing which way to turn next.
-  Firing fills the badge, prints `FIRED`, and flashes that knob's LED; while
-  spent the badge goes dashed, the arrow flips to `<-TURN`, and a bar drains
-  along the top showing when it re-arms on its own. Previously these rendered as
-  an ordinary enum cell reading `IDLE` forever, with no sign that anything had
-  happened.
+  a **circle in a box** rather than a knob. Firing blinks the circle and flashes
+  that knob's LED; while spent the box goes dashed and a bar drains along the top
+  showing when it re-arms on its own. The name under the icon highlights on touch
+  like every other control. Previously these rendered as an ordinary enum cell
+  reading `IDLE` forever, with no sign that anything had happened.
 - **Module interaction metadata** — generic parameter pages recognise
   `idle`/`trigger` enums as one-shot actions (clockwise fires once,
   counter-clockwise returns to idle and re-arms) and respect

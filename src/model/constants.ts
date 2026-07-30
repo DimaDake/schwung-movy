@@ -11,6 +11,9 @@ export const HOLD_MS                = 1000;
  * The badge renders REARM as a drain, so this value is user-visible — changing
  * it invalidates the trigger screenshot baselines. */
 export const TRIGGER_FLASH_MS       = 200;
+/* Blink half-period while fired: the icon alternates on/off so the confirmation
+ * reads as a blink rather than a single flash. 200/50 = four alternations. */
+export const TRIGGER_BLINK_MS       = 50;
 export const TRIGGER_REARM_MS       = 700;
 export const KNOBS_PER_PAGE         = 8;
 export const KNOBS_PER_ROW          = 4;

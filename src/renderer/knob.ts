@@ -122,29 +122,7 @@ function drawPresetValue(cellX: number, ky: number, pvm: ParamVM): void {
     }
 }
 
-/* Clockwise circular arrow, ~10px across, centred in the cell. Mirrored for the
- * counter-clockwise (cooling) variant. Drawn rather than a glyph: at this size a
- * font arrow is unreadable, and the direction has to be unmistakable — it is the
- * instruction for what to do next. */
-function drawTurnArrow(kx: number, ky: number, ccw: boolean, on: number): void {
-    const cx = kx + 8, cy = ky + 8, r = 4;
-    /* Open ring: a gap at the top leaves room for the arrowhead. */
-    for (let a = 40; a <= 320; a += 12) {
-        const rad = a * Math.PI / 180;
-        const sx = Math.round(cx + r * Math.sin(rad));
-        const sy = Math.round(cy - r * Math.cos(rad));
-        fill_rect(ccw ? 2 * cx - sx : sx, sy, 1, 1, on);
-    }
-    /* Arrowhead at the ring's leading end (top-right, or top-left mirrored). */
-    const hx = ccw ? cx - 3 : cx + 3;
-    const dir = ccw ? -1 : 1;
-    fill_rect(hx, cy - r, 1, 1, on);
-    fill_rect(hx - dir, cy - r - 1, 1, 1, on);
-    fill_rect(hx - dir, cy - r + 1, 1, 1, on);
-}
-
-/* Dashed 16×16 frame — the cooling badge, so it reads as "not ready" at a
- * glance without needing the arrow to be legible. */
+/* Dashed 16×16 frame — the cooling badge, so it reads as "not ready" at a glance. */
 function drawDashedFrame(kx: number, ky: number): void {
     for (let i = 0; i < KW; i += 2) {
         fill_rect(kx + i, ky, 1, 1, 1);
@@ -161,27 +139,48 @@ function drawSolidFrame(kx: number, ky: number): void {
     fill_rect(kx + KW - 1, ky, 1, KW, 1);
 }
 
+/* 8×8 circle, centred exactly in the 16×16 cell — 4px margin on every side.
+ * Built from explicit row spans rather than a midpoint rasteriser: on an
+ * even-sized box a rasterised circle lands a pixel off centre, and at this size
+ * that asymmetry is obvious. Outline normally; solid for the fired moment. */
+const CIRCLE_ROWS: [number, number][] = [
+    [2, 5], [1, 6], [0, 7], [0, 7], [0, 7], [0, 7], [1, 6], [2, 5],
+];
+
+function drawCircle(kx: number, ky: number, solid: boolean): void {
+    const ox = kx + 4, oy = ky + 4;
+    for (let r = 0; r < 8; r++) {
+        const [a, b] = CIRCLE_ROWS[r];
+        if (solid || r === 0 || r === 7) {
+            fill_rect(ox + a, oy + r, b - a + 1, 1, 1);   // full span
+        } else {
+            fill_rect(ox + a, oy + r, 1, 1, 1);           // left edge
+            fill_rect(ox + b, oy + r, 1, 1, 1);           // right edge
+        }
+    }
+}
+
 /* A one-shot action, deliberately not shaped like a knob: an arc/bar/enum cell
  * would all read as a value you could set, which is the wrong mental model.
- *   armed   — solid frame + CW arrow ("turn this way to fire")
- *   fired   — filled cell, arrow knocked out (a negative of armed)
- *   cooling — dashed frame + CCW arrow, plus a drain along the top edge showing
- *             how long until it re-arms on its own
+ *   armed   — solid frame, circle inside
+ *   fired   — the CIRCLE blinks on/off; the frame and cell stay put, so the
+ *             confirmation is local to the icon rather than a whole-cell flash
+ *   cooling — dashed frame plus a drain bar showing when it re-arms by itself
  */
 function drawTriggerBadge(kx: number, ky: number, pvm: ParamVM): void {
-    const phase = pvm.trigger;
-    if (phase === 'fired') {
-        fill_rect(kx, ky, KW, KW, 1);
-        drawTurnArrow(kx, ky, false, 0);
+    if (pvm.trigger === 'fired') {
+        drawSolidFrame(kx, ky);
+        /* Blink: the circle goes solid for a moment, then back to its outline.
+         * Only the circle changes — the frame and the cell stay put, so the
+         * confirmation is local to the icon. */
+        drawCircle(kx, ky, pvm.triggerBlink === true);
         return;
     }
-    if (phase === 'cooling') {
+    if (pvm.trigger === 'cooling') {
         drawDashedFrame(kx, ky);
-        drawTurnArrow(kx, ky, true, 1);
+        drawCircle(kx, ky, false);
         /* Drain: a bar just inside the top edge, shrinking as the re-arm window
-         * elapses. Drawn inside rather than on the frame — on the frame it just
-         * reads as a slightly solider border, not an indicator. 0 steps = a latch
-         * seeded from the DSP's value, with no timer running to show. */
+         * elapses. 0 steps = a latch seeded from the DSP's value, no timer to show. */
         const steps = pvm.triggerCool ?? 0;
         if (steps > 0) {
             const inner = KW - 4;
@@ -190,7 +189,7 @@ function drawTriggerBadge(kx: number, ky: number, pvm: ParamVM): void {
         return;
     }
     drawSolidFrame(kx, ky);
-    drawTurnArrow(kx, ky, false, 1);
+    drawCircle(kx, ky, false);
 }
 
 export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {

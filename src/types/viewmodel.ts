@@ -18,6 +18,7 @@ export interface ParamVM {
      * is what makes the gesture-end debounce visible instead of mysterious. */
     trigger?:        'armed' | 'fired' | 'cooling';
     triggerCool?:    number;
+    triggerBlink?:   boolean;   // fired: which half of the icon blink cycle
 }
 
 /* Injected automation snapshot (built in app/tick from seqState + the lane

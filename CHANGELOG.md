@@ -81,6 +81,15 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **A track could load silent and stay silent.** A clip selection persists even
+  when it names an empty slot (launching an empty Session cell selects it), and
+  Play starts a track only if its *selected* clip exists — so a set could restore
+  with a track holding perfectly good clips that never sounded, and pressing Play
+  again just repeated the result. On load, a selection pointing at an empty slot
+  now falls back to that track's lowest real clip. A track with no clips at all
+  keeps its selection, since there is nothing to fall back to and it is the right
+  slot for the next recording. Live Session behaviour is unchanged — selecting an
+  empty cell still stops the track.
 - **A module could re-enable automation on a parameter the host cannot reach.**
   Global-bank parameters aren't addressable as chain `target:params`, so they
   can't be automated; module-supplied `automatable` metadata was overriding that

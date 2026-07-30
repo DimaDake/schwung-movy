@@ -168,6 +168,20 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
             _ => {}
         }
     }
+    // A saved active_clip may name a slot that holds no clip — launching an
+    // empty Session cell selects it, and that selection persists. Restoring it
+    // verbatim strands the track: play() starts a track only if its selected
+    // clip exists, so a track with real clips stays silent and pressing Play
+    // again just repeats the same result. Fall back to its lowest real clip.
+    // A track with no clips at all keeps its selection (nothing to fall back
+    // to, and it is the right slot for the next recording).
+    for t in &mut engine.tracks {
+        if !t.clips[t.active_clip].exists() {
+            if let Some(first) = t.clips.iter().position(|c| c.exists()) {
+                t.active_clip = first;
+            }
+        }
+    }
     true
 }
 
@@ -414,5 +428,34 @@ mod tests {
         e3.link_enabled = true; // pre-set to prove load() clears it
         assert!(load(&mut e3, "movy1\nbpm 12000\n"));
         assert!(!e3.link_enabled, "legacy save → link off");
+    }
+
+    #[test]
+    fn selected_empty_slot_falls_back_to_a_real_clip_on_load() {
+        // A saved active_clip can point at a slot that holds no clip (launch an
+        // empty Session cell, then save). Restoring that verbatim strands the
+        // track: play() only starts a track whose selected clip exists, so a
+        // track with perfectly good clips stays silent and pressing Play again
+        // repeats the same result forever.
+        let mut e = Engine::new(44100, 12000);
+        assert!(load(
+            &mut e,
+            "movy1\ntk 0 2 0\ncl 0 0 16 0 0:24:60:100\ntk 1 3 0\ncl 1 1 16 0 0:24:62:100\n"
+        ));
+        assert_eq!(e.tracks[0].active_clip, 0, "empty slot 2 → lowest real clip");
+        assert_eq!(e.tracks[1].active_clip, 1, "empty slot 3 → lowest real clip");
+
+        e.play();
+        assert_eq!(e.tracks[0].playing_slot, Some(0), "track 0 is not stranded");
+        assert_eq!(e.tracks[1].playing_slot, Some(1), "track 1 is not stranded");
+    }
+
+    #[test]
+    fn selected_empty_slot_kept_when_the_track_has_no_clips_at_all() {
+        // A genuinely empty track keeps its selection — there is nothing to fall
+        // back to, and it is the right slot for the next recording.
+        let mut e = Engine::new(44100, 12000);
+        assert!(load(&mut e, "movy1\ntk 2 4 0\n"));
+        assert_eq!(e.tracks[2].active_clip, 4);
     }
 }

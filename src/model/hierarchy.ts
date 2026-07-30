@@ -9,6 +9,8 @@ import { buildLevelPages, knobKeys } from './hierarchy-walk.js';
 interface HierParam {
     key?: string; label?: string; level?: string;
     type?: string; min?: number; max?: number; step?: number; options?: string[];
+    automatable?: boolean; behavior?: string;
+    knob_acceleration?: string; knobAcceleration?: string;
 }
 interface HierLevel {
     name?: string;
@@ -21,6 +23,16 @@ interface HierLevel {
 
 function inferRenderStyle(type: KnobParam['type'], min: number, max: number): KnobParam['renderStyle'] {
     return (type === 'int' && min === 0 && max === 1) ? 'hbar' : 'arc';
+}
+
+function inferBehavior(explicit: unknown, options: string[] | null): KnobParam['behavior'] | undefined {
+    if (explicit === 'trigger') return 'trigger';
+    const normalized = (options ?? []).map(v => String(v).trim().toLowerCase());
+    return normalized.includes('idle') && normalized.includes('trigger') ? 'trigger' : undefined;
+}
+
+function inferAcceleration(value: unknown): KnobParam['knobAcceleration'] | undefined {
+    return value === 'wide' ? 'wide' : undefined;
 }
 
 function parseFilter(filter: unknown): string[] {
@@ -75,7 +87,8 @@ export function loadHierarchy(s: ModelState): void {
     mlog('loadHierarchy: slot=' + s.activeSlot + ' module=' + s.activeModuleName);
     s.moduleId = shadow_get_param(s.activeSlot, moduleReadKey(s.componentKey)) || '';
 
-    s.moduleConfig = loadModuleConfig(s.moduleId);
+    s.moduleConfig = loadModuleConfig(s.moduleId, s.componentKey);
+    s.paramGestures = {};
 
     /* Params movy wants to own from load (e.g. ui_auto_select_pad=off so the DSP
      * never drifts its focused pad away from movy's manual selection). */
@@ -207,6 +220,7 @@ export function loadHierarchy(s: ModelState): void {
                     let step = cp.step != null ? cp.step : (hier.step != null ? hier.step : (slot.step != null ? slot.step : (type === 'float' ? 0.01 : 1)));
                     if (type === 'enum') { min = 0; max = options ? options.length - 1 : 127; step = 1; }
                     const renderStyle = slot.render ?? inferRenderStyle(type as KnobParam['type'], min, max);
+                    const behavior = inferBehavior(slot.behavior ?? hier.behavior ?? cp.behavior, options);
                     const param: KnobParam = {
                         key:        slot.key,
                         label:      slot.full || cp.name || hier.label || slot.key,
@@ -219,8 +233,13 @@ export function loadHierarchy(s: ModelState): void {
                         // Global-bank params aren't reachable as chain target:params
                         // (device spike), so they can't be automated. A config may
                         // override per slot (host can't resolve some per-voice keys).
-                        automatable: slot.automatable ??
-                            ((type === 'float' || type === 'int') && max > min && !bank.global),
+                        automatable: behavior === 'trigger' ? false : (slot.automatable ?? cp.automatable ?? hier.automatable ??
+                            ((type === 'float' || type === 'int') && max > min && !bank.global)),
+                        behavior,
+                        knobAcceleration: inferAcceleration(
+                            slot.knobAcceleration ?? cp.knob_acceleration ?? cp.knobAcceleration ??
+                            hier.knob_acceleration ?? hier.knobAcceleration,
+                        ),
                     };
                     /* File slots carry browse metadata. The module config (mrdrums.json)
                      * is authoritative; chain_params (root/filter/start_path) is the
@@ -362,6 +381,7 @@ export function loadHierarchy(s: ModelState): void {
             // only). Flag it so the first value read can infer the real int type
             // and widen the range (see meta-infer.ts / store.ts).
             const metaGuessed = !hasRange && (type === 'float' || type === 'int');
+            const behavior = inferBehavior(cp.behavior ?? def.behavior, options);
             s.knobParams.push({
                 key,
                 label:      cp.name || def.label || key,
@@ -372,7 +392,13 @@ export function loadHierarchy(s: ModelState): void {
                 // Config-less fallback: the `g_` global-naming convention is the
                 // only signal available here. Modules with a movy config use
                 // bank.global instead (see the config path above).
-                automatable: (type === 'float' || type === 'int') && max > min && !key.startsWith('g_'),
+                automatable: behavior === 'trigger' ? false : (cp.automatable ?? def.automatable ??
+                    ((type === 'float' || type === 'int') && max > min && !key.startsWith('g_'))),
+                behavior,
+                knobAcceleration: inferAcceleration(
+                    cp.knob_acceleration ?? cp.knobAcceleration ??
+                    def.knob_acceleration ?? def.knobAcceleration,
+                ),
                 ...(metaGuessed ? { metaGuessed: true } : {}),
             });
         }

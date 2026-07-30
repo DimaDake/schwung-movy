@@ -672,6 +672,99 @@ _log('\nTest: knob delta normalizes sweep across param ranges');
   eq('int 20..20000 moves fast (range/100)', iMove(20, 20000) >= 90, true);
 }
 
+_log('\nTest: module interaction metadata drives triggers, acceleration, and automation');
+{
+  const { applyKnobDelta } = await import('../dist/esm/model/store.js');
+  const trigger = {
+    key: 'capture', label: 'Capture', shortLabel: null, type: 'enum',
+    min: 0, max: 1, step: 1, options: ['idle', 'trigger'],
+    renderStyle: 'arc', automatable: false, behavior: 'trigger',
+  };
+  const seed = {
+    key: 'seed', label: 'Seed', shortLabel: null, type: 'int',
+    min: 1, max: 9999, step: 1, options: null,
+    renderStyle: 'arc', automatable: true, knobAcceleration: 'wide',
+  };
+  const state = (p, value) => ({
+    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    knobParams: [p], knobValues: [value], enumFmt: [undefined],
+    fileValues: [null], slotMapCache: null, paramGestures: {}, dirty: false,
+  });
+
+  const originalSet = globalThis.shadow_set_param;
+  const writes = [];
+  globalThis.shadow_set_param = (_slot, key, value) => { writes.push([key, value]); return true; };
+  env.setParams({ 'synth:capture': '0' });
+  const ts = state(trigger, 0);
+  applyKnobDelta(ts, 0, 1);
+  applyKnobDelta(ts, 0, 1);
+  eq('trigger: clockwise fires once per gesture', JSON.stringify(writes),
+    JSON.stringify([['synth:capture', '1']]));
+  eq('trigger: display returns to idle immediately', ts.knobValues[0], 0);
+  applyKnobDelta(ts, 0, -1);
+  applyKnobDelta(ts, 0, 1);
+  eq('trigger: counter-clockwise sends idle and re-arms', JSON.stringify(writes.slice(1)),
+    JSON.stringify([['synth:capture', '0'], ['synth:capture', '1']]));
+  globalThis.shadow_set_param = originalSet;
+
+  const originalNow = Date.now;
+  let now = 1000;
+  Date.now = () => now;
+  const ss = state(seed, 1000);
+  applyKnobDelta(ss, 0, 1);                // deliberate turn: +1
+  now += 100; applyKnobDelta(ss, 0, 1);    // continuing turn: +10
+  now += 20;  applyKnobDelta(ss, 0, 1);    // fast sweep: +250
+  eq('wide acceleration: slow + medium + fast reaches 1261', ss.knobValues[0], 1261);
+  now += 10;  applyKnobDelta(ss, 0, -1);   // reversal is fine again
+  eq('wide acceleration: direction reversal moves one step', ss.knobValues[0], 1260);
+  Date.now = originalNow;
+
+  const metadataPreset = {
+    'synth:name': 'Metadata',
+    'synth:ui_hierarchy': JSON.stringify({ levels: { root: {
+      knobs: ['capture', 'seed', 'locked'],
+      params: [
+        { key: 'capture', name: 'Capture', type: 'enum', options: ['idle', 'trigger'] },
+        { key: 'seed', name: 'Seed', type: 'int', min: 1, max: 9999, knob_acceleration: 'wide' },
+        { key: 'locked', name: 'Locked', type: 'float', min: 0, max: 1 },
+      ],
+    } } }),
+    'synth:chain_params': JSON.stringify([
+      { key: 'capture', name: 'Capture', type: 'enum', options: ['idle', 'trigger'], automatable: true },
+      { key: 'seed', name: 'Seed', type: 'int', min: 1, max: 9999 },
+      { key: 'locked', name: 'Locked', type: 'float', min: 0, max: 1, automatable: false },
+    ]),
+    'synth:capture': '0', 'synth:seed': '4303', 'synth:locked': '0.5',
+  };
+  const params = bootModel(metadataPreset).dumpLayout().params.filter(Boolean);
+  const byKey = Object.fromEntries(params.map(p => [p.key, p]));
+  eq('metadata: idle/trigger enum inferred as a trigger', byKey.capture.behavior, 'trigger');
+  eq('metadata: triggers are never automatable', byKey.capture.automatable, false);
+  eq('metadata: knob_acceleration survives hierarchy parsing', byKey.seed.knobAcceleration, 'wide');
+  eq('metadata: explicit numeric automatable=false is respected', byKey.locked.automatable, false);
+}
+
+_log('\nTest: self-describing layouts resolve from every chain component category');
+{
+  const { loadModuleConfig } = await import('../dist/esm/modules/loader.js');
+  const originalRead = globalThis.host_read_file;
+  const reads = [];
+  globalThis.host_read_file = (path) => { reads.push(path); return null; };
+  loadModuleConfig('voice-layout', 'synth');
+  loadModuleConfig('fx-layout', 'fx1');
+  loadModuleConfig('master-layout', 'master_fx:fx1');
+  loadModuleConfig('midi-layout', 'midi_fx1');
+  globalThis.host_read_file = originalRead;
+  eq('layout path: sound generator', reads[0],
+    '/data/UserData/schwung/modules/sound_generators/voice-layout/movy_config.json');
+  eq('layout path: audio FX', reads[1],
+    '/data/UserData/schwung/modules/audio_fx/fx-layout/movy_config.json');
+  eq('layout path: master FX', reads[2],
+    '/data/UserData/schwung/modules/audio_fx/master-layout/movy_config.json');
+  eq('layout path: MIDI FX', reads[3],
+    '/data/UserData/schwung/modules/midi_fx/midi-layout/movy_config.json');
+}
+
 /* ── viewmodel: file display value and browseHint ─────────────────────────── */
 
 _log('\nTest: file knob displayValue = basename of current path');

@@ -98,6 +98,10 @@ lays it out automatically. Add a template only when a module deserves a nicer
 arrangement, or when it's a **drum** module (drums can't be configured from the
 device otherwise).
 
+A module may ship `movy_config.json` beside its `module.json`; Movy checks the
+active sound-generator, audio-FX, MIDI-FX, or Master-FX module directory before
+falling back to its bundled templates.
+
 1. Create `src/modules/<module-id>.json` following the `ModuleConfig` shape in
    `src/types/param.ts` (see `src/modules/plaits.json` / `wurl.json` for
    examples).
@@ -105,8 +109,15 @@ device otherwise).
 3. `npm run build` bundles the JSON in automatically.
 4. Add a screenshot test for the new layout and run `npm test`.
 
-> Longer term, the goal is for layouts to be read from the module itself rather
-> than bundled here — so keep templates declarative and minimal.
+> Prefer a module-owned layout when you also maintain that module; keep bundled
+> compatibility templates declarative and minimal.
+
+For modules whose releases Movy explicitly supports, copy the released
+`module.json` into `browser-test/fixtures/module-contracts/` using the
+`<component-type>--<module-id>.json` name. Contract fixtures replace an older
+entry from the full device dump and are replayed by `npm test`; this keeps page,
+parameter, trigger, acceleration, and automation metadata from silently
+drifting between releases.
 
 ---
 

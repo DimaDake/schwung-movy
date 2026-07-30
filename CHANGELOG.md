@@ -15,6 +15,16 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Module interaction metadata** — generic parameter pages recognise
+  `idle`/`trigger` enums as one-shot actions (clockwise fires once,
+  counter-clockwise returns to idle and re-arms) and respect
+  `knob_acceleration: "wide"` for controls such as Smack's 1–9999 Seed.
+  Explicit module `automatable` flags now win over Movy's numeric heuristic.
+- **Release contract fixtures** for Smack, Smack In, Belt, Belt In and Mono
+  Voice. These replace older fleet-dump entries during regression tests, so a
+  green suite covers the currently published parameter pages rather than stale
+  module versions.
+
 - **Track volume gesture** — hold a track button and turn the volume encoder to
   set that track's Schwung slot volume (0–400%, unity marked). With Shift held
   Movy draws its own slider; without it Move keeps the screen and shows its
@@ -42,6 +52,9 @@ far. Earlier work is summarised in the timeline below for context.
   for solo, the resulting set (`T1 SOLO`, `SOLO T1 T3`, `SOLO OFF`).
 
 ### Fixed
+
+- Module-owned `movy_config.json` layouts are now found beside audio FX and
+  MIDI FX as well as sound generators, including audio FX loaded as Master FX.
 
 - **Mute button ignored anything but a quick tap.** Pressing Mute mutes the
   current track, but the release ran through the momentary hold rule, so any

@@ -11,6 +11,12 @@ export interface KnobSlot {
      * can still automate as an index) or off (a per-voice key the host can't
      * resolve, so no misleading automation dot). */
     automatable?:   boolean;
+    /* One-shot actions stay visually idle: clockwise fires once per gesture,
+     * counter-clockwise sends idle and re-arms the gesture. */
+    behavior?:      'trigger';
+    /* Wide integer spaces (sample indexes, random seeds, etc.) retain
+     * single-step precision on a slow turn and accelerate on a fast sweep. */
+    knobAcceleration?: 'wide';
     options?:       string[];
     min?:           number;
     max?:           number;
@@ -97,6 +103,8 @@ export interface KnobParam {
     lfo?:           'shape' | 'phase' | 'mode' | 'retrig' | 'rate' | 'depth' | 'deform';
     filter?:        'cutoff' | 'resonance' | 'mode' | 'slope';
     automatable:    boolean;
+    behavior?:      'trigger';
+    knobAcceleration?: 'wide';
     /* Set when type/range were guessed (no chain_params or hierarchy metadata).
      * The first successful value read infers the real type/range, then clears
      * this. See model/meta-infer.ts. */

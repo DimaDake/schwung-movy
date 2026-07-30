@@ -42,6 +42,9 @@ function incrementInfo(p) {
         const steps = p.options ? p.options.length : (p.max - p.min + 1);
         return { kind: 'enum', detentsPerStep: ENUM_DELTA_DIV, steps };
     }
+    if (p.knobAcceleration === 'wide') {
+        return { kind: p.type, acceleration: 'wide', fineStep: p.step };
+    }
     const perDetent = p.step * (p.renderStyle === 'arc' ? ARC_DELTA_SCALE : 1);
     return {
         kind: p.type,

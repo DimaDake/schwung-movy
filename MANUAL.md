@@ -176,6 +176,12 @@ modules like *Branchage*, *Smack-in* and *Belt-in* to life). When a parameter
 also ships no range information, Movy shows a best-guess control and refines it
 (for example to a whole-number range) the first time it reads the real value.
 
+Enums whose options are `idle` and `trigger` behave as actions rather than
+switches: turn clockwise to fire once, turn counter-clockwise to return to idle
+and re-arm. A short pause also starts a fresh gesture. Wide-range controls can
+opt into slow single-step turns plus fast acceleration through the module's
+`knob_acceleration` metadata.
+
 **Curated layouts.** A few modules get a hand-tuned page layout so their controls
 are grouped and named clearly, and so useful parameters the automatic layout
 would hide become reachable. These include *Plaits*, *Wurl*, *Chordism*, *SFZ*,

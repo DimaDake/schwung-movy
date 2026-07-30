@@ -18,7 +18,7 @@ far. Earlier work is summarised in the timeline below for context.
 - **Scales & pad layouts** — two new Set-page knobs shape the melodic grid.
   **MODE** picks Chromatic or **In Key** (the grid folds to the scale, so every
   pad is in key); **LAYOUT** picks the geometry, and its options follow MODE:
-  *Fourths* or *Piano* when chromatic, *Fourths* (three scale degrees per row,
+  *4ths* or *Piano* when chromatic, *4ths* (three scale degrees per row,
   Push-style) or *Inline* (one scale octave per row) when in key. The piano
   layout puts the white keys on rows 1 and 3 with the black keys offset right
   above them; its three gap pads per black row are dark and silent, and in-scale
@@ -69,7 +69,7 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
-- **The chromatic Fourths layout's root moved to the 4th pad of the bottom row**,
+- **The chromatic 4ths layout's root moved to the 4th pad of the bottom row**,
   leaving three pads below the tonic instead of pinning it to the bottom-left
   corner.
 - **The Set parameters page was rearranged** to TEMPO / SWING / LINK over

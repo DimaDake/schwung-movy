@@ -381,7 +381,7 @@ function applyView(preset) {
         case 'main-layout-overlay': {
             resetSeqState(); resetMainPage();
             keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
-            keyboardState.mode = 1; keyboardState.layout = 0; keyboardState.scale = 0;  // In Key: Fourths/Inline
+            keyboardState.mode = 1; keyboardState.layout = 0; keyboardState.scale = 0;  // In Key: 4ths/Inline
             seqState.bpmX100 = 12000; seqState.swingPct = 50;
             mainPageState.overlayKnob = 7; mainPageState.overlaySel = 1;
             lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);

@@ -24,8 +24,8 @@ export const MODE_NAMES = ['Chromatic', 'In Key'];
 export const LAYOUT_FOURTHS = 0;
 export const LAYOUT_PIANO = 1;
 export const LAYOUT_INLINE = 1;
-const LAYOUTS_CHROMATIC = ['Fourths', 'Piano'];
-const LAYOUTS_IN_KEY = ['Fourths', 'Inline'];
+const LAYOUTS_CHROMATIC = ['4ths', 'Piano'];
+const LAYOUTS_IN_KEY = ['4ths', 'Inline'];
 
 export function layoutNames(mode: number): string[] {
     return mode === MODE_IN_KEY ? LAYOUTS_IN_KEY : LAYOUTS_CHROMATIC;

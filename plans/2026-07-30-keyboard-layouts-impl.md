@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Give movy's melodic pad grid four selectable layouts (chromatic fourths / piano / in-key fourths / in-key inline), move the chromatic root to the 4th pad of the bottom row, and make the octave per-track and persistent.
+**Goal:** Give movy's melodic pad grid four selectable layouts (chromatic 4ths / piano / in-key 4ths / in-key inline), move the chromatic root to the 4th pad of the bottom row, and make the octave per-track and persistent.
 
 **Architecture:** A new pure module `src/keyboard/layouts.ts` owns all grid geometry and produces an `Int16Array(32)` pad→pitch map. `keyboardState`'s conflated `rootNote` splits into a global `rootPc` plus a per-track `octave[4]`. Every consumer (note-on, LED colour, hold overlay, Keys view) reads the cached map instead of recomputing geometry, which is also a net perf win over today's per-tick div/mod loop.
 
@@ -62,10 +62,10 @@ Append this section to `browser-test/logic.mjs`, immediately after the closing `
     const row = (map, r) => Array.from(map.slice(r * 8, r * 8 + 8));
 
     eq('mode names', JSON.stringify(MODE_NAMES), '["Chromatic","In Key"]');
-    eq('chromatic layouts', JSON.stringify(layoutNames(MODE_CHROMATIC)), '["Fourths","Piano"]');
-    eq('in-key layouts', JSON.stringify(layoutNames(MODE_IN_KEY)), '["Fourths","Inline"]');
+    eq('chromatic layouts', JSON.stringify(layoutNames(MODE_CHROMATIC)), '["4ths","Piano"]');
+    eq('in-key layouts', JSON.stringify(layoutNames(MODE_IN_KEY)), '["4ths","Inline"]');
 
-    // ── Chromatic / Fourths: +1 per column, +5 per row, root on column 4.
+    // ── Chromatic / 4ths: +1 per column, +5 per row, root on column 4.
     // base 60 (C4) → bottom-left is 57 (A3), so the root sits at index 3.
     {
         const m = buildPadMap(MODE_CHROMATIC, LAYOUT_FOURTHS, 0, 60);
@@ -86,11 +86,11 @@ Append this section to `browser-test/logic.mjs`, immediately after the closing `
         eq('piano root bottom-left', m[0], 60);
         eq('isPianoBlack row0', isPianoBlack(MODE_CHROMATIC, LAYOUT_PIANO, 0), false);
         eq('isPianoBlack row1', isPianoBlack(MODE_CHROMATIC, LAYOUT_PIANO, 9), true);
-        eq('isPianoBlack off in fourths', isPianoBlack(MODE_CHROMATIC, LAYOUT_FOURTHS, 9), false);
+        eq('isPianoBlack off in 4ths', isPianoBlack(MODE_CHROMATIC, LAYOUT_FOURTHS, 9), false);
         eq('isPianoBlack off in key mode', isPianoBlack(MODE_IN_KEY, LAYOUT_PIANO, 9), false);
     }
 
-    // ── In Key / Fourths: +3 scale degrees per row, root bottom-left.
+    // ── In Key / 4ths: +3 scale degrees per row, root bottom-left.
     // C major from 60: C D E F G A B C / F G A B C D E F / B C D E ... 
     {
         const m = buildPadMap(MODE_IN_KEY, LAYOUT_FOURTHS, 0, 60);
@@ -182,8 +182,8 @@ export const MODE_NAMES = ['Chromatic', 'In Key'];
 export const LAYOUT_FOURTHS = 0;
 export const LAYOUT_PIANO = 1;
 export const LAYOUT_INLINE = 1;
-const LAYOUTS_CHROMATIC = ['Fourths', 'Piano'];
-const LAYOUTS_IN_KEY = ['Fourths', 'Inline'];
+const LAYOUTS_CHROMATIC = ['4ths', 'Piano'];
+const LAYOUTS_IN_KEY = ['4ths', 'Inline'];
 
 export function layoutNames(mode: number): string[] {
     return mode === MODE_IN_KEY ? LAYOUTS_IN_KEY : LAYOUTS_CHROMATIC;
@@ -251,7 +251,7 @@ Temporarily change `CHROM_ROOT_COL` from `3` to `0`, rebuild, run `node browser-
 git add src/keyboard/layouts.ts browser-test/logic.mjs
 git commit -m "Add pad-layout geometry module
 
-Chromatic fourths (root on column 4), chromatic piano, in-key fourths
+Chromatic 4ths (root on column 4), chromatic piano, in-key 4ths
 (+3 degrees per row) and in-key inline (+1 scale octave per row), as a
 pure pad-index -> pitch map."
 ```
@@ -501,7 +501,7 @@ Append to `browser-test/logic.mjs`, after the `keyboard state` section:
     keyboardState.octave = [4, 4, 4, 4];
     resetPadMapCache();
 
-    // Chromatic fourths, base 48: bottom-left is 45 (A2), root C3 at index 3.
+    // Chromatic 4ths, base 48: bottom-left is 45 (A2), root C3 at index 3.
     eq('pitch bottom-left', padPitch(0, PAD_MIN, PAD_MIN), 45);
     eq('pitch at root column', padPitch(0, PAD_MIN + 3, PAD_MIN), 48);
     eq('root pad is track colour', padColor(PAD_MIN + 3, PAD_MIN, 0, false), TRACK0);
@@ -860,7 +860,7 @@ Replace the body of the existing `main params page` section in `browser-test/log
     mainPageRelease(6);
     eq('mode committed', keyboardState.mode, 1);
 
-    // Knob 7 LAYOUT: the option list follows mode (In Key → Fourths/Inline).
+    // Knob 7 LAYOUT: the option list follows mode (In Key → 4ths/Inline).
     mainPageTouch(7, true);
     mainPageKnob(7, 8);
     mainPageRelease(7);
@@ -902,7 +902,7 @@ Then replace the `main params page ViewModel` section body with:
     eq('root cell shows C', vm.rows[1][0].displayValue, 'C');
     eq('key cell shows Major', vm.rows[1][1].displayValue, 'Major');
     eq('mode cell shows Chromatic', vm.rows[1][2].displayValue, 'Chromatic');
-    eq('layout cell shows Fourths', vm.rows[1][3].displayValue, 'Fourths');
+    eq('layout cell shows 4ths', vm.rows[1][3].displayValue, '4ths');
     eq('toast names tempo', vm.toast.fullName, 'Tempo');
     eq('tempo toast value', vm.toast.value, '120 bpm');
 
@@ -910,7 +910,7 @@ Then replace the `main params page ViewModel` section body with:
     keyboardState.mode = 1;
     vm = buildMainPageVM();
     eq('in-key mode cell', vm.rows[1][2].displayValue, 'In Key');
-    eq('in-key layout options', JSON.stringify(vm.rows[1][3].options), '["Fourths","Inline"]');
+    eq('in-key layout options', JSON.stringify(vm.rows[1][3].options), '["4ths","Inline"]');
     keyboardState.mode = 0;
 
     // Overlays: one generic mechanism for KEY, MODE and LAYOUT.
@@ -927,7 +927,7 @@ Then replace the `main params page ViewModel` section body with:
 
     mainPageState.overlayKnob = 7; mainPageState.overlaySel = 1; mainPageState.touchedKnob = 7;
     vm = buildMainPageVM();
-    eq('layout overlay options', JSON.stringify(vm.overlay?.options), '["Fourths","Piano"]');
+    eq('layout overlay options', JSON.stringify(vm.overlay?.options), '["4ths","Piano"]');
     resetMainPage();
 }
 ```
@@ -1144,7 +1144,7 @@ In `browser-test/screenshot.mjs`, every `main-*` scene sets `keyboardState.rootN
         case 'main-layout-overlay': {
             resetSeqState(); resetMainPage();
             keyboardState.rootPc = 0; keyboardState.scale = 0;
-            keyboardState.mode = 1; keyboardState.layout = 0;   // In Key: Fourths/Inline
+            keyboardState.mode = 1; keyboardState.layout = 0;   // In Key: 4ths/Inline
             keyboardState.octave = [4, 4, 4, 4];
             seqState.bpmX100 = 12000; seqState.swingPct = 50;
             mainPageState.overlayKnob = 7; mainPageState.overlaySel = 1;
@@ -1314,7 +1314,7 @@ export function applyUiState(blob: string): void {
     } catch { /* corrupt file → keep defaults */ }
 }
 
-/* Defaults match init(): C tonic, Major, Chromatic/Fourths, C3 on every track. */
+/* Defaults match init(): C tonic, Major, Chromatic/4ths, C3 on every track. */
 function resetUiState(): void {
     keyboardState.rootPc = 0;
     keyboardState.scale = 0;
@@ -1379,7 +1379,7 @@ node scripts/make-doc-assets.mjs main-page main-mode-overlay main-layout-overlay
 Read the surrounding sections first and match their voice. Add a **Pad layouts** subsection to the keyboard chapter covering:
 
 - `MODE` (`Chromatic` / `In Key`) and `LAYOUT` on the SET PARAMETERS page (`Shift` + Step 5/7/9), with the `docs/assets/main-mode-overlay.png` and `main-layout-overlay.png` screenshots.
-- The four combinations and their grids: Chromatic Fourths (fourth per row, **root on the 4th pad of the bottom row**), Chromatic Piano (whites on rows 1 and 3, blacks above shifted right, three dead pads per black row, two octaves), In Key Fourths (three scale degrees per row, root bottom-left), In Key Inline (one scale octave per row, root bottom-left).
+- The four combinations and their grids: Chromatic 4ths (fourth per row, **root on the 4th pad of the bottom row**), Chromatic Piano (whites on rows 1 and 3, blacks above shifted right, three dead pads per black row, two octaves), In Key 4ths (three scale degrees per row, root bottom-left), In Key Inline (one scale octave per row, root bottom-left).
 - That In Key Inline steps by the scale's degree count, so pentatonic rows overlap.
 - That the piano layout still honours `KEY` for colouring — pick the `Chromatic` scale to light the whole keyboard.
 - That `+` / `−` now shift **only the active track's** octave, and each track remembers its own octave per set, across a device restart.
@@ -1388,7 +1388,7 @@ Add rows to the Controls reference (section 8) for `MODE`, `LAYOUT`, and the rev
 
 - [ ] **Step 4: Update `README.md`**
 
-One bullet in *Features*, in the existing voice, e.g. "**Scales & pad layouts** — chromatic fourths or piano, or fold the grid in-key (fourths or inline); per-track octave." with the `docs/assets/main-page.png` screenshot.
+One bullet in *Features*, in the existing voice, e.g. "**Scales & pad layouts** — chromatic 4ths or piano, or fold the grid in-key (4ths or inline); per-track octave." with the `docs/assets/main-page.png` screenshot.
 
 - [ ] **Step 5: Update `CHANGELOG.md`**
 

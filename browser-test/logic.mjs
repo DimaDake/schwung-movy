@@ -4190,10 +4190,10 @@ _log('\nautomation label sync:');
     const row = (map, r) => Array.from(map.slice(r * 8, r * 8 + 8));
 
     eq('mode names', JSON.stringify(MODE_NAMES), '["Chromatic","In Key"]');
-    eq('chromatic layouts', JSON.stringify(layoutNames(MODE_CHROMATIC)), '["Fourths","Piano"]');
-    eq('in-key layouts', JSON.stringify(layoutNames(MODE_IN_KEY)), '["Fourths","Inline"]');
+    eq('chromatic layouts', JSON.stringify(layoutNames(MODE_CHROMATIC)), '["4ths","Piano"]');
+    eq('in-key layouts', JSON.stringify(layoutNames(MODE_IN_KEY)), '["4ths","Inline"]');
 
-    // ── Chromatic / Fourths: +1 per column, +5 per row, root on column 4.
+    // ── Chromatic / 4ths: +1 per column, +5 per row, root on column 4.
     // base 60 (C4) → bottom-left is 57 (A3), so the root sits at index 3.
     {
         const m = buildPadMap(MODE_CHROMATIC, LAYOUT_FOURTHS, 0, 60);
@@ -4214,11 +4214,11 @@ _log('\nautomation label sync:');
         eq('piano root bottom-left', m[0], 60);
         eq('isPianoBlack row0', isPianoBlack(MODE_CHROMATIC, LAYOUT_PIANO, 0), false);
         eq('isPianoBlack row1', isPianoBlack(MODE_CHROMATIC, LAYOUT_PIANO, 9), true);
-        eq('isPianoBlack off in fourths', isPianoBlack(MODE_CHROMATIC, LAYOUT_FOURTHS, 9), false);
+        eq('isPianoBlack off in 4ths', isPianoBlack(MODE_CHROMATIC, LAYOUT_FOURTHS, 9), false);
         eq('isPianoBlack off in key mode', isPianoBlack(MODE_IN_KEY, LAYOUT_PIANO, 9), false);
     }
 
-    // ── In Key / Fourths: +3 scale degrees per row, root bottom-left.
+    // ── In Key / 4ths: +3 scale degrees per row, root bottom-left.
     {
         const m = buildPadMap(MODE_IN_KEY, LAYOUT_FOURTHS, 0, 60);
         eq('key 4ths bottom row', JSON.stringify(row(m, 0)), '[60,62,64,65,67,69,71,72]');
@@ -4340,7 +4340,7 @@ _log('\nautomation label sync:');
     keyboardState.octave = [4, 4, 4, 4];
     resetPadMapCache();
 
-    // Chromatic fourths, base 48: bottom-left is 45 (A2), root C3 at index 3.
+    // Chromatic 4ths, base 48: bottom-left is 45 (A2), root C3 at index 3.
     eq('pitch bottom-left', padPitch(0, PAD_MIN, PAD_MIN), 45);
     eq('pitch at root column', padPitch(0, PAD_MIN + 3, PAD_MIN), 48);
     eq('root pad is track colour', padColor(PAD_MIN + 3, PAD_MIN, 0, false), TRACK0);
@@ -4456,7 +4456,7 @@ _log('\nautomation label sync:');
     mainPageRelease(6);
     eq('mode committed', keyboardState.mode, 1);
 
-    // Knob 7 LAYOUT: the option list follows mode (In Key → Fourths/Inline).
+    // Knob 7 LAYOUT: the option list follows mode (In Key → 4ths/Inline).
     mainPageTouch(7, true);
     mainPageKnob(7, 8);
     mainPageRelease(7);
@@ -4715,7 +4715,7 @@ _log('\nautomation label sync:');
     eq('root cell shows C', vm.rows[1][0].displayValue, 'C');
     eq('key cell shows Major', vm.rows[1][1].displayValue, 'Major');
     eq('mode cell shows Chromatic', vm.rows[1][2].displayValue, 'Chromatic');
-    eq('layout cell shows Fourths', vm.rows[1][3].displayValue, 'Fourths');
+    eq('layout cell shows 4ths', vm.rows[1][3].displayValue, '4ths');
     eq('toast names tempo', vm.toast.fullName, 'Tempo');
     eq('tempo toast value', vm.toast.value, '120 bpm');
 
@@ -4723,7 +4723,7 @@ _log('\nautomation label sync:');
     keyboardState.mode = 1;
     vm = buildMainPageVM();
     eq('in-key mode cell', vm.rows[1][2].displayValue, 'In Key');
-    eq('in-key layout options', JSON.stringify(vm.rows[1][3].options), '["Fourths","Inline"]');
+    eq('in-key layout options', JSON.stringify(vm.rows[1][3].options), '["4ths","Inline"]');
     keyboardState.mode = 0;
 
     // Overlays: one generic mechanism for KEY, MODE and LAYOUT.
@@ -4740,7 +4740,7 @@ _log('\nautomation label sync:');
 
     mainPageState.overlayKnob = 7; mainPageState.overlaySel = 1; mainPageState.touchedKnob = 7;
     vm = buildMainPageVM();
-    eq('layout overlay options', JSON.stringify(vm.overlay?.options), '["Fourths","Piano"]');
+    eq('layout overlay options', JSON.stringify(vm.overlay?.options), '["4ths","Piano"]');
     resetMainPage();
 }
 

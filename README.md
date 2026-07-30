@@ -90,7 +90,7 @@ Movy stands on the shoulders of several projects:
   ![Live automation](docs/assets/auto_live.png)
 
 - **Scales & pad layouts** — the 32 pads become a chromatic fretboard or piano,
-  or fold **in key** (fourths or inline) so a wrong note is impossible. Each
+  or fold **in key** (4ths or inline) so a wrong note is impossible. Each
   track remembers its own octave, saved with the set.
 
   ![Set parameters](docs/assets/main-default.png)

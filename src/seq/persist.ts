@@ -79,7 +79,7 @@ export function applyUiState(blob: string): void {
     } catch { /* corrupt file → keep defaults */ }
 }
 
-/* Defaults match init(): C tonic, Major, Chromatic/Fourths, C3 on every track. */
+/* Defaults match init(): C tonic, Major, Chromatic/4ths, C3 on every track. */
 function resetUiState(): void {
     keyboardState.rootPc = 0;
     keyboardState.scale = 0;

@@ -2,7 +2,7 @@
 
 Date: 2026-07-30
 
-Adds selectable pad **layouts** (chromatic fourths / piano / in-key fourths /
+Adds selectable pad **layouts** (chromatic 4ths / piano / in-key 4ths /
 in-key inline), moves the chromatic root to the 4th pad of the bottom row, and
 makes the **octave per-track** and persistent across device restarts.
 
@@ -68,9 +68,9 @@ layout mid-hold cannot strand a note.
 
 | mode | layout | mapping (`row` 0 = bottom, `col` 0 = left) | root sits at |
 |---|---|---|---|
-| Chromatic | Fourths | `base + row*5 + col - 3` | bottom row, **col 4** |
+| Chromatic | 4ths | `base + row*5 + col - 3` | bottom row, **col 4** |
 | Chromatic | Piano | see below | bottom-left |
-| In Key | Fourths | degree `row*3 + col` | bottom-left |
+| In Key | 4ths | degree `row*3 + col` | bottom-left |
 | In Key | Inline | degree `row*len + col` | bottom-left |
 
 `len` = the selected scale's degree count. Degree → pitch:
@@ -143,15 +143,15 @@ Rearranged so the four musical params share the bottom row:
   120     50%     OFF
 
   ROOT    KEY     MODE    LAYOUT
-   C     Major   In Key   Fourths
+   C     Major   In Key   4ths
 ```
 
 Knob mapping: 0 TEMPO, 1 SWING, 2 LINK, 3 unused, 4 ROOT, 5 KEY, 6 MODE,
 7 LAYOUT.
 
 - `MODE` — long enum: `Chromatic`, `In Key`.
-- `LAYOUT` — long enum whose options follow mode: `Fourths | Piano` when
-  Chromatic, `Fourths | Inline` when In Key. There is no Inline for Chromatic.
+- `LAYOUT` — long enum whose options follow mode: `4ths | Piano` when
+  Chromatic, `4ths | Inline` when In Key. There is no Inline for Chromatic.
   Both lists are length 2, so the layout index carries over cleanly on a mode
   flip and needs no clamping beyond `min(idx, len-1)`.
 - `ROOT` keeps its current feel: cycles the pitch class, wrapping B↔C.
@@ -180,7 +180,7 @@ file still lands somewhere sane.
 - `oct` present → use `oct` and `rootPc` directly (clamped).
 - `oct` absent (legacy blob) → `rootPc = root % 12`, all four octaves =
   `floor(root / 12)`.
-- `mode` / `layout` absent → 0 / 0 (Chromatic + Fourths).
+- `mode` / `layout` absent → 0 / 0 (Chromatic + 4ths).
 
 State is already stored per-set on disk (`set-context.ts`), so per-track octave
 survives a device restart for free.

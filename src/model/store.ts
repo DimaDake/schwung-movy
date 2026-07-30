@@ -6,62 +6,13 @@ import { concreteKey } from './pad-scope.js';
 import { enumRawToIndex, enumUsesIndex, enumSetValue } from './enum-value.js';
 import { pageSlotMap } from './page-layout.js';
 import { inferGuessedMeta } from './meta-infer.js';
+import { applyTriggerDelta, seedTriggerState } from './trigger.js';
 import { mlog } from '../log.js';
 
-const TRIGGER_GESTURE_RESET_MS = 700;
-
 function gestureFor(s: ModelState, key: string) {
-    return s.paramGestures[key] ??= { lastTurnMs: 0, direction: 0, triggerLatched: false };
+    return s.paramGestures[key] ??= { lastTurnMs: 0, direction: 0 };
 }
 
-function triggerIndices(p: KnobParam): { idle: number; trigger: number } | null {
-    if (p.behavior !== 'trigger' || !p.options || p.options.length < 2) return null;
-    const normalized = p.options.map(v => String(v).trim().toLowerCase());
-    const idle = normalized.indexOf('idle');
-    const trigger = normalized.indexOf('trigger');
-    if (idle >= 0 && trigger >= 0) return { idle, trigger };
-    return { idle: 0, trigger: 1 };
-}
-
-/* Directional one-shot controls are actions, not stateful enums. Keep the
- * displayed value at idle, fire once for a clockwise gesture, and require a
- * counter-clockwise turn or short pause before another fire. */
-function applyTriggerDelta(
-    s: ModelState, gi: number, p: KnobParam, ioKey: string, delta: number,
-): boolean {
-    const indices = triggerIndices(p);
-    if (!indices || delta === 0) return false;
-
-    const now = Date.now();
-    const gesture = gestureFor(s, p.key);
-    if (!gesture.lastTurnMs || now - gesture.lastTurnMs > TRIGGER_GESTURE_RESET_MS) {
-        gesture.triggerLatched = false;
-    }
-    gesture.lastTurnMs = now;
-    gesture.direction = delta > 0 ? 1 : -1;
-    s.knobValues[gi] = indices.idle;
-
-    let sendIndex: number | null = null;
-    if (delta < 0) {
-        gesture.triggerLatched = false;
-        sendIndex = indices.idle;
-    } else if (!gesture.triggerLatched) {
-        gesture.triggerLatched = true;
-        sendIndex = indices.trigger;
-    }
-
-    if (sendIndex !== null) {
-        const value = enumSetValue(p.options, sendIndex, enumFmtFor(s, gi, p, ioKey));
-        mlog('trigger slot=' + s.activeSlot + ' key=' + s.componentKey + ':' + ioKey + ' val=' + value);
-        shadow_set_param(s.activeSlot, s.componentKey + ':' + ioKey, value);
-    }
-    s.dirty = true;
-    return true;
-}
-
-/* Signed number of `p.step`s a wide-range knob should travel for this event:
- * ±1 for a deliberate turn, up to ±250 on a fast sweep. Callers multiply by
- * p.step. Only called for knobAcceleration === 'wide'. */
 function wideStepCount(s: ModelState, p: KnobParam, delta: number): number {
     if (delta === 0) return 0;
     const now = Date.now();
@@ -183,7 +134,7 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
     if (p.type === 'file') return;
 
     const ioKey = paramIoKey(s, p);
-    if (applyTriggerDelta(s, gi, p, ioKey, delta)) return;
+    if (applyTriggerDelta(s, gi, p, ioKey, delta, () => enumFmtFor(s, gi, p, ioKey))) return;
     if (s.knobValues[gi] === null || s.knobValues[gi] === undefined) {
         const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey);
         if (raw === null && !p.key.startsWith('test_')) return;
@@ -286,6 +237,11 @@ export function refreshOneParam(s: ModelState, tickCount: number): void {
     if (p.type === 'enum') {
         s.enumFmt[i] = enumUsesIndex(p.options, raw);
         const idx = enumRawToIndex(p.options, raw);
+        /* A trigger's badge is driven by the gesture state machine, never by the
+         * DSP's value — so seed the latch from the first read, then leave the
+         * value pinned. Letting it follow the read-back would also light the knob
+         * LED permanently (normalizedValue 1.0) on a module that self-latches. */
+        if (p.behavior === 'trigger') { seedTriggerState(s, p, idx); return; }
         if (idx !== s.knobValues[i]) { s.knobValues[i] = idx; s.dirty = true; }
         return;
     }

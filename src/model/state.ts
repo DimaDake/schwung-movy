@@ -18,9 +18,19 @@ export interface FileOverlay {
 }
 
 export interface ParamGestureState {
-    lastTurnMs:    number;
-    direction:     number;
-    triggerLatched: boolean;
+    lastTurnMs: number;
+    direction:  number;
+}
+
+/* One-shot trigger knob. `latched` means it has already fired and a CW turn is a
+ * no-op; it releases on a CCW turn or once the debounce runs out. `autoRearm` is
+ * false for a latch we inferred from the DSP's value at load rather than one we
+ * caused — there is no timer to run out, so it waits for the CCW turn. */
+export interface TriggerState {
+    latched:    boolean;
+    autoRearm:  boolean;
+    lastTurnMs: number;
+    firedAtMs:  number;
 }
 
 export interface ModelState {
@@ -65,9 +75,14 @@ export interface ModelState {
      * so refreshOneParam skips them — the knob shows the UI-owned base instead of
      * following the LFO-modulated value (same idea as noRefreshKeys). */
     modulatedKeys:       Set<string>;
-    /* Per-param turn history powers one-shot trigger latching and opt-in
-     * wide-range acceleration. Cleared whenever a new module hierarchy loads. */
+    /* Per-param turn history for opt-in wide-range knob acceleration. Reset only
+     * when the loaded module changes — a reload of the SAME module must not
+     * disturb a gesture in progress. */
     paramGestures:       Record<string, ParamGestureState>;
+    /* Badge state for one-shot trigger knobs, keyed by param key. Same
+     * same-module-reload rule as paramGestures: clearing it mid-gesture would
+     * re-arm a latch and fire the action twice. */
+    triggerStates:       Record<string, TriggerState>;
 }
 
 export function createModelState(activeSlot: number, componentKey: string): ModelState {
@@ -102,5 +117,6 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         noRefreshKeys:       new Set(),
         modulatedKeys:       new Set(),
         paramGestures:       {},
+        triggerStates:       {},
     };
 }

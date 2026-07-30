@@ -85,10 +85,18 @@ export function loadHierarchy(s: ModelState): void {
     s.hierarchyKey = s.activeModuleName;
 
     mlog('loadHierarchy: slot=' + s.activeSlot + ' module=' + s.activeModuleName);
+    const prevModuleId = s.moduleId;
     s.moduleId = shadow_get_param(s.activeSlot, moduleReadKey(s.componentKey)) || '';
 
     s.moduleConfig = loadModuleConfig(s.moduleId, s.componentKey);
-    s.paramGestures = {};
+    /* Only a genuine module change invalidates per-param gesture state. A reload
+     * of the same module happens ~1 s after load as pollModuleName settles —
+     * clearing then would re-arm a latched trigger mid-gesture and fire a
+     * destructive action twice. */
+    if (s.moduleId !== prevModuleId) {
+        s.paramGestures = {};
+        s.triggerStates = {};
+    }
 
     /* Params movy wants to own from load (e.g. ui_auto_select_pad=off so the DSP
      * never drifts its focused pad away from movy's manual selection). */

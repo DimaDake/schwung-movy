@@ -21,6 +21,8 @@ await esbuild.build({
         resolve(root, 'src/modules/loader.ts'),
         resolve(root, 'src/model/viewmodel.ts'),
         resolve(root, 'src/model/store.ts'),
+        resolve(root, 'src/model/trigger.ts'),
+        resolve(root, 'src/model/constants.ts'),
         resolve(root, 'src/model/enum-value.ts'),
         resolve(root, 'src/model/meta-infer.ts'),
         resolve(root, 'src/model/file-validate.ts'),

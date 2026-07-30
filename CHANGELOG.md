@@ -23,10 +23,6 @@ far. Earlier work is summarised in the timeline below for context.
   layout puts the white keys on rows 1 and 3 with the black keys offset right
   above them; its three gap pads per black row are dark and silent, and in-scale
   black keys take a dimmer tint so the keyboard shape reads.
-- **Rotated fourths layouts** — `4th rt`, for Chromatic and In Key alike: the
-  fourths grid turned 90° clockwise, so the interval runs along the row and the
-  semitone (or scale degree) steps downward, with the tonic in the top-left pad.
-  The existing layout is now labelled `4th`.
 - **Per-track octave** — **+ / −** now shifts only the active track's octave.
   Each track keeps its own, saved with the set, so it survives a device restart.
 
@@ -89,6 +85,16 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Move's sequencer left stuck green step LEDs.** Move paints its RGB pads,
+  steps and grid with cable-0 LED *sysex*, and full overtake does not strip that
+  by default — only Move's note and CC LED writes. With the Play link on Movy
+  keeps Move's sequencer running, so its repaints landed on top of Movy's and
+  stayed: the LED layer only sends colours that changed, so a step Move painted
+  was never corrected and its playhead green stuck there. Movy now opts into
+  `shadow_set_overtake_suppress_sysex(1)`, which takes cable-0 sysex away from
+  Move for the duration (schwung `docs/CORUN.md`); the framework clears it on
+  overtake exit. Resending Movy's own colours cannot fix this — a peer that
+  repaints continuously always wins the race.
 - **A track could load silent and stay silent.** A clip selection persists even
   when it names an empty slot (launching an empty Session cell selects it), and
   Play starts a track only if its *selected* clip exists — so a set could restore

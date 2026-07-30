@@ -14,6 +14,18 @@ export function init(): void {
     appState.activeSlot = (typeof shadow_get_ui_slot === 'function') ? shadow_get_ui_slot() : 0;
     mlog('init: activeSlot=' + appState.activeSlot);
 
+    /* Move paints its RGB pads, steps and grid with cable-0 LED sysex, and full
+     * overtake does NOT strip that by default — only its note and CC LED writes.
+     * With the Play link on we keep Move's sequencer running, so its repaints
+     * land on top of ours and stick: our LED layer only sends colours that
+     * changed, so a step Move painted is never corrected. Resending cannot win
+     * against a peer that repaints continuously, so take the sysex away from it
+     * (schwung docs/CORUN.md). The framework clears this on overtake exit. */
+    if (typeof shadow_set_overtake_suppress_sysex === 'function') {
+        shadow_set_overtake_suppress_sysex(1);
+        mlog('init: overtake sysex suppression on');
+    }
+
     appState.trackModels = Array.from({ length: 4 }, (_, slot) =>
         CHAIN_SLOTS.map((s, i) => isLfoSlot(i) ? createLfoModel(slot) : createModel(slot, s.componentKey))
     );

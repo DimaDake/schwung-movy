@@ -14,6 +14,9 @@ declare function shadow_set_param_timeout(slot: number, key: string, value: stri
 declare function shadow_get_ui_slot(): number;
 declare function shadow_send_midi_to_dsp(data: number[]): void;
 declare function host_exit_module(): void;
+/* Strip Move's cable-0 RGB LED sysex during full overtake. Absent on hosts
+ * older than the flag; the framework clears it on overtake exit. */
+declare function shadow_set_overtake_suppress_sysex(flag: number): void;
 /* Background mode (Phase 2). host_suspend_overtake() parks movy under Move's
  * native UI; it is ABSENT on hosts that predate the capability, so always
  * guard with `typeof host_suspend_overtake === 'function'`. overtakeParked is

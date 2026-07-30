@@ -4182,8 +4182,7 @@ _log('\nautomation label sync:');
     _log('\npad layouts:');
     const {
         buildPadMap, degreeToPitch, layoutNames, isPianoLayout,
-        MODE_CHROMATIC, MODE_IN_KEY, LAYOUT_FOURTHS, LAYOUT_FOURTHS_ROT,
-        LAYOUT_PIANO, LAYOUT_INLINE,
+        MODE_CHROMATIC, MODE_IN_KEY, LAYOUT_FOURTHS, LAYOUT_PIANO, LAYOUT_INLINE,
         MODE_NAMES, PAD_COUNT,
     } = await import('../dist/esm/keyboard/layouts.js');
 
@@ -4191,8 +4190,8 @@ _log('\nautomation label sync:');
     const row = (map, r) => Array.from(map.slice(r * 8, r * 8 + 8));
 
     eq('mode names', JSON.stringify(MODE_NAMES), '["Chromatic","In Key"]');
-    eq('chromatic layouts', JSON.stringify(layoutNames(MODE_CHROMATIC)), '["4th","4th rt","Piano"]');
-    eq('in-key layouts', JSON.stringify(layoutNames(MODE_IN_KEY)), '["4th","4th rt","Inline"]');
+    eq('chromatic layouts', JSON.stringify(layoutNames(MODE_CHROMATIC)), '["4th","Piano"]');
+    eq('in-key layouts', JSON.stringify(layoutNames(MODE_IN_KEY)), '["4th","Inline"]');
 
     // ── Chromatic / 4ths: +1 per column, +5 per row, root on column 4.
     // base 60 (C4) → bottom-left is 57 (A3), so the root sits at index 3.
@@ -4259,26 +4258,6 @@ _log('\nautomation label sync:');
         eq('degree 7 wraps an octave', degreeToPitch(60, maj, 7), 72);
         eq('degree 15 wraps two octaves', degreeToPitch(60, maj, 15), 86);
         eq('degree -1 wraps down', degreeToPitch(60, maj, -1), 59);
-    }
-
-    // ── Rotated 4ths: the same grid turned 90° clockwise. The fourth now runs
-    // along the columns and the semitone step runs downward, so the tonic sits
-    // in the TOP-LEFT pad (row 3, index 24).
-    {
-        const m = buildPadMap(MODE_CHROMATIC, LAYOUT_FOURTHS_ROT, 0, 60);
-        eq('chrom rot tonic top-left', m[24], 60);
-        eq('chrom rot top row is fourths', JSON.stringify(row(m, 3)), '[60,65,70,75,80,85,90,95]');
-        eq('chrom rot one row down = +1 semitone', m[16], 61);
-        eq('chrom rot bottom row', JSON.stringify(row(m, 0)), '[63,68,73,78,83,88,93,98]');
-    }
-    {
-        const m = buildPadMap(MODE_IN_KEY, LAYOUT_FOURTHS_ROT, 0, 60);
-        // C major: top row steps 3 degrees per column (C F B E A D G C).
-        eq('key rot tonic top-left', m[24], 60);
-        eq('key rot top row is 3 degrees/col', JSON.stringify(row(m, 3)), '[60,65,71,76,81,86,91,96]');
-        eq('key rot one row down = +1 degree', m[16], 62);
-        eq('key rot never out of scale',
-            row(m, 0).every((p) => [0, 2, 4, 5, 7, 9, 11].includes(((p - 60) % 12 + 12) % 12)), true);
     }
 
     // ── Pitches outside 0..127 become dead pads, never clamped notes.
@@ -4369,10 +4348,10 @@ _log('\nautomation label sync:');
     eq('sounding pad is green', padColor(PAD_MIN + 3, PAD_MIN, 0, true), C_GREEN);
     eq('hold overlay pad is white', padColor(PAD_MIN + 3, PAD_MIN, 0, false, [48]), C_WHITE);
 
-    // Piano (layout index 2) needs three visible levels: a gap pad plays nothing
+    // Piano (layout index 1) needs three visible levels: a gap pad plays nothing
     // and stays dark, an out-of-key pad DOES play so it is lit dimly, and an
     // in-key pad is bright. Which row a pad is in already says white vs black.
-    keyboardState.layout = 2; resetPadMapCache();
+    keyboardState.layout = 1; resetPadMapCache();
     eq('piano root still track colour', padColor(PAD_MIN, PAD_MIN, 0, false), TRACK0);
     eq('piano white D is light grey', padColor(PAD_MIN + 1, PAD_MIN, 0, false), C_LIGHTGREY);
     eq('piano gap col 0 is dead', padColor(PAD_MIN + 8, PAD_MIN, 0, false), C_BLACK);
@@ -4750,7 +4729,7 @@ _log('\nautomation label sync:');
     keyboardState.mode = 1;
     vm = buildMainPageVM();
     eq('in-key mode cell', vm.rows[1][2].displayValue, 'In Key');
-    eq('in-key layout options', JSON.stringify(vm.rows[1][3].options), '["4th","4th rt","Inline"]');
+    eq('in-key layout options', JSON.stringify(vm.rows[1][3].options), '["4th","Inline"]');
     keyboardState.mode = 0;
 
     // Overlays: one generic mechanism for KEY, MODE and LAYOUT.
@@ -4767,7 +4746,7 @@ _log('\nautomation label sync:');
 
     mainPageState.overlayKnob = 7; mainPageState.overlaySel = 1; mainPageState.touchedKnob = 7;
     vm = buildMainPageVM();
-    eq('layout overlay options', JSON.stringify(vm.overlay?.options), '["4th","4th rt","Piano"]');
+    eq('layout overlay options', JSON.stringify(vm.overlay?.options), '["4th","Piano"]');
     resetMainPage();
 }
 
@@ -4817,7 +4796,7 @@ _log('\nautomation label sync:');
     eq('octave clamped high', keyboardState.octave[1], 8);
     eq('scale clamped', keyboardState.scale, 12);
     eq('mode clamped', keyboardState.mode, 1);
-    eq('layout clamped', keyboardState.layout, 2);
+    eq('layout clamped', keyboardState.layout, 1);
 
     // Corrupt input must not throw or mutate.
     keyboardState.rootPc = 5;

@@ -352,10 +352,8 @@ Two knobs on the [Set parameters](#set-parameters--shift--step-5--7--9) page
 | MODE | LAYOUT | Grid |
 | --- | --- | --- |
 | Chromatic | **4th** | +1 semitone per pad to the right, +5 (a fourth) per row up. The root sits on the **4th pad of the bottom row**, leaving three pads below it. |
-| Chromatic | **4th rt** | The same grid turned 90° clockwise: the fourth runs along the row, +1 semitone per pad *downward*. The tonic sits in the **top-left** pad. |
 | Chromatic | **Piano** | Rows 1 and 3 are the white keys (C–C), the row above each holds the black keys, offset right so a black key sits above the white note it leads into. Three pads per black row have no key and stay dark and silent. Two octaves on the grid. |
 | In Key | **4th** | Three scale degrees per row up (Push's *In Key*), root bottom-left — the same fingering transfers between rows. |
-| In Key | **4th rt** | The same grid turned 90° clockwise: three scale degrees per pad along the row, +1 degree *downward*, tonic **top-left**. |
 | In Key | **Inline** | One scale octave per row, root bottom-left: `1 2 3 4 5 6 7 1`, with the next row starting an octave higher. |
 
 Two details worth knowing:

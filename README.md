@@ -121,10 +121,10 @@ See the [manual](MANUAL.md) for how each of these works.
 Movy works with **most Schwung modules with no setup at all** — it reads each
 module's parameter hierarchy and lays it out automatically.
 
-Some modules use a **built-in layout template** for a nicer arrangement. These
-are especially important for **drums**, where there is otherwise no way to switch
-the drum type from the device. Templates currently ship inside Movy; in the
-future, layouts should ideally be read from the module itself.
+Some modules use a **curated layout template** for a nicer arrangement. These
+are especially important for **drums**, where there is otherwise no way to
+switch the drum type from the device. A template can ship inside Movy or as a
+`movy_config.json` beside the module itself.
 
 **Tested drum modules:**
 

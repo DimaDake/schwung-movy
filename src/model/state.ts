@@ -17,6 +17,12 @@ export interface FileOverlay {
     accum:    number;     // fractional delta accumulator
 }
 
+export interface ParamGestureState {
+    lastTurnMs:    number;
+    direction:     number;
+    triggerLatched: boolean;
+}
+
 export interface ModelState {
     activeSlot:          number;
     componentKey:        string;
@@ -59,6 +65,9 @@ export interface ModelState {
      * so refreshOneParam skips them — the knob shows the UI-owned base instead of
      * following the LFO-modulated value (same idea as noRefreshKeys). */
     modulatedKeys:       Set<string>;
+    /* Per-param turn history powers one-shot trigger latching and opt-in
+     * wide-range acceleration. Cleared whenever a new module hierarchy loads. */
+    paramGestures:       Record<string, ParamGestureState>;
 }
 
 export function createModelState(activeSlot: number, componentKey: string): ModelState {
@@ -92,5 +101,6 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         drumCurrentPhysPad:  0,
         noRefreshKeys:       new Set(),
         modulatedKeys:       new Set(),
+        paramGestures:       {},
     };
 }

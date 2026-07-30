@@ -16,6 +16,51 @@ import { fileURLToPath } from 'node:url';
 export const MOVY = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const DUMP_DIR = join(MOVY, 'docs', 'module-dump');
 const EXTRA_DIR = join(MOVY, 'browser-test', 'fixtures', 'dump-extra');
+const CONTRACT_DIR = join(MOVY, 'browser-test', 'fixtures', 'module-contracts');
+
+function upsertModule(modules, entry) {
+    const i = modules.findIndex(m => m.id === entry.id && m.category === entry.category);
+    if (i >= 0) modules[i] = entry;
+    else modules.push(entry);
+}
+
+/* Release-side module.json snapshots keep high-value modules current even when
+ * the last full hardware inventory is older. Schwung derives chain_params from
+ * these hierarchy definitions, so flattening them here mirrors the host's
+ * metadata contract without needing to mutate a user's Set for a fleet dump. */
+function entryFromModuleContract(moduleJson) {
+    const hierarchy = moduleJson.capabilities?.ui_hierarchy ?? { levels: {} };
+    const byKey = new Map();
+    for (const level of Object.values(hierarchy.levels ?? {})) {
+        for (const param of (level.params ?? [])) {
+            if (param && typeof param === 'object' && param.key) byKey.set(param.key, { ...param });
+        }
+        for (const knob of (level.knobs ?? [])) {
+            if (knob && typeof knob === 'object' && knob.key) byKey.set(knob.key, { ...knob });
+        }
+    }
+    const chainParams = [...byKey.values()];
+    const values = {};
+    for (const p of chainParams) {
+        const fallback = p.type === 'enum' ? 0 : (p.min ?? 0);
+        values[p.key] = String(p.default ?? fallback);
+    }
+    const category = moduleJson.component_type === 'sound_generator'
+        ? 'sound_generator' : moduleJson.component_type;
+    const componentKey = category === 'sound_generator' ? 'synth'
+        : category === 'midi_fx' ? 'midi_fx1' : 'fx1';
+    return {
+        id: moduleJson.id, dir: moduleJson.id, category, component_key: componentKey,
+        status: 'ok', load_ms: 0, dsp_size: 0, module_json: moduleJson, movy_config: null,
+        ui_hierarchy: hierarchy, chain_params: chainParams,
+        presets: { list_param: null, count_param: null, name_param: null, count: 0, names: null },
+        params: {
+            ...values,
+            ui_hierarchy: JSON.stringify(hierarchy),
+            chain_params: JSON.stringify(chainParams),
+        },
+    };
+}
 
 /* Device dump + one-off captures. Third-party modules installed after the fleet
  * dump (scripts/capture-module.mjs) are merged here rather than written into
@@ -25,8 +70,16 @@ export function loadDump() {
     if (existsSync(EXTRA_DIR)) {
         for (const f of readdirSync(EXTRA_DIR).sort()) {
             if (f.endsWith('.json')) {
-                dump.modules.push(JSON.parse(readFileSync(join(EXTRA_DIR, f), 'utf8')));
+                const extra = JSON.parse(readFileSync(join(EXTRA_DIR, f), 'utf8'));
+                upsertModule(dump.modules, extra);
             }
+        }
+    }
+    if (existsSync(CONTRACT_DIR)) {
+        for (const f of readdirSync(CONTRACT_DIR).sort()) {
+            if (!f.endsWith('.json')) continue;
+            const moduleJson = JSON.parse(readFileSync(join(CONTRACT_DIR, f), 'utf8'));
+            upsertModule(dump.modules, entryFromModuleContract(moduleJson));
         }
     }
     return dump;

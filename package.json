@@ -13,6 +13,8 @@
   "devDependencies": {
     "esbuild": "^0.21.0",
     "opentype.js": "^2.0.0",
+    "pixelmatch": "^7.2.0",
+    "pngjs": "^7.0.0",
     "typescript": "^5.4.0"
   }
 }

@@ -16,7 +16,7 @@ const FIXTURE_DIR = join(dirname(fileURLToPath(import.meta.url)), 'fixtures');
  * src/movy_config.json); here we serve the fixture snapshot so the loader's
  * self-describing path is exercised. */
 function serveModuleLayout(path) {
-    const m = /\/sound_generators\/([^/]+)\/movy_config\.json$/.exec(path || '');
+    const m = /\/(?:sound_generators|audio_fx|midi_fx)\/([^/]+)\/movy_config\.json$/.exec(path || '');
     if (m && m[1] === 'forge') {
         try { return readFileSync(join(FIXTURE_DIR, 'forge-movy-config.json'), 'utf8'); } catch { return null; }
     }

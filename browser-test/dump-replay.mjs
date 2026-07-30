@@ -73,6 +73,12 @@ function checkInvariants(key, model, snap) {
         if (!p) continue;
         check(`${key}: param ${p.key} has a label`, !!p.label && !!String(p.label).trim());
         if (p.type === 'file') continue;
+        if (p.behavior === 'trigger') {
+            check(`${key}: trigger ${p.key} is not automatable`, !p.automatable);
+            const opts = (p.options ?? []).map(o => String(o).toLowerCase());
+            check(`${key}: trigger ${p.key} exposes idle + trigger`,
+                opts.includes('idle') && opts.includes('trigger'));
+        }
         const isEnum = p.type === 'enum' || (p.options && p.options.length > 0);
         if (isEnum) {
             check(`${key}: enum ${p.key} has options or a range`,

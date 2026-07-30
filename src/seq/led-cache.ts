@@ -87,3 +87,9 @@ export function cachedSetAnimLED(note: number, base: number, animColor: number, 
 /* Forget everything sent — next tick repaints all sequencer LEDs. Use after
  * anything that may have clobbered LED hardware state. */
 export function seqLedsInvalidate(): void { lastNoteLed.clear(); lastButtonLed.clear(); lastAnimLed.clear(); }
+
+/* Forget a note range only, so the next frame re-sends it. Cheaper than a full
+ * invalidate when just one row has to be reclaimed from another writer. */
+export function noteLedsInvalidate(fromNote: number, toNote: number): void {
+    for (let n = fromNote; n <= toNote; n++) lastNoteLed.delete(n);
+}

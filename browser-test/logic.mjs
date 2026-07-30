@@ -1959,6 +1959,48 @@ _log('\nTest: drumPadOn');
     resetSeqState(); seqLedsInvalidate();
 }
 
+/* ── step LEDs are reclaimed from Move while its transport runs ──────────── */
+{
+    _log('\nstep LED re-assert under the Move link:');
+    const { seqLedsTick, resetExtReassert } = await import('../dist/esm/seq/leds.js');
+    const { seqLedsInvalidate } = await import('../dist/esm/seq/led-cache.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+
+    const STEP_BASE = 16;
+    let stepWrites = 0;
+    const origSetLED = globalThis.setLED;
+    const origSetButtonLED = globalThis.setButtonLED;
+    globalThis.setLED = (n) => { if (n >= STEP_BASE && n < STEP_BASE + 16) stepWrites++; };
+    globalThis.setButtonLED = () => {};
+
+    resetSeqState(); seqLedsInvalidate(); resetExtReassert();
+    seqState.lenSteps = 16;
+
+    // Settle: the first frames paint everything, then the cache goes quiet.
+    for (let i = 0; i < 30; i++) seqLedsTick(false);
+    stepWrites = 0;
+    for (let i = 0; i < 60; i++) seqLedsTick(false);
+    eq('not following Move: unchanged steps cost nothing', stepWrites, 0);
+
+    // Move's transport starts: the edge must reclaim the row immediately, since
+    // Move paints these same LEDs and our diff cache would never correct it.
+    seqState.extSync = true;
+    stepWrites = 0;
+    seqLedsTick(false);          // the edge tick invalidates, then repaints all 16
+    eq('ext edge repaints the step row', stepWrites, 16);
+
+    // ...and it keeps re-asserting on a slow cadence while Move keeps running.
+    stepWrites = 0;
+    for (let i = 0; i < 200; i++) seqLedsTick(false);
+    eq('periodic re-assert while following', stepWrites >= 16, true);
+    eq('re-assert stays cheap (not every tick)', stepWrites < 200, true);
+
+    seqState.extSync = false;
+    globalThis.setLED = origSetLED;
+    globalThis.setButtonLED = origSetButtonLED;
+    resetSeqState(); seqLedsInvalidate(); resetExtReassert();
+}
+
 /* ── seq pads: chromatic layout + coloring ───────────────────────────────── */
 {
     _log('\nseq chromatic pads:');
@@ -4181,8 +4223,9 @@ _log('\nautomation label sync:');
 {
     _log('\npad layouts:');
     const {
-        buildPadMap, degreeToPitch, layoutNames, isPianoBlack,
-        MODE_CHROMATIC, MODE_IN_KEY, LAYOUT_FOURTHS, LAYOUT_PIANO, LAYOUT_INLINE,
+        buildPadMap, degreeToPitch, layoutNames, isPianoLayout,
+        MODE_CHROMATIC, MODE_IN_KEY, LAYOUT_FOURTHS, LAYOUT_FOURTHS_ROT,
+        LAYOUT_PIANO, LAYOUT_INLINE,
         MODE_NAMES, PAD_COUNT,
     } = await import('../dist/esm/keyboard/layouts.js');
 
@@ -4190,8 +4233,8 @@ _log('\nautomation label sync:');
     const row = (map, r) => Array.from(map.slice(r * 8, r * 8 + 8));
 
     eq('mode names', JSON.stringify(MODE_NAMES), '["Chromatic","In Key"]');
-    eq('chromatic layouts', JSON.stringify(layoutNames(MODE_CHROMATIC)), '["4ths","Piano"]');
-    eq('in-key layouts', JSON.stringify(layoutNames(MODE_IN_KEY)), '["4ths","Inline"]');
+    eq('chromatic layouts', JSON.stringify(layoutNames(MODE_CHROMATIC)), '["4th","4th rt","Piano"]');
+    eq('in-key layouts', JSON.stringify(layoutNames(MODE_IN_KEY)), '["4th","4th rt","Inline"]');
 
     // ── Chromatic / 4ths: +1 per column, +5 per row, root on column 4.
     // base 60 (C4) → bottom-left is 57 (A3), so the root sits at index 3.
@@ -4212,10 +4255,9 @@ _log('\nautomation label sync:');
         eq('piano upper white row', JSON.stringify(row(m, 2)), '[72,74,76,77,79,81,83,84]');
         eq('piano upper black row', JSON.stringify(row(m, 3)), '[-1,73,75,-1,78,80,82,-1]');
         eq('piano root bottom-left', m[0], 60);
-        eq('isPianoBlack row0', isPianoBlack(MODE_CHROMATIC, LAYOUT_PIANO, 0), false);
-        eq('isPianoBlack row1', isPianoBlack(MODE_CHROMATIC, LAYOUT_PIANO, 9), true);
-        eq('isPianoBlack off in 4ths', isPianoBlack(MODE_CHROMATIC, LAYOUT_FOURTHS, 9), false);
-        eq('isPianoBlack off in key mode', isPianoBlack(MODE_IN_KEY, LAYOUT_PIANO, 9), false);
+        eq('isPianoLayout on', isPianoLayout(MODE_CHROMATIC, LAYOUT_PIANO), true);
+        eq('isPianoLayout off in 4ths', isPianoLayout(MODE_CHROMATIC, LAYOUT_FOURTHS), false);
+        eq('isPianoLayout off in key mode', isPianoLayout(MODE_IN_KEY, LAYOUT_PIANO), false);
     }
 
     // ── In Key / 4ths: +3 scale degrees per row, root bottom-left.
@@ -4259,6 +4301,26 @@ _log('\nautomation label sync:');
         eq('degree 7 wraps an octave', degreeToPitch(60, maj, 7), 72);
         eq('degree 15 wraps two octaves', degreeToPitch(60, maj, 15), 86);
         eq('degree -1 wraps down', degreeToPitch(60, maj, -1), 59);
+    }
+
+    // ── Rotated 4ths: the same grid turned 90° clockwise. The fourth now runs
+    // along the columns and the semitone step runs downward, so the tonic sits
+    // in the TOP-LEFT pad (row 3, index 24).
+    {
+        const m = buildPadMap(MODE_CHROMATIC, LAYOUT_FOURTHS_ROT, 0, 60);
+        eq('chrom rot tonic top-left', m[24], 60);
+        eq('chrom rot top row is fourths', JSON.stringify(row(m, 3)), '[60,65,70,75,80,85,90,95]');
+        eq('chrom rot one row down = +1 semitone', m[16], 61);
+        eq('chrom rot bottom row', JSON.stringify(row(m, 0)), '[63,68,73,78,83,88,93,98]');
+    }
+    {
+        const m = buildPadMap(MODE_IN_KEY, LAYOUT_FOURTHS_ROT, 0, 60);
+        // C major: top row steps 3 degrees per column (C F B E A D G C).
+        eq('key rot tonic top-left', m[24], 60);
+        eq('key rot top row is 3 degrees/col', JSON.stringify(row(m, 3)), '[60,65,71,76,81,86,91,96]');
+        eq('key rot one row down = +1 degree', m[16], 62);
+        eq('key rot never out of scale',
+            row(m, 0).every((p) => [0, 2, 4, 5, 7, 9, 11].includes(((p - 60) % 12 + 12) % 12)), true);
     }
 
     // ── Pitches outside 0..127 become dead pads, never clamped notes.
@@ -4349,18 +4411,25 @@ _log('\nautomation label sync:');
     eq('sounding pad is green', padColor(PAD_MIN + 3, PAD_MIN, 0, true), C_GREEN);
     eq('hold overlay pad is white', padColor(PAD_MIN + 3, PAD_MIN, 0, false, [48]), C_WHITE);
 
-    // Piano: blacks take the darker tint so the keyboard shape reads; the gap
-    // columns are dead.
-    keyboardState.layout = 1; resetPadMapCache();
+    // Piano (layout index 2) needs three visible levels: a gap pad plays nothing
+    // and stays dark, an out-of-key pad DOES play so it is lit dimly, and an
+    // in-key pad is bright. Which row a pad is in already says white vs black.
+    keyboardState.layout = 2; resetPadMapCache();
     eq('piano root still track colour', padColor(PAD_MIN, PAD_MIN, 0, false), TRACK0);
     eq('piano white D is light grey', padColor(PAD_MIN + 1, PAD_MIN, 0, false), C_LIGHTGREY);
     eq('piano gap col 0 is dead', padColor(PAD_MIN + 8, PAD_MIN, 0, false), C_BLACK);
-    eq('piano black C# is out of C major, so dark', padColor(PAD_MIN + 9, PAD_MIN, 0, false), C_BLACK);
-    // With the Chromatic scale (index 12) every pad lights, and blacks are dim.
+    eq('piano out-of-key C# is dim, not dark', padColor(PAD_MIN + 9, PAD_MIN, 0, false), C_DARKGREY);
+    // The whole point: a playable out-of-key pad must not look like a dead one.
+    eq('piano out-of-key differs from a gap',
+        padColor(PAD_MIN + 9, PAD_MIN, 0, false) !== padColor(PAD_MIN + 8, PAD_MIN, 0, false), true);
+    // With the Chromatic scale (index 12) every playable pad is in key.
     keyboardState.scale = 12; resetPadMapCache();
-    eq('piano black lights dark grey in chromatic scale', padColor(PAD_MIN + 9, PAD_MIN, 0, false), C_DARKGREY);
-    eq('piano white lights light grey in chromatic scale', padColor(PAD_MIN + 1, PAD_MIN, 0, false), C_LIGHTGREY);
+    eq('piano black lights bright in chromatic scale', padColor(PAD_MIN + 9, PAD_MIN, 0, false), C_LIGHTGREY);
+    eq('piano white lights bright in chromatic scale', padColor(PAD_MIN + 1, PAD_MIN, 0, false), C_LIGHTGREY);
     eq('piano gap stays dead in chromatic scale', padColor(PAD_MIN + 8, PAD_MIN, 0, false), C_BLACK);
+    // Non-piano layouts keep out-of-scale fully dark.
+    keyboardState.scale = 0; keyboardState.layout = 0; resetPadMapCache();
+    eq('4ths out-of-scale stays dark', padColor(PAD_MIN + 4, PAD_MIN, 0, false), C_BLACK);
 
     // In Key: every pad is in scale, so nothing is dark except dead pads.
     keyboardState.mode = 1; keyboardState.layout = 0; keyboardState.scale = 0;
@@ -4715,7 +4784,7 @@ _log('\nautomation label sync:');
     eq('root cell shows C', vm.rows[1][0].displayValue, 'C');
     eq('key cell shows Major', vm.rows[1][1].displayValue, 'Major');
     eq('mode cell shows Chromatic', vm.rows[1][2].displayValue, 'Chromatic');
-    eq('layout cell shows 4ths', vm.rows[1][3].displayValue, '4ths');
+    eq('layout cell shows 4th', vm.rows[1][3].displayValue, '4th');
     eq('toast names tempo', vm.toast.fullName, 'Tempo');
     eq('tempo toast value', vm.toast.value, '120 bpm');
 
@@ -4723,7 +4792,7 @@ _log('\nautomation label sync:');
     keyboardState.mode = 1;
     vm = buildMainPageVM();
     eq('in-key mode cell', vm.rows[1][2].displayValue, 'In Key');
-    eq('in-key layout options', JSON.stringify(vm.rows[1][3].options), '["4ths","Inline"]');
+    eq('in-key layout options', JSON.stringify(vm.rows[1][3].options), '["4th","4th rt","Inline"]');
     keyboardState.mode = 0;
 
     // Overlays: one generic mechanism for KEY, MODE and LAYOUT.
@@ -4740,7 +4809,7 @@ _log('\nautomation label sync:');
 
     mainPageState.overlayKnob = 7; mainPageState.overlaySel = 1; mainPageState.touchedKnob = 7;
     vm = buildMainPageVM();
-    eq('layout overlay options', JSON.stringify(vm.overlay?.options), '["4ths","Piano"]');
+    eq('layout overlay options', JSON.stringify(vm.overlay?.options), '["4th","4th rt","Piano"]');
     resetMainPage();
 }
 
@@ -4790,7 +4859,7 @@ _log('\nautomation label sync:');
     eq('octave clamped high', keyboardState.octave[1], 8);
     eq('scale clamped', keyboardState.scale, 12);
     eq('mode clamped', keyboardState.mode, 1);
-    eq('layout clamped', keyboardState.layout, 1);
+    eq('layout clamped', keyboardState.layout, 2);
 
     // Corrupt input must not throw or mutate.
     keyboardState.rootPc = 5;

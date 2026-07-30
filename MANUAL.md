@@ -351,16 +351,19 @@ Two knobs on the [Set parameters](#set-parameters--shift--step-5--7--9) page
 
 | MODE | LAYOUT | Grid |
 | --- | --- | --- |
-| Chromatic | **4ths** | +1 semitone per pad to the right, +5 (a fourth) per row up. The root sits on the **4th pad of the bottom row**, leaving three pads below it. |
+| Chromatic | **4th** | +1 semitone per pad to the right, +5 (a fourth) per row up. The root sits on the **4th pad of the bottom row**, leaving three pads below it. |
+| Chromatic | **4th rt** | The same grid turned 90° clockwise: the fourth runs along the row, +1 semitone per pad *downward*. The tonic sits in the **top-left** pad. |
 | Chromatic | **Piano** | Rows 1 and 3 are the white keys (C–C), the row above each holds the black keys, offset right so a black key sits above the white note it leads into. Three pads per black row have no key and stay dark and silent. Two octaves on the grid. |
-| In Key | **4ths** | Three scale degrees per row up (Push's *In Key*), root bottom-left — the same fingering transfers between rows. |
+| In Key | **4th** | Three scale degrees per row up (Push's *In Key*), root bottom-left — the same fingering transfers between rows. |
+| In Key | **4th rt** | The same grid turned 90° clockwise: three scale degrees per pad along the row, +1 degree *downward*, tonic **top-left**. |
 | In Key | **Inline** | One scale octave per row, root bottom-left: `1 2 3 4 5 6 7 1`, with the next row starting an octave higher. |
 
 Two details worth knowing:
 
-- **Piano still honours KEY.** Out-of-scale pads stay unlit, and in-scale black
-  keys use a dimmer tint so the keyboard shape reads. Pick the **Chromatic**
-  scale to light the whole keyboard.
+- **Piano still honours KEY**, with three brightness levels so you can tell the
+  cases apart: a **gap** pad (no key above it) plays nothing and stays dark, an
+  **out-of-key** pad does play so it is lit dimly, and an **in-key** pad is
+  bright. Pick the **Chromatic** scale to bring the whole keyboard up.
 - **In Key + Inline steps by the scale's own degree count.** A seven-note scale
   gives exactly one octave per row; a five-note pentatonic gives five per row, so
   rows overlap slightly.

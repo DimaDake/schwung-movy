@@ -42,6 +42,7 @@ await esbuild.build({
         resolve(root, 'src/seq/colors.ts'),
         resolve(root, 'src/keyboard/drum-handler.ts'),
         resolve(root, 'src/keyboard/layouts.ts'),
+        resolve(root, 'src/seq/led-cache.ts'),
         resolve(root, 'src/keyboard/state.ts'),
         resolve(root, 'src/keyboard/held-notes.ts'),
         resolve(root, 'src/keyboard/release.ts'),

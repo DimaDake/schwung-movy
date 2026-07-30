@@ -23,6 +23,10 @@ far. Earlier work is summarised in the timeline below for context.
   layout puts the white keys on rows 1 and 3 with the black keys offset right
   above them; its three gap pads per black row are dark and silent, and in-scale
   black keys take a dimmer tint so the keyboard shape reads.
+- **Rotated fourths layouts** — `4th rt`, for Chromatic and In Key alike: the
+  fourths grid turned 90° clockwise, so the interval runs along the row and the
+  semitone (or scale degree) steps downward, with the tonic in the top-left pad.
+  The existing layout is now labelled `4th`.
 - **Per-track octave** — **+ / −** now shifts only the active track's octave.
   Each track keeps its own, saved with the set, so it survives a device restart.
 
@@ -69,6 +73,10 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
+- **The piano layout lights out-of-key pads dimly** instead of leaving them dark,
+  so they can be told apart from the gap pads that play nothing at all. Which row
+  a pad is in already says white key or black key, so the separate black-key tint
+  is gone.
 - **The chromatic 4ths layout's root moved to the 4th pad of the bottom row**,
   leaving three pads below the tonic instead of pinning it to the bottom-left
   corner.
@@ -81,6 +89,15 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Move's sequencer left stuck green step LEDs.** With the Play link on, Movy
+  starts Move's own transport — and Move paints the same 16 step LEDs. The LED
+  layer only sends colours that *changed*, so a step Move painted was never
+  corrected (Movy still believed its own colour was on the hardware) and Move's
+  playhead green stayed lit, accumulating as it moved. Cache-diffing is only safe
+  for LEDs nothing else writes, so while Move's transport runs the step row is
+  now re-asserted — immediately when the link engages or drops, and on a slow
+  cadence in between. Sixteen sends, well inside the frame budget. Same class of
+  race as the drum grid's post-track-switch repaint window.
 - **A track could load silent and stay silent.** A clip selection persists even
   when it names an empty slot (launching an empty Session cell selects it), and
   Play starts a track only if its *selected* clip exists — so a set could restore

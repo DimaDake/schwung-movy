@@ -22,10 +22,11 @@ export const MODE_NAMES = ['Chromatic', 'In Key'];
  * for In Key (a piano keyboard is chromatic by construction). Both lists are
  * length 2, so the selected index survives a mode flip without reindexing. */
 export const LAYOUT_FOURTHS = 0;
-export const LAYOUT_PIANO = 1;
-export const LAYOUT_INLINE = 1;
-const LAYOUTS_CHROMATIC = ['4ths', 'Piano'];
-const LAYOUTS_IN_KEY = ['4ths', 'Inline'];
+export const LAYOUT_FOURTHS_ROT = 1;
+export const LAYOUT_PIANO = 2;
+export const LAYOUT_INLINE = 2;
+const LAYOUTS_CHROMATIC = ['4th', '4th rt', 'Piano'];
+const LAYOUTS_IN_KEY = ['4th', '4th rt', 'Inline'];
 
 export function layoutNames(mode: number): string[] {
     return mode === MODE_IN_KEY ? LAYOUTS_IN_KEY : LAYOUTS_CHROMATIC;
@@ -34,6 +35,7 @@ export function layoutNames(mode: number): string[] {
 const CHROM_ROW_STEP = 5;   // a perfect fourth per row — the guitar fretboard
 const CHROM_ROOT_COL = 3;   // root on the 4th pad, leaving 3 pads below it
 const KEY_ROW_STEP = 3;     // a fourth measured in scale degrees (Push's In Key)
+const TOP_ROW = ROWS - 1;   // rotated layouts anchor the tonic here, at column 0
 
 const PIANO_WHITE = [0, 2, 4, 5, 7, 9, 11, 12];
 /* Blacks sit above the white note they lead into (C# above D), so cols 0, 3
@@ -55,8 +57,17 @@ export function buildPadMap(mode: number, layout: number, scaleIdx: number, base
         const col = i % COLS;
         let pitch: number;
         if (mode === MODE_IN_KEY) {
-            const step = layout === LAYOUT_INLINE ? degrees.length : KEY_ROW_STEP;
-            pitch = degreeToPitch(base, degrees, row * step + col);
+            if (layout === LAYOUT_FOURTHS_ROT) {
+                // The fourths grid turned 90° clockwise: the row interval runs
+                // along the columns and the semitone/degree step runs downward,
+                // so the tonic sits top-left instead of bottom-left.
+                pitch = degreeToPitch(base, degrees, col * KEY_ROW_STEP + (TOP_ROW - row));
+            } else {
+                const step = layout === LAYOUT_INLINE ? degrees.length : KEY_ROW_STEP;
+                pitch = degreeToPitch(base, degrees, row * step + col);
+            }
+        } else if (layout === LAYOUT_FOURTHS_ROT) {
+            pitch = base + col * CHROM_ROW_STEP + (TOP_ROW - row);
         } else if (layout === LAYOUT_PIANO) {
             const off = (row & 1) ? PIANO_BLACK[col] : PIANO_WHITE[col];
             pitch = off < 0 ? -1 : base + (row >> 1) * 12 + off;
@@ -68,8 +79,7 @@ export function buildPadMap(mode: number, layout: number, scaleIdx: number, base
     return map;
 }
 
-/** True for a piano black key — the only pad that takes the darker LED tint. */
-export function isPianoBlack(mode: number, layout: number, padIdx: number): boolean {
-    if (mode !== MODE_CHROMATIC || layout !== LAYOUT_PIANO) return false;
-    return (((padIdx / COLS) | 0) & 1) === 1;
+/** True when the grid is the piano keyboard (its colouring rules differ). */
+export function isPianoLayout(mode: number, layout: number): boolean {
+    return mode === MODE_CHROMATIC && layout === LAYOUT_PIANO;
 }

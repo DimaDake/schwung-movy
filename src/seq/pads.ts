@@ -3,14 +3,16 @@
  * pad's pitch deserves.
  *
  * Priority: dead > sounding > held/hold-overlay > root > in-scale > out.
- * Piano black keys take the darker in-scale tint, which is what makes the
- * keyboard shape readable on the grid. */
+ * The piano grid needs three visible levels rather than two: its gap pads play
+ * nothing and stay dark, so an out-of-key pad — which does play — is lit dimly
+ * to tell the two apart. Which row a pad is in already says white key or black
+ * key, so no extra tint is spent on that. */
 
 import { C_BLACK, C_GREEN, C_WHITE, C_DARKGREY, C_LIGHTGREY, trackColor } from './colors.js';
 import { noteHeld } from './held.js';
 import { inScaleFor } from './scales.js';
 import { keyboardState, padMapFor } from '../keyboard/state.js';
-import { isPianoBlack } from '../keyboard/layouts.js';
+import { isPianoLayout } from '../keyboard/layouts.js';
 
 /** MIDI pitch this pad plays on `track`, or -1 for a dead pad. */
 export function padPitch(track: number, padNote: number, padMin: number): number {
@@ -34,6 +36,8 @@ export function padColor(
     if (white) return C_WHITE;
     // Root = any pitch sharing the tonic's pitch class.
     if ((((pitch - keyboardState.rootPc) % 12) + 12) % 12 === 0) return trackColor(track);
-    if (!inScaleFor(pitch, keyboardState.rootPc, keyboardState.scale)) return C_BLACK;
-    return isPianoBlack(keyboardState.mode, keyboardState.layout, idx) ? C_DARKGREY : C_LIGHTGREY;
+    if (!inScaleFor(pitch, keyboardState.rootPc, keyboardState.scale)) {
+        return isPianoLayout(keyboardState.mode, keyboardState.layout) ? C_DARKGREY : C_BLACK;
+    }
+    return C_LIGHTGREY;
 }

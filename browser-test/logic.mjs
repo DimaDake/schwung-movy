@@ -738,6 +738,43 @@ _log('\nTest: drum module detection via loadHierarchy');
   eq('plaits: not drum (drumPadCount=0)', mp.getViewModel().drumPadCount, 0);
 }
 
+// ── mrdrums MODE: options come from the module, so every step sticks ──────
+
+_log('\nTest: mrdrums MODE offers only options the DSP parses (no snap-back)');
+
+{
+  /* mrdrums.json once hardcoded ["oneshot","loop","gate"]; the DSP's
+   * parse_mode_value accepts only "gate"/"0" (else oneshot), so selecting
+   * "loop" wrote a value the DSP silently coerced — and the next
+   * refreshOneParam read "oneshot" back, snapping the knob a beat after the
+   * user let go. The config now declares no options at all, inheriting the
+   * module's own list, which cannot drift from what the DSP will accept. */
+  const m = bootModel(MOCK_SYNTHS.mrdrums);
+  for (let i = 0; i < 30; i++) m.tick();
+
+  const mode = m.dumpLayout().params.find(p => p?.key === 'pad_mode');
+  eq('mrdrums MODE: options inherited from module',
+     JSON.stringify(mode?.options), '["gate","oneshot"]');
+  eq('mrdrums MODE: max index is 1', mode?.max, 1);
+
+  /* Sweep the knob across the full range and collect everything it writes:
+   * every value must be one the DSP round-trips unchanged. */
+  const DSP_ACCEPTS = new Set(['gate', 'oneshot', '0']);
+  const slot = 7;                       // MODE is the last cell of the Main bank
+  const written = new Set();            // pad focus defaults to 1 → p01_mode
+  for (const dir of [1, -1]) {
+    for (let i = 0; i < 12; i++) {
+      m.handleKnobDelta(slot, dir * 4);  // ENUM_DELTA_DIV=4 → one step per turn
+      m.tick();
+      written.add(env.params['synth:p01_mode']);
+    }
+  }
+  const rejected = [...written].filter(v => !DSP_ACCEPTS.has(v));
+  eq('mrdrums MODE: sweep writes nothing the DSP rejects',
+     JSON.stringify(rejected), '[]');
+  eq('mrdrums MODE: sweep reaches both real modes', written.size, 2);
+}
+
 // ── mrdrums preset file param: browse metadata + filtering + validation ───
 
 const MRDRUMS_PRESET = {

@@ -37,25 +37,42 @@ in the same code paths.
 
 ### A1. State machine (`src/model/trigger.ts`, new)
 
-PR #2 keeps `{ lastTurnMs, direction, triggerLatched }` and re-arms after a
-700 ms pause. That timer is invisible, and it is the reason a slow deliberate
-turn fires repeatedly while a fast one fires once. Replace it with two
-persistent states and one momentary flash:
+**PR #2's 700 ms re-arm timer is kept.** It is a gesture-end debounce, not an
+arbitrary delay: `lastTurnMs` updates on *every* turn, so the latch holds for as
+long as the knob keeps moving and releases only once the hand stops for 700 ms.
+Device measurements confirm it behaves correctly — detents 645 ms apart (one
+continuous movement) fire once; detents 811 ms apart (stopped, then turned again)
+fire twice. One sweep, one fire; a deliberate second gesture, a second fire.
 
-| Input | ARMED | SPENT |
+Removing it was considered and rejected. Without it, repeat-firing a performance
+control like `reroll` would need a CW–CCW–CW wiggle, which is worse on stage than
+simply pausing. Keeping it also preserves PR #2's semantics exactly, so the
+metadata contract stays shared with upstream instead of forking.
+
+The defect is that the timer is **invisible**, so the user cannot tell why a
+second turn did nothing. Render it (A3); don't delete it.
+
+Three states — two persistent, one momentary:
+
+| Input | ARMED | COOLING |
 |---|---|---|
-| turn CW | write `trigger` → **FIRED** (200 ms) → SPENT | nothing |
-| turn CCW | nothing (already idle; skip redundant IPC) | write `idle` → ARMED |
+| turn CW | write `trigger` → **FIRED** (200 ms) → COOLING | nothing; drain restarts (gesture still going) |
+| turn CCW | nothing (already idle; skip redundant IPC) | write `idle` → ARMED immediately |
+| 700 ms with no turn | — | → ARMED automatically |
 
-`TRIGGER_GESTURE_RESET_MS` is deleted. Consequences:
+There are two ways out of COOLING and the badge shows both: turn back for an
+immediate re-arm, or stop and let the drain finish.
 
-- The intermittent double-fire (observed once as 4 rapid detents → 2 fires)
-  becomes structurally impossible: there is no clock to straddle.
-- `loadHierarchy` clearing gesture state stops being a latent bug. It re-arms,
-  which is the correct default after a module load.
-- CCW-while-ARMED writing nothing is a deliberate change from PR #2, which
-  writes `idle` on every CCW. The `SPENT`→`ARMED` transition still writes
-  `idle`, which is what a latching DSP needs in order to re-arm.
+CCW-while-ARMED writing nothing is the only deliberate departure from PR #2,
+which writes `idle` on every CCW. The `COOLING`→`ARMED` transition still writes
+`idle`, which is what a latching DSP needs in order to re-arm.
+
+**Separately, fix the one real double-fire.** `loadHierarchy` resets
+`s.paramGestures = {}` unconditionally, so a reload landing mid-gesture clears the
+latch and the action fires twice. Observed once (4 rapid detents → 2 fires); a
+reload fires ~1 s after a module loads as `pollModuleName` settles, which is
+exactly when a user first reaches for the knob. Preserve gesture state across a
+reload of the *same* module — clear it only when `s.moduleId` actually changes.
 
 **State is never read back from the param.** The badge renders from the state
 machine, so a module that latches the param cannot drag the display off state.
@@ -72,7 +89,8 @@ would write `trigger` to a param already at `trigger`, producing no edge and no
 action, while the UI flashed FIRED.
 
 At hierarchy load, seed from the value already read: if it equals the trigger
-index, start **SPENT**; otherwise **ARMED**.
+index, start **COOLING** with the drain already empty (so it shows the CCW arrow
+and does not auto-re-arm from a timer that never ran); otherwise **ARMED**.
 
 Movy must **not** write `idle` to normalize the param at load. `arm` on smack is
 documented as "arm-and-record" and carries real module state; movy cannot know
@@ -85,9 +103,10 @@ honest; the user's CCW turn then writes `idle` exactly as PR #2 already does.
 Close the chain that PR #2 leaves open:
 
 ```
-trigger.ts (state) → ParamVM.trigger: 'armed' | 'fired' | 'spent'
+trigger.ts (state) → ParamVM.trigger:     'armed' | 'fired' | 'cooling'
+                     ParamVM.triggerCool: 0..8   (drain steps remaining)
                    → knob.ts       drawTriggerBadge()
-                   → label.ts      name / "FIRED" / "TURN <-"
+                   → label.ts      name / "FIRED" / "<-TURN"
                    → knob-leds.ts  bright while FIRED, else dim
 ```
 
@@ -98,15 +117,23 @@ enum box, all of which already exist.
 - **ARMED** — solid 1px frame, clockwise circular arrow at r≈4 centred.
 - **FIRED** — the whole 16×16 filled solid, with the same clockwise arrow
   knocked out in colour 0 (so the glyph reads as a negative of ARMED).
-- **SPENT** — dashed frame (alternate pixels), arrow mirrored counter-clockwise.
+- **COOLING** — dashed frame, arrow mirrored counter-clockwise, plus a
+  **cooldown drain**: the frame's top edge is drawn as a bar that shortens from
+  full to empty as the 700 ms window elapses. When it empties the badge returns
+  to ARMED on its own.
 
-The arrow flips direction so the widget always shows which way to turn next.
-That is the self-teaching element: it answers "why won't it fire again?" without
-documentation.
+The arrow flips direction so the widget always shows which way to turn next, and
+the drain shows the other exit — wait and it re-arms itself. Together they answer
+"why won't it fire again?" without documentation.
+
+**Drain quantisation.** The drain is quantised to 8 steps (~88 ms each) so the
+widget repaints ~8 times per cooldown rather than once per tick (~70 repaints at
+the measured 85–105 Hz). It restarts at full on every turn, mirroring
+`lastTurnMs`, so it reads as "time since you stopped moving".
 
 **Label row** (`label.ts`): triggers override the `touched ? displayValue :
 shortName` rule so `idle` never appears. Shows the short name when armed,
-`FIRED` during the flash, `<-TURN` when spent.
+`FIRED` during the flash, `<-TURN` while cooling.
 
 Both strings must fit the 32px cell, because `drawLabelCell` centres on the knob
 and does not clip — an over-wide string bleeds into the neighbouring cells.
@@ -115,16 +142,20 @@ Measured against the 5px font: `FIRED` = 23px and `<-TURN` = 28px both fit;
 
 **LED** (`knob-leds.ts`): brightest level of the row's own scale (120 white for
 knobs 1–4, 3 orange for knobs 5–8) while FIRED; the existing dim level
-otherwise. Spent stays dim-but-lit, preserving the file's stated intent that
+otherwise. Cooling stays dim-but-lit, preserving the file's stated intent that
 every knob stays lit so the row is identifiable, and avoiding ambiguity with an
-empty slot, which renders colour 0.
+empty slot, which renders colour 0. The LED does not track the drain — that would
+reintroduce per-tick LED sends for no information the screen isn't already giving.
 
 `TRIGGER_FLASH_MS = 200` goes in `model/constants.ts` beside `HOLD_MS`.
+`TRIGGER_REARM_MS = 700` moves there too, from PR #2's local
+`TRIGGER_GESTURE_RESET_MS` in `store.ts`, since the renderer now needs it to
+scale the drain.
 
 **Repaints** follow the `jog-hint` precedent: tick sets `dirty` while a flash is
-live, then once more to clear it. Bounded at ~20 ticks at the measured 85–105 Hz
-device tick rate, so repaints and LED sends return to zero and the idle perf
-budgets hold.
+live or a drain step changes, then once more to settle. Bounded at ~20 ticks for
+the flash plus ~8 drain steps at the measured 85–105 Hz device tick rate, so
+repaints and LED sends both return to zero and the idle perf budgets hold.
 
 ### A4. Why a new module
 
@@ -226,37 +257,54 @@ Nothing here changes the **metadata contract**. `behavior: "trigger"`,
 detection rules; modules keep declaring exactly what they declare now. No module
 needs to change, and no module breaks.
 
-Two **behaviour** changes are worth telling Tim about before this lands, because
-they alter feel rather than compatibility:
+The **trigger gesture is unchanged too**: CW fires, CCW re-arms, and the 700 ms
+gesture-end debounce is preserved exactly. Firing behaviour is bit-for-bit what
+PR #2 ships; the work is that movy now *shows* it. That keeps the contract shared
+with upstream — there is no forked semantics to reconcile later.
 
-1. **The 700 ms auto re-arm is gone.** Under PR #2, a slow continuous clockwise
-   turn fires repeatedly (each detent past the window re-arms). After this
-   change, one CW gesture fires exactly once and a CCW turn is required to
-   re-arm. If any module wants repeat-fire from a held turn, that intent needs a
-   separate declaration — it should not be an accident of timer granularity.
-2. **Acceleration is less aggressive** (B2). `seed` still travels fast, but a
-   flick no longer crosses the whole range in ~20 ms.
+One **behaviour** change is worth telling Tim about, because it alters feel rather
+than compatibility:
 
-One thing to report upstream rather than fix here: `clear` and `detect_bpm` are
-declared as triggers but are on no `knobs` list in v0.15.2, so movy cannot show
-them. `clear` was previously visible — the fixture refresh drops it from
-`shownKeys` in `dump-expect.json`.
+- **Acceleration is less aggressive** (B2). `seed` still travels fast, but a flick
+  no longer crosses the whole 1–9999 range in ~20 ms, so the middle of the range
+  becomes reachable at speed.
+
+The two changes that only *tighten* things, with no module affected today:
+
+- B1 stops module-declared `automatable` from overriding the global-bank guard.
+  Zero of 78 modules declare `automatable`, so nothing existing changes.
+- CCW-while-ARMED no longer writes a redundant `idle`. The `COOLING`→`ARMED`
+  write, which is the one a latching DSP needs, is unchanged.
+
+Two things to report upstream rather than fix here:
+
+- `clear` and `detect_bpm` are declared as triggers but are on no `knobs` list in
+  v0.15.2, so movy cannot show them. `clear` was previously visible — the fixture
+  refresh drops it from `shownKeys` in `dump-expect.json`.
+- B1 and B2 are defects in PR #2's own code. Offering them back upstream is worth
+  doing regardless of where the UI work lands, so the fork does not carry private
+  fixes.
 
 ## Testing
 
-- **`logic.mjs`** — fires once; CW-while-spent is a no-op; CCW re-arms and writes
-  `idle`; CCW-while-armed writes nothing; flash expires after
-  `TRIGGER_FLASH_MS`; hierarchy reload → ARMED; load with value at trigger →
-  SPENT (A2); B1 global-bank guard; B2 acceleration no longer compounds.
-- **`screenshot.mjs`** — three new scenes (armed / fired / spent) with
-  baselines. CLAUDE.md requires a screenshot test for new rendering.
-- **`perf.mjs`** — LED sends return to 0 after the flash window; `fill_rect`
-  within budget on a page of 8 triggers.
+- **`logic.mjs`** — fires once per gesture; CW-while-COOLING is a no-op and
+  restarts the drain; CCW-while-COOLING re-arms and writes `idle`;
+  CCW-while-ARMED writes nothing; flash expires after `TRIGGER_FLASH_MS`; drain
+  empties after `TRIGGER_REARM_MS` and auto-re-arms; drain quantises to 8 steps;
+  load with value at trigger → COOLING (A2); gesture state **survives** a
+  same-module hierarchy reload but resets on a module change; B1 global-bank
+  guard; B2 acceleration no longer compounds.
+- **`screenshot.mjs`** — four new scenes (armed / fired / cooling-full /
+  cooling-nearly-empty) with baselines. CLAUDE.md requires a screenshot test for
+  new rendering, and the drain needs two samples to pin its geometry.
+- **`perf.mjs`** — LED sends return to 0 after the flash; repaints return to 0
+  after the drain; `fill_rect` within budget on a page of 8 triggers.
 - **`dump-replay.mjs`** — existing trigger invariants keep passing over all 78
   modules.
-- **Device** — extend `scripts/test-module-contract.sh`: assert the spent state
-  and drop the now-obsolete 700 ms-pause check. `scripts/inject-burst.py` is
-  required for these gestures; per-event injection is ~600 ms per CC, far wider
-  than the windows under test.
+- **Device** — extend `scripts/test-module-contract.sh` to assert the cooling
+  state and the auto-re-arm. The existing 700 ms-pause check **stays**, since the
+  debounce it covers is retained. `scripts/inject-burst.py` is required for these
+  gestures; per-event injection is ~600 ms per CC, far wider than the windows
+  under test.
 
 Each new test must be shown to fail with the fix reverted before it counts.

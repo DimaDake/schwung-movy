@@ -43,6 +43,7 @@ export function triggerIndices(p: KnobParam): { idle: number; trigger: number } 
 function stateFor(s: ModelState, key: string): TriggerState {
     return s.triggerStates[key] ??= {
         latched: false, autoRearm: true, lastTurnMs: 0, firedAtMs: 0,
+        paintedPhase: 'armed', paintedCool: 0,
     };
 }
 
@@ -65,14 +66,22 @@ export function triggerVisual(s: ModelState, key: string, now = Date.now()): Tri
     return { phase: 'cooling', coolSteps: Math.max(0, Math.min(COOL_STEPS, steps)) };
 }
 
-/* True while any trigger on the page still owes the user a repaint (flash or a
- * draining latch), so tick knows to keep the frame dirty and then stop. */
-export function triggerRepaintPending(s: ModelState, now = Date.now()): boolean {
+/* Advance the badge animation: true only when a badge's APPEARANCE changed since
+ * the last paint, so the frame is dirtied once per visible step rather than once
+ * per tick. The drain is quantised to COOL_STEPS, so a whole cooldown costs a
+ * handful of repaints and then goes quiet. */
+export function triggerAnimationTick(s: ModelState, now = Date.now()): boolean {
+    let changed = false;
     for (const key of Object.keys(s.triggerStates)) {
-        const phase = triggerVisual(s, key, now).phase;
-        if (phase === 'fired' || phase === 'cooling') return true;
+        const t = s.triggerStates[key];
+        const v = triggerVisual(s, key, now);
+        if (v.phase !== t.paintedPhase || v.coolSteps !== t.paintedCool) {
+            t.paintedPhase = v.phase;
+            t.paintedCool  = v.coolSteps;
+            changed = true;
+        }
     }
-    return false;
+    return changed;
 }
 
 /* Seed the badge from the value the DSP already holds. A param sitting at

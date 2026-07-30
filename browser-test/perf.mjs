@@ -342,6 +342,79 @@ const ENVELOPE_FILL_RECT_MAX = 700;
     _origLog(`    (baseline: ${fillRectCount} calls — two ADSR envelopes)`);
 }
 
+/* ── Test 4e: trigger badge animation costs ──────────────────────────────── */
+
+/* The badge animates itself after a turn: a fired flash, then the re-arm drain.
+ * Three ways that could go wrong on device, all asserted here:
+ *   1. the frame never stops being dirty  -> permanent repaint loop
+ *   2. LED sends every tick while cooling -> blows the idle-LED budget
+ *   3. eight badges cost more to draw than eight knobs
+ * The drain is quantised to COOL_STEPS precisely so (1) stays bounded. */
+_origLog('\nTest 4e: trigger badge animation (flash + drain)');
+
+{
+    const { TRIGGER_REARM_MS, TRIGGER_FLASH_MS } = await import('../dist/esm/model/constants.js');
+
+    mockState = { ...MOCK_SYNTHS.triggers };
+    const model = createModel(0, 'synth');
+    for (let i = 0; i < 20; i++) model.tick();          // settle the hierarchy
+
+    /* Freeze the clock and advance it by hand: one device tick at the measured
+     * ~100 Hz is ~10 ms, so the whole flash+drain window is ~90 ticks. */
+    const REAL_NOW = Date.now;
+    let now = 5_000_000;
+    Date.now = () => now;
+
+    let ledCount = 0;
+    const realSetLED = globalThis.setLED;
+    const realSetButtonLED = globalThis.setButtonLED;
+    globalThis.setLED = () => { ledCount++; };
+    globalThis.setButtonLED = () => { ledCount++; };
+
+    model.handleKnobDelta(0, 1);                        // fire the trigger
+
+    let dirtyTicks = 0, ledDuringCooling = 0, lastDirtyAt = -1;
+    const TICK_MS = 10;
+    const windowTicks = Math.ceil((TRIGGER_REARM_MS + TRIGGER_FLASH_MS * 2) / TICK_MS);
+    for (let i = 0; i < windowTicks; i++) {
+        ledCount = 0;
+        const dirty = model.tick();
+        if (dirty) { dirtyTicks++; lastDirtyAt = i; }
+        if (now - 5_000_000 > TRIGGER_FLASH_MS) ledDuringCooling += ledCount;
+        now += TICK_MS;
+    }
+
+    /* Bounded: the drain has COOL_STEPS levels, plus the flash edges. Anything
+     * near windowTicks means it is repainting every tick. */
+    check('dirty ticks across a whole flash+drain', dirtyTicks, 24, ' ticks');
+    _origLog(`    (baseline: ${dirtyTicks} dirty of ${windowTicks} ticks in the window)`);
+
+    /* The LED intentionally ignores the drain, so cooling must be silent. */
+    check('LED sends while cooling (after the flash)', ledDuringCooling, 0);
+
+    /* And it must actually stop: keep ticking well past the window. */
+    let dirtyAfter = 0;
+    for (let i = 0; i < 200; i++) { if (model.tick()) dirtyAfter++; now += TICK_MS; }
+    check('dirty ticks once re-armed', dirtyAfter, 0, ' ticks');
+    _origLog(`    (last dirty tick was #${lastDirtyAt} of ${windowTicks})`);
+
+    globalThis.setLED = realSetLED;
+    globalThis.setButtonLED = realSetButtonLED;
+    Date.now = REAL_NOW;
+}
+
+{
+    /* Eight badges on one page vs the arc-knob baseline in Test 1. */
+    mockState = { ...MOCK_SYNTHS.triggers_full };
+    const model = createModel(0, 'synth');
+    for (let i = 0; i < 20; i++) model.tick();
+    const vm = model.getViewModel();
+    fillRectCount = 0;
+    renderKnobsView(vm, false);
+    check('fill_rect calls (page of 8 trigger badges)', fillRectCount, FILL_RECT_PER_RENDER_MAX);
+    _origLog(`    (baseline: ${fillRectCount} calls)`);
+}
+
 /* ── Test 5: sequencer LED cache + IPC + strip budgets ───────────────────── */
 
 _origLog('\nTest 5: sequencer perf budgets');

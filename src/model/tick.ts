@@ -1,6 +1,7 @@
 import type { ModelState } from './state.js';
 import { loadHierarchy } from './hierarchy.js';
 import { applyKnobDelta, refreshOneParam, pollModuleName, refreshModulatedKeys, slotToLocal } from './store.js';
+import { triggerAnimationTick } from './trigger.js';
 import { KNOBS_PER_PAGE, NAME_POLL_TICKS } from './constants.js';
 import { mlog } from '../log.js';
 
@@ -26,6 +27,12 @@ export function processTick(s: ModelState): boolean {
         }
     }
     if (hadDelta) s.lastDeltaTick = _perfTickCount;
+
+    /* A trigger badge animates on its own after the turn: the fired flash, then
+     * the re-arm drain. Keep the frame dirty while either is live so the drain
+     * actually moves, then stop — the drain is quantised to COOL_STEPS, so this
+     * is a bounded burst of repaints, not a permanent animation loop. */
+    if (triggerAnimationTick(s)) s.dirty = true;
 
     if (s.longPressCountdown > 0) {
         s.longPressCountdown--;

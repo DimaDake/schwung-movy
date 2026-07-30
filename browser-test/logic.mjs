@@ -860,6 +860,34 @@ _log('\nTest: trigger badge phases run armed -> fired -> cooling -> armed');
   globalThis.shadow_set_param = originalSet;
 }
 
+/* The renderer cannot show what never reaches it. PR #2 left `behavior` inside
+ * the model, so the badge phase has to travel out through the ParamVM. */
+_log('\nTest: the badge phase and drain reach the ParamVM');
+{
+  const preset = {
+    'synth:name': 'vmmod', 'synth_module': 'vmmod',
+    'synth:chain_params': JSON.stringify([
+      { key: 'capture', name: 'Capture', type: 'enum', options: ['idle', 'trigger'] },
+      { key: 'wet', name: 'Wet', type: 'float', min: 0, max: 1 },
+    ]),
+    'synth:capture': 'idle', 'synth:wet': '0.5',
+  };
+  const originalSet = globalThis.shadow_set_param;
+  const m = bootModel(preset);
+  for (let i = 0; i < 4; i++) m.tick();
+  globalThis.shadow_set_param = () => true;
+  const cap = () => m.getViewModel().rows[0][0];
+
+  eq('armed trigger reports its phase', cap().trigger, 'armed');
+  eq('a non-trigger param has no phase', m.getViewModel().rows[0][1].trigger, undefined);
+
+  m.handleKnobDelta(0, 1); m.tick();
+  eq('fired phase reaches the ParamVM', cap().trigger, 'fired');
+  eq('fired carries a full drain', cap().triggerCool, 8);
+
+  globalThis.shadow_set_param = originalSet;
+}
+
 /* Writes are IPC, and a trigger's displayed value never changes, so the only
  * writes worth making are the ones that change what the DSP sees. */
 _log('\nTest: a trigger writes only when the action actually changes');

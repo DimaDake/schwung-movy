@@ -30,9 +30,16 @@ export function updateKnobLEDs(vm: ViewModel): void {
         for (let col = 0; col < 4; col++) {
             const physK = row * 4 + col;
             const pvm   = vm.rows[row][col];
+            /* A fired trigger flashes its own knob's LED — the one output channel
+             * physically under the finger that just turned it. Cooling stays at
+             * the dim level rather than going dark: knob-leds keeps every knob lit
+             * so the row is identifiable, and colour 0 already means "no param".
+             * The LED deliberately ignores the drain — that would mean an LED send
+             * every tick for information the screen already carries. */
+            const flash = pvm?.trigger === 'fired';
             const color = pvm === null ? 0
-                : row === 0 ? whiteLevel(pvm.normalizedValue)
-                : amberLevel(pvm.normalizedValue);
+                : row === 0 ? (flash ? 120 : whiteLevel(pvm.normalizedValue))
+                : (flash ? 3 : amberLevel(pvm.normalizedValue));
             /* notes 0-7: knob touch LEDs */
             setLED(physK, color, true);
             /* CC 71-78: knob indicator LEDs (same physical knob, different LED channel) */

@@ -31,6 +31,11 @@ export interface TriggerState {
     autoRearm:  boolean;
     lastTurnMs: number;
     firedAtMs:  number;
+    /* Last badge appearance actually painted. The drain is quantised, so without
+     * this the animation would mark the frame dirty on every tick and repaint ~70
+     * times per cooldown instead of once per visible change. */
+    paintedPhase: string;
+    paintedCool:  number;
 }
 
 export interface ModelState {

@@ -15,11 +15,17 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Action knobs** — a parameter a module marks as a one-shot action is drawn as
+  a **badge** rather than a knob, with an arrow showing which way to turn next.
+  Firing fills the badge, prints `FIRED`, and flashes that knob's LED; while
+  spent the badge goes dashed, the arrow flips to `<-TURN`, and a bar drains
+  along the top showing when it re-arms on its own. Previously these rendered as
+  an ordinary enum cell reading `IDLE` forever, with no sign that anything had
+  happened.
 - **Module interaction metadata** — generic parameter pages recognise
   `idle`/`trigger` enums as one-shot actions (clockwise fires once,
   counter-clockwise returns to idle and re-arms) and respect
   `knob_acceleration: "wide"` for controls such as Smack's 1–9999 Seed.
-  Explicit module `automatable` flags now win over Movy's numeric heuristic.
 - **Release contract fixtures** for Smack, Smack In, Belt, Belt In and Mono
   Voice. These replace older fleet-dump entries during regression tests, so a
   green suite covers the currently published parameter pages rather than stale
@@ -53,6 +59,20 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **A module could re-enable automation on a parameter the host cannot reach.**
+  Global-bank parameters aren't addressable as chain `target:params`, so they
+  can't be automated; module-supplied `automatable` metadata was overriding that
+  guard and drawing a misleading automation dot. Only Movy's own config may
+  override it now.
+- **A fast knob sweep crossed a wide range in one flick.** The host accumulates
+  knob detents and flushes one message per tick, so `knob_acceleration: "wide"`
+  was multiplying an already-accumulated count — a quick spin moved Smack's Seed
+  by 3000 of its 9999 range in about two ticks, putting the middle of the range
+  out of reach. Acceleration now scales a single step.
+- **A one-shot action could fire twice.** A hierarchy reload lands about a second
+  after a module loads — exactly when you first reach for the knob — and it was
+  clearing the gesture that keeps one turn to one fire. Gesture state now
+  survives a reload of the same module.
 - Module-owned `movy_config.json` layouts are now found beside audio FX and
   MIDI FX as well as sound generators, including audio FX loaded as Master FX.
 

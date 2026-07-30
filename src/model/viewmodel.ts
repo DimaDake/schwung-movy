@@ -7,6 +7,7 @@ import { buildFilterViz } from './filter-vm.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
 import { dedupShortNames } from '../renderer/shorten.js';
 import { basename } from './path.js';
+import { triggerVisual } from './trigger.js';
 
 /* No-automation default so callers that don't care (browser tests, non-seq
  * views) need not build a snapshot. */
@@ -93,6 +94,9 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             automatable:     paramAutomatable(s, p),
             assigned:        lane >= 0,
             modulated:       isModulated(p),
+            ...(p.behavior === 'trigger'
+                ? (() => { const t = triggerVisual(s, p.key); return { trigger: t.phase, triggerCool: t.coolSteps }; })()
+                : {}),
         };
     }
 
@@ -132,6 +136,13 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
                 tv = shadow_get_param(s.activeSlot, s.componentKey + ':' + p.nameKey) ?? formatValue(p, s.knobValues[gi]);
             } else {
                 tv = formatValue(p, s.knobValues[gi]);
+            }
+            /* A trigger's value is permanently "idle" — printing it in the toast
+             * is the same misleading "you failed to change it" message the badge
+             * exists to remove. Report the action's state instead. */
+            if (p.behavior === 'trigger') {
+                const phase = triggerVisual(s, p.key).phase;
+                tv = phase === 'fired' ? 'FIRED' : phase === 'cooling' ? 'TURN BACK' : 'READY';
             }
             toast = { fullName: p.label, value: tv, browseHint: p.type === 'file' };
         }

@@ -122,10 +122,83 @@ function drawPresetValue(cellX: number, ky: number, pvm: ParamVM): void {
     }
 }
 
+/* Clockwise circular arrow, ~10px across, centred in the cell. Mirrored for the
+ * counter-clockwise (cooling) variant. Drawn rather than a glyph: at this size a
+ * font arrow is unreadable, and the direction has to be unmistakable — it is the
+ * instruction for what to do next. */
+function drawTurnArrow(kx: number, ky: number, ccw: boolean, on: number): void {
+    const cx = kx + 8, cy = ky + 8, r = 4;
+    /* Open ring: a gap at the top leaves room for the arrowhead. */
+    for (let a = 40; a <= 320; a += 12) {
+        const rad = a * Math.PI / 180;
+        const sx = Math.round(cx + r * Math.sin(rad));
+        const sy = Math.round(cy - r * Math.cos(rad));
+        fill_rect(ccw ? 2 * cx - sx : sx, sy, 1, 1, on);
+    }
+    /* Arrowhead at the ring's leading end (top-right, or top-left mirrored). */
+    const hx = ccw ? cx - 3 : cx + 3;
+    const dir = ccw ? -1 : 1;
+    fill_rect(hx, cy - r, 1, 1, on);
+    fill_rect(hx - dir, cy - r - 1, 1, 1, on);
+    fill_rect(hx - dir, cy - r + 1, 1, 1, on);
+}
+
+/* Dashed 16×16 frame — the cooling badge, so it reads as "not ready" at a
+ * glance without needing the arrow to be legible. */
+function drawDashedFrame(kx: number, ky: number): void {
+    for (let i = 0; i < KW; i += 2) {
+        fill_rect(kx + i, ky, 1, 1, 1);
+        fill_rect(kx + i, ky + KW - 1, 1, 1, 1);
+        fill_rect(kx, ky + i, 1, 1, 1);
+        fill_rect(kx + KW - 1, ky + i, 1, 1, 1);
+    }
+}
+
+function drawSolidFrame(kx: number, ky: number): void {
+    fill_rect(kx, ky, KW, 1, 1);
+    fill_rect(kx, ky + KW - 1, KW, 1, 1);
+    fill_rect(kx, ky, 1, KW, 1);
+    fill_rect(kx + KW - 1, ky, 1, KW, 1);
+}
+
+/* A one-shot action, deliberately not shaped like a knob: an arc/bar/enum cell
+ * would all read as a value you could set, which is the wrong mental model.
+ *   armed   — solid frame + CW arrow ("turn this way to fire")
+ *   fired   — filled cell, arrow knocked out (a negative of armed)
+ *   cooling — dashed frame + CCW arrow, plus a drain along the top edge showing
+ *             how long until it re-arms on its own
+ */
+function drawTriggerBadge(kx: number, ky: number, pvm: ParamVM): void {
+    const phase = pvm.trigger;
+    if (phase === 'fired') {
+        fill_rect(kx, ky, KW, KW, 1);
+        drawTurnArrow(kx, ky, false, 0);
+        return;
+    }
+    if (phase === 'cooling') {
+        drawDashedFrame(kx, ky);
+        drawTurnArrow(kx, ky, true, 1);
+        /* Drain: a bar just inside the top edge, shrinking as the re-arm window
+         * elapses. Drawn inside rather than on the frame — on the frame it just
+         * reads as a slightly solider border, not an indicator. 0 steps = a latch
+         * seeded from the DSP's value, with no timer running to show. */
+        const steps = pvm.triggerCool ?? 0;
+        if (steps > 0) {
+            const inner = KW - 4;
+            fill_rect(kx + 2, ky + 2, Math.max(1, Math.round(inner * steps / 8)), 1, 1);
+        }
+        return;
+    }
+    drawSolidFrame(kx, ky);
+    drawTurnArrow(kx, ky, false, 1);
+}
+
 export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
     const kx = col * CELL_W + Math.floor((CELL_W - KW) / 2);
     const ky = rowY;
-    if (pvm.renderStyle === 'preset') {
+    if (pvm.trigger) {
+        drawTriggerBadge(kx, ky, pvm);
+    } else if (pvm.renderStyle === 'preset') {
         drawPresetValue(col * CELL_W, ky, pvm);
     } else if (pvm.type === 'len') {
         drawLengthSquare(kx, ky, pvm.displayValue);

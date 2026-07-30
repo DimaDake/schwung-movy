@@ -24,7 +24,7 @@
           { "key": "pad_start",       "short": "START", "full": "Start",    "type": "float", "min": 0, "max": 1 },
           { "key": "pad_attack_ms",   "short": "ATTK",  "full": "Attack",   "type": "float", "min": 0, "max": 5000 },
           { "key": "pad_decay_ms",    "short": "DECAY", "full": "Decay",    "type": "float", "min": 0, "max": 5000 },
-          { "key": "pad_mode",        "short": "MODE",  "full": "Mode",     "type": "enum", "options": ["oneshot", "loop", "gate"] }
+          { "key": "pad_mode",        "short": "MODE",  "full": "Mode",     "type": "enum" }
         ]
       ]
     },

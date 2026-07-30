@@ -581,19 +581,30 @@ export const MOCK_SYNTHS = {
         "synth:name":             "MrDrums",
         "synth_module":           "mrdrums",
         "synth:ui_current_pad":   "5",
+        /* The pad_mode alias is the only entry the config leans on the module
+         * for: its option list is deliberately NOT hardcoded in mrdrums.json so
+         * it can never drift from what the DSP will actually parse. */
+        "synth:chain_params": JSON.stringify([
+            { key: "pad_mode", name: "Mode", type: "enum", options: ["gate", "oneshot"] },
+        ]),
         "synth:pad_vol":          "0.80",
         "synth:pad_pan":          "0.00",
         "synth:pad_tune":         "0.00",
         "synth:pad_start":        "0.00",
         "synth:pad_attack_ms":    "0.00",
         "synth:pad_decay_ms":     "250.0",
-        "synth:pad_mode":         "0",
+        "synth:pad_mode":         "oneshot",
         "synth:g_master_vol":     "1.0",
         "synth:g_polyphony":      "16",
         /* Concrete per-pad keys movy addresses directly (focused-pad scoping). */
         "synth:p01_vol":          "0.10",
         "synth:p02_vol":          "0.20",
         "synth:p05_vol":          "0.50",
+        /* Name format, as the real DSP reports it (mode_to_string) — this is
+         * what makes movy write "gate"/"oneshot" rather than an index. p01 is
+         * the default focused pad, p05 the one the screenshot scene selects. */
+        "synth:p01_mode":         "oneshot",
+        "synth:p05_mode":         "oneshot",
     },
 
     /* Weird Dreams: 8-voice machine. cv_* is the "current voice" alias; every

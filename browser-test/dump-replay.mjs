@@ -135,6 +135,27 @@ function checkDeclaredKnobsReachable(key, model, entry) {
         missing.length === 0);
 }
 
+/* An enum knob may only offer the options the module itself reports. Option
+ * lists are CONFIG-FIRST in hierarchy.ts (slot.options wins over cp.options),
+ * so a hand-written list silently overrides the truth — and an option the DSP
+ * can't parse is coerced to its default on write, which refreshOneParam then
+ * reads back, snapping the knob a moment after the user lets go. That is how
+ * mrdrums' invented "loop" mode behaved (the DSP has only gate/oneshot).
+ * Order matters as much as membership: index-format modules (enum-value.ts)
+ * exchange the position, not the name.
+ * Modules reporting NO options are exempt — labelling a bare 0/1 int as
+ * ["Stereo","Mono"] (weird-dreams all_mono) is a legitimate UI overlay. */
+function checkEnumOptionsMatchModule(key, model, entry) {
+    const cp = new Map((entry.chain_params ?? []).map(p => [p.key, p]));
+    for (const p of model.dumpLayout().params) {
+        if (!p?.options?.length) continue;
+        const modOptions = cp.get(p.key)?.options;
+        if (!modOptions?.length) continue;
+        check(`${key}: enum ${p.key} options = ${JSON.stringify(modOptions)} (got ${JSON.stringify(p.options)})`,
+            JSON.stringify(p.options) === JSON.stringify(modOptions));
+    }
+}
+
 /* ── run ─────────────────────────────────────────────────────────────────── */
 
 const dump = loadDump();
@@ -156,6 +177,7 @@ for (const entry of dump.modules) {
     snapshots[key] = snap;
     checkInvariants(key, model, snap);
     checkDeclaredKnobsReachable(key, model, entry);
+    checkEnumOptionsMatchModule(key, model, entry);
     if (!UPDATE) checkExpect(key, snap, expect[key]);
 }
 

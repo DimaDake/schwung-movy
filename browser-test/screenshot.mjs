@@ -318,7 +318,8 @@ function applyView(preset) {
         }
         case 'main-default': {
             resetSeqState(); resetMainPage();
-            keyboardState.rootNote = 48; keyboardState.scale = 0;
+            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
+            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
             seqState.bpmX100 = 12000; seqState.swingPct = 50;
             lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
             lastRender();
@@ -326,7 +327,8 @@ function applyView(preset) {
         }
         case 'main-tempo-touched': {
             resetSeqState(); resetMainPage();
-            keyboardState.rootNote = 48; keyboardState.scale = 0;
+            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
+            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
             seqState.bpmX100 = 12000; seqState.swingPct = 50;
             mainPageState.touchedKnob = 0;
             lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
@@ -335,7 +337,8 @@ function applyView(preset) {
         }
         case 'main-swing-touched': {
             resetSeqState(); resetMainPage();
-            keyboardState.rootNote = 48; keyboardState.scale = 0;
+            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
+            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
             seqState.bpmX100 = 12000; seqState.swingPct = 50;
             mainPageState.touchedKnob = 1;
             lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
@@ -344,7 +347,8 @@ function applyView(preset) {
         }
         case 'main-root-touched': {
             resetSeqState(); resetMainPage();
-            keyboardState.rootNote = 51; keyboardState.scale = 0;   // D#
+            keyboardState.rootPc = 3; keyboardState.octave = [4, 4, 4, 4];
+            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;   // D#
             seqState.bpmX100 = 12000; seqState.swingPct = 50;
             mainPageState.touchedKnob = 2;
             lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
@@ -353,7 +357,8 @@ function applyView(preset) {
         }
         case 'main-key-overlay': {
             resetSeqState(); resetMainPage();
-            keyboardState.rootNote = 48; keyboardState.scale = 0;
+            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
+            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
             seqState.bpmX100 = 12000; seqState.swingPct = 50;
             mainPageState.scaleOverlay = true; mainPageState.scaleSel = 1;
             lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
@@ -362,7 +367,8 @@ function applyView(preset) {
         }
         case 'main-ext-sync': {      // following Move: tempo cell shows EXT
             resetSeqState(); resetMainPage();
-            keyboardState.rootNote = 48; keyboardState.scale = 0;
+            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
+            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
             seqState.bpmX100 = 12500; seqState.swingPct = 50;
             seqState.extSync = true;
             lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
@@ -371,7 +377,8 @@ function applyView(preset) {
         }
         case 'main-link-on': {       // Play-link enabled: LINK cell shows ON
             resetSeqState(); resetMainPage();
-            keyboardState.rootNote = 48; keyboardState.scale = 0;
+            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
+            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
             seqState.linkEnabled = true;
             lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
             lastRender();

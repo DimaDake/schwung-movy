@@ -2,7 +2,7 @@ import { fontPrint, fontWidth, FONT_HEIGHT } from '../font/index.js';
 import { drawHeader } from './header.js';
 import { W, HEADER_H } from './layout.js';
 
-export function renderKeysView(moduleName: string, rootNote: number, midiNoteName: (n: number) => string): void {
+export function renderKeysView(moduleName: string, baseNote: number, midiNoteName: (n: number) => string): void {
     clear_screen();
 
     let abbrev = moduleName;
@@ -14,8 +14,8 @@ export function renderKeysView(moduleName: string, rootNote: number, midiNoteNam
 
     drawHeader('Movy', '[' + abbrev + ']', true);
 
-    const rootName = midiNoteName(rootNote);
-    const topName  = midiNoteName(rootNote + 24);
+    const rootName = midiNoteName(baseNote);
+    const topName  = midiNoteName(baseNote + 24);
     fontPrint(2,                          HEADER_H + 5, rootName, 1);
     fontPrint(W - fontWidth(topName) - 2, HEADER_H + 5, topName,  1);
 

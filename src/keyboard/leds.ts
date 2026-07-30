@@ -5,7 +5,6 @@ export function drumPadLedColor(
     padNote:        number,
     padMin:         number,
     drumConfig:     DrumConfig,
-    rootNote:       number,
     currentPhysPad: number,
     track:          number,
     isPlaying:      boolean,

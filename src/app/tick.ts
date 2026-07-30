@@ -3,13 +3,13 @@ import { mainPageActive, mainPageState } from '../seq/main-page.js';
 import { buildMainPageVM } from '../seq/main-page-vm.js';
 import { clipPageState } from '../seq/clip-page.js';
 import { buildClipPageVM } from '../seq/clip-page-vm.js';
-import { keyboardState } from '../keyboard/state.js';
+import { keyboardState, baseNoteFor, padMapFor } from '../keyboard/state.js';
 import { isSounding } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
 import { MASTER_FX_SLOTS } from '../chain/config.js';
 import { drumPadLedColor } from '../keyboard/leds.js';
 import { WHITE_DIM } from '../seq/colors.js';
-import { chromaticPadColor, chromaticPitch } from '../seq/pads.js';
+import { padColor } from '../seq/pads.js';
 import { midiNoteName } from '../keyboard/notes.js';
 import { renderKnobsView } from '../renderer/knob-view.js';
 import { renderKeysView }  from '../renderer/keys-view.js';
@@ -135,7 +135,9 @@ let lastMainSig = '';
 function mainSig(): string {
     return [mainPageState.active, mainPageState.touchedKnob, mainPageState.scaleOverlay,
         mainPageState.scaleSel, seqState.bpmX100, seqState.swingPct,
-        keyboardState.rootNote, keyboardState.scale].join(',');
+        keyboardState.rootPc, keyboardState.scale,
+        keyboardState.mode, keyboardState.layout,
+        keyboardState.octave[appState.activeSlot]].join(',');
 }
 
 let lastClipSig = '';
@@ -315,10 +317,9 @@ export function tick(): void {
     if (!appState.initLedsDone && !seqState.sessionMode && !isDrum) {
         const total = PAD_MAX - PAD_MIN + 1;
         const end   = Math.min(appState.initLedIndex + LED_INIT_BATCH, total);
-        const base  = keyboardState.rootNote;
         for (let i = appState.initLedIndex; i < end; i++) {
             const p = PAD_MIN + i;
-            const color = chromaticPadColor(p, PAD_MIN, base, appState.activeSlot, false, null, keyboardState.scale);
+            const color = padColor(p, PAD_MIN, appState.activeSlot, false);
             chromaticCache[i] = color;
             setLED(p, color, true);
         }
@@ -410,7 +411,7 @@ export function tick(): void {
             jogToastShown = jogHintVisible();
             updateKnobLEDs(vm);
         } else if (appState.currentView === VIEW_KEYS) {
-            renderKeysView(activeModel?.getModuleName() ?? '—', keyboardState.rootNote, midiNoteName);
+            renderKeysView(activeModel?.getModuleName() ?? '—', baseNoteFor(appState.activeSlot), midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
             const stepAvail = stepPageAvailable();
             let vm;
@@ -500,7 +501,7 @@ export function tick(): void {
                 const dp  = drumCfg.rawMidi ? p - drumCfg.padNoteStart + 1 : row * 4 + col + 1;
                 const note = drumCfg.rawMidi ? p : drumCfg.padNoteStart + dp - 1;
                 const playing = activeHasNote(track, note) || isSounding(p);
-                const color = drumPadLedColor(p, PAD_MIN, drumCfg, keyboardState.rootNote, sel, track, playing);
+                const color = drumPadLedColor(p, PAD_MIN, drumCfg, sel, track, playing);
                 if (drumCache[i] !== color) {
                     drumCache[i] = color;
                     setLED(p, color, true);
@@ -526,16 +527,15 @@ export function tick(): void {
      * the sequencer's active-note LEDs update at poll rate (~24 Hz) without
      * requiring a full UI redraw. Cache diff prevents redundant LED sends. */
     if (!seqState.sessionMode && !isDrum && appState.initLedsDone) {
-        const base      = keyboardState.rootNote;
         const track     = appState.activeSlot;
+        const map       = padMapFor(track);
         const holdNotes = seqState.holdStep >= 0 && seqState.holdNotes.length > 0
             ? displayHoldNotes() : null;
         for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {
             const p     = PAD_MIN + i;
-            const pitch = chromaticPitch(p, PAD_MIN, base);
-            const isPlaying = isSounding(p)
-                || (pitch >= 0 && pitch <= 127 && activeHasNote(track, pitch));
-            const color = chromaticPadColor(p, PAD_MIN, base, track, isPlaying, holdNotes, keyboardState.scale);
+            const pitch = map[i];
+            const isPlaying = isSounding(p) || (pitch >= 0 && activeHasNote(track, pitch));
+            const color = padColor(p, PAD_MIN, track, isPlaying, holdNotes);
             if (chromaticCache[i] !== color) {
                 chromaticCache[i] = color;
                 setLED(p, color, true);

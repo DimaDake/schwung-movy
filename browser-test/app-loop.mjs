@@ -328,11 +328,11 @@ _log('\napp-loop: octave buttons disabled on drum track');
 {
     resetApp();
     const { keyboardState } = await import('../dist/esm/keyboard/state.js');
-    const rootBefore = keyboardState.rootNote;
+    const octBefore = keyboardState.octave[appState.activeSlot];
     for (const k of Object.keys(buttonLeds)) delete buttonLeds[k];
     sendMidi([0xB0, 55, 127]); // MoveUp press
     advance(1);
-    eq('drum track: MoveUp does not shift root', keyboardState.rootNote, rootBefore);
+    eq('drum track: MoveUp does not shift octave', keyboardState.octave[appState.activeSlot], octBefore);
     eq('drum track: MoveUp button LED stays dark', buttonLeds[55] ?? 0, 0);
 }
 
@@ -350,12 +350,13 @@ _log('\napp-loop: octave buttons flash on melodic track');
     eq('melodic idle: MoveUp button dim', buttonLeds[55], 16);
     eq('melodic idle: MoveDown button dim', buttonLeds[54], 16);
 
-    const rootBefore = keyboardState.rootNote;
+    const octBefore = keyboardState.octave[appState.activeSlot];
     for (const k of Object.keys(buttonLeds)) delete buttonLeds[k];
 
     sendMidi([0xB0, 55, 127]); // MoveUp press
     advance(1);
-    eq('melodic: MoveUp shifts root +12', keyboardState.rootNote, rootBefore + 12);
+    eq('melodic: MoveUp shifts the active track up an octave',
+        keyboardState.octave[appState.activeSlot], octBefore + 1);
     eq('melodic: MoveUp button lights white', buttonLeds[55], 124); // WHITE_BRIGHT
 
     sendMidi([0xB0, 55, 0]); // MoveUp release

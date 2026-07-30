@@ -12,7 +12,7 @@ import { midiNoteName } from '../keyboard/notes.js';
 
 /* Root note name without the octave (the layout tonic's pitch class). */
 function rootName(): string {
-    return midiNoteName(keyboardState.rootNote).replace(/-?\d+$/, '');
+    return midiNoteName(keyboardState.rootPc).replace(/-?\d+$/, '');
 }
 
 const clamp01 = (x: number): number => Math.max(0, Math.min(1, x));
@@ -21,7 +21,7 @@ export function buildMainPageVM(): ViewModel {
     const bpm   = Math.round(seqState.bpmX100 / 100);
     const swing = seqState.swingPct;
     const scale = keyboardState.scale;
-    const rootPc = (((keyboardState.rootNote % 12) + 12) % 12);
+    const rootPc = keyboardState.rootPc;
 
     // normalizedValue drives the under-knob LED brightness (knobs 0-3 lit, 4-7
     // off): tempo over 20-300, swing over 50-80, root over its 12 pitch classes,

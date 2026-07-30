@@ -280,7 +280,8 @@ _origLog('\nTest 4b: fill_rect calls per renderKnobsView (main params page)');
     /* Initialize sequencer and keyboard state. */
     resetSeqState();
     resetMainPage();
-    keyboardState.rootNote = 60;
+    keyboardState.rootPc = 0; keyboardState.octave = [5, 5, 5, 5];
+    keyboardState.mode = 0; keyboardState.layout = 0;
     keyboardState.scale = 0;
     seqState.bpmX100 = 12000;  // 120 bpm
     seqState.swingPct = 50;
@@ -301,7 +302,8 @@ _origLog('\nTest 4c: fill_rect calls with overlay open (main params scale list)'
 {
     resetSeqState();
     resetMainPage();
-    keyboardState.rootNote = 60;
+    keyboardState.rootPc = 0; keyboardState.octave = [5, 5, 5, 5];
+    keyboardState.mode = 0; keyboardState.layout = 0;
     keyboardState.scale = 0;
     seqState.bpmX100 = 12000;
     seqState.swingPct = 50;

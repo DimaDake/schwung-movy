@@ -40,7 +40,8 @@ export function currentSetUuid(): string { return curUuid; }
 /** `{root,scale}` JSON of the persisted UI keyboard state. */
 export function serializeUiState(): string {
     return JSON.stringify({
-        root: keyboardState.rootNote, scale: keyboardState.scale,
+        root: keyboardState.octave[0] * 12 + keyboardState.rootPc,
+        rootPc: keyboardState.rootPc, scale: keyboardState.scale,
         mutes: mutesSnapshot(),
     });
 }
@@ -49,7 +50,8 @@ export function serializeUiState(): string {
 export function applyUiState(blob: string): void {
     try {
         const o = JSON.parse(blob);
-        if (typeof o.root === 'number') keyboardState.rootNote = Math.max(0, Math.min(103, o.root | 0));
+        if (typeof o.rootPc === 'number') keyboardState.rootPc = ((o.rootPc | 0) % 12 + 12) % 12;
+        else if (typeof o.root === 'number') keyboardState.rootPc = Math.max(0, Math.min(103, o.root | 0)) % 12;
         if (typeof o.scale === 'number') keyboardState.scale = Math.min(SCALES.length - 1, Math.max(0, o.scale | 0));
         if (o.mutes) restoreMutes(o.mutes);
     } catch { /* corrupt file → keep defaults */ }
@@ -57,7 +59,7 @@ export function applyUiState(blob: string): void {
 
 /* Defaults match init() (root 48, Major scale 0). */
 function resetUiState(): void {
-    keyboardState.rootNote = 48;
+    keyboardState.rootPc = 0;
     keyboardState.scale = 0;
     resetTrackMutes();
 }

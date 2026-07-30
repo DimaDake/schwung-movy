@@ -1417,9 +1417,9 @@ _log('\nTest: drumPadOn');
 
   const mrdCfg = { padCount: 16, padNoteStart: 36, rawMidi: false, currentPadParam: 'ui_current_pad' };
 
-  // pad 68, rawMidi=false, rootNote=36: PAD_MAP[0]=0 → midiNote=36 → drumPad=1
+  // pad 68, rawMidi=false: PAD_MAP[0]=0 → midiNote=36 → drumPad=1
   sentMidi = []; setParams = {};
-  const r1 = drumPadOn(68, 68, false, mrdCfg, 36, 'synth', 0, 100);
+  const r1 = drumPadOn(68, 68, false, mrdCfg, 'synth', 0, 100);
   eq('mrdrums pad68 → drumPad 1', r1, 1);
   eq('sends NoteOn 36', sentMidi[0]?.[1], 36);
   eq('velocity 100', sentMidi[0]?.[2], 100);
@@ -1427,13 +1427,13 @@ _log('\nTest: drumPadOn');
 
   // pad 76: padIdx=8, col=0, row=1 → drumPad=5, midiNote=40
   sentMidi = []; setParams = {};
-  const r2 = drumPadOn(76, 68, false, mrdCfg, 36, 'synth', 0, 100);
+  const r2 = drumPadOn(76, 68, false, mrdCfg, 'synth', 0, 100);
   eq('mrdrums pad76 → drumPad 5', r2, 5);
   eq('mrdrums pad76 → midiNote 40', sentMidi[0]?.[1], 40);
 
   // shift+pad (no shiftSelectMidi) → suppresses MIDI, still sets param
   sentMidi = []; setParams = {};
-  const r3 = drumPadOn(68, 68, true, mrdCfg, 36, 'synth', 0, 100);
+  const r3 = drumPadOn(68, 68, true, mrdCfg, 'synth', 0, 100);
   eq('shift+pad returns drumPad 1', r3, 1);
   eq('shift: no MIDI sent', sentMidi.length, 0);
   eq('shift: still sets param', setParams['synth:ui_current_pad'], '1');
@@ -1441,24 +1441,24 @@ _log('\nTest: drumPadOn');
   // shiftSelectMidi=true (weird-dreams) → sends vel=1
   const wdCfg = { padCount: 8, padNoteStart: 36, rawMidi: false, shiftSelectMidi: true };
   sentMidi = [];
-  drumPadOn(68, 68, true, wdCfg, 36, 'synth', 0, 100);
+  drumPadOn(68, 68, true, wdCfg, 'synth', 0, 100);
   eq('shiftSelectMidi: sends vel=1', sentMidi[0]?.[2], 1);
 
   // rawMidi=true (krautdrums): midiNote=physPad → drumPad=physPad-padNoteStart+1
   const kCfg = { padCount: 16, padNoteStart: 68, rawMidi: true };
   sentMidi = []; setParams = {};
-  const r4 = drumPadOn(68, 68, false, kCfg, 36, 'synth', 0, 100);
+  const r4 = drumPadOn(68, 68, false, kCfg, 'synth', 0, 100);
   eq('krautdrums pad68 → drumPad 1', r4, 1);
   eq('rawMidi sends pad note 68', sentMidi[0]?.[1], 68);
 
   // rawMidi out-of-range: kCfg padCount=16, pad84=drumPad17
   sentMidi = [];
-  const r5 = drumPadOn(84, 68, false, kCfg, 36, 'synth', 0, 100);
+  const r5 = drumPadOn(84, 68, false, kCfg, 'synth', 0, 100);
   eq('rawMidi out-of-range → null', r5, null);
 
   // right-half column (col=4, pad72): inactive for rawMidi=false
   sentMidi = [];
-  const r6 = drumPadOn(72, 68, false, mrdCfg, 36, 'synth', 0, 100);
+  const r6 = drumPadOn(72, 68, false, mrdCfg, 'synth', 0, 100);
   eq('grid col>=4 → null', r6, null);
   eq('grid col>=4: no MIDI', sentMidi.length, 0);
 
@@ -1467,12 +1467,12 @@ _log('\nTest: drumPadOn');
   // must not register as sounding.
   const ledger = await import('../dist/esm/keyboard/held-notes.js');
   ledger.drainAll();
-  drumPadOn(76, 68, false, mrdCfg, 36, 'synth', 0, 100);   // sounds midiNote 40
+  drumPadOn(76, 68, false, mrdCfg, 'synth', 0, 100);   // sounds midiNote 40
   eq('held pad tracked (phys→midi)', ledger.noteReleased(76)?.pitch, 40);
-  drumPadOn(76, 68, false, mrdCfg, 36, 'synth', 0, 100);   // sound it again
+  drumPadOn(76, 68, false, mrdCfg, 'synth', 0, 100);   // sound it again
   drumPadOff(76);
   eq('held pad cleared on release', ledger.isSounding(76), false);
-  drumPadOn(68, 68, true, mrdCfg, 36, 'synth', 0, 100);     // shift-select, silent
+  drumPadOn(68, 68, true, mrdCfg, 'synth', 0, 100);     // shift-select, silent
   eq('shift-select not held', ledger.isSounding(68), false);
   ledger.drainAll();
 
@@ -1962,30 +1962,32 @@ _log('\nTest: drumPadOn');
 /* ── seq pads: chromatic layout + coloring ───────────────────────────────── */
 {
     _log('\nseq chromatic pads:');
-    const { chromaticPitch, chromaticPadColor, inScale } =
-        await import('../dist/esm/seq/pads.js');
+    const { padPitch, padColor } = await import('../dist/esm/seq/pads.js');
     const { trackColor } = await import('../dist/esm/seq/colors.js');
+    const { keyboardState, resetPadMapCache } = await import('../dist/esm/keyboard/state.js');
 
     const PAD_MIN = 68;
-    const base = 48; // C3 at bottom-left
+    keyboardState.rootPc = 0; keyboardState.scale = 0;
+    keyboardState.mode = 0; keyboardState.layout = 0;
+    keyboardState.octave = [4, 4, 4, 4];   // base 48 = C3
+    resetPadMapCache();
 
-    // Bottom-left = base; +1 per column right; +5 per row up.
-    eq('bottom-left = base note', chromaticPitch(68, PAD_MIN, base), 48);
-    eq('one column right = +1 semitone', chromaticPitch(69, PAD_MIN, base), 49);
-    eq('one row up = +5 semitones', chromaticPitch(76, PAD_MIN, base), 53);
-    eq('top-left (row 3) = +15', chromaticPitch(92, PAD_MIN, base), 63);
+    // The root sits on column 4, so bottom-left is base-3; +1 per column right,
+    // +5 per row up.
+    eq('bottom-left = base - 3', padPitch(0, 68, PAD_MIN), 45);
+    eq('root at column 4 = base', padPitch(0, 71, PAD_MIN), 48);
+    eq('one column right = +1 semitone', padPitch(0, 72, PAD_MIN), 49);
+    eq('one row up = +5 semitones', padPitch(0, 79, PAD_MIN), 53);
+    eq('top row (row 3) = +15', padPitch(0, 95, PAD_MIN), 63);
 
     // Coloring: root C = track color, in-scale gray, out-of-scale dark.
-    eq('root C uses track color', chromaticPadColor(68, PAD_MIN, base, 2, false), trackColor(2));
+    eq('root C uses track color', padColor(71, PAD_MIN, 2, false), trackColor(2));
     // base+2 = D (in C major) → light gray (118)
-    eq('in-scale note light gray', chromaticPadColor(70, PAD_MIN, base, 0, false), 118);
+    eq('in-scale note light gray', padColor(73, PAD_MIN, 0, false), 118);
     // base+1 = C# (out of scale) → dark
-    eq('out-of-scale dark', chromaticPadColor(69, PAD_MIN, base, 0, false), 0);
+    eq('out-of-scale dark', padColor(72, PAD_MIN, 0, false), 0);
     // isPlaying=true → green (sounding, highest priority)
-    eq('playing pad green', chromaticPadColor(69, PAD_MIN, base, 0, true), 11);
-
-    eq('C in C major scale', inScale(60, 48, 0), true);
-    eq('C# not in C major scale', inScale(61, 48, 0), false);
+    eq('playing pad green', padColor(72, PAD_MIN, 0, true), 11);
 }
 
 /* ── seq Full Velocity toggle (Shift+Step 10) ────────────────────────────── */
@@ -2743,35 +2745,41 @@ _log('\nautomation: restore re-requests label sync:');
     const cfg = { rawMidi: false, padNoteStart: 36, padCount: 16 };
     const padMin = 68;
     // pad index 0 => drumPad 1 => note 36; selected when currentPhysPad === pad.
-    const unselNotPlaying = drumPadLedColor(68, padMin, cfg, 36, /*phys*/-1, /*track*/2, /*playing*/false);
+    const unselNotPlaying = drumPadLedColor(68, padMin, cfg, /*phys*/-1, /*track*/2, /*playing*/false);
     eq('unselected = track color', unselNotPlaying, trackColor(2));
-    const selected = drumPadLedColor(68, padMin, cfg, 36, /*phys*/68, 2, false);
+    const selected = drumPadLedColor(68, padMin, cfg, /*phys*/68, 2, false);
     eq('selected = white', selected, 120);
-    const playing = drumPadLedColor(68, padMin, cfg, 36, -1, 2, /*playing*/true);
+    const playing = drumPadLedColor(68, padMin, cfg, -1, 2, /*playing*/true);
     eq('playing = green', playing, 11);
-    const off = drumPadLedColor(72, padMin, cfg, 36, -1, 2, false); // col>=4 => off
+    const off = drumPadLedColor(72, padMin, cfg, -1, 2, false); // col>=4 => off
     eq('right half = off', off, 0);
 }
 
 /* ── chromatic pad LED color ─────────────────────────────────────────────── */
 {
     _log('\nchromatic pad LED color:');
-    const { chromaticPadColor, chromaticPitch } = await import('../dist/esm/seq/pads.js');
+    const { padColor, padPitch } = await import('../dist/esm/seq/pads.js');
     const { trackColor } = await import('../dist/esm/seq/colors.js');
     const { setHeldSet, clearHeldSet } = await import('../dist/esm/seq/held.js');
+    const { keyboardState, resetPadMapCache } = await import('../dist/esm/keyboard/state.js');
 
-    const padMin = 68, base = 60; // bottom-left = C4
-    // bottom-left pad is the root C => track color, unless playing/held.
-    eq('root = track color', chromaticPadColor(68, padMin, base, 0, false), trackColor(0));
-    eq('playing = green',    chromaticPadColor(68, padMin, base, 0, /*playing*/true), 11);
-    // mark the held set: pitch at pad 69 = C#4 = 61.
-    setHeldSet(0, [chromaticPitch(69, padMin, base)]);
-    eq('held-set = white',   chromaticPadColor(69, padMin, base, 0, false), 120);
+    const padMin = 68;
+    keyboardState.rootPc = 0; keyboardState.scale = 0;
+    keyboardState.mode = 0; keyboardState.layout = 0;
+    keyboardState.octave = [5, 5, 5, 5];   // base 60 = C4, root on pad 71
+    resetPadMapCache();
+    // The root pad is track colour, unless playing/held.
+    eq('root = track color', padColor(71, padMin, 0, false), trackColor(0));
+    eq('playing = green',    padColor(71, padMin, 0, /*playing*/true), 11);
+    // mark the held set: pitch at pad 72 = C#4 = 61.
+    setHeldSet(0, [padPitch(0, 72, padMin)]);
+    eq('held-set = white',   padColor(72, padMin, 0, false), 120);
     clearHeldSet(0);
     // step-hold overlay: holdNotes array overrides the noteHeld set
-    const holdPitches = [chromaticPitch(68, padMin, base)]; // C4 = 60
-    eq('holdNotes-in-array = white', chromaticPadColor(68, padMin, base, 0, false, holdPitches), 120);
-    eq('holdNotes-missing = normal', chromaticPadColor(69, padMin, base, 0, false, holdPitches), 0); // C# out of scale → black
+    const holdPitches = [padPitch(0, 71, padMin)]; // C4 = 60
+    eq('holdNotes-in-array = white', padColor(71, padMin, 0, false, holdPitches), 120);
+    eq('holdNotes-missing = normal', padColor(72, padMin, 0, false, holdPitches), 0); // C# out of scale → black
+    keyboardState.octave = [4, 4, 4, 4]; resetPadMapCache();
 }
 
 /* ── transport LEDs ──────────────────────────────────────────────────────── */
@@ -4142,12 +4150,17 @@ _log('\nautomation label sync:');
 /* ── chromatic pad: root highlight follows baseNote pitch class ──────────── */
 {
     _log('\nchromatic pad root highlight:');
-    const { chromaticPadColor } = await import('../dist/esm/seq/pads.js');
-    // PAD_MIN=68, baseNote=48 (C). Bottom-left pad (68) plays pitch 48 (C) → root.
-    // With baseNote=50 (D), pad 68 plays 50 (D) → root color; old code keyed on C only.
-    const ROOT_T0 = chromaticPadColor(68, 68, 50, 0, false, null, 0); // D major, root pad
-    const trackCol = chromaticPadColor(68, 68, 48, 0, false, null, 0); // C major, root pad
-    eq('root highlight follows baseNote pitch class', ROOT_T0, trackCol);
+    const { padColor } = await import('../dist/esm/seq/pads.js');
+    const { keyboardState, resetPadMapCache } = await import('../dist/esm/keyboard/state.js');
+    // The root highlight keys on the tonic's pitch class, not on C: transposing
+    // the tonic to D must move the track-coloured pads with it.
+    keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
+    keyboardState.octave = [4, 4, 4, 4];
+    keyboardState.rootPc = 2; resetPadMapCache();
+    const ROOT_T0 = padColor(71, 68, 0, false);   // D major, root pad
+    keyboardState.rootPc = 0; resetPadMapCache();
+    const trackCol = padColor(71, 68, 0, false);  // C major, root pad
+    eq('root highlight follows the tonic pitch class', ROOT_T0, trackCol);
 }
 
 /* ── scales: musical scale definitions and in-scale testing ─────────────── */
@@ -4257,6 +4270,135 @@ _log('\nautomation label sync:');
     }
 }
 
+/* ── keyboard state: per-track octave + pad-map cache ───────────────────── */
+{
+    _log('\nkeyboard state:');
+    const { keyboardState, baseNoteFor, padMapFor, padMapBuildCount, resetPadMapCache, OCT_MIN, OCT_MAX }
+        = await import('../dist/esm/keyboard/state.js');
+
+    keyboardState.rootPc = 0; keyboardState.scale = 0;
+    keyboardState.mode = 0; keyboardState.layout = 0;
+    keyboardState.octave = [4, 4, 4, 4];
+    resetPadMapCache();
+
+    eq('default base is C3', baseNoteFor(0), 48);
+    eq('octave range', OCT_MIN + '-' + OCT_MAX, '0-8');
+
+    // Per-track: changing one track's octave must not move another's.
+    keyboardState.octave[1] = 2;
+    eq('track 0 unchanged', baseNoteFor(0), 48);
+    eq('track 1 moved down two octaves', baseNoteFor(1), 24);
+
+    // Tonic is global — it moves every track's base together.
+    keyboardState.rootPc = 3;
+    eq('root pc shifts track 0', baseNoteFor(0), 51);
+    eq('root pc shifts track 1', baseNoteFor(1), 27);
+    keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
+
+    // Cache: rebuilt only when one of its inputs changes. The per-tick LED loop
+    // calls padMapFor at ~205 Hz, so a rebuild per call would be pure waste.
+    resetPadMapCache();
+    const b0 = padMapBuildCount();
+    for (let i = 0; i < 500; i++) padMapFor(0);
+    eq('500 unchanged calls build once', padMapBuildCount() - b0, 1);
+    keyboardState.octave[0] = 5;
+    padMapFor(0);
+    eq('octave change rebuilds', padMapBuildCount() - b0, 2);
+    keyboardState.octave[0] = 4;
+    padMapFor(0);
+    keyboardState.mode = 1;
+    padMapFor(0);
+    eq('mode change rebuilds', padMapBuildCount() - b0, 4);
+    keyboardState.layout = 1;
+    padMapFor(0);
+    eq('layout change rebuilds', padMapBuildCount() - b0, 5);
+    keyboardState.scale = 2;
+    padMapFor(0);
+    eq('scale change rebuilds', padMapBuildCount() - b0, 6);
+    // Same octave as track 0 → same base → the cache key matches, no rebuild.
+    padMapFor(1);
+    eq('other track on the same octave reuses the map', padMapBuildCount() - b0, 6);
+
+    keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
+    keyboardState.octave = [4, 4, 4, 4];
+    resetPadMapCache();
+    eq('map is 32 entries', padMapFor(0).length, 32);
+}
+
+/* ── pad colours: root / scale / piano blacks / dead pads ───────────────── */
+{
+    _log('\npad colours:');
+    const { padColor, padPitch } = await import('../dist/esm/seq/pads.js');
+    const { keyboardState, resetPadMapCache } = await import('../dist/esm/keyboard/state.js');
+
+    const C_BLACK = 0, C_WHITE = 120, C_DARKGREY = 124, C_LIGHTGREY = 118, C_GREEN = 11;
+    const TRACK0 = 127;
+    const PAD_MIN = 68;
+
+    keyboardState.rootPc = 0; keyboardState.scale = 0;
+    keyboardState.mode = 0; keyboardState.layout = 0;
+    keyboardState.octave = [4, 4, 4, 4];
+    resetPadMapCache();
+
+    // Chromatic fourths, base 48: bottom-left is 45 (A2), root C3 at index 3.
+    eq('pitch bottom-left', padPitch(0, PAD_MIN, PAD_MIN), 45);
+    eq('pitch at root column', padPitch(0, PAD_MIN + 3, PAD_MIN), 48);
+    eq('root pad is track colour', padColor(PAD_MIN + 3, PAD_MIN, 0, false), TRACK0);
+    eq('in-scale pad is light grey', padColor(PAD_MIN + 5, PAD_MIN, 0, false), C_LIGHTGREY); // D
+    eq('out-of-scale pad is dark', padColor(PAD_MIN + 4, PAD_MIN, 0, false), C_BLACK);       // C#
+    eq('sounding pad is green', padColor(PAD_MIN + 3, PAD_MIN, 0, true), C_GREEN);
+    eq('hold overlay pad is white', padColor(PAD_MIN + 3, PAD_MIN, 0, false, [48]), C_WHITE);
+
+    // Piano: blacks take the darker tint so the keyboard shape reads; the gap
+    // columns are dead.
+    keyboardState.layout = 1; resetPadMapCache();
+    eq('piano root still track colour', padColor(PAD_MIN, PAD_MIN, 0, false), TRACK0);
+    eq('piano white D is light grey', padColor(PAD_MIN + 1, PAD_MIN, 0, false), C_LIGHTGREY);
+    eq('piano gap col 0 is dead', padColor(PAD_MIN + 8, PAD_MIN, 0, false), C_BLACK);
+    eq('piano black C# is out of C major, so dark', padColor(PAD_MIN + 9, PAD_MIN, 0, false), C_BLACK);
+    // With the Chromatic scale (index 12) every pad lights, and blacks are dim.
+    keyboardState.scale = 12; resetPadMapCache();
+    eq('piano black lights dark grey in chromatic scale', padColor(PAD_MIN + 9, PAD_MIN, 0, false), C_DARKGREY);
+    eq('piano white lights light grey in chromatic scale', padColor(PAD_MIN + 1, PAD_MIN, 0, false), C_LIGHTGREY);
+    eq('piano gap stays dead in chromatic scale', padColor(PAD_MIN + 8, PAD_MIN, 0, false), C_BLACK);
+
+    // In Key: every pad is in scale, so nothing is dark except dead pads.
+    keyboardState.mode = 1; keyboardState.layout = 0; keyboardState.scale = 0;
+    resetPadMapCache();
+    eq('key mode root bottom-left', padColor(PAD_MIN, PAD_MIN, 0, false), TRACK0);
+    eq('key mode non-root is light grey', padColor(PAD_MIN + 1, PAD_MIN, 0, false), C_LIGHTGREY);
+
+    keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
+    resetPadMapCache();
+}
+
+/* ── octave buttons: per-track, clamped ─────────────────────────────────── */
+{
+    _log('\noctave buttons:');
+    const { changeOctave, setRootPc } = await import('../dist/esm/keyboard/handler.js');
+    const { keyboardState, OCT_MIN, OCT_MAX } = await import('../dist/esm/keyboard/state.js');
+
+    keyboardState.octave = [4, 4, 4, 4];
+    changeOctave(1, 1);
+    eq('shifts only the named track', JSON.stringify(keyboardState.octave), '[4,5,4,4]');
+    changeOctave(1, -1);
+    eq('shifts back', JSON.stringify(keyboardState.octave), '[4,4,4,4]');
+
+    keyboardState.octave[2] = OCT_MAX;
+    changeOctave(2, 1);
+    eq('clamps at the top', keyboardState.octave[2], OCT_MAX);
+    keyboardState.octave[2] = OCT_MIN;
+    changeOctave(2, -1);
+    eq('clamps at the bottom', keyboardState.octave[2], OCT_MIN);
+    keyboardState.octave = [4, 4, 4, 4];
+
+    setRootPc(13);
+    eq('root pc wraps above B', keyboardState.rootPc, 1);
+    setRootPc(-1);
+    eq('root pc wraps below C', keyboardState.rootPc, 11);
+    setRootPc(0);
+}
+
 /* ── main params page: state machine + knob/touch/release handlers ──────── */
 {
     _log('\nmain params page:');
@@ -4290,11 +4432,11 @@ _log('\nautomation label sync:');
     eq('scale committed on release', keyboardState.scale, 1);
     eq('overlay closed on release', mainPageState.scaleOverlay, false);
     // Root knob wraps the pitch class within the current octave (B↔C); octave fixed.
-    keyboardState.rootNote = 59;           // B3 (octave base 48, pitch class 11)
+    keyboardState.rootPc = 11;             // B (pitch class 11)
     mainPageKnob(2, 8);                  // +1 detent
-    eq('root wraps B->C within octave', keyboardState.rootNote, 48);
+    eq('root wraps B->C within octave', keyboardState.rootPc, 0);
     mainPageKnob(2, -8);                 // -1 detent
-    eq('root wraps C->B within octave', keyboardState.rootNote, 59);
+    eq('root wraps C->B within octave', keyboardState.rootPc, 11);
     // Close returns origin.
     eq('close returns origin view', closeMainPage(), 3);
     eq('page inactive after close', mainPageActive(), false);
@@ -4511,13 +4653,13 @@ _log('\nautomation label sync:');
     const { mainPageKnob, resetMainPage } = await import('../dist/esm/seq/main-page.js');
     const { keyboardState } = await import('../dist/esm/keyboard/state.js');
     resetMainPage();
-    keyboardState.rootNote = 48; // C
+    keyboardState.rootPc = 0; // C
     let padPaints = 0;
     const origSetLED = globalThis.setLED;
     globalThis.setLED = (idx) => { if (idx >= 68 && idx <= 99) padPaints++; }; // pad note range
     mainPageKnob(2, 8);       // +1 detent on the root knob (→ setRoot)
     globalThis.setLED = origSetLED;
-    eq('root knob turn changes rootNote', keyboardState.rootNote, 49);
+    eq('root knob turn changes rootPc', keyboardState.rootPc, 1);
     eq('root knob paints no pad LEDs (per-tick track-aware loop owns pads)', padPaints, 0);
 }
 
@@ -4531,7 +4673,7 @@ _log('\nautomation label sync:');
 
     resetMainPage();
     seqState.bpmX100 = 12000; seqState.swingPct = 50;
-    keyboardState.rootNote = 48; keyboardState.scale = 0; // C, Major
+    keyboardState.rootPc = 0; keyboardState.scale = 0; // C, Major
     mainPageState.active = true; mainPageState.touchedKnob = 0;
     let vm = buildMainPageVM();
     eq('tempo cell shows 120', vm.rows[0][0].displayValue, '120');
@@ -4553,27 +4695,27 @@ _log('\nautomation label sync:');
     const { seqToastText } = await import('../dist/esm/seq/render.js');
     const { keyboardState } = await import('../dist/esm/keyboard/state.js');
 
-    keyboardState.rootNote = 50; keyboardState.scale = 2;
+    keyboardState.rootPc = 2; keyboardState.scale = 2;
     const blob = serializeUiState();
-    keyboardState.rootNote = 48; keyboardState.scale = 0;
+    keyboardState.rootPc = 0; keyboardState.scale = 0;
     applyUiState(blob);
-    eq('root restored', keyboardState.rootNote, 50);
+    eq('root restored', keyboardState.rootPc, 2);
     eq('scale restored', keyboardState.scale, 2);
 
     // Tolerant parse: unknown fields are ignored; missing fields keep current.
-    keyboardState.rootNote = 60; keyboardState.scale = 1;
+    keyboardState.rootPc = 5; keyboardState.scale = 1;
     applyUiState('{"root":36}');
-    eq('partial blob updates root', keyboardState.rootNote, 36);
+    eq('partial blob updates root', keyboardState.rootPc, 0);
     eq('partial blob keeps scale', keyboardState.scale, 1);
 
-    // Clamping: root clamped to 0..103.
+    // Clamping: a legacy root is clamped to 0..103 before its pitch class is taken.
     applyUiState('{"root":200,"scale":0}');
-    eq('root clamped to 103', keyboardState.rootNote, 103);
+    eq('root clamped to 103 -> pitch class 7', keyboardState.rootPc, 7);
 
     // Corrupt JSON is a no-op.
-    keyboardState.rootNote = 48; keyboardState.scale = 0;
+    keyboardState.rootPc = 0; keyboardState.scale = 0;
     applyUiState('not json');
-    eq('corrupt blob leaves root unchanged', keyboardState.rootNote, 48);
+    eq('corrupt blob leaves root unchanged', keyboardState.rootPc, 0);
     eq('corrupt blob leaves scale unchanged', keyboardState.scale, 0);
 }
 
@@ -4897,7 +5039,7 @@ _log('\nTest: switchToSet save-then-load orchestration');
     fs[uiPath('A')] = '{"root":55,"scale":2}';
     switchToSet('A', 'Song A', false);
     eq('loaded A blob into engine', eng.stateLoads[eng.stateLoads.length - 1], 'movy1\nbpm 13000\n');
-    eq('applied A ui root', keyboardState.rootNote, 55);
+    eq('applied A ui root', keyboardState.rootPc, 7);   // 55 % 12
     eq('applied A ui scale', keyboardState.scale, 2);
     eq('current uuid is A', currentSetUuid(), 'A');
 
@@ -4906,7 +5048,7 @@ _log('\nTest: switchToSet save-then-load orchestration');
     switchToSet('B', 'Song B', true);
     eq('A saved before B load', fs[stPath('A')], 'movy1\nbpm 13000\nEDITED\n');
     eq('B is blank (no file, no family)', eng.stateLoads[eng.stateLoads.length - 1], 'movy1\n');
-    eq('B ui reset to defaults (root 48)', keyboardState.rootNote, 48);
+    eq('B ui reset to defaults (root C)', keyboardState.rootPc, 0);
     eq('B ui reset to defaults (scale 0)', keyboardState.scale, 0);
     eq('current uuid is B', currentSetUuid(), 'B');
 }
@@ -6339,7 +6481,7 @@ _log('\nTest: note-off channel follows the ledger, not the active track');
   // release used to recompute a different note (or bail) and strand it.
   const mrdReleaseCfg = { padCount: 16, padNoteStart: 36, rawMidi: false, currentPadParam: 'ui_current_pad' };
   L.drainAll(); sentMidi = [];
-  drumPadOn(76, 68, false, mrdReleaseCfg, 36, 'synth', 3, 100);   // → midiNote 40, track 3
+  drumPadOn(76, 68, false, mrdReleaseCfg, 'synth', 3, 100);   // → midiNote 40, track 3
   sentMidi = [];
   drumPadOff(76);                                                 // no config passed at all
   eq('drum off uses recorded pitch', offs()[0][1], 40);
@@ -6348,7 +6490,7 @@ _log('\nTest: note-off channel follows the ledger, not the active track');
 
   // A shift-select drum pad never sounded, so its release emits nothing.
   L.drainAll(); sentMidi = [];
-  drumPadOn(68, 68, true, mrdReleaseCfg, 36, 'synth', 0, 100);
+  drumPadOn(68, 68, true, mrdReleaseCfg, 'synth', 0, 100);
   sentMidi = [];
   drumPadOff(68);
   eq('silent shift-select emits no off', offs().length, 0);

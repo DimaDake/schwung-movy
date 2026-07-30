@@ -8,7 +8,7 @@ import { seqCmd } from './engine.js';
 import { scheduleTempoOverride } from './tempo-override.js';
 import { SCALE_NAMES } from './scales.js';
 import { keyboardState } from '../keyboard/state.js';
-import { setRoot } from '../keyboard/handler.js';
+import { setRootPc } from '../keyboard/handler.js';
 import { countDetents } from './detent.js';
 import { markUiStateDirty } from './ui-dirty.js';
 
@@ -82,10 +82,7 @@ export function mainPageKnob(k: number, delta: number): void {
         // the octave edges (B↔C); the +/- octave buttons change octave. setRoot
         // only updates state (the track-aware tick loop repaints pads), so this
         // never disturbs a drum rack / clip grid when used on a non-chromatic track.
-        const base = keyboardState.rootNote;
-        const oct  = Math.floor(base / 12) * 12;
-        const pc   = (((base - oct + n) % 12) + 12) % 12;
-        setRoot(oct + pc);
+        setRootPc(keyboardState.rootPc + n);
     } else if (k === 3 && mainPageState.scaleOverlay) {
         mainPageState.scaleSel = Math.max(0, Math.min(SCALE_NAMES.length - 1, mainPageState.scaleSel + n));
     } else if (k === 4) {

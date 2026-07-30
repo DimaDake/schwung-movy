@@ -8,7 +8,6 @@ export function drumPadOn(
     padMin:       number,
     shiftHeld:    boolean,
     drumConfig:   DrumConfig,
-    rootNote:     number,
     componentKey: string,
     slot:         number,
     vel:          number,

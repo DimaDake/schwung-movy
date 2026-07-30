@@ -4,7 +4,7 @@ import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease, closeClip
 import { CHAIN_SLOTS, MASTER_FX_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../chain/config.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
-import { noteOn, noteOff, changeRoot } from '../keyboard/handler.js';
+import { noteOn, noteOff, changeOctave } from '../keyboard/handler.js';
 import { soundingTrack } from '../keyboard/held-notes.js';
 import { releaseAllLive } from '../keyboard/release.js';
 import { drumPadOn, drumPadOff } from '../keyboard/drum-handler.js';
@@ -175,7 +175,7 @@ export function onMidiMessageInternal(data: number[]): void {
         if ((status & 0xF0) === 0x90 && d2 > 0) {
             const vel = seqState.fullVelocity ? 127 : d2;
             if (drumCfg) {
-                const pad = drumPadOn(d1, PAD_MIN, appState.shiftHeld, drumCfg, keyboardState.rootNote, model!.getComponentKey(), track, vel);
+                const pad = drumPadOn(d1, PAD_MIN, appState.shiftHeld, drumCfg, model!.getComponentKey(), track, vel);
                 if (pad !== null) model!.updateDrumPad(pad, d1);
             } else {
                 noteOn(d1, PAD_MIN, track, vel);
@@ -534,7 +534,7 @@ export function onMidiMessageInternal(data: number[]): void {
     if (d1 === MoveUp || d1 === MoveDown) {
         if (trackIsDrum(appState.activeSlot)) return;
         if (d2 > 0) {
-            changeRoot(d1 === MoveUp ? 12 : -12);
+            changeOctave(appState.activeSlot, d1 === MoveUp ? 1 : -1);
             setButtonLED(d1, WHITE_BRIGHT, true);
         } else {
             setButtonLED(d1, WHITE_DIM, true);

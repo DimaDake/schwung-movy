@@ -39,7 +39,10 @@ export function init(): void {
     resetDrumSync();   // fresh models: re-tell the engine which tracks are drums
     resetTrackMutes(); // solo is a live control — never persisted, starts clear
 
-    keyboardState.rootNote = 48;
+    keyboardState.rootPc = 0;
+    keyboardState.mode   = 0;
+    keyboardState.layout = 0;
+    keyboardState.octave = [4, 4, 4, 4];
     drainAll();   // fresh process: discard, do not emit — nothing sounding is ours yet
 
     browserState.modules      = [];

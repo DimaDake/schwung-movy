@@ -4748,31 +4748,58 @@ _log('\nautomation label sync:');
 {
     _log('\nUI-state persistence round-trip:');
     const { serializeUiState, applyUiState } = await import('../dist/esm/seq/persist.js');
-    const { seqToastText } = await import('../dist/esm/seq/render.js');
     const { keyboardState } = await import('../dist/esm/keyboard/state.js');
 
     keyboardState.rootPc = 2; keyboardState.scale = 2;
+    keyboardState.mode = 1; keyboardState.layout = 1;
+    keyboardState.octave = [3, 5, 4, 6];
     const blob = serializeUiState();
-    keyboardState.rootPc = 0; keyboardState.scale = 0;
-    applyUiState(blob);
-    eq('root restored', keyboardState.rootPc, 2);
-    eq('scale restored', keyboardState.scale, 2);
 
-    // Tolerant parse: unknown fields are ignored; missing fields keep current.
-    keyboardState.rootPc = 5; keyboardState.scale = 1;
+    keyboardState.rootPc = 0; keyboardState.scale = 0;
+    keyboardState.mode = 0; keyboardState.layout = 0;
+    keyboardState.octave = [4, 4, 4, 4];
+    applyUiState(blob);
+    eq('root pc restored', keyboardState.rootPc, 2);
+    eq('scale restored', keyboardState.scale, 2);
+    eq('mode restored', keyboardState.mode, 1);
+    eq('layout restored', keyboardState.layout, 1);
+    eq('per-track octaves restored', JSON.stringify(keyboardState.octave), '[3,5,4,6]');
+
+    // A legacy blob has one absolute `root` and no oct/mode/layout: derive the
+    // tonic and give every track that octave. Existing sets must keep working.
+    keyboardState.rootPc = 0; keyboardState.scale = 0;
+    keyboardState.mode = 1; keyboardState.layout = 1;
+    keyboardState.octave = [1, 1, 1, 1];
+    applyUiState(JSON.stringify({ root: 50, scale: 3 }));
+    eq('legacy root gives pitch class', keyboardState.rootPc, 2);
+    eq('legacy root fills every octave', JSON.stringify(keyboardState.octave), '[4,4,4,4]');
+    eq('legacy scale restored', keyboardState.scale, 3);
+    eq('legacy blob resets mode', keyboardState.mode, 0);
+    eq('legacy blob resets layout', keyboardState.layout, 0);
+
+    // Missing fields keep the current value where there is nothing to derive.
+    keyboardState.scale = 1;
     applyUiState('{"root":36}');
     eq('partial blob updates root', keyboardState.rootPc, 0);
     eq('partial blob keeps scale', keyboardState.scale, 1);
 
-    // Clamping: a legacy root is clamped to 0..103 before its pitch class is taken.
-    applyUiState('{"root":200,"scale":0}');
-    eq('root clamped to 103 -> pitch class 7', keyboardState.rootPc, 7);
+    // Out-of-range values are clamped, never trusted.
+    applyUiState(JSON.stringify({ rootPc: 99, oct: [-3, 99, 4, 4], scale: 999, mode: 7, layout: 7 }));
+    eq('rootPc clamped into 0..11', keyboardState.rootPc, 3);
+    eq('octave clamped low', keyboardState.octave[0], 0);
+    eq('octave clamped high', keyboardState.octave[1], 8);
+    eq('scale clamped', keyboardState.scale, 12);
+    eq('mode clamped', keyboardState.mode, 1);
+    eq('layout clamped', keyboardState.layout, 1);
 
-    // Corrupt JSON is a no-op.
+    // Corrupt input must not throw or mutate.
+    keyboardState.rootPc = 5;
+    applyUiState('{not json');
+    eq('corrupt blob leaves state alone', keyboardState.rootPc, 5);
+
     keyboardState.rootPc = 0; keyboardState.scale = 0;
-    applyUiState('not json');
-    eq('corrupt blob leaves root unchanged', keyboardState.rootPc, 0);
-    eq('corrupt blob leaves scale unchanged', keyboardState.scale, 0);
+    keyboardState.mode = 0; keyboardState.layout = 0;
+    keyboardState.octave = [4, 4, 4, 4];
 }
 
 

@@ -16,7 +16,8 @@
 import { mlog } from '../log.js';
 import { engineReady, requestLabelSync } from './engine.js';
 import { seqState } from './state.js';
-import { keyboardState } from '../keyboard/state.js';
+import { keyboardState, OCT_MIN, OCT_MAX } from '../keyboard/state.js';
+import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
 import { SCALES } from './scales.js';
 import { mutesSnapshot, restoreMutes, resetTrackMutes } from '../mixer/track-mutes.js';
 import { markUiStateDirty, takeUiDirty, clearUiDirty } from './ui-dirty.js';
@@ -37,12 +38,21 @@ let curName = '';
 export { markUiStateDirty };
 export function currentSetUuid(): string { return curUuid; }
 
-/** `{root,scale}` JSON of the persisted UI keyboard state. */
+const clampInt = (v: unknown, lo: number, hi: number, dflt: number): number =>
+    typeof v === 'number' && isFinite(v) ? Math.max(lo, Math.min(hi, v | 0)) : dflt;
+
+/** JSON of the persisted UI keyboard state (tonic, scale, layout, octaves). */
 export function serializeUiState(): string {
     return JSON.stringify({
-        root: keyboardState.octave[0] * 12 + keyboardState.rootPc,
-        rootPc: keyboardState.rootPc, scale: keyboardState.scale,
-        mutes: mutesSnapshot(),
+        // `root` is kept as track 0's absolute base so an older build reading a
+        // newer file still lands on a sane note.
+        root:   keyboardState.octave[0] * 12 + keyboardState.rootPc,
+        rootPc: keyboardState.rootPc,
+        scale:  keyboardState.scale,
+        mode:   keyboardState.mode,
+        layout: keyboardState.layout,
+        oct:    keyboardState.octave.slice(),
+        mutes:  mutesSnapshot(),
     });
 }
 
@@ -50,17 +60,32 @@ export function serializeUiState(): string {
 export function applyUiState(blob: string): void {
     try {
         const o = JSON.parse(blob);
-        if (typeof o.rootPc === 'number') keyboardState.rootPc = ((o.rootPc | 0) % 12 + 12) % 12;
-        else if (typeof o.root === 'number') keyboardState.rootPc = Math.max(0, Math.min(103, o.root | 0)) % 12;
-        if (typeof o.scale === 'number') keyboardState.scale = Math.min(SCALES.length - 1, Math.max(0, o.scale | 0));
+        if (Array.isArray(o.oct)) {
+            for (let t = 0; t < 4; t++)
+                keyboardState.octave[t] = clampInt(o.oct[t], OCT_MIN, OCT_MAX, 4);
+            keyboardState.rootPc = ((clampInt(o.rootPc, -1e6, 1e6, 0) % 12) + 12) % 12;
+        } else if (typeof o.root === 'number') {
+            // Blob written before the tonic/octave split: one absolute note
+            // carried both, so derive the tonic and give every track that octave.
+            const r = clampInt(o.root, 0, 103, 48);
+            keyboardState.rootPc = r % 12;
+            const oct = clampInt(Math.floor(r / 12), OCT_MIN, OCT_MAX, 4);
+            for (let t = 0; t < 4; t++) keyboardState.octave[t] = oct;
+        }
+        keyboardState.scale  = clampInt(o.scale,  0, SCALES.length - 1, keyboardState.scale);
+        keyboardState.mode   = clampInt(o.mode,   0, MODE_NAMES.length - 1, 0);
+        keyboardState.layout = clampInt(o.layout, 0, layoutNames(keyboardState.mode).length - 1, 0);
         if (o.mutes) restoreMutes(o.mutes);
     } catch { /* corrupt file → keep defaults */ }
 }
 
-/* Defaults match init() (root 48, Major scale 0). */
+/* Defaults match init(): C tonic, Major, Chromatic/Fourths, C3 on every track. */
 function resetUiState(): void {
     keyboardState.rootPc = 0;
     keyboardState.scale = 0;
+    keyboardState.mode = 0;
+    keyboardState.layout = 0;
+    for (let t = 0; t < 4; t++) keyboardState.octave[t] = 4;
     resetTrackMutes();
 }
 

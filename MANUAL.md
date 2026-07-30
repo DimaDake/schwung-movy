@@ -71,7 +71,7 @@ lit**, and a button glows at full brightness while it's actively doing its job.
 | --- | --- |
 | **Chain** | The current track's module slots (MIDI FX, Synth, FX 1, FX 2) and the LFO page; jog scrolls them. |
 | **Knobs** | One module's parameter page; jog scrolls that module's pages. |
-| **Keys** | The chromatic keyboard (or a drum rack on drum tracks). |
+| **Keys** | The melodic keyboard (or a drum rack on drum tracks). |
 | **Browse** | The module browser (pick a module to load into a slot). |
 | **Session** | The clip grid for launching clips; also exposes the master FX chain. |
 
@@ -320,19 +320,52 @@ the LFO moves the sound, not the displayed knob.
 
 ## 4. Keyboard & drums
 
-### Chromatic keyboard
+### Melodic keyboard
 
-On a melodic track the 32 pads form a **two-octave chromatic keyboard** (a piano
-layout across two rows of white keys with the black keys above):
+On a melodic track the 32 pads form a playable keyboard whose shape you choose:
 
 ![Keyboard view](docs/assets/keys_view.png)
 
-- **+ / −** (Up/Down buttons) shift the layout by an octave.
+- **+ / −** (Up/Down buttons) shift **the active track's** octave. Each track
+  keeps its own octave, saved with the set — so a bass part stays low when you
+  come back to it, even after a device restart.
 - The root note is shown in the header.
+- Pads are coloured by the current key: the tonic takes the track colour, other
+  in-scale notes light grey, out-of-scale notes stay dark.
 
-> **Chromatic only.** Movy does not (yet) offer Move's scale-aware pad layouts
-> (*In Key* / in-scale, or the guitar-style in-scale layout). See
-> [Limitations](#7-limitations-vs-move).
+### Pad layouts
+
+Two knobs on the [Set parameters](#set-parameters--shift--step-5--7--9) page
+(**Shift + Step 5 / 7 / 9**) decide the grid's shape:
+
+![Set parameters — layout overlay](docs/assets/main-layout-overlay.png)
+
+**MODE** picks the note set:
+
+- **Chromatic** — every semitone is reachable; the KEY setting only colours the
+  pads.
+- **In Key** — the grid folds to the scale, so every pad is in key and a wrong
+  note is impossible.
+
+**LAYOUT** picks the geometry, and its options follow MODE:
+
+| MODE | LAYOUT | Grid |
+| --- | --- | --- |
+| Chromatic | **Fourths** | +1 semitone per pad to the right, +5 (a fourth) per row up. The root sits on the **4th pad of the bottom row**, leaving three pads below it. |
+| Chromatic | **Piano** | Rows 1 and 3 are the white keys (C–C), the row above each holds the black keys, offset right so a black key sits above the white note it leads into. Three pads per black row have no key and stay dark and silent. Two octaves on the grid. |
+| In Key | **Fourths** | Three scale degrees per row up (Push's *In Key*), root bottom-left — the same fingering transfers between rows. |
+| In Key | **Inline** | One scale octave per row, root bottom-left: `1 2 3 4 5 6 7 1`, with the next row starting an octave higher. |
+
+Two details worth knowing:
+
+- **Piano still honours KEY.** Out-of-scale pads stay unlit, and in-scale black
+  keys use a dimmer tint so the keyboard shape reads. Pick the **Chromatic**
+  scale to light the whole keyboard.
+- **In Key + Inline steps by the scale's own degree count.** A seven-note scale
+  gives exactly one octave per row; a five-note pentatonic gives five per row, so
+  rows overlap slightly.
+
+MODE, LAYOUT, ROOT and KEY are set-wide. Only the octave is per-track.
 
 ### Held notes stop when the context changes
 
@@ -586,13 +619,19 @@ that already carried one from before a drum module was loaded onto the track.
 | --- | --- |
 | 1 | **TEMPO** |
 | 2 | **SWING** |
-| 3 | **ROOT** |
-| 4 | **KEY** |
+| 3 | **LINK** — Play/Stop propagation to Move |
+| 5 | **ROOT** — the tonic's pitch class |
+| 6 | **KEY** — scale |
+| 7 | **MODE** — Chromatic or In Key |
+| 8 | **LAYOUT** — the pad grid's shape |
 
-The KEY knob opens a scale/mode list (the same scrollable enum overlay used
+KEY, MODE and LAYOUT each open a scrollable list (the same enum overlay used
 elsewhere):
 
 ![Set parameters — key overlay](docs/assets/main-key-overlay.png)
+![Set parameters — mode overlay](docs/assets/main-mode-overlay.png)
+
+MODE and LAYOUT are covered in [Pad layouts](#pad-layouts).
 
 These are set-wide (they affect all tracks). **TEMPO** also sets Move's
 device-wide tempo through Ableton Link, so a following Move tracks the knob;
@@ -613,9 +652,6 @@ missing or simplified. **All of these are candidates for future work — and
 - **No undo.** There's no undo history; edits are immediate.
 - **No capture.** Move's retroactive capture (play freely, then capture what you
   just played) is out of scope.
-- **Chromatic keyboard only.** No scale-aware pad layouts (*In Key* / in-scale,
-  or the guitar-style in-scale layout). The Set page's KEY/ROOT affect the
-  sequencer's scale, but the pads stay chromatic.
 - **Four Schwung tracks only.** Movy sequences four Schwung chains — not Move's
   native instruments, drum racks, or sampler.
 - **Simplified clip model.** Sequencer resolution and some clip-level features
@@ -646,7 +682,7 @@ behaviour you'd like — or, better, a PR.
 | **Back then jog-click** | From the root: background Movy (keeps playing under Move's UI). |
 | **Shift + Back** | Fully exit Movy (unload), instantly, from anywhere. |
 | **Hold track + volume encoder** | Set that track's volume (0–400%, 100% = unity). Add **Shift** to see Movy's slider instead of Move's native overlay. |
-| **+ / −** (Up/Down) | Shift the chromatic keyboard by an octave (melodic tracks only). |
+| **+ / −** (Up/Down) | Shift the **active track's** octave (melodic tracks only). Each track remembers its own, saved with the set. |
 
 ### Sequencer
 
@@ -677,7 +713,7 @@ behaviour you'd like — or, better, a PR.
 | Combo | Action |
 | --- | --- |
 | **Shift + Step 3** | Open **Clip parameters** (Track view). |
-| **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/root/key). |
+| **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/link, root/key/mode/layout). |
 | **Shift + Step 6** | Toggle the **metronome**. |
 | **Shift + Step 10** | Toggle **full velocity**. |
 | **Shift + Step 15** | **Double** the loop. |

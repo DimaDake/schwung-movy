@@ -15,6 +15,17 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Scales & pad layouts** — two new Set-page knobs shape the melodic grid.
+  **MODE** picks Chromatic or **In Key** (the grid folds to the scale, so every
+  pad is in key); **LAYOUT** picks the geometry, and its options follow MODE:
+  *Fourths* or *Piano* when chromatic, *Fourths* (three scale degrees per row,
+  Push-style) or *Inline* (one scale octave per row) when in key. The piano
+  layout puts the white keys on rows 1 and 3 with the black keys offset right
+  above them; its three gap pads per black row are dark and silent, and in-scale
+  black keys take a dimmer tint so the keyboard shape reads.
+- **Per-track octave** — **+ / −** now shifts only the active track's octave.
+  Each track keeps its own, saved with the set, so it survives a device restart.
+
 - **Action knobs** — a parameter a module marks as a one-shot action is drawn as
   a **circle in a box** rather than a knob. Firing blinks the circle and flashes
   that knob's LED; while spent the box goes dashed and a bar drains along the top
@@ -55,6 +66,18 @@ far. Earlier work is summarised in the timeline below for context.
 
 - **Mute / solo toasts** — every mute or solo names the track (`T2 MUTED`) and,
   for solo, the resulting set (`T1 SOLO`, `SOLO T1 T3`, `SOLO OFF`).
+
+### Changed
+
+- **The chromatic Fourths layout's root moved to the 4th pad of the bottom row**,
+  leaving three pads below the tonic instead of pinning it to the bottom-left
+  corner.
+- **The Set parameters page was rearranged** to TEMPO / SWING / LINK over
+  ROOT / KEY / MODE / LAYOUT, grouping the four musical params on one row.
+  LINK moved from knob 4 to knob 3, ROOT from knob 3 to knob 5, KEY from knob 4
+  to knob 6.
+- Sets saved before this change are migrated on load: the old absolute root note
+  becomes a tonic plus an octave, and every track starts on that octave.
 
 ### Fixed
 

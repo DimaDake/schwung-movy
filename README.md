@@ -89,8 +89,11 @@ Movy stands on the shoulders of several projects:
 
   ![Live automation](docs/assets/auto_live.png)
 
-- **Chromatic keyboard** — the 32 pads become a two-octave chromatic keyboard,
-  per track, with octave shifting.
+- **Scales & pad layouts** — the 32 pads become a chromatic fretboard or piano,
+  or fold **in key** (fourths or inline) so a wrong note is impossible. Each
+  track remembers its own octave, saved with the set.
+
+  ![Set parameters](docs/assets/main-default.png)
 
   ![Keyboard view](docs/assets/keys_view.png)
 
@@ -163,8 +166,6 @@ welcome):
 
 - **No undo.**
 - **No capture** (Move's "play it, then capture it retroactively").
-- **Chromatic keyboard only** — no scale-aware pad layouts (Move's *In Key* /
-  in-scale, or the guitar-style in-scale layout).
 - Sequencer **resolution and some clip-level features** are simplified.
 
 A fuller list, with context, is in the [manual](MANUAL.md#limitations-vs-move).

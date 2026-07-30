@@ -765,6 +765,30 @@ _log('\nTest: self-describing layouts resolve from every chain component categor
     '/data/UserData/schwung/modules/midi_fx/midi-layout/movy_config.json');
 }
 
+/* Global-bank params are not reachable as chain `target:params` (device spike),
+ * so they can never be automated no matter what a module claims. movy's own
+ * config may still override per slot (it knows which per-voice keys resolve),
+ * but third-party metadata must not — otherwise a module re-enables an
+ * automation dot on a param the host cannot resolve. */
+_log('\nTest: module automatable metadata cannot override the global-bank guard');
+{
+  const globalCp = (extra) => ({
+    ...MOCK_SYNTHS.mrdrums,
+    'synth:chain_params': JSON.stringify([
+      { key: 'g_master_vol', name: 'Master Vol', type: 'float', min: 0, max: 2, ...extra },
+    ]),
+  });
+  const automatableOf = (preset) => {
+    const p = bootModel(preset).dumpLayout().params
+      .filter(Boolean).find(q => q.key === 'g_master_vol');
+    return p?.automatable;
+  };
+  eq('global param: silent chain_params stays non-automatable',
+    automatableOf(globalCp({})), false);
+  eq('global param: module automatable=true is ignored',
+    automatableOf(globalCp({ automatable: true })), false);
+}
+
 /* ── viewmodel: file display value and browseHint ─────────────────────────── */
 
 _log('\nTest: file knob displayValue = basename of current path');

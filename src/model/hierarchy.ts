@@ -231,10 +231,14 @@ export function loadHierarchy(s: ModelState): void {
                         lfo:        slot.lfo,
                         filter:     slot.filter,
                         // Global-bank params aren't reachable as chain target:params
-                        // (device spike), so they can't be automated. A config may
-                        // override per slot (host can't resolve some per-voice keys).
-                        automatable: behavior === 'trigger' ? false : (slot.automatable ?? cp.automatable ?? hier.automatable ??
-                            ((type === 'float' || type === 'int') && max > min && !bank.global)),
+                        // (device spike), so they can't be automated. Only OUR config
+                        // may override per slot (it knows which per-voice keys the host
+                        // resolves); module-supplied metadata must stay subordinate to
+                        // the guard or a module re-enables a dot the host can't honour.
+                        automatable: behavior === 'trigger' ? false
+                            : slot.automatable ?? (bank.global ? false
+                                : (cp.automatable ?? hier.automatable ??
+                                    ((type === 'float' || type === 'int') && max > min))),
                         behavior,
                         knobAcceleration: inferAcceleration(
                             slot.knobAcceleration ?? cp.knob_acceleration ?? cp.knobAcceleration ??

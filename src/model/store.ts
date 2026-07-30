@@ -59,8 +59,11 @@ function applyTriggerDelta(
     return true;
 }
 
-function accelerateWideDelta(s: ModelState, p: KnobParam, delta: number): number {
-    if (p.knobAcceleration !== 'wide' || delta === 0) return delta;
+/* Signed number of `p.step`s a wide-range knob should travel for this event:
+ * ±1 for a deliberate turn, up to ±250 on a fast sweep. Callers multiply by
+ * p.step. Only called for knobAcceleration === 'wide'. */
+function wideStepCount(s: ModelState, p: KnobParam, delta: number): number {
+    if (delta === 0) return 0;
     const now = Date.now();
     const direction = delta > 0 ? 1 : -1;
     const gesture = gestureFor(s, p.key);
@@ -73,7 +76,10 @@ function accelerateWideDelta(s: ModelState, p: KnobParam, delta: number): number
     }
     gesture.lastTurnMs = now;
     gesture.direction = direction;
-    return delta * multiplier;
+    /* Scale a UNIT step, not `delta`. The host already accumulates detents and
+     * flushes one CC per tick, so `delta` is itself a count — multiplying it
+     * would compound twice and a single flick would cross the whole range. */
+    return direction * multiplier;
 }
 
 /* First-read type/range inference for guessed params (C4). Mutates p in place
@@ -203,7 +209,7 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
         : p.type === 'int'   ? Math.max(p.step, rangeStep)
         : p.step;
     const scaled = p.type === 'enum' ? delta / ENUM_DELTA_DIV
-        : p.knobAcceleration === 'wide' ? accelerateWideDelta(s, p, delta) * p.step
+        : p.knobAcceleration === 'wide' ? wideStepCount(s, p, delta) * p.step
         : delta * effStep * arcScale;
     let newVal = (s.knobValues[gi] as number) + scaled;
     newVal = Math.max(p.min, Math.min(p.max, newVal));

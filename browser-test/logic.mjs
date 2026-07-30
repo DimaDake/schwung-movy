@@ -789,6 +789,38 @@ _log('\nTest: module automatable metadata cannot override the global-bank guard'
     automatableOf(globalCp({ automatable: true })), false);
 }
 
+/* The shadow UI accumulates knob deltas and flushes ONE CC per tick, so a fast
+ * hardware spin arrives as a single large delta. Multiplying that by the
+ * acceleration ladder compounds twice — measured on device, 3 events at delta=6
+ * moved `seed` 3000 of its 9999 range, putting the middle out of reach at speed.
+ * The ladder must scale a unit step, not the incoming delta. */
+_log('\nTest: wide acceleration scales a unit step, not the accumulated delta');
+{
+  const { applyKnobDelta } = await import('../dist/esm/model/store.js');
+  const seed = {
+    key: 'seed', label: 'Seed', shortLabel: null, type: 'int',
+    min: 1, max: 9999, step: 1, options: null,
+    renderStyle: 'arc', automatable: true, knobAcceleration: 'wide',
+  };
+  const originalNow = Date.now;
+  const run = (secondDelta) => {
+    let now = 1000;
+    Date.now = () => now;
+    const s = {
+      activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+      knobParams: [seed], knobValues: [5000], enumFmt: [undefined],
+      fileValues: [null], slotMapCache: null, paramGestures: {}, dirty: false,
+    };
+    applyKnobDelta(s, 0, 1);              // establish direction: +1
+    const base = s.knobValues[0];
+    now += 20; applyKnobDelta(s, 0, secondDelta);   // fast sweep → ×250
+    Date.now = originalNow;
+    return s.knobValues[0] - base;
+  };
+  eq('one accumulated detent at speed travels 250', run(1), 250);
+  eq('six accumulated detents at speed travel 250, not 1500', run(6), 250);
+}
+
 /* ── viewmodel: file display value and browseHint ─────────────────────────── */
 
 _log('\nTest: file knob displayValue = basename of current path');

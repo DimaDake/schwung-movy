@@ -113,7 +113,7 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         if (mainPageActive()) {
-            if (d1 < 5) {   // knobs 0-3 + LINK (knob 4)
+            if (d1 < 8) {   // every knob on the page (3 is unused but harmless)
                 if (d2 > 0) mainPageTouch(d1, true);
                 else mainPageRelease(d1);
             }
@@ -220,8 +220,8 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         if (mainPageActive()) {
-            // Knobs 0-3 = tempo/swing/root/key; knob 4 = LINK toggle.
-            if (k < 5) { mainPageKnob(k, delta); appState.dirty = true; }
+            // 0 tempo, 1 swing, 2 LINK, 4 root, 5 key, 6 mode, 7 layout.
+            if (k < 8) { mainPageKnob(k, delta); appState.dirty = true; }
             return;
         }
         if (clipPageActive()) {

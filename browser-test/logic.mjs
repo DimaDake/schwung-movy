@@ -1602,10 +1602,10 @@ _log('\nTest: drumPadOn');
     const { buildMainPageVM } = await import('../dist/esm/seq/main-page-vm.js');
     resetSeqState();
     eq('linkEnabled defaults false', seqState.linkEnabled, false);
-    eq('LINK cell shows OFF by default', buildMainPageVM().rows[1][0].displayValue, 'OFF');
+    eq('LINK cell shows OFF by default', buildMainPageVM().rows[0][2].displayValue, 'OFF');
     parseStatusForTest('play=0 ext=0 link=1 trk=0');
     eq('link=1 sets linkEnabled', seqState.linkEnabled, true);
-    eq('LINK cell shows ON', buildMainPageVM().rows[1][0].displayValue, 'ON');
+    eq('LINK cell shows ON', buildMainPageVM().rows[0][2].displayValue, 'ON');
     parseStatusForTest('play=0 ext=0 link=0 trk=0');
     eq('link=0 clears linkEnabled', seqState.linkEnabled, false);
 }
@@ -4413,33 +4413,63 @@ _log('\nautomation label sync:');
     // resetSeqState restores bpmX100=12000 and swingPct=50 so the tempo/swing
     // assertions below don't depend on test ordering.
     resetMainPage(); resetSeqEngine(); resetSeqState();
+    keyboardState.rootPc = 0; keyboardState.scale = 0;
+    keyboardState.mode = 0; keyboardState.layout = 0;
     openMainPage(3);
     eq('page active after open', mainPageActive(), true);
-    // Tempo: 8 raw delta units = 1 detent = +1 BPM. seqState.bpmX100 starts 12000.
+
+    // Knob 0 tempo: 8 raw delta units = 1 detent = +1 BPM (bpmX100 starts 12000).
     mainPageKnob(0, 8);
-    const q1 = peekSeqCmdQueue();
-    eq('tempo +1 BPM emits bpm 12100', q1.some((c) => c.startsWith('bpm 12100')), true);
-    // Swing: +1 detent → swing 51.
+    eq('tempo +1 BPM emits bpm 12100', peekSeqCmdQueue().some((c) => c.startsWith('bpm 12100')), true);
+    // Knob 1 swing.
     mainPageKnob(1, 8);
-    const q2 = peekSeqCmdQueue();
-    eq('swing +1 emits swing 51', q2.some((c) => c === 'swing 51'), true);
-    // Key overlay: touch opens, turn scrolls, release commits.
-    mainPageTouch(3, true);
-    eq('overlay opens on key touch', mainPageState.scaleOverlay, true);
-    mainPageKnob(3, 8);                 // scroll to scale index 1
-    eq('overlay scrolled', mainPageState.scaleSel, 1);
-    mainPageRelease(3);
+    eq('swing +1 emits swing 51', peekSeqCmdQueue().some((c) => c === 'swing 51'), true);
+    // Knob 2 is now LINK (moved off knob 4 by the row rearrangement).
+    mainPageKnob(2, 8);
+    eq('link on emits link 1', peekSeqCmdQueue().some((c) => c === 'link 1'), true);
+
+    // Knob 4 is ROOT: cycles the pitch class, wrapping B↔C.
+    keyboardState.rootPc = 11;
+    mainPageKnob(4, 8);
+    eq('root wraps B->C', keyboardState.rootPc, 0);
+    mainPageKnob(4, -8);
+    eq('root wraps C->B', keyboardState.rootPc, 11);
+    keyboardState.rootPc = 0;
+
+    // Knob 5 KEY: touch opens the overlay, turn scrolls, release commits.
+    mainPageTouch(5, true);
+    eq('key overlay opens on touch', mainPageState.overlayKnob, 5);
+    eq('key overlay seeded from current scale', mainPageState.overlaySel, 0);
+    mainPageKnob(5, 8);
+    eq('key overlay scrolled', mainPageState.overlaySel, 1);
+    mainPageRelease(5);
     eq('scale committed on release', keyboardState.scale, 1);
-    eq('overlay closed on release', mainPageState.scaleOverlay, false);
-    // Root knob wraps the pitch class within the current octave (B↔C); octave fixed.
-    keyboardState.rootPc = 11;             // B (pitch class 11)
-    mainPageKnob(2, 8);                  // +1 detent
-    eq('root wraps B->C within octave', keyboardState.rootPc, 0);
-    mainPageKnob(2, -8);                 // -1 detent
-    eq('root wraps C->B within octave', keyboardState.rootPc, 11);
-    // Close returns origin.
+    eq('key overlay closed on release', mainPageState.overlayKnob, -1);
+
+    // Knob 6 MODE: Chromatic → In Key.
+    mainPageTouch(6, true);
+    eq('mode overlay opens', mainPageState.overlayKnob, 6);
+    mainPageKnob(6, 8);
+    eq('mode overlay scrolled', mainPageState.overlaySel, 1);
+    mainPageKnob(6, 8);
+    eq('mode overlay clamps at the end', mainPageState.overlaySel, 1);
+    mainPageRelease(6);
+    eq('mode committed', keyboardState.mode, 1);
+
+    // Knob 7 LAYOUT: the option list follows mode (In Key → Fourths/Inline).
+    mainPageTouch(7, true);
+    mainPageKnob(7, 8);
+    mainPageRelease(7);
+    eq('layout committed', keyboardState.layout, 1);
+
+    // Flipping back to Chromatic keeps the index valid (both lists are length 2).
+    mainPageTouch(6, true); mainPageKnob(6, -8); mainPageRelease(6);
+    eq('mode back to chromatic', keyboardState.mode, 0);
+    eq('layout index survives the mode flip', keyboardState.layout, 1);
+
     eq('close returns origin view', closeMainPage(), 3);
     eq('page inactive after close', mainPageActive(), false);
+    keyboardState.scale = 0; keyboardState.mode = 0; keyboardState.layout = 0;
 }
 
 /* ── clip-scale tables ──────────────────────────────────────────────────── */
@@ -4657,7 +4687,7 @@ _log('\nautomation label sync:');
     let padPaints = 0;
     const origSetLED = globalThis.setLED;
     globalThis.setLED = (idx) => { if (idx >= 68 && idx <= 99) padPaints++; }; // pad note range
-    mainPageKnob(2, 8);       // +1 detent on the root knob (→ setRoot)
+    mainPageKnob(4, 8);       // +1 detent on the root knob (→ setRootPc)
     globalThis.setLED = origSetLED;
     eq('root knob turn changes rootPc', keyboardState.rootPc, 1);
     eq('root knob paints no pad LEDs (per-tick track-aware loop owns pads)', padPaints, 0);
@@ -4674,18 +4704,44 @@ _log('\nautomation label sync:');
     resetMainPage();
     seqState.bpmX100 = 12000; seqState.swingPct = 50;
     keyboardState.rootPc = 0; keyboardState.scale = 0; // C, Major
+    keyboardState.mode = 0; keyboardState.layout = 0;
     mainPageState.active = true; mainPageState.touchedKnob = 0;
     let vm = buildMainPageVM();
+    // Row 0: TEMPO SWING LINK -, row 1: ROOT KEY MODE LAYOUT.
     eq('tempo cell shows 120', vm.rows[0][0].displayValue, '120');
-    eq('root cell shows C', vm.rows[0][2].displayValue, 'C');
-    eq('key cell shows Major', vm.rows[0][3].displayValue, 'Major');
+    eq('swing cell shows 50%', vm.rows[0][1].displayValue, '50%');
+    eq('link cell shows OFF', vm.rows[0][2].displayValue, 'OFF');
+    eq('row 0 slot 3 is empty', vm.rows[0][3], null);
+    eq('root cell shows C', vm.rows[1][0].displayValue, 'C');
+    eq('key cell shows Major', vm.rows[1][1].displayValue, 'Major');
+    eq('mode cell shows Chromatic', vm.rows[1][2].displayValue, 'Chromatic');
+    eq('layout cell shows Fourths', vm.rows[1][3].displayValue, 'Fourths');
     eq('toast names tempo', vm.toast.fullName, 'Tempo');
     eq('tempo toast value', vm.toast.value, '120 bpm');
-    // Overlay present when scale list open.
-    mainPageState.scaleOverlay = true; mainPageState.scaleSel = 1; mainPageState.touchedKnob = 3;
+
+    // Layout options follow mode.
+    keyboardState.mode = 1;
     vm = buildMainPageVM();
-    eq('overlay carries 13 scales', vm.overlay && vm.overlay.options.length, 13);
-    eq('overlay selection from scaleSel', vm.overlay?.selected, 1);
+    eq('in-key mode cell', vm.rows[1][2].displayValue, 'In Key');
+    eq('in-key layout options', JSON.stringify(vm.rows[1][3].options), '["Fourths","Inline"]');
+    keyboardState.mode = 0;
+
+    // Overlays: one generic mechanism for KEY, MODE and LAYOUT.
+    mainPageState.overlayKnob = 5; mainPageState.overlaySel = 1; mainPageState.touchedKnob = 5;
+    vm = buildMainPageVM();
+    eq('key overlay carries 13 scales', vm.overlay && vm.overlay.options.length, 13);
+    eq('key overlay selection', vm.overlay?.selected, 1);
+    eq('key overlay targets knob 5', vm.overlay?.slot, 5);
+
+    mainPageState.overlayKnob = 6; mainPageState.overlaySel = 1; mainPageState.touchedKnob = 6;
+    vm = buildMainPageVM();
+    eq('mode overlay options', JSON.stringify(vm.overlay?.options), '["Chromatic","In Key"]');
+    eq('mode overlay targets knob 6', vm.overlay?.slot, 6);
+
+    mainPageState.overlayKnob = 7; mainPageState.overlaySel = 1; mainPageState.touchedKnob = 7;
+    vm = buildMainPageVM();
+    eq('layout overlay options', JSON.stringify(vm.overlay?.options), '["Fourths","Piano"]');
+    resetMainPage();
 }
 
 /* ── UI-state persistence round-trip ──────────────────────────────────── */

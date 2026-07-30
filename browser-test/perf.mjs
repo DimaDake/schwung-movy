@@ -309,8 +309,8 @@ _origLog('\nTest 4c: fill_rect calls with overlay open (main params scale list)'
     seqState.swingPct = 50;
 
     /* Simulate the scale overlay being open. */
-    mainPageState.scaleOverlay = true;
-    mainPageState.scaleSel = 5;
+    mainPageState.overlayKnob = 5;
+    mainPageState.overlaySel = 5;
 
     const vm = buildMainPageVM();
 

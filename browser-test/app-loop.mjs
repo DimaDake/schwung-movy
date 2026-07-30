@@ -963,7 +963,7 @@ _log('\napp-loop: onResume invalidates caches and repaints');
     globalThis.setLED = realSetLED;
 }
 
-_log('\napp-loop: LINK toggle routes through knob 4 on the Set page');
+_log('\napp-loop: LINK toggle routes through knob 2 on the Set page');
 {
     const { mainPageActive } = await import('../dist/esm/seq/main-page.js');
     resetApp();
@@ -974,12 +974,12 @@ _log('\napp-loop: LINK toggle routes through knob 4 on the Set page');
     sendMidi([0x80, 20, 0]);
     appState.shiftHeld = false;
     eq('Set page open', mainPageActive(), true);
-    // Regression: the knob-dispatch gate must include knob 4, or the LINK cell
-    // is dead on device. Clockwise → LINK on.
-    sendMidi([0xB0, 75, 40]); advance(1);
-    eq('knob 4 CW enables link', seqState.linkEnabled, true);
-    sendMidi([0xB0, 75, 88]); advance(1);   // counter-clockwise → LINK off
-    eq('knob 4 CCW disables link', seqState.linkEnabled, false);
+    // Regression: the knob-dispatch gate must span the whole page, or cells
+    // are dead on device. Clockwise → LINK on (LINK is knob 2 = CC 73).
+    sendMidi([0xB0, 73, 40]); advance(1);
+    eq('knob 2 CW enables link', seqState.linkEnabled, true);
+    sendMidi([0xB0, 73, 88]); advance(1);   // counter-clockwise → LINK off
+    eq('knob 2 CCW disables link', seqState.linkEnabled, false);
 }
 
 /* Note conservation: every note-on movy sends must be answered by a note-off on

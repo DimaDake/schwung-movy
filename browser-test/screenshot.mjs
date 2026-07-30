@@ -43,7 +43,8 @@ const PRESETS = [
     'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
     'step_page_knobs', 'step_page_chain', 'step_indicator',
     'main-default', 'main-tempo-touched', 'main-swing-touched',
-    'main-root-touched', 'main-key-overlay', 'main-ext-sync', 'main-link-on',
+    'main-root-touched', 'main-key-overlay', 'main-mode-overlay', 'main-layout-overlay',
+    'main-ext-sync', 'main-link-on',
     'clip-default', 'clip-fraction', 'clip-overlay', 'clip-drum',
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
@@ -69,7 +70,9 @@ const BASE = {
     step_page_knobs: 'test8', step_page_chain: 'test8', step_indicator: 'test8',
     'main-default': 'test8', 'main-tempo-touched': 'test8',
     'main-swing-touched': 'test8', 'main-root-touched': 'test8',
-    'main-key-overlay': 'test8', 'main-ext-sync': 'test8', 'main-link-on': 'test8',
+    'main-key-overlay': 'test8', 'main-mode-overlay': 'test8',
+    'main-layout-overlay': 'test8',
+    'main-ext-sync': 'test8', 'main-link-on': 'test8',
     'clip-default': 'test8', 'clip-fraction': 'test8', 'clip-overlay': 'test8',
     'clip-drum': 'test8',
     trigger_armed: 'triggers', trigger_fired: 'triggers',
@@ -350,7 +353,7 @@ function applyView(preset) {
             keyboardState.rootPc = 3; keyboardState.octave = [4, 4, 4, 4];
             keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;   // D#
             seqState.bpmX100 = 12000; seqState.swingPct = 50;
-            mainPageState.touchedKnob = 2;
+            mainPageState.touchedKnob = 4;
             lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
             lastRender();
             break;
@@ -360,7 +363,27 @@ function applyView(preset) {
             keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
             keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
             seqState.bpmX100 = 12000; seqState.swingPct = 50;
-            mainPageState.scaleOverlay = true; mainPageState.scaleSel = 1;
+            mainPageState.overlayKnob = 5; mainPageState.overlaySel = 1;
+            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
+            lastRender();
+            break;
+        }
+        case 'main-mode-overlay': {
+            resetSeqState(); resetMainPage();
+            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
+            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
+            seqState.bpmX100 = 12000; seqState.swingPct = 50;
+            mainPageState.overlayKnob = 6; mainPageState.overlaySel = 1;
+            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
+            lastRender();
+            break;
+        }
+        case 'main-layout-overlay': {
+            resetSeqState(); resetMainPage();
+            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
+            keyboardState.mode = 1; keyboardState.layout = 0; keyboardState.scale = 0;  // In Key: Fourths/Inline
+            seqState.bpmX100 = 12000; seqState.swingPct = 50;
+            mainPageState.overlayKnob = 7; mainPageState.overlaySel = 1;
             lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
             lastRender();
             break;

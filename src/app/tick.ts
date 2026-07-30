@@ -133,8 +133,8 @@ function stepTrigSig(): string {
 
 let lastMainSig = '';
 function mainSig(): string {
-    return [mainPageState.active, mainPageState.touchedKnob, mainPageState.scaleOverlay,
-        mainPageState.scaleSel, seqState.bpmX100, seqState.swingPct,
+    return [mainPageState.active, mainPageState.touchedKnob, mainPageState.overlayKnob,
+        mainPageState.overlaySel, seqState.bpmX100, seqState.swingPct,
         keyboardState.rootPc, keyboardState.scale,
         keyboardState.mode, keyboardState.layout,
         keyboardState.octave[appState.activeSlot]].join(',');

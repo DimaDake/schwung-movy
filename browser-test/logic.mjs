@@ -4164,6 +4164,99 @@ _log('\nautomation label sync:');
     eq('chromatic admits all', inScaleFor(5, 2, 12), true);
 }
 
+/* ── pad layouts: grid geometry for every mode/layout combination ────────── */
+{
+    _log('\npad layouts:');
+    const {
+        buildPadMap, degreeToPitch, layoutNames, isPianoBlack,
+        MODE_CHROMATIC, MODE_IN_KEY, LAYOUT_FOURTHS, LAYOUT_PIANO, LAYOUT_INLINE,
+        MODE_NAMES, PAD_COUNT,
+    } = await import('../dist/esm/keyboard/layouts.js');
+
+    // Row 0 is the BOTTOM row; index 0 is bottom-left.
+    const row = (map, r) => Array.from(map.slice(r * 8, r * 8 + 8));
+
+    eq('mode names', JSON.stringify(MODE_NAMES), '["Chromatic","In Key"]');
+    eq('chromatic layouts', JSON.stringify(layoutNames(MODE_CHROMATIC)), '["Fourths","Piano"]');
+    eq('in-key layouts', JSON.stringify(layoutNames(MODE_IN_KEY)), '["Fourths","Inline"]');
+
+    // ── Chromatic / Fourths: +1 per column, +5 per row, root on column 4.
+    // base 60 (C4) → bottom-left is 57 (A3), so the root sits at index 3.
+    {
+        const m = buildPadMap(MODE_CHROMATIC, LAYOUT_FOURTHS, 0, 60);
+        eq('chrom 4ths bottom row', JSON.stringify(row(m, 0)), '[57,58,59,60,61,62,63,64]');
+        eq('chrom 4ths root at col 4', m[3], 60);
+        eq('chrom 4ths row step is a fourth', m[8] - m[0], 5);
+        eq('chrom 4ths top-left', m[24], 72);
+    }
+
+    // ── Chromatic / Piano: whites on rows 0/2, blacks on rows 1/3 shifted right
+    // (C# above D). Cols 0, 3 and 7 of a black row are dead. Rows 2-3 are +12.
+    {
+        const m = buildPadMap(MODE_CHROMATIC, LAYOUT_PIANO, 0, 60);
+        eq('piano white row', JSON.stringify(row(m, 0)), '[60,62,64,65,67,69,71,72]');
+        eq('piano black row', JSON.stringify(row(m, 1)), '[-1,61,63,-1,66,68,70,-1]');
+        eq('piano upper white row', JSON.stringify(row(m, 2)), '[72,74,76,77,79,81,83,84]');
+        eq('piano upper black row', JSON.stringify(row(m, 3)), '[-1,73,75,-1,78,80,82,-1]');
+        eq('piano root bottom-left', m[0], 60);
+        eq('isPianoBlack row0', isPianoBlack(MODE_CHROMATIC, LAYOUT_PIANO, 0), false);
+        eq('isPianoBlack row1', isPianoBlack(MODE_CHROMATIC, LAYOUT_PIANO, 9), true);
+        eq('isPianoBlack off in fourths', isPianoBlack(MODE_CHROMATIC, LAYOUT_FOURTHS, 9), false);
+        eq('isPianoBlack off in key mode', isPianoBlack(MODE_IN_KEY, LAYOUT_PIANO, 9), false);
+    }
+
+    // ── In Key / Fourths: +3 scale degrees per row, root bottom-left.
+    {
+        const m = buildPadMap(MODE_IN_KEY, LAYOUT_FOURTHS, 0, 60);
+        eq('key 4ths bottom row', JSON.stringify(row(m, 0)), '[60,62,64,65,67,69,71,72]');
+        eq('key 4ths row1 starts on F', JSON.stringify(row(m, 1)), '[65,67,69,71,72,74,76,77]');
+        eq('key 4ths row2 starts on B', JSON.stringify(row(m, 2)), '[71,72,74,76,77,79,81,83]');
+        eq('key 4ths root bottom-left', m[0], 60);
+        eq('key 4ths never out of scale',
+            row(m, 3).every((p) => [0, 2, 4, 5, 7, 9, 11].includes(((p - 60) % 12 + 12) % 12)), true);
+    }
+
+    // ── In Key / Inline: row step = the scale's own degree count, so each row
+    // is exactly one octave up for a 7-note scale.
+    {
+        const m = buildPadMap(MODE_IN_KEY, LAYOUT_INLINE, 0, 60);
+        eq('key inline bottom row', JSON.stringify(row(m, 0)), '[60,62,64,65,67,69,71,72]');
+        eq('key inline row1 is an octave up', JSON.stringify(row(m, 1)), '[72,74,76,77,79,81,83,84]');
+        eq('key inline row3 is 3 octaves up', m[24] - m[0], 36);
+    }
+
+    // ── Minor (index 1, [0,2,3,5,7,8,10]) folds correctly.
+    {
+        const m = buildPadMap(MODE_IN_KEY, LAYOUT_INLINE, 1, 60);
+        eq('c minor inline bottom row', JSON.stringify(row(m, 0)), '[60,62,63,65,67,68,70,72]');
+    }
+
+    // ── Minor pentatonic (index 10, [0,3,5,7,10]) has 5 degrees, so Inline
+    // steps 5 per row and rows overlap — the documented behaviour.
+    {
+        const m = buildPadMap(MODE_IN_KEY, LAYOUT_INLINE, 10, 60);
+        eq('min penta inline bottom row', JSON.stringify(row(m, 0)), '[60,63,65,67,70,72,75,77]');
+        eq('min penta inline row step is 5 degrees', m[8], 72);
+    }
+
+    // ── degreeToPitch wraps octaves in both directions.
+    {
+        const maj = [0, 2, 4, 5, 7, 9, 11];
+        eq('degree 0', degreeToPitch(60, maj, 0), 60);
+        eq('degree 7 wraps an octave', degreeToPitch(60, maj, 7), 72);
+        eq('degree 15 wraps two octaves', degreeToPitch(60, maj, 15), 86);
+        eq('degree -1 wraps down', degreeToPitch(60, maj, -1), 59);
+    }
+
+    // ── Pitches outside 0..127 become dead pads, never clamped notes.
+    {
+        const m = buildPadMap(MODE_CHROMATIC, LAYOUT_FOURTHS, 0, 2);
+        eq('below 0 is dead', m[0], -1);
+        const hi = buildPadMap(MODE_IN_KEY, LAYOUT_INLINE, 0, 120);
+        eq('above 127 is dead', hi[PAD_COUNT - 1], -1);
+    }
+}
+
 /* ── main params page: state machine + knob/touch/release handlers ──────── */
 {
     _log('\nmain params page:');

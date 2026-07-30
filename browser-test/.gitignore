@@ -1,2 +1,5 @@
 node_modules/
+# ...and the same name as a symlink: "node_modules/" matches directories
+# only, so a symlink slipped past it and got committed once.
+node_modules
 screenshots/actual/

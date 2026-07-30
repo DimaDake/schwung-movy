@@ -1959,48 +1959,6 @@ _log('\nTest: drumPadOn');
     resetSeqState(); seqLedsInvalidate();
 }
 
-/* ── step LEDs are reclaimed from Move while its transport runs ──────────── */
-{
-    _log('\nstep LED re-assert under the Move link:');
-    const { seqLedsTick, resetExtReassert } = await import('../dist/esm/seq/leds.js');
-    const { seqLedsInvalidate } = await import('../dist/esm/seq/led-cache.js');
-    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
-
-    const STEP_BASE = 16;
-    let stepWrites = 0;
-    const origSetLED = globalThis.setLED;
-    const origSetButtonLED = globalThis.setButtonLED;
-    globalThis.setLED = (n) => { if (n >= STEP_BASE && n < STEP_BASE + 16) stepWrites++; };
-    globalThis.setButtonLED = () => {};
-
-    resetSeqState(); seqLedsInvalidate(); resetExtReassert();
-    seqState.lenSteps = 16;
-
-    // Settle: the first frames paint everything, then the cache goes quiet.
-    for (let i = 0; i < 30; i++) seqLedsTick(false);
-    stepWrites = 0;
-    for (let i = 0; i < 60; i++) seqLedsTick(false);
-    eq('not following Move: unchanged steps cost nothing', stepWrites, 0);
-
-    // Move's transport starts: the edge must reclaim the row immediately, since
-    // Move paints these same LEDs and our diff cache would never correct it.
-    seqState.extSync = true;
-    stepWrites = 0;
-    seqLedsTick(false);          // the edge tick invalidates, then repaints all 16
-    eq('ext edge repaints the step row', stepWrites, 16);
-
-    // ...and it keeps re-asserting on a slow cadence while Move keeps running.
-    stepWrites = 0;
-    for (let i = 0; i < 200; i++) seqLedsTick(false);
-    eq('periodic re-assert while following', stepWrites >= 16, true);
-    eq('re-assert stays cheap (not every tick)', stepWrites < 200, true);
-
-    seqState.extSync = false;
-    globalThis.setLED = origSetLED;
-    globalThis.setButtonLED = origSetButtonLED;
-    resetSeqState(); seqLedsInvalidate(); resetExtReassert();
-}
-
 /* ── seq pads: chromatic layout + coloring ───────────────────────────────── */
 {
     _log('\nseq chromatic pads:');

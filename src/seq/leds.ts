@@ -10,7 +10,7 @@ import { mainPageActive } from './main-page.js';
 import { clipPageActive } from './clip-page.js';
 import { sessionPaintGrid } from './session.js';
 import { loopEndBar, loopStartBar, occHasStep, seqState } from './state.js';
-import { cachedSetLED, cachedSetButtonLED, cachedSetAnimLED, ledFrameReset, seqLedsInvalidate, noteLedsInvalidate } from './led-cache.js';
+import { cachedSetLED, cachedSetButtonLED, cachedSetAnimLED, ledFrameReset, seqLedsInvalidate } from './led-cache.js';
 
 /* Re-exported so callers keep importing the LED API from one place. */
 export { seqLedsInvalidate, cachedSetAnimLED, ledFrameReset };
@@ -26,34 +26,6 @@ const ICON_METRO = 5, ICON_FULLVEL = 9, ICON_DBLLOOP = 14, ICON_QUANT = 15;
 // Steps 5/7/9 (0-based 4/6/8) open the Set Params page.
 const ICON_MAIN: readonly number[] = [4, 6, 8];
 const ICON_CLIP = 2; // Shift+Step 3 opens Clip Params (Track view only)
-
-/* Move's own sequencer paints the step LEDs too, and it runs whenever the Play
- * link starts its transport. Our cache only sends colours that CHANGED, so a
- * step Move painted is never corrected — we still believe our last colour is on
- * the hardware, and its playhead green sticks there for good. Cache-diffing is
- * only safe for LEDs nobody else writes, so while Move's transport runs we
- * re-assert the 16 step LEDs periodically (and immediately on the edge, which
- * covers the common start/stop case). 16 sends is well inside FRAME_BUDGET.
- * Same class of race as the drum grid's post-track-switch repaint window. */
-const EXT_REASSERT_TICKS = 96;   // ~0.5 s at the ~205 Hz device tick
-let lastExtSync = false;
-let extReassert = 0;
-
-function reclaimStepLedsFromMove(): void {
-    if (seqState.extSync !== lastExtSync) {
-        lastExtSync = seqState.extSync;
-        extReassert = 0;
-        noteLedsInvalidate(STEP_NOTE_BASE, STEP_NOTE_BASE + NUM_STEP_BUTTONS - 1);
-        return;
-    }
-    if (!seqState.extSync) return;
-    if (++extReassert < EXT_REASSERT_TICKS) return;
-    extReassert = 0;
-    noteLedsInvalidate(STEP_NOTE_BASE, STEP_NOTE_BASE + NUM_STEP_BUTTONS - 1);
-}
-
-/* Test hook. */
-export function resetExtReassert(): void { lastExtSync = false; extReassert = 0; }
 
 function barHasContent(bar: number): boolean {
     const b = bar * NUM_STEP_BUTTONS;
@@ -192,7 +164,6 @@ export function seqLedsTick(
     maxOff: number = 0,
 ): void {
     ledFrameReset();
-    reclaimStepLedsFromMove();
     // Session mode owns the 32-pad clip grid; the step row is not part of it,
     // so keep the step button LEDs dark (the master FX chain has no per-step
     // editing). Pads paint first for priority within the frame budget.

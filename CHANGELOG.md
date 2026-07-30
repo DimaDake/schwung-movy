@@ -89,15 +89,6 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
-- **Move's sequencer left stuck green step LEDs.** With the Play link on, Movy
-  starts Move's own transport — and Move paints the same 16 step LEDs. The LED
-  layer only sends colours that *changed*, so a step Move painted was never
-  corrected (Movy still believed its own colour was on the hardware) and Move's
-  playhead green stayed lit, accumulating as it moved. Cache-diffing is only safe
-  for LEDs nothing else writes, so while Move's transport runs the step row is
-  now re-asserted — immediately when the link engages or drops, and on a slow
-  cadence in between. Sixteen sends, well inside the frame budget. Same class of
-  race as the drum grid's post-track-switch repaint window.
 - **A track could load silent and stay silent.** A clip selection persists even
   when it names an empty slot (launching an empty Session cell selects it), and
   Play starts a track only if its *selected* clip exists — so a set could restore

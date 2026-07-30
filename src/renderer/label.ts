@@ -15,9 +15,13 @@ function drawWaveMark(x: number, y: number, on: number): void {
     fill_rect(x + 3, y + 1, 1, 1, on);
 }
 
+/* A trigger's value is always "idle", which reads as a setting you failed to
+ * change — so a trigger shows its NAME rather than its value, and otherwise
+ * behaves exactly like any other knob's label: highlighted while touched. The
+ * fired confirmation lives in the blinking icon, not in the label. */
 export function drawLabelCell(col: number, lblY: number, pvm: ParamVM): void {
     const knobCenterX = col * CELL_W + Math.floor(CELL_W / 2);
-    const text = pvm.touched ? pvm.displayValue : pvm.shortName;
+    const text = (pvm.trigger || !pvm.touched) ? pvm.shortName : pvm.displayValue;
     const tw   = fontWidth(text);
     const tx   = knobCenterX - Math.floor(tw / 2);
     if (pvm.touched) {

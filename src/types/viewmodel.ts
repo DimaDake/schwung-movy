@@ -13,6 +13,12 @@ export interface ParamVM {
     automatable:     boolean;   // can be assigned a lane (numeric, non-global)
     assigned:        boolean;   // already bound to an automation lane
     modulated:       boolean;   // an LFO targets this param → show the ~ mark
+    /* One-shot trigger badge. Absent for ordinary params. `trigger` is the badge
+     * phase; `triggerCool` is the re-arm drain remaining (0..COOL_STEPS), which
+     * is what makes the gesture-end debounce visible instead of mysterious. */
+    trigger?:        'armed' | 'fired' | 'cooling';
+    triggerCool?:    number;
+    triggerBlink?:   boolean;   // fired: which half of the icon blink cycle
 }
 
 /* Injected automation snapshot (built in app/tick from seqState + the lane

@@ -6,7 +6,32 @@ import { concreteKey } from './pad-scope.js';
 import { enumRawToIndex, enumUsesIndex, enumSetValue } from './enum-value.js';
 import { pageSlotMap } from './page-layout.js';
 import { inferGuessedMeta } from './meta-infer.js';
+import { applyTriggerDelta, seedTriggerState } from './trigger.js';
 import { mlog } from '../log.js';
+
+function gestureFor(s: ModelState, key: string) {
+    return s.paramGestures[key] ??= { lastTurnMs: 0, direction: 0 };
+}
+
+function wideStepCount(s: ModelState, p: KnobParam, delta: number): number {
+    if (delta === 0) return 0;
+    const now = Date.now();
+    const direction = delta > 0 ? 1 : -1;
+    const gesture = gestureFor(s, p.key);
+    const elapsed = gesture.lastTurnMs > 0 ? now - gesture.lastTurnMs : Number.POSITIVE_INFINITY;
+    let multiplier = 1;
+    if (direction === gesture.direction) {
+        if (elapsed <= 35) multiplier = 250;
+        else if (elapsed <= 90) multiplier = 50;
+        else if (elapsed <= 180) multiplier = 10;
+    }
+    gesture.lastTurnMs = now;
+    gesture.direction = direction;
+    /* Scale a UNIT step, not `delta`. The host already accumulates detents and
+     * flushes one CC per tick, so `delta` is itself a count — multiplying it
+     * would compound twice and a single flick would cross the whole range. */
+    return direction * multiplier;
+}
 
 /* First-read type/range inference for guessed params (C4). Mutates p in place
  * (bounds must widen before the value is clamped/seeded) and clears the flag so
@@ -109,6 +134,7 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
     if (p.type === 'file') return;
 
     const ioKey = paramIoKey(s, p);
+    if (applyTriggerDelta(s, gi, p, ioKey, delta, () => enumFmtFor(s, gi, p, ioKey))) return;
     if (s.knobValues[gi] === null || s.knobValues[gi] === undefined) {
         const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey);
         if (raw === null && !p.key.startsWith('test_')) return;
@@ -133,7 +159,9 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
         : p.type === 'float' ? rangeStep
         : p.type === 'int'   ? Math.max(p.step, rangeStep)
         : p.step;
-    const scaled = p.type === 'enum' ? delta / ENUM_DELTA_DIV : delta * effStep * arcScale;
+    const scaled = p.type === 'enum' ? delta / ENUM_DELTA_DIV
+        : p.knobAcceleration === 'wide' ? wideStepCount(s, p, delta) * p.step
+        : delta * effStep * arcScale;
     let newVal = (s.knobValues[gi] as number) + scaled;
     newVal = Math.max(p.min, Math.min(p.max, newVal));
     if (p.type === 'int') newVal = Math.round(newVal);
@@ -209,6 +237,11 @@ export function refreshOneParam(s: ModelState, tickCount: number): void {
     if (p.type === 'enum') {
         s.enumFmt[i] = enumUsesIndex(p.options, raw);
         const idx = enumRawToIndex(p.options, raw);
+        /* A trigger's badge is driven by the gesture state machine, never by the
+         * DSP's value — so seed the latch from the first read, then leave the
+         * value pinned. Letting it follow the read-back would also light the knob
+         * LED permanently (normalizedValue 1.0) on a module that self-latches. */
+        if (p.behavior === 'trigger') { seedTriggerState(s, p, idx); return; }
         if (idx !== s.knobValues[i]) { s.knobValues[i] = idx; s.dirty = true; }
         return;
     }

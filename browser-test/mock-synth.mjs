@@ -15,6 +15,35 @@ function hierFull(knobs, params) {
 
 export const MOCK_SYNTHS = {
 
+    /* Smack-style one-shot actions for the trigger badge states. Two triggers so a
+     * frame shows the fired/cooling badge next to an untouched armed one. No
+     * value-carrying knob here on purpose: an arc's rendered value depends on
+     * where the round-robin refresh happens to be, which made the badge baselines
+     * differ in a cell these scenes are not about. */
+    triggers: {
+        "synth:name":         "Smacky",
+        "synth_module":       "smacky",
+        "synth:chain_params": JSON.stringify([
+            { key: "capture", name: "Capture", type: "enum", options: ["idle", "trigger"], behavior: "trigger" },
+            { key: "reroll",  name: "Reroll",  type: "enum", options: ["idle", "trigger"], behavior: "trigger" },
+        ]),
+        "synth:capture":      "idle",
+        "synth:reroll":       "idle",
+    },
+
+    /* Eight trigger badges on one page — the worst case for badge draw cost. */
+    triggers_full: {
+        "synth:name":         "Smackier",
+        "synth_module":       "smackier",
+        "synth:chain_params": JSON.stringify(
+            Array.from({ length: 8 }, (_, i) => ({
+                key: "act" + i, name: "Action " + i, type: "enum",
+                options: ["idle", "trigger"], behavior: "trigger",
+            })),
+        ),
+        ...Object.fromEntries(Array.from({ length: 8 }, (_, i) => ["synth:act" + i, "idle"])),
+    },
+
     test8: {
         "synth:name": "Test 8",
         "synth:ui_hierarchy": hier([

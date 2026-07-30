@@ -52,6 +52,8 @@ const PRESETS = [
     'signal_voice', 'forge_voice', 'forge_filter', 'forge_mod', 'forge_send', 'forge_mix',
     'leave_modal',
     'track_volume_unity', 'track_volume_min', 'track_volume_max',
+    'trigger_armed', 'trigger_fired', 'trigger_blink_off', 'trigger_touched',
+    'trigger_cooling', 'trigger_cooling_low',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -70,6 +72,9 @@ const BASE = {
     'main-key-overlay': 'test8', 'main-ext-sync': 'test8', 'main-link-on': 'test8',
     'clip-default': 'test8', 'clip-fraction': 'test8', 'clip-overlay': 'test8',
     'clip-drum': 'test8',
+    trigger_armed: 'triggers', trigger_fired: 'triggers',
+    trigger_blink_off: 'triggers', trigger_touched: 'triggers',
+    trigger_cooling: 'triggers', trigger_cooling_low: 'triggers',
     env_dual: 'env_dual', env_touched: 'env_dual', env_ad: 'env_ad', env_asr: 'env_asr', lfo_mod: 'lfo_mod',
     filter_lp: 'filter_demo', filter_lp_reso: 'filter_demo', filter_hp: 'filter_demo',
     filter_bp: 'filter_demo', filter_notch: 'filter_demo', filter_slope24: 'filter_demo',
@@ -156,6 +161,24 @@ function knobsRepaint() { renderKnobsView(model.getViewModel()); }
 let lastRender = knobsRepaint;
 function forceRender()  { lastRender = knobsRepaint; lastRender(); }
 
+/* Frozen-clock support. The runner settles again after applyView, so a scene that
+ * mocks time must STAY mocked through those ticks — otherwise the trigger phase
+ * expires against wall-clock time and whether the frame repaints becomes luck.
+ * Cleared per scene by the runner. */
+const REAL_NOW = Date.now;
+let nowOverride = null;
+Date.now = () => (nowOverride === null ? REAL_NOW() : nowOverride);
+
+/* Fire knob 0's trigger, then render `afterMs` later on a frozen clock. */
+function fireTrigger(afterMs) {
+    settle();
+    nowOverride = 1_000_000;
+    model.handleKnobDelta(0, 1);
+    model.tick();
+    nowOverride += afterMs;
+    forceRender();
+}
+
 /* Override synth params on the loaded mock and re-read, then repaint. */
 function setFilter(overrides) {
     const patched = { ...env.params };
@@ -209,6 +232,15 @@ function applyView(preset) {
         case 'knob_toast':       model.handleKnobTouch(2); forceRender(); break;
         case 'keys_view':        showKeys(); break;
         case 'browse_view':      showBrowse([{ name: 'Plaits' }, { name: 'Wurl' }, { name: 'Bass' }], 1); break;
+        /* Trigger badge phases. Time is frozen so the fired flash and two drain
+         * positions are deterministic; the drain is what makes the re-arm
+         * debounce visible, so it needs more than one sample pinned. */
+        case 'trigger_armed':       settle(); forceRender(); break;
+        case 'trigger_fired':       fireTrigger(0); break;
+        case 'trigger_blink_off':   fireTrigger(60); break;   // second half of the blink
+        case 'trigger_touched':     settle(); model.handleKnobTouch(0); forceRender(); break;
+        case 'trigger_cooling':     fireTrigger(250); break;
+        case 'trigger_cooling_low': fireTrigger(620); break;
         case 'env_dual':    forceRender(); break;
         case 'env_touched': model.handleKnobTouch(2); forceRender(); break;   // touch Sustain
         case 'env_ad':      forceRender(); break;
@@ -468,6 +500,7 @@ for (const preset of PRESETS) {
     process.stdout.write(`  ${preset} ... `);
 
     clear_screen();
+    nowOverride = null;            // every scene starts on the real clock
     loadPreset(BASE[preset] ?? preset);
     lastRender = knobsRepaint;
     settle();          // load hierarchy, render default knobs view

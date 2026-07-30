@@ -13,7 +13,7 @@ import chiptuneJson    from './chiptune.json';
 import hush1Json       from './hush1.json';
 import signalJson      from './signal.json';
 
-const MOVY_SG_ROOT = '/data/UserData/schwung/modules/sound_generators';
+const MOVY_MODULE_ROOT = '/data/UserData/schwung/modules';
 
 const CONFIGS: Record<string, ModuleConfig> = {
     '303':           s303Json         as unknown as ModuleConfig,
@@ -43,9 +43,15 @@ function tryFile(path: string): ModuleConfig | null {
 /* A module can ship its own layout: `movy_config.json` in its module directory
  * is read at load time, so a module is fully self-describing with no movy-side
  * config (e.g. Forge). Bundled CONFIGS cover modules that don't ship one. */
-export function loadModuleConfig(moduleId: string): ModuleConfig | null {
+function componentCategory(componentKey: string): string {
+    if (componentKey === 'synth') return 'sound_generators';
+    if (componentKey.startsWith('midi_fx')) return 'midi_fx';
+    return 'audio_fx'; // track FX and master_fx:fxN
+}
+
+export function loadModuleConfig(moduleId: string, componentKey = 'synth'): ModuleConfig | null {
     if (!moduleId) return null;
-    return tryFile(`${MOVY_SG_ROOT}/${moduleId}/movy_config.json`)
+    return tryFile(`${MOVY_MODULE_ROOT}/${componentCategory(componentKey)}/${moduleId}/movy_config.json`)
         ?? CONFIGS[moduleId]
         ?? null;
 }

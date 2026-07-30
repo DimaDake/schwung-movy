@@ -672,6 +672,422 @@ _log('\nTest: knob delta normalizes sweep across param ranges');
   eq('int 20..20000 moves fast (range/100)', iMove(20, 20000) >= 90, true);
 }
 
+_log('\nTest: module interaction metadata drives triggers, acceleration, and automation');
+{
+  const { applyKnobDelta } = await import('../dist/esm/model/store.js');
+  const trigger = {
+    key: 'capture', label: 'Capture', shortLabel: null, type: 'enum',
+    min: 0, max: 1, step: 1, options: ['idle', 'trigger'],
+    renderStyle: 'arc', automatable: false, behavior: 'trigger',
+  };
+  const seed = {
+    key: 'seed', label: 'Seed', shortLabel: null, type: 'int',
+    min: 1, max: 9999, step: 1, options: null,
+    renderStyle: 'arc', automatable: true, knobAcceleration: 'wide',
+  };
+  const state = (p, value) => ({
+    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    knobParams: [p], knobValues: [value], enumFmt: [undefined],
+    fileValues: [null], slotMapCache: null, paramGestures: {}, triggerStates: {},
+    dirty: false,
+  });
+
+  const originalSet = globalThis.shadow_set_param;
+  const writes = [];
+  globalThis.shadow_set_param = (_slot, key, value) => { writes.push([key, value]); return true; };
+  env.setParams({ 'synth:capture': '0' });
+  const ts = state(trigger, 0);
+  applyKnobDelta(ts, 0, 1);
+  applyKnobDelta(ts, 0, 1);
+  eq('trigger: clockwise fires once per gesture', JSON.stringify(writes),
+    JSON.stringify([['synth:capture', '1']]));
+  eq('trigger: display returns to idle immediately', ts.knobValues[0], 0);
+  applyKnobDelta(ts, 0, -1);
+  applyKnobDelta(ts, 0, 1);
+  eq('trigger: counter-clockwise sends idle and re-arms', JSON.stringify(writes.slice(1)),
+    JSON.stringify([['synth:capture', '0'], ['synth:capture', '1']]));
+  globalThis.shadow_set_param = originalSet;
+
+  const originalNow = Date.now;
+  let now = 1000;
+  Date.now = () => now;
+  const ss = state(seed, 1000);
+  applyKnobDelta(ss, 0, 1);                // deliberate turn: +1
+  now += 100; applyKnobDelta(ss, 0, 1);    // continuing turn: +10
+  now += 20;  applyKnobDelta(ss, 0, 1);    // fast sweep: +250
+  eq('wide acceleration: slow + medium + fast reaches 1261', ss.knobValues[0], 1261);
+  now += 10;  applyKnobDelta(ss, 0, -1);   // reversal is fine again
+  eq('wide acceleration: direction reversal moves one step', ss.knobValues[0], 1260);
+  Date.now = originalNow;
+
+  const metadataPreset = {
+    'synth:name': 'Metadata',
+    'synth:ui_hierarchy': JSON.stringify({ levels: { root: {
+      knobs: ['capture', 'seed', 'locked'],
+      params: [
+        { key: 'capture', name: 'Capture', type: 'enum', options: ['idle', 'trigger'] },
+        { key: 'seed', name: 'Seed', type: 'int', min: 1, max: 9999, knob_acceleration: 'wide' },
+        { key: 'locked', name: 'Locked', type: 'float', min: 0, max: 1 },
+      ],
+    } } }),
+    'synth:chain_params': JSON.stringify([
+      { key: 'capture', name: 'Capture', type: 'enum', options: ['idle', 'trigger'], automatable: true },
+      { key: 'seed', name: 'Seed', type: 'int', min: 1, max: 9999 },
+      { key: 'locked', name: 'Locked', type: 'float', min: 0, max: 1, automatable: false },
+    ]),
+    'synth:capture': '0', 'synth:seed': '4303', 'synth:locked': '0.5',
+  };
+  const params = bootModel(metadataPreset).dumpLayout().params.filter(Boolean);
+  const byKey = Object.fromEntries(params.map(p => [p.key, p]));
+  eq('metadata: idle/trigger enum inferred as a trigger', byKey.capture.behavior, 'trigger');
+  eq('metadata: triggers are never automatable', byKey.capture.automatable, false);
+  eq('metadata: knob_acceleration survives hierarchy parsing', byKey.seed.knobAcceleration, 'wide');
+  eq('metadata: explicit numeric automatable=false is respected', byKey.locked.automatable, false);
+}
+
+_log('\nTest: self-describing layouts resolve from every chain component category');
+{
+  const { loadModuleConfig } = await import('../dist/esm/modules/loader.js');
+  const originalRead = globalThis.host_read_file;
+  const reads = [];
+  globalThis.host_read_file = (path) => { reads.push(path); return null; };
+  loadModuleConfig('voice-layout', 'synth');
+  loadModuleConfig('fx-layout', 'fx1');
+  loadModuleConfig('master-layout', 'master_fx:fx1');
+  loadModuleConfig('midi-layout', 'midi_fx1');
+  globalThis.host_read_file = originalRead;
+  eq('layout path: sound generator', reads[0],
+    '/data/UserData/schwung/modules/sound_generators/voice-layout/movy_config.json');
+  eq('layout path: audio FX', reads[1],
+    '/data/UserData/schwung/modules/audio_fx/fx-layout/movy_config.json');
+  eq('layout path: master FX', reads[2],
+    '/data/UserData/schwung/modules/audio_fx/master-layout/movy_config.json');
+  eq('layout path: MIDI FX', reads[3],
+    '/data/UserData/schwung/modules/midi_fx/midi-layout/movy_config.json');
+}
+
+/* Global-bank params are not reachable as chain `target:params` (device spike),
+ * so they can never be automated no matter what a module claims. movy's own
+ * config may still override per slot (it knows which per-voice keys resolve),
+ * but third-party metadata must not — otherwise a module re-enables an
+ * automation dot on a param the host cannot resolve. */
+_log('\nTest: module automatable metadata cannot override the global-bank guard');
+{
+  const globalCp = (extra) => ({
+    ...MOCK_SYNTHS.mrdrums,
+    'synth:chain_params': JSON.stringify([
+      { key: 'g_master_vol', name: 'Master Vol', type: 'float', min: 0, max: 2, ...extra },
+    ]),
+  });
+  const automatableOf = (preset) => {
+    const p = bootModel(preset).dumpLayout().params
+      .filter(Boolean).find(q => q.key === 'g_master_vol');
+    return p?.automatable;
+  };
+  eq('global param: silent chain_params stays non-automatable',
+    automatableOf(globalCp({})), false);
+  eq('global param: module automatable=true is ignored',
+    automatableOf(globalCp({ automatable: true })), false);
+}
+
+/* The shadow UI accumulates knob deltas and flushes ONE CC per tick, so a fast
+ * hardware spin arrives as a single large delta. Multiplying that by the
+ * acceleration ladder compounds twice — measured on device, 3 events at delta=6
+ * moved `seed` 3000 of its 9999 range, putting the middle out of reach at speed.
+ * The ladder must scale a unit step, not the incoming delta. */
+_log('\nTest: wide acceleration scales a unit step, not the accumulated delta');
+{
+  const { applyKnobDelta } = await import('../dist/esm/model/store.js');
+  const seed = {
+    key: 'seed', label: 'Seed', shortLabel: null, type: 'int',
+    min: 1, max: 9999, step: 1, options: null,
+    renderStyle: 'arc', automatable: true, knobAcceleration: 'wide',
+  };
+  const originalNow = Date.now;
+  const run = (secondDelta) => {
+    let now = 1000;
+    Date.now = () => now;
+    const s = {
+      activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+      knobParams: [seed], knobValues: [5000], enumFmt: [undefined],
+      fileValues: [null], slotMapCache: null, paramGestures: {}, triggerStates: {},
+      dirty: false,
+    };
+    applyKnobDelta(s, 0, 1);              // establish direction: +1
+    const base = s.knobValues[0];
+    now += 20; applyKnobDelta(s, 0, secondDelta);   // fast sweep → ×250
+    Date.now = originalNow;
+    return s.knobValues[0] - base;
+  };
+  eq('one accumulated detent at speed travels 250', run(1), 250);
+  eq('six accumulated detents at speed travel 250, not 1500', run(6), 250);
+}
+
+/* A one-shot control has to say what it did. The badge phase drives the widget:
+ * ARMED (turn CW to fire) → FIRED (momentary confirmation) → COOLING (latched
+ * while the gesture-end debounce runs) → ARMED again. */
+_log('\nTest: trigger badge phases run armed -> fired -> cooling -> armed');
+{
+  const { applyKnobDelta } = await import('../dist/esm/model/store.js');
+  const { triggerVisual } = await import('../dist/esm/model/trigger.js');
+  const TRIG = {
+    key: 'capture', label: 'Capture', shortLabel: null, type: 'enum',
+    min: 0, max: 1, step: 1, options: ['idle', 'trigger'],
+    renderStyle: 'arc', automatable: false, behavior: 'trigger',
+  };
+  const mkState = () => ({
+    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    knobParams: [TRIG], knobValues: [0], enumFmt: [true], fileValues: [null],
+    slotMapCache: null, paramGestures: {}, triggerStates: {}, dirty: false,
+  });
+  const originalNow = Date.now, originalSet = globalThis.shadow_set_param;
+  let now = 10000;
+  Date.now = () => now;
+  const writes = [];
+  globalThis.shadow_set_param = (_s, k, v) => { writes.push([k, v]); return true; };
+
+  const s = mkState();
+  eq('armed before any turn', triggerVisual(s, 'capture').phase, 'armed');
+  applyKnobDelta(s, 0, 1);
+  eq('one clockwise turn fires once', writes.length, 1);
+  eq('fired immediately after the turn', triggerVisual(s, 'capture').phase, 'fired');
+  now += 250;   // past TRIGGER_FLASH_MS
+  eq('cooling once the flash expires', triggerVisual(s, 'capture').phase, 'cooling');
+  now += 600;   // 850ms since the turn, past TRIGGER_REARM_MS
+  eq('re-armed once the drain empties', triggerVisual(s, 'capture').phase, 'armed');
+
+  Date.now = originalNow;
+  globalThis.shadow_set_param = originalSet;
+}
+
+/* The renderer cannot show what never reaches it. PR #2 left `behavior` inside
+ * the model, so the badge phase has to travel out through the ParamVM. */
+_log('\nTest: the badge phase and drain reach the ParamVM');
+{
+  const preset = {
+    'synth:name': 'vmmod', 'synth_module': 'vmmod',
+    'synth:chain_params': JSON.stringify([
+      { key: 'capture', name: 'Capture', type: 'enum', options: ['idle', 'trigger'] },
+      { key: 'wet', name: 'Wet', type: 'float', min: 0, max: 1 },
+    ]),
+    'synth:capture': 'idle', 'synth:wet': '0.5',
+  };
+  const originalSet = globalThis.shadow_set_param;
+  const m = bootModel(preset);
+  for (let i = 0; i < 4; i++) m.tick();
+  globalThis.shadow_set_param = () => true;
+  const cap = () => m.getViewModel().rows[0][0];
+
+  eq('armed trigger reports its phase', cap().trigger, 'armed');
+  eq('a non-trigger param has no phase', m.getViewModel().rows[0][1].trigger, undefined);
+
+  m.handleKnobDelta(0, 1); m.tick();
+  eq('fired phase reaches the ParamVM', cap().trigger, 'fired');
+  eq('fired carries a full drain', cap().triggerCool, 8);
+
+  globalThis.shadow_set_param = originalSet;
+}
+
+/* The fired confirmation is the icon blinking, not a whole-cell flash, so the
+ * phase alone is not enough — the renderer needs which half of the cycle it is in. */
+_log('\nTest: the fired icon blinks on a fixed half-period');
+{
+  const { applyKnobDelta } = await import('../dist/esm/model/store.js');
+  const { triggerVisual } = await import('../dist/esm/model/trigger.js');
+  const { TRIGGER_FLASH_MS, TRIGGER_BLINK_MS } = await import('../dist/esm/model/constants.js');
+  const TRIG = {
+    key: 'capture', label: 'Capture', shortLabel: null, type: 'enum',
+    min: 0, max: 1, step: 1, options: ['idle', 'trigger'],
+    renderStyle: 'arc', automatable: false, behavior: 'trigger',
+  };
+  const originalNow = Date.now, originalSet = globalThis.shadow_set_param;
+  let now = 40000;
+  Date.now = () => now;
+  globalThis.shadow_set_param = () => true;
+  const s = {
+    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    knobParams: [TRIG], knobValues: [0], enumFmt: [true], fileValues: [null],
+    slotMapCache: null, paramGestures: {}, triggerStates: {}, dirty: false,
+  };
+  const firedAt = now;
+  applyKnobDelta(s, 0, 1);
+
+  const at = (ms) => { now = firedAt + ms; return triggerVisual(s, 'capture'); };
+  eq('blink starts on', at(0).blinkOn, true);
+  eq('blink is off in the second half-period', at(TRIGGER_BLINK_MS + 5).blinkOn, false);
+  eq('blink is on again in the third', at(TRIGGER_BLINK_MS * 2 + 5).blinkOn, true);
+
+  const cycles = [];
+  for (let t = 0; t < TRIGGER_FLASH_MS; t += 5) cycles.push(at(t).blinkOn);
+  const alternations = cycles.filter((v, i) => i > 0 && v !== cycles[i - 1]).length;
+  eq('the flash window contains several alternations', alternations >= 3, true);
+  eq('blink is irrelevant once cooling', at(TRIGGER_FLASH_MS + 10).blinkOn, false);
+
+  Date.now = originalNow;
+  globalThis.shadow_set_param = originalSet;
+}
+
+/* Writes are IPC, and a trigger's displayed value never changes, so the only
+ * writes worth making are the ones that change what the DSP sees. */
+_log('\nTest: a trigger writes only when the action actually changes');
+{
+  const { applyKnobDelta } = await import('../dist/esm/model/store.js');
+  const { triggerVisual, COOL_STEPS } = await import('../dist/esm/model/trigger.js');
+  const TRIG = {
+    key: 'capture', label: 'Capture', shortLabel: null, type: 'enum',
+    min: 0, max: 1, step: 1, options: ['idle', 'trigger'],
+    renderStyle: 'arc', automatable: false, behavior: 'trigger',
+  };
+  const originalNow = Date.now, originalSet = globalThis.shadow_set_param;
+  let now = 20000;
+  Date.now = () => now;
+  let writes = [];
+  globalThis.shadow_set_param = (_s, k, v) => { writes.push(v); return true; };
+  const s = {
+    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    knobParams: [TRIG], knobValues: [0], enumFmt: [true], fileValues: [null],
+    slotMapCache: null, paramGestures: {}, triggerStates: {}, dirty: false,
+  };
+
+  applyKnobDelta(s, 0, -1);
+  eq('counter-clockwise while armed writes nothing', writes.length, 0);
+
+  writes = [];
+  applyKnobDelta(s, 0, 1);
+  eq('clockwise while armed fires', JSON.stringify(writes), JSON.stringify(['1']));
+
+  writes = [];
+  now += 100;
+  applyKnobDelta(s, 0, 1);
+  eq('clockwise while cooling writes nothing', writes.length, 0);
+  eq('...and restarts the drain', triggerVisual(s, 'capture').coolSteps, COOL_STEPS);
+
+  writes = [];
+  applyKnobDelta(s, 0, -1);
+  eq('counter-clockwise while cooling sends idle', JSON.stringify(writes), JSON.stringify(['0']));
+  eq('...and re-arms', triggerVisual(s, 'capture').phase, 'armed');
+
+  Date.now = originalNow;
+  globalThis.shadow_set_param = originalSet;
+}
+
+/* The drain is what makes the re-arm debounce visible. Quantising it means the
+ * badge repaints ~8 times per cooldown instead of once per tick (~70). */
+_log('\nTest: the cooldown drain empties in COOL_STEPS quantised steps');
+{
+  const { applyKnobDelta } = await import('../dist/esm/model/store.js');
+  const { triggerVisual, COOL_STEPS } = await import('../dist/esm/model/trigger.js');
+  const { TRIGGER_REARM_MS, TRIGGER_FLASH_MS } = await import('../dist/esm/model/constants.js');
+  const TRIG = {
+    key: 'capture', label: 'Capture', shortLabel: null, type: 'enum',
+    min: 0, max: 1, step: 1, options: ['idle', 'trigger'],
+    renderStyle: 'arc', automatable: false, behavior: 'trigger',
+  };
+  const originalNow = Date.now, originalSet = globalThis.shadow_set_param;
+  let now = 30000;
+  Date.now = () => now;
+  globalThis.shadow_set_param = () => true;
+  const s = {
+    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    knobParams: [TRIG], knobValues: [0], enumFmt: [true], fileValues: [null],
+    slotMapCache: null, paramGestures: {}, triggerStates: {}, dirty: false,
+  };
+  const firedAt = now;
+  applyKnobDelta(s, 0, 1);
+
+  const seen = [];
+  for (let t = TRIGGER_FLASH_MS; t < TRIGGER_REARM_MS; t += 10) {
+    now = firedAt + t;
+    seen.push(triggerVisual(s, 'capture').coolSteps);
+  }
+  const distinct = [...new Set(seen)];
+  const sorted = [...seen].every((v, i) => i === 0 || v <= seen[i - 1]);
+  eq('drain never increases while cooling', sorted, true);
+  eq('drain uses at most COOL_STEPS levels', distinct.length <= COOL_STEPS, true);
+  eq('drain stays within 1..COOL_STEPS', distinct.every(v => v >= 1 && v <= COOL_STEPS), true);
+
+  now = firedAt + TRIGGER_REARM_MS + 1;
+  eq('drain reaches armed at the end of the window', triggerVisual(s, 'capture').phase, 'armed');
+
+  Date.now = originalNow;
+  globalThis.shadow_set_param = originalSet;
+}
+
+/* A module can already hold the param at `trigger` when movy loads — a latching
+ * module, or a restored preset. Assuming ARMED there would write `trigger` to a
+ * param already at `trigger`: no edge, no action, but a FIRED flash. movy must
+ * not write `idle` to normalise it either — smack's `arm` is "arm-and-record"
+ * and holds real module state. So show it latched and let the user turn back. */
+_log('\nTest: a trigger already at trigger on load starts latched, not armed');
+{
+  const { triggerVisual } = await import('../dist/esm/model/trigger.js');
+  const preset = {
+    'synth:name': 'seedmod', 'synth_module': 'seedmod',
+    'synth:chain_params': JSON.stringify([
+      { key: 'capture', name: 'Capture', type: 'enum', options: ['idle', 'trigger'] },
+    ]),
+    'synth:capture': 'trigger',
+  };
+  const originalSet = globalThis.shadow_set_param;
+  const writes = [];
+  const m = bootModel(preset);
+  for (let i = 0; i < 6; i++) m.tick();
+  globalThis.shadow_set_param = (_s, k, v) => { writes.push([k, v]); return true; };
+
+  eq('load wrote nothing to normalise the param', writes.length, 0);
+
+  m.handleKnobDelta(0, 1); m.tick();
+  eq('clockwise does not fire a param already at trigger',
+    writes.filter(([k]) => k === 'synth:capture').length, 0);
+
+  m.handleKnobDelta(0, -1); m.tick();
+  eq('counter-clockwise re-arms it',
+    JSON.stringify(writes.filter(([k]) => k === 'synth:capture')),
+    JSON.stringify([['synth:capture', 'idle']]));
+
+  globalThis.shadow_set_param = originalSet;
+}
+
+/* A hierarchy reload fires ~1s after a module loads, as pollModuleName settles —
+ * exactly when a user first reaches for the knob. Wiping the latch there fires a
+ * destructive action twice (observed on device as 4 rapid detents -> 2 fires).
+ * A reload of the SAME module must preserve the gesture; a different module must
+ * not inherit the previous one's latch. */
+_log('\nTest: a latched trigger survives a same-module reload but not a module change');
+{
+  const trigPreset = (mod) => ({
+    'synth:name': mod, 'synth_module': mod,
+    'synth:chain_params': JSON.stringify([
+      { key: 'capture', name: 'Capture', type: 'enum', options: ['idle', 'trigger'] },
+    ]),
+    'synth:capture': '0',
+  });
+  const originalSet = globalThis.shadow_set_param;
+  const fires = () => writes.filter(([k, v]) => k === 'synth:capture' && v !== '0').length;
+  let writes = [];
+
+  /* The model buffers knob deltas and applies them on the next tick, so every
+   * turn needs a tick to actually reach the param. */
+  const turn = (d) => { m.handleKnobDelta(0, d); m.tick(); };
+
+  const m = bootModel(trigPreset('trigmod'));
+  globalThis.shadow_set_param = (_s, k, v) => { writes.push([k, v]); return true; };
+  turn(1);
+  eq('fires on the first clockwise turn', fires(), 1);
+
+  m.reload(); m.tick(); m.tick();          // same module reloads
+  turn(1);
+  eq('same-module reload keeps it latched', fires(), 1);
+
+  env.setParams(trigPreset('othermod'));   // a different module loads
+  m.reload(); m.tick(); m.tick();
+  writes = [];
+  turn(1);
+  eq('a module change re-arms it', fires(), 1);
+
+  globalThis.shadow_set_param = originalSet;
+}
+
 /* ── viewmodel: file display value and browseHint ─────────────────────────── */
 
 _log('\nTest: file knob displayValue = basename of current path');

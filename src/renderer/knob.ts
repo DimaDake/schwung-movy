@@ -122,10 +122,82 @@ function drawPresetValue(cellX: number, ky: number, pvm: ParamVM): void {
     }
 }
 
+/* Dashed 16×16 frame — the cooling badge, so it reads as "not ready" at a glance. */
+function drawDashedFrame(kx: number, ky: number): void {
+    for (let i = 0; i < KW; i += 2) {
+        fill_rect(kx + i, ky, 1, 1, 1);
+        fill_rect(kx + i, ky + KW - 1, 1, 1, 1);
+        fill_rect(kx, ky + i, 1, 1, 1);
+        fill_rect(kx + KW - 1, ky + i, 1, 1, 1);
+    }
+}
+
+function drawSolidFrame(kx: number, ky: number): void {
+    fill_rect(kx, ky, KW, 1, 1);
+    fill_rect(kx, ky + KW - 1, KW, 1, 1);
+    fill_rect(kx, ky, 1, KW, 1);
+    fill_rect(kx + KW - 1, ky, 1, KW, 1);
+}
+
+/* 8×8 circle, centred exactly in the 16×16 cell — 4px margin on every side.
+ * Built from explicit row spans rather than a midpoint rasteriser: on an
+ * even-sized box a rasterised circle lands a pixel off centre, and at this size
+ * that asymmetry is obvious. Outline normally; solid for the fired moment. */
+const CIRCLE_ROWS: [number, number][] = [
+    [2, 5], [1, 6], [0, 7], [0, 7], [0, 7], [0, 7], [1, 6], [2, 5],
+];
+
+function drawCircle(kx: number, ky: number, solid: boolean): void {
+    const ox = kx + 4, oy = ky + 4;
+    for (let r = 0; r < 8; r++) {
+        const [a, b] = CIRCLE_ROWS[r];
+        if (solid || r === 0 || r === 7) {
+            fill_rect(ox + a, oy + r, b - a + 1, 1, 1);   // full span
+        } else {
+            fill_rect(ox + a, oy + r, 1, 1, 1);           // left edge
+            fill_rect(ox + b, oy + r, 1, 1, 1);           // right edge
+        }
+    }
+}
+
+/* A one-shot action, deliberately not shaped like a knob: an arc/bar/enum cell
+ * would all read as a value you could set, which is the wrong mental model.
+ *   armed   — solid frame, circle inside
+ *   fired   — the CIRCLE blinks on/off; the frame and cell stay put, so the
+ *             confirmation is local to the icon rather than a whole-cell flash
+ *   cooling — dashed frame plus a drain bar showing when it re-arms by itself
+ */
+function drawTriggerBadge(kx: number, ky: number, pvm: ParamVM): void {
+    if (pvm.trigger === 'fired') {
+        drawSolidFrame(kx, ky);
+        /* Blink: the circle goes solid for a moment, then back to its outline.
+         * Only the circle changes — the frame and the cell stay put, so the
+         * confirmation is local to the icon. */
+        drawCircle(kx, ky, pvm.triggerBlink === true);
+        return;
+    }
+    if (pvm.trigger === 'cooling') {
+        drawDashedFrame(kx, ky);
+        drawCircle(kx, ky, false);
+        /* Drain: a bar just inside the top edge, shrinking as the re-arm window
+         * elapses. 0 steps = a latch seeded from the DSP's value, no timer to show. */
+        const steps = pvm.triggerCool ?? 0;
+        if (steps > 0) {
+            const inner = KW - 4;
+            fill_rect(kx + 2, ky + 2, Math.max(1, Math.round(inner * steps / 8)), 1, 1);
+        }
+        return;
+    }
+    drawSolidFrame(kx, ky);
+    drawCircle(kx, ky, false);
+}
+
 export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
     const kx = col * CELL_W + Math.floor((CELL_W - KW) / 2);
     const ky = rowY;
-    if (pvm.renderStyle === 'preset') {
+    if (pvm.trigger) {
+        drawTriggerBadge(kx, ky, pvm);
+    } else if (pvm.renderStyle === 'preset') {
         drawPresetValue(col * CELL_W, ky, pvm);
     } else if (pvm.type === 'len') {
         drawLengthSquare(kx, ky, pvm.displayValue);

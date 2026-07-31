@@ -30,6 +30,17 @@ const UPDATE = process.argv.includes('--update');
  * Short-name uniqueness is NOT yet a global invariant (chunk 2 shrank it from
  * 19 pages to these 3); as other chunks fix a module they drop its entry here
  * and run --update, and this suite then enforces uniqueness on that page. */
+/* params[] keys deliberately left off the pages: the module reports an
+ * unturnable range (max <= min), so a knob would be dead. level-extras.ts skips
+ * them; the async metadata re-resolve renders them as soon as the module
+ * publishes a real range. */
+const UNREACHABLE_OK = new Set([
+    // osirus was captured mid-ROM-load, so it still reported bank_index 0..0.
+    'sound_generator--osirus::bank_index',
+    // sfz reports knob_preset 0..0 until a soundfont is loaded.
+    'sound_generator--sfz::knob_preset',
+]);
+
 const KNOWN_COLLIDING_PAGES = new Set([
     'midi_fx--eucalypso::Main',
     'sound_generator--aphex::VCO 1+2',
@@ -133,6 +144,21 @@ function checkDeclaredKnobsReachable(key, model, entry) {
     const missing = [...declared].filter(k => !shown.has(k));
     check(`${key}: all ${declared.size} declared knobs reachable (missing: ${missing.slice(0, 5).join(',')})`,
         missing.length === 0);
+
+    /* Every key a level lists in params[] must land on a page too — that is the
+     * whole point of the extras pass, and a snapshot alone would happily freeze
+     * a regression in place. */
+    const listed = new Set();
+    for (const lvl of Object.values(levels)) {
+        for (const p of (lvl.params ?? [])) {
+            const pk = typeof p === 'string' ? p : p?.key;
+            if (pk && !pk.startsWith('ui_')) listed.add(pk);
+        }
+    }
+    const unlisted = [...listed]
+        .filter(k => !shown.has(k) && !UNREACHABLE_OK.has(`${key}::${k}`));
+    check(`${key}: all ${listed.size} listed params reachable (missing: ${unlisted.slice(0, 5).join(',')})`,
+        unlisted.length === 0);
 }
 
 /* An enum knob may only offer the options the module itself reports. Option

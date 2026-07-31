@@ -438,6 +438,90 @@ export const MOCK_SYNTHS = {
         ]),
     },
 
+    /* A level whose params[] list is richer than its knobs[] row — the osirus
+     * shape. `bank_index` is degenerate (min==max) so it must NOT be rendered;
+     * `ui_scroll` is internal state; `dupe` is already a knob on root. */
+    hier_params_extras: {
+        "synth:name": "Extras",
+        "synth:chain_params": JSON.stringify([
+            { key: "cutoff",     name: "Cutoff",    type: "int", min: 0, max: 127 },
+            { key: "dupe",       name: "Dupe",      type: "int", min: 0, max: 127 },
+            { key: "pw",         name: "Osc1 PW",   type: "int", min: 0, max: 127 },
+            { key: "wave",       name: "Osc1 Wave", type: "enum", options: ["Sine", "Saw"] },
+            { key: "semi",       name: "Osc1 Semi", type: "int", min: 16, max: 112 },
+            { key: "bank_index", name: "Bank",      type: "int", min: 0, max: 0 },
+            { key: "ui_scroll",  name: "Scroll",    type: "int", min: 0, max: 9 },
+            { key: "rom",        name: "ROM",       type: "enum", options: ["A", "B", "C"] },
+        ]),
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: {
+                    knobs: ["cutoff", "dupe"],
+                    params: [
+                        { key: "bank_index", label: "Bank" },
+                        { key: "ui_scroll",  label: "Scroll" },
+                        { level: "osc",      label: "Oscillators" },
+                        { level: "settings", label: "Settings" },
+                    ],
+                },
+                osc: {
+                    knobs: ["pw"],
+                    params: [
+                        { key: "pw",   label: "Osc1 PW" },
+                        { key: "wave", label: "Osc1 Wave" },
+                        { key: "semi", label: "Osc1 Semi" },
+                        { key: "dupe", label: "Dupe" },
+                    ],
+                },
+                settings: { knobs: [], params: [{ key: "rom", label: "ROM" }] },
+            },
+        }),
+        "synth:cutoff": "64", "synth:dupe": "0", "synth:pw": "0",
+        "synth:wave": "0", "synth:semi": "64", "synth:bank_index": "0",
+        "synth:ui_scroll": "0", "synth:rom": "0",
+    },
+
+    /* Ten keys on one level → two pages: bare name, then " - 2". */
+    hier_params_overflow: {
+        "synth:name": "Overflow",
+        "synth:chain_params": JSON.stringify(
+            ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"].map(k =>
+                ({ key: k, name: k.toUpperCase(), type: "int", min: 0, max: 127 })),
+        ),
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: {
+                    knobs: ["a", "b"],
+                    params: ["c", "d", "e", "f", "g", "h", "i", "j"].map(k => ({ key: k, label: k })),
+                },
+            },
+        }),
+        ...Object.fromEntries(["a","b","c","d","e","f","g","h","i","j"].map(k => [`synth:${k}`, "0"])),
+    },
+
+    /* Two levels, the first spanning two pages — the shape shift+jog exists for. */
+    hier_params_overflow_two_levels: {
+        "synth:name": "Groups",
+        "synth:chain_params": JSON.stringify(
+            ["a","b","c","d","e","f","g","h","i","j","k"].map(x =>
+                ({ key: x, name: x.toUpperCase(), type: "int", min: 0, max: 127 })),
+        ),
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: {
+                    knobs: ["a", "b"],
+                    params: [
+                        ...["c","d","e","f","g","h","i","j"].map(x => ({ key: x, label: x })),
+                        { level: "fx", label: "Effects" },
+                    ],
+                },
+                fx: { knobs: ["k"], params: [{ key: "k", label: "k" }] },
+            },
+        }),
+        ...Object.fromEntries(["a","b","c","d","e","f","g","h","i","j","k"]
+            .map(x => [`synth:${x}`, "0"])),
+    },
+
     nav_levels: {
         "synth:name": "NavTest",
         "synth:ui_hierarchy": JSON.stringify({

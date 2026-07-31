@@ -18,6 +18,23 @@ export function knobKeys(lvl: WalkLevel | undefined): string[] {
     return (lvl?.knobs ?? []).map(toKey).filter((k): k is string => k !== null);
 }
 
+/* The level's params[] entries that name a param (nav entries carry `level`
+ * instead). This is the module's own list view — what the native UI shows and
+ * what movy renders after the knob row. */
+export function paramKeys(lvl: WalkLevel | undefined): string[] {
+    return (lvl?.params ?? [])
+        .map(p => (typeof p === 'string' ? p : p.key ?? null))
+        .filter((k): k is string => k !== null);
+}
+
+export interface WalkOptions {
+    /* params[]-only keys to append to a level's knob row. hierarchy.ts owns the
+     * filtering (dedupe, preset list key, ui_*, degenerate ranges) because only
+     * it holds chain_params metadata. Called at most once per level so the
+     * caller's running dedupe stays sound. */
+    extras?: (lvl: WalkLevel) => string[];
+}
+
 /* 6-char parent tag: one word → first 6 chars, multi-word → first 4 of word 1
  * plus the other words' initials ("Operator 1" → "Oper1"). Keeps "Mod/Pitch"
  * readable in the 128 px header, which also carries the module name. */
@@ -36,7 +53,7 @@ function childOf(lvl: WalkLevel): string | null {
 }
 
 export function buildLevelPages(
-    allLevels: Record<string, WalkLevel>, rootKey: string,
+    allLevels: Record<string, WalkLevel>, rootKey: string, opts: WalkOptions = {},
 ): Array<{ name: string; keys: string[] }> {
     const out: Array<{ name: string; keys: string[] }> = [];
     const rootLevel = allLevels[rootKey];
@@ -78,9 +95,16 @@ export function buildLevelPages(
         const name = nameOf(key, lvl);
         const keys = knobKeys(lvl);
         const sig  = keys.join(' ');
-        if (keys.length > 0 && !rendered.has(sig)) {
-            rendered.add(sig);
-            out.push({ name: prefix ? prefix + '/' + name : name, keys });
+        /* A `children` level that re-lists its parent's knobs is a duplicate
+         * page — but it can still own params[] entries nothing else consumed,
+         * so ask for extras either way and render them alone when the knob row
+         * is the duplicate. */
+        const dup      = keys.length > 0 && rendered.has(sig);
+        const extras   = opts.extras ? opts.extras(lvl) : [];
+        const pageKeys = dup ? extras : [...keys, ...extras];
+        if (pageKeys.length > 0) {
+            if (!dup) rendered.add(sig);
+            out.push({ name: prefix ? prefix + '/' + name : name, keys: pageKeys });
         }
 
         /* Both edges, always: a level that has knobs can still own sub-levels

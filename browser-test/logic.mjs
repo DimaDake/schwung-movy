@@ -259,6 +259,36 @@ _log('\nTest: orphan levels with knobs are swept in');
     eq('orphan_level: bank 1 = Perf', names[1], 'Perf');
 }
 
+/* ── params[] extras: the osirus Preset/Bank/ROM gap ─────────────────────── */
+
+_log('\nTest: level params[] entries render after that level\'s knobs');
+{
+    const m = bootModel(MOCK_SYNTHS.hier_params_extras);
+    const keysOf = (pg) =>
+        m.dumpLayout().params.slice(pg * 8, pg * 8 + 8).filter(Boolean).map(p => p.key);
+    const names = bankNames(m);
+    eq('extras: page 0 = Main',        names[0], 'Main');
+    eq('extras: page 1 = Oscillators', names[1], 'Oscillators');
+    eq('extras: page 2 = Settings',    names[2], 'Settings');
+    eq('extras: root keeps its knobs',
+        JSON.stringify(keysOf(0)), JSON.stringify(['cutoff', 'dupe']));
+    eq('extras: osc knobs then params, deduped',
+        JSON.stringify(keysOf(1)), JSON.stringify(['pw', 'wave', 'semi']));
+    eq('extras: settings renders its params-only key',
+        JSON.stringify(keysOf(2)), JSON.stringify(['rom']));
+    const all = m.dumpLayout().params.filter(Boolean).map(p => p.key);
+    eq('extras: ui_* key never rendered',     all.includes('ui_scroll'), false);
+    eq('extras: degenerate min==max skipped', all.includes('bank_index'), false);
+    eq('extras: no key rendered twice',       all.length, new Set(all).size);
+}
+
+_log('\nTest: a level overflowing 8 slots numbers from " - 2"');
+{
+    const names = bankNames(bootModel(MOCK_SYNTHS.hier_params_overflow));
+    eq('overflow: page 0 keeps the bare name', names[0], 'Main');
+    eq('overflow: page 1 is " - 2"',           names[1], 'Main - 2');
+}
+
 /* ── C1: preset knob not duplicated across pages ─────────────────────────── */
 
 _log('\nTest: preset knob renders exactly once (C1)');

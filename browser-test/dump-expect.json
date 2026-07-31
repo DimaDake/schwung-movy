@@ -1,9 +1,10 @@
 {
  "audio_fx--ambiotica": {
-  "pageCount": 2,
+  "pageCount": 3,
   "pageNames": [
    "Preset",
-   "Main"
+   "Main",
+   "Settings"
   ],
   "pageShortNames": [
    [
@@ -18,19 +19,29 @@
     "DECAY",
     "DEPTH",
     "RATE"
+   ],
+   [
+    "LOOP",
+    "MOD",
+    "TEMPO",
+    "LO-FI"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 4,
+  "hidden": 0,
   "shownKeys": [
    "decay",
    "grain_size",
+   "lofi_tails",
    "loop_layer",
+   "loop_length",
    "micro_hold",
    "mix",
    "mod_depth",
    "mod_rate",
+   "mod_shape",
+   "mod_sync",
    "mode",
    "scatter"
   ]
@@ -89,9 +100,10 @@
   ]
  },
  "audio_fx--chowtape": {
-  "pageCount": 1,
+  "pageCount": 2,
   "pageNames": [
-   ""
+   "Main",
+   "Main - 2"
   ],
   "pageShortNames": [
    [
@@ -103,17 +115,23 @@
     "FLUTT",
     "CHEW",
     "MIX"
+   ],
+   [
+    "DEGRA",
+    "OUTPU"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 2,
+  "hidden": 0,
   "shownKeys": [
    "bias",
    "chew",
+   "degrade",
    "drive",
    "flutter",
    "mix",
+   "output",
    "saturation",
    "speed",
    "tone"
@@ -156,9 +174,10 @@
   ]
  },
  "audio_fx--cloudseed": {
-  "pageCount": 1,
+  "pageCount": 2,
   "pageNames": [
-   ""
+   "Main",
+   "Main - 2"
   ],
   "pageShortNames": [
    [
@@ -170,27 +189,34 @@
     "LOW",
     "HIGH",
     "MOD"
+   ],
+   [
+    "MOD",
+    "SW"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 2,
+  "hidden": 0,
   "shownKeys": [
+   "cross_seed",
    "decay",
    "diffusion",
    "high_cut",
    "low_cut",
    "mix",
    "mod_amount",
+   "mod_rate",
    "predelay",
    "size"
   ]
  },
  "audio_fx--dissolver": {
-  "pageCount": 2,
+  "pageCount": 3,
   "pageNames": [
    "Main",
-   "Advanced"
+   "Advanced",
+   "Advanced - 2"
   ],
   "pageShortNames": [
    [
@@ -212,12 +238,17 @@
     "FC",
     "TILT",
     "OL"
+   ],
+   [
+    "AT",
+    "RT"
    ]
   ],
-  "envelopeLines": 0,
+  "envelopeLines": 1,
   "lfoViz": 0,
-  "hidden": 2,
+  "hidden": 0,
   "shownKeys": [
+   "attack_time",
    "brightness",
    "decay",
    "density",
@@ -231,16 +262,18 @@
    "noise_mix",
    "noise_tone",
    "output_level",
+   "release_time",
    "smoothing",
    "stereo_width",
    "tilt_freq"
   ]
  },
  "audio_fx--dragonfly-hall": {
-  "pageCount": 2,
+  "pageCount": 3,
   "pageNames": [
    "Preset",
-   "Main"
+   "Main",
+   "Main - 2"
   ],
   "pageShortNames": [
    [
@@ -255,27 +288,46 @@
     "DIFFU",
     "PREDE",
     "WIDTH"
+   ],
+   [
+    "MODUL",
+    "WANDE",
+    "CUT",
+    "CROSS",
+    "HM",
+    "CUT2",
+    "CROS2",
+    "LM"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 8,
+  "hidden": 0,
   "shownKeys": [
    "decay",
    "delay",
    "diffuse",
    "dry_level",
    "early_level",
+   "high_cut",
+   "high_mult",
+   "high_xo",
    "late_level",
+   "low_cut",
+   "low_mult",
+   "low_xo",
+   "modulation",
    "preset",
    "size",
+   "wander",
    "width"
   ]
  },
  "audio_fx--ducker": {
-  "pageCount": 1,
+  "pageCount": 2,
   "pageNames": [
-   ""
+   "Main",
+   "Main - 2"
   ],
   "pageShortNames": [
    [
@@ -287,6 +339,9 @@
     "RELEA",
     "HOLD",
     "CURVE"
+   ],
+   [
+    "VEL"
    ]
   ],
   "envelopeLines": 1,
@@ -300,13 +355,15 @@
    "hold",
    "mode",
    "release",
-   "trigger_note"
+   "trigger_note",
+   "vel_sens"
   ]
  },
  "audio_fx--filter": {
-  "pageCount": 4,
+  "pageCount": 5,
   "pageNames": [
    "Main",
+   "Main - 2",
    "Envelope",
    "LFO",
    "Output"
@@ -321,6 +378,9 @@
     "AMT",
     "DIV",
     "MODE"
+   ],
+   [
+    "MODEL"
    ],
    [
     "ATK",
@@ -341,7 +401,7 @@
   ],
   "envelopeLines": 1,
   "lfoViz": 1,
-  "hidden": 1,
+  "hidden": 0,
   "shownKeys": [
    "cutoff",
    "drive",
@@ -355,6 +415,7 @@
    "lfo_sync",
    "mix",
    "mode",
+   "model",
    "output",
    "resonance"
   ]
@@ -369,17 +430,19 @@
     "ROOM",
     "DAMPI",
     "WET",
-    "DRY"
+    "DRY",
+    "WIDTH"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 1,
+  "hidden": 0,
   "shownKeys": [
    "damping",
    "dry",
    "room_size",
-   "wet"
+   "wet",
+   "width"
   ]
  },
  "audio_fx--gate": {
@@ -414,9 +477,10 @@
   ]
  },
  "audio_fx--granular": {
-  "pageCount": 4,
+  "pageCount": 5,
   "pageNames": [
    "Main",
+   "Granular",
    "Randomize",
    "Sync",
    "Advanced"
@@ -431,6 +495,10 @@
     "PAN",
     "FREEZ",
     "DRY/W"
+   ],
+   [
+    "ENVEL",
+    "DRIFT"
    ],
    [
     "SIZE",
@@ -453,11 +521,13 @@
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 2,
+  "hidden": 0,
   "shownKeys": [
    "chance",
    "density",
    "division",
+   "drift",
+   "envelope",
    "feedback",
    "freeze",
    "gain",
@@ -499,13 +569,16 @@
   ]
  },
  "audio_fx--magneto": {
-  "pageCount": 5,
+  "pageCount": 8,
   "pageNames": [
    "Main",
+   "Magneto",
    "Perform",
    "Channel",
+   "Channel - 2",
    "Tape Model",
-   "Deck"
+   "Deck",
+   "Recordings"
   ],
   "pageShortNames": [
    [
@@ -517,6 +590,13 @@
     "TONE",
     "TAPE",
     "VOLUM"
+   ],
+   [
+    "FEEDB",
+    "MODE",
+    "REC",
+    "DIV",
+    "TEMPO"
    ],
    [
     "SCRUB",
@@ -539,6 +619,9 @@
     "VOLUM"
    ],
    [
+    "CM"
+   ],
+   [
     "TAPE",
     "WOW",
     "FLUTT",
@@ -557,16 +640,29 @@
     "PAN",
     "MODE",
     "MIX"
+   ],
+   [
+    "REC",
+    "LOADA",
+    "LOADB",
+    "BLANA",
+    "BLANB",
+    "SAVE",
+    "RL"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 13,
+  "hidden": 0,
   "shownKeys": [
+   "blank_a",
+   "blank_b",
    "bwd",
    "chan_vol",
    "clear",
+   "eq_in",
    "failure",
+   "feedback",
    "flutter",
    "fwd",
    "generations",
@@ -575,6 +671,8 @@
    "hiss",
    "input_pan",
    "jump",
+   "load_a",
+   "load_b",
    "low",
    "lowcut",
    "mid",
@@ -584,16 +682,23 @@
    "pan_mode",
    "play",
    "rec",
+   "rec_length",
+   "rec_mode",
+   "recover",
    "reverse",
    "rolloff",
    "saturation",
+   "save_recs",
    "scan",
    "scrub",
    "side",
    "speed",
    "stop_speed",
    "stutter",
+   "sync_div",
+   "sync_mode",
    "tape_stop",
+   "tempo",
    "tone",
    "trim",
    "varspeed",
@@ -649,9 +754,10 @@
   ]
  },
  "audio_fx--mverb": {
-  "pageCount": 1,
+  "pageCount": 2,
   "pageNames": [
-   ""
+   "Main",
+   "Main - 2"
   ],
   "pageShortNames": [
    [
@@ -663,16 +769,20 @@
     "SIZE",
     "GAIN",
     "MIX"
+   ],
+   [
+    "EARLY"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 1,
+  "hidden": 0,
   "shownKeys": [
    "bandwidth",
    "damping",
    "decay",
    "density",
+   "early_mix",
    "gain",
    "mix",
    "predelay",
@@ -687,22 +797,27 @@
   "pageShortNames": [
    [
     "INPUT",
-    "OUTPU"
+    "OUTPU",
+    "CAB"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 1,
+  "hidden": 0,
   "shownKeys": [
+   "cab_bypass",
    "input_level",
    "output_level"
   ]
  },
  "audio_fx--ottx": {
-  "pageCount": 2,
+  "pageCount": 5,
   "pageNames": [
    "Main",
-   "Advanced"
+   "Main - 2",
+   "Advanced",
+   "Advanced - 2",
+   "Advanced - 3"
   ],
   "pageShortNames": [
    [
@@ -712,26 +827,60 @@
     "DOWNW",
     "TIME",
     "IN",
-    "OUT"
+    "OUT",
+    "LH"
+   ],
+   [
+    "MH"
    ],
    [
     "ATTAC",
     "RELEA",
-    "LOW",
+    "GAIN",
     "MID",
+    "HI",
+    "THR",
+    "RATIO",
+    "DN"
+   ],
+   [
+    "LOW",
+    "MUT",
+    "MUR",
+    "MDT",
+    "MDR",
+    "HUT",
+    "HUR",
+    "DN"
+   ],
+   [
     "HI"
    ]
   ],
   "envelopeLines": 1,
   "lfoViz": 0,
-  "hidden": 14,
+  "hidden": 0,
   "shownKeys": [
    "att_time",
+   "bl_ratio",
+   "bl_thres",
+   "bu_ratio",
+   "bu_thres",
    "depth",
    "downward",
    "hgain",
+   "high_cross",
+   "hl_ratio",
+   "hl_thres",
+   "hu_ratio",
+   "hu_thres",
    "in_gain",
    "lgain",
+   "ll_ratio",
+   "ll_thres",
+   "low_cross",
+   "lu_ratio",
+   "lu_thres",
    "mgain",
    "mix",
    "out_gain",
@@ -741,10 +890,11 @@
   ]
  },
  "audio_fx--palette": {
-  "pageCount": 5,
+  "pageCount": 6,
   "pageNames": [
    "Main",
    "PRESETS&RND",
+   "PRESETS&RND - 2",
    "FX 1&2",
    "FX 3&4",
    "GLOBAL"
@@ -769,6 +919,9 @@
     "VALUE",
     "INPUT",
     "MIX"
+   ],
+   [
+    "FX"
    ],
    [
     "FX1",
@@ -799,7 +952,7 @@
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 1,
+  "hidden": 0,
   "shownKeys": [
    "current_preset",
    "feedback",
@@ -819,6 +972,7 @@
    "fx4_drift",
    "fx4_macro",
    "fx4_select",
+   "fx_reorder",
    "input_vol",
    "mix",
    "rnd_amount",
@@ -841,14 +995,16 @@
     "MODEL",
     "DECAY",
     "MIX",
-    "LEVEL"
+    "LEVEL",
+    "INPUT"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 1,
+  "hidden": 0,
   "shownKeys": [
    "decay",
+   "input_gain",
    "mix",
    "model",
    "reverb_level"
@@ -876,9 +1032,10 @@
   ]
  },
  "audio_fx--pushnpull": {
-  "pageCount": 2,
+  "pageCount": 3,
   "pageNames": [
    "Main",
+   "Main - 2",
    "Filter"
   ],
   "pageShortNames": [
@@ -893,6 +1050,11 @@
     "OUTPU"
    ],
    [
+    "VE",
+    "ATTAC",
+    "BAND"
+   ],
+   [
     "CUTOF",
     "RESON",
     "DRIVE",
@@ -902,9 +1064,11 @@
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 3,
+  "hidden": 0,
   "shownKeys": [
+   "attack",
    "band_freq",
+   "band_on",
    "curve",
    "cutoff",
    "drive",
@@ -916,15 +1080,19 @@
    "resonance",
    "shift",
    "slope",
+   "view",
    "volume"
   ]
  },
  "audio_fx--smack": {
-  "pageCount": 3,
+  "pageCount": 6,
   "pageNames": [
    "Main",
+   "Main - 2",
    "Perform",
-   "Setup"
+   "Perform - 2",
+   "Setup",
+   "Setup - 2"
   ],
   "pageShortNames": [
    [
@@ -938,6 +1106,10 @@
     "SEED"
    ],
    [
+    "PITCH",
+    "AB"
+   ],
+   [
     "CN",
     "ARM",
     "A/B",
@@ -948,6 +1120,11 @@
     "SEED"
    ],
    [
+    "CLEAR",
+    "DB",
+    "PAD"
+   ],
+   [
     "WET",
     "LOOP",
     "PAD",
@@ -956,33 +1133,43 @@
     "CHANN",
     "PAN L",
     "PAN R"
+   ],
+   [
+    "TRANS"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 6,
+  "hidden": 0,
   "shownKeys": [
    "ab",
    "arm",
    "capture",
    "channel_mode",
+   "clear",
+   "detect_bpm",
    "fx_density",
    "loop_len",
    "order_density",
+   "pad_play",
    "pad_rate",
    "pan_l",
    "pan_r",
+   "pitch_range",
+   "quantize",
    "reroll",
    "seed",
    "slice_res",
+   "transport",
    "wet"
   ]
  },
  "audio_fx--spectra": {
-  "pageCount": 4,
+  "pageCount": 5,
   "pageNames": [
    "Main",
    "Control",
+   "Control - 2",
    "Motion",
    "Patch"
   ],
@@ -1008,6 +1195,10 @@
     "LPF"
    ],
    [
+    "LIMIT",
+    "POLYP"
+   ],
+   [
     "AR",
     "PTRN",
     "SYNC",
@@ -1028,7 +1219,7 @@
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 2,
+  "hidden": 0,
   "shownKeys": [
    "arp_pattern",
    "arp_rate",
@@ -1040,6 +1231,7 @@
    "drift",
    "frequency",
    "hpf",
+   "limiter",
    "lpf",
    "mix",
    "motion_depth",
@@ -1047,6 +1239,7 @@
    "motion_shape",
    "octave_range",
    "onset",
+   "polyphony",
    "post_gain",
    "pre_gain",
    "preset",
@@ -1063,10 +1256,11 @@
   ]
  },
  "audio_fx--structor": {
-  "pageCount": 3,
+  "pageCount": 4,
   "pageNames": [
    "Main",
    "Randomize",
+   "Randomize - 2",
    "Presets"
   ],
   "pageShortNames": [
@@ -1091,6 +1285,10 @@
     "MULT"
    ],
    [
+    "DETEC",
+    "RND"
+   ],
+   [
     "PRESE",
     "RP",
     "FILTE",
@@ -1103,10 +1301,11 @@
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 2,
+  "hidden": 0,
   "shownKeys": [
    "Special",
    "density",
+   "detection",
    "envelope",
    "feedback",
    "grain_size",
@@ -1120,6 +1319,7 @@
    "rev_size",
    "rnd_density",
    "rnd_envelope",
+   "rnd_filter",
    "rnd_grain",
    "rnd_pan",
    "rnd_preset",
@@ -1132,10 +1332,11 @@
   ]
  },
  "audio_fx--superboom": {
-  "pageCount": 4,
+  "pageCount": 5,
   "pageNames": [
    "Main",
    "Skulpt",
+   "Skulpt - 2",
    "Pre&Comp",
    "Seal"
   ],
@@ -1161,6 +1362,12 @@
     "HIGH"
    ],
    [
+    "M-SHF",
+    "FLAVO",
+    "VOC",
+    "VOCGN"
+   ],
+   [
     "ATK",
     "REL",
     "THRES",
@@ -1183,7 +1390,7 @@
   ],
   "envelopeLines": 1,
   "lfoViz": 0,
-  "hidden": 4,
+  "hidden": 0,
   "shownKeys": [
    "age",
    "atk",
@@ -1201,6 +1408,7 @@
    "distMode",
    "drive",
    "driveMix",
+   "flavor",
    "flutter",
    "gate",
    "grit",
@@ -1209,14 +1417,17 @@
    "limiter",
    "link",
    "loCut",
+   "micControl",
    "mix",
    "modDrive",
+   "modShift",
    "output",
    "preType",
    "rel",
    "sat",
    "shift",
-   "thresh"
+   "thresh",
+   "vocGain"
   ]
  },
  "audio_fx--tapedelay": {
@@ -1247,9 +1458,10 @@
   ]
  },
  "audio_fx--tapescam": {
-  "pageCount": 1,
+  "pageCount": 2,
   "pageNames": [
-   ""
+   "Main",
+   "Main - 2"
   ],
   "pageShortNames": [
    [
@@ -1261,26 +1473,35 @@
     "OUTPU",
     "AGE",
     "COMPR"
+   ],
+   [
+    "INPUT",
+    "SPEED",
+    "WIDEN"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 3,
+  "hidden": 0,
   "shownKeys": [
    "age",
    "color",
    "compression",
    "drive",
+   "input",
    "noise",
    "output",
+   "speed",
    "tone",
+   "widen",
    "wobble"
   ]
  },
  "audio_fx--usefulity": {
-  "pageCount": 1,
+  "pageCount": 2,
   "pageNames": [
-   ""
+   "Main",
+   "Main - 2"
   ],
   "pageShortNames": [
    [
@@ -1292,26 +1513,37 @@
     "GAIN",
     "BALAN",
     "MUTE"
+   ],
+   [
+    "PHASL",
+    "PHASR",
+    "DC",
+    "BASS"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 4,
+  "hidden": 0,
   "shownKeys": [
+   "bass_audition",
    "bass_freq",
    "bass_mono",
    "channel_mode",
+   "dc_filter",
    "gain_db",
    "mono",
    "mute",
    "pan",
+   "phase_l",
+   "phase_r",
    "width"
   ]
  },
  "audio_fx--verglas": {
-  "pageCount": 2,
+  "pageCount": 3,
   "pageNames": [
    "Main",
+   "Verglas",
    "Filters"
   ],
   "pageShortNames": [
@@ -1326,6 +1558,12 @@
     "MIX"
    ],
    [
+    "MODE",
+    "FREEZ",
+    "QUALI",
+    "SPREA"
+   ],
+   [
     "HPF",
     "LPF",
     "LIMIT",
@@ -1338,30 +1576,35 @@
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 4,
+  "hidden": 0,
   "shownKeys": [
    "density",
    "dry_wet",
    "feedback",
    "filter_hp",
    "filter_lp",
+   "freeze",
    "limiter_on",
    "limiter_post",
    "limiter_pre",
    "low_boost",
    "low_freq",
    "low_q",
+   "mode",
    "pitch",
    "position",
+   "quality",
    "reverb",
    "size",
+   "stereo_spread",
    "texture"
   ]
  },
  "audio_fx--vocoder": {
-  "pageCount": 1,
+  "pageCount": 2,
   "pageNames": [
-   ""
+   "Main",
+   "Main - 2"
   ],
   "pageShortNames": [
    [
@@ -1373,14 +1616,18 @@
     "RELEA",
     "LOW",
     "HIGH"
+   ],
+   [
+    "UNVOI"
    ]
   ],
   "envelopeLines": 1,
   "lfoViz": 0,
-  "hidden": 1,
+  "hidden": 0,
   "shownKeys": [
    "attack",
    "bands",
+   "carrier_mix",
    "freq_high",
    "freq_low",
    "mix",
@@ -1390,9 +1637,10 @@
   ]
  },
  "audio_fx--war_bells": {
-  "pageCount": 10,
+  "pageCount": 11,
   "pageNames": [
    "Main",
+   "Main - 2",
    "Tone",
    "Time",
    "Space FX",
@@ -1413,6 +1661,9 @@
     "MIX",
     "SPACE",
     "FILTE"
+   ],
+   [
+    "PRESE"
    ],
    [
     "SHAPE",
@@ -1477,7 +1728,7 @@
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 1,
+  "hidden": 0,
   "shownKeys": [
    "activity",
    "bypass",
@@ -1511,6 +1762,7 @@
    "mot_shape",
    "mot_target",
    "pitch_scale",
+   "preset",
    "repeats",
    "rev_tone",
    "reverb_mode",
@@ -1557,7 +1809,7 @@
  "midi_fx--branchage": {
   "pageCount": 4,
   "pageNames": [
-   "Main - 1",
+   "Main",
    "Main - 2",
    "Main - 3",
    "Main - 4"
@@ -1642,32 +1894,36 @@
     "CHORD",
     "INVER",
     "VOICI",
-    "STRUM"
+    "STRUM",
+    "DIR"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 1,
+  "hidden": 0,
   "shownKeys": [
    "inversion",
    "strum",
+   "strum_dir",
    "type",
    "voicing"
   ]
  },
  "midi_fx--eucalypso": {
-  "pageCount": 11,
+  "pageCount": 13,
   "pageNames": [
    "Main",
    "Global",
+   "Global - 2",
    "Note Register",
-   "Lane 1 - 1",
+   "Note Register - 2",
+   "Lane 1",
    "Lane 1 - 2",
-   "Lane 2 - 1",
+   "Lane 2",
    "Lane 2 - 2",
-   "Lane 3 - 1",
+   "Lane 3",
    "Lane 3 - 2",
-   "Lane 4 - 1",
+   "Lane 4",
    "Lane 4 - 2"
   ],
   "pageShortNames": [
@@ -1692,13 +1948,25 @@
     "OCT"
    ],
    [
+    "RETRI",
+    "BPM",
+    "VEL",
+    "GATE",
+    "RND",
+    "RAND"
+   ],
+   [
     "REG",
     "NOTE",
     "MISS",
     "SCALE",
     "RNG",
     "ROOT",
-    "OCT"
+    "OCT",
+    "RAND"
+   ],
+   [
+    "MISS"
    ],
    [
     "ON",
@@ -1711,7 +1979,13 @@
     "VEL"
    ],
    [
-    "GATE"
+    "GATE",
+    "DROP",
+    "NR",
+    "NS",
+    "OR",
+    "OS",
+    "RNG"
    ],
    [
     "ON",
@@ -1724,7 +1998,13 @@
     "VEL"
    ],
    [
-    "GATE"
+    "GATE",
+    "DROP",
+    "NR",
+    "NS",
+    "OR",
+    "OS",
+    "RNG"
    ],
    [
     "ON",
@@ -1737,7 +2017,13 @@
     "VEL"
    ],
    [
-    "GATE"
+    "GATE",
+    "DROP",
+    "NR",
+    "NS",
+    "OR",
+    "OS",
+    "RNG"
    ],
    [
     "ON",
@@ -1750,47 +2036,82 @@
     "VEL"
    ],
    [
-    "GATE"
+    "GATE",
+    "DROP",
+    "NR",
+    "NS",
+    "OR",
+    "OS",
+    "RNG"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 32,
+  "hidden": 0,
   "shownKeys": [
+   "bpm",
+   "global_g_rnd",
    "global_gate",
+   "global_rnd_seed",
+   "global_v_rnd",
    "global_velocity",
    "held_order",
+   "held_order_seed",
    "lane1_drop",
+   "lane1_drop_seed",
    "lane1_enabled",
    "lane1_gate",
+   "lane1_n_rnd",
+   "lane1_n_seed",
    "lane1_note",
+   "lane1_oct_rnd",
+   "lane1_oct_rng",
+   "lane1_oct_seed",
    "lane1_octave",
    "lane1_pulses",
    "lane1_rotation",
    "lane1_steps",
    "lane1_velocity",
    "lane2_drop",
+   "lane2_drop_seed",
    "lane2_enabled",
    "lane2_gate",
+   "lane2_n_rnd",
+   "lane2_n_seed",
    "lane2_note",
+   "lane2_oct_rnd",
+   "lane2_oct_rng",
+   "lane2_oct_seed",
    "lane2_octave",
    "lane2_pulses",
    "lane2_rotation",
    "lane2_steps",
    "lane2_velocity",
    "lane3_drop",
+   "lane3_drop_seed",
    "lane3_enabled",
    "lane3_gate",
+   "lane3_n_rnd",
+   "lane3_n_seed",
    "lane3_note",
+   "lane3_oct_rnd",
+   "lane3_oct_rng",
+   "lane3_oct_seed",
    "lane3_octave",
    "lane3_pulses",
    "lane3_rotation",
    "lane3_steps",
    "lane3_velocity",
    "lane4_drop",
+   "lane4_drop_seed",
    "lane4_enabled",
    "lane4_gate",
+   "lane4_n_rnd",
+   "lane4_n_seed",
    "lane4_note",
+   "lane4_oct_rnd",
+   "lane4_oct_rng",
+   "lane4_oct_seed",
    "lane4_octave",
    "lane4_pulses",
    "lane4_rotation",
@@ -1798,10 +2119,13 @@
    "lane4_velocity",
    "max_voices",
    "missing_note_policy",
+   "missing_note_seed",
    "octave",
    "play_mode",
+   "rand_cycle",
    "rate",
    "register_mode",
+   "retrigger_mode",
    "root_note",
    "scale_mode",
    "scale_rng",
@@ -1810,18 +2134,27 @@
   ]
  },
  "midi_fx--euclidrum": {
-  "pageCount": 10,
+  "pageCount": 19,
   "pageNames": [
    "Main",
    "Global",
+   "Global - 2",
    "L1",
+   "L1 - 2",
    "L2",
+   "L2 - 2",
    "L3",
+   "L3 - 2",
    "L4",
+   "L4 - 2",
    "L5",
+   "L5 - 2",
    "L6",
+   "L6 - 2",
    "L7",
-   "L8"
+   "L7 - 2",
+   "L8",
+   "L8 - 2"
   ],
   "pageShortNames": [
    [
@@ -1845,12 +2178,30 @@
     "VEL"
    ],
    [
+    "VEL",
+    "SYNC",
+    "BPM",
+    "VOICE",
+    "RND",
+    "MUT",
+    "PASST"
+   ],
+   [
     "L1",
     "STEPS",
     "PULSE",
     "ROTAT",
     "RATE",
     "ACCEN",
+    "FREQ",
+    "DECAY"
+   ],
+   [
+    "DROP",
+    "VELOC",
+    "AA",
+    "FILL",
+    "GATE",
     "FREQ",
     "DECAY"
    ],
@@ -1865,12 +2216,30 @@
     "DECAY"
    ],
    [
+    "DROP",
+    "VELOC",
+    "AA",
+    "FILL",
+    "GATE",
+    "FREQ",
+    "DECAY"
+   ],
+   [
     "L3",
     "STEPS",
     "PULSE",
     "ROTAT",
     "RATE",
     "ACCEN",
+    "FREQ",
+    "DECAY"
+   ],
+   [
+    "DROP",
+    "VELOC",
+    "AA",
+    "FILL",
+    "GATE",
     "FREQ",
     "DECAY"
    ],
@@ -1885,12 +2254,30 @@
     "DECAY"
    ],
    [
+    "DROP",
+    "VELOC",
+    "AA",
+    "FILL",
+    "GATE",
+    "FREQ",
+    "DECAY"
+   ],
+   [
     "L5",
     "STEPS",
     "PULSE",
     "ROTAT",
     "RATE",
     "ACCEN",
+    "FREQ",
+    "DECAY"
+   ],
+   [
+    "DROP",
+    "VELOC",
+    "AA",
+    "FILL",
+    "GATE",
     "FREQ",
     "DECAY"
    ],
@@ -1905,12 +2292,30 @@
     "DECAY"
    ],
    [
+    "DROP",
+    "VELOC",
+    "AA",
+    "FILL",
+    "GATE",
+    "FREQ",
+    "DECAY"
+   ],
+   [
     "L7",
     "STEPS",
     "PULSE",
     "ROTAT",
     "RATE",
     "ACCEN",
+    "FREQ",
+    "DECAY"
+   ],
+   [
+    "DROP",
+    "VELOC",
+    "AA",
+    "FILL",
+    "GATE",
     "FREQ",
     "DECAY"
    ],
@@ -1923,90 +2328,163 @@
     "ACCEN",
     "FREQ",
     "DECAY"
+   ],
+   [
+    "DROP",
+    "VELOC",
+    "AA",
+    "FILL",
+    "GATE",
+    "FREQ",
+    "DECAY"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 63,
+  "hidden": 0,
   "shownKeys": [
+   "bpm",
    "global_gate",
+   "global_rnd_seed",
    "global_vel_rnd",
+   "global_velocity",
    "lane1_accent",
+   "lane1_accent_amt",
    "lane1_decay",
+   "lane1_decay_rnd",
+   "lane1_drop",
    "lane1_enabled",
+   "lane1_fill",
    "lane1_freq",
+   "lane1_freq_rnd",
+   "lane1_gate",
    "lane1_pulses",
    "lane1_rate",
    "lane1_rotation",
    "lane1_steps",
+   "lane1_velocity",
    "lane2_accent",
+   "lane2_accent_amt",
    "lane2_decay",
+   "lane2_decay_rnd",
+   "lane2_drop",
    "lane2_enabled",
+   "lane2_fill",
    "lane2_freq",
+   "lane2_freq_rnd",
+   "lane2_gate",
    "lane2_pulses",
    "lane2_rate",
    "lane2_rotation",
    "lane2_steps",
+   "lane2_velocity",
    "lane3_accent",
+   "lane3_accent_amt",
    "lane3_decay",
+   "lane3_decay_rnd",
+   "lane3_drop",
    "lane3_enabled",
+   "lane3_fill",
    "lane3_freq",
+   "lane3_freq_rnd",
+   "lane3_gate",
    "lane3_pulses",
    "lane3_rate",
    "lane3_rotation",
    "lane3_steps",
+   "lane3_velocity",
    "lane4_accent",
+   "lane4_accent_amt",
    "lane4_decay",
+   "lane4_decay_rnd",
+   "lane4_drop",
    "lane4_enabled",
+   "lane4_fill",
    "lane4_freq",
+   "lane4_freq_rnd",
+   "lane4_gate",
    "lane4_pulses",
    "lane4_rate",
    "lane4_rotation",
    "lane4_steps",
+   "lane4_velocity",
    "lane5_accent",
+   "lane5_accent_amt",
    "lane5_decay",
+   "lane5_decay_rnd",
+   "lane5_drop",
    "lane5_enabled",
+   "lane5_fill",
    "lane5_freq",
+   "lane5_freq_rnd",
+   "lane5_gate",
    "lane5_pulses",
    "lane5_rate",
    "lane5_rotation",
    "lane5_steps",
+   "lane5_velocity",
    "lane6_accent",
+   "lane6_accent_amt",
    "lane6_decay",
+   "lane6_decay_rnd",
+   "lane6_drop",
    "lane6_enabled",
+   "lane6_fill",
    "lane6_freq",
+   "lane6_freq_rnd",
+   "lane6_gate",
    "lane6_pulses",
    "lane6_rate",
    "lane6_rotation",
    "lane6_steps",
+   "lane6_velocity",
    "lane7_accent",
+   "lane7_accent_amt",
    "lane7_decay",
+   "lane7_decay_rnd",
+   "lane7_drop",
    "lane7_enabled",
+   "lane7_fill",
    "lane7_freq",
+   "lane7_freq_rnd",
+   "lane7_gate",
    "lane7_pulses",
    "lane7_rate",
    "lane7_rotation",
    "lane7_steps",
+   "lane7_velocity",
    "lane8_accent",
+   "lane8_accent_amt",
    "lane8_decay",
+   "lane8_decay_rnd",
+   "lane8_drop",
    "lane8_enabled",
+   "lane8_fill",
    "lane8_freq",
+   "lane8_freq_rnd",
+   "lane8_gate",
    "lane8_pulses",
    "lane8_rate",
    "lane8_rotation",
    "lane8_steps",
+   "lane8_velocity",
+   "max_voices",
    "mutation",
+   "mutation_seed",
+   "passthrough",
    "preset",
    "rand_cycle",
    "rate",
    "rnd_preset",
-   "swing"
+   "swing",
+   "sync"
   ]
  },
  "midi_fx--genera": {
-  "pageCount": 2,
+  "pageCount": 3,
   "pageNames": [
    "Main",
+   "Genera",
    "Sync"
   ],
   "pageShortNames": [
@@ -2021,6 +2499,10 @@
     "CHORD"
    ],
    [
+    "SCALE",
+    "GEN"
+   ],
+   [
     "SYNC",
     "TEMPO",
     "DIVIS",
@@ -2033,16 +2515,18 @@
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 2,
+  "hidden": 0,
   "shownKeys": [
    "capture",
    "chord",
    "division",
    "evolve",
    "gate",
+   "gen_mode",
    "humanize",
    "octaves",
    "root",
+   "scale",
    "steps",
    "stut_mode",
    "stutter",
@@ -2056,7 +2540,7 @@
   "pageCount": 3,
   "pageNames": [
    "Preset",
-   "Main - 1",
+   "Main",
    "Main - 2"
   ],
   "pageShortNames": [
@@ -2104,13 +2588,15 @@
   ]
  },
  "midi_fx--superarp": {
-  "pageCount": 5,
+  "pageCount": 7,
   "pageNames": [
    "Main",
    "Global",
+   "Global - 2",
    "Progression",
    "Rhythm",
-   "Modifiers"
+   "Modifiers",
+   "Modifiers - 2"
   ],
   "pageShortNames": [
    [
@@ -2132,6 +2618,10 @@
     "GATE",
     "VELOC",
     "OCTAV"
+   ],
+   [
+    "SYNC",
+    "BPM"
    ],
    [
     "MODE",
@@ -2156,28 +2646,40 @@
     "RAND",
     "RANGE",
     "NOTE"
+   ],
+   [
+    "TRIGG",
+    "VEL",
+    "GATE",
+    "OCT",
+    "NOTE"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 7,
+  "hidden": 0,
   "shownKeys": [
+   "bpm",
    "drop_amount",
    "drop_seed",
    "gate",
    "gate_random_amount",
+   "gate_seed",
    "latch",
    "max_voices",
    "missing_note_policy",
    "modifier_loop_length",
+   "modifier_trigger",
    "octave_range",
    "pattern_preset",
    "progression_mode",
    "progression_seed",
    "progression_trigger",
    "random_note_amount",
+   "random_note_seed",
    "random_octave_amount",
    "random_octave_range",
+   "random_octave_seed",
    "random_pattern_chord_seed",
    "random_pattern_chords",
    "random_pattern_length",
@@ -2185,9 +2687,11 @@
    "rhythm_preset",
    "rhythm_trigger",
    "swing",
+   "sync",
    "triplet",
    "velocity",
-   "velocity_random_amount"
+   "velocity_random_amount",
+   "velocity_seed"
   ]
  },
  "midi_fx--velocity_scale": {
@@ -2199,14 +2703,16 @@
    [
     "MIN",
     "MAX",
-    "CURVE"
+    "CURVE",
+    "PRESE"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 1,
+  "hidden": 0,
   "shownKeys": [
    "curve",
+   "curve_preset",
    "max",
    "min"
   ]
@@ -2269,17 +2775,24 @@
   ]
  },
  "sound_generator--aphex": {
-  "pageCount": 9,
+  "pageCount": 16,
   "pageNames": [
    "Main",
    "Patch",
+   "Patch - 2",
    "VCO 1+2",
+   "VCO 1+2 - 2",
    "Mixer",
+   "Mixer - 2",
    "Filter",
+   "Filter - 2",
    "Envelopes",
    "MG / ESP",
+   "MG / ESP - 2",
    "Patchbay",
-   "Modern"
+   "Patchbay - 2",
+   "Modern",
+   "Modern - 2"
   ],
   "pageShortNames": [
    [
@@ -2303,6 +2816,9 @@
     "PORTA"
    ],
    [
+    "TRIGG"
+   ],
+   [
     "WAVE",
     "WAVE",
     "PW",
@@ -2311,6 +2827,10 @@
     "SCAL2",
     "PORTA",
     "M.TUN"
+   ],
+   [
+    "SYNC",
+    "FM"
    ],
    [
     "VCO 1",
@@ -2323,6 +2843,9 @@
     "FB"
    ],
    [
+    "COLOR"
+   ],
+   [
     "HC",
     "HP",
     "HPFMG",
@@ -2331,6 +2854,9 @@
     "LP",
     "LPFMG",
     "LPFEG"
+   ],
+   [
+    "FR"
    ],
    [
     "E1ATK",
@@ -2353,6 +2879,14 @@
     "MG PW"
    ],
    [
+    "ATK",
+    "REL",
+    "SLEW",
+    "AUD",
+    "MODE",
+    "GATE"
+   ],
+   [
     "KBD",
     "T.EXT",
     "FREQ",
@@ -2363,6 +2897,11 @@
     "EXT"
    ],
    [
+    "PWM",
+    "EG1",
+    "EG1+2"
+   ],
+   [
     "DRIFT",
     "DRIVE",
     "KEYTR",
@@ -2371,11 +2910,18 @@
     "V2",
     "MW→MG",
     "MW→FI"
+   ],
+   [
+    "MODE",
+    "X-MOD",
+    "PW",
+    "DETUN",
+    "VEL→A"
    ]
   ],
-  "envelopeLines": 2,
+  "envelopeLines": 3,
   "lfoViz": 0,
-  "hidden": 19,
+  "hidden": 0,
   "shownKeys": [
    "drift",
    "drive",
@@ -2387,11 +2933,19 @@
    "e2_hold",
    "e2_rel",
    "e2_sus",
+   "esp_aud_mix",
    "esp_cv_adj",
+   "esp_env_atk",
+   "esp_env_rel",
+   "esp_gate_pol",
    "esp_hi_cut",
    "esp_in_gain",
    "esp_lo_cut",
+   "esp_pitch_mode",
+   "esp_pitch_slew",
    "esp_threshold",
+   "filter_mode",
+   "filter_rev",
    "hpf_cut",
    "hpf_eg",
    "hpf_mg",
@@ -2416,12 +2970,16 @@
    "mutate",
    "mw_filt",
    "mw_mg",
+   "noise_color",
    "octave",
+   "pb_eg12_trig",
+   "pb_eg1_trig",
    "pb_ext_sig",
    "pb_freq",
    "pb_hpf_cv",
    "pb_kbd_cv",
    "pb_lpf_cv",
+   "pb_pwm_in",
    "pb_total",
    "pb_vca_in",
    "pb_vco2_cv",
@@ -2430,17 +2988,24 @@
    "reset_patch",
    "rnd_mod",
    "rnd_patch",
+   "trigger",
    "v1_drift",
    "v1_pitch",
    "v1_pw",
    "v1_wave",
+   "v2_detune",
    "v2_drift",
    "v2_fine",
    "v2_pitch",
+   "v2_pw",
+   "v2_sync",
    "v2_wave",
+   "v2_xmod",
    "vco_eg",
    "vco_mg",
-   "volume"
+   "vel_amt",
+   "volume",
+   "x_mod_amt"
   ]
  },
  "sound_generator--belt-in": {
@@ -2574,7 +3139,7 @@
   "pageCount": 3,
   "pageNames": [
    "Preset",
-   "Main - 1",
+   "Main",
    "Main - 2"
   ],
   "pageShortNames": [
@@ -2991,11 +3556,13 @@
   ]
  },
  "sound_generator--denis": {
-  "pageCount": 7,
+  "pageCount": 9,
   "pageNames": [
    "Main",
    "Control",
+   "Control - 2",
    "Mod & Patch",
+   "Mod & Patch - 2",
    "Mat: Env",
    "Mat: LFO",
    "Mat: S&H",
@@ -3023,6 +3590,10 @@
     "RELEA"
    ],
    [
+    "FT",
+    "VEL>F"
+   ],
+   [
     "LFO",
     "S&H",
     "ENV",
@@ -3031,6 +3602,12 @@
     "MOD",
     "RESET",
     "PATCH"
+   ],
+   [
+    "PRESE",
+    "PAD",
+    "PORTA",
+    "LEGAT"
    ],
    [
     "ENV->",
@@ -3075,14 +3652,16 @@
   ],
   "envelopeLines": 1,
   "lfoViz": 0,
-  "hidden": 6,
+  "hidden": 0,
   "shownKeys": [
    "attack",
    "decay",
    "filter_cutoff",
    "filter_q",
+   "filter_type",
    "fold_depth",
    "fold_type",
+   "legato",
    "lfo_rate",
    "mat_0_0",
    "mat_0_1",
@@ -3126,16 +3705,20 @@
    "osc2_harmonics",
    "osc2_pitch",
    "osc_mix",
+   "patch_mode",
+   "portamento",
+   "preset",
    "release",
    "rnd_denis",
    "rnd_mod",
    "rnd_patch",
    "sh_rate",
-   "sustain"
+   "sustain",
+   "vel_to_filter"
   ]
  },
  "sound_generator--dexed": {
-  "pageCount": 23,
+  "pageCount": 29,
   "pageNames": [
    "Main",
    "Global",
@@ -3143,21 +3726,27 @@
    "Pitch EG",
    "Operators",
    "Operat/Operator 1",
+   "Operat/Operator 1 - 2",
    "Oper1/Envelope",
    "Oper1/Kbd Scaling",
    "Operat/Operator 2",
+   "Operat/Operator 2 - 2",
    "Oper2/Envelope",
    "Oper2/Kbd Scaling",
    "Operat/Operator 3",
+   "Operat/Operator 3 - 2",
    "Oper3/Envelope",
    "Oper3/Kbd Scaling",
    "Operat/Operator 4",
+   "Operat/Operator 4 - 2",
    "Oper4/Envelope",
    "Oper4/Kbd Scaling",
    "Operat/Operator 5",
+   "Operat/Operator 5 - 2",
    "Oper5/Envelope",
    "Oper5/Kbd Scaling",
    "Operat/Operator 6",
+   "Operat/Operator 6 - 2",
    "Oper6/Envelope",
    "Oper6/Kbd Scaling"
   ],
@@ -3175,7 +3764,9 @@
     "OUTPU",
     "OCTAV",
     "ALGOR",
-    "FEEDB"
+    "FEEDB",
+    "OSC",
+    "TRANS"
    ],
    [
     "SPD",
@@ -3183,7 +3774,8 @@
     "PMD",
     "AMD",
     "PMS",
-    "WAVE"
+    "WAVE",
+    "SYNC"
    ],
    [
     "PEGR1",
@@ -3191,7 +3783,9 @@
     "PEGR3",
     "PEGR4",
     "PEGL1",
-    "PEGL2"
+    "PEGL2",
+    "PEGL3",
+    "PEGL4"
    ],
    [
     "OP1",
@@ -3207,7 +3801,13 @@
     "FIN",
     "DET",
     "OP1R1",
-    "OP1R4"
+    "OP1R4",
+    "MODE",
+    "VEL"
+   ],
+   [
+    "AMS",
+    "OP1RS"
    ],
    [
     "OP1R1",
@@ -3215,7 +3815,9 @@
     "OP1R3",
     "OP1R4",
     "OP1L1",
-    "OP1L2"
+    "OP1L2",
+    "OP1L3",
+    "OP1L4"
    ],
    [
     "OP1BP",
@@ -3230,7 +3832,13 @@
     "FIN",
     "DET",
     "OP2R1",
-    "OP2R4"
+    "OP2R4",
+    "MODE",
+    "VEL"
+   ],
+   [
+    "AMS",
+    "OP2RS"
    ],
    [
     "OP2R1",
@@ -3238,7 +3846,9 @@
     "OP2R3",
     "OP2R4",
     "OP2L1",
-    "OP2L2"
+    "OP2L2",
+    "OP2L3",
+    "OP2L4"
    ],
    [
     "OP2BP",
@@ -3253,7 +3863,13 @@
     "FIN",
     "DET",
     "OP3R1",
-    "OP3R4"
+    "OP3R4",
+    "MODE",
+    "VEL"
+   ],
+   [
+    "AMS",
+    "OP3RS"
    ],
    [
     "OP3R1",
@@ -3261,7 +3877,9 @@
     "OP3R3",
     "OP3R4",
     "OP3L1",
-    "OP3L2"
+    "OP3L2",
+    "OP3L3",
+    "OP3L4"
    ],
    [
     "OP3BP",
@@ -3276,7 +3894,13 @@
     "FIN",
     "DET",
     "OP4R1",
-    "OP4R4"
+    "OP4R4",
+    "MODE",
+    "VEL"
+   ],
+   [
+    "AMS",
+    "OP4RS"
    ],
    [
     "OP4R1",
@@ -3284,7 +3908,9 @@
     "OP4R3",
     "OP4R4",
     "OP4L1",
-    "OP4L2"
+    "OP4L2",
+    "OP4L3",
+    "OP4L4"
    ],
    [
     "OP4BP",
@@ -3299,7 +3925,13 @@
     "FIN",
     "DET",
     "OP5R1",
-    "OP5R4"
+    "OP5R4",
+    "MODE",
+    "VEL"
+   ],
+   [
+    "AMS",
+    "OP5RS"
    ],
    [
     "OP5R1",
@@ -3307,7 +3939,9 @@
     "OP5R3",
     "OP5R4",
     "OP5L1",
-    "OP5L2"
+    "OP5L2",
+    "OP5L3",
+    "OP5L4"
    ],
    [
     "OP5BP",
@@ -3322,7 +3956,13 @@
     "FIN",
     "DET",
     "OP6R1",
-    "OP6R4"
+    "OP6R4",
+    "MODE",
+    "VEL"
+   ],
+   [
+    "AMS",
+    "OP6RS"
    ],
    [
     "OP6R1",
@@ -3330,7 +3970,9 @@
     "OP6R3",
     "OP6R4",
     "OP6L1",
-    "OP6L2"
+    "OP6L2",
+    "OP6L3",
+    "OP6L4"
    ],
    [
     "OP6BP",
@@ -3342,7 +3984,7 @@
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 41,
+  "hidden": 0,
   "shownKeys": [
    "algorithm",
    "feedback",
@@ -3351,12 +3993,16 @@
    "lfo_pmd",
    "lfo_pms",
    "lfo_speed",
+   "lfo_sync",
    "lfo_wave",
    "octave_transpose",
+   "op1_amp_mod",
    "op1_coarse",
    "op1_detune",
    "op1_eg_l1",
    "op1_eg_l2",
+   "op1_eg_l3",
+   "op1_eg_l4",
    "op1_eg_r1",
    "op1_eg_r2",
    "op1_eg_r3",
@@ -3368,10 +4014,16 @@
    "op1_key_rc",
    "op1_key_rd",
    "op1_level",
+   "op1_osc_mode",
+   "op1_rate_scale",
+   "op1_vel_sens",
+   "op2_amp_mod",
    "op2_coarse",
    "op2_detune",
    "op2_eg_l1",
    "op2_eg_l2",
+   "op2_eg_l3",
+   "op2_eg_l4",
    "op2_eg_r1",
    "op2_eg_r2",
    "op2_eg_r3",
@@ -3383,10 +4035,16 @@
    "op2_key_rc",
    "op2_key_rd",
    "op2_level",
+   "op2_osc_mode",
+   "op2_rate_scale",
+   "op2_vel_sens",
+   "op3_amp_mod",
    "op3_coarse",
    "op3_detune",
    "op3_eg_l1",
    "op3_eg_l2",
+   "op3_eg_l3",
+   "op3_eg_l4",
    "op3_eg_r1",
    "op3_eg_r2",
    "op3_eg_r3",
@@ -3398,10 +4056,16 @@
    "op3_key_rc",
    "op3_key_rd",
    "op3_level",
+   "op3_osc_mode",
+   "op3_rate_scale",
+   "op3_vel_sens",
+   "op4_amp_mod",
    "op4_coarse",
    "op4_detune",
    "op4_eg_l1",
    "op4_eg_l2",
+   "op4_eg_l3",
+   "op4_eg_l4",
    "op4_eg_r1",
    "op4_eg_r2",
    "op4_eg_r3",
@@ -3413,10 +4077,16 @@
    "op4_key_rc",
    "op4_key_rd",
    "op4_level",
+   "op4_osc_mode",
+   "op4_rate_scale",
+   "op4_vel_sens",
+   "op5_amp_mod",
    "op5_coarse",
    "op5_detune",
    "op5_eg_l1",
    "op5_eg_l2",
+   "op5_eg_l3",
+   "op5_eg_l4",
    "op5_eg_r1",
    "op5_eg_r2",
    "op5_eg_r3",
@@ -3428,10 +4098,16 @@
    "op5_key_rc",
    "op5_key_rd",
    "op5_level",
+   "op5_osc_mode",
+   "op5_rate_scale",
+   "op5_vel_sens",
+   "op6_amp_mod",
    "op6_coarse",
    "op6_detune",
    "op6_eg_l1",
    "op6_eg_l2",
+   "op6_eg_l3",
+   "op6_eg_l4",
    "op6_eg_r1",
    "op6_eg_r2",
    "op6_eg_r3",
@@ -3443,14 +4119,21 @@
    "op6_key_rc",
    "op6_key_rd",
    "op6_level",
+   "op6_osc_mode",
+   "op6_rate_scale",
+   "op6_vel_sens",
+   "osc_sync",
    "output_level",
    "pitch_eg_l1",
    "pitch_eg_l2",
+   "pitch_eg_l3",
+   "pitch_eg_l4",
    "pitch_eg_r1",
    "pitch_eg_r2",
    "pitch_eg_r3",
    "pitch_eg_r4",
-   "preset"
+   "preset",
+   "transpose"
   ]
  },
  "sound_generator--essaim": {
@@ -3523,9 +4206,10 @@
   ]
  },
  "sound_generator--fizzik": {
-  "pageCount": 9,
+  "pageCount": 10,
   "pageNames": [
    "Main",
+   "Patch",
    "Exciter",
    "Reson A",
    "Reson B",
@@ -3545,6 +4229,9 @@
     "RESON",
     "ALL",
     "FT"
+   ],
+   [
+    "VOICI"
    ],
    [
     "ATTAC",
@@ -3629,7 +4316,7 @@
   ],
   "envelopeLines": 2,
   "lfoViz": 2,
-  "hidden": 1,
+  "hidden": 0,
   "shownKeys": [
    "a_damp",
    "a_decay",
@@ -3702,6 +4389,7 @@
    "spread",
    "vel_color",
    "vel_level",
+   "voicing",
    "width"
   ]
  },
@@ -4625,7 +5313,7 @@
   "pageCount": 17,
   "pageNames": [
    "Main",
-   "Main - 1",
+   "Main",
    "Main - 2",
    "Filter",
    "Mod/Pitch",
@@ -4857,7 +5545,7 @@
  "sound_generator--granny": {
   "pageCount": 7,
   "pageNames": [
-   "Main - 1",
+   "Main",
    "Main - 2",
    "Main",
    "Scan",
@@ -4885,7 +5573,8 @@
     "DENSI",
     "SPRAY",
     "JITTE",
-    "GRAIN"
+    "GRAIN",
+    "SF"
    ],
    [
     "ENABL",
@@ -4947,7 +5636,7 @@
   ]
  },
  "sound_generator--helm": {
-  "pageCount": 30,
+  "pageCount": 34,
   "pageNames": [
    "Preset",
    "Main",
@@ -4963,6 +5652,10 @@
    "Mono LFO 2",
    "Poly LFO",
    "Step Sequencer",
+   "Step Sequencer - 2",
+   "Step Sequencer - 3",
+   "Step Sequencer - 4",
+   "Step Sequencer - 5",
    "Arpeggiator",
    "Formant",
    "Distortion",
@@ -4977,7 +5670,7 @@
    "Modula/Slot 6",
    "Modula/Slot 7",
    "Modula/Slot 8",
-   "Settings - 1",
+   "Settings",
    "Settings - 2"
   ],
   "pageShortNames": [
@@ -5082,7 +5775,47 @@
     "RETRI",
     "SYNC",
     "TEMPO",
-    "SMOOT"
+    "SMOOT",
+    "STEP1",
+    "STEP2"
+   ],
+   [
+    "STEP3",
+    "STEP4",
+    "STEP5",
+    "STEP6",
+    "STEP7",
+    "STEP8",
+    "STEP9",
+    "STE10"
+   ],
+   [
+    "STE11",
+    "STE12",
+    "STE13",
+    "STE14",
+    "STE15",
+    "STE16",
+    "STE17",
+    "STE18"
+   ],
+   [
+    "STE19",
+    "STE20",
+    "STE21",
+    "STE22",
+    "STE23",
+    "STE24",
+    "STE25",
+    "STE26"
+   ],
+   [
+    "STE27",
+    "STE28",
+    "STE29",
+    "STE30",
+    "STE31",
+    "STE32"
    ],
    [
     "SWITC",
@@ -5192,7 +5925,7 @@
   ],
   "envelopeLines": 4,
   "lfoViz": 3,
-  "hidden": 45,
+  "hidden": 13,
   "shownKeys": [
    "amp_attack",
    "amp_decay",
@@ -5313,6 +6046,38 @@
    "reverb_feedback",
    "reverb_on",
    "step_frequency",
+   "step_seq_00",
+   "step_seq_01",
+   "step_seq_02",
+   "step_seq_03",
+   "step_seq_04",
+   "step_seq_05",
+   "step_seq_06",
+   "step_seq_07",
+   "step_seq_08",
+   "step_seq_09",
+   "step_seq_10",
+   "step_seq_11",
+   "step_seq_12",
+   "step_seq_13",
+   "step_seq_14",
+   "step_seq_15",
+   "step_seq_16",
+   "step_seq_17",
+   "step_seq_18",
+   "step_seq_19",
+   "step_seq_20",
+   "step_seq_21",
+   "step_seq_22",
+   "step_seq_23",
+   "step_seq_24",
+   "step_seq_25",
+   "step_seq_26",
+   "step_seq_27",
+   "step_seq_28",
+   "step_seq_29",
+   "step_seq_30",
+   "step_seq_31",
    "step_sequencer_retrigger",
    "step_sequencer_sync",
    "step_sequencer_tempo",
@@ -5702,7 +6467,9 @@
     "TYPE",
     "MODE",
     "TRIM",
-    "OT"
+    "OT",
+    "GATE",
+    "AMOUN"
    ],
    [
     "HUM"
@@ -5711,7 +6478,8 @@
     "ATTAC",
     "RELEA",
     "THRES",
-    "RANGE"
+    "RANGE",
+    "HOLD"
    ],
    [
     "HPF",
@@ -5730,10 +6498,13 @@
   ],
   "envelopeLines": 1,
   "lfoViz": 0,
-  "hidden": 3,
+  "hidden": 0,
   "shownKeys": [
    "cable_comp",
+   "gate_amount",
    "gate_attack",
+   "gate_hold",
+   "gate_mode",
    "gate_range",
    "gate_release",
    "gate_threshold",
@@ -5752,18 +6523,25 @@
   ]
  },
  "sound_generator--minijv": {
-  "pageCount": 50,
+  "pageCount": 70,
   "pageNames": [
    "Preset",
    "Main",
    "Common / Control",
+   "Common / Control - 2",
    "Effects",
+   "Effects - 2",
+   "Edit Tones",
    "EditT/Tone 1",
    "Tone1/Wave",
    "Tone1/Pitch",
+   "Tone1/Pitch - 2",
    "Tone1/Filter",
+   "Tone1/Filter - 2",
    "Tone1/Amp",
+   "Tone1/Amp - 2",
    "Tone1/LFO 1",
+   "Tone1/LFO 1 - 2",
    "Tone1/LFO 2",
    "Tone1/FX Sends",
    "Tone1/Mod Matrix",
@@ -5772,9 +6550,13 @@
    "EditT/Tone 2",
    "Tone2/Wave",
    "Tone2/Pitch",
+   "Tone2/Pitch - 2",
    "Tone2/Filter",
+   "Tone2/Filter - 2",
    "Tone2/Amp",
+   "Tone2/Amp - 2",
    "Tone2/LFO 1",
+   "Tone2/LFO 1 - 2",
    "Tone2/LFO 2",
    "Tone2/FX Sends",
    "Tone2/Mod Matrix",
@@ -5783,9 +6565,13 @@
    "EditT/Tone 3",
    "Tone3/Wave",
    "Tone3/Pitch",
+   "Tone3/Pitch - 2",
    "Tone3/Filter",
+   "Tone3/Filter - 2",
    "Tone3/Amp",
+   "Tone3/Amp - 2",
    "Tone3/LFO 1",
+   "Tone3/LFO 1 - 2",
    "Tone3/LFO 2",
    "Tone3/FX Sends",
    "Tone3/Mod Matrix",
@@ -5794,16 +6580,21 @@
    "EditT/Tone 4",
    "Tone4/Wave",
    "Tone4/Pitch",
+   "Tone4/Pitch - 2",
    "Tone4/Filter",
+   "Tone4/Filter - 2",
    "Tone4/Amp",
+   "Tone4/Amp - 2",
    "Tone4/LFO 1",
+   "Tone4/LFO 1 - 2",
    "Tone4/LFO 2",
    "Tone4/FX Sends",
    "Tone4/Mod Matrix",
    "Tone4/Aftertouch",
    "Tone4/Expression",
    "performance",
-   "Edit Parts"
+   "Edit Parts",
+   "Edit Parts - 2"
   ],
   "pageShortNames": [
    [
@@ -5830,6 +6621,12 @@
     "KEY"
    ],
    [
+    "MODE",
+    "TYPE",
+    "SOLO",
+    "VS"
+   ],
+   [
     "TYPE",
     "REVER",
     "TIME",
@@ -5840,6 +6637,13 @@
     "CR"
    ],
    [
+    "CF",
+    "CO"
+   ],
+   [
+    "LINK"
+   ],
+   [
     "CUTOF",
     "RESON",
     "A.ET1",
@@ -5867,6 +6671,13 @@
     "RP"
    ],
    [
+    "P.ET3",
+    "P.EL1",
+    "P.EL2",
+    "P.EL3",
+    "P.EL4"
+   ],
+   [
     "CUTOF",
     "RESON",
     "DEPTH",
@@ -5875,6 +6686,15 @@
     "F.EL3",
     "F.ET4",
     "FM"
+   ],
+   [
+    "CK",
+    "RESO",
+    "VELO",
+    "F.ET3",
+    "F.EL1",
+    "F.EL2",
+    "F.EL4"
    ],
    [
     "LEVEL",
@@ -5887,6 +6707,15 @@
     "CURVE"
    ],
    [
+    "LEVEL",
+    "PAN",
+    "A.ET3",
+    "A.EL1",
+    "A.EL2",
+    "MODE",
+    "TIME"
+   ],
+   [
     "WAVE",
     "RATE",
     "DELAY",
@@ -5895,6 +6724,9 @@
     "FILTE",
     "AMP",
     "OFFSE"
+   ],
+   [
+    "LFO1"
    ],
    [
     "WAVE",
@@ -5968,6 +6800,13 @@
     "RP"
    ],
    [
+    "P.ET3",
+    "P.EL1",
+    "P.EL2",
+    "P.EL3",
+    "P.EL4"
+   ],
+   [
     "CUTOF",
     "RESON",
     "DEPTH",
@@ -5976,6 +6815,15 @@
     "F.EL3",
     "F.ET4",
     "FM"
+   ],
+   [
+    "CK",
+    "RESO",
+    "VELO",
+    "F.ET3",
+    "F.EL1",
+    "F.EL2",
+    "F.EL4"
    ],
    [
     "LEVEL",
@@ -5988,6 +6836,15 @@
     "CURVE"
    ],
    [
+    "LEVEL",
+    "PAN",
+    "A.ET3",
+    "A.EL1",
+    "A.EL2",
+    "MODE",
+    "TIME"
+   ],
+   [
     "WAVE",
     "RATE",
     "DELAY",
@@ -5996,6 +6853,9 @@
     "FILTE",
     "AMP",
     "OFFSE"
+   ],
+   [
+    "LFO1"
    ],
    [
     "WAVE",
@@ -6069,6 +6929,13 @@
     "RP"
    ],
    [
+    "P.ET3",
+    "P.EL1",
+    "P.EL2",
+    "P.EL3",
+    "P.EL4"
+   ],
+   [
     "CUTOF",
     "RESON",
     "DEPTH",
@@ -6077,6 +6944,15 @@
     "F.EL3",
     "F.ET4",
     "FM"
+   ],
+   [
+    "CK",
+    "RESO",
+    "VELO",
+    "F.ET3",
+    "F.EL1",
+    "F.EL2",
+    "F.EL4"
    ],
    [
     "LEVEL",
@@ -6089,6 +6965,15 @@
     "CURVE"
    ],
    [
+    "LEVEL",
+    "PAN",
+    "A.ET3",
+    "A.EL1",
+    "A.EL2",
+    "MODE",
+    "TIME"
+   ],
+   [
     "WAVE",
     "RATE",
     "DELAY",
@@ -6097,6 +6982,9 @@
     "FILTE",
     "AMP",
     "OFFSE"
+   ],
+   [
+    "LFO1"
    ],
    [
     "WAVE",
@@ -6170,6 +7058,13 @@
     "RP"
    ],
    [
+    "P.ET3",
+    "P.EL1",
+    "P.EL2",
+    "P.EL3",
+    "P.EL4"
+   ],
+   [
     "CUTOF",
     "RESON",
     "DEPTH",
@@ -6178,6 +7073,15 @@
     "F.EL3",
     "F.ET4",
     "FM"
+   ],
+   [
+    "CK",
+    "RESO",
+    "VELO",
+    "F.ET3",
+    "F.EL1",
+    "F.EL2",
+    "F.EL4"
    ],
    [
     "LEVEL",
@@ -6190,6 +7094,15 @@
     "CURVE"
    ],
    [
+    "LEVEL",
+    "PAN",
+    "A.ET3",
+    "A.EL1",
+    "A.EL2",
+    "MODE",
+    "TIME"
+   ],
+   [
     "WAVE",
     "RATE",
     "DELAY",
@@ -6198,6 +7111,9 @@
     "FILTE",
     "AMP",
     "OFFSE"
+   ],
+   [
+    "LFO1"
    ],
    [
     "WAVE",
@@ -6255,15 +7171,22 @@
     "FINE",
     "KEYLO",
     "KEYHI"
+   ],
+   [
+    "BANK",
+    "PATCH",
+    "TRANS"
    ]
   ],
   "envelopeLines": 1,
   "lfoViz": 8,
-  "hidden": 100,
+  "hidden": 10,
   "shownKeys": [
    "chorusswitch",
    "internalkeyrangelower",
    "internalkeyrangeupper",
+   "internalkeytranspose",
+   "link_tones",
    "macro_attack",
    "macro_cutoff",
    "macro_decay",
@@ -6276,18 +7199,24 @@
    "nvram_patchCommon_bendrangedown",
    "nvram_patchCommon_bendrangeup",
    "nvram_patchCommon_chorusdepth",
+   "nvram_patchCommon_chorusfeedback",
    "nvram_patchCommon_choruslevel",
+   "nvram_patchCommon_chorusoutput",
    "nvram_patchCommon_chorusrate",
    "nvram_patchCommon_chorustype",
    "nvram_patchCommon_keyassign",
    "nvram_patchCommon_patchlevel",
    "nvram_patchCommon_patchpan",
+   "nvram_patchCommon_portamentomode",
    "nvram_patchCommon_portamentoswitch",
    "nvram_patchCommon_portamentotime",
+   "nvram_patchCommon_portamentotype",
    "nvram_patchCommon_reverbfeedback",
    "nvram_patchCommon_reverblevel",
    "nvram_patchCommon_reverbtime",
    "nvram_patchCommon_reverbtype",
+   "nvram_patchCommon_sololegato",
+   "nvram_patchCommon_velocityswitch",
    "nvram_tone_0_aftdesta",
    "nvram_tone_0_aftdestb",
    "nvram_tone_0_aftdestc",
@@ -6298,6 +7227,7 @@
    "nvram_tone_0_aftsensd",
    "nvram_tone_0_chorussendlevel",
    "nvram_tone_0_cutofffrequency",
+   "nvram_tone_0_cutoffkeyfollow",
    "nvram_tone_0_drylevel",
    "nvram_tone_0_expdesta",
    "nvram_tone_0_expdestb",
@@ -6311,12 +7241,14 @@
    "nvram_tone_0_fxmdepth",
    "nvram_tone_0_fxmswitch",
    "nvram_tone_0_level",
+   "nvram_tone_0_levelkeyfollow",
    "nvram_tone_0_lfo1delay",
    "nvram_tone_0_lfo1fadetime",
    "nvram_tone_0_lfo1form",
    "nvram_tone_0_lfo1offset",
    "nvram_tone_0_lfo1pitchdepth",
    "nvram_tone_0_lfo1rate",
+   "nvram_tone_0_lfo1synchro",
    "nvram_tone_0_lfo1tvadepth",
    "nvram_tone_0_lfo1tvfdepth",
    "nvram_tone_0_lfo2delay",
@@ -6335,28 +7267,45 @@
    "nvram_tone_0_modsensc",
    "nvram_tone_0_modsensd",
    "nvram_tone_0_pan",
+   "nvram_tone_0_panningkeyfollow",
    "nvram_tone_0_penvdepth",
+   "nvram_tone_0_penvlevel1",
+   "nvram_tone_0_penvlevel2",
+   "nvram_tone_0_penvlevel3",
+   "nvram_tone_0_penvlevel4",
    "nvram_tone_0_penvtime1",
    "nvram_tone_0_penvtime2",
+   "nvram_tone_0_penvtime3",
    "nvram_tone_0_penvtime4",
    "nvram_tone_0_pitchcoarse",
    "nvram_tone_0_pitchfine",
    "nvram_tone_0_pitchkeyfollow",
    "nvram_tone_0_randompitchdepth",
    "nvram_tone_0_resonance",
+   "nvram_tone_0_resonancemode",
    "nvram_tone_0_reverbsendlevel",
+   "nvram_tone_0_tonedelaymode",
+   "nvram_tone_0_tonedelaytime",
    "nvram_tone_0_toneswitch",
+   "nvram_tone_0_tvaenvlevel1",
+   "nvram_tone_0_tvaenvlevel2",
    "nvram_tone_0_tvaenvlevel3",
    "nvram_tone_0_tvaenvtime1",
    "nvram_tone_0_tvaenvtime2",
+   "nvram_tone_0_tvaenvtime3",
    "nvram_tone_0_tvaenvtime4",
    "nvram_tone_0_tvaenvvelocitycurve",
    "nvram_tone_0_tvaenvvelocitylevelsense",
    "nvram_tone_0_tvfenvdepth",
+   "nvram_tone_0_tvfenvlevel1",
+   "nvram_tone_0_tvfenvlevel2",
    "nvram_tone_0_tvfenvlevel3",
+   "nvram_tone_0_tvfenvlevel4",
    "nvram_tone_0_tvfenvtime1",
    "nvram_tone_0_tvfenvtime2",
+   "nvram_tone_0_tvfenvtime3",
    "nvram_tone_0_tvfenvtime4",
+   "nvram_tone_0_tvfenvvelocitylevelsense",
    "nvram_tone_0_wavegroup",
    "nvram_tone_0_wavenumber",
    "nvram_tone_1_aftdesta",
@@ -6369,6 +7318,7 @@
    "nvram_tone_1_aftsensd",
    "nvram_tone_1_chorussendlevel",
    "nvram_tone_1_cutofffrequency",
+   "nvram_tone_1_cutoffkeyfollow",
    "nvram_tone_1_drylevel",
    "nvram_tone_1_expdesta",
    "nvram_tone_1_expdestb",
@@ -6382,12 +7332,14 @@
    "nvram_tone_1_fxmdepth",
    "nvram_tone_1_fxmswitch",
    "nvram_tone_1_level",
+   "nvram_tone_1_levelkeyfollow",
    "nvram_tone_1_lfo1delay",
    "nvram_tone_1_lfo1fadetime",
    "nvram_tone_1_lfo1form",
    "nvram_tone_1_lfo1offset",
    "nvram_tone_1_lfo1pitchdepth",
    "nvram_tone_1_lfo1rate",
+   "nvram_tone_1_lfo1synchro",
    "nvram_tone_1_lfo1tvadepth",
    "nvram_tone_1_lfo1tvfdepth",
    "nvram_tone_1_lfo2delay",
@@ -6406,28 +7358,45 @@
    "nvram_tone_1_modsensc",
    "nvram_tone_1_modsensd",
    "nvram_tone_1_pan",
+   "nvram_tone_1_panningkeyfollow",
    "nvram_tone_1_penvdepth",
+   "nvram_tone_1_penvlevel1",
+   "nvram_tone_1_penvlevel2",
+   "nvram_tone_1_penvlevel3",
+   "nvram_tone_1_penvlevel4",
    "nvram_tone_1_penvtime1",
    "nvram_tone_1_penvtime2",
+   "nvram_tone_1_penvtime3",
    "nvram_tone_1_penvtime4",
    "nvram_tone_1_pitchcoarse",
    "nvram_tone_1_pitchfine",
    "nvram_tone_1_pitchkeyfollow",
    "nvram_tone_1_randompitchdepth",
    "nvram_tone_1_resonance",
+   "nvram_tone_1_resonancemode",
    "nvram_tone_1_reverbsendlevel",
+   "nvram_tone_1_tonedelaymode",
+   "nvram_tone_1_tonedelaytime",
    "nvram_tone_1_toneswitch",
+   "nvram_tone_1_tvaenvlevel1",
+   "nvram_tone_1_tvaenvlevel2",
    "nvram_tone_1_tvaenvlevel3",
    "nvram_tone_1_tvaenvtime1",
    "nvram_tone_1_tvaenvtime2",
+   "nvram_tone_1_tvaenvtime3",
    "nvram_tone_1_tvaenvtime4",
    "nvram_tone_1_tvaenvvelocitycurve",
    "nvram_tone_1_tvaenvvelocitylevelsense",
    "nvram_tone_1_tvfenvdepth",
+   "nvram_tone_1_tvfenvlevel1",
+   "nvram_tone_1_tvfenvlevel2",
    "nvram_tone_1_tvfenvlevel3",
+   "nvram_tone_1_tvfenvlevel4",
    "nvram_tone_1_tvfenvtime1",
    "nvram_tone_1_tvfenvtime2",
+   "nvram_tone_1_tvfenvtime3",
    "nvram_tone_1_tvfenvtime4",
+   "nvram_tone_1_tvfenvvelocitylevelsense",
    "nvram_tone_1_wavegroup",
    "nvram_tone_1_wavenumber",
    "nvram_tone_2_aftdesta",
@@ -6440,6 +7409,7 @@
    "nvram_tone_2_aftsensd",
    "nvram_tone_2_chorussendlevel",
    "nvram_tone_2_cutofffrequency",
+   "nvram_tone_2_cutoffkeyfollow",
    "nvram_tone_2_drylevel",
    "nvram_tone_2_expdesta",
    "nvram_tone_2_expdestb",
@@ -6453,12 +7423,14 @@
    "nvram_tone_2_fxmdepth",
    "nvram_tone_2_fxmswitch",
    "nvram_tone_2_level",
+   "nvram_tone_2_levelkeyfollow",
    "nvram_tone_2_lfo1delay",
    "nvram_tone_2_lfo1fadetime",
    "nvram_tone_2_lfo1form",
    "nvram_tone_2_lfo1offset",
    "nvram_tone_2_lfo1pitchdepth",
    "nvram_tone_2_lfo1rate",
+   "nvram_tone_2_lfo1synchro",
    "nvram_tone_2_lfo1tvadepth",
    "nvram_tone_2_lfo1tvfdepth",
    "nvram_tone_2_lfo2delay",
@@ -6477,28 +7449,45 @@
    "nvram_tone_2_modsensc",
    "nvram_tone_2_modsensd",
    "nvram_tone_2_pan",
+   "nvram_tone_2_panningkeyfollow",
    "nvram_tone_2_penvdepth",
+   "nvram_tone_2_penvlevel1",
+   "nvram_tone_2_penvlevel2",
+   "nvram_tone_2_penvlevel3",
+   "nvram_tone_2_penvlevel4",
    "nvram_tone_2_penvtime1",
    "nvram_tone_2_penvtime2",
+   "nvram_tone_2_penvtime3",
    "nvram_tone_2_penvtime4",
    "nvram_tone_2_pitchcoarse",
    "nvram_tone_2_pitchfine",
    "nvram_tone_2_pitchkeyfollow",
    "nvram_tone_2_randompitchdepth",
    "nvram_tone_2_resonance",
+   "nvram_tone_2_resonancemode",
    "nvram_tone_2_reverbsendlevel",
+   "nvram_tone_2_tonedelaymode",
+   "nvram_tone_2_tonedelaytime",
    "nvram_tone_2_toneswitch",
+   "nvram_tone_2_tvaenvlevel1",
+   "nvram_tone_2_tvaenvlevel2",
    "nvram_tone_2_tvaenvlevel3",
    "nvram_tone_2_tvaenvtime1",
    "nvram_tone_2_tvaenvtime2",
+   "nvram_tone_2_tvaenvtime3",
    "nvram_tone_2_tvaenvtime4",
    "nvram_tone_2_tvaenvvelocitycurve",
    "nvram_tone_2_tvaenvvelocitylevelsense",
    "nvram_tone_2_tvfenvdepth",
+   "nvram_tone_2_tvfenvlevel1",
+   "nvram_tone_2_tvfenvlevel2",
    "nvram_tone_2_tvfenvlevel3",
+   "nvram_tone_2_tvfenvlevel4",
    "nvram_tone_2_tvfenvtime1",
    "nvram_tone_2_tvfenvtime2",
+   "nvram_tone_2_tvfenvtime3",
    "nvram_tone_2_tvfenvtime4",
+   "nvram_tone_2_tvfenvvelocitylevelsense",
    "nvram_tone_2_wavegroup",
    "nvram_tone_2_wavenumber",
    "nvram_tone_3_aftdesta",
@@ -6511,6 +7500,7 @@
    "nvram_tone_3_aftsensd",
    "nvram_tone_3_chorussendlevel",
    "nvram_tone_3_cutofffrequency",
+   "nvram_tone_3_cutoffkeyfollow",
    "nvram_tone_3_drylevel",
    "nvram_tone_3_expdesta",
    "nvram_tone_3_expdestb",
@@ -6524,12 +7514,14 @@
    "nvram_tone_3_fxmdepth",
    "nvram_tone_3_fxmswitch",
    "nvram_tone_3_level",
+   "nvram_tone_3_levelkeyfollow",
    "nvram_tone_3_lfo1delay",
    "nvram_tone_3_lfo1fadetime",
    "nvram_tone_3_lfo1form",
    "nvram_tone_3_lfo1offset",
    "nvram_tone_3_lfo1pitchdepth",
    "nvram_tone_3_lfo1rate",
+   "nvram_tone_3_lfo1synchro",
    "nvram_tone_3_lfo1tvadepth",
    "nvram_tone_3_lfo1tvfdepth",
    "nvram_tone_3_lfo2delay",
@@ -6548,28 +7540,45 @@
    "nvram_tone_3_modsensc",
    "nvram_tone_3_modsensd",
    "nvram_tone_3_pan",
+   "nvram_tone_3_panningkeyfollow",
    "nvram_tone_3_penvdepth",
+   "nvram_tone_3_penvlevel1",
+   "nvram_tone_3_penvlevel2",
+   "nvram_tone_3_penvlevel3",
+   "nvram_tone_3_penvlevel4",
    "nvram_tone_3_penvtime1",
    "nvram_tone_3_penvtime2",
+   "nvram_tone_3_penvtime3",
    "nvram_tone_3_penvtime4",
    "nvram_tone_3_pitchcoarse",
    "nvram_tone_3_pitchfine",
    "nvram_tone_3_pitchkeyfollow",
    "nvram_tone_3_randompitchdepth",
    "nvram_tone_3_resonance",
+   "nvram_tone_3_resonancemode",
    "nvram_tone_3_reverbsendlevel",
+   "nvram_tone_3_tonedelaymode",
+   "nvram_tone_3_tonedelaytime",
    "nvram_tone_3_toneswitch",
+   "nvram_tone_3_tvaenvlevel1",
+   "nvram_tone_3_tvaenvlevel2",
    "nvram_tone_3_tvaenvlevel3",
    "nvram_tone_3_tvaenvtime1",
    "nvram_tone_3_tvaenvtime2",
+   "nvram_tone_3_tvaenvtime3",
    "nvram_tone_3_tvaenvtime4",
    "nvram_tone_3_tvaenvvelocitycurve",
    "nvram_tone_3_tvaenvvelocitylevelsense",
    "nvram_tone_3_tvfenvdepth",
+   "nvram_tone_3_tvfenvlevel1",
+   "nvram_tone_3_tvfenvlevel2",
    "nvram_tone_3_tvfenvlevel3",
+   "nvram_tone_3_tvfenvlevel4",
    "nvram_tone_3_tvfenvtime1",
    "nvram_tone_3_tvfenvtime2",
+   "nvram_tone_3_tvfenvtime3",
    "nvram_tone_3_tvfenvtime4",
+   "nvram_tone_3_tvfenvvelocitylevelsense",
    "nvram_tone_3_wavegroup",
    "nvram_tone_3_wavenumber",
    "octave_transpose",
@@ -6577,6 +7586,8 @@
    "partfinetune",
    "partlevel",
    "partpan",
+   "patchbank",
+   "patchnumber",
    "preset",
    "reverbswitch"
   ]
@@ -7273,7 +8284,7 @@
  "sound_generator--mrsample": {
   "pageCount": 8,
   "pageNames": [
-   "Main - 1",
+   "Main",
    "Main - 2",
    "Sample",
    "Amp Env",
@@ -7301,7 +8312,8 @@
     "LOOP",
     "LS",
     "END",
-    "XFADE"
+    "XFADE",
+    "SAMPL"
    ],
    [
     "ATTAC",
@@ -7459,21 +8471,24 @@
   ]
  },
  "sound_generator--obxd": {
-  "pageCount": 13,
+  "pageCount": 16,
   "pageNames": [
    "Preset",
    "Main",
    "Global",
+   "Global - 2",
    "Oscillator 1",
    "Oscillator 2",
    "Osc Common",
    "Filter",
+   "Filter - 2",
    "Filter Env",
    "Amp Env",
    "LFO",
    "LFO Dest",
    "Pitch Mod",
-   "Voice Variation"
+   "Voice Variation",
+   "Voice Variation - 2"
   ],
   "pageShortNames": [
    [
@@ -7500,6 +8515,10 @@
     "OCTAV"
    ],
    [
+    "VOICE",
+    "AS"
+   ],
+   [
     "SAW",
     "PULSE",
     "PITCH",
@@ -7516,10 +8535,12 @@
    ],
    [
     "PULSE",
-    "PW",
+    "AMT",
     "NOISE",
     "X-MOD",
-    "BRIGH"
+    "BRIGH",
+    "BOTH",
+    "OSC2"
    ],
    [
     "CUTOF",
@@ -7527,7 +8548,12 @@
     "FE",
     "KEY",
     "MULTI",
-    "4-POL"
+    "4-POL",
+    "BANDP",
+    "SELF"
+   ],
+   [
+    "F.ENV"
    ],
    [
     "ATTAC",
@@ -7549,7 +8575,8 @@
     "SQUAR",
     "S&H",
     "AMT 1",
-    "AMT 2"
+    "AMT 2",
+    "SYNC"
    ],
    [
     "LF>SC",
@@ -7562,7 +8589,8 @@
     "ENV>P",
     "BEND",
     "BEND>",
-    "VIBRA"
+    "VIBRA",
+    "ENV"
    ],
    [
     "FV",
@@ -7573,24 +8601,34 @@
     "PAN 2",
     "PAN 3",
     "PAN 4"
+   ],
+   [
+    "PAN 5",
+    "PAN 6",
+    "PAN 7",
+    "PAN 8"
    ]
   ],
   "envelopeLines": 3,
   "lfoViz": 0,
-  "hidden": 13,
+  "hidden": 0,
   "shownKeys": [
+   "as_played",
    "attack",
+   "bandpass",
    "bend_osc2",
    "bend_range",
    "brightness",
    "cutoff",
    "decay",
    "env_pitch",
+   "env_pitch_both",
    "env_var",
    "f_attack",
    "f_decay",
    "f_release",
    "f_sustain",
+   "fenv_inv",
    "filter_env",
    "filter_var",
    "fourpole",
@@ -7608,6 +8646,7 @@
    "lfo_sh",
    "lfo_sin",
    "lfo_square",
+   "lfo_sync",
    "multimode",
    "noise",
    "octave",
@@ -7627,13 +8666,20 @@
    "pan_2",
    "pan_3",
    "pan_4",
+   "pan_5",
+   "pan_6",
+   "pan_7",
+   "pan_8",
    "porta_var",
    "portamento",
    "preset",
    "pw",
    "pw_env",
+   "pw_env_both",
+   "pw_ofs",
    "release",
    "resonance",
+   "self_osc",
    "sustain",
    "tune",
    "unison",
@@ -7641,25 +8687,36 @@
    "vel_amp",
    "vel_filter",
    "vibrato",
+   "voice_count",
    "volume",
    "xmod"
   ]
  },
  "sound_generator--osirus": {
-  "pageCount": 13,
+  "pageCount": 23,
   "pageNames": [
    "Main",
    "Oscillators",
+   "Oscillators - 2",
+   "Oscillators - 3",
    "Filters",
+   "Filters - 2",
    "Filter Env",
+   "Filter Env - 2",
    "Amp Env",
    "LFO 1",
+   "LFO 1 - 2",
    "LFO 2",
+   "LFO 2 - 2",
    "LFO 3",
    "Arpeggiator",
    "Effects",
+   "Effects - 2",
    "Mod Matrix",
+   "Mod Matrix - 2",
+   "Mod Matrix - 3",
    "Performance",
+   "Performance - 2",
    "Settings"
   ],
   "pageShortNames": [
@@ -7674,128 +8731,358 @@
     "OCTAV"
    ],
    [
-    "OSC1",
+    "SHAPE",
     "OSC2",
     "BALAN",
-    "VOLUM"
+    "VOLUM",
+    "OSCPW",
+    "WAVE",
+    "SEMI",
+    "KEYFL"
+   ],
+   [
+    "OSCPW",
+    "WAVE",
+    "SEMI",
+    "DETUN",
+    "OFA",
+    "SYNC",
+    "FILTE",
+    "FF"
+   ],
+   [
+    "OSC2",
+    "FM",
+    "INIT",
+    "VOLUM",
+    "SHAPE",
+    "VOL",
+    "RING",
+    "COLOR"
    ],
    [
     "CUTOF",
-    "RESO",
+    "FLT1R",
     "MODE",
-    "FILT"
+    "FILT",
+    "CO",
+    "FLT2R",
+    "ENVAM",
+    "KEYFL"
+   ],
+   [
+    "KEYFL",
+    "FILT",
+    "SATUR",
+    "MODE",
+    "FS",
+    "FLT2",
+    "FLT"
    ],
    [
     "ATTAC",
     "DECAY",
     "SUSTA",
-    "RELEA"
+    "RELEA",
+    "SUS",
+    "POL",
+    "FLT2",
+    "VEL"
+   ],
+   [
+    "FLT2",
+    "RESO1",
+    "RESO2"
    ],
    [
     "ATTAC",
     "DECAY",
     "SUSTA",
-    "RELEA"
+    "RELEA",
+    "SUS",
+    "VELOC",
+    "PUNCH"
    ],
    [
     "SHAPE",
     "RATE",
     "SYMME",
-    "OSC1"
+    "OSC1",
+    "ENV",
+    "MODE",
+    "KEYFL",
+    "KEYTR"
+   ],
+   [
+    "LFO1",
+    "OSC2",
+    "PW",
+    "RESO",
+    "FL"
    ],
    [
     "LS",
     "RATE",
     "SYMME",
-    "SL"
+    "SL",
+    "ENV",
+    "MODE",
+    "KEYFL",
+    "KEYTR"
+   ],
+   [
+    "LFO2",
+    "FM",
+    "CUT1",
+    "CUT2",
+    "PAN"
    ],
    [
     "SHAPE",
     "RATE",
     "DEST",
-    "OSC"
+    "OSC",
+    "MODE",
+    "KEYFL",
+    "FADEI",
+    "CLOCK"
    ],
    [
     "MODE",
     "PATTE",
     "OCTAV",
-    "SWING"
+    "SWING",
+    "HOLD",
+    "LENGT",
+    "AC",
+    "CT"
    ],
    [
     "CM",
     "ES",
     "TIME",
-    "FDBK"
+    "FDBK",
+    "CR",
+    "DEPTH",
+    "DELAY",
+    "CF"
    ],
    [
-    "ASGN1",
-    "ASGN2",
+    "CL",
+    "RATE",
+    "DEPTH",
+    "LFO",
+    "COLOR",
+    "CLOCK"
+   ],
+   [
+    "AMT",
+    "AMT1",
     "ASGN3",
-    "LFO1"
+    "LFO1",
+    "ASGN1",
+    "DST",
+    "ASGN2",
+    "DST1"
+   ],
+   [
+    "DST2",
+    "AMT2",
+    "SRC",
+    "DST1",
+    "DST22",
+    "AMT22",
+    "DST3",
+    "AMT3"
+   ],
+   [
+    "LFO1",
+    "DST",
+    "AMT"
    ],
    [
     "VOLUM",
     "PANOR",
     "UM",
-    "PORTA"
+    "PORTA",
+    "TRANS",
+    "KEY",
+    "UD",
+    "UP"
+   ],
+   [
+    "ULP",
+    "BENUP",
+    "DOWN",
+    "OSC1",
+    "OSC2",
+    "PW",
+    "FM",
+    "INPUT"
    ],
    [
     "DSP",
-    "GAIN"
+    "GAIN",
+    "ROM"
    ]
   ],
   "envelopeLines": 3,
   "lfoViz": 3,
-  "hidden": 108,
+  "hidden": 3,
   "shownKeys": [
    "amp_attack",
    "amp_decay",
    "amp_release",
    "amp_sustain",
+   "amp_sustain_time",
+   "amp_velocity",
+   "arp_clock",
+   "arp_hold",
    "arp_mode",
+   "arp_note_length",
    "arp_octave_range",
    "arp_pattern",
    "arp_swing",
    "assign1_amount",
+   "assign1_destination",
+   "assign1_source",
    "assign2_amount1",
+   "assign2_amount2",
+   "assign2_dest1",
+   "assign2_dest2",
+   "assign2_source",
    "assign3_amount1",
+   "assign3_amount2",
+   "assign3_amount3",
+   "assign3_dest1",
+   "assign3_dest2",
+   "assign3_dest3",
+   "assign3_source",
+   "bender_range_down",
+   "bender_range_up",
+   "chorus_delay",
+   "chorus_depth",
+   "chorus_feedback",
+   "chorus_lfo_shape",
    "chorus_mix",
+   "chorus_rate",
+   "clock_tempo",
    "cutoff",
+   "cutoff1_lfo2_amount",
+   "cutoff2_lfo2_amount",
+   "cutoff2_offset",
+   "delay_clock",
+   "delay_color",
+   "delay_depth",
    "delay_feedback",
+   "delay_lfo_shape",
+   "delay_rate_rev_decay",
    "delay_time",
    "dsp_clock",
    "effect_send",
    "filter1_env_amt",
+   "filter1_env_polarity",
+   "filter1_keyfollow",
    "filter1_mode",
    "filter1_resonance",
+   "filter2_cutoff_link",
+   "filter2_env_amt",
+   "filter2_env_polarity",
+   "filter2_keyfollow",
+   "filter2_mode",
+   "filter2_resonance",
+   "filter_balance",
+   "filter_keytrack_base",
    "filter_routing",
+   "filter_select",
+   "filtgain_lfo1_amount",
+   "flt1_envamt_velocity",
+   "flt2_envamt_velocity",
    "flt_attack",
    "flt_decay",
    "flt_release",
    "flt_sustain",
+   "flt_sustain_time",
+   "fm_amount_velocity",
+   "fm_filt_env_amt",
+   "fm_lfo2_amount",
    "gain",
+   "input_mode",
+   "key_mode",
    "lfo1_assign_amount",
+   "lfo1_assign_dest",
+   "lfo1_clock",
+   "lfo1_env_mode",
+   "lfo1_keyfollow",
+   "lfo1_keytrigger",
+   "lfo1_mode",
    "lfo1_rate",
    "lfo1_shape",
    "lfo1_symmetry",
+   "lfo2_assign_amount",
+   "lfo2_assign_dest",
+   "lfo2_clock",
+   "lfo2_env_mode",
+   "lfo2_keyfollow",
+   "lfo2_keytrigger",
+   "lfo2_mode",
    "lfo2_rate",
    "lfo2_shape",
    "lfo2_symmetry",
+   "lfo3_clock",
    "lfo3_destination",
+   "lfo3_fadein_time",
+   "lfo3_keyfollow",
+   "lfo3_mode",
    "lfo3_rate",
    "lfo3_shape",
+   "noise_color",
+   "noise_volume",
    "octave_transpose",
+   "osc1_keyfollow",
    "osc1_lfo1_amount",
+   "osc1_pulsewidth",
+   "osc1_semitone",
    "osc1_shape",
+   "osc1_shape_velocity",
+   "osc1_wave_select",
+   "osc2_detune",
+   "osc2_filt_env_amt",
+   "osc2_fm_amount",
+   "osc2_keyfollow",
+   "osc2_lfo1_amount",
+   "osc2_pulsewidth",
+   "osc2_semitone",
    "osc2_shape",
+   "osc2_shape_velocity",
+   "osc2_sync",
+   "osc2_wave_select",
    "osc_balance",
+   "osc_fm_mode",
+   "osc_init_phase",
    "osc_lfo3_amount",
    "osc_mainvolume",
+   "pan_lfo2_amount",
    "panorama",
    "patch_volume",
    "portamento_time",
+   "pulsewidth_velocity",
+   "punch_intensity",
+   "pw_lfo1_amount",
+   "reso_lfo1_amount",
+   "resonance1_velocity",
+   "resonance2_velocity",
+   "ringmod_volume",
+   "rom_index",
+   "saturation_curve",
    "shape_lfo2_amount",
-   "unison_mode"
+   "sub_osc_shape",
+   "sub_osc_volume",
+   "transpose",
+   "unison_detune",
+   "unison_lfo_phase",
+   "unison_mode",
+   "unison_pan_spread"
   ]
  },
  "sound_generator--plaits": {
@@ -7868,7 +9155,7 @@
  "sound_generator--rex": {
   "pageCount": 2,
   "pageNames": [
-   "Main - 1",
+   "Main",
    "Main - 2"
   ],
   "pageShortNames": [
@@ -7909,15 +9196,23 @@
   "pageShortNames": [
    [
     "OCTAV",
-    "GAIN"
+    "GAIN",
+    "BR",
+    "RL",
+    "BC",
+    "CL"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
   "hidden": 1,
   "shownKeys": [
+   "chorus_level",
+   "chorus_on",
    "gain",
-   "octave_transpose"
+   "octave_transpose",
+   "reverb_level",
+   "reverb_on"
   ]
  },
  "sound_generator--sfz": {
@@ -8253,11 +9548,14 @@
   ]
  },
  "sound_generator--smack-in": {
-  "pageCount": 3,
+  "pageCount": 6,
   "pageNames": [
    "Main",
+   "Main - 2",
    "Perform",
-   "Setup"
+   "Perform - 2",
+   "Setup",
+   "Setup - 2"
   ],
   "pageShortNames": [
    [
@@ -8271,6 +9569,10 @@
     "SEED"
    ],
    [
+    "PITCH",
+    "AB"
+   ],
+   [
     "CN",
     "ARM",
     "A/B",
@@ -8281,6 +9583,11 @@
     "SEED"
    ],
    [
+    "CLEAR",
+    "DB",
+    "PAD"
+   ],
+   [
     "WET",
     "LOOP",
     "PAD",
@@ -8289,56 +9596,84 @@
     "CHANN",
     "PAN L",
     "PAN R"
+   ],
+   [
+    "TRANS"
    ]
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 6,
+  "hidden": 0,
   "shownKeys": [
    "ab",
    "arm",
    "capture",
    "channel_mode",
+   "clear",
+   "detect_bpm",
    "fx_density",
    "loop_len",
    "order_density",
+   "pad_play",
    "pad_rate",
    "pan_l",
    "pan_r",
+   "pitch_range",
+   "quantize",
    "reroll",
    "seed",
    "slice_res",
+   "transport",
    "wet"
   ]
  },
  "sound_generator--surge": {
-  "pageCount": 31,
+  "pageCount": 50,
   "pageNames": [
    "Preset",
    "Main",
    "Oscillator 1",
+   "Oscillator 1 - 2",
    "Oscillator 2",
+   "Oscillator 2 - 2",
    "Oscillator 3",
+   "Oscillator 3 - 2",
    "Mixer",
-   "Scene - 1",
+   "Mixer - 2",
+   "Mixer - 3",
+   "Scene",
    "Scene - 2",
+   "Scene - 3",
+   "Scene - 4",
    "Filter 1",
    "Filter 2",
    "Amp Envelope",
    "Filter Envelope",
    "MPE",
    "LFO 1",
+   "LFO 1 - 2",
    "LFO 2",
+   "LFO 2 - 2",
    "LFO 3",
+   "LFO 3 - 2",
    "LFO 4",
+   "LFO 4 - 2",
    "LFO 5",
+   "LFO 5 - 2",
    "LFO 6",
+   "LFO 6 - 2",
    "Scene LFO 1",
+   "Scene LFO 1 - 2",
    "Scene LFO 2",
+   "Scene LFO 2 - 2",
    "Scene LFO 3",
+   "Scene LFO 3 - 2",
    "Scene LFO 4",
+   "Scene LFO 4 - 2",
    "Scene LFO 5",
+   "Scene LFO 5 - 2",
    "Scene LFO 6",
+   "Scene LFO 6 - 2",
    "Mod Slot 1",
    "Mod Slot 2",
    "Mod Slot 3",
@@ -8371,14 +9706,10 @@
     "UD"
    ],
    [
-    "TYPE",
-    "PITCH",
-    "SHAPE",
-    "WIDT1",
-    "WIDT2",
-    "SUB",
-    "SYNC",
-    "UD"
+    "OCTAV",
+    "UV",
+    "KEYTR",
+    "RETRI"
    ],
    [
     "TYPE",
@@ -8391,13 +9722,51 @@
     "UD"
    ],
    [
-    "1",
+    "OCTAV",
+    "UV",
+    "KEYTR",
+    "RETRI"
+   ],
+   [
+    "TYPE",
+    "PITCH",
+    "SHAPE",
+    "WIDT1",
+    "WIDT2",
+    "SUB",
+    "SYNC",
+    "UD"
+   ],
+   [
+    "OCTAV",
+    "UV",
+    "KEYTR",
+    "RETRI"
+   ],
+   [
+    "VOLUM",
     "2",
     "3",
     "NOISE",
     "1X2",
     "2X3",
-    "PG"
+    "PG",
+    "ROUTE"
+   ],
+   [
+    "ROUTE",
+    "ROUT2",
+    "NOISE",
+    "1X2",
+    "2X3",
+    "1",
+    "MUTE",
+    "MUTE2"
+   ],
+   [
+    "NOISE",
+    "1X2",
+    "2X3"
    ],
    [
     "AUTO",
@@ -8412,7 +9781,28 @@
    [
     "FEEDB",
     "WT",
-    "WD"
+    "WD",
+    "OCTAV",
+    "PITCH",
+    "PLAY",
+    "ROUTI",
+    "DEPTH"
+   ],
+   [
+    "NOISE",
+    "FC",
+    "FB",
+    "HIGHP",
+    "VCA",
+    "V>VG",
+    "UP",
+    "DOWN"
+   ],
+   [
+    "1",
+    "2",
+    "3",
+    "4"
    ],
    [
     "F1C",
@@ -8428,7 +9818,9 @@
     "F2T",
     "F2FMA",
     "F2K",
-    "F2S"
+    "F2S",
+    "F2OM",
+    "LINK"
    ],
    [
     "ATTAC",
@@ -8465,14 +9857,11 @@
     "DECAY"
    ],
    [
-    "TYPE",
-    "PHASE",
-    "RATE",
-    "AMPLI",
-    "DEFOR",
-    "DELAY",
-    "ATTAC",
-    "DECAY"
+    "TM",
+    "UNIPO",
+    "HOLD",
+    "SUSTA",
+    "RELEA"
    ],
    [
     "TYPE",
@@ -8485,14 +9874,11 @@
     "DECAY"
    ],
    [
-    "TYPE",
-    "PHASE",
-    "RATE",
-    "AMPLI",
-    "DEFOR",
-    "DELAY",
-    "ATTAC",
-    "DECAY"
+    "TM",
+    "UNIPO",
+    "HOLD",
+    "SUSTA",
+    "RELEA"
    ],
    [
     "TYPE",
@@ -8505,14 +9891,11 @@
     "DECAY"
    ],
    [
-    "TYPE",
-    "PHASE",
-    "RATE",
-    "AMPLI",
-    "DEFOR",
-    "DELAY",
-    "ATTAC",
-    "DECAY"
+    "TM",
+    "UNIPO",
+    "HOLD",
+    "SUSTA",
+    "RELEA"
    ],
    [
     "TYPE",
@@ -8525,14 +9908,11 @@
     "DECAY"
    ],
    [
-    "TYPE",
-    "PHASE",
-    "RATE",
-    "AMPLI",
-    "DEFOR",
-    "DELAY",
-    "ATTAC",
-    "DECAY"
+    "TM",
+    "UNIPO",
+    "HOLD",
+    "SUSTA",
+    "RELEA"
    ],
    [
     "TYPE",
@@ -8545,14 +9925,11 @@
     "DECAY"
    ],
    [
-    "TYPE",
-    "PHASE",
-    "RATE",
-    "AMPLI",
-    "DEFOR",
-    "DELAY",
-    "ATTAC",
-    "DECAY"
+    "TM",
+    "UNIPO",
+    "HOLD",
+    "SUSTA",
+    "RELEA"
    ],
    [
     "TYPE",
@@ -8565,6 +9942,13 @@
     "DECAY"
    ],
    [
+    "TM",
+    "UNIPO",
+    "HOLD",
+    "SUSTA",
+    "RELEA"
+   ],
+   [
     "TYPE",
     "PHASE",
     "RATE",
@@ -8573,6 +9957,98 @@
     "DELAY",
     "ATTAC",
     "DECAY"
+   ],
+   [
+    "TM",
+    "UNIPO",
+    "HOLD",
+    "SUSTA",
+    "RELEA"
+   ],
+   [
+    "TYPE",
+    "PHASE",
+    "RATE",
+    "AMPLI",
+    "DEFOR",
+    "DELAY",
+    "ATTAC",
+    "DECAY"
+   ],
+   [
+    "TM",
+    "UNIPO",
+    "HOLD",
+    "SUSTA",
+    "RELEA"
+   ],
+   [
+    "TYPE",
+    "PHASE",
+    "RATE",
+    "AMPLI",
+    "DEFOR",
+    "DELAY",
+    "ATTAC",
+    "DECAY"
+   ],
+   [
+    "TM",
+    "UNIPO",
+    "HOLD",
+    "SUSTA",
+    "RELEA"
+   ],
+   [
+    "TYPE",
+    "PHASE",
+    "RATE",
+    "AMPLI",
+    "DEFOR",
+    "DELAY",
+    "ATTAC",
+    "DECAY"
+   ],
+   [
+    "TM",
+    "UNIPO",
+    "HOLD",
+    "SUSTA",
+    "RELEA"
+   ],
+   [
+    "TYPE",
+    "PHASE",
+    "RATE",
+    "AMPLI",
+    "DEFOR",
+    "DELAY",
+    "ATTAC",
+    "DECAY"
+   ],
+   [
+    "TM",
+    "UNIPO",
+    "HOLD",
+    "SUSTA",
+    "RELEA"
+   ],
+   [
+    "TYPE",
+    "PHASE",
+    "RATE",
+    "AMPLI",
+    "DEFOR",
+    "DELAY",
+    "ATTAC",
+    "DECAY"
+   ],
+   [
+    "TM",
+    "UNIPO",
+    "HOLD",
+    "SUSTA",
+    "RELEA"
    ],
    [
     "ENABL",
@@ -8613,7 +10089,7 @@
   ],
   "envelopeLines": 3,
   "lfoViz": 12,
-  "hidden": 110,
+  "hidden": 7,
   "shownKeys": [
    "bpm",
    "drift",
@@ -8633,6 +10109,10 @@
    "env2_release",
    "env2_release_shape",
    "env2_sustain",
+   "f2_cf_is_offset",
+   "f2_link_resonance",
+   "f_balance",
+   "fb_config",
    "feedback",
    "filter1_cutoff",
    "filter1_envmod",
@@ -8646,6 +10126,8 @@
    "filter2_resonance",
    "filter2_subtype",
    "filter2_type",
+   "fm_depth",
+   "fm_switch",
    "level_noise",
    "level_o1",
    "level_o2",
@@ -8657,98 +10139,159 @@
    "lfo0_decay",
    "lfo0_deform",
    "lfo0_delay",
+   "lfo0_hold",
    "lfo0_magnitude",
    "lfo0_phase",
    "lfo0_rate",
+   "lfo0_release",
    "lfo0_shape",
+   "lfo0_sustain",
+   "lfo0_trigmode",
+   "lfo0_unipolar",
    "lfo10_attack",
    "lfo10_decay",
    "lfo10_deform",
    "lfo10_delay",
+   "lfo10_hold",
    "lfo10_magnitude",
    "lfo10_phase",
    "lfo10_rate",
+   "lfo10_release",
    "lfo10_shape",
+   "lfo10_sustain",
+   "lfo10_trigmode",
+   "lfo10_unipolar",
    "lfo11_attack",
    "lfo11_decay",
    "lfo11_deform",
    "lfo11_delay",
+   "lfo11_hold",
    "lfo11_magnitude",
    "lfo11_phase",
    "lfo11_rate",
+   "lfo11_release",
    "lfo11_shape",
+   "lfo11_sustain",
+   "lfo11_trigmode",
+   "lfo11_unipolar",
    "lfo1_attack",
    "lfo1_decay",
    "lfo1_deform",
    "lfo1_delay",
+   "lfo1_hold",
    "lfo1_magnitude",
    "lfo1_phase",
    "lfo1_rate",
+   "lfo1_release",
    "lfo1_shape",
+   "lfo1_sustain",
+   "lfo1_trigmode",
+   "lfo1_unipolar",
    "lfo2_attack",
    "lfo2_decay",
    "lfo2_deform",
    "lfo2_delay",
+   "lfo2_hold",
    "lfo2_magnitude",
    "lfo2_phase",
    "lfo2_rate",
+   "lfo2_release",
    "lfo2_shape",
+   "lfo2_sustain",
+   "lfo2_trigmode",
+   "lfo2_unipolar",
    "lfo3_attack",
    "lfo3_decay",
    "lfo3_deform",
    "lfo3_delay",
+   "lfo3_hold",
    "lfo3_magnitude",
    "lfo3_phase",
    "lfo3_rate",
+   "lfo3_release",
    "lfo3_shape",
+   "lfo3_sustain",
+   "lfo3_trigmode",
+   "lfo3_unipolar",
    "lfo4_attack",
    "lfo4_decay",
    "lfo4_deform",
    "lfo4_delay",
+   "lfo4_hold",
    "lfo4_magnitude",
    "lfo4_phase",
    "lfo4_rate",
+   "lfo4_release",
    "lfo4_shape",
+   "lfo4_sustain",
+   "lfo4_trigmode",
+   "lfo4_unipolar",
    "lfo5_attack",
    "lfo5_decay",
    "lfo5_deform",
    "lfo5_delay",
+   "lfo5_hold",
    "lfo5_magnitude",
    "lfo5_phase",
    "lfo5_rate",
+   "lfo5_release",
    "lfo5_shape",
+   "lfo5_sustain",
+   "lfo5_trigmode",
+   "lfo5_unipolar",
    "lfo6_attack",
    "lfo6_decay",
    "lfo6_deform",
    "lfo6_delay",
+   "lfo6_hold",
    "lfo6_magnitude",
    "lfo6_phase",
    "lfo6_rate",
+   "lfo6_release",
    "lfo6_shape",
+   "lfo6_sustain",
+   "lfo6_trigmode",
+   "lfo6_unipolar",
    "lfo7_attack",
    "lfo7_decay",
    "lfo7_deform",
    "lfo7_delay",
+   "lfo7_hold",
    "lfo7_magnitude",
    "lfo7_phase",
    "lfo7_rate",
+   "lfo7_release",
    "lfo7_shape",
+   "lfo7_sustain",
+   "lfo7_trigmode",
+   "lfo7_unipolar",
    "lfo8_attack",
    "lfo8_decay",
    "lfo8_deform",
    "lfo8_delay",
+   "lfo8_hold",
    "lfo8_magnitude",
    "lfo8_phase",
    "lfo8_rate",
+   "lfo8_release",
    "lfo8_shape",
+   "lfo8_sustain",
+   "lfo8_trigmode",
+   "lfo8_unipolar",
    "lfo9_attack",
    "lfo9_decay",
    "lfo9_deform",
    "lfo9_delay",
+   "lfo9_hold",
    "lfo9_magnitude",
    "lfo9_phase",
    "lfo9_rate",
+   "lfo9_release",
    "lfo9_shape",
+   "lfo9_sustain",
+   "lfo9_trigmode",
+   "lfo9_unipolar",
+   "lowcut",
    "mod_0_amount",
    "mod_0_dest",
    "mod_0_enable",
@@ -8775,36 +10318,72 @@
    "mod_5_source",
    "mpe_enabled",
    "mpe_pitch_bend_range",
+   "mute_noise",
+   "mute_o1",
+   "mute_o2",
+   "mute_o3",
+   "mute_ring12",
+   "mute_ring23",
+   "noisecol",
+   "octave",
    "octave_transpose",
+   "osc1_keytrack",
+   "osc1_octave",
    "osc1_param0",
    "osc1_param1",
    "osc1_param2",
    "osc1_param3",
    "osc1_param4",
    "osc1_param5",
+   "osc1_param6",
    "osc1_pitch",
+   "osc1_retrigger",
    "osc1_type",
+   "osc2_keytrack",
+   "osc2_octave",
    "osc2_param0",
    "osc2_param1",
    "osc2_param2",
    "osc2_param3",
    "osc2_param4",
    "osc2_param5",
+   "osc2_param6",
    "osc2_pitch",
+   "osc2_retrigger",
    "osc2_type",
+   "osc3_keytrack",
+   "osc3_octave",
    "osc3_param0",
    "osc3_param1",
    "osc3_param2",
    "osc3_param3",
    "osc3_param4",
    "osc3_param5",
+   "osc3_param6",
    "osc3_pitch",
+   "osc3_retrigger",
    "osc3_type",
    "pan",
    "pan2",
+   "pbrange_dn",
+   "pbrange_up",
+   "pitch",
+   "polymode",
    "portamento",
    "preset",
+   "route_noise",
+   "route_o1",
+   "route_o2",
+   "route_o3",
+   "route_ring12",
+   "route_ring23",
+   "send_fx_1",
+   "send_fx_2",
+   "send_fx_3",
+   "send_fx_4",
    "sync_bpm",
+   "vca_level",
+   "vca_velsense",
    "volume",
    "ws_drive",
    "ws_type"

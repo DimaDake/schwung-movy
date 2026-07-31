@@ -16,7 +16,7 @@ import { renderKeysView }  from '../renderer/keys-view.js';
 import { renderBrowseView } from '../renderer/browse-view.js';
 import { renderChainView }    from '../renderer/chain-view.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
-import { updateKnobLEDs }  from '../renderer/knob-leds.js';
+import { updateKnobLEDs, resetKnobLedCache } from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
 import { drumSyncTick, resetDrumSync } from '../seq/drum-sync.js';
 import { syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull, verifyLaneMappings, requestLaneWarm, laneWarmTick } from '../seq/automation.js';
@@ -181,6 +181,7 @@ const warmReadValue = (slot: number, lane: number): void => {
 export function invalidateLedCachesOnResume(): void {
     chromaticCache.fill(0);
     drumCache.fill(0);
+    resetKnobLedCache();
     seqLedsInvalidate();
     lastActiveSlot = -1;      // re-open the drum-repaint window on the next tick
     drumRepaintTicks = 0;

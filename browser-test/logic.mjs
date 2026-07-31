@@ -6918,6 +6918,51 @@ _log('\nTest: LED ownership claimed on init and on resume');
     globalThis.shadow_set_overtake_suppress_sysex = origClaim;
 }
 
+/* ── Knob LEDs are sent on change only ────────────────────────────────────── */
+
+_log('\nTest: knob LEDs diff against a movy-owned cache');
+{
+    const { updateKnobLEDs, resetKnobLedCache } =
+        await import('../dist/esm/renderer/knob-leds.js');
+
+    let sends = 0;
+    const origSetLED = globalThis.setLED;
+    const origSetButtonLED = globalThis.setButtonLED;
+    globalThis.setLED = () => { sends++; };
+    globalThis.setButtonLED = () => { sends++; };
+
+    const cell = (nv) => ({ normalizedValue: nv, trigger: null });
+    const vmAt = (nv) => ({ rows: [
+        [cell(nv), cell(nv), cell(nv), cell(nv)],
+        [cell(nv), cell(nv), cell(nv), cell(nv)],
+    ] });
+
+    resetKnobLedCache();
+
+    updateKnobLEDs(vmAt(0.1));
+    eq('cold frame writes all 16 knob LEDs', sends, 16);
+
+    sends = 0;
+    updateKnobLEDs(vmAt(0.1));
+    eq('unchanged frame writes nothing', sends, 0);
+
+    /* 0.1 and 0.9 land in different whiteLevel/amberLevel bands, so every
+     * knob's colour actually changes. */
+    sends = 0;
+    updateKnobLEDs(vmAt(0.9));
+    eq('changed frame writes all 16 again', sends, 16);
+
+    /* Resume invalidation must force a cold frame — the framework's entry
+     * LED-clear repaints hardware without going through our cache. */
+    sends = 0;
+    resetKnobLedCache();
+    updateKnobLEDs(vmAt(0.9));
+    eq('reset forces a full repaint', sends, 16);
+
+    globalThis.setLED = origSetLED;
+    globalThis.setButtonLED = origSetButtonLED;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

@@ -476,6 +476,24 @@ _origLog('\nTest 5: sequencer perf budgets');
     seqLedsInvalidate();
     seqLedsTick();
 
+    // Knob-ring LEDs used to be force-written every tick (16 packets: notes 0-7
+    // plus CCs 71-78) purely to out-shout Move firmware's repaints. Now that the
+    // host strips those repaints, an unchanged page must cost nothing on the
+    // wire — otherwise we are back to spending a quarter of the ~60-packet LED
+    // budget on a picture that did not change.
+    const { updateKnobLEDs, resetKnobLedCache } =
+        await import('../dist/esm/renderer/knob-leds.js');
+    const knobCell = (nv) => ({ normalizedValue: nv, trigger: null });
+    const knobVm = { rows: [
+        [knobCell(0.5), knobCell(0.5), knobCell(0.5), knobCell(0.5)],
+        [knobCell(0.5), knobCell(0.5), knobCell(0.5), knobCell(0.5)],
+    ] };
+    resetKnobLedCache();
+    updateKnobLEDs(knobVm);          // cold frame paints all 8 knobs
+    ledCount = 0;
+    for (let i = 0; i < 50; i++) updateKnobLEDs(knobVm);
+    check('knob LED sends when idle (50 ticks)', ledCount, 0);
+
     // IPC: at most one set_param flush per tick regardless of queued ops.
     let setParamCalls = 0;
     globalThis.host_module_set_param = () => { setParamCalls++; return true; };

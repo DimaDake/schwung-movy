@@ -18,11 +18,26 @@ function amberLevel(nv: number): number {
 
 let logTickCount = 0;
 
+/* Our own diff cache, not schwung's. setLED/setButtonLED come from
+ * input_filter.mjs, whose module-level cache we cannot invalidate — and the
+ * host's overtake entry LED-clear writes straight through
+ * move_midi_internal_send without updating it. Any path where that cache
+ * outlives a hardware clear would leave it claiming a colour the knob no
+ * longer shows. So we keep force=true to bypass it and diff here instead,
+ * the same arrangement seq/led-cache.ts uses. */
+const lastKnobColor = new Array(8).fill(-1);
+
+/* Called from invalidateLedCachesOnResume — see the note above. */
+export function resetKnobLedCache(): void {
+    lastKnobColor.fill(-1);
+}
+
 /** Set the LED under each of the 8 knobs based on current param values.
  *  Knobs 1-4 (physK 0-3) → white intensity; knobs 5-8 (physK 4-7) → amber intensity.
  *  Uses both note-based (0-7) and CC-based (71-78) LED addresses since the
- *  visible hardware LED type is not confirmed. force=true bypasses the LED
- *  cache so Move firmware's per-frame touch-state updates don't win. */
+ *  visible hardware LED type is not confirmed. force=true bypasses schwung's
+ *  setLED cache; we diff against our own (see lastKnobColor) so a host-side
+ *  LED clear can never strand a knob dark. */
 export function updateKnobLEDs(vm: ViewModel): void {
     logTickCount++;
     const doLog = (logTickCount % 344) === 1; // log ~once per second
@@ -40,10 +55,13 @@ export function updateKnobLEDs(vm: ViewModel): void {
             const color = pvm === null ? 0
                 : row === 0 ? (flash ? 120 : whiteLevel(pvm.normalizedValue))
                 : (flash ? 3 : amberLevel(pvm.normalizedValue));
-            /* notes 0-7: knob touch LEDs */
-            setLED(physK, color, true);
-            /* CC 71-78: knob indicator LEDs (same physical knob, different LED channel) */
-            setButtonLED(MoveKnob1 + physK, color, true);
+            if (lastKnobColor[physK] !== color) {
+                lastKnobColor[physK] = color;
+                /* notes 0-7: knob touch LEDs */
+                setLED(physK, color, true);
+                /* CC 71-78: knob indicator LEDs (same physical knob, different LED channel) */
+                setButtonLED(MoveKnob1 + physK, color, true);
+            }
             if (doLog) mlog('knobLED k=' + physK + ' nv=' + (pvm?.normalizedValue ?? -1).toFixed(2) + ' color=' + color);
         }
     }

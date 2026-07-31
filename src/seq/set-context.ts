@@ -25,8 +25,13 @@ function fileExists(path: string): boolean {
     const d = readFile(path);            // fallback: non-empty read == exists
     return d !== null && d.length > 0;
 }
-function ensureDir(uuid: string): void {
-    if (typeof host_ensure_dir === 'function') host_ensure_dir(SETS_DIR + '/' + uuid);
+/* Per-set writes go under sets/<uuid>/, which host_write_file will NOT create
+ * on the device — ensure the directory first (davebox does the same). The
+ * `_default` fallback has to be spelled the same way the path helpers spell it,
+ * or the directory made here is not the one written into. */
+export function ensureDir(uuid: string): void {
+    if (typeof host_ensure_dir === 'function')
+        host_ensure_dir(SETS_DIR + '/' + (uuid || '_default'));
 }
 
 export function uuidToStatePath(uuid: string): string {
@@ -34,6 +39,12 @@ export function uuidToStatePath(uuid: string): string {
 }
 export function uuidToUiStatePath(uuid: string): string {
     return SETS_DIR + '/' + (uuid || '_default') + '/ui-state.json';
+}
+/* Rotating shadow copies of the state file. The canonical seq-state.json is
+ * what older builds read; these two exist only so a torn canonical write never
+ * costs more than the generation being written. */
+export function shadowPath(uuid: string, slot: number): string {
+    return SETS_DIR + '/' + (uuid || '_default') + '/seq-state.' + slot + '.json';
 }
 
 /* line 1 = UUID, line 2 = name; {uuid:'',name:''} if missing/unreadable. */

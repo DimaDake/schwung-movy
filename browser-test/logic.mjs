@@ -21,6 +21,11 @@ import {
 } from '../dist/esm/seq/set-context.js';
 import { switchToSet, currentSetUuid, resetSeqPersist } from '../dist/esm/seq/persist.js';
 import { wrapState, parseState, adler32 } from '../dist/esm/seq/persist-blob.js';
+import { installMockFs, uninstallMockFs } from './mock-fs.mjs';
+import {
+    safeWrite, readBestState, readUiBlob, writeStateBlob, resetStoreRotation,
+} from '../dist/esm/seq/persist-store.js';
+import { shadowPath } from '../dist/esm/seq/set-context.js';
 import { keyboardState } from '../dist/esm/keyboard/state.js';
 import { installMockEngine } from './mock-engine.mjs';
 import { installEnv } from './env.mjs';
@@ -5101,6 +5106,57 @@ _log('\nTest: state envelope (truncation is detectable)');
 
     eq('adler32 is stable', adler32('movy1\n'), adler32('movy1\n'));
     eq('adler32 discriminates', adler32('movy1\n') !== adler32('movy2\n'), true);
+}
+
+_log('\nTest: durable store (rotation + verified writes)');
+{
+    const fs = installMockFs();
+    resetStoreRotation();
+    const canon = uuidToStatePath('S');
+
+    // A save lands in both a shadow slot and the canonical path, newest first
+    // in the shadow so the canonical still holds the previous generation until
+    // the shadow has verified.
+    eq('gen 1 write reported durable', writeStateBlob('S', 'movy1\nbpm 12000\n', 1), true);
+    eq('canonical holds gen 1', readBestState('S').gen, 1);
+    eq('shadow 1 holds gen 1', parseState(fs.files[shadowPath('S', 1)]).gen, 1);
+
+    // The next save rotates to the other slot, so slot 1 keeps generation 1.
+    eq('gen 2 write reported durable', writeStateBlob('S', 'movy1\nbpm 14000\n', 2), true);
+    eq('shadow 1 still holds gen 1', parseState(fs.files[shadowPath('S', 1)]).gen, 1);
+    eq('shadow 2 holds gen 2', parseState(fs.files[shadowPath('S', 2)]).gen, 2);
+    eq('best-of read picks the newest', readBestState('S').payload, 'movy1\nbpm 14000\n');
+
+    // The crash case: the canonical file is torn. The set must come back from
+    // a shadow instead of loading as a partial set or as blank.
+    fs.files[canon] = fs.files[canon].slice(0, 12);
+    eq('torn canonical falls back to a shadow', readBestState('S').payload, 'movy1\nbpm 14000\n');
+    eq('fallback keeps the generation', readBestState('S').gen, 2);
+
+    // Every copy torn → nothing loadable, and the caller must be told so it
+    // can fall back rather than silently start from a partial set.
+    fs.files[shadowPath('S', 1)] = 'movy1\ngen 1\nbp';
+    fs.files[shadowPath('S', 2)] = 'movy1\ngen 2\nbp';
+    eq('all copies torn → null', readBestState('S'), null);
+
+    // A write the host rejects must be reported, not swallowed.
+    fs.failWrites = true;
+    eq('failed write reported', writeStateBlob('S', 'movy1\nbpm 9000\n', 3), false);
+    fs.failWrites = null;
+
+    // A write that lies — reports success but stores a short file — is caught
+    // by reading it back. This is the failure class fsync would cover and we
+    // cannot: at least we refuse to call it saved.
+    fs.truncate = { path: 'seq-state', at: 8 };
+    eq('short write caught by read-back', writeStateBlob('S', 'movy1\nbpm 9000\n', 4), false);
+    fs.truncate = null;
+
+    eq('safeWrite verifies content', safeWrite(canon, 'hello'), true);
+    fs.failWrites = true;
+    eq('safeWrite reports host failure', safeWrite(canon, 'nope'), false);
+    fs.failWrites = null;
+
+    uninstallMockFs();
 }
 
 _log('\nTest: inherit-on-copy resolution');

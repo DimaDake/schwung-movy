@@ -226,21 +226,40 @@ Each fix is proven by removing it and watching the new test fail
 
 ---
 
-## 6. Device validation (before implementing §2.4)
+## 6. Device validation — measured
 
-The dump was captured while osirus's ROM was still loading, so the settled
-values are unknown. Required, on `move.local` with the schwung manager running
-and osirus on a track synth slot:
+Run on `move.local` with osirus on slot 0's synth (`scripts/probe-async-meta.mjs`,
+which subscribes for values and re-reads chain_params after a settle delay):
 
-1. read `preset_count`, `preset_names`/`preset_name_0`, `rom_index` options and
-   `bank_index` min/max immediately after load and again after ~10 s;
-2. confirm whether `chain_params`/`ui_hierarchy` are *republished* when the ROM
-   lands (if so, the retry predicate can key off that instead of polling);
-3. confirm `rom_index`'s settled option list (the Virus A/B/C models).
+| key | immediately after load | after 15 s |
+|---|---|---|
+| `preset_count` (value) | **128** | 128 |
+| `preset_names` (value) | unset — knob polls `preset_name` live | unset |
+| `preset` (chain_params) | int 0..127 | int 0..127 |
+| `bank_index` (chain_params) | int **0..0** | int **0..1** |
+| `rom_index` (chain_params) | enum **["(loading)"]** | enum **["Virus A","Virus B","Virus C"]** |
+| chain_params republished? | **no** — 156 entries throughout, no push | no |
 
-`scripts/chain-params.mjs` (WS 7700) is the probe. At design time only
-`display-server` was running on the device, so this is an implementation-phase
-step, not a blocker for the plan.
+Three consequences, all folded into the design:
+
+1. **The dump was wrong about presets.** It recorded `preset_count: 0` because
+   the capture ran mid-load; on device it reads 128 straight away, so
+   `buildPresetParam` resolves and osirus's named Preset knob was always
+   available. §2.4's preset branch is still needed for modules that genuinely
+   report 0 at first, but it is not what osirus needed.
+2. **`bank_index` widens after load.** A degenerate range is therefore not
+   permanent, and §2.1's skip must be revisited — so the picker records the keys
+   it dropped (`ModelState.degenerateKeys`) and §2.4 re-checks them. Without
+   that, Bank would only reappear as a side effect of `rom_index` settling in
+   the same rebuild, which is accidental coupling, not a design.
+3. **Nothing is republished**, so polling is the only available trigger. The
+   retry stays as designed.
+
+Verified on the real screen after deploying (`scripts/grab-screen.mjs`): osirus
+loads as **161 params / 25 banks** (was 104 / 13); the Preset page shows a live
+preset number, `MAIN - 2` carries **BANK**, and `SETTINGS` shows **ROM = VIR A**
+— the settled Virus model name, not the placeholder. Shift+jog logged
+`changePageGroup 16→17→19→22→24`, skipping overflow pages.
 
 ---
 

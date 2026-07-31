@@ -5,13 +5,13 @@ import { mlog } from '../log.js';
 import { moduleReadKey } from '../chain/config.js';
 import { KNOBS_PER_PAGE } from './constants.js';
 import { buildLevelPages, knobKeys } from './hierarchy-walk.js';
+import { buildPresetParam } from './preset-param.js';
+import { buildConfigPages } from './config-pages.js';
+import type { RawMeta } from './param-build.js';
+import { buildGenericParam } from './param-build.js';
 
-interface HierParam {
-    key?: string; label?: string; level?: string;
-    type?: string; min?: number; max?: number; step?: number; options?: string[];
-    automatable?: boolean; behavior?: string;
-    knob_acceleration?: string; knobAcceleration?: string;
-}
+type HierParam = RawMeta;
+
 interface HierLevel {
     name?: string;
     knobs?: (string | HierParam)[];
@@ -19,61 +19,6 @@ interface HierLevel {
     list_param?: string; count_param?: string; name_param?: string;
     items_param?: string; select_param?: string;
     children?: string;
-}
-
-function inferRenderStyle(type: KnobParam['type'], min: number, max: number): KnobParam['renderStyle'] {
-    return (type === 'int' && min === 0 && max === 1) ? 'hbar' : 'arc';
-}
-
-function inferBehavior(explicit: unknown, options: string[] | null): KnobParam['behavior'] | undefined {
-    if (explicit === 'trigger') return 'trigger';
-    const normalized = (options ?? []).map(v => String(v).trim().toLowerCase());
-    return normalized.includes('idle') && normalized.includes('trigger') ? 'trigger' : undefined;
-}
-
-function inferAcceleration(value: unknown): KnobParam['knobAcceleration'] | undefined {
-    return value === 'wide' ? 'wide' : undefined;
-}
-
-function parseFilter(filter: unknown): string[] {
-    if (!filter) return [];
-    const vals = Array.isArray(filter) ? filter as unknown[] : [filter];
-    return (vals as string[])
-        .filter((v): v is string => typeof v === 'string' && v.length > 0)
-        .map(v => v.toLowerCase().startsWith('.') ? v.toLowerCase() : '.' + v.toLowerCase());
-}
-
-/* Build the name-polled preset knob from a list/count/name param triple.
- * Names come from a bulk `preset_names` JSON array, else per-index
- * `preset_name_N`, else live polling of `nameKey`. Returns null when there's
- * no list+count or the count is empty — callers then fall back (config: a plain
- * indexed knob; generic: no preset knob). Shared by the hierarchy and config
- * paths so both render identical named presets. */
-function buildPresetParam(
-    s: ModelState, listParam?: string, countParam?: string, nameParam?: string,
-): KnobParam | null {
-    if (!listParam || !countParam) return null;
-    const countRaw = shadow_get_param(s.activeSlot, s.componentKey + ':' + countParam);
-    const presetCount = countRaw ? parseInt(countRaw) : 0;
-    if (!(presetCount > 0)) return null;
-
-    let allNames: string[] | null = null;
-    const namesRaw = shadow_get_param(s.activeSlot, s.componentKey + ':preset_names');
-    if (namesRaw) { try { allNames = JSON.parse(namesRaw) as string[]; } catch {} }
-    if (!allNames && shadow_get_param(s.activeSlot, s.componentKey + ':preset_name_0') !== null) {
-        allNames = [];
-        for (let i = 0; i < presetCount; i++) {
-            allNames.push(shadow_get_param(s.activeSlot, s.componentKey + ':preset_name_' + i) ?? String(i));
-        }
-    }
-    return {
-        key: listParam, label: 'Preset', shortLabel: null,
-        type: 'enum', min: 0, max: presetCount - 1, step: 1,
-        options: allNames,
-        nameKey: allNames ? undefined : (nameParam ?? undefined),
-        renderStyle: 'preset',
-        automatable: false,
-    };
 }
 
 export function loadHierarchy(s: ModelState): void {
@@ -167,118 +112,7 @@ export function loadHierarchy(s: ModelState): void {
 
     /* ── Custom config path (Plaits, Wurl, etc.) ─────────────────────────── */
     if (s.moduleConfig) {
-        // Root level of the runtime hierarchy supplies preset count/name param
-        // keys for `render: 'preset'` slots (no per-module hardcoding).
-        const cfgRoot = allLevels['root'] || Object.values(allLevels)[0] || null;
-        for (const bank of s.moduleConfig.banks) {
-            const bankStart = s.knobParams.length;
-            for (const row of bank.rows) {
-                for (const slot of row) {
-                    if (!slot?.key) { s.knobParams.push(null); continue; }
-                    /* Named preset knob: reuse the generic name-polling builder,
-                     * pulling count/name keys from the hierarchy root unless the
-                     * slot overrides them. Falls through to a plain knob when no
-                     * preset list is resolvable (indexed value shown). */
-                    if (slot.render === 'preset') {
-                        const pp = buildPresetParam(
-                            s, slot.key,
-                            slot.presetCountKey ?? cfgRoot?.count_param,
-                            slot.presetNameKey  ?? cfgRoot?.name_param,
-                        );
-                        if (pp) {
-                            if (slot.short) pp.shortLabel = slot.short;
-                            if (slot.full)  pp.label      = slot.full;
-                            s.knobParams.push(pp);
-                            continue;
-                        }
-                    }
-                    const cp   = cpMap[slot.key]   ?? {};
-                    const hier = paramDefs[slot.key] ?? {};
-                    // Precedence is split by what the field means, not by param kind:
-                    //
-                    //  - Presentation (type, options): CONFIG-FIRST (slot -> hier -> cp).
-                    //    The UI config declares how a param is shown — file/enum types
-                    //    and option lists the DSP doesn't report. This is what makes the
-                    //    mrdrums Sample/Preset slots render as a file browser: the module
-                    //    reports pad_sample_path as a plain value, so if `type` were
-                    //    module-first it would never become 'file' and the browse block
-                    //    below (and its filter/start dir) would never run — the browser
-                    //    then lists everything and crashes mrdrums on load.
-                    //
-                    //  - Range (min, max): MODULE-FIRST (cp -> hier -> slot). The DSP owns
-                    //    real ranges (weird-dreams cutoff 20..18000); a config value only
-                    //    fills a gap the module leaves. INVARIANT: config min/max must
-                    //    match or fill gaps in the DSP — it can NOT intentionally narrow a
-                    //    range the DSP reports (that value is ignored). A UI-only tighter
-                    //    cap would need a separate displayMin/Max field, not min/max.
-                    //
-                    // `step` participates only weakly: applyKnobDelta (store.ts) recomputes
-                    // the per-detent step from the range for floats (sensitivity is
-                    // normalized to ~1% of range) and uses this value only as an int floor
-                    // or the max<=min fallback — so its source rarely changes knob feel.
-                    // Resolve through string: KnobSlot.type is a required literal
-                    // union that would otherwise mask the hier/cp fallback and the
-                    // 'filepath' compare. A module reporting 'filepath' is normalized
-                    // to movy's 'file' render type.
-                    const rawType = (slot.type || hier.type || cp.type || 'float') as string;
-                    let type = (rawType === 'filepath' ? 'file' : rawType) as KnobParam['type'];
-                    const options = slot.options ?? hier.options ?? cp.options ?? null;
-                    let min  = cp.min  != null ? cp.min  : (hier.min  != null ? hier.min  : (slot.min  != null ? slot.min  : 0));
-                    let max  = cp.max  != null ? cp.max  : (hier.max  != null ? hier.max  : (slot.max  != null ? slot.max  : 1));
-                    let step = cp.step != null ? cp.step : (hier.step != null ? hier.step : (slot.step != null ? slot.step : (type === 'float' ? 0.01 : 1)));
-                    if (type === 'enum') { min = 0; max = options ? options.length - 1 : 127; step = 1; }
-                    const renderStyle = slot.render ?? inferRenderStyle(type as KnobParam['type'], min, max);
-                    const behavior = inferBehavior(slot.behavior ?? hier.behavior ?? cp.behavior, options);
-                    const param: KnobParam = {
-                        key:        slot.key,
-                        label:      slot.full || cp.name || hier.label || slot.key,
-                        shortLabel: slot.short ?? null,
-                        type:       type as KnobParam['type'],
-                        options, min, max, step, renderStyle,
-                        env:        slot.env,
-                        lfo:        slot.lfo,
-                        filter:     slot.filter,
-                        // Global-bank params aren't reachable as chain target:params
-                        // (device spike), so they can't be automated. Only OUR config
-                        // may override per slot (it knows which per-voice keys the host
-                        // resolves); module-supplied metadata must stay subordinate to
-                        // the guard or a module re-enables a dot the host can't honour.
-                        automatable: behavior === 'trigger' ? false
-                            : slot.automatable ?? (bank.global ? false
-                                : (cp.automatable ?? hier.automatable ??
-                                    ((type === 'float' || type === 'int') && max > min))),
-                        behavior,
-                        knobAcceleration: inferAcceleration(
-                            slot.knobAcceleration ?? cp.knob_acceleration ?? cp.knobAcceleration ??
-                            hier.knob_acceleration ?? hier.knobAcceleration,
-                        ),
-                    };
-                    /* File slots carry browse metadata. The module config (mrdrums.json)
-                     * is authoritative; chain_params (root/filter/start_path) is the
-                     * device fallback. Without this the browser loses its filter and
-                     * start dir — it then lists every folder/non-preset and crashes
-                     * mrdrums on load. */
-                    if (type === 'file') {
-                        param.fileRoot      = slot.fileRoot      ?? (cp as { root?: string }).root      ?? '/data/UserData';
-                        param.fileFilter    = slot.fileFilter    ?? parseFilter((cp as { filter?: unknown }).filter);
-                        param.fileStartPath = slot.fileStartPath ?? (cp as { start_path?: string }).start_path ?? param.fileRoot;
-                        if (slot.fileRequireContains) param.fileRequireContains = slot.fileRequireContains;
-                    }
-                    s.knobParams.push(param);
-                }
-            }
-            /* Each bank owns exactly one knob page: pages are fixed
-             * knobPage*KNOBS_PER_PAGE slices and the bank name is looked up by
-             * knobPage, so a bank with a partial/single row must pad to a full
-             * page or every later bank's name desyncs from its params. */
-            const rem = (s.knobParams.length - bankStart) % KNOBS_PER_PAGE;
-            if (rem !== 0) for (let i = rem; i < KNOBS_PER_PAGE; i++) s.knobParams.push(null);
-        }
-        mlog('loadHierarchy: config for ' + s.moduleId + ', ' + s.moduleConfig.banks.length + ' banks');
-        s.knobValues = new Array(s.knobParams.length).fill(null) as (number | null)[];
-        s.enumFmt    = new Array(s.knobParams.length).fill(undefined) as (boolean | undefined)[];
-        s.fileValues = new Array(s.knobParams.length).fill(null) as (string | null)[];
-        s.dirty = true;
+        buildConfigPages(s, cpMap, paramDefs, allLevels);
         return;
     }
 
@@ -364,55 +198,9 @@ export function loadHierarchy(s: ModelState): void {
             if (!key) { s.knobParams.push(null); continue; }
             if (key === listParam && presetParam) { s.knobParams.push(presetParam); continue; }
 
-            const cp  = cpMap[key]       ?? {};
-            const def = paramDefs[key]   ?? knobInline[key] ?? {};
-            const type    = cp.type    || def.type    || 'float';
-            if (type === 'filepath') {
-                s.knobParams.push({
-                    key,
-                    label:      String((cp as { name?: string }).name ?? (def as { label?: string }).label ?? key),
-                    shortLabel: null,
-                    type:       'file',
-                    min: 0, max: 0, step: 0,
-                    options:    null,
-                    renderStyle: 'arc',
-                    automatable: false,
-                    fileRoot:      String((cp as { root?: string }).root      ?? '/data/UserData'),
-                    fileFilter:    parseFilter((cp as { filter?: unknown }).filter),
-                    fileStartPath: String((cp as { start_path?: string }).start_path ?? (cp as { root?: string }).root ?? '/data/UserData'),
-                });
-                continue;
-            }
-            const options = cp.options ?? def.options ?? null;
-            const hasRange = cp.min != null || cp.max != null || def.min != null || def.max != null;
-            let min  = cp.min  != null ? cp.min  : (def.min  != null ? def.min  : 0);
-            let max  = cp.max  != null ? cp.max  : (def.max  != null ? def.max  : 1);
-            let step = cp.step != null ? cp.step : (def.step != null ? def.step : (type === 'float' ? 0.02 : 1));
-            if (type === 'enum') { min = 0; max = options ? options.length - 1 : 127; step = 1; }
-            // C4: no metadata anywhere → movy guessed float 0..1 (numeric types
-            // only). Flag it so the first value read can infer the real int type
-            // and widen the range (see meta-infer.ts / store.ts).
-            const metaGuessed = !hasRange && (type === 'float' || type === 'int');
-            const behavior = inferBehavior(cp.behavior ?? def.behavior, options);
-            s.knobParams.push({
-                key,
-                label:      cp.name || def.label || key,
-                shortLabel: null,
-                type:       type as KnobParam['type'],
-                options, min, max, step,
-                renderStyle: inferRenderStyle(type as KnobParam['type'], min, max),
-                // Config-less fallback: the `g_` global-naming convention is the
-                // only signal available here. Modules with a movy config use
-                // bank.global instead (see the config path above).
-                automatable: behavior === 'trigger' ? false : (cp.automatable ?? def.automatable ??
-                    ((type === 'float' || type === 'int') && max > min && !key.startsWith('g_'))),
-                behavior,
-                knobAcceleration: inferAcceleration(
-                    cp.knob_acceleration ?? cp.knobAcceleration ??
-                    def.knob_acceleration ?? def.knobAcceleration,
-                ),
-                ...(metaGuessed ? { metaGuessed: true } : {}),
-            });
+            s.knobParams.push(buildGenericParam(
+                key, cpMap[key] ?? {}, paramDefs[key] ?? knobInline[key] ?? {},
+            ));
         }
     }
 

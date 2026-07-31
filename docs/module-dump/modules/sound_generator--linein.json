@@ -657,8 +657,20 @@
       }
      ],
      [
-      null,
-      null,
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AMOUN",
+       "fullName": "Gate Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
       null,
       null
      ]
@@ -731,7 +743,13 @@
       }
      ],
      [
-      null,
+      {
+       "shortName": "HOLD",
+       "fullName": "Hold",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
       null,
       null,
       null
@@ -930,8 +948,44 @@
      "detentsFullSweep": 144
     }
    },
-   null,
-   null,
+   {
+    "key": "gate_mode",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "Auto",
+     "Manual"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "gate_amount",
+    "label": "Gate Amount",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
    null,
    null,
    {
@@ -1030,7 +1084,23 @@
      "detentsFullSweep": 160
     }
    },
-   null,
+   {
+    "key": "gate_hold",
+    "label": "Hold",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 5,
+    "max": 500,
+    "step": 5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 2.5,
+     "detentsFullSweep": 198
+    }
+   },
    null,
    null,
    null,
@@ -1222,14 +1292,8 @@
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "gate_mode",
-   "gate_amount",
-   "gate_hold"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "3 chain_params not reachable in movy: gate_mode, gate_amount, gate_hold"
-  ]
+  "warnings": []
  }
 }

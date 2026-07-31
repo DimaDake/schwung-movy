@@ -1937,20 +1937,6 @@
     "rows": [
      [
       {
-       "shortName": "CHORD",
-       "fullName": "Chord Type",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "WIDTH",
-       "fullName": "Width",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
        "shortName": "CUTOF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
@@ -1960,6 +1946,20 @@
       {
        "shortName": "RESO",
        "fullName": "Resonance",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CHORD",
+       "fullName": "Chord Type",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WIDTH",
+       "fullName": "Width",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."

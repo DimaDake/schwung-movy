@@ -280,6 +280,9 @@ _log('\nTest: level params[] entries render after that level\'s knobs');
     const all = m.dumpLayout().params.filter(Boolean).map(p => p.key);
     eq('extras: ui_* key never rendered',     all.includes('ui_scroll'), false);
     eq('extras: degenerate min==max skipped', all.includes('bank_index'), false);
+    // pushnpull publishes a `canvas` param (a drawing surface for its web UI);
+    // there is no knob that can edit one.
+    eq('extras: non-knob type skipped',       all.includes('view'), false);
     eq('extras: no key rendered twice',       all.length, new Set(all).size);
 }
 

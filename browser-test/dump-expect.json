@@ -1050,7 +1050,6 @@
     "OUTPU"
    ],
    [
-    "VE",
     "ATTAC",
     "BAND"
    ],
@@ -1064,7 +1063,7 @@
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 0,
+  "hidden": 1,
   "shownKeys": [
    "attack",
    "band_freq",
@@ -1080,7 +1079,6 @@
    "resonance",
    "shift",
    "slope",
-   "view",
    "volume"
   ]
  },

@@ -200,7 +200,7 @@
     "padSpecific": false
    },
    {
-    "name": "Main - 1",
+    "name": "Main",
     "global": false,
     "padSpecific": false
    },
@@ -240,7 +240,7 @@
     ]
    },
    {
-    "name": "Main - 1",
+    "name": "Main",
     "envelopeLines": [
      false,
      false

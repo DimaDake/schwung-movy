@@ -4420,27 +4420,71 @@
   ]
  },
  "movy": {
-  "hasConfig": false,
+  "hasConfig": true,
   "usesMovyConfigFile": false,
-  "drum": null,
+  "drum": {
+   "padCount": 16,
+   "padNoteStart": 36,
+   "rawMidi": false,
+   "automatablePads": 8,
+   "padScoping": {
+    "aliasPrefix": "cv_",
+    "concreteKeyTemplate": "pv{pad}_{suffix}",
+    "padDigits": 1,
+    "suffixOverrides": {
+     "fx1": {
+      "template": "v{pad}_{suffix}",
+      "maxPad": 8
+     },
+     "fx2": {
+      "template": "v{pad}_{suffix}",
+      "maxPad": 8
+     },
+     "pan": {
+      "template": "v{pad}_{suffix}",
+      "maxPad": 8
+     }
+    }
+   }
+  },
   "banks": [
    {
-    "name": "Main",
+    "name": "Osc",
     "global": false,
-    "padSpecific": false
+    "padSpecific": true
    },
    {
-    "name": "Patch",
+    "name": "Filter",
+    "global": false,
+    "padSpecific": true
+   },
+   {
+    "name": "Env",
+    "global": false,
+    "padSpecific": true
+   },
+   {
+    "name": "Mod",
+    "global": false,
+    "padSpecific": true
+   },
+   {
+    "name": "Setup",
+    "global": false,
+    "padSpecific": true
+   },
+   {
+    "name": "Send",
+    "global": false,
+    "padSpecific": true
+   },
+   {
+    "name": "Kit",
     "global": false,
     "padSpecific": false
    },
    {
     "name": "Perf",
-    "global": false,
-    "padSpecific": false
-   },
-   {
-    "name": "Voice",
     "global": false,
     "padSpecific": false
    },
@@ -4455,14 +4499,19 @@
     "padSpecific": false
    },
    {
-    "name": "General",
+    "name": "Master",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Globals",
     "global": false,
     "padSpecific": false
    }
   ],
   "pages": [
    {
-    "name": "Main",
+    "name": "Osc",
     "envelopeLines": [
      false,
      false
@@ -4471,59 +4520,339 @@
     "rows": [
      [
       {
-       "shortName": "KIT",
-       "fullName": "Kit",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "0"
-      },
-      {
-       "shortName": "RK",
-       "fullName": "Rnd Kit",
+       "shortName": "WAVE",
+       "fullName": "Wave",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "PARAM",
-       "fullName": "Rnd Kit Params",
+       "shortName": "RATC",
+       "fullName": "Coarse Ratio",
        "renderStyle": "arc",
-       "type": "enum",
+       "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "VOICE",
-       "fullName": "Rnd Voice",
+       "shortName": "RATF",
+       "fullName": "Fine Ratio",
        "renderStyle": "arc",
-       "type": "enum",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DETUN",
+       "fullName": "Detune",
+       "renderStyle": "arc",
+       "type": "float",
        "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "MORPH",
-       "fullName": "Morph",
+       "shortName": "LEVEL",
+       "fullName": "Level",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "ALL",
-       "fullName": "All Decay",
+       "shortName": "PHASE",
+       "fullName": "Phase",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "PAN",
-       "fullName": "Rnd Pan",
+       "shortName": "PWM",
+       "fullName": "PWM",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FBK",
+       "fullName": "Feedback",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Filter",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "F1CUT",
+       "fullName": "F1 Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "F1RES",
+       "fullName": "F1 Reso",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "F1TYP",
+       "fullName": "F1 Type",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "SAVE",
-       "fullName": "Save Kit",
+       "shortName": "BWCUT",
+       "fullName": "BW Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "BWW",
+       "fullName": "BW Width",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ROUTE",
+       "fullName": "Routing",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "F1DRV",
+       "fullName": "F1 Drive",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "F2CUT",
+       "fullName": "F2 Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Env",
+    "envelopeLines": [
+     true,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "E1ATK",
+       "fullName": "E1 Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "E1DEC",
+       "fullName": "E1 Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "E1CRV",
+       "fullName": "E1 Curve",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "E1REP",
+       "fullName": "E1 Repeat",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "E2DEC",
+       "fullName": "E2 Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "E2CRV",
+       "fullName": "E2 Curve",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PEAMT",
+       "fullName": "PE Amount",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PEDEC",
+       "fullName": "PE Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Mod",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": true,
+    "rows": [
+     [
+      {
+       "shortName": "LFOW",
+       "fullName": "LFO Wave",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LFOR",
+       "fullName": "LFO Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LFOS",
+       "fullName": "LFO Sync",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LFOD",
+       "fullName": "LFO Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "XLFO",
+       "fullName": "XLFO Source",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TRST",
+       "fullName": "Trig Reset",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MDEST",
+       "fullName": "Mod Dest",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MDPTH",
+       "fullName": "Mod Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Setup",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ALGO",
+       "fullName": "Algorithm",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CHOKE",
+       "fullName": "Choke",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BUS",
+       "fullName": "Output Bus",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VTUNE",
+       "fullName": "Voice Tune",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "POLY",
+       "fullName": "Polyphony",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GLIDE",
+       "fullName": "Glide",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VSENS",
+       "fullName": "Vel Sens",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VINIT",
+       "fullName": "Init Voice",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
@@ -4532,7 +4861,47 @@
     ]
    },
    {
-    "name": "Patch",
+    "name": "Send",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "RVSND",
+       "fullName": "Reverb Send",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DLSND",
+       "fullName": "Delay Send",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN",
+       "fullName": "Pan",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Kit",
     "envelopeLines": [
      false,
      false
@@ -4548,21 +4917,21 @@
        "displayValue": "..."
       },
       {
-       "shortName": "RK",
+       "shortName": "RKIT",
        "fullName": "Rnd Kit",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "PARAM",
-       "fullName": "Rnd Kit Params",
+       "shortName": "RKPRM",
+       "fullName": "Rnd Params",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "VOICE",
+       "shortName": "RVCE",
        "fullName": "Rnd Voice",
        "renderStyle": "arc",
        "type": "enum",
@@ -4571,24 +4940,17 @@
      ],
      [
       {
+       "shortName": "RPAN",
+       "fullName": "Rnd Pan",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
        "shortName": "MORPH",
        "fullName": "Morph",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "ALL",
-       "fullName": "All Decay",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "PAN",
-       "fullName": "Rnd Pan",
-       "renderStyle": "arc",
-       "type": "enum",
        "displayValue": "..."
       },
       {
@@ -4597,7 +4959,8 @@
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
-      }
+      },
+      null
      ]
     ]
    },
@@ -4612,28 +4975,28 @@
      [
       {
        "shortName": "PUNCH",
-       "fullName": "All Punch",
+       "fullName": "Punch",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "BRIGH",
-       "fullName": "All Bright",
+       "shortName": "BRGHT",
+       "fullName": "Bright",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "DECAY",
-       "fullName": "All Decay",
+       "fullName": "Decay",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "DRIVE",
-       "fullName": "All Drive",
+       "fullName": "Drive",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -4642,21 +5005,21 @@
      [
       {
        "shortName": "SNAP",
-       "fullName": "All Snap",
+       "fullName": "Snap",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "BEND",
-       "fullName": "All Bend",
+       "fullName": "Bend",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "TUNE",
-       "fullName": "All Tune",
+       "fullName": "Tune",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -4664,76 +5027,6 @@
       {
        "shortName": "ALLFX",
        "fullName": "All FX",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
-     ]
-    ]
-   },
-   {
-    "name": "Voice",
-    "envelopeLines": [
-     false,
-     false
-    ],
-    "lfoViz": false,
-    "rows": [
-     [
-      {
-       "shortName": "MACR1",
-       "fullName": "Macro 1",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "MACR2",
-       "fullName": "Macro 2",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "MACR3",
-       "fullName": "Macro 3",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "MACR4",
-       "fullName": "Macro 4",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
-     ],
-     [
-      {
-       "shortName": "MACR5",
-       "fullName": "Macro 5",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "MACR6",
-       "fullName": "Macro 6",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "MACR7",
-       "fullName": "Macro 7",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "MACR8",
-       "fullName": "Macro 8",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -4752,29 +5045,29 @@
      [
       {
        "shortName": "V1",
-       "fullName": "V1 Lvl",
-       "renderStyle": "arc",
+       "fullName": "Voice 1 Lvl",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "V2",
-       "fullName": "V2 Lvl",
-       "renderStyle": "arc",
+       "fullName": "Voice 2 Lvl",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "V3",
-       "fullName": "V3 Lvl",
-       "renderStyle": "arc",
+       "fullName": "Voice 3 Lvl",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "V4",
-       "fullName": "V4 Lvl",
-       "renderStyle": "arc",
+       "fullName": "Voice 4 Lvl",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       }
@@ -4782,29 +5075,29 @@
      [
       {
        "shortName": "V5",
-       "fullName": "V5 Lvl",
-       "renderStyle": "arc",
+       "fullName": "Voice 5 Lvl",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "V6",
-       "fullName": "V6 Lvl",
-       "renderStyle": "arc",
+       "fullName": "Voice 6 Lvl",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "V7",
-       "fullName": "V7 Lvl",
-       "renderStyle": "arc",
+       "fullName": "Voice 7 Lvl",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "V8",
-       "fullName": "V8 Lvl",
-       "renderStyle": "arc",
+       "fullName": "Voice 8 Lvl",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       }
@@ -4821,29 +5114,29 @@
     "rows": [
      [
       {
-       "shortName": "RM",
-       "fullName": "Rev Mix",
+       "shortName": "RVMIX",
+       "fullName": "Reverb Mix",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "DECAY",
-       "fullName": "Rev Decay",
+       "shortName": "RVDCY",
+       "fullName": "Reverb Dcy",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "SIZE",
-       "fullName": "Rev Size",
+       "shortName": "RVSIZ",
+       "fullName": "Reverb Size",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "DM",
-       "fullName": "Dly Mix",
+       "shortName": "CHMIX",
+       "fullName": "Chorus Mix",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -4851,29 +5144,29 @@
      ],
      [
       {
-       "shortName": "RATE",
-       "fullName": "Dly Rate",
+       "shortName": "DLMIX",
+       "fullName": "Delay Mix",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "FDBK",
-       "fullName": "Dly Fdbk",
+       "shortName": "DLRAT",
+       "fullName": "Delay Rate",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "TONE",
-       "fullName": "Dly Tone",
+       "shortName": "DLFBK",
+       "fullName": "Delay Fdbk",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "CHO",
-       "fullName": "Cho Mix",
+       "shortName": "DLTON",
+       "fullName": "Delay Tone",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -4882,7 +5175,7 @@
     ]
    },
    {
-    "name": "General",
+    "name": "Master",
     "envelopeLines": [
      false,
      false
@@ -4906,7 +5199,7 @@
       },
       {
        "shortName": "BIT",
-       "fullName": "Bit",
+       "fullName": "Bitcrush",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -4921,29 +5214,99 @@
      ],
      [
       {
-       "shortName": "EQ LO",
-       "fullName": "EQ Lo",
+       "shortName": "EQLO",
+       "fullName": "EQ Low",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "EQ",
+       "shortName": "EQMID",
        "fullName": "EQ Mid",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "EQ HI",
-       "fullName": "EQ Hi",
+       "shortName": "EQHI",
+       "fullName": "EQ High",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "MASTE",
+       "shortName": "MASTR",
        "fullName": "Master",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Globals",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MSRC",
+       "fullName": "Morph Src",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MCRV",
+       "fullName": "Morph Crv",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MONO",
+       "fullName": "Mono",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RPTCH",
+       "fullName": "Rnd Pitch",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "IDECY",
+       "fullName": "Init Decay",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "IFREQ",
+       "fullName": "Init Freq",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DTYPE",
+       "fullName": "Drive Type",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MTUNE",
+       "fullName": "Master Tune",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -4954,9 +5317,843 @@
   ],
   "params": [
    {
+    "key": "cv_wave",
+    "label": "Wave",
+    "shortLabel": "WAVE",
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Square",
+     "Noise"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   {
+    "key": "cv_ratio_c",
+    "label": "Coarse Ratio",
+    "shortLabel": "RATC",
+    "type": "float",
+    "options": null,
+    "min": 0.5,
+    "max": 16,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 3100
+    }
+   },
+   {
+    "key": "cv_ratio_f",
+    "label": "Fine Ratio",
+    "shortLabel": "RATF",
+    "type": "float",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 4800
+    }
+   },
+   {
+    "key": "cv_detune",
+    "label": "Detune",
+    "shortLabel": "DETUN",
+    "type": "float",
+    "options": null,
+    "min": -50,
+    "max": 50,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "cv_level",
+    "label": "Level",
+    "shortLabel": "LEVEL",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_phase",
+    "label": "Phase",
+    "shortLabel": "PHASE",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_pwm",
+    "label": "PWM",
+    "shortLabel": "PWM",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_fbk",
+    "label": "Feedback",
+    "shortLabel": "FBK",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_f1_cut",
+    "label": "F1 Cutoff",
+    "shortLabel": "F1CUT",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.025,
+    "renderStyle": "arc",
+    "filter": "cutoff",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0125,
+     "detentsFullSweep": 80
+    }
+   },
+   {
+    "key": "cv_f1_res",
+    "label": "F1 Reso",
+    "shortLabel": "F1RES",
+    "type": "float",
+    "options": null,
+    "min": 0.5,
+    "max": 20,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "filter": "resonance",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 390
+    }
+   },
+   {
+    "key": "cv_f1_type",
+    "label": "F1 Type",
+    "shortLabel": "F1TYP",
+    "type": "enum",
+    "options": [
+     "LP",
+     "HP",
+     "BP",
+     "BPu",
+     "Notch",
+     "Peak",
+     "Comb+",
+     "Comb-",
+     "LP2",
+     "Ladder",
+     "Ladder HP"
+    ],
+    "min": 0,
+    "max": 10,
+    "step": 1,
+    "renderStyle": "arc",
+    "filter": "mode",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 11
+    }
+   },
+   {
+    "key": "cv_bw_cut",
+    "label": "BW Cutoff",
+    "shortLabel": "BWCUT",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.025,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0125,
+     "detentsFullSweep": 80
+    }
+   },
+   {
+    "key": "cv_bw_w",
+    "label": "BW Width",
+    "shortLabel": "BWW",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_routing",
+    "label": "Routing",
+    "shortLabel": "ROUTE",
+    "type": "enum",
+    "options": [
+     "Single",
+     "Per-Osc",
+     "Serial",
+     "Parallel"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "cv_f1_drv",
+    "label": "F1 Drive",
+    "shortLabel": "F1DRV",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_f2_cut",
+    "label": "F2 Cutoff",
+    "shortLabel": "F2CUT",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.025,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0125,
+     "detentsFullSweep": 80
+    }
+   },
+   {
+    "key": "cv_e1_atk",
+    "label": "E1 Attack",
+    "shortLabel": "E1ATK",
+    "type": "float",
+    "options": null,
+    "min": 0.0001,
+    "max": 1,
+    "step": 0.001,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0005,
+     "detentsFullSweep": 2000
+    }
+   },
+   {
+    "key": "cv_e1_dec",
+    "label": "E1 Decay",
+    "shortLabel": "E1DEC",
+    "type": "float",
+    "options": null,
+    "min": 0.001,
+    "max": 4,
+    "step": 0.001,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0005,
+     "detentsFullSweep": 7998
+    }
+   },
+   {
+    "key": "cv_e1_crv",
+    "label": "E1 Curve",
+    "shortLabel": "E1CRV",
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_e1_rep",
+    "label": "E1 Repeat",
+    "shortLabel": "E1REP",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_e2_dec",
+    "label": "E2 Decay",
+    "shortLabel": "E2DEC",
+    "type": "float",
+    "options": null,
+    "min": 0.001,
+    "max": 4,
+    "step": 0.001,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0005,
+     "detentsFullSweep": 7998
+    }
+   },
+   {
+    "key": "cv_e2_crv",
+    "label": "E2 Curve",
+    "shortLabel": "E2CRV",
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_pe_amt",
+    "label": "PE Amount",
+    "shortLabel": "PEAMT",
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_pe_dec",
+    "label": "PE Decay",
+    "shortLabel": "PEDEC",
+    "type": "float",
+    "options": null,
+    "min": 0.001,
+    "max": 4,
+    "step": 0.001,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0005,
+     "detentsFullSweep": 7998
+    }
+   },
+   {
+    "key": "cv_lfo_w",
+    "label": "LFO Wave",
+    "shortLabel": "LFOW",
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Square",
+     "S&H",
+     "Random"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "lfo": "shape",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
+   {
+    "key": "cv_lfo_r",
+    "label": "LFO Rate",
+    "shortLabel": "LFOR",
+    "type": "float",
+    "options": null,
+    "min": 0.01,
+    "max": 200,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "lfo": "rate",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 39998
+    }
+   },
+   {
+    "key": "cv_lfo_s",
+    "label": "LFO Sync",
+    "shortLabel": "LFOS",
+    "type": "enum",
+    "options": [
+     "Free",
+     "1/1",
+     "1/2",
+     "1/4",
+     "1/8",
+     "1/16",
+     "1/32"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "cv_lfo_d",
+    "label": "LFO Depth",
+    "shortLabel": "LFOD",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "lfo": "depth",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_xlfo_src",
+    "label": "XLFO Source",
+    "shortLabel": "XLFO",
+    "type": "enum",
+    "options": [
+     "Self",
+     "V1",
+     "V2",
+     "V3",
+     "V4",
+     "V5",
+     "V6",
+     "V7",
+     "V8"
+    ],
+    "min": 0,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 9
+    }
+   },
+   {
+    "key": "cv_trig_rst",
+    "label": "Trig Reset",
+    "shortLabel": "TRST",
+    "type": "enum",
+    "options": [
+     "None",
+     "V1",
+     "V2",
+     "V3",
+     "V4",
+     "V5",
+     "V6",
+     "V7",
+     "V8"
+    ],
+    "min": 0,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 9
+    }
+   },
+   {
+    "key": "cv_mod_dest",
+    "label": "Mod Dest",
+    "shortLabel": "MDEST",
+    "type": "enum",
+    "options": [
+     "None",
+     "Pitch",
+     "FM Idx",
+     "Filt Cut",
+     "Reso FB",
+     "Body",
+     "Pan",
+     "Level"
+    ],
+    "min": 0,
+    "max": 7,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 8
+    }
+   },
+   {
+    "key": "cv_mod_dpth",
+    "label": "Mod Depth",
+    "shortLabel": "MDPTH",
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_algo",
+    "label": "Algorithm",
+    "shortLabel": "ALGO",
+    "type": "enum",
+    "options": [
+     "Drum",
+     "Snare",
+     "Cymbal",
+     "Hat",
+     "Wild"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   {
+    "key": "cv_choke",
+    "label": "Choke",
+    "shortLabel": "CHOKE",
+    "type": "enum",
+    "options": [
+     "None",
+     "A",
+     "B",
+     "C",
+     "D"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   {
+    "key": "cv_bus",
+    "label": "Output Bus",
+    "shortLabel": "BUS",
+    "type": "enum",
+    "options": [
+     "Main",
+     "Aux1",
+     "Aux2",
+     "FX-Only"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "cv_tune",
+    "label": "Voice Tune",
+    "shortLabel": "VTUNE",
+    "type": "float",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 960
+    }
+   },
+   {
+    "key": "cv_poly",
+    "label": "Polyphony",
+    "shortLabel": "POLY",
+    "type": "enum",
+    "options": [
+     "One-Shot",
+     "Legato",
+     "Retrig",
+     "Roll"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "cv_glide",
+    "label": "Glide",
+    "shortLabel": "GLIDE",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_vsens",
+    "label": "Vel Sens",
+    "shortLabel": "VSENS",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_init",
+    "label": "Init Voice",
+    "shortLabel": "VINIT",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "cv_fx1",
+    "label": "Reverb Send",
+    "shortLabel": "RVSND",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_fx2",
+    "label": "Delay Send",
+    "shortLabel": "DLSND",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cv_pan",
+    "label": "Pan",
+    "shortLabel": "PAN",
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
     "key": "kit",
     "label": "Kit",
-    "shortLabel": null,
+    "shortLabel": "KIT",
     "type": "int",
     "options": null,
     "min": 0,
@@ -4973,7 +6170,7 @@
    {
     "key": "rnd_kit",
     "label": "Rnd Kit",
-    "shortLabel": null,
+    "shortLabel": "RKIT",
     "type": "enum",
     "options": [
      "0",
@@ -4992,8 +6189,8 @@
    },
    {
     "key": "rnd_kit_params",
-    "label": "Rnd Kit Params",
-    "shortLabel": null,
+    "label": "Rnd Params",
+    "shortLabel": "RKPRM",
     "type": "enum",
     "options": [
      "0",
@@ -5013,7 +6210,27 @@
    {
     "key": "rnd_voice",
     "label": "Rnd Voice",
-    "shortLabel": null,
+    "shortLabel": "RVCE",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "rnd_pan",
+    "label": "Rnd Pan",
+    "shortLabel": "RPAN",
     "type": "enum",
     "options": [
      "0",
@@ -5033,7 +6250,7 @@
    {
     "key": "morph",
     "label": "Morph",
-    "shortLabel": null,
+    "shortLabel": "MORPH",
     "type": "float",
     "options": null,
     "min": 0,
@@ -5048,46 +6265,9 @@
     }
    },
    {
-    "key": "all_decay",
-    "label": "All Decay",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0.01,
-    "max": 4,
-    "step": 0.05,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.025,
-     "detentsFullSweep": 160
-    }
-   },
-   {
-    "key": "rnd_pan",
-    "label": "Rnd Pan",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "0",
-     "1"
-    ],
-    "min": 0,
-    "max": 1,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 2
-    }
-   },
-   {
     "key": "save_kit",
     "label": "Save Kit",
-    "shortLabel": null,
+    "shortLabel": "SAVE",
     "type": "enum",
     "options": [
      "Play",
@@ -5104,161 +6284,11 @@
      "steps": 2
     }
    },
-   {
-    "key": "kit",
-    "label": "Kit",
-    "shortLabel": null,
-    "type": "int",
-    "options": null,
-    "min": 0,
-    "max": 136,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 272
-    }
-   },
-   {
-    "key": "rnd_kit",
-    "label": "Rnd Kit",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "0",
-     "1"
-    ],
-    "min": 0,
-    "max": 1,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 2
-    }
-   },
-   {
-    "key": "rnd_kit_params",
-    "label": "Rnd Kit Params",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "0",
-     "1"
-    ],
-    "min": 0,
-    "max": 1,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 2
-    }
-   },
-   {
-    "key": "rnd_voice",
-    "label": "Rnd Voice",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "0",
-     "1"
-    ],
-    "min": 0,
-    "max": 1,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 2
-    }
-   },
-   {
-    "key": "morph",
-    "label": "Morph",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "all_decay",
-    "label": "All Decay",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0.01,
-    "max": 4,
-    "step": 0.05,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.025,
-     "detentsFullSweep": 160
-    }
-   },
-   {
-    "key": "rnd_pan",
-    "label": "Rnd Pan",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "0",
-     "1"
-    ],
-    "min": 0,
-    "max": 1,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 2
-    }
-   },
-   {
-    "key": "save_kit",
-    "label": "Save Kit",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "Play",
-     "Save"
-    ],
-    "min": 0,
-    "max": 1,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 2
-    }
-   },
+   null,
    {
     "key": "all_punch",
-    "label": "All Punch",
-    "shortLabel": null,
+    "label": "Punch",
+    "shortLabel": "PUNCH",
     "type": "float",
     "options": null,
     "min": 0,
@@ -5274,8 +6304,8 @@
    },
    {
     "key": "all_bright",
-    "label": "All Bright",
-    "shortLabel": null,
+    "label": "Bright",
+    "shortLabel": "BRGHT",
     "type": "float",
     "options": null,
     "min": 0,
@@ -5291,8 +6321,8 @@
    },
    {
     "key": "all_decay",
-    "label": "All Decay",
-    "shortLabel": null,
+    "label": "Decay",
+    "shortLabel": "DECAY",
     "type": "float",
     "options": null,
     "min": 0.01,
@@ -5308,8 +6338,8 @@
    },
    {
     "key": "all_drive",
-    "label": "All Drive",
-    "shortLabel": null,
+    "label": "Drive",
+    "shortLabel": "DRIVE",
     "type": "float",
     "options": null,
     "min": 0,
@@ -5325,8 +6355,8 @@
    },
    {
     "key": "all_snap",
-    "label": "All Snap",
-    "shortLabel": null,
+    "label": "Snap",
+    "shortLabel": "SNAP",
     "type": "float",
     "options": null,
     "min": 0,
@@ -5342,8 +6372,8 @@
    },
    {
     "key": "all_bend",
-    "label": "All Bend",
-    "shortLabel": null,
+    "label": "Bend",
+    "shortLabel": "BEND",
     "type": "float",
     "options": null,
     "min": 0,
@@ -5359,8 +6389,8 @@
    },
    {
     "key": "all_tune",
-    "label": "All Tune",
-    "shortLabel": null,
+    "label": "Tune",
+    "shortLabel": "TUNE",
     "type": "float",
     "options": null,
     "min": 0,
@@ -5377,7 +6407,7 @@
    {
     "key": "all_fx",
     "label": "All FX",
-    "shortLabel": null,
+    "shortLabel": "ALLFX",
     "type": "float",
     "options": null,
     "min": 0,
@@ -5392,281 +6422,145 @@
     }
    },
    {
-    "key": "cv_m1",
-    "label": "Macro 1",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "cv_m2",
-    "label": "Macro 2",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "cv_m3",
-    "label": "Macro 3",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "cv_m4",
-    "label": "Macro 4",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "cv_m5",
-    "label": "Macro 5",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "cv_m6",
-    "label": "Macro 6",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "cv_m7",
-    "label": "Macro 7",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "cv_m8",
-    "label": "Macro 8",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
     "key": "v1_lvl",
-    "label": "V1 Lvl",
-    "shortLabel": null,
+    "label": "Voice 1 Lvl",
+    "shortLabel": "V1",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
     "key": "v2_lvl",
-    "label": "V2 Lvl",
-    "shortLabel": null,
+    "label": "Voice 2 Lvl",
+    "shortLabel": "V2",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
     "key": "v3_lvl",
-    "label": "V3 Lvl",
-    "shortLabel": null,
+    "label": "Voice 3 Lvl",
+    "shortLabel": "V3",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
     "key": "v4_lvl",
-    "label": "V4 Lvl",
-    "shortLabel": null,
+    "label": "Voice 4 Lvl",
+    "shortLabel": "V4",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
     "key": "v5_lvl",
-    "label": "V5 Lvl",
-    "shortLabel": null,
+    "label": "Voice 5 Lvl",
+    "shortLabel": "V5",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
     "key": "v6_lvl",
-    "label": "V6 Lvl",
-    "shortLabel": null,
+    "label": "Voice 6 Lvl",
+    "shortLabel": "V6",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
     "key": "v7_lvl",
-    "label": "V7 Lvl",
-    "shortLabel": null,
+    "label": "Voice 7 Lvl",
+    "shortLabel": "V7",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
     "key": "v8_lvl",
-    "label": "V8 Lvl",
-    "shortLabel": null,
+    "label": "Voice 8 Lvl",
+    "shortLabel": "V8",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
     "key": "rev_mix",
-    "label": "Rev Mix",
-    "shortLabel": null,
+    "label": "Reverb Mix",
+    "shortLabel": "RVMIX",
     "type": "float",
     "options": null,
     "min": 0,
@@ -5682,8 +6576,8 @@
    },
    {
     "key": "rev_decay",
-    "label": "Rev Decay",
-    "shortLabel": null,
+    "label": "Reverb Dcy",
+    "shortLabel": "RVDCY",
     "type": "float",
     "options": null,
     "min": 0,
@@ -5699,76 +6593,8 @@
    },
    {
     "key": "rev_size",
-    "label": "Rev Size",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "dly_mix",
-    "label": "Dly Mix",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "dly_rate",
-    "label": "Dly Rate",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "dly_fdbk",
-    "label": "Dly Fdbk",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 0.95,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 190
-    }
-   },
-   {
-    "key": "dly_tone",
-    "label": "Dly Tone",
-    "shortLabel": null,
+    "label": "Reverb Size",
+    "shortLabel": "RVSIZ",
     "type": "float",
     "options": null,
     "min": 0,
@@ -5784,8 +6610,76 @@
    },
    {
     "key": "cho_mix",
-    "label": "Cho Mix",
-    "shortLabel": null,
+    "label": "Chorus Mix",
+    "shortLabel": "CHMIX",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dly_mix",
+    "label": "Delay Mix",
+    "shortLabel": "DLMIX",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dly_rate",
+    "label": "Delay Rate",
+    "shortLabel": "DLRAT",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dly_fdbk",
+    "label": "Delay Fdbk",
+    "shortLabel": "DLFBK",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 0.95,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 190
+    }
+   },
+   {
+    "key": "dly_tone",
+    "label": "Delay Tone",
+    "shortLabel": "DLTON",
     "type": "float",
     "options": null,
     "min": 0,
@@ -5802,7 +6696,7 @@
    {
     "key": "comp",
     "label": "Comp",
-    "shortLabel": null,
+    "shortLabel": "COMP",
     "type": "float",
     "options": null,
     "min": 0,
@@ -5819,7 +6713,7 @@
    {
     "key": "drive",
     "label": "Drive",
-    "shortLabel": null,
+    "shortLabel": "DRIVE",
     "type": "float",
     "options": null,
     "min": 0,
@@ -5835,8 +6729,8 @@
    },
    {
     "key": "bit",
-    "label": "Bit",
-    "shortLabel": null,
+    "label": "Bitcrush",
+    "shortLabel": "BIT",
     "type": "float",
     "options": null,
     "min": 0,
@@ -5853,7 +6747,7 @@
    {
     "key": "rate",
     "label": "Rate",
-    "shortLabel": null,
+    "shortLabel": "RATE",
     "type": "float",
     "options": null,
     "min": 0,
@@ -5869,8 +6763,8 @@
    },
    {
     "key": "eq_lo",
-    "label": "EQ Lo",
-    "shortLabel": null,
+    "label": "EQ Low",
+    "shortLabel": "EQLO",
     "type": "float",
     "options": null,
     "min": -12,
@@ -5887,7 +6781,7 @@
    {
     "key": "eq_mid",
     "label": "EQ Mid",
-    "shortLabel": null,
+    "shortLabel": "EQMID",
     "type": "float",
     "options": null,
     "min": -12,
@@ -5903,8 +6797,8 @@
    },
    {
     "key": "eq_hi",
-    "label": "EQ Hi",
-    "shortLabel": null,
+    "label": "EQ High",
+    "shortLabel": "EQHI",
     "type": "float",
     "options": null,
     "min": -12,
@@ -5921,7 +6815,7 @@
    {
     "key": "master",
     "label": "Master",
-    "shortLabel": null,
+    "shortLabel": "MASTR",
     "type": "float",
     "options": null,
     "min": 0,
@@ -5934,31 +6828,187 @@
      "perDetent": 0.005,
      "detentsFullSweep": 200
     }
+   },
+   {
+    "key": "morph_src",
+    "label": "Morph Src",
+    "shortLabel": "MSRC",
+    "type": "enum",
+    "options": [
+     "Knob",
+     "LFO",
+     "Macro",
+     "Wheel"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "morph_curve",
+    "label": "Morph Crv",
+    "shortLabel": "MCRV",
+    "type": "enum",
+    "options": [
+     "Linear",
+     "Exp",
+     "Log",
+     "S-Curve"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "all_mono",
+    "label": "Mono",
+    "shortLabel": "MONO",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "rnd_pitch",
+    "label": "Rnd Pitch",
+    "shortLabel": "RPTCH",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "init_decay",
+    "label": "Init Decay",
+    "shortLabel": "IDECY",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "init_freq",
+    "label": "Init Freq",
+    "shortLabel": "IFREQ",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "drive_type",
+    "label": "Drive Type",
+    "shortLabel": "DTYPE",
+    "type": "enum",
+    "options": [
+     "Tube",
+     "Fold",
+     "Clip"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "master_tune",
+    "label": "Master Tune",
+    "shortLabel": "MTUNE",
+    "type": "float",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
    }
   ]
  },
  "analysis": {
   "hiddenParams": [
-   "rnd_pitch",
-   "all_mono",
-   "init_decay",
-   "init_freq",
    "same_freq",
    "copy_a_b",
    "copy_b_a",
    "swap_ab",
    "rnd_b_from_a",
-   "morph_src",
-   "morph_curve",
    "cv_vpreset",
-   "cv_wave",
-   "cv_ratio_c",
-   "cv_ratio_f",
-   "cv_detune",
-   "cv_level",
-   "cv_phase",
-   "cv_pwm",
-   "cv_fbk",
+   "cv_m1",
+   "cv_m2",
+   "cv_m3",
+   "cv_m4",
+   "cv_m5",
+   "cv_m6",
+   "cv_m7",
+   "cv_m8",
    "cv_op",
    "cv_click_type",
    "cv_click_smp",
@@ -5970,14 +7020,6 @@
    "cv_noise_base",
    "cv_noise_width",
    "cv_noise_type",
-   "cv_f1_cut",
-   "cv_f1_res",
-   "cv_f1_type",
-   "cv_bw_cut",
-   "cv_bw_w",
-   "cv_routing",
-   "cv_f1_drv",
-   "cv_f2_cut",
    "cv_f2_res",
    "cv_f2_type",
    "cv_f2_drv",
@@ -5988,14 +7030,6 @@
    "cv_kt2",
    "cv_e1_to_cut",
    "cv_e2_to_cut",
-   "cv_e1_atk",
-   "cv_e1_dec",
-   "cv_e1_crv",
-   "cv_e1_rep",
-   "cv_e2_dec",
-   "cv_e2_crv",
-   "cv_pe_amt",
-   "cv_pe_dec",
    "cv_e2_dest",
    "cv_e1_rep_rate",
    "cv_e2_atk",
@@ -6008,34 +7042,15 @@
    "cv_fie1_dec",
    "cv_fie2_amt",
    "cv_fie2_dec",
-   "cv_lfo_w",
    "cv_lfo_w2",
    "cv_lfo_morph",
-   "cv_lfo_r",
-   "cv_lfo_s",
-   "cv_lfo_d",
-   "cv_xlfo_src",
-   "cv_trig_rst",
-   "cv_mod_dest",
-   "cv_mod_dpth",
    "cv_lfo_p",
    "cv_lfo_pol",
    "cv_lfo_rt",
    "cv_mod_src",
    "cv_mod_crv",
-   "cv_algo",
-   "cv_choke",
-   "cv_bus",
    "cv_lvl",
-   "cv_tune",
-   "cv_poly",
-   "cv_glide",
-   "cv_init",
-   "cv_pan",
    "cv_mute",
-   "cv_fx1",
-   "cv_fx2",
-   "cv_vsens",
    "cv_note",
    "v1_pan",
    "v2_pan",
@@ -6075,7 +7090,6 @@
    "cho_voices",
    "cho_tone",
    "cho_fb",
-   "drive_type",
    "lo_freq",
    "mid_freq",
    "hi_freq",
@@ -6083,12 +7097,11 @@
    "q_mid",
    "q_hi",
    "limiter",
-   "master_tune",
    "midi_ch"
   ],
   "noMetadata": [],
   "warnings": [
-   "146 chain_params not reachable in movy: rnd_pitch, all_mono, init_decay, init_freq, same_freq, copy_a_b, copy_b_a, swap_ab, rnd_b_from_a, morph_src, morph_curve, cv_vpreset, …"
+   "103 chain_params not reachable in movy: same_freq, copy_a_b, copy_b_a, swap_ab, rnd_b_from_a, cv_vpreset, cv_m1, cv_m2, cv_m3, cv_m4, cv_m5, cv_m6, …"
   ]
  }
 }

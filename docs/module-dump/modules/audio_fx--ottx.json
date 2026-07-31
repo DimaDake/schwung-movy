@@ -583,7 +583,22 @@
     "padSpecific": false
    },
    {
+    "name": "Main - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
     "name": "Advanced",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Advanced - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Advanced - 3",
     "global": false,
     "padSpecific": false
    }
@@ -649,6 +664,40 @@
        "type": "float",
        "displayValue": "..."
       },
+      {
+       "shortName": "LH",
+       "fullName": "Low/Mid Hz",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MH",
+       "fullName": "Mid/Hi Hz",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
       null
      ]
     ]
@@ -677,7 +726,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "LOW",
+       "shortName": "GAIN",
        "fullName": "Low Gain",
        "renderStyle": "arc",
        "type": "float",
@@ -699,6 +748,122 @@
        "type": "float",
        "displayValue": "..."
       },
+      {
+       "shortName": "THR",
+       "fullName": "Low Up Thr",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATIO",
+       "fullName": "Low Up Ratio",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DN",
+       "fullName": "Low Dn Thr",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Advanced - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LOW",
+       "fullName": "Low Dn Ratio",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MUT",
+       "fullName": "Mid Up Thr",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MUR",
+       "fullName": "Mid Up Ratio",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MDT",
+       "fullName": "Mid Dn Thr",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "MDR",
+       "fullName": "Mid Dn Ratio",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HUT",
+       "fullName": "Hi Up Thr",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HUR",
+       "fullName": "Hi Up Ratio",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DN",
+       "fullName": "Hi Dn Thr",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Advanced - 3",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "HI",
+       "fullName": "Hi Dn Ratio",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
       null,
       null,
       null
@@ -826,6 +991,46 @@
      "detentsFullSweep": 360
     }
    },
+   {
+    "key": "low_cross",
+    "label": "Low/Mid Hz",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 20,
+    "max": 18000,
+    "step": 10,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 5,
+     "detentsFullSweep": 3596
+    }
+   },
+   {
+    "key": "high_cross",
+    "label": "Mid/Hi Hz",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 20,
+    "max": 18000,
+    "step": 10,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 5,
+     "detentsFullSweep": 3596
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
    null,
    {
     "key": "att_time",
@@ -912,31 +1117,222 @@
      "detentsFullSweep": 240
     }
    },
+   {
+    "key": "ll_thres",
+    "label": "Low Up Thr",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -80,
+    "max": 0,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 160
+    }
+   },
+   {
+    "key": "ll_ratio",
+    "label": "Low Up Ratio",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lu_thres",
+    "label": "Low Dn Thr",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -80,
+    "max": 0,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 160
+    }
+   },
+   {
+    "key": "lu_ratio",
+    "label": "Low Dn Ratio",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "bl_thres",
+    "label": "Mid Up Thr",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -80,
+    "max": 0,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 160
+    }
+   },
+   {
+    "key": "bl_ratio",
+    "label": "Mid Up Ratio",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "bu_thres",
+    "label": "Mid Dn Thr",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -80,
+    "max": 0,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 160
+    }
+   },
+   {
+    "key": "bu_ratio",
+    "label": "Mid Dn Ratio",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "hl_thres",
+    "label": "Hi Up Thr",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -80,
+    "max": 0,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 160
+    }
+   },
+   {
+    "key": "hl_ratio",
+    "label": "Hi Up Ratio",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "hu_thres",
+    "label": "Hi Dn Thr",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -80,
+    "max": 0,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 160
+    }
+   },
+   {
+    "key": "hu_ratio",
+    "label": "Hi Dn Ratio",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   null,
+   null,
+   null,
+   null,
    null,
    null,
    null
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "low_cross",
-   "high_cross",
-   "ll_thres",
-   "ll_ratio",
-   "lu_thres",
-   "lu_ratio",
-   "bl_thres",
-   "bl_ratio",
-   "bu_thres",
-   "bu_ratio",
-   "hl_thres",
-   "hl_ratio",
-   "hu_thres",
-   "hu_ratio"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "14 chain_params not reachable in movy: low_cross, high_cross, ll_thres, ll_ratio, lu_thres, lu_ratio, bl_thres, bl_ratio, bu_thres, bu_ratio, hl_thres, hl_ratio, …"
-  ]
+  "warnings": []
  }
 }

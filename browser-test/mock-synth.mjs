@@ -452,6 +452,7 @@ export const MOCK_SYNTHS = {
             { key: "bank_index", name: "Bank",      type: "int", min: 0, max: 0 },
             { key: "ui_scroll",  name: "Scroll",    type: "int", min: 0, max: 9 },
             { key: "rom",        name: "ROM",       type: "enum", options: ["A", "B", "C"] },
+            { key: "view",       name: "Visual Edit", type: "canvas" },
         ]),
         "synth:ui_hierarchy": JSON.stringify({
             levels: {
@@ -460,6 +461,7 @@ export const MOCK_SYNTHS = {
                     params: [
                         { key: "bank_index", label: "Bank" },
                         { key: "ui_scroll",  label: "Scroll" },
+                        { key: "view",       label: "Visual Edit" },
                         { level: "osc",      label: "Oscillators" },
                         { level: "settings", label: "Settings" },
                     ],

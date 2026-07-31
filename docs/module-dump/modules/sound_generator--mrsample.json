@@ -397,7 +397,7 @@
   "drum": null,
   "banks": [
    {
-    "name": "Main - 1",
+    "name": "Main",
     "global": false,
     "padSpecific": false
    },
@@ -439,7 +439,7 @@
   ],
   "pages": [
    {
-    "name": "Main - 1",
+    "name": "Main",
     "envelopeLines": [
      true,
      false
@@ -478,20 +478,6 @@
      ],
      [
       {
-       "shortName": "SAMPL",
-       "fullName": "Sample",
-       "renderStyle": "arc",
-       "type": "file",
-       "displayValue": "—"
-      },
-      {
-       "shortName": "START",
-       "fullName": "Start",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
        "shortName": "CUTOF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
@@ -501,6 +487,20 @@
       {
        "shortName": "RESON",
        "fullName": "Resonance",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SAMPL",
+       "fullName": "Sample",
+       "renderStyle": "arc",
+       "type": "file",
+       "displayValue": "—"
+      },
+      {
+       "shortName": "START",
+       "fullName": "Start",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -582,7 +582,13 @@
        "type": "float",
        "displayValue": "..."
       },
-      null,
+      {
+       "shortName": "SAMPL",
+       "fullName": "Sample",
+       "renderStyle": "arc",
+       "type": "file",
+       "displayValue": "—"
+      },
       null,
       null
      ]
@@ -644,13 +650,6 @@
     "rows": [
      [
       {
-       "shortName": "TYPE",
-       "fullName": "Type",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "..."
-      },
-      {
        "shortName": "CUTOF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
@@ -662,6 +661,13 @@
        "fullName": "Resonance",
        "renderStyle": "arc",
        "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TYPE",
+       "fullName": "Type",
+       "renderStyle": "arc",
+       "type": "enum",
        "displayValue": "..."
       },
       {
@@ -1045,7 +1051,30 @@
      "detentsFullSweep": 1000
     }
    },
-   null,
+   {
+    "key": "sample_path",
+    "label": "Sample",
+    "shortLabel": null,
+    "type": "file",
+    "min": 0,
+    "max": 0,
+    "step": 0,
+    "options": null,
+    "renderStyle": "arc",
+    "automatable": false,
+    "fileRoot": "/data/UserData/UserLibrary/Samples",
+    "fileFilter": [
+     ".wav",
+     ".mp3",
+     ".flac",
+     ".aif",
+     ".aiff"
+    ],
+    "fileStartPath": "/data/UserData/UserLibrary/Samples",
+    "increment": {
+     "kind": "file-browse"
+    }
+   },
    null,
    null,
    {

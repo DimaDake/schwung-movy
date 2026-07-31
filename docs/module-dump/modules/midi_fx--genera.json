@@ -658,63 +658,27 @@
     "rows": [
      [
       {
-       "shortName": "ROOT",
-       "fullName": "Root",
+       "shortName": "SCALE",
+       "fullName": "Scale",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "DIVIS",
-       "fullName": "Division",
+       "shortName": "GEN",
+       "fullName": "Gen Mode",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
-      {
-       "shortName": "STEPS",
-       "fullName": "Steps",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "CAPTU",
-       "fullName": "Capture",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "..."
-      }
+      null,
+      null
      ],
      [
-      {
-       "shortName": "EVOLV",
-       "fullName": "Evolve",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "STUTT",
-       "fullName": "Stutter",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "OCTAV",
-       "fullName": "Octaves",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "CHORD",
-       "fullName": "Chord",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "..."
-      }
+      null,
+      null,
+      null,
+      null
      ]
     ]
    },
@@ -959,173 +923,74 @@
     }
    },
    {
-    "key": "root",
-    "label": "Root",
+    "key": "scale",
+    "label": "Scale",
     "shortLabel": null,
     "type": "enum",
     "options": [
-     "C",
-     "C#",
-     "D",
-     "D#",
-     "E",
-     "F",
-     "F#",
-     "G",
-     "G#",
-     "A",
-     "A#",
-     "B"
+     "Major",
+     "Minor",
+     "Dorian",
+     "Phrygian",
+     "Lydian",
+     "Mixolydian",
+     "Aeolian",
+     "Locrian",
+     "Harm Min",
+     "Melod Min",
+     "Penta Maj",
+     "Penta Min",
+     "Blues",
+     "Whole Tone",
+     "Diminished",
+     "Augmented",
+     "Chromatic",
+     "Hung Min",
+     "Arabic",
+     "Japanese"
     ],
     "min": 0,
-    "max": 11,
+    "max": 19,
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
-     "steps": 12
+     "steps": 20
     }
    },
    {
-    "key": "division",
-    "label": "Division",
+    "key": "gen_mode",
+    "label": "Gen Mode",
     "shortLabel": null,
     "type": "enum",
     "options": [
-     "1/1D",
-     "1/1",
-     "1/1T",
-     "1/2D",
-     "1/2",
-     "1/2T",
-     "1/4D",
-     "1/4",
-     "1/4T",
-     "1/8D",
-     "1/8",
-     "1/8T",
-     "1/16D",
-     "1/16",
-     "1/16T",
-     "1/32D",
-     "1/32",
-     "1/32T"
+     "Up",
+     "Down",
+     "Up/Down",
+     "Down/Up",
+     "Exclude",
+     "Walk",
+     "Random"
     ],
     "min": 0,
-    "max": 17,
+    "max": 6,
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
-     "steps": 18
+     "steps": 7
     }
    },
-   {
-    "key": "steps",
-    "label": "Steps",
-    "shortLabel": null,
-    "type": "int",
-    "options": null,
-    "min": 1,
-    "max": 64,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 126
-    }
-   },
-   {
-    "key": "capture",
-    "label": "Capture",
-    "shortLabel": null,
-    "type": "int",
-    "options": null,
-    "min": 0,
-    "max": 64,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 128
-    }
-   },
-   {
-    "key": "evolve",
-    "label": "Evolve",
-    "shortLabel": null,
-    "type": "int",
-    "options": null,
-    "min": 0,
-    "max": 100,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "stutter",
-    "label": "Stutter",
-    "shortLabel": null,
-    "type": "int",
-    "options": null,
-    "min": 0,
-    "max": 100,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "octaves",
-    "label": "Octaves",
-    "shortLabel": null,
-    "type": "int",
-    "options": null,
-    "min": 0,
-    "max": 100,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "chord",
-    "label": "Chord",
-    "shortLabel": null,
-    "type": "int",
-    "options": null,
-    "min": 0,
-    "max": 100,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
-    }
-   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
    {
     "key": "sync",
     "label": "Sync",
@@ -1295,13 +1160,8 @@
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "scale",
-   "gen_mode"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "2 chain_params not reachable in movy: scale, gen_mode"
-  ]
+  "warnings": []
  }
 }

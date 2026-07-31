@@ -1,12 +1,12 @@
 {
  "id": "belt",
  "name": "Belt",
- "version": "0.1.2",
+ "version": "0.2.0",
  "author": "timncox",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 53,
- "dsp_size": 115336,
+ "load_ms": 0,
+ "dsp_size": 0,
  "capabilities": {
   "chainable": true,
   "component_type": "audio_fx",
@@ -210,7 +210,10 @@
      "knobs": [
       "harm1",
       "harm2",
+      "harm3",
+      "harm4",
       "harm_level",
+      "spread",
       "double_amt"
      ]
     },
@@ -281,7 +284,10 @@
    }
   }
  },
- "presets": null,
+ "presets": {
+  "count": 0,
+  "sample": []
+ },
  "native": {
   "hierarchy_levels": [
    "root",
@@ -293,8 +299,8 @@
     "key": "key",
     "name": "Key",
     "type": "enum",
-    "min": 0,
-    "max": 11,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "C",
@@ -316,8 +322,8 @@
     "key": "scale",
     "name": "Scale",
     "type": "enum",
-    "min": 0,
-    "max": 8,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "Chromatic",
@@ -338,7 +344,7 @@
     "type": "float",
     "min": 0,
     "max": 100,
-    "step": null,
+    "step": 5,
     "options": null,
     "default": "25"
    },
@@ -348,7 +354,7 @@
     "type": "float",
     "min": 0,
     "max": 100,
-    "step": null,
+    "step": 5,
     "options": null,
     "default": "100"
    },
@@ -356,8 +362,8 @@
     "key": "harm1",
     "name": "Voice 1",
     "type": "enum",
-    "min": 0,
-    "max": 11,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "Off",
@@ -379,8 +385,8 @@
     "key": "harm2",
     "name": "Voice 2",
     "type": "enum",
-    "min": 0,
-    "max": 11,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "Off",
@@ -402,8 +408,8 @@
     "key": "harm3",
     "name": "Voice 3",
     "type": "enum",
-    "min": 0,
-    "max": 11,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "Off",
@@ -425,8 +431,8 @@
     "key": "harm4",
     "name": "Voice 4",
     "type": "enum",
-    "min": 0,
-    "max": 11,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "Off",
@@ -450,7 +456,7 @@
     "type": "float",
     "min": 0,
     "max": 100,
-    "step": null,
+    "step": 5,
     "options": null,
     "default": "80"
    },
@@ -460,7 +466,7 @@
     "type": "float",
     "min": 0,
     "max": 100,
-    "step": null,
+    "step": 5,
     "options": null,
     "default": "70"
    },
@@ -470,7 +476,7 @@
     "type": "float",
     "min": 0,
     "max": 100,
-    "step": null,
+    "step": 5,
     "options": null,
     "default": "0"
    },
@@ -478,8 +484,8 @@
     "key": "hard",
     "name": "Hard Tune",
     "type": "enum",
-    "min": 0,
-    "max": 1,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "Off",
@@ -493,7 +499,7 @@
     "type": "float",
     "min": 0,
     "max": 100,
-    "step": null,
+    "step": 5,
     "options": null,
     "default": "100"
    },
@@ -503,7 +509,7 @@
     "type": "int",
     "min": -100,
     "max": 100,
-    "step": null,
+    "step": 5,
     "options": null,
     "default": "0"
    },
@@ -513,7 +519,7 @@
     "type": "float",
     "min": 0,
     "max": 100,
-    "step": null,
+    "step": 5,
     "options": null,
     "default": "0"
    },
@@ -523,7 +529,7 @@
     "type": "float",
     "min": 0,
     "max": 100,
-    "step": null,
+    "step": 5,
     "options": null,
     "default": "30"
    }
@@ -621,8 +627,31 @@
        "displayValue": "..."
       },
       {
+       "shortName": "VOIC3",
+       "fullName": "Voice 3",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOIC4",
+       "fullName": "Voice 4",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
        "shortName": "HARM",
        "fullName": "Harm Level",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPREA",
+       "fullName": "Spread",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -633,12 +662,7 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      }
-     ],
-     [
-      null,
-      null,
-      null,
+      },
       null
      ]
     ]
@@ -853,8 +877,85 @@
     }
    },
    {
+    "key": "harm3",
+    "label": "Voice 3",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "-Oct",
+     "-6th",
+     "-5th",
+     "-4th",
+     "-3rd",
+     "Unis",
+     "+3rd",
+     "+4th",
+     "+5th",
+     "+6th",
+     "+Oct"
+    ],
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 12
+    }
+   },
+   {
+    "key": "harm4",
+    "label": "Voice 4",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "-Oct",
+     "-6th",
+     "-5th",
+     "-4th",
+     "-3rd",
+     "Unis",
+     "+3rd",
+     "+4th",
+     "+5th",
+     "+6th",
+     "+Oct"
+    ],
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 12
+    }
+   },
+   {
     "key": "harm_level",
     "label": "Harm Level",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 2.5,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "spread",
+    "label": "Spread",
     "shortLabel": null,
     "type": "float",
     "options": null,
@@ -886,9 +987,6 @@
      "detentsFullSweep": 40
     }
    },
-   null,
-   null,
-   null,
    null,
    {
     "key": "hard",
@@ -984,14 +1082,8 @@
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "harm3",
-   "harm4",
-   "spread"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "3 chain_params not reachable in movy: harm3, harm4, spread"
-  ]
+  "warnings": []
  }
 }

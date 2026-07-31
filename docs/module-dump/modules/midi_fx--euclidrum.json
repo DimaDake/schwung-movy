@@ -2219,7 +2219,17 @@
     "padSpecific": false
    },
    {
+    "name": "Global - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
     "name": "L1",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "L1 - 2",
     "global": false,
     "padSpecific": false
    },
@@ -2229,7 +2239,17 @@
     "padSpecific": false
    },
    {
+    "name": "L2 - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
     "name": "L3",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "L3 - 2",
     "global": false,
     "padSpecific": false
    },
@@ -2239,7 +2259,17 @@
     "padSpecific": false
    },
    {
+    "name": "L4 - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
     "name": "L5",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "L5 - 2",
     "global": false,
     "padSpecific": false
    },
@@ -2249,12 +2279,27 @@
     "padSpecific": false
    },
    {
+    "name": "L6 - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
     "name": "L7",
     "global": false,
     "padSpecific": false
    },
    {
+    "name": "L7 - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
     "name": "L8",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "L8 - 2",
     "global": false,
     "padSpecific": false
    }
@@ -2401,6 +2446,70 @@
     ]
    },
    {
+    "name": "Global - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VEL",
+       "fullName": "Vel",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SYNC",
+       "fullName": "Sync",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BPM",
+       "fullName": "BPM",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOICE",
+       "fullName": "Voices",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RND",
+       "fullName": "Rnd Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MUT",
+       "fullName": "Mut Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PASST",
+       "fullName": "Passthru",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
     "name": "L1",
     "envelopeLines": [
      false,
@@ -2467,6 +2576,70 @@
        "type": "int",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "L1 - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DROP",
+       "fullName": "Drop",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AA",
+       "fullName": "Accent Amt",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FILL",
+       "fullName": "Fill",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "Freq Rnd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay Rnd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
      ]
     ]
    },
@@ -2541,6 +2714,70 @@
     ]
    },
    {
+    "name": "L2 - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DROP",
+       "fullName": "Drop",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AA",
+       "fullName": "Accent Amt",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FILL",
+       "fullName": "Fill",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "Freq Rnd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay Rnd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
     "name": "L3",
     "envelopeLines": [
      false,
@@ -2607,6 +2844,70 @@
        "type": "int",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "L3 - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DROP",
+       "fullName": "Drop",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AA",
+       "fullName": "Accent Amt",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FILL",
+       "fullName": "Fill",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "Freq Rnd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay Rnd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
      ]
     ]
    },
@@ -2681,6 +2982,70 @@
     ]
    },
    {
+    "name": "L4 - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DROP",
+       "fullName": "Drop",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AA",
+       "fullName": "Accent Amt",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FILL",
+       "fullName": "Fill",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "Freq Rnd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay Rnd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
     "name": "L5",
     "envelopeLines": [
      false,
@@ -2747,6 +3112,70 @@
        "type": "int",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "L5 - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DROP",
+       "fullName": "Drop",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AA",
+       "fullName": "Accent Amt",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FILL",
+       "fullName": "Fill",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "Freq Rnd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay Rnd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
      ]
     ]
    },
@@ -2821,6 +3250,70 @@
     ]
    },
    {
+    "name": "L6 - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DROP",
+       "fullName": "Drop",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AA",
+       "fullName": "Accent Amt",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FILL",
+       "fullName": "Fill",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "Freq Rnd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay Rnd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
     "name": "L7",
     "envelopeLines": [
      false,
@@ -2891,6 +3384,70 @@
     ]
    },
    {
+    "name": "L7 - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DROP",
+       "fullName": "Drop",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AA",
+       "fullName": "Accent Amt",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FILL",
+       "fullName": "Fill",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "Freq Rnd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay Rnd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
     "name": "L8",
     "envelopeLines": [
      false,
@@ -2957,6 +3514,70 @@
        "type": "int",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "L8 - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DROP",
+       "fullName": "Drop",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AA",
+       "fullName": "Accent Amt",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FILL",
+       "fullName": "Fill",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "GATE",
+       "fullName": "Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "Freq Rnd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay Rnd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
      ]
     ]
    }
@@ -3305,6 +3926,132 @@
     }
    },
    {
+    "key": "global_velocity",
+    "label": "Vel",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 252
+    }
+   },
+   {
+    "key": "sync",
+    "label": "Sync",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "internal",
+     "clock"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "bpm",
+    "label": "BPM",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 10,
+    "max": 500,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 980
+    }
+   },
+   {
+    "key": "max_voices",
+    "label": "Voices",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 126
+    }
+   },
+   {
+    "key": "global_rnd_seed",
+    "label": "Rnd Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "mutation_seed",
+    "label": "Mut Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "passthrough",
+    "label": "Passthru",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "on"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   {
     "key": "lane1_enabled",
     "label": "L1",
     "shortLabel": null,
@@ -3451,6 +4198,126 @@
      "detentsFullSweep": 254
     }
    },
+   {
+    "key": "lane1_drop",
+    "label": "Drop",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane1_velocity",
+    "label": "Velocity",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane1_accent_amt",
+    "label": "Accent Amt",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "lane1_fill",
+    "label": "Fill",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane1_gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3200
+    }
+   },
+   {
+    "key": "lane1_freq_rnd",
+    "label": "Freq Rnd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "lane1_decay_rnd",
+    "label": "Decay Rnd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   null,
    {
     "key": "lane2_enabled",
     "label": "L2",
@@ -3599,6 +4466,126 @@
     }
    },
    {
+    "key": "lane2_drop",
+    "label": "Drop",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane2_velocity",
+    "label": "Velocity",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane2_accent_amt",
+    "label": "Accent Amt",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "lane2_fill",
+    "label": "Fill",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane2_gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3200
+    }
+   },
+   {
+    "key": "lane2_freq_rnd",
+    "label": "Freq Rnd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "lane2_decay_rnd",
+    "label": "Decay Rnd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   null,
+   {
     "key": "lane3_enabled",
     "label": "L3",
     "shortLabel": null,
@@ -3745,6 +4732,126 @@
      "detentsFullSweep": 254
     }
    },
+   {
+    "key": "lane3_drop",
+    "label": "Drop",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane3_velocity",
+    "label": "Velocity",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane3_accent_amt",
+    "label": "Accent Amt",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "lane3_fill",
+    "label": "Fill",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane3_gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3200
+    }
+   },
+   {
+    "key": "lane3_freq_rnd",
+    "label": "Freq Rnd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "lane3_decay_rnd",
+    "label": "Decay Rnd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   null,
    {
     "key": "lane4_enabled",
     "label": "L4",
@@ -3893,6 +5000,126 @@
     }
    },
    {
+    "key": "lane4_drop",
+    "label": "Drop",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane4_velocity",
+    "label": "Velocity",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane4_accent_amt",
+    "label": "Accent Amt",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "lane4_fill",
+    "label": "Fill",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane4_gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3200
+    }
+   },
+   {
+    "key": "lane4_freq_rnd",
+    "label": "Freq Rnd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "lane4_decay_rnd",
+    "label": "Decay Rnd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   null,
+   {
     "key": "lane5_enabled",
     "label": "L5",
     "shortLabel": null,
@@ -4039,6 +5266,126 @@
      "detentsFullSweep": 254
     }
    },
+   {
+    "key": "lane5_drop",
+    "label": "Drop",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane5_velocity",
+    "label": "Velocity",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane5_accent_amt",
+    "label": "Accent Amt",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "lane5_fill",
+    "label": "Fill",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane5_gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3200
+    }
+   },
+   {
+    "key": "lane5_freq_rnd",
+    "label": "Freq Rnd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "lane5_decay_rnd",
+    "label": "Decay Rnd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   null,
    {
     "key": "lane6_enabled",
     "label": "L6",
@@ -4187,6 +5534,126 @@
     }
    },
    {
+    "key": "lane6_drop",
+    "label": "Drop",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane6_velocity",
+    "label": "Velocity",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane6_accent_amt",
+    "label": "Accent Amt",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "lane6_fill",
+    "label": "Fill",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane6_gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3200
+    }
+   },
+   {
+    "key": "lane6_freq_rnd",
+    "label": "Freq Rnd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "lane6_decay_rnd",
+    "label": "Decay Rnd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   null,
+   {
     "key": "lane7_enabled",
     "label": "L7",
     "shortLabel": null,
@@ -4334,6 +5801,126 @@
     }
    },
    {
+    "key": "lane7_drop",
+    "label": "Drop",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane7_velocity",
+    "label": "Velocity",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane7_accent_amt",
+    "label": "Accent Amt",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "lane7_fill",
+    "label": "Fill",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane7_gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3200
+    }
+   },
+   {
+    "key": "lane7_freq_rnd",
+    "label": "Freq Rnd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "lane7_decay_rnd",
+    "label": "Decay Rnd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   null,
+   {
     "key": "lane8_enabled",
     "label": "L8",
     "shortLabel": null,
@@ -4479,78 +6066,132 @@
      "perDetent": 0.5,
      "detentsFullSweep": 254
     }
-   }
+   },
+   {
+    "key": "lane8_drop",
+    "label": "Drop",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane8_velocity",
+    "label": "Velocity",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lane8_accent_amt",
+    "label": "Accent Amt",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "lane8_fill",
+    "label": "Fill",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane8_gate",
+    "label": "Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3200
+    }
+   },
+   {
+    "key": "lane8_freq_rnd",
+    "label": "Freq Rnd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   {
+    "key": "lane8_decay_rnd",
+    "label": "Decay Rnd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 128
+    }
+   },
+   null
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "sync",
-   "bpm",
-   "max_voices",
-   "global_velocity",
-   "global_rnd_seed",
-   "mutation_seed",
-   "passthrough",
-   "lane1_drop",
-   "lane1_velocity",
-   "lane1_accent_amt",
-   "lane1_fill",
-   "lane1_gate",
-   "lane1_freq_rnd",
-   "lane1_decay_rnd",
-   "lane2_drop",
-   "lane2_velocity",
-   "lane2_accent_amt",
-   "lane2_fill",
-   "lane2_gate",
-   "lane2_freq_rnd",
-   "lane2_decay_rnd",
-   "lane3_drop",
-   "lane3_velocity",
-   "lane3_accent_amt",
-   "lane3_fill",
-   "lane3_gate",
-   "lane3_freq_rnd",
-   "lane3_decay_rnd",
-   "lane4_drop",
-   "lane4_velocity",
-   "lane4_accent_amt",
-   "lane4_fill",
-   "lane4_gate",
-   "lane4_freq_rnd",
-   "lane4_decay_rnd",
-   "lane5_drop",
-   "lane5_velocity",
-   "lane5_accent_amt",
-   "lane5_fill",
-   "lane5_gate",
-   "lane5_freq_rnd",
-   "lane5_decay_rnd",
-   "lane6_drop",
-   "lane6_velocity",
-   "lane6_accent_amt",
-   "lane6_fill",
-   "lane6_gate",
-   "lane6_freq_rnd",
-   "lane6_decay_rnd",
-   "lane7_drop",
-   "lane7_velocity",
-   "lane7_accent_amt",
-   "lane7_fill",
-   "lane7_gate",
-   "lane7_freq_rnd",
-   "lane7_decay_rnd",
-   "lane8_drop",
-   "lane8_velocity",
-   "lane8_accent_amt",
-   "lane8_fill",
-   "lane8_gate",
-   "lane8_freq_rnd",
-   "lane8_decay_rnd"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "63 chain_params not reachable in movy: sync, bpm, max_voices, global_velocity, global_rnd_seed, mutation_seed, passthrough, lane1_drop, lane1_velocity, lane1_accent_amt, lane1_fill, lane1_gate, …"
-  ]
+  "warnings": []
  }
 }

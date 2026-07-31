@@ -158,7 +158,13 @@
        "type": "float",
        "displayValue": "..."
       },
-      null,
+      {
+       "shortName": "CAB",
+       "fullName": "Cab Bypass",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      },
       null
      ],
      [
@@ -205,7 +211,23 @@
      "detentsFullSweep": 100
     }
    },
-   null,
+   {
+    "key": "cab_bypass",
+    "label": "Cab Bypass",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
    null,
    null,
    null,
@@ -214,12 +236,8 @@
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "cab_bypass"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "1 chain_params not reachable in movy: cab_bypass"
-  ]
+  "warnings": []
  }
 }

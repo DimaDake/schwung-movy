@@ -604,63 +604,39 @@
     "rows": [
      [
       {
-       "shortName": "POSIT",
-       "fullName": "Position",
+       "shortName": "MODE",
+       "fullName": "Mode",
        "renderStyle": "arc",
-       "type": "float",
+       "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "SIZE",
-       "fullName": "Size",
+       "shortName": "FREEZ",
+       "fullName": "Freeze",
        "renderStyle": "arc",
-       "type": "float",
+       "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "PITCH",
-       "fullName": "Pitch",
+       "shortName": "QUALI",
+       "fullName": "Quality",
        "renderStyle": "arc",
-       "type": "int",
+       "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "DENSI",
-       "fullName": "Density",
+       "shortName": "SPREA",
+       "fullName": "Spread",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       }
      ],
      [
-      {
-       "shortName": "TEXTU",
-       "fullName": "Texture",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "FEEDB",
-       "fullName": "Feedback",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "REVER",
-       "fullName": "Reverb",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "MIX",
-       "fullName": "Mix",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
+      null,
+      null,
+      null,
+      null
      ]
     ]
    },
@@ -873,59 +849,70 @@
     }
    },
    {
-    "key": "position",
-    "label": "Position",
+    "key": "mode",
+    "label": "Mode",
     "shortLabel": null,
-    "type": "float",
-    "options": null,
+    "type": "enum",
+    "options": [
+     "Granular",
+     "Stretch",
+     "Looper",
+     "Spectral"
+    ],
     "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "size",
-    "label": "Size",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "pitch",
-    "label": "Pitch",
-    "shortLabel": null,
-    "type": "int",
-    "options": null,
-    "min": -24,
-    "max": 24,
+    "max": 3,
     "step": 1,
     "renderStyle": "arc",
-    "automatable": true,
+    "automatable": false,
     "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 96
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
     }
    },
    {
-    "key": "density",
-    "label": "Density",
+    "key": "freeze",
+    "label": "Freeze",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "quality",
+    "label": "Quality",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "16-bit",
+     "Lo-Fi"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "stereo_spread",
+    "label": "Spread",
     "shortLabel": null,
     "type": "float",
     "options": null,
@@ -940,74 +927,10 @@
      "detentsFullSweep": 200
     }
    },
-   {
-    "key": "texture",
-    "label": "Texture",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "feedback",
-    "label": "Feedback",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "reverb",
-    "label": "Reverb",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "dry_wet",
-    "label": "Mix",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
+   null,
+   null,
+   null,
+   null,
    {
     "key": "filter_hp",
     "label": "HPF",
@@ -1150,15 +1073,8 @@
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "mode",
-   "freeze",
-   "quality",
-   "stereo_spread"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "4 chain_params not reachable in movy: mode, freeze, quality, stereo_spread"
-  ]
+  "warnings": []
  }
 }

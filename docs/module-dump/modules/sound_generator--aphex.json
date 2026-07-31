@@ -2264,7 +2264,17 @@
     "padSpecific": false
    },
    {
+    "name": "Patch - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
     "name": "VCO 1+2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "VCO 1+2 - 2",
     "global": false,
     "padSpecific": false
    },
@@ -2274,7 +2284,17 @@
     "padSpecific": false
    },
    {
+    "name": "Mixer - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
     "name": "Filter",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Filter - 2",
     "global": false,
     "padSpecific": false
    },
@@ -2289,12 +2309,27 @@
     "padSpecific": false
    },
    {
+    "name": "MG / ESP - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
     "name": "Patchbay",
     "global": false,
     "padSpecific": false
    },
    {
+    "name": "Patchbay - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
     "name": "Modern",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Modern - 2",
     "global": false,
     "padSpecific": false
    }
@@ -2324,22 +2359,6 @@
        "displayValue": "..."
       },
       {
-       "shortName": "HC",
-       "fullName": "HPF Cut",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "HP",
-       "fullName": "HPF Peak",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
-     ],
-     [
-      {
        "shortName": "FREQ",
        "fullName": "MG Freq",
        "renderStyle": "arc",
@@ -2349,6 +2368,22 @@
       {
        "shortName": "DEPTH",
        "fullName": "MG Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "HC",
+       "fullName": "HPF Cut",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HP",
+       "fullName": "HPF Peak",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -2441,6 +2476,34 @@
     ]
    },
    {
+    "name": "Patch - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TRIGG",
+       "fullName": "Trigger",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
     "name": "VCO 1+2",
     "envelopeLines": [
      false,
@@ -2507,6 +2570,40 @@
        "type": "float",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "VCO 1+2 - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SYNC",
+       "fullName": "Sync",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FM",
+       "fullName": "FM",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
      ]
     ]
    },
@@ -2581,6 +2678,34 @@
     ]
    },
    {
+    "name": "Mixer - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "COLOR",
+       "fullName": "Color",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
     "name": "Filter",
     "envelopeLines": [
      false,
@@ -2647,6 +2772,34 @@
        "type": "float",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "Filter - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "FR",
+       "fullName": "Filter Rev",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
      ]
     ]
    },
@@ -2791,6 +2944,64 @@
     ]
    },
    {
+    "name": "MG / ESP - 2",
+    "envelopeLines": [
+     true,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATK",
+       "fullName": "Env Atk",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "REL",
+       "fullName": "Env Rel",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SLEW",
+       "fullName": "Pitch Slew",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AUD",
+       "fullName": "Aud Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "MODE",
+       "fullName": "Pitch Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GATE",
+       "fullName": "Gate Pol",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
     "name": "Patchbay",
     "envelopeLines": [
      false,
@@ -2861,6 +3072,46 @@
     ]
    },
    {
+    "name": "Patchbay - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PWM",
+       "fullName": "PWM In",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "EG1",
+       "fullName": "EG1 Trig",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "EG1+2",
+       "fullName": "EG1+2 Trig",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
     "name": "Modern",
     "envelopeLines": [
      false,
@@ -2927,6 +3178,58 @@
        "type": "float",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "Modern - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MODE",
+       "fullName": "Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "X-MOD",
+       "fullName": "X-Mod Amt",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PW",
+       "fullName": "PW",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DETUN",
+       "fullName": "Detune",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "VEL→A",
+       "fullName": "Vel→Amp",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
      ]
     ]
    }
@@ -3247,6 +3550,30 @@
     }
    },
    {
+    "key": "trigger",
+    "label": "Trigger",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
     "key": "v1_wave",
     "label": "Wave",
     "shortLabel": null,
@@ -3403,6 +3730,52 @@
     }
    },
    {
+    "key": "v2_sync",
+    "label": "Sync",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "v2_xmod",
+    "label": "FM",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
     "key": "mix_v1",
     "label": "VCO 1",
     "shortLabel": null,
@@ -3539,6 +3912,33 @@
     }
    },
    {
+    "key": "noise_color",
+    "label": "Color",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "White",
+     "Pink"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
     "key": "hpf_cut",
     "label": "HPF Cut",
     "shortLabel": null,
@@ -3674,6 +4074,33 @@
      "detentsFullSweep": 200
     }
    },
+   {
+    "key": "filter_rev",
+    "label": "Filter Rev",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "REV.1 KORG-35",
+     "REV.2 OTA"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
    {
     "key": "e1_delay",
     "label": "E1 Delay",
@@ -3947,6 +4374,117 @@
     }
    },
    {
+    "key": "esp_pitch_slew",
+    "label": "Pitch Slew",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "esp_env_atk",
+    "label": "Env Atk",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.001,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "esp_env_rel",
+    "label": "Env Rel",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.001,
+    "max": 2,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "esp_aud_mix",
+    "label": "Aud Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "esp_pitch_mode",
+    "label": "Pitch Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "Track",
+     "Quantized"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "esp_gate_pol",
+    "label": "Gate Pol",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "+",
+     "-"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   {
     "key": "pb_kbd_cv",
     "label": "KBD CV In",
     "shortLabel": null,
@@ -4147,6 +4685,84 @@
     }
    },
    {
+    "key": "pb_pwm_in",
+    "label": "PWM In",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "None",
+     "MG Tri",
+     "MG Sq",
+     "EG1",
+     "EG2",
+     "S&H",
+     "Noise",
+     "ESP Env",
+     "Wheel"
+    ],
+    "min": 0,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 9
+    }
+   },
+   {
+    "key": "pb_eg1_trig",
+    "label": "EG1 Trig",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "None",
+     "S&H",
+     "ESP Gate",
+     "Wheel",
+     "Noise"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   {
+    "key": "pb_eg12_trig",
+    "label": "EG1+2 Trig",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "None",
+     "S&H",
+     "ESP Gate",
+     "Wheel",
+     "Noise"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
     "key": "drift",
     "label": "Drift",
     "shortLabel": null,
@@ -4284,34 +4900,106 @@
      "perDetent": 0.01,
      "detentsFullSweep": 100
     }
-   }
+   },
+   {
+    "key": "filter_mode",
+    "label": "Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "HP+LP",
+     "LP only",
+     "HP only",
+     "Notch"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "x_mod_amt",
+    "label": "X-Mod Amt",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "v2_pw",
+    "label": "PW",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.05,
+    "max": 0.95,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 90
+    }
+   },
+   {
+    "key": "v2_detune",
+    "label": "Detune",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "vel_amt",
+    "label": "Vel→Amp",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   null,
+   null,
+   null
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "trigger",
-   "v2_pw",
-   "v2_sync",
-   "v2_xmod",
-   "v2_detune",
-   "noise_color",
-   "filter_mode",
-   "esp_pitch_slew",
-   "esp_env_atk",
-   "esp_env_rel",
-   "esp_aud_mix",
-   "esp_pitch_mode",
-   "esp_gate_pol",
-   "pb_pwm_in",
-   "pb_eg1_trig",
-   "pb_eg12_trig",
-   "filter_rev",
-   "x_mod_amt",
-   "vel_amt"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
   "warnings": [
-   "19 chain_params not reachable in movy: trigger, v2_pw, v2_sync, v2_xmod, v2_detune, noise_color, filter_mode, esp_pitch_slew, esp_env_atk, esp_env_rel, esp_aud_mix, esp_pitch_mode, …",
    "page \"VCO 1+2\": duplicate on-screen names WAVE"
   ]
  }

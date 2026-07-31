@@ -1111,12 +1111,12 @@
     "padSpecific": false
    },
    {
-    "name": "PALETTE",
+    "name": "PRESETS&RND",
     "global": false,
     "padSpecific": false
    },
    {
-    "name": "PRESETS&RND",
+    "name": "PRESETS&RND - 2",
     "global": false,
     "padSpecific": false
    },
@@ -1152,76 +1152,6 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "0%"
-      },
-      {
-       "shortName": "FX1MC",
-       "fullName": "FX1 Macro",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "FX2AM",
-       "fullName": "FX2 Amount",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "FX2MC",
-       "fullName": "FX2 Macro",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
-     ],
-     [
-      {
-       "shortName": "FX3AM",
-       "fullName": "FX3 Amount",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "FX3MC",
-       "fullName": "FX3 Macro",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "FX4AM",
-       "fullName": "FX4 Amount",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "FX4MC",
-       "fullName": "FX4 Macro",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
-     ]
-    ]
-   },
-   {
-    "name": "PALETTE",
-    "envelopeLines": [
-     false,
-     false
-    ],
-    "lfoViz": false,
-    "rows": [
-     [
-      {
-       "shortName": "FX1AM",
-       "fullName": "FX1 Amount",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       },
       {
        "shortName": "FX1MC",
@@ -1344,6 +1274,34 @@
        "type": "float",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "PRESETS&RND - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "FX",
+       "fullName": "FX Reorder",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
      ]
     ]
    },
@@ -1535,142 +1493,6 @@
    }
   ],
   "params": [
-   {
-    "key": "fx1_amount",
-    "label": "FX1 Amount",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "fx1_macro",
-    "label": "FX1 Macro",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "fx2_amount",
-    "label": "FX2 Amount",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "fx2_macro",
-    "label": "FX2 Macro",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "fx3_amount",
-    "label": "FX3 Amount",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "fx3_macro",
-    "label": "FX3 Macro",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "fx4_amount",
-    "label": "FX4 Amount",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "fx4_macro",
-    "label": "FX4 Macro",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
    {
     "key": "fx1_amount",
     "label": "FX1 Amount",
@@ -2009,6 +1831,55 @@
      "detentsFullSweep": 200
     }
    },
+   {
+    "key": "fx_reorder",
+    "label": "FX Reorder",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1-2-3-4",
+     "1-2-4-3",
+     "1-3-2-4",
+     "1-3-4-2",
+     "1-4-2-3",
+     "1-4-3-2",
+     "2-1-3-4",
+     "2-1-4-3",
+     "2-3-1-4",
+     "2-3-4-1",
+     "2-4-1-3",
+     "2-4-3-1",
+     "3-1-2-4",
+     "3-1-4-2",
+     "3-2-1-4",
+     "3-2-4-1",
+     "3-4-1-2",
+     "3-4-2-1",
+     "4-1-2-3",
+     "4-1-3-2",
+     "4-2-1-3",
+     "4-2-3-1",
+     "4-3-1-2",
+     "4-3-2-1"
+    ],
+    "min": 0,
+    "max": 23,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 24
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
    {
     "key": "fx1_select",
     "label": "FX1",
@@ -2479,12 +2350,8 @@
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "fx_reorder"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "1 chain_params not reachable in movy: fx_reorder"
-  ]
+  "warnings": []
  }
 }

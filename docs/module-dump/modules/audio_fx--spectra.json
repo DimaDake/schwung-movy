@@ -1215,12 +1215,12 @@
     "padSpecific": false
    },
    {
-    "name": "Spectra",
+    "name": "Control",
     "global": false,
     "padSpecific": false
    },
    {
-    "name": "Control",
+    "name": "Control - 2",
     "global": false,
     "padSpecific": false
    },
@@ -1251,76 +1251,6 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "70%"
-      },
-      {
-       "shortName": "FREQU",
-       "fullName": "Frequency",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "BRIGH",
-       "fullName": "Brightness",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "TIMBR",
-       "fullName": "Timbre",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
-     ],
-     [
-      {
-       "shortName": "DECAY",
-       "fullName": "Decay",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "ROOT",
-       "fullName": "Root",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "SCALE",
-       "fullName": "Scale",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "MIX",
-       "fullName": "Mix",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
-     ]
-    ]
-   },
-   {
-    "name": "Spectra",
-    "envelopeLines": [
-     false,
-     false
-    ],
-    "lfoViz": false,
-    "rows": [
-     [
-      {
-       "shortName": "ONSET",
-       "fullName": "Onset",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       },
       {
        "shortName": "FREQU",
@@ -1443,6 +1373,40 @@
        "type": "int",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "Control - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LIMIT",
+       "fullName": "Limiter",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "POLYP",
+       "fullName": "Polyphony",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
      ]
     ]
    },
@@ -1576,168 +1540,6 @@
    }
   ],
   "params": [
-   {
-    "key": "onset",
-    "label": "Onset",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "frequency",
-    "label": "Frequency",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "brightness",
-    "label": "Brightness",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "timbre",
-    "label": "Timbre",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "decay",
-    "label": "Decay",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "root_note",
-    "label": "Root",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "C",
-     "C#",
-     "D",
-     "D#",
-     "E",
-     "F",
-     "F#",
-     "G",
-     "G#",
-     "A",
-     "A#",
-     "B"
-    ],
-    "min": 0,
-    "max": 11,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 12
-    }
-   },
-   {
-    "key": "scale",
-    "label": "Scale",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "Major",
-     "Nat Minor",
-     "Harm Minor",
-     "Mel Minor",
-     "Dorian",
-     "Phrygian",
-     "Lydian",
-     "Mixolydian",
-     "Penta Maj",
-     "Penta Min",
-     "Blues",
-     "Chromatic"
-    ],
-    "min": 0,
-    "max": 11,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 12
-    }
-   },
-   {
-    "key": "mix",
-    "label": "Mix",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
    {
     "key": "onset",
     "label": "Onset",
@@ -2046,6 +1848,53 @@
     }
    },
    {
+    "key": "limiter",
+    "label": "Limiter",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "polyphony",
+    "label": "Polyphony",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1",
+     "2",
+     "4"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
     "key": "arp_rate",
     "label": "Arp Rate",
     "shortLabel": null,
@@ -2333,13 +2182,8 @@
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "polyphony",
-   "limiter"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "2 chain_params not reachable in movy: polyphony, limiter"
-  ]
+  "warnings": []
  }
 }

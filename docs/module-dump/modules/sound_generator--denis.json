@@ -909,17 +909,22 @@
     "padSpecific": false
    },
    {
-    "name": "Oscillators",
-    "global": false,
-    "padSpecific": false
-   },
-   {
     "name": "Control",
     "global": false,
     "padSpecific": false
    },
    {
+    "name": "Control - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
     "name": "Mod & Patch",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Mod & Patch - 2",
     "global": false,
     "padSpecific": false
    },
@@ -1016,76 +1021,6 @@
     ]
    },
    {
-    "name": "Oscillators",
-    "envelopeLines": [
-     false,
-     false
-    ],
-    "lfoViz": false,
-    "rows": [
-     [
-      {
-       "shortName": "OSC1",
-       "fullName": "Osc1 Freq",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "TIMBR",
-       "fullName": "Timbre",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "OSC2",
-       "fullName": "Osc2 Freq",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "HARMO",
-       "fullName": "Harmonics",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
-     ],
-     [
-      {
-       "shortName": "OSC",
-       "fullName": "Osc Mix",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "MIX",
-       "fullName": "Noise Mix",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "TYPE",
-       "fullName": "Noise Type",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "CUTOF",
-       "fullName": "Cutoff",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
-     ]
-    ]
-   },
-   {
     "name": "Control",
     "envelopeLines": [
      false,
@@ -1094,20 +1029,6 @@
     "lfoViz": false,
     "rows": [
      [
-      {
-       "shortName": "DEPTH",
-       "fullName": "Fold Depth",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "TYPE",
-       "fullName": "Fold Type",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
       {
        "shortName": "CUTOF",
        "fullName": "Cutoff",
@@ -1118,6 +1039,20 @@
       {
        "shortName": "Q",
        "fullName": "Q",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEPTH",
+       "fullName": "Fold Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TYPE",
+       "fullName": "Fold Type",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -1152,6 +1087,40 @@
        "type": "float",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "Control - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "FT",
+       "fullName": "Filter Type",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL>F",
+       "fullName": "Vel>Filter",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
      ]
     ]
    },
@@ -1222,6 +1191,52 @@
        "type": "float",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "Mod & Patch - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "Preset",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAD",
+       "fullName": "Pad Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PORTA",
+       "fullName": "Portamento",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LEGAT",
+       "fullName": "Legato",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
      ]
     ]
    },
@@ -1648,146 +1663,6 @@
     }
    },
    {
-    "key": "osc1_freq",
-    "label": "Osc1 Freq",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "osc1_timbre",
-    "label": "Timbre",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "osc2_pitch",
-    "label": "Osc2 Freq",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": -2,
-    "max": 2,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 800
-    }
-   },
-   {
-    "key": "osc2_harmonics",
-    "label": "Harmonics",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "osc_mix",
-    "label": "Osc Mix",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "noise_mix",
-    "label": "Noise Mix",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "noise_type",
-    "label": "Noise Type",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "White",
-     "Pink",
-     "Brown"
-    ],
-    "min": 0,
-    "max": 2,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 3
-    }
-   },
-   {
-    "key": "filter_cutoff",
-    "label": "Cutoff",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
     "key": "fold_depth",
     "label": "Fold Depth",
     "shortLabel": null,
@@ -1924,6 +1799,51 @@
     }
    },
    {
+    "key": "filter_type",
+    "label": "Filter Type",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Lowpass",
+     "Bandpass",
+     "Highpass",
+     "Notch"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "vel_to_filter",
+    "label": "Vel>Filter",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
     "key": "lfo_rate",
     "label": "LFO Rate",
     "shortLabel": null,
@@ -2059,6 +1979,115 @@
      "detentsFullSweep": 200
     }
    },
+   {
+    "key": "preset",
+    "label": "Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Init",
+     "Tabarnak",
+     "Poutine Grasse",
+     "Elvis Gratton",
+     "Frette en Criss",
+     "Slush Brune",
+     "Ti-Coune",
+     "Grande Seduction",
+     "Bon Cop Bad Cop",
+     "C.R.A.Z.Y.",
+     "Depanneur",
+     "Caline de Bine",
+     "Maudite Toune",
+     "Les Boys",
+     "Nanane",
+     "Tiguidou",
+     "Pantoute",
+     "Asteure",
+     "Enfirouape",
+     "Quetaine",
+     "Cruiser l'Main",
+     "Broue",
+     "J'me Souviens",
+     "Chez Schwartz",
+     "Ratoureux",
+     "Ostie d'Lead",
+     "Niaiseux",
+     "Guerre des Tuques",
+     "Magane",
+     "Starbuck"
+    ],
+    "min": 0,
+    "max": 29,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 30
+    }
+   },
+   {
+    "key": "patch_mode",
+    "label": "Pad Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Play",
+     "Patch"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "portamento",
+    "label": "Portamento",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "legato",
+    "label": "Legato",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   null,
    {
     "key": "mat_0_0",
     "label": "Env->Pitch1",
@@ -2606,17 +2635,8 @@
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "filter_type",
-   "vel_to_filter",
-   "preset",
-   "portamento",
-   "legato",
-   "patch_mode"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "6 chain_params not reachable in movy: filter_type, vel_to_filter, preset, portamento, legato, patch_mode"
-  ]
+  "warnings": []
  }
 }

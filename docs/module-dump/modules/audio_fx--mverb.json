@@ -118,11 +118,16 @@
     "name": "Main",
     "global": false,
     "padSpecific": false
+   },
+   {
+    "name": "Main - 2",
+    "global": false,
+    "padSpecific": false
    }
   ],
   "pages": [
    {
-    "name": "",
+    "name": "Main",
     "envelopeLines": [
      false,
      false
@@ -188,6 +193,34 @@
        "type": "float",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "EARLY",
+       "fullName": "Early Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
      ]
     ]
    }
@@ -328,16 +361,36 @@
      "perDetent": 0.005,
      "detentsFullSweep": 200
     }
-   }
+   },
+   {
+    "key": "early_mix",
+    "label": "Early Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "early_mix"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "1 chain_params not reachable in movy: early_mix"
-  ]
+  "warnings": []
  }
 }

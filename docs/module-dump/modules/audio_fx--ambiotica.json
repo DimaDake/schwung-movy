@@ -177,6 +177,11 @@
     "name": "Main",
     "global": false,
     "padSpecific": false
+   },
+   {
+    "name": "Settings",
+    "global": false,
+    "padSpecific": false
    }
   ],
   "pages": [
@@ -275,6 +280,52 @@
        "type": "float",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "Settings",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LOOP",
+       "fullName": "Loop Length",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MOD",
+       "fullName": "Mod Shape",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TEMPO",
+       "fullName": "Tempo Sync",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LO-FI",
+       "fullName": "Lo-Fi Tails",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
      ]
     ]
    }
@@ -440,19 +491,88 @@
      "perDetent": 0.005,
      "detentsFullSweep": 200
     }
-   }
+   },
+   {
+    "key": "loop_length",
+    "label": "Loop Length",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.5,
+    "max": 8,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 30
+    }
+   },
+   {
+    "key": "mod_shape",
+    "label": "Mod Shape",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Warp",
+     "Sink"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "mod_sync",
+    "label": "Tempo Sync",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   {
+    "key": "lofi_tails",
+    "label": "Lo-Fi Tails",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   null,
+   null,
+   null,
+   null
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "mod_sync",
-   "mod_shape",
-   "lofi_tails",
-   "loop_length"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "4 chain_params not reachable in movy: mod_sync, mod_shape, lofi_tails, loop_length"
-  ]
+  "warnings": []
  }
 }

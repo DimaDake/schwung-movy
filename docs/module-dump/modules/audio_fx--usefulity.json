@@ -314,11 +314,16 @@
     "name": "Main",
     "global": false,
     "padSpecific": false
+   },
+   {
+    "name": "Main - 2",
+    "global": false,
+    "padSpecific": false
    }
   ],
   "pages": [
    {
-    "name": "",
+    "name": "Main",
     "envelopeLines": [
      false,
      false
@@ -384,6 +389,52 @@
        "type": "enum",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PHASL",
+       "fullName": "Phase L",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PHASR",
+       "fullName": "Phase R",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DC",
+       "fullName": "DC Filter",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BASS",
+       "fullName": "Bass Audition",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
      ]
     ]
    }
@@ -538,19 +589,96 @@
      "detentsPerStep": 4,
      "steps": 2
     }
-   }
+   },
+   {
+    "key": "phase_l",
+    "label": "Phase L",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Normal",
+     "Invert"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "phase_r",
+    "label": "Phase R",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Normal",
+     "Invert"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "dc_filter",
+    "label": "DC Filter",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "bass_audition",
+    "label": "Bass Audition",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   null
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "phase_l",
-   "phase_r",
-   "dc_filter",
-   "bass_audition"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "4 chain_params not reachable in movy: phase_l, phase_r, dc_filter, bass_audition"
-  ]
+  "warnings": []
  }
 }

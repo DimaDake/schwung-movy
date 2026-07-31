@@ -679,63 +679,27 @@
     "rows": [
      [
       {
-       "shortName": "DENSI",
-       "fullName": "Density",
+       "shortName": "ENVEL",
+       "fullName": "Envelope",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "SIZE",
-       "fullName": "Size",
+       "shortName": "DRIFT",
+       "fullName": "Drift",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
-      {
-       "shortName": "POSIT",
-       "fullName": "Position",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "PITCH",
-       "fullName": "Pitch Shift",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
+      null,
+      null
      ],
      [
-      {
-       "shortName": "FEEDB",
-       "fullName": "Feedback",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "PAN",
-       "fullName": "Pan Width",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "FREEZ",
-       "fullName": "Freeze",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "DRY/W",
-       "fullName": "Dry/Wet",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
+      null,
+      null,
+      null,
+      null
      ]
     ]
    },
@@ -1019,42 +983,8 @@
     }
    },
    {
-    "key": "density",
-    "label": "Density",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0.04,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 192
-    }
-   },
-   {
-    "key": "grain_size",
-    "label": "Size",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 20,
-    "max": 2000,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.5,
-     "detentsFullSweep": 3960
-    }
-   },
-   {
-    "key": "position",
-    "label": "Position",
+    "key": "envelope",
+    "label": "Envelope",
     "shortLabel": null,
     "type": "float",
     "options": null,
@@ -1070,93 +1000,28 @@
     }
    },
    {
-    "key": "pitch",
-    "label": "Pitch Shift",
+    "key": "drift",
+    "label": "Drift",
     "shortLabel": null,
     "type": "float",
     "options": null,
-    "min": 0.25,
-    "max": 4,
+    "min": 0,
+    "max": 1,
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
-     "detentsFullSweep": 750
-    }
-   },
-   {
-    "key": "feedback",
-    "label": "Feedback",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 90,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.5,
-     "detentsFullSweep": 180
-    }
-   },
-   {
-    "key": "pan_width",
-    "label": "Pan Width",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 100,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.5,
      "detentsFullSweep": 200
     }
    },
-   {
-    "key": "freeze",
-    "label": "Freeze",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "off",
-     "on"
-    ],
-    "min": 0,
-    "max": 1,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 2
-    }
-   },
-   {
-    "key": "mix",
-    "label": "Dry/Wet",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 100,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
-    }
-   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
    {
     "key": "random_length",
     "label": "Rdm Size",
@@ -1394,13 +1259,8 @@
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "envelope",
-   "drift"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "2 chain_params not reachable in movy: envelope, drift"
-  ]
+  "warnings": []
  }
 }

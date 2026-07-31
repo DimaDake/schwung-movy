@@ -161,7 +161,13 @@
        "type": "int",
        "displayValue": "..."
       },
-      null
+      {
+       "shortName": "PRESE",
+       "fullName": "Curve Preset",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
      ],
      [
       null,
@@ -224,7 +230,29 @@
      "detentsFullSweep": 400
     }
    },
-   null,
+   {
+    "key": "curve_preset",
+    "label": "Curve Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Linear",
+     "Soft",
+     "Softer",
+     "Hard",
+     "Harder"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
    null,
    null,
    null,
@@ -232,12 +260,8 @@
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "curve_preset"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "1 chain_params not reachable in movy: curve_preset"
-  ]
+  "warnings": []
  }
 }

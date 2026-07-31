@@ -1981,7 +1981,7 @@
     "padSpecific": false
    },
    {
-    "name": "Main - 1",
+    "name": "Main",
     "global": false,
     "padSpecific": false
    },
@@ -2133,7 +2133,7 @@
     ]
    },
    {
-    "name": "Main - 1",
+    "name": "Main",
     "envelopeLines": [
      false,
      false
@@ -2240,13 +2240,6 @@
     "rows": [
      [
       {
-       "shortName": "MODE",
-       "fullName": "Mode",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "..."
-      },
-      {
        "shortName": "CUTOF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
@@ -2258,6 +2251,13 @@
        "fullName": "Resonance",
        "renderStyle": "arc",
        "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MODE",
+       "fullName": "Mode",
+       "renderStyle": "arc",
+       "type": "enum",
        "displayValue": "..."
       },
       null

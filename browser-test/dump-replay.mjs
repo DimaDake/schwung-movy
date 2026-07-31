@@ -36,9 +36,14 @@ const UPDATE = process.argv.includes('--update');
  * publishes a real range. */
 const UNREACHABLE_OK = new Set([
     // osirus was captured mid-ROM-load, so it still reported bank_index 0..0.
+    // On device it widens to 0..1 and meta-retry.ts renders it (see
+    // plans/2026-07-31-params-list-exposure-design.md §6).
     'sound_generator--osirus::bank_index',
     // sfz reports knob_preset 0..0 until a soundfont is loaded.
     'sound_generator--sfz::knob_preset',
+    // `view` is a `canvas` — a drawing surface for pushnpull's own web UI, with
+    // no knob semantics. level-extras.ts skips types movy cannot render.
+    'audio_fx--pushnpull::view',
 ]);
 
 const KNOWN_COLLIDING_PAGES = new Set([

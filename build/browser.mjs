@@ -76,6 +76,7 @@ await esbuild.build({
         resolve(root, 'src/seq/duplicate.ts'),
         resolve(root, 'src/seq/session.ts'),
         resolve(root, 'src/seq/persist.ts'),
+        resolve(root, 'src/seq/persist-blob.ts'),
         resolve(root, 'src/seq/set-context.ts'),
         resolve(root, 'src/seq/held.ts'),
         resolve(root, 'src/seq/buttons.ts'),

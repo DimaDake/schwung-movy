@@ -20,6 +20,7 @@ import {
     stripCopySuffix, findInheritCandidates, resolveStateBlob, resolveUiBlob,
 } from '../dist/esm/seq/set-context.js';
 import { switchToSet, currentSetUuid, resetSeqPersist } from '../dist/esm/seq/persist.js';
+import { wrapState, parseState, adler32 } from '../dist/esm/seq/persist-blob.js';
 import { keyboardState } from '../dist/esm/keyboard/state.js';
 import { installMockEngine } from './mock-engine.mjs';
 import { installEnv } from './env.mjs';
@@ -5066,6 +5067,40 @@ _log('\nTest: set-context paths + active-set reader + name index');
 
     delete fs['/data/UserData/schwung/active_set.txt'];
     eq('missing active_set → empty uuid', readActiveSet().uuid, '');
+}
+
+_log('\nTest: state envelope (truncation is detectable)');
+{
+    const payload = 'movy1\nbpm 12000\ncl 0 0 16 0 0:24:60:100\n';
+    const wrapped = wrapState(payload, 7);
+
+    eq('envelope keeps the movy1 tag first', wrapped.split('\n')[0], 'movy1');
+    eq('generation marker is line 2', wrapped.split('\n')[1], 'gen 7');
+    eq('round-trips the payload', parseState(wrapped).payload, payload);
+    eq('round-trips the generation', parseState(wrapped).gen, 7);
+
+    // A blank set is the smallest possible payload and must survive too.
+    eq('blank payload round-trips', parseState(wrapState('movy1\n', 3)).payload, 'movy1\n');
+
+    // Backward compat: a file written by any shipped build has no envelope.
+    const legacy = 'movy1\nbpm 12000\n';
+    eq('legacy blob still loads', parseState(legacy).payload, legacy);
+    eq('legacy blob is generation 0', parseState(legacy).gen, 0);
+
+    // The whole point: a torn write must be REJECTED, not loaded as a
+    // partial set. `gen` survives at the top; the trailer does not.
+    eq('torn envelope rejected', parseState(wrapped.slice(0, 30)), null);
+    eq('missing trailer rejected', parseState('movy1\ngen 7\nbpm 12000\n'), null);
+    eq('bad checksum rejected',
+        parseState(wrapped.replace(/end (\d+) (\d+) \d+/, 'end $1 $2 12345678')), null);
+    eq('bad length rejected',
+        parseState(wrapped.replace(/end (\d+) \d+ /, 'end $1 999999 ')), null);
+
+    eq('not a movy blob → null', parseState('garbage\n'), null);
+    eq('null in → null out', parseState(null), null);
+
+    eq('adler32 is stable', adler32('movy1\n'), adler32('movy1\n'));
+    eq('adler32 discriminates', adler32('movy1\n') !== adler32('movy2\n'), true);
 }
 
 _log('\nTest: inherit-on-copy resolution');

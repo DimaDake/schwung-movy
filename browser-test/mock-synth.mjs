@@ -501,6 +501,25 @@ export const MOCK_SYNTHS = {
         ...Object.fromEntries(["a","b","c","d","e","f","g","h","i","j"].map(k => [`synth:${k}`, "0"])),
     },
 
+    /* 560 params on one level → 70 pages, minijv's page count. Past 64 pages the
+     * indicator bar can no longer afford a gap between segments. */
+    hier_dense_pages: {
+        "synth:name": "Dense",
+        "synth:chain_params": JSON.stringify(
+            Array.from({ length: 560 }, (_, i) =>
+                ({ key: `d${i}`, name: `D${i}`, type: "int", min: 0, max: 127 })),
+        ),
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: {
+                    knobs: ["d0", "d1"],
+                    params: Array.from({ length: 560 }, (_, i) => ({ key: `d${i}`, label: `D${i}` })),
+                },
+            },
+        }),
+        ...Object.fromEntries(Array.from({ length: 560 }, (_, i) => [`synth:d${i}`, "0"])),
+    },
+
     /* osirus's shape mid-ROM-load: the preset list is empty and the ROM enum
      * carries a single "(loading)" option. env.setParams() rewrites these
      * mid-test to simulate the ROM landing. */

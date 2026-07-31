@@ -153,7 +153,12 @@ automatically. You don't configure anything for most modules.
 
 - **Multiple pages** — modules with more than 8 parameters split into pages
   (`MAIN`, `PAGE 1`, `PAGE 2`, …). Scroll them with the jog wheel (or Left/Right
-  when the sequencer isn't using those buttons).
+  when the sequencer isn't using those buttons). The line under the title is the
+  page indicator: one segment per page, the current one drawn taller. On a
+  param-dense module the segments close up until each page is a single pixel, so
+  the bar still tells you where you are among 70 pages:
+
+  ![Page indicator on a 70-page module](docs/assets/bankbar-dense.png)
 
 **Every page a module offers.** Movy builds one page per section the module
 declares, following both its own menu and any section it delegates to, however

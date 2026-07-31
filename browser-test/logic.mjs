@@ -378,6 +378,45 @@ _log('\nTest: the async retry latches off and does not poll forever');
     eq('async: META_RETRY_LIMIT is a small budget', META_RETRY_LIMIT <= 16, true);
 }
 
+/* ── page indicator bar geometry ─────────────────────────────────────────── */
+
+_log('\nTest: the page bar stays a readable ruler at every page count');
+{
+    const { drawBankBar } = await import('../dist/esm/renderer/header.js');
+    const W = 128;
+
+    /* Capture the bar's rects. Height 2 marks the current page. */
+    function bar(index, count) {
+        const rects = [];
+        const real = globalThis.fill_rect;
+        globalThis.fill_rect = (x, y, w, h) => { if (y === 8) rects.push({ x, w, h }); };
+        drawBankBar(index, count);
+        globalThis.fill_rect = real;
+        return rects;
+    }
+
+    for (const n of [2, 5, 13, 25, 50, 70]) {
+        const rects = bar(1, n);
+        const widths = [...new Set(rects.map(r => r.w))];
+        const right  = Math.max(...rects.map(r => r.x + r.w));
+        const left   = Math.min(...rects.map(r => r.x));
+        eq(`bar n=${n}: one segment per page`,        rects.length, n);
+        eq(`bar n=${n}: every segment visible`,       rects.every(r => r.w >= 1), true);
+        eq(`bar n=${n}: all segments the same width (${widths.join('/')})`, widths.length, 1);
+        eq(`bar n=${n}: stays on screen`,             right <= W && left >= 0, true);
+        eq(`bar n=${n}: current page is the tall one`,
+            rects.filter(r => r.h === 2).length, 1);
+    }
+
+    /* Beyond one pixel per page a ruler is impossible; the bar becomes a
+     * position marker rather than drawing nothing. */
+    const huge = bar(100, 300);
+    eq('bar n=300: degrades to a marker on a full-width line', huge.length, 2);
+    eq('bar n=300: marker is the tall one', huge.filter(r => r.h === 2).length, 1);
+    eq('bar n=300: marker stays on screen',
+        huge.every(r => r.x >= 0 && r.x + r.w <= W), true);
+}
+
 /* ── shift+jog jumps level to level, not page to page ────────────────────── */
 
 _log('\nTest: changePageGroup skips a level\'s overflow pages');

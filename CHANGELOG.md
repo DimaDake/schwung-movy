@@ -85,6 +85,37 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Sets could be silently lost.** Movy's per-set autosave had five separate
+  ways to throw work away, and the persistence layer has been rewritten around
+  them.
+
+  - *A screen freeze wiped the set.* When the sequencer engine stopped
+    answering, Movy reloaded it — and a reloaded engine comes up **empty**.
+    Nothing put the set back into it, so the next edit saved that blank engine
+    straight over the file: reopen Movy and the set is a blank template. Movy
+    now tracks which engine instance it restored and refuses to save one it did
+    not, restoring from disk instead.
+  - *Closing Movy dropped the last few seconds of edits.* The autosave runs on a
+    timer and teardown did not flush, so anything done since the last tick was
+    gone. Movy now saves on exit, after releasing any sounding notes.
+  - *A crash or power-cut could truncate the state file.* The write was a plain
+    truncate-and-rewrite with no rename and no `fsync`, and a half-written file
+    still looked loadable — so it would come back as a *partial* set, or as a
+    blank one. State files now carry a generation marker and a
+    length + checksum trailer, and each save also goes to one of two rotating
+    shadow copies, so a torn write costs at most the save being written. Files
+    written by older Movy builds still load, and older builds can still read the
+    new ones.
+  - *A failed write vanished.* The engine clears its own "unsaved" flag as a
+    side effect of Movy reading the state, so a write that failed was one
+    nothing would ever ask for again. Writes are now confirmed by reading them
+    back, and a failure stays pending until it succeeds.
+  - *Edits could land in the wrong set.* If the file naming the active Move set
+    was briefly unreadable — or named one of Move's transient placeholders while
+    a set was being created — Movy treated that as a different set, saved into a
+    scratch location, and discarded the work when the real set reappeared. An
+    unreadable or placeholder set id now means "keep the current set".
+
 - **Move's sequencer left stuck green step LEDs.** Move paints its RGB pads,
   steps and grid with cable-0 LED *sysex*, and full overtake does not strip that
   by default — only Move's note and CC LED writes. With the Play link on Movy

@@ -472,6 +472,26 @@ red, only actionable buttons lit, the playhead sweeps the step row, etc.).
 > **Note:** Movy's sequencer intentionally does **not** copy Davebox's timing
 > where Davebox deviates from Move — the goal is to match native Move.
 
+### Saving — there is no Save button
+
+Movy saves by itself, and there is deliberately nothing to press. Your
+sequence, tempo, swing, automation and the Set-page settings (tonic, scale,
+mode, layout, per-track octave, mutes) are stored **per Move set**, so every set
+recalls its own Movy project. Switch sets on Move and Movy follows.
+
+Saving happens a few seconds after you stop changing things, when you switch to
+another set, and when you close Movy — so leaving immediately after an edit
+keeps it. Nothing is written when nothing has changed.
+
+Each set keeps a couple of rotating backup copies of its sequence alongside the
+main file. If the Move loses power or a crash interrupts a save, Movy detects
+the damaged file on the next load and falls back to the newest intact copy
+rather than opening a blank template. Sets saved by older Movy versions load
+normally.
+
+Movy stores only sequencer data. Which instrument is on each track and how it's
+set up belongs to Schwung and the Move set, and is saved by them.
+
 ### Background mode — keep playing under Move's UI
 
 Movy can drop into the background and keep sequencing while you use Move's own
@@ -727,6 +747,12 @@ behaviour you'd like — or, better, a PR.
 - **Movy looks frozen or the screen is stale.** Press **Back** to leave and
   re-open Movy from the Tools menu. Movy keeps running in the background; on most
   Schwung builds you can re-enter by holding **Shift + Step 13**.
+- **A set opens as a blank template.** Movy keeps rotating backup copies and
+  falls back to the newest intact one, so this should no longer follow a freeze
+  or a power-cut. If it still happens, the set's files are under
+  `schwung/modules/tools/movy/sets/<set-uuid>/` — `seq-state.json` plus
+  `seq-state.1.json` / `seq-state.2.json`. Attach all of them to a bug report;
+  each carries a generation number, which says which was written last.
 - **The audio engine (MoveOriginal) crashed.** A sequencer engine bug should be
   caught before it can take down Move, but if audio dies, a full restart of the
   Schwung stack recovers it (see the build/test notes in

@@ -75,6 +75,7 @@ export function buildGenericPages(
 
     /* Preset detection */
     listParam   = rootLevel.list_param;
+    s.presetDeclared = !!(rootLevel.list_param && rootLevel.count_param);
     presetParam = buildPresetParam(s, listParam, rootLevel.count_param, rootLevel.name_param);
     const presetSeparate = presetParam != null && (rootLevel.knobs ?? []).length >= KNOBS_PER_PAGE;
 

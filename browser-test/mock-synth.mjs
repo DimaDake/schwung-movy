@@ -499,6 +499,29 @@ export const MOCK_SYNTHS = {
         ...Object.fromEntries(["a","b","c","d","e","f","g","h","i","j"].map(k => [`synth:${k}`, "0"])),
     },
 
+    /* osirus's shape mid-ROM-load: the preset list is empty and the ROM enum
+     * carries a single "(loading)" option. env.setParams() rewrites these
+     * mid-test to simulate the ROM landing. */
+    hier_async_meta: {
+        "synth:name": "Loader",
+        "synth:chain_params": JSON.stringify([
+            { key: "cutoff", name: "Cutoff", type: "int", min: 0, max: 127 },
+            { key: "rom",    name: "ROM",    type: "enum", options: ["(loading)"] },
+        ]),
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: {
+                    list_param: "preset", count_param: "preset_count", name_param: "preset_name",
+                    knobs: ["cutoff"],
+                    params: [{ key: "rom", label: "ROM" }],
+                },
+            },
+        }),
+        "synth:preset_count": "0",
+        "synth:cutoff": "64",
+        "synth:rom": "0",
+    },
+
     /* 200 params on one level → 25 pages. Big enough that a whole-array refresh
      * cursor takes ~200 ticks to reach a late page (minijv is this shape). */
     hier_many_pages: {

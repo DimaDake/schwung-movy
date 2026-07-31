@@ -14,6 +14,7 @@ import { enumRawToIndex, enumUsesIndex, enumSetValue } from '../dist/esm/model/e
 import { MOCK_SYNTHS }    from './mock-synth.mjs';
 import { drumPadOn, drumPadOff } from '../dist/esm/keyboard/drum-handler.js';
 import { ENGINE_VERSION } from '../dist/esm/seq/constants.js';
+import { NAME_POLL_TICKS, META_RETRY_LIMIT } from '../dist/esm/model/constants.js';
 import {
     readActiveSet, uuidToStatePath, uuidToUiStatePath,
     loadNameIndex, rememberSet, BLANK_STATE,
@@ -287,6 +288,65 @@ _log('\nTest: a level overflowing 8 slots numbers from " - 2"');
     const names = bankNames(bootModel(MOCK_SYNTHS.hier_params_overflow));
     eq('overflow: page 0 keeps the bare name', names[0], 'Main');
     eq('overflow: page 1 is " - 2"',           names[1], 'Main - 2');
+}
+
+/* ── async metadata: preset list + enum options that arrive after load ───── */
+
+_log('\nTest: preset count and enum options are re-resolved when they land');
+{
+    const m = bootModel(MOCK_SYNTHS.hier_async_meta);
+    const romOf = () => m.dumpLayout().params.filter(Boolean).find(p => p.key === 'rom');
+    eq('async: no Preset knob while the count is 0',
+        m.dumpLayout().params.filter(Boolean).some(p => p.renderStyle === 'preset'), false);
+    eq('async: ROM shows the placeholder at first',
+        JSON.stringify(romOf().options), JSON.stringify(['(loading)']));
+
+    // The ROM lands: preset list and real options appear.
+    env.setParams({
+        ...MOCK_SYNTHS.hier_async_meta,
+        "synth:preset_count": "3",
+        "synth:preset_names": JSON.stringify(['Init', 'Bass', 'Lead']),
+        "synth:chain_params": JSON.stringify([
+            { key: "cutoff", name: "Cutoff", type: "int", min: 0, max: 127 },
+            { key: "rom",    name: "ROM",    type: "enum", options: ["Virus A", "Virus B", "Virus C"] },
+        ]),
+    });
+    for (let i = 0; i < 4 * NAME_POLL_TICKS; i++) m.tick();
+
+    const preset = m.dumpLayout().params.filter(Boolean).find(p => p.renderStyle === 'preset');
+    eq('async: Preset knob appears once the count is non-zero', !!preset, true);
+    eq('async: Preset knob carries the real names',
+        JSON.stringify(preset?.options), JSON.stringify(['Init', 'Bass', 'Lead']));
+    eq('async: ROM options are re-read',
+        JSON.stringify(romOf().options), JSON.stringify(['Virus A', 'Virus B', 'Virus C']));
+}
+
+_log('\nTest: a same-module rebuild keeps the current page');
+{
+    const m = bootModel(MOCK_SYNTHS.hier_params_overflow_two_levels);
+    m.changePage(2);
+    m.reload();
+    m.tick(); m.tick();
+    eq('rebuild: page survives a same-module reload', m.getKnobPage(), 2);
+}
+
+_log('\nTest: the async retry latches off and does not poll forever');
+{
+    const m = bootModel(MOCK_SYNTHS.hier_async_meta);   // never settles
+    let reads = 0;
+    const realGet = globalThis.shadow_get_param;
+    globalThis.shadow_get_param = (slot, key) => {
+        if (key === 'synth:preset_count' || key === 'synth:chain_params') reads++;
+        return realGet(slot, key);
+    };
+    for (let i = 0; i < 40 * NAME_POLL_TICKS; i++) m.tick();
+    globalThis.shadow_get_param = realGet;
+    /* Absolute bound, not META_RETRY_LIMIT + n: comparing against the constant
+     * under test would pass however large it grew. 40 polls of a module that
+     * never settles must still cost only the handful of probes the latch allows. */
+    eq(`async: probes stop after the retry budget (${reads} reads in 40 polls)`,
+        reads <= 10, true);
+    eq('async: META_RETRY_LIMIT is a small budget', META_RETRY_LIMIT <= 16, true);
 }
 
 /* ── shift+jog jumps level to level, not page to page ────────────────────── */

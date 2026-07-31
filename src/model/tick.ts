@@ -3,6 +3,7 @@ import { loadHierarchy } from './hierarchy.js';
 import { applyKnobDelta, refreshOneParam, pollModuleName, refreshModulatedKeys, slotToLocal } from './store.js';
 import { triggerAnimationTick } from './trigger.js';
 import { KNOBS_PER_PAGE, NAME_POLL_TICKS } from './constants.js';
+import { retryUnsettledMeta } from './meta-retry.js';
 import { mlog } from '../log.js';
 
 /* Module-level perf counters — not in ModelState to avoid interface churn. */
@@ -12,8 +13,12 @@ let _perfRefreshMaxMs = 0;
 
 export function processTick(s: ModelState): boolean {
     if (s.hierarchyKey !== s.activeModuleName) {
-        s.knobPage = 0;
+        const prevModuleId = s.moduleId;
         loadHierarchy(s);
+        /* A metadata re-resolve (meta-retry.ts) rebuilds the SAME module — keep
+         * the user on the page they were reading. Only a real module change,
+         * or a page that no longer exists, starts over. */
+        if (s.moduleId !== prevModuleId || s.knobPage >= s.bankNames.length) s.knobPage = 0;
         s.refreshParamCursor = 0;
         refreshModulatedKeys(s);   // populate LFO-target cache for the new module
     }
@@ -56,13 +61,17 @@ export function processTick(s: ModelState): boolean {
         }
     }
 
+    let probed = false;
     if (--s.pollCountdown <= 0) {
         s.pollCountdown = NAME_POLL_TICKS;
         pollModuleName(s);
         refreshModulatedKeys(s);   // pick up LFO (un)assignments made elsewhere
+        probed = retryUnsettledMeta(s);
     }
 
-    if (s.knobParams.length > 0) {
+    // A metadata probe already spent this tick's read budget (perf.mjs caps the
+    // per-tick shadow_get_param count) — the value refresh waits a tick.
+    if (!probed && s.knobParams.length > 0) {
         const t0 = Date.now();
         refreshOneParam(s, _perfTickCount);
         const ms = Date.now() - t0;

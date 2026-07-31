@@ -68,6 +68,11 @@ export interface ModelState {
     bankGroups:          number[];
     hierarchyKey:        string;
     pollCountdown:       number;
+    /* A module can publish its preset list and enum options AFTER load (osirus
+     * scans its ROM asynchronously). These drive a bounded re-probe; both reset
+     * on a genuine module change, like paramGestures. */
+    metaRetries:         number;
+    presetDeclared:      boolean;
     refreshParamCursor:  number;
     /* Cursor over the CURRENT page's 8 slots, interleaved with
      * refreshParamCursor (one read per tick, alternating) so on-screen values
@@ -121,6 +126,8 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         bankGroups:          [],
         hierarchyKey:        '',
         pollCountdown:       NAME_POLL_TICKS,
+        metaRetries:         0,
+        presetDeclared:      false,
         refreshParamCursor:  0,
         refreshPageCursor:   0,
         lastDeltaTick:       -(REFRESH_SUPPRESS_TICKS + 1),

@@ -23,6 +23,7 @@ export function loadHierarchy(s: ModelState): void {
     s.moduleConfig = null;
     s.bankNames    = [];
     s.bankGroups   = [];
+    s.presetDeclared = false;
     s.slotMapCache = null;
     s.hierarchyKey = s.activeModuleName;
 
@@ -38,6 +39,9 @@ export function loadHierarchy(s: ModelState): void {
     if (s.moduleId !== prevModuleId) {
         s.paramGestures = {};
         s.triggerStates = {};
+        // A same-module rebuild is what the metadata retry itself triggers —
+        // resetting the budget there would loop forever.
+        s.metaRetries   = 0;
     }
 
     /* Params movy wants to own from load (e.g. ui_auto_select_pad=off so the DSP

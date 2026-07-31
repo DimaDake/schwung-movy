@@ -170,6 +170,32 @@ readable:
 - A section that merely repeats another one's knobs is shown once, so modules
   that publish the same eight knobs twice no longer waste a page on it.
 
+**The whole section, not just its eight knobs.** A module gives each section two
+things: the eight parameters it binds to the encoders, and the full list of
+parameters that section contains. Movy shows the eight first, then continues the
+rest onto `- 2`, `- 3` pages under the same section name. That is what makes
+*Osirus*'s ROM/model selector, *OB-Xd*'s voice count and *Surge*'s per-oscillator
+detail reachable — several hundred parameters that were previously visible only
+in Move's own module UI:
+
+  ![A section's overflow page](docs/assets/params-overflow-page.png)
+
+A section that binds **no** encoders at all now gets a page too, instead of
+being skipped:
+
+  ![A settings section built from its parameter list](docs/assets/params-extras-settings.png)
+
+Parameters the module reports as unturnable (a single possible value) are left
+out — a knob that cannot move is noise. Some modules publish their preset list
+and option names a moment *after* they load (Osirus scans its ROM); Movy keeps
+looking for a few seconds and redraws the pages as soon as the real names
+arrive.
+
+**Jumping between sections.** With many pages, stepping one at a time is slow:
+hold **Shift** and turn the jog wheel to jump straight to the previous/next
+*section*, skipping its overflow pages. Turning the jog wheel without Shift
+still moves one page at a time.
+
 Even a module that publishes no parameter hierarchy still gets pages — Movy lays
 its parameters out in the order the module exposes them (this is what brings
 modules like *Branchage*, *Smack-in* and *Belt-in* to life). When a parameter
@@ -697,6 +723,7 @@ behaviour you'd like — or, better, a PR.
 | **Hold a knob (~1 s)** | Assign that parameter as an **LFO target**: jog picks LFO 1/2, jog-click assigns (hold again to remove). Automatable parameters only. |
 | **Jog wheel — turn** | Scroll chain slots (Chain view) or module pages (Knobs view) / browser list. On the LFO page, scroll between LFO 1 and LFO 2. |
 | **Jog wheel — click** | Drill Chain → module pages; on Knobs (or an empty slot) open the module browser; in a browser, load the selection. |
+| **Shift + jog wheel — turn** | Knobs view: jump to the previous/next **section**, skipping that section's overflow pages. |
 | **Hold the jog (~1 s)** | Touch without turning: a bottom prompt spells out what a click does on this page. A turn or release clears it. |
 | **Shift + jog click** | Open the module browser to swap the current slot's module. |
 | **Back** | Module pages → Chain; browser → cancel; **at the root (Chain) → open the Leave Movy menu** (Background / Close Movy). |

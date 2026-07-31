@@ -112,6 +112,11 @@ far. Earlier work is summarised in the timeline below for context.
   stripped, an unchanged page costs nothing, freeing a quarter of the LED
   budget for the sequencer.
 
+- **Switching tracks no longer floods the drum grid.** Movy re-sent all 32 drum
+  pads every tick for 40 ticks after each track switch — about 1150 LED
+  messages — so its grid would win the race against Move repainting the native
+  pad layout. Movy owns those pads now, so one repaint does it: 66 messages.
+
 - **Sets could be silently lost.** Movy's per-set autosave had five separate
   ways to throw work away, and the persistence layer has been rewritten around
   them.

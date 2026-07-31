@@ -22,6 +22,7 @@ export function loadHierarchy(s: ModelState): void {
     s.knobValues   = [];
     s.moduleConfig = null;
     s.bankNames    = [];
+    s.bankGroups   = [];
     s.slotMapCache = null;
     s.hierarchyKey = s.activeModuleName;
 

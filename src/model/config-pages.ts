@@ -126,6 +126,8 @@ export function buildConfigPages(
         if (rem !== 0) for (let i = rem; i < KNOBS_PER_PAGE; i++) s.knobParams.push(null);
     }
     mlog('loadHierarchy: config for ' + s.moduleId + ', ' + cfg.banks.length + ' banks');
+    // Each config bank is exactly one page, so a group per bank.
+    s.bankGroups = cfg.banks.map((_, i) => i);
     s.knobValues = new Array(s.knobParams.length).fill(null) as (number | null)[];
     s.enumFmt    = new Array(s.knobParams.length).fill(undefined) as (boolean | undefined)[];
     s.fileValues = new Array(s.knobParams.length).fill(null) as (string | null)[];

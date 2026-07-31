@@ -32,15 +32,18 @@ export function buildGenericPages(
     const rootLevel = allLevels['root'] || Object.values(allLevels)[0] || null;
 
     /* Bank page accumulator: each entry is KNOBS_PER_PAGE keys (null = empty slot) */
-    const bankEntries: Array<{ name: string; keys: (string | null)[] }> = [];
+    const bankEntries: Array<{ name: string; keys: (string | null)[]; group: number }> = [];
+    /* Pages from the same level share a group id — see ModelState.bankGroups. */
+    let nextGroup = 0;
 
-    function addPage(name: string, keys: (string | null)[]): void {
+    function addPage(name: string, keys: (string | null)[], group: number): void {
         const padded = keys.slice(0, KNOBS_PER_PAGE);
         while (padded.length < KNOBS_PER_PAGE) padded.push(null);
-        bankEntries.push({ name, keys: padded });
+        bankEntries.push({ name, keys: padded, group });
     }
 
     function addLevel(label: string, keys: string[]): void {
+        const group = nextGroup++;
         const pages = Math.max(1, Math.ceil(keys.length / KNOBS_PER_PAGE));
         for (let i = 0; i < pages; i++) {
             // Page 1 keeps the plain level name: params[] extras make many
@@ -49,6 +52,7 @@ export function buildGenericPages(
             addPage(
                 i === 0 ? label : label + ' - ' + (i + 1),
                 keys.slice(i * KNOBS_PER_PAGE, (i + 1) * KNOBS_PER_PAGE),
+                group,
             );
         }
     }
@@ -75,7 +79,7 @@ export function buildGenericPages(
     const presetSeparate = presetParam != null && (rootLevel.knobs ?? []).length >= KNOBS_PER_PAGE;
 
     /* Dedicated Preset page before Main when Main is full */
-    if (presetParam && presetSeparate) addPage('Preset', [listParam!]);
+    if (presetParam && presetSeparate) addPage('Preset', [listParam!], nextGroup++);
 
     /* Main page from root.knobs (with preset prepended if there's room) */
     let rootKeys = knobKeys(rootLevel);
@@ -112,7 +116,8 @@ export function buildGenericPages(
     }  /* end hierarchy path (else of the chain_params fallback) */
 
     /* Build s.knobParams and s.bankNames from bankEntries */
-    s.bankNames = bankEntries.map(e => e.name);
+    s.bankNames  = bankEntries.map(e => e.name);
+    s.bankGroups = bankEntries.map(e => e.group);
     for (const entry of bankEntries) {
         for (const key of entry.keys) {
             if (!key) { s.knobParams.push(null); continue; }

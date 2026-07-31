@@ -289,6 +289,24 @@ _log('\nTest: a level overflowing 8 slots numbers from " - 2"');
     eq('overflow: page 1 is " - 2"',           names[1], 'Main - 2');
 }
 
+/* ── shift+jog jumps level to level, not page to page ────────────────────── */
+
+_log('\nTest: changePageGroup skips a level\'s overflow pages');
+{
+    const m = bootModel(MOCK_SYNTHS.hier_params_overflow_two_levels);
+    eq('group: 3 pages (Main, Main - 2, Effects)', m.getViewModel().bankCount, 3);
+    eq('group: starts on page 0',             m.getKnobPage(), 0);
+    m.changePageGroup(1);
+    eq('group: +1 lands on the next level',   m.getKnobPage(), 2);   // skips "Main - 2"
+    m.changePageGroup(1);
+    eq('group: clamps at the last level',     m.getKnobPage(), 2);
+    m.changePageGroup(-1);
+    eq('group: -1 returns to the level head', m.getKnobPage(), 0);
+    m.changePage(1);
+    m.changePageGroup(-1);
+    eq('group: -1 from mid-level goes to that level\'s head', m.getKnobPage(), 0);
+}
+
 /* ── read-back visits the current page fast regardless of module size ────── */
 
 _log('\nTest: refresh cursor reaches the current page within 16 ticks');

@@ -192,6 +192,33 @@ export function createModel(slot: number, componentKey = 'synth') {
             if (next !== s.knobPage) { s.knobPage = next; s.dirty = true; }
         },
 
+        /* Shift+jog: jump to the head of the previous/next level. From mid-level
+         * a backward jump lands on the current level's own head first — the same
+         * "back out to the section start" feel as a paragraph jump. */
+        changePageGroup(delta: number): void {
+            if (s.enumOverlay) return;
+            const n = numBanks();
+            const groups = s.bankGroups;
+            if (n === 0) return;
+            if (groups.length !== n) {
+                // No group map (shouldn't happen) — degrade to a plain page turn.
+                const clamped = Math.max(0, Math.min(n - 1, s.knobPage + delta));
+                if (clamped !== s.knobPage) { s.knobPage = clamped; s.dirty = true; }
+                return;
+            }
+            const here = groups[s.knobPage];
+            let next = s.knobPage;
+            if (delta > 0) {
+                while (next < n - 1 && groups[next] === here) next++;
+            } else {
+                while (next > 0 && groups[next] === here) next--;
+                const target = groups[next];
+                while (next > 0 && groups[next - 1] === target) next--;
+            }
+            mlog('changePageGroup delta=' + delta + ' ' + s.knobPage + '→' + next + '/' + n);
+            if (next !== s.knobPage) { s.knobPage = next; s.dirty = true; }
+        },
+
         getModuleName(): string { return s.activeModuleName; },
 
         reset(): void {

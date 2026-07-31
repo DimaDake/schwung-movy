@@ -1084,6 +1084,37 @@ _log('\napp-loop: teardown flushes pending state');
     eq('teardown kept the edit', fs[stPath('u1-uuid')].includes('bpm 15500'), true);
 }
 
+/* ── shift+jog skips a whole level through the real router ───────────────── */
+
+_log('\napp-loop: shift+jog skips a level\'s overflow pages');
+{
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.hier_params_overflow_two_levels);
+    resetSeqState();
+    resetSeqEngine();
+    globalThis.init();
+    const m = appState.trackModels[0][1];
+    m.reload();
+    advance(12);
+    appState.currentView = VIEW_KNOBS;
+
+    eq('shift+jog: 3 pages (Main, Main - 2, Effects)', m.getBankCount(), 3);
+
+    sendMidi([0xB0, globalThis.MoveMainKnob, 1]);        // plain jog CW
+    advance(1);
+    eq('shift+jog: plain jog steps one page', m.getKnobPage(), 1);
+
+    sendMidi([0xB0, globalThis.MoveShift, 127]);         // Shift down
+    sendMidi([0xB0, globalThis.MoveMainKnob, 127]);      // jog CCW (decodeDelta → -1)
+    advance(1);
+    eq('shift+jog: back jumps to the level head', m.getKnobPage(), 0);
+
+    sendMidi([0xB0, globalThis.MoveMainKnob, 1]);        // jog CW, still shifted
+    advance(1);
+    eq('shift+jog: forward skips the overflow page', m.getKnobPage(), 2);
+    sendMidi([0xB0, globalThis.MoveShift, 0]);           // Shift up
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

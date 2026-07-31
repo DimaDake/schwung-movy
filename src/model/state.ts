@@ -63,6 +63,9 @@ export interface ModelState {
     moduleId:            string;
     moduleConfig:        ModuleConfig | null;
     bankNames:           string[];
+    /* Group id per page: pages built from the same hierarchy level share one, so
+     * shift+jog can skip a level's overflow pages in a single gesture. */
+    bankGroups:          number[];
     hierarchyKey:        string;
     pollCountdown:       number;
     refreshParamCursor:  number;
@@ -115,6 +118,7 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         moduleId:            '',
         moduleConfig:        null,
         bankNames:           [],
+        bankGroups:          [],
         hierarchyKey:        '',
         pollCountdown:       NAME_POLL_TICKS,
         refreshParamCursor:  0,

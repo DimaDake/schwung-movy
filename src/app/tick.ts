@@ -152,14 +152,14 @@ function clipSig(): string {
  * LED traffic to actual changes. */
 const drumCache = new Uint8Array(32);
 
-/* Ticks to keep re-asserting the full drum grid after a track switch. The host
- * repaints the native pad layout on a track-button press, landing just after
- * movy's one-shot drum paint; re-sending the grid for a short window lets movy
- * win that race, after which the per-pad cache resumes zero idle LED traffic.
- * Coarse (tick-based) on purpose — it only needs to outlast a one-shot repaint,
- * not measure a precise duration. */
-const DRUM_REPAINT_TICKS = 40;
-let drumRepaintTicks = 0;
+/* A track switch invalidates the drum grid cache once. It used to re-assert the
+ * whole grid for 40 ticks to outlast Move's native pad repaint on a track-button
+ * press — but movy now owns the pad LEDs outright (the host strips Move's
+ * cable-0 note LEDs unconditionally, and its RGB sysex via the suppression we
+ * claim at init), so there is no race left to win. The one-shot invalidation
+ * stays: it is what makes the grid overwrite colours left by the previous
+ * layout, which the per-pad cache would otherwise consider already correct. */
+let drumCacheStale = false;
 let lastActiveSlot   = -1;
 let lastShownKey     = '';   // identity of the on-screen param page (for touch reset)
 
@@ -183,8 +183,8 @@ export function invalidateLedCachesOnResume(): void {
     drumCache.fill(0);
     resetKnobLedCache();
     seqLedsInvalidate();
-    lastActiveSlot = -1;      // re-open the drum-repaint window on the next tick
-    drumRepaintTicks = 0;
+    lastActiveSlot = -1;      // forces the grid invalidation on the next tick
+    drumCacheStale = true;
     appState.drumActive = false;
     appState.initLedsDone = false;
     appState.initLedIndex = 0;
@@ -297,13 +297,13 @@ export function tick(): void {
     const synthDvm   = synthModel?.getViewModel();
     const isDrum     = (synthDvm?.drumPadCount ?? 0) > 0;
 
-    /* A track switch means the host has repainted the native pad layout; open a
-     * repaint window so the drum grid re-asserts over it. Detected here (before
-     * the chromatic-init early-return below) so it fires regardless of whether
-     * the new track is a drum or melodic track. */
+    /* A track switch changes what the pads mean, so the grid must repaint even
+     * where the new colour matches the cached one. Detected here (before the
+     * chromatic-init early-return below) so it fires regardless of whether the
+     * new track is a drum or melodic track. */
     if (appState.activeSlot !== lastActiveSlot) {
-        lastActiveSlot   = appState.activeSlot;
-        drumRepaintTicks = DRUM_REPAINT_TICKS;
+        lastActiveSlot = appState.activeSlot;
+        drumCacheStale = true;
     }
     if (isDrum) {
         const cfg = synthModel!.getDrumConfig();
@@ -482,16 +482,16 @@ export function tick(): void {
             // a repaint window too, so the grid fully overwrites whatever owned the
             // pads. (A track switch already opened one above.)
             if (!appState.drumActive) {
-                drumRepaintTicks = DRUM_REPAINT_TICKS;
+                drumCacheStale = true;
                 setButtonLED(MoveUp, Black, true);
                 setButtonLED(MoveDown, Black, true);
             }
-            // While the window is open, force a full repaint (ignore the per-pad
-            // cache) so non-grid pads (col >= 4 → Black) and every grid pad win
-            // over stale chromatic colors and the host's post-switch repaint.
-            if (drumRepaintTicks > 0) {
+            // Invalidate once so non-grid pads (col >= 4 → Black) and every grid
+            // pad overwrite colours left by the previous layout, which the
+            // per-pad cache would otherwise treat as already correct.
+            if (drumCacheStale) {
                 drumCache.fill(0xFF);
-                drumRepaintTicks--;
+                drumCacheStale = false;
             }
             const track = seqState.watchTrack;
             const sel   = synthDvm!.drumCurrentPhysPad;

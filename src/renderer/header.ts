@@ -31,19 +31,27 @@ export function drawBankBar(bankIndex: number, bankCount: number, dottedFirst = 
         return;
     }
 
-    /* Segments are uniform; the leftover goes into the GAPS, not into one long
-     * segment and not into margins. So the bar always spans the full width, and
-     * as the page count climbs only as many separators collapse as the width
-     * actually forces — at 70 pages 58 of the 69 gaps survive. */
-    let segW = Math.max(1, Math.floor((W - (bankCount - 1)) / bankCount));
-    if (bankCount * segW + (bankCount - 1) > W) segW = Math.max(1, Math.floor(W / bankCount));
-    const slack = W - bankCount * segW;
+    /* A gap is a separator, not a spacer: exactly 1 px, or 0 once the page count
+     * leaves no room for one. Leftover pixels therefore go into the SEGMENTS —
+     * never into a 2 px gap (which reads as a broken ruler), never into one long
+     * segment, never into margins. Two regimes, both spanning the full width:
+     *
+     *   n <= 64  every gap is 1 px; the spare pixels widen segments, spread by
+     *            the floor difference so no two differ by more than 1 px.
+     *   n >  64  a 1 px segment plus a 1 px gap no longer fits n times, so every
+     *            segment is 1 px and the spare pixels become the gaps — as many
+     *            separators survive as the width allows (58 of 69 at 70 pages).
+     */
+    const roomForGaps = bankCount * 2 - 1 <= W;
+    const area  = roomForGaps ? W - (bankCount - 1) : W;   // pixels left for segments
+    const slack = area - bankCount;                        // spare, spread as gaps when n > 64
+    const edge  = (b: number): number => Math.floor(b * area / bankCount);
 
     for (let b = 0; b < bankCount; b++) {
-        // Spread the slack evenly across the gaps: gap b is the difference of
-        // two floors, so it is 0 or 1 wider than its neighbours, never bunched.
-        const sx = b * segW + Math.floor(b * slack / Math.max(1, bankCount - 1));
-        const h  = b === bankIndex ? 2 : 1;
+        const sx   = roomForGaps ? edge(b) + b
+                                 : b + Math.floor(b * slack / (bankCount - 1));
+        const segW = roomForGaps ? edge(b + 1) - edge(b) : 1;
+        const h    = b === bankIndex ? 2 : 1;
         if (dottedFirst && b === 0) {
             // Step page indicator: dotted segment (every other pixel), double
             // height when selected.

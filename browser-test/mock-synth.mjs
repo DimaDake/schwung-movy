@@ -501,6 +501,25 @@ export const MOCK_SYNTHS = {
         ...Object.fromEntries(["a","b","c","d","e","f","g","h","i","j"].map(k => [`synth:${k}`, "0"])),
     },
 
+    /* 400 params on one level → 50 pages, surge's page count: the densest the
+     * bar can still afford a 1px gap between every page. */
+    hier_surge_pages: {
+        "synth:name": "SurgeLike",
+        "synth:chain_params": JSON.stringify(
+            Array.from({ length: 400 }, (_, i) =>
+                ({ key: `s${i}`, name: `S${i}`, type: "int", min: 0, max: 127 })),
+        ),
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: {
+                    knobs: ["s0", "s1"],
+                    params: Array.from({ length: 400 }, (_, i) => ({ key: `s${i}`, label: `S${i}` })),
+                },
+            },
+        }),
+        ...Object.fromEntries(Array.from({ length: 400 }, (_, i) => [`synth:s${i}`, "0"])),
+    },
+
     /* 560 params on one level → 70 pages, minijv's page count. Past 64 pages the
      * indicator bar can no longer afford a gap between segments. */
     hier_dense_pages: {

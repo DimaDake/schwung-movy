@@ -155,9 +155,10 @@ automatically. You don't configure anything for most modules.
   (`MAIN`, `PAGE 1`, `PAGE 2`, …). Scroll them with the jog wheel (or Left/Right
   when the sequencer isn't using those buttons). The line under the title is the
   page indicator: one segment per page, the current one drawn taller. It always
-  spans the full width, and on a param-dense module the segments shrink to a
-  single pixel — only as many separators close up as the width forces — so the
-  bar still tells you where you are among 70 pages:
+  spans the full width with a one-pixel separator between pages; on a
+  param-dense module the segments shrink to a single pixel, and only past 64
+  pages do separators start closing up — so the bar still tells you where you
+  are among 70 pages:
 
   ![Page indicator on a 70-page module](docs/assets/bankbar-dense.png)
 

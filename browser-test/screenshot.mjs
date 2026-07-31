@@ -41,7 +41,7 @@ const PRESETS = [
     'drum-mrdrums-pad5', 'drum-mrdrums-global',
     'chordism-chordb', 'sfz-amp',
     'params-overflow-page', 'params-extras-settings',
-    'bankbar-mid', 'bankbar-dense',
+    'bankbar-mid', 'bankbar-surge', 'bankbar-dense',
     'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
     'step_page_knobs', 'step_page_chain', 'step_indicator',
     'main-default', 'main-tempo-touched', 'main-swing-touched',
@@ -68,7 +68,8 @@ const BASE = {
     knobs_jog_toast: 'test8', chain_t2: 'test8', chain_t4: 'test8',
     'drum-mrdrums-pad5': 'mrdrums', 'drum-mrdrums-global': 'mrdrums',
     'chordism-chordb': 'chordism', 'sfz-amp': 'sfz',
-    'bankbar-mid': 'hier_many_pages', 'bankbar-dense': 'hier_dense_pages',
+    'bankbar-mid': 'hier_many_pages', 'bankbar-surge': 'hier_surge_pages',
+    'bankbar-dense': 'hier_dense_pages',
     'params-overflow-page': 'hier_params_overflow',
     'params-extras-settings': 'hier_params_extras',
     auto_dot: 'test8', auto_held: 'test8', auto_live: 'test8', auto_limit: 'test8',
@@ -309,6 +310,7 @@ function applyView(preset) {
         // Page indicator with many pages: 25 pages still get a gap between
         // segments, 70 pages drop it so each page keeps a pixel.
         case 'bankbar-mid':   for (let i = 0; i < 12; i++) model.changePage(1); forceRender(); break;
+        case 'bankbar-surge': for (let i = 0; i < 26; i++) model.changePage(1); forceRender(); break;
         case 'bankbar-dense': for (let i = 0; i < 40; i++) model.changePage(1); forceRender(); break;
         // Overflow page: the " - 2" header and a full row of params[] extras.
         case 'params-overflow-page':   model.changePage(1); forceRender(); break;

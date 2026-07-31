@@ -6896,6 +6896,28 @@ _log('\nTest: onUnload releases live notes and sequencer gates');
   globalThis.shadow_send_midi_to_dsp = origSendMidi;
 }
 
+/* ── LED ownership is re-claimed on resume ────────────────────────────────── */
+
+_log('\nTest: LED ownership claimed on init and on resume');
+{
+    const { onResume } = await import('../dist/esm/app/resume.js');
+
+    let claims = 0;
+    const origClaim = globalThis.shadow_set_overtake_suppress_sysex;
+    globalThis.shadow_set_overtake_suppress_sysex = (flag) => { if (flag === 1) claims++; };
+
+    env.setParams({});
+    init();
+    eq('init claims LED ownership', claims, 1);
+
+    /* The framework zeroes overtake_suppress_sysex at park and never restores
+     * it, and init() is not re-run on resume — so onResume must re-claim. */
+    onResume();
+    eq('resume re-claims LED ownership', claims, 2);
+
+    globalThis.shadow_set_overtake_suppress_sysex = origClaim;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

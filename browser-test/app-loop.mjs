@@ -72,34 +72,50 @@ _log('\napp-loop: drum grid loads');
     eq('drum lane selected (watchLane = note of current pad)', seqState.watchLane >= 0, true);
 }
 
-_log('\napp-loop: drum grid re-asserts after a track switch, then idles');
+_log('\napp-loop: drum grid repaints once on a track switch, then idles');
 {
-    // The host repaints the native pad layout on a track-button press, landing
-    // after movy's drum paint; movy must re-send the grid for a short window so
-    // it wins that race (the per-pad cache alone would never correct it).
+    // movy owns the pad LEDs: the host strips Move's cable-0 note LEDs
+    // unconditionally and its RGB sysex via the suppression claimed at init, so
+    // nothing external can repaint a pad. The grid therefore needs exactly one
+    // invalidation per track switch — enough to overwrite the previous layout's
+    // colours, which the per-pad cache would otherwise consider correct — and
+    // no re-assert window on top of it.
     resetApp();
-    advance(45);                            // let the initial repaint window expire
-    const corrupt = () => { ledByPad[PAD_KICK] = 999; }; // simulate the host overwrite
+    advance(45);
+    const corrupt = () => { ledByPad[PAD_KICK] = 999; };
 
-    // Steady state (no recent switch): movy trusts its cache and does NOT re-send.
+    // Steady state: movy trusts its cache and sends nothing.
     corrupt();
     advance(1);
-    eq('idle: external overwrite NOT corrected (cache-diffed, zero traffic)', padColor(PAD_KICK), 999);
+    eq('idle: no re-send (cache-diffed, zero traffic)', padColor(PAD_KICK), 999);
 
-    // Track switch T1→T2→T1 opens a repaint window on return.
+    // A track switch invalidates the cache, so the very next tick repaints.
     sendMidi([0xB0, 42, 127]); sendMidi([0xB0, 42, 0]);  // → T2
     advance(2);
     sendMidi([0xB0, 43, 127]); sendMidi([0xB0, 43, 0]);  // → back to T1
-    advance(2);
     corrupt();
     advance(1);
-    eq('post-switch window: external overwrite corrected', padColor(PAD_KICK) !== 999, true);
+    eq('track switch: grid repaints on the next tick', padColor(PAD_KICK) !== 999, true);
 
-    // Window is bounded — after it expires, traffic returns to zero (no perf hit).
-    advance(45);
+    // The invalidation is one-shot — the tick after it, traffic is back to zero.
     corrupt();
     advance(1);
-    eq('after window expires: back to cache-diffed (no re-send)', padColor(PAD_KICK), 999);
+    eq('one-shot: no re-assert window follows', padColor(PAD_KICK), 999);
+
+    // Perf: the old 40-tick re-assert window re-sent all 32 pads every tick,
+    // so a single track switch cost up to ~1280 LED writes. One invalidation
+    // costs one grid's worth. Budget covers the grid plus the button/step LEDs
+    // that legitimately change with the switch.
+    resetApp();
+    advance(45);
+    let ledWrites = 0;
+    const realSetLED = globalThis.setLED;
+    globalThis.setLED = (n, c) => { ledWrites++; realSetLED(n, c); };
+    sendMidi([0xB0, 42, 127]); sendMidi([0xB0, 42, 0]);  // → T2
+    advance(40);
+    globalThis.setLED = realSetLED;
+    eq('track switch costs one grid repaint, not a window', ledWrites <= 80, true);
+    _log(`    (${ledWrites} LED writes across 40 ticks after a track switch)`);
 }
 
 _log('\napp-loop: selected pad is white when idle');

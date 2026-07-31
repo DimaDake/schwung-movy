@@ -38,6 +38,11 @@ node build/device.mjs >/dev/null 2>&1
 REMOTE="/data/UserData/schwung/modules/tools/movy"
 ssh "ableton@$HOST" "mkdir -p $REMOTE" >/dev/null 2>&1
 scp -q "$MOVY_DIR/ui.js" "ableton@$HOST:$REMOTE/"
+# module.json too: capabilities (skip_led_clear, suspend_self_managed, …) live
+# here and change how the host drives movy. Shipping only ui.js left the device
+# running whatever capabilities it happened to have, so a capability change was
+# invisible to this harness.
+scp -q "$MOVY_DIR/module.json" "ableton@$HOST:$REMOTE/"
 pass "Built + deployed"
 
 # ── 3. Enable logging + clear log ────────────────────────────────────────────
@@ -88,6 +93,32 @@ for _ in $(seq 1 30); do
     ssh "ableton@$HOST" 'grep -q "perf_tick_rate=" /data/UserData/schwung/debug.log' 2>/dev/null && break
     sleep 0.5
 done
+
+# ── 6c. Park + resume ────────────────────────────────────────────────────────
+# The host zeroes overtake_suppress_sysex when we park and resumeOvertakeModule
+# never re-applies it, while init() is not re-run — so LED ownership has to be
+# re-claimed from onResume or Move's RGB repaints come back after the first
+# Back. Park is a modal, not a bare Back: Back at the root Chain view opens the
+# Leave-Movy modal, whose default selection is already Background, and jog click
+# confirms. Resume is the same open_tool_cmd write used to open movy above.
+info "Parking movy to background..."
+python3 "$INJECT" "$HOST" cc 51 127   # MoveBack — opens the Leave-Movy modal
+sleep 0.4
+python3 "$INJECT" "$HOST" cc 3 127    # MoveMainButton (jog click) — confirm
+sleep 1.2
+
+info "Resuming movy from background..."
+ssh "ableton@$HOST" 'python3 -c "
+import mmap, json
+cmd = json.dumps({\"file_path\": \"/\", \"tool_id\": \"movy\"})
+with open(\"/data/UserData/schwung/open_tool_cmd.json\", \"w\") as f:
+    f.write(cmd)
+with open(\"/dev/shm/schwung-control\", \"r+b\") as f:
+    mm = mmap.mmap(f.fileno(), 0)
+    mm[56] = 1
+    mm.close()
+"'
+sleep 1.5
 
 # ── 7. Fetch log ─────────────────────────────────────────────────────────────
 LOG=$(ssh "ableton@$HOST" 'grep "\[movy\]" /data/UserData/schwung/debug.log 2>/dev/null || true')
@@ -174,6 +205,16 @@ elif echo "$LOG" | grep -q "changePage delta="; then
     pass "Jog wheel CC reaches changePage — $PLINE"
 else
     fail "Jog wheel CC not received (CC14 not reaching onMidiMessageInternal)"
+fi
+
+# LED ownership must survive a park/resume — see section 6c.
+CLAIMS=$(echo "$LOG" | grep -c "LED ownership claimed" || true)
+if [[ "$CLAIMS" -ge 2 ]]; then
+    pass "LED ownership re-claimed on resume ($CLAIMS claims)"
+elif echo "$LOG" | grep -q "resume from background"; then
+    fail "LED ownership not re-claimed on resume (claims=$CLAIMS, expected >=2)"
+else
+    fail "movy never parked/resumed — park injection did not land (claims=$CLAIMS)"
 fi
 
 # Knob LEDs

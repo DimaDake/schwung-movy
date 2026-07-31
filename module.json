@@ -10,7 +10,6 @@
         "skip_file_browser": true
     },
     "capabilities": {
-        "skip_led_clear": true,
         "claims_master_knob": true,
         "suspend_self_managed": true
     }

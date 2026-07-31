@@ -5279,6 +5279,21 @@ _log('\nTest: durable store (rotation + verified writes)');
     eq('short write caught by read-back', writeStateBlob('S', 'movy1\nbpm 9000\n', 4), false);
     fs.truncate = null;
 
+    /* Downgrade ordering: a build without the envelope never touches the
+     * shadows, so a canonical file with no envelope AND real content was
+     * necessarily written after them — the user rolled back, worked, rolled
+     * forward. Generation order would restore the pre-downgrade set over it. */
+    fs.files[shadowPath('D', 1)] = wrapState('movy1\nbpm 11000\n', 9);
+    fs.files[uuidToStatePath('D')] = 'movy1\nbpm 12500\nswing 60\n';
+    eq('legacy canonical outranks a higher-gen shadow',
+        readBestState('D').payload, 'movy1\nbpm 12500\nswing 60\n');
+
+    // …but a canonical torn down past its `gen` line also reads as legacy, and
+    // that must fall through to the shadow rather than blank the set.
+    fs.files[uuidToStatePath('D')] = 'movy1\n';
+    eq('bare-tag canonical falls through to the shadow',
+        readBestState('D').payload, 'movy1\nbpm 11000\n');
+
     eq('safeWrite verifies content', safeWrite(canon, 'hello'), true);
     fs.failWrites = true;
     eq('safeWrite reports host failure', safeWrite(canon, 'nope'), false);

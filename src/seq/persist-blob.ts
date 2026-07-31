@@ -36,6 +36,9 @@ export function adler32(s: string): number {
 export interface ParsedState {
     payload: string;   // exactly what the engine serialized / will be fed
     gen: number;       // envelope generation; higher wins when copies disagree
+    /* No envelope: written by a build that predates it. Generations can't
+     * order it against enveloped copies, so the reader needs to know. */
+    legacy: boolean;
 }
 
 /** Envelope `payload` for generation `gen`. */
@@ -54,7 +57,7 @@ export function parseState(raw: string | null): ParsedState | null {
 
     // No generation marker → written before the envelope existed. Trust it:
     // that is the only shape every currently-installed build produces.
-    if (!(lines[1] || '').startsWith('gen ')) return { payload: raw, gen: 0 };
+    if (!(lines[1] || '').startsWith('gen ')) return { payload: raw, gen: 0, legacy: true };
 
     const gen = Number(lines[1].slice(4).trim());
     if (!isFinite(gen)) return null;
@@ -66,5 +69,5 @@ export function parseState(raw: string | null): ParsedState | null {
 
     const payload = TAG + '\n' + lines.slice(2, last).join('\n') + (last > 2 ? '\n' : '');
     if (payload.length !== Number(tr[2]) || adler32(payload) !== Number(tr[3])) return null;
-    return { payload, gen };
+    return { payload, gen, legacy: false };
 }

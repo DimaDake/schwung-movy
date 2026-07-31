@@ -63,16 +63,18 @@ function pushToEngine(payload: string): void {
     saveRetry = false;
 }
 
-/* Read the engine's state and persist it under `uuid`. */
-function saveState(uuid: string): boolean {
-    if (typeof host_module_get_param !== 'function') return false;
+/* Read the engine's state and persist it under `uuid`. `wrote` distinguishes
+ * "persisted new bytes" from "nothing had changed" — during a data-loss
+ * investigation the log has to mean exactly one of those, not both. */
+function saveState(uuid: string): { ok: boolean; wrote: boolean } {
+    if (typeof host_module_get_param !== 'function') return { ok: false, wrote: false };
     const payload = host_module_get_param('state');
-    if (payload === null) return false;
-    if (payload === lastGoodPayload) return true;   // unchanged → spare the flash
-    if (!writeStateBlob(uuid, payload, savedGen + 1)) return false;
+    if (payload === null) return { ok: false, wrote: false };
+    if (payload === lastGoodPayload) return { ok: true, wrote: false };  // spare the flash
+    if (!writeStateBlob(uuid, payload, savedGen + 1)) return { ok: false, wrote: false };
     lastGoodPayload = payload;
     savedGen++;
-    return true;
+    return { ok: true, wrote: true };
 }
 
 /* Persist everything dirty for the current set. Shared by the autosave tick,
@@ -91,13 +93,15 @@ export function seqPersistFlush(force = false): void {
     if ((takeUiDirty() || force) && !writeUiBlob(curUuid, serializeUiState())) markUiStateDirty();
 
     if (!seqState.dirty && !saveRetry && !force) return;
-    if (saveState(curUuid)) {
+    const r = saveState(curUuid);
+    if (r.ok) {
         saveRetry = false;
         /* The engine cleared its own flag on the state read; clear the mirror
          * too rather than waiting for the next status poll to tell us what we
          * already know. */
         seqState.dirty = false;
-        mlog('seq: saved ' + lastGoodPayload.length + ' bytes (gen ' + savedGen + ')');
+        if (r.wrote)
+            mlog('seq: saved ' + lastGoodPayload.length + ' bytes (gen ' + savedGen + ')');
     } else {
         saveRetry = true;
         mlog('seq: SAVE FAILED — retrying');

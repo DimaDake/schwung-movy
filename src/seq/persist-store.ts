@@ -16,7 +16,7 @@
  *    API can actually go wrong with: ENOSPC, EACCES and short writes. */
 
 import { wrapState, parseState, ParsedState } from './persist-blob.js';
-import { ensureDir, shadowPath, uuidToStatePath, uuidToUiStatePath } from './set-context.js';
+import { BLANK_STATE, ensureDir, shadowPath, uuidToStatePath, uuidToUiStatePath } from './set-context.js';
 
 function readFile(path: string): string | null {
     return (typeof host_read_file === 'function') ? host_read_file(path) : null;
@@ -58,9 +58,21 @@ export function writeStateBlob(uuid: string, payload: string, gen: number): bool
 
 /** The newest intact copy of `uuid`'s state, or null if none survives. */
 export function readBestState(uuid: string): ParsedState | null {
-    let best: ParsedState | null = null;
-    // Canonical first, so an equal generation resolves to it.
-    for (const p of [uuidToStatePath(uuid), shadowPath(uuid, 1), shadowPath(uuid, 2)]) {
+    const canon = parseState(readFile(uuidToStatePath(uuid)));
+
+    /* A canonical file with no envelope was written by a build that predates
+     * it — and such a build never touches the shadows. So if it carries real
+     * content it is necessarily NEWER than any shadow, however high that
+     * shadow's generation: the user downgraded, worked, and came back. Ordering
+     * it by generation would silently restore the pre-downgrade set over it.
+     *
+     * "Real content" is the guard against the other reading: a canonical torn
+     * down past its `gen` line also parses as legacy, but only as the bare tag,
+     * and that must fall through to the shadows rather than blank the set. */
+    if (canon && canon.legacy && canon.payload.length > BLANK_STATE.length) return canon;
+
+    let best: ParsedState | null = canon;
+    for (const p of [shadowPath(uuid, 1), shadowPath(uuid, 2)]) {
         const c = parseState(readFile(p));
         if (c && (!best || c.gen > best.gen)) best = c;
     }

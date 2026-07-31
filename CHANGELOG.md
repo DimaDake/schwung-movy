@@ -85,6 +85,33 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Move's own LEDs no longer bleed through Movy.** Movy declared a capability
+  (`skip_led_clear`) dating from its first release, when it drew highlights on
+  top of Move's clip colours. It has painted every pad itself for a long time,
+  but the flag was still telling the host to let Move's LED writes reach the
+  hardware — pads, step buttons, knob rings and RGB clip colours all repainted
+  underneath Movy, and stuck, because Movy only sends colours that changed. It
+  also made Movy's existing "suppress Move's RGB sysex" request a no-op, so
+  that earlier fix never actually did anything.
+
+  Movy now takes the LEDs outright. Two visible consequences: opening Movy
+  briefly shows *Loading…* while the surface is cleared (~330 ms on current
+  firmware), and leaving Movy hands Move its own LEDs back.
+
+  > **Restart your Move after updating.** The host reads a module's
+  > capabilities once per session and caches them, so this fix only takes
+  > effect after a restart. Everything else in Movy updates normally.
+
+- **LED ownership was lost after backgrounding.** Parking Movy with **Back**
+  and returning to it left Move's RGB repaints fighting Movy's again: the host
+  clears the suppression when a tool parks and never restores it, and Movy only
+  asked for it at startup. Movy now re-claims it every time it comes back.
+
+- **Knob-ring LEDs are no longer redrawn every tick.** They were force-written
+  16 packets per tick to out-shout Move's repaints — with those repaints now
+  stripped, an unchanged page costs nothing, freeing a quarter of the LED
+  budget for the sequencer.
+
 - **Sets could be silently lost.** Movy's per-set autosave had five separate
   ways to throw work away, and the persistence layer has been rewritten around
   them.

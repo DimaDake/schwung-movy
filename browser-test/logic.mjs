@@ -422,6 +422,45 @@ _log('\nTest: the page bar stays a readable ruler at every page count');
             gaps.some(g => g === 0), n * 2 - 1 > W);
     }
 
+    /* Pages of one bank are flush; a gap marks where the next bank starts. */
+    function barGrouped(index, groups) {
+        const rects = [];
+        const real = globalThis.fill_rect;
+        globalThis.fill_rect = (x, y, w, h) => { if (y === 8) rects.push({ x, w, h }); };
+        drawBankBar(index, groups.length, false, groups);
+        globalThis.fill_rect = real;
+        return rects.sort((a, b) => a.x - b.x);
+    }
+    {
+        // Three banks: 3 pages, 1 page, 2 pages — osirus's shape in miniature.
+        const groups = [0, 0, 0, 1, 2, 2];
+        const r = barGrouped(0, groups);
+        const gaps = r.slice(1).map((s, i) => s.x - (r[i].x + r[i].w));
+        eq('bar groups: gap only where the bank changes',
+            gaps.join(','), '0,0,1,1,0');
+        eq('bar groups: still spans the full width',
+            `${r[0].x}..${r[r.length - 1].x + r[r.length - 1].w}`, `0..${W}`);
+        const widths = r.map(s => s.w);
+        eq('bar groups: segment widths within 1px',
+            Math.max(...widths) - Math.min(...widths) <= 1, true);
+    }
+    {
+        // minijv on device: 70 pages across 51 banks. Every boundary keeps its
+        // separator because pages inside a bank no longer each pay for one.
+        const groups = [];
+        for (let b = 0; b < 70; b++) groups.push(Math.min(50, Math.floor(b * 51 / 70)));
+        const r = barGrouped(35, groups);
+        const gaps = r.slice(1).map((s, i) => s.x - (r[i].x + r[i].w));
+        const bounds = groups.slice(1).filter((g, i) => g !== groups[i]).length;
+        eq('bar groups n=70: one gap per bank boundary',
+            gaps.filter(g => g === 1).length, bounds);
+        eq('bar groups n=70: no gap inside a bank',
+            gaps.every((g, i) => g === (groups[i + 1] !== groups[i] ? 1 : 0)), true);
+        eq('bar groups n=70: every page still visible', r.every(s => s.w >= 1), true);
+        eq('bar groups n=70: spans the full width',
+            `${r[0].x}..${r[r.length - 1].x + r[r.length - 1].w}`, `0..${W}`);
+    }
+
     /* Beyond one pixel per page a ruler is impossible; the bar becomes a
      * position marker rather than drawing nothing. */
     const huge = bar(100, 300);

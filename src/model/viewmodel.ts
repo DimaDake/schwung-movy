@@ -153,6 +153,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         bankName,
         bankIndex:      s.knobPage,
         bankCount:      nBanks,
+        bankGroups:     s.bankGroups,
         rows,
         envelopeLines,
         touchedSlot:    primary >= 0 ? primary : null,

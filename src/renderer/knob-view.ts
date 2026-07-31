@@ -34,9 +34,11 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
 
     if (vm.stepPagePresent) {
         const sel = vm.stepPageSelected ? 0 : vm.bankIndex + 1;
-        drawBankBar(sel, vm.bankCount + 1, true);
+        // The step page is a bank of its own, ahead of the module's own banks.
+        drawBankBar(sel, vm.bankCount + 1, true,
+            vm.bankGroups ? [-1, ...vm.bankGroups] : undefined);
     } else {
-        drawBankBar(vm.bankIndex, vm.bankCount);
+        drawBankBar(vm.bankIndex, vm.bankCount, false, vm.bankGroups);
     }
     drawKnobParams(vm);
 

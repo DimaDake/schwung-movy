@@ -13,6 +13,27 @@ function hierFull(knobs, params) {
     return JSON.stringify({ levels: { root: { knobs, params } } });
 }
 
+
+/* A hierarchy shaped like a real param-dense module: many levels (banks), some
+ * spanning more than one page. `sizes[i]` is level i's param count, so a level
+ * of 16 params occupies two pages of the indicator bar under one bank. */
+function multiLevel(name, sizes) {
+    const params = [];
+    const levels = { root: { knobs: [], params: [] } };
+    sizes.forEach((count, i) => {
+        const keys = Array.from({ length: count }, (_, j) => `l${i}_p${j}`);
+        keys.forEach(k => params.push({ key: k, name: k.toUpperCase(), type: "int", min: 0, max: 127 }));
+        levels[`lvl${i}`] = { knobs: keys.slice(0, 8), params: keys.map(k => ({ key: k, label: k })) };
+        levels.root.params.push({ level: `lvl${i}`, label: `B${i}` });
+    });
+    return {
+        "synth:name": name,
+        "synth:chain_params": JSON.stringify(params),
+        "synth:ui_hierarchy": JSON.stringify({ levels }),
+        ...Object.fromEntries(params.map(p => [`synth:${p.key}`, "0"])),
+    };
+}
+
 export const MOCK_SYNTHS = {
 
     /* Smack-style one-shot actions for the trigger badge states. Two triggers so a
@@ -501,43 +522,17 @@ export const MOCK_SYNTHS = {
         ...Object.fromEntries(["a","b","c","d","e","f","g","h","i","j"].map(k => [`synth:${k}`, "0"])),
     },
 
-    /* 400 params on one level → 50 pages, surge's page count: the densest the
-     * bar can still afford a 1px gap between every page. */
-    hier_surge_pages: {
-        "synth:name": "SurgeLike",
-        "synth:chain_params": JSON.stringify(
-            Array.from({ length: 400 }, (_, i) =>
-                ({ key: `s${i}`, name: `S${i}`, type: "int", min: 0, max: 127 })),
-        ),
-        "synth:ui_hierarchy": JSON.stringify({
-            levels: {
-                root: {
-                    knobs: ["s0", "s1"],
-                    params: Array.from({ length: 400 }, (_, i) => ({ key: `s${i}`, label: `S${i}` })),
-                },
-            },
-        }),
-        ...Object.fromEntries(Array.from({ length: 400 }, (_, i) => [`synth:s${i}`, "0"])),
-    },
+    /* surge's shape: 50 pages across 30 banks (20 banks of two pages, 10 of one). */
+    hier_surge_pages: multiLevel('SurgeLike',
+        [...Array(20).fill(16), ...Array(10).fill(8)]),
 
-    /* 560 params on one level → 70 pages, minijv's page count. Past 64 pages the
-     * indicator bar can no longer afford a gap between segments. */
-    hier_dense_pages: {
-        "synth:name": "Dense",
-        "synth:chain_params": JSON.stringify(
-            Array.from({ length: 560 }, (_, i) =>
-                ({ key: `d${i}`, name: `D${i}`, type: "int", min: 0, max: 127 })),
-        ),
-        "synth:ui_hierarchy": JSON.stringify({
-            levels: {
-                root: {
-                    knobs: ["d0", "d1"],
-                    params: Array.from({ length: 560 }, (_, i) => ({ key: `d${i}`, label: `D${i}` })),
-                },
-            },
-        }),
-        ...Object.fromEntries(Array.from({ length: 560 }, (_, i) => [`synth:d${i}`, "0"])),
-    },
+    /* minijv's shape: 70 pages across 51 banks (19 banks of two pages, 32 of one). */
+    hier_dense_pages: multiLevel('Dense',
+        [...Array(19).fill(16), ...Array(32).fill(8)]),
+
+    /* osirus's shape: 25 pages across 13 banks. */
+    hier_grouped_pages: multiLevel('Grouped',
+        [...Array(12).fill(16), ...Array(1).fill(8)]),
 
     /* osirus's shape mid-ROM-load: the preset list is empty and the ROM enum
      * carries a single "(loading)" option. env.setParams() rewrites these

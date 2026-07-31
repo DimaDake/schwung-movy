@@ -68,7 +68,7 @@ const BASE = {
     knobs_jog_toast: 'test8', chain_t2: 'test8', chain_t4: 'test8',
     'drum-mrdrums-pad5': 'mrdrums', 'drum-mrdrums-global': 'mrdrums',
     'chordism-chordb': 'chordism', 'sfz-amp': 'sfz',
-    'bankbar-mid': 'hier_many_pages', 'bankbar-surge': 'hier_surge_pages',
+    'bankbar-mid': 'hier_grouped_pages', 'bankbar-surge': 'hier_surge_pages',
     'bankbar-dense': 'hier_dense_pages',
     'params-overflow-page': 'hier_params_overflow',
     'params-extras-settings': 'hier_params_extras',

@@ -154,11 +154,12 @@ automatically. You don't configure anything for most modules.
 - **Multiple pages** — modules with more than 8 parameters split into pages
   (`MAIN`, `PAGE 1`, `PAGE 2`, …). Scroll them with the jog wheel (or Left/Right
   when the sequencer isn't using those buttons). The line under the title is the
-  page indicator: one segment per page, the current one drawn taller. It always
-  spans the full width with a one-pixel separator between pages; on a
-  param-dense module the segments shrink to a single pixel, and only past 64
-  pages do separators start closing up — so the bar still tells you where you
-  are among 70 pages:
+  page indicator, and it maps the sections rather than just counting pages: the
+  pages of one section sit flush together, a one-pixel gap marks where the next
+  section starts, and the current page is drawn taller. So a wide block means a
+  section that spans several pages, and you can see at a glance which one you
+  are in — the same grouping Shift + jog steps through. It always spans the full
+  width, even on a module with 70 pages across 51 sections:
 
   ![Page indicator on a 70-page module](docs/assets/bankbar-dense.png)
 

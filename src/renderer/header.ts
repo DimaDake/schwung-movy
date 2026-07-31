@@ -8,18 +8,20 @@ export function drawHeader(left: string, right: string | null, inverted = false)
     if (right) fontPrint(W - fontWidth(right) - 2, 1, right, color);
 }
 
-/* One segment per page, the current one double height. Param-dense modules run
- * to 70 pages (minijv), so the segment pitch has to survive down to a single
- * pixel per page:
+/* One segment per page, the current one double height. The separators carry the
+ * BANK structure: pages belonging to the same bank sit flush against each other
+ * and a 1 px gap marks where the next bank starts, so the bar shows the same
+ * grouping Shift+jog steps through. `groups` is one bank id per page; without it
+ * every page is its own bank (the chain view's slot strip).
  *
- *   - the 1 px gap between segments is dropped as soon as gaps no longer fit,
- *     because a visible page matters more than a visible separator;
- *   - every segment is the SAME width, and the leftover pixels are split either
- *     side of the bar instead of being handed to the last page — that is what
- *     made the final page's tick 2.5x longer than the rest at 13 pages, and a
- *     59 px blob next to 69 zero-width segments at 70.
+ * A gap is a separator, never a spacer — it is 1 px or nothing. Leftover pixels
+ * go into the SEGMENTS, spread by floor difference so no two differ by more than
+ * 1 px: never a 2 px gap, never one long segment, never a margin. The bar always
+ * spans the full width.
  */
-export function drawBankBar(bankIndex: number, bankCount: number, dottedFirst = false): void {
+export function drawBankBar(
+    bankIndex: number, bankCount: number, dottedFirst = false, groups?: number[],
+): void {
     if (bankCount <= 1) return;
 
     /* Past one pixel per page a ruler cannot exist. Show the position on a
@@ -31,34 +33,35 @@ export function drawBankBar(bankIndex: number, bankCount: number, dottedFirst = 
         return;
     }
 
-    /* A gap is a separator, not a spacer: exactly 1 px, or 0 once the page count
-     * leaves no room for one. Leftover pixels therefore go into the SEGMENTS —
-     * never into a 2 px gap (which reads as a broken ruler), never into one long
-     * segment, never into margins. Two regimes, both spanning the full width:
-     *
-     *   n <= 64  every gap is 1 px; the spare pixels widen segments, spread by
-     *            the floor difference so no two differ by more than 1 px.
-     *   n >  64  a 1 px segment plus a 1 px gap no longer fits n times, so every
-     *            segment is 1 px and the spare pixels become the gaps — as many
-     *            separators survive as the width allows (58 of 69 at 70 pages).
-     */
-    const roomForGaps = bankCount * 2 - 1 <= W;
-    const area  = roomForGaps ? W - (bankCount - 1) : W;   // pixels left for segments
-    const slack = area - bankCount;                        // spare, spread as gaps when n > 64
-    const edge  = (b: number): number => Math.floor(b * area / bankCount);
+    /* gap[b] = 1 when a separator precedes page b — i.e. b starts a new bank. */
+    const gap = new Array<number>(bankCount).fill(0);
+    const useGroups = !!groups && groups.length === bankCount;
+    const bounds: number[] = [];
+    for (let b = 1; b < bankCount; b++) {
+        if (!useGroups || groups![b] !== groups![b - 1]) bounds.push(b);
+    }
 
+    /* Every page needs a pixel before any separator does, so thin the
+     * separators out — evenly, not by dropping the tail — when they do not fit. */
+    const keep = Math.min(bounds.length, Math.max(0, W - bankCount));
+    for (let i = 0; i < keep; i++) gap[bounds[Math.floor(i * bounds.length / keep)]] = 1;
+
+    const area = W - keep;                                   // pixels left for segments
+    const edge = (b: number): number => Math.floor(b * area / bankCount);
+
+    let x = 0;
     for (let b = 0; b < bankCount; b++) {
-        const sx   = roomForGaps ? edge(b) + b
-                                 : b + Math.floor(b * slack / (bankCount - 1));
-        const segW = roomForGaps ? edge(b + 1) - edge(b) : 1;
+        x += gap[b];
+        const segW = edge(b + 1) - edge(b);
         const h    = b === bankIndex ? 2 : 1;
         if (dottedFirst && b === 0) {
             // Step page indicator: dotted segment (every other pixel), double
             // height when selected.
-            for (let x = sx; x < sx + segW; x += 2) fill_rect(x, BAR_Y, 1, h, 1);
+            for (let px = x; px < x + segW; px += 2) fill_rect(px, BAR_Y, 1, h, 1);
         } else {
-            fill_rect(sx, BAR_Y, segW, h, 1);
+            fill_rect(x, BAR_Y, segW, h, 1);
         }
+        x += segW;
     }
 }
 

@@ -103,7 +103,7 @@ export function buildGenericPages(
     if (orphanFilePaths.length > 0) rootKeys = [...orphanFilePaths, ...rootKeys];
 
     /* The picker is stateful — ask each level exactly once, root included. */
-    const extras = makeExtrasPicker(cpMap, allKnobKeys, listParam);
+    const extras = makeExtrasPicker(cpMap, allKnobKeys, listParam, s.degenerateKeys);
     const rootExtras = extras(rootLevel as WalkLevel);
     if (rootKeys.length > 0 || rootExtras.length > 0) {
         addLevel('Main', [...rootKeys, ...rootExtras]);

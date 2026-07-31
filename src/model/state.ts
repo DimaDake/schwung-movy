@@ -73,6 +73,10 @@ export interface ModelState {
      * on a genuine module change, like paramGestures. */
     metaRetries:         number;
     presetDeclared:      boolean;
+    /* params[] keys left off the pages because the module reported an
+     * unturnable range. Re-checked by the metadata retry — osirus widens
+     * bank_index 0..0 → 0..1 once its ROM lists the banks. */
+    degenerateKeys:      string[];
     refreshParamCursor:  number;
     /* Cursor over the CURRENT page's 8 slots, interleaved with
      * refreshParamCursor (one read per tick, alternating) so on-screen values
@@ -128,6 +132,7 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         pollCountdown:       NAME_POLL_TICKS,
         metaRetries:         0,
         presetDeclared:      false,
+        degenerateKeys:      [],
         refreshParamCursor:  0,
         refreshPageCursor:   0,
         lastDeltaTick:       -(REFRESH_SUPPRESS_TICKS + 1),

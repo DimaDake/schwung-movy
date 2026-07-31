@@ -321,6 +321,32 @@ _log('\nTest: preset count and enum options are re-resolved when they land');
         JSON.stringify(romOf().options), JSON.stringify(['Virus A', 'Virus B', 'Virus C']));
 }
 
+_log('\nTest: a param that widens its range after load becomes reachable');
+{
+    /* osirus's Bank: device-measured 0..0 immediately after load, 0..1 once the
+     * ROM lists the banks (scripts/probe-async-meta.mjs). */
+    const withBank = (max) => ({
+        "synth:name": "Banker",
+        "synth:chain_params": JSON.stringify([
+            { key: "cutoff",     name: "Cutoff", type: "int", min: 0, max: 127 },
+            { key: "bank_index", name: "Bank",   type: "int", min: 0, max },
+        ]),
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: { root: { knobs: ["cutoff"], params: [{ key: "bank_index", label: "Bank" }] } },
+        }),
+        "synth:cutoff": "64", "synth:bank_index": "0",
+    });
+    const keys = (m) => m.dumpLayout().params.filter(Boolean).map(p => p.key);
+
+    const m = bootModel(withBank(0));
+    eq('widen: unturnable Bank is not rendered at load', keys(m).includes('bank_index'), false);
+
+    env.setParams(withBank(1));
+    for (let i = 0; i < 4 * NAME_POLL_TICKS; i++) m.tick();
+    eq('widen: Bank appears once the module reports a real range',
+        keys(m).includes('bank_index'), true);
+}
+
 _log('\nTest: a same-module rebuild keeps the current page');
 {
     const m = bootModel(MOCK_SYNTHS.hier_params_overflow_two_levels);

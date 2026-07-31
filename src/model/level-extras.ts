@@ -23,6 +23,10 @@ function renderable(cp: RawMeta | undefined): boolean {
  * level. */
 export function makeExtrasPicker(
     cpMap: Record<string, RawMeta>, knobKeysEverywhere: Iterable<string>, listParam?: string,
+    /* Keys dropped for a degenerate range are collected here: on device osirus
+     * widens bank_index 0..0 → 0..1 seconds after load, so the metadata retry
+     * needs to know which keys are worth re-checking. */
+    degenerate?: string[],
 ): (lvl: WalkLevel) => string[] {
     const seen = new Set<string>(knobKeysEverywhere);
     return (lvl: WalkLevel): string[] => {
@@ -31,7 +35,7 @@ export function makeExtrasPicker(
             // `ui_*` is the module's internal UI state, not a user-facing param
             // (same exclusion the no-hierarchy chain_params fallback makes).
             if (seen.has(k) || k === listParam || k.startsWith('ui_')) continue;
-            if (!renderable(cpMap[k])) continue;
+            if (!renderable(cpMap[k])) { degenerate?.push(k); continue; }
             seen.add(k);
             out.push(k);
         }

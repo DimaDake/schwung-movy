@@ -28,7 +28,7 @@ function placeholderEnum(s: ModelState): boolean {
 export function retryUnsettledMeta(s: ModelState): boolean {
     if (s.metaRetries >= META_RETRY_LIMIT) return false;
     const wantPreset = presetPending(s);
-    if (!wantPreset && !placeholderEnum(s)) {
+    if (!wantPreset && !placeholderEnum(s) && s.degenerateKeys.length === 0) {
         s.metaRetries = META_RETRY_LIMIT;    // settled — latch off for this module
         return false;
     }
@@ -48,12 +48,18 @@ export function retryUnsettledMeta(s: ModelState): boolean {
     const raw = shadow_get_param(s.activeSlot, s.componentKey + ':chain_params');
     if (raw) {
         try {
-            const arr = JSON.parse(raw) as Array<{ key?: string; options?: string[] }>;
-            const settled = arr.some(cp => cp.key
+            const arr = JSON.parse(raw) as Array<{ key?: string; options?: string[]; min?: number; max?: number }>;
+            const enumSettled = arr.some(cp => cp.key
                 && s.knobParams.some(p => !!p && p.key === cp.key && isPlaceholderOptions(p.options))
                 && !isPlaceholderOptions(cp.options));
-            if (settled) {
-                mlog('meta-retry: enum options settled');
+            /* A key we dropped as unturnable may have gained a real range —
+             * osirus's bank_index goes 0..0 → 0..1 once its ROM lists the banks
+             * (device-measured, scripts/probe-async-meta.mjs). */
+            const rangeSettled = arr.some(cp => cp.key != null
+                && s.degenerateKeys.indexOf(cp.key) >= 0
+                && cp.min != null && cp.max != null && cp.max > cp.min);
+            if (enumSettled || rangeSettled) {
+                mlog('meta-retry: ' + (enumSettled ? 'enum options' : 'param range') + ' settled');
                 s.hierarchyKey = '';
             }
         } catch { /* a malformed republish is just another unsettled poll */ }

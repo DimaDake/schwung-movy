@@ -31,12 +31,18 @@ export function drawBankBar(bankIndex: number, bankCount: number, dottedFirst = 
         return;
     }
 
-    const gap   = bankCount * 2 - 1 <= W ? 1 : 0;
-    const segW  = Math.max(1, Math.floor((W - (bankCount - 1) * gap) / bankCount));
-    const x0    = Math.floor((W - (bankCount * segW + (bankCount - 1) * gap)) / 2);
+    /* Segments are uniform; the leftover goes into the GAPS, not into one long
+     * segment and not into margins. So the bar always spans the full width, and
+     * as the page count climbs only as many separators collapse as the width
+     * actually forces — at 70 pages 58 of the 69 gaps survive. */
+    let segW = Math.max(1, Math.floor((W - (bankCount - 1)) / bankCount));
+    if (bankCount * segW + (bankCount - 1) > W) segW = Math.max(1, Math.floor(W / bankCount));
+    const slack = W - bankCount * segW;
 
     for (let b = 0; b < bankCount; b++) {
-        const sx = x0 + b * (segW + gap);
+        // Spread the slack evenly across the gaps: gap b is the difference of
+        // two floors, so it is 0 or 1 wider than its neighbours, never bunched.
+        const sx = b * segW + Math.floor(b * slack / Math.max(1, bankCount - 1));
         const h  = b === bankIndex ? 2 : 1;
         if (dottedFirst && b === 0) {
             // Step page indicator: dotted segment (every other pixel), double

@@ -403,9 +403,18 @@ _log('\nTest: the page bar stays a readable ruler at every page count');
         eq(`bar n=${n}: one segment per page`,        rects.length, n);
         eq(`bar n=${n}: every segment visible`,       rects.every(r => r.w >= 1), true);
         eq(`bar n=${n}: all segments the same width (${widths.join('/')})`, widths.length, 1);
-        eq(`bar n=${n}: stays on screen`,             right <= W && left >= 0, true);
+        eq(`bar n=${n}: spans the full width`,        `${left}..${right}`, `0..${W}`);
         eq(`bar n=${n}: current page is the tall one`,
             rects.filter(r => r.h === 2).length, 1);
+        /* Gaps absorb the leftover pixels, so only as many as necessary
+         * collapse — the bar must never lose more separators than it has to. */
+        const sorted = [...rects].sort((a, b) => a.x - b.x);
+        const gaps   = sorted.slice(1).map((r, i) => r.x - (sorted[i].x + sorted[i].w));
+        const collapsed = gaps.filter(g => g === 0).length;
+        const spare = W - n * sorted[0].w;
+        eq(`bar n=${n}: gaps kept wherever they fit (${collapsed} collapsed of ${gaps.length})`,
+            collapsed, Math.max(0, gaps.length - spare));
+        eq(`bar n=${n}: gaps never overlap`, gaps.every(g => g >= 0), true);
     }
 
     /* Beyond one pixel per page a ruler is impossible; the bar becomes a

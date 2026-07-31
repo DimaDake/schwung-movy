@@ -109,12 +109,29 @@ grows another LED-ownership flag.
 The `typeof fn === 'function'` guard is retained: hosts predating
 `shadow_set_overtake_suppress_sysex` must keep working.
 
-### Change 3 — `src/renderer/knob-leds.ts`: drop `force=true`
+### Change 3 — `src/renderer/knob-leds.ts`: add a diff cache
 
 `updateKnobLEDs()` currently writes 16 LEDs (8 notes 0-7 + 8 CCs 71-78) every
-tick with `force=true` and no diff cache, purely to out-shout Move's repaints.
-With Changes 1-2 in place Move no longer repaints those addresses, so the
-writes become on-change.
+tick with no diff cache, purely to out-shout Move's repaints. With Changes 1-2
+in place Move no longer repaints those addresses, so the writes become
+on-change.
+
+**`force=true` stays.** The obvious implementation — drop `force` and let
+schwung's `setLED` cache do the work — is wrong here. movy imports `setLED` /
+`setButtonLED` from `/data/UserData/schwung/shared/input_filter.mjs`
+(`build/device.mjs:20`), whose module-level `ledCache` / `buttonCache` movy has
+no way to invalidate: `invalidateLedCachesOnResume()` (`src/app/tick.ts:181-191`)
+clears only movy's own caches. Meanwhile the framework's entry LED-clear
+(`shadow_ui.js:650-662`, which covers CCs 71-78) writes straight through
+`move_midi_internal_send` and never updates that cache. Any path where the
+cache outlives a hardware clear — notably a tool exit and re-entry within one
+shadow_ui process, where the ES module cache may persist — leaves the cache
+claiming a colour the hardware no longer shows, and the knob LEDs stay dark.
+
+So Change 3 gives knob-leds **its own** diff cache, cleared by the existing
+`invalidateLedCachesOnResume()`, and keeps `force=true` to bypass schwung's
+opaque one. This is exactly the pattern `src/seq/led-cache.ts` already uses,
+and for the same reason.
 
 This is in scope rather than deferred for two reasons:
 

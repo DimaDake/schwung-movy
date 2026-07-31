@@ -17,9 +17,17 @@ import { ENGINE_VERSION } from '../dist/esm/seq/constants.js';
 import {
     readActiveSet, uuidToStatePath, uuidToUiStatePath,
     loadNameIndex, rememberSet, BLANK_STATE,
-    stripCopySuffix, findInheritCandidates, resolveStateBlob, resolveUiBlob,
 } from '../dist/esm/seq/set-context.js';
+import {
+    stripCopySuffix, findInheritCandidates, resolveState,
+} from '../dist/esm/seq/set-inherit.js';
 import { switchToSet, currentSetUuid, resetSeqPersist } from '../dist/esm/seq/persist.js';
+import { wrapState, parseState, adler32 } from '../dist/esm/seq/persist-blob.js';
+import { installMockFs, uninstallMockFs } from './mock-fs.mjs';
+import {
+    safeWrite, readBestState, readUiBlob, writeStateBlob, resetStoreRotation,
+} from '../dist/esm/seq/persist-store.js';
+import { shadowPath } from '../dist/esm/seq/set-context.js';
 import { keyboardState } from '../dist/esm/keyboard/state.js';
 import { installMockEngine } from './mock-engine.mjs';
 import { installEnv } from './env.mjs';
@@ -2610,59 +2618,174 @@ _log('\nTest: drumPadOn');
     resetSeqState();
 }
 
-/* ── seq persistence: load on boot, autosave on dirty ────────────────────── */
+/* ── engine generation ───────────────────────────────────────────────────── */
+{
+    _log('\nengine generation tracks reloads:');
+    const { resetSeqEngine, seqEngineTick, engineReady, engineGeneration } =
+        await import('../dist/esm/seq/engine.js');
+    const { resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+
+    const eng = installMockEngine();
+    resetSeqEngine(); resetSeqState();
+    eq('generation starts at 0', engineGeneration(), 0);
+
+    seqEngineTick();                       // probe → ping ok
+    eq('engine ready', engineReady(), true);
+    eq('first boot is generation 1', engineGeneration(), 1);
+
+    // The engine wedges: 16 lost status polls send engine.ts back to probing,
+    // and the probe re-dlopens dsp.so. Whatever comes back is a NEW engine.
+    eng.statusUnavailable = true;
+    for (let i = 0; i < 8 * 20; i++) seqEngineTick();
+    eng.statusUnavailable = false;
+    for (let i = 0; i < 8; i++) seqEngineTick();
+    eq('engine ready again', engineReady(), true);
+    eq('reload is a new generation', engineGeneration(), 2);
+
+    uninstallMockEngine(); resetSeqEngine(); resetSeqState();
+}
+
+/* ── seq persistence ─────────────────────────────────────────────────────── */
 {
     _log('\nseq persistence:');
     const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
     const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
-    const { seqPersistTick, resetSeqPersist } = await import('../dist/esm/seq/persist.js');
+    const { seqPersistTick, seqPersistFlush, resetSeqPersist, currentSetUuid } =
+        await import('../dist/esm/seq/persist.js');
 
-    // Mock the device filesystem. With no active_set.txt present, persist falls
-    // back to the per-set "_default" path (off-device / no native set).
-    const files = {};
-    const PATH = '/data/UserData/schwung/modules/tools/movy/sets/_default/seq-state.json';
-    globalThis.host_read_file  = (p) => files[p] ?? null;
-    globalThis.host_write_file = (p, c) => { files[p] = c; return true; };
+    const ACTIVE = '/data/UserData/schwung/active_set.txt';
+    const SAVED  = 'movy1\nbpm 14000\ncl 0 0 16 0 0:24:60:100\n';
+    const EDITED = 'movy1\nbpm 14000\ncl 0 0 32 0 0:24:62:110\n';
+    const BLANK  = 'movy1\n';
 
-    const engine = installMockEngine();
-    // Extend the mock to serve/accept a state blob.
-    let engineState = 'movy1\nbpm 12000\n';
-    const origGet = globalThis.host_module_get_param;
-    globalThis.host_module_get_param = (key) => (key === 'state' ? engineState : origGet(key));
-    const origSetB = globalThis.host_module_set_param_blocking;
-    let loadedBlob = null;
-    globalThis.host_module_set_param_blocking = (key, val) => {
-        if (key === 'state') loadedBlob = val;
-        return true;
+    const boot = (files) => {
+        const fs = installMockFs(files);
+        const eng = installMockEngine();
+        resetSeqEngine(); resetSeqState(); resetSeqPersist(); resetStoreRotation();
+        seqEngineTick();     // probe → ready, generation 1
+        seqPersistTick();    // first ready tick → resolve the set and restore
+        return { fs, eng };
+    };
+    const teardown = () => {
+        uninstallMockEngine(); uninstallMockFs();
+        resetSeqEngine(); resetSeqState(); resetSeqPersist(); resetStoreRotation();
     };
 
-    // Restore: a saved file on disk is pushed to the engine once on boot.
-    files[PATH] = 'movy1\nbpm 14000\ncl 0 0 16 0 0:24:60:100\n';
-    resetSeqEngine(); resetSeqState(); resetSeqPersist();
-    seqEngineTick();      // boot probe → ready
-    seqPersistTick();     // first ready tick → load
-    eq('state restored from file on boot', loadedBlob, files[PATH]);
+    // Restore: the set named by active_set.txt is pushed into the engine.
+    {
+        const { eng } = boot({ [ACTIVE]: 'S1\nSong One\n', [uuidToStatePath('S1')]: SAVED });
+        eq('restored the active set', eng.stateBlob, SAVED);
+        eq('tracking the active set', currentSetUuid(), 'S1');
+        teardown();
+    }
 
-    // Autosave: when dirty, the serialized state is written to the file.
-    engineState = 'movy1\nbpm 13000\ncl 0 0 32 0 0:24:62:110\n';
-    seqState.dirty = true;
-    files[PATH] = ''; // clear to observe the write
-    for (let i = 0; i < 700; i++) seqPersistTick(); // past the save interval
-    eq('autosave wrote the engine state', files[PATH], engineState);
-    eq('dirty cleared after save', seqState.dirty, false);
+    // Autosave writes an envelope that reads back as the engine's payload.
+    {
+        const { fs, eng } = boot({ [ACTIVE]: 'S1\nSong One\n', [uuidToStatePath('S1')]: SAVED });
+        eng.stateBlob = EDITED;
+        seqState.dirty = true;
+        for (let i = 0; i < 700; i++) seqPersistTick();
+        eq('autosaved the edited state', readBestState('S1').payload, EDITED);
+        eq('dirty cleared after save', seqState.dirty, false);
 
-    // Not dirty → no write.
-    files[PATH] = 'SENTINEL';
-    for (let i = 0; i < 700; i++) seqPersistTick();
-    eq('no write when clean', files[PATH], 'SENTINEL');
+        // Clean → no further writes.
+        const before = fs.writes.length;
+        for (let i = 0; i < 700; i++) seqPersistTick();
+        eq('no write when clean', fs.writes.length, before);
+        teardown();
+    }
 
-    globalThis.host_module_get_param = origGet;
-    globalThis.host_module_set_param_blocking = origSetB;
-    delete globalThis.host_read_file;
-    delete globalThis.host_write_file;
-    uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetSeqPersist();
-    globalThis.host_read_file = () => null; // restore the default test stub
+    /* F1 — the destructive one. engine.ts re-dlopens dsp.so after a wedge and
+     * the new engine has NO clips. The UI must restore into it and must not
+     * write that blank engine over the set. Delete the generation guard in
+     * persist.ts and this fails: the file becomes "movy1\n". */
+    {
+        const { eng } = boot({ [ACTIVE]: 'S1\nSong One\n', [uuidToStatePath('S1')]: SAVED });
+        eq('sanity: set restored', eng.stateBlob, SAVED);
+
+        // The engine stops answering and its RAM goes with it, so from this
+        // instant the state it would serialize is empty — that is what the
+        // re-dlopen brings back.
+        eng.statusUnavailable = true;
+        eng.stateBlob = BLANK;
+        for (let i = 0; i < 8 * 20; i++) { seqEngineTick(); seqPersistTick(); }
+        eng.statusUnavailable = false;
+        for (let i = 0; i < 8; i++) { seqEngineTick(); seqPersistTick(); }
+
+        seqState.dirty = true;                 // an edit lands on the new engine
+        for (let i = 0; i < 700; i++) seqPersistTick();
+
+        eq('engine restored from disk after reload', eng.stateBlob, SAVED);
+        eq('blank engine never overwrote the set', readBestState('S1').payload, SAVED);
+        teardown();
+    }
+
+    /* F4 — a failed write must stay pending. The engine clears its own dirty
+     * flag on the state read, so if the UI drops it nothing ever asks again. */
+    {
+        const { fs, eng } = boot({ [ACTIVE]: 'S1\nSong One\n', [uuidToStatePath('S1')]: SAVED });
+        eng.stateBlob = EDITED;
+        seqState.dirty = true;
+        fs.failWrites = 'seq-state';
+        for (let i = 0; i < 700; i++) seqPersistTick();
+        eq('failed save did not corrupt the file', readBestState('S1').payload, SAVED);
+
+        fs.failWrites = null;
+        seqState.dirty = false;                // engine says clean; UI must retry anyway
+        for (let i = 0; i < 700; i++) seqPersistTick();
+        eq('failed save retried once writes work', readBestState('S1').payload, EDITED);
+        teardown();
+    }
+
+    /* F5 — active_set.txt going unreadable must not move us to `_default`. */
+    {
+        const { fs, eng } = boot({ [ACTIVE]: 'S1\nSong One\n', [uuidToStatePath('S1')]: SAVED });
+        delete fs.files[ACTIVE];
+        eng.stateBlob = EDITED;
+        seqState.dirty = true;
+        for (let i = 0; i < 700; i++) seqPersistTick();
+        eq('still on the same set', currentSetUuid(), 'S1');
+        eq('edit saved to the real set', readBestState('S1').payload, EDITED);
+        eq('nothing written to _default', readBestState(''), null);
+
+        // A placeholder id is equally "unknown".
+        fs.files[ACTIVE] = '__pending-0-1\nNew Set\n';
+        for (let i = 0; i < 200; i++) seqPersistTick();
+        eq('placeholder id ignored', currentSetUuid(), 'S1');
+        teardown();
+    }
+
+    /* F3 — closing movy flushes instead of dropping the last edits. */
+    {
+        const { eng } = boot({ [ACTIVE]: 'S1\nSong One\n', [uuidToStatePath('S1')]: SAVED });
+        eng.stateBlob = EDITED;
+        seqState.dirty = true;
+        seqPersistFlush();                     // what onUnload calls
+        eq('flush persisted immediately', readBestState('S1').payload, EDITED);
+        teardown();
+    }
+
+    /* Generations continue across sessions, so a save never loses to a stale
+     * higher-numbered copy left behind by an earlier run. */
+    {
+        const first = boot({ [ACTIVE]: 'S1\nSong One\n', [uuidToStatePath('S1')]: SAVED });
+        first.eng.stateBlob = EDITED;
+        seqState.dirty = true;
+        for (let i = 0; i < 700; i++) seqPersistTick();
+        const genAfterFirstRun = readBestState('S1').gen;
+        const carried = { ...first.fs.files };
+        teardown();
+
+        const second = boot(carried);
+        second.eng.stateBlob = 'movy1\nbpm 15000\n';
+        seqState.dirty = true;
+        for (let i = 0; i < 700; i++) seqPersistTick();
+        eq('generation kept climbing', readBestState('S1').gen > genAfterFirstRun, true);
+        eq('newest wins', readBestState('S1').payload, 'movy1\nbpm 15000\n');
+        teardown();
+    }
 }
 
 /* ── automation: restore re-requests label sync ──────────────────────────────
@@ -2677,16 +2800,15 @@ _log('\nautomation: restore re-requests label sync:');
     const { resetSeqState } = await import('../dist/esm/seq/state.js');
     const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
 
-    const files = {};
-    const PATH = '/data/UserData/schwung/modules/tools/movy/seq-state.json';
-    globalThis.host_read_file  = (p) => files[p] ?? null;
-    globalThis.host_write_file = () => true;
-    const engine = installMockEngine();
+    installMockFs({
+        '/data/UserData/schwung/active_set.txt': 'LS1\nLabel Set\n',
+        [uuidToStatePath('LS1')]: 'movy1\nau 0 0 100 synth:cutoff\n',   // a persisted lane label
+    });
+    installMockEngine();
     const origSetB = globalThis.host_module_set_param_blocking;
     globalThis.host_module_set_param_blocking = () => true;
 
-    files[PATH] = 'movy1\nau 0 0 100 synth:cutoff\n';   // a persisted lane label
-    resetSeqEngine(); resetSeqState(); resetSeqPersist();
+    resetSeqEngine(); resetSeqState(); resetSeqPersist(); resetStoreRotation();
     seqEngineTick();          // boot probe → ready → requestLabelSync (the boot's own)
     takeLabelSync();          // consume it, to isolate the restore's re-request
     eq('no pending label sync before restore', takeLabelSync(), false);
@@ -2694,10 +2816,8 @@ _log('\nautomation: restore re-requests label sync:');
     eq('restore re-requests label sync', takeLabelSync(), true);
 
     globalThis.host_module_set_param_blocking = origSetB;
-    delete globalThis.host_read_file;
-    delete globalThis.host_write_file;
+    uninstallMockFs();
     uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetSeqPersist();
-    globalThis.host_read_file = () => null;
 }
 
 /* ── active-notes mirror ─────────────────────────────────────────────────── */
@@ -3027,7 +3147,7 @@ _log('\nautomation: restore re-requests label sync:');
     const { appState } = await import('../dist/esm/app/state.js');
     const { toggleSolo, toggleMute, isSoloed, anySolo, isMuted, resetTrackMutes } =
         await import('../dist/esm/mixer/track-mutes.js');
-    const { serializeUiState, applyUiState } = await import('../dist/esm/seq/persist.js');
+    const { serializeUiState, applyUiState } = await import('../dist/esm/seq/ui-state.js');
     const { seqToastText } = await import('../dist/esm/seq/render.js');
 
     const CC_MUTE = 88;
@@ -4753,7 +4873,7 @@ _log('\nautomation label sync:');
 /* ── UI-state persistence round-trip ──────────────────────────────────── */
 {
     _log('\nUI-state persistence round-trip:');
-    const { serializeUiState, applyUiState } = await import('../dist/esm/seq/persist.js');
+    const { serializeUiState, applyUiState } = await import('../dist/esm/seq/ui-state.js');
     const { keyboardState } = await import('../dist/esm/keyboard/state.js');
 
     keyboardState.rootPc = 2; keyboardState.scale = 2;
@@ -5064,8 +5184,122 @@ _log('\nTest: set-context paths + active-set reader + name index');
     rememberSet('My Song', 'abc-123');
     eq('name index round-trips', loadNameIndex()['My Song'], 'abc-123');
 
+    // "Unknown" must be distinguishable from "a set called ''". Movy follows
+    // active_set.txt; a transient unreadable file used to resolve to the
+    // `_default` set and quietly redirect every autosave there.
     delete fs['/data/UserData/schwung/active_set.txt'];
-    eq('missing active_set → empty uuid', readActiveSet().uuid, '');
+    eq('missing active_set → null', readActiveSet(), null);
+
+    fs['/data/UserData/schwung/active_set.txt'] = '\n\n';
+    eq('empty active_set → null', readActiveSet(), null);
+
+    // Move reports a placeholder id while a set is being created. A device in
+    // the wild ended up with a whole sets/__pending-0-1/ directory this way.
+    fs['/data/UserData/schwung/active_set.txt'] = '__pending-0-1\nNew Set\n';
+    eq('placeholder set id → null', readActiveSet(), null);
+
+    fs['/data/UserData/schwung/active_set.txt'] = 'abc-123\nMy Song\n';
+    eq('real uuid still resolves', readActiveSet().uuid, 'abc-123');
+}
+
+_log('\nTest: state envelope (truncation is detectable)');
+{
+    const payload = 'movy1\nbpm 12000\ncl 0 0 16 0 0:24:60:100\n';
+    const wrapped = wrapState(payload, 7);
+
+    eq('envelope keeps the movy1 tag first', wrapped.split('\n')[0], 'movy1');
+    eq('generation marker is line 2', wrapped.split('\n')[1], 'gen 7');
+    eq('round-trips the payload', parseState(wrapped).payload, payload);
+    eq('round-trips the generation', parseState(wrapped).gen, 7);
+
+    // A blank set is the smallest possible payload and must survive too.
+    eq('blank payload round-trips', parseState(wrapState('movy1\n', 3)).payload, 'movy1\n');
+
+    // Backward compat: a file written by any shipped build has no envelope.
+    const legacy = 'movy1\nbpm 12000\n';
+    eq('legacy blob still loads', parseState(legacy).payload, legacy);
+    eq('legacy blob is generation 0', parseState(legacy).gen, 0);
+
+    // The whole point: a torn write must be REJECTED, not loaded as a
+    // partial set. `gen` survives at the top; the trailer does not.
+    eq('torn envelope rejected', parseState(wrapped.slice(0, 30)), null);
+    eq('missing trailer rejected', parseState('movy1\ngen 7\nbpm 12000\n'), null);
+    eq('bad checksum rejected',
+        parseState(wrapped.replace(/end (\d+) (\d+) \d+/, 'end $1 $2 12345678')), null);
+    eq('bad length rejected',
+        parseState(wrapped.replace(/end (\d+) \d+ /, 'end $1 999999 ')), null);
+
+    eq('not a movy blob → null', parseState('garbage\n'), null);
+    eq('null in → null out', parseState(null), null);
+
+    eq('adler32 is stable', adler32('movy1\n'), adler32('movy1\n'));
+    eq('adler32 discriminates', adler32('movy1\n') !== adler32('movy2\n'), true);
+}
+
+_log('\nTest: durable store (rotation + verified writes)');
+{
+    const fs = installMockFs();
+    resetStoreRotation();
+    const canon = uuidToStatePath('S');
+
+    // A save lands in both a shadow slot and the canonical path, newest first
+    // in the shadow so the canonical still holds the previous generation until
+    // the shadow has verified.
+    eq('gen 1 write reported durable', writeStateBlob('S', 'movy1\nbpm 12000\n', 1), true);
+    eq('canonical holds gen 1', readBestState('S').gen, 1);
+    eq('shadow 1 holds gen 1', parseState(fs.files[shadowPath('S', 1)]).gen, 1);
+
+    // The next save rotates to the other slot, so slot 1 keeps generation 1.
+    eq('gen 2 write reported durable', writeStateBlob('S', 'movy1\nbpm 14000\n', 2), true);
+    eq('shadow 1 still holds gen 1', parseState(fs.files[shadowPath('S', 1)]).gen, 1);
+    eq('shadow 2 holds gen 2', parseState(fs.files[shadowPath('S', 2)]).gen, 2);
+    eq('best-of read picks the newest', readBestState('S').payload, 'movy1\nbpm 14000\n');
+
+    // The crash case: the canonical file is torn. The set must come back from
+    // a shadow instead of loading as a partial set or as blank.
+    fs.files[canon] = fs.files[canon].slice(0, 12);
+    eq('torn canonical falls back to a shadow', readBestState('S').payload, 'movy1\nbpm 14000\n');
+    eq('fallback keeps the generation', readBestState('S').gen, 2);
+
+    // Every copy torn → nothing loadable, and the caller must be told so it
+    // can fall back rather than silently start from a partial set.
+    fs.files[shadowPath('S', 1)] = 'movy1\ngen 1\nbp';
+    fs.files[shadowPath('S', 2)] = 'movy1\ngen 2\nbp';
+    eq('all copies torn → null', readBestState('S'), null);
+
+    // A write the host rejects must be reported, not swallowed.
+    fs.failWrites = true;
+    eq('failed write reported', writeStateBlob('S', 'movy1\nbpm 9000\n', 3), false);
+    fs.failWrites = null;
+
+    // A write that lies — reports success but stores a short file — is caught
+    // by reading it back. This is the failure class fsync would cover and we
+    // cannot: at least we refuse to call it saved.
+    fs.truncate = { path: 'seq-state', at: 8 };
+    eq('short write caught by read-back', writeStateBlob('S', 'movy1\nbpm 9000\n', 4), false);
+    fs.truncate = null;
+
+    /* Downgrade ordering: a build without the envelope never touches the
+     * shadows, so a canonical file with no envelope AND real content was
+     * necessarily written after them — the user rolled back, worked, rolled
+     * forward. Generation order would restore the pre-downgrade set over it. */
+    fs.files[shadowPath('D', 1)] = wrapState('movy1\nbpm 11000\n', 9);
+    fs.files[uuidToStatePath('D')] = 'movy1\nbpm 12500\nswing 60\n';
+    eq('legacy canonical outranks a higher-gen shadow',
+        readBestState('D').payload, 'movy1\nbpm 12500\nswing 60\n');
+
+    // …but a canonical torn down past its `gen` line also reads as legacy, and
+    // that must fall through to the shadow rather than blank the set.
+    fs.files[uuidToStatePath('D')] = 'movy1\n';
+    eq('bare-tag canonical falls through to the shadow',
+        readBestState('D').payload, 'movy1\nbpm 11000\n');
+
+    eq('safeWrite verifies content', safeWrite(canon, 'hello'), true);
+    fs.failWrites = true;
+    eq('safeWrite reports host failure', safeWrite(canon, 'nope'), false);
+    fs.failWrites = null;
+
+    uninstallMockFs();
 }
 
 _log('\nTest: inherit-on-copy resolution');
@@ -5096,31 +5330,31 @@ _log('\nTest: inherit-on-copy resolution');
 
     // Resolving a copy with no own state seeds + returns the parent's blob.
     fs['/data/UserData/schwung/modules/tools/movy/sets/name-index.json'] = JSON.stringify(idx);
-    const blob = resolveStateBlob('c-uuid', 'My Song Copy');
-    eq('inherited state blob', blob, 'movy1\nbpm 12000\n');
-    eq('copy seeded into dst state file', fs[stPath('c-uuid')], 'movy1\nbpm 12000\n');
-    eq('copy seeded dst ui file', resolveUiBlob('c-uuid'), '{"root":50,"scale":1}');
+    const st = resolveState('c-uuid', 'My Song Copy');
+    eq('inherited state payload', st.payload, 'movy1\nbpm 12000\n');
+    eq('seeded copy starts at generation 1', st.gen, 1);
+    eq('copy seeded into dst state file', readBestState('c-uuid').payload, 'movy1\nbpm 12000\n');
+    eq('copy seeded dst ui file', readUiBlob('c-uuid'), '{"root":50,"scale":1}');
 
     // Unknown brand-new set with no family → blank.
-    eq('unknown set → blank', resolveStateBlob('z-uuid', 'Fresh'), 'movy1\n');
+    eq('unknown set → blank', resolveState('z-uuid', 'Fresh').payload, 'movy1\n');
 
     // A set that already has its own state returns it (no inherit).
     fs[stPath('own')] = 'movy1\nswing 60\n';
-    eq('own state wins', resolveStateBlob('own', 'Whatever'), 'movy1\nswing 60\n');
+    eq('own state wins', resolveState('own', 'Whatever').payload, 'movy1\nswing 60\n');
 }
 
 _log('\nTest: switchToSet save-then-load orchestration');
 {
     const eng = installMockEngine();         // installs host_module_* on globalThis
-    const fs = {};
-    globalThis.host_read_file  = (p) => (p in fs ? fs[p] : null);
-    globalThis.host_write_file = (p, c) => { fs[p] = c; return true; };
-    globalThis.host_file_exists = (p) => p in fs;
-    globalThis.host_ensure_dir = () => true;
+    const { seqState: seqStateForSwitch } = await import('../dist/esm/seq/state.js');
+    const mock = installMockFs();
+    const fs = mock.files;
     const stPath = (u) => '/data/UserData/schwung/modules/tools/movy/sets/' + u + '/seq-state.json';
     const uiPath = (u) => '/data/UserData/schwung/modules/tools/movy/sets/' + u + '/ui-state.json';
 
     resetSeqPersist();
+    resetStoreRotation();
     eng.reset();
 
     // Set A has saved state + ui; load it (no old to save on first switch).
@@ -5134,12 +5368,14 @@ _log('\nTest: switchToSet save-then-load orchestration');
 
     // The engine now "holds" A's state; switching to fresh B must SAVE A first.
     eng.stateBlob = 'movy1\nbpm 13000\nEDITED\n';     // simulate edited engine state
+    seqStateForSwitch.dirty = true;                  // engine reports unsaved work
     switchToSet('B', 'Song B', true);
-    eq('A saved before B load', fs[stPath('A')], 'movy1\nbpm 13000\nEDITED\n');
+    eq('A saved before B load', readBestState('A').payload, 'movy1\nbpm 13000\nEDITED\n');
     eq('B is blank (no file, no family)', eng.stateLoads[eng.stateLoads.length - 1], 'movy1\n');
     eq('B ui reset to defaults (root C)', keyboardState.rootPc, 0);
     eq('B ui reset to defaults (scale 0)', keyboardState.scale, 0);
     eq('current uuid is B', currentSetUuid(), 'B');
+    uninstallMockFs();
 }
 
 _log('\nTest: LFO param helpers');

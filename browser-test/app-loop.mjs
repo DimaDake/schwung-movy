@@ -772,10 +772,15 @@ _log('\napp-loop: active-set switch reloads the engine');
     eq('boot loaded a set blob', loadsAfterBoot >= 1, true);
 
     // Switch the active set; the poll (~96 ticks) must reload for the new UUID.
+    // The engine reports edited state, so switching out must persist it — the
+    // flush is forced there rather than trusting the 24 Hz dirty mirror, which
+    // can still read clean for an edit made moments before the switch.
+    engine.stateBlob = 'movy1\nbpm 13700\ncl 0 0 16 0 0:24:60:100\n';
     fs[ACTIVE] = 's2-uuid\nSet Two\n';
     advance(120);
     eq('set switch triggered a fresh engine load', engine.stateLoads.length > loadsAfterBoot, true);
     eq('S1 saved on switch-out', typeof fs[stPath('s1-uuid')], 'string');
+    eq('S1 kept its edits', fs[stPath('s1-uuid')].includes('bpm 13700'), true);
 }
 
 _log('\napp-loop: LFO chain slot reachable + drill');
@@ -1036,6 +1041,31 @@ _log('\napp-loop: note conservation across context changes');
     globalThis.onUnload();
     eq('no note stranded by teardown', probe.stranded().join(','), '');
     probe.restore();
+}
+
+/* Closing movy must persist. The autosave runs every ~3 s, so without a flush
+ * on teardown every exit silently discarded whatever was done since the last
+ * one — the "I left Movy, went back in, and the set is gone" report. */
+_log('\napp-loop: teardown flushes pending state');
+{
+    const fs = {};
+    globalThis.host_read_file  = (p) => (p in fs ? fs[p] : null);
+    globalThis.host_write_file = (p, c) => { fs[p] = c; return true; };
+    globalThis.host_file_exists = (p) => p in fs;
+    globalThis.host_ensure_dir = () => true;
+    const ACTIVE = '/data/UserData/schwung/active_set.txt';
+    const stPath = (u) => '/data/UserData/schwung/modules/tools/movy/sets/' + u + '/seq-state.json';
+
+    fs[ACTIVE] = 'u1-uuid\nUnload Set\n';
+    resetSeqPersist();
+    resetApp();
+    advance(4);                                   // boot-load resolves the set
+
+    // An edit lands and movy closes well inside the ~3 s autosave interval.
+    engine.stateBlob = 'movy1\nbpm 15500\ncl 0 0 16 0 0:24:64:100\n';
+    globalThis.onUnload();
+    eq('teardown wrote the set', typeof fs[stPath('u1-uuid')], 'string');
+    eq('teardown kept the edit', fs[stPath('u1-uuid')].includes('bpm 15500'), true);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

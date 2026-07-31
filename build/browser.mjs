@@ -78,6 +78,8 @@ await esbuild.build({
         resolve(root, 'src/seq/persist.ts'),
         resolve(root, 'src/seq/persist-blob.ts'),
         resolve(root, 'src/seq/persist-store.ts'),
+        resolve(root, 'src/seq/set-inherit.ts'),
+        resolve(root, 'src/seq/ui-state.ts'),
         resolve(root, 'src/seq/set-context.ts'),
         resolve(root, 'src/seq/held.ts'),
         resolve(root, 'src/seq/buttons.ts'),

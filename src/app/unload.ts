@@ -1,5 +1,6 @@
 import { releaseAllLive, emitNoteOff } from '../keyboard/release.js';
 import { seqState } from '../seq/state.js';
+import { seqPersistFlush } from '../seq/persist.js';
 import { mlog } from '../log.js';
 
 /* Called by the host on every teardown path — Close Movy, Shift+Back instant
@@ -26,4 +27,11 @@ export function onUnload(): void {
         }
     }
     mlog('unload: released ' + gates + ' sequencer note(s)');
+
+    /* Last chance to persist: the autosave only runs every ~3 s, so without
+     * this every exit dropped whatever was done since the last one. Notes are
+     * released first — a stuck note outlives the tool, so it must not wait
+     * behind file I/O. The engine is still loaded here (schwung unloads the DSP
+     * immediately after this returns), so it can still serialize its state. */
+    seqPersistFlush(true);
 }

@@ -28,6 +28,11 @@ type BootState = 'probe' | 'ok' | 'absent';
 
 const cmdQueue: string[] = [];
 let bootState: BootState = 'probe';
+/* Bumped every time the engine enters service. A re-dlopen after a wedge comes
+ * up as a brand new, EMPTY Engine; persist.ts compares this against the
+ * generation whose contents it authored, so it can never autosave over a set
+ * with an engine it did not restore. */
+let generation = 0;
 let probeCountdown = 1;
 let probeFailures = 0;
 let loadAttempts = 0;
@@ -50,6 +55,8 @@ function engineSet(key: string, value: string): void {
         host_module_set_param(key, value);
     }
 }
+
+export function engineGeneration(): number { return generation; }
 
 export function engineReady(): boolean {
     return bootState === 'ok';
@@ -115,6 +122,7 @@ function probeTick(): void {
     if (pong === 'pong ' + ENGINE_VERSION) {
         mlog('seq: engine ready v' + ENGINE_VERSION);
         bootState = 'ok';
+        generation++;
         statusFailures = 0;
         pollCountdown = 1;
         requestLabelSync(); // rebuild automation registry + re-apply chain mappings
@@ -223,6 +231,7 @@ export function peekSeqCmdQueue(): string[] {
 export function resetSeqEngine(): void {
     cmdQueue.length = 0;
     bootState = 'probe';
+    generation = 0;
     probeCountdown = 1;
     probeFailures = 0;
     loadAttempts = 0;

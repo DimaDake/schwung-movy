@@ -233,13 +233,18 @@ _origLog('\nTest 3b: helm-scale module (full ui_hierarchy traversal)');
 
     /* Per-tick IPC must stay flat: refreshOneParam advances a cursor by one
      * regardless of how many params the module has. */
-    let maxGets = 0;
+    let maxGets = 0, totalGets = 0;
     for (let i = 0; i < 70; i++) {
         getParamCount = 0;
         model.tick();
+        totalGets += getParamCount;
         if (getParamCount > maxGets) maxGets = getParamCount;
     }
     check('helm: max shadow_get_param calls per tick', maxGets, GET_PARAM_PER_TICK_MAX);
+    /* The page-first cursor splits its reads between the current page and the
+     * global sweep — it must not ADD IPC, whatever the module's page count. */
+    check('helm: avg shadow_get_param calls per tick',
+          +(totalGets / 70).toFixed(2), GET_PARAM_PER_TICK_MAX);
 
     /* buildViewModel maps over every param (viewmodel.ts allValues), so it is
      * the one path that grows with param count. */

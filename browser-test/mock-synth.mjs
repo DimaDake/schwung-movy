@@ -499,6 +499,25 @@ export const MOCK_SYNTHS = {
         ...Object.fromEntries(["a","b","c","d","e","f","g","h","i","j"].map(k => [`synth:${k}`, "0"])),
     },
 
+    /* 200 params on one level → 25 pages. Big enough that a whole-array refresh
+     * cursor takes ~200 ticks to reach a late page (minijv is this shape). */
+    hier_many_pages: {
+        "synth:name": "Many",
+        "synth:chain_params": JSON.stringify(
+            Array.from({ length: 200 }, (_, i) =>
+                ({ key: `p${i}`, name: `P${i}`, type: "int", min: 0, max: 127 })),
+        ),
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: {
+                    knobs: ["p0", "p1"],
+                    params: Array.from({ length: 200 }, (_, i) => ({ key: `p${i}`, label: `P${i}` })),
+                },
+            },
+        }),
+        ...Object.fromEntries(Array.from({ length: 200 }, (_, i) => [`synth:p${i}`, "0"])),
+    },
+
     /* Two levels, the first spanning two pages — the shape shift+jog exists for. */
     hier_params_overflow_two_levels: {
         "synth:name": "Groups",

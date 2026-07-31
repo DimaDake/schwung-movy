@@ -289,6 +289,26 @@ _log('\nTest: a level overflowing 8 slots numbers from " - 2"');
     eq('overflow: page 1 is " - 2"',           names[1], 'Main - 2');
 }
 
+/* ── read-back visits the current page fast regardless of module size ────── */
+
+_log('\nTest: refresh cursor reaches the current page within 16 ticks');
+{
+    const m = bootModel(MOCK_SYNTHS.hier_many_pages);   // 25 pages
+    const PAGE = 20;                                    // far from the cursor's start
+    for (let i = 0; i < PAGE; i++) m.changePage(1);
+    const reads = [];
+    const realGet = globalThis.shadow_get_param;
+    globalThis.shadow_get_param = (slot, key) => { reads.push(key); return realGet(slot, key); };
+    for (let i = 0; i < 16; i++) m.tick();
+    globalThis.shadow_get_param = realGet;
+
+    const pageKeys = m.dumpLayout().params
+        .slice(PAGE * 8, PAGE * 8 + 8).filter(Boolean).map(p => p.key);
+    const missed = pageKeys.filter(k => !reads.includes('synth:' + k));
+    eq('refresh: every current-page param read within 16 ticks', missed.join(','), '');
+    eq('refresh: no more than 2 reads per tick', reads.length <= 32, true);
+}
+
 /* ── C1: preset knob not duplicated across pages ─────────────────────────── */
 
 _log('\nTest: preset knob renders exactly once (C1)');

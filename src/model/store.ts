@@ -207,13 +207,28 @@ export function reseedPadParams(s: ModelState): void {
     s.dirty = true;
 }
 
+/* Alternates between the current page and the whole-array sweep — ONE
+ * shadow_get_param per tick either way (perf.mjs holds the budget at 2 for the
+ * tick that also polls the module name). Without the page cursor a param's
+ * displayed value lags by knobParams.length ticks, which on a 25-page module is
+ * seconds; with it, what the user is looking at converges in ~16 ticks while
+ * off-page values still creep forward for the next page switch. */
 export function refreshOneParam(s: ModelState, tickCount: number): void {
     if (s.knobParams.length === 0) return;
     if (tickCount - s.lastDeltaTick < REFRESH_SUPPRESS_TICKS) return;
 
+    if (tickCount % 2 === 0) {
+        const local = s.refreshPageCursor % KNOBS_PER_PAGE;
+        s.refreshPageCursor = (local + 1) % KNOBS_PER_PAGE;
+        refreshAt(s, s.knobPage * KNOBS_PER_PAGE + local);
+        return;
+    }
     const i = s.refreshParamCursor % s.knobParams.length;
     s.refreshParamCursor = (i + 1) % s.knobParams.length;
+    refreshAt(s, i);
+}
 
+function refreshAt(s: ModelState, i: number): void {
     const p = s.knobParams[i];
     if (!p) return;
     const ioKey = paramIoKey(s, p);

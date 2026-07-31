@@ -66,6 +66,10 @@ export interface ModelState {
     hierarchyKey:        string;
     pollCountdown:       number;
     refreshParamCursor:  number;
+    /* Cursor over the CURRENT page's 8 slots, interleaved with
+     * refreshParamCursor (one read per tick, alternating) so on-screen values
+     * converge in ~16 ticks no matter how many pages the module has. */
+    refreshPageCursor:   number;
     lastDeltaTick:       number;
     dirty:               boolean;
     isDrum:              boolean;
@@ -114,6 +118,7 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         hierarchyKey:        '',
         pollCountdown:       NAME_POLL_TICKS,
         refreshParamCursor:  0,
+        refreshPageCursor:   0,
         lastDeltaTick:       -(REFRESH_SUPPRESS_TICKS + 1),
         dirty:               false,
         isDrum:              false,

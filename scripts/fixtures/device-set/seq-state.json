@@ -1,9 +1,15 @@
 movy1
+# NOTE: this file's grammar is documented in ../README.md. The automation lane
+# below is deliberately on octave_transpose (int, -3..3) rather than a nicer
+# musical target: test-reselect.sh detects an empty param cache by its
+# "cache=1.00 type=float" fallback, and every other plaits param is genuinely
+# float 0..1 — so a lane on one of those is indistinguishable from the failure
+# the test is looking for.
 bpm 12000
 swing 50
 link 0
 tk 0 0 0
-au 0 0 50 synth:decay
+au 0 0 50 synth:octave_transpose
 cl 0 0 16 0 0:24:60:100;96:24:64:100;192:24:67:100;288:24:72:100
 cp 0 0 1 1 0
 tk 1 0 0

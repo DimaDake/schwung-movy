@@ -22,6 +22,12 @@ set -uo pipefail
 HOST="${1:-move.local}"
 MOVY_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 INJECT="$MOVY_DIR/../schwung-midi-inject-ui.py"
+
+# Run against the fixture state rather than whatever the device happens to hold,
+# so this passes standalone and in any order relative to the other suites.
+# shellcheck source=lib/test-set.sh
+source "$MOVY_DIR/scripts/lib/test-set.sh"
+test_set_begin || { echo "could not establish the fixture state"; exit 1; }
 REMOTE="/data/UserData/schwung/modules/tools/movy"
 LOG=/data/UserData/schwung/debug.log
 RED='\033[0;31m'; GRN='\033[0;32m'; YLW='\033[1;33m'; RST='\033[0m'
@@ -49,12 +55,15 @@ f=open(\"/dev/shm/schwung-control\",\"r+b\"); mm=mmap.mmap(f.fileno(),0); mm[56]
 sleep 4
 inj cc $CC_JOG 127; sleep 0.1; inj cc $CC_JOG 0; sleep 0.4          # chain → knobs
 
+# The fixture seeds an automation lane on track 0 (`au 0 0 50 synth:decay`), so
+# this no longer skips when the set happens to have none — an absent lane now
+# means the fixture did not load, which is a real failure.
 LANES=$(mlog | grep 'auto lanes t=0' | tail -1)
 if ! echo "$LANES" | grep -qE 'auto lanes t=0 \[[a-zA-Z]'; then
-    skip "no automation lane on track 0 — add automation to this set first (note injection can't). Nothing to gate."
-    exit 0
+    fail "no automation lane on track 0 — the fixture's 'au' line did not load"
+    exit 1
 fi
-pass "pre-existing automation lane on track 0 (${LANES##*auto lanes t=0 })"
+pass "fixture automation lane present on track 0 (${LANES##*auto lanes t=0 })"
 
 info "Reselect the SAME module via the browser (jog-click open, jog-click confirm)…"
 ssh "ableton@$HOST" "> $LOG" >/dev/null 2>&1

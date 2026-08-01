@@ -9,6 +9,13 @@ Move's firmware owns set switching, so the harness cannot select a set.
 | `slots.txt` | `slot module` per line; `none` leaves the slot empty |
 | `slot_<N>.json` | schwung's own slot format — module **and** every parameter value |
 | `seq-state.json` | movy's sequencer state (clips, tempo, automation lanes) |
+| `ui-state.json` | movy's per-set UI state — mute/solo, root, scale, layout, per-track octave |
+
+Both movy files are per-set and both must be reset: resetting only `seq-state`
+leaves each run inheriting the previous one's solo state. The rotating
+`seq-state.1/2.json` shadows are deleted on apply, since a stale
+higher-generation shadow outranks the fixture and would be restored back over
+it on the next open.
 
 ## Why `load_file` and not just a module id
 

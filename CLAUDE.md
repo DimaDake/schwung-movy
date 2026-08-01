@@ -110,7 +110,32 @@ ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
   && ./scripts/test.sh \
   || echo "DEVICE OFFLINE — SKIPPING DEVICE TESTS"
 # If offline: report DEVICE OFFLINE to the user in CAPS
+
+# 4b. Every device suite at once (each one is independent — any subset, any order)
+./scripts/test-all-device.sh [move.local]
 ```
+
+### Device tests run against a fixture state
+
+Every device script starts with `test_set_begin` (from `scripts/lib/test-set.sh`),
+which puts the device into the known state in `scripts/fixtures/device-set/`:
+plaits on track 0, a drum module on track 1, fixed clips, and a seeded
+automation lane. It applies the state and then **reads it back** — a suite never
+runs on unconfirmed state. Move's firmware owns set switching, so the fixture is
+applied to whichever set is active; the previous contents are not preserved.
+
+This is what makes the suites order-independent. Before it, `test-unload.sh`
+deleted the clip `test-reselect.sh` needed, and step presses toggled whatever a
+previous run had left.
+
+**Writing a device test:** source the library, call `test_set_begin`, and use
+`ts_tap_cc` / `ts_tap_note` / `ts_tap_two_steps` for gestures. Each inject is
+its own ssh round trip (~0.5 s), so a press/release pair driven as two injects
+is a >500 ms hold — long enough that movy reads it as a different gesture (a
+held step becomes an automation hold that enters no note; a held track button is
+momentary and reverts on release). The helpers deliver a whole gesture in one
+device-side script. See `scripts/fixtures/README.md` for the fixture format and
+the device behaviours it works around.
 
 Other useful commands:
 

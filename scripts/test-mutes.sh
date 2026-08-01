@@ -18,6 +18,13 @@ set -euo pipefail
 HOST="${1:-move.local}"
 MOVY_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
+# Run against the fixture state rather than whatever the device happens to hold,
+# so this passes standalone and in any order relative to the other suites.
+# shellcheck source=lib/test-set.sh
+source "$MOVY_DIR/scripts/lib/test-set.sh"
+test_set_begin || { echo "could not establish the fixture state"; exit 1; }
+
+
 RED='\033[0;31m'; GRN='\033[0;32m'; YLW='\033[1;33m'; RST='\033[0m'
 pass() { echo -e "${GRN}✓${RST} $1"; }
 fail() { echo -e "${RED}✗${RST} $1"; FAILURES=$((FAILURES+1)); }

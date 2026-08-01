@@ -192,7 +192,15 @@ ts_seq_path() {
 ts_seq_apply() {
     local p; p=$(ts_seq_path)
     ts_ssh "mkdir -p \"\$(dirname '$p')\"" || return 1
-    scp -q "$TS_FIXTURE_DIR/seq-state.json" "ableton@$HOST:$p"
+    scp -q "$TS_FIXTURE_DIR/seq-state.json" "ableton@$HOST:$p" || return 1
+    # ui-state.json is a SECOND per-set file holding mute/solo, root, scale,
+    # layout and per-track octave. Resetting only seq-state left a run inheriting
+    # the previous one's solo state, which is exactly the cross-test
+    # contamination this fixture exists to stop.
+    scp -q "$TS_FIXTURE_DIR/ui-state.json" "ableton@$HOST:${p%/*}/ui-state.json" || return 1
+    # The rotating shadow copies outrank a lower-generation canonical file, so a
+    # stale pair would be restored right back over the fixture on the next open.
+    ts_ssh "rm -f '${p%/*}/seq-state.1.json' '${p%/*}/seq-state.2.json'"
 }
 
 # Apply, then confirm; retry the whole thing if it did not land. Chain loads

@@ -121,6 +121,22 @@ must have teeth:
 4. **The acceptance bar** — run all nine scripts standalone, then in a shuffled
    order, then twice back-to-back, and confirm each passes every time.
 
+## Stretch: interference from physical input
+
+A stray knob turn or pad press mid-run corrupts a test and today produces a
+mystery failure. Blocking hardware input outright is **not available**: schwung
+exposes only output-side suppression (`shadow_set_overtake_suppress_sysex`) and
+`host_suspend_overtake`, with no input lock. Adding one means changing schwung,
+which is a reference repo here and would belong upstream, not in movy.
+
+So the goal is narrowed to *detecting* interference and saying so, which is what
+stability actually requires — a run disturbed by a human should report that
+plainly instead of failing obscurely. Capacitive touch is the signal with the
+lowest false-positive rate: the harness never injects knob-touch (notes 0–7) or
+jog-touch (note 9) except where a test does so deliberately, so an unexplained
+touch during a run means a human hand. Optional and last: the suite is useful
+without it.
+
 ## Risks
 
 - **The user's active set is modified during a run.** Accepted (chosen over a

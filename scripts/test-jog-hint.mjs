@@ -19,6 +19,14 @@ const root   = join(dirname(fileURLToPath(import.meta.url)), '..');
 const INJECT = join(root, '..', 'schwung-midi-inject-ui.py');
 const REMOTE = '/data/UserData/schwung/modules/tools/movy';
 
+/* Run against the fixture state, like the shell suites. This shells out to the
+ * same lib/test-set.sh rather than reimplementing it, so the two paths cannot
+ * drift apart. */
+execFileSync('bash', ['-c',
+    `set -u; HOST='${HOST}' MOVY_DIR='${root}'; ` +
+    `source '${root}/scripts/lib/test-set.sh'; test_set_begin`],
+    { stdio: 'inherit' });
+
 const W = 128, TOAST_Y = 58, TOAST_H = 6;   // renderer/layout.ts
 const JOG_TOUCH = 9, JOG_TURN_CC = 14;      // midi/router.ts
 const HOLD_MS = 1000;                       // model/constants.ts

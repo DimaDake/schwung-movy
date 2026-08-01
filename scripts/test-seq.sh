@@ -7,6 +7,12 @@ HOST="${1:-move.local}"
 MOVY_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 INJECT="$MOVY_DIR/../schwung-midi-inject-ui.py"
 
+# Run against the fixture state rather than whatever the device happens to hold,
+# so this passes standalone and in any order relative to the other suites.
+# shellcheck source=lib/test-set.sh
+source "$MOVY_DIR/scripts/lib/test-set.sh"
+test_set_begin || { echo "could not establish the fixture state"; exit 1; }
+
 RED='\033[0;31m'; GRN='\033[0;32m'; YLW='\033[1;33m'; BLD='\033[1m'; RST='\033[0m'
 pass() { echo -e "${GRN}✓${RST} $1"; }
 fail() { echo -e "${RED}✗${RST} $1"; FAILURES=$((FAILURES+1)); }
@@ -126,14 +132,15 @@ python3 "$INJECT" "$HOST" cc 50 0
 sleep 0.5
 
 info "Drum multi-step: hold step 1 + press step 5 on a drum track..."
-python3 "$INJECT" "$HOST" cc 43 127      # select track 0 (CC43 = slot 0)
-python3 "$INJECT" "$HOST" cc 43 0
-sleep 0.3
-python3 "$INJECT" "$HOST" note_on 16 127 # hold step 1
-sleep 0.1
-python3 "$INJECT" "$HOST" note_on 20 127 # press step 5 while step 1 held
-python3 "$INJECT" "$HOST" note_off 20    # release step 5 → enters
-python3 "$INJECT" "$HOST" note_off 16    # release step 1 → enters
+# Track 1 is the fixture's drum module (CC 43 = slot 0 … CC 40 = slot 3), so
+# watchLane >= 0 and each entered step logs its lane. Track 0 is melodic.
+# Both gestures go through the shared one-round-trip helpers: driven as separate
+# injects, the track press lasts long enough to read as a momentary hold (which
+# reverts to the previous track on release) and the step presses pass
+# STEP_AUTO_MS, becoming automation holds that enter no note at all.
+ts_tap_cc 42                             # select track 1 (drum)
+sleep 0.5
+ts_tap_two_steps 16 20                   # hold step 1, tap step 5 → both enter
 sleep 0.5
 
 info "Persistence: waiting for autosave, then reopening Movy to restore..."
@@ -172,19 +179,16 @@ echo "$LOG" | grep -q "seq: loaded set" \
 # Drum multi-step: each step entered on a drum lane logs "seq: step <n> lane <l>".
 # Holding step 1 + pressing step 5 must enter BOTH (>= 2 lines).
 #
-# Only the drum branch of toggleStep() logs, so the count also tells us whether
-# this check applies at all: zero lines means track 0 holds a melodic module
-# (watchLane = -1) and nothing could have been logged, which says nothing about
-# multi-step. Exactly one line is a real failure — the drum branch ran and
-# entered only the held step. browser-test/app-loop.mjs asserts both entries
-# unconditionally and is the authoritative proof; this is the on-device echo.
+# This used to skip when it saw zero lines, because only the drum branch of
+# toggleStep() logs and track 0 was whatever the device happened to hold. The
+# fixture puts a drum module on track 1, so silence is now a genuine failure.
+# browser-test/app-loop.mjs asserts both entries unconditionally and is the
+# authoritative proof; this is the on-device echo.
 STEP_LINES=$(echo "$LOG" | grep -c "seq: step" || true)
 if [[ "$STEP_LINES" -ge 2 ]]; then
     pass "Drum multi-step entered $STEP_LINES steps while one was held"
-elif [[ "$STEP_LINES" -eq 0 ]]; then
-    info "SKIP: multi-step — track 0 is not a drum module, so no lane entry is logged"
 else
-    fail "Multi-step entered only $STEP_LINES step while one was held (expected 2)"
+    fail "Multi-step entered $STEP_LINES step(s) on the fixture's drum track (expected 2)"
 fi
 
 # Background mode (Phase 2) cannot be auto-driven here: the suspend gesture is

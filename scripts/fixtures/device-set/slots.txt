@@ -1,0 +1,13 @@
+# slot module   (module id, or `none` to leave the slot empty)
+#
+# Track 0 is melodic: plaits has a movy config (src/modules/plaits.json), so its
+# knob layout is fixed — knob 5 (CC 75) is `decay`, which the automation tests
+# drive. Track 1 is a drum module, so watchLane >= 0 and the multi-step check
+# can assert instead of skipping.
+#
+# Each non-`none` slot needs a matching slot_<N>.json beside this file: that is
+# schwung's own slot format, carrying the module AND every parameter value.
+0 plaits
+1 mrdrums
+2 none
+3 none

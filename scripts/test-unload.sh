@@ -12,6 +12,12 @@ HOST="${1:-move.local}"
 MOVY_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 INJECT="$MOVY_DIR/../schwung-midi-inject-ui.py"
 
+# Run against the fixture state rather than whatever the device happens to hold,
+# so this passes standalone and in any order relative to the other suites.
+# shellcheck source=lib/test-set.sh
+source "$MOVY_DIR/scripts/lib/test-set.sh"
+test_set_begin || { echo "could not establish the fixture state"; exit 1; }
+
 GRN='\033[0;32m'; RED='\033[0;31m'; BLD='\033[1m'; RST='\033[0m'
 fails=0
 pass() { echo -e "${GRN}✓${RST} $1"; }
@@ -37,34 +43,6 @@ python3 "$INJECT" "$HOST" note_on 80 100    # pad → sets the step-entry pitch
 sleep 0.2
 python3 "$INJECT" "$HOST" note_off 80
 sleep 0.2
-# Tap a step in ONE ssh round trip. schwung-midi-inject-ui.py sends a single
-# message per invocation and each costs ~0.5 s of network, so a note_on/note_off
-# pair driven from here is a >300 ms press — past STEP_AUTO_MS, which promotes
-# the step to an automation hold whose release deliberately does NOT toggle a
-# note. Every "tap" in this loop was silently entering nothing. Pressing and
-# releasing inside one device-side script keeps the tap short enough to register.
-tap_step() {
-    ssh "ableton@$HOST" "python3 -c \"
-import mmap, time
-def send(head, status, d1, d2):
-    with open('/dev/shm/schwung-ui-midi', 'r+b') as f:
-        mm = mmap.mmap(f.fileno(), 256)
-        for slot in range(0, 256, 4):
-            if mm[slot] == 0:
-                mm[slot+1] = status; mm[slot+2] = d1; mm[slot+3] = d2
-                mm[slot] = head
-                break
-        mm.close()
-    with open('/dev/shm/schwung-control', 'r+b') as f:
-        mm = mmap.mmap(f.fileno(), 72)
-        mm[3] = (mm[3] + 1) % 256
-        mm.close()
-send(0x09, 0x90, $1, 127)
-time.sleep(0.05)
-send(0x08, 0x80, $1, 0)
-\"" >/dev/null 2>&1
-}
-
 # Delete the active clip first (Clear with no step held). A step press TOGGLES,
 # so filling a clip that already holds notes — from an earlier suite, or from a
 # previous run of this very script — clears those steps instead, and a clip left
@@ -80,7 +58,7 @@ sleep 0.5
 # Fill every step: one note on one step is silent for most of the loop, so a
 # teardown sampled at a random moment would find no open gate and prove nothing.
 for s in $(seq 16 31); do
-    tap_step "$s"
+    ts_tap_note "$s"        # one round trip: a slow tap becomes an automation hold
     sleep 0.1
 done
 sleep 0.3

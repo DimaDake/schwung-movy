@@ -18,6 +18,13 @@ set -euo pipefail
 HOST="${1:-move.local}"
 MOVY_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
+# Run against the fixture state rather than whatever the device happens to hold,
+# so this passes standalone and in any order relative to the other suites.
+# shellcheck source=lib/test-set.sh
+source "$MOVY_DIR/scripts/lib/test-set.sh"
+test_set_begin || { echo "could not establish the fixture state"; exit 1; }
+
+
 RED='\033[0;31m'; GRN='\033[0;32m'; YLW='\033[1;33m'; RST='\033[0m'
 pass() { echo -e "${GRN}✓${RST} $1"; }
 fail() { echo -e "${RED}✗${RST} $1"; FAILURES=$((FAILURES+1)); }
@@ -96,7 +103,12 @@ else fail "expected 'set=1000 mutes=0111', got: $SOLO"; fi
 
 # 3. The regression: the solo must survive a reopen, so un-solo still restores.
 info "Reopening movy (fresh JS context)..."
-sleep 4                     # let the ~3 s autosave write the UI blob
+# Wait for the solo to actually reach disk instead of sleeping a fixed 4 s. The
+# autosave is tick-based and the device's tick rate moves with load, so the real
+# interval is nearer 8 s than the ~3 s its constant assumes. Reopening early
+# reloaded the PREVIOUS blob, cleared the solo, and looked exactly like a
+# persistence bug.
+ts_wait_ui_state '"solo":\[1,0,0,0\]' || fail "solo never reached disk — nothing to restore"
 open_movy
 ssh "ableton@$HOST" "> $LOG"
 inject 49:127 88:127 sleep:300 88:0 49:0 >/dev/null; sleep 2

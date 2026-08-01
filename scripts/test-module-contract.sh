@@ -20,6 +20,15 @@ set -euo pipefail
 HOST="${1:-move.local}"
 MOVY_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 INJECT="$MOVY_DIR/../schwung-midi-inject-ui.py"
+
+# Run against the fixture state rather than whatever the device happens to hold,
+# so this passes standalone and in any order relative to the other suites. PREV
+# below is captured AFTER this, so it records the fixture's FX 1 (empty) rather
+# than the user's — which is correct, because the fixture is what the next run
+# expects to find.
+# shellcheck source=lib/test-set.sh
+source "$MOVY_DIR/scripts/lib/test-set.sh"
+test_set_begin || { echo "could not establish the fixture state"; exit 1; }
 REMOTE="/data/UserData/schwung/modules/tools/movy"
 LOG=/data/UserData/schwung/debug.log
 SLOT=0

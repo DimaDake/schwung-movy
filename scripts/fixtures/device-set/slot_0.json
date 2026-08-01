@@ -1,0 +1,48 @@
+{
+  "name": "Untitled",
+  "version": 1,
+  "modified": true,
+  "chain": {
+    "custom_name": "Untitled",
+    "input": "both",
+    "synth": {
+      "module": "plaits",
+      "config": {
+        "state": {
+          "engine": "VA VCF",
+          "harmonics": 0.5,
+          "timbre": 0.5,
+          "morph": 0.5,
+          "decay": 0.5,
+          "lpg_colour": 0.5,
+          "fm_amount": 0,
+          "timbre_mod": 0,
+          "morph_mod": 0,
+          "aux_mix": 0,
+          "attack": 0,
+          "legato": "off",
+          "velocity_sensitivity": 0.5,
+          "octave_transpose": 0,
+          "fm_preset": 0
+        }
+      },
+      "bypassed": 0
+    },
+    "audio_fx": [],
+    "receive_channel": 1,
+    "forward_channel": 0,
+    "midi_fx_pre_mode": 0,
+    "knob_mappings": [
+      {
+        "cc": 72,
+        "target": "synth",
+        "param": "pv8_f1_cut",
+        "value": 0.5
+      }
+    ],
+    "lfos": {
+      "lfo1": null,
+      "lfo2": null
+    }
+  }
+}

@@ -99,6 +99,39 @@ ts_verify() {
     [ $bad -eq 0 ] || { echo "test-set: fixture did not take (is every fixture module installed?)" >&2; return 1; }
 }
 
+# movy reads seq-state.json when it opens and autosaves over it every ~3 s, so
+# the fixture can only be written with movy closed. Back x3 walks
+# knobs -> chain -> exit.
+ts_close_movy() {
+    local i
+    for i in 1 2 3; do
+        python3 "$MOVY_DIR/../schwung-midi-inject-ui.py" "$HOST" cc 51 127 >/dev/null 2>&1
+        sleep 0.12
+        python3 "$MOVY_DIR/../schwung-midi-inject-ui.py" "$HOST" cc 51 0 >/dev/null 2>&1
+        sleep 0.15
+    done
+    sleep 0.8
+}
+
+ts_seq_path() {
+    local uuid; uuid=$(ts_active_uuid)
+    echo "/data/UserData/schwung/modules/tools/movy/sets/${uuid:-_default}/seq-state.json"
+}
+
+# The sequencer half of the fixture: known tempo/swing, one clip per playable
+# track, and a pre-seeded automation lane so the reselect test has one without
+# depending on the automation test having run first.
+#
+# The file carries neither a `gen` line nor an `end` trailer on purpose: movy
+# accepts that as a legacy blob at generation 0 (src/seq/persist-blob.ts), so
+# the fixture needs no checksum and stays readable and hand-editable. A `gen`
+# line without a matching trailer would be rejected as a torn write.
+ts_seq_apply() {
+    local p; p=$(ts_seq_path)
+    ts_ssh "mkdir -p \"\$(dirname '$p')\"" || return 1
+    scp -q "$TS_FIXTURE_DIR/seq-state.json" "ableton@$HOST:$p"
+}
+
 # Apply, then confirm; retry the whole thing if it did not land. Chain loads
 # settle at their own pace — a slot can still read empty seconds after the shim
 # logged the load — so a single pass is not dependable. Verification is what
@@ -106,6 +139,10 @@ ts_verify() {
 test_set_begin() {
     local try
     ts_push_fixture || { echo "test-set: could not ship the fixture to the device" >&2; return 1; }
+    # movy must be shut before the sequencer state is written, or it autosaves
+    # its in-memory copy straight back over the fixture within a few seconds.
+    ts_close_movy
+    ts_seq_apply || { echo "test-set: could not install the fixture sequencer state" >&2; return 1; }
     for try in 1 2 3; do
         ts_apply || true
         if ts_verify 2>/dev/null; then

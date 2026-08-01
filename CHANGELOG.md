@@ -11,7 +11,7 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
-## [Unreleased]
+## [0.25.0] — 2026-08-01
 
 ### Added
 
@@ -93,8 +93,6 @@ far. Earlier work is summarised in the timeline below for context.
 
 - **Mute / solo toasts** — every mute or solo names the track (`T2 MUTED`) and,
   for solo, the resulting set (`T1 SOLO`, `SOLO T1 T3`, `SOLO OFF`).
-
-### Changed
 
 - **The piano layout lights out-of-key pads dimly** instead of leaving them dark,
   so they can be told apart from the gap pads that play nothing at all. Which row

@@ -23,13 +23,27 @@ source "$MOVY_DIR/scripts/lib/test-set.sh"
 restore_at_end() { TS_SKIP_RESTORE=0 test_set_end; }
 trap restore_at_end EXIT INT TERM
 
-for s in "${SCRIPTS[@]}"; do
-    echo -e "\n${BLD}########## $s ##########${RST}"
-    ./scripts/"$s" "$HOST" || FAILED+=("$s")
-done
+SWEEP_T0=$(date +%s)
+declare -a TIMES=()
+run_one() {   # name, then the command
+    local name="$1"; shift
+    local t0; t0=$(date +%s)
+    echo -e "\n${BLD}########## $name ##########${RST}"
+    "$@" || FAILED+=("$name")
+    local dt=$(( $(date +%s) - t0 ))
+    TIMES+=("$(printf '%5ss  %s' "$dt" "$name")")
+    echo -e "${BLD}---------- $name took ${dt}s ----------${RST}"
+}
 
-echo -e "\n${BLD}########## test-jog-hint.mjs ##########${RST}"
-node scripts/test-jog-hint.mjs "$HOST" || FAILED+=("test-jog-hint.mjs")
+for s in "${SCRIPTS[@]}"; do
+    run_one "$s" ./scripts/"$s" "$HOST"
+done
+run_one test-jog-hint.mjs node scripts/test-jog-hint.mjs "$HOST"
+
+echo
+echo -e "${BLD}=== Time per suite (slowest last) ===${RST}"
+printf '%s\n' "${TIMES[@]}" | sort -n
+echo -e "${BLD}total: $(( $(date +%s) - SWEEP_T0 ))s${RST}"
 
 echo
 if [ ${#FAILED[@]} -eq 0 ]; then

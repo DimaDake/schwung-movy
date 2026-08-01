@@ -18,6 +18,15 @@ TS_DEVICE_DIR=/data/UserData/schwung/_movy-fixture
 
 ts_ssh() { ssh "ableton@$HOST" "$@"; }
 
+# Phase timing. Device work is slow enough that a silent 60 s stretch looks like
+# a hang; naming each phase and printing its cost makes it obvious which step is
+# expensive and whether it is getting worse.
+ts_phase_start() { TS_PHASE_NAME="$1"; TS_PHASE_T0=$(date +%s); printf '\033[2m  [%s] ...\033[0m\n' "$1" >&2; }
+ts_phase_end() {
+    local dt=$(( $(date +%s) - ${TS_PHASE_T0:-0} ))
+    printf '\033[2m  [%s] %ss\033[0m\n' "${TS_PHASE_NAME:-phase}" "$dt" >&2
+}
+
 # Line 1 of active_set.txt is the set UUID; line 2 is its display name.
 ts_active_uuid() {
     ts_ssh "head -n 1 /data/UserData/schwung/active_set.txt 2>/dev/null || true" | tr -d '\r\n'
@@ -98,18 +107,22 @@ ts_apply() {
 # Read every slot back and compare with the fixture. Never infer that an apply
 # worked: running on the wrong state while reporting success is the failure this
 # library exists to remove.
+#
+# One WebSocket for all four slots (slots-read.mjs). Reading them one at a time
+# meant four connections per pass and two passes per attempt, which is what made
+# establishing the fixture the most expensive thing a device test did.
 ts_verify() {
-    local slot mod cur bad=0
-    while read -r slot mod; do
-        [ -z "${slot:-}" ] && continue
-        cur=$(ts_read_slot "$slot") || { echo "test-set: no answer reading slot $slot" >&2; return 1; }
-        [ "$mod" = "none" ] && mod=""
-        if [ "$cur" != "$mod" ]; then
-            echo "test-set: slot $slot is '${cur:-<empty>}', fixture wants '${mod:-<empty>}'" >&2
-            bad=1
-        fi
-    done < <(ts_fixture_entries)
-    [ $bad -eq 0 ] || { echo "test-set: fixture did not take (is every fixture module installed?)" >&2; return 1; }
+    local want got
+    want=$(ts_fixture_entries | awk '{printf "%s %s\n", $1, ($2=="none" ? "-" : $2)}' | sort)
+    got=$(node "$MOVY_DIR/scripts/slots-read.mjs" </dev/null 2>/dev/null | sort)
+    if [ -z "$got" ]; then
+        echo "test-set: no answer reading the chain" >&2
+        return 1
+    fi
+    if [ "$want" != "$got" ]; then
+        echo "test-set: chain is [$(echo "$got" | tr '\n' ' ')], fixture wants [$(echo "$want" | tr '\n' ' ')]" >&2
+        return 1
+    fi
 }
 
 # movy reads seq-state.json when it opens and autosaves over it every ~3 s, so
@@ -234,17 +247,46 @@ ts_seq_apply() {
 # makes the retry safe: we never proceed on an unconfirmed state.
 test_set_begin() {
     local try
+    local ts_t0; ts_t0=$(date +%s)
+    # Verify before doing anything. The chain is usually ALREADY at the fixture
+    # (the previous run left it there), and re-loading modules that are already
+    # loaded cost ~60 s per suite for no change. One batched read settles it in
+    # ~2 s; only a genuine mismatch pays for an apply.
+    ts_phase_start "fixture: check chain"
+    if ts_verify 2>/dev/null; then
+        ts_phase_end
+        ts_phase_start "fixture: refresh movy state"
+        ts_close_movy
+        ts_seq_apply || { echo "test-set: could not install the fixture sequencer state" >&2; return 1; }
+        ts_phase_end
+        printf '\033[2m  [fixture ready] %ss total (chain already correct)\033[0m\n' "$(( $(date +%s) - ts_t0 ))" >&2
+        return 0
+    fi
+    ts_phase_end
+
+    ts_phase_start "fixture: ship"
     ts_push_fixture || { echo "test-set: could not ship the fixture to the device" >&2; return 1; }
+    ts_phase_end
     # movy must be shut before the sequencer state is written, or it autosaves
     # its in-memory copy straight back over the fixture within a few seconds.
+    ts_phase_start "fixture: close movy + write seq/ui state"
     ts_close_movy
     ts_seq_apply || { echo "test-set: could not install the fixture sequencer state" >&2; return 1; }
-    for try in 1 2 3; do
+    ts_phase_end
+    # Six attempts, not three. A module load is a set_param into the chain
+    # host's single-slot param SHM, where a write can simply be dropped rather
+    # than merely being slow — so an attempt failing says nothing about the
+    # next one. Three was demonstrably marginal: one suite in a sweep recovered
+    # on attempt 3 while another gave up at the same boundary.
+    for try in 1 2 3 4 5 6; do
+        ts_phase_start "fixture: load chain modules (attempt $try)"
         ts_apply || true
         if ts_verify 2>/dev/null; then
-            [ "$try" -gt 1 ] && echo "test-set: fixture established on attempt $try" >&2
+            ts_phase_end
+            printf '\033[2m  [fixture ready] %ss total\033[0m\n' "$(( $(date +%s) - ts_t0 ))" >&2
             return 0
         fi
+        ts_phase_end
         sleep 3
     done
     ts_verify   # once more, letting it print what is actually wrong
@@ -265,18 +307,25 @@ test_set_begin() {
 # once per suite.
 test_set_end() {
     [ "${TS_SKIP_RESTORE:-0}" = "1" ] && return 0
-    echo "test-set: restarting the Move stack to hand the LEDs back..." >&2
-    ts_ssh "/data/UserData/schwung/restart-move.sh" >/dev/null 2>&1 || true
-    local waited=0
-    sleep 5
-    while [ $waited -lt 90 ]; do
-        if ts_ssh "pidof shadow_ui >/dev/null 2>&1 && pidof MoveOriginal >/dev/null 2>&1" 2>/dev/null; then
-            sleep 3          # let it finish claiming the surface
-            echo "test-set: Move stack back up" >&2
-            return 0
-        fi
-        sleep 5; waited=$((waited + 5))
-    done
-    echo "test-set: WARNING — Move stack did not come back within ${waited}s" >&2
-    return 1
+    # Closing movy is what hands the LEDs back: it owns the surface under
+    # overtake and suppresses Move's own LED writes, and the framework clears
+    # that suppression on overtake exit. Leaving it open is why the pads and
+    # step buttons stayed dark after a run.
+    #
+    # A full restart-move.sh also works but costs ~10 s and perturbs the device
+    # (fresh pids, /dev/shm left as-is), so it is reserved for TS_FULL_RESTART=1
+    # when something is genuinely wedged.
+    if [ "${TS_FULL_RESTART:-0}" = "1" ]; then
+        ts_ssh "/data/UserData/schwung/restart-move.sh" >/dev/null 2>&1 || true
+        local waited=0
+        sleep 5
+        while [ $waited -lt 90 ]; do
+            ts_ssh "pidof shadow_ui >/dev/null 2>&1 && pidof MoveOriginal >/dev/null 2>&1" 2>/dev/null \
+                && { sleep 3; return 0; }
+            sleep 5; waited=$((waited + 5))
+        done
+        echo "test-set: WARNING — Move stack did not come back within ${waited}s" >&2
+        return 1
+    fi
+    ts_close_movy
 }

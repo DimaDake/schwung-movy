@@ -68,3 +68,17 @@ this file stay readable and diffable instead of carrying a checksum.
 
 No test regenerates these files: a test that rewrites its own fixture cannot
 detect drift.
+
+## Restoring the hardware
+
+Every suite calls `test_set_end` on exit, which restarts the Move stack via
+`restart-move.sh` and waits for it to come back (~10 s).
+
+This is not optional housekeeping: device tests leave movy open in overtake,
+where it owns the LEDs and suppresses Move's own LED writes. Nothing hands them
+back when the run ends, so without the restart the pads and step buttons stay
+dark and the hardware looks broken. The restart also clears the wedged inject
+ring that intermittently floods shadow_ui with zero-MIDI.
+
+Set `TS_SKIP_RESTORE=1` to suppress it — `test-all-device.sh` does this so a
+sweep restarts once at the end rather than once per suite.

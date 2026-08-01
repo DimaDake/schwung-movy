@@ -128,7 +128,14 @@ This is what makes the suites order-independent. Before it, `test-unload.sh`
 deleted the clip `test-reselect.sh` needed, and step presses toggled whatever a
 previous run had left.
 
-**Writing a device test:** source the library, call `test_set_begin`, and use
+On the way out, every suite restarts the Move stack (`test_set_end`, trapped on
+`EXIT INT TERM`). Device tests leave movy open in overtake owning the LEDs and
+suppressing Move's own LED writes, so without the restart the pads and step
+buttons stay dark afterwards and the hardware looks broken. It costs ~10 s;
+`test-all-device.sh` suppresses the per-suite restarts and does one at the end.
+
+**Writing a device test:** source the library, call `test_set_begin`, add
+`trap test_set_end EXIT INT TERM`, and use
 `ts_tap_cc` / `ts_tap_note` / `ts_tap_two_steps` for gestures. Each inject is
 its own ssh round trip (~0.5 s), so a press/release pair driven as two injects
 is a >500 ms hold — long enough that movy reads it as a different gesture (a

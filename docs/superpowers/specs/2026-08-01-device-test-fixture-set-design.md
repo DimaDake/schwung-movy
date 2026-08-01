@@ -38,7 +38,7 @@ loaded module.
 
 ### Shared library
 
-One new `scripts/lib/test-set.sh`, sourced by the seven shell scripts.
+One new `scripts/lib/test-set.sh`, sourced by the eight shell scripts.
 `test-jog-hint.mjs` (node) shells out to the same script rather than
 reimplementing it — one implementation, so the two paths cannot drift. Three
 verbs:
@@ -86,12 +86,15 @@ track 0, and a **pre-existing automation lane on track 0** so
 `test-reselect.sh` runs standalone rather than depending on `test-auto.sh`
 having run first.
 
-That file is **captured from a real movy save**, not synthesized: since the
-save-durability rewrite it is a line format with a `end <gen> <len> <checksum>`
-trailer, and a byte-exact captured file cannot disagree with the loader about
-the checksum. Regenerating it is a manual step — a `scripts/fixtures/README.md` records the
-gesture sequence that produces it and the command that copies it off the device
-— never something a test does automatically, since a test that rewrites its own
+That file is **hand-written plain text**, which `src/seq/persist-blob.ts:60`
+permits: a blob carrying neither a `gen` line nor an `end` trailer is accepted
+as a legacy file at generation 0. Only a blob with `gen` but no matching
+trailer is rejected as a torn write. So the fixture needs no checksum and stays
+readable, diffable and editable in the repo — better than capturing a real
+save, which would be opaque and would bake in a stale generation number.
+
+`scripts/fixtures/README.md` records the grammar and how to start from a real
+save if ever needed. No test regenerates it: a test that rewrites its own
 fixture cannot detect drift.
 
 ## Per-script changes

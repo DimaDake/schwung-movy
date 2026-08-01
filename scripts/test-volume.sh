@@ -108,10 +108,15 @@ fi
 
 # The value is read back off the slot at arm time, so a second run must start
 # where the first ended — that is the proof the write landed on the chain slot.
-NEW_VAL=$(echo "$APPLIED" | grep -o "v=[0-9.]*" | cut -d= -f2)
+# `|| true` on both: APPLIED is empty when the gesture never reached the handler
+# (already reported above), and pipefail would otherwise abort here — taking the
+# divert check below down with it and hiding a second, independent failure.
+NEW_VAL=$(echo "$APPLIED" | grep -o "v=[0-9.]*" | cut -d= -f2 || true)
 EXPECTED_STEP=$(python3 -c "print('%.2f' % ($DETENTS * 0.05))")
-if [ -n "$PREV_VOL" ]; then
-    OLD_VAL=$(echo "$PREV_VOL" | grep -o "v=[0-9.]*" | cut -d= -f2)
+if [ -z "$NEW_VAL" ]; then
+    info "no applied value to compare — slot read-back not asserted"
+elif [ -n "$PREV_VOL" ]; then
+    OLD_VAL=$(echo "$PREV_VOL" | grep -o "v=[0-9.]*" | cut -d= -f2 || true)
     DIFF=$(python3 -c "print('%.2f' % ($NEW_VAL - $OLD_VAL))")
     if [ "$DIFF" = "$EXPECTED_STEP" ]; then
         pass "slot read-back: $OLD_VAL -> $NEW_VAL (+$DIFF)"

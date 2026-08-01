@@ -32,12 +32,26 @@ FAILURES=0
 inj() { python3 "$INJECT" "$HOST" "$@" >/dev/null 2>&1; }
 movylog() { ssh "ableton@$HOST" "grep '\[movy\]' $LOG 2>/dev/null || true"; }
 
+# A module whose root level fills all 8 encoders gets a dedicated Preset page
+# placed BEFORE Main, and the preset knob is deliberately non-automatable. That
+# page is where movy lands on open, so without paging past it this test drives a
+# knob that can never hold automation and every check fails for the wrong
+# reason. Jog forward while the rendered row is nothing but the lone Preset cell.
+page_past_preset() {
+    for _ in 1 2 3; do
+        CUR=$(movylog | grep "auto render" | tail -1 || true)
+        echo "$CUR" | grep -qE "auto render .*\| PRESE:[^ ]*$" || break
+        info "  landed on the Preset page — jogging to the next page"
+        inj cc $CC_JOG_TURN 1; sleep 0.5
+    done
+}
+
 # CC numbers (shared/constants.mjs): jog-click=3, Play=85, Rec=86, knob5=75.
 # Knob 5 = LEVEL on Forge's Osc page — must be an AUTOMATABLE param (knob 2 =
 # Coarse Ratio is automatable:false since the Kit-A curation, which silently
 # broke the dot assertions). PAD=68 = drum pad 1 (bottom-left): the default
 # focused pad after a reopen, so the reopen dot check sees the lane's pad.
-CC_JOG=3; CC_PLAY=85; CC_REC=86; CC_KNOB2=75; CC_BACK=51
+CC_JOG=3; CC_JOG_TURN=14; CC_PLAY=85; CC_REC=86; CC_KNOB2=75; CC_BACK=51
 STEP1=16; STEP5=20; PAD=68
 
 # ── Pre-flight + deploy ───────────────────────────────────────────────────────
@@ -63,6 +77,8 @@ sleep 3
 # ── 1. Create automation, verify it displays (P1, P2) ─────────────────────────
 info "Knobs view + clip + play, then hold step 5 and turn knob 5 (automatable)..."
 inj cc $CC_JOG 127; sleep 0.1; inj cc $CC_JOG 0; sleep 0.3          # chain → knobs
+page_past_preset
+
 inj note_on $PAD 100; sleep 0.1; inj note_off $PAD; sleep 0.1       # set step-entry pitch
 inj note_on $STEP1 127; sleep 0.1; inj note_off $STEP1; sleep 0.2   # place note (auto-clip)
 inj cc $CC_PLAY 127; sleep 0.1; inj cc $CC_PLAY 0; sleep 0.5        # play
@@ -79,7 +95,10 @@ echo -e "${BLD}=== auto render (held) ===${RST}"; echo "$L" | grep "auto render 
 # A consumed knob turn recorded a lock at the held step.
 if echo "$L" | grep -qE "aset|auto render held=1.*t1="; then :; fi
 # The held value shows inverted (t1) with a percentage — and changes as we turn.
-HELD_VALUES=$(echo "$L" | grep "auto render held=1" | grep -oE "t1=[0-9]+%" | sort -u | wc -l | tr -d ' ')
+# `|| true`: no match is a RESULT (the value never changed), not a reason to
+# abort. Without it pipefail kills the script here and every check below goes
+# unreported — the failure mode this test exists to catch would exit silent.
+HELD_VALUES=$(echo "$L" | grep "auto render held=1" | grep -oE "t1=[0-9]+%" | sort -u | wc -l | tr -d ' ' || true)
 if echo "$L" | grep -q "auto render held=1.*t1="; then
     pass "P1: held-step value highlighted while holding (touched=1)"
 else
@@ -116,7 +135,7 @@ inj cc $CC_REC 127; sleep 0.1; inj cc $CC_REC 0                     # stop recor
 
 LL=$(movylog)
 echo -e "${BLD}=== auto render (live, held=0) ===${RST}"; echo "$LL" | grep "auto render held=0" | grep -E "t1=" | tail -8 || true
-LIVE_VALUES=$(echo "$LL" | grep "auto render held=0" | grep -oE "t1=[0-9]+%" | sort -u | wc -l | tr -d ' ')
+LIVE_VALUES=$(echo "$LL" | grep "auto render held=0" | grep -oE "t1=[0-9]+%" | sort -u | wc -l | tr -d ' ' || true)
 if echo "$LL" | grep -qE "auto render held=0.*t1="; then
     pass "P4: live-record value highlighted while turning (no step held)"
 else
@@ -141,6 +160,9 @@ f=open(\"/dev/shm/schwung-control\",\"r+b\"); mm=mmap.mmap(f.fileno(),0); mm[56]
 "' >/dev/null 2>&1
 sleep 3.5
 inj cc $CC_JOG 127; sleep 0.1; inj cc $CC_JOG 0; sleep 0.4          # show params → forces a render
+# The reopen lands on the Preset page again, and the automated param lives on
+# the next one — the dot cannot show on a page that does not contain it.
+page_past_preset
 
 L2=$(movylog)
 echo -e "${BLD}=== auto lanes after reopen ===${RST}"; echo "$L2" | grep "auto lanes" | tail -4 || true

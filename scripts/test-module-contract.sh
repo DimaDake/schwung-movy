@@ -104,7 +104,10 @@ info "Trigger — counter-clockwise returns to idle and re-arms..."
 ssh "ableton@$HOST" "> $LOG" >/dev/null 2>&1
 burst $KNOB_REROLL 1 2 60; burst $KNOB_REROLL 127 1 60; burst $KNOB_REROLL 1 2 60
 sleep 1.2
-SEQ=$(movylog | grep -oE "reroll val=[01]" | sed 's/reroll val=//' | tr '\n' ',')
+# `|| true` throughout: a log with no match means the module did not do the
+# thing under test, which the comparison below reports. Under pipefail the bare
+# pipeline would abort the run instead, skipping every later check.
+SEQ=$(movylog | grep -oE "reroll val=[01]" | sed 's/reroll val=//' | tr '\n' ',' || true)
 echo "  sequence: $SEQ"
 [ "$SEQ" = "1,0,1," ] && pass "CW fires, CCW sends idle, CW re-fires (re-armed)" \
                       || fail "Expected '1,0,1,' got '$SEQ'"
@@ -148,7 +151,7 @@ fi
 info "Wide acceleration — a fast sweep travels far..."
 ssh "ableton@$HOST" "> $LOG" >/dev/null 2>&1
 burst $KNOB_SEED 1 8 25; sleep 1.5
-VALS=$(movylog | grep -oE "key=fx1:seed val=[0-9]+" | grep -oE "[0-9]+$" | tr '\n' ' ')
+VALS=$(movylog | grep -oE "key=fx1:seed val=[0-9]+" | grep -oE "[0-9]+$" | tr '\n' ' ' || true)
 echo "  seed sweep: $VALS"
 FIRST=$(echo "$VALS" | awk '{print $1}'); LAST=$(echo "$VALS" | awk '{print $NF}')
 if [ -n "$FIRST" ] && [ -n "$LAST" ] && [ "$((LAST - FIRST))" -gt 200 ]; then
@@ -160,7 +163,7 @@ fi
 info "Contrast — the same burst on a non-wide param is unaffected..."
 ssh "ableton@$HOST" "> $LOG" >/dev/null 2>&1
 burst 73 1 8 25; sleep 1.5
-LL=$(movylog | grep -oE "key=fx1:loop_len val=[0-9]+" | grep -oE "[0-9]+$" | tr '\n' ' ')
+LL=$(movylog | grep -oE "key=fx1:loop_len val=[0-9]+" | grep -oE "[0-9]+$" | tr '\n' ' ' || true)
 LF=$(echo "$LL" | awk '{print $1}'); LT=$(echo "$LL" | awk '{print $NF}')
 echo "  loop_len: $LL"
 if [ -n "$LF" ] && [ -n "$LT" ] && [ "$((LT - LF))" -le 4 ]; then

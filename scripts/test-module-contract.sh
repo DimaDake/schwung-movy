@@ -44,7 +44,23 @@ inj() { python3 "$INJECT" "$HOST" "$@" >/dev/null 2>&1; }
 # Rapid detents must share one ssh round-trip — per-event inject is ~600ms,
 # far wider than the gesture windows being tested.
 burst() { python3 "$MOVY_DIR/scripts/inject-burst.py" "$HOST" "$@" >/dev/null 2>&1; }
-movylog() { ssh "ableton@$HOST" "grep '\[movy\]' $LOG 2>/dev/null || true"; }
+# One event, one line. The device can have two sinks writing debug.log —
+# shadow_ui's own writer plus the `unified-log` pipe that restart-move.sh
+# attaches to Move — so an event appears twice with different prefixes and, at a
+# millisecond boundary, with timestamps 1 ms apart. These tests count EVENTS, so
+# a raw line count silently doubled every trigger and detent assertion. Same
+# message within 5 ms = the same event; the gestures under test are 25 ms apart
+# or wider, so genuinely distinct events survive.
+movylog() {
+    ssh "ableton@$HOST" "grep '\[movy\]' $LOG 2>/dev/null || true" \
+        | sed -E 's/\[[A-Z ]+\] \[[a-z-]+\] //' \
+        | awk '{
+            split($1, c, ":"); now = c[1]*3600 + c[2]*60 + c[3]
+            msg = $0; sub(/^[^ ]+ /, "", msg)
+            if (msg in last && now - last[msg] < 0.005) next
+            last[msg] = now; print
+        }'
+}
 
 # Jog wheel = CC14 (1 = one step clockwise), jog click = CC3, Back = CC51.
 # Knobs are CC71..78; d2 is a signed 7-bit delta (1 = +1, 127 = -1).

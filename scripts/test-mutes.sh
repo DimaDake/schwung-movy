@@ -103,7 +103,12 @@ else fail "expected 'set=1000 mutes=0111', got: $SOLO"; fi
 
 # 3. The regression: the solo must survive a reopen, so un-solo still restores.
 info "Reopening movy (fresh JS context)..."
-sleep 4                     # let the ~3 s autosave write the UI blob
+# Wait for the solo to actually reach disk instead of sleeping a fixed 4 s. The
+# autosave is tick-based and the device's tick rate moves with load, so the real
+# interval is nearer 8 s than the ~3 s its constant assumes. Reopening early
+# reloaded the PREVIOUS blob, cleared the solo, and looked exactly like a
+# persistence bug.
+ts_wait_ui_state '"solo":\[1,0,0,0\]' || fail "solo never reached disk — nothing to restore"
 open_movy
 ssh "ableton@$HOST" "> $LOG"
 inject 49:127 88:127 sleep:300 88:0 49:0 >/dev/null; sleep 2

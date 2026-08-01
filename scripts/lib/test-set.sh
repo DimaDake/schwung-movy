@@ -156,9 +156,11 @@ def send(head, status, d1, d2):
         mm.close()
 "
     for msg in "$@"; do
-        IFS=':' read -r head status d1 d2 nap <<< "$msg"
+        # `st` not `status`: that name is read-only in zsh, so a zsh caller
+        # sourcing this file would die here.
+        IFS=':' read -r head st d1 d2 nap <<< "$msg"
         py="${py}
-send(${head}, ${status}, ${d1}, ${d2})
+send(${head}, ${st}, ${d1}, ${d2})
 time.sleep(${nap:-0.05})"
     done
     ts_ssh "python3 -c \"$py\"" >/dev/null 2>&1
@@ -174,6 +176,29 @@ ts_tap_note() {
 ts_tap_two_steps() {
     ts_send "0x09:0x90:$1:127:0.08" "0x09:0x90:$2:127:0.08" \
             "0x08:0x80:$2:0:0.08"    "0x08:0x80:$1:0:0"
+}
+
+# Block until movy's per-set UI blob on disk matches $1 (an extended regex), or
+# fail after ~30 s.
+#
+# The autosave is tick-based: SAVE_TICKS = 600, documented as ~3 s "at the
+# ~205 Hz device rate". This device measures 63-90 Hz, so the real interval is
+# nearer 8 s and moves with load. Any fixed sleep is therefore a race — a test
+# that slept 4 s and reopened read the PREVIOUS blob and blamed persistence.
+ts_wait_ui_state() {
+    local want="$1" waited=0 cur
+    while [ $waited -lt 30 ]; do
+        cur=$(ts_ssh "cat '$(ts_ui_path)' 2>/dev/null || true")
+        echo "$cur" | grep -qE "$want" && return 0
+        sleep 2; waited=$((waited + 2))
+    done
+    echo "test-set: ui-state never matched /$want/ after ${waited}s" >&2
+    return 1
+}
+
+ts_ui_path() {
+    local uuid; uuid=$(ts_active_uuid)
+    echo "/data/UserData/schwung/modules/tools/movy/sets/${uuid:-_default}/ui-state.json"
 }
 
 ts_seq_path() {

@@ -22,10 +22,15 @@ const REMOTE = '/data/UserData/schwung/modules/tools/movy';
 /* Run against the fixture state, like the shell suites. This shells out to the
  * same lib/test-set.sh rather than reimplementing it, so the two paths cannot
  * drift apart. */
-execFileSync('bash', ['-c',
+const testSet = (verb) => execFileSync('bash', ['-c',
     `set -u; HOST='${HOST}' MOVY_DIR='${root}'; ` +
-    `source '${root}/scripts/lib/test-set.sh'; test_set_begin`],
+    `source '${root}/scripts/lib/test-set.sh'; ${verb}`],
     { stdio: 'inherit' });
+
+testSet('test_set_begin');
+/* Hand the LEDs back however this run ends: it leaves movy open in overtake
+ * owning the surface, so without a restart the hardware stays dark. */
+process.on('exit', () => { try { testSet('test_set_end'); } catch { /* best effort */ } });
 
 const W = 128, TOAST_Y = 58, TOAST_H = 6;   // renderer/layout.ts
 const JOG_TOUCH = 9, JOG_TURN_CC = 14;      // midi/router.ts

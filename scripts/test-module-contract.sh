@@ -70,8 +70,11 @@ info "FX 1 previously: '${PREV:-<empty>}' — loading $MODULE"
 restore() {
     info "Restoring FX 1 to '${PREV:-<empty>}'"
     node "$MOVY_DIR/scripts/module-slot.mjs" set "$SLOT" fx1 "${PREV:-none}" >/dev/null 2>&1 || true
+    # Then hand the LEDs back: this run leaves movy open in overtake owning the
+    # surface, so without a restart the hardware stays dark.
+    test_set_end
 }
-trap restore EXIT
+trap restore EXIT INT TERM
 node "$MOVY_DIR/scripts/module-slot.mjs" set "$SLOT" fx1 "$MODULE" >/dev/null 2>&1
 pass "$MODULE loaded into FX 1"
 

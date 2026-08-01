@@ -17,6 +17,9 @@ INJECT="$MOVY_DIR/../schwung-midi-inject-ui.py"
 # shellcheck source=lib/test-set.sh
 source "$MOVY_DIR/scripts/lib/test-set.sh"
 test_set_begin || { echo "could not establish the fixture state"; exit 1; }
+# Hand the LEDs back when this run ends, however it ends: the suites leave movy
+# open in overtake owning the surface, so without this the hardware stays dark.
+trap test_set_end EXIT INT TERM
 
 GRN='\033[0;32m'; RED='\033[0;31m'; BLD='\033[1m'; RST='\033[0m'
 fails=0

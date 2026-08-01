@@ -249,3 +249,34 @@ test_set_begin() {
     done
     ts_verify   # once more, letting it print what is actually wrong
 }
+
+# Restart the Move stack so the hardware is usable again after a run.
+#
+# Device tests leave movy open in overtake, where it owns the LEDs and
+# suppresses Move's own LED writes (the "LED ownership claimed" log line). Once
+# the run ends nothing hands them back, so the pads and step buttons stay dark
+# or stuck — the hardware looks broken until something restarts the stack. The
+# restart also clears the wedged inject ring that occasionally floods shadow_ui
+# with zero-MIDI.
+#
+# restart-move.sh detaches immediately, so this polls until the stack is back
+# rather than guessing at a sleep. Skipped when TS_SKIP_RESTORE=1, which
+# test-all-device.sh sets so a full sweep restarts once at the end instead of
+# once per suite.
+test_set_end() {
+    [ "${TS_SKIP_RESTORE:-0}" = "1" ] && return 0
+    echo "test-set: restarting the Move stack to hand the LEDs back..." >&2
+    ts_ssh "/data/UserData/schwung/restart-move.sh" >/dev/null 2>&1 || true
+    local waited=0
+    sleep 5
+    while [ $waited -lt 90 ]; do
+        if ts_ssh "pidof shadow_ui >/dev/null 2>&1 && pidof MoveOriginal >/dev/null 2>&1" 2>/dev/null; then
+            sleep 3          # let it finish claiming the surface
+            echo "test-set: Move stack back up" >&2
+            return 0
+        fi
+        sleep 5; waited=$((waited + 5))
+    done
+    echo "test-set: WARNING — Move stack did not come back within ${waited}s" >&2
+    return 1
+}

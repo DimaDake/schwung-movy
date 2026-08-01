@@ -12,6 +12,17 @@ SCRIPTS=(test.sh test-seq.sh test-auto.sh test-reselect.sh test-unload.sh
          test-mutes.sh test-volume.sh test-module-contract.sh)
 declare -a FAILED=()
 
+# Each suite normally restarts the Move stack on the way out to hand the LEDs
+# back. Across a sweep that is eight needless restarts, so suppress theirs and
+# do it once at the end — including on Ctrl-C, which is exactly when a
+# half-finished sweep would otherwise leave the hardware dark.
+export TS_SKIP_RESTORE=1
+MOVY_DIR="$(pwd)"
+# shellcheck source=lib/test-set.sh
+source "$MOVY_DIR/scripts/lib/test-set.sh"
+restore_at_end() { TS_SKIP_RESTORE=0 test_set_end; }
+trap restore_at_end EXIT INT TERM
+
 for s in "${SCRIPTS[@]}"; do
     echo -e "\n${BLD}########## $s ##########${RST}"
     ./scripts/"$s" "$HOST" || FAILED+=("$s")

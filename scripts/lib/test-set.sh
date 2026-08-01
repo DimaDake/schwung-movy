@@ -58,13 +58,26 @@ ts_push_fixture() {
     done < <(ts_fixture_entries)
 }
 
+# Wait until a slot reports the module we asked for. Chain loads settle at their
+# own pace — anywhere from under a second to several — so a fixed sleep either
+# wastes time or gives up too early; both happened before this polled.
+ts_wait_slot() {
+    local slot="$1" want="$2" waited=0 cur
+    while [ $waited -lt 20 ]; do
+        cur=$(ts_read_slot "$slot") || return 1
+        [ "$cur" = "$want" ] && return 0
+        sleep 2; waited=$((waited + 2))
+    done
+    return 1
+}
+
 ts_apply() {
     local slot mod cur
     while read -r slot mod; do
         [ -z "${slot:-}" ] && continue
         if [ "$mod" = "none" ]; then
             node "$MOVY_DIR/scripts/slot-state.mjs" clear "$slot" </dev/null >/dev/null 2>&1
-            sleep 1
+            ts_wait_slot "$slot" "" || true
             continue
         fi
         # load_file acts on the slot's existing chain instance: it is a no-op on
@@ -75,10 +88,10 @@ ts_apply() {
         cur=$(ts_read_slot "$slot") || return 1
         if [ "$cur" != "$mod" ]; then
             node "$MOVY_DIR/scripts/slot-state.mjs" module "$slot" "$mod" </dev/null >/dev/null 2>&1
-            sleep 3
+            ts_wait_slot "$slot" "$mod" || continue   # let the outer retry re-try
         fi
         node "$MOVY_DIR/scripts/slot-state.mjs" load "$slot" "$TS_DEVICE_DIR/slot_${slot}.json" </dev/null >/dev/null 2>&1
-        sleep 2
+        ts_wait_slot "$slot" "$mod" || true
     done < <(ts_fixture_entries)
 }
 
@@ -111,6 +124,56 @@ ts_close_movy() {
         sleep 0.15
     done
     sleep 0.8
+}
+
+# Press and release in ONE ssh round trip.
+#
+# schwung-midi-inject-ui.py sends a single message per invocation and each costs
+# ~0.5 s of network, so a press/release pair driven from the shell is a >500 ms
+# hold. movy reads long holds as different gestures than taps: a step held past
+# STEP_AUTO_MS (300 ms) becomes an automation hold whose release does NOT enter
+# a note, and a held track button is momentary — it reverts to the previous
+# track when released. Both silently did the opposite of what the tests meant.
+# Each argument is one message as head:status:d1:d2:sleep_after, all delivered in
+# a single device-side script so the gaps between them are milliseconds rather
+# than round trips. That is what makes a hold-one-press-another gesture
+# expressible at all from the shell.
+ts_send() {
+    local msg py="
+import mmap, time
+def send(head, status, d1, d2):
+    with open('/dev/shm/schwung-ui-midi', 'r+b') as f:
+        mm = mmap.mmap(f.fileno(), 256)
+        for slot in range(0, 256, 4):
+            if mm[slot] == 0:
+                mm[slot+1] = status; mm[slot+2] = d1; mm[slot+3] = d2
+                mm[slot] = head
+                break
+        mm.close()
+    with open('/dev/shm/schwung-control', 'r+b') as f:
+        mm = mmap.mmap(f.fileno(), 72)
+        mm[3] = (mm[3] + 1) % 256
+        mm.close()
+"
+    for msg in "$@"; do
+        IFS=':' read -r head status d1 d2 nap <<< "$msg"
+        py="${py}
+send(${head}, ${status}, ${d1}, ${d2})
+time.sleep(${nap:-0.05})"
+    done
+    ts_ssh "python3 -c \"$py\"" >/dev/null 2>&1
+}
+
+ts_tap_cc() {
+    ts_send "0x0B:0xB0:$1:${2:-127}:0.05" "0x0B:0xB0:$1:0:0"
+}
+ts_tap_note() {
+    ts_send "0x09:0x90:$1:${2:-127}:0.05" "0x08:0x80:$1:0:0"
+}
+# Hold one step while tapping another — the drum multi-entry gesture.
+ts_tap_two_steps() {
+    ts_send "0x09:0x90:$1:127:0.08" "0x09:0x90:$2:127:0.08" \
+            "0x08:0x80:$2:0:0.08"    "0x08:0x80:$1:0:0"
 }
 
 ts_seq_path() {

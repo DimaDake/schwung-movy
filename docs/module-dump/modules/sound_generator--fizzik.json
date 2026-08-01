@@ -1887,13 +1887,6 @@
      ],
      [
       {
-       "shortName": "ALL",
-       "fullName": "Rnd All",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "..."
-      },
-      {
        "shortName": "CUTOF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
@@ -1905,6 +1898,13 @@
        "fullName": "Resonance",
        "renderStyle": "arc",
        "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ALL",
+       "fullName": "Rnd All",
+       "renderStyle": "arc",
+       "type": "int",
        "displayValue": "..."
       },
       {
@@ -1927,63 +1927,21 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
-       "fullName": "Preset",
+       "shortName": "VOICI",
+       "fullName": "Voicing",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
-      {
-       "shortName": "PATCH",
-       "fullName": "Rnd Patch",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "EXCIT",
-       "fullName": "Rnd Exciter",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "RR",
-       "fullName": "Rnd Reson",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "..."
-      }
+      null,
+      null,
+      null
      ],
      [
-      {
-       "shortName": "ALL",
-       "fullName": "Rnd All",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "CUTOF",
-       "fullName": "Cutoff",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "RESON",
-       "fullName": "Resonance",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "FT",
-       "fullName": "Filter Type",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "..."
-      }
+      null,
+      null,
+      null,
+      null
      ]
     ]
    },
@@ -2722,177 +2680,42 @@
     }
    },
    {
-    "key": "preset",
-    "label": "Preset",
+    "key": "voicing",
+    "label": "Voicing",
     "shortLabel": null,
     "type": "enum",
     "options": [
-     "AlienChurch",
-     "BowedGlass",
-     "CaveStrings",
-     "CouncilsPiano",
-     "DistortedBass",
-     "FeedbackHarp",
-     "JudgementAwaits",
-     "OldResonances",
-     "PreparedPiano",
-     "RythmicBow",
-     "SensitiveSkin",
-     "Sharp",
-     "ShockingPluck",
-     "Slappy",
-     "SurroundedByBells",
-     "XyloStyle",
-     "GlassKalimba",
-     "IronLullaby",
-     "TidalGong",
-     "HollowReed",
-     "StarlightPad",
-     "BrokenMusicBox",
-     "DeepDiveBass",
-     "CopperTongue",
-     "GhostSitar",
-     "MarbleDrum",
-     "WhisperHarp",
-     "TitaniumBell",
-     "FrozenLake",
-     "PulseEngine"
+     "Clean SVF",
+     "SEM",
+     "MS-20",
+     "Steiner",
+     "Ladder 4P",
+     "Ladder 2P",
+     "Ladder 1P",
+     "Prophet",
+     "Oberheim",
+     "Diode",
+     "Sallen-Key",
+     "Vintage"
     ],
     "min": 0,
-    "max": 29,
+    "max": 11,
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
-     "steps": 30
+     "steps": 12
     }
    },
-   {
-    "key": "rnd_patch",
-    "label": "Rnd Patch",
-    "shortLabel": null,
-    "type": "int",
-    "options": null,
-    "min": 0,
-    "max": 127,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
-    }
-   },
-   {
-    "key": "rnd_exc",
-    "label": "Rnd Exciter",
-    "shortLabel": null,
-    "type": "int",
-    "options": null,
-    "min": 0,
-    "max": 127,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
-    }
-   },
-   {
-    "key": "rnd_reson",
-    "label": "Rnd Reson",
-    "shortLabel": null,
-    "type": "int",
-    "options": null,
-    "min": 0,
-    "max": 127,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
-    }
-   },
-   {
-    "key": "rnd_all",
-    "label": "Rnd All",
-    "shortLabel": null,
-    "type": "int",
-    "options": null,
-    "min": 0,
-    "max": 127,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
-    }
-   },
-   {
-    "key": "cutoff",
-    "label": "Cutoff",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "resonance",
-    "label": "Resonance",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "ftype",
-    "label": "Filter Type",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "LP",
-     "HP",
-     "BP",
-     "Notch"
-    ],
-    "min": 0,
-    "max": 3,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 4
-    }
-   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
    {
     "key": "exc_mix",
     "label": "Exc Mix",
@@ -4035,12 +3858,8 @@
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "voicing"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "1 chain_params not reachable in movy: voicing"
-  ]
+  "warnings": []
  }
 }

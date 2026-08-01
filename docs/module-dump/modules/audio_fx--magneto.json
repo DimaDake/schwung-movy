@@ -1717,12 +1717,22 @@
     "padSpecific": false
    },
    {
+    "name": "Channel - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
     "name": "Tape Model",
     "global": false,
     "padSpecific": false
    },
    {
     "name": "Deck",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Recordings",
     "global": false,
     "padSpecific": false
    }
@@ -1808,29 +1818,29 @@
     "rows": [
      [
       {
-       "shortName": "PLAY",
-       "fullName": "Play",
+       "shortName": "FEEDB",
+       "fullName": "Feedback",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MODE",
+       "fullName": "Sync Mode",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
        "shortName": "REC",
-       "fullName": "Rec",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "VAR",
-       "fullName": "Var Speed",
+       "fullName": "Rec Length",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "SPEED",
-       "fullName": "Speed",
+       "shortName": "DIV",
+       "fullName": "Sync Div",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
@@ -1838,33 +1848,15 @@
      ],
      [
       {
-       "shortName": "SIDE",
-       "fullName": "Side",
+       "shortName": "TEMPO",
+       "fullName": "Tempo",
        "renderStyle": "arc",
-       "type": "enum",
+       "type": "int",
        "displayValue": "..."
       },
-      {
-       "shortName": "TONE",
-       "fullName": "Tone",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "TAPE",
-       "fullName": "Tape",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "VOLUM",
-       "fullName": "Volume",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
+      null,
+      null,
+      null
      ]
     ]
    },
@@ -2009,6 +2001,34 @@
     ]
    },
    {
+    "name": "Channel - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CM",
+       "fullName": "Channel Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
     "name": "Tape Model",
     "envelopeLines": [
      false,
@@ -2145,6 +2165,70 @@
        "type": "float",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "Recordings",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "REC",
+       "fullName": "Rec Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LOADA",
+       "fullName": "Load A",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LOADB",
+       "fullName": "Load B",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BLANA",
+       "fullName": "Blank A",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "BLANB",
+       "fullName": "Blank B",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SAVE",
+       "fullName": "Save to Recs",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RL",
+       "fullName": "Recover Loop",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null
      ]
     ]
    }
@@ -2309,48 +2393,8 @@
     }
    },
    {
-    "key": "play",
-    "label": "Play",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "Stopped",
-     "Playing"
-    ],
-    "min": 0,
-    "max": 1,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 2
-    }
-   },
-   {
-    "key": "rec",
-    "label": "Rec",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "Stopped",
-     "Rec"
-    ],
-    "min": 0,
-    "max": 1,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 2
-    }
-   },
-   {
-    "key": "varspeed",
-    "label": "Var Speed",
+    "key": "feedback",
+    "label": "Feedback",
     "shortLabel": null,
     "type": "float",
     "options": null,
@@ -2366,13 +2410,13 @@
     }
    },
    {
-    "key": "speed",
-    "label": "Speed",
+    "key": "sync_mode",
+    "label": "Sync Mode",
     "shortLabel": null,
     "type": "enum",
     "options": [
-     "1 7/8",
-     "15/16"
+     "Free",
+     "Sync"
     ],
     "min": 0,
     "max": 1,
@@ -2386,86 +2430,67 @@
     }
    },
    {
-    "key": "side",
-    "label": "Side",
+    "key": "rec_length",
+    "label": "Rec Length",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 1,
+    "max": 30,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 58
+    }
+   },
+   {
+    "key": "sync_div",
+    "label": "Sync Div",
     "shortLabel": null,
     "type": "enum",
     "options": [
-     "A 1-2",
-     "B 3-4"
+     "1 Beat",
+     "2 Beats",
+     "1 Bar",
+     "2 Bars",
+     "4 Bars",
+     "8 Bars",
+     "16 Bars"
     ],
     "min": 0,
-    "max": 1,
+    "max": 6,
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
-     "steps": 2
+     "steps": 7
     }
    },
    {
-    "key": "tone",
-    "label": "Tone",
+    "key": "tempo",
+    "label": "Tempo",
     "shortLabel": null,
-    "type": "float",
+    "type": "int",
     "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "model",
-    "label": "Tape",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "Type I",
-     "Type II",
-     "Type IV",
-     "Worn",
-     "Radio",
-     "VCR",
-     "Dictaphone",
-     "Microcass",
-     "Studio"
-    ],
-    "min": 0,
-    "max": 8,
+    "min": 20,
+    "max": 999,
     "step": 1,
     "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 9
-    }
-   },
-   {
-    "key": "volume",
-    "label": "Volume",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
     "automatable": true,
     "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 1958
     }
    },
+   null,
+   null,
+   null,
    {
     "key": "scrub",
     "label": "Scrub",
@@ -2744,6 +2769,34 @@
      "detentsFullSweep": 200
     }
    },
+   {
+    "key": "eq_in",
+    "label": "Channel Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Input",
+     "Tape",
+     "Off"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
    {
     "key": "model",
     "label": "Tape",
@@ -3043,28 +3096,147 @@
      "perDetent": 0.005,
      "detentsFullSweep": 200
     }
-   }
+   },
+   {
+    "key": "rec_mode",
+    "label": "Rec Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Monitor",
+     "Loop Only"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "load_a",
+    "label": "Load A",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "load_b",
+    "label": "Load B",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "blank_a",
+    "label": "Blank A",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Blank",
+     "Blanked"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "blank_b",
+    "label": "Blank B",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Blank",
+     "Blanked"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "save_recs",
+    "label": "Save to Recs",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Save",
+     "Saved"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "recover",
+    "label": "Recover Loop",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Recover",
+     "Recovered"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "feedback",
-   "eq_in",
-   "rec_mode",
-   "rec_length",
-   "sync_mode",
-   "sync_div",
-   "tempo",
-   "load_a",
-   "load_b",
-   "blank_a",
-   "blank_b",
-   "save_recs",
-   "recover"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "13 chain_params not reachable in movy: feedback, eq_in, rec_mode, rec_length, sync_mode, sync_div, tempo, load_a, load_b, blank_a, blank_b, save_recs, …"
-  ]
+  "warnings": []
  }
 }

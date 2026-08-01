@@ -714,7 +714,7 @@
   "drum": null,
   "banks": [
    {
-    "name": "Main - 1",
+    "name": "Main",
     "global": false,
     "padSpecific": false
    },
@@ -751,7 +751,7 @@
   ],
   "pages": [
    {
-    "name": "Main - 1",
+    "name": "Main",
     "envelopeLines": [
      false,
      false
@@ -901,7 +901,13 @@
        "type": "float",
        "displayValue": "..."
       },
-      null,
+      {
+       "shortName": "SF",
+       "fullName": "Sample File",
+       "renderStyle": "arc",
+       "type": "file",
+       "displayValue": "—"
+      },
       null
      ]
     ]
@@ -1379,7 +1385,26 @@
      "detentsFullSweep": 100
     }
    },
-   null,
+   {
+    "key": "sample_path",
+    "label": "Sample File",
+    "shortLabel": null,
+    "type": "file",
+    "min": 0,
+    "max": 0,
+    "step": 0,
+    "options": null,
+    "renderStyle": "arc",
+    "automatable": false,
+    "fileRoot": "/data/UserData/UserLibrary/Samples",
+    "fileFilter": [
+     ".wav"
+    ],
+    "fileStartPath": "/data/UserData/UserLibrary/Samples",
+    "increment": {
+     "kind": "file-browse"
+    }
+   },
    null,
    {
     "key": "scan_enable",

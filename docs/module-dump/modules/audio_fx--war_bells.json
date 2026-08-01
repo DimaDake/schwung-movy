@@ -697,6 +697,11 @@
     "padSpecific": false
    },
    {
+    "name": "Main - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
     "name": "Tone",
     "global": false,
     "padSpecific": false
@@ -810,6 +815,34 @@
        "type": "float",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESE",
+       "fullName": "Preset",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
      ]
     ]
    },
@@ -1418,6 +1451,53 @@
      "detentsFullSweep": 100
     }
    },
+   {
+    "key": "preset",
+    "label": "Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Init",
+     "Arp",
+     "Stutr",
+     "Chop",
+     "Glass",
+     "Seq",
+     "Stack",
+     "Cloud",
+     "Drone",
+     "Birds",
+     "Taps",
+     "Warp",
+     "Sheen",
+     "Motn",
+     "Evolv",
+     "Scale",
+     "Bloom",
+     "Trails",
+     "Spiral",
+     "Drifting",
+     "Expanse",
+     "MonoTap"
+    ],
+    "min": 0,
+    "max": 21,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 22
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
    {
     "key": "shape",
     "label": "Shape",
@@ -2272,12 +2352,8 @@
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "preset"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "1 chain_params not reachable in movy: preset"
-  ]
+  "warnings": []
  }
 }

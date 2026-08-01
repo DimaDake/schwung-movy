@@ -196,7 +196,13 @@
       }
      ],
      [
-      null,
+      {
+       "shortName": "INPUT",
+       "fullName": "Input",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
       null,
       null,
       null
@@ -280,19 +286,31 @@
      "detentsFullSweep": 200
     }
    },
-   null,
+   {
+    "key": "input_gain",
+    "label": "Input",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
    null,
    null,
    null
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "input_gain"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "1 chain_params not reachable in movy: input_gain"
-  ]
+  "warnings": []
  }
 }

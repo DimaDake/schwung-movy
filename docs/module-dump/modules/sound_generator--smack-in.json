@@ -1,12 +1,12 @@
 {
  "id": "smack-in",
  "name": "Smack In",
- "version": "0.13.1",
+ "version": "0.15.1",
  "author": "timncox",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 75,
- "dsp_size": 195352,
+ "load_ms": 0,
+ "dsp_size": 0,
  "capabilities": {
   "audio_in": true,
   "audio_out": true,
@@ -70,6 +70,10 @@
        "unit": "%",
        "display_format": "%.0f"
       },
+      "wet",
+      "pitch_range",
+      "quantize",
+      "seed",
       {
        "level": "perform",
        "name": "Perform"
@@ -80,10 +84,14 @@
       }
      ],
      "knobs": [
+      "fx_density",
+      "order_density",
       "loop_len",
       "slice_res",
-      "fx_density",
-      "order_density"
+      "wet",
+      "reroll",
+      "ab",
+      "seed"
      ]
     },
     "perform": {
@@ -94,6 +102,7 @@
        "name": "Capture Now",
        "type": "enum",
        "default": 0,
+       "behavior": "trigger",
        "options": [
         "idle",
         "trigger"
@@ -104,6 +113,7 @@
        "name": "Arm Record",
        "type": "enum",
        "default": 0,
+       "behavior": "trigger",
        "options": [
         "idle",
         "trigger"
@@ -124,6 +134,7 @@
        "name": "Re-Roll",
        "type": "enum",
        "default": 0,
+       "behavior": "trigger",
        "options": [
         "idle",
         "trigger"
@@ -134,6 +145,7 @@
        "name": "Clear Loop",
        "type": "enum",
        "default": 0,
+       "behavior": "trigger",
        "options": [
         "idle",
         "trigger"
@@ -144,17 +156,29 @@
        "name": "Detect BPM",
        "type": "enum",
        "default": 0,
+       "behavior": "trigger",
        "options": [
         "idle",
         "trigger"
        ]
-      }
+      },
+      "fx_density",
+      "order_density",
+      "wet",
+      "pitch_range",
+      "quantize",
+      "pad_play",
+      "pad_rate"
      ],
      "knobs": [
       "capture",
+      "arm",
       "ab",
       "reroll",
-      "clear"
+      "fx_density",
+      "order_density",
+      "wet",
+      "seed"
      ]
     },
     "setup": {
@@ -220,6 +244,7 @@
        "type": "int",
        "min": 1,
        "max": 9999,
+       "knob_acceleration": "wide",
        "default": 4303
       },
       {
@@ -261,24 +286,35 @@
      ],
      "knobs": [
       "wet",
-      "pitch_range",
-      "quantize",
-      "seed"
+      "loop_len",
+      "pad_rate",
+      "seed",
+      "slice_res",
+      "channel_mode",
+      "pan_l",
+      "pan_r"
      ]
     }
    }
   }
  },
- "presets": null,
+ "presets": {
+  "count": 0,
+  "sample": []
+ },
  "native": {
-  "hierarchy_levels": [],
+  "hierarchy_levels": [
+   "root",
+   "perform",
+   "setup"
+  ],
   "params": [
    {
     "key": "loop_len",
     "name": "Loop Len",
     "type": "enum",
-    "min": 0,
-    "max": 8,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "1 Step",
@@ -297,8 +333,8 @@
     "key": "slice_res",
     "name": "Slice Res",
     "type": "enum",
-    "min": 0,
-    "max": 3,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "1/2 Step",
@@ -314,7 +350,7 @@
     "type": "float",
     "min": 0,
     "max": 100,
-    "step": null,
+    "step": 5,
     "options": null,
     "default": "50"
    },
@@ -324,7 +360,7 @@
     "type": "float",
     "min": 0,
     "max": 100,
-    "step": null,
+    "step": 5,
     "options": null,
     "default": "0"
    },
@@ -332,8 +368,8 @@
     "key": "capture",
     "name": "Capture Now",
     "type": "enum",
-    "min": 0,
-    "max": 1,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "idle",
@@ -345,8 +381,8 @@
     "key": "arm",
     "name": "Arm Record",
     "type": "enum",
-    "min": 0,
-    "max": 1,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "idle",
@@ -358,8 +394,8 @@
     "key": "ab",
     "name": "A/B",
     "type": "enum",
-    "min": 0,
-    "max": 1,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "A Clean",
@@ -371,8 +407,8 @@
     "key": "reroll",
     "name": "Re-Roll",
     "type": "enum",
-    "min": 0,
-    "max": 1,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "idle",
@@ -384,8 +420,8 @@
     "key": "clear",
     "name": "Clear Loop",
     "type": "enum",
-    "min": 0,
-    "max": 1,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "idle",
@@ -397,8 +433,8 @@
     "key": "detect_bpm",
     "name": "Detect BPM",
     "type": "enum",
-    "min": 0,
-    "max": 1,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "idle",
@@ -412,7 +448,7 @@
     "type": "float",
     "min": 0,
     "max": 100,
-    "step": null,
+    "step": 5,
     "options": null,
     "default": "100"
    },
@@ -430,8 +466,8 @@
     "key": "quantize",
     "name": "AB Quantize",
     "type": "enum",
-    "min": 0,
-    "max": 2,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "Instant",
@@ -444,8 +480,8 @@
     "key": "pad_play",
     "name": "Pad Play",
     "type": "enum",
-    "min": 0,
-    "max": 1,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "Off",
@@ -457,8 +493,8 @@
     "key": "pad_rate",
     "name": "Pad Rate",
     "type": "enum",
-    "min": 0,
-    "max": 4,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "1/16",
@@ -483,8 +519,8 @@
     "key": "transport",
     "name": "Transport",
     "type": "enum",
-    "min": 0,
-    "max": 1,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "Follow",
@@ -496,8 +532,8 @@
     "key": "channel_mode",
     "name": "Channels",
     "type": "enum",
-    "min": 0,
-    "max": 1,
+    "min": null,
+    "max": null,
     "step": null,
     "options": [
      "Stereo",
@@ -533,7 +569,7 @@
   "drum": null,
   "banks": [
    {
-    "name": "Main - 1",
+    "name": "Main",
     "global": false,
     "padSpecific": false
    },
@@ -543,14 +579,29 @@
     "padSpecific": false
    },
    {
-    "name": "Main - 3",
+    "name": "Perform",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Perform - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Setup",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Setup - 2",
     "global": false,
     "padSpecific": false
    }
   ],
   "pages": [
    {
-    "name": "Main - 1",
+    "name": "Main",
     "envelopeLines": [
      false,
      false
@@ -559,25 +610,11 @@
     "rows": [
      [
       {
-       "shortName": "LOOP",
-       "fullName": "Loop Len",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "1 Bar"
-      },
-      {
-       "shortName": "SLICE",
-       "fullName": "Slice Res",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "..."
-      },
-      {
        "shortName": "FX",
        "fullName": "FX Density",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "..."
+       "displayValue": "50%"
       },
       {
        "shortName": "ORDER",
@@ -585,8 +622,96 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
+      },
+      {
+       "shortName": "LOOP",
+       "fullName": "Loop Len",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SLICE",
+       "fullName": "Slice Res",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
       }
      ],
+     [
+      {
+       "shortName": "WET",
+       "fullName": "Wet",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RE-RO",
+       "fullName": "Re-Roll",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "A/B",
+       "fullName": "A/B",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SEED",
+       "fullName": "Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PITCH",
+       "fullName": "Pitch Range",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AB",
+       "fullName": "AB Quantize",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Perform",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
      [
       {
        "shortName": "CN",
@@ -616,11 +741,41 @@
        "type": "enum",
        "displayValue": "..."
       }
+     ],
+     [
+      {
+       "shortName": "FX",
+       "fullName": "FX Density",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ORDER",
+       "fullName": "Order",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WET",
+       "fullName": "Wet",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SEED",
+       "fullName": "Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
      ]
     ]
    },
    {
-    "name": "Main - 2",
+    "name": "Perform - 2",
     "envelopeLines": [
      false,
      false
@@ -643,6 +798,32 @@
        "displayValue": "..."
       },
       {
+       "shortName": "PAD",
+       "fullName": "Pad Play",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Setup",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
        "shortName": "WET",
        "fullName": "Wet",
        "renderStyle": "arc",
@@ -650,30 +831,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PITCH",
-       "fullName": "Pitch Range",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "..."
-      }
-     ],
-     [
-      {
-       "shortName": "AB",
-       "fullName": "AB Quantize",
+       "shortName": "LOOP",
+       "fullName": "Loop Len",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "PLAY",
-       "fullName": "Pad Play",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "RATE",
+       "shortName": "PAD",
        "fullName": "Pad Rate",
        "renderStyle": "arc",
        "type": "enum",
@@ -686,21 +851,11 @@
        "type": "int",
        "displayValue": "..."
       }
-     ]
-    ]
-   },
-   {
-    "name": "Main - 3",
-    "envelopeLines": [
-     false,
-     false
-    ],
-    "lfoViz": false,
-    "rows": [
+     ],
      [
       {
-       "shortName": "TRANS",
-       "fullName": "Transport",
+       "shortName": "SLICE",
+       "fullName": "Slice Res",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
@@ -726,6 +881,28 @@
        "type": "int",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "Setup - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TRANS",
+       "fullName": "Transport",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
      ],
      [
       null,
@@ -737,6 +914,40 @@
    }
   ],
   "params": [
+   {
+    "key": "fx_density",
+    "label": "FX Density",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 2.5,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "order_density",
+    "label": "Order",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 2.5,
+     "detentsFullSweep": 40
+    }
+   },
    {
     "key": "loop_len",
     "label": "Loop Len",
@@ -787,42 +998,25 @@
     }
    },
    {
-    "key": "fx_density",
-    "label": "FX Density",
+    "key": "wet",
+    "label": "Wet",
     "shortLabel": null,
     "type": "float",
     "options": null,
     "min": 0,
     "max": 100,
-    "step": 0.02,
+    "step": 5,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 10000
+     "perDetent": 2.5,
+     "detentsFullSweep": 40
     }
    },
    {
-    "key": "order_density",
-    "label": "Order",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 100,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 10000
-    }
-   },
-   {
-    "key": "capture",
-    "label": "Capture Now",
+    "key": "reroll",
+    "label": "Re-Roll",
     "shortLabel": null,
     "type": "enum",
     "options": [
@@ -834,26 +1028,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 2
-    }
-   },
-   {
-    "key": "arm",
-    "label": "Arm Record",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "idle",
-     "trigger"
-    ],
-    "min": 0,
-    "max": 1,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
+    "behavior": "trigger",
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
@@ -881,80 +1056,21 @@
     }
    },
    {
-    "key": "reroll",
-    "label": "Re-Roll",
+    "key": "seed",
+    "label": "Seed",
     "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "idle",
-     "trigger"
-    ],
-    "min": 0,
-    "max": 1,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 2
-    }
-   },
-   {
-    "key": "clear",
-    "label": "Clear Loop",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "idle",
-     "trigger"
-    ],
-    "min": 0,
-    "max": 1,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 2
-    }
-   },
-   {
-    "key": "detect_bpm",
-    "label": "Detect BPM",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "idle",
-     "trigger"
-    ],
-    "min": 0,
-    "max": 1,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 2
-    }
-   },
-   {
-    "key": "wet",
-    "label": "Wet",
-    "shortLabel": null,
-    "type": "float",
+    "type": "int",
     "options": null,
-    "min": 0,
-    "max": 100,
-    "step": 0.02,
+    "min": 1,
+    "max": 9999,
+    "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "knobAcceleration": "wide",
     "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 10000
+     "kind": "int",
+     "acceleration": "wide",
+     "fineStep": 1
     }
    },
    {
@@ -995,6 +1111,206 @@
      "steps": 3
     }
    },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "capture",
+    "label": "Capture Now",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "behavior": "trigger",
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "arm",
+    "label": "Arm Record",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "behavior": "trigger",
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "ab",
+    "label": "A/B",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "A Clean",
+     "B Pattern"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "reroll",
+    "label": "Re-Roll",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "behavior": "trigger",
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "fx_density",
+    "label": "FX Density",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 2.5,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "order_density",
+    "label": "Order",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 2.5,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "wet",
+    "label": "Wet",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 2.5,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "seed",
+    "label": "Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 9999,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "knobAcceleration": "wide",
+    "increment": {
+     "kind": "int",
+     "acceleration": "wide",
+     "fineStep": 1
+    }
+   },
+   {
+    "key": "clear",
+    "label": "Clear Loop",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "behavior": "trigger",
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "detect_bpm",
+    "label": "Detect BPM",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "behavior": "trigger",
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
    {
     "key": "pad_play",
     "label": "Pad Play",
@@ -1013,6 +1329,55 @@
      "kind": "enum",
      "detentsPerStep": 4,
      "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "wet",
+    "label": "Wet",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 2.5,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "loop_len",
+    "label": "Loop Len",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1 Step",
+     "2 Steps",
+     "1 Beat",
+     "2 Beats",
+     "1 Bar",
+     "2 Bars",
+     "4 Bars",
+     "8 Bars",
+     "16 Bars"
+    ],
+    "min": 0,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 9
     }
    },
    {
@@ -1049,30 +1414,33 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "knobAcceleration": "wide",
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 19996
+     "acceleration": "wide",
+     "fineStep": 1
     }
    },
    {
-    "key": "transport",
-    "label": "Transport",
+    "key": "slice_res",
+    "label": "Slice Res",
     "shortLabel": null,
     "type": "enum",
     "options": [
-     "Follow",
-     "Free"
+     "1/2 Step",
+     "1 Step",
+     "2 Steps",
+     "4 Steps"
     ],
     "min": 0,
-    "max": 1,
+    "max": 3,
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
-     "steps": 2
+     "steps": 4
     }
    },
    {
@@ -1129,6 +1497,29 @@
      "detentsFullSweep": 200
     }
    },
+   {
+    "key": "transport",
+    "label": "Transport",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Follow",
+     "Free"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
    null,
    null,
    null,
@@ -1138,8 +1529,6 @@
  "analysis": {
   "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "has chain_params but no ui_hierarchy and no movy config"
-  ]
+  "warnings": []
  }
 }

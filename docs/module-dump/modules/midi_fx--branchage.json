@@ -298,7 +298,7 @@
   "drum": null,
   "banks": [
    {
-    "name": "Main - 1",
+    "name": "Main",
     "global": false,
     "padSpecific": false
    },
@@ -320,7 +320,7 @@
   ],
   "pages": [
    {
-    "name": "Main - 1",
+    "name": "Main",
     "envelopeLines": [
      false,
      false

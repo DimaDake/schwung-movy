@@ -81,6 +81,10 @@ export interface ViewModel {
     bankName:       string;
     bankIndex:      number;
     bankCount:      number;
+    /* One bank id per page: pages sharing an id are drawn flush in the page
+     * indicator, so the bar shows the sections Shift+jog steps through. Omitted
+     * by views whose pages are each their own bank (LFO, step/clip/set pages). */
+    bankGroups?:    number[];
     rows:           (ParamVM | null)[][];
     /* When a knob line is an ADSR envelope, envelopeLines[line] is set and that
      * line's rows[line][0..3] hold the A,D,S,R ParamVMs in column order. */

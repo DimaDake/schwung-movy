@@ -13,6 +13,27 @@ function hierFull(knobs, params) {
     return JSON.stringify({ levels: { root: { knobs, params } } });
 }
 
+
+/* A hierarchy shaped like a real param-dense module: many levels (banks), some
+ * spanning more than one page. `sizes[i]` is level i's param count, so a level
+ * of 16 params occupies two pages of the indicator bar under one bank. */
+function multiLevel(name, sizes) {
+    const params = [];
+    const levels = { root: { knobs: [], params: [] } };
+    sizes.forEach((count, i) => {
+        const keys = Array.from({ length: count }, (_, j) => `l${i}_p${j}`);
+        keys.forEach(k => params.push({ key: k, name: k.toUpperCase(), type: "int", min: 0, max: 127 }));
+        levels[`lvl${i}`] = { knobs: keys.slice(0, 8), params: keys.map(k => ({ key: k, label: k })) };
+        levels.root.params.push({ level: `lvl${i}`, label: `B${i}` });
+    });
+    return {
+        "synth:name": name,
+        "synth:chain_params": JSON.stringify(params),
+        "synth:ui_hierarchy": JSON.stringify({ levels }),
+        ...Object.fromEntries(params.map(p => [`synth:${p.key}`, "0"])),
+    };
+}
+
 export const MOCK_SYNTHS = {
 
     /* Smack-style one-shot actions for the trigger badge states. Two triggers so a
@@ -436,6 +457,146 @@ export const MOCK_SYNTHS = {
             { key: "p1", name: "P1", type: "float", min: 0, max: 1 },
             { key: "p2", name: "P2", type: "float", min: 0, max: 1 },
         ]),
+    },
+
+    /* A level whose params[] list is richer than its knobs[] row — the osirus
+     * shape. `bank_index` is degenerate (min==max) so it must NOT be rendered;
+     * `ui_scroll` is internal state; `dupe` is already a knob on root. */
+    hier_params_extras: {
+        "synth:name": "Extras",
+        "synth:chain_params": JSON.stringify([
+            { key: "cutoff",     name: "Cutoff",    type: "int", min: 0, max: 127 },
+            { key: "dupe",       name: "Dupe",      type: "int", min: 0, max: 127 },
+            { key: "pw",         name: "Osc1 PW",   type: "int", min: 0, max: 127 },
+            { key: "wave",       name: "Osc1 Wave", type: "enum", options: ["Sine", "Saw"] },
+            { key: "semi",       name: "Osc1 Semi", type: "int", min: 16, max: 112 },
+            { key: "bank_index", name: "Bank",      type: "int", min: 0, max: 0 },
+            { key: "ui_scroll",  name: "Scroll",    type: "int", min: 0, max: 9 },
+            { key: "rom",        name: "ROM",       type: "enum", options: ["A", "B", "C"] },
+            { key: "view",       name: "Visual Edit", type: "canvas" },
+        ]),
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: {
+                    knobs: ["cutoff", "dupe"],
+                    params: [
+                        { key: "bank_index", label: "Bank" },
+                        { key: "ui_scroll",  label: "Scroll" },
+                        { key: "view",       label: "Visual Edit" },
+                        { level: "osc",      label: "Oscillators" },
+                        { level: "settings", label: "Settings" },
+                    ],
+                },
+                osc: {
+                    knobs: ["pw"],
+                    params: [
+                        { key: "pw",   label: "Osc1 PW" },
+                        { key: "wave", label: "Osc1 Wave" },
+                        { key: "semi", label: "Osc1 Semi" },
+                        { key: "dupe", label: "Dupe" },
+                    ],
+                },
+                settings: { knobs: [], params: [{ key: "rom", label: "ROM" }] },
+            },
+        }),
+        "synth:cutoff": "64", "synth:dupe": "0", "synth:pw": "0",
+        "synth:wave": "0", "synth:semi": "64", "synth:bank_index": "0",
+        "synth:ui_scroll": "0", "synth:rom": "0",
+    },
+
+    /* Ten keys on one level → two pages: bare name, then " - 2". */
+    hier_params_overflow: {
+        "synth:name": "Overflow",
+        "synth:chain_params": JSON.stringify(
+            ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"].map(k =>
+                ({ key: k, name: k.toUpperCase(), type: "int", min: 0, max: 127 })),
+        ),
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: {
+                    knobs: ["a", "b"],
+                    params: ["c", "d", "e", "f", "g", "h", "i", "j"].map(k => ({ key: k, label: k })),
+                },
+            },
+        }),
+        ...Object.fromEntries(["a","b","c","d","e","f","g","h","i","j"].map(k => [`synth:${k}`, "0"])),
+    },
+
+    /* surge's shape: 50 pages across 30 banks (20 banks of two pages, 10 of one). */
+    hier_surge_pages: multiLevel('SurgeLike',
+        [...Array(20).fill(16), ...Array(10).fill(8)]),
+
+    /* minijv's shape: 70 pages across 51 banks (19 banks of two pages, 32 of one). */
+    hier_dense_pages: multiLevel('Dense',
+        [...Array(19).fill(16), ...Array(32).fill(8)]),
+
+    /* osirus's shape: 25 pages across 13 banks. */
+    hier_grouped_pages: multiLevel('Grouped',
+        [...Array(12).fill(16), ...Array(1).fill(8)]),
+
+    /* osirus's shape mid-ROM-load: the preset list is empty and the ROM enum
+     * carries a single "(loading)" option. env.setParams() rewrites these
+     * mid-test to simulate the ROM landing. */
+    hier_async_meta: {
+        "synth:name": "Loader",
+        "synth:chain_params": JSON.stringify([
+            { key: "cutoff", name: "Cutoff", type: "int", min: 0, max: 127 },
+            { key: "rom",    name: "ROM",    type: "enum", options: ["(loading)"] },
+        ]),
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: {
+                    list_param: "preset", count_param: "preset_count", name_param: "preset_name",
+                    knobs: ["cutoff"],
+                    params: [{ key: "rom", label: "ROM" }],
+                },
+            },
+        }),
+        "synth:preset_count": "0",
+        "synth:cutoff": "64",
+        "synth:rom": "0",
+    },
+
+    /* 200 params on one level → 25 pages. Big enough that a whole-array refresh
+     * cursor takes ~200 ticks to reach a late page (minijv is this shape). */
+    hier_many_pages: {
+        "synth:name": "Many",
+        "synth:chain_params": JSON.stringify(
+            Array.from({ length: 200 }, (_, i) =>
+                ({ key: `p${i}`, name: `P${i}`, type: "int", min: 0, max: 127 })),
+        ),
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: {
+                    knobs: ["p0", "p1"],
+                    params: Array.from({ length: 200 }, (_, i) => ({ key: `p${i}`, label: `P${i}` })),
+                },
+            },
+        }),
+        ...Object.fromEntries(Array.from({ length: 200 }, (_, i) => [`synth:p${i}`, "0"])),
+    },
+
+    /* Two levels, the first spanning two pages — the shape shift+jog exists for. */
+    hier_params_overflow_two_levels: {
+        "synth:name": "Groups",
+        "synth:chain_params": JSON.stringify(
+            ["a","b","c","d","e","f","g","h","i","j","k"].map(x =>
+                ({ key: x, name: x.toUpperCase(), type: "int", min: 0, max: 127 })),
+        ),
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: {
+                    knobs: ["a", "b"],
+                    params: [
+                        ...["c","d","e","f","g","h","i","j"].map(x => ({ key: x, label: x })),
+                        { level: "fx", label: "Effects" },
+                    ],
+                },
+                fx: { knobs: ["k"], params: [{ key: "k", label: "k" }] },
+            },
+        }),
+        ...Object.fromEntries(["a","b","c","d","e","f","g","h","i","j","k"]
+            .map(x => [`synth:${x}`, "0"])),
     },
 
     nav_levels: {

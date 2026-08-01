@@ -14,6 +14,7 @@ import { enumRawToIndex, enumUsesIndex, enumSetValue } from '../dist/esm/model/e
 import { MOCK_SYNTHS }    from './mock-synth.mjs';
 import { drumPadOn, drumPadOff } from '../dist/esm/keyboard/drum-handler.js';
 import { ENGINE_VERSION } from '../dist/esm/seq/constants.js';
+import { NAME_POLL_TICKS, META_RETRY_LIMIT } from '../dist/esm/model/constants.js';
 import {
     readActiveSet, uuidToStatePath, uuidToUiStatePath,
     loadNameIndex, rememberSet, BLANK_STATE,
@@ -257,6 +258,254 @@ _log('\nTest: orphan levels with knobs are swept in');
     const names = bankNames(bootModel(MOCK_SYNTHS.hier_orphan_level));
     eq('orphan_level: bankCount = 2', names.length, 2);
     eq('orphan_level: bank 1 = Perf', names[1], 'Perf');
+}
+
+/* ── params[] extras: the osirus Preset/Bank/ROM gap ─────────────────────── */
+
+_log('\nTest: level params[] entries render after that level\'s knobs');
+{
+    const m = bootModel(MOCK_SYNTHS.hier_params_extras);
+    const keysOf = (pg) =>
+        m.dumpLayout().params.slice(pg * 8, pg * 8 + 8).filter(Boolean).map(p => p.key);
+    const names = bankNames(m);
+    eq('extras: page 0 = Main',        names[0], 'Main');
+    eq('extras: page 1 = Oscillators', names[1], 'Oscillators');
+    eq('extras: page 2 = Settings',    names[2], 'Settings');
+    eq('extras: root keeps its knobs',
+        JSON.stringify(keysOf(0)), JSON.stringify(['cutoff', 'dupe']));
+    eq('extras: osc knobs then params, deduped',
+        JSON.stringify(keysOf(1)), JSON.stringify(['pw', 'wave', 'semi']));
+    eq('extras: settings renders its params-only key',
+        JSON.stringify(keysOf(2)), JSON.stringify(['rom']));
+    const all = m.dumpLayout().params.filter(Boolean).map(p => p.key);
+    eq('extras: ui_* key never rendered',     all.includes('ui_scroll'), false);
+    eq('extras: degenerate min==max skipped', all.includes('bank_index'), false);
+    // pushnpull publishes a `canvas` param (a drawing surface for its web UI);
+    // there is no knob that can edit one.
+    eq('extras: non-knob type skipped',       all.includes('view'), false);
+    eq('extras: no key rendered twice',       all.length, new Set(all).size);
+}
+
+_log('\nTest: a level overflowing 8 slots numbers from " - 2"');
+{
+    const names = bankNames(bootModel(MOCK_SYNTHS.hier_params_overflow));
+    eq('overflow: page 0 keeps the bare name', names[0], 'Main');
+    eq('overflow: page 1 is " - 2"',           names[1], 'Main - 2');
+}
+
+/* ── async metadata: preset list + enum options that arrive after load ───── */
+
+_log('\nTest: preset count and enum options are re-resolved when they land');
+{
+    const m = bootModel(MOCK_SYNTHS.hier_async_meta);
+    const romOf = () => m.dumpLayout().params.filter(Boolean).find(p => p.key === 'rom');
+    eq('async: no Preset knob while the count is 0',
+        m.dumpLayout().params.filter(Boolean).some(p => p.renderStyle === 'preset'), false);
+    eq('async: ROM shows the placeholder at first',
+        JSON.stringify(romOf().options), JSON.stringify(['(loading)']));
+
+    // The ROM lands: preset list and real options appear.
+    env.setParams({
+        ...MOCK_SYNTHS.hier_async_meta,
+        "synth:preset_count": "3",
+        "synth:preset_names": JSON.stringify(['Init', 'Bass', 'Lead']),
+        "synth:chain_params": JSON.stringify([
+            { key: "cutoff", name: "Cutoff", type: "int", min: 0, max: 127 },
+            { key: "rom",    name: "ROM",    type: "enum", options: ["Virus A", "Virus B", "Virus C"] },
+        ]),
+    });
+    for (let i = 0; i < 4 * NAME_POLL_TICKS; i++) m.tick();
+
+    const preset = m.dumpLayout().params.filter(Boolean).find(p => p.renderStyle === 'preset');
+    eq('async: Preset knob appears once the count is non-zero', !!preset, true);
+    eq('async: Preset knob carries the real names',
+        JSON.stringify(preset?.options), JSON.stringify(['Init', 'Bass', 'Lead']));
+    eq('async: ROM options are re-read',
+        JSON.stringify(romOf().options), JSON.stringify(['Virus A', 'Virus B', 'Virus C']));
+}
+
+_log('\nTest: a param that widens its range after load becomes reachable');
+{
+    /* osirus's Bank: device-measured 0..0 immediately after load, 0..1 once the
+     * ROM lists the banks (scripts/probe-async-meta.mjs). */
+    const withBank = (max) => ({
+        "synth:name": "Banker",
+        "synth:chain_params": JSON.stringify([
+            { key: "cutoff",     name: "Cutoff", type: "int", min: 0, max: 127 },
+            { key: "bank_index", name: "Bank",   type: "int", min: 0, max },
+        ]),
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: { root: { knobs: ["cutoff"], params: [{ key: "bank_index", label: "Bank" }] } },
+        }),
+        "synth:cutoff": "64", "synth:bank_index": "0",
+    });
+    const keys = (m) => m.dumpLayout().params.filter(Boolean).map(p => p.key);
+
+    const m = bootModel(withBank(0));
+    eq('widen: unturnable Bank is not rendered at load', keys(m).includes('bank_index'), false);
+
+    env.setParams(withBank(1));
+    for (let i = 0; i < 4 * NAME_POLL_TICKS; i++) m.tick();
+    eq('widen: Bank appears once the module reports a real range',
+        keys(m).includes('bank_index'), true);
+}
+
+_log('\nTest: a same-module rebuild keeps the current page');
+{
+    const m = bootModel(MOCK_SYNTHS.hier_params_overflow_two_levels);
+    m.changePage(2);
+    m.reload();
+    m.tick(); m.tick();
+    eq('rebuild: page survives a same-module reload', m.getKnobPage(), 2);
+}
+
+_log('\nTest: the async retry latches off and does not poll forever');
+{
+    const m = bootModel(MOCK_SYNTHS.hier_async_meta);   // never settles
+    let reads = 0;
+    const realGet = globalThis.shadow_get_param;
+    globalThis.shadow_get_param = (slot, key) => {
+        if (key === 'synth:preset_count' || key === 'synth:chain_params') reads++;
+        return realGet(slot, key);
+    };
+    for (let i = 0; i < 40 * NAME_POLL_TICKS; i++) m.tick();
+    globalThis.shadow_get_param = realGet;
+    /* Absolute bound, not META_RETRY_LIMIT + n: comparing against the constant
+     * under test would pass however large it grew. 40 polls of a module that
+     * never settles must still cost only the handful of probes the latch allows. */
+    eq(`async: probes stop after the retry budget (${reads} reads in 40 polls)`,
+        reads <= 10, true);
+    eq('async: META_RETRY_LIMIT is a small budget', META_RETRY_LIMIT <= 16, true);
+}
+
+/* ── page indicator bar geometry ─────────────────────────────────────────── */
+
+_log('\nTest: the page bar stays a readable ruler at every page count');
+{
+    const { drawBankBar } = await import('../dist/esm/renderer/header.js');
+    const W = 128;
+
+    /* Capture the bar's rects. Height 2 marks the current page. */
+    function bar(index, count) {
+        const rects = [];
+        const real = globalThis.fill_rect;
+        globalThis.fill_rect = (x, y, w, h) => { if (y === 8) rects.push({ x, w, h }); };
+        drawBankBar(index, count);
+        globalThis.fill_rect = real;
+        return rects;
+    }
+
+    for (const n of [2, 5, 13, 25, 50, 70]) {
+        const rects = bar(1, n);
+        const widths = [...new Set(rects.map(r => r.w))];
+        const right  = Math.max(...rects.map(r => r.x + r.w));
+        const left   = Math.min(...rects.map(r => r.x));
+        eq(`bar n=${n}: one segment per page`,        rects.length, n);
+        eq(`bar n=${n}: every segment visible`,       rects.every(r => r.w >= 1), true);
+        eq(`bar n=${n}: spans the full width`,        `${left}..${right}`, `0..${W}`);
+        eq(`bar n=${n}: current page is the tall one`,
+            rects.filter(r => r.h === 2).length, 1);
+        /* Segments carry the leftover pixels, so they differ by at most 1 — the
+         * bug was a final segment 2.5x the rest. */
+        eq(`bar n=${n}: segment widths within 1px (${widths.sort((a, b) => a - b).join('/')})`,
+            Math.max(...widths) - Math.min(...widths) <= 1, true);
+        /* A gap is a separator, never a spacer: 1px, or 0 once the page count
+         * leaves no room for one. A 2px gap reads as a broken ruler. */
+        const sorted = [...rects].sort((a, b) => a.x - b.x);
+        const gaps   = sorted.slice(1).map((r, i) => r.x - (sorted[i].x + sorted[i].w));
+        eq(`bar n=${n}: no gap wider than 1px (max ${Math.max(...gaps)})`,
+            Math.max(...gaps) <= 1, true);
+        eq(`bar n=${n}: gaps never overlap`, gaps.every(g => g >= 0), true);
+        /* Separators only collapse when one pixel per page plus one pixel per
+         * gap no longer fits (n > 64 on a 128px bar). */
+        eq(`bar n=${n}: gaps collapse only when forced`,
+            gaps.some(g => g === 0), n * 2 - 1 > W);
+    }
+
+    /* Pages of one bank are flush; a gap marks where the next bank starts. */
+    function barGrouped(index, groups) {
+        const rects = [];
+        const real = globalThis.fill_rect;
+        globalThis.fill_rect = (x, y, w, h) => { if (y === 8) rects.push({ x, w, h }); };
+        drawBankBar(index, groups.length, false, groups);
+        globalThis.fill_rect = real;
+        return rects.sort((a, b) => a.x - b.x);
+    }
+    {
+        // Three banks: 3 pages, 1 page, 2 pages — osirus's shape in miniature.
+        const groups = [0, 0, 0, 1, 2, 2];
+        const r = barGrouped(0, groups);
+        const gaps = r.slice(1).map((s, i) => s.x - (r[i].x + r[i].w));
+        eq('bar groups: gap only where the bank changes',
+            gaps.join(','), '0,0,1,1,0');
+        eq('bar groups: still spans the full width',
+            `${r[0].x}..${r[r.length - 1].x + r[r.length - 1].w}`, `0..${W}`);
+        const widths = r.map(s => s.w);
+        eq('bar groups: segment widths within 1px',
+            Math.max(...widths) - Math.min(...widths) <= 1, true);
+    }
+    {
+        // minijv on device: 70 pages across 51 banks. Every boundary keeps its
+        // separator because pages inside a bank no longer each pay for one.
+        const groups = [];
+        for (let b = 0; b < 70; b++) groups.push(Math.min(50, Math.floor(b * 51 / 70)));
+        const r = barGrouped(35, groups);
+        const gaps = r.slice(1).map((s, i) => s.x - (r[i].x + r[i].w));
+        const bounds = groups.slice(1).filter((g, i) => g !== groups[i]).length;
+        eq('bar groups n=70: one gap per bank boundary',
+            gaps.filter(g => g === 1).length, bounds);
+        eq('bar groups n=70: no gap inside a bank',
+            gaps.every((g, i) => g === (groups[i + 1] !== groups[i] ? 1 : 0)), true);
+        eq('bar groups n=70: every page still visible', r.every(s => s.w >= 1), true);
+        eq('bar groups n=70: spans the full width',
+            `${r[0].x}..${r[r.length - 1].x + r[r.length - 1].w}`, `0..${W}`);
+    }
+
+    /* Beyond one pixel per page a ruler is impossible; the bar becomes a
+     * position marker rather than drawing nothing. */
+    const huge = bar(100, 300);
+    eq('bar n=300: degrades to a marker on a full-width line', huge.length, 2);
+    eq('bar n=300: marker is the tall one', huge.filter(r => r.h === 2).length, 1);
+    eq('bar n=300: marker stays on screen',
+        huge.every(r => r.x >= 0 && r.x + r.w <= W), true);
+}
+
+/* ── shift+jog jumps level to level, not page to page ────────────────────── */
+
+_log('\nTest: changePageGroup skips a level\'s overflow pages');
+{
+    const m = bootModel(MOCK_SYNTHS.hier_params_overflow_two_levels);
+    eq('group: 3 pages (Main, Main - 2, Effects)', m.getViewModel().bankCount, 3);
+    eq('group: starts on page 0',             m.getKnobPage(), 0);
+    m.changePageGroup(1);
+    eq('group: +1 lands on the next level',   m.getKnobPage(), 2);   // skips "Main - 2"
+    m.changePageGroup(1);
+    eq('group: clamps at the last level',     m.getKnobPage(), 2);
+    m.changePageGroup(-1);
+    eq('group: -1 returns to the level head', m.getKnobPage(), 0);
+    m.changePage(1);
+    m.changePageGroup(-1);
+    eq('group: -1 from mid-level goes to that level\'s head', m.getKnobPage(), 0);
+}
+
+/* ── read-back visits the current page fast regardless of module size ────── */
+
+_log('\nTest: refresh cursor reaches the current page within 16 ticks');
+{
+    const m = bootModel(MOCK_SYNTHS.hier_many_pages);   // 25 pages
+    const PAGE = 20;                                    // far from the cursor's start
+    for (let i = 0; i < PAGE; i++) m.changePage(1);
+    const reads = [];
+    const realGet = globalThis.shadow_get_param;
+    globalThis.shadow_get_param = (slot, key) => { reads.push(key); return realGet(slot, key); };
+    for (let i = 0; i < 16; i++) m.tick();
+    globalThis.shadow_get_param = realGet;
+
+    const pageKeys = m.dumpLayout().params
+        .slice(PAGE * 8, PAGE * 8 + 8).filter(Boolean).map(p => p.key);
+    const missed = pageKeys.filter(k => !reads.includes('synth:' + k));
+    eq('refresh: every current-page param read within 16 ticks', missed.join(','), '');
+    eq('refresh: no more than 2 reads per tick', reads.length <= 32, true);
 }
 
 /* ── C1: preset knob not duplicated across pages ─────────────────────────── */

@@ -1707,6 +1707,16 @@
     "name": "General",
     "global": false,
     "padSpecific": false
+   },
+   {
+    "name": "Rhythm",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Global",
+    "global": false,
+    "padSpecific": false
    }
   ],
   "pages": [
@@ -1890,13 +1900,6 @@
      ],
      [
       {
-       "shortName": "AIR",
-       "fullName": "Air",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
        "shortName": "CUTOF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
@@ -1906,6 +1909,13 @@
       {
        "shortName": "RESO",
        "fullName": "Reso",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AIR",
+       "fullName": "Air",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -1960,6 +1970,128 @@
      ],
      [
       null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Rhythm",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "R1",
+       "fullName": "Rhythm 1",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "R2",
+       "fullName": "Rhythm 2",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "R3",
+       "fullName": "Rhythm 3",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "R4",
+       "fullName": "Rhythm 4",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "R5",
+       "fullName": "Rhythm 5",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "R6",
+       "fullName": "Rhythm 6",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "R7",
+       "fullName": "Rhythm 7",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "R8",
+       "fullName": "Rhythm 8",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Global",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TMODE",
+       "fullName": "Tempo Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LIMIT",
+       "fullName": "Limiter",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DTYPE",
+       "fullName": "Delay Type",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RTYPE",
+       "fullName": "Reverb Type",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "DSYNC",
+       "fullName": "Delay Sync",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
       null,
       null,
       null
@@ -2447,28 +2579,397 @@
    null,
    null,
    null,
+   null,
+   {
+    "key": "rhythm_1",
+    "label": "Rhythm 1",
+    "shortLabel": "R1",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ],
+    "min": 0,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 17
+    }
+   },
+   {
+    "key": "rhythm_2",
+    "label": "Rhythm 2",
+    "shortLabel": "R2",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ],
+    "min": 0,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 17
+    }
+   },
+   {
+    "key": "rhythm_3",
+    "label": "Rhythm 3",
+    "shortLabel": "R3",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ],
+    "min": 0,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 17
+    }
+   },
+   {
+    "key": "rhythm_4",
+    "label": "Rhythm 4",
+    "shortLabel": "R4",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ],
+    "min": 0,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 17
+    }
+   },
+   {
+    "key": "rhythm_5",
+    "label": "Rhythm 5",
+    "shortLabel": "R5",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ],
+    "min": 0,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 17
+    }
+   },
+   {
+    "key": "rhythm_6",
+    "label": "Rhythm 6",
+    "shortLabel": "R6",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ],
+    "min": 0,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 17
+    }
+   },
+   {
+    "key": "rhythm_7",
+    "label": "Rhythm 7",
+    "shortLabel": "R7",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ],
+    "min": 0,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 17
+    }
+   },
+   {
+    "key": "rhythm_8",
+    "label": "Rhythm 8",
+    "shortLabel": "R8",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Waltz",
+     "Tango",
+     "Polka",
+     "Paso Doble",
+     "Swing",
+     "Slow",
+     "Beguine",
+     "Cha-Cha",
+     "Rumba",
+     "Samba",
+     "Mambo",
+     "Bossa-Nova",
+     "Rock",
+     "Slow Rock",
+     "Shake",
+     "R & Blues"
+    ],
+    "min": 0,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 17
+    }
+   },
+   {
+    "key": "tempo_mode",
+    "label": "Tempo Mode",
+    "shortLabel": "TMODE",
+    "type": "enum",
+    "options": [
+     "Free",
+     "Sync"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "limiter",
+    "label": "Limiter",
+    "shortLabel": "LIMIT",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "delay_type",
+    "label": "Delay Type",
+    "shortLabel": "DTYPE",
+    "type": "enum",
+    "options": [
+     "Tape",
+     "Magnetic",
+     "Space"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "reverb_type",
+    "label": "Reverb Type",
+    "shortLabel": "RTYPE",
+    "type": "enum",
+    "options": [
+     "Plate",
+     "Spring",
+     "Chamber"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "delay_sync",
+    "label": "Delay Sync",
+    "shortLabel": "DSYNC",
+    "type": "enum",
+    "options": [
+     "Free",
+     "Synced"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
    null
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "tempo_mode",
-   "limiter",
-   "delay_type",
-   "reverb_type",
-   "delay_sync",
-   "rhythm_1",
-   "rhythm_2",
-   "rhythm_3",
-   "rhythm_4",
-   "rhythm_5",
-   "rhythm_6",
-   "rhythm_7",
-   "rhythm_8"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "13 chain_params not reachable in movy: tempo_mode, limiter, delay_type, reverb_type, delay_sync, rhythm_1, rhythm_2, rhythm_3, rhythm_4, rhythm_5, rhythm_6, rhythm_7, …"
-  ]
+  "warnings": []
  }
 }

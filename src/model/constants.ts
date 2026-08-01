@@ -1,3 +1,6 @@
+/* Probes of asynchronous module metadata (preset lists, enum option sets that
+ * arrive after load) before movy stops asking. One probe per name poll. */
+export const META_RETRY_LIMIT       = 8;
 export const NAME_POLL_TICKS        = 344;  /* ~1 s at device tick rate */
 export const LONG_PRESS_TICKS       = 172;  /* ~0.5 s */
 export const REFRESH_SUPPRESS_TICKS = 100;  /* ticks of knob-idle before refresh resumes (~200 ms) */

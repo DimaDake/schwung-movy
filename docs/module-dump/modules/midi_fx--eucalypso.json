@@ -1167,12 +1167,22 @@
     "padSpecific": false
    },
    {
+    "name": "Global - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
     "name": "Note Register",
     "global": false,
     "padSpecific": false
    },
    {
-    "name": "Lane 1 - 1",
+    "name": "Note Register - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Lane 1",
     "global": false,
     "padSpecific": false
    },
@@ -1182,7 +1192,7 @@
     "padSpecific": false
    },
    {
-    "name": "Lane 2 - 1",
+    "name": "Lane 2",
     "global": false,
     "padSpecific": false
    },
@@ -1192,7 +1202,7 @@
     "padSpecific": false
    },
    {
-    "name": "Lane 3 - 1",
+    "name": "Lane 3",
     "global": false,
     "padSpecific": false
    },
@@ -1202,7 +1212,7 @@
     "padSpecific": false
    },
    {
-    "name": "Lane 4 - 1",
+    "name": "Lane 4",
     "global": false,
     "padSpecific": false
    },
@@ -1354,6 +1364,64 @@
     ]
    },
    {
+    "name": "Global - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "RETRI",
+       "fullName": "Retrig",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BPM",
+       "fullName": "BPM",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "Vel Rnd",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GATE",
+       "fullName": "Gate Rand",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RND",
+       "fullName": "Rnd Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RAND",
+       "fullName": "Rand Cyc",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
     "name": "Note Register",
     "envelopeLines": [
      false,
@@ -1413,12 +1481,46 @@
        "type": "int",
        "displayValue": "..."
       },
+      {
+       "shortName": "RAND",
+       "fullName": "Rand Ord Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Note Register - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MISS",
+       "fullName": "Miss Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
       null
      ]
     ]
    },
    {
-    "name": "Lane 1 - 1",
+    "name": "Lane 1",
     "envelopeLines": [
      false,
      false
@@ -1503,20 +1605,56 @@
        "type": "int",
        "displayValue": "..."
       },
-      null,
-      null,
-      null
+      {
+       "shortName": "DROP",
+       "fullName": "Drop Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NR",
+       "fullName": "Note Rand",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NS",
+       "fullName": "Note Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
      ],
      [
-      null,
-      null,
-      null,
+      {
+       "shortName": "OR",
+       "fullName": "Oct Rand",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OS",
+       "fullName": "Oct Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RNG",
+       "fullName": "Oct Rng",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
       null
      ]
     ]
    },
    {
-    "name": "Lane 2 - 1",
+    "name": "Lane 2",
     "envelopeLines": [
      false,
      false
@@ -1601,20 +1739,56 @@
        "type": "int",
        "displayValue": "..."
       },
-      null,
-      null,
-      null
+      {
+       "shortName": "DROP",
+       "fullName": "Drop Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NR",
+       "fullName": "Note Rand",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NS",
+       "fullName": "Note Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
      ],
      [
-      null,
-      null,
-      null,
+      {
+       "shortName": "OR",
+       "fullName": "Oct Rand",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OS",
+       "fullName": "Oct Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RNG",
+       "fullName": "Oct Rng",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
       null
      ]
     ]
    },
    {
-    "name": "Lane 3 - 1",
+    "name": "Lane 3",
     "envelopeLines": [
      false,
      false
@@ -1699,20 +1873,56 @@
        "type": "int",
        "displayValue": "..."
       },
-      null,
-      null,
-      null
+      {
+       "shortName": "DROP",
+       "fullName": "Drop Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NR",
+       "fullName": "Note Rand",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NS",
+       "fullName": "Note Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
      ],
      [
-      null,
-      null,
-      null,
+      {
+       "shortName": "OR",
+       "fullName": "Oct Rand",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OS",
+       "fullName": "Oct Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RNG",
+       "fullName": "Oct Rng",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
       null
      ]
     ]
    },
    {
-    "name": "Lane 4 - 1",
+    "name": "Lane 4",
     "envelopeLines": [
      false,
      false
@@ -1797,14 +2007,50 @@
        "type": "int",
        "displayValue": "..."
       },
-      null,
-      null,
-      null
+      {
+       "shortName": "DROP",
+       "fullName": "Drop Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NR",
+       "fullName": "Note Rand",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NS",
+       "fullName": "Note Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
      ],
      [
-      null,
-      null,
-      null,
+      {
+       "shortName": "OR",
+       "fullName": "Oct Rand",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OS",
+       "fullName": "Oct Seed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RNG",
+       "fullName": "Oct Rng",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
       null
      ]
     ]
@@ -2115,6 +2361,113 @@
     }
    },
    {
+    "key": "retrigger_mode",
+    "label": "Retrig",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "restart",
+     "cont"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "bpm",
+    "label": "BPM",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 40,
+    "max": 240,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "global_v_rnd",
+    "label": "Vel Rnd",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "global_g_rnd",
+    "label": "Gate Rand",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1600,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3200
+    }
+   },
+   {
+    "key": "global_rnd_seed",
+    "label": "Rnd Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "rand_cycle",
+    "label": "Rand Cyc",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 128,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   null,
+   null,
+   {
     "key": "register_mode",
     "label": "Reg Mode",
     "shortLabel": null,
@@ -2262,6 +2615,46 @@
      "detentsFullSweep": 12
     }
    },
+   {
+    "key": "held_order_seed",
+    "label": "Rand Ord Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "missing_note_seed",
+    "label": "Miss Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
    null,
    {
     "key": "lane1_enabled",
@@ -2419,12 +2812,115 @@
      "detentsFullSweep": 3200
     }
    },
-   null,
-   null,
-   null,
-   null,
-   null,
-   null,
+   {
+    "key": "lane1_drop_seed",
+    "label": "Drop Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "lane1_n_rnd",
+    "label": "Note Rand",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane1_n_seed",
+    "label": "Note Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "lane1_oct_rnd",
+    "label": "Oct Rand",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane1_oct_seed",
+    "label": "Oct Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "lane1_oct_rng",
+    "label": "Oct Rng",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "+1",
+     "-1",
+     "+-1",
+     "+2",
+     "-2",
+     "+-2"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
    null,
    {
     "key": "lane2_enabled",
@@ -2582,12 +3078,115 @@
      "detentsFullSweep": 3200
     }
    },
-   null,
-   null,
-   null,
-   null,
-   null,
-   null,
+   {
+    "key": "lane2_drop_seed",
+    "label": "Drop Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "lane2_n_rnd",
+    "label": "Note Rand",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane2_n_seed",
+    "label": "Note Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "lane2_oct_rnd",
+    "label": "Oct Rand",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane2_oct_seed",
+    "label": "Oct Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "lane2_oct_rng",
+    "label": "Oct Rng",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "+1",
+     "-1",
+     "+-1",
+     "+2",
+     "-2",
+     "+-2"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
    null,
    {
     "key": "lane3_enabled",
@@ -2745,12 +3344,115 @@
      "detentsFullSweep": 3200
     }
    },
-   null,
-   null,
-   null,
-   null,
-   null,
-   null,
+   {
+    "key": "lane3_drop_seed",
+    "label": "Drop Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "lane3_n_rnd",
+    "label": "Note Rand",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane3_n_seed",
+    "label": "Note Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "lane3_oct_rnd",
+    "label": "Oct Rand",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane3_oct_seed",
+    "label": "Oct Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "lane3_oct_rng",
+    "label": "Oct Rng",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "+1",
+     "-1",
+     "+-1",
+     "+2",
+     "-2",
+     "+-2"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
    null,
    {
     "key": "lane4_enabled",
@@ -2908,53 +3610,122 @@
      "detentsFullSweep": 3200
     }
    },
-   null,
-   null,
-   null,
-   null,
-   null,
-   null,
+   {
+    "key": "lane4_drop_seed",
+    "label": "Drop Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "lane4_n_rnd",
+    "label": "Note Rand",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane4_n_seed",
+    "label": "Note Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "lane4_oct_rnd",
+    "label": "Oct Rand",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "lane4_oct_seed",
+    "label": "Oct Seed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 65535,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 131070
+    }
+   },
+   {
+    "key": "lane4_oct_rng",
+    "label": "Oct Rng",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "+1",
+     "-1",
+     "+-1",
+     "+2",
+     "-2",
+     "+-2"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
    null
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "retrigger_mode",
-   "bpm",
-   "global_v_rnd",
-   "global_g_rnd",
-   "global_rnd_seed",
-   "rand_cycle",
-   "held_order_seed",
-   "missing_note_seed",
-   "lane1_drop_seed",
-   "lane1_n_rnd",
-   "lane1_n_seed",
-   "lane1_oct_rnd",
-   "lane1_oct_seed",
-   "lane1_oct_rng",
-   "lane2_drop_seed",
-   "lane2_n_rnd",
-   "lane2_n_seed",
-   "lane2_oct_rnd",
-   "lane2_oct_seed",
-   "lane2_oct_rng",
-   "lane3_drop_seed",
-   "lane3_n_rnd",
-   "lane3_n_seed",
-   "lane3_oct_rnd",
-   "lane3_oct_seed",
-   "lane3_oct_rng",
-   "lane4_drop_seed",
-   "lane4_n_rnd",
-   "lane4_n_seed",
-   "lane4_oct_rnd",
-   "lane4_oct_seed",
-   "lane4_oct_rng"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
   "warnings": [
-   "32 chain_params not reachable in movy: retrigger_mode, bpm, global_v_rnd, global_g_rnd, global_rnd_seed, rand_cycle, held_order_seed, missing_note_seed, lane1_drop_seed, lane1_n_rnd, lane1_n_seed, lane1_oct_rnd, …",
    "page \"Main\": duplicate on-screen names ON"
   ]
  }

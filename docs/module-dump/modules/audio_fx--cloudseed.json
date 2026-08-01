@@ -247,11 +247,16 @@
     "name": "Main",
     "global": false,
     "padSpecific": false
+   },
+   {
+    "name": "Main - 2",
+    "global": false,
+    "padSpecific": false
    }
   ],
   "pages": [
    {
-    "name": "",
+    "name": "Main",
     "envelopeLines": [
      false,
      false
@@ -317,6 +322,40 @@
        "type": "float",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MOD",
+       "fullName": "Mod Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SW",
+       "fullName": "Stereo Width",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
      ]
     ]
    }
@@ -457,17 +496,52 @@
      "perDetent": 0.005,
      "detentsFullSweep": 200
     }
-   }
+   },
+   {
+    "key": "mod_rate",
+    "label": "Mod Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "cross_seed",
+    "label": "Stereo Width",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "mod_rate",
-   "cross_seed"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "2 chain_params not reachable in movy: mod_rate, cross_seed"
-  ]
+  "warnings": []
  }
 }

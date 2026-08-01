@@ -130,12 +130,36 @@
        "type": "float",
        "displayValue": "..."
       },
-      null,
-      null
+      {
+       "shortName": "BR",
+       "fullName": "Built-in Reverb",
+       "renderStyle": "arc",
+       "type": "toggle",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RL",
+       "fullName": "Reverb Level",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
      ],
      [
-      null,
-      null,
+      {
+       "shortName": "BC",
+       "fullName": "Built-in Chorus",
+       "renderStyle": "arc",
+       "type": "toggle",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CL",
+       "fullName": "Chorus Level",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
       null,
       null
      ]
@@ -177,10 +201,74 @@
      "detentsFullSweep": 200
     }
    },
-   null,
-   null,
-   null,
-   null,
+   {
+    "key": "reverb_on",
+    "label": "Built-in Reverb",
+    "shortLabel": null,
+    "type": "toggle",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "toggle",
+     "perDetent": 0.5,
+     "detentsFullSweep": 2
+    }
+   },
+   {
+    "key": "reverb_level",
+    "label": "Reverb Level",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "chorus_on",
+    "label": "Built-in Chorus",
+    "shortLabel": null,
+    "type": "toggle",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "toggle",
+     "perDetent": 0.5,
+     "detentsFullSweep": 2
+    }
+   },
+   {
+    "key": "chorus_level",
+    "label": "Chorus Level",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 10,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 200
+    }
+   },
    null,
    null
   ]
@@ -189,9 +277,15 @@
   "hiddenParams": [
    "preset"
   ],
-  "noMetadata": [],
+  "noMetadata": [
+   "reverb_on",
+   "reverb_level",
+   "chorus_on",
+   "chorus_level"
+  ],
   "warnings": [
-   "1 chain_params not reachable in movy: preset"
+   "1 chain_params not reachable in movy: preset",
+   "4 shown params lack chain_params metadata (movy guesses type/range): reverb_on, reverb_level, chorus_on, chorus_level"
   ]
  }
 }

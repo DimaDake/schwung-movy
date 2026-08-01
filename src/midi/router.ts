@@ -471,7 +471,12 @@ export function onMidiMessageInternal(data: number[]): void {
             } else if (appState.currentView === VIEW_KNOBS) {
                 const dir = delta > 0 ? 1 : -1;
                 const m = activeModel();
-                if (stepPageAvailable()) {
+                /* Shift+jog is an explicit "next section" gesture: it skips a
+                 * level's overflow pages, and bypasses the step-page-at-bank-0
+                 * interplay a plain jog has. */
+                if (appState.shiftHeld) {
+                    m?.changePageGroup(dir);
+                } else if (stepPageAvailable()) {
                     const onBank0 = (m?.getKnobPage?.() ?? 0) === 0;
                     if (stepPageState.selected) {
                         if (dir > 0) setStepPageSelected(false);

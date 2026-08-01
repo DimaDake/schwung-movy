@@ -231,6 +231,13 @@ export function createLfoModel(track: number): Model {
             const next = clampI(bank + delta, 0, LFO_BANK_COUNT - 1);
             if (next !== bank) { bank = next; touched.length = 0; dirty = true; }
         },
+        /* The LFO page has no level structure — every bank is its own section,
+         * so shift+jog behaves like a plain page turn here. */
+        changePageGroup(delta: number): void {
+            if (overlay) return;
+            const next = clampI(bank + delta, 0, LFO_BANK_COUNT - 1);
+            if (next !== bank) { bank = next; touched.length = 0; dirty = true; }
+        },
         getModuleName(): string { return 'LFO'; },
         reset(): void { bank = 0; touched.length = 0; overlay = null; accum.fill(0); loaded = false; dirty = true; },
         // Values are movy-owned once loaded; they are read from shadow only on

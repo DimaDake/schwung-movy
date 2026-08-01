@@ -645,12 +645,12 @@
     "padSpecific": false
    },
    {
-    "name": "Structor",
+    "name": "Randomize",
     "global": false,
     "padSpecific": false
    },
    {
-    "name": "Randomize",
+    "name": "Randomize - 2",
     "global": false,
     "padSpecific": false
    },
@@ -676,76 +676,6 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "50%"
-      },
-      {
-       "shortName": "DENSI",
-       "fullName": "Density",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "GRAIN",
-       "fullName": "Grain Size",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "TIME",
-       "fullName": "Time Warp",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
-     ],
-     [
-      {
-       "shortName": "FEEDB",
-       "fullName": "Feedback",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "MODE",
-       "fullName": "Mode",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "SPECI",
-       "fullName": "Special",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "MIX",
-       "fullName": "Mix",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
-     ]
-    ]
-   },
-   {
-    "name": "Structor",
-    "envelopeLines": [
-     false,
-     false
-    ],
-    "lfoViz": false,
-    "rows": [
-     [
-      {
-       "shortName": "ENVEL",
-       "fullName": "Envelope",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       },
       {
        "shortName": "DENSI",
@@ -872,6 +802,40 @@
     ]
    },
    {
+    "name": "Randomize - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DETEC",
+       "fullName": "Detection",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RND",
+       "fullName": "Rnd Filter",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
     "name": "Presets",
     "envelopeLines": [
      false,
@@ -943,151 +907,6 @@
    }
   ],
   "params": [
-   {
-    "key": "envelope",
-    "label": "Envelope",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
-    }
-   },
-   {
-    "key": "density",
-    "label": "Density",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0.05,
-    "max": 20,
-    "step": 0.05,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.025,
-     "detentsFullSweep": 798
-    }
-   },
-   {
-    "key": "grain_size",
-    "label": "Grain Size",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0.1,
-    "max": 40,
-    "step": 0.2,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.1,
-     "detentsFullSweep": 399
-    }
-   },
-   {
-    "key": "time_warp",
-    "label": "Time Warp",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0.25,
-    "max": 8,
-    "step": 0.05,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.025,
-     "detentsFullSweep": 310
-    }
-   },
-   {
-    "key": "feedback",
-    "label": "Feedback",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 0.95,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 190
-    }
-   },
-   {
-    "key": "mode",
-    "label": "Mode",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "Random",
-     "Pitch Up",
-     "Pitch Down",
-     "Density Up",
-     "Time Warp",
-     "Dens Arp",
-     "Deltarupt",
-     "Spec Warp"
-    ],
-    "min": 0,
-    "max": 7,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 8
-    }
-   },
-   {
-    "key": "Special",
-    "label": "Special",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "mix",
-    "label": "Mix",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
    {
     "key": "envelope",
     "label": "Envelope",
@@ -1383,6 +1202,46 @@
     }
    },
    {
+    "key": "detection",
+    "label": "Detection",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rnd_filter",
+    "label": "Rnd Filter",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
     "key": "preset",
     "label": "Preset",
     "shortLabel": null,
@@ -1521,13 +1380,8 @@
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "detection",
-   "rnd_filter"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "2 chain_params not reachable in movy: detection, rnd_filter"
-  ]
+  "warnings": []
  }
 }

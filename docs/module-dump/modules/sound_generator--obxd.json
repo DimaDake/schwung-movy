@@ -1125,6 +1125,11 @@
     "padSpecific": false
    },
    {
+    "name": "Global - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
     "name": "Oscillator 1",
     "global": false,
     "padSpecific": false
@@ -1141,6 +1146,11 @@
    },
    {
     "name": "Filter",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Filter - 2",
     "global": false,
     "padSpecific": false
    },
@@ -1171,6 +1181,11 @@
    },
    {
     "name": "Voice Variation",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Voice Variation - 2",
     "global": false,
     "padSpecific": false
    }
@@ -1345,6 +1360,40 @@
     ]
    },
    {
+    "name": "Global - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VOICE",
+       "fullName": "Voices",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AS",
+       "fullName": "As Played",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
     "name": "Oscillator 1",
     "envelopeLines": [
      false,
@@ -1471,7 +1520,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PW",
+       "shortName": "AMT",
        "fullName": "PW Env Amt",
        "renderStyle": "arc",
        "type": "int",
@@ -1500,8 +1549,20 @@
        "type": "int",
        "displayValue": "..."
       },
-      null,
-      null,
+      {
+       "shortName": "BOTH",
+       "fullName": "PW Env Both",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OSC2",
+       "fullName": "PW Osc2 Ofs",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
       null
      ]
     ]
@@ -1559,6 +1620,46 @@
        "type": "int",
        "displayValue": "..."
       },
+      {
+       "shortName": "BANDP",
+       "fullName": "Bandpass",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SELF",
+       "fullName": "Self Osc",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Filter - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "F.ENV",
+       "fullName": "F.Env Invert",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
       null,
       null
      ]
@@ -1721,7 +1822,13 @@
        "type": "int",
        "displayValue": "..."
       },
-      null,
+      {
+       "shortName": "SYNC",
+       "fullName": "LFO Sync",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      },
       null
      ]
     ]
@@ -1817,7 +1924,13 @@
       }
      ],
      [
-      null,
+      {
+       "shortName": "ENV",
+       "fullName": "Env Pitch Both",
+       "renderStyle": "hbar",
+       "type": "int",
+       "displayValue": "..."
+      },
       null,
       null,
       null
@@ -1891,6 +2004,52 @@
        "type": "int",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "Voice Variation - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PAN 5",
+       "fullName": "Pan 5",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN 6",
+       "fullName": "Pan 6",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN 7",
+       "fullName": "Pan 7",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN 8",
+       "fullName": "Pan 8",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
      ]
     ]
    }
@@ -2194,6 +2353,46 @@
     }
    },
    {
+    "key": "voice_count",
+    "label": "Voices",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 14
+    }
+   },
+   {
+    "key": "as_played",
+    "label": "As Played",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
     "key": "osc1_saw",
     "label": "Osc1 Saw",
     "shortLabel": null,
@@ -2470,8 +2669,40 @@
      "detentsFullSweep": 200
     }
    },
-   null,
-   null,
+   {
+    "key": "pw_env_both",
+    "label": "PW Env Both",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   {
+    "key": "pw_ofs",
+    "label": "PW Osc2 Ofs",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
    null,
    {
     "key": "cutoff",
@@ -2575,6 +2806,62 @@
      "detentsFullSweep": 1
     }
    },
+   {
+    "key": "bandpass",
+    "label": "Bandpass",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   {
+    "key": "self_osc",
+    "label": "Self Osc",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   {
+    "key": "fenv_inv",
+    "label": "F.Env Invert",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
    null,
    null,
    {
@@ -2855,7 +3142,23 @@
      "detentsFullSweep": 200
     }
    },
-   null,
+   {
+    "key": "lfo_sync",
+    "label": "LFO Sync",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
    null,
    {
     "key": "lfo_osc1",
@@ -3013,7 +3316,23 @@
      "detentsFullSweep": 200
     }
    },
-   null,
+   {
+    "key": "env_pitch_both",
+    "label": "Env Pitch Both",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "hbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
    null,
    null,
    null,
@@ -3152,28 +3471,85 @@
      "perDetent": 0.5,
      "detentsFullSweep": 200
     }
-   }
+   },
+   {
+    "key": "pan_5",
+    "label": "Pan 5",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pan_6",
+    "label": "Pan 6",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pan_7",
+    "label": "Pan 7",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pan_8",
+    "label": "Pan 8",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "voice_count",
-   "pw_ofs",
-   "pw_env_both",
-   "bandpass",
-   "self_osc",
-   "fenv_inv",
-   "lfo_sync",
-   "env_pitch_both",
-   "as_played",
-   "pan_5",
-   "pan_6",
-   "pan_7",
-   "pan_8"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
   "warnings": [
-   "13 chain_params not reachable in movy: voice_count, pw_ofs, pw_env_both, bandpass, self_osc, fenv_inv, lfo_sync, env_pitch_both, as_played, pan_5, pan_6, pan_7, …",
    "page \"Global\": duplicate on-screen names OCTAV"
   ]
  }

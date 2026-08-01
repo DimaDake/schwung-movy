@@ -230,7 +230,13 @@
       }
      ],
      [
-      null,
+      {
+       "shortName": "DIR",
+       "fullName": "Strum Dir",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
       null,
       null,
       null
@@ -333,19 +339,34 @@
      "detentsFullSweep": 200
     }
    },
-   null,
+   {
+    "key": "strum_dir",
+    "label": "Strum Dir",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "up",
+     "down"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
    null,
    null,
    null
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "strum_dir"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "1 chain_params not reachable in movy: strum_dir"
-  ]
+  "warnings": []
  }
 }

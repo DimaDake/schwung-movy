@@ -63,9 +63,25 @@ export interface ModelState {
     moduleId:            string;
     moduleConfig:        ModuleConfig | null;
     bankNames:           string[];
+    /* Group id per page: pages built from the same hierarchy level share one, so
+     * shift+jog can skip a level's overflow pages in a single gesture. */
+    bankGroups:          number[];
     hierarchyKey:        string;
     pollCountdown:       number;
+    /* A module can publish its preset list and enum options AFTER load (osirus
+     * scans its ROM asynchronously). These drive a bounded re-probe; both reset
+     * on a genuine module change, like paramGestures. */
+    metaRetries:         number;
+    presetDeclared:      boolean;
+    /* params[] keys left off the pages because the module reported an
+     * unturnable range. Re-checked by the metadata retry — osirus widens
+     * bank_index 0..0 → 0..1 once its ROM lists the banks. */
+    degenerateKeys:      string[];
     refreshParamCursor:  number;
+    /* Cursor over the CURRENT page's 8 slots, interleaved with
+     * refreshParamCursor (one read per tick, alternating) so on-screen values
+     * converge in ~16 ticks no matter how many pages the module has. */
+    refreshPageCursor:   number;
     lastDeltaTick:       number;
     dirty:               boolean;
     isDrum:              boolean;
@@ -111,9 +127,14 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         moduleId:            '',
         moduleConfig:        null,
         bankNames:           [],
+        bankGroups:          [],
         hierarchyKey:        '',
         pollCountdown:       NAME_POLL_TICKS,
+        metaRetries:         0,
+        presetDeclared:      false,
+        degenerateKeys:      [],
         refreshParamCursor:  0,
+        refreshPageCursor:   0,
         lastDeltaTick:       -(REFRESH_SUPPRESS_TICKS + 1),
         dirty:               false,
         isDrum:              false,

@@ -525,13 +525,6 @@
     "rows": [
      [
       {
-       "shortName": "VOLUM",
-       "fullName": "Volume",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
        "shortName": "CUTOF",
        "fullName": "VCF Cutoff",
        "renderStyle": "arc",
@@ -541,6 +534,13 @@
       {
        "shortName": "RESO",
        "fullName": "VCF Reso",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOLUM",
+       "fullName": "Volume",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."

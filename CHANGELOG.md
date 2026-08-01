@@ -15,6 +15,33 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Every parameter a module lists is now reachable.** A Schwung module gives
+  each section both the eight parameters it binds to the encoders and the full
+  list of parameters that section contains; Movy rendered only the former.
+  Sections now continue onto `- 2` / `- 3` pages carrying the rest, and a
+  section that binds no encoders at all gets a page instead of being skipped.
+  That is **601 parameters across 43 modules** that previously existed only in
+  Move's own module UI — including Osirus's ROM/model selector, OB-Xd's voice
+  count and Surge's per-oscillator detail. Parameters a module reports as
+  unturnable (one possible value) are left out rather than drawn as a dead knob.
+- **Shift + jog wheel jumps between sections**, skipping a section's overflow
+  pages — paging one at a time is slow on a 20-page module.
+- **Asynchronous preset lists and option names are picked up.** Osirus scans its
+  ROM after loading and reports an empty preset list and a `(loading)` option
+  set until it finishes; Movy read those once and kept the placeholder for the
+  session. It now re-checks for a few seconds and redraws as soon as the real
+  names arrive.
+
+### Changed
+
+- **Parameter values on screen track the device faster.** The value read-back
+  swept the whole parameter array one entry per tick, so a value's lag grew with
+  the module's page count. It now interleaves the current page with that sweep —
+  the same one read per tick, but what you are looking at converges in ~16 ticks
+  instead of ~200 on a 25-page module.
+- The first page of a multi-page section keeps its plain name (`Oscillators`
+  rather than `Oscillators - 1`); overflow pages number from `- 2`.
+
 - **Scales & pad layouts** — two new Set-page knobs shape the melodic grid.
   **MODE** picks Chromatic or **In Key** (the grid folds to the scale, so every
   pad is in key); **LAYOUT** picks the geometry, and its options follow MODE:

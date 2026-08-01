@@ -444,6 +444,11 @@
     "padSpecific": false
    },
    {
+    "name": "Main - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
     "name": "Envelope",
     "global": false,
     "padSpecific": false
@@ -527,6 +532,34 @@
        "type": "enum",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MODEL",
+       "fullName": "Model",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
      ]
     ]
    },
@@ -813,6 +846,33 @@
     }
    },
    {
+    "key": "model",
+    "label": "Model",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "SVF",
+     "Schwoog"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
     "key": "env_amount",
     "label": "Env Amt",
     "shortLabel": null,
@@ -1019,12 +1079,8 @@
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "model"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "1 chain_params not reachable in movy: model"
-  ]
+  "warnings": []
  }
 }

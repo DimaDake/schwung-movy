@@ -196,6 +196,11 @@
     "name": "Main",
     "global": false,
     "padSpecific": false
+   },
+   {
+    "name": "Main - 2",
+    "global": false,
+    "padSpecific": false
    }
   ],
   "pages": [
@@ -290,6 +295,76 @@
       {
        "shortName": "WIDTH",
        "fullName": "Width",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MODUL",
+       "fullName": "Modulation",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WANDE",
+       "fullName": "Wander",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CUT",
+       "fullName": "High Cut",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CROSS",
+       "fullName": "High Cross",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "HM",
+       "fullName": "High Mult",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CUT2",
+       "fullName": "Low Cut",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CROS2",
+       "fullName": "Low Cross",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LM",
+       "fullName": "Low Mult",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -459,25 +534,151 @@
      "perDetent": 0.5,
      "detentsFullSweep": 200
     }
+   },
+   {
+    "key": "modulation",
+    "label": "Modulation",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "wander",
+    "label": "Wander",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 40,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 160
+    }
+   },
+   {
+    "key": "high_cut",
+    "label": "High Cut",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 1000,
+    "max": 16000,
+    "step": 100,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 50,
+     "detentsFullSweep": 300
+    }
+   },
+   {
+    "key": "high_xo",
+    "label": "High Cross",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 1000,
+    "max": 16000,
+    "step": 100,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 50,
+     "detentsFullSweep": 300
+    }
+   },
+   {
+    "key": "high_mult",
+    "label": "High Mult",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.2,
+    "max": 1.2,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 40
+    }
+   },
+   {
+    "key": "low_cut",
+    "label": "Low Cut",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 200,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "low_xo",
+    "label": "Low Cross",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 200,
+    "max": 1200,
+    "step": 10,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "low_mult",
+    "label": "Low Mult",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.5,
+    "max": 2.5,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 80
+    }
    }
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "modulation",
-   "wander",
-   "high_cut",
-   "high_xo",
-   "high_mult",
-   "low_cut",
-   "low_xo",
-   "low_mult"
-  ],
+  "hiddenParams": [],
   "noMetadata": [
    "preset"
   ],
   "warnings": [
-   "8 chain_params not reachable in movy: modulation, wander, high_cut, high_xo, high_mult, low_cut, low_xo, low_mult",
    "1 shown params lack chain_params metadata (movy guesses type/range): preset"
   ]
  }

@@ -285,11 +285,16 @@
     "name": "Main",
     "global": false,
     "padSpecific": false
+   },
+   {
+    "name": "Main - 2",
+    "global": false,
+    "padSpecific": false
    }
   ],
   "pages": [
    {
-    "name": "",
+    "name": "Main",
     "envelopeLines": [
      false,
      false
@@ -355,6 +360,46 @@
        "type": "enum",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "INPUT",
+       "fullName": "Input",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPEED",
+       "fullName": "Speed",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WIDEN",
+       "fullName": "Widen",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
      ]
     ]
    }
@@ -503,18 +548,75 @@
      "detentsPerStep": 4,
      "steps": 3
     }
-   }
+   },
+   {
+    "key": "input",
+    "label": "Input",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "speed",
+    "label": "Speed",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "HIGH",
+     "STD",
+     "LOW"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "widen",
+    "label": "Widen",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "OFF",
+     "ON"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "input",
-   "speed",
-   "widen"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "3 chain_params not reachable in movy: input, speed, widen"
-  ]
+  "warnings": []
  }
 }

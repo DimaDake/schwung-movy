@@ -259,11 +259,16 @@
     "name": "Main",
     "global": false,
     "padSpecific": false
+   },
+   {
+    "name": "Main - 2",
+    "global": false,
+    "padSpecific": false
    }
   ],
   "pages": [
    {
-    "name": "",
+    "name": "Main",
     "envelopeLines": [
      false,
      true
@@ -329,6 +334,34 @@
        "type": "enum",
        "displayValue": "..."
       }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VEL",
+       "fullName": "Vel Sens",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
      ]
     ]
    }
@@ -495,12 +528,40 @@
      "detentsPerStep": 4,
      "steps": 4
     }
-   }
+   },
+   {
+    "key": "vel_sens",
+    "label": "Vel Sens",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
   ]
  },
  "analysis": {
   "hiddenParams": [],
-  "noMetadata": [],
-  "warnings": []
+  "noMetadata": [
+   "vel_sens"
+  ],
+  "warnings": [
+   "1 shown params lack chain_params metadata (movy guesses type/range): vel_sens"
+  ]
  }
 }

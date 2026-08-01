@@ -2432,6 +2432,16 @@
     "name": "FX",
     "global": false,
     "padSpecific": false
+   },
+   {
+    "name": "EQ",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Master",
+    "global": false,
+    "padSpecific": false
    }
   ],
   "pages": [
@@ -2620,6 +2630,128 @@
       }
      ]
     ]
+   },
+   {
+    "name": "EQ",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "EQLO",
+       "fullName": "EQ Low",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "EQMID",
+       "fullName": "EQ Mid",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "EQHI",
+       "fullName": "EQ High",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DJFLT",
+       "fullName": "DJ Filter",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "LOFRQ",
+       "fullName": "Low Freq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MDFRQ",
+       "fullName": "Mid Freq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HIFRQ",
+       "fullName": "High Freq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "COMP",
+       "fullName": "Comp",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Master",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "QLO",
+       "fullName": "Q Low",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "QMID",
+       "fullName": "Q Mid",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "QHI",
+       "fullName": "Q High",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MASTR",
+       "fullName": "Master",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "MONO",
+       "fullName": "Mono",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
    }
   ],
   "params": [
@@ -2681,14 +2813,14 @@
     "type": "float",
     "options": null,
     "min": 0,
-    "max": 1,
+    "max": 4,
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "detentsFullSweep": 800
     }
    },
    {
@@ -2731,15 +2863,15 @@
     "shortLabel": "CUTOF",
     "type": "float",
     "options": null,
-    "min": 0,
-    "max": 1,
+    "min": 20,
+    "max": 18000,
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
      "perDetent": 0.5,
-     "detentsFullSweep": 2
+     "detentsFullSweep": 35960
     }
    },
    {
@@ -2944,14 +3076,14 @@
     "type": "float",
     "options": null,
     "min": 0,
-    "max": 1,
+    "max": 0.95,
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "detentsFullSweep": 190
     }
    },
    {
@@ -2970,29 +3102,243 @@
      "perDetent": 0.005,
      "detentsFullSweep": 200
     }
-   }
+   },
+   {
+    "key": "eq_lo",
+    "label": "EQ Low",
+    "shortLabel": "EQLO",
+    "type": "float",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 0.24,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.12,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "eq_mid",
+    "label": "EQ Mid",
+    "shortLabel": "EQMID",
+    "type": "float",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 0.24,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.12,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "eq_hi",
+    "label": "EQ High",
+    "shortLabel": "EQHI",
+    "type": "float",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 0.24,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.12,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "dj_filter",
+    "label": "DJ Filter",
+    "shortLabel": "DJFLT",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.005,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0025,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "lo_freq",
+    "label": "Low Freq",
+    "shortLabel": "LOFRQ",
+    "type": "int",
+    "options": null,
+    "min": 20,
+    "max": 500,
+    "step": 5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 2.5,
+     "detentsFullSweep": 192
+    }
+   },
+   {
+    "key": "mid_freq",
+    "label": "Mid Freq",
+    "shortLabel": "MDFRQ",
+    "type": "int",
+    "options": null,
+    "min": 200,
+    "max": 8000,
+    "step": 80,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 40,
+     "detentsFullSweep": 195
+    }
+   },
+   {
+    "key": "hi_freq",
+    "label": "High Freq",
+    "shortLabel": "HIFRQ",
+    "type": "int",
+    "options": null,
+    "min": 2000,
+    "max": 18000,
+    "step": 160,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 80,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "comp",
+    "label": "Comp",
+    "shortLabel": "COMP",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "q_lo",
+    "label": "Q Low",
+    "shortLabel": "QLO",
+    "type": "float",
+    "options": null,
+    "min": 0.3,
+    "max": 8,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 154
+    }
+   },
+   {
+    "key": "q_mid",
+    "label": "Q Mid",
+    "shortLabel": "QMID",
+    "type": "float",
+    "options": null,
+    "min": 0.3,
+    "max": 8,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 154
+    }
+   },
+   {
+    "key": "q_hi",
+    "label": "Q High",
+    "shortLabel": "QHI",
+    "type": "float",
+    "options": null,
+    "min": 0.3,
+    "max": 8,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 154
+    }
+   },
+   {
+    "key": "master",
+    "label": "Master",
+    "shortLabel": "MASTR",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "all_mono",
+    "label": "Mono",
+    "shortLabel": "MONO",
+    "type": "enum",
+    "options": [
+     "Stereo",
+     "Mono"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null
   ]
  },
  "analysis": {
   "hiddenParams": [
-   "comp",
-   "dj_filter",
-   "eq_lo",
-   "eq_mid",
-   "eq_hi",
-   "lo_freq",
-   "mid_freq",
-   "hi_freq",
-   "q_lo",
-   "q_mid",
-   "q_hi",
    "reset_eq",
    "init_freq",
    "rnd_pan",
-   "all_mono",
    "save_kit",
    "same_freq",
-   "master",
    "v1_penv",
    "v1_dist",
    "v2_penv",
@@ -3113,7 +3459,7 @@
   ],
   "noMetadata": [],
   "warnings": [
-   "135 chain_params not reachable in movy: comp, dj_filter, eq_lo, eq_mid, eq_hi, lo_freq, mid_freq, hi_freq, q_lo, q_mid, q_hi, reset_eq, …"
+   "122 chain_params not reachable in movy: reset_eq, init_freq, rnd_pan, save_kit, same_freq, v1_penv, v1_dist, v2_penv, v2_dist, v3_penv, v3_dist, v4_penv, …"
   ]
  }
 }

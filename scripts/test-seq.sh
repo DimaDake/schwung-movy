@@ -170,12 +170,22 @@ echo "$LOG" | grep -q "seq: loaded set" \
     && pass "Set state loaded on reopen" || fail "No set load on reopen (seq: loaded set missing)"
 
 # Drum multi-step: each step entered on a drum lane logs "seq: step <n> lane <l>".
-# Holding step 1 + pressing step 5 must enter BOTH (>= 2 lines). Only meaningful
-# if track 0's synth is a drum; the local app-loop test is the authoritative proof.
+# Holding step 1 + pressing step 5 must enter BOTH (>= 2 lines).
+#
+# Only the drum branch of toggleStep() logs, so the count also tells us whether
+# this check applies at all: zero lines means track 0 holds a melodic module
+# (watchLane = -1) and nothing could have been logged, which says nothing about
+# multi-step. Exactly one line is a real failure — the drum branch ran and
+# entered only the held step. browser-test/app-loop.mjs asserts both entries
+# unconditionally and is the authoritative proof; this is the on-device echo.
 STEP_LINES=$(echo "$LOG" | grep -c "seq: step" || true)
-[[ "$STEP_LINES" -ge 2 ]] \
-    && pass "Drum multi-step entered $STEP_LINES steps while one was held" \
-    || fail "Multi-step not observed (expected >=2 'seq: step' lines, got $STEP_LINES)"
+if [[ "$STEP_LINES" -ge 2 ]]; then
+    pass "Drum multi-step entered $STEP_LINES steps while one was held"
+elif [[ "$STEP_LINES" -eq 0 ]]; then
+    info "SKIP: multi-step — track 0 is not a drum module, so no lane entry is logged"
+else
+    fail "Multi-step entered only $STEP_LINES step while one was held (expected 2)"
+fi
 
 # Background mode (Phase 2) cannot be auto-driven here: the suspend gesture is
 # Back (a CC), and CC injection does not reach the overtake UI (only notes do —

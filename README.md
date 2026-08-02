@@ -89,6 +89,12 @@ Movy stands on the shoulders of several projects:
 
   ![Live automation](docs/assets/auto_live.png)
 
+- **Step recording** — hold **Rec** while stopped and play notes or chords in
+  one step at a time, with ties, rests and back-stepping. An empty clip grows to
+  exactly what you play.
+
+  ![Step recording](docs/assets/step_rec_header.png)
+
 - **Scales & pad layouts** — the 32 pads become a chromatic fretboard or piano,
   or fold **in key** (4ths or inline) so a wrong note is impossible. Each
   track remembers its own octave, saved with the set.

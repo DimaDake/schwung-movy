@@ -8,6 +8,7 @@
  *
  * This file owns the gestures; step-rec-head.ts owns where the head is. */
 
+import { mlog } from '../log.js';
 import { NUM_STEP_BUTTONS } from './constants.js';
 import { seqCmd } from './engine.js';
 import {
@@ -90,10 +91,15 @@ export function stepRecPad(padNote: number, pitch: number, vel: number): boolean
     const t = seqState.watchTrack;
     const step = headStep();
     if (!chord) chord = { pitches: [], anchor: step, tieSteps: 0 };
-    /* Melodic replaces because the head is the user's cursor: stepping back and
-     * replaying has to overwrite cleanly. Drums only ever add, so a kick pass
-     * followed by a snare pass builds a kit instead of erasing one. */
-    if (headIsFresh() && !isDrum()) seqCmd(`del ${t} ${step} ${step} -1`);
+    if (headIsFresh()) {
+        /* Melodic replaces because the head is the user's cursor: stepping back
+         * and replaying has to overwrite cleanly. Drums only ever add, so a kick
+         * pass followed by a snare pass builds a kit instead of erasing one. */
+        if (!isDrum()) seqCmd(`del ${t} ${step} ${step} -1`);
+        // Interaction-rate only (once per step entered, not once per pad in the
+        // chord, never per tick) — lets the device test count entered steps.
+        mlog(`seq: steprec ${step}`);
+    }
     headWritten();
     seqCmd(`addp ${t} ${step} ${step} ${pitch} ${vel}`);
     chord.pitches.push(pitch);

@@ -109,16 +109,29 @@ python3 "$INJECT" "$HOST" note_on 21 127 # Shift+Step6 = metronome on
 python3 "$INJECT" "$HOST" note_off 21
 python3 "$INJECT" "$HOST" cc 49 0        # Shift up
 sleep 0.2
-python3 "$INJECT" "$HOST" cc 86 127      # Rec → count-in starts
-python3 "$INJECT" "$HOST" cc 86 0
+# Rec goes through the one-round-trip helper: driven as two separate injects it
+# is a >500 ms press, which is the step-record HOLD, not the arm tap.
+ts_tap_cc 86                             # Rec → count-in starts
 sleep 2.5                                # 1-bar count-in (clicks audible) then recording
 python3 "$INJECT" "$HOST" note_on 70 110 # play a pad during recording
 sleep 0.3
 python3 "$INJECT" "$HOST" note_off 70
 sleep 1
-python3 "$INJECT" "$HOST" cc 86 127      # Rec again → stop recording
-python3 "$INJECT" "$HOST" cc 86 0
+ts_tap_cc 86                             # Rec again → stop recording
 sleep 0.5
+
+info "Step record: hold Rec (CC 86) while stopped, play a note, rest, play again..."
+ts_tap_cc 85                             # stop the transport — step record is stopped-only
+sleep 0.8
+# One round trip for the whole gesture: as separate injects the pads would be
+# ~500 ms apart but Rec would still be down, so they would pile into one chord
+# on one step and the head would never advance.
+ts_send "0x0B:0xB0:86:127:0.15" \
+        "0x09:0x90:70:110:0.10" "0x08:0x80:70:0:0.15" \
+        "0x0B:0xB0:63:127:0.10" "0x0B:0xB0:63:0:0.15" \
+        "0x09:0x90:71:110:0.10" "0x08:0x80:71:0:0.15" \
+        "0x0B:0xB0:86:0:0"
+sleep 1
 
 info "Session mode: toggle (CC 50), launch a clip pad, toggle back..."
 python3 "$INJECT" "$HOST" cc 50 127      # Note/Session toggle → session
@@ -187,7 +200,17 @@ echo "$LOG" | grep -q "seq: loaded set" \
 # fixture puts a drum module on track 1, so silence is now a genuine failure.
 # browser-test/app-loop.mjs asserts both entries unconditionally and is the
 # authoritative proof; this is the on-device echo.
-STEP_LINES=$(echo "$LOG" | grep -c "seq: step" || true)
+# Step record: one "seq: steprec <step>" per step entered. Two notes with a
+# Right-arrow rest between them must land on steps 0 and 2 — the rest is what
+# proves the arrow moved the head rather than the notes simply stacking.
+STEPREC_LINES=$(echo "$LOG" | grep -c "seq: steprec" || true)
+if [[ "$STEPREC_LINES" -ge 2 ]] && echo "$LOG" | grep -q "seq: steprec 2"; then
+    pass "Step record entered $STEPREC_LINES steps, the rest advanced the head"
+else
+    fail "Step record entered $STEPREC_LINES step(s); expected 2, with one on step 2"
+fi
+
+STEP_LINES=$(echo "$LOG" | grep -c "seq: step " || true)
 if [[ "$STEP_LINES" -ge 2 ]]; then
     pass "Drum multi-step entered $STEP_LINES steps while one was held"
 else

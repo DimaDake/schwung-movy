@@ -13,6 +13,21 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Added
+
+- **Step recording.** Hold **Rec** while the transport is stopped and play the
+  pads to enter notes step by step, on melodic and drum tracks. Notes that
+  overlap land on the same step, so chords need no modifier; the head advances
+  when the last pad lifts. **Right** leaves a rest or ties the held chord into
+  the next step, **Left** steps back and plays what is there ready to be
+  replaced, and a step button jumps the head (clearing that step). An empty clip
+  grows to exactly what you play, rests included; an existing one wraps at its
+  end and overwrites. Melodic entry replaces the step, drum entry only adds its
+  own lane, so kit patterns can be built up one pass at a time. A quick tap of
+  Rec still arms live recording.
+
+  ![Step recording](docs/assets/step_rec_header.png)
+
 ### Fixed
 
 - **The knobs no longer lock up.** After a while of ordinary use — adding and

@@ -475,6 +475,8 @@ for the concepts:
 - **Live recording** — **Rec** arms recording with a one-bar **count-in**; play
   the pads to record. Clips start only after the count-in.
 - **Metronome** — toggle with **Shift + Step 6**.
+- **Step recording** — hold **Rec** while stopped and play the pads to enter
+  notes one step at a time; see [Step recording](#step-recording) below.
 - **Step entry & editing** — tap a step to toggle a note; **hold a step** to edit
   it (and to open its [step parameters](#6-beyond-move-step-clip--set-parameters)).
 - **Note length** — **hold step A, then press step B** to set A's length up to B.
@@ -512,6 +514,45 @@ red, only actionable buttons lit, the playhead sweeps the step row, etc.).
 
 > **Note:** Movy's sequencer intentionally does **not** copy Davebox's timing
 > where Davebox deviates from Move — the goal is to match native Move.
+
+### Step recording
+
+Hold **Rec** while the transport is stopped and play the pads: each note lands
+on the record head and the head moves on. Nothing is timed, so a phrase you
+could never play in real time goes in as fast as you can find the notes. It
+works the same on melodic and drum tracks.
+
+Notes that overlap land on the **same step** — hold a chord and it is entered as
+a chord; the head only advances when the last finger lifts. Tap notes one at a
+time and each gets its own step.
+
+While Rec is held:
+
+| Control | Action |
+| --- | --- |
+| **Pads** | Enter notes at the head. |
+| **Right** | Leave a rest — or, with pads held, **tie** the chord into the next step. |
+| **Left** | Step back: the note there plays and its pads light, ready to be replaced. With pads held, **untie**. |
+| **Step button** | Jump the head there; if that step had notes, it is cleared. |
+| **Release Rec** | Done. |
+
+The head blinks red on the step row and the screen shows the position and the
+notes under it, with the module's parameters still visible underneath — so you
+can keep tweaking the sound while you enter the part.
+
+![Step recording](docs/assets/step_rec_header.png)
+
+On an **empty clip** the clip grows to exactly what you play, one step at a
+time, rests included — play seven notes and you get a seven-step clip. On a clip
+that already has notes the head **wraps** at the end and overwrites, leaving the
+length alone.
+
+Entering notes **replaces** what is on the step on a melodic track, so stepping
+back and replaying overwrites cleanly. On a drum track pads only **add** their
+own lane, so you can lay the kick down in one pass and the snare in the next.
+
+A quick **tap** of Rec still arms live recording as before — only holding it
+starts step recording.
 
 ### Saving — there is no Save button
 
@@ -756,7 +797,11 @@ behaviour you'd like — or, better, a PR.
 | **Hold step A + press step B** | Set step A's note length up to B. |
 | **Hold a step + pad** | Edit that step's notes from the keyboard. |
 | **Play** | Start / stop the transport. When **LINK** is on, also starts / stops Move's native sequencer (a Movy-initiated start waits ~1 bar for Move's Link grid). |
-| **Rec** | Arm recording (one-bar count-in). |
+| **Rec** (tap) | Arm recording (one-bar count-in). |
+| **Hold Rec** (stopped) | **Step recording** — play the pads to enter notes step by step. |
+| **Hold Rec + pads** | Enter a note or chord at the head; the head advances when the last pad lifts. |
+| **Hold Rec + Right / Left** | Rest / step back — or tie / untie the chord being held. |
+| **Hold Rec + step button** | Jump the head to that step, clearing it if it had notes. |
 | **Note / Session** | Show the Session clip grid (momentary hold = peek, tap = latch). Pads launch clips. |
 | **Loop** | Toggle the bar/loop overview; hold + jog resizes the loop. |
 | **Left / Right** | Navigate bars (or nudge held steps). |

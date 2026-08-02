@@ -7401,6 +7401,103 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     resetStepRec(); resetSeqState(); resetSeqEngine();
 }
 
+/* ── step recording: arrows (rest, back-step, tie) ───────────────────────── */
+{
+    _log('\nstep record — arrows:');
+    const { installMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased } =
+        await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { stepRecHead, stepRecPreviewPending, resetStepRec } =
+        await import('../dist/esm/seq/step-rec.js');
+
+    const engine = installMockEngine();
+    const boot = () => {
+        engine.reset(); resetSeqEngine(); resetSeqState(); resetStepRec(); seqEngineTick();
+    };
+    const recDown = () => seqHandleMidi([0xB0, 86, 127], false);
+    const right   = () => seqHandleMidi([0xB0, 63, 127], false);
+    const left    = () => seqHandleMidi([0xB0, 62, 127], false);
+    const padOn   = (pad, note, vel = 100) => seqNotePadPlayed(0, pad, note, vel);
+    const padOff  = (pad) => seqNotePadReleased(pad, 0);
+
+    const realNow = Date.now;
+    let t = 60000;
+    Date.now = () => t;
+
+    // ── rest: → with no pad held leaves the step empty ────────────────────
+    boot();
+    seqState.playing = false; seqState.lenSteps = 16;
+    recDown();
+    eq('right arrow claimed while step recording', seqHandleMidi([0xB0, 63, 127], false), true);
+    eq('rest advanced the head', stepRecHead(), 1);
+    engine.ops.length = 0;
+    padOn(80, 72, 100); padOff(80);
+    seqEngineTick();
+    eq('the note landed after the rest', engine.ops.includes('addp 0 1 1 72 100'), true);
+
+    // ── back-step ─────────────────────────────────────────────────────────
+    eq('head moved on', stepRecHead(), 2);
+    left();
+    eq('left arrow steps back', stepRecHead(), 1);
+    eq('back-step asks for a preview', stepRecPreviewPending(), true);
+    left();
+    left();
+    eq('left arrow never goes below the first step', stepRecHead(), 0);
+
+    // ── rest grows a new clip, one step at a time ─────────────────────────
+    boot();
+    seqState.playing = false;              // empty clip → grow mode
+    recDown();
+    padOn(80, 72, 100); padOff(80);        // step 1 has a note, head → 2
+    right();                               // step 2 is a rest, head → 3
+    eq('rest is part of a grown clip', seqState.lenSteps, 2);
+    eq('head after the rest', stepRecHead(), 2);
+
+    // ── tie: → while the chord is held ────────────────────────────────────
+    boot();
+    seqState.playing = false; seqState.lenSteps = 16;
+    recDown();
+    padOn(80, 72, 100);
+    padOn(81, 76, 100);
+    engine.ops.length = 0;
+    right();
+    seqEngineTick();
+    eq('tie lengthens every pitch in the chord',
+        engine.ops.filter((o) => o.startsWith('slen')).length, 2);
+    eq('tie sets two steps of gate', engine.ops.includes('slen 0 0 0 72 48'), true);
+    eq('the head follows the end of the tied note', stepRecHead(), 1);
+    engine.ops.length = 0;
+    right();
+    seqEngineTick();
+    eq('a second tie makes three steps', engine.ops.includes('slen 0 0 0 72 72'), true);
+    eq('head at the end of a 3-step note', stepRecHead(), 2);
+    engine.ops.length = 0;
+    left();
+    seqEngineTick();
+    eq('untie shortens back', engine.ops.includes('slen 0 0 0 72 48'), true);
+    eq('head follows the untie', stepRecHead(), 1);
+    padOff(80); padOff(81);
+    eq('release lands past the tied note', stepRecHead(), 2);
+
+    // ── untie stops at one step ───────────────────────────────────────────
+    boot();
+    seqState.playing = false; seqState.lenSteps = 16;
+    recDown();
+    padOn(80, 72, 100);
+    seqEngineTick();
+    engine.ops.length = 0;
+    left();
+    seqEngineTick();
+    eq('untie below one step is a consumed no-op',
+        engine.ops.some((o) => o.startsWith('slen')), false);
+    eq('the head stays put', stepRecHead(), 0);
+
+    Date.now = realNow;
+    resetStepRec(); resetSeqState(); resetSeqEngine();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

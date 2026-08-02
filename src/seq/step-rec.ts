@@ -36,10 +36,20 @@ let pressMs = 0;
 let fresh = true;
 let chord: OpenChord | null = null;
 const heldPads = new Map<number, number>();   // padNote → pitch
+/* A back-step wants to play what is on the step it lands on, but the pitches
+ * come from the engine's next status reply — so the request is parked here and
+ * the tick consumes it when the reply arrives. */
+let previewPending = false;
 
 export function stepRecActive(): boolean { return active; }
 export function stepRecHead(): number { return head; }
 export function stepRecGrowMode(): boolean { return growMode; }
+export function stepRecPreviewPending(): boolean { return previewPending; }
+export function stepRecTakePreview(): boolean {
+    if (!previewPending) return false;
+    previewPending = false;
+    return true;
+}
 
 function isDrum(): boolean { return seqState.watchLane >= 0; }
 
@@ -83,6 +93,7 @@ export function stepRecEnd(): void {
     active = false;
     chord = null;
     heldPads.clear();
+    previewPending = false;
     seqState.holdStep = -1;
     seqState.holdNotes = [];
     seqCmd('hold ' + seqState.watchTrack + ' -1');
@@ -92,6 +103,7 @@ export function stepRecEnd(): void {
  * optimistically so a status reply still describing the PREVIOUS step can never
  * be read as this step's content. */
 function setHead(step: number): void {
+    previewPending = false;      // a new move supersedes any pending preview
     head = step;
     fresh = true;
     seqState.barOffset = Math.min(Math.floor(head / NUM_STEP_BUTTONS), 15);
@@ -153,8 +165,45 @@ export function stepRecPadRelease(padNote: number): boolean {
     return true;
 }
 
+/* Left/Right. With the chord still under the fingers they tie and untie it —
+ * the notes grow into the following steps and the head rides along, which is
+ * the KeyStep "Tap = tie" gesture without needing a spare button. With no pad
+ * held they move the head: forward leaves a rest, backward re-opens the
+ * previous step for editing. Returns true when consumed. */
+export function stepRecArrow(dir: number): boolean {
+    if (!active) return false;
+    touched = true;
+    if (chord) {
+        if (dir > 0) chord.tieSteps++;
+        else if (chord.tieSteps > 0) chord.tieSteps--;
+        else return true;              // already one step long: consumed no-op
+        const ticks = (chord.tieSteps + 1) * TICKS_PER_STEP;
+        /* Per pitch rather than lane -1: on a drum track a tie must only touch
+         * the notes this chord entered, never what an earlier pass left on the
+         * same step. */
+        const t = seqState.watchTrack;
+        for (const p of chord.pitches) {
+            seqCmd(`slen ${t} ${chord.anchor} ${chord.anchor} ${p} ${ticks}`);
+        }
+        const open = chord;            // setHead must not close the open chord
+        const end = open.anchor + open.tieSteps;
+        growTo(end);
+        setHead(end);
+        chord = open;
+        return true;
+    }
+    if (dir > 0) {
+        advanceHead();
+    } else {
+        setHead(Math.max(0, head - 1));
+        previewPending = true;         // play what is there, ready to overwrite
+    }
+    return true;
+}
+
 export function resetStepRec(): void {
     active = false;
+    previewPending = false;
     head = 0;
     growMode = false;
     touched = false;

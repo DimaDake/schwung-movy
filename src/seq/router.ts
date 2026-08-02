@@ -47,7 +47,7 @@ import {
     editTranspose, editVelocity, heldStepAbs, setLengthTo, endStepAutomation,
 } from './step-edit.js';
 import {
-    stepRecDown, stepRecPad, stepRecPadRelease, stepRecUp,
+    stepRecArrow, stepRecDown, stepRecPad, stepRecPadRelease, stepRecUp,
 } from './step-rec.js';
 import { seqToast } from './render.js';
 import {
@@ -270,10 +270,12 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         return editTranspose(d1 === CC_PLUS ? 1 : -1);
     }
 
-    /* Left/Right: nudge held steps; else bar navigation (engine ready); else
-     * fall through to the existing param page/chain nav. */
+    /* Left/Right: step recording (tie the held chord / move the head) takes
+     * them first; then nudge held steps; else bar navigation (engine ready);
+     * else fall through to the existing param page/chain nav. */
     if ((d1 === CC_LEFT || d1 === CC_RIGHT) && d2 > 0) {
         const dir = d1 === CC_RIGHT ? 1 : -1;
+        if (stepRecArrow(dir)) return true;
         if (anyStepHeld()) return editNudge(dir, shiftHeld);
         if (engineReady()) { navigateBar(dir); return true; }
         return false;

@@ -15,6 +15,7 @@ import {
     headReset, headStep, growModeOn, previewWanted, requestPreview, setHead,
     headWritten,
 } from './step-rec-head.js';
+import { flushPreview } from './step-rec-preview.js';
 import { occHasStep, occToggleStep, seqState } from './state.js';
 
 const TAP_MS = 500;          // tap-vs-hold, matching momentary.ts
@@ -75,6 +76,7 @@ export function stepRecEnd(): void {
     active = false;
     chord = null;
     heldPads.clear();
+    flushPreview();
     headEnd();
 }
 
@@ -171,5 +173,6 @@ export function resetStepRec(): void {
     pressMs = 0;
     chord = null;
     heldPads.clear();
+    flushPreview();
     headReset();
 }

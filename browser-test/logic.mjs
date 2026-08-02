@@ -7623,6 +7623,86 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     resetStepRec(); resetSeqState(); resetSeqEngine(); resetSeqHeader();
 }
 
+/* ── step recording: back-step preview ───────────────────────────────────── */
+{
+    _log('\nstep record — preview:');
+    const { installMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased } =
+        await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { resetStepRec } = await import('../dist/esm/seq/step-rec.js');
+    const { stepRecTickAt } = await import('../dist/esm/seq/step-rec-view.js');
+    const { resetSeqHeader } = await import('../dist/esm/seq/render.js');
+
+    const engine = installMockEngine();
+    engine.reset(); resetSeqEngine(); resetSeqState(); resetStepRec(); resetSeqHeader();
+    seqEngineTick();
+
+    /* Capture what movy sends to the DSP; env.mjs's version is a no-op. */
+    const sent = [];
+    const realSend = globalThis.shadow_send_midi_to_dsp;
+    globalThis.shadow_send_midi_to_dsp = (m) => sent.push(m.slice());
+
+    const realNow = Date.now;
+    let t = 90000;
+    Date.now = () => t;
+
+    seqState.playing = false; seqState.lenSteps = 16;
+    seqHandleMidi([0xB0, 86, 127], false);      // hold Rec
+    seqNotePadPlayed(0, 80, 72, 100);
+    seqNotePadReleased(80, 0);                  // note on step 1, head → 2
+
+    sent.length = 0;
+    seqHandleMidi([0xB0, 62, 127], false);      // Left → back to step 1
+    stepRecTickAt(t);
+    eq('nothing sounds before the engine answers', sent.length, 0);
+
+    /* The engine's reply for the head step arrives on the next poll. */
+    seqState.holdNotes = [72];
+    seqState.holdVel = 100;
+    stepRecTickAt(t);
+    eq('the note on the step is previewed', sent.length, 1);
+    eq('preview is a note-on for that pitch', sent[0][1], 72);
+    eq('preview goes out on the track channel', sent[0][0], 0x90);
+
+    sent.length = 0;
+    stepRecTickAt(t + 100);
+    eq('the preview holds for its duration', sent.length, 0);
+    stepRecTickAt(t + 200);
+    eq('the preview releases itself', sent.length, 1);
+    eq('release is a note-off', sent[0][0], 0x80);
+    eq('release matches the pitch', sent[0][1], 72);
+
+    /* Only once per back-step: a later tick must not retrigger. */
+    sent.length = 0;
+    stepRecTickAt(t + 300);
+    eq('the preview does not repeat', sent.length, 0);
+
+    /* A step with nothing on it must not leave the request armed forever. */
+    seqState.holdNotes = [];
+    seqHandleMidi([0xB0, 62, 127], false);      // back-step onto an empty step
+    stepRecTickAt(t + 400);
+    stepRecTickAt(t + 1200);                    // past the give-up window
+    seqState.holdNotes = [72];
+    sent.length = 0;
+    stepRecTickAt(t + 1300);
+    eq('a stale request is dropped, not fired late', sent.length, 0);
+
+    /* Leaving the mode with a preview still sounding must not strand it. */
+    seqHandleMidi([0xB0, 62, 127], false);
+    seqState.holdNotes = [72];
+    stepRecTickAt(t + 1400);
+    sent.length = 0;
+    seqHandleMidi([0xB0, 86, 0], false);        // release Rec
+    eq('exit releases a sounding preview',
+        sent.some((m) => m[0] === 0x80 && m[1] === 72), true);
+
+    globalThis.shadow_send_midi_to_dsp = realSend;
+    Date.now = realNow;
+    resetStepRec(); resetSeqState(); resetSeqEngine(); resetSeqHeader();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

@@ -8,6 +8,7 @@ import { midiNoteName } from '../keyboard/notes.js';
 import { W } from '../renderer/layout.js';
 import { seqHeaderAnnounce } from './render.js';
 import { seqState } from './state.js';
+import { previewTickAt } from './step-rec-preview.js';
 import { stepRecActive, stepRecHead } from './step-rec.js';
 
 const HEADER_TTL = 2;   // ticks — re-armed every tick, so it dies with the mode
@@ -31,9 +32,13 @@ export function stepRecHeaderText(): string {
     return text;
 }
 
-/* Per app tick. Re-arms the header band with a two-tick life so it stays up for
- * the whole gesture and vanishes on its own the moment the mode ends. */
-export function stepRecTick(): void {
+/* Per app tick, with an explicit clock so the preview window is testable.
+ * Re-arms the header band with a two-tick life so it stays up for the whole
+ * gesture and vanishes on its own the moment the mode ends. */
+export function stepRecTickAt(nowMs: number): void {
+    previewTickAt(nowMs);
     if (!stepRecActive()) return;
     seqHeaderAnnounce(stepRecHeaderText(), HEADER_TTL);
 }
+
+export function stepRecTick(): void { stepRecTickAt(Date.now()); }

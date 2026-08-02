@@ -7498,6 +7498,73 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     resetStepRec(); resetSeqState(); resetSeqEngine();
 }
 
+/* ── step recording: step buttons and Play ───────────────────────────────── */
+{
+    _log('\nstep record — steps & Play:');
+    const { installMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi } = await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState, occHasStep, occToggleStep } =
+        await import('../dist/esm/seq/state.js');
+    const { stepRecActive, stepRecHead, resetStepRec } =
+        await import('../dist/esm/seq/step-rec.js');
+    const { anyStepHeld, resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
+
+    const engine = installMockEngine();
+    const boot = () => {
+        engine.reset(); resetSeqEngine(); resetSeqState(); resetStepRec();
+        resetStepEdit(); seqEngineTick();
+    };
+    const recDown = () => seqHandleMidi([0xB0, 86, 127], false);
+    const stepDown = (b) => seqHandleMidi([0x90, 16 + b, 127], false);
+    const stepUp   = (b) => seqHandleMidi([0x80, 16 + b, 0], false);
+
+    const realNow = Date.now;
+    let t = 70000;
+    Date.now = () => t;
+
+    // ── a step tap jumps the head ─────────────────────────────────────────
+    boot();
+    seqState.playing = false; seqState.lenSteps = 16;
+    recDown();
+    stepDown(6);
+    eq('step press never registers as a hold', anyStepHeld(), false);
+    stepUp(6);
+    eq('step tap moved the head', stepRecHead(), 6);
+
+    // ── tapping an occupied step clears it ────────────────────────────────
+    occToggleStep(9);                      // pretend step 10 has notes
+    seqEngineTick();
+    engine.ops.length = 0;
+    stepDown(9); stepUp(9);
+    seqEngineTick();
+    eq('occupied step is cleared', engine.ops.includes('del 0 9 9 -1'), true);
+    eq('occupancy mirror cleared', occHasStep(9), false);
+    eq('head landed on the cleared step', stepRecHead(), 9);
+
+    // ── a wrap-mode tap past the clip end is inert ────────────────────────
+    seqState.lenSteps = 8;
+    stepDown(12); stepUp(12);
+    eq('tap past the clip end does not move the head', stepRecHead(), 9);
+
+    // ── Play leaves the mode ──────────────────────────────────────────────
+    boot();
+    seqState.playing = false; seqState.lenSteps = 16;
+    recDown();
+    seqHandleMidi([0xB0, 85, 127], false);  // Play
+    eq('Play exits step recording', stepRecActive(), false);
+    eq('Play still started the transport', seqState.playing, true);
+    seqEngineTick();
+    engine.ops.length = 0;
+    seqHandleMidi([0xB0, 86, 0], false);    // the Rec release that follows
+    seqEngineTick();
+    eq('the trailing Rec release does not arm', engine.ops.includes('rec 0'), false);
+
+    Date.now = realNow;
+    seqState.playing = false;
+    resetStepRec(); resetSeqState(); resetSeqEngine();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

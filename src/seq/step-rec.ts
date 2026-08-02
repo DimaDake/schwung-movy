@@ -8,6 +8,7 @@
  *
  * This file owns the gestures; step-rec-head.ts owns where the head is. */
 
+import { NUM_STEP_BUTTONS } from './constants.js';
 import { seqCmd } from './engine.js';
 import {
     TICKS_PER_STEP, advanceHead, growTo, headBegin, headEnd, headIsFresh,
@@ -141,6 +142,26 @@ export function stepRecArrow(dir: number): boolean {
         setHead(Math.max(0, headStep() - 1));
         requestPreview();              // play what is there, ready to overwrite
     }
+    return true;
+}
+
+/* A step button pressed while the mode is active: jump the head there. An
+ * occupied step is also cleared, which is the "tap it to remove it" escape from
+ * a wrong note. Steps past the end of an existing clip are not part of the
+ * pattern, so they are inert — but in grow mode the tap extends the clip to
+ * reach the step you asked for. */
+export function stepRecStepTap(button: number): boolean {
+    if (!active) return false;
+    touched = true;
+    const step = seqState.barOffset * NUM_STEP_BUTTONS + button;
+    if (!growModeOn() && step >= seqState.lenSteps) return true;
+    if (occHasStep(step)) {
+        const ln = isDrum() ? seqState.watchLane : -1;
+        seqCmd(`del ${seqState.watchTrack} ${step} ${step} ${ln}`);
+        occToggleStep(step);
+    }
+    growTo(step);
+    setHead(step);
     return true;
 }
 

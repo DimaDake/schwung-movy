@@ -47,7 +47,8 @@ import {
     editTranspose, editVelocity, heldStepAbs, setLengthTo, endStepAutomation,
 } from './step-edit.js';
 import {
-    stepRecArrow, stepRecDown, stepRecPad, stepRecPadRelease, stepRecUp,
+    stepRecActive, stepRecArrow, stepRecDown, stepRecEnd, stepRecPad,
+    stepRecPadRelease, stepRecStepTap, stepRecUp,
 } from './step-rec.js';
 import { seqToast } from './render.js';
 import {
@@ -116,6 +117,13 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         && d1 >= STEP_NOTE_BASE && d1 < STEP_NOTE_BASE + NUM_STEP_BUTTONS) {
         const button = d1 - STEP_NOTE_BASE;
         const on = statusType === 0x90 && d2 > 0;
+        /* Step recording owns the row while it is active: a press moves the
+         * head, and nothing registers as a held range — so hold-step editing
+         * and step recording can never both be claiming the pads. */
+        if (stepRecActive()) {
+            if (on) stepRecStepTap(button);
+            return true;
+        }
         if (on && dupActive()) {
             const absB = seqState.barOffset * NUM_STEP_BUTTONS + button;
             dupOnUnit(seqState.loopMode
@@ -259,6 +267,7 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
 
     if (d1 === CC_PLAY) {
         if (d2 > 0) {
+            stepRecEnd();   // step recording is a stopped-transport mode
             seqCmd(seqState.playing ? 'stop' : 'play');
             seqState.playing = !seqState.playing;
         }

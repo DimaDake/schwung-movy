@@ -28,9 +28,42 @@ import { mlog } from '../log.js';
 export const MASTER_CC         = 79;   /* MoveMaster — raw relative encoder */
 export const MASTER_TOUCH_NOTE = 8;    /* MoveMasterTouch (note 9 is the jog) */
 
+/* schwung stores slot:volume as a linear amplitude, 0-4 with 1.0 = unity. A
+ * fixed linear step is unusable as a fader: 0.05 is 0.1 dB near the top of the
+ * range and 6 dB from 0.10 to 0.05, so the quiet half of the travel — the half
+ * a mixer is actually used in — is five detents wide and the last one drops
+ * straight to silence. Reported from the field as "it's adjustable down to
+ * about -8.5 dB, then completely cuts off the sound".
+ *
+ * So the gesture walks a dB ladder instead and converts on write: one detent is
+ * one dB anywhere in the range. Index 0 is true silence, index 1 is DB_MIN, and
+ * unity lands exactly on index 49 — the same value the encoder can always
+ * return to. */
 const VOL_MIN  = 0;
 const VOL_MAX  = 4;
-const VOL_STEP = 0.05;
+const DB_MIN   = -48;   // quietest audible position; one step below it is silence
+const DB_STEP  = 1;
+const DB_MAX   = 20 * Math.log10(VOL_MAX);
+const VOL_STEPS = Math.ceil((DB_MAX - DB_MIN) / DB_STEP) + 1;
+
+function idxToAmp(i: number): number {
+    if (i <= 0) return VOL_MIN;
+    const db = DB_MIN + (Math.min(i, VOL_STEPS) - 1) * DB_STEP;
+    return Math.min(VOL_MAX, Math.pow(10, db / 20));
+}
+
+function ampToIdx(a: number): number {
+    if (a <= VOL_MIN) return 0;
+    const db = 20 * Math.log10(a);
+    if (db <= DB_MIN) return 1;
+    return Math.min(VOL_STEPS, Math.round((db - DB_MIN) / DB_STEP) + 1);
+}
+
+/* Position on the ladder, 0..1 — the slider fill and its unity mark, so the
+ * drawn travel matches what the knob does. */
+function idxToFrac(i: number): number { return Math.min(1, Math.max(0, i / VOL_STEPS)); }
+export function volumeFrac(amp: number): number { return idxToFrac(ampToIdx(amp)); }
+const UNITY_FRAC = volumeFrac(1);
 
 /* Track button CCs are reversed on the hardware: CC43 = track 1 → slot 0. */
 function trackCc(track: number): number { return 43 - track; }
@@ -39,6 +72,7 @@ let heldTrack = -1;      /* track button physically held (-1 = none) */
 let touched   = false;   /* master knob capacitive touch */
 let diverted  = -1;      /* track whose hold we injected into Move (-1 = none) */
 let value     = 1;       /* live slot:volume for the gesture in progress */
+let volIdx    = ampToIdx(1);  /* its position on the dB ladder */
 
 function injectHold(track: number, pressed: boolean): void {
     if (typeof move_midi_inject_to_move !== 'function') return;
@@ -63,6 +97,7 @@ function beginDivert(): void {
     if (diverted >= 0 || heldTrack < 0) return;
     diverted = heldTrack;
     value    = readVolume(heldTrack);
+    volIdx   = ampToIdx(value);
     injectHold(heldTrack, true);
     mlog('trackvol arm t=' + heldTrack + ' read=' + value.toFixed(2));
 }
@@ -97,16 +132,21 @@ export function volumeKnobDelta(d2: number): boolean {
     beginDivert();   /* touch note may be missed; the turn itself arms us */
     const delta = d2 >= 1 && d2 <= 63 ? d2 : d2 >= 65 ? d2 - 128 : 0;
     if (delta === 0) return true;
-    value = Math.min(VOL_MAX, Math.max(VOL_MIN, value + delta * VOL_STEP));
-    shadow_set_param(heldTrack, 'slot:volume', value.toFixed(2));
-    mlog('trackvol t=' + heldTrack + ' d=' + delta + ' v=' + value.toFixed(2));
+    volIdx = Math.min(VOL_STEPS, Math.max(0, volIdx + delta));
+    value  = idxToAmp(volIdx);
+    /* Four decimals, not two: the bottom of a dB fader lives below 0.01, and
+     * rounding it to 2 dp would collapse the quietest ~20 dB back into silence. */
+    shadow_set_param(heldTrack, 'slot:volume', value.toFixed(4));
+    mlog('trackvol t=' + heldTrack + ' d=' + delta + ' v=' + value.toFixed(4));
     return true;
 }
 
-/* The slider to draw, or null when no gesture is live. */
-export function volumeOverlay(): { track: number; value: number } | null {
+/* The slider to draw, or null when no gesture is live. `frac`/`unityFrac` are
+ * ladder positions so the renderer stays free of the dB mapping. */
+export function volumeOverlay():
+    { track: number; value: number; frac: number; unityFrac: number } | null {
     if (heldTrack < 0 || !touched) return null;
-    return { track: heldTrack, value };
+    return { track: heldTrack, value, frac: idxToFrac(volIdx), unityFrac: UNITY_FRAC };
 }
 
 export function resetTrackVolume(): void {
@@ -114,4 +154,5 @@ export function resetTrackVolume(): void {
     touched   = false;
     diverted  = -1;
     value     = 1;
+    volIdx    = ampToIdx(1);
 }

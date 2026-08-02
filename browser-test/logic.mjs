@@ -6915,35 +6915,48 @@ _log('\nTest: track volume gesture (hold track + CC 79)');
 
     start(1);
 
-    // 0.05 per detent, written back as the slot param.
+    // One detent is one dB anywhere in the range. The old flat 0.05 of linear
+    // amplitude was 0.1 dB at the top and a 6 dB cliff at the bottom.
     eq('CW detent consumed', volumeKnobDelta(CW), true);
-    eq('CW detent = +0.05', env.params['slot:volume'], '1.05');
+    eq('CW detent = +1 dB', env.params['slot:volume'], '1.1220');
     volumeKnobDelta(CCW);
-    eq('CCW detent = -0.05', env.params['slot:volume'], '1.00');
-    for (let i = 0; i < 20; i++) volumeKnobDelta(CW);
-    eq('20 detents = +1.00', env.params['slot:volume'], '2.00');
-
-    // Range is the full schwung slot span, 0-4.
-    start(0, '0.10');
+    eq('CCW returns to exactly unity', env.params['slot:volume'], '1.0000');
     for (let i = 0; i < 10; i++) volumeKnobDelta(CCW);
-    eq('clamps at 0', env.params['slot:volume'], '0.00');
+    eq('10 detents down = -10 dB', env.params['slot:volume'], '0.3162');
+
+    // The field report: "adjustable down to about -8.5/9 dB, then completely
+    // cuts off the sound". The quiet half of the fader has to keep stepping.
+    start(0, (10 ** (-8 / 20)).toFixed(4));      // -8 dB
+    volumeKnobDelta(CCW);
+    eq('quiet range still steps (-8 → -9 dB)', env.params['slot:volume'], '0.3548');
+    for (let i = 0; i < 38; i++) volumeKnobDelta(CCW);
+    eq('still audible near the floor (-47 dB)', env.params['slot:volume'], '0.0045');
+    volumeKnobDelta(CCW);
+    volumeKnobDelta(CCW);
+    eq('one step below the floor is silence', env.params['slot:volume'], '0.0000');
+
+    // Range is still the full schwung slot span, 0-4.
+    start(0, '0.10');
+    for (let i = 0; i < 40; i++) volumeKnobDelta(CCW);
+    eq('clamps at silence', env.params['slot:volume'], '0.0000');
     start(0, '3.90');
     for (let i = 0; i < 10; i++) volumeKnobDelta(CW);
-    eq('clamps at 4', env.params['slot:volume'], '4.00');
+    eq('clamps at 4', env.params['slot:volume'], '4.0000');
 
-    // Multi-detent packets (d2 = accumulated detents) scale linearly.
+    // Multi-detent packets (d2 = accumulated detents) scale on the same ladder.
     start(2, '1.00');
     volumeKnobDelta(4);
-    eq('4-detent packet = +0.20', env.params['slot:volume'], '1.20');
+    eq('4-detent packet = +4 dB', env.params['slot:volume'], '1.5849');
     volumeKnobDelta(124);   // -4
-    eq('-4-detent packet = -0.20', env.params['slot:volume'], '1.00');
+    eq('-4-detent packet returns to unity', env.params['slot:volume'], '1.0000');
 
     // Overlay follows the gesture, and reports the track being edited.
     start(3, '1.00');
     eq('overlay track', volumeOverlay()?.track, 3);
     eq('overlay value', volumeOverlay()?.value, 1);
+    eq('overlay fill sits on the unity mark', volumeOverlay()?.frac, volumeOverlay()?.unityFrac);
     volumeKnobDelta(CW);
-    eq('overlay tracks the edit', volumeOverlay()?.value.toFixed(2), '1.05');
+    eq('overlay tracks the edit', volumeOverlay()?.value.toFixed(4), '1.1220');
     // Releasing the knob hides the slider but keeps the divert: the track button
     // is still down, so a second touch-and-turn must not need a re-inject (and
     // must not leave Move back in master-volume mode in between).
@@ -6971,7 +6984,7 @@ _log('\nTest: track volume gesture (hold track + CC 79)');
     volumeTrackDown(2);
     eq('divert precedes any touch', JSON.stringify(env.injected[0]), JSON.stringify([0x0B, 0xB0, 41, 127]));
     eq('turn without touch is consumed', volumeKnobDelta(CW), true);
-    eq('turn without touch edits volume', env.params['slot:volume'], '1.05');
+    eq('turn without touch edits volume', env.params['slot:volume'], '1.1220');
     eq('no overlay without touch', volumeOverlay(), null);
 
     // Only one divert per gesture, however many detents arrive.

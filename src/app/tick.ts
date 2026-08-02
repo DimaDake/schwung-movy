@@ -448,7 +448,7 @@ export function tick(): void {
          * panel to Move for the duration of the knob touch (see
          * mixer/track-volume.ts), so this frame is drawn but never pushed. */
         const vol = volumeOverlay();
-        if (vol) drawVolumeOverlay(vol.track, vol.value);
+        if (vol) drawVolumeOverlay(vol);
         if (assignActive()) { drawJogToast(assignToastText()); jogToastShown = true; }
         if (toastShowing) drawSeqToast();
         if (headerShowing) drawSeqHeader();

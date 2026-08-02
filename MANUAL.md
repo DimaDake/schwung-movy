@@ -281,6 +281,13 @@ that you are boosting, so watch for clipping.
 
 ![Track volume](docs/assets/track_volume_unity.png)
 
+**One detent is one dB**, the whole way down. The readout shows both the
+percentage Schwung stores and the gain in dB, so quiet settings are as easy to
+place as loud ones — from −9 dB there are another 39 steps before the fader
+reaches silence at the bottom of its travel.
+
+![Track volume, quiet](docs/assets/track_volume_quiet.png)
+
 Whether you see *this* slider depends on Shift. Move's firmware takes over the
 screen for as long as you are touching the volume knob, so:
 
@@ -737,7 +744,7 @@ behaviour you'd like — or, better, a PR.
 | **Back** | Module pages → Chain; browser → cancel; **at the root (Chain) → open the Leave Movy menu** (Background / Close Movy). |
 | **Back then jog-click** | From the root: background Movy (keeps playing under Move's UI). |
 | **Shift + Back** | Fully exit Movy (unload), instantly, from anywhere. |
-| **Hold track + volume encoder** | Set that track's volume (0–400%, 100% = unity). Add **Shift** to see Movy's slider instead of Move's native overlay. |
+| **Hold track + volume encoder** | Set that track's volume (0–400%, 100% = unity, 1 dB per detent). Add **Shift** to see Movy's slider instead of Move's native overlay. |
 | **+ / −** (Up/Down) | Shift the **active track's** octave (melodic tracks only). Each track remembers its own, saved with the set. |
 
 ### Sequencer

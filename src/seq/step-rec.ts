@@ -89,9 +89,15 @@ export function stepRecPad(padNote: number, pitch: number, vel: number): boolean
     touched = true;
     heldPads.set(padNote, pitch);
     const t = seqState.watchTrack;
-    const step = headStep();
-    if (!chord) chord = { pitches: [], anchor: step, tieSteps: 0 };
-    if (headIsFresh()) {
+    if (!chord) chord = { pitches: [], anchor: headStep(), tieSteps: 0 };
+    /* The chord's anchor, not the head: a tie rides the head to the END of the
+     * tied note, so a pitch added mid-chord would otherwise land on a later
+     * step — and then be lengthened from an anchor it was never written to. */
+    const step = chord.anchor;
+    // First pitch of this chord, rather than "the head is fresh": a tie marks
+    // the head fresh again as it moves, and clearing the step then would wipe
+    // the very note being tied.
+    if (chord.pitches.length === 0 && headIsFresh()) {
         /* Melodic replaces because the head is the user's cursor: stepping back
          * and replaying has to overwrite cleanly. Drums only ever add, so a kick
          * pass followed by a snare pass builds a kit instead of erasing one. */
@@ -102,6 +108,14 @@ export function stepRecPad(padNote: number, pitch: number, vel: number): boolean
     }
     headWritten();
     seqCmd(`addp ${t} ${step} ${step} ${pitch} ${vel}`);
+    // Trim the engine's bar rounding in the SAME batch as the write that caused
+    // it, not on the later advance — otherwise the clip reads a full bar for as
+    // long as the pad is held and the step row flashes under the finger.
+    growTo(step);
+    // Joining an already-tied chord means matching its length.
+    if (chord.tieSteps > 0) {
+        seqCmd(`slen ${t} ${step} ${step} ${pitch} ${(chord.tieSteps + 1) * TICKS_PER_STEP}`);
+    }
     chord.pitches.push(pitch);
     if (!occHasStep(step)) occToggleStep(step);
     return true;

@@ -7304,7 +7304,9 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     seqEngineTick();
     eq('melodic first pad clears the step first', engine.ops[0], 'del 0 0 0 -1');
     eq('melodic first pad writes', engine.ops[1], 'addp 0 0 0 72 100');
-    eq('second pad joins the same step', engine.ops[2], 'addp 0 0 0 76 100');
+    // By index for the first two (the delete must precede the write); by
+    // content for the second pad, which a grow-mode `clen 0 1` now sits after.
+    eq('second pad joins the same step', engine.ops.includes('addp 0 0 0 76 100'), true);
     eq('head has not moved while pads are down', stepRecHead(), 0);
     padOff(80);
     eq('head waits for the LAST pad', stepRecHead(), 0);
@@ -7480,6 +7482,24 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     eq('head follows the untie', stepRecHead(), 1);
     padOff(80); padOff(81);
     eq('release lands past the tied note', stepRecHead(), 2);
+
+    // ── a note added to a tied chord joins the chord, not the head ────────
+    // The head rides to the END of the tied note, so writing at the head would
+    // drop the new pitch on a later step — and then lengthen it from an anchor
+    // where it does not exist.
+    boot();
+    seqState.playing = false; seqState.lenSteps = 16;
+    recDown();
+    padOn(80, 72, 100);
+    right();                               // tie: chord spans steps 0-1, head → 1
+    seqEngineTick();
+    engine.ops.length = 0;
+    padOn(81, 76, 100);                    // add a pitch while still holding
+    seqEngineTick();
+    eq('a pitch added after a tie lands on the anchor',
+        engine.ops.includes('addp 0 0 0 76 100'), true);
+    eq('and it gets the tied length', engine.ops.includes('slen 0 0 0 76 48'), true);
+    padOff(80); padOff(81);
 
     // ── untie stops at one step ───────────────────────────────────────────
     boot();
@@ -7701,6 +7721,78 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     globalThis.shadow_send_midi_to_dsp = realSend;
     Date.now = realNow;
     resetStepRec(); resetSeqState(); resetSeqEngine(); resetSeqHeader();
+}
+
+/* ── step recording: a grown clip is exactly as long as what was played ──── */
+{
+    _log('\nstep record — grow length vs the engine\'s bar rounding:');
+    const { installMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased } =
+        await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { resetStepRec } = await import('../dist/esm/seq/step-rec.js');
+
+    const engine = installMockEngine();
+    engine.reset(); resetSeqEngine(); resetSeqState(); resetStepRec();
+    /* Model the real engine's clip length: writing a note outside the window
+     * rounds the clip up to that step's BAR end, and the status poll feeds that
+     * back into seqState.lenSteps. Without this the mock never reports a length
+     * and the bug is invisible. */
+    engine.trackClipLength = true;
+    engine.status.len = 0;
+    seqEngineTick();
+
+    const realNow = Date.now;
+    let t = 95000;
+    Date.now = () => t;
+
+    /* Enough ticks between press and release to let a status poll land — which
+     * is what happens on device, where a poll runs every 8 ticks (~40-127 ms)
+     * and a pad is held far longer than that. */
+    const settle = (n = 10) => { for (let i = 0; i < n; i++) seqEngineTick(); };
+
+    seqState.playing = false;               // empty clip → grow mode
+    seqHandleMidi([0xB0, 86, 127], false);  // hold Rec
+
+    /* The very first note, while the pad is still DOWN: the clip must already
+     * read one step. Trimming only on the advance leaves the engine's rounded-up
+     * 16 in the mirror for as long as the pad is held, and the step row flashes
+     * a full bar under the finger. */
+    seqNotePadPlayed(0, 80, 60, 100);
+    settle();
+    eq('a held first note does not flash a full bar', seqState.lenSteps, 1);
+    seqNotePadReleased(80, 0);
+    settle();
+
+    for (let i = 1; i < 6; i++) {
+        seqNotePadPlayed(0, 80 + i, 60 + i, 100);
+        settle();                           // the poll lands mid-note, as on device
+        seqNotePadReleased(80 + i, 0);
+        settle();
+    }
+    eq('six notes make a six-step clip', seqState.lenSteps, 6);
+    eq('the engine agrees it is six steps', engine.status.len, 6);
+
+    /* And the growth is genuinely per step, not per bar, all the way up. */
+    eq('the last clen asked for six steps',
+        engine.ops.filter((o) => o.startsWith('clen')).pop(), 'clen 0 6');
+
+    /* The invariant behind the fix: a length REPORTED by the engine must never
+     * suppress growth. Today the write and its trim ride in one batch so the
+     * poll never sees the rounded-up value — but the moment anything splits
+     * them, using the mirror as the record of intent brings the bug straight
+     * back. Force the mirror to a rounded 16 and require growth to continue. */
+    engine.ops.length = 0;
+    seqState.lenSteps = 16;                 // as if a poll caught the rounding
+    seqHandleMidi([0xB0, 63, 127], false);  // Right → rest at step 7
+    seqEngineTick();
+    eq('a reported length never suppresses growth',
+        engine.ops.includes('clen 0 7'), true);
+
+    seqHandleMidi([0xB0, 86, 0], false);
+    Date.now = realNow;
+    resetStepRec(); resetSeqState(); resetSeqEngine();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

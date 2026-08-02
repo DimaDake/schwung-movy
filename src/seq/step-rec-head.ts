@@ -25,6 +25,9 @@ let fresh = true;
  * come from the engine's next status reply — so the request is parked here and
  * the tick consumes it when the reply arrives. */
 let previewPending = false;
+/* Grow mode: how many steps the user has actually played into. Kept apart from
+ * seqState.lenSteps, which the engine's status poll owns. */
+let grown = 0;
 
 export function headStep(): number { return head; }
 export function headIsFresh(): boolean { return fresh; }
@@ -42,6 +45,7 @@ export function takePreview(): boolean {
  * gesture. */
 export function headBegin(): void {
     growMode = seqState.lenSteps === 0;
+    grown = seqState.lenSteps;
     setHead(0);
 }
 
@@ -55,6 +59,7 @@ export function headEnd(): void {
 export function headReset(): void {
     head = 0;
     growMode = false;
+    grown = 0;
     fresh = true;
     previewPending = false;
 }
@@ -75,11 +80,18 @@ export function setHead(step: number): void {
 /* Grow mode only: take `step` into the clip. The engine rounds a clip up to the
  * bar end when a note lands outside the current window (Clip::extend_to_step),
  * so this must be queued AFTER the write that caused it — it trims the rounding
- * back to the per-step length the user actually played. Never shrinks. */
+ * back to the per-step length the user actually played. Never shrinks.
+ *
+ * `grown` is what makes that work. seqState.lenSteps cannot be the record of
+ * how long the user has played, because the status poll overwrites it with the
+ * engine's rounded-up value between the note and the advance — so every clen
+ * looked redundant and was skipped, and a six-note phrase stayed a 16-step
+ * clip. The intent lives here; the mirror only follows it. */
 export function growTo(step: number): void {
     if (!growMode) return;
     const want = Math.min(step + 1, MAX_STEPS);
-    if (want <= seqState.lenSteps) return;
+    if (want <= grown) return;
+    grown = want;
     seqState.lenSteps = want;
     seqCmd('clen ' + seqState.watchTrack + ' ' + want);
 }

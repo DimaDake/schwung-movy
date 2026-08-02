@@ -133,6 +133,27 @@ ts_send "0x0B:0xB0:86:127:0.15" \
         "0x0B:0xB0:86:0:0"
 sleep 1
 
+info "Step record on an EMPTY clip: three notes must make a THREE-step clip..."
+# The fixture leaves tracks 2 and 3 without clips, so this is the only place the
+# grow-per-step path runs on device — track 0's clip is 16 steps and takes the
+# wrap path instead. A 16 here means the engine's bar rounding won.
+ts_tap_cc 41                             # track 2 (CC 43 = track 0 … CC 40 = track 3)
+sleep 0.8
+ts_send "0x0B:0xB0:86:127:0.15" \
+        "0x09:0x90:70:110:0.10" "0x08:0x80:70:0:0.15" \
+        "0x09:0x90:71:110:0.10" "0x08:0x80:71:0:0.15" \
+        "0x09:0x90:72:110:0.10" "0x08:0x80:72:0:0.15" \
+        "0x0B:0xB0:86:0:0"
+sleep 1
+if ts_wait_seq_state '^cl 2 0 3 '; then
+    pass "Empty clip grew to exactly 3 steps (not a rounded-up bar)"
+else
+    fail "Empty clip did not grow per step — expected 'cl 2 0 3' in seq-state"
+    ts_ssh "grep '^cl ' '$(ts_seq_path)' 2>/dev/null || true"
+fi
+ts_tap_cc 43                             # back to track 0 for the rest of the run
+sleep 0.5
+
 info "Session mode: toggle (CC 50), launch a clip pad, toggle back..."
 python3 "$INJECT" "$HOST" cc 50 127      # Note/Session toggle → session
 python3 "$INJECT" "$HOST" cc 50 0

@@ -209,6 +209,19 @@ ts_wait_ui_state() {
     return 1
 }
 
+# Same condition-based wait, against the sequencer half of the per-set state —
+# for assertions about what a gesture actually wrote to a clip (notes, length).
+ts_wait_seq_state() {
+    local want="$1" waited=0 cur
+    while [ $waited -lt 30 ]; do
+        cur=$(ts_ssh "cat '$(ts_seq_path)' 2>/dev/null || true")
+        echo "$cur" | grep -qE "$want" && return 0
+        sleep 2; waited=$((waited + 2))
+    done
+    echo "test-set: seq-state never matched /$want/ after ${waited}s" >&2
+    return 1
+}
+
 ts_ui_path() {
     local uuid; uuid=$(ts_active_uuid)
     echo "/data/UserData/schwung/modules/tools/movy/sets/${uuid:-_default}/ui-state.json"

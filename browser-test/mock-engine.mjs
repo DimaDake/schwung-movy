@@ -19,6 +19,13 @@ export function installMockEngine() {
         getParamCalls: 0,
         /* DSP (re)load requests ("load" key, shim-handled on device) */
         loadRequests: [],
+        /* Opt-in: model seq-core's clip-length behaviour so `len=` comes back in
+         * status the way the real engine reports it — a note written outside the
+         * current window rounds the clip up to that step's BAR end
+         * (Clip::extend_to_step), while `clen` sets an exact step count. Off by
+         * default: most tests set seqState.lenSteps by hand and a poll reporting
+         * a length would fight them. */
+        trackClipLength: false,
         /* persisted automation lane labels reported via get_param('alabels');
          * an `aclr <t> <l>` op blanks the matching lane (faithful engine). */
         alabels: null,
@@ -37,6 +44,7 @@ export function installMockEngine() {
             this.alabels = null;
             this.stateLoads = [];
             this.stateBlob = null;
+            this.trackClipLength = false;
         },
     };
 
@@ -58,6 +66,17 @@ export function installMockEngine() {
                 // reverting it — that round trip is what proves a knob turn
                 // actually reached the engine, not just the UI mirror.
                 else if (verb === 'bpm') engine.status.bpm = +parts[1];
+                else if (engine.trackClipLength && (verb === 'addp' || verb === 'clen')) {
+                    const cur = engine.status.len ?? 0;
+                    if (verb === 'clen') {
+                        engine.status.len = +parts[2];
+                    } else {
+                        // addp <t> <s0> <s1> <pitch> <vel> — a note at or past the
+                        // window end grows the clip to that step's bar end.
+                        const step = +parts[3];
+                        if (step >= cur) engine.status.len = (Math.floor(step / 16) + 1) * 16;
+                    }
+                }
                 else if (verb === 'aclr' && engine.alabels) {
                     // Blank the cleared lane so a re-poll reflects the purge.
                     const t = +parts[1], l = +parts[2];

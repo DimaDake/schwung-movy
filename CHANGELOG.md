@@ -11,6 +11,31 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
+## [Unreleased]
+
+### Fixed
+
+- **The knobs no longer lock up.** After a while of ordinary use — adding and
+  removing modules, editing steps — the encoders would stop changing anything
+  Movy owns (tempo, clip length, step length) until Movy was closed and
+  reopened. A step-button release that never reached Movy left it believing the
+  step was still held, which routed every knob turn into step automation
+  instead of the parameter under it, forever. The Leave-Movy menu no longer
+  swallows releases, opening it forgets whatever was held, and pressing a step
+  again recovers a release the host dropped. The Set and Clip parameter pages
+  also now own their knobs ahead of a step hold, and an enum list left open by
+  a missing release is dropped instead of blocking page changes.
+- **The sequencer no longer gives up on its engine for good.** Three engine
+  losses over a session — another tool can claim the device's single overtake
+  DSP slot — each recovered at the time, added up to a permanent stop: every
+  sequencer command silently dropped while the pattern kept playing. The
+  retry budget is now per outage, and the back-off retries.
+- **Track volume is usable at quiet settings.** Holding a track button and
+  turning the volume encoder stepped a linear amplitude, so the fader ran out
+  of resolution around −9 dB and the next detent cut to silence. One detent is
+  now one dB across the whole range, and the slider reads out in dB as well as
+  percent.
+
 ## [0.25.0] — 2026-08-01
 
 ### Added

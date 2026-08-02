@@ -10,6 +10,7 @@ import { mainPageActive } from './main-page.js';
 import { clipPageActive } from './clip-page.js';
 import { sessionPaintGrid } from './session.js';
 import { loopEndBar, loopStartBar, occHasStep, seqState } from './state.js';
+import { stepRecActive, stepRecHead } from './step-rec.js';
 import { cachedSetLED, cachedSetButtonLED, cachedSetAnimLED, ledFrameReset, seqLedsInvalidate } from './led-cache.js';
 
 /* Re-exported so callers keep importing the LED API from one place. */
@@ -192,10 +193,17 @@ export function seqLedsTick(
     const dimTrack = trackColorDim(seqState.watchTrack);
     const { holdStep, holdLen, watchTrack } = seqState;
     const emptyMetro = seqState.lenSteps === 0 && seqState.playing;
+    // The step-record head outranks every other step colour, including the
+    // past-the-clip-length blackout — in grow mode the head legitimately sits
+    // on a step the clip has not reached yet.
+    const recHead = stepRecActive() ? stepRecHead() : -1;
+    const headBlink = blinkPhase();
     for (let i = 0; i < NUM_STEP_BUTTONS; i++) {
         const step = base + i;
         let color: number;
-        if (emptyMetro) {
+        if (step === recHead) {
+            color = headBlink ? C_REC_RED : C_BLACK;
+        } else if (emptyMetro) {
             color = metronomeStep(i, seqState.engineTick) ? C_GREEN : C_BLACK;
         } else if (seqState.lenSteps > 0 && step >= seqState.lenSteps) {
             // Steps past the clip length are not part of the pattern → fully off

@@ -1194,6 +1194,40 @@ _log('\napp-loop: a dropped step release never strands the hold');
     advance(2);
 }
 
+_log('\napp-loop: step recording paints a blinking red head');
+{
+    resetApp();
+    const { C_REC_RED } = await import('../dist/esm/seq/colors.js');
+    const { stepRecActive } = await import('../dist/esm/seq/step-rec.js');
+
+    seqState.playing = false;
+    seqState.lenSteps = 16;
+    sendMidi([0xB0, 86, 127]);                 // hold Rec
+    advance(2);
+    eq('step recording entered from a real Rec press', stepRecActive(), true);
+
+    /* blinkPhase() is engineTick/24 % 2, so drive the mirrored tick to both
+     * halves of the blink rather than waiting on wall time. */
+    seqState.engineTick = 0;
+    advance(1);
+    eq('head lit red on the bright half', ledByPad[STEP_NOTE_BASE + 0], C_REC_RED);
+
+    seqState.engineTick = 24;
+    advance(1);
+    eq('head dark on the other half', ledByPad[STEP_NOTE_BASE + 0] !== C_REC_RED, true);
+
+    /* Move the head with a rest and confirm the red follows it. */
+    seqState.engineTick = 0;
+    sendMidi([0xB0, 63, 127]);                 // Right = rest
+    advance(2);
+    eq('the red head followed the rest', ledByPad[STEP_NOTE_BASE + 1], C_REC_RED);
+
+    sendMidi([0xB0, 86, 0]);                   // release Rec
+    advance(2);
+    eq('mode left on release', stepRecActive(), false);
+    seqState.lenSteps = 0;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

@@ -2614,16 +2614,20 @@ _log('\nTest: drumPadOn');
     const { resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
     const { resetSeqToast } = await import('../dist/esm/seq/render.js');
 
+    const { resetStepRec } = await import('../dist/esm/seq/step-rec.js');
+
     const engine = installMockEngine();
     const reset = () => {
         resetSeqEngine(); resetSeqState(); resetEditOps(); resetStepEdit();
-        resetSeqToast(); engine.reset();
+        resetStepRec(); resetSeqToast(); engine.reset();
     };
     const lastOp = () => engine.ops[engine.ops.length - 1];
     reset(); seqEngineTick();
 
-    // Rec press → rec command on the watched track.
+    // A Rec TAP → rec command on the watched track. (Holding Rec while stopped
+    // is step recording instead; the tap keeps the live-record arm.)
     seqHandleMidi([0xB0, 86, 127], false);
+    seqHandleMidi([0xB0, 86, 0], false);
     seqEngineTick();
     eq('Rec emits rec command', lastOp(), 'rec 0');
 
@@ -5040,9 +5044,10 @@ _log('\nautomation label sync:');
     const { seqHandleMidi, seqNotePadPlayed } = await import('../dist/esm/seq/router.js');
     const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
     const { seqState, resetSeqState, occHasStep } = await import('../dist/esm/seq/state.js');
+    const { resetStepRec } = await import('../dist/esm/seq/step-rec.js');
 
     const engine = installMockEngine();
-    resetSeqEngine(); resetSeqState();
+    resetSeqEngine(); resetSeqState(); resetStepRec();
     seqEngineTick();
     const lastOp = () => engine.ops[engine.ops.length - 1];
     const tapStep = (b) => { seqHandleMidi([0x90, 16 + b, 127], false); seqHandleMidi([0x80, 16 + b, 0], false); };
@@ -7253,6 +7258,147 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 
     globalThis.setLED = origSetLED;
     globalThis.setButtonLED = origSetButtonLED;
+}
+
+/* ── step recording: entry, chords, advance, grow/wrap ───────────────────── */
+{
+    _log('\nstep record — core:');
+    const { installMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, seqSetLane } =
+        await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState, occHasStep } = await import('../dist/esm/seq/state.js');
+    const {
+        stepRecActive, stepRecHead, stepRecGrowMode, resetStepRec,
+    } = await import('../dist/esm/seq/step-rec.js');
+
+    const engine = installMockEngine();
+    const boot = () => {
+        engine.reset(); resetSeqEngine(); resetSeqState(); resetStepRec(); seqEngineTick();
+    };
+    /* Rec is CC 86. Time is stubbed so tap-vs-hold is deterministic. */
+    const recDown = () => seqHandleMidi([0xB0, 86, 127], false);
+    const recUp   = () => seqHandleMidi([0xB0, 86, 0], false);
+    const padOn  = (pad, note, vel = 100) => seqNotePadPlayed(0, pad, note, vel);
+    const padOff = (pad) => seqNotePadReleased(pad, 0);
+
+    const realNow = Date.now;
+    let t = 50000;
+    Date.now = () => t;
+
+    // ── entering the mode while stopped ───────────────────────────────────
+    boot();
+    seqState.playing = false;
+    recDown();
+    eq('Rec down while stopped enters step record', stepRecActive(), true);
+    eq('head starts at step 1', stepRecHead(), 0);
+    eq('empty clip → grow mode', stepRecGrowMode(), true);
+    seqEngineTick();
+    eq('no rec arm emitted on entry', engine.ops.includes('rec 0'), false);
+    eq('head announced to the engine', engine.ops.includes('hold 0 0'), true);
+
+    // ── a chord lands on one step, release advances ───────────────────────
+    engine.ops.length = 0;
+    padOn(80, 72, 100);
+    padOn(81, 76, 100);
+    seqEngineTick();
+    eq('melodic first pad clears the step first', engine.ops[0], 'del 0 0 0 -1');
+    eq('melodic first pad writes', engine.ops[1], 'addp 0 0 0 72 100');
+    eq('second pad joins the same step', engine.ops[2], 'addp 0 0 0 76 100');
+    eq('head has not moved while pads are down', stepRecHead(), 0);
+    padOff(80);
+    eq('head waits for the LAST pad', stepRecHead(), 0);
+    padOff(81);
+    eq('all pads up → head advances', stepRecHead(), 1);
+    eq('grow mode set the clip to what was played', seqState.lenSteps, 1);
+    seqEngineTick();
+    eq('clen trims the engine bar-rounding', engine.ops.includes('clen 0 1'), true);
+    eq('occupancy mirrored for the LED', occHasStep(0), true);
+
+    // ── non-overlapping taps advance one step each ────────────────────────
+    padOn(80, 72, 100); padOff(80);
+    eq('second note advanced again', stepRecHead(), 2);
+    padOn(80, 74, 100); padOff(80);
+    eq('third note advanced again', stepRecHead(), 3);
+    eq('clip grew per step, not per bar', seqState.lenSteps, 3);
+
+    // ── melodic replace: re-entering a step wipes it first ────────────────
+    boot();
+    seqState.playing = false; seqState.lenSteps = 16;   // existing clip
+    recDown();
+    eq('non-empty clip → wrap mode', stepRecGrowMode(), false);
+    seqEngineTick();                       // flush the entry `hold`
+    engine.ops.length = 0;
+    padOn(80, 72, 100); padOff(80);
+    seqEngineTick();
+    eq('melodic overwrite deletes then adds', engine.ops[0], 'del 0 0 0 -1');
+    eq('existing clip length untouched', seqState.lenSteps, 16);
+
+    // ── drums add, never delete ───────────────────────────────────────────
+    boot();
+    seqState.playing = false; seqState.lenSteps = 16;
+    seqSetLane(38);                       // drum lane → watchLane >= 0
+    recDown();
+    engine.ops.length = 0;
+    padOn(80, 36, 120); padOff(80);
+    seqEngineTick();
+    eq('drum pad never deletes the step', engine.ops.some((o) => o.startsWith('del')), false);
+    eq('drum pad adds its own lane', engine.ops.includes('addp 0 0 0 36 120'), true);
+    seqSetLane(-1);
+
+    // ── wrap at the clip end ──────────────────────────────────────────────
+    boot();
+    seqState.playing = false; seqState.lenSteps = 4; seqState.loopStart = 0;
+    recDown();
+    for (let i = 0; i < 3; i++) { padOn(80, 72, 100); padOff(80); }
+    eq('head at the last step', stepRecHead(), 3);
+    padOn(80, 72, 100); padOff(80);
+    eq('past the end wraps to the loop start', stepRecHead(), 0);
+    eq('wrap mode never grows the clip', seqState.lenSteps, 4);
+
+    // ── exit: tap falls through to arm, hold does not ─────────────────────
+    boot();
+    seqState.playing = false;
+    recDown();
+    t += 100;                              // quick tap, nothing entered
+    recUp();
+    seqEngineTick();
+    eq('empty tap still arms live record', engine.ops.includes('rec 0'), true);
+    eq('mode left', stepRecActive(), false);
+
+    boot();
+    seqState.playing = false;
+    recDown();
+    t += 100;
+    padOn(80, 72, 100); padOff(80);        // something happened
+    recUp();
+    seqEngineTick();
+    eq('a tap that entered notes does not also arm', engine.ops.includes('rec 0'), false);
+
+    boot();
+    seqState.playing = false;
+    recDown();
+    t += 900;                              // a long hold, nothing entered
+    recUp();
+    seqEngineTick();
+    eq('a long hold does not arm', engine.ops.includes('rec 0'), false);
+    eq('exit releases the engine hold', engine.ops.includes('hold 0 -1'), true);
+
+    // ── while playing, Rec is unchanged ───────────────────────────────────
+    boot();
+    seqState.playing = true;
+    recDown();
+    eq('Rec while playing does not enter step record', stepRecActive(), false);
+    seqEngineTick();
+    eq('Rec while playing arms immediately', engine.ops.includes('rec 0'), true);
+    recUp();
+    seqEngineTick();
+    eq('the release does not arm a second time',
+        engine.ops.filter((o) => o === 'rec 0').length, 1);
+
+    Date.now = realNow;
+    seqState.playing = false;
+    resetStepRec(); resetSeqState(); resetSeqEngine();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

@@ -46,6 +46,9 @@ import {
     anyStepHeld, editNudge, editPad, editStepDown, editStepUp,
     editTranspose, editVelocity, heldStepAbs, setLengthTo, endStepAutomation,
 } from './step-edit.js';
+import {
+    stepRecDown, stepRecPad, stepRecPadRelease, stepRecUp,
+} from './step-rec.js';
 import { seqToast } from './render.js';
 import {
     sessionDeleteButton, sessionPad, sessionToggle,
@@ -230,9 +233,12 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         return true;
     }
 
-    /* Rec: toggle recording (engine arms a one-bar count-in). */
+    /* Rec: held while stopped = step recording (step-rec.ts); a bare quick tap
+     * keeps the old meaning, toggling live recording with its one-bar count-in. */
     if (d1 === CC_REC) {
         if (d2 > 0) {
+            if (!stepRecDown()) seqCmd('rec ' + seqState.watchTrack);
+        } else if (stepRecUp()) {
             seqCmd('rec ' + seqState.watchTrack);
         }
         return true;
@@ -378,6 +384,7 @@ export function seqNotePadPlayed(track: number, padNote: number, midiNote: numbe
         seqState.lastPitch[track] = midiNote;
         seqState.lastVel[track] = vel;
     }
+    if (stepRecPad(padNote, midiNote, vel)) return;
     if (deleteActive()) {
         deletePad(midiNote); // hold Delete + pad clears that pitch
         return;
@@ -399,6 +406,7 @@ export function seqNotePadPlayed(track: number, padNote: number, midiNote: numbe
  * track switch mid-hold used to send the capture-off to the wrong track and
  * leave a dangling rec_pending in the engine. */
 export function seqNotePadReleased(padNote: number, track: number): void {
+    if (stepRecPadRelease(padNote)) return;
     const midiNote = heldChord.get(padNote);
     heldChord.delete(padNote);
     if (midiNote !== undefined && engineReady()) {

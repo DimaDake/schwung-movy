@@ -23,6 +23,7 @@ import { resetEditOps } from '../seq/edit-ops.js';
 import { resetDuplicate } from '../seq/duplicate.js';
 import { resetLoopMode } from '../seq/loop-mode.js';
 import { resetSeqChord, setMuteHeld } from '../seq/router.js';
+import { resetStepRec } from '../seq/step-rec.js';
 import { resetTrackVolume } from '../mixer/track-volume.js';
 import { resetAssignMode } from '../lfo/assign-mode.js';
 import { jogHintTouch } from './jog-hint.js';
@@ -41,6 +42,7 @@ export function resetHeldInput(notifyEngine: boolean): void {
     resetDuplicate();     // Copy held
     resetLoopMode();      // Loop held
     resetSeqChord();      // pads held for chord step entry
+    resetStepRec();       // Rec held for step recording
     resetTrackVolume();   // track-button + volume-knob gesture
     resetAssignMode();    // knob held → LFO assign
     setMuteHeld(false);

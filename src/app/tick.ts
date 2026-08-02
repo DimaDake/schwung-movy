@@ -29,6 +29,7 @@ import { tempoOverrideTick } from '../seq/tempo-override.js';
 import { seqLedsTick, seqLedsInvalidate, displayHoldNotes } from '../seq/leds.js';
 import { seqSetLane } from '../seq/router.js';
 import { stepAutoTick } from '../seq/step-edit.js';
+import { stepRecTick } from '../seq/step-rec-view.js';
 import { holdTick, assignActive, assignToastText } from '../lfo/assign-mode.js';
 import { jogHintTick, jogHintVisible } from './jog-hint.js';
 import { drawJogToast } from '../renderer/overlay.js';
@@ -215,6 +216,7 @@ export function tick(): void {
         return;
     }
     stepAutoTick(); // promote a long single-step hold to step-automation mode
+    stepRecTick();  // keep the step-record header band alive while Rec is held
     if (holdTick()) appState.dirty = true;    // knob-hold → LFO assign mode
     if (jogHintTick()) appState.dirty = true; // jog rested without turning → CLICK JOG hint
     // The held-step value display is driven by stepAutoMode + heldLocks, which

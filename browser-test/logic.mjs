@@ -7565,6 +7565,64 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     resetStepRec(); resetSeqState(); resetSeqEngine();
 }
 
+/* ── step recording: header text ─────────────────────────────────────────── */
+{
+    _log('\nstep record — header:');
+    const { installMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi } = await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { resetStepRec } = await import('../dist/esm/seq/step-rec.js');
+    const { stepRecHeaderText, stepRecTick } =
+        await import('../dist/esm/seq/step-rec-view.js');
+    const { seqHeaderActive, resetSeqHeader } = await import('../dist/esm/seq/render.js');
+    const { fontWidth } = await import('../dist/esm/font/index.js');
+
+    const engine = installMockEngine();
+    engine.reset(); resetSeqEngine(); resetSeqState(); resetStepRec(); resetSeqHeader();
+    seqEngineTick();
+
+    const realNow = Date.now;
+    let t = 80000;
+    Date.now = () => t;
+
+    seqState.playing = false; seqState.lenSteps = 16;
+    seqHandleMidi([0xB0, 86, 127], false);
+    eq('header names the mode and the position', stepRecHeaderText(), 'STEP REC 1/16');
+
+    seqState.holdNotes = [60, 64, 67];
+    eq('header lists the notes on the head', stepRecHeaderText(), 'STEP REC 1/16 C4 E4 G4');
+
+    /* Transposed clips play back shifted, so the header has to show what will
+     * be heard, not what is stored. */
+    seqState.clipTranspose = 2;
+    eq('header shows the transposed pitches', stepRecHeaderText(), 'STEP REC 1/16 D4 F#4 A4');
+    seqState.clipTranspose = 0;
+
+    /* Long chords must not run off a 128px screen. */
+    seqState.holdNotes = [60, 62, 64, 65, 67, 69, 71];
+    eq('header is clipped to the display width', fontWidth(stepRecHeaderText()) <= 124, true);
+
+    /* The band is kept alive by the tick, and dies with the mode. */
+    resetSeqHeader();
+    stepRecTick();
+    eq('the tick keeps the band up', seqHeaderActive(), true);
+    seqHandleMidi([0xB0, 86, 0], false);
+    resetSeqHeader();
+    stepRecTick();
+    eq('no band once the mode is gone', seqHeaderActive(), false);
+
+    /* An empty clip has no length to show until the first advance. */
+    seqState.holdNotes = [];
+    seqState.lenSteps = 0;
+    seqHandleMidi([0xB0, 86, 127], false);
+    eq('an empty clip has no length to show yet', stepRecHeaderText(), 'STEP REC 1/--');
+    seqHandleMidi([0xB0, 86, 0], false);
+
+    Date.now = realNow;
+    resetStepRec(); resetSeqState(); resetSeqEngine(); resetSeqHeader();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

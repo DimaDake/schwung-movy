@@ -43,7 +43,7 @@ const PRESETS = [
     'params-overflow-page', 'params-extras-settings',
     'bankbar-mid', 'bankbar-surge', 'bankbar-dense',
     'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
-    'step_page_knobs', 'step_page_chain', 'step_indicator',
+    'step_page_knobs', 'step_page_chain', 'step_indicator', 'step_rec_header',
     'main-default', 'main-tempo-touched', 'main-swing-touched',
     'main-root-touched', 'main-key-overlay', 'main-mode-overlay', 'main-layout-overlay',
     'main-ext-sync', 'main-link-on',
@@ -74,6 +74,7 @@ const BASE = {
     'params-extras-settings': 'hier_params_extras',
     auto_dot: 'test8', auto_held: 'test8', auto_live: 'test8', auto_limit: 'test8',
     step_page_knobs: 'test8', step_page_chain: 'test8', step_indicator: 'test8',
+    step_rec_header: 'test8',
     'main-default': 'test8', 'main-tempo-touched': 'test8',
     'main-swing-touched': 'test8', 'main-root-touched': 'test8',
     'main-key-overlay': 'test8', 'main-mode-overlay': 'test8',
@@ -152,6 +153,9 @@ const { clipPageState, resetClipPage } = await import('../dist/esm/seq/clip-page
 const { seqState, resetSeqState }      = await import('../dist/esm/seq/state.js');
 const { appState }                     = await import('../dist/esm/app/state.js');
 const { keyboardState }                = await import('../dist/esm/keyboard/state.js');
+const { resetStepRec, stepRecDownAt } = await import('../dist/esm/seq/step-rec.js');
+const { stepRecTick }      = await import('../dist/esm/seq/step-rec-view.js');
+const { drawSeqHeader, resetSeqHeader } = await import('../dist/esm/seq/render.js');
 const { MOCK_SYNTHS }      = await import('./mock-synth.mjs');
 
 const COMPONENT_KEYS = ['midi_fx1', 'synth', 'fx1', 'fx2'];
@@ -331,6 +335,18 @@ function applyView(preset) {
         case 'auto_limit':       showKnobsAuto(autoView({ held: true, poolFull: true, assignedLanes: 0xFF })); break;
         case 'step_page_knobs':  lastRender = () => renderKnobsView(buildStepPageVM(STEP_VM_A, 4), false, 0); lastRender(); break;
         case 'step_page_chain':  lastRender = () => renderChainView(buildStepPageVM(STEP_VM_B), 1, false, 'T1'); lastRender(); break;
+        case 'step_rec_header': {
+            // Rec held: the band sits over a live param page, which stays
+            // readable so the sound can be shaped while the part goes in.
+            resetSeqState(); resetStepRec(); resetSeqHeader();
+            seqState.playing = false; seqState.lenSteps = 16;
+            stepRecDownAt(1000);
+            seqState.holdNotes = [60, 64, 67];
+            stepRecTick();
+            lastRender = () => { renderKnobsView(model.getViewModel()); drawSeqHeader(); };
+            lastRender();
+            break;
+        }
         case 'step_indicator': {
             // Module page during a session: dotted leading segment, not selected.
             lastRender = () => {

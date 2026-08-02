@@ -32,7 +32,11 @@ const { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_BROWSE, VIEW_FILE_BROWSE } = awai
 const { seqState, resetSeqState, occHasStep } = await import('../dist/esm/seq/state.js');
 const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
 const { resetSeqPersist } = await import('../dist/esm/seq/persist.js');
-const { CC_NOTE_SESSION } = await import('../dist/esm/seq/constants.js');
+const { CC_NOTE_SESSION, STEP_NOTE_BASE } = await import('../dist/esm/seq/constants.js');
+const { anyStepHeld, STEP_AUTO_MS } = await import('../dist/esm/seq/step-edit.js');
+const { stepPageState } = await import('../dist/esm/seq/step-page.js');
+const { leaveModalActive } = await import('../dist/esm/app/leave-modal.js');
+const { mainPageActive } = await import('../dist/esm/seq/main-page.js');
 
 let failures = 0;
 const _log = _origLog.bind(console);
@@ -1113,6 +1117,81 @@ _log('\napp-loop: shift+jog skips a level\'s overflow pages');
     advance(1);
     eq('shift+jog: forward skips the overflow page', m.getKnobPage(), 2);
     sendMidi([0xB0, globalThis.MoveShift, 0]);           // Shift up
+}
+
+/* ── a lost button release must not wedge the knobs ──────────────────────── */
+
+_log('\napp-loop: a dropped step release never strands the hold');
+{
+    /* Field report (Discord, 2026-08-02): after a while of ordinary use the
+     * knobs stop editing anything movy owns — tempo, clip length, step length —
+     * until movy is closed and reopened. Cause: a step-button release that never
+     * arrives leaves heldRanges holding a phantom, which keeps stepAutoMode
+     * latched, which routes every knob turn into step automation forever. Three
+     * ways in, three ways out. */
+    const holdStep = (btn) => {
+        sendMidi([0x90, STEP_NOTE_BASE + btn, 127]);
+        const t0 = Date.now(); while (Date.now() - t0 < STEP_AUTO_MS + 60) { /* wall-clock hold */ }
+        advance(4);
+    };
+    const openMainParams = () => {
+        sendMidi([0xB0, globalThis.MoveShift, 127]);
+        sendMidi([0x90, STEP_NOTE_BASE + 4, 127]);   // Shift+Step 5
+        sendMidi([0x90, STEP_NOTE_BASE + 4, 0]);
+        sendMidi([0xB0, globalThis.MoveShift, 0]);
+        advance(2);
+    };
+    const tempoTurns = () => {
+        const before = seqState.bpmX100;
+        for (let i = 0; i < 12; i++) sendMidi([0xB0, globalThis.MoveKnob1, 4]);
+        advance(4);
+        return seqState.bpmX100 - before;
+    };
+
+    // (1) The Leave-Movy modal used to swallow the release outright.
+    resetApp();
+    sendMidi([0x90, STEP_NOTE_BASE, 127]); sendMidi([0x80, STEP_NOTE_BASE, 0]); advance(6);
+    holdStep(0);
+    eq('modal: hold promoted to step-automation', seqState.stepAutoMode, true);
+    stepPageState.selected = true;
+    appState.currentView = VIEW_CHAIN;
+    sendMidi([0xB0, globalThis.MoveBack, 127]);          // → Leave-Movy modal
+    eq('modal: is up', leaveModalActive(), true);
+    sendMidi([0x80, STEP_NOTE_BASE, 0]);                 // release under the modal
+    eq('modal: hold forgotten', anyStepHeld(), false);
+    eq('modal: step-automation ended', seqState.stepAutoMode, false);
+    sendMidi([0xB0, globalThis.MoveBack, 127]);          // cancel
+    advance(4);
+    openMainParams();
+    eq('modal: tempo knob still edits tempo', tempoTurns() > 0, true);
+
+    // (2) The host drops the release outright (its input callback was blocked by
+    //     a synchronous module scan). heldRanges is keyed by button, so the next
+    //     press of THAT step re-registers it — but the stale `gestured` mark
+    //     survived, and it is what says "this release was not a tap". The step
+    //     then silently refused to enter a note until pressed twice.
+    resetApp();
+    holdStep(0);                                          // promoted → marked gestured
+    eq('dropped: hold registered', anyStepHeld(), true);
+    eq('dropped: a promoted hold enters no note', occHasStep(0), false);
+    /* release never arrives */
+    sendMidi([0x90, STEP_NOTE_BASE, 127]);                // press again
+    sendMidi([0x80, STEP_NOTE_BASE, 0]);                  // …and tap out of it
+    advance(2);
+    eq('dropped: the hold is gone', anyStepHeld(), false);
+    eq('dropped: step-automation ended', seqState.stepAutoMode, false);
+    eq('dropped: the tap still enters its note', occHasStep(0), true);
+
+    // (3) Even while a step really is held, the page on screen owns its knobs.
+    resetApp();
+    sendMidi([0x90, STEP_NOTE_BASE, 127]); sendMidi([0x80, STEP_NOTE_BASE, 0]); advance(6);
+    openMainParams();
+    holdStep(0);
+    stepPageState.selected = true;
+    eq('page priority: Main Params is on screen', mainPageActive(), true);
+    eq('page priority: tempo knob reaches the page', tempoTurns() > 0, true);
+    sendMidi([0x80, STEP_NOTE_BASE, 0]);
+    advance(2);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

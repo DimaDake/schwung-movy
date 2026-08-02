@@ -80,6 +80,11 @@ const STEP_CLIP_PARAMS = 2;
  * pads physically down so a step press can place the whole chord. */
 const heldChord = new Map<number, number>();
 
+/* Forget the held chord. A pad release that never arrives (Session mode
+ * swallows pad note-offs by design; a modal swallows everything) would
+ * otherwise leave that pitch in every step entered from then on. */
+export function resetSeqChord(): void { heldChord.clear(); }
+
 /* Session view state before the Note/Session button's current press, so a tap
  * can decide latch-vs-toggle-off and a hold can revert. */
 let sessionPrev = false;

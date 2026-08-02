@@ -169,13 +169,22 @@ export function createModel(slot: number, componentKey = 'synth') {
             return fileRejected;
         },
 
-        /* Clear only the knob touch/hold visual state — lighter than reset()
-         * (which reloads the hierarchy). Called when the shown param page
-         * changes so a held knob's highlight never persists after navigation. */
+        /* Clear only the knob touch/hold state — lighter than reset() (which
+         * reloads the hierarchy). Called when the shown param page changes so a
+         * held knob's highlight never persists after navigation, and whenever a
+         * release provably cannot arrive (app/input-reset.ts).
+         *
+         * The open enum/file overlay is DROPPED, not committed: its release is
+         * what commits it, and this path exists precisely because that release
+         * is gone. A stuck overlay swallows the knob it belongs to and blocks
+         * changePage entirely, so leaving one behind is the bug, not the fix. */
         clearTouch(): void {
-            if (s.touchedSlots.length || s.longPressCountdown >= 0) {
+            if (s.touchedSlots.length || s.longPressCountdown >= 0
+                || s.enumOverlay || s.fileOverlay) {
                 s.touchedSlots.length = 0;
                 s.longPressCountdown = -1;
+                s.enumOverlay = null;
+                s.fileOverlay = null;
                 s.dirty = true;
             }
         },

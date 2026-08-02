@@ -9,6 +9,7 @@ import { CHAIN_SLOTS, MASTER_FX_SLOTS, isLfoSlot } from '../chain/config.js';
 import { resetTrackMutes } from '../mixer/track-mutes.js';
 import { resetDrumSync } from '../seq/drum-sync.js';
 import { claimLedOwnership } from './led-ownership.js';
+import { resetHeldInput } from './input-reset.js';
 import { mlog } from '../log.js';
 
 export function init(): void {
@@ -41,6 +42,11 @@ export function init(): void {
 
     resetDrumSync();   // fresh models: re-tell the engine which tracks are drums
     resetTrackMutes(); // solo is a live control — never persisted, starts clear
+    // Nothing is held at open. Today the esbuild bundle is re-evaluated on every
+    // tool open so these module-level latches start clear anyway — but that is a
+    // property of the host's module cache, not of movy, and "close and reopen"
+    // is the user's only cure for a stranded hold. Make the cure explicit.
+    resetHeldInput(false);   // engine not booted yet — nothing to notify
 
     keyboardState.rootPc = 0;
     keyboardState.mode   = 0;

@@ -21,6 +21,7 @@ import { holdTouch, holdRelease, holdTurnCancel, assignActive, assignCycle, assi
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
 import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm } from '../app/leave-modal.js';
+import { resetHeldInput } from '../app/input-reset.js';
 import { jogHintTouch } from '../app/jog-hint.js';
 import { MASTER_CC, volumeTrackDown, volumeTrackUp, volumeTouch, volumeKnobDelta } from '../mixer/track-volume.js';
 import { toggleSolo } from '../mixer/track-mutes.js';
@@ -34,6 +35,22 @@ const MASTER_TOUCH   = MoveKnob8Touch + 1;  /* note 8 = master (volume) knob tou
 const JOG_TOUCH      = MoveKnob8Touch + 2;  /* note 9 = main encoder (jog) touch */
 const TRACK_CC_START = 40;                   /* MoveRow4 → slot 3 */
 const TRACK_CC_END   = 43;                   /* MoveRow1 → slot 0 */
+
+/* True for an event that RELEASES something we may be holding. Relative
+ * encoders are excluded on purpose: they send a value, not a button state, and
+ * d2 === 0 there means "no movement", not "up". */
+function isRelease(data: number[]): boolean {
+    const type = data[0] & 0xF0;
+    if (type === 0x80) return true;
+    if (type === 0x90) return data[2] === 0;
+    if (type === 0xB0) {
+        const k = data[1];
+        if (k === MoveMainKnob || k === MASTER_CC) return false;
+        if (k >= KNOB_CC_BASE && k < KNOB_CC_BASE + NUM_KNOBS) return false;
+        return data[2] === 0;
+    }
+    return false;
+}
 
 function activeModel() {
     return appState.trackModels[appState.activeSlot]?.[appState.trackChainIndex[appState.activeSlot]];
@@ -76,7 +93,14 @@ export function onMidiMessageInternal(data: number[]): void {
 
     // The Leave-Movy modal owns all input while it is up: jog turn moves the
     // highlight, jog click confirms (Background parks / Close exits), Back
-    // cancels. Everything else is swallowed so nothing fires behind it.
+    // cancels. Every other PRESS is swallowed so nothing fires behind it.
+    //
+    // Releases are not swallowed. The handler that armed a hold has no other way
+    // to learn the button came up, so a dropped release strands it for the rest
+    // of the session — a stranded step hold keeps stepAutoMode latched and eats
+    // every subsequent knob turn (tempo, clip length, module params), curable
+    // only by reopening movy. openLeaveModal() already forgot what was held, so
+    // these releases land on empty state and do nothing but stay honest.
     if (leaveModalActive()) {
         if ((data[0] & 0xF0) === 0xB0) {
             const k = data[1], v = data[2];
@@ -94,7 +118,7 @@ export function onMidiMessageInternal(data: number[]): void {
                 return;
             }
         }
-        return;
+        if (!isRelease(data)) return;
     }
 
     if (seqHandleMidi(data, appState.shiftHeld)) return;
@@ -105,13 +129,10 @@ export function onMidiMessageInternal(data: number[]): void {
     /* Capacitive knob touch: NoteOn note=0..7. Hold-Clear (Delete) + touch
      * clears that knob's automation lane. */
     if ((status & 0xF0) === 0x90 && d1 < 8) {
-        // Step page owns the knobs: a touch shows that param's top toast; the
-        // step params are intrinsic (no automation lane / model touch).
-        if (stepPageAvailable() && stepPageState.selected) {
-            setStepTouchedKnob(d2 > 0 && d1 < 5 ? d1 : -1);
-            appState.dirty = true;
-            return;
-        }
+        // Main/Clip Params are pages the user opened deliberately and are what
+        // app/tick.ts actually renders, so they own the knobs ahead of the step
+        // page. (The other order let a step hold silently steer the knobs away
+        // from the page on screen.)
         if (mainPageActive()) {
             if (d1 < 8) {   // every knob on the page (3 is unused but harmless)
                 if (d2 > 0) mainPageTouch(d1, true);
@@ -125,6 +146,13 @@ export function onMidiMessageInternal(data: number[]): void {
                 if (d2 > 0) clipPageTouch(d1, true);
                 else clipPageRelease(d1, appState.activeSlot);
             }
+            appState.dirty = true;
+            return;
+        }
+        // Step page owns the knobs: a touch shows that param's top toast; the
+        // step params are intrinsic (no automation lane / model touch).
+        if (stepPageAvailable() && stepPageState.selected) {
+            setStepTouchedKnob(d2 > 0 && d1 < 5 ? d1 : -1);
             appState.dirty = true;
             return;
         }
@@ -213,12 +241,8 @@ export function onMidiMessageInternal(data: number[]): void {
         const k     = d1 - KNOB_CC_BASE;
         const delta = decodeDelta(d2);
         holdTurnCancel();   // a knob turn cancels a pending / active hold-to-modulate
-        // Step page owns the knobs while it is selected (intrinsic trig props,
-        // never chain automation). Knobs 5..7 are blank → ignored.
-        if (stepPageAvailable() && stepPageState.selected) {
-            if (k < 5) editStepPageKnob(k, delta);
-            return;
-        }
+        // Main/Clip Params first, for the same reason as the touch branch above:
+        // the page on screen owns its knobs, whatever a step hold thinks.
         if (mainPageActive()) {
             // 0 tempo, 1 swing, 2 LINK, 4 root, 5 key, 6 mode, 7 layout.
             if (k < 8) { mainPageKnob(k, delta); appState.dirty = true; }
@@ -226,6 +250,12 @@ export function onMidiMessageInternal(data: number[]): void {
         }
         if (clipPageActive()) {
             if (k < 3) { clipPageKnob(k, delta, appState.activeSlot); appState.dirty = true; }
+            return;
+        }
+        // Step page owns the knobs while it is selected (intrinsic trig props,
+        // never chain automation). Knobs 5..7 are blank → ignored.
+        if (stepPageAvailable() && stepPageState.selected) {
+            if (k < 5) editStepPageKnob(k, delta);
             return;
         }
         mlog('knobCC k=' + k + ' d2=' + d2 + ' delta=' + delta);
@@ -340,6 +370,10 @@ export function onMidiMessageInternal(data: number[]): void {
             // parks (sequencer + Phase 1 clock keep running under Move's UI);
             // Shift+Back stays the host's instant full-exit.
             releaseAllLive();
+            // Confirming Background hands the foreground to Move, and every
+            // release still owed to us goes there instead. Forget them now,
+            // while we still know what they are.
+            resetHeldInput(true);
             openLeaveModal();
             appState.dirty = true;
         }

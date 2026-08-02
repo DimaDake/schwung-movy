@@ -21,8 +21,13 @@ import { rationalToIdx } from './clip-scale.js';
 const STATUS_POLL_TICKS = 8;  // ~24 Hz at the ~196 Hz device tick rate
 const PROBE_TICKS = 30;       // ping cadence while booting
 const PROBES_PER_LOAD = 10;   // failed pings before (re)issuing a load
-const MAX_LOADS = 3;          // load attempts before giving up
+const MAX_LOADS = 3;          // consecutive load attempts before backing off
 const MAX_STATUS_FAILURES = 16;
+/* Ticks spent in 'absent' before probing again (~10-30 s at the 63-205 Hz
+ * device tick). Giving up permanently was wrong: the single overtake_dsp slot
+ * is shared, so another tool can take the engine away and hand it back long
+ * after we stopped asking. */
+const ABSENT_RETRY_TICKS = 2000;
 
 type BootState = 'probe' | 'ok' | 'absent';
 
@@ -36,6 +41,7 @@ let generation = 0;
 let probeCountdown = 1;
 let probeFailures = 0;
 let loadAttempts = 0;
+let absentCountdown = 0;
 let pollCountdown = 1;
 let statusFailures = 0;
 
@@ -88,7 +94,15 @@ export function takeLabelSync(): boolean {
 export function seqEngineTick(): void {
     uiTickCount++;
     if (!engineAvailable()) return;
-    if (bootState === 'absent') return;
+    if (bootState === 'absent') {
+        if (--absentCountdown > 0) return;
+        mlog('seq: retrying engine probe');
+        bootState = 'probe';
+        probeCountdown = 1;
+        probeFailures = 0;
+        loadAttempts = 0;
+        return;
+    }
     if (bootState === 'probe') {
         probeTick();
         return;
@@ -124,6 +138,12 @@ function probeTick(): void {
         bootState = 'ok';
         generation++;
         statusFailures = 0;
+        /* A healthy engine clears the load budget. Without this the three
+         * attempts were cumulative over the whole session, so three unrelated
+         * engine losses — each recovered at the time — added up to a permanent
+         * 'absent': every later command silently dropped while the DSP played
+         * on, and only reopening movy brought the sequencer back. */
+        loadAttempts = 0;
         pollCountdown = 1;
         requestLabelSync(); // rebuild automation registry + re-apply chain mappings
         return;
@@ -135,6 +155,7 @@ function probeTick(): void {
         if (loadAttempts >= MAX_LOADS) {
             mlog('seq: engine unavailable after ' + MAX_LOADS + ' load attempts');
             bootState = 'absent';
+            absentCountdown = ABSENT_RETRY_TICKS;
             cmdQueue.length = 0;
             return;
         }
@@ -235,6 +256,7 @@ export function resetSeqEngine(): void {
     probeCountdown = 1;
     probeFailures = 0;
     loadAttempts = 0;
+    absentCountdown = 0;
     pollCountdown = 1;
     statusFailures = 0;
     lastEnginePlay = null;

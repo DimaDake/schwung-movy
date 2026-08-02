@@ -54,6 +54,10 @@ export function installMockEngine() {
                 const verb = parts[0];
                 if (verb === 'play') engine.status.play = 1;
                 else if (verb === 'stop') engine.status.play = 0;
+                // Applied so the status poll confirms a tempo edit instead of
+                // reverting it — that round trip is what proves a knob turn
+                // actually reached the engine, not just the UI mirror.
+                else if (verb === 'bpm') engine.status.bpm = +parts[1];
                 else if (verb === 'aclr' && engine.alabels) {
                     // Blank the cleared lane so a re-poll reflects the purge.
                     const t = +parts[1], l = +parts[2];

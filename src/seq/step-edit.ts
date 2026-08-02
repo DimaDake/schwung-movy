@@ -43,7 +43,7 @@ const coPressed = new Set<number>();
 let lastLenTarget: { a: number; b: number; atEnd: boolean } | null = null;
 
 /* A hold this long (no tap) switches to step-automation mode. */
-const STEP_AUTO_MS = 300;
+export const STEP_AUTO_MS = 300;
 
 export function anyStepHeld(): boolean {
     return heldRanges.size > 0;
@@ -52,6 +52,22 @@ export function anyStepHeld(): boolean {
 /* Register a held step button. In Note Mode it covers one step; in Loop Mode
  * the button is a bar, so the range is that bar's 16 steps. */
 export function editStepDown(button: number): void {
+    // A press for a button we still believe is down means its release was lost
+    // (swallowed while movy was not the foreground, or dropped by the host while
+    // a synchronous scan blocked the input callback). Retire the stale
+    // registration first: without this the phantom keeps anyStepHeld() true for
+    // the rest of the session, which keeps stepAutoMode latched and routes every
+    // knob turn into automation instead of the param. Pressing the step again is
+    // the one gesture the user is guaranteed to make, so it is where recovery
+    // belongs.
+    if (heldRanges.has(button)) {
+        heldRanges.delete(button);
+        gestured.delete(button);
+        coPressed.delete(button);
+        pressMs.delete(button);
+        lastLenTarget = null;
+        if (heldRanges.size === 0) endStepAutomation();
+    }
     let range: Range;
     if (seqState.loopMode) {
         const base = button * NUM_STEP_BUTTONS;

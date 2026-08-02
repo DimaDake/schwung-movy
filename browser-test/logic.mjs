@@ -1792,20 +1792,50 @@ _log('\nTest: drumPadOn');
     for (let i = 0; i < 10; i++) seqEngineTick();
     eq('unknown status key ignored', seqState.engineTick, 9);
 
-    // Dead engine (all gets return null): the boot probe re-issues the DSP
-    // load a bounded number of times, then gives up for the session.
+    // Dead engine (all gets return null): the boot probe re-issues the DSP load
+    // a bounded number of times, then backs off. The back-off is a pause, not a
+    // surrender — slot 0 holds ONE overtake DSP for the whole device, so another
+    // tool can take ours away and hand it back long after we stopped asking.
     const dead = installMockEngine();
+    const deadGet = () => { deadGets++; return null; };
     let deadGets = 0;
-    globalThis.host_module_get_param = () => { deadGets++; return null; };
+    globalThis.host_module_get_param = deadGet;
     resetSeqEngine(); resetSeqState();
     const { engineReady } = await import('../dist/esm/seq/engine.js');
-    for (let i = 0; i < 5000; i++) seqEngineTick();
+    for (let i = 0; i < 1500; i++) seqEngineTick();
     eq('dead engine: 3 load attempts', dead.loadRequests.length, 3);
     eq('dead engine: load path correct',
         dead.loadRequests[0], '/data/UserData/schwung/modules/tools/movy/dsp.so');
-    eq('dead engine: gives up (not ready)', engineReady(), false);
+    eq('dead engine: backs off (not ready)', engineReady(), false);
     eq('dead engine: probing bounded', deadGets <= 40, true);
     eq('dead engine: engineOk stays false', seqState.engineOk, false);
+
+    // Recovery: once the engine answers again, the back-off ends on its own.
+    // (It used to be terminal — commands were dropped for the rest of the tool's
+    // life while the DSP played on, curable only by reopening movy.)
+    installMockEngine();
+    for (let i = 0; i < 2200; i++) seqEngineTick();
+    eq('engine returns: back-off ends and it boots', engineReady(), true);
+
+    // The three attempts are per outage, not cumulative over the session. Two
+    // brief losses that each recovered on their own used to leave only one
+    // attempt for the third — after which every command was silently dropped
+    // while the DSP played on, curable only by reopening movy.
+    const flaky = installMockEngine();
+    const liveGet = globalThis.host_module_get_param;
+    resetSeqEngine(); resetSeqState();
+    seqEngineTick();                                    // boots clean
+    globalThis.host_module_get_param = deadGet;
+    for (let i = 0; i < 700; i++) seqEngineTick();      // outage 1: 2 attempts
+    eq('outage 1: two attempts spent', flaky.loadRequests.length, 2);
+    globalThis.host_module_get_param = liveGet;         // engine answers again
+    for (let i = 0; i < 40; i++) seqEngineTick();
+    eq('outage 1: recovers without backing off', engineReady(), true);
+
+    flaky.reset();
+    globalThis.host_module_get_param = deadGet;
+    for (let i = 0; i < 1200; i++) seqEngineTick();
+    eq('outage 2: a fresh 3 attempts, not 1', flaky.loadRequests.length, 3);
 
     // Stale engine (wrong version pong): reload requested immediately.
     const e3 = installMockEngine();

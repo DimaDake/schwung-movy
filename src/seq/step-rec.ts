@@ -36,6 +36,13 @@ export function stepRecHead(): number { return headStep(); }
 export function stepRecGrowMode(): boolean { return growModeOn(); }
 export function stepRecPreviewPending(): boolean { return previewWanted(); }
 
+/* Would Left do anything right now — untie the held chord, or step back? Drives
+ * the arrow's LED, so the button is only lit when it is worth pressing. */
+export function stepRecCanGoLeft(): boolean {
+    if (!active) return false;
+    return chord ? chord.tieSteps > 0 : headStep() > 0;
+}
+
 function isDrum(): boolean { return seqState.watchLane >= 0; }
 
 /* Rec down. Returns true when step recording took the press, so the caller

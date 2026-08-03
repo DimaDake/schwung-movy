@@ -1,7 +1,7 @@
 /* Sequencer LED painting through a cached diff layer — only changed colors
  * are sent, so unchanged frames cost nothing on the wire (davebox pattern). */
 
-import { backLedColor, arrowLedColor, sampleLedColor, captureLedColor, undoLedColor } from './buttons.js';
+import { backLedColor, arrowLedColor, stepRecArrowColor, sampleLedColor, captureLedColor, undoLedColor } from './buttons.js';
 import { C_BLACK, C_DARKGREY, C_GREEN, C_LIGHTGREY, C_REC_RED, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
 import {
     CC_PLAY, CC_REC, CC_TRACK_END, NUM_STEP_BUTTONS, PAD_MIN, STEP_NOTE_BASE,
@@ -10,7 +10,7 @@ import { mainPageActive } from './main-page.js';
 import { clipPageActive } from './clip-page.js';
 import { sessionPaintGrid } from './session.js';
 import { loopEndBar, loopStartBar, occHasStep, seqState } from './state.js';
-import { stepRecActive, stepRecHead } from './step-rec.js';
+import { stepRecActive, stepRecCanGoLeft, stepRecHead } from './step-rec.js';
 import { cachedSetLED, cachedSetButtonLED, cachedSetAnimLED, ledFrameReset, seqLedsInvalidate } from './led-cache.js';
 
 /* Re-exported so callers keep importing the LED API from one place. */
@@ -34,18 +34,16 @@ function barHasContent(bar: number): boolean {
     return false;
 }
 
-// No per-tick allocation: derive blink from engine tick integer division.
-function blinkPhase(): boolean { return Math.floor(seqState.engineTick / 24) % 2 === 0; }
-
-const HEAD_BLINK_MS = 250;
-/* The step-record head cannot blink on the engine's master tick. That tick is
- * frozen whenever the transport is stopped (seq-core returns before advancing
- * it) and step recording is a stopped-only mode — so the "blink" was really a
- * constant, decided by wherever the last stop left the tick, and any odd
- * 24-tick block left the head permanently black. Wall time is the only clock
- * still running here. */
-function headBlinkPhase(): boolean {
-    return Math.floor(Date.now() / HEAD_BLINK_MS) % 2 === 0;
+const BLINK_MS = 250;
+/* Affordance blinks run on wall time, never on the engine's master tick.
+ * seq-core stops advancing that tick while the transport is stopped (it returns
+ * before the increment) and only resets it on play — so a blink derived from it
+ * is a CONSTANT whenever the sequencer is stopped, decided by wherever the last
+ * stop left the tick. Any odd 24-tick block meant a step-record head that was
+ * permanently black, and Loop-mode content bars that never lit. Both of those
+ * are states you look at precisely while stopped. */
+function blinkPhase(): boolean {
+    return Math.floor(Date.now() / BLINK_MS) % 2 === 0;
 }
 interface BarCtx { isPlayhead: boolean; selected: boolean; hasContent: boolean; inLoop: boolean; blink: boolean; track: number; }
 export function loopBarColor(c: BarCtx): number {
@@ -136,8 +134,16 @@ function paintTrackButtons(): void {
 
 function paintAffordances(view: number, barOffset: number, maxOff: number, lp: boolean, rp: boolean): void {
     cachedSetButtonLED(CC_BACK, backLedColor(view));
-    cachedSetButtonLED(CC_LEFT, arrowLedColor(-1, barOffset, maxOff, lp));
-    cachedSetButtonLED(CC_RIGHT, arrowLedColor(+1, barOffset, maxOff, rp));
+    // While step recording the arrows belong to the head, not to bar navigation.
+    if (stepRecActive()) {
+        const blink = blinkPhase();
+        const canLeft = stepRecCanGoLeft();
+        cachedSetButtonLED(CC_LEFT, stepRecArrowColor(-1, canLeft, blink));
+        cachedSetButtonLED(CC_RIGHT, stepRecArrowColor(+1, canLeft, blink));
+    } else {
+        cachedSetButtonLED(CC_LEFT, arrowLedColor(-1, barOffset, maxOff, lp));
+        cachedSetButtonLED(CC_RIGHT, arrowLedColor(+1, barOffset, maxOff, rp));
+    }
     cachedSetButtonLED(CC_SAMPLE, sampleLedColor()); cachedSetButtonLED(CC_CAPTURE, captureLedColor()); cachedSetButtonLED(CC_UNDO, undoLedColor());
     cachedSetButtonLED(CC_LOOP, seqState.loopMode ? WHITE_BRIGHT : WHITE_DIM);
     cachedSetButtonLED(CC_COPY, WHITE_DIM); cachedSetButtonLED(CC_DELETE_BTN, WHITE_DIM); cachedSetButtonLED(CC_MUTE, WHITE_DIM);
@@ -208,7 +214,7 @@ export function seqLedsTick(
     // past-the-clip-length blackout — in grow mode the head legitimately sits
     // on a step the clip has not reached yet.
     const recHead = stepRecActive() ? stepRecHead() : -1;
-    const headBlink = headBlinkPhase();
+    const headBlink = blinkPhase();
     for (let i = 0; i < NUM_STEP_BUTTONS; i++) {
         const step = base + i;
         let color: number;

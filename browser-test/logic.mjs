@@ -2394,6 +2394,13 @@ _log('\nTest: drumPadOn');
     const origSetLED = globalThis.setLED;
     globalThis.setLED = (note, color) => ledCalls.push([note, color]);
 
+    /* The content-bar blink runs on wall time (it has to keep going while the
+     * transport is stopped, where the engine's tick freezes), so pin the clock
+     * to an even 250 ms block — the lit half — instead of letting the assertion
+     * depend on when the suite happens to run. */
+    const realNow = Date.now;
+    Date.now = () => 500000;
+
     resetSeqState(); seqLedsInvalidate();
     seqState.loopMode = true;
     seqState.watchTrack = 0;
@@ -2410,6 +2417,15 @@ _log('\nTest: drumPadOn');
     eq('content bar blink on = track color', byNote[19], trackColor(0));
     eq('empty bar off (bar 0)', byNote[16], 0);
 
+    /* …and the other half of the blink really is dark. */
+    Date.now = () => 500250;
+    ledCalls.length = 0;
+    seqLedsInvalidate();
+    seqLedsTick();
+    const byNote2 = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
+    eq('content bar blink off = dark', byNote2[19], 0);
+
+    Date.now = realNow;
     globalThis.setLED = origSetLED;
     resetSeqState(); seqLedsInvalidate();
 }
@@ -3214,6 +3230,15 @@ _log('\nautomation: restore re-requests label sync:');
     eq('left bright pressed', arrowLedColor(-1, 1, 3, true), 124);
     eq('right off at max',   arrowLedColor(+1, 3, 3, false), 0);
     eq('right dim mid',      arrowLedColor(+1, 1, 3, false), 16);
+
+    /* Step recording: the arrows drive the head, and blink to say so. Never
+     * bright↔off — a lit arrow must always mean "pressable". */
+    const { stepRecArrowColor } = await import('../dist/esm/seq/buttons.js');
+    eq('steprec right bright on the blink',  stepRecArrowColor(+1, false, true), 124);
+    eq('steprec right dim off the blink',    stepRecArrowColor(+1, false, false), 16);
+    eq('steprec left off when it cannot go', stepRecArrowColor(-1, false, true), 0);
+    eq('steprec left bright when it can',    stepRecArrowColor(-1, true, true), 124);
+    eq('steprec left dim off the blink',     stepRecArrowColor(-1, true, false), 16);
     eq('sample always off',  sampleLedColor(), 0);
     eq('capture off',        captureLedColor(), 0);
     eq('undo off',           undoLedColor(), 0);
@@ -7500,6 +7525,21 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
         engine.ops.includes('addp 0 0 0 76 100'), true);
     eq('and it gets the tied length', engine.ops.includes('slen 0 0 0 76 48'), true);
     padOff(80); padOff(81);
+
+    // ── Left is offered only when it would do something ───────────────────
+    boot();
+    seqState.playing = false; seqState.lenSteps = 16;
+    recDown();
+    const { stepRecCanGoLeft } = await import('../dist/esm/seq/step-rec.js');
+    eq('nothing to go back to on the first step', stepRecCanGoLeft(), false);
+    padOn(80, 72, 100);
+    eq('a fresh chord cannot be untied yet', stepRecCanGoLeft(), false);
+    right();                               // tie
+    eq('a tied chord can be untied', stepRecCanGoLeft(), true);
+    left();                                // untie back to one step
+    eq('and not once it is back to one step', stepRecCanGoLeft(), false);
+    padOff(80);
+    eq('past the first step, back is offered again', stepRecCanGoLeft(), true);
 
     // ── untie stops at one step ───────────────────────────────────────────
     boot();

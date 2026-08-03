@@ -538,7 +538,9 @@ While Rec is held:
 
 The head blinks red on the step row and the screen shows the position and the
 notes under it, with the module's parameters still visible underneath — so you
-can keep tweaking the sound while you enter the part.
+can keep tweaking the sound while you enter the part. The **Left/Right arrows
+blink** while they are worth pressing: Right always, Left once there is a step
+to go back to or a tie to undo.
 
 ![Step recording](docs/assets/step_rec_header.png)
 

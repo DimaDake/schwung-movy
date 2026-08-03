@@ -1240,6 +1240,82 @@ _log('\napp-loop: step recording paints a blinking red head');
     seqState.engineTick = 0;
 }
 
+_log('\napp-loop: step recording advertises the arrows it can act on');
+{
+    resetApp();
+    const { WHITE_BRIGHT, WHITE_DIM, WHITE_OFF } = await import('../dist/esm/seq/colors.js');
+    const CC_LEFT = 62, CC_RIGHT = 63;
+
+    seqState.playing = false;
+    seqState.lenSteps = 16;
+    seqState.engineTick = 24;            // frozen, as it is whenever stopped
+
+    const realNow = Date.now;
+    let t = 500000;                      // even 250 ms block → bright half
+    Date.now = () => t;
+
+    sendMidi([0xB0, 86, 127]);           // hold Rec → head on step 1
+    advance(3);
+    eq('Right advertises itself — always pressable (rest / tie)',
+        buttonLeds[CC_RIGHT], WHITE_BRIGHT);
+    eq('Left is dark on the first step — nothing to step back to',
+        buttonLeds[CC_LEFT], WHITE_OFF);
+
+    t += 250;
+    advance(1);
+    eq('Right blinks rather than sitting lit', buttonLeds[CC_RIGHT], WHITE_DIM);
+    eq('Left stays dark through the blink', buttonLeds[CC_LEFT], WHITE_OFF);
+
+    t += 250;
+    sendMidi([0xB0, 63, 127]);           // Right = rest → head on step 2
+    advance(2);
+    eq('Left lights once there is a step to go back to',
+        buttonLeds[CC_LEFT], WHITE_BRIGHT);
+
+    t += 250;
+    advance(1);
+    eq('Left blinks too', buttonLeds[CC_LEFT], WHITE_DIM);
+
+    sendMidi([0xB0, 86, 0]);             // release Rec
+    advance(2);
+    Date.now = realNow;
+    seqState.lenSteps = 0;
+    seqState.engineTick = 0;
+}
+
+_log('\napp-loop: loop-mode content bars blink while the transport is stopped');
+{
+    resetApp();
+    const { occToggleStep } = await import('../dist/esm/seq/state.js');
+    const { trackColor, C_BLACK } = await import('../dist/esm/seq/colors.js');
+    const CC_LOOP = 58;
+
+    seqState.playing = false;
+    seqState.lenSteps = 32;
+    seqState.engineTick = 24;            // frozen in an odd block, as when stopped
+    occToggleStep(16);                   // content in bar 2 (bar 1 is the selected one)
+
+    const realNow = Date.now;
+    let t = 500000;
+    Date.now = () => t;
+
+    sendMidi([0xB0, CC_LOOP, 127]); sendMidi([0xB0, CC_LOOP, 0]);   // tap → Loop mode
+    advance(3);
+    eq('loop mode entered', seqState.loopMode, true);
+    eq('a content bar lights even with the engine tick frozen',
+        ledByPad[STEP_NOTE_BASE + 1], trackColor(seqState.watchTrack));
+
+    t += 250;
+    advance(1);
+    eq('and it really blinks', ledByPad[STEP_NOTE_BASE + 1], C_BLACK);
+
+    sendMidi([0xB0, CC_LOOP, 127]); sendMidi([0xB0, CC_LOOP, 0]);   // back to Note mode
+    advance(2);
+    Date.now = realNow;
+    seqState.lenSteps = 0;
+    seqState.engineTick = 0;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

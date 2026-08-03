@@ -19,6 +19,18 @@ export function arrowLedColor(dir: number, barOffset: number, maxOffset: number,
     return pressed ? WHITE_BRIGHT : WHITE_DIM;
 }
 
+/** Step recording: the arrows stop being bar navigation and become the head's
+ *  own controls, so they advertise themselves by blinking rather than sitting
+ *  at a steady dim. Right always does something (rest, or tie the held chord);
+ *  Left only when there is something to go back to — an untie, or an earlier
+ *  step — and is dark otherwise, the same "off at the travel limit" rule the
+ *  bar arrows use. The blink swings bright↔dim, never bright↔off, so a lit
+ *  arrow always means pressable. */
+export function stepRecArrowColor(dir: number, canGoLeft: boolean, blink: boolean): number {
+    if (dir < 0 && !canGoLeft) return WHITE_OFF;
+    return blink ? WHITE_BRIGHT : WHITE_DIM;
+}
+
 /** Sample button has no movy action → off (RGB black). */
 export function sampleLedColor(): number {
     return C_BLACK;

@@ -483,7 +483,10 @@ for the concepts:
 - **Loop / bars** — the **Loop** button shows the bar overview; **Left/Right**
   navigate bars. **Shift + Step 15** doubles the loop.
 - **Duplicate / delete** — **Copy** and **Delete** (a.k.a. Clear) act on steps,
-  clips, or bars depending on context.
+  clips, or bars depending on context. **Hold Clear + a drum pad** wipes that
+  pad from the whole clip — one lane emptied without touching the others,
+  wherever its notes fall. A pad that plays nothing (outside the drum grid, or
+  a gap in a piano layout) clears nothing.
 - **Quantize** — **Shift + Step 16**.
 - **Mute** — press **Mute** on its own to mute the current track; or hold
   **Mute** and press a track button to mute that one instead. Using the
@@ -809,6 +812,7 @@ behaviour you'd like — or, better, a PR.
 | **Left / Right** | Navigate bars (or nudge held steps). |
 | **Copy** | Duplicate a step / clip / bar (context-dependent). |
 | **Delete (Clear)** | Delete a step / clip / bar; in Session, delete a clip. Hold + knob-touch clears that knob's automation lane. |
+| **Hold Clear + pad** | Clear every note of that pad's pitch from the clip — a whole drum lane at once. |
 | **Mute** | Mute / unmute the current track (Track view only — Session view has no current track). |
 | **Mute + track** | Mute that track instead; suppresses the current-track toggle on release. |
 | **Shift + Mute** | Solo / un-solo the current track (Track view only). Exclusive — soloing another moves it. |

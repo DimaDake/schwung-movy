@@ -1316,6 +1316,44 @@ _log('\napp-loop: loop-mode content bars blink while the transport is stopped');
     seqState.engineTick = 0;
 }
 
+_log('\napp-loop: Clear + drum pad wipes that pad from the clip');
+{
+    resetApp();
+    const CC_DELETE = 119;
+    const PAD_OFF_GRID = 72;   // col 4 — outside mrdrums' 4x4 grid, sounds nothing
+
+    seqState.lenSteps = 16;
+    engine.reset();
+
+    sendMidi([0xB0, CC_DELETE, 127]);        // hold Clear
+    sendMidi([0x90, PAD_KICK, 110]);         // + the kick pad
+    sendMidi([0x80, PAD_KICK, 0]);
+    advance(3);
+    eq('every note of that pad is cleared, whole clip',
+        engine.ops.includes(`del 0 0 255 ${NOTE_KICK}`), true);
+    sendMidi([0xB0, CC_DELETE, 0]);          // release
+    advance(2);
+    eq('the pad gesture suppresses the clip delete on release',
+        engine.ops.some((o) => o.startsWith('clipdel')), false);
+
+    /* A pad that is not part of the drum grid sounds nothing, so it must clear
+     * nothing. It used to delete whatever pitch was played LAST — silent, and
+     * destructive to a lane the user never touched in the gesture. */
+    sendMidi([0x90, PAD_KICK, 110]);         // establish a last-played pitch
+    sendMidi([0x80, PAD_KICK, 0]);
+    advance(2);
+    engine.reset();
+    sendMidi([0xB0, CC_DELETE, 127]);
+    sendMidi([0x90, PAD_OFF_GRID, 110]);
+    sendMidi([0x80, PAD_OFF_GRID, 0]);
+    advance(3);
+    eq('a pad outside the grid clears nothing',
+        engine.ops.some((o) => o.startsWith('del ')), false);
+    sendMidi([0xB0, CC_DELETE, 0]);
+    advance(2);
+    seqState.lenSteps = 0;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

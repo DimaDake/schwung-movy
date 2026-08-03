@@ -30,6 +30,14 @@ export function soundingTrack(padNote: number): number | undefined {
     return live.get(padNote)?.track;
 }
 
+/* The pitch this pad actually played, or undefined if it played nothing — a
+ * dead pad (a piano gap, or one outside the drum grid) or a shift-select. The
+ * sequencer asks before acting on a press, because "what the pad sounded" and
+ * "the last note played anywhere" are only the same thing until they aren't. */
+export function soundingPitch(padNote: number): number | undefined {
+    return live.get(padNote)?.pitch;
+}
+
 export function isSounding(padNote: number): boolean { return live.has(padNote); }
 
 /* Remove and return every entry. Callers emit the note-offs; keeping this

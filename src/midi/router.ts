@@ -5,7 +5,7 @@ import { CHAIN_SLOTS, MASTER_FX_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../cha
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
 import { noteOn, noteOff, changeOctave } from '../keyboard/handler.js';
-import { soundingTrack } from '../keyboard/held-notes.js';
+import { soundingPitch, soundingTrack } from '../keyboard/held-notes.js';
 import { releaseAllLive } from '../keyboard/release.js';
 import { drumPadOn, drumPadOff } from '../keyboard/drum-handler.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
@@ -208,7 +208,14 @@ export function onMidiMessageInternal(data: number[]): void {
             } else {
                 noteOn(d1, PAD_MIN, track, vel);
             }
-            seqNotePadPlayed(track, d1, keyboardState.lastPlayedNote, vel);
+            /* The pitch this pad actually sounded, from the ledger — not
+             * `lastPlayedNote`, which is the last note played ANYWHERE and is
+             * simply stale when the press produced nothing (a pad outside the
+             * drum grid, a piano-layout gap, a shift-select). Passing that stale
+             * value let a gesture act on a pitch the user never touched: holding
+             * Clear and hitting a dead pad wiped the previous pad's whole lane. */
+            const played = soundingPitch(d1);
+            if (played !== undefined) seqNotePadPlayed(track, d1, played, vel);
             return;
         }
         if ((status & 0xF0) === 0x80 || ((status & 0xF0) === 0x90 && d2 === 0)) {

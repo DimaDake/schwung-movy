@@ -7,11 +7,18 @@
 //! ported. Onset-versus-grid tempo induction is a published technique; the
 //! scoring terms and weights here were tuned against this file's tests.
 
+/// How much of the past a Capture can reach back into. The gap rule alone
+/// bounds nothing while you keep playing: a minute of unbroken noodling used to
+/// capture as a clip pinned at the note cap, which is not the phrase anyone
+/// meant to keep. Eight bars is a phrase you would still call "what I just
+/// played" (16 s at 120 BPM) and fits a clip with room to spare.
+pub const CAPTURE_MAX_BARS: u32 = 8;
+
 /// Fixed ring capacity. Notes only (no CC), so one phrase is ~2 events per
 /// note; 512 covers far more than the gap timer will ever keep alive.
 pub const CAP_MAX_EVENTS: usize = 512;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct CapEvent {
     /// Monotonic audio-frame stamp — the only clock that runs while stopped.
     pub frame: u64,
@@ -56,7 +63,12 @@ pub struct CaptureRing {
 impl CaptureRing {
     pub fn new() -> Self {
         CaptureRing {
-            events: Vec::with_capacity(CAP_MAX_EVENTS),
+            // Allocated full, once. The slots are addressed by head/len and
+            // never appended to: a ring that also grows has two ideas of where
+            // its first element lives, and after the first clear() they disagree
+            // — iter() reads slot 0 while push() appends past the end, so the
+            // buffer serves up notes from before the clear.
+            events: vec![CapEvent::default(); CAP_MAX_EVENTS],
             head: 0,
             len: 0,
             last_frame: 0,
@@ -76,27 +88,39 @@ impl CaptureRing {
         self.len = 0;
     }
 
-    /// Append one event. `gap_frames` of silence since the last one means the
-    /// buffered input is stale — it belongs to a phrase the player has already
-    /// moved on from, so it is dropped rather than glued onto the new take.
-    pub fn push(&mut self, ev: CapEvent, gap_frames: u64) {
+    /// Append one event. Two things bound what stays buffered:
+    ///
+    /// - `gap_frames` of silence since the last event means the player has
+    ///   moved on — the old input is dropped rather than glued onto the new take.
+    /// - `window_frames` caps how far back the take itself reaches, so playing
+    ///   without ever pausing cannot accumulate a history no one wants to keep.
+    ///
+    /// The window is measured back from the newest event, not from now, so a
+    /// phrase played and then left alone stays capturable for as long as the
+    /// LED says it is.
+    pub fn push(&mut self, ev: CapEvent, gap_frames: u64, window_frames: u64) {
         if self.len > 0 && ev.frame.saturating_sub(self.last_frame) > gap_frames {
             self.clear();
         }
         self.last_frame = ev.frame;
-        // Grows to capacity once and is then indexed in place forever: this
-        // runs on the audio thread, where a reallocation is a dropped block.
-        if self.events.len() < CAP_MAX_EVENTS {
-            self.events.push(ev);
-            self.len += 1;
-            return;
-        }
+        self.trim_to_window(ev.frame, window_frames);
         let slot = (self.head + self.len) % CAP_MAX_EVENTS;
         self.events[slot] = ev;
         if self.len == CAP_MAX_EVENTS {
             self.head = (self.head + 1) % CAP_MAX_EVENTS;
         } else {
             self.len += 1;
+        }
+    }
+
+    /// Drop events that fall outside the window ending at `newest`. A note-off
+    /// whose note-on has just been dropped goes with it — a gate with no start
+    /// writes nothing.
+    fn trim_to_window(&mut self, newest: u64, window_frames: u64) {
+        let cutoff = newest.saturating_sub(window_frames);
+        while self.len > 0 && self.events[self.head].frame < cutoff {
+            self.head = (self.head + 1) % CAP_MAX_EVENTS;
+            self.len -= 1;
         }
     }
 
@@ -226,9 +250,9 @@ mod tests {
     #[test]
     fn pending_counts_note_ons_for_one_track() {
         let mut r = CaptureRing::new();
-        r.push(ev(0, 0, true, 60), 1000);
-        r.push(ev(10, 0, false, 60), 1000);
-        r.push(ev(20, 1, true, 62), 1000);
+        r.push(ev(0, 0, true, 60), 1000, u64::MAX);
+        r.push(ev(10, 0, false, 60), 1000, u64::MAX);
+        r.push(ev(20, 1, true, 62), 1000, u64::MAX);
         assert_eq!(r.pending(0), 1);
         assert_eq!(r.pending(1), 1);
         assert_eq!(r.pending(2), 0);
@@ -237,18 +261,36 @@ mod tests {
     #[test]
     fn silence_longer_than_the_gap_starts_a_new_take() {
         let mut r = CaptureRing::new();
-        r.push(ev(0, 0, true, 60), 1000);
-        r.push(ev(500, 0, true, 62), 1000);
+        r.push(ev(0, 0, true, 60), 1000, u64::MAX);
+        r.push(ev(500, 0, true, 62), 1000, u64::MAX);
         assert_eq!(r.pending(0), 2);
-        r.push(ev(2000, 0, true, 64), 1000); // 1500 frames of silence > gap
+        r.push(ev(2000, 0, true, 64), 1000, u64::MAX); // 1500 frames of silence > gap
         assert_eq!(r.pending(0), 1, "stale input dropped, fresh take begins");
+    }
+
+    #[test]
+    fn a_cleared_ring_reads_back_only_what_is_pushed_after_it() {
+        // The ring is cleared constantly in normal use (transport, track select,
+        // every edit). If a clear leaves the old contents readable, the next
+        // Capture writes notes nobody played — and their ancient frame stamps
+        // drag the age window down with them.
+        let mut r = CaptureRing::new();
+        for i in 0..8 {
+            r.push(ev(1000 + i, 0, true, 60 + i as u8), u64::MAX, u64::MAX);
+        }
+        r.clear();
+        r.push(ev(9000, 0, true, 72), u64::MAX, u64::MAX);
+        assert_eq!(r.len(), 1);
+        assert_eq!(r.pending(0), 1);
+        let got: Vec<(u64, u8)> = r.iter().map(|e| (e.frame, e.pitch)).collect();
+        assert_eq!(got, vec![(9000, 72)], "read back the pushed event, not a ghost");
     }
 
     #[test]
     fn overflow_drops_the_oldest_event() {
         let mut r = CaptureRing::new();
         for i in 0..(CAP_MAX_EVENTS as u64 + 10) {
-            r.push(ev(i, 0, true, 60), u64::MAX);
+            r.push(ev(i, 0, true, 60), u64::MAX, u64::MAX);
         }
         assert_eq!(r.len(), CAP_MAX_EVENTS);
         assert_eq!(r.iter().next().unwrap().frame, 10, "oldest 10 dropped");
@@ -257,7 +299,7 @@ mod tests {
     #[test]
     fn clear_empties_the_ring() {
         let mut r = CaptureRing::new();
-        r.push(ev(0, 0, true, 60), 1000);
+        r.push(ev(0, 0, true, 60), 1000, u64::MAX);
         r.clear();
         assert_eq!(r.pending(0), 0);
     }

@@ -30,10 +30,51 @@ fn untranspose(engine: &Engine, track: usize, pitch: u8) -> u8 {
     (pitch as i32 - engine.active_clip_transpose(track)).clamp(0, 127) as u8
 }
 
+/// Verbs after which buffered capture input is stale.
+///
+/// Capture keeps what you played while you were *just playing*. The moment you
+/// start building the clip deliberately — arming, entering or editing steps,
+/// launching clips, changing the loop — that free playing belongs to the take
+/// you have moved on from, and letting it survive means the next Capture drops
+/// old notes into a clip you have since edited by hand.
+///
+/// Listed here rather than sprinkled through the arms below so the rule can be
+/// read (and tested) in one place; the next edit verb someone adds shows up as
+/// an omission here instead of a silent bug. `non`/`nof` are the input itself
+/// and `watch` clears on its own (it also retargets), so neither appears.
+/// Nor does anything the UI sends as bookkeeping rather than as a gesture —
+/// `hold` (a step-length query, also sent by input-reset and by the step-record
+/// head) and the automation base syncs. The rule is user intent, not traffic.
+fn clears_capture(verb: &str) -> bool {
+    matches!(
+        verb,
+        // arming / recording
+        "rec"
+        // step entry and note editing
+        | "tog" | "addp" | "del" | "evel" | "elen" | "enudge" | "etrn" | "slen"
+        | "eprob" | "econd" | "einv" | "quant"
+        // clip shape and clip-level edits
+        | "clen" | "cscl" | "ctr" | "dbl" | "loop" | "ltog"
+        | "cpy" | "cpyclr" | "pst"
+        // whole-clip and session gestures
+        | "clipcopy" | "clipdel" | "clipdelat" | "clipdup" | "clippaste"
+        | "clipsel" | "launch" | "stoptrk"
+        // automation edits — but NOT `abase`/`abaseq`, which are internal base
+        // syncs the UI emits on lane allocation and on any knob read. Those
+        // arrive while you are simply playing, and clearing on them wiped the
+        // buffer mid-phrase every time a lane warm strided past.
+        | "aset" | "asetr" | "aclr" | "aclrs" | "aclrstep"
+    )
+}
+
 fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
     let mut it = op.split_whitespace();
     let verb = it.next().unwrap_or("");
     let mut next = || it.next().and_then(|s| s.parse::<i64>().ok());
+
+    if clears_capture(verb) {
+        engine.capture_clear();
+    }
 
     match verb {
         // Transport buttons route through the always-on Move link (design §7

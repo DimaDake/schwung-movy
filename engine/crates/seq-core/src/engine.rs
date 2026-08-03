@@ -3,7 +3,9 @@
 //! them into host MIDI sends. One Engine instance == the whole 4-track
 //! sequencer.
 
-use crate::capture::{estimate_tempos, CapEvent, CapMode, CapWhy, CaptureRing, TempoGuess};
+use crate::capture::{
+    estimate_tempos, CapEvent, CapMode, CapWhy, CaptureRing, TempoGuess, CAPTURE_MAX_BARS,
+};
 use crate::clip::{Clip, Lock, MAX_STEPS};
 use crate::clock::Clock;
 use crate::track::{Track, CLIPS_PER_TRACK, NUM_TRACKS};
@@ -708,8 +710,12 @@ impl Engine {
     /// self-clears mid-phrase nor so long that a jam from minutes ago returns.
     fn capture_gap_frames(&self) -> u64 {
         let sr = self.clock.sample_rate() as u64;
-        let bar = sr * 60 * 4 * 100 / (self.clock.bpm_x100().max(1) as u64);
-        (2 * bar).clamp(2 * sr, 8 * sr)
+        (2 * self.capture_bar_frames()).clamp(2 * sr, 8 * sr)
+    }
+
+    /// One bar in audio frames at the current tempo.
+    fn capture_bar_frames(&self) -> u64 {
+        self.clock.sample_rate() as u64 * 60 * 4 * 100 / (self.clock.bpm_x100().max(1) as u64)
     }
 
     /// Buffer a live pad note for a later Capture. Armed input is excluded —
@@ -728,6 +734,7 @@ impl Engine {
             return;
         }
         let gap = self.capture_gap_frames();
+        let window = CAPTURE_MAX_BARS as u64 * self.capture_bar_frames();
         let ev = CapEvent {
             frame: self.frame_now,
             abs_tick: self.master_tick as u32,
@@ -737,7 +744,7 @@ impl Engine {
             pitch,
             vel,
         };
-        self.capture.push(ev, gap);
+        self.capture.push(ev, gap, window);
     }
 
     /// Drop buffered input: Shift+Capture, a transport edge, or a track change
@@ -753,7 +760,15 @@ impl Engine {
     /// Turn buffered input into clip data on the active clip of `track`.
     /// Returns false when there was nothing to keep.
     pub fn capture_commit(&mut self, track: usize) -> bool {
-        if track >= NUM_TRACKS || self.capture.pending(track as u8) == 0 {
+        if track >= NUM_TRACKS {
+            return false;
+        }
+        if self.capture.pending(track as u8) == 0 {
+            // Nothing to write, but the press still consumes: orphan note-offs
+            // left buffered would otherwise ride along into the next take. The
+            // buffer only ever holds the current track's input anyway — a track
+            // change clears it.
+            self.capture.clear();
             return false;
         }
         let wrote = if self.playing {
@@ -761,8 +776,12 @@ impl Engine {
         } else {
             self.capture_commit_stopped(track)
         };
+        // Pressing Capture consumes the buffer whether or not anything could be
+        // written: input that failed to land once will not land any better on
+        // the next press, and leaving it buffered means the next take starts
+        // with someone else's notes in it.
+        self.capture.clear();
         if wrote {
-            self.capture.clear();
             self.capture_gen = self.capture_gen.wrapping_add(1);
             self.dirty = true;
         }
@@ -1467,6 +1486,12 @@ impl Engine {
                         self.tracks[ti].pos_tick = start;
                         self.tracks[ti].clips[slot].release_suppressed();
                         self.tracks[ti].cycle = self.tracks[ti].cycle.wrapping_add(1);
+                        // A pass of the loop is the natural take while playing:
+                        // jam over four passes and Capture should keep the last
+                        // one, not stack all four into the same bar.
+                        if ti == self.watch_track {
+                            self.capture.clear();
+                        }
                     }
                 }
                 // Parameter automation: emit on step entry (revert-to-base).
@@ -2788,6 +2813,30 @@ mod tests {
     }
 
     #[test]
+    fn a_long_take_keeps_only_the_last_few_bars() {
+        // Playing without pause never leaves a gap, so nothing but the age
+        // window bounds the take. Before it existed, a minute of noodling
+        // captured as a 16-bar clip pinned at the note cap — nothing like the
+        // phrase the player had just finished.
+        let mut e = engine();
+        play_take(&mut e, 120.0, 240, false); // 240 eighths at 120 BPM = 60 s
+        assert!(e.capture_commit(0));
+        let bars = e.tracks[0].active().length_steps / crate::STEPS_PER_BAR as u16;
+        // The window bounds the take; the clip then rounds up to whole bars
+        // around the last note's gate, so the window plus one bar is the ceiling.
+        assert!(
+            bars <= crate::capture::CAPTURE_MAX_BARS as u16 + 1,
+            "captured {bars} bars of history; the window is {}",
+            crate::capture::CAPTURE_MAX_BARS
+        );
+        assert!(bars >= 1, "the recent phrase is still there");
+        assert!(
+            e.tracks[0].active().notes.len() < 128,
+            "no longer pinned at the note cap"
+        );
+    }
+
+    #[test]
     fn stopped_capture_sets_the_tempo_and_rolls() {
         let mut e = engine();
         play_take(&mut e, 100.0, 16, false);
@@ -2934,6 +2983,18 @@ mod tests {
     }
 
     #[test]
+    fn capture_consumes_the_buffer_even_when_it_writes_nothing() {
+        // Only note-offs buffered for this track: there is nothing to write, but
+        // the press still has to leave the buffer empty or those orphans ride
+        // along into whatever is played next.
+        let mut e = engine();
+        e.play();
+        e.live_note_off(0, 60);
+        assert!(!e.capture_commit(0), "nothing to write");
+        assert!(e.capture.is_empty(), "but the buffer is consumed");
+    }
+
+    #[test]
     fn live_notes_buffer_for_capture_while_idle() {
         let mut e = engine();
         e.live_note_on(0, 60, 100);
@@ -2949,6 +3010,65 @@ mod tests {
         assert!(e.recording);
         e.live_note_on(0, 60, 100);
         assert_eq!(e.capture_pending(0), 0, "the record path owns armed input");
+    }
+
+    #[test]
+    fn each_pass_of_the_loop_starts_a_fresh_take() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.play();
+        run_ticks(&mut e, 2 * TICKS_PER_STEP as u64);
+        e.live_note_on(0, 67, 100);
+        e.live_note_off(0, 67);
+        assert_eq!(e.capture_pending(0), 1, "buffered during this pass");
+        run_ticks(&mut e, crate::TICKS_PER_BAR as u64);   // over the loop end
+        assert_eq!(
+            e.capture_pending(0), 0,
+            "the previous pass does not follow you into the next one"
+        );
+    }
+
+    #[test]
+    fn deliberate_editing_clears_the_buffer() {
+        // Every gesture that means "I am building this clip on purpose" drops
+        // the free playing that came before it, so a later Capture cannot drop
+        // old notes into a clip that has since been edited by hand.
+        let mut out = Vec::new();
+        for op in [
+            "rec 0", "tog 0 0 60 100", "del 0 0 15 -1", "quant 0", "clen 0 32",
+            "dbl 0", "clipdel 0 0", "launch 0 1", "evel 0 0 0 -1 5", "aset 0 0 64",
+        ] {
+            let mut e = engine();
+            e.live_note_on(0, 60, 100);
+            assert_eq!(e.capture_pending(0), 1, "{op}: precondition");
+            crate::command::apply_batch(&mut e, op, &mut out);
+            assert_eq!(e.capture_pending(0), 0, "{op} left buffered input behind");
+        }
+    }
+
+    #[test]
+    fn housekeeping_traffic_does_not_clear_the_buffer() {
+        // The UI emits these while you are only playing: a step-length query,
+        // and the automation base syncs that follow any knob read or lane
+        // allocation. Clearing on them wiped the buffer mid-phrase.
+        let mut out = Vec::new();
+        for op in ["hold 0 4", "hold 0 -1", "abase 0 0 64", "abaseq 0 0 64", "alabel 0 0 x:y"] {
+            let mut e = engine();
+            e.live_note_on(0, 60, 100);
+            crate::command::apply_batch(&mut e, op, &mut out);
+            assert_eq!(e.capture_pending(0), 1, "{op} threw away live input");
+        }
+    }
+
+    #[test]
+    fn playing_the_pads_does_not_clear_the_buffer() {
+        // The inverse of the rule above: the input itself must survive, or
+        // nothing would ever be capturable.
+        let mut e = engine();
+        let mut out = Vec::new();
+        crate::command::apply_batch(&mut e, "non 0 60 100;nof 0 60;non 0 64 100", &mut out);
+        assert_eq!(e.capture_pending(0), 2);
     }
 
     #[test]

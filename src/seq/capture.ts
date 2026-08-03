@@ -11,6 +11,7 @@ import { seqCmd, engineReady } from './engine.js';
 import { seqToast } from './render.js';
 import { scheduleTempoOverride } from './tempo-override.js';
 import { appState } from '../app/state.js';
+import { mlog } from '../log.js';
 
 export interface CaptureState {
     /* 'none' = no overlay; 'select' = pick a tempo; 'fixed' = explain the fit. */
@@ -63,6 +64,11 @@ function parseInfo(info: string): void {
     captureState.why = f.why === 'ext' ? 'ext' : f.why === 'notes' ? 'notes' : '';
     captureState.bars = Number(f.bars) || 0;
     captureState.stretchPermille = Number(f.stretch) || 0;
+    if (captureState.overlay !== 'none' || mode === 'none') {
+        mlog('seq: capture ' + (captureState.overlay === 'none' ? 'closed' : captureState.overlay)
+             + ' bpm=' + captureState.bpm
+             + ' bars=' + captureState.bars + (captureState.why ? ' why=' + captureState.why : ''));
+    }
     appState.dirty = true;
 }
 
@@ -91,6 +97,7 @@ export function captureButton(shift: boolean): void {
         return;
     }
     seqCmd('cap ' + track);
+    mlog('seq: capture commit trk=' + track + ' n=' + seqState.capPending);
     seqState.capPending = 0;
     if (seqState.playing) seqToast('Captured');
 }

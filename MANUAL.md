@@ -477,6 +477,8 @@ for the concepts:
 - **Metronome** — toggle with **Shift + Step 6**.
 - **Step recording** — hold **Rec** while stopped and play the pads to enter
   notes one step at a time; see [Step recording](#step-recording) below.
+- **Capture** — play first, keep it after: see
+  [Capture](#capture--keep-what-you-just-played) below.
 - **Step entry & editing** — tap a step to toggle a note; **hold a step** to edit
   it (and to open its [step parameters](#6-beyond-move-step-clip--set-parameters)).
 - **Note length** — **hold step A, then press step B** to set A's length up to B.
@@ -558,6 +560,52 @@ own lane, so you can lay the kick down in one pass and the snare in the next.
 
 A quick **tap** of Rec still arms live recording as before — only holding it
 starts step recording.
+
+### Capture — keep what you just played
+
+Movy is always listening. Everything you play on the pads while that track
+isn't recording goes into a buffer, so when something comes out right you can
+keep it after the fact: press **Capture**. The Capture button is lit whenever
+there is something buffered worth keeping.
+
+Capture writes into the **current track's current clip**. What happens depends
+on the transport:
+
+| Transport | Clip | What you get |
+| --- | --- | --- |
+| Playing | empty | The phrase from the first note you played, and the clip grows to whole bars around it. |
+| Playing | has notes | An overdub: each note lands where you heard it, and the clip keeps its length. |
+| Stopped | empty | A new take — Movy reads a tempo off your playing, sizes the clip, and starts the transport so you hear it at once. |
+| Stopped | has notes | The take is fitted to the tempo you already have (see below). |
+
+After a **stopped** capture the screen shows what happened and stays until you
+press something:
+
+![Capture tempo selector](docs/assets/capture_select.png)
+
+Three tempos, the applied one boxed. **Turn the jog** to take another — it is
+applied as you pass it, and the transport keeps rolling, so you can hear which
+one fits. The bar count in the corner follows: the same performance is more bars
+at a faster tempo, and it always plays back at the speed you played it. **Any
+button, pad or knob closes the overlay.**
+
+When the tempo isn't Movy's to set — because Move is clocking us, or because
+you captured into a clip that already has notes — there is nothing to choose,
+and the overlay explains the fit instead:
+
+![Capture fitted to the set tempo](docs/assets/capture_fixed.png)
+
+Movy still reads a tempo off your playing, then stretches the take onto the
+tempo you have. It picks whichever reading is closest, including half and double
+time, so the stretch is always the smallest one available — a phrase played at
+58 BPM against a 120 BPM set is fitted through 116, not doubled.
+
+To throw the buffer away, hold **Shift** and press **Capture**. Starting or
+stopping the transport and pressing a track button also clear it, as does a
+couple of bars of silence — the Capture button goes dark when it is empty.
+
+> **Not captured:** knob moves. Move captures automation too; Movy captures
+> notes only. Record automation live instead (see the sequencer list above).
 
 ### Saving — there is no Save button
 
@@ -758,8 +806,9 @@ missing or simplified. **All of these are candidates for future work — and
 [contributions are welcome](CONTRIBUTING.md).**
 
 - **No undo.** There's no undo history; edits are immediate.
-- **No capture.** Move's retroactive capture (play freely, then capture what you
-  just played) is out of scope.
+- **No automation capture.** [Capture](#capture--keep-what-you-just-played)
+  keeps notes; knob moves made before you press it are not captured. Record
+  automation live instead.
 - **Four Schwung tracks only.** Movy sequences four Schwung chains — not Move's
   native instruments, drum racks, or sampler.
 - **Simplified clip model.** Sequencer resolution and some clip-level features
@@ -807,6 +856,9 @@ behaviour you'd like — or, better, a PR.
 | **Hold Rec + pads** | Enter a note or chord at the head; the head advances when the last pad lifts. |
 | **Hold Rec + Right / Left** | Rest / step back — or tie / untie the chord being held. |
 | **Hold Rec + step button** | Jump the head to that step, clearing it if it had notes. |
+| **Capture** | Keep the notes you just played as clip data. Stopped → also reads a tempo and starts the transport. |
+| **Shift + Capture** | Throw the buffered input away. |
+| **Jog** (capture overlay) | Take another tempo — applied as you pass it. Any other press closes the overlay. |
 | **Note / Session** | Show the Session clip grid (momentary hold = peek, tap = latch). Pads launch clips. |
 | **Loop** | Toggle the bar/loop overview; hold + jog resizes the loop. |
 | **Left / Right** | Navigate bars (or nudge held steps). |

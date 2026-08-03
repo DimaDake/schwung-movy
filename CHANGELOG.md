@@ -15,6 +15,24 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Capture.** Play freely, then press **Capture** to keep what you just played
+  — Move's retroactive capture, notes only. Movy buffers live pad input
+  whenever the track isn't recording; a capture while the transport runs lands
+  the phrase where you heard it, and one made while stopped reads a tempo off
+  your playing, sizes the clip, and starts the transport so you hear the take at
+  once. Three tempo candidates are offered on screen in the big Set-page font
+  and the jog applies each as you pass it. When the tempo isn't ours to set —
+  Move is clocking us, or the clip already has notes — the take is fitted to the
+  existing tempo through whichever reading is closest, so the stretch is the
+  smallest one available. **Shift + Capture** throws the buffer away, as do a
+  transport edge, a track button, or a couple of bars of silence. Engine
+  `0.29.0`.
+
+  *Prior art: schwung-davebox shipped capture on Schwung first. Movy's
+  implementation is its own — davebox is PolyForm Noncommercial and Movy is MIT,
+  so no code is shared; the behaviour follows Move's manual (§14.3) and the
+  tempo estimator was written and tuned here.*
+
 - **Step recording.** Hold **Rec** while the transport is stopped and play the
   pads to enter notes step by step, on melodic and drum tracks. Notes that
   overlap land on the same step, so chords need no modifier; the head advances

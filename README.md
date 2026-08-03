@@ -95,6 +95,12 @@ Movy stands on the shoulders of several projects:
 
   ![Step recording](docs/assets/step_rec_header.png)
 
+- **Capture** — play freely, then press **Capture** to keep what you just
+  played. With the transport stopped it reads a tempo off your playing and
+  offers three; the jog picks one and you hear the take at it straight away.
+
+  ![Capture tempo selector](docs/assets/capture_select.png)
+
 - **Scales & pad layouts** — the 32 pads become a chromatic fretboard or piano,
   or fold **in key** (4ths or inline) so a wrong note is impossible. Each
   track remembers its own octave, saved with the set.
@@ -171,7 +177,7 @@ reimplementation. Notable gaps (all candidates for future work — contributions
 welcome):
 
 - **No undo.**
-- **No capture** (Move's "play it, then capture it retroactively").
+- **No automation capture** — Capture keeps notes; knob moves are not captured.
 - Sequencer **resolution and some clip-level features** are simplified.
 
 A fuller list, with context, is in the [manual](MANUAL.md#limitations-vs-move).

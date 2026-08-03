@@ -180,6 +180,57 @@ sleep 0.5
 ts_tap_two_steps 16 20                   # hold step 1, tap step 5 → both enter
 sleep 0.5
 
+info "Capture: play a phrase with the transport stopped, then press Capture..."
+python3 "$INJECT" "$HOST" cc 85 127      # make sure the transport is stopped —
+python3 "$INJECT" "$HOST" cc 85 0        # capture-while-stopped is the path that
+sleep 0.8                                # detects a tempo and opens the overlay
+
+# Track 3 is the one track nothing else in this suite writes to (the grow-per-step
+# leg above fills track 2), so it is the only place the free-tempo path runs: with
+# an empty clip movy owns the tempo, so the take sets it and the overlay offers
+# the candidates. One round trip for the whole phrase — separate injects are
+# ~0.5 s apart, a plausible rhythm but a ragged one, and the spacing is exactly
+# what the estimator reads.
+ts_tap_cc 40                             # track 3 (no clip in the fixture)
+sleep 0.5
+# One pad, ten times, evenly spaced. Ten because the surface drops some of a
+# fast injected stream — the estimator needs three onsets and a take that only
+# just clears that bar would be a coin flip every run.  One pad because a melodic layout leaves gaps where
+# a pad plays nothing, and a take made of pads that never sounded has no onsets
+# to read a tempo from. Pad 70 is the one the recording leg above already proves.
+ts_send "0x09:0x90:70:110:0.06" "0x08:0x80:70:0:0.19" \
+        "0x09:0x90:70:110:0.06" "0x08:0x80:70:0:0.19" \
+        "0x09:0x90:70:110:0.06" "0x08:0x80:70:0:0.19" \
+        "0x09:0x90:70:110:0.06" "0x08:0x80:70:0:0.19" \
+        "0x09:0x90:70:110:0.06" "0x08:0x80:70:0:0.19" \
+        "0x09:0x90:70:110:0.06" "0x08:0x80:70:0:0.19" \
+        "0x09:0x90:70:110:0.06" "0x08:0x80:70:0:0.19" \
+        "0x09:0x90:70:110:0.06" "0x08:0x80:70:0:0.19" \
+        "0x09:0x90:70:110:0.06" "0x08:0x80:70:0:0.19" \
+        "0x09:0x90:70:110:0.06" "0x08:0x80:70:0:0.19"
+sleep 0.5
+ts_tap_cc 52                             # Capture → commit, set the tempo, roll
+sleep 1.5
+ts_tap_cc 49                             # any press dismisses the overlay (Shift)
+sleep 0.5
+python3 "$INJECT" "$HOST" cc 85 127      # stop again for the second capture
+python3 "$INJECT" "$HOST" cc 85 0
+sleep 0.8
+
+# Track 0's clip already has notes, so the tempo is not up for grabs: the take is
+# fitted to it and the overlay explains rather than offers.
+ts_tap_cc 43                             # back to track 0 (melodic, has notes)
+sleep 0.5
+ts_send "0x09:0x90:70:110:0.05" "0x08:0x80:70:0:0.25" \
+        "0x09:0x90:70:110:0.05" "0x08:0x80:70:0:0.25" \
+        "0x09:0x90:70:110:0.05" "0x08:0x80:70:0:0.25" \
+        "0x09:0x90:70:110:0.05" "0x08:0x80:70:0:0.25"
+sleep 0.5
+ts_tap_cc 52                             # Capture → fit to the set tempo
+sleep 1.5
+ts_tap_cc 49                             # dismiss
+sleep 0.5
+
 info "Persistence: waiting for autosave, then reopening Movy to restore..."
 sleep 4   # autosave fires ~3s after the last edit
 # State is now per-set under sets/<uuid>/seq-state.json (keyed by active_set.txt).
@@ -210,6 +261,18 @@ echo "$LOG" | grep -q "seq: play=1" \
 
 [[ "$STATE_OK" == "yes" ]] \
     && pass "Autosave wrote a non-empty per-set state file" || fail "No autosave file under $SETS_DIR"
+# Capture: the button committed, and the engine answered with an overlay — which
+# only happens when a take was actually written and the transport rolled.
+echo "$LOG" | grep -q "seq: capture commit" \
+    && pass "Capture committed the buffered phrase" \
+    || fail "Capture did not commit (seq: capture commit missing — was anything buffered?)"
+echo "$LOG" | grep -qE "seq: capture select bpm=[0-9]+" \
+    && pass "Empty clip: capture detected a tempo and offered it — $(echo "$LOG" | grep -oE 'seq: capture select bpm=[0-9]+ bars=[0-9]+' | tail -1)" \
+    || fail "Empty-clip capture did not open the tempo selector (no seq: capture select line)"
+echo "$LOG" | grep -qE "seq: capture fixed bpm=[0-9]+ bars=[0-9]+ why=notes" \
+    && pass "Clip with notes: capture fitted the take instead of retempoing" \
+    || fail "Overdub capture did not report a fixed tempo (no seq: capture fixed ... why=notes)"
+
 echo "$LOG" | grep -q "seq: loaded set" \
     && pass "Set state loaded on reopen" || fail "No set load on reopen (seq: loaded set missing)"
 

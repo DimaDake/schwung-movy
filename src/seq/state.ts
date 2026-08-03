@@ -30,6 +30,11 @@ export interface SeqUiState {
     /* recording (engine-driven, mirrored from status) */
     recording: boolean;
     countingIn: boolean;
+    /* Retroactive capture: notes buffered for the watched track (drives the
+     * Capture LED), and the engine's overlay generation (a change means the
+     * capture detail is worth re-reading). */
+    capPending: number;
+    capGen: number;
     metro: boolean;
     dirty: boolean;          // engine has unsaved state changes
 
@@ -102,6 +107,8 @@ function defaults(): SeqUiState {
         loopMode: false,
         recording: false,
         countingIn: false,
+        capPending: 0,
+        capGen: -1,
         metro: false,
         dirty: false,
         lastPitch: [60, 60, 60, 60],

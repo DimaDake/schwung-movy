@@ -18,8 +18,10 @@ import { openMainPage } from './main-page.js';
 import { openClipPage, closeClipPage, clipPageActive } from './clip-page.js';
 import { appState, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from '../app/state.js';
 import { releaseAllLive } from '../keyboard/release.js';
+import { captureButton } from './capture.js';
 
 const CC_MUTE = 88;
+const CC_CAPTURE = 52;
 
 let muteHeldState = false;
 export function setMuteHeld(down: boolean): void { muteHeldState = down; }
@@ -238,6 +240,12 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     if (d1 === CC_DELETE) {
         if (seqState.sessionMode) sessionDeleteButton(d2 > 0);
         else deleteButton(d2 > 0);
+        return true;
+    }
+
+    /* Capture: keep what was just played (Shift clears it instead). */
+    if (d1 === CC_CAPTURE) {
+        if (d2 > 0) captureButton(shiftHeld);
         return true;
     }
 

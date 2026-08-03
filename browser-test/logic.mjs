@@ -1881,6 +1881,45 @@ _log('\nTest: drumPadOn');
     eq('ext=0 clears extSync', seqState.extSync, false);
 }
 
+/* ── Capture: status mirror + the button's two gestures ──────────────────── */
+{
+    _log('\nCapture button:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { parseStatusForTest, resetSeqEngine, seqEngineTick, peekSeqCmdQueue } =
+        await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { seqHandleMidi } = await import('../dist/esm/seq/router.js');
+    const { resetSeqToast, seqToastActive } = await import('../dist/esm/seq/render.js');
+
+    const engine = installMockEngine();
+    resetSeqEngine(); resetSeqState(); resetSeqToast();
+    seqEngineTick(); // boot probe → ready
+    // Commands queue up and flush on the next engine tick, so read the queue.
+    const lastOp = () => { const q = peekSeqCmdQueue(); return q[q.length - 1]; };
+
+    parseStatusForTest('play=0 trk=0 cap=4.7');
+    eq('pending count parsed', seqState.capPending, 4);
+    eq('overlay generation parsed', seqState.capGen, 7);
+
+    seqHandleMidi([0xB0, 52, 127], false);
+    eq('capture commits the buffer', lastOp(), 'cap 0');
+    eq('the button claims the event', seqHandleMidi([0xB0, 52, 0], false), true);
+
+    parseStatusForTest('play=0 trk=0 cap=4.8');
+    seqHandleMidi([0xB0, 52, 127], true);
+    eq('shift+capture clears instead', lastOp(), 'capclr 0');
+
+    // Nothing buffered: say so rather than sending a no-op the engine ignores.
+    resetSeqToast();
+    parseStatusForTest('play=0 trk=0 cap=0.9');
+    const before = peekSeqCmdQueue().length;
+    seqHandleMidi([0xB0, 52, 127], false);
+    eq('empty buffer sends no command', peekSeqCmdQueue().length, before);
+    eq('empty buffer explains itself', seqToastActive(), true);
+
+    uninstallMockEngine();
+}
+
 /* ── Play-link toggle: link= status field + LINK Set-page cell ────────────── */
 {
     _log('\nPlay-link toggle:');
@@ -3240,7 +3279,8 @@ _log('\nautomation: restore re-requests label sync:');
     eq('steprec left bright when it can',    stepRecArrowColor(-1, true, true), 124);
     eq('steprec left dim off the blink',     stepRecArrowColor(-1, true, false), 16);
     eq('sample always off',  sampleLedColor(), 0);
-    eq('capture off',        captureLedColor(), 0);
+    eq('capture dark with an empty buffer', captureLedColor(0), 0);
+    eq('capture lit with buffered notes',   captureLedColor(3), 124);
     eq('undo off',           undoLedColor(), 0);
 }
 

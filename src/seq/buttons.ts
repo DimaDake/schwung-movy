@@ -36,6 +36,11 @@ export function sampleLedColor(): number {
     return C_BLACK;
 }
 
-/** Capture / Undo have no movy action yet → off (white). */
-export function captureLedColor(): number { return WHITE_OFF; }
+/** Capture: lit whenever there is buffered input worth keeping (Move parity —
+ *  the button goes dark once the input is cleared). */
+export function captureLedColor(pending: number): number {
+    return pending > 0 ? WHITE_BRIGHT : WHITE_OFF;
+}
+
+/** Undo has no movy action yet → off (white). */
 export function undoLedColor(): number { return WHITE_OFF; }

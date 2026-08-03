@@ -144,7 +144,7 @@ function paintAffordances(view: number, barOffset: number, maxOff: number, lp: b
         cachedSetButtonLED(CC_LEFT, arrowLedColor(-1, barOffset, maxOff, lp));
         cachedSetButtonLED(CC_RIGHT, arrowLedColor(+1, barOffset, maxOff, rp));
     }
-    cachedSetButtonLED(CC_SAMPLE, sampleLedColor()); cachedSetButtonLED(CC_CAPTURE, captureLedColor()); cachedSetButtonLED(CC_UNDO, undoLedColor());
+    cachedSetButtonLED(CC_SAMPLE, sampleLedColor()); cachedSetButtonLED(CC_CAPTURE, captureLedColor(seqState.capPending)); cachedSetButtonLED(CC_UNDO, undoLedColor());
     cachedSetButtonLED(CC_LOOP, seqState.loopMode ? WHITE_BRIGHT : WHITE_DIM);
     cachedSetButtonLED(CC_COPY, WHITE_DIM); cachedSetButtonLED(CC_DELETE_BTN, WHITE_DIM); cachedSetButtonLED(CC_MUTE, WHITE_DIM);
 }

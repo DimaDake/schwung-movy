@@ -117,6 +117,104 @@ impl Default for CaptureRing {
     }
 }
 
+/// Candidate-tempo search range. Matches what the Set page's TEMPO knob will
+/// accept in practice, so Capture never suggests a BPM you could not then dial
+/// by hand.
+pub const BPM_MIN: u32 = 40;
+pub const BPM_MAX: u32 = 250;
+
+pub struct TempoGuess {
+    /// Ascending; `n` entries filled from index 0.
+    pub cands: [u32; 3],
+    /// Index into `cands` of the best-scoring tempo.
+    pub best: usize,
+    pub n: usize,
+}
+
+fn ratio(a: u32, b: u32) -> f64 {
+    let (a, b) = (a as f64, b.max(1) as f64);
+    if a > b { a / b } else { b / a }
+}
+
+/// Score how well `onsets` (frames, relative to the first note) sit on a 1/16
+/// grid at each integer BPM, and return the three tempos worth offering.
+///
+/// Grid fit alone cannot pick a winner: evenly spaced input fits a whole family
+/// of tempos exactly (120 in quarters is 90 in dotted eighths is 160 in
+/// triplets), so two weak tie-breakers decide between them — whether the take
+/// spans a whole number of bars, and how far the tempo sits from a comfortable
+/// 120. Both are small enough that a genuinely better grid fit always wins.
+pub fn estimate_tempos(onsets: &[u64], span: u64, sample_rate: u32) -> Option<TempoGuess> {
+    if onsets.len() < 3 {
+        return None;
+    }
+    let sr = sample_rate as f64;
+    let span = span.max(1) as f64;
+
+    let score_at = |bpm: u32| -> f64 {
+        let fpb = sr * 60.0 / bpm as f64;
+        let fit = onsets
+            .iter()
+            .map(|&o| {
+                let beats = o as f64 / fpb;
+                (beats - (beats * 4.0).round() / 4.0).abs()
+            })
+            .sum::<f64>()
+            / onsets.len() as f64;
+        let bars = span / fpb / 4.0;
+        let bar_err = (bars - bars.round()).abs();
+        let octave = (bpm as f64 / 120.0).ln().abs();
+        fit + 0.02 * bar_err + 0.02 * octave
+    };
+    let scores: Vec<f64> = (BPM_MIN..=BPM_MAX).map(score_at).collect();
+
+    // Local minima, best first. Tempos within 5% of one another are the same
+    // tempo heard twice, so only the better of the pair survives.
+    let mut minima: Vec<(u32, f64)> = Vec::new();
+    for (i, &s) in scores.iter().enumerate() {
+        let lo = i == 0 || scores[i - 1] >= s;
+        let hi = i + 1 == scores.len() || scores[i + 1] > s;
+        if lo && hi {
+            minima.push((BPM_MIN + i as u32, s));
+        }
+    }
+    minima.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(core::cmp::Ordering::Equal));
+    let mut distinct: Vec<u32> = Vec::new();
+    for (bpm, _) in minima {
+        if distinct.iter().all(|&d| ratio(d, bpm) >= 1.05) {
+            distinct.push(bpm);
+        }
+    }
+    let best_bpm = *distinct.first()?;
+
+    // The half- and double-time readings of the winner are what a player
+    // actually reaches for, so they outrank any lesser local minimum.
+    let mut picked = vec![best_bpm];
+    for partner in [best_bpm / 2, best_bpm * 2] {
+        if (BPM_MIN..=BPM_MAX).contains(&partner)
+            && picked.iter().all(|&p| ratio(p, partner) >= 1.05)
+        {
+            picked.push(partner);
+        }
+    }
+    for &d in &distinct {
+        if picked.len() >= 3 {
+            break;
+        }
+        if picked.iter().all(|&p| ratio(p, d) >= 1.05) {
+            picked.push(d);
+        }
+    }
+
+    let n = picked.len().min(3);
+    picked.truncate(n);
+    picked.sort_unstable();
+    let mut cands = [0u32; 3];
+    cands[..n].copy_from_slice(&picked);
+    let best = picked.iter().position(|&b| b == best_bpm).unwrap_or(0);
+    Some(TempoGuess { cands, best, n })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -162,5 +260,59 @@ mod tests {
         r.push(ev(0, 0, true, 60), 1000);
         r.clear();
         assert_eq!(r.pending(0), 0);
+    }
+
+    /// Onsets for `n` eighth-notes at `bpm`, in frames from the first.
+    fn eighths(bpm: f64, n: usize, sr: u32) -> Vec<u64> {
+        let fpb = sr as f64 * 60.0 / bpm;
+        (0..n).map(|i| (i as f64 * fpb / 2.0) as u64).collect()
+    }
+
+    #[test]
+    fn recovers_the_played_tempo() {
+        let on = eighths(100.0, 16, 44100);
+        let g = estimate_tempos(&on, *on.last().unwrap(), 44100).unwrap();
+        assert_eq!(g.cands[g.best], 100);
+    }
+
+    #[test]
+    fn offers_the_half_and_double_time_partners() {
+        let on = eighths(100.0, 16, 44100);
+        let g = estimate_tempos(&on, *on.last().unwrap(), 44100).unwrap();
+        assert_eq!(g.n, 3);
+        assert_eq!(g.cands, [50, 100, 200], "ascending, partners included");
+    }
+
+    #[test]
+    fn candidates_stay_inside_the_dial_range_and_stay_full() {
+        // 240 doubles to 480 (out of range) — the third slot must be backfilled,
+        // never left empty, so the selector always has something to scroll.
+        let on = eighths(240.0, 16, 44100);
+        let g = estimate_tempos(&on, *on.last().unwrap(), 44100).unwrap();
+        assert_eq!(g.n, 3);
+        assert!(g.cands.iter().all(|&b| (BPM_MIN..=BPM_MAX).contains(&b)));
+        assert!(g.cands.windows(2).all(|w| w[0] < w[1]), "ascending, no dupes");
+    }
+
+    #[test]
+    fn survives_the_jitter_a_real_take_arrives_with() {
+        // Pad notes reach the engine batched once per UI tick, so onsets carry
+        // up to ~16 ms of quantization on top of human timing. A tempo the
+        // estimator can only find on perfect input would be useless.
+        let sr = 44100;
+        let mut on = eighths(120.0, 16, sr);
+        let mut seed = 0x2545F491u32;
+        for o in on.iter_mut() {
+            seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
+            let jitter = (seed >> 24) as u64 * 16 * sr as u64 / 1000 / 256; // 0..16 ms
+            *o += jitter;
+        }
+        let g = estimate_tempos(&on, *on.last().unwrap(), sr).unwrap();
+        assert_eq!(g.cands[g.best], 120, "got {:?}", g.cands);
+    }
+
+    #[test]
+    fn two_notes_are_not_a_tempo() {
+        assert!(estimate_tempos(&[0, 22050], 22050, 44100).is_none());
     }
 }

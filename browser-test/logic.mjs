@@ -1917,7 +1917,60 @@ _log('\nTest: drumPadOn');
     eq('empty buffer sends no command', peekSeqCmdQueue().length, before);
     eq('empty buffer explains itself', seqToastActive(), true);
 
+    // The overlay: the jog applies a candidate as you pass it, and anything
+    // else dismisses and releases the take.
+    const { setCaptureStateForTest, captureJog, captureDismiss, captureOverlayActive, captureState } =
+        await import('../dist/esm/seq/capture.js');
+    setCaptureStateForTest({ overlay: 'select', cands: [85, 120, 170], idx: 1, bpm: 120 });
+    captureJog(1);
+    eq('jog moves the selection', captureState.idx, 2);
+    eq('and applies it at once', lastOp(), 'capsel 2');
+    eq('the mirrored tempo follows', captureState.bpm, 170);
+    captureJog(1);
+    eq('the selection stops at the end', captureState.idx, 2);
+    captureJog(-1);
+    eq('jog back moves down', lastOp(), 'capsel 1');
+
+    setCaptureStateForTest({ overlay: 'fixed', cands: [], idx: 0, bpm: 120 });
+    const fixedOps = peekSeqCmdQueue().length;
+    captureJog(1);
+    eq('a fixed tempo has nothing to pick', peekSeqCmdQueue().length, fixedOps);
+
+    eq('the overlay is up', captureOverlayActive(), true);
+    captureDismiss();
+    eq('dismissing releases the take', lastOp(), 'capdone');
+    eq('and closes the overlay', captureOverlayActive(), false);
+
     uninstallMockEngine();
+}
+
+/* ── Capture overlay view model ──────────────────────────────────────────── */
+{
+    _log('\nCapture overlay:');
+    const { setCaptureStateForTest, resetCapture } = await import('../dist/esm/seq/capture.js');
+    const { buildCaptureVM } = await import('../dist/esm/seq/capture-vm.js');
+
+    setCaptureStateForTest({ overlay: 'select', cands: [85, 120, 170], idx: 1, bars: 4 });
+    let cvm = buildCaptureVM();
+    eq('all candidates offered', cvm.values.join('|'), '85|120|170');
+    eq('the applied one is highlighted', cvm.selIdx, 1);
+    eq('bar count in the header', cvm.header, '4 BARS');
+    eq('one bar reads singular', (setCaptureStateForTest({ overlay: 'select', cands: [120], idx: 0, bars: 1 }),
+        buildCaptureVM().header), '1 BAR');
+
+    setCaptureStateForTest({ overlay: 'fixed', cands: [], idx: 0, detected: 117, bpm: 120,
+                             why: 'ext', stretchPermille: 26 });
+    cvm = buildCaptureVM();
+    eq('the reason replaces the bar count', cvm.header, 'EXT SYNC');
+    eq('played tempo then set tempo', cvm.values.join('|'), '117|120');
+    eq('the set tempo is the highlighted one', cvm.selIdx, 1);
+    eq('stretch rounded for the caption', cvm.caption, 'STRETCHED 3% TO FIT');
+
+    setCaptureStateForTest({ overlay: 'fixed', cands: [], idx: 0, detected: 120, bpm: 120,
+                             why: 'notes', stretchPermille: 0 });
+    eq('an overdub says so', buildCaptureVM().header, 'CLIP HAS NOTES');
+    eq('no stretch, no stretch line', buildCaptureVM().caption, 'FITTED TO THE SET TEMPO');
+    resetCapture();
 }
 
 /* ── Play-link toggle: link= status field + LINK Set-page cell ────────────── */

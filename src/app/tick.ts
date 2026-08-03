@@ -38,6 +38,9 @@ import { volumeOverlay } from '../mixer/track-volume.js';
 import { drawVolumeOverlay } from '../renderer/volume-overlay.js';
 import { leaveModalActive, leaveModalLabels, leaveModalSel } from './leave-modal.js';
 import { drawLeaveModal } from '../renderer/leave-modal-view.js';
+import { captureOverlayActive } from '../seq/capture.js';
+import { buildCaptureVM } from '../seq/capture-vm.js';
+import { drawCaptureOverlay } from '../renderer/capture-overlay.js';
 import { stepPageState, stepPageAvailable } from '../seq/step-page.js';
 import { buildStepPageVM } from '../seq/step-page-vm.js';
 import { activeHasNote, maxBarOffset, seqState } from '../seq/state.js';
@@ -456,6 +459,8 @@ export function tick(): void {
         if (assignActive()) { drawJogToast(assignToastText()); jogToastShown = true; }
         if (toastShowing) drawSeqToast();
         if (headerShowing) drawSeqHeader();
+        // The post-capture overlay owns the screen until it is dismissed.
+        if (captureOverlayActive()) drawCaptureOverlay(buildCaptureVM());
         // Leave-Movy modal draws on top of everything else.
         if (leaveModalActive()) drawLeaveModal(leaveModalLabels(), leaveModalSel());
         lastToastShowing = toastShowing;

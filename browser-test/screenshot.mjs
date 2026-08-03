@@ -53,7 +53,7 @@ const PRESETS = [
     'filter_slope24', 'filter_dual', 'filter_open',
     'deep_page', 'lfo_helm_step', 'lfo_helm_pyramid',
     'signal_voice', 'forge_voice', 'forge_filter', 'forge_mod', 'forge_send', 'forge_mix',
-    'leave_modal',
+    'leave_modal', 'capture_select', 'capture_fixed',
     'track_volume_unity', 'track_volume_quiet', 'track_volume_min', 'track_volume_max',
     'trigger_armed', 'trigger_fired', 'trigger_blink_off', 'trigger_touched',
     'trigger_cooling', 'trigger_cooling_low',
@@ -139,6 +139,9 @@ const { createLfoModel }   = await import('../dist/esm/lfo/model.js');
 const { holdTouch, holdTick, assignToastText, resetAssignMode } = await import('../dist/esm/lfo/assign-mode.js');
 const { drawJogToast }     = await import('../dist/esm/renderer/overlay.js');
 const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view.js');
+const { drawCaptureOverlay } = await import('../dist/esm/renderer/capture-overlay.js');
+const { buildCaptureVM }     = await import('../dist/esm/seq/capture-vm.js');
+const { setCaptureStateForTest } = await import('../dist/esm/seq/capture.js');
 const { drawVolumeOverlay } = await import('../dist/esm/renderer/volume-overlay.js');
 const { volumeFrac }       = await import('../dist/esm/mixer/track-volume.js');
 const { renderKnobsView }  = await import('../dist/esm/renderer/knob-view.js');
@@ -290,6 +293,18 @@ function applyView(preset) {
         case 'chain_empty':      showChain(2, false); break;                 // fx1 = empty
         case 'chain_jog_toast':  showChain(1, true); break;
         case 'knobs_jog_toast':  showKnobsJogToast(); break;
+        /* Post-capture overlay, both variants, over the view it interrupts. */
+        case 'capture_select':
+        case 'capture_fixed': {
+            showChain(1, false);
+            setCaptureStateForTest(preset === 'capture_select'
+                ? { overlay: 'select', cands: [85, 120, 170], idx: 1, detected: 120, bpm: 120, bars: 4 }
+                : { overlay: 'fixed', cands: [], idx: 0, detected: 117, bpm: 120,
+                    why: 'ext', bars: 2, stretchPermille: 26 });
+            lastRender = () => drawCaptureOverlay(buildCaptureVM());
+            lastRender();
+            break;
+        }
         case 'leave_modal': {
             showChain(1, false);
             const base = lastRender;

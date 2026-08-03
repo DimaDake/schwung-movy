@@ -21,6 +21,7 @@ import { holdTouch, holdRelease, holdTurnCancel, assignActive, assignCycle, assi
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
 import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm } from '../app/leave-modal.js';
+import { captureOverlayActive, captureJog, captureDismiss } from '../seq/capture.js';
 import { resetHeldInput } from '../app/input-reset.js';
 import { jogHintTouch } from '../app/jog-hint.js';
 import { MASTER_CC, volumeTrackDown, volumeTrackUp, volumeTouch, volumeKnobDelta } from '../mixer/track-volume.js';
@@ -101,6 +102,23 @@ export function onMidiMessageInternal(data: number[]): void {
     // every subsequent knob turn (tempo, clip length, module params), curable
     // only by reopening movy. openLeaveModal() already forgot what was held, so
     // these releases land on empty state and do nothing but stay honest.
+    // The post-capture overlay stays up until something is pressed. The jog
+    // picks a tempo (applied as you turn); every other PRESS just dismisses it
+    // and is swallowed. Swallowed rather than passed through because movy has
+    // no undo — a step button that both dismissed this and wrote a note into
+    // the clip you just captured is not a trade worth offering. Releases fall
+    // through so no handler is left holding a button that never came up.
+    if (captureOverlayActive()) {
+        if ((data[0] & 0xF0) === 0xB0 && data[1] === MoveMainKnob) {
+            captureJog(decodeDelta(data[2]));
+            return;
+        }
+        if (!isRelease(data)) {
+            captureDismiss();
+            return;
+        }
+    }
+
     if (leaveModalActive()) {
         if ((data[0] & 0xF0) === 0xB0) {
             const k = data[1], v = data[2];

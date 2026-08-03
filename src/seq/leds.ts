@@ -36,6 +36,17 @@ function barHasContent(bar: number): boolean {
 
 // No per-tick allocation: derive blink from engine tick integer division.
 function blinkPhase(): boolean { return Math.floor(seqState.engineTick / 24) % 2 === 0; }
+
+const HEAD_BLINK_MS = 250;
+/* The step-record head cannot blink on the engine's master tick. That tick is
+ * frozen whenever the transport is stopped (seq-core returns before advancing
+ * it) and step recording is a stopped-only mode — so the "blink" was really a
+ * constant, decided by wherever the last stop left the tick, and any odd
+ * 24-tick block left the head permanently black. Wall time is the only clock
+ * still running here. */
+function headBlinkPhase(): boolean {
+    return Math.floor(Date.now() / HEAD_BLINK_MS) % 2 === 0;
+}
 interface BarCtx { isPlayhead: boolean; selected: boolean; hasContent: boolean; inLoop: boolean; blink: boolean; track: number; }
 export function loopBarColor(c: BarCtx): number {
     if (c.isPlayhead) return C_GREEN;
@@ -197,7 +208,7 @@ export function seqLedsTick(
     // past-the-clip-length blackout — in grow mode the head legitimately sits
     // on a step the clip has not reached yet.
     const recHead = stepRecActive() ? stepRecHead() : -1;
-    const headBlink = blinkPhase();
+    const headBlink = headBlinkPhase();
     for (let i = 0; i < NUM_STEP_BUTTONS; i++) {
         const step = base + i;
         let color: number;

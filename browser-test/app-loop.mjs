@@ -1202,22 +1202,32 @@ _log('\napp-loop: step recording paints a blinking red head');
 
     seqState.playing = false;
     seqState.lenSteps = 16;
-    sendMidi([0xB0, 86, 127]);                 // hold Rec
-    advance(2);
-    eq('step recording entered from a real Rec press', stepRecActive(), true);
-
-    /* blinkPhase() is engineTick/24 % 2, so drive the mirrored tick to both
-     * halves of the blink rather than waiting on wall time. */
-    seqState.engineTick = 0;
-    advance(1);
-    eq('head lit red on the bright half', ledByPad[STEP_NOTE_BASE + 0], C_REC_RED);
-
+    /* The engine's master tick does NOT advance while the transport is stopped
+     * (seq-core returns before incrementing it) and is only reset on play — so
+     * for a stopped-only mode like step recording it is a FROZEN number,
+     * whatever the last stop left. Pin it inside an odd 24-tick block: the
+     * value that used to leave the head permanently black. */
     seqState.engineTick = 24;
+
+    const realNow = Date.now;
+    let t = 500000;
+    Date.now = () => t;
+    const head = () => ledByPad[STEP_NOTE_BASE + 0];
+
+    sendMidi([0xB0, 86, 127]);                 // hold Rec
+    advance(3);
+    eq('step recording entered from a real Rec press', stepRecActive(), true);
+    eq('head lit red despite the frozen engine tick', head(), C_REC_RED);
+
+    t += 250;
     advance(1);
-    eq('head dark on the other half', ledByPad[STEP_NOTE_BASE + 0] !== C_REC_RED, true);
+    eq('head dark on the other half of the blink', head() !== C_REC_RED, true);
+
+    t += 250;
+    advance(1);
+    eq('head red again — it really blinks', head(), C_REC_RED);
 
     /* Move the head with a rest and confirm the red follows it. */
-    seqState.engineTick = 0;
     sendMidi([0xB0, 63, 127]);                 // Right = rest
     advance(2);
     eq('the red head followed the rest', ledByPad[STEP_NOTE_BASE + 1], C_REC_RED);
@@ -1225,7 +1235,9 @@ _log('\napp-loop: step recording paints a blinking red head');
     sendMidi([0xB0, 86, 0]);                   // release Rec
     advance(2);
     eq('mode left on release', stepRecActive(), false);
+    Date.now = realNow;
     seqState.lenSteps = 0;
+    seqState.engineTick = 0;
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

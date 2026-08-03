@@ -62,6 +62,9 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
             if let Some(t) = next() {
                 if (t as usize) < NUM_TRACKS {
                     engine.watch_track = t as usize;
+                    // Move clears buffered capture input on a track button, so
+                    // what you played on the old track can't land on the new one.
+                    engine.capture_clear();
                 }
             }
         }

@@ -1,6 +1,7 @@
 //! seq-core: pure sequencer logic for movy. No FFI, no I/O — everything here
 //! runs identically on the host (cargo test) and on the device.
 
+pub mod capture;
 pub mod clip;
 pub mod clock;
 pub mod command;

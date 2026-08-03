@@ -3,6 +3,7 @@
 //! them into host MIDI sends. One Engine instance == the whole 4-track
 //! sequencer.
 
+use crate::capture::{CapEvent, CaptureRing};
 use crate::clip::{Clip, Lock};
 use crate::clock::Clock;
 use crate::track::{Track, CLIPS_PER_TRACK, NUM_TRACKS};
@@ -75,6 +76,11 @@ pub struct Engine {
     count_in_left: u32,
     pub metronome: bool,
     rec_pending: Vec<RecPending>,
+    /// Retroactive capture input (Move manual §14.3). Runtime-only.
+    capture: CaptureRing,
+    /// Bumped on every commit / selector change so the UI knows to re-read
+    /// `capinfo` without polling it every tick.
+    capture_gen: u32,
     /// Per-tick master counter (clock.tick advances per audio block, so it
     /// can't time individual ticks; this increments inside service_tick).
     master_tick: u64,
@@ -170,6 +176,8 @@ impl Engine {
             count_in_left: 0,
             metronome: false,
             rec_pending: Vec::new(),
+            capture: CaptureRing::new(),
+            capture_gen: 0,
             master_tick: 0,
             dirty: false,
             gates: Vec::with_capacity(128),
@@ -456,6 +464,7 @@ impl Engine {
             t.queued_slot = None;
             t.pending_stop = false;
         }
+        self.capture.clear();
         self.start_transport();
     }
 
@@ -526,6 +535,7 @@ impl Engine {
         self.recording = false;
         self.count_in_left = 0;
         self.rec_pending.clear();
+        self.capture.clear();
         for t in &mut self.tracks {
             t.last_auto_step = -1;
             t.auto_cur = [-1; 8];
@@ -665,10 +675,55 @@ impl Engine {
         }
     }
 
+    // ── Retroactive capture (manual §14.3) ───────────────────────────────
+
+    /// Silence after which buffered input is a finished phrase rather than the
+    /// take in progress: two bars, but never so short that a slow ballad
+    /// self-clears mid-phrase nor so long that a jam from minutes ago returns.
+    fn capture_gap_frames(&self) -> u64 {
+        let sr = self.clock.sample_rate() as u64;
+        let bar = sr * 60 * 4 * 100 / (self.clock.bpm_x100().max(1) as u64);
+        (2 * bar).clamp(2 * sr, 8 * sr)
+    }
+
+    /// Buffer a live pad note for a later Capture. Armed input is excluded —
+    /// the record path is already writing it, and a count-in belongs to the
+    /// take about to be recorded.
+    fn capture_push(&mut self, track: usize, pitch: u8, vel: u8, on: bool) {
+        if track >= NUM_TRACKS || self.count_in_left > 0 {
+            return;
+        }
+        if self.recording && track == self.rec_track {
+            return;
+        }
+        let gap = self.capture_gap_frames();
+        let ev = CapEvent {
+            frame: self.frame_now,
+            abs_tick: self.master_tick as u32,
+            clip_tick: self.tracks[track].pos_tick,
+            track: track as u8,
+            on,
+            pitch,
+            vel,
+        };
+        self.capture.push(ev, gap);
+    }
+
+    /// Drop buffered input: Shift+Capture, a transport edge, or a track change
+    /// (Move parity — all three clear the Capture LED).
+    pub fn capture_clear(&mut self) {
+        self.capture.clear();
+    }
+
+    pub fn capture_pending(&self, track: usize) -> usize {
+        self.capture.pending(track as u8)
+    }
+
     /// Record a live pad note-on. The UI sounds the note directly (zero
     /// latency); this only captures it for recording, so there's no double
     /// trigger. No-op unless recording this track.
     pub fn live_note_on(&mut self, track: usize, pitch: u8, vel: u8) {
+        self.capture_push(track, pitch, vel, true);
         if track < NUM_TRACKS && self.recording && track == self.rec_track {
             self.rec_pending.push(RecPending {
                 pitch,
@@ -681,6 +736,7 @@ impl Engine {
     /// Finalize a recorded note (start → now) into the clip on note-off,
     /// handling loop wrap. No-op unless recording this track.
     pub fn live_note_off(&mut self, track: usize, pitch: u8) {
+        self.capture_push(track, pitch, 0, false);
         if track >= NUM_TRACKS || !self.recording || track != self.rec_track {
             return;
         }
@@ -2357,6 +2413,39 @@ mod tests {
         // Only the bar-1 note (64) plays; the bar-0 note (60) is outside.
         assert!(ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 64, .. })));
         assert!(!ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 60, .. })));
+    }
+
+    #[test]
+    fn live_notes_buffer_for_capture_while_idle() {
+        let mut e = engine();
+        e.live_note_on(0, 60, 100);
+        e.live_note_off(0, 60);
+        assert_eq!(e.capture_pending(0), 1);
+    }
+
+    #[test]
+    fn armed_input_is_not_buffered() {
+        let mut e = engine();
+        e.play();
+        e.toggle_record(0); // punch-in: recording immediately, no count-in
+        assert!(e.recording);
+        e.live_note_on(0, 60, 100);
+        assert_eq!(e.capture_pending(0), 0, "the record path owns armed input");
+    }
+
+    #[test]
+    fn transport_edges_and_track_select_clear_the_buffer() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        e.live_note_on(0, 60, 100);
+        e.play();
+        assert_eq!(e.capture_pending(0), 0, "starting clears");
+        e.live_note_on(0, 60, 100);
+        e.stop(&mut out);
+        assert_eq!(e.capture_pending(0), 0, "stopping clears");
+        e.live_note_on(0, 60, 100);
+        crate::command::apply_batch(&mut e, "watch 1", &mut out);
+        assert_eq!(e.capture_pending(0), 0, "a track button clears");
     }
 
     #[test]

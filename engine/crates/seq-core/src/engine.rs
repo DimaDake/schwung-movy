@@ -1083,9 +1083,15 @@ impl Engine {
                 ev.clip_tick % span
             };
             let stored = (ev.pitch as i32 - transpose).clamp(0, 127) as u8;
+            // Unsuppressed, unlike live recording: suppression is there so a note
+            // you have only just played does not double-trigger as the playhead
+            // reaches it, but a captured note was played in the past. Anything
+            // now ahead of the playhead — a phrase that ran over the loop end —
+            // has to sound this time round rather than wait for the next repeat.
+            let step = ((tick + TICKS_PER_STEP / 2) / TICKS_PER_STEP) as u16;
             self.tracks[track]
                 .active_mut()
-                .record_note(tick, gate, stored, ev.vel);
+                .add_note_raw(step, tick, gate, stored, ev.vel);
             span_end = span_end.max(tick + gate);
             wrote = true;
         }
@@ -1094,6 +1100,13 @@ impl Engine {
             let bars = span_end.div_ceil(TICKS_PER_BAR).max(1);
             let len = (bars * STEPS_PER_BAR).min(MAX_STEPS as u32) as u16;
             self.tracks[track].clips[a].length_steps = len;
+        }
+        if wrote {
+            // Capturing into the selected slot makes it the one that plays —
+            // the same rule step entry follows, and the manual's "a new clip is
+            // created in the track, and the transport begins". A no-op when it
+            // is already the playing slot, which is the common case.
+            self.ensure_selected_playing(track);
         }
         wrote
     }
@@ -3025,6 +3038,47 @@ mod tests {
         assert!(e.recording);
         e.live_note_on(0, 60, 100);
         assert_eq!(e.capture_pending(0), 0, "the record path owns armed input");
+    }
+
+    #[test]
+    fn captured_notes_sound_in_the_pass_they_were_captured_in() {
+        // Jam across the loop end and capture just after it: the notes played
+        // before the wrap sit AHEAD of the playhead now, so they must sound this
+        // time round. Writing them suppressed (which is right for live
+        // recording, where you have only just played the note) made the take
+        // silent until the next repeat.
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.play();
+        run_ticks(&mut e, 14 * TICKS_PER_STEP as u64);
+        e.live_note_on(0, 67, 100);          // late in the bar
+        e.live_note_off(0, 67);
+        run_ticks(&mut e, 4 * TICKS_PER_STEP as u64);   // over the loop end
+        assert!(e.capture_commit(0), "the pre-wrap phrase is still buffered");
+        // Run to just before the next wrap: step 14 comes round inside this pass.
+        let ev = run_ticks(&mut e, 13 * TICKS_PER_STEP as u64);
+        assert!(
+            ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 67, .. })),
+            "the captured note played in this pass, not the next one"
+        );
+    }
+
+    #[test]
+    fn capturing_into_a_selected_slot_launches_it() {
+        // The slot you jammed over is the one you expect to hear afterwards,
+        // even if the track was playing something else (or nothing).
+        let mut e = engine();
+        e.play();
+        e.tracks[0].active_clip = 2;
+        e.tracks[0].playing_slot = None;
+        e.live_note_on(0, 60, 100);
+        e.live_note_off(0, 60);
+        assert!(e.capture_commit(0));
+        assert_eq!(
+            e.tracks[0].queued_slot, Some(2),
+            "the captured slot is launched, bar-quantized like step entry"
+        );
     }
 
     #[test]

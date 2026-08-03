@@ -53,6 +53,16 @@ function isRelease(data: number[]): boolean {
     return false;
 }
 
+/* A real press: a note-on with velocity (pad or knob touch), or a CC carrying a
+ * non-zero value (button down, knob or jog movement). Deliberately NOT
+ * `!isRelease(data)` — that treats anything unrecognised as a press, and the
+ * shim emits empty [0,0,0] packets that then read as one. The capture overlay
+ * was dismissing itself ~30 ms after it opened because of exactly that. */
+function isPress(data: number[]): boolean {
+    const type = data[0] & 0xF0;
+    return (type === 0x90 || type === 0xB0) && data[2] > 0;
+}
+
 function activeModel() {
     return appState.trackModels[appState.activeSlot]?.[appState.trackChainIndex[appState.activeSlot]];
 }
@@ -113,8 +123,8 @@ export function onMidiMessageInternal(data: number[]): void {
             captureJog(decodeDelta(data[2]));
             return;
         }
-        if (!isRelease(data)) {
-            captureDismiss();
+        if (isPress(data)) {
+            captureDismiss(data);
             return;
         }
     }

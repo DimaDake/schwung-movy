@@ -12,6 +12,7 @@ import { seqToast } from './render.js';
 import { scheduleTempoOverride } from './tempo-override.js';
 import { appState } from '../app/state.js';
 import { mlog } from '../log.js';
+import { markDeleteActed } from './edit-ops.js';
 
 export interface CaptureState {
     /* 'none' = no overlay; 'select' = pick a tempo; 'fixed' = explain the fit. */
@@ -82,20 +83,30 @@ export function captureTick(): void {
     if (info !== null) parseInfo(info);
 }
 
-/** Capture button. Shift clears the buffer; a bare tap keeps what was played. */
-export function captureButton(shift: boolean): void {
+/** Drop the buffered input — the view or the gesture has moved on. */
+export function captureClear(): void {
     if (!engineReady()) return;
-    const track = seqState.watchTrack;
-    if (shift) {
-        if (seqState.capPending > 0) seqToast('Capture cleared');
-        seqCmd('capclr ' + track);
-        seqState.capPending = 0;
+    seqCmd('capclr ' + seqState.watchTrack);
+    seqState.capPending = 0;
+}
+
+/* Capture button. Hold Clear and press it to throw the buffer away — Move puts
+ * that on Shift+Capture, but schwung's shim claims that combo for its skip-back
+ * recorder and never forwards it, so a clear bound there would look like it
+ * worked and do nothing. */
+export function captureButton(clearHeld: boolean): void {
+    if (!engineReady()) return;
+    if (clearHeld) {
+        markDeleteActed();   // this press consumed the Clear gesture
+        seqToast(seqState.capPending > 0 ? 'Capture cleared' : 'Nothing buffered');
+        captureClear();
         return;
     }
     if (seqState.capPending === 0) {
         seqToast('Nothing to capture');
         return;
     }
+    const track = seqState.watchTrack;
     seqCmd('cap ' + track);
     mlog('seq: capture commit trk=' + track + ' n=' + seqState.capPending);
     seqState.capPending = 0;
@@ -119,9 +130,10 @@ export function captureJog(delta: number): void {
 }
 
 /** Any button, pad or knob touch closes the overlay and releases the take. */
-export function captureDismiss(): void {
+export function captureDismiss(by?: number[]): void {
     if (captureState.overlay === 'none') return;
     captureState.overlay = 'none';
+    if (by) mlog('seq: capture dismissed by ' + by.map((b) => b.toString(16)).join(' '));
     seqCmd('capdone');
     appState.dirty = true;
 }

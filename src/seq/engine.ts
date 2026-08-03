@@ -201,9 +201,9 @@ function parseStatus(s: string): void {
         else if (key === 'rec') seqState.recording = val === '1';
         else if (key === 'cin') seqState.countingIn = val === '1';
         else if (key === 'cap') {
-            const [p, g] = val.split('.').map(Number);
-            seqState.capPending = p || 0;
-            seqState.capGen = g || 0;
+            const [p, g] = val.split('.');
+            seqState.capPending = Number(p) || 0;
+            seqState.capGen = Number(g) || 0;
         }
         else if (key === 'metro') seqState.metro = val === '1';
         else if (key === 'dirty') seqState.dirty = val === '1';

@@ -559,7 +559,11 @@ export function tick(): void {
      * master chain (Session mode) — it tracks the watched track's clip, which
      * is irrelevant while editing master FX. */
     const isBrowseView = appState.currentView === VIEW_BROWSE || appState.currentView === VIEW_FILE_BROWSE;
-    if (engineReady() && !seqToastActive() && !jogToastShown && !seqState.sessionMode && !isBrowseView) {
+    // The strip repaints every tick, outside the dirty-frame block, so anything
+    // that owns the whole screen has to be excluded here or the strip draws back
+    // over it a few milliseconds later.
+    if (engineReady() && !seqToastActive() && !jogToastShown && !seqState.sessionMode
+        && !isBrowseView && !captureOverlayActive()) {
         drawLoopStrip();
     }
 }

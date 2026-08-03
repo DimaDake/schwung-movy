@@ -18,7 +18,7 @@ import { openMainPage } from './main-page.js';
 import { openClipPage, closeClipPage, clipPageActive } from './clip-page.js';
 import { appState, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from '../app/state.js';
 import { releaseAllLive } from '../keyboard/release.js';
-import { captureButton } from './capture.js';
+import { captureButton, captureClear } from './capture.js';
 
 const CC_MUTE = 88;
 const CC_CAPTURE = 52;
@@ -224,6 +224,9 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
             // Session mode swallows pad note-offs (the pad branch above returns
             // true for 0x80 too), so a pad held across the switch would strand.
             releaseAllLive();
+            // Session is a different job from playing the pads, so whatever was
+            // buffered for Capture belongs to the view being left.
+            captureClear();
             seqState.sessionMode = true;
         } else if (momentaryUp(d1) === 'tap' && sessionPrev) {
             seqState.sessionMode = false; // tap while already in Session → back to Note
@@ -243,9 +246,9 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         return true;
     }
 
-    /* Capture: keep what was just played (Shift clears it instead). */
+    /* Capture: keep what was just played; hold Clear to throw it away. */
     if (d1 === CC_CAPTURE) {
-        if (d2 > 0) captureButton(shiftHeld);
+        if (d2 > 0) captureButton(deleteActive());
         return true;
     }
 

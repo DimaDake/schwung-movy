@@ -24,9 +24,14 @@ far. Earlier work is summarised in the timeline below for context.
   and the jog applies each as you pass it. When the tempo isn't ours to set —
   Move is clocking us, or the clip already has notes — the take is fitted to the
   existing tempo through whichever reading is closest, so the stretch is the
-  smallest one available. **Shift + Capture** throws the buffer away, as do a
-  transport edge, a track button, or a couple of bars of silence. Engine
-  `0.29.0`.
+  smallest one available. The buffer holds what you were *just* playing: every
+  pass of the loop, every deliberate edit (arming, step entry, clip and
+  automation edits), a track button, a transport edge, Session, two bars of
+  silence and an 8-bar ceiling all clear it. Engine `0.29.0`.
+
+  Hold **Clear** and press **Capture** to throw the buffer away by hand. Move
+  puts that on Shift + Capture, but schwung's shim claims that combo for its
+  skip-back recorder and never forwards it.
 
   *Prior art: schwung-davebox shipped capture on Schwung first. Movy's
   implementation is its own — davebox is PolyForm Noncommercial and Movy is MIT,

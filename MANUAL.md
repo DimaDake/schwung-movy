@@ -600,9 +600,25 @@ tempo you have. It picks whichever reading is closest, including half and double
 time, so the stretch is always the smallest one available — a phrase played at
 58 BPM against a 120 BPM set is fitted through 116, not doubled.
 
-To throw the buffer away, hold **Shift** and press **Capture**. Starting or
-stopping the transport and pressing a track button also clear it, as does a
-couple of bars of silence — the Capture button goes dark when it is empty.
+**What clears the buffer.** Capture keeps what you played while you were *just
+playing*, so anything that means you have moved on empties it — the Capture
+button goes dark when it does:
+
+- **Play or Stop**, and **pressing a track button**.
+- **Each pass of the loop** while the transport runs, so jamming over four
+  passes captures the last one instead of stacking all four into the same bar.
+- **Any deliberate edit** — arming Rec, entering or editing steps, changing the
+  clip length or loop, launching or deleting a clip, editing automation.
+- **Switching to Session.**
+- **Time**: a couple of bars of silence, and in any case only the last
+  **8 bars** of playing are ever kept. Without that ceiling, playing without
+  pausing for a minute would capture the whole minute.
+
+To throw it away by hand, hold **Clear** and press **Capture**.
+
+> **Not Shift + Capture.** Move clears the input that way, but on Schwung that
+> combo belongs to the skip-back recorder and never reaches Movy — you would see
+> "skipback saved" and the buffer would still be full. Hold **Clear** instead.
 
 > **Not captured:** knob moves. Move captures automation too; Movy captures
 > notes only. Record automation live instead (see the sequencer list above).
@@ -857,7 +873,7 @@ behaviour you'd like — or, better, a PR.
 | **Hold Rec + Right / Left** | Rest / step back — or tie / untie the chord being held. |
 | **Hold Rec + step button** | Jump the head to that step, clearing it if it had notes. |
 | **Capture** | Keep the notes you just played as clip data. Stopped → also reads a tempo and starts the transport. |
-| **Shift + Capture** | Throw the buffered input away. |
+| **Clear + Capture** | Throw the buffered input away. (Not Shift + Capture — that belongs to schwung's skip-back and never reaches Movy.) |
 | **Jog** (capture overlay) | Take another tempo — applied as you pass it. Any other press closes the overlay. |
 | **Note / Session** | Show the Session clip grid (momentary hold = peek, tap = latch). Pads launch clips. |
 | **Loop** | Toggle the bar/loop overview; hold + jog resizes the loop. |

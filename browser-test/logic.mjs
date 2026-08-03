@@ -1905,9 +1905,19 @@ _log('\nTest: drumPadOn');
     eq('capture commits the buffer', lastOp(), 'cap 0');
     eq('the button claims the event', seqHandleMidi([0xB0, 52, 0], false), true);
 
+    // Clear + Capture throws the buffer away. Not Shift + Capture: schwung's
+    // shim claims that combo for skip-back and never forwards it.
     parseStatusForTest('play=0 trk=0 cap=4.8');
+    const shiftBefore = peekSeqCmdQueue().length;
     seqHandleMidi([0xB0, 52, 127], true);
-    eq('shift+capture clears instead', lastOp(), 'capclr 0');
+    eq('shift+capture is still a plain capture', lastOp(), 'cap 0');
+    eq('shift is not a modifier here', peekSeqCmdQueue().length > shiftBefore, true);
+
+    parseStatusForTest('play=0 trk=0 cap=4.9');
+    seqHandleMidi([0xB0, 119, 127], false);   // hold Clear
+    seqHandleMidi([0xB0, 52, 127], false);    // + Capture
+    eq('clear+capture drops the buffer', lastOp(), 'capclr 0');
+    seqHandleMidi([0xB0, 119, 0], false);     // release Clear
 
     // Nothing buffered: say so rather than sending a no-op the engine ignores.
     resetSeqToast();

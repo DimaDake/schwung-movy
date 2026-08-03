@@ -1043,16 +1043,20 @@ impl Engine {
         self.tracks[track].active_mut().ensure_exists();
         let fresh = self.tracks[track].active().notes.is_empty();
         let span = self.tracks[track].active().length_ticks().max(1);
-        let Some((first_abs, first_ct)) = self
+        let loop_start = self.tracks[track].active().loop_start_ticks();
+        let Some(first_abs) = self
             .capture
             .iter()
             .find(|e| e.track == track as u8 && e.on)
-            .map(|e| (e.abs_tick, e.clip_tick))
+            .map(|e| e.abs_tick)
         else {
             return false;
         };
 
         let now_abs = self.master_tick as u32;
+        // Where in the transport's bar the phrase began — the phase a
+        // bar-quantized launch has to preserve.
+        let first_phase = first_abs % TICKS_PER_BAR;
         let evs: Vec<CapEvent> = self.capture.iter().copied().collect();
         let transpose = self.active_clip_transpose(track);
         let mut used = vec![false; evs.len()];
@@ -1074,11 +1078,16 @@ impl Engine {
                 }
             });
             let gate = end.unwrap_or(now_abs).saturating_sub(ev.abs_tick).max(1);
-            // A first take is laid out unwrapped from where the phrase began, so
-            // a phrase longer than the clip extends it instead of folding back
-            // onto itself; an overdub wraps into the loop that already exists.
+            // A first take keeps the phase it was played at: the transport's
+            // bar grid already exists, so a phrase that started on beat three
+            // has to come back on beat three, not slide onto step 1. From there
+            // it is laid out unwrapped, so a phrase longer than the clip extends
+            // it instead of folding back onto itself. (A capture made while
+            // STOPPED is the other case — no grid exists yet, so there the first
+            // note does define the start.) An overdub wraps into the loop that
+            // already exists.
             let tick = if fresh {
-                first_ct + ev.abs_tick.saturating_sub(first_abs)
+                loop_start + first_phase + ev.abs_tick.saturating_sub(first_abs)
             } else {
                 ev.clip_tick % span
             };
@@ -1102,11 +1111,21 @@ impl Engine {
             self.tracks[track].clips[a].length_steps = len;
         }
         if wrote {
-            // Capturing into the selected slot makes it the one that plays —
-            // the same rule step entry follows, and the manual's "a new clip is
-            // created in the track, and the transport begins". A no-op when it
-            // is already the playing slot, which is the common case.
-            self.ensure_selected_playing(track);
+            if fresh {
+                // A first take has no grid of its own to fall into, so it gets
+                // the transport's: launched on the bar like any other clip, so
+                // it lines up with the other tracks. ensure_selected_playing is
+                // not enough — a note-less clip is already the playing slot, so
+                // it would no-op and the take would start wherever the playhead
+                // had got to. The tempo stays the transport's throughout; only a
+                // capture made while stopped ever sets one.
+                self.tracks[track].queued_slot = Some(a);
+                self.tracks[track].pending_stop = false;
+            } else {
+                // An overdub belongs to the pass already running — the manual's
+                // "the captured material will then be added to the clip".
+                self.ensure_selected_playing(track);
+            }
         }
         wrote
     }
@@ -3061,6 +3080,63 @@ mod tests {
         assert!(
             ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 67, .. })),
             "the captured note played in this pass, not the next one"
+        );
+    }
+
+    #[test]
+    fn an_empty_clip_captured_while_playing_launches_on_the_bar() {
+        // Transport running, nothing in this clip yet: the take keeps the
+        // transport's tempo and falls in on the bar like any other clip launch,
+        // rather than starting wherever the playhead happened to be.
+        let mut e = engine();
+        e.play();
+        let bpm = e.clock.bpm_x100();
+        run_ticks(&mut e, 5 * TICKS_PER_STEP as u64);   // mid-bar
+        e.live_note_on(0, 67, 100);
+        e.live_note_off(0, 67);
+        e.live_note_on(0, 69, 100);
+        e.live_note_off(0, 69);
+        assert!(e.capture_commit(0));
+        assert_eq!(e.clock.bpm_x100(), bpm, "the transport's tempo is kept");
+        let a = e.tracks[0].active_clip;
+        assert_eq!(
+            e.tracks[0].queued_slot, Some(a),
+            "queued, not started mid-bar"
+        );
+        let first = e.tracks[0].active().notes.iter().map(|n| n.tick).min().unwrap();
+        assert_eq!(
+            first,
+            e.tracks[0].active().loop_start_ticks() + 5 * TICKS_PER_STEP,
+            "the take keeps the phase it was played at, not snapped to step 1"
+        );
+        // On the next bar the launch fires and the clip plays from its start.
+        run_ticks(&mut e, crate::TICKS_PER_BAR as u64);
+        assert_eq!(e.tracks[0].playing_slot, Some(a));
+    }
+
+    #[test]
+    fn a_note_less_clip_that_is_already_the_playing_slot_still_launches_on_the_bar() {
+        // The clip exists (it was created, or its notes were deleted) but holds
+        // nothing, so it is already this track's playing slot and its playhead
+        // is running. Without a re-launch the take lands wherever the playhead
+        // had got to and never lines up with the bar.
+        let mut e = engine();
+        e.tracks[0].active_mut().ensure_exists();
+        e.play();
+        let bpm = e.clock.bpm_x100();
+        run_ticks(&mut e, 5 * TICKS_PER_STEP as u64);   // mid-bar
+        assert!(e.tracks[0].pos_tick > 0, "the playhead really is mid-bar");
+        e.live_note_on(0, 67, 100);
+        e.live_note_off(0, 67);
+        assert!(e.capture_commit(0));
+        assert_eq!(e.clock.bpm_x100(), bpm, "the transport's tempo is kept");
+        let a = e.tracks[0].active_clip;
+        assert_eq!(e.tracks[0].queued_slot, Some(a), "re-launched on the bar");
+        let first = e.tracks[0].active().notes.iter().map(|n| n.tick).min().unwrap();
+        assert_eq!(
+            first,
+            e.tracks[0].active().loop_start_ticks() + 5 * TICKS_PER_STEP,
+            "the take keeps the phase it was played at, not snapped to step 1"
         );
     }
 

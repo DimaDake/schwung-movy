@@ -20,7 +20,10 @@ far. Earlier work is summarised in the timeline below for context.
   whenever the track isn't recording; a capture while the transport runs lands
   the phrase where you heard it, and one made while stopped reads a tempo off
   your playing, sizes the clip, and starts the transport so you hear the take at
-  once. Three tempo candidates are offered on screen in the big Set-page font
+  once. Captured while the transport runs, a first take keeps the transport's
+  tempo, keeps the beat it was played on, and launches on the bar like any
+  other clip; an overdub joins the pass
+  already running. Three tempo candidates are offered on screen in the big Set-page font
   and the jog applies each as you pass it. When the tempo isn't ours to set —
   Move is clocking us, or the clip already has notes — the take is fitted to the
   existing tempo through whichever reading is closest, so the stretch is the

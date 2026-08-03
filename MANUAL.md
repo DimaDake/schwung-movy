@@ -573,9 +573,9 @@ on the transport:
 
 | Transport | Clip | What you get |
 | --- | --- | --- |
-| Playing | empty | The phrase from the first note you played, and the clip grows to whole bars around it. |
+| Playing | empty | The phrase you just played, keeping the tempo and the beat you played it on, with the clip grown to whole bars around it. It falls in **on the bar**, like any other clip launch, so it lines up with your other tracks. |
 | Playing | has notes | An overdub: each note lands where you heard it, and the clip keeps its length. |
-| Stopped | empty | A new take — Movy reads a tempo off your playing, sizes the clip, and starts the transport so you hear it at once. |
+| Stopped | empty | A new take — Movy reads a tempo off your playing, sizes the clip, and starts the transport so you hear it at once. With no transport running there is no beat to hold on to, so here the first note you played *is* the start of the clip. |
 | Stopped | has notes | The take is fitted to the tempo you already have (see below). |
 
 After a **stopped** capture the screen shows what happened and stays until you

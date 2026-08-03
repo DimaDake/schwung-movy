@@ -733,12 +733,33 @@ impl Engine {
         if self.recording && track == self.rec_track {
             return;
         }
+        // Coming round the loop and playing over a spot you already covered
+        // means you are redoing that part, not adding to it — so the earlier
+        // pass goes and Capture takes the one you are playing now. Positions
+        // that don't collide keep accumulating, so a phrase that crosses the
+        // loop end survives intact (clearing at the wrap itself would eat it).
+        // The cycle check is what keeps a chord — several notes at one position
+        // in the same pass — from clearing itself.
+        let here = self.tracks[track].pos_tick;
+        let cycle = self.tracks[track].cycle;
+        if on && self.playing {
+            let stale = self.capture.iter().any(|e| {
+                e.on
+                    && e.track == track as u8
+                    && e.cycle != cycle
+                    && e.clip_tick.abs_diff(here) < TICKS_PER_STEP
+            });
+            if stale {
+                self.capture.clear();
+            }
+        }
         let gap = self.capture_gap_frames();
         let window = CAPTURE_MAX_BARS as u64 * self.capture_bar_frames();
         let ev = CapEvent {
             frame: self.frame_now,
             abs_tick: self.master_tick as u32,
-            clip_tick: self.tracks[track].pos_tick,
+            clip_tick: here,
+            cycle,
             track: track as u8,
             on,
             pitch,
@@ -1486,12 +1507,6 @@ impl Engine {
                         self.tracks[ti].pos_tick = start;
                         self.tracks[ti].clips[slot].release_suppressed();
                         self.tracks[ti].cycle = self.tracks[ti].cycle.wrapping_add(1);
-                        // A pass of the loop is the natural take while playing:
-                        // jam over four passes and Capture should keep the last
-                        // one, not stack all four into the same bar.
-                        if ti == self.watch_track {
-                            self.capture.clear();
-                        }
                     }
                 }
                 // Parameter automation: emit on step entry (revert-to-base).
@@ -3013,7 +3028,7 @@ mod tests {
     }
 
     #[test]
-    fn each_pass_of_the_loop_starts_a_fresh_take() {
+    fn replaying_the_same_spot_next_time_round_drops_the_earlier_pass() {
         let mut e = engine();
         e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
         e.tracks[0].active_mut().set_loop(0, 16);
@@ -3021,12 +3036,46 @@ mod tests {
         run_ticks(&mut e, 2 * TICKS_PER_STEP as u64);
         e.live_note_on(0, 67, 100);
         e.live_note_off(0, 67);
-        assert_eq!(e.capture_pending(0), 1, "buffered during this pass");
-        run_ticks(&mut e, crate::TICKS_PER_BAR as u64);   // over the loop end
+        assert_eq!(e.capture_pending(0), 1);
+        // All the way round to the same spot, and play there again.
+        run_ticks(&mut e, crate::TICKS_PER_BAR as u64);
+        e.live_note_on(0, 69, 100);
         assert_eq!(
-            e.capture_pending(0), 0,
-            "the previous pass does not follow you into the next one"
+            e.capture_pending(0), 1,
+            "the earlier pass over this spot went; only the new note is buffered"
         );
+    }
+
+    #[test]
+    fn a_phrase_that_crosses_the_loop_end_survives() {
+        // The old rule cleared at the wrap itself, which ate everything played
+        // in the run-up to it — exactly the phrase you most want to keep.
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.play();
+        run_ticks(&mut e, 14 * TICKS_PER_STEP as u64);
+        e.live_note_on(0, 67, 100);           // late in the bar
+        e.live_note_off(0, 67);
+        run_ticks(&mut e, 4 * TICKS_PER_STEP as u64);  // over the loop end
+        e.live_note_on(0, 69, 100);           // early in the next bar
+        e.live_note_off(0, 69);
+        assert_eq!(e.capture_pending(0), 2, "both halves of the phrase are kept");
+    }
+
+    #[test]
+    fn a_chord_does_not_clear_itself() {
+        // Every note of a chord lands at one position in one pass; only an
+        // earlier pass counts as "you played over that again".
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[0].active_mut().set_loop(0, 16);
+        e.play();
+        run_ticks(&mut e, 2 * TICKS_PER_STEP as u64);
+        e.live_note_on(0, 60, 100);
+        e.live_note_on(0, 64, 100);
+        e.live_note_on(0, 67, 100);
+        assert_eq!(e.capture_pending(0), 3, "the whole chord is buffered");
     }
 
     #[test]

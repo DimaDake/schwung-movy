@@ -24,8 +24,8 @@ far. Earlier work is summarised in the timeline below for context.
   and the jog applies each as you pass it. When the tempo isn't ours to set —
   Move is clocking us, or the clip already has notes — the take is fitted to the
   existing tempo through whichever reading is closest, so the stretch is the
-  smallest one available. The buffer holds what you were *just* playing: every
-  pass of the loop, every deliberate edit (arming, step entry, clip and
+  smallest one available. The buffer holds what you were *just* playing: replaying
+  a spot the loop has already carried you past, every deliberate edit (arming, step entry, clip and
   automation edits), a track button, a transport edge, Session, two bars of
   silence and an 8-bar ceiling all clear it. Engine `0.29.0`.
 

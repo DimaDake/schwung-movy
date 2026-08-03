@@ -21,7 +21,7 @@ import { holdTouch, holdRelease, holdTurnCancel, assignActive, assignCycle, assi
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
 import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm } from '../app/leave-modal.js';
-import { captureOverlayActive, captureJog, captureDismiss } from '../seq/capture.js';
+import { captureOverlayActive, captureOverlayAction, captureJog, captureDismiss } from '../seq/capture.js';
 import { resetHeldInput } from '../app/input-reset.js';
 import { jogHintTouch } from '../app/jog-hint.js';
 import { MASTER_CC, volumeTrackDown, volumeTrackUp, volumeTouch, volumeKnobDelta } from '../mixer/track-volume.js';
@@ -51,16 +51,6 @@ function isRelease(data: number[]): boolean {
         return data[2] === 0;
     }
     return false;
-}
-
-/* A real press: a note-on with velocity (pad or knob touch), or a CC carrying a
- * non-zero value (button down, knob or jog movement). Deliberately NOT
- * `!isRelease(data)` — that treats anything unrecognised as a press, and the
- * shim emits empty [0,0,0] packets that then read as one. The capture overlay
- * was dismissing itself ~30 ms after it opened because of exactly that. */
-function isPress(data: number[]): boolean {
-    const type = data[0] & 0xF0;
-    return (type === 0x90 || type === 0xB0) && data[2] > 0;
 }
 
 function activeModel() {
@@ -119,14 +109,10 @@ export function onMidiMessageInternal(data: number[]): void {
     // the clip you just captured is not a trade worth offering. Releases fall
     // through so no handler is left holding a button that never came up.
     if (captureOverlayActive()) {
-        if ((data[0] & 0xF0) === 0xB0 && data[1] === MoveMainKnob) {
-            captureJog(decodeDelta(data[2]));
-            return;
-        }
-        if (isPress(data)) {
-            captureDismiss(data);
-            return;
-        }
+        const action = captureOverlayAction(data);
+        if (action === 'jog') { captureJog(decodeDelta(data[2])); return; }
+        if (action === 'swallow') return;
+        if (action === 'dismiss') { captureDismiss(data); return; }
     }
 
     if (leaveModalActive()) {

@@ -14,6 +14,10 @@ import { appState } from '../app/state.js';
 import { mlog } from '../log.js';
 import { markDeleteActed } from './edit-ops.js';
 
+/* Note 9 — the main encoder's capacitive touch (knob touches are notes 0-7,
+ * note 8 is the master/volume knob). */
+const JOG_TOUCH = 9;
+
 export interface CaptureState {
     /* 'none' = no overlay; 'select' = pick a tempo; 'fixed' = explain the fit. */
     overlay: 'none' | 'select' | 'fixed';
@@ -127,6 +131,25 @@ export function captureJog(delta: number): void {
     // Move's tempo follows movy's, exactly as it does for the TEMPO knob.
     scheduleTempoOverride(captureState.bpm * 100);
     appState.dirty = true;
+}
+
+/* What a MIDI message means while the overlay is up. */
+export type OverlayAction = 'jog' | 'swallow' | 'dismiss' | 'through';
+
+/* The jog is the overlay's own control, and its capacitive touch (note 9) lands
+ * before the first detent — dismissing on that closed the overlay just as you
+ * reached for the tempo. Its touch and release are swallowed so nothing behind
+ * the overlay acts on them either.
+ *
+ * Everything else that is a real press dismisses. Note the test is for a press,
+ * not for "not a release": the shim emits empty [0,0,0] packets, and treating
+ * those as presses dismissed the overlay ~30 ms after it opened. */
+export function captureOverlayAction(data: number[]): OverlayAction {
+    const type = data[0] & 0xF0;
+    if (type === 0xB0 && data[1] === MoveMainKnob) return 'jog';
+    if ((type === 0x90 || type === 0x80) && data[1] === JOG_TOUCH) return 'swallow';
+    if ((type === 0x90 || type === 0xB0) && data[2] > 0) return 'dismiss';
+    return 'through';
 }
 
 /** Any button, pad or knob touch closes the overlay and releases the take. */

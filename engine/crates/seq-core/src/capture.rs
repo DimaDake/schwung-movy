@@ -26,6 +26,9 @@ pub struct CapEvent {
     pub abs_tick: u32,
     /// The track's playhead position within its clip at arrival.
     pub clip_tick: u32,
+    /// The track's loop cycle at arrival, so events from an earlier pass can be
+    /// told from the chord you are playing right now.
+    pub cycle: u32,
     pub track: u8,
     pub on: bool,
     pub pitch: u8,
@@ -244,7 +247,7 @@ mod tests {
     use super::*;
 
     fn ev(frame: u64, track: u8, on: bool, pitch: u8) -> CapEvent {
-        CapEvent { frame, abs_tick: 0, clip_tick: 0, track, on, pitch, vel: 100 }
+        CapEvent { frame, abs_tick: 0, clip_tick: 0, cycle: 0, track, on, pitch, vel: 100 }
     }
 
     #[test]

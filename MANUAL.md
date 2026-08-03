@@ -605,8 +605,10 @@ playing*, so anything that means you have moved on empties it — the Capture
 button goes dark when it does:
 
 - **Play or Stop**, and **pressing a track button**.
-- **Each pass of the loop** while the transport runs, so jamming over four
-  passes captures the last one instead of stacking all four into the same bar.
+- **Playing over a spot you already covered**, once the loop has come round —
+  that means you are redoing that part, so the earlier pass goes and Capture
+  takes the one you just played. Notes that land somewhere new keep
+  accumulating, so a phrase that runs across the loop end stays whole.
 - **Any deliberate edit** — arming Rec, entering or editing steps, changing the
   clip length or loop, launching or deleting a clip, editing automation.
 - **Switching to Session.**

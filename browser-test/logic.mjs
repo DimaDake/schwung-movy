@@ -1946,6 +1946,19 @@ _log('\nTest: drumPadOn');
     captureJog(1);
     eq('a fixed tempo has nothing to pick', peekSeqCmdQueue().length, fixedOps);
 
+    // What each message means while the overlay is up. The jog touch lands
+    // before the first detent, so it must not be a dismissal; the shim's empty
+    // packets must not be either.
+    const { captureOverlayAction } = await import('../dist/esm/seq/capture.js');
+    eq('jog turn selects',            captureOverlayAction([0xB0, 14, 1]), 'jog');
+    eq('jog touch is not a dismiss',  captureOverlayAction([0x90, 9, 127]), 'swallow');
+    eq('jog release is not either',   captureOverlayAction([0x80, 9, 0]), 'swallow');
+    eq('an empty packet does nothing', captureOverlayAction([0, 0, 0]), 'through');
+    eq('a pad press dismisses',       captureOverlayAction([0x90, 70, 110]), 'dismiss');
+    eq('a button press dismisses',    captureOverlayAction([0xB0, 85, 127]), 'dismiss');
+    eq('a jog click dismisses',       captureOverlayAction([0xB0, 3, 127]), 'dismiss');
+    eq('a pad release passes through', captureOverlayAction([0x80, 70, 0]), 'through');
+
     eq('the overlay is up', captureOverlayActive(), true);
     captureDismiss();
     eq('dismissing releases the take', lastOp(), 'capdone');

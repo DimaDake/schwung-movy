@@ -62,6 +62,7 @@ impl Instance {
     fn get_param(&mut self, key: &str) -> Option<String> {
         match key {
             "status" => Some(self.engine.status()),
+            "capinfo" => Some(self.engine.capture_info()),
             "alabels" => Some(self.engine.auto_labels()),
             "ping" => Some(format!("pong {ENGINE_VERSION}")),
             // Serialize for autosave; reading it clears the dirty flag (the UI

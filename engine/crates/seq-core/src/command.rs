@@ -238,6 +238,15 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
         "capclr" => {
             engine.capture_clear();
         }
+        // capsel <i> — apply another tempo candidate from the post-capture
+        // selector (jog turn).
+        "capsel" => {
+            if let Some(i) = next() {
+                engine.capture_select(i.max(0) as usize);
+            }
+        }
+        // capdone — dismiss the post-capture overlay, releasing the take.
+        "capdone" => engine.capture_done(),
         // metro <0|1> — metronome on/off.
         "metro" => {
             if let Some(v) = next() {

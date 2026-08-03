@@ -3,7 +3,7 @@
 //! them into host MIDI sends. One Engine instance == the whole 4-track
 //! sequencer.
 
-use crate::capture::{CapEvent, CaptureRing};
+use crate::capture::{estimate_tempos, CapEvent, CapMode, CapWhy, CaptureRing, TempoGuess};
 use crate::clip::{Clip, Lock, MAX_STEPS};
 use crate::clock::Clock;
 use crate::track::{Track, CLIPS_PER_TRACK, NUM_TRACKS};
@@ -78,6 +78,17 @@ pub struct Engine {
     rec_pending: Vec<RecPending>,
     /// Retroactive capture input (Move manual §14.3). Runtime-only.
     capture: CaptureRing,
+    /// A stopped capture's take, frame-stamped, kept while the overlay is up so
+    /// the selector can re-derive it at any tempo without accumulating rounding.
+    cap_take: Vec<CapEvent>,
+    cap_take_first: u64,
+    cap_track: usize,
+    cap_guess: Option<TempoGuess>,
+    cap_sel: usize,
+    cap_mode: CapMode,
+    cap_why: CapWhy,
+    /// How far the fitted take had to be stretched, in per mille (fixed mode).
+    cap_stretch_permille: i32,
     /// Bumped on every commit / selector change so the UI knows to re-read
     /// `capinfo` without polling it every tick.
     capture_gen: u32,
@@ -149,6 +160,13 @@ pub struct Engine {
     pub link_enabled: bool,
 }
 
+/// How far apart two tempos are, as a ratio >= 1 — direction-agnostic, so a
+/// candidate above and below the target compare fairly.
+fn cand_ratio(a: u32, b: u32) -> f64 {
+    let (a, b) = (a as f64, b.max(1) as f64);
+    if a > b { a / b } else { b / a }
+}
+
 #[derive(Clone, Copy)]
 struct ClipboardNote {
     rel_step: u16,
@@ -178,6 +196,14 @@ impl Engine {
             rec_pending: Vec::new(),
             capture: CaptureRing::new(),
             capture_gen: 0,
+            cap_take: Vec::new(),
+            cap_take_first: 0,
+            cap_track: 0,
+            cap_guess: None,
+            cap_sel: 0,
+            cap_mode: CapMode::None,
+            cap_why: CapWhy::None,
+            cap_stretch_permille: 0,
             master_tick: 0,
             dirty: false,
             gates: Vec::with_capacity(128),
@@ -693,6 +719,11 @@ impl Engine {
         if track >= NUM_TRACKS || self.count_in_left > 0 {
             return;
         }
+        // The post-capture overlay owns the frozen take: anything played while
+        // auditioning candidates would otherwise be glued onto the next commit.
+        if self.cap_mode != CapMode::None {
+            return;
+        }
         if self.recording && track == self.rec_track {
             return;
         }
@@ -725,13 +756,242 @@ impl Engine {
         if track >= NUM_TRACKS || self.capture.pending(track as u8) == 0 {
             return false;
         }
-        let wrote = self.capture_commit_playing(track);
+        let wrote = if self.playing {
+            self.capture_commit_playing(track)
+        } else {
+            self.capture_commit_stopped(track)
+        };
         if wrote {
             self.capture.clear();
             self.capture_gen = self.capture_gen.wrapping_add(1);
             self.dirty = true;
         }
         wrote
+    }
+
+    /// Capture with the transport stopped: freeze the take, work out a tempo
+    /// for it, write it into the clip and roll so it plays back at once.
+    ///
+    /// Move detects a tempo for a fresh take only. An overdub inherits the
+    /// clip's grid, and under an external clock the tempo is not ours at all —
+    /// in both those cases the take is fitted to the tempo that already exists,
+    /// through whichever candidate sits closest to it (so, with the half- and
+    /// double-time readings in the list, the smallest possible stretch).
+    fn capture_commit_stopped(&mut self, track: usize) -> bool {
+        self.cap_take = self
+            .capture
+            .iter()
+            .copied()
+            .filter(|e| e.track == track as u8)
+            .collect();
+        let Some(first) = self.cap_take.iter().find(|e| e.on).map(|e| e.frame) else {
+            return false;
+        };
+        let last = self.cap_take.last().map(|e| e.frame).unwrap_or(first);
+        self.cap_take_first = first;
+        self.cap_track = track;
+
+        let onsets: Vec<u64> = self
+            .cap_take
+            .iter()
+            .filter(|e| e.on)
+            .map(|e| e.frame - first)
+            .collect();
+        let span = last.saturating_sub(first);
+        self.cap_guess = estimate_tempos(&onsets, span, self.clock.sample_rate());
+
+        let clip_has_notes = !self.tracks[track].active().notes.is_empty();
+        let existing = (self.clock.bpm_x100() / 100).max(1);
+        self.cap_why = if self.ext_running {
+            CapWhy::Ext
+        } else if clip_has_notes {
+            CapWhy::Notes
+        } else {
+            CapWhy::None
+        };
+        let free = self.cap_why == CapWhy::None;
+
+        let grid_bpm = match &self.cap_guess {
+            Some(g) if free => {
+                self.cap_sel = g.best;
+                g.cands[g.best]
+            }
+            Some(g) => {
+                let i = (0..g.n)
+                    .min_by(|&a, &b| {
+                        cand_ratio(g.cands[a], existing)
+                            .partial_cmp(&cand_ratio(g.cands[b], existing))
+                            .unwrap_or(core::cmp::Ordering::Equal)
+                    })
+                    .unwrap_or(0);
+                self.cap_sel = i;
+                g.cands[i]
+            }
+            None => {
+                self.cap_sel = 0;
+                existing
+            }
+        };
+        self.cap_stretch_permille = (existing as i64 * 1000 / grid_bpm.max(1) as i64) as i32 - 1000;
+        let candidates = self.cap_guess.as_ref().map_or(0, |g| g.n);
+        self.cap_mode = if free && candidates > 1 {
+            CapMode::Select
+        } else if !free {
+            CapMode::Fixed
+        } else {
+            CapMode::None
+        };
+
+        let wrote = self.capture_write_take(grid_bpm, free, clip_has_notes);
+        if wrote {
+            self.play();
+        } else {
+            self.cap_mode = CapMode::None;
+            self.cap_take.clear();
+        }
+        wrote
+    }
+
+    /// Write the frozen take into the track's active clip at `grid_bpm`.
+    /// `set_tempo` applies that tempo to the transport; `keep_length` overdubs
+    /// into the existing loop instead of resizing the clip to the take.
+    /// Re-runnable: the selector calls it once per candidate.
+    fn capture_write_take(&mut self, grid_bpm: u32, set_tempo: bool, keep_length: bool) -> bool {
+        let track = self.cap_track;
+        let a = self.tracks[track].active_clip;
+        self.tracks[track].active_mut().ensure_exists();
+        let frames_per_tick =
+            self.clock.sample_rate() as f64 * 60.0 / (grid_bpm.max(1) as f64 * PPQN as f64);
+        let span_ticks = self.tracks[track].active().length_ticks().max(1);
+        let loop_start = self.tracks[track].active().loop_start_ticks();
+        let len_steps = self.tracks[track].active().length_steps;
+        if !keep_length {
+            self.tracks[track]
+                .active_mut()
+                .delete_range(0, MAX_STEPS - 1, None);
+        }
+
+        let take = core::mem::take(&mut self.cap_take);
+        let first = self.cap_take_first;
+        let transpose = self.active_clip_transpose(track);
+        let mut used = vec![false; take.len()];
+        let mut span_end = 0u32;
+        let mut wrote = false;
+
+        for i in 0..take.len() {
+            let ev = take[i];
+            if !ev.on {
+                continue;
+            }
+            let off = take[i + 1..].iter().enumerate().find_map(|(j, o)| {
+                let k = i + 1 + j;
+                if !o.on && o.pitch == ev.pitch && !used[k] {
+                    used[k] = true;
+                    Some(o.frame)
+                } else {
+                    None
+                }
+            });
+            let to_ticks = |f: u64| (f as f64 / frames_per_tick).round() as u32;
+            let start = to_ticks(ev.frame - first);
+            let gate = off
+                .map(|f| to_ticks(f.saturating_sub(ev.frame)).max(1))
+                .unwrap_or(TICKS_PER_STEP);
+            let tick = if keep_length {
+                loop_start + start % span_ticks
+            } else {
+                start
+            };
+            let mut step = ((tick + TICKS_PER_STEP / 2) / TICKS_PER_STEP) as u16;
+            if keep_length {
+                step = step.min(len_steps.saturating_sub(1));
+            }
+            let stored = (ev.pitch as i32 - transpose).clamp(0, 127) as u8;
+            self.tracks[track]
+                .active_mut()
+                .add_note_raw(step, tick, gate, stored, ev.vel);
+            span_end = span_end.max(start + gate);
+            wrote = true;
+        }
+        self.cap_take = take;
+
+        if !keep_length && wrote {
+            let bars = span_end.div_ceil(TICKS_PER_BAR).max(1);
+            let len = (bars * STEPS_PER_BAR).min(MAX_STEPS as u32) as u16;
+            self.tracks[track].clips[a].length_steps = len;
+        }
+        if set_tempo {
+            self.clock.set_bpm_x100(grid_bpm * 100);
+        }
+        wrote
+    }
+
+    /// Apply another tempo candidate from the post-capture selector, re-deriving
+    /// the take so the performance keeps its real-time feel at every tempo.
+    pub fn capture_select(&mut self, idx: usize) {
+        if self.cap_mode != CapMode::Select {
+            return;
+        }
+        let Some(bpm) = self
+            .cap_guess
+            .as_ref()
+            .filter(|g| idx < g.n)
+            .map(|g| g.cands[idx])
+        else {
+            return;
+        };
+        self.cap_sel = idx;
+        self.capture_write_take(bpm, true, false);
+        self.capture_gen = self.capture_gen.wrapping_add(1);
+        self.dirty = true;
+    }
+
+    /// Dismiss the post-capture overlay and release the frozen take.
+    pub fn capture_done(&mut self) {
+        if self.cap_mode == CapMode::None {
+            return;
+        }
+        self.cap_mode = CapMode::None;
+        self.cap_take.clear();
+        self.capture_gen = self.capture_gen.wrapping_add(1);
+    }
+
+    /// Overlay detail, read once per `capture_gen` change (the per-tick status
+    /// poll only carries the pending count and that generation).
+    pub fn capture_info(&self) -> String {
+        let mode = match self.cap_mode {
+            CapMode::Select => "sel",
+            CapMode::Fixed => "fix",
+            CapMode::None => "none",
+        };
+        let why = match self.cap_why {
+            CapWhy::Ext => "ext",
+            CapWhy::Notes => "notes",
+            CapWhy::None => "",
+        };
+        let cands = match (&self.cap_guess, self.cap_mode) {
+            (Some(g), CapMode::Select) => g.cands[..g.n]
+                .iter()
+                .map(|b| b.to_string())
+                .collect::<Vec<_>>()
+                .join(","),
+            // Fixed mode shows "played → set", not a list to scroll.
+            _ => String::new(),
+        };
+        let det = self
+            .cap_guess
+            .as_ref()
+            .map(|g| g.cands[self.cap_sel.min(g.n.saturating_sub(1))])
+            .unwrap_or(0);
+        let bars = (self.tracks[self.cap_track].active().length_steps as u32)
+            .div_ceil(STEPS_PER_BAR)
+            .max(1);
+        format!(
+            "mode={mode} cands={cands} idx={} det={det} bpm={} why={why} bars={bars} stretch={}",
+            self.cap_sel,
+            self.clock.bpm_x100() / 100,
+            self.cap_stretch_permille,
+        )
     }
 
     /// Capture into a running transport: the take lands where it was heard.
@@ -2494,6 +2754,128 @@ mod tests {
         // Only the bar-1 note (64) plays; the bar-0 note (60) is outside.
         assert!(ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 64, .. })));
         assert!(!ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 60, .. })));
+    }
+
+    /// Play `n` eighth notes at `bpm` into the capture buffer, transport
+    /// stopped. `ext` keeps an external clock alive across the take (it goes
+    /// stale after 0.5 s of silence).
+    fn play_take(e: &mut Engine, bpm: f64, n: usize, ext: bool) {
+        let mut out = Vec::new();
+        let step = (RATE as f64 * 60.0 / bpm / 2.0) as u32;
+        for _ in 0..n {
+            e.live_note_on(0, 60, 100);
+            e.live_note_off(0, 60);
+            // An external clock must arrive at a plausible 24 PPQN rate (here
+            // 120 BPM): the engine reads its tempo from the tick interval.
+            let chunk_size = if ext { RATE * 60 / (120 * 24) } else { RATE / 8 };
+            let mut left = step;
+            while left > 0 {
+                let chunk = left.min(chunk_size);
+                e.advance_block(chunk, &mut out);
+                if ext {
+                    e.on_external_realtime(0xF8, &mut out);
+                }
+                left -= chunk;
+            }
+        }
+    }
+
+    fn info_field(info: &str, key: &str) -> String {
+        info.split_whitespace()
+            .find_map(|kv| kv.strip_prefix(&format!("{key}=")))
+            .unwrap_or("")
+            .to_string()
+    }
+
+    #[test]
+    fn stopped_capture_sets_the_tempo_and_rolls() {
+        let mut e = engine();
+        play_take(&mut e, 100.0, 16, false);
+        assert!(e.capture_commit(0));
+        assert_eq!(e.clock.bpm_x100(), 10000, "the detected tempo is applied");
+        assert!(e.playing, "the take plays back immediately");
+        assert_eq!(info_field(&e.capture_info(), "mode"), "sel");
+        assert!(
+            e.tracks[0].active().notes.iter().all(|n| !n.suppress),
+            "a stopped capture is meant to be heard at once"
+        );
+    }
+
+    #[test]
+    fn selecting_another_candidate_retimes_the_take() {
+        let mut e = engine();
+        play_take(&mut e, 100.0, 16, false);
+        assert!(e.capture_commit(0));
+        let len_at_100 = e.tracks[0].active().length_steps;
+        let notes_at_100 = e.tracks[0].active().notes.len();
+        e.capture_select(2); // 200 BPM
+        assert_eq!(e.clock.bpm_x100(), 20000);
+        assert_eq!(
+            e.tracks[0].active().notes.len(),
+            notes_at_100,
+            "re-derived, not appended"
+        );
+        assert!(
+            e.tracks[0].active().length_steps > len_at_100,
+            "same performance, twice as many bars"
+        );
+    }
+
+    #[test]
+    fn an_external_clock_fits_the_take_to_the_existing_tempo() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        e.on_external_realtime(0xFA, &mut out); // Move is clocking us
+        play_take(&mut e, 100.0, 16, true);
+        let before = e.clock.bpm_x100();
+        assert!(e.capture_commit(0));
+        assert_eq!(e.clock.bpm_x100(), before, "tempo is not ours to change");
+        let info = e.capture_info();
+        assert_eq!(info_field(&info, "mode"), "fix", "{info}");
+        assert_eq!(info_field(&info, "why"), "ext", "{info}");
+    }
+
+    #[test]
+    fn a_clip_with_notes_fits_rather_than_retempos() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        crate::command::apply_batch(&mut e, "tog 0 0 48 100", &mut out);
+        play_take(&mut e, 100.0, 16, false);
+        assert!(e.capture_commit(0));
+        assert_eq!(e.clock.bpm_x100(), 12000);
+        let info = e.capture_info();
+        assert_eq!(info_field(&info, "why"), "notes", "{info}");
+        assert!(
+            e.tracks[0].active().notes.iter().any(|n| n.pitch == 48),
+            "the overdub keeps what was already there"
+        );
+    }
+
+    #[test]
+    fn the_fit_picks_the_closest_candidate_so_the_stretch_is_minimal() {
+        let mut e = engine(); // set runs at 120
+        let mut out = Vec::new();
+        e.on_external_realtime(0xFA, &mut out);
+        play_take(&mut e, 58.0, 16, true); // played at half time
+        assert!(e.capture_commit(0));
+        // 116 is a candidate (double of 58) and only 3.4% from 120; fitting
+        // through 58 itself would stretch the take by 107%.
+        let info = e.capture_info();
+        let permille: i32 = info_field(&info, "stretch").parse().unwrap();
+        assert!(permille.abs() < 100, "minimal stretch, got {permille}‰ — {info}");
+    }
+
+    #[test]
+    fn the_selector_owns_the_take_until_it_is_dismissed() {
+        let mut e = engine();
+        play_take(&mut e, 100.0, 16, false);
+        assert!(e.capture_commit(0));
+        e.live_note_on(0, 72, 100); // noodling while the overlay is up
+        assert_eq!(e.capture_pending(0), 0, "the frozen take is not disturbed");
+        e.capture_done();
+        assert_eq!(info_field(&e.capture_info(), "mode"), "none");
+        e.live_note_on(0, 72, 100);
+        assert_eq!(e.capture_pending(0), 1, "buffering resumes once dismissed");
     }
 
     #[test]

@@ -225,6 +225,19 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 engine.toggle_record(t as usize);
             }
         }
+        // cap <t> — commit buffered live input into t's active clip.
+        "cap" => {
+            if let Some(t) = next() {
+                if (t as usize) < NUM_TRACKS {
+                    engine.capture_commit(t as usize);
+                }
+            }
+        }
+        // capclr — drop buffered input (Shift+Capture). Takes the track for
+        // symmetry with `cap`; the ring spans every track, so it clears all.
+        "capclr" => {
+            engine.capture_clear();
+        }
         // metro <0|1> — metronome on/off.
         "metro" => {
             if let Some(v) = next() {

@@ -4,10 +4,10 @@
 //! sequencer.
 
 use crate::capture::{CapEvent, CaptureRing};
-use crate::clip::{Clip, Lock};
+use crate::clip::{Clip, Lock, MAX_STEPS};
 use crate::clock::Clock;
 use crate::track::{Track, CLIPS_PER_TRACK, NUM_TRACKS};
-use crate::{PPQN, TICKS_PER_STEP};
+use crate::{PPQN, STEPS_PER_BAR, TICKS_PER_BAR, TICKS_PER_STEP};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OutEvent {
@@ -719,6 +719,85 @@ impl Engine {
         self.capture.pending(track as u8)
     }
 
+    /// Turn buffered input into clip data on the active clip of `track`.
+    /// Returns false when there was nothing to keep.
+    pub fn capture_commit(&mut self, track: usize) -> bool {
+        if track >= NUM_TRACKS || self.capture.pending(track as u8) == 0 {
+            return false;
+        }
+        let wrote = self.capture_commit_playing(track);
+        if wrote {
+            self.capture.clear();
+            self.capture_gen = self.capture_gen.wrapping_add(1);
+            self.dirty = true;
+        }
+        wrote
+    }
+
+    /// Capture into a running transport: the take lands where it was heard.
+    /// An empty clip is laid out from the first played note and grown to whole
+    /// bars (the manual's "the first played note aligns with the start of the
+    /// clip"); a clip that already has notes is overdubbed and keeps its length.
+    fn capture_commit_playing(&mut self, track: usize) -> bool {
+        let a = self.tracks[track].active_clip;
+        self.tracks[track].active_mut().ensure_exists();
+        let fresh = self.tracks[track].active().notes.is_empty();
+        let span = self.tracks[track].active().length_ticks().max(1);
+        let Some((first_abs, first_ct)) = self
+            .capture
+            .iter()
+            .find(|e| e.track == track as u8 && e.on)
+            .map(|e| (e.abs_tick, e.clip_tick))
+        else {
+            return false;
+        };
+
+        let now_abs = self.master_tick as u32;
+        let evs: Vec<CapEvent> = self.capture.iter().copied().collect();
+        let transpose = self.active_clip_transpose(track);
+        let mut used = vec![false; evs.len()];
+        let mut span_end = 0u32;
+        let mut wrote = false;
+
+        for i in 0..evs.len() {
+            let ev = evs[i];
+            if ev.track != track as u8 || !ev.on {
+                continue;
+            }
+            let end = evs[i + 1..].iter().enumerate().find_map(|(j, o)| {
+                let k = i + 1 + j;
+                if o.track == ev.track && !o.on && o.pitch == ev.pitch && !used[k] {
+                    used[k] = true;
+                    Some(o.abs_tick)
+                } else {
+                    None
+                }
+            });
+            let gate = end.unwrap_or(now_abs).saturating_sub(ev.abs_tick).max(1);
+            // A first take is laid out unwrapped from where the phrase began, so
+            // a phrase longer than the clip extends it instead of folding back
+            // onto itself; an overdub wraps into the loop that already exists.
+            let tick = if fresh {
+                first_ct + ev.abs_tick.saturating_sub(first_abs)
+            } else {
+                ev.clip_tick % span
+            };
+            let stored = (ev.pitch as i32 - transpose).clamp(0, 127) as u8;
+            self.tracks[track]
+                .active_mut()
+                .record_note(tick, gate, stored, ev.vel);
+            span_end = span_end.max(tick + gate);
+            wrote = true;
+        }
+
+        if fresh && wrote {
+            let bars = span_end.div_ceil(TICKS_PER_BAR).max(1);
+            let len = (bars * STEPS_PER_BAR).min(MAX_STEPS as u32) as u16;
+            self.tracks[track].clips[a].length_steps = len;
+        }
+        wrote
+    }
+
     /// Record a live pad note-on. The UI sounds the note directly (zero
     /// latency); this only captures it for recording, so there's no double
     /// trigger. No-op unless recording this track.
@@ -1374,7 +1453,7 @@ impl Engine {
         let htp = self.held_trig();
         let hlmax = self.held_max_gate();
         format!(
-            "play={} tick={} bpm={} ext={} link={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={}",
+            "play={} tick={} bpm={} ext={} link={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={} cap={}.{}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -1410,6 +1489,8 @@ impl Engine {
             clip.scale_num,
             clip.scale_den,
             clip.transpose,
+            self.capture.pending(self.watch_track as u8),
+            self.capture_gen,
         )
     }
 
@@ -2413,6 +2494,61 @@ mod tests {
         // Only the bar-1 note (64) plays; the bar-0 note (60) is outside.
         assert!(ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 64, .. })));
         assert!(!ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 60, .. })));
+    }
+
+    #[test]
+    fn capture_overdubs_at_the_position_it_was_heard() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        crate::command::apply_batch(&mut e, "tog 0 4 60 100", &mut out); // clip has notes
+        e.play();
+        run_ticks(&mut e, 6 * TICKS_PER_STEP as u64);
+        let at = e.tracks[0].pos_tick;
+        e.live_note_on(0, 67, 100);
+        e.live_note_off(0, 67);
+        let before = e.tracks[0].active().notes.len();
+        let len_before = e.tracks[0].active().length_steps;
+        assert!(e.capture_commit(0));
+        assert_eq!(e.tracks[0].active().notes.len(), before + 1);
+        let n = *e.tracks[0].active().notes.last().unwrap();
+        assert_eq!(n.pitch, 67);
+        assert!(
+            n.tick.abs_diff(at) <= TICKS_PER_STEP,
+            "landed at {}, heard at {at}",
+            n.tick
+        );
+        assert_eq!(
+            e.tracks[0].active().length_steps,
+            len_before,
+            "an overdub keeps the clip's length"
+        );
+    }
+
+    #[test]
+    fn capture_into_an_empty_playing_clip_grows_it_to_whole_bars() {
+        let mut e = engine();
+        e.play();
+        // A phrase that runs past one bar: 5 notes, one bar apart.
+        for _ in 0..5 {
+            e.live_note_on(0, 60, 100);
+            e.live_note_off(0, 60);
+            run_ticks(&mut e, crate::TICKS_PER_BAR as u64);
+        }
+        assert!(e.capture_commit(0));
+        let len = e.tracks[0].active().length_steps;
+        assert_eq!(len % crate::STEPS_PER_BAR as u16, 0, "whole bars, got {len}");
+        assert!(len > crate::STEPS_PER_BAR as u16, "grew past one bar, got {len}");
+    }
+
+    #[test]
+    fn capture_consumes_the_buffer() {
+        let mut e = engine();
+        e.play();
+        e.live_note_on(0, 60, 100);
+        e.live_note_off(0, 60);
+        assert!(e.capture_commit(0));
+        assert_eq!(e.capture_pending(0), 0);
+        assert!(!e.capture_commit(0), "nothing left to capture");
     }
 
     #[test]

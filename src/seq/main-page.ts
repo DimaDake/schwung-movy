@@ -4,6 +4,10 @@
  * Mirrors the step-parameter page's structure; rendering reads main-page-vm. */
 
 import { seqState } from './state.js';
+import { beginGesture } from '../undo/edit.js';
+import { recordUiOp } from '../undo/record.js';
+import { readUiField } from '../undo/ui-fields.js';
+import { endEdit } from '../undo/group.js';
 import { seqCmd } from './engine.js';
 import { scheduleTempoOverride } from './tempo-override.js';
 import { SCALE_NAMES } from './scales.js';
@@ -19,6 +23,11 @@ const SWING_MIN = 50, SWING_MAX = 80;
 /* Knob map: 0 TEMPO, 1 SWING, 2 LINK, 3 unused, 4 ROOT, 5 KEY, 6 MODE,
  * 7 LAYOUT — the four musical params share the bottom row. */
 const K_TEMPO = 0, K_SWING = 1, K_LINK = 2, K_ROOT = 4, K_KEY = 5, K_MODE = 6, K_LAYOUT = 7;
+/* Toast verbs, indexed by knob slot. */
+const KNOB_VERBS: Record<number, string> = {
+    [K_TEMPO]: 'TEMPO', [K_SWING]: 'SWING', [K_ROOT]: 'ROOT', [K_KEY]: 'KEY',
+};
+
 const OVERLAY_KNOBS = [K_KEY, K_MODE, K_LAYOUT];
 
 export const mainPageState = {
@@ -84,9 +93,15 @@ export function mainPageTouch(k: number, down: boolean): void {
 
 export function mainPageRelease(k: number): void {
     if (mainPageState.overlayKnob === k) {
+        /* KEY commits on release, so it must be recorded BEFORE the gesture
+         * group closes. MODE and LAYOUT commit here too but are keyboard
+         * layout, which design §1 excludes from undo. */
+        const before = k === K_KEY ? readUiField('scale') : '';
         overlayCommit(k, mainPageState.overlaySel);
+        if (k === K_KEY) recordUiOp('scale', before, readUiField('scale'));
         mainPageState.overlayKnob = -1;
     }
+    endEdit('mainknob:' + k);
     if (mainPageState.touchedKnob === k) mainPageState.touchedKnob = -1;
 }
 
@@ -94,6 +109,10 @@ export function mainPageKnob(k: number, delta: number): void {
     mainPageState.touchedKnob = k;
     const n = countDetents(accum, k, delta);
     if (n === 0) return;
+    /* The gesture, not the detent, is the undo unit: re-entering with the same
+     * key coalesces a whole knob turn into one entry. LINK is excluded from
+     * undo entirely (design §1) — it is not a musical edit. */
+    if (KNOB_VERBS[k]) beginGesture('mainknob:' + k, KNOB_VERBS[k], '');
     if (k === K_TEMPO) {
         const next = Math.max(BPM_MIN_X100, Math.min(BPM_MAX_X100, seqState.bpmX100 + n * 100));
         if (next !== seqState.bpmX100) {
@@ -116,7 +135,9 @@ export function mainPageKnob(k: number, delta: number): void {
         }
     } else if (k === K_ROOT) {
         // Cycles the pitch class, wrapping B↔C; the +/- buttons own the octave.
+        const before = readUiField('rootPc');
         setRootPc(keyboardState.rootPc + n);
+        recordUiOp('rootPc', before, readUiField('rootPc'));
     } else if (mainPageState.overlayKnob === k) {
         const max = overlayOptions(k).length - 1;
         mainPageState.overlaySel = Math.max(0, Math.min(max, mainPageState.overlaySel + n));

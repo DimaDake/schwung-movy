@@ -12,6 +12,8 @@
  * LEDs from the `session` mirror, pulsing queued/stopping/selected cells. */
 
 import { C_BLACK, C_DARKGREY, C_WHITE, trackColor, ANIM_NONE, ANIM_PULSE, ANIM_PULSE_FAST, ANIM_PULSE_SLOW } from './colors.js';
+import { undoableEdit } from '../undo/edit.js';
+import { clipTarget } from '../undo/label.js';
 import { seqCmd, requestLabelSync } from './engine.js';
 import { seqToast } from './render.js';
 import { seqState } from './state.js';
@@ -56,7 +58,8 @@ export function sessionPad(padNote: number, padMin: number): void {
     const { track, slot } = cell;
 
     if (deleteHeld) {
-        seqCmd(`clipdelat ${track} ${slot}`);
+        undoableEdit('DELETE CLIP', clipTarget(track, slot),
+            () => seqCmd(`clipdelat ${track} ${slot}`));
         requestLabelSync(); // freed lanes (clip's automation gone) → re-sync
         seqToast('Clip deleted');
         return;

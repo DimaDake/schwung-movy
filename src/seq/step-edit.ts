@@ -9,6 +9,8 @@
  * poll; toasts report the gesture. */
 
 import { NUM_STEP_BUTTONS } from './constants.js';
+import { beginGesture, undoableEdit } from '../undo/edit.js';
+import { trackLabel } from '../undo/label.js';
 import { seqCmd } from './engine.js';
 import { seqToast } from './render.js';
 import { seqState } from './state.js';
@@ -159,10 +161,18 @@ function forEach(emit: (r: Range) => void): void {
     for (const r of heldRanges.values()) emit(r);
 }
 
+
+/* One undo per held-step gesture: the key includes the held range, so turning
+ * the encoder repeatedly coalesces while moving to another step splits. */
+function heldKey(kind: string): string {
+    return 'held:' + kind + ':' + seqState.watchTrack + ':' + heldStepAbs();
+}
+
 /* Volume encoder → velocity. */
 export function editVelocity(delta: number): boolean {
     if (!anyStepHeld()) return false;
     const d = (delta > 0 ? 1 : -1) * VEL_STEP;
+    beginGesture(heldKey('vel'), 'VELOCITY', trackLabel(seqState.watchTrack));
     forEach((r) => seqCmd(`evel ${seqState.watchTrack} ${r.s0} ${r.s1} ${lane()} ${d}`));
     seqToast(d > 0 ? 'Velocity +' : 'Velocity -');
     return true;
@@ -172,6 +182,7 @@ export function editVelocity(delta: number): boolean {
 export function editNudge(dir: number, shift: boolean): boolean {
     if (!anyStepHeld()) return false;
     const d = dir * (shift ? NUDGE_FINE : NUDGE_COARSE);
+    beginGesture(heldKey('nudge'), 'NUDGE', trackLabel(seqState.watchTrack));
     forEach((r) => seqCmd(`enudge ${seqState.watchTrack} ${r.s0} ${r.s1} ${lane()} ${d}`));
     seqToast(dir > 0 ? 'Nudge >' : 'Nudge <');
     return true;
@@ -180,6 +191,7 @@ export function editNudge(dir: number, shift: boolean): boolean {
 /* +/- buttons → transpose by a semitone (melodic only). */
 export function editTranspose(semitones: number): boolean {
     if (!anyStepHeld() || seqState.watchLane >= 0) return false;
+    beginGesture(heldKey('trn'), 'TRANSPOSE', trackLabel(seqState.watchTrack));
     forEach((r) => seqCmd(`etrn ${seqState.watchTrack} ${r.s0} ${r.s1} -1 ${semitones}`));
     seqToast(semitones > 0 ? 'Transpose +' : 'Transpose -');
     return true;
@@ -191,12 +203,14 @@ export function editTranspose(semitones: number): boolean {
 export function editPad(pitch: number, vel: number): boolean {
     if (!anyStepHeld()) return false;
     const t = seqState.watchTrack;
-    forEach((r) => {
-        if (r.s0 === r.s1) {
-            seqCmd(`ltog ${t} ${r.s0} ${pitch} ${vel}`);
-        } else {
-            seqCmd(`addp ${t} ${r.s0} ${r.s1} ${pitch} ${vel}`);
-        }
+    undoableEdit('ADD NOTE', trackLabel(t), () => {
+        forEach((r) => {
+            if (r.s0 === r.s1) {
+                seqCmd(`ltog ${t} ${r.s0} ${pitch} ${vel}`);
+            } else {
+                seqCmd(`addp ${t} ${r.s0} ${r.s1} ${pitch} ${vel}`);
+            }
+        });
     });
     return true;
 }
@@ -244,7 +258,8 @@ export function setLengthTo(absB: number): boolean {
     }
     lastLenTarget = { a, b: absB, atEnd };
     const steps = atEnd ? (absB - a + 1) : (absB - a);
-    seqCmd(`slen ${seqState.watchTrack} ${a} ${a} ${lane()} ${steps * TICKS_PER_STEP}`);
+    undoableEdit('NOTE LENGTH', trackLabel(seqState.watchTrack),
+        () => seqCmd(`slen ${seqState.watchTrack} ${a} ${a} ${lane()} ${steps * TICKS_PER_STEP}`));
     seqToast('Length ' + steps);
     return true;
 }
@@ -281,6 +296,7 @@ export function editStepPageKnob(knob: number, delta: number): boolean {
     if (knob === 0) {
         // Velocity: delta nudge (preserves chord spread; full CW clamps to max).
         const d = (delta > 0 ? 1 : -1) * VEL_STEP;
+        beginGesture(heldKey('tvel'), 'VELOCITY', trackLabel(t));
         forEach((r) => seqCmd(`evel ${t} ${r.s0} ${r.s1} ${ln} ${d}`));
         return true;
     }
@@ -300,23 +316,27 @@ export function editStepPageKnob(knob: number, delta: number): boolean {
             ticks = LENGTH_TICKS[idx];
             seqToast('Max — blocked by next note');
         }
+        beginGesture(heldKey('tlen'), 'NOTE LENGTH', trackLabel(t));
         forEach((r) => seqCmd(`slen ${t} ${r.s0} ${r.s1} ${ln} ${ticks}`));
         seqState.holdGate = ticks; seqState.holdGateMixed = false;
     } else if (knob === 2) {
         // CW (n>0) raises probability; PROB_VALUES is descending, so subtract n.
         const idx = clampIdx(probIndexForPct(seqState.holdProb) - n, PROB_VALUES.length);
         const pct = PROB_VALUES[idx];
+        beginGesture(heldKey('tprob'), 'PROBABILITY', trackLabel(t));
         forEach((r) => seqCmd(`eprob ${t} ${r.s0} ${r.s1} ${ln} ${pct}`));
         seqState.holdProb = pct;
     } else if (knob === 3) {
         const idx = clampIdx(condIndexFor(seqState.holdCondA, seqState.holdCondB) + n, COND_PAIRS.length);
         const [a, b] = COND_PAIRS[idx];
+        beginGesture(heldKey('tcond'), 'CONDITION', trackLabel(t));
         forEach((r) => seqCmd(`econd ${t} ${r.s0} ${r.s1} ${ln} ${a} ${b}`));
         seqState.holdCondA = a; seqState.holdCondB = b;
     } else if (knob === 4) {
         // Boolean: CW = on, CCW = off. Never toggle, so holding the turn doesn't
         // cycle the value back and forth.
         const on = n > 0;
+        beginGesture(heldKey('tinv'), 'INVERT', trackLabel(t));
         forEach((r) => seqCmd(`einv ${t} ${r.s0} ${r.s1} ${ln} ${on ? 1 : 0}`));
         seqState.holdInvert = on;
     }

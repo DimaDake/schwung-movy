@@ -4,6 +4,8 @@
  * stays armed while Copy is held, so it can be stamped to several destinations.
  * The engine owns the clipboard; this module only emits commands + toasts. */
 
+import { undoableEdit } from '../undo/edit.js';
+import { trackLabel } from '../undo/label.js';
 import { seqCmd, requestLabelSync } from './engine.js';
 import { seqToast } from './render.js';
 
@@ -47,9 +49,13 @@ function copySource(u: DupUnit): void {
 }
 
 function pasteTo(dest: DupUnit): void {
-    if (dest.kind === 'clip') { seqCmd(`clippaste ${dest.track} ${dest.slot}`); requestLabelSync(); }
-    else if (dest.kind === 'step') seqCmd(`pst ${dest.track} ${dest.step}`);
-    else seqCmd(`pst ${dest.track} ${dest.bar * 16}`);
+    const label = dest.kind === 'clip' ? 'PASTE CLIP'
+        : dest.kind === 'step' ? 'PASTE STEP' : 'PASTE BAR';
+    undoableEdit(label, trackLabel(dest.track), () => {
+        if (dest.kind === 'clip') { seqCmd(`clippaste ${dest.track} ${dest.slot}`); requestLabelSync(); }
+        else if (dest.kind === 'step') seqCmd(`pst ${dest.track} ${dest.step}`);
+        else seqCmd(`pst ${dest.track} ${dest.bar * 16}`);
+    });
 }
 
 export function resetDuplicate(): void {

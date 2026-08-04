@@ -1354,6 +1354,81 @@ _log('\napp-loop: Clear + drum pad wipes that pad from the clip');
     seqState.lenSteps = 0;
 }
 
+
+/* ── Undo: the guard, and the round trip ─────────────────────────────────── */
+
+_log('\napp-loop: no edit escapes undo');
+{
+    const { takeUndoViolation } = await import('../dist/esm/undo/record.js');
+    const { resetUndoState, canUndo, undoDepth } = await import('../dist/esm/undo/state.js');
+    const { resetUndoGroups } = await import('../dist/esm/undo/group.js');
+    const { undoOnce, redoOnce, resetUndoApply } = await import('../dist/esm/undo/apply.js');
+
+    const CC_DEL = 119, CC_MUTE_B = 88, CC_LOOP_B = 58, CC_COPY_B = 60;
+    const CC_VOL = 79, CC_SHIFT = 49, CC_UNDO_B = 56, CC_TRACK0 = 43;
+
+    resetUndoState(); resetUndoGroups(); resetUndoApply();
+    seqState.lenSteps = 16;
+    takeUndoViolation();
+
+    /* Every gesture that mutates the set, driven through the real router. A
+     * violation here means an edit was made that no undo entry would record —
+     * which is exactly the bug this whole guard exists to prevent, and the one
+     * a future feature is most likely to reintroduce. */
+    const gestures = {
+        'step tap': () => { sendMidi([0x90, STEP_NOTE_BASE, 127]); sendMidi([0x80, STEP_NOTE_BASE, 0]); },
+        'delete + step': () => {
+            sendMidi([0xB0, CC_DEL, 127]); sendMidi([0x90, STEP_NOTE_BASE + 2, 127]);
+            sendMidi([0xB0, CC_DEL, 0]);
+        },
+        'mute': () => {
+            sendMidi([0xB0, CC_MUTE_B, 127]); sendMidi([0xB0, CC_TRACK0, 127]);
+            sendMidi([0xB0, CC_TRACK0, 0]); sendMidi([0xB0, CC_MUTE_B, 0]);
+        },
+        'loop window': () => {
+            sendMidi([0xB0, CC_LOOP_B, 127]); sendMidi([0x90, STEP_NOTE_BASE + 1, 127]);
+            sendMidi([0x80, STEP_NOTE_BASE + 1, 0]); sendMidi([0xB0, CC_LOOP_B, 0]);
+        },
+        'held step + velocity': () => {
+            sendMidi([0x90, STEP_NOTE_BASE + 3, 127]); sendMidi([0xB0, CC_VOL, 1]);
+            sendMidi([0x80, STEP_NOTE_BASE + 3, 0]);
+        },
+        'copy then paste': () => {
+            sendMidi([0xB0, CC_COPY_B, 127]); sendMidi([0x90, STEP_NOTE_BASE, 127]);
+            sendMidi([0x90, STEP_NOTE_BASE + 5, 127]); sendMidi([0xB0, CC_COPY_B, 0]);
+        },
+        'quantize': () => {
+            sendMidi([0xB0, CC_SHIFT, 127]); sendMidi([0x90, STEP_NOTE_BASE + 15, 127]);
+            sendMidi([0x80, STEP_NOTE_BASE + 15, 0]); sendMidi([0xB0, CC_SHIFT, 0]);
+        },
+    };
+    for (const [name, run] of Object.entries(gestures)) {
+        run();
+        advance(2);
+        eq(name + ' is recorded', takeUndoViolation(), '');
+    }
+
+    /* The button itself, through the router. */
+    resetUndoState(); resetUndoGroups();
+    sendMidi([0x90, STEP_NOTE_BASE + 7, 127]); sendMidi([0x80, STEP_NOTE_BASE + 7, 0]);
+    advance(2);
+    eq('a step tap leaves something to undo', canUndo(), true);
+    const before = undoDepth();
+    sendMidi([0xB0, CC_UNDO_B, 127]); sendMidi([0xB0, CC_UNDO_B, 0]);
+    advance(2);
+    eq('Undo consumes an entry', undoDepth(), before - 1);
+    engine.ops.length = 0;
+    sendMidi([0xB0, CC_SHIFT, 127]);
+    sendMidi([0xB0, CC_UNDO_B, 127]); sendMidi([0xB0, CC_UNDO_B, 0]);
+    sendMidi([0xB0, CC_SHIFT, 0]);
+    advance(2);
+    eq('Shift+Undo redoes', undoDepth(), before);
+    eq('and reaches the engine', engine.ops.some((o) => o.startsWith('uswap ')), true);
+
+    resetUndoState(); resetUndoGroups(); resetUndoApply();
+    seqState.lenSteps = 0;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

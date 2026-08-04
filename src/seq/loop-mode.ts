@@ -11,6 +11,8 @@
  * commands and the optimistic mirror is corrected by the next status poll. */
 
 import { NUM_STEP_BUTTONS } from './constants.js';
+import { undoableEdit } from '../undo/edit.js';
+import { trackLabel } from '../undo/label.js';
 import { seqCmd, uiTick } from './engine.js';
 import { momentaryDown, momentaryGesture, momentaryUp } from './momentary.js';
 import { seqHeaderAnnounce, seqToast } from './render.js';
@@ -90,7 +92,8 @@ function setLoopBars(startBar: number, endBar: number): void {
     const e = Math.max(s, Math.min(endBar, MAX_BARS - 1));
     const startStep = s * NUM_STEP_BUTTONS;
     const lenStep = (e - s + 1) * NUM_STEP_BUTTONS;
-    seqCmd(`loop ${seqState.watchTrack} ${startStep} ${lenStep}`);
+    undoableEdit('SET LOOP', trackLabel(seqState.watchTrack),
+        () => seqCmd(`loop ${seqState.watchTrack} ${startStep} ${lenStep}`));
     // Optimistic mirror.
     seqState.loopStart = startStep;
     seqState.lenSteps = lenStep;
@@ -99,7 +102,8 @@ function setLoopBars(startBar: number, endBar: number): void {
 
 /* Shift+Step 15: double the loop (notes + length). */
 export function doubleLoop(): void {
-    seqCmd('dbl ' + seqState.watchTrack);
+    undoableEdit('DOUBLE LOOP', trackLabel(seqState.watchTrack),
+        () => seqCmd('dbl ' + seqState.watchTrack));
     const bars = clipBars();
     if (loopStartBar() + bars * 2 <= MAX_BARS) {
         seqState.lenSteps = bars * 2 * NUM_STEP_BUTTONS; // optimistic

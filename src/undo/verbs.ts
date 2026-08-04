@@ -15,9 +15,9 @@ export const UNDOABLE_VERBS: string[] = [
     'eprob', 'econd', 'einv', 'quant',
     // clip shape and clip-level edits
     'clen', 'cscl', 'ctr', 'dbl', 'loop', 'ltog',
-    'cpy', 'cpyclr', 'pst',
+    'pst',
     // whole-clip gestures
-    'clipcopy', 'clipdel', 'clipdelat', 'clipdup', 'clippaste',
+    'clipdel', 'clipdelat', 'clipdup', 'clippaste',
     // automation edits
     'aset', 'asetr', 'aclr', 'aclrs', 'aclrstep',
     // set-level settings
@@ -28,6 +28,8 @@ export const UNDOABLE_VERBS: string[] = [
 export const CONTROL_VERBS: string[] = [
     'play', 'stop', 'rec', 'metro', 'link', 'launch', 'stoptrk',
     'watch', 'wlane', 'clipsel', 'hold', 'tdrum',
+    /* Clipboard fills: they change no musical state — only the paste does. */
+    'cpy', 'cpyclr', 'clipcopy',
     'non', 'nof',
     'abase', 'abaseq', 'alabel',
     'cap', 'capclr', 'capdone', 'capsel',

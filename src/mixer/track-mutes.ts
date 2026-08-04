@@ -1,3 +1,5 @@
+import { undoableEdit } from '../undo/edit.js';
+import { trackLabel } from '../undo/label.js';
 import { seqCmd } from '../seq/engine.js';
 import { releaseLiveOnTrack } from '../keyboard/release.js';
 import { seqState } from '../seq/state.js';
@@ -47,7 +49,8 @@ function setEngineMute(track: number, want: boolean): void {
     if (seqState.muted[track] === want) return;
     seqState.muted[track] = want;
     if (want) releaseLiveOnTrack(track);
-    seqCmd('mute ' + track + ' ' + (want ? 1 : 0));
+    undoableEdit(want ? 'MUTE' : 'UNMUTE', trackLabel(track),
+        () => seqCmd('mute ' + track + ' ' + (want ? 1 : 0)));
 }
 
 function apply(): void {

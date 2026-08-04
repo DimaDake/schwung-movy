@@ -21,6 +21,9 @@ import { releaseAllLive } from '../keyboard/release.js';
 import { captureButton, captureClear } from './capture.js';
 import { redoOnce, undoOnce } from '../undo/apply.js';
 import { showUndoToast } from '../undo/toast.js';
+import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
+import { undoableEdit } from '../undo/edit.js';
+import { trackLabel } from '../undo/label.js';
 
 const CC_MUTE = 88;
 const CC_CAPTURE = 52;
@@ -361,7 +364,8 @@ function shiftStepFunction(step: number): void {
         seqCmd('metro ' + (seqState.metro ? 0 : 1));
         seqToast(seqState.metro ? 'Metronome Off' : 'Metronome On');
     } else if (step === STEP_QUANTIZE) {
-        seqCmd('quant ' + seqState.watchTrack);
+        undoableEdit('QUANTIZE', trackLabel(seqState.watchTrack),
+            () => seqCmd('quant ' + seqState.watchTrack));
         seqToast('Quantized');
     }
 }
@@ -382,6 +386,12 @@ function toggleStep(button: number): void {
     if (seqState.lenSteps > 0 && step >= seqState.lenSteps && step < barEnd && !occHasStep(step)) return;
     const wasSet = occHasStep(step);
 
+    beginEdit({
+        key: 'step:' + t + ':' + step,
+        verb: wasSet ? 'CLEAR STEP' : 'ADD STEP',
+        target: trackLabel(t) + ' STEP ' + (step + 1),
+        close: CLOSE.IMMEDIATE, seq: true,
+    });
     if (seqState.watchLane >= 0) {
         /* Drum lane: toggle just the selected lane's pitch at this step. */
         seqCmd(`ltog ${t} ${step} ${seqState.watchLane} ${seqState.lastVel[t]}`);
@@ -398,6 +408,7 @@ function toggleStep(button: number): void {
         const v = seqState.lastVel[t];
         seqCmd(`tog ${t} ${step} ${pitches.map((p) => `${p} ${v}`).join(' ')}`);
     }
+    endEdit();
 
     /* Optimistic mirror so the step LED flips this tick. Adding the first
      * note auto-starts the transport and implicitly creates a 1-bar clip. */

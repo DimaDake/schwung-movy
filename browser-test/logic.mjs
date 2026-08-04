@@ -108,6 +108,16 @@ function notMatch(label, str, pattern) {
     else fail(label, `'${str}' should not match ${pattern}`);
 }
 
+
+/* The last MUSICAL op. Undo brackets every edit with ring bookkeeping
+ * (usnap/ucommit/udrop/uswap), which is never what a test asserting "the
+ * command the gesture emitted" means. */
+const UNDO_RING = /^(usnap|uswap|ucommit|udrop|uclr)\b/;
+function lastMusicalOp(ops) {
+    for (let i = ops.length - 1; i >= 0; i--) if (!UNDO_RING.test(ops[i])) return ops[i];
+    return undefined;
+}
+
 function bootModel(preset, slot = 0, componentKey = 'synth') {
     env.setParams(preset);
     const m = createModel(slot, componentKey);
@@ -1916,7 +1926,7 @@ _log('\nTest: drumPadOn');
     resetSeqEngine(); resetSeqState(); resetSeqToast();
     seqEngineTick(); // boot probe → ready
     // Commands queue up and flush on the next engine tick, so read the queue.
-    const lastOp = () => { const q = peekSeqCmdQueue(); return q[q.length - 1]; };
+    const lastOp = () => lastMusicalOp(peekSeqCmdQueue());
 
     parseStatusForTest('play=0 trk=0 cap=4.7');
     eq('pending count parsed', seqState.capPending, 4);
@@ -2074,7 +2084,7 @@ _log('\nTest: drumPadOn');
     const engine = installMockEngine();
     resetSeqEngine(); resetSeqState(); resetSeqToast();
     seqEngineTick(); // boot probe → ready
-    const lastOp = () => engine.ops[engine.ops.length - 1];
+    const lastOp = () => lastMusicalOp(engine.ops);
     /* A tap = press then release; the note toggle fires on release. */
     const tapStep = (button) => {
         seqHandleMidi([0x90, 16 + button, 127], false);
@@ -2466,7 +2476,7 @@ _log('\nTest: drumPadOn');
     seqHandleMidi([0x90, 16 + 1, 127], false); // bar 1 (index 1)
     seqHandleMidi([0x90, 16 + 3, 127], false); // bar 3
     seqEngineTick();
-    eq('two-bar press sets loop window', engine.ops[engine.ops.length - 1], 'loop 0 16 48');
+    eq('two-bar press sets loop window', lastMusicalOp(engine.ops), 'loop 0 16 48');
     eq('optimistic loopStart', seqState.loopStart, 16);
     eq('optimistic lenSteps', seqState.lenSteps, 48);
     seqHandleMidi([0x80, 16 + 1, 0], false);
@@ -2477,14 +2487,14 @@ _log('\nTest: drumPadOn');
     seqHandleMidi([0x80, 16 + 2, 0], false);
     seqHandleMidi([0x90, 16 + 2, 127], false); // within double-tap window
     seqEngineTick();
-    eq('double-tap sets 1-bar loop', engine.ops[engine.ops.length - 1], 'loop 0 32 16');
+    eq('double-tap sets 1-bar loop', lastMusicalOp(engine.ops), 'loop 0 32 16');
     seqHandleMidi([0x80, 16 + 2, 0], false);
 
     // Loop + wheel resizes by whole bars (loop currently 1 bar at bar 2).
     seqHandleMidi([0xB0, 58, 127], false);     // hold Loop
     seqHandleMidi([0xB0, 14, 1], false);       // wheel +1 → 2 bars from bar 2
     seqEngineTick();
-    eq('Loop+wheel grows the loop', engine.ops[engine.ops.length - 1], 'loop 0 32 32');
+    eq('Loop+wheel grows the loop', lastMusicalOp(engine.ops), 'loop 0 32 32');
     seqHandleMidi([0xB0, 58, 0], false);       // release; gesture happened → no toggle
     eq('Loop+wheel hold did not toggle mode', seqState.loopMode, true);
 
@@ -2492,7 +2502,7 @@ _log('\nTest: drumPadOn');
     seqState.loopStart = 0; seqState.lenSteps = 16;
     seqHandleMidi([0x90, 16 + 14, 127], true);
     seqEngineTick();
-    eq('Shift+Step15 doubles loop', engine.ops[engine.ops.length - 1], 'dbl 0');
+    eq('Shift+Step15 doubles loop', lastMusicalOp(engine.ops), 'dbl 0');
 
     // Momentary semantics. resetMomentary + resetLoopMode so press state is clean.
     const { resetMomentary } = await import('../dist/esm/seq/momentary.js');
@@ -2587,7 +2597,7 @@ _log('\nTest: drumPadOn');
     reset();
     seqEngineTick(); // ready
 
-    const lastOp = () => engine.ops[engine.ops.length - 1];
+    const lastOp = () => lastMusicalOp(engine.ops);
 
     // Hold step 3 + Volume turn → velocity edit (note NOT toggled on release).
     seqHandleMidi([0x90, 16 + 3, 127], false);   // hold step 3
@@ -2680,7 +2690,7 @@ _log('\nTest: drumPadOn');
         resetSeqEngine(); resetSeqState(); resetEditOps(); resetDuplicate();
         resetStepEdit(); resetLoopMode(); resetSeqToast(); engine.reset();
     };
-    const lastOp = () => engine.ops[engine.ops.length - 1];
+    const lastOp = () => lastMusicalOp(engine.ops);
     reset(); seqEngineTick();
 
     // Copy held → source step → dest step: copy then paste-replace, no toggles.
@@ -2773,7 +2783,7 @@ _log('\nTest: drumPadOn');
         resetSeqEngine(); resetSeqState(); resetEditOps(); resetStepEdit();
         resetStepRec(); resetSeqToast(); engine.reset();
     };
-    const lastOp = () => engine.ops[engine.ops.length - 1];
+    const lastOp = () => lastMusicalOp(engine.ops);
     reset(); seqEngineTick();
 
     // A Rec TAP → rec command on the watched track. (Holding Rec while stopped
@@ -2833,7 +2843,7 @@ _log('\nTest: drumPadOn');
 
     const engine = installMockEngine();
     const reset = () => { resetSeqEngine(); resetSeqState(); resetSession(); resetDuplicate(); resetSeqToast(); engine.reset(); };
-    const lastOp = () => engine.ops[engine.ops.length - 1];
+    const lastOp = () => lastMusicalOp(engine.ops);
     reset(); seqEngineTick();
 
     // Note/Session toggle.
@@ -3856,7 +3866,7 @@ _log('\nautomation: restore re-requests label sync:');
     const engine = installMockEngine();
     resetSeqEngine(); resetSeqState(); seqEngineTick();
     seqState.lenSteps = 16; seqState.watchLane = -1;
-    const lastOp = () => engine.ops[engine.ops.length - 1];
+    const lastOp = () => lastMusicalOp(engine.ops);
 
     // Select a 3-note chord (white selection), then enter with no pads held.
     setHeldSet(0, [60, 64, 67]);
@@ -5211,7 +5221,7 @@ _log('\nautomation label sync:');
     const engine = installMockEngine();
     resetSeqEngine(); resetSeqState(); resetStepRec();
     seqEngineTick();
-    const lastOp = () => engine.ops[engine.ops.length - 1];
+    const lastOp = () => lastMusicalOp(engine.ops);
     const tapStep = (b) => { seqHandleMidi([0x90, 16 + b, 127], false); seqHandleMidi([0x80, 16 + b, 0], false); };
 
     seqNotePadPlayed(0, 80, 72, 110);   // sets the step-entry pitch

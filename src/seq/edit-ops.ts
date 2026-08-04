@@ -15,6 +15,8 @@
 
 import { NUM_STEP_BUTTONS } from './constants.js';
 import { seqCmd, requestLabelSync } from './engine.js';
+import { undoableEdit } from '../undo/edit.js';
+import { trackLabel } from '../undo/label.js';
 import { seqToast } from './render.js';
 import { seqState } from './state.js';
 import { clearStepAllAutomation } from './automation.js';
@@ -46,7 +48,9 @@ export function deleteButton(down: boolean): void {
         // are left intact; the held step was being edited, not deleted).
         if (anyStepHeld()) {
             const steps = heldStepList();
-            for (const s of steps) clearStepAllAutomation(seqState.watchTrack, s);
+            undoableEdit('CLEAR AUTOMATION', trackLabel(seqState.watchTrack), () => {
+                for (const s of steps) clearStepAllAutomation(seqState.watchTrack, s);
+            });
             if (steps.length > 0) {
                 markHeldGestured();    // release won't toggle a note
                 seqToast('Automation cleared');
@@ -56,7 +60,8 @@ export function deleteButton(down: boolean): void {
     } else {
         delHeld = false;
         if (!delActed) {
-            seqCmd('clipdel ' + seqState.watchTrack);
+            undoableEdit('CLEAR CLIP', trackLabel(seqState.watchTrack),
+                () => seqCmd('clipdel ' + seqState.watchTrack));
             requestLabelSync(); // freed lanes (clip's automation gone) → re-sync
             // The clip is now empty (no bars), so refocus to bar 0 — otherwise a
             // stale barOffset would place freshly-added steps on a later bar and
@@ -73,13 +78,17 @@ export function deleteStep(button: number): void {
     const t = seqState.watchTrack;
     if (seqState.loopMode) {
         const base = button * NUM_STEP_BUTTONS;
-        seqCmd(`del ${t} ${base} ${base + NUM_STEP_BUTTONS - 1} -1`);
-        for (let s = base; s < base + NUM_STEP_BUTTONS; s++) clearStepAllAutomation(t, s);
+        undoableEdit('CLEAR BAR', trackLabel(t) + ' BAR ' + (button + 1), () => {
+            seqCmd(`del ${t} ${base} ${base + NUM_STEP_BUTTONS - 1} -1`);
+            for (let s = base; s < base + NUM_STEP_BUTTONS; s++) clearStepAllAutomation(t, s);
+        });
         seqToast('Bar cleared');
     } else {
         const s = absStep(button);
-        seqCmd(`del ${t} ${s} ${s} -1`);   // notes
-        clearStepAllAutomation(t, s);       // and automation
+        undoableEdit('CLEAR STEP', trackLabel(t) + ' STEP ' + (s + 1), () => {
+            seqCmd(`del ${t} ${s} ${s} -1`);   // notes
+            clearStepAllAutomation(t, s);       // and automation
+        });
         seqToast('Step cleared');
     }
     delActed = true;
@@ -88,7 +97,8 @@ export function deleteStep(button: number): void {
 /* A drum pad pressed while Delete is held removes all notes of that pitch
  * (manual: hold Delete + pad to clear a Drum Rack sample). */
 export function deletePad(pitch: number): void {
-    seqCmd(`del ${seqState.watchTrack} 0 255 ${pitch}`);
+    undoableEdit('CLEAR PAD', trackLabel(seqState.watchTrack) + ' PAD ' + pitch,
+        () => seqCmd(`del ${seqState.watchTrack} 0 255 ${pitch}`));
     seqToast('Notes cleared');
     delActed = true;
 }

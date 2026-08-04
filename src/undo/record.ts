@@ -11,7 +11,7 @@
 
 import { mlog } from '../log.js';
 import { seqCmd, setEditGuard } from '../seq/engine.js';
-import { addParamOp, groupOpen, noteEditActivity } from './group.js';
+import { addParamOp, addUiOp, groupOpen, noteEditActivity } from './group.js';
 import { isControlVerb, isUndoableVerb, verbOf } from './verbs.js';
 import type { ParamOp } from './types.js';
 
@@ -74,6 +74,15 @@ export function recordParamOp(slot: number, key: string,
     }
     const op: ParamOp = { slot, key, old: oldVal, new: newVal };
     addParamOp(op);
+}
+
+/** Record a set-level UI field change (root note, scale). */
+export function recordUiOp(field: string, oldVal: string, newVal: string): void {
+    if (!groupOpen()) {
+        violation('ungrouped ui write "' + field + '"');
+        return;
+    }
+    addUiOp({ field, old: oldVal, new: newVal });
 }
 
 /** Test hook. */

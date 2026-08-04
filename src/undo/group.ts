@@ -20,7 +20,7 @@ import { mlog } from '../log.js';
 import { seqCmd } from '../seq/engine.js';
 import { currentSetUuid } from '../seq/persist.js';
 import { engineGeneration } from '../seq/engine.js';
-import type { ParamOp, ModuleOp, UndoEntry } from './types.js';
+import type { ParamOp, ModuleOp, UiOp, UndoEntry } from './types.js';
 import { pushEntry } from './state.js';
 
 export const CLOSE = {
@@ -51,6 +51,7 @@ interface OpenGroup {
     idleMs: number;
     snapId: number;   // -1 = no engine snapshot
     paramOps: ParamOp[];
+    uiOps: UiOp[];
     moduleOp?: ModuleOp;
     lastActivityMs: number;
 }
@@ -84,6 +85,7 @@ export function beginEdit(o: BeginOpts): void {
         idleMs: o.idleMs ?? IDLE_MS,
         snapId,
         paramOps: [],
+        uiOps: [],
         lastActivityMs: now(),
     };
     /* Snapshot BEFORE the gesture's first mutation. The caller opens the group
@@ -103,6 +105,16 @@ export function addParamOp(op: ParamOp): void {
     const prev = open.paramOps.find((p) => p.slot === op.slot && p.key === op.key);
     if (prev) prev.new = op.new;
     else open.paramOps.push(op);
+}
+
+/** Record a UI-field change. Like param ops, a repeat within one gesture keeps
+ *  the original `old`, so undo returns to where the gesture started. */
+export function addUiOp(op: UiOp): void {
+    if (!open) return;
+    open.lastActivityMs = now();
+    const prev = open.uiOps.find((u) => u.field === op.field);
+    if (prev) prev.new = op.new;
+    else open.uiOps.push(op);
 }
 
 export function addModuleOp(op: ModuleOp): void {
@@ -142,8 +154,9 @@ export function endEdit(key?: string): void {
      * which is the only side that can compare full state. It reports back via
      * `unop` and the entry is retracted then (apply.ts). */
     const paramOps = g.paramOps.filter((p) => p.old !== p.new);
+    const uiOps = g.uiOps.filter((u) => u.old !== u.new);
     const hasSeq = g.snapId >= 0;
-    if (paramOps.length === 0 && !g.moduleOp && !hasSeq) return;
+    if (paramOps.length === 0 && uiOps.length === 0 && !g.moduleOp && !hasSeq) return;
 
     if (hasSeq) seqCmd('ucommit ' + g.snapId);
 
@@ -152,6 +165,7 @@ export function endEdit(key?: string): void {
         target: g.target,
         detail: g.detail,
         paramOps,
+        uiOps,
         setUuid: currentSetUuid(),
         engineGen: engineGeneration(),
     };

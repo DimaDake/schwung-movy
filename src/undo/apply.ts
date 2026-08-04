@@ -23,6 +23,7 @@ import {
 } from './state.js';
 import { abandonGroup, endEdit } from './group.js';
 import type { UndoEntry, UndoResult } from './types.js';
+import { writeUiField, type UiField } from './ui-fields.js';
 
 /* Snapshot ids allocated for the redo side of a uswap. Shares the counter with
  * group.ts by staying above it — group ids are odd-free and monotonic, so a
@@ -60,6 +61,10 @@ function applyEntry(e: UndoEntry, undoing: boolean): void {
         /* Params are replayed by module-apply.ts once the module reports up;
          * writing them now would land on a module that is being torn down. */
         beginPendingParams(e, undoing);
+    }
+    for (let i = e.uiOps.length - 1; i >= 0; i--) {
+        const u = e.uiOps[i];
+        writeUiField(u.field as UiField, undoing ? u.old : u.new);
     }
     /* Reverse order: a gesture that wrote A then B must undo B then A, or a
      * later write that depended on an earlier one lands on the wrong base. */

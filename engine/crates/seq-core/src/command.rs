@@ -101,10 +101,9 @@ pub fn is_undoable_edit(verb: &str) -> bool {
         "tog" | "addp" | "del" | "evel" | "elen" | "enudge" | "etrn" | "slen"
         | "eprob" | "econd" | "einv" | "quant"
         // clip shape and clip-level edits
-        | "clen" | "cscl" | "ctr" | "dbl" | "loop" | "ltog"
-        | "cpy" | "cpyclr" | "pst"
+        | "clen" | "cscl" | "ctr" | "dbl" | "loop" | "ltog" | "pst"
         // whole-clip gestures
-        | "clipcopy" | "clipdel" | "clipdelat" | "clipdup" | "clippaste"
+        | "clipdel" | "clipdelat" | "clipdup" | "clippaste"
         // automation edits
         | "aset" | "asetr" | "aclr" | "aclrs" | "aclrstep"
         // set-level settings
@@ -123,6 +122,8 @@ pub fn is_control_verb(verb: &str) -> bool {
         "play" | "stop" | "rec" | "metro" | "link" | "launch" | "stoptrk"
         // view / selection
         | "watch" | "wlane" | "clipsel" | "hold" | "tdrum"
+        // clipboard fills — they change no musical state; only the paste does
+        | "cpy" | "cpyclr" | "clipcopy"
         // live input
         | "non" | "nof"
         // automation bookkeeping (not gestures — see is_undoable_edit)

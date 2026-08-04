@@ -24,6 +24,14 @@ export interface ModuleOp {
     oldParams: [string, string][];
 }
 
+/** Set-level state that lives in the UI (root note, scale). See ui-fields.ts
+ *  for why these cannot ride in the engine snapshot. */
+export interface UiOp {
+    field: string;
+    old: string;
+    new: string;
+}
+
 export interface UndoEntry {
     /* Label parts, composed at capture time — the engine state they describe
      * is gone by the time the toast is drawn. */
@@ -35,6 +43,7 @@ export interface UndoEntry {
      * to. */
     seqSnap?: { before: number; after: number };
     paramOps: ParamOp[];
+    uiOps: UiOp[];
     moduleOp?: ModuleOp;
     /* Guards. The stack is cleared when either changes, because a snapshot id
      * means nothing in a different set or a reloaded (empty) engine. */

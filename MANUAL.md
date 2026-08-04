@@ -833,7 +833,8 @@ the arrow is what it is *now*, so the same reading works for both:
 ![Undo toast](docs/assets/undo_toast.png)
 
 **What's undoable.** Everything that changes the music: notes and steps, clip
-clear / delete / copy / paste / duplicate, loop length and start, per-step trig
+clear / delete / copy / paste / duplicate, clip scale, length and transpose
+(each its own undo, committed when you let the knob go), loop length and start, per-step trig
 properties, automation (locks, lane values, clearing a lane or a step),
 tempo, swing, root and key, track mute and volume, synth and LFO parameters,
 LFO assignments, and module or preset loads.

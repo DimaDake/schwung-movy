@@ -54,7 +54,7 @@ const PRESETS = [
     'deep_page', 'lfo_helm_step', 'lfo_helm_pyramid',
     'signal_voice', 'forge_voice', 'forge_filter', 'forge_mod', 'forge_send', 'forge_mix',
     'leave_modal', 'capture_select', 'capture_fixed',
-    'undo_toast', 'redo_toast', 'undo_empty', 'undo_unavailable',
+    'undo_toast', 'redo_toast', 'undo_empty', 'undo_unavailable', 'clip-undo-toast',
     'track_volume_unity', 'track_volume_quiet', 'track_volume_min', 'track_volume_max',
     'trigger_armed', 'trigger_fired', 'trigger_blink_off', 'trigger_touched',
     'trigger_cooling', 'trigger_cooling_low',
@@ -487,6 +487,17 @@ function applyView(preset) {
             resetSeqState(); resetClipPage();
             seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
             lastRender = () => renderKnobsView(buildClipPageVM(), false, 0);
+            lastRender();
+            break;
+        }
+        /* The undo toast over the Clip Params page: it is drawn after every view
+         * branch, so a page that is not the chain view still shows it. */
+        case 'clip-undo-toast': {
+            resetSeqState(); resetClipPage();
+            seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
+            const vm = undoToastVM(
+                { ok: true, verb: 'CLIP LENGTH', target: 'T1', detail: '16 -> 9' }, false);
+            lastRender = () => { renderKnobsView(buildClipPageVM(), false, 0); drawUndoOverlay(vm); };
             lastRender();
             break;
         }

@@ -8305,6 +8305,26 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
         undoToastVM({ ok: false, verb: '', target: '', detail: '', reason: 'empty' }, false).head, 'UNDO');
     eq('drift is called out',
         undoToastVM({ ok: false, verb: '', target: '', detail: '', reason: 'drift' }, false).detail, 'MODULE CHANGED');
+    /* The toast is only painted on a frame that renders, and most pages sit
+     * idle — an edit whose values did not change on screen (quantize moves
+     * notes, not knobs) showed no toast at all until this marked the frame. */
+    {
+        const { appState } = await import('../dist/esm/app/state.js');
+        const { showUndoToast, undoToastActive, resetUndoToast } =
+            await import('../dist/esm/undo/toast.js');
+        resetUndoToast();
+        appState.dirty = false;
+        showUndoToast({ ok: true, verb: 'QUANTIZE', target: 'T1', detail: '' }, false);
+        eq('showing a toast forces a repaint', appState.dirty, true);
+        eq('and the toast is up', undoToastActive(), true);
+        /* Even a failed undo must repaint — "NOTHING TO UNDO" is the answer. */
+        resetUndoToast();
+        appState.dirty = false;
+        showUndoToast({ ok: false, verb: '', target: '', detail: '', reason: 'empty' }, false);
+        eq('a failed undo repaints too', appState.dirty, true);
+        resetUndoToast();
+    }
+
     eq('note count is singular at one', noteCount(1), '1 NOTE');
     eq('and plural otherwise', noteCount(12), '12 NOTES');
     eq('clip target reads one-based', clipTarget(1, 2), 'T2 CLIP 3');
@@ -9047,6 +9067,66 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     delete globalThis.shadow_set_param;
     appState.trackModels[0] = [];
     resetUndoState(); resetUndoGroups(); resetUndoApply();
+}
+
+
+{
+    _log('\nundo — clip params are three separate edits:');
+    const { clipPageKnob, clipPageTouch, clipPageRelease, resetClipPage } =
+        await import('../dist/esm/seq/clip-page.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const engine = installMockEngine();
+    resetUndoState(); resetUndoGroups(); resetUndoRecord(); resetSeqState(); resetClipPage();
+    resetSeqEngine(); seqEngineTick();
+    installEditGuard(); takeUndoViolation();
+    seqState.lenSteps = 16;
+
+    /* LENGTH: many detents, one entry, committed on release. */
+    for (let i = 0; i < 6; i++) clipPageKnob(1, 3, 0);
+    seqEngineTick();
+    eq('a clip edit is recorded, not ungrouped', takeUndoViolation(), '');
+    eq('and stays open while the knob is turning', undoDepth(), 0);
+    clipPageRelease(1, 0);
+    eq('the release commits one entry', undoDepth(), 1);
+    eq('labelled as the length', popUndo().verb, 'CLIP LENGTH');
+
+    /* Each knob is its own undo — turning TRANSPOSE after LENGTH must not join
+     * the length's entry. */
+    resetUndoState();
+    for (let i = 0; i < 6; i++) clipPageKnob(1, 3, 0);
+    for (let i = 0; i < 6; i++) clipPageKnob(2, 3, 0);
+    seqEngineTick();
+    eq('a second knob closes the first entry', undoDepth(), 1);
+    clipPageRelease(2, 0);
+    eq('and commits its own', undoDepth(), 2);
+    eq('the newest being the transpose', popUndo().verb, 'TRANSPOSE');
+    eq('under the length', popUndo().verb, 'CLIP LENGTH');
+
+    /* SCALE commits on release (the overlay only moves a selection), so the
+     * sweep through it must record nothing until the knob is let go. */
+    resetUndoState();
+    clipPageTouch(0, true);
+    for (let i = 0; i < 4; i++) clipPageKnob(0, 3, 0);
+    seqEngineTick();
+    eq('sweeping the scale overlay records nothing', undoDepth(), 0);
+    eq('and issues no engine command', engine.ops.some((o) => o.startsWith('cscl')), false);
+    clipPageRelease(0, 0);
+    seqEngineTick();
+    eq('the release commits the scale', undoDepth(), 1);
+    eq('as its own edit', popUndo().verb, 'CLIP SCALE');
+    eq('having reached the engine', engine.ops.some((o) => o.startsWith('cscl')), true);
+    eq('with no ungrouped edit anywhere', takeUndoViolation(), '');
+
+    /* A scale sweep that lands back where it started changes nothing. */
+    resetUndoState();
+    const before = seqState.clipScaleIdx;
+    clipPageTouch(0, true);
+    clipPageRelease(0, 0);
+    eq('an unmoved scale knob is no undo', undoDepth(), 0);
+    eq('and leaves the scale alone', seqState.clipScaleIdx, before);
+
+    resetUndoState(); resetUndoGroups(); resetSeqState(); resetClipPage(); resetSeqEngine();
+    uninstallMockEngine();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

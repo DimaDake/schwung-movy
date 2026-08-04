@@ -8,6 +8,8 @@ import { pageSlotMap } from './page-layout.js';
 import { inferGuessedMeta } from './meta-infer.js';
 import { applyTriggerDelta, seedTriggerState } from './trigger.js';
 import { mlog } from '../log.js';
+import { setChainParam } from '../chain/set-param.js';
+import { beginGesture } from '../undo/edit.js';
 
 function gestureFor(s: ModelState, key: string) {
     return s.paramGestures[key] ??= { lastTurnMs: 0, direction: 0 };
@@ -162,17 +164,29 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
     const scaled = p.type === 'enum' ? delta / ENUM_DELTA_DIV
         : p.knobAcceleration === 'wide' ? wideStepCount(s, p, delta) * p.step
         : delta * effStep * arcScale;
-    let newVal = (s.knobValues[gi] as number) + scaled;
+    /* Snapshot the outgoing value in the same encoding the write uses, so the
+     * inverse is byte-identical to what the DSP last received. */
+    const prevNum = s.knobValues[gi] as number;
+    let newVal = prevNum + scaled;
     newVal = Math.max(p.min, Math.min(p.max, newVal));
     if (p.type === 'int') newVal = Math.round(newVal);
     // enum: store as float for fractional accumulation; read sites use Math.round
     s.knobValues[gi] = newVal;
 
-    const valStr = p.type === 'enum'
-        ? enumSetValue(p.options, Math.round(newVal), enumFmtFor(s, gi, p, ioKey))
-        : (p.type === 'float') ? newVal.toFixed(4) : String(Math.round(newVal));
+    const encode = (v: number) => p.type === 'enum'
+        ? enumSetValue(p.options, Math.round(v), enumFmtFor(s, gi, p, ioKey))
+        : (p.type === 'float') ? v.toFixed(4) : String(Math.round(v));
+    const valStr = encode(newVal);
+    const prevStr = encode(prevNum);
     mlog('set slot=' + s.activeSlot + ' gi=' + gi + ' key=' + s.componentKey + ':' + ioKey + ' val=' + valStr);
-    const ok = p.key.startsWith('test_') ? true : shadow_set_param(s.activeSlot, s.componentKey + ':' + ioKey, valStr);
+    /* One undo per knob GESTURE, not per detent: re-entering with the same key
+     * coalesces the whole turn, and `prevStr` is the value before this detent —
+     * group.ts keeps the FIRST old it is given, so undo returns to where the
+     * gesture started. */
+    beginGesture('knob:' + s.activeSlot + ':' + s.componentKey + ':' + ioKey,
+        (p.label || p.key).toUpperCase(), 'T' + (s.activeSlot + 1), false);
+    const ok = p.key.startsWith('test_') ? true
+        : setChainParam(s.activeSlot, s.componentKey + ':' + ioKey, valStr, prevStr);
     mlog('set_param returned ' + ok);
     s.dirty = true;
 }

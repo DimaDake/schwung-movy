@@ -8,6 +8,8 @@
  * a per-(track,lane) live 0..127 accumulator, reseeded only when the edit
  * context changes (held step vs. base), and emit the engine command from it. */
 import type { KnobParamInfo } from '../model/store.js';
+import { endEdit } from '../undo/group.js';
+import { beginGesture, undoableEdit } from '../undo/edit.js';
 import { seqCmd, requestLabelSync } from './engine.js';
 import { seqState } from './state.js';
 import { seqToast } from './render.js';
@@ -151,7 +153,8 @@ export function clearLane(track: number, lane: number): void {
     liveVal.delete(track + ':' + lane);
     liveCtx.delete(track + ':' + lane);
     liveTurn.delete(track + ':' + lane);
-    seqCmd('aclr ' + track + ' ' + lane);
+    undoableEdit('CLEAR LANE', 'T' + (track + 1),
+        () => seqCmd('aclr ' + track + ' ' + lane));
 }
 
 /* Seed/accumulate the live value for (track, lane) in the given context. */
@@ -214,6 +217,9 @@ export function handleAutomationKnob(
     const next = accumLive(track, lane, ctx, seed, delta);
     // Holding a bar in Loop mode writes the value across the whole bar.
     const r = held ? heldRange() : null;
+    /* One undo per automation gesture: the turn coalesces until the knob is
+     * released (automationKnobReleased closes this key). */
+    beginGesture('stepauto:' + track + ':' + tp, 'AUTOMATION', 'T' + (track + 1));
     if (r && r.s1 > r.s0) {
         seqCmd('asetr ' + track + ' ' + lane + ' ' + r.s0 + ' ' + r.s1 + ' ' + next);
     } else {
@@ -231,6 +237,11 @@ export function handleAutomationKnob(
  * to base, or sync the engine base for a normal edit. `info.value` is the
  * param's current (base) value. */
 export function automationKnobReleased(track: number, physK: number, info: KnobParamInfo): void {
+    /* The capacitive release is the real end of a knob gesture, so it is what
+     * closes the undo group the turn opened (store.ts / step automation). The
+     * idle timeout in group.ts only covers a release that never arrives. */
+    endEdit('knob:' + track + ':' + info.target + ':' + info.ioKey);
+    endEdit('stepauto:' + track + ':' + info.target + ':' + info.ioKey);
     const lane = laneForParam(track, info.target + ':' + info.ioKey);
     const wasTap = touchedNotTurned.delete(physK);
     if (lane >= 0) {
@@ -244,7 +255,8 @@ export function automationKnobReleased(track: number, physK: number, info: KnobP
     // Tap in step-automation mode → clear this step's lock (revert to base).
     if (seqState.stepAutoMode && wasTap) {
         if (lane >= 0 && seqState.heldLocks.has(lane)) {
-            seqCmd('aclrs ' + track + ' ' + lane + ' ' + seqState.holdStep);
+            undoableEdit('CLEAR AUTOMATION', 'T' + (track + 1),
+                () => seqCmd('aclrs ' + track + ' ' + lane + ' ' + seqState.holdStep));
             seqState.heldLocks.delete(lane);             // optimistic: back to name
             liveCtx.delete(track + ':' + lane);          // reseed next edit
             requestLabelSync();                          // engine may free the lane (last lock)
@@ -264,7 +276,8 @@ export function automationKnobReleased(track: number, physK: number, info: KnobP
 
 /* Clear ALL lanes' automation at one step (Clear + step, or step + Clear). */
 export function clearStepAllAutomation(track: number, step: number): void {
-    seqCmd('aclrstep ' + track + ' ' + step);
+    undoableEdit('CLEAR AUTOMATION', 'T' + (track + 1),
+        () => seqCmd('aclrstep ' + track + ' ' + step));
     requestLabelSync(); // a lane left lock-less is freed by the engine → re-sync
     if (seqState.stepAutoMode && seqState.holdStep === step) seqState.heldLocks.clear();
 }

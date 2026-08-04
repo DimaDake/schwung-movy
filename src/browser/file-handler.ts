@@ -1,3 +1,5 @@
+import { setChainParam } from '../chain/set-param.js';
+import { undoableEdit } from '../undo/edit.js';
 import type { FileBrowserItem, FileBrowserState } from '../app/state.js';
 import { appState, VIEW_FILE_BROWSE } from '../app/state.js';
 import { dirname } from '../model/path.js';
@@ -93,7 +95,10 @@ export function activateFileBrowserItem(): void {
             seqToast('Wrong preset type');
             return;
         }
-        shadow_set_param(state.paramSlot, state.componentKey + ':' + state.paramKey, item.path);
+        const key = state.componentKey + ':' + state.paramKey;
+        const old = (typeof shadow_get_param === 'function' ? shadow_get_param(state.paramSlot, key) : null);
+        undoableEdit('LOAD FILE', 'T' + (state.paramSlot + 1),
+            () => setChainParam(state.paramSlot, key, item.path, old));
         const chainIdx = appState.trackChainIndex[state.paramSlot];
         appState.trackModels[state.paramSlot]?.[chainIdx]?.setFileValue(state.gi, item.path);
         appState.fileBrowserState = null;

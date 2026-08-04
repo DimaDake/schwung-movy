@@ -1,3 +1,5 @@
+import { setChainParam } from '../chain/set-param.js';
+import { beginGesture } from '../undo/edit.js';
 /* createLfoModel — a Model-conforming object for movy's virtual LFO chain slot.
  * Backs both banks (LFO 1 / LFO 2) of the current track's schwung slot LFOs,
  * reading/writing lfoN:* params and emitting the standard ViewModel so the
@@ -67,7 +69,10 @@ export function createLfoModel(track: number): Model {
     }
 
     function setP(lfoIdx: number, key: string, val: string): void {
-        shadow_set_param(track, lfoPrefix(lfoIdx) + key, val);
+        const full = lfoPrefix(lfoIdx) + key;
+        const old = (typeof shadow_get_param === 'function' ? shadow_get_param(track, full) : null);
+        beginGesture('lfo:' + track + ':' + full, key.toUpperCase(), 'T' + (track + 1), false);
+        setChainParam(track, full, val, old);
     }
 
     /* Current target's compact label for the resting enum box. */

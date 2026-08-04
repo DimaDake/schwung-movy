@@ -5,7 +5,7 @@
  * Run from movy root: node browser-test/logic.mjs
  */
 
-import { readFileSync }   from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { createModel }    from '../dist/esm/model/index.js';
 import { dedupShortNames } from '../dist/esm/renderer/shorten.js';
 import { detectEnvelopes } from '../dist/esm/model/envelope.js';
@@ -8271,6 +8271,41 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     const allAscii = [...(sample.head + sample.verb + sample.detail)]
         .every(c => c.charCodeAt(0) >= 0x20 && c.charCodeAt(0) <= 0x7E);
     eq('toast text stays inside the font', allAscii, true);
+}
+
+
+{
+    _log('\nundo — no param write escapes the chokepoint:');
+    /* Guard layer 3. Every user-facing chain-param write goes through
+     * chain/set-param.ts so undo records its inverse. The files below write
+     * directly on purpose; each is infrastructure or view state, not an edit.
+     * A NEW direct write shows up here as a failure rather than as a param
+     * that silently cannot be undone. */
+    const ALLOWED = {
+        'src/chain/set-param.ts':       'the chokepoint itself',
+        'src/undo/apply.ts':            'undo applying its own inverses',
+        'src/types/schwung.d.ts':       'the ambient declaration',
+        'src/app/tick.ts':              'knob_N_set lane mappings (infrastructure)',
+        'src/midi/router.ts':           'knob_N_set lane mapping (infrastructure)',
+        'src/browser/handler.ts':       'module load — recorded as a ModuleOp',
+        'src/model/hierarchy.ts':       'setOnLoad seeds at module load',
+        'src/lfo/assign.ts':            'records before writing (three-key gesture)',
+        'src/keyboard/drum-handler.ts': 'focused drum pad — view state, not an edit',
+    };
+    const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+        const full = dir + '/' + e.name;
+        return e.isDirectory() ? walk(full) : (full.endsWith('.ts') ? [full] : []);
+    });
+    const offenders = walk('src')
+        .filter((f) => !(f in ALLOWED))
+        .filter((f) => readFileSync(f, 'utf8').includes('shadow_set_param('));
+    eq('no unlisted file writes chain params directly: ' + offenders.join(','),
+        offenders.length, 0);
+
+    /* And the allowlist cannot rot into a list of files that no longer write. */
+    const stale = Object.keys(ALLOWED)
+        .filter((f) => !readFileSync(f, 'utf8').includes('shadow_set_param('));
+    eq('no stale allowlist entries: ' + stale.join(','), stale.length, 0);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

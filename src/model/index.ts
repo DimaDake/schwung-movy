@@ -1,3 +1,5 @@
+import { setChainParam } from '../chain/set-param.js';
+import { undoableEdit } from '../undo/edit.js';
 import { createModelState } from './state.js';
 import { loadHierarchy }    from './hierarchy.js';
 import { applyKnobDelta, knobParamInfo, reseedPadParams, refreshModulatedKeys, slotToLocal }   from './store.js';
@@ -140,8 +142,11 @@ export function createModel(slot: number, componentKey = 'synth') {
                         s.enumFmt[gi] = enumUsesIndex(p.options, shadow_get_param(s.activeSlot, s.componentKey + ':' + p.key));
                     }
                     const usesIndex = s.moduleConfig?.enumSetIndex ? true : (s.enumFmt[gi] as boolean);
-                    shadow_set_param(s.activeSlot, s.componentKey + ':' + p.key,
-                                     enumSetValue(p.options, idx, usesIndex));
+                    const key = s.componentKey + ':' + p.key;
+                    const old = shadow_get_param(s.activeSlot, key);
+                    undoableEdit((p.label || p.key).toUpperCase(), 'T' + (s.activeSlot + 1),
+                        () => setChainParam(s.activeSlot, key,
+                            enumSetValue(p.options, idx, usesIndex), old));
                 }
                 s.enumOverlay = null;
             }
@@ -151,7 +156,10 @@ export function createModel(slot: number, componentKey = 'synth') {
                     const path = s.fileOverlay.items[s.fileOverlay.selected];
                     if (fileContentAllows(path, p.fileRequireContains)) {
                         s.fileValues[s.fileOverlay.gi] = path;
-                        shadow_set_param(s.activeSlot, s.componentKey + ':' + p.key, path);
+                        const key = s.componentKey + ':' + p.key;
+                        const old = shadow_get_param(s.activeSlot, key);
+                        undoableEdit('LOAD FILE', 'T' + (s.activeSlot + 1),
+                            () => setChainParam(s.activeSlot, key, path, old));
                     } else {
                         fileRejected = true;
                     }

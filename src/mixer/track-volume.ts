@@ -1,3 +1,6 @@
+import { setChainParam } from '../chain/set-param.js';
+import { beginGesture } from '../undo/edit.js';
+import { endEdit } from '../undo/group.js';
 /* Hold a track button + turn the master volume knob → that track's schwung
  * chain-slot volume (`slot:volume`, 0–4 where 1.0 = unity).
  *
@@ -70,6 +73,7 @@ function trackCc(track: number): number { return 43 - track; }
 
 let heldTrack = -1;      /* track button physically held (-1 = none) */
 let touched   = false;   /* master knob capacitive touch */
+let volumeBefore: string | null = null;  /* volume at gesture start, for undo */
 let diverted  = -1;      /* track whose hold we injected into Move (-1 = none) */
 let value     = 1;       /* live slot:volume for the gesture in progress */
 let volIdx    = ampToIdx(1);  /* its position on the dB ladder */
@@ -97,6 +101,9 @@ function beginDivert(): void {
     if (diverted >= 0 || heldTrack < 0) return;
     diverted = heldTrack;
     value    = readVolume(heldTrack);
+    /* The gesture already has explicit start/end points, so they double as the
+     * undo group's — no touch plumbing needed. */
+    volumeBefore = value.toFixed(4);
     volIdx   = ampToIdx(value);
     injectHold(heldTrack, true);
     mlog('trackvol arm t=' + heldTrack + ' read=' + value.toFixed(2));
@@ -105,7 +112,9 @@ function beginDivert(): void {
 function endDivert(): void {
     if (diverted < 0) return;
     injectHold(diverted, false);
+    endEdit('vol:' + diverted);
     diverted = -1;
+    volumeBefore = null;
 }
 
 export function volumeTrackDown(track: number): void {
@@ -136,7 +145,8 @@ export function volumeKnobDelta(d2: number): boolean {
     value  = idxToAmp(volIdx);
     /* Four decimals, not two: the bottom of a dB fader lives below 0.01, and
      * rounding it to 2 dp would collapse the quietest ~20 dB back into silence. */
-    shadow_set_param(heldTrack, 'slot:volume', value.toFixed(4));
+    beginGesture('vol:' + heldTrack, 'VOLUME', 'T' + (heldTrack + 1), false);
+    setChainParam(heldTrack, 'slot:volume', value.toFixed(4), volumeBefore);
     mlog('trackvol t=' + heldTrack + ' d=' + delta + ' v=' + value.toFixed(4));
     return true;
 }
@@ -152,6 +162,7 @@ export function volumeOverlay():
 export function resetTrackVolume(): void {
     heldTrack = -1;
     touched   = false;
+    volumeBefore = null;
     diverted  = -1;
     value     = 1;
     volIdx    = ampToIdx(1);

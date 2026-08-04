@@ -1,3 +1,4 @@
+import { setChainParamUntracked } from '../chain/set-param.js';
 /* One-shot "trigger" knobs — params a module declares as actions rather than
  * values (behavior: "trigger", or the conventional ["idle","trigger"] enum).
  *
@@ -142,7 +143,10 @@ export function applyTriggerDelta(
     if (sendIndex !== null) {
         const value = enumSetValue(p.options, sendIndex, enumFmt());
         mlog('trigger slot=' + s.activeSlot + ' key=' + s.componentKey + ':' + ioKey + ' val=' + value);
-        shadow_set_param(s.activeSlot, s.componentKey + ':' + ioKey, value);
+        /* A trigger fires an action rather than holding a value, so there is no
+         * previous value to return to — recorded as untracked instead of
+         * inventing an inverse that would not undo anything. */
+        setChainParamUntracked(s.activeSlot, s.componentKey + ':' + ioKey, value);
     }
     s.dirty = true;
     return true;

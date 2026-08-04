@@ -28,7 +28,7 @@ import { writeUiField, type UiField } from './ui-fields.js';
 import { changeDetail } from './label.js';
 import { syncParamsToModels } from './param-sync.js';
 import { moduleReadKey } from '../chain/config.js';
-import { dumpModuleParams } from './module-dump.js';
+import { captureModuleState, dumpModuleParams } from './module-dump.js';
 
 /* Snapshot ids allocated for the redo side of a uswap. Shares the counter with
  * group.ts by staying above it — group ids are odd-free and monotonic, so a
@@ -68,10 +68,17 @@ function applyEntry(e: UndoEntry, undoing: boolean): void {
          * time it did not exist yet, so this is the only chance to learn what
          * redo should restore — without it, redo put the OLD module's values
          * into the new one. */
-        if (undoing && op.newParams === undefined) {
-            const d = dumpModuleParams(op.slot, op.componentKey);
-            op.newParams = d.params;
-            op.newLeadCount = d.leadCount;
+        if (undoing && op.newParams === undefined && op.newState === undefined) {
+            const st = captureModuleState(op.slot, op.componentKey);
+            if (st !== null) {
+                op.newState = st;
+                op.newParams = [];
+                op.newLeadCount = 0;
+            } else {
+                const d = dumpModuleParams(op.slot, op.componentKey);
+                op.newParams = d.params;
+                op.newLeadCount = d.leadCount;
+            }
         }
         /* Writing always uses the colon key, whichever slot kind this is — only
          * the read side has the underscore alias. */

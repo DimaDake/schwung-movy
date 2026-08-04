@@ -31,6 +31,35 @@
 
 import { mlog } from '../log.js';
 
+/* Reads can come back empty on a transient shim round-trip; schwung's own
+ * getSlotStateWithRetry retries the same way before trusting an empty answer. */
+const STATE_READ_TRIES = 4;
+
+/**
+ * The whole module's state as one opaque blob, or null if it has none.
+ *
+ * This is schwung's own save/restore channel: `<component>:state` is the JSON
+ * of every param the module holds, and writing it back is — in schwung's
+ * words — "the verified slot-load path". Its module presets and its per-slot
+ * autosave are both built on it, generically, with no per-module code.
+ *
+ * For undo that is worth far more than replaying params one at a time: the DSP
+ * applies the blob itself, so there is no preset-versus-parameter ordering to
+ * get right, no settling to wait out, and params movy never sees are covered
+ * too. The per-param replay stays as the fallback for modules that expose no
+ * state.
+ */
+export function captureModuleState(slot: number, componentKey: string): string | null {
+    if (typeof shadow_get_param !== 'function') return null;
+    for (let i = 0; i < STATE_READ_TRIES; i++) {
+        const raw = shadow_get_param(slot, componentKey + ':state');
+        /* schwung treats a blob that is not a JSON object as "unsupported"
+         * (remote_ui.go fetchAllParams), so this matches its own test. */
+        if (raw && raw.charAt(0) === '{') return raw;
+    }
+    return null;
+}
+
 interface ChainParam { key?: string; type?: string; readonly?: boolean }
 
 /** Params that describe the module rather than configure it. schwung

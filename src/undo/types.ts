@@ -34,6 +34,12 @@ export interface ModuleOp {
      * entries are selector+preset. module-apply writes those, waits for the DSP
      * to finish re-applying the preset, then writes the rest — see
      * module-dump.ts for why the order is load-bearing. */
+    /* schwung's own whole-module save/restore blob, when the module supports
+     * it (`<component>:state`). Present = the params below are unused: writing
+     * the blob back restores everything at once. */
+    oldState?: string;
+    newState?: string;
+    /* Fallback for modules that expose no state blob. */
     oldParams: [string, string][];
     leadCount: number;
     /* The incoming module's params, captured lazily on the first undo — at

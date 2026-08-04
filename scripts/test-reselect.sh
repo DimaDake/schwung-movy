@@ -124,17 +124,27 @@ elif echo "$UNDO_LOG" | grep -qE '\[movy\] undo: (LOAD MODULE|CLEAR SLOT)'; then
 else
     fail "no 'undo: LOAD MODULE|CLEAR SLOT' — the swap recorded no undo entry"
 fi
-echo "$UNDO_LOG" | grep -q 'undo: replayed' \
-    && pass "the outgoing module's params were replayed" \
-    || fail "no 'undo: replayed' — the restore never completed (timed out?)"
-# The preset must be written BEFORE the params, or applying it would overwrite
-# every value just restored (airwindows rewrites them after the change lands).
-if echo "$UNDO_LOG" | grep -q 'undo: restored .* selector/preset params'; then
-    echo "$UNDO_LOG" | grep -q 'after settle' \
-        && pass "preset written first, params after the settle" \
-        || fail "lead written but the post-settle params never followed"
+# Two restore paths. schwung's own whole-module blob (`<component>:state`) is
+# preferred — the DSP applies preset and params together, so there is no
+# ordering to get right. The per-param replay is the fallback for modules that
+# expose no state, and its preset must go first or applying it would overwrite
+# everything just restored.
+if echo "$UNDO_LOG" | grep -q 'undo: restored module state'; then
+    pass "the module was restored from its own state blob"
+    echo "$UNDO_LOG" | grep -q 'undo: captured module state' \
+        && pass "and that blob was captured before the swap" \
+        || fail "restored a state blob that was never captured"
+elif echo "$UNDO_LOG" | grep -q 'undo: replayed'; then
+    pass "the outgoing module's params were replayed (no state blob)"
+    if echo "$UNDO_LOG" | grep -q 'undo: restored .* selector/preset params'; then
+        echo "$UNDO_LOG" | grep -q 'after settle' \
+            && pass "preset written first, params after the settle" \
+            || fail "lead written but the post-settle params never followed"
+    else
+        info "outgoing module declared no preset — staged replay not exercised"
+    fi
 else
-    info "outgoing module declared no preset — staged replay not exercised"
+    fail "the restore never completed (timed out?)"
 fi
 
 echo

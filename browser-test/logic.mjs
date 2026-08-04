@@ -8403,6 +8403,9 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     moduleRestoreTick();
     eq('the dump replays once the module is up', writes.length, 2);
     eq('with the recorded values', writes.join(','), 'synth:cutoff=0.42,synth:res=0.10');
+    /* The verify round runs before the restore is done — see the staged-replay
+     * block below for what it is for. */
+    for (let i = 0; i < 40; i++) moduleRestoreTick();
     eq('and the restore completes', moduleRestorePending(), false);
 
     /* A module that never returns must not hold the stack hostage. */
@@ -8711,6 +8714,41 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     eq('the user\'s own params are written after the settle',
         writes.join(','), 'synth:cutoff=0.42');
     eq('so the preset does not win over them', store['synth:cutoff'], '0.42');
+
+    /* A fixed settle is a guess about someone else's timing, and a wrong guess
+     * is silent. A preset whose rewrite lands LATE — after our values — is put
+     * right by the verify pass instead of quietly winning. */
+    store['synth:cutoff'] = '0.99';   // the preset landing late, after our write
+    writes.length = 0;
+    for (let i = 0; i < 40; i++) moduleRestoreTick();
+    eq('a late preset rewrite is corrected', store['synth:cutoff'], '0.42');
+    eq('and only the drifted param is rewritten', writes.join(','), 'synth:cutoff=0.42');
+    for (let i = 0; i < 40; i++) moduleRestoreTick();
+    eq('the restore completes once the values hold', moduleRestorePending(), false);
+
+    /* The DSP echoes values in its own formatting, so a textual compare would
+     * call every float a mismatch and rewrite the whole dump every round. */
+    resetModuleRestore();
+    store['synth:cutoff'] = '0.4200000';
+    store['synth:rom_index'] = '2'; store['synth:preset'] = '7';
+    beginModuleRestore(op, true);
+    writes.length = 0;
+    for (let i = 0; i < 200; i++) moduleRestoreTick();
+    eq('a differently-formatted echo is not treated as drift',
+        writes.filter((w) => w.startsWith('synth:cutoff')).length, 1);
+
+    /* A param that will not hold its value must not loop forever. */
+    resetModuleRestore();
+    const stubborn = { ...op, oldParams: [['locked', '1']], leadCount: 0 };
+    store['synth:locked'] = '0';
+    globalThis.shadow_set_param = (slot, key, v) => { writes.push(key + '=' + v); return true; };
+    beginModuleRestore(stubborn, true);
+    writes.length = 0;
+    for (let i = 0; i < 400; i++) moduleRestoreTick();
+    eq('a param that never holds gives up rather than looping',
+        moduleRestorePending(), false);
+    eq('after a bounded number of attempts', writes.length <= 4, true);
+    globalThis.shadow_set_param = (slot, key, v) => { writes.push(key + '=' + v); store[key] = v; return true; };
     eq('and the restore completes', moduleRestorePending(), false);
 
     /* airwindows (`clap`): plugin_index is DECLARED in the hierarchy but never
@@ -8756,7 +8794,8 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     const writes = [];
     globalThis.shadow_get_param = (slot, key) => store[key] ?? null;
     globalThis.shadow_set_param = (slot, key, v) => { writes.push(key + '=' + v); store[key] = v; return true; };
-    const run = (n = 6) => { writes.length = 0; for (let i = 0; i < n; i++) moduleRestoreTick(); };
+    /* Enough ticks to clear the verify round for restores that write params. */
+    const run = (n = 40) => { writes.length = 0; for (let i = 0; i < n; i++) moduleRestoreTick(); };
 
     /* ADD: an empty slot gains a module. The old side is nothing, so undoing it
      * must wait for the slot to go EMPTY rather than for some module id. */
@@ -8858,6 +8897,84 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
         '2 VALUES');
     /* An engine-only edit keeps its own wording (there is no value to show). */
     eq('an engine-only edit has no value change', changeDetail({ paramOps: [], uiOps: [] }, true), '');
+}
+
+
+{
+    _log('\nundo — a module restores from schwung\'s own state blob:');
+    const { captureModuleState } = await import('../dist/esm/undo/module-dump.js');
+    const {
+        beginModuleRestore, moduleRestoreTick, moduleRestorePending, resetModuleRestore,
+    } = await import('../dist/esm/undo/module-apply.js');
+
+    /* `<component>:state` is schwung's whole-module save/restore channel — its
+     * module presets and per-slot autosave both use it, and it calls writing it
+     * back "the verified slot-load path". Preferring it means the DSP applies
+     * preset and params together, so there is no ordering to get right. */
+    /* chain_params is present because a live module always publishes it — its
+     * absence is how a late-loading module (Virus) is detected, and the state
+     * path honours that guard too. */
+    const store = {
+        'synth:state': '{"preset":7,"cutoff":0.42}',
+        'synth:chain_params': JSON.stringify([{ key: 'cutoff' }]),
+    };
+    const writes = [];
+    globalThis.shadow_get_param = (slot, key) => store[key] ?? null;
+    globalThis.shadow_set_param = (slot, key, v) => { writes.push(key + '=' + v); store[key] = v; return true; };
+
+    eq('a JSON state blob is captured', captureModuleState(0, 'synth'),
+        '{"preset":7,"cutoff":0.42}');
+    /* schwung's own test: anything that is not a JSON object means the module
+     * does not support state (remote_ui.go fetchAllParams). */
+    store['synth:state'] = '';
+    eq('an empty blob means unsupported', captureModuleState(0, 'synth'), null);
+    store['synth:state'] = 'not-json';
+    eq('a non-object blob means unsupported too', captureModuleState(0, 'synth'), null);
+
+    /* Restoring writes the blob back — one write, no staging. */
+    resetModuleRestore();
+    const op = {
+        slot: 0, componentKey: 'synth', oldWrite: 'obxd', newWrite: 'rex',
+        oldIds: ['obxd'], newIds: ['rex'],
+        oldState: '{"preset":7,"cutoff":0.42}',
+        oldParams: [], leadCount: 0,
+    };
+    store['synth_module'] = 'obxd';
+    beginModuleRestore(op, true);
+    writes.length = 0;
+    for (let i = 0; i < 5; i++) moduleRestoreTick();
+    eq('the whole module is restored in one write',
+        writes.join(','), 'synth:state={"preset":7,"cutoff":0.42}');
+    eq('with no per-param staging at all', moduleRestorePending(), false);
+
+    /* It still waits for the right module — a blob written into the wrong one
+     * would be rejected or, worse, half-applied. */
+    resetModuleRestore();
+    store['synth_module'] = 'rex';
+    beginModuleRestore(op, true);
+    writes.length = 0;
+    for (let i = 0; i < 5; i++) moduleRestoreTick();
+    eq('but not before the right module is up', writes.length, 0);
+
+    /* A module with no state blob keeps the per-param path. */
+    resetModuleRestore();
+    const legacy = {
+        slot: 0, componentKey: 'synth', oldWrite: 'plain', newWrite: 'rex',
+        oldIds: ['plain'], newIds: ['rex'],
+        oldParams: [['cutoff', '0.42']], leadCount: 0,
+    };
+    store['synth_module'] = 'plain';
+    store['synth:chain_params'] = JSON.stringify([{ key: 'cutoff' }]);
+    store['synth:cutoff'] = '0.42';
+    beginModuleRestore(legacy, true);
+    writes.length = 0;
+    for (let i = 0; i < 60; i++) moduleRestoreTick();
+    eq('a module without state still replays its params',
+        writes.join(','), 'synth:cutoff=0.42');
+
+    delete globalThis.shadow_get_param;
+    delete globalThis.shadow_set_param;
+    resetModuleRestore();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

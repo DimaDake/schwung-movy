@@ -3,7 +3,8 @@ import { appState, VIEW_BROWSE } from '../app/state.js';
 import { moduleReadKey, type ChainSlot } from '../chain/config.js';
 import { requestLaneWarm } from '../seq/automation.js';
 import { releaseAllLive } from '../keyboard/release.js';
-import { dumpModuleParams } from '../undo/module-dump.js';
+import { captureModuleState, dumpModuleParams } from '../undo/module-dump.js';
+import { mlog } from '../log.js';
 import { addModuleOp, beginEdit, endEdit, CLOSE } from '../undo/group.js';
 
 const MODULES_BASE = '/data/UserData/schwung/modules';
@@ -78,7 +79,14 @@ export function loadSelectedModule(): void {
     const prev = browserState.modules.find((m) => m.id === prevId);
     const changed = prevId !== mod.id;
     if (changed) {
-        const dump = dumpModuleParams(browserState.paramSlot, browserState.componentKey);
+        /* Prefer schwung's own whole-module blob; the per-param dump is the
+         * fallback for modules that expose none. Skipping the dump when the
+         * blob works also spares a module swap ~100 blocking param reads. */
+        const state = captureModuleState(browserState.paramSlot, browserState.componentKey);
+        const dump = state === null
+            ? dumpModuleParams(browserState.paramSlot, browserState.componentKey)
+            : { params: [] as [string, string][], leadCount: 0 };
+        if (state !== null) mlog('undo: captured module state (' + state.length + ' bytes)');
         beginEdit({
             key: 'module:' + browserState.paramSlot + ':' + browserState.componentKey,
             verb: value ? 'LOAD MODULE' : 'CLEAR SLOT',
@@ -97,6 +105,7 @@ export function loadSelectedModule(): void {
             newWrite: value,
             oldIds: ids(prevId, prev?.path ?? ''),
             newIds: ids(mod.id, mod.path),
+            oldState: state ?? undefined,
             oldParams: dump.params,
             leadCount: dump.leadCount,
         });

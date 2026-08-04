@@ -32,11 +32,22 @@ const RESTORE_TIMEOUT_TICKS = 200;
  * airwindows', which arrives after the change), short enough that a restore
  * still feels immediate. */
 const SETTLE_TICKS = 50;
+/* A fixed settle is a GUESS about someone else's timing, and a wrong guess is
+ * silent: the preset's rewrite lands after our values and the restore looks
+ * like it did nothing. So the write is verified — read the params back, rewrite
+ * whatever the DSP has since overwritten, and repeat. Bounded, because a param
+ * that will not hold its value (one the DSP derives, or clamps) would otherwise
+ * loop forever. */
+const VERIFY_ROUNDS = 3;
+const VERIFY_TICKS = 30;   // ~0.2 s between rounds
 
-type Phase = 'wait' | 'settle';
+type Phase = 'wait' | 'settle' | 'verify';
 
 interface Pending {
     op: ModuleOp;
+    /* schwung's whole-module blob for the side being restored, when the module
+     * supports it. Present = params below are unused. */
+    state: string | null;
     /* Which side's params to replay. Restoring the OLD module writes what it
      * held; restoring the NEW one writes what IT held — replaying the old
      * module's values into the new module (or into an emptied slot) put
@@ -49,6 +60,8 @@ interface Pending {
     phase: Phase;
     ticksLeft: number;
     settleLeft: number;
+    verifyLeft: number;
+    roundsLeft: number;
 }
 
 let pending: Pending | null = null;
@@ -60,12 +73,15 @@ export function moduleRestorePending(): boolean { return pending !== null; }
 export function beginModuleRestore(op: ModuleOp, undoing: boolean): void {
     pending = {
         op,
+        state: (undoing ? op.oldState : op.newState) ?? null,
         params: undoing ? op.oldParams : (op.newParams ?? []),
         leadCount: undoing ? op.leadCount : (op.newLeadCount ?? 0),
         wantIds: undoing ? op.oldIds : op.newIds,
         phase: 'wait',
         ticksLeft: RESTORE_TIMEOUT_TICKS,
         settleLeft: SETTLE_TICKS,
+        verifyLeft: VERIFY_TICKS,
+        roundsLeft: VERIFY_ROUNDS,
     };
 }
 
@@ -85,7 +101,7 @@ function moduleIsReady(p: Pending): boolean {
     const live = liveModuleId(p.op);
     if (p.wantIds.length === 0) return live === '';        // cleared slot
     if (!p.wantIds.includes(live)) return false;
-    if (p.params.length === 0) return true;                // nothing to write
+    if (p.state === null && p.params.length === 0) return true;   // nothing to write
     const cp = typeof shadow_get_param === 'function'
         ? shadow_get_param(p.op.slot, p.op.componentKey + ':chain_params')
         : null;
@@ -99,6 +115,42 @@ function write(p: Pending, from: number, to: number): void {
         const [key, val] = p.params[i];
         setChainParamUntracked(p.op.slot, p.op.componentKey + ':' + key, val);
     }
+}
+
+/* The DSP echoes a value in its own formatting — "0.42" for the "0.4200" we
+ * wrote — so a textual compare would call every float a mismatch and rewrite
+ * the whole dump on every round. */
+function sameValue(a: string, b: string): boolean {
+    if (a === b) return true;
+    const x = parseFloat(a), y = parseFloat(b);
+    if (isNaN(x) || isNaN(y)) return false;
+    return Math.abs(x - y) < 1e-4;
+}
+
+/* Rewrite whatever the DSP has overwritten since we set it. Returns how many
+ * needed it — 0 means the restore has actually taken. */
+function rewriteDrifted(p: Pending): number {
+    if (typeof shadow_get_param !== 'function') return 0;
+    let fixed = 0;
+    /* Only the params after the lead: re-writing the preset would re-trigger
+     * the very rewrite being corrected for. */
+    for (let i = p.leadCount; i < p.params.length; i++) {
+        const [key, want] = p.params[i];
+        const full = p.op.componentKey + ':' + key;
+        const live = shadow_get_param(p.op.slot, full);
+        if (live === null || sameValue(live, want)) continue;
+        setChainParamUntracked(p.op.slot, full, want);
+        fixed++;
+    }
+    return fixed;
+}
+
+/* Enter the verify phase — or skip it when there is nothing it could check
+ * (an emptied slot, or a dump that is all preset). Waiting out a verify round
+ * with no params to read would only make the restore feel slower. */
+function toVerify(p: Pending, op: ModuleOp): void {
+    if (p.params.length <= p.leadCount) { finish(op); return; }
+    p.phase = 'verify';
 }
 
 function finish(op: ModuleOp): void {
@@ -124,6 +176,14 @@ export function moduleRestoreTick(): void {
             invalidateUndo('module restore timeout');
             return;
         }
+        /* One blob, applied by the DSP itself — no ordering to get right, no
+         * settle to wait out, and it covers params movy never sees. */
+        if (pending.state !== null) {
+            setChainParamUntracked(op.slot, op.componentKey + ':state', pending.state);
+            mlog('undo: restored module state (' + pending.state.length + ' bytes)');
+            finish(op);
+            return;
+        }
         write(pending, 0, pending.leadCount);
         if (pending.leadCount > 0) {
             mlog('undo: restored ' + pending.leadCount + ' selector/preset params');
@@ -132,17 +192,29 @@ export function moduleRestoreTick(): void {
         }
         write(pending, 0, pending.params.length);
         mlog('undo: replayed ' + pending.params.length + ' params');
-        finish(op);
+        toVerify(pending, op);
         return;
     }
 
-    /* settle: the preset is rewriting the module's params; our values go in
-     * after it, so they are what survives. */
-    if (--pending.settleLeft > 0) return;
-    write(pending, pending.leadCount, pending.params.length);
-    mlog('undo: replayed ' + pending.params.length + ' params ('
-        + pending.leadCount + ' lead + ' + (pending.params.length - pending.leadCount)
-        + ' after settle)');
+    if (pending.phase === 'settle') {
+        /* The preset is rewriting the module's params; our values go in after
+         * it, so they are what survives. */
+        if (--pending.settleLeft > 0) return;
+        write(pending, pending.leadCount, pending.params.length);
+        mlog('undo: replayed ' + pending.params.length + ' params ('
+            + pending.leadCount + ' lead + ' + (pending.params.length - pending.leadCount)
+            + ' after settle)');
+        toVerify(pending, op);
+        return;
+    }
+
+    /* verify: read back, and put right anything the DSP has overwritten since. */
+    if (--pending.verifyLeft > 0) return;
+    pending.verifyLeft = VERIFY_TICKS;
+    const fixed = rewriteDrifted(pending);
+    if (fixed > 0) mlog('undo: verify rewrote ' + fixed + ' param(s) the DSP had overwritten');
+    if (fixed > 0 && --pending.roundsLeft > 0) return;
+    if (fixed > 0) mlog('undo: ' + fixed + ' param(s) would not hold their value');
     finish(op);
 }
 

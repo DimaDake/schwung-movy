@@ -8387,6 +8387,43 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     resetUndoState(); resetUndoGroups(); resetUndoApply(); resetModuleRestore();
 }
 
+
+{
+    _log('\nundo — one entry per record pass:');
+    const { recPassTick, resetRecPass } = await import('../dist/esm/undo/rec-pass.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const engine = installMockEngine();
+    resetUndoState(); resetUndoGroups(); resetRecPass(); resetSeqState();
+    resetSeqEngine(); seqEngineTick();
+
+    seqState.lenSteps = 16;
+    seqState.recording = true;
+    seqState.curStep = 0;
+    recPassTick();                       // recording starts -> pass 1 opens
+    eq('a pass is open while recording', groupOpen(), true);
+    eq('and nothing is on the stack yet', undoDepth(), 0);
+
+    for (const step of [4, 8, 12]) { seqState.curStep = step; recPassTick(); }
+    eq('advancing within the loop keeps one pass', undoDepth(), 0);
+
+    seqState.curStep = 0;                // wrap
+    recPassTick();
+    eq('the wrap closes pass 1', undoDepth(), 1);
+    eq('and opens pass 2', groupOpen(), true);
+
+    seqState.curStep = 8; recPassTick();
+    seqState.curStep = 0; recPassTick();
+    eq('two loops are two undos', undoDepth(), 2);
+
+    seqState.recording = false;
+    recPassTick();
+    eq('stopping closes the pass in progress', undoDepth(), 3);
+    eq('and leaves no group open', groupOpen(), false);
+
+    resetUndoState(); resetUndoGroups(); resetRecPass(); resetSeqState(); resetSeqEngine();
+    uninstallMockEngine();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

@@ -101,6 +101,13 @@ Movy stands on the shoulders of several projects:
 
   ![Capture tempo selector](docs/assets/capture_select.png)
 
+- **Undo & redo** — **Undo** takes back the last edit, **Shift + Undo** redoes
+  it, and an overlay names what changed. One gesture is one undo: a whole knob
+  turn, or one pass of live recording. Covers notes, clips, automation, synth
+  parameters and module loads alike.
+
+  ![Undo](docs/assets/undo_toast.png)
+
 - **Scales & pad layouts** — the 32 pads become a chromatic fretboard or piano,
   or fold **in key** (4ths or inline) so a wrong note is impossible. Each
   track remembers its own octave, saved with the set.

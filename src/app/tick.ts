@@ -44,6 +44,7 @@ import { drawCaptureOverlay } from '../renderer/capture-overlay.js';
 import { drawUndoOverlay } from '../renderer/undo-overlay.js';
 import { undoTick } from '../undo/group.js';
 import { moduleRestoreTick } from '../undo/module-apply.js';
+import { recPassTick } from '../undo/rec-pass.js';
 import { flushOrphanedSnaps, onEngineNoop, undoWatchContext } from '../undo/apply.js';
 import { undoToast, undoToastActive, undoToastTick } from '../undo/toast.js';
 import { takeNoopSnapId } from '../seq/engine.js';
@@ -297,6 +298,7 @@ export function tick(): void {
      * one this tick resolved. Order within: close timed-out groups, notice a
      * set/engine change, drop snapshots the stacks have released, retract a
      * group the engine reported as a no-op. */
+    recPassTick();
     undoTick();
     moduleRestoreTick();
     undoWatchContext();

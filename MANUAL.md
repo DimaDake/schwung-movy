@@ -33,6 +33,7 @@ official docs first:
 4. [Keyboard & drums](#4-keyboard--drums)
 5. [The sequencer (aligned with Move)](#5-the-sequencer-aligned-with-move)
 6. [Beyond Move: Step, Clip & Set parameters](#6-beyond-move-step-clip--set-parameters)
+6a. [Undo & redo](#6a-undo--redo)
 7. [Limitations vs Move](#7-limitations-vs-move)
 8. [Controls reference](#8-controls-reference)
 9. [Troubleshooting & recovery](#9-troubleshooting--recovery)
@@ -817,13 +818,52 @@ where you were.
 
 ---
 
+## 6a. Undo & redo
+
+Press **Undo** to take back the last edit; **Shift + Undo** redoes it. An
+overlay names what changed and where, then clears itself.
+
+![Undo toast](docs/assets/undo_toast.png)
+
+**What's undoable.** Everything that changes the music: notes and steps, clip
+clear / delete / copy / paste / duplicate, loop length and start, per-step trig
+properties, automation (locks, lane values, clearing a lane or a step),
+tempo, swing, root and key, track mute and volume, synth and LFO parameters,
+LFO assignments, and module or preset loads.
+
+**What isn't.** Anything that only changes what you're looking at — selecting a
+track or clip, moving between bars or pages, Session mode, the browser — plus
+Play, Rec, the metronome, **LINK**, and the keyboard layout. Undo is for edits,
+not for navigation or performance.
+
+**How edits are grouped.** One gesture is one undo, not one undo per detent:
+
+- Turning a knob is a single entry however far you turn it, from where the knob
+  started to where you let go.
+- Each pass of live recording is its own entry — record over two loops and it
+  takes two presses to remove both.
+- Everything else — a step press, a clear, a paste — is one entry each.
+
+An edit that changes nothing costs no press: turn a knob up and back down
+before releasing it and there is nothing to undo.
+
+**Limits.** History lives in memory and is cleared when you switch sets or
+close Movy. It holds the last 64 edits. Undoing a module load restores the old
+module and its parameters, but anything Movy never sees — a loaded sample's
+contents, a parameter the module doesn't publish — can't come back. If a module
+is changed outside Movy while it's parked in the background, the history is
+dropped rather than applied to the wrong thing, and the overlay says so.
+
+![Undo unavailable](docs/assets/undo_unavailable.png)
+
+---
+
 ## 7. Limitations vs Move
 
 Movy aims to match Move, but it's an early prototype and several things are
 missing or simplified. **All of these are candidates for future work — and
 [contributions are welcome](CONTRIBUTING.md).**
 
-- **No undo.** There's no undo history; edits are immediate.
 - **No automation capture.** [Capture](#capture--keep-what-you-just-played)
   keeps notes; knob moves made before you press it are not captured. Record
   automation live instead.
@@ -883,6 +923,8 @@ behaviour you'd like — or, better, a PR.
 | **Copy** | Duplicate a step / clip / bar (context-dependent). |
 | **Delete (Clear)** | Delete a step / clip / bar; in Session, delete a clip. Hold + knob-touch clears that knob's automation lane. |
 | **Hold Clear + pad** | Clear every note of that pad's pitch from the clip — a whole drum lane at once. |
+| **Undo** | Undo the last edit. |
+| **Shift + Undo** | Redo it. |
 | **Mute** | Mute / unmute the current track (Track view only — Session view has no current track). |
 | **Mute + track** | Mute that track instead; suppresses the current-track toggle on release. |
 | **Shift + Mute** | Solo / un-solo the current track (Track view only). Exclusive — soloing another moves it. |

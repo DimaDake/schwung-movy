@@ -15,6 +15,22 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Undo & redo.** **Undo** takes back the last edit and **Shift + Undo**
+  redoes it, with an overlay naming what changed. Covers every musical edit —
+  notes and steps, clip and bar operations, automation, tempo/swing/root/key,
+  mute and volume, synth and LFO parameters, LFO assignments, and module or
+  preset loads — while leaving navigation, transport and keyboard layout alone.
+
+  One gesture is one undo rather than one per detent: a whole knob turn is a
+  single entry, and each pass of live recording is its own, so two recorded
+  loops take two presses to remove. An edit that changes nothing costs no
+  press.
+
+  The engine keeps snapshots addressed by id, so no state crosses IPC; chain
+  parameters record their inverse at the write; module swaps dump the outgoing
+  module's parameters and replay them once it is back. History is in memory,
+  64 deep, per set. Engine `0.29.0` → `0.30.0`.
+
 - **Capture.** Play freely, then press **Capture** to keep what you just played
   — Move's retroactive capture, notes only. Movy buffers live pad input
   whenever the track isn't recording; a capture while the transport runs lands

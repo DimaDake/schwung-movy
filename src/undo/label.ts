@@ -16,21 +16,19 @@ export interface UndoToastVM {
  * short enough not to sit over the next gesture. */
 export const UNDO_TOAST_TICKS = 120;
 
-function failHead(reason: string | undefined, redo: boolean): string {
-    if (reason === 'drift') return 'UNDO UNAVAILABLE';
-    if (reason === 'busy') return 'UNDO BUSY';
-    return redo ? 'NOTHING TO REDO' : 'NOTHING TO UNDO';
-}
-
-function failVerb(reason: string | undefined): string {
-    if (reason === 'drift') return 'MODULE CHANGED';
-    if (reason === 'busy') return 'RESTORE IN PROGRESS';
-    return '';
+/* The head is the button's name, always — it is a label, not a result. What
+ * happened goes in the body, so a failure fills the box the same way a success
+ * does instead of leaving it looking half-drawn. */
+function failBody(reason: string | undefined, redo: boolean): string[] {
+    if (reason === 'drift') return ['UNAVAILABLE', 'MODULE CHANGED'];
+    if (reason === 'busy') return ['BUSY', 'RESTORE IN PROGRESS'];
+    return [redo ? 'NOTHING TO REDO' : 'NOTHING TO UNDO'];
 }
 
 export function undoToastVM(r: UndoResult, redo: boolean): UndoToastVM {
     if (!r.ok) {
-        return { head: failHead(r.reason, redo), verb: failVerb(r.reason), detail: '' };
+        const [verb, detail] = failBody(r.reason, redo);
+        return { head: redo ? 'REDO' : 'UNDO', verb, detail: detail ?? '' };
     }
     /* Target and detail share the bottom line: on a 128 px display two short
      * fields read better together than one field padded out. The separator is

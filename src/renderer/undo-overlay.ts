@@ -10,6 +10,10 @@ import type { UndoToastVM } from '../undo/label.js';
 const BOX_X = 4, BOX_Y = 14, BOX_W = 120, BOX_H = 38;
 const PAD = 5;
 const LINE_H = 10;
+const HEAD_H = LINE_H + 3;
+/* Fixed height, body centred in what is left. A box that shrank to its content
+ * ended up half-covering a row of the view beneath it, which looked broken;
+ * a stable box with one line centred reads as deliberate. */
 
 /** Trim to fit the box, dropping whole characters (an ellipsis costs more
  *  width than the character it saves at this size). */
@@ -21,6 +25,8 @@ function fit(s: string, maxW: number): string {
 }
 
 export function drawUndoOverlay(vm: UndoToastVM): void {
+    const body = [vm.verb, vm.detail].filter((s) => s.length > 0);
+
     fill_rect(BOX_X, BOX_Y, BOX_W, BOX_H, 0);
     fill_rect(BOX_X, BOX_Y, BOX_W, 1, 1);
     fill_rect(BOX_X, BOX_Y + BOX_H - 1, BOX_W, 1, 1);
@@ -35,6 +41,10 @@ export function drawUndoOverlay(vm: UndoToastVM): void {
     fill_rect(BOX_X + 1, headY - 1, BOX_W - 2, FONT_HEIGHT + 3, 1);
     fontPrint(BOX_X + PAD, headY + 1, fit(vm.head, innerW), 0);
 
-    if (vm.verb) fontPrint(BOX_X + PAD, BOX_Y + 3 + LINE_H + 3, fit(vm.verb, innerW), 1);
-    if (vm.detail) fontPrint(BOX_X + PAD, BOX_Y + 3 + LINE_H * 2 + 3, fit(vm.detail, innerW), 1);
+    const bodyTop = BOX_Y + HEAD_H;
+    const bodyH = BOX_H - HEAD_H - 2;
+    const top = bodyTop + Math.floor((bodyH - body.length * LINE_H) / 2) + 1;
+    for (let i = 0; i < body.length; i++) {
+        fontPrint(BOX_X + PAD, top + i * LINE_H, fit(body[i], innerW), 1);
+    }
 }

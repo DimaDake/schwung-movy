@@ -54,6 +54,7 @@ const PRESETS = [
     'deep_page', 'lfo_helm_step', 'lfo_helm_pyramid',
     'signal_voice', 'forge_voice', 'forge_filter', 'forge_mod', 'forge_send', 'forge_mix',
     'leave_modal', 'capture_select', 'capture_fixed',
+    'undo_toast', 'redo_toast', 'undo_empty', 'undo_unavailable',
     'track_volume_unity', 'track_volume_quiet', 'track_volume_min', 'track_volume_max',
     'trigger_armed', 'trigger_fired', 'trigger_blink_off', 'trigger_touched',
     'trigger_cooling', 'trigger_cooling_low',
@@ -140,6 +141,8 @@ const { holdTouch, holdTick, assignToastText, resetAssignMode } = await import('
 const { drawJogToast }     = await import('../dist/esm/renderer/overlay.js');
 const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view.js');
 const { drawCaptureOverlay } = await import('../dist/esm/renderer/capture-overlay.js');
+const { drawUndoOverlay } = await import('../dist/esm/renderer/undo-overlay.js');
+const { undoToastVM } = await import('../dist/esm/undo/label.js');
 const { buildCaptureVM }     = await import('../dist/esm/seq/capture-vm.js');
 const { setCaptureStateForTest } = await import('../dist/esm/seq/capture.js');
 const { drawVolumeOverlay } = await import('../dist/esm/renderer/volume-overlay.js');
@@ -302,6 +305,26 @@ function applyView(preset) {
                 : { overlay: 'fixed', cands: [], idx: 0, detected: 117, bpm: 120,
                     why: 'ext', bars: 2, stretchPermille: 26 });
             lastRender = () => drawCaptureOverlay(buildCaptureVM());
+            lastRender();
+            break;
+        }
+        /* Undo toast, over the view it interrupts. Covers a success with a full
+         * three-line label, a redo, and both failure shapes. */
+        case 'undo_toast':
+        case 'redo_toast':
+        case 'undo_empty':
+        case 'undo_unavailable': {
+            showChain(1, false);
+            const base = lastRender;
+            const r = preset === 'undo_toast'
+                ? { ok: true, verb: 'CLEAR CLIP', target: 'T2 CLIP 3', detail: '12 NOTES' }
+                : preset === 'redo_toast'
+                ? { ok: true, verb: 'CUTOFF', target: 'T1', detail: '0.42 > 0.31' }
+                : preset === 'undo_empty'
+                ? { ok: false, verb: '', target: '', detail: '', reason: 'empty' }
+                : { ok: false, verb: '', target: '', detail: '', reason: 'drift' };
+            const vm = undoToastVM(r, preset === 'redo_toast');
+            lastRender = () => { base(); drawUndoOverlay(vm); };
             lastRender();
             break;
         }

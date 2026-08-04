@@ -8254,11 +8254,13 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
         undoToastVM({ ok: true, verb: 'CLEAR CLIP', target: 'T2 CLIP 3', detail: '12 NOTES' }, false).detail,
         'T2 CLIP 3 - 12 NOTES');
     eq('an empty stack says so',
-        undoToastVM({ ok: false, verb: '', target: '', detail: '', reason: 'empty' }, false).head, 'NOTHING TO UNDO');
+        undoToastVM({ ok: false, verb: '', target: '', detail: '', reason: 'empty' }, false).verb, 'NOTHING TO UNDO');
     eq('and distinguishes redo',
-        undoToastVM({ ok: false, verb: '', target: '', detail: '', reason: 'empty' }, true).head, 'NOTHING TO REDO');
+        undoToastVM({ ok: false, verb: '', target: '', detail: '', reason: 'empty' }, true).verb, 'NOTHING TO REDO');
+    eq('a failure keeps the button name as the head',
+        undoToastVM({ ok: false, verb: '', target: '', detail: '', reason: 'empty' }, false).head, 'UNDO');
     eq('drift is called out',
-        undoToastVM({ ok: false, verb: '', target: '', detail: '', reason: 'drift' }, false).head, 'UNDO UNAVAILABLE');
+        undoToastVM({ ok: false, verb: '', target: '', detail: '', reason: 'drift' }, false).detail, 'MODULE CHANGED');
     eq('note count is singular at one', noteCount(1), '1 NOTE');
     eq('and plural otherwise', noteCount(12), '12 NOTES');
     eq('clip target reads one-based', clipTarget(1, 2), 'T2 CLIP 3');

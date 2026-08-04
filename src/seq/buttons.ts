@@ -1,22 +1,24 @@
-/* Pure LED-affordance decisions: context → LED value. "Lit only when
- * pressable; full brightness when active." White-LED buttons use brightness;
- * the Sample button is RGB so off = black. */
+/* Pure LED-affordance decisions: context → LED value. Dark = does nothing here,
+ * dim = you can press this, bright = active. The fourth state — bright while
+ * physically held — is NOT decided here: led-cache.ts applies it to every
+ * button from one place, so these functions never take a `pressed` flag.
+ * White-LED buttons use brightness; the Sample button is RGB so off = black. */
 
 import { C_BLACK } from './colors.js';
 import { WHITE_BRIGHT, WHITE_DIM, WHITE_OFF } from './colors.js';
-import { VIEW_CHAIN } from '../app/state.js';
-
-/** Back: off in the chain-param view, dim in module-param views. */
-export function backLedColor(view: number): number {
-    return view === VIEW_CHAIN ? WHITE_OFF : WHITE_DIM;
+/** Back: dim everywhere it does something — and at the chain root it does,
+ *  opening the Leave menu (Background / Close Movy). It used to sit dark there,
+ *  which advertised the root as a dead end. */
+export function backLedColor(_view: number): number {
+    return WHITE_DIM;
 }
 
-/** Left (dir -1) / Right (dir +1): off at the travel limit, dim when
- *  navigable, bright while pressed. */
-export function arrowLedColor(dir: number, barOffset: number, maxOffset: number, pressed: boolean): number {
+/** Left (dir -1) / Right (dir +1): off at the travel limit, dim when navigable.
+ *  The bright-while-pressed half is no longer here — led-cache applies it to
+ *  every button, and keeping a second copy would let the two drift. */
+export function arrowLedColor(dir: number, barOffset: number, maxOffset: number): number {
     const canGo = dir < 0 ? barOffset > 0 : barOffset < maxOffset;
-    if (!canGo) return WHITE_OFF;
-    return pressed ? WHITE_BRIGHT : WHITE_DIM;
+    return canGo ? WHITE_DIM : WHITE_OFF;
 }
 
 /** Step recording: the arrows stop being bar navigation and become the head's
@@ -46,5 +48,7 @@ export function captureLedColor(pending: number): number {
  *  means redo, so it advertises the redo stack instead — otherwise a lit button
  *  under Shift would promise an action that does nothing. */
 export function undoLedColor(canUndo: boolean, canRedo: boolean, shiftHeld: boolean): number {
-    return (shiftHeld ? canRedo : canUndo) ? WHITE_BRIGHT : WHITE_OFF;
+    /* Dim, not bright: dim is this UI's "you can press this". led-cache takes it
+     * to full bright while the button is actually held. */
+    return (shiftHeld ? canRedo : canUndo) ? WHITE_DIM : WHITE_OFF;
 }

@@ -242,6 +242,18 @@ export function refreshOneParam(s: ModelState, tickCount: number): void {
     refreshAt(s, i);
 }
 
+/* Re-read one param by its I/O key. Undo writes chain params behind the model's
+ * back (it restores the DSP directly), so without this the on-screen knob keeps
+ * showing the pre-undo value until the round-robin refresh happens to reach it
+ * — which on a large module is seconds later, and looks like undo did nothing. */
+export function refreshParamKey(s: ModelState, ioKey: string): boolean {
+    for (let i = 0; i < s.knobParams.length; i++) {
+        const p = s.knobParams[i];
+        if (p && paramIoKey(s, p) === ioKey) { refreshAt(s, i); return true; }
+    }
+    return false;
+}
+
 function refreshAt(s: ModelState, i: number): void {
     const p = s.knobParams[i];
     if (!p) return;

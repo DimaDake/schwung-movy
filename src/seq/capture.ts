@@ -8,6 +8,8 @@
 
 import { seqState } from './state.js';
 import { seqCmd, engineReady } from './engine.js';
+import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
+import { noteCount, trackLabel } from '../undo/label.js';
 import { seqToast } from './render.js';
 import { scheduleTempoOverride } from './tempo-override.js';
 import { appState } from '../app/state.js';
@@ -111,6 +113,17 @@ export function captureButton(clearHeld: boolean): void {
         return;
     }
     const track = seqState.watchTrack;
+    /* One undo for the whole capture: the commit, plus any tempo re-pick made
+     * from the overlay before it is dismissed. Closed by closeCaptureOverlay,
+     * with the idle timer covering a capture made while playing, which shows no
+     * overlay to dismiss. */
+    beginEdit({
+        key: 'capture:' + track,
+        verb: 'CAPTURE',
+        target: trackLabel(track),
+        detail: noteCount(seqState.capPending),
+        close: CLOSE.IDLE, idleMs: 2000, seq: true,
+    });
     seqCmd('cap ' + track);
     mlog('seq: capture commit trk=' + track + ' n=' + seqState.capPending);
     seqState.capPending = 0;
@@ -158,5 +171,6 @@ export function captureDismiss(by?: number[]): void {
     captureState.overlay = 'none';
     if (by) mlog('seq: capture dismissed by ' + by.map((b) => b.toString(16)).join(' '));
     seqCmd('capdone');
+    endEdit('capture:' + seqState.watchTrack);
     appState.dirty = true;
 }

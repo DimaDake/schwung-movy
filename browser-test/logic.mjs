@@ -3370,13 +3370,14 @@ _log('\nautomation: restore re-requests label sync:');
     } = await import('../dist/esm/seq/buttons.js');
     const { VIEW_CHAIN, VIEW_KNOBS } = await import('../dist/esm/app/state.js');
 
-    eq('back off in chain view',  backLedColor(VIEW_CHAIN), 0);
+    /* Back is dim everywhere: at the chain root it opens the Leave menu, so a
+     * dark button there advertised a dead end. */
+    eq('back dim at the chain root', backLedColor(VIEW_CHAIN), 16);
     eq('back dim in module view', backLedColor(VIEW_KNOBS), 16);
-    eq('left off at bar 0',  arrowLedColor(-1, 0, 3, false), 0);
-    eq('left dim mid',       arrowLedColor(-1, 1, 3, false), 16);
-    eq('left bright pressed', arrowLedColor(-1, 1, 3, true), 124);
-    eq('right off at max',   arrowLedColor(+1, 3, 3, false), 0);
-    eq('right dim mid',      arrowLedColor(+1, 1, 3, false), 16);
+    eq('left off at bar 0',  arrowLedColor(-1, 0, 3), 0);
+    eq('left dim mid',       arrowLedColor(-1, 1, 3), 16);
+    eq('right off at max',   arrowLedColor(+1, 3, 3), 0);
+    eq('right dim mid',      arrowLedColor(+1, 1, 3), 16);
 
     /* Step recording: the arrows drive the head, and blink to say so. Never
      * bright↔off — a lit arrow must always mean "pressable". */
@@ -8423,6 +8424,139 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 
     resetUndoState(); resetUndoGroups(); resetRecPass(); resetSeqState(); resetSeqEngine();
     uninstallMockEngine();
+}
+
+
+{
+    _log('\nbuttons — dim means pressable, bright means pressed:');
+    const { setButtonHeld, buttonHeld, resetButtonHeld } =
+        await import('../dist/esm/seq/button-held.js');
+    const { cachedSetButtonLED, seqLedsInvalidate: resetLedCache, ledFrameReset } =
+        await import('../dist/esm/seq/led-cache.js');
+    const { undoLedColor } = await import('../dist/esm/seq/buttons.js');
+    const WHITE_OFF = 0, WHITE_DIM = 16, WHITE_BRIGHT = 124;
+
+    const sent = {};
+    const realSet = globalThis.setButtonLED;
+    globalThis.setButtonLED = (cc, color) => { sent[cc] = color; };
+
+    /* The rule lives in one place, so it applies to every button rather than
+     * only the two that used to thread a `pressed` flag. */
+    resetButtonHeld(); resetLedCache(); ledFrameReset();
+    cachedSetButtonLED(51, WHITE_DIM);
+    eq('a pressable button rests dim', sent[51], WHITE_DIM);
+
+    setButtonHeld(51, true);
+    resetLedCache(); ledFrameReset();
+    cachedSetButtonLED(51, WHITE_DIM);
+    eq('and goes bright under the finger', sent[51], WHITE_BRIGHT);
+
+    /* A button that does nothing must not light up when pressed. */
+    resetLedCache(); ledFrameReset();
+    setButtonHeld(52, true);
+    cachedSetButtonLED(52, WHITE_OFF);
+    eq('a dark button stays dark while held', sent[52], WHITE_OFF);
+
+    /* One already bright for a state reason is left alone. */
+    resetLedCache(); ledFrameReset();
+    setButtonHeld(58, true);
+    cachedSetButtonLED(58, WHITE_BRIGHT);
+    eq('a state-bright button is unaffected', sent[58], WHITE_BRIGHT);
+
+    resetButtonHeld();
+    resetLedCache(); ledFrameReset();
+    cachedSetButtonLED(51, WHITE_DIM);
+    eq('releasing returns it to dim', sent[51], WHITE_DIM);
+    eq('and the held set is empty', buttonHeld(51), false);
+
+    /* Undo advertises with dim, not bright — bright is reserved for the press. */
+    eq('undo dim when there is something to undo',
+        undoLedColor(true, false, false), WHITE_DIM);
+    eq('undo dark when the stack is empty',
+        undoLedColor(false, false, false), WHITE_OFF);
+    eq('under Shift it advertises redo instead',
+        undoLedColor(false, true, true), WHITE_DIM);
+    eq('and stays dark under Shift with nothing to redo',
+        undoLedColor(true, false, true), WHITE_OFF);
+
+    globalThis.setButtonLED = realSet;
+    resetButtonHeld(); resetLedCache();
+}
+
+
+{
+    _log('\nundo — capture and preset (reported broken):');
+    const engine = installMockEngine();
+    const { captureButton, captureDismiss, setCaptureStateForTest, resetCapture } =
+        await import('../dist/esm/seq/capture.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    resetUndoState(); resetUndoGroups(); resetUndoApply(); resetSeqState();
+    resetSeqEngine(); seqEngineTick();
+    installEditGuard(); takeUndoViolation();
+
+    /* Capture writes the buffered phrase into the clip, so it is an edit — it
+     * was classified as a control verb and recorded nothing. */
+    eq('cap is an undoable edit', isUndoableVerb('cap'), true);
+    eq('capsel is an undoable edit', isUndoableVerb('capsel'), true);
+    eq('capdone stays control', isControlVerb('capdone'), true);
+    eq('capclr stays control', isControlVerb('capclr'), true);
+
+    seqState.capPending = 6;
+    captureButton(false);
+    seqEngineTick();
+    eq('capture is recorded, not silently dropped', takeUndoViolation(), '');
+    eq('and the group is open across the overlay', groupOpen(), true);
+    setCaptureStateForTest({ overlay: 'select' });
+    captureDismiss();
+    seqEngineTick();
+    eq('dismissing the overlay closes the capture entry', undoDepth(), 1);
+    const cap = popUndo();
+    eq('labelled as a capture', cap.verb, 'CAPTURE');
+    eq('with the phrase size', cap.detail, '6 NOTES');
+
+    resetCapture(); resetSeqState(); resetUndoState(); resetUndoGroups();
+    uninstallMockEngine();
+}
+
+{
+    _log('\nundo — a restored param reaches the on-screen knob:');
+    /* Undo writes straight into the DSP, which is what the sound needs — but
+     * movy's knobs read a mirror that only re-reads on a slow round robin, so
+     * without a targeted refresh the screen kept showing the value undo had
+     * just taken back. That is what "undo doesn't work" looked like. */
+    const store = { ...MOCK_SYNTHS.moog, 'synth:preset': '0' };
+    globalThis.shadow_get_param = (slot, key) => store[key] ?? null;
+    globalThis.shadow_set_param = (slot, key, v) => { store[key] = v; return true; };
+    globalThis.shadow_get_ui_slot = () => 0;
+
+    const { createModel } = await import('../dist/esm/model/index.js');
+    const { appState } = await import('../dist/esm/app/state.js');
+    resetUndoState(); resetUndoGroups(); resetUndoApply();
+
+    const m = createModel(0, 'synth');
+    m.reset();
+    for (let i = 0; i < 40; i++) m.tick();
+    appState.trackModels[0] = [m];
+
+    const presetVm = () => m.getViewModel().rows.flat().find((p) => p && p.renderStyle === 'preset');
+    m.handleKnobTouch(0);
+    m.handleKnobDelta(0, 6);
+    for (let i = 0; i < 4; i++) m.tick();
+    endEdit();
+    eq('turning the preset knob wrote to the chain', store['synth:preset'] !== '0', true);
+    eq('and recorded an undo entry', undoDepth(), 1);
+    const shown = presetVm()?.displayValue;
+
+    undoOnce();
+    eq('undo restored the chain value', store['synth:preset'], '0');
+    eq('and the knob on screen followed it now, not seconds later',
+        presetVm()?.displayValue !== shown, true);
+
+    delete globalThis.shadow_get_param;
+    delete globalThis.shadow_set_param;
+    delete globalThis.shadow_get_ui_slot;
+    appState.trackModels[0] = [];
+    resetUndoState(); resetUndoGroups(); resetUndoApply();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

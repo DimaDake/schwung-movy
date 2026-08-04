@@ -1,3 +1,4 @@
+import { setButtonHeld } from '../seq/button-held.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } from '../app/state.js';
 import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease, closeMainPage } from '../seq/main-page.js';
 import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease, closeClipPage } from '../seq/clip-page.js';
@@ -53,6 +54,17 @@ function isRelease(data: number[]): boolean {
     return false;
 }
 
+/* Every non-encoder CC is a button; led-cache uses this to light whichever one
+ * is under the finger (see seq/button-held.ts). Recorded before dispatch so the
+ * same tick's repaint already sees it. */
+function trackButtonPress(data: number[]): void {
+    if ((data[0] & 0xF0) !== 0xB0) return;
+    const k = data[1];
+    if (k === MoveMainKnob || k === MASTER_CC) return;
+    if (k >= KNOB_CC_BASE && k < KNOB_CC_BASE + NUM_KNOBS) return;
+    setButtonHeld(k, data[2] > 0);
+}
+
 function activeModel() {
     return appState.trackModels[appState.activeSlot]?.[appState.trackChainIndex[appState.activeSlot]];
 }
@@ -91,6 +103,10 @@ function masterDetailActive(): boolean { return masterChainActive() && appState.
 
 export function onMidiMessageInternal(data: number[]): void {
     if (!data || data.length < 3) return;
+    /* Before any dispatch, including the paths that swallow input: a button
+     * whose press is swallowed by a modal is still physically down, and its LED
+     * must not stay dim under the finger. */
+    trackButtonPress(data);
 
     // The Leave-Movy modal owns all input while it is up: jog turn moves the
     // highlight, jog click confirms (Background parks / Close exits), Back

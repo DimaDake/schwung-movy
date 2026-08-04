@@ -25,6 +25,7 @@ import { abandonGroup, endEdit } from './group.js';
 import { beginModuleRestore, moduleRestorePending } from './module-apply.js';
 import type { UndoEntry, UndoResult } from './types.js';
 import { writeUiField, type UiField } from './ui-fields.js';
+import { syncParamsToModels } from './param-sync.js';
 
 /* Snapshot ids allocated for the redo side of a uswap. Shares the counter with
  * group.ts by staying above it — group ids are odd-free and monotonic, so a
@@ -73,6 +74,9 @@ function applyEntry(e: UndoEntry, undoing: boolean): void {
         const p = e.paramOps[i];
         setChain(p.slot, p.key, undoing ? p.old : p.new);
     }
+    /* The write went straight to the DSP; the models mirror these values and
+     * would otherwise keep showing the pre-undo reading for seconds. */
+    if (e.paramOps.length > 0) syncParamsToModels(e.paramOps);
     if (e.seqSnap) {
         const restore = undoing ? e.seqSnap.before : e.seqSnap.after;
         const capture = nextRestoreId++;

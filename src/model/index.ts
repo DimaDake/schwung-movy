@@ -1,4 +1,5 @@
 import { setChainParam } from '../chain/set-param.js';
+import { refreshParamKey } from './store.js';
 import { undoableEdit } from '../undo/edit.js';
 import { createModelState } from './state.js';
 import { loadHierarchy }    from './hierarchy.js';
@@ -285,6 +286,11 @@ export function createModel(slot: number, componentKey = 'synth') {
         },
 
         getComponentKey(): string { return s.componentKey; },
+
+        /* Re-read one param the model did not write itself (undo restoring a
+         * value straight into the DSP). Returns false when this model does not
+         * own the key. */
+        refreshParamKey(ioKey: string): boolean { return refreshParamKey(s, ioKey); },
 
         getKnobParamInfo(physK: number) { return knobParamInfo(s, physK); },
 

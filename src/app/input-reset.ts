@@ -32,6 +32,8 @@ import { appState } from './state.js';
 /* Drop every held-input latch. `notifyEngine` sends the matching `hold -1` so
  * the engine's parameter-lock session ends with ours; skip it at init, where
  * the engine has not booted yet and the queued command would be pointless. */
+import { resetButtonHeld } from '../seq/button-held.js';
+
 export function resetHeldInput(notifyEngine: boolean): void {
     resetStepEdit();      // heldRanges / gestured / pressMs / co-press / length target
     resetStepPage();

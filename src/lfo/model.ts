@@ -259,6 +259,9 @@ export function createLfoModel(track: number): Model {
         clearFileOverlay(): void { /* no file params */ },
         setFileValue(_gi: number, _path: string): void { /* no file params */ },
         getComponentKey(): string { return 'lfo'; },
+        /* The LFO page reads its values live from schwung on every build, so a
+         * restored value shows on the next frame with nothing to invalidate. */
+        refreshParamKey(): boolean { return false; },
         getKnobParamInfo(_physK: number) { return null; },     // not automatable
         setNoRefreshKeys(_keys: string[]): void { /* no automation lanes */ },
         refreshModulation(): void { /* LFO params aren't modulation targets */ },

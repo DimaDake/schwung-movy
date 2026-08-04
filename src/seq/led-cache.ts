@@ -1,3 +1,5 @@
+import { buttonHeld } from './button-held.js';
+import { WHITE_BRIGHT, WHITE_DIM } from './colors.js';
 /* Cached LED diff layer for the sequencer. Only changed colors are sent — so
  * unchanged frames cost nothing on the wire (davebox pattern).
  *
@@ -30,6 +32,11 @@ export function cachedSetLED(note: number, color: number): void {
 }
 
 export function cachedSetButtonLED(cc: number, color: number): void {
+    /* Move's convention, applied in one place rather than per button: dim means
+     * "pressable", and a pressable button goes full bright under the finger. A
+     * dark button stays dark — pressing something that does nothing should not
+     * light up — and one already bright for a state reason is left alone. */
+    if (color === WHITE_DIM && buttonHeld(cc)) color = WHITE_BRIGHT;
     if (lastButtonLed.get(cc) === color) return;
     if (sentThisFrame >= FRAME_BUDGET) return; // over budget: retry next tick
     lastButtonLed.set(cc, color);

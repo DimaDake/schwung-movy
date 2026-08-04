@@ -108,6 +108,10 @@ pub fn is_undoable_edit(verb: &str) -> bool {
         | "aset" | "asetr" | "aclr" | "aclrs" | "aclrstep"
         // set-level settings
         | "mute" | "bpm" | "swing"
+        // retroactive capture: `cap` writes the buffered phrase into the clip
+        // and `capsel` rewrites it at another tempo. `capclr`/`capdone` only
+        // touch the input buffer and the overlay, so they stay control.
+        | "cap" | "capsel"
     )
 }
 
@@ -128,8 +132,8 @@ pub fn is_control_verb(verb: &str) -> bool {
         | "non" | "nof"
         // automation bookkeeping (not gestures — see is_undoable_edit)
         | "abase" | "abaseq" | "alabel"
-        // retroactive capture
-        | "cap" | "capclr" | "capdone" | "capsel"
+        // retroactive capture bookkeeping (the edits are in is_undoable_edit)
+        | "capclr" | "capdone"
         // undo machinery
         | "usnap" | "uswap" | "ucommit" | "udrop" | "uclr"
         // batch container (never reaches apply_op as a verb)

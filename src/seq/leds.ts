@@ -133,7 +133,7 @@ function paintTrackButtons(): void {
     }
 }
 
-function paintAffordances(view: number, barOffset: number, maxOff: number, lp: boolean, rp: boolean, shiftHeld: boolean): void {
+function paintAffordances(view: number, barOffset: number, maxOff: number, shiftHeld: boolean): void {
     cachedSetButtonLED(CC_BACK, backLedColor(view));
     // While step recording the arrows belong to the head, not to bar navigation.
     if (stepRecActive()) {
@@ -142,8 +142,8 @@ function paintAffordances(view: number, barOffset: number, maxOff: number, lp: b
         cachedSetButtonLED(CC_LEFT, stepRecArrowColor(-1, canLeft, blink));
         cachedSetButtonLED(CC_RIGHT, stepRecArrowColor(+1, canLeft, blink));
     } else {
-        cachedSetButtonLED(CC_LEFT, arrowLedColor(-1, barOffset, maxOff, lp));
-        cachedSetButtonLED(CC_RIGHT, arrowLedColor(+1, barOffset, maxOff, rp));
+        cachedSetButtonLED(CC_LEFT, arrowLedColor(-1, barOffset, maxOff));
+        cachedSetButtonLED(CC_RIGHT, arrowLedColor(+1, barOffset, maxOff));
     }
     cachedSetButtonLED(CC_SAMPLE, sampleLedColor()); cachedSetButtonLED(CC_CAPTURE, captureLedColor(seqState.capPending)); cachedSetButtonLED(CC_UNDO, undoLedColor(canUndo(), canRedo(), shiftHeld));
     cachedSetButtonLED(CC_LOOP, seqState.loopMode ? WHITE_BRIGHT : WHITE_DIM);
@@ -191,13 +191,13 @@ export function seqLedsTick(
         for (let i = 0; i < NUM_STEP_BUTTONS; i++) cachedSetLED(STEP_NOTE_BASE + i, C_BLACK);
         paintTrackButtons();
         paintStepIcons(shiftHeld);
-        paintAffordances(currentView, barOffset, maxOff, false, false, shiftHeld);
+        paintAffordances(currentView, barOffset, maxOff, shiftHeld);
         paintTransport();
         return;
     }
     paintTrackButtons();
     paintStepIcons(shiftHeld);
-    paintAffordances(currentView, barOffset, maxOff, false, false, shiftHeld);  // lp/rp: never pressed in tick path
+    paintAffordances(currentView, barOffset, maxOff, shiftHeld);
     if (seqState.loopMode) {
         paintLoopBars();
         paintTransport();

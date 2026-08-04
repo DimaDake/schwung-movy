@@ -22,6 +22,10 @@ export const UNDOABLE_VERBS: string[] = [
     'aset', 'asetr', 'aclr', 'aclrs', 'aclrstep',
     // set-level settings
     'mute', 'bpm', 'swing',
+    /* Retroactive capture writes the buffered phrase into the clip, and a
+     * tempo re-selection rewrites it — both are edits. `capclr`/`capdone` only
+     * touch the runtime input buffer and the overlay, so they stay control. */
+    'cap', 'capsel',
 ];
 
 /** Transport, view/selection, bookkeeping, live input, undo machinery. */
@@ -32,7 +36,7 @@ export const CONTROL_VERBS: string[] = [
     'cpy', 'cpyclr', 'clipcopy',
     'non', 'nof',
     'abase', 'abaseq', 'alabel',
-    'cap', 'capclr', 'capdone', 'capsel',
+    'capclr', 'capdone',
     'usnap', 'uswap', 'ucommit', 'udrop', 'uclr',
     'cmd',
 ];

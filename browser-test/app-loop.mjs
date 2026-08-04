@@ -1229,6 +1229,7 @@ _log('\napp-loop: step recording paints a blinking red head');
 
     /* Move the head with a rest and confirm the red follows it. */
     sendMidi([0xB0, 63, 127]);                 // Right = rest
+    sendMidi([0xB0, 63, 0]);
     advance(2);
     eq('the red head followed the rest', ledByPad[STEP_NOTE_BASE + 1], C_REC_RED);
 
@@ -1268,6 +1269,7 @@ _log('\napp-loop: step recording advertises the arrows it can act on');
 
     t += 250;
     sendMidi([0xB0, 63, 127]);           // Right = rest → head on step 2
+    sendMidi([0xB0, 63, 0]);
     advance(2);
     eq('Left lights once there is a step to go back to',
         buttonLeds[CC_LEFT], WHITE_BRIGHT);

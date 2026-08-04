@@ -64,7 +64,9 @@ The **screen** is the 128×64 OLED. A typical parameter page looks like this:
 - **Page indicator**: a thin strip showing which page of the module you're on.
 
 The general UI rule (borrowed from Move): **only controls that do something are
-lit**, and a button glows at full brightness while it's actively doing its job.
+lit**. A dark button does nothing where you are; a dim one is waiting to be
+pressed; and a button goes to full brightness while it's actively doing its job
+— or simply while you're holding it down.
 
 ### The views
 

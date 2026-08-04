@@ -319,7 +319,7 @@ function applyView(preset) {
             const r = preset === 'undo_toast'
                 ? { ok: true, verb: 'CLEAR CLIP', target: 'T2 CLIP 3', detail: '12 NOTES' }
                 : preset === 'redo_toast'
-                ? { ok: true, verb: 'CUTOFF', target: 'T1', detail: '0.42 > 0.31' }
+                ? { ok: true, verb: 'CUTOFF', target: 'T1', detail: '0.42 -> 0.31' }
                 : preset === 'undo_empty'
                 ? { ok: false, verb: '', target: '', detail: '', reason: 'empty' }
                 : { ok: false, verb: '', target: '', detail: '', reason: 'drift' };

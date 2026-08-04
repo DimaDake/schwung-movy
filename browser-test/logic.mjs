@@ -8296,7 +8296,7 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
         undoToastVM({ ok: true, verb: 'CUTOFF', target: 'T1', detail: '' }, true).head, 'REDO');
     eq('target and detail share the bottom line',
         undoToastVM({ ok: true, verb: 'CLEAR CLIP', target: 'T2 CLIP 3', detail: '12 NOTES' }, false).detail,
-        'T2 CLIP 3 - 12 NOTES');
+        'T2 CLIP 3: 12 NOTES');
     eq('an empty stack says so',
         undoToastVM({ ok: false, verb: '', target: '', detail: '', reason: 'empty' }, false).verb, 'NOTHING TO UNDO');
     eq('and distinguishes redo',
@@ -8744,6 +8744,120 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     delete globalThis.shadow_get_param;
     delete globalThis.shadow_set_param;
     resetModuleRestore();
+}
+
+
+{
+    _log('\nundo — adding and removing a module (not just swapping):');
+    const {
+        beginModuleRestore, moduleRestoreTick, moduleRestorePending, resetModuleRestore,
+    } = await import('../dist/esm/undo/module-apply.js');
+    const store = {};
+    const writes = [];
+    globalThis.shadow_get_param = (slot, key) => store[key] ?? null;
+    globalThis.shadow_set_param = (slot, key, v) => { writes.push(key + '=' + v); store[key] = v; return true; };
+    const run = (n = 6) => { writes.length = 0; for (let i = 0; i < n; i++) moduleRestoreTick(); };
+
+    /* ADD: an empty slot gains a module. The old side is nothing, so undoing it
+     * must wait for the slot to go EMPTY rather than for some module id. */
+    resetModuleRestore();
+    const addOp = {
+        slot: 0, componentKey: 'synth', oldWrite: '', newWrite: 'wurl',
+        oldIds: [], newIds: ['wurl'], oldParams: [], leadCount: 0,
+    };
+    store['synth_module'] = '';
+    beginModuleRestore(addOp, true);
+    run();
+    eq('undoing an add completes on an empty slot', moduleRestorePending(), false);
+    eq('and writes no params into it', writes.length, 0);
+
+    /* …and it must not complete while the module is still loaded. */
+    resetModuleRestore();
+    store['synth_module'] = 'wurl';
+    beginModuleRestore(addOp, true);
+    run(3);
+    eq('but not while the module is still there', moduleRestorePending(), true);
+
+    /* REMOVE: a module is cleared to NONE. Undo brings it back with its values. */
+    resetModuleRestore();
+    store['synth_module'] = 'wurl';
+    store['synth:chain_params'] = JSON.stringify([{ key: 'cutoff' }]);
+    store['synth:cutoff'] = '0.0';
+    const rmOp = {
+        slot: 0, componentKey: 'synth', oldWrite: 'wurl', newWrite: '',
+        oldIds: ['wurl'], newIds: [], oldParams: [['cutoff', '0.42']], leadCount: 0,
+    };
+    beginModuleRestore(rmOp, true);
+    run();
+    eq('undoing a removal restores the module\'s params', writes.join(','), 'synth:cutoff=0.42');
+    eq('and completes', moduleRestorePending(), false);
+
+    /* REDO of a removal empties the slot again — and must NOT replay the old
+     * module's values into it. Replay is per direction: each side restores what
+     * IT held, and for a removal the new side held nothing. */
+    resetModuleRestore();
+    store['synth_module'] = '';
+    beginModuleRestore(rmOp, false);
+    run();
+    eq('redoing a removal writes nothing into the emptied slot', writes.length, 0);
+    eq('and completes', moduleRestorePending(), false);
+
+    /* Redoing a real swap restores the INCOMING module's own values, captured
+     * on the first undo — at record time that module did not exist yet. */
+    resetModuleRestore();
+    const swapOp = {
+        slot: 0, componentKey: 'synth', oldWrite: 'wurl', newWrite: 'rex',
+        oldIds: ['wurl'], newIds: ['rex'], oldParams: [['cutoff', '0.42']], leadCount: 0,
+        newParams: [['cutoff', '0.91']], newLeadCount: 0,
+    };
+    store['synth_module'] = 'rex';
+    beginModuleRestore(swapOp, false);
+    run();
+    eq('redo restores the incoming module\'s values, not the outgoing one\'s',
+        writes.join(','), 'synth:cutoff=0.91');
+
+    delete globalThis.shadow_get_param;
+    delete globalThis.shadow_set_param;
+    resetModuleRestore();
+}
+
+
+{
+    _log('\nundo — the toast says what changed and which way:');
+    const { changeDetail, valueChange } = await import('../dist/esm/undo/label.js');
+    const e = {
+        paramOps: [{ old: '0.4200', new: '0.3100' }], uiOps: [],
+    };
+    /* The result goes last in both directions, so the arrow always points at
+     * what the value IS now — the same rendering reads correctly either way. */
+    eq('undo shows the value going back', changeDetail(e, true), '0.31 -> 0.42');
+    eq('redo shows it going forward again', changeDetail(e, false), '0.42 -> 0.31');
+    eq('wire-format trailing zeros are dropped', valueChange('0.5000', '1.0000'), '0.5 -> 1');
+    eq('non-numeric values are left alone', valueChange('SAW', 'SQUARE'), 'SAW -> SQUARE');
+
+    /* A module swap names both modules. */
+    const m = { paramOps: [], uiOps: [], moduleOp: { oldWrite: 'wurl', newWrite: 'rex' } };
+    eq('undoing a swap names the module coming back', changeDetail(m, true), 'rex -> wurl');
+    eq('redoing it names the other one', changeDetail(m, false), 'wurl -> rex');
+    /* Adding and removing a module read as NONE on the empty side. */
+    eq('adding a module reads from NONE',
+        changeDetail({ paramOps: [], uiOps: [], moduleOp: { oldWrite: '', newWrite: 'rex' } }, false),
+        'NONE -> rex');
+    eq('removing one reads to NONE',
+        changeDetail({ paramOps: [], uiOps: [], moduleOp: { oldWrite: 'rex', newWrite: '' } }, false),
+        'rex -> NONE');
+    /* A master FX slot stores a DSP path; the toast shows the module, not the path. */
+    eq('a DSP path is shown as its module name',
+        changeDetail({ paramOps: [], uiOps: [], moduleOp: {
+            oldWrite: '/data/UserData/schwung/modules/audio_fx/belt/dsp.so', newWrite: '' } }, false),
+        'belt -> NONE');
+
+    /* A gesture that moved several values at once has no single before/after. */
+    eq('a multi-param gesture is summarised',
+        changeDetail({ paramOps: [{ old: 'a', new: 'b' }, { old: 'c', new: 'd' }], uiOps: [] }, true),
+        '2 VALUES');
+    /* An engine-only edit keeps its own wording (there is no value to show). */
+    eq('an engine-only edit has no value change', changeDetail({ paramOps: [], uiOps: [] }, true), '');
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

@@ -36,6 +36,11 @@ export interface ModuleOp {
      * module-dump.ts for why the order is load-bearing. */
     oldParams: [string, string][];
     leadCount: number;
+    /* The incoming module's params, captured lazily on the first undo — at
+     * record time it did not exist yet, so there was nothing to dump. Without
+     * these, redo replayed the OLD module's values into the NEW module. */
+    newParams?: [string, string][];
+    newLeadCount?: number;
 }
 
 /** Set-level state that lives in the UI (root note, scale). See ui-fields.ts

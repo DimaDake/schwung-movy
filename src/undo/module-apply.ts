@@ -37,6 +37,12 @@ type Phase = 'wait' | 'settle';
 
 interface Pending {
     op: ModuleOp;
+    /* Which side's params to replay. Restoring the OLD module writes what it
+     * held; restoring the NEW one writes what IT held — replaying the old
+     * module's values into the new module (or into an emptied slot) put
+     * meaningless numbers wherever the keys happened to collide. */
+    params: [string, string][];
+    leadCount: number;
     /* Identifiers that mean "the module we asked for is up". Empty = we asked
      * for an empty slot, so an empty read is the arrival. */
     wantIds: string[];
@@ -54,6 +60,8 @@ export function moduleRestorePending(): boolean { return pending !== null; }
 export function beginModuleRestore(op: ModuleOp, undoing: boolean): void {
     pending = {
         op,
+        params: undoing ? op.oldParams : (op.newParams ?? []),
+        leadCount: undoing ? op.leadCount : (op.newLeadCount ?? 0),
         wantIds: undoing ? op.oldIds : op.newIds,
         phase: 'wait',
         ticksLeft: RESTORE_TIMEOUT_TICKS,
@@ -77,19 +85,19 @@ function moduleIsReady(p: Pending): boolean {
     const live = liveModuleId(p.op);
     if (p.wantIds.length === 0) return live === '';        // cleared slot
     if (!p.wantIds.includes(live)) return false;
-    if (p.op.oldParams.length === 0) return true;          // nothing to write
+    if (p.params.length === 0) return true;                // nothing to write
     const cp = typeof shadow_get_param === 'function'
         ? shadow_get_param(p.op.slot, p.op.componentKey + ':chain_params')
         : null;
     return !!cp && cp !== '[]';
 }
 
-function write(op: ModuleOp, from: number, to: number): void {
+function write(p: Pending, from: number, to: number): void {
     /* Untracked: this IS the undo. Recording these writes would push a fresh
      * entry for the restore itself and the stack would never drain. */
     for (let i = from; i < to; i++) {
-        const [key, val] = op.oldParams[i];
-        setChainParamUntracked(op.slot, op.componentKey + ':' + key, val);
+        const [key, val] = p.params[i];
+        setChainParamUntracked(p.op.slot, p.op.componentKey + ':' + key, val);
     }
 }
 
@@ -116,14 +124,14 @@ export function moduleRestoreTick(): void {
             invalidateUndo('module restore timeout');
             return;
         }
-        write(op, 0, op.leadCount);
-        if (op.leadCount > 0) {
-            mlog('undo: restored ' + op.leadCount + ' selector/preset params');
+        write(pending, 0, pending.leadCount);
+        if (pending.leadCount > 0) {
+            mlog('undo: restored ' + pending.leadCount + ' selector/preset params');
             pending.phase = 'settle';
             return;
         }
-        write(op, 0, op.oldParams.length);
-        mlog('undo: replayed ' + op.oldParams.length + ' params');
+        write(pending, 0, pending.params.length);
+        mlog('undo: replayed ' + pending.params.length + ' params');
         finish(op);
         return;
     }
@@ -131,9 +139,10 @@ export function moduleRestoreTick(): void {
     /* settle: the preset is rewriting the module's params; our values go in
      * after it, so they are what survives. */
     if (--pending.settleLeft > 0) return;
-    write(op, op.leadCount, op.oldParams.length);
-    mlog('undo: replayed ' + op.oldParams.length + ' params ('
-        + op.leadCount + ' lead + ' + (op.oldParams.length - op.leadCount) + ' after settle)');
+    write(pending, pending.leadCount, pending.params.length);
+    mlog('undo: replayed ' + pending.params.length + ' params ('
+        + pending.leadCount + ' lead + ' + (pending.params.length - pending.leadCount)
+        + ' after settle)');
     finish(op);
 }
 

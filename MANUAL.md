@@ -823,7 +823,12 @@ where you were.
 ## 6a. Undo & redo
 
 Press **Undo** to take back the last edit; **Shift + Undo** redoes it. An
-overlay names what changed and where, then clears itself.
+overlay names what changed, where, and which way — the value on the right of
+the arrow is what it is *now*, so the same reading works for both:
+
+    UNDO                    REDO
+    CUTOFF                  CUTOFF
+    T1: 0.31 -> 0.42        T1: 0.42 -> 0.31
 
 ![Undo toast](docs/assets/undo_toast.png)
 
@@ -848,6 +853,10 @@ not for navigation or performance.
 
 An edit that changes nothing costs no press: turn a knob up and back down
 before releasing it and there is nothing to undo.
+
+Undoing a module load brings the old module back **with its settings** — its
+preset first, then its parameters, so the preset does not overwrite them on the
+way in. Adding and removing a module are undoable the same way.
 
 **Limits.** History lives in memory and is cleared when you switch sets or
 close Movy. It holds the last 64 edits. Undoing a module load restores the old

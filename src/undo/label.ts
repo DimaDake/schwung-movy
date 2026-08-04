@@ -39,7 +39,7 @@ export function undoToastVM(r: UndoResult, redo: boolean): UndoToastVM {
     return {
         head: redo ? 'REDO' : 'UNDO',
         verb: r.verb,
-        detail: parts.join(' - '),
+        detail: parts.join(': '),
     };
 }
 
@@ -59,7 +59,54 @@ export function noteCount(n: number): string {
     return n + (n === 1 ? ' NOTE' : ' NOTES');
 }
 
-/** "0.42 > 0.31" — a param's before and after. */
+/* Trailing zeros are an artefact of the wire format (floats are written with
+ * four decimals), not something the user chose. */
+function tidy(v: string): string {
+    if (!/^-?\d+\.\d+$/.test(v)) return v;
+    return v.replace(/0+$/, '').replace(/\.$/, '');
+}
+
+/** A module identifier as something readable: a track slot stores an id
+ *  ("wurl"), a master FX slot a DSP path. */
+function moduleName(v: string): string {
+    if (v === '') return 'NONE';
+    if (v.indexOf('/') < 0) return v;
+    const parts = v.split('/').filter((p) => p !== '' && !p.endsWith('.so'));
+    return parts[parts.length - 1] ?? v;
+}
+
+/** "0.42 -> 0.31" — before and after, with the RESULT last. The arrow always
+ *  points at what the value is now, so the same rendering reads correctly for
+ *  an undo and for a redo; only the two ends swap. */
 export function valueChange(from: string, to: string): string {
-    return from + ' > ' + to;
+    return tidy(from) + ' -> ' + tidy(to);
+}
+
+/**
+ * What this entry changed, in the direction being applied.
+ *
+ * Built here rather than at record time because the two directions read
+ * differently: undoing goes from the value the edit set BACK to the original,
+ * and redoing goes the other way. A string baked when the edit happened could
+ * only ever describe one of them.
+ */
+export function changeDetail(e: {
+    paramOps: { old: string; new: string }[];
+    uiOps: { old: string; new: string }[];
+    moduleOp?: { oldWrite: string; newWrite: string };
+}, undoing: boolean): string {
+    if (e.moduleOp) {
+        const { oldWrite, newWrite } = e.moduleOp;
+        return valueChange(moduleName(undoing ? newWrite : oldWrite),
+                           moduleName(undoing ? oldWrite : newWrite));
+    }
+    const ops = [...e.paramOps, ...e.uiOps];
+    if (ops.length === 0) return '';
+    if (ops.length === 1) {
+        const o = ops[0];
+        return valueChange(undoing ? o.new : o.old, undoing ? o.old : o.new);
+    }
+    /* A gesture that moved several params at once (an LFO assignment writes
+     * three) has no single before/after worth showing. */
+    return ops.length + ' VALUES';
 }

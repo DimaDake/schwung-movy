@@ -25,8 +25,10 @@ import { abandonGroup, endEdit } from './group.js';
 import { beginModuleRestore, moduleRestorePending } from './module-apply.js';
 import type { UndoEntry, UndoResult } from './types.js';
 import { writeUiField, type UiField } from './ui-fields.js';
+import { changeDetail } from './label.js';
 import { syncParamsToModels } from './param-sync.js';
 import { moduleReadKey } from '../chain/config.js';
+import { dumpModuleParams } from './module-dump.js';
 
 /* Snapshot ids allocated for the redo side of a uswap. Shares the counter with
  * group.ts by staying above it — group ids are odd-free and monotonic, so a
@@ -62,6 +64,15 @@ function moduleDrifted(e: UndoEntry, _undoing: boolean): boolean {
 function applyEntry(e: UndoEntry, undoing: boolean): void {
     const op = e.moduleOp;
     if (op) {
+        /* Capture the module we are about to swap AWAY from, once. At record
+         * time it did not exist yet, so this is the only chance to learn what
+         * redo should restore — without it, redo put the OLD module's values
+         * into the new one. */
+        if (undoing && op.newParams === undefined) {
+            const d = dumpModuleParams(op.slot, op.componentKey);
+            op.newParams = d.params;
+            op.newLeadCount = d.leadCount;
+        }
         /* Writing always uses the colon key, whichever slot kind this is — only
          * the read side has the underscore alias. */
         setChain(op.slot, op.componentKey + ':module', undoing ? op.oldWrite : op.newWrite);
@@ -93,10 +104,12 @@ function applyEntry(e: UndoEntry, undoing: boolean): void {
     }
 }
 
-function result(e: UndoEntry, ok: boolean, reason?: string): UndoResult {
-    const r: UndoResult = { ok, verb: e.verb, target: e.target, detail: e.detail };
-    if (reason) r.reason = reason;
-    return r;
+/* The toast shows what actually changed and which way. A value change is worth
+ * more than the label baked at record time, so it replaces `detail` when there
+ * is one; edits with no single value (a clip clear) keep their own wording. */
+function result(e: UndoEntry, undoing: boolean): UndoResult {
+    const change = changeDetail(e, undoing);
+    return { ok: true, verb: e.verb, target: e.target, detail: change || e.detail };
 }
 
 const NOTHING = (reason: string): UndoResult =>
@@ -132,7 +145,7 @@ export function redoOnce(): UndoResult {
     applyEntry(e, false);
     pushUndoBack(e);
     mlog('redo: ' + e.verb + ' ' + e.target);
-    return result(e, true);
+    return result(e, false);
 }
 
 /* ── Invalidation ──────────────────────────────────────────────────────── */

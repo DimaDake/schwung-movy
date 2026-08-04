@@ -245,6 +245,20 @@ with open(\"/dev/shm/schwung-control\", \"r+b\") as f:
 "'
 sleep 3
 
+info "Undo: enter a step, Undo (CC 56), then Shift+Undo to redo..."
+ts_tap_cc 43                             # track 0
+sleep 0.3
+ts_tap_note 24                           # step 9 — a step the earlier phases left alone
+sleep 0.5
+# Undo through the helper: as two injects the press is >500 ms, and a long
+# press is not what the button reads.
+ts_tap_cc 56
+sleep 0.8
+ts_send "0x0B:0xB0:49:127:0.10" \
+        "0x0B:0xB0:56:127:0.10" "0x0B:0xB0:56:0:0.10" \
+        "0x0B:0xB0:49:0:0.30"            # Shift+Undo = redo
+sleep 1
+
 LOG=$(ssh "ableton@$HOST" 'grep -E "\[movy\]|movy-dsp" /data/UserData/schwung/debug.log 2>/dev/null || true')
 echo ""
 echo -e "${BLD}=== Seq log ===${RST}"
@@ -253,6 +267,23 @@ echo ""
 
 echo "$LOG" | grep -q "movy-dsp.*create_instance" \
     && pass "Engine loaded" || fail "Engine missing"
+
+# Undo. The button reaching movy at all is the part only the device can prove:
+# CC 56 is one of the buttons schwung's overtake owns, and the local suites
+# drive the router directly rather than through the shim.
+echo "$LOG" | grep -q "\[movy\] undo: " \
+    && pass "Undo (CC 56) reached movy and applied an entry" \
+    || fail "Undo did not apply (no '[movy] undo:' line)"
+echo "$LOG" | grep -q "\[movy\] redo: " \
+    && pass "Shift+Undo redid the entry" \
+    || fail "Shift+Undo did not redo (no '[movy] redo:' line)"
+# An un-grouped edit means some gesture mutates the set without recording an
+# undo entry. Local suites assert this too, but only for gestures they drive;
+# a full device run exercises far more of the surface.
+UNGROUPED=$(echo "$LOG" | grep -c "undo: ungrouped" || true)
+[ "$UNGROUPED" -eq 0 ] \
+    && pass "No un-grouped edits during the whole run" \
+    || fail "$UNGROUPED edit(s) bypassed undo — see 'undo: ungrouped' in the log"
 echo "$PRE_PLAY_LOG" | grep -q "seq: play=1" \
     && fail "Step entry auto-started transport (it must not)" \
     || pass "Step entry did not auto-start the transport"

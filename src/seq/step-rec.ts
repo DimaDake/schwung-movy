@@ -10,6 +10,8 @@
 
 import { mlog } from '../log.js';
 import { NUM_STEP_BUTTONS } from './constants.js';
+import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
+import { trackLabel } from '../undo/label.js';
 import { seqCmd } from './engine.js';
 import {
     TICKS_PER_STEP, advanceHead, growTo, headBegin, headEnd, headIsFresh,
@@ -104,6 +106,15 @@ export function stepRecPad(padNote: number, pitch: number, vel: number): boolean
     // First pitch of this chord, rather than "the head is fresh": a tie marks
     // the head fresh again as it moves, and clearing the step then would wipe
     // the very note being tied.
+    /* One undo per pad entered at the head. The del/addp/clen/slen below are
+     * one user action, and clen in particular MUST ride in the same entry —
+     * it is the engine's bar rounding being trimmed by this very write. */
+    beginEdit({
+        key: 'steprec:' + t + ':' + step + ':' + pitch,
+        verb: 'STEP RECORD',
+        target: trackLabel(t) + ' STEP ' + (step + 1),
+        close: CLOSE.IMMEDIATE, seq: true,
+    });
     if (chord.pitches.length === 0 && headIsFresh()) {
         /* Melodic replaces because the head is the user's cursor: stepping back
          * and replaying has to overwrite cleanly. Drums only ever add, so a kick
@@ -123,6 +134,7 @@ export function stepRecPad(padNote: number, pitch: number, vel: number): boolean
     if (chord.tieSteps > 0) {
         seqCmd(`slen ${t} ${step} ${step} ${pitch} ${(chord.tieSteps + 1) * TICKS_PER_STEP}`);
     }
+    endEdit();
     chord.pitches.push(pitch);
     if (!occHasStep(step)) occToggleStep(step);
     return true;
@@ -155,12 +167,19 @@ export function stepRecArrow(dir: number): boolean {
          * the notes this chord entered, never what an earlier pass left on the
          * same step. */
         const t = seqState.watchTrack;
+        beginEdit({
+            key: 'steprec:tie:' + t + ':' + chord.anchor,
+            verb: dir > 0 ? 'TIE' : 'UNTIE',
+            target: trackLabel(t) + ' STEP ' + (chord.anchor + 1),
+            close: CLOSE.IMMEDIATE, seq: true,
+        });
         for (const p of chord.pitches) {
             seqCmd(`slen ${t} ${chord.anchor} ${chord.anchor} ${p} ${ticks}`);
         }
         const open = chord;            // setHead must not close the open chord
         const end = open.anchor + open.tieSteps;
         growTo(end);
+        endEdit();
         setHead(end);
         chord = open;
         return true;
@@ -184,12 +203,19 @@ export function stepRecStepTap(button: number): boolean {
     touched = true;
     const step = seqState.barOffset * NUM_STEP_BUTTONS + button;
     if (!growModeOn() && step >= seqState.lenSteps) return true;
+    beginEdit({
+        key: 'steprec:tap:' + seqState.watchTrack + ':' + step,
+        verb: occHasStep(step) ? 'CLEAR STEP' : 'MOVE HEAD',
+        target: trackLabel(seqState.watchTrack) + ' STEP ' + (step + 1),
+        close: CLOSE.IMMEDIATE, seq: true,
+    });
     if (occHasStep(step)) {
         const ln = isDrum() ? seqState.watchLane : -1;
         seqCmd(`del ${seqState.watchTrack} ${step} ${step} ${ln}`);
         occToggleStep(step);
     }
     growTo(step);
+    endEdit();
     setHead(step);
     return true;
 }

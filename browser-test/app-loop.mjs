@@ -1397,6 +1397,21 @@ _log('\napp-loop: no edit escapes undo');
             sendMidi([0xB0, CC_COPY_B, 127]); sendMidi([0x90, STEP_NOTE_BASE, 127]);
             sendMidi([0x90, STEP_NOTE_BASE + 5, 127]); sendMidi([0xB0, CC_COPY_B, 0]);
         },
+        /* Step recording — hold Rec while stopped, then pads and arrows. A
+         * device run found this whole path un-grouped; the local table had no
+         * row for it. */
+        'step record: pad at head': () => {
+            sendMidi([0xB0, 86, 127]);              // Rec down (hold = step rec)
+            advance(2);
+            sendMidi([0x90, 68, 110]); sendMidi([0x80, 68, 0]);
+            advance(2);
+        },
+        'step record: tie': () => { sendMidi([0xB0, 63, 127]); sendMidi([0xB0, 63, 0]); },
+        'step record: step tap': () => {
+            sendMidi([0x90, STEP_NOTE_BASE + 4, 127]);
+            sendMidi([0x80, STEP_NOTE_BASE + 4, 0]);
+        },
+        'step record: end': () => { sendMidi([0xB0, 86, 0]); advance(2); },
         'quantize': () => {
             sendMidi([0xB0, CC_SHIFT, 127]); sendMidi([0x90, STEP_NOTE_BASE + 15, 127]);
             sendMidi([0x80, STEP_NOTE_BASE + 15, 0]); sendMidi([0xB0, CC_SHIFT, 0]);

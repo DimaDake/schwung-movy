@@ -117,6 +117,7 @@ function lastMusicalOp(ops) {
     for (let i = ops.length - 1; i >= 0; i--) if (!UNDO_RING.test(ops[i])) return ops[i];
     return undefined;
 }
+function musicalOps(ops) { return ops.filter((o) => !UNDO_RING.test(o)); }
 
 function bootModel(preset, slot = 0, componentKey = 'synth') {
     env.setParams(preset);
@@ -7474,8 +7475,8 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     padOn(80, 72, 100);
     padOn(81, 76, 100);
     seqEngineTick();
-    eq('melodic first pad clears the step first', engine.ops[0], 'del 0 0 0 -1');
-    eq('melodic first pad writes', engine.ops[1], 'addp 0 0 0 72 100');
+    eq('melodic first pad clears the step first', musicalOps(engine.ops)[0], 'del 0 0 0 -1');
+    eq('melodic first pad writes', musicalOps(engine.ops)[1], 'addp 0 0 0 72 100');
     // By index for the first two (the delete must precede the write); by
     // content for the second pad, which a grow-mode `clen 0 1` now sits after.
     eq('second pad joins the same step', engine.ops.includes('addp 0 0 0 76 100'), true);
@@ -7505,7 +7506,7 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     engine.ops.length = 0;
     padOn(80, 72, 100); padOff(80);
     seqEngineTick();
-    eq('melodic overwrite deletes then adds', engine.ops[0], 'del 0 0 0 -1');
+    eq('melodic overwrite deletes then adds', musicalOps(engine.ops)[0], 'del 0 0 0 -1');
     eq('existing clip length untouched', seqState.lenSteps, 16);
 
     // ── drums add, never delete ───────────────────────────────────────────

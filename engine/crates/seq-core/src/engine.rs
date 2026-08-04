@@ -160,6 +160,10 @@ pub struct Engine {
     /// above is disabled — movy's transport is independent of Move's (Phase 3
     /// clock-follow still applies). Persisted per set; default off.
     pub link_enabled: bool,
+    /// Undo snapshots, addressed by the id the UI assigns. Runtime-only: the
+    /// UI's stack is in-memory too, so persisting these would restore history
+    /// for a stack that no longer exists.
+    pub undo: crate::undo::UndoRing,
 }
 
 /// How far apart two tempos are, as a ratio >= 1 — direction-agnostic, so a
@@ -229,6 +233,7 @@ impl Engine {
             move_toggle_queue: 0,
             inject_release_at: 0,
             link_enabled: false,
+            undo: crate::undo::UndoRing::new(),
         }
     }
 
@@ -1756,6 +1761,55 @@ impl Engine {
         }
     }
 
+    /// Serialize the whole persistent state for the undo ring. Same bytes the
+    /// autosave uses, so one format serves both and cannot drift.
+    pub fn undo_snapshot(&self) -> String {
+        crate::persist::serialize(self)
+    }
+
+    /// Restore a snapshot **without stopping the music**.
+    ///
+    /// Transport is deliberately absent from the serialized format (see
+    /// `persist.rs`), so `persist::load` clears the playing/queued slots on its
+    /// way through. That is right for a set load and wrong for an undo: fixing
+    /// a mistake mid-jam must not silence the tracks. So the fields `load`
+    /// clobbers are carried across it by hand.
+    ///
+    /// `link_enabled` is restored to its **live** value, not the snapshot's:
+    /// the transport link is not a musical edit and is excluded from undo.
+    pub fn undo_restore(&mut self, blob: &str) -> bool {
+        let live_link = self.link_enabled;
+        let transport: Vec<(Option<usize>, Option<usize>, bool)> = self
+            .tracks
+            .iter()
+            .map(|t| (t.playing_slot, t.queued_slot, t.pending_stop))
+            .collect();
+
+        if !crate::persist::load(self, blob) {
+            return false;
+        }
+
+        self.link_enabled = live_link;
+        for (t, (playing, queued, pending)) in self.tracks.iter_mut().zip(transport) {
+            t.playing_slot = playing;
+            t.queued_slot = queued;
+            t.pending_stop = pending;
+            /* A restore that shortens (or removes) the clip under the playhead
+             * can leave pos_tick past its end, where the wrap test never fires
+             * and the track plays silence forever. */
+            let len = t.playing().map(|c| c.length_ticks()).unwrap_or(0);
+            if len == 0 {
+                t.pos_tick = 0;
+            } else if t.pos_tick >= len {
+                t.pos_tick %= len;
+            }
+        }
+        /* The UI's autosave only writes when the engine reports dirty; without
+         * this an undo is silently dropped at the next save. */
+        self.dirty = true;
+        true
+    }
+
     /// Compact status string the UI polls (space-separated key=value; the
     /// UI ignores unknown keys, so this can grow freely).
     pub fn status(&self) -> String {
@@ -1928,6 +1982,103 @@ mod tests {
             }
             e.on_external_realtime(0xF8, out);
         }
+    }
+
+    /* ── undo restore ─────────────────────────────────────────────────────
+     * The point of these is that undo does NOT behave like a set load. The
+     * shared serialization makes the content half trivially right; what has to
+     * be proven is everything persist::load deliberately throws away. */
+
+    /// A playing engine with one 16-step clip of notes on track 0.
+    fn playing_engine() -> Engine {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "tog 0 0 60 100;tog 0 4 62 100;clen 0 16", &mut out);
+        apply_batch(&mut e, "play", &mut out);
+        run_ticks(&mut e, 4);
+        e
+    }
+
+    #[test]
+    fn undo_restore_keeps_transport_running() {
+        let mut e = playing_engine();
+        let snap = e.undo_snapshot();
+        let (playing, slot) = (e.playing, e.tracks[0].playing_slot);
+        assert!(playing && slot.is_some(), "fixture must be playing");
+
+        let mut out = Vec::new();
+        apply_batch(&mut e, "tog 0 8 64 100", &mut out);
+        assert!(e.undo_restore(&snap));
+
+        assert!(e.playing, "undo stopped the transport");
+        assert_eq!(e.tracks[0].playing_slot, slot, "undo dropped the playing slot");
+    }
+
+    #[test]
+    fn undo_restore_keeps_link_setting() {
+        let mut e = playing_engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "link 0", &mut out);
+        let snap = e.undo_snapshot(); // snapshot taken with link OFF
+        apply_batch(&mut e, "link 1", &mut out);
+
+        assert!(e.undo_restore(&snap));
+        assert!(e.link_enabled, "undo must not revert the transport link");
+    }
+
+    #[test]
+    fn undo_restore_wraps_playhead_past_shortened_clip() {
+        let mut e = playing_engine();
+        let mut out = Vec::new();
+        // Snapshot a SHORT clip, then grow it and park the playhead past the
+        // short length. Restoring must pull the playhead back into range.
+        apply_batch(&mut e, "clen 0 4", &mut out);
+        let snap = e.undo_snapshot();
+        apply_batch(&mut e, "clen 0 16", &mut out);
+        e.tracks[0].pos_tick = TICKS_PER_STEP * 12;
+
+        assert!(e.undo_restore(&snap));
+        let len = e.tracks[0].playing().map(|c| c.length_ticks()).unwrap_or(0);
+        assert!(len > 0, "clip should still exist");
+        assert!(
+            e.tracks[0].pos_tick < len,
+            "playhead {} left past clip end {}",
+            e.tracks[0].pos_tick,
+            len
+        );
+    }
+
+    #[test]
+    fn undo_restore_sets_dirty() {
+        let mut e = playing_engine();
+        let snap = e.undo_snapshot();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "tog 0 8 64 100", &mut out);
+        e.dirty = false; // as if the autosave had just read `state`
+
+        assert!(e.undo_restore(&snap));
+        assert!(e.dirty, "an undone edit must still be persisted");
+    }
+
+    #[test]
+    fn undo_restore_rejects_a_foreign_blob() {
+        let mut e = playing_engine();
+        assert!(!e.undo_restore("not-a-movy-blob\n"));
+    }
+
+    #[test]
+    fn undo_restore_round_trips_content() {
+        let mut e = playing_engine();
+        let before = e.undo_snapshot();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "tog 0 8 64 100;clipdel 0 0", &mut out);
+        let after = e.undo_snapshot();
+        assert_ne!(before, after, "the edit must have changed something");
+
+        assert!(e.undo_restore(&before));
+        assert_eq!(e.undo_snapshot(), before, "undo did not restore the state");
+        assert!(e.undo_restore(&after));
+        assert_eq!(e.undo_snapshot(), after, "redo did not restore the state");
     }
 
     #[test]

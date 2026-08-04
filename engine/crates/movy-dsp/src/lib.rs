@@ -15,7 +15,7 @@ use seq_core::engine::{Engine, OutEvent};
 use std::ffi::{CStr, CString};
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.29.0";
+const ENGINE_VERSION: &str = "0.30.0";
 
 struct Instance {
     engine: Engine,
@@ -61,7 +61,17 @@ impl Instance {
 
     fn get_param(&mut self, key: &str) -> Option<String> {
         match key {
-            "status" => Some(self.engine.status()),
+            /* `unop` rides along here rather than inside status(): draining it
+             * needs &mut, and status() is deliberately a pure read. The UI
+             * pushes undo entries optimistically and retracts on this id when
+             * the engine found the group changed nothing. */
+            "status" => {
+                let mut s = self.engine.status();
+                if let Some(id) = self.engine.undo.take_noop() {
+                    s.push_str(&format!(" unop={id}"));
+                }
+                Some(s)
+            }
             "capinfo" => Some(self.engine.capture_info()),
             "alabels" => Some(self.engine.auto_labels()),
             "ping" => Some(format!("pong {ENGINE_VERSION}")),

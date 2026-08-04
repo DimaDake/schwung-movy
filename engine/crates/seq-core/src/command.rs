@@ -13,8 +13,15 @@ pub fn apply_batch(engine: &mut Engine, batch: &str, out: &mut Vec<OutEvent>) {
     for op in batch.split(';') {
         let op = op.trim();
         if !op.is_empty() {
+            let verb = op.split(' ').next().unwrap_or("");
             apply_op(engine, op, out);
-            engine.dirty = true; // a UI command may have changed saved state
+            /* A UI command may have changed saved state — except the undo ring
+             * ops, which only read it. Marking dirty for `usnap` would make
+             * every knob touch schedule an autosave that then finds nothing to
+             * write. `uswap` sets the flag itself, via undo_restore. */
+            if !is_undo_ring_verb(verb) {
+                engine.dirty = true;
+            }
         }
     }
 }
@@ -64,6 +71,68 @@ fn clears_capture(verb: &str) -> bool {
         // arrive while you are simply playing, and clearing on them wiped the
         // buffer mid-phrase every time a lane warm strided past.
         | "aset" | "asetr" | "aclr" | "aclrs" | "aclrstep"
+    )
+}
+
+/// The undo ring's own ops. They read state, never change it, so they must not
+/// set the engine's dirty flag (`uswap` sets it itself, via `undo_restore`).
+fn is_undo_ring_verb(verb: &str) -> bool {
+    matches!(verb, "usnap" | "uswap" | "ucommit" | "udrop" | "uclr")
+}
+
+/// Verbs that are a **user edit** — the unit undo restores.
+///
+/// Sibling of `clears_capture` above, and kept to the same discipline: listed
+/// here in one readable place so the next edit verb someone adds shows up as an
+/// omission (`every_match_verb_is_classified` fails) instead of as a silent
+/// hole in undo. The rule is again user intent, not traffic.
+///
+/// Differs from `clears_capture` in both directions, deliberately:
+///   * `clipsel` / `launch` / `stoptrk` clear the capture buffer but are
+///     selection and transport — excluded from undo by design §1.
+///   * `mute` / `bpm` / `swing` are set-level settings nobody would call a
+///     take-invalidating gesture, but they are edits and must be undoable.
+/// `abase`/`abaseq` stay out of both: they are internal base syncs the UI emits
+/// on lane allocation and on any knob read, not gestures.
+pub fn is_undoable_edit(verb: &str) -> bool {
+    matches!(
+        verb,
+        // step entry and note editing
+        "tog" | "addp" | "del" | "evel" | "elen" | "enudge" | "etrn" | "slen"
+        | "eprob" | "econd" | "einv" | "quant"
+        // clip shape and clip-level edits
+        | "clen" | "cscl" | "ctr" | "dbl" | "loop" | "ltog"
+        | "cpy" | "cpyclr" | "pst"
+        // whole-clip gestures
+        | "clipcopy" | "clipdel" | "clipdelat" | "clipdup" | "clippaste"
+        // automation edits
+        | "aset" | "asetr" | "aclr" | "aclrs" | "aclrstep"
+        // set-level settings
+        | "mute" | "bpm" | "swing"
+    )
+}
+
+/// Verbs that are explicitly **not** edits: transport, view/selection,
+/// bookkeeping, live input, and the undo machinery itself. Exists so
+/// `every_match_verb_is_classified` can prove the two lists are exhaustive —
+/// a new verb belongs to one of them by conscious choice, never by omission.
+pub fn is_control_verb(verb: &str) -> bool {
+    matches!(
+        verb,
+        // transport and recording mode
+        "play" | "stop" | "rec" | "metro" | "link" | "launch" | "stoptrk"
+        // view / selection
+        | "watch" | "wlane" | "clipsel" | "hold" | "tdrum"
+        // live input
+        | "non" | "nof"
+        // automation bookkeeping (not gestures — see is_undoable_edit)
+        | "abase" | "abaseq" | "alabel"
+        // retroactive capture
+        | "cap" | "capclr" | "capdone" | "capsel"
+        // undo machinery
+        | "usnap" | "uswap" | "ucommit" | "udrop" | "uclr"
+        // batch container (never reaches apply_op as a verb)
+        | "cmd"
     )
 }
 
@@ -489,6 +558,49 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 );
             }
         }
+        /* ── Undo ring ────────────────────────────────────────────────────
+         * The UI owns the stack and addresses state by id; nothing here ever
+         * sends a blob back, which is the whole point (the param SHM is a
+         * single slot and a set serializes to kilobytes). */
+        // usnap <id> — store the current state under `id`.
+        "usnap" => {
+            if let Some(id) = next() {
+                let blob = engine.undo_snapshot();
+                engine.undo.snap(id as u32, blob);
+            }
+        }
+        // uswap <restoreId> <captureId> — capture the current state into
+        // `captureId`, then restore `restoreId`. One primitive serves undo and
+        // redo, and doing both halves in one op keeps them atomic: a UI tick
+        // can never land between them and lose the state it is standing on.
+        "uswap" => {
+            if let (Some(restore), Some(capture)) = (next(), next()) {
+                if let Some(blob) = engine.undo.take(restore as u32) {
+                    let cur = engine.undo_snapshot();
+                    engine.undo.snap(capture as u32, cur);
+                    engine.undo_restore(&blob);
+                }
+            }
+        }
+        // ucommit <id> — no-op suppression. An edit whose group changed nothing
+        // must not consume an undo press, and only a full compare catches the
+        // case that matters: changed and reverted inside one gesture, which an
+        // edit counter cannot see.
+        "ucommit" => {
+            if let Some(id) = next() {
+                let id = id as u32;
+                if engine.undo.peek(id) == Some(engine.undo_snapshot().as_str()) {
+                    engine.undo.drop_id(id);
+                    engine.undo.note_noop(id);
+                }
+            }
+        }
+        "udrop" => {
+            if let Some(id) = next() {
+                engine.undo.drop_id(id as u32);
+            }
+        }
+        "uclr" => engine.undo.clear(),
         _ => {} // forward compat
     }
 }
@@ -904,6 +1016,183 @@ mod tests {
         assert_eq!(e.watch_lane, None);
         let occ = e.status().split("occ=").nth(1).unwrap().to_string();
         assert_eq!(&occ[0..2], "88"); // both lanes visible
+    }
+
+    /* ── Verb classification completeness ─────────────────────────────────
+     * The guard that keeps undo from rotting. Adding a command to the match
+     * below without deciding whether it is an edit fails this test, so the
+     * decision cannot be skipped by forgetting it — which is exactly how undo
+     * coverage decays in practice. */
+
+    /// Every `"verb"` literal appearing as a match arm in this file's
+    /// `apply_op`, including `|`-joined arms.
+    fn dispatched_verbs() -> Vec<String> {
+        let src = include_str!("command.rs");
+        let body = &src[src.find("fn apply_op(").expect("apply_op must exist")..];
+        let body = &body[..body.find("\n#[cfg(test)]").unwrap_or(body.len())];
+        let mut verbs = Vec::new();
+        for line in body.lines() {
+            let t = line.trim();
+            // Match arms only: `"a" | "b" => {` / `"a" => expr`.
+            if !t.starts_with('"') || !t.contains("=>") {
+                continue;
+            }
+            let head = &t[..t.find("=>").unwrap()];
+            for piece in head.split('|') {
+                let p = piece.trim().trim_matches(|c| c == '"' || c == ' ');
+                if !p.is_empty() && p.chars().all(|c| c.is_ascii_lowercase()) {
+                    verbs.push(p.to_string());
+                }
+            }
+        }
+        verbs
+    }
+
+    #[test]
+    fn verb_extraction_finds_the_known_commands() {
+        // Guards the guard: a parser that silently found nothing would make
+        // every_match_verb_is_classified pass vacuously forever.
+        let verbs = dispatched_verbs();
+        assert!(verbs.len() > 40, "only extracted {} verbs", verbs.len());
+        for expect in ["tog", "play", "clipdel", "aset", "uswap"] {
+            assert!(verbs.iter().any(|v| v == expect), "missed {expect}");
+        }
+    }
+
+    #[test]
+    fn every_match_verb_is_classified() {
+        let unclassified: Vec<String> = dispatched_verbs()
+            .into_iter()
+            .filter(|v| !is_undoable_edit(v) && !is_control_verb(v))
+            .collect();
+        assert!(
+            unclassified.is_empty(),
+            "unclassified command verbs: {unclassified:?} — add each to \
+             is_undoable_edit (a user edit undo must restore) or to \
+             is_control_verb (transport/view/bookkeeping)"
+        );
+    }
+
+    #[test]
+    fn no_verb_is_classified_twice() {
+        let both: Vec<String> = dispatched_verbs()
+            .into_iter()
+            .filter(|v| is_undoable_edit(v) && is_control_verb(v))
+            .collect();
+        assert!(both.is_empty(), "verbs in both lists: {both:?}");
+    }
+
+    #[test]
+    fn is_undoable_edit_excludes_selection_and_transport() {
+        for v in ["clipsel", "launch", "stoptrk", "play", "stop", "watch", "hold"] {
+            assert!(!is_undoable_edit(v), "{v} must not be undoable");
+        }
+    }
+
+    #[test]
+    fn is_undoable_edit_includes_set_level_settings() {
+        for v in ["mute", "bpm", "swing", "tog", "clipdel", "aset"] {
+            assert!(is_undoable_edit(v), "{v} must be undoable");
+        }
+    }
+
+    /* ── Undo ring commands ───────────────────────────────────────────── */
+
+    #[test]
+    fn usnap_then_uswap_restores() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "tog 0 0 60 100;usnap 1", &mut out);
+        let before = e.undo_snapshot();
+        apply_batch(&mut e, "tog 0 4 62 100", &mut out);
+        assert_ne!(e.undo_snapshot(), before);
+
+        apply_batch(&mut e, "uswap 1 2", &mut out);
+        assert_eq!(e.undo_snapshot(), before, "undo did not restore");
+        // Redo: the pre-undo state was captured into id 2.
+        apply_batch(&mut e, "uswap 2 1", &mut out);
+        assert_ne!(e.undo_snapshot(), before, "redo did not re-apply");
+    }
+
+    #[test]
+    fn ucommit_drops_a_noop_snapshot_and_reports_it() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "usnap 5", &mut out); // nothing changes after this
+        apply_batch(&mut e, "ucommit 5", &mut out);
+        assert!(e.undo.peek(5).is_none(), "no-op snapshot should be dropped");
+        assert_eq!(e.undo.take_noop(), Some(5));
+    }
+
+    #[test]
+    fn ucommit_keeps_a_real_edit() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "usnap 5;tog 0 0 60 100;ucommit 5", &mut out);
+        assert!(e.undo.peek(5).is_some(), "a real edit must be kept");
+        assert_eq!(e.undo.take_noop(), None);
+    }
+
+    /// Change-and-revert inside one gesture — a knob turned up and back down
+    /// before release. This is the case an edit counter cannot see, and the
+    /// reason ucommit compares serializations instead of counting.
+    #[test]
+    fn ucommit_treats_change_then_revert_as_a_noop() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "usnap 5", &mut out);
+        apply_batch(&mut e, "bpm 13000", &mut out); // knob up
+        apply_batch(&mut e, "bpm 12000", &mut out); // …and back
+        apply_batch(&mut e, "ucommit 5", &mut out);
+        assert!(e.undo.peek(5).is_none(), "revert within a group is a no-op");
+    }
+
+    /// Toggling a step on and off is NOT a revert: the first press creates the
+    /// clip and the second only empties it, so the set really does end up
+    /// different. Pinned because it looks like a no-op and is not — undo has to
+    /// offer the clip's creation back.
+    #[test]
+    fn ucommit_keeps_a_step_toggled_on_then_off() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "usnap 5", &mut out);
+        apply_batch(&mut e, "tog 0 0 60 100;tog 0 0 60 100", &mut out);
+        apply_batch(&mut e, "ucommit 5", &mut out);
+        assert!(
+            e.undo.peek(5).is_some(),
+            "the clip the first toggle created is a real change"
+        );
+    }
+
+    #[test]
+    fn undo_ring_ops_do_not_mark_the_engine_dirty() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "usnap 1", &mut out);
+        e.dirty = false;
+        apply_batch(&mut e, "usnap 2;ucommit 2;udrop 2;uclr", &mut out);
+        assert!(!e.dirty, "ring bookkeeping must not schedule an autosave");
+    }
+
+    #[test]
+    fn uswap_marks_dirty_so_the_undo_is_persisted() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "usnap 1;tog 0 0 60 100", &mut out);
+        e.dirty = false;
+        apply_batch(&mut e, "uswap 1 2", &mut out);
+        assert!(e.dirty, "an undone edit must still reach the autosave");
+    }
+
+    #[test]
+    fn uswap_with_an_unknown_id_does_nothing() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "tog 0 0 60 100", &mut out);
+        let before = e.undo_snapshot();
+        apply_batch(&mut e, "uswap 99 1", &mut out);
+        assert_eq!(e.undo_snapshot(), before, "a missing id must be inert");
+        assert!(e.undo.peek(1).is_none(), "and must not capture either");
     }
 
     #[test]

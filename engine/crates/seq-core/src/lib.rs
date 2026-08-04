@@ -8,6 +8,7 @@ pub mod command;
 pub mod engine;
 pub mod persist;
 pub mod track;
+pub mod undo;
 
 /// Master clock resolution, pulses per quarter note (davebox-proven).
 pub const PPQN: u32 = 96;

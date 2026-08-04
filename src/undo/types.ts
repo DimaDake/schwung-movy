@@ -19,9 +19,23 @@ export interface ParamOp {
 export interface ModuleOp {
     slot: number;
     componentKey: string;
-    oldModuleId: string;
-    newModuleId: string;
+    /* What to WRITE to put each side back. Track chain slots load a module by
+     * its id, master FX slots by its DSP path (schwung's asymmetric
+     * convention) — so the value is not interchangeable with the identity. */
+    oldWrite: string;
+    newWrite: string;
+    /* Every identifier the READ key may report for each side (id and DSP path).
+     * Reads and writes do not agree on a single form — `moduleReadKey` picks
+     * the key, and which identifier comes back depends on the slot kind — so
+     * membership is the only comparison that holds for both. */
+    oldIds: string[];
+    newIds: string[];
+    /* Ordered selector → preset → the rest; `leadCount` is how many leading
+     * entries are selector+preset. module-apply writes those, waits for the DSP
+     * to finish re-applying the preset, then writes the rest — see
+     * module-dump.ts for why the order is load-bearing. */
     oldParams: [string, string][];
+    leadCount: number;
 }
 
 /** Set-level state that lives in the UI (root note, scale). See ui-fields.ts

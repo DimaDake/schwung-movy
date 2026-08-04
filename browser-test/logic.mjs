@@ -32,14 +32,14 @@ import { shadowPath } from '../dist/esm/seq/set-context.js';
 import { keyboardState } from '../dist/esm/keyboard/state.js';
 import { installMockEngine, uninstallMockEngine } from './mock-engine.mjs';
 import {
-    pushEntry, popUndo, pushRedo, canUndo, canRedo, undoDepth, retractEntry,
+    pushEntry, popUndo, pushRedo, canUndo, canRedo, undoDepth, retractEntry, peekUndo,
     invalidateUndo, takeOrphanedSnaps, resetUndoState, MAX_ENTRIES,
 } from '../dist/esm/undo/state.js';
 import {
     beginEdit, endEdit, groupOpen, undoTick, onLoopWrap, CLOSE, resetUndoGroups,
 } from '../dist/esm/undo/group.js';
 import {
-    installEditGuard, recordParamOp, seqEdit, seqCtl, setUndoStrict,
+    installEditGuard, recordParamOp, seqEdit, seqCtl, seqSideEffect, setUndoStrict,
     takeUndoViolation, resetUndoRecord,
 } from '../dist/esm/undo/record.js';
 import {
@@ -7989,7 +7989,7 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     _log('\nundo — the stack:');
     resetUndoState();
     const entry = (verb, snapBefore) => ({
-        verb, target: 'T1', detail: '', paramOps: [],
+        verb, target: 'T1', detail: '', paramOps: [], uiOps: [],
         seqSnap: snapBefore === undefined ? undefined : { before: snapBefore, after: -1 },
         setUuid: 'u', engineGen: 1,
     });
@@ -8017,6 +8017,33 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     eq('retract removes the matching entry', retractEntry(7), true);
     eq('and only that one', undoDepth(), 1);
     eq('retracting an unknown id is a no-op', retractEntry(99), false);
+
+    /* The engine speaks only for ENGINE state, and reports "no-op" for anything
+     * that changed a module or a chain param instead of a note. Dropping those
+     * entries wholesale is what made module swaps, LFO assignment and file loads
+     * record an undo and then silently discard it. */
+    resetUndoState();
+    const withModule = entry('LOAD MODULE', 11);
+    withModule.moduleOp = {
+        slot: 0, componentKey: 'synth', oldWrite: 'a', newWrite: 'b',
+        oldIds: ['a'], newIds: ['b'], oldParams: [], leadCount: 0,
+    };
+    pushEntry(withModule);
+    eq('an engine no-op does not drop a module swap', retractEntry(11), false);
+    eq('the entry survives', undoDepth(), 1);
+    eq('and loses only its snapshot', peekUndo().seqSnap, undefined);
+
+    resetUndoState();
+    const withParams = entry('ASSIGN LFO', 12);
+    withParams.paramOps = [{ slot: 0, key: 'lfo1:target', old: '', new: 'synth' }];
+    pushEntry(withParams);
+    eq('nor a param-only edit', retractEntry(12), false);
+    eq('which also survives', undoDepth(), 1);
+
+    resetUndoState();
+    pushEntry(entry('STEP', 13));
+    eq('a genuinely empty entry is still dropped', retractEntry(13), true);
+    eq('leaving nothing behind', undoDepth(), 0);
 
     resetUndoState();
     pushEntry(entry('A', 1));
@@ -8133,6 +8160,21 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     seqCtl('play');
     seqCtl('watch 1');
     eq('control verbs need no group', takeUndoViolation(), '');
+
+    /* A side effect of an already-recorded edit is not itself an edit. The case
+     * that forced this: a module swap drops the automation lanes bound to the
+     * outgoing module's params, and giving that cleanup its own entry stacked it
+     * ON TOP of the swap — so Undo cleared a lane and left the module alone. */
+    beginEdit({ key: 'g2', verb: 'SWAP', close: CLOSE.IMMEDIATE, seq: true });
+    endEdit();
+    const before = undoDepth();
+    seqSideEffect(() => seqEdit('aclr 0 1'));
+    eq('a side effect is not reported', takeUndoViolation(), '');
+    eq('and pushes no entry of its own', undoDepth(), before);
+
+    /* …and the suppression does not leak past it. */
+    seqEdit('tog 0 0 60 100');
+    notMatch('the guard is live again afterwards', takeUndoViolation(), /^$/);
 
     /* An unclassified verb is reported even though it mutates nothing we know. */
     seqCmd('brandnewverb 1');
@@ -8320,7 +8362,9 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 
     /* A fake chain slot: chain_params lists what the module exposes, and each
      * key reads back its value. */
-    const chain = { 'synth:module': 'plaits', 'synth:cutoff': '0.42', 'synth:res': '0.10' };
+    /* `synth_module` not `synth:module`: the device exposes a track slot's
+     * loaded id under the underscore alias only (chain/config.ts). */
+    const chain = { 'synth_module': 'plaits', 'synth:cutoff': '0.42', 'synth:res': '0.10' };
     const cp = JSON.stringify([
         { key: 'cutoff', type: 'float' }, { key: 'res', type: 'float' },
         { key: 'chain_params' }, { key: 'ui_hierarchy' }, { key: 'name' },
@@ -8333,7 +8377,7 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
         writes.push(key + '=' + val); chain[key] = val; return true;
     };
 
-    const dump = dumpModuleParams(0, 'synth');
+    const dump = dumpModuleParams(0, 'synth').params;
     eq('a dump covers the module\'s settable params', dump.length, 2);
     eq('and carries their values', dump.find(([k]) => k === 'cutoff')?.[1], '0.42');
     eq('metadata channels are excluded',
@@ -8344,17 +8388,18 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     resetModuleRestore();
     const op = {
         slot: 0, componentKey: 'synth',
-        oldModuleId: 'plaits', newModuleId: 'wurl',
-        oldParams: [['cutoff', '0.42'], ['res', '0.10']],
+        oldWrite: 'plaits', newWrite: 'wurl',
+        oldIds: ['plaits'], newIds: ['wurl'],
+        oldParams: [['cutoff', '0.42'], ['res', '0.10']], leadCount: 0,
     };
-    chain['synth:module'] = 'wurl';        // the swap happened
+    chain['synth_module'] = 'wurl';        // the swap happened
     beginModuleRestore(op, true);          // undo: waiting for 'plaits'
     writes.length = 0;
     moduleRestoreTick();
     eq('nothing is written while the module is still wrong', writes.length, 0);
     eq('and the restore stays pending', moduleRestorePending(), true);
 
-    chain['synth:module'] = 'plaits';      // the old module is back
+    chain['synth_module'] = 'plaits';      // the old module is back
     moduleRestoreTick();
     eq('the dump replays once the module is up', writes.length, 2);
     eq('with the recorded values', writes.join(','), 'synth:cutoff=0.42,synth:res=0.10');
@@ -8363,26 +8408,47 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     /* A module that never returns must not hold the stack hostage. */
     resetUndoState(); resetModuleRestore();
     pushEntry({ verb: 'A', target: '', detail: '', paramOps: [], uiOps: [], setUuid: '', engineGen: 0 });
-    chain['synth:module'] = 'something-else';
+    chain['synth_module'] = 'something-else';
     beginModuleRestore(op, true);
     for (let i = 0; i < 250; i++) moduleRestoreTick();
     eq('a timed-out restore gives up', moduleRestorePending(), false);
     eq('and drops the stack rather than half-applying', canUndo(), false);
 
-    /* Drift: the live module is not what the entry recorded, so something
-     * changed behind our back (movy can be parked while Move swaps a module). */
+    /* Drift: the live module is neither side of the swap, so something changed
+     * behind our back (movy can be parked while Move swaps a module). */
     resetUndoState(); resetUndoGroups(); resetUndoApply(); resetModuleRestore();
-    pushEntry({
+    const entry = () => ({
         verb: 'LOAD MODULE', target: 'T1', detail: 'WURL',
         paramOps: [], uiOps: [],
         moduleOp: { ...op, oldParams: [] },
         setUuid: '', engineGen: 0,
     });
-    chain['synth:module'] = 'a-third-module';
+    pushEntry(entry());
+    chain['synth_module'] = 'a-third-module';
     const drift = undoOnce();
     eq('a drifted module refuses to undo', drift.ok, false);
     eq('and says why', drift.reason, 'drift');
     eq('and clears the stack', canUndo(), false);
+
+    /* The reported bug. A track chain slot is SET as `synth:module` but reports
+     * its loaded id under the alias `synth_module` (chain/config.ts). Reading
+     * the colon form there returns null, which the drift check read as "the
+     * module changed behind our back" — so module undo always refused and wiped
+     * the stack. The mock answers only the alias, exactly like the device. */
+    resetUndoState(); resetUndoGroups(); resetUndoApply(); resetModuleRestore();
+    delete chain['synth:module'];
+    chain['synth_module'] = 'wurl';        // the module the entry loaded
+    pushEntry(entry());
+    const ok = undoOnce();
+    eq('module undo is not refused when only the alias answers', ok.ok, true);
+    eq('and it wrote the old module back', chain['synth:module'], 'plaits');
+
+    /* Hitting Undo before the load has landed still reads the old module. That
+     * is a race, not drift — restoring what is already live is a no-op. */
+    resetUndoState(); resetUndoGroups(); resetUndoApply(); resetModuleRestore();
+    chain['synth_module'] = 'plaits';      // the swap has not taken effect yet
+    pushEntry(entry());
+    eq('an unlanded load is not treated as drift', undoOnce().ok, true);
 
     delete globalThis.shadow_get_param;
     delete globalThis.shadow_set_param;
@@ -8557,6 +8623,127 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     delete globalThis.shadow_get_ui_slot;
     appState.trackModels[0] = [];
     resetUndoState(); resetUndoGroups(); resetUndoApply();
+}
+
+
+{
+    _log('\nundo — a restored module gets its preset back, in the right order:');
+    const { dumpModuleParams, paramTier } = await import('../dist/esm/undo/module-dump.js');
+    const {
+        beginModuleRestore, moduleRestoreTick, moduleRestorePending, resetModuleRestore,
+    } = await import('../dist/esm/undo/module-apply.js');
+
+    /* Real shapes from docs/module-dump/device-dump.json. airwindows is the
+     * `clap` module: plugin_index picks the plugin behind param_0..5, so the
+     * params mean nothing until it is set. osirus is the Virus: rom_index and
+     * bank_index decide which list `preset` even indexes into. */
+    eq('a plugin selector sorts first (airwindows)', paramTier('plugin_index', 'plugin_index'), 0);
+    eq('a ROM selector sorts first (virus)', paramTier('rom_index', 'preset'), 0);
+    eq('a bank selector sorts first (virus)', paramTier('bank_index', 'preset'), 0);
+    eq('the declared list_param is the preset tier', paramTier('preset', 'preset'), 1);
+    eq('a module calling it program is too', paramTier('program', 'program'), 1);
+    eq('an ordinary param sorts last', paramTier('cutoff', 'preset'), 2);
+    /* The params go last so the user's own edits win over what the preset
+     * re-applied — that is the whole point of the ordering. */
+    eq('and so do the params a preset rewrites', paramTier('param_0', 'plugin_index'), 2);
+
+    /* Replaying an action would not restore state, it would DO something —
+     * randomise the patch, or overwrite a preset slot. */
+    const store = {
+        'synth:chain_params': JSON.stringify([
+            { key: 'rom_index' }, { key: 'preset' }, { key: 'cutoff' },
+            { key: 'rnd_patch' }, { key: 'save_preset' }, { key: 'reset_patch' },
+            { key: 'preset_count' },
+        ]),
+        'synth:ui_hierarchy': JSON.stringify({ levels: { root: { list_param: 'preset' } } }),
+        'synth:rom_index': '2', 'synth:preset': '7', 'synth:cutoff': '0.42',
+        'synth:rnd_patch': '1', 'synth:save_preset': '1', 'synth:reset_patch': '1',
+        'synth:preset_count': '128',
+    };
+    const writes = [];
+    globalThis.shadow_get_param = (slot, key) => store[key] ?? null;
+    globalThis.shadow_set_param = (slot, key, v) => { writes.push(key + '=' + v); store[key] = v; return true; };
+
+    const d = dumpModuleParams(0, 'synth');
+    const keys = d.params.map(([k]) => k);
+    eq('the dump is ordered selector, preset, then the rest',
+        keys.join(','), 'rom_index,preset,cutoff');
+    eq('and marks where the preset tier ends', d.leadCount, 2);
+    eq('randomise is never replayed', keys.includes('rnd_patch'), false);
+    eq('nor is save', keys.includes('save_preset'), false);
+    eq('nor is reset', keys.includes('reset_patch'), false);
+    eq('preset_count is metadata, not a value', keys.includes('preset_count'), false);
+
+    /* The staged replay. */
+    resetModuleRestore();
+    const op = {
+        slot: 0, componentKey: 'synth', oldWrite: 'osirus', newWrite: 'wurl',
+        oldIds: ['osirus'], newIds: ['wurl'],
+        oldParams: d.params, leadCount: d.leadCount,
+    };
+    store['synth_module'] = 'wurl';
+    beginModuleRestore(op, true);
+    writes.length = 0;
+    moduleRestoreTick();
+    eq('nothing is written while the wrong module is loaded', writes.length, 0);
+
+    /* A module can report its id before publishing any params — Virus loads a
+     * ROM first — and a dump written into that gap is dropped entirely. */
+    store['synth_module'] = 'osirus';
+    const realCp = store['synth:chain_params'];
+    store['synth:chain_params'] = '[]';
+    moduleRestoreTick();
+    eq('nor while the module has published no params yet', writes.length, 0);
+    eq('the restore is still pending', moduleRestorePending(), true);
+
+    store['synth:chain_params'] = realCp;
+    moduleRestoreTick();
+    eq('the selector and preset go first', writes.join(','),
+        'synth:rom_index=2,synth:preset=7');
+    eq('and the rest waits for the preset to settle', moduleRestorePending(), true);
+
+    /* The DSP rewrites params while the preset applies — airwindows does it
+     * after the change lands. Our values must be written after that, not into
+     * the middle of it. */
+    store['synth:cutoff'] = '0.99';   // the preset stomping the user's value
+    writes.length = 0;
+    for (let i = 0; i < 60; i++) moduleRestoreTick();
+    eq('the user\'s own params are written after the settle',
+        writes.join(','), 'synth:cutoff=0.42');
+    eq('so the preset does not win over them', store['synth:cutoff'], '0.42');
+    eq('and the restore completes', moduleRestorePending(), false);
+
+    /* airwindows (`clap`): plugin_index is DECLARED in the hierarchy but never
+     * published in chain_params, so a dump built from chain_params alone would
+     * restore param_0..5 into whichever plugin happened to be loaded. */
+    const aw = {
+        'synth:chain_params': JSON.stringify([{ key: 'param_0' }, { key: 'param_1' }]),
+        'synth:ui_hierarchy': JSON.stringify({ levels: { root: { list_param: 'plugin_index' } } }),
+        'synth:plugin_index': '12', 'synth:param_0': '0.3', 'synth:param_1': '0.7',
+    };
+    globalThis.shadow_get_param = (slot, key) => aw[key] ?? null;
+    const awd = dumpModuleParams(0, 'synth');
+    eq('a declared selector missing from chain_params is still captured',
+        awd.params.map(([k]) => k).join(','), 'plugin_index,param_0,param_1');
+    eq('and it leads', awd.leadCount, 1);
+
+    /* A ROM contains banks, so it must be selected before them. */
+    const virus = {
+        'synth:chain_params': JSON.stringify([
+            { key: 'bank_index' }, { key: 'rom_index' }, { key: 'preset' }, { key: 'gain' },
+        ]),
+        'synth:ui_hierarchy': JSON.stringify({ levels: { root: { list_param: 'preset' } } }),
+        'synth:bank_index': '1', 'synth:rom_index': '2', 'synth:preset': '7', 'synth:gain': '0.5',
+    };
+    globalThis.shadow_get_param = (slot, key) => virus[key] ?? null;
+    const vd = dumpModuleParams(0, 'synth');
+    eq('the ROM is selected before the bank it contains',
+        vd.params.map(([k]) => k).join(','), 'rom_index,bank_index,preset,gain');
+    eq('with all three leading', vd.leadCount, 3);
+
+    delete globalThis.shadow_get_param;
+    delete globalThis.shadow_set_param;
+    resetModuleRestore();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

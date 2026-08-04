@@ -26,6 +26,7 @@ import { beginModuleRestore, moduleRestorePending } from './module-apply.js';
 import type { UndoEntry, UndoResult } from './types.js';
 import { writeUiField, type UiField } from './ui-fields.js';
 import { syncParamsToModels } from './param-sync.js';
+import { moduleReadKey } from '../chain/config.js';
 
 /* Snapshot ids allocated for the redo side of a uswap. Shares the counter with
  * group.ts by staying above it — group ids are odd-free and monotonic, so a
@@ -41,25 +42,29 @@ export function flushOrphanedSnaps(): void {
     for (const id of takeOrphanedSnaps()) seqCmd('udrop ' + id);
 }
 
-/* A live module id that isn't what the entry recorded means something changed
- * behind our back — movy can be parked with Back while the user swaps a module
- * in Move's own UI. Param VALUES are never asserted this way: automation and
- * LFOs move them continuously, so asserting would make param undo never fire. */
-function moduleDrifted(e: UndoEntry, undoing: boolean): boolean {
+/* A live module that is neither side of the recorded swap means something
+ * changed behind our back — movy can be parked with Back while the user swaps a
+ * module in Move's own UI. Param VALUES are never asserted this way: automation
+ * and LFOs move them continuously, so asserting would make param undo never fire.
+ *
+ * "Neither side", not "not the expected side": the write only REQUESTS a load,
+ * so a user who hits Undo before it lands still reads the old module — and
+ * treating that as drift would wipe the stack over a race. Either side is fine,
+ * because restoring the one already live is simply a no-op. */
+function moduleDrifted(e: UndoEntry, _undoing: boolean): boolean {
     const op = e.moduleOp;
     if (!op || typeof shadow_get_param !== 'function') return false;
-    /* Undo expects the module the entry LOADED to still be live; redo expects
-     * the one it replaced, since undo put that back. */
-    const expect = undoing ? op.newModuleId : op.oldModuleId;
-    const live = shadow_get_param(op.slot, op.componentKey + ':module') || '';
-    return live !== expect;
+    const live = shadow_get_param(op.slot, moduleReadKey(op.componentKey)) || '';
+    if (live === '') return false;   // unreadable or a cleared slot: can't tell
+    return !op.oldIds.includes(live) && !op.newIds.includes(live);
 }
 
 function applyEntry(e: UndoEntry, undoing: boolean): void {
     const op = e.moduleOp;
     if (op) {
-        const targetId = undoing ? op.oldModuleId : op.newModuleId;
-        setChain(op.slot, op.componentKey + ':module', targetId);
+        /* Writing always uses the colon key, whichever slot kind this is — only
+         * the read side has the underscore alias. */
+        setChain(op.slot, op.componentKey + ':module', undoing ? op.oldWrite : op.newWrite);
         /* Params are replayed by module-apply.ts once the module reports up;
          * writing them now would land on a module that is being torn down. */
         beginModuleRestore(op, undoing);

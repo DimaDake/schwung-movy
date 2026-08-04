@@ -10,6 +10,7 @@
 import type { KnobParamInfo } from '../model/store.js';
 import { endEdit } from '../undo/group.js';
 import { beginGesture, undoableEdit } from '../undo/edit.js';
+import { seqSideEffect } from '../undo/record.js';
 import { seqCmd, requestLabelSync } from './engine.js';
 import { seqState } from './state.js';
 import { seqToast } from './render.js';
@@ -147,14 +148,20 @@ export function assignLane(
     return lane;
 }
 
-export function clearLane(track: number, lane: number): void {
+/* `undoable` distinguishes the user asking for this from movy tidying up after
+ * itself. A lane dropped because its module went away is a CONSEQUENCE of the
+ * swap, not an edit of its own: giving it an entry put it on top of the swap's,
+ * so Undo cleared a lane instead of restoring the module. The swap's own
+ * snapshot already holds the lane state, so the cleanup needs no entry at all. */
+export function clearLane(track: number, lane: number, undoable = true): void {
     if (lane < 0 || lane >= 8) return;
     registry[track][lane] = null;
     liveVal.delete(track + ':' + lane);
     liveCtx.delete(track + ':' + lane);
     liveTurn.delete(track + ':' + lane);
-    undoableEdit('CLEAR LANE', 'T' + (track + 1),
-        () => seqCmd('aclr ' + track + ' ' + lane));
+    const clear = () => seqCmd('aclr ' + track + ' ' + lane);
+    if (!undoable) { seqSideEffect(clear); return; }
+    undoableEdit('CLEAR LANE', 'T' + (track + 1), clear);
 }
 
 /* Seed/accumulate the live value for (track, lane) in the given context. */
@@ -422,7 +429,7 @@ export function syncLabelsFromEngine(
             const tp = lanes[l];
             if (!tp || tp === '-') { registry[t][l] = null; continue; }
             const v = validate(t, tp);
-            if (v === 'drop') { clearLane(t, l); continue; }
+            if (v === 'drop') { clearLane(t, l, false); continue; }
             const r: LaneRange = v === 'unknown' ? { min: 0, max: 1, type: 'float' } : v;
             registry[t][l] = {
                 targetParam: tp, shortName: tp.split(':')[1] ?? tp,

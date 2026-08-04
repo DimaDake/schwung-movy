@@ -64,16 +64,26 @@ export function peekUndo(): UndoEntry | null {
 
 /* The engine decided a committed group changed nothing. The entry was pushed
  * optimistically one status poll ago (~40 ms), so it is normally the newest —
- * but a fast second gesture can land on top, hence the search. */
+ * but a fast second gesture can land on top, hence the search.
+ *
+ * The engine can only speak for ENGINE state. An entry that also carries param,
+ * UI or module work is not a no-op just because no note moved — dropping it
+ * wholesale is what made module swaps, LFO assignment and file loads record an
+ * undo entry and then silently discard it. Those keep the entry and lose only
+ * the (already freed) snapshot. */
 export function retractEntry(snapId: number): boolean {
     for (let i = undoStack.length - 1; i >= 0; i--) {
-        if (undoStack[i].seqSnap?.before === snapId) {
-            const [e] = undoStack.splice(i, 1);
-            /* `before` is already gone — the engine dropped it as the no-op it
-             * was — so only a captured `after` could still be orphaned. */
-            if (e.seqSnap && e.seqSnap.after >= 0) orphanedSnaps.push(e.seqSnap.after);
+        const e = undoStack[i];
+        if (e.seqSnap?.before !== snapId) continue;
+        /* `before` is already gone — the engine dropped it as the no-op it was
+         * — so only a captured `after` could still be orphaned. */
+        if (e.seqSnap.after >= 0) orphanedSnaps.push(e.seqSnap.after);
+        if (e.paramOps.length === 0 && e.uiOps.length === 0 && !e.moduleOp) {
+            undoStack.splice(i, 1);
             return true;
         }
+        delete e.seqSnap;   // nothing left engine-side; the rest still stands
+        return false;
     }
     return false;
 }

@@ -38,6 +38,7 @@ function violation(what: string): void {
  * to command.rs. */
 export function installEditGuard(): void {
     setEditGuard((op: string) => {
+        if (sideEffectDepth > 0) return;
         const verb = verbOf(op);
         if (isUndoableVerb(verb)) {
             if (!groupOpen()) violation('ungrouped edit "' + op + '"');
@@ -46,6 +47,32 @@ export function installEditGuard(): void {
             violation('unclassified verb "' + verb + '"');
         }
     });
+}
+
+/* Depth, not a boolean: side effects nest (a lane cleanup inside a label sync
+ * inside a module restore). */
+let sideEffectDepth = 0;
+
+/**
+ * Run mutating engine commands that are a CONSEQUENCE of an edit already
+ * recorded elsewhere — movy tidying up after itself, not the user acting.
+ *
+ * The canonical case is an automation lane dropped because its module went
+ * away: the module swap's own snapshot already holds that lane, so recording
+ * the cleanup would both duplicate it and, worse, stack an entry on top of the
+ * swap so Undo cleared a lane instead of restoring the module.
+ *
+ * This is the engine-side twin of setChainParamUntracked. Both exist so
+ * "deliberately not undoable" is visible at the call site instead of looking
+ * like an omission — and neither silences the guard for anything else.
+ */
+export function seqSideEffect(fn: () => void): void {
+    sideEffectDepth++;
+    try {
+        fn();
+    } finally {
+        sideEffectDepth--;
+    }
 }
 
 /** A mutating engine command. Identical to seqCmd — the guard does the work —
@@ -89,4 +116,5 @@ export function recordUiOp(field: string, oldVal: string, newVal: string): void 
 export function resetUndoRecord(): void {
     strict = false;
     lastViolation = '';
+    sideEffectDepth = 0;
 }

@@ -218,19 +218,43 @@ for (const entry of dump.modules) {
 {
     const { dumpModuleParams } = await import('../dist/esm/undo/module-dump.js');
     const origGet = globalThis.shadow_get_param;
-    const empty = [];
+    const empty = [], unordered = [], unsafe = [], noLead = [];
+    const ACTION = /(^|_)(rnd|save|reset|init|load|clear|randomi[sz]e)(_|$)/i;
     for (const entry of dump.modules) {
         const cp = Array.isArray(entry.chain_params) ? entry.chain_params : [];
         if (cp.length === 0) continue;   // module published none; nothing to dump
+        const uh = entry.ui_hierarchy ?? null;
         globalThis.shadow_get_param = (slot, key) =>
-            key === 'synth:chain_params' ? JSON.stringify(cp) : '0';
-        if (dumpModuleParams(0, 'synth').length === 0) {
-            empty.push(`${entry.category}--${entry.id}`);
+            key === 'synth:chain_params' ? JSON.stringify(cp)
+            : key === 'synth:ui_hierarchy' ? (uh ? JSON.stringify(uh) : null)
+            : '0';
+        const d = dumpModuleParams(0, 'synth');
+        const name = `${entry.category}--${entry.id}`;
+        if (d.params.length === 0) { empty.push(name); continue; }
+
+        /* The lead must really be the leading slice — module-apply writes
+         * [0, leadCount) first and trusts that boundary. */
+        const keys = d.params.map(([k]) => k);
+        const lead = keys.slice(0, d.leadCount);
+        if (lead.some((k) => !/^(rom_index|bank_index|plugin_index|patchbank|bank|rom|preset|program|patchnumber|preset_index|current_preset)$/.test(k)
+                             && k !== (uh?.levels?.root?.list_param))) {
+            unordered.push(name);
         }
+        /* Nothing that fires an action may ever be replayed. */
+        if (keys.some((k) => ACTION.test(k))) unsafe.push(name);
+        /* A module that declares a preset list must put it in the lead, or its
+         * preset would be applied AFTER the params and overwrite them. */
+        const lp = uh?.levels?.root?.list_param;
+        if (lp && keys.includes(lp) && keys.indexOf(lp) >= d.leadCount) noLead.push(name);
     }
     globalThis.shadow_get_param = origGet;
     check(`every module with chain_params yields an undo dump (${empty.join(',')})`,
         empty.length === 0);
+    check(`no module replays an action param (${unsafe.join(',')})`, unsafe.length === 0);
+    check(`every dump's lead really is selector/preset only (${unordered.join(',')})`,
+        unordered.length === 0);
+    check(`every declared preset list is written before the params (${noLead.join(',')})`,
+        noLead.length === 0);
 }
 
 /* Snapshot keys must exactly track the dump (no stale/missing modules). */

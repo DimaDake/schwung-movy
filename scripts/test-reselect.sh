@@ -86,5 +86,56 @@ else
     pass "cache repopulated after reselect (proven necessary+sufficient for abs-CC audibility)"
 fi
 
+info "Swap to a DIFFERENT module, then Undo it…"
+# A same-module reselect records nothing (it changes nothing), so the undo path
+# needs a real swap: jog one entry down the browser list before confirming.
+ssh "ableton@$HOST" "> $LOG" >/dev/null 2>&1
+inj cc $CC_JOG 127; sleep 0.1; inj cc $CC_JOG 0; sleep 0.6          # open browser
+inj cc 14 1; sleep 0.3                                             # jog turn → next module
+inj cc $CC_JOG 127; sleep 0.1; inj cc $CC_JOG 0                     # confirm → swap
+sleep 3.5
+SWAPPED=$(mlog | grep 'loadHierarchy: slot=0' | tail -1)
+info "after swap: ${SWAPPED##*\[movy\] }"
+
+# A second swap, so the module being RESTORED is the one just loaded — which
+# carries a preset. Undoing this one is what exercises the staged replay
+# (selector/preset first, settle, then the params the preset rewrites).
+inj cc $CC_JOG 127; sleep 0.1; inj cc $CC_JOG 0; sleep 0.6          # open browser
+inj cc 14 1; sleep 0.3                                             # jog → next module
+inj cc $CC_JOG 127; sleep 0.1; inj cc $CC_JOG 0                     # confirm → swap again
+sleep 3.5
+info "after second swap: $(mlog | grep 'loadHierarchy: slot=0' | tail -1 | sed 's/.*\[movy\] //')"
+
+inj cc 56 127; sleep 0.1; inj cc 56 0                               # Undo
+sleep 4
+
+UNDO_LOG=$(mlog)
+# The bug this guards: a track chain slot is SET as `synth:module` but reports
+# under the alias `synth_module`. Reading the colon form returned null, the
+# drift check called that "the module changed behind our back", and every module
+# undo refused and wiped the stack. Only the device proves the real key
+# convention — a mock can always be written to agree with the code.
+if echo "$UNDO_LOG" | grep -q 'undo: cleared (module drift)'; then
+    fail "module undo refused as drift — the module read key is wrong again"
+elif echo "$UNDO_LOG" | grep -qE '\[movy\] undo: (LOAD MODULE|CLEAR SLOT)'; then
+    # Either verb: jogging one entry down the browser list can land on NONE,
+    # which is a clear rather than a load and just as undoable.
+    pass "module swap undone"
+else
+    fail "no 'undo: LOAD MODULE|CLEAR SLOT' — the swap recorded no undo entry"
+fi
+echo "$UNDO_LOG" | grep -q 'undo: replayed' \
+    && pass "the outgoing module's params were replayed" \
+    || fail "no 'undo: replayed' — the restore never completed (timed out?)"
+# The preset must be written BEFORE the params, or applying it would overwrite
+# every value just restored (airwindows rewrites them after the change lands).
+if echo "$UNDO_LOG" | grep -q 'undo: restored .* selector/preset params'; then
+    echo "$UNDO_LOG" | grep -q 'after settle' \
+        && pass "preset written first, params after the settle" \
+        || fail "lead written but the post-settle params never followed"
+else
+    info "outgoing module declared no preset — staged replay not exercised"
+fi
+
 echo
 [ "$FAILURES" -eq 0 ] && { echo -e "${GRN}reselect cache-warm check PASSED${RST}"; exit 0; } || { echo -e "${RED}reselect cache-warm check FAILED ($FAILURES)${RST}"; exit 1; }

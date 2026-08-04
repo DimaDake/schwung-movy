@@ -72,7 +72,12 @@ export function loadSelectedModule(): void {
      * nothing — it changes no state worth an undo press. */
     const prevId = shadow_get_param(browserState.paramSlot,
         moduleReadKey(browserState.componentKey)) || '';
-    if (prevId !== value) {
+    /* Compare identities, not the written value: for a master slot `value` is a
+     * path while `prevId` is an id, so comparing them called every reselect a
+     * change. */
+    const prev = browserState.modules.find((m) => m.id === prevId);
+    const changed = prevId !== mod.id;
+    if (changed) {
         const dump = dumpModuleParams(browserState.paramSlot, browserState.componentKey);
         beginEdit({
             key: 'module:' + browserState.paramSlot + ':' + browserState.componentKey,
@@ -81,16 +86,23 @@ export function loadSelectedModule(): void {
             detail: (mod.name || value || 'NONE').toUpperCase(),
             close: CLOSE.IMMEDIATE, seq: true,
         });
+        const ids = (id: string, path: string) => [id, path].filter((v) => v !== '');
         addModuleOp({
             slot: browserState.paramSlot,
             componentKey: browserState.componentKey,
-            oldModuleId: prevId,
-            newModuleId: value,
-            oldParams: dump,
+            /* Restoring must write what THIS slot kind loads by — an id for a
+             * track chain slot, a DSP path for master FX. Writing the wrong one
+             * silently no-ops (see the isMaster comment above). */
+            oldWrite: isMaster ? (prev?.path ?? '') : prevId,
+            newWrite: value,
+            oldIds: ids(prevId, prev?.path ?? ''),
+            newIds: ids(mod.id, mod.path),
+            oldParams: dump.params,
+            leadCount: dump.leadCount,
         });
     }
     shadow_set_param(browserState.paramSlot, browserState.componentKey + ':module', value);
-    if (prevId !== value) endEdit();
+    if (changed) endEdit();
     // The reload empties the host's static param cache; a same-id reselect won't
     // trip the module-name watcher, so schedule the warm here too (see
     // warmLaneParams) — without it, abs-CC automation is inaudible until restart.

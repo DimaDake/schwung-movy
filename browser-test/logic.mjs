@@ -30,7 +30,28 @@ import {
 } from '../dist/esm/seq/persist-store.js';
 import { shadowPath } from '../dist/esm/seq/set-context.js';
 import { keyboardState } from '../dist/esm/keyboard/state.js';
-import { installMockEngine } from './mock-engine.mjs';
+import { installMockEngine, uninstallMockEngine } from './mock-engine.mjs';
+import {
+    pushEntry, popUndo, pushRedo, canUndo, canRedo, undoDepth, retractEntry,
+    invalidateUndo, takeOrphanedSnaps, resetUndoState, MAX_ENTRIES,
+} from '../dist/esm/undo/state.js';
+import {
+    beginEdit, endEdit, groupOpen, undoTick, onLoopWrap, CLOSE, resetUndoGroups,
+} from '../dist/esm/undo/group.js';
+import {
+    installEditGuard, recordParamOp, seqEdit, seqCtl, setUndoStrict,
+    takeUndoViolation, resetUndoRecord,
+} from '../dist/esm/undo/record.js';
+import {
+    isUndoableVerb, isControlVerb, UNDOABLE_VERBS,
+} from '../dist/esm/undo/verbs.js';
+import {
+    undoOnce, redoOnce, undoWatchContext, resetUndoApply,
+} from '../dist/esm/undo/apply.js';
+import {
+    undoToastVM, noteCount, clipTarget, valueChange,
+} from '../dist/esm/undo/label.js';
+import { seqCmd, takeLabelSync, seqEngineTick, resetSeqEngine } from '../dist/esm/seq/engine.js';
 import { installEnv } from './env.mjs';
 import {
     buildTargetOptions, shortenTarget, targetIndex, formatDepth, formatPhase,
@@ -7949,6 +7970,295 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     seqHandleMidi([0xB0, 86, 0], false);
     Date.now = realNow;
     resetStepRec(); resetSeqState(); resetSeqEngine();
+}
+
+/* ── Undo / redo ─────────────────────────────────────────────────────────── */
+{
+    _log('\nundo — the stack:');
+    resetUndoState();
+    const entry = (verb, snapBefore) => ({
+        verb, target: 'T1', detail: '', paramOps: [],
+        seqSnap: snapBefore === undefined ? undefined : { before: snapBefore, after: -1 },
+        setUuid: 'u', engineGen: 1,
+    });
+
+    pushEntry(entry('A'));
+    pushEntry(entry('B'));
+    eq('two entries are on the stack', undoDepth(), 2);
+    eq('undo pops newest first', popUndo().verb, 'B');
+
+    resetUndoState();
+    pushEntry(entry('A'));
+    pushRedo(entry('R'));
+    eq('redo stack has an entry', canRedo(), true);
+    pushEntry(entry('C'));
+    eq('a new edit invalidates redo', canRedo(), false);
+
+    resetUndoState();
+    for (let i = 0; i < MAX_ENTRIES + 3; i++) pushEntry(entry('E' + i, i));
+    eq('stack is capped at MAX_ENTRIES', undoDepth(), MAX_ENTRIES);
+    eq('the oldest entries were evicted', takeOrphanedSnaps().length >= 3, true);
+
+    resetUndoState();
+    pushEntry(entry('A', 7));
+    pushEntry(entry('B', 8));
+    eq('retract removes the matching entry', retractEntry(7), true);
+    eq('and only that one', undoDepth(), 1);
+    eq('retracting an unknown id is a no-op', retractEntry(99), false);
+
+    resetUndoState();
+    pushEntry(entry('A', 1));
+    pushRedo(entry('B', 2));
+    invalidateUndo('test');
+    eq('invalidate empties undo', canUndo(), false);
+    eq('invalidate empties redo', canRedo(), false);
+    eq('and orphans their snapshots', takeOrphanedSnaps().length, 2);
+    resetUndoState();
+}
+
+{
+    _log('\nundo — grouping:');
+    const engine = installMockEngine();
+    const realNow = Date.now;
+    let nowMs = 1000;
+    Date.now = () => nowMs;
+
+    const reset = () => { resetUndoState(); resetUndoGroups(); engine.reset(); };
+
+    /* Same key re-enters the open group: one knob turned many detents is one
+     * undo, which is the headline grouping requirement. */
+    reset();
+    beginEdit({ key: 'knob:0:cutoff', verb: 'CUTOFF', close: CLOSE.TOUCH_RELEASE });
+    recordParamOp(0, 'synth:cutoff', '0.40', '0.41');
+    beginEdit({ key: 'knob:0:cutoff', verb: 'CUTOFF', close: CLOSE.TOUCH_RELEASE });
+    recordParamOp(0, 'synth:cutoff', '0.41', '0.42');
+    endEdit();
+    eq('a held knob is one entry', undoDepth(), 1);
+    const held = popUndo();
+    eq('with one param op', held.paramOps.length, 1);
+    eq('whose old is the pre-gesture value', held.paramOps[0].old, '0.40');
+    eq('and whose new is the post-gesture value', held.paramOps[0].new, '0.42');
+
+    /* A different key closes the first group — two knobs are two undos. */
+    reset();
+    beginEdit({ key: 'knob:0:cutoff', verb: 'CUTOFF', close: CLOSE.TOUCH_RELEASE });
+    recordParamOp(0, 'synth:cutoff', '0.40', '0.42');
+    beginEdit({ key: 'knob:0:res', verb: 'RES', close: CLOSE.TOUCH_RELEASE });
+    recordParamOp(0, 'synth:res', '0.10', '0.20');
+    endEdit();
+    eq('a second knob makes a second entry', undoDepth(), 2);
+
+    /* No-op suppression: a turn that ends where it started records nothing. */
+    reset();
+    beginEdit({ key: 'knob:0:cutoff', verb: 'CUTOFF', close: CLOSE.TOUCH_RELEASE });
+    recordParamOp(0, 'synth:cutoff', '0.40', '0.41');
+    recordParamOp(0, 'synth:cutoff', '0.41', '0.40');
+    endEdit();
+    eq('a knob returned to its start is no undo', undoDepth(), 0);
+
+    /* IDLE closes a group whose touch release never arrived. */
+    reset();
+    beginEdit({ key: 'knob:0:cutoff', verb: 'CUTOFF', close: CLOSE.IDLE, idleMs: 500 });
+    recordParamOp(0, 'synth:cutoff', '0.40', '0.42');
+    nowMs += 100; undoTick();
+    eq('an active group stays open', groupOpen(), true);
+    nowMs += 600; undoTick();
+    eq('an idle group closes itself', groupOpen(), false);
+    eq('and pushes its entry', undoDepth(), 1);
+
+    /* LOOP_WRAP: one record pass is one undo, so two loops give two. */
+    reset();
+    beginEdit({ key: 'rec:0', verb: 'RECORD', close: CLOSE.LOOP_WRAP, seq: true });
+    onLoopWrap();
+    eq('a rec pass closes at the wrap', undoDepth(), 1);
+    beginEdit({ key: 'rec:0', verb: 'RECORD', close: CLOSE.LOOP_WRAP, seq: true });
+    onLoopWrap();
+    eq('two loops are two undos', undoDepth(), 2);
+
+    /* A seq group snapshots on open and commits on close. */
+    reset();
+    resetSeqEngine();
+    seqEngineTick();   // boot probe: ping matches -> engine ready
+    beginEdit({ key: 'step:4', verb: 'STEP', close: CLOSE.IMMEDIATE, seq: true });
+    seqEngineTick();   // flush the queued usnap
+    const usnap = engine.ops.find(o => o.startsWith('usnap '));
+    eq('opening a seq group queues usnap', !!usnap, true);
+    const snapId = usnap ? usnap.split(' ')[1] : '-1';
+    endEdit();
+    seqEngineTick();
+    eq('closing it queues ucommit', engine.ops.some(o => o === 'ucommit ' + snapId), true);
+    eq('and pushes an entry', undoDepth(), 1);
+
+    /* A group with no param ops and no engine snapshot is not an undo at all. */
+    reset();
+    beginEdit({ key: 'nothing', verb: 'NOTHING', close: CLOSE.IMMEDIATE });
+    endEdit();
+    eq('an empty group pushes nothing', undoDepth(), 0);
+
+    Date.now = realNow;
+    reset();
+    uninstallMockEngine();
+}
+
+{
+    _log('\nundo — the guard against forgetting:');
+    const engine = installMockEngine();
+    resetUndoState(); resetUndoGroups(); resetUndoRecord();
+    installEditGuard();
+
+    /* Layer 1: a mutating engine command outside a group is reported. */
+    takeUndoViolation();
+    seqEdit('tog 0 0 60 100');
+    notMatch('an ungrouped edit is reported', takeUndoViolation(), /^$/);
+
+    /* …and inside a group it is silent. */
+    beginEdit({ key: 'g', verb: 'X', close: CLOSE.IMMEDIATE, seq: true });
+    seqEdit('tog 0 0 60 100');
+    eq('a grouped edit is clean', takeUndoViolation(), '');
+    endEdit();
+
+    /* Control verbs never need a group — transport is not an edit. */
+    seqCtl('play');
+    seqCtl('watch 1');
+    eq('control verbs need no group', takeUndoViolation(), '');
+
+    /* An unclassified verb is reported even though it mutates nothing we know. */
+    seqCmd('brandnewverb 1');
+    notMatch('an unclassified verb is reported', takeUndoViolation(), /^$/);
+
+    /* Strict mode is what the app-loop suite uses to turn these into failures. */
+    setUndoStrict(true);
+    let threw = false;
+    try { seqEdit('del 0 0'); } catch { threw = true; }
+    eq('strict mode throws on an ungrouped edit', threw, true);
+    setUndoStrict(false);
+
+    resetUndoRecord(); resetUndoGroups(); resetUndoState();
+    uninstallMockEngine();
+}
+
+{
+    _log('\nundo — verb classification matches the engine:');
+    /* Layer 2. The UI mirrors command.rs's classification, and a mirror that
+     * can drift is worse than none — so read the Rust source and compare. This
+     * fails when someone adds an engine command and teaches only one side. */
+    const src = readFileSync('engine/crates/seq-core/src/command.rs', 'utf8');
+    const body = src.slice(src.indexOf('fn apply_op('), src.indexOf('\n#[cfg(test)]'));
+    const dispatched = new Set();
+    for (const line of body.split('\n')) {
+        const t = line.trim();
+        if (!t.startsWith('"') || !t.includes('=>')) continue;
+        for (const piece of t.slice(0, t.indexOf('=>')).split('|')) {
+            const v = piece.trim().replace(/["\s]/g, '');
+            if (v && /^[a-z]+$/.test(v)) dispatched.add(v);
+        }
+    }
+    eq('the Rust dispatch table was parsed', dispatched.size > 40, true);
+
+    const unclassified = [...dispatched].filter(v => !isUndoableVerb(v) && !isControlVerb(v));
+    eq('every command.rs verb is classified in verbs.ts: ' + unclassified.join(','),
+        unclassified.length, 0);
+
+    /* And the reverse: a UI verb the engine no longer dispatches is dead weight
+     * that would silently never fire. */
+    const stale = [...UNDOABLE_VERBS].filter(v => !dispatched.has(v));
+    eq('no undoable verb is unknown to the engine: ' + stale.join(','), stale.length, 0);
+
+    /* The membership decisions the design turns on. */
+    eq('selection is not undoable', isUndoableVerb('clipsel'), false);
+    eq('transport is not undoable', isUndoableVerb('play'), false);
+    eq('mute is undoable', isUndoableVerb('mute'), true);
+    eq('tempo is undoable', isUndoableVerb('bpm'), true);
+}
+
+{
+    _log('\nundo — applying:');
+    const engine = installMockEngine();
+    resetUndoState(); resetUndoGroups(); resetUndoApply();
+    const writes = [];
+    globalThis.shadow_set_param = (slot, key, val) => { writes.push(slot + ':' + key + '=' + val); return true; };
+    globalThis.shadow_get_param = () => null;
+
+    /* Param ops undo in reverse: a gesture that wrote A then B must restore B
+     * then A, or a later write that depended on an earlier one lands wrong. */
+    resetUndoState();
+    beginEdit({ key: 'g', verb: 'X', close: CLOSE.IMMEDIATE });
+    recordParamOp(0, 'synth:a', '1', '2');
+    recordParamOp(0, 'synth:b', '3', '4');
+    endEdit();
+    writes.length = 0;
+    let r = undoOnce();
+    eq('undo reports ok', r.ok, true);
+    eq('param ops apply in reverse', writes.join(','), '0:synth:b=3,0:synth:a=1');
+
+    /* Redo re-applies forwards. */
+    writes.length = 0;
+    r = redoOnce();
+    eq('redo reports ok', r.ok, true);
+    eq('redo re-applies the new values', writes.join(','), '0:synth:b=4,0:synth:a=2');
+
+    /* An empty stack is reported, not silently ignored. */
+    resetUndoState();
+    r = undoOnce();
+    eq('undo on an empty stack is not ok', r.ok, false);
+    eq('and says why', r.reason, 'empty');
+
+    /* A seq entry queues uswap AND requests a label sync — without the sync the
+     * schwung-side knob_N_set mapping is left pointing at the old param and
+     * automation silently drives the wrong thing. */
+    resetUndoState(); resetUndoGroups(); engine.reset();
+    resetSeqEngine();
+    seqEngineTick();                     // boot
+    beginEdit({ key: 'g2', verb: 'STEP', close: CLOSE.IMMEDIATE, seq: true });
+    seqEdit('tog 0 0 60 100');
+    endEdit();
+    seqEngineTick();
+    takeLabelSync();                     // drain whatever boot left pending
+    engine.ops.length = 0;
+    undoOnce();
+    seqEngineTick();
+    eq('undo queues a uswap', engine.ops.some(o => o.startsWith('uswap ')), true);
+    eq('undo requests a label sync', takeLabelSync(), true);
+
+    /* Set switch and engine reload both make a snapshot id meaningless. */
+    resetUndoState(); resetUndoApply();
+    pushEntry({ verb: 'A', target: '', detail: '', paramOps: [{ slot: 0, key: 'k', old: '1', new: '2' }], setUuid: 'u1', engineGen: 1 });
+    undoWatchContext();                  // latch the current context
+    switchToSet('other-uuid', 'Other', false);
+    undoWatchContext();
+    eq('a set switch clears the stack', canUndo(), false);
+
+    delete globalThis.shadow_set_param;
+    delete globalThis.shadow_get_param;
+    resetUndoState(); resetUndoGroups(); resetUndoApply(); resetSeqPersist();
+    uninstallMockEngine();
+}
+
+{
+    _log('\nundo — toast text:');
+    eq('a successful undo names the operation',
+        undoToastVM({ ok: true, verb: 'CLEAR CLIP', target: 'T2 CLIP 3', detail: '12 NOTES' }, false).head, 'UNDO');
+    eq('redo says REDO',
+        undoToastVM({ ok: true, verb: 'CUTOFF', target: 'T1', detail: '' }, true).head, 'REDO');
+    eq('target and detail share the bottom line',
+        undoToastVM({ ok: true, verb: 'CLEAR CLIP', target: 'T2 CLIP 3', detail: '12 NOTES' }, false).detail,
+        'T2 CLIP 3 - 12 NOTES');
+    eq('an empty stack says so',
+        undoToastVM({ ok: false, verb: '', target: '', detail: '', reason: 'empty' }, false).head, 'NOTHING TO UNDO');
+    eq('and distinguishes redo',
+        undoToastVM({ ok: false, verb: '', target: '', detail: '', reason: 'empty' }, true).head, 'NOTHING TO REDO');
+    eq('drift is called out',
+        undoToastVM({ ok: false, verb: '', target: '', detail: '', reason: 'drift' }, false).head, 'UNDO UNAVAILABLE');
+    eq('note count is singular at one', noteCount(1), '1 NOTE');
+    eq('and plural otherwise', noteCount(12), '12 NOTES');
+    eq('clip target reads one-based', clipTarget(1, 2), 'T2 CLIP 3');
+
+    /* The pixel font covers 0x20-0x7E only, so a label with a fancy dash or
+     * middot would silently render as gaps. */
+    const sample = undoToastVM({ ok: true, verb: 'CUTOFF', target: 'T1', detail: valueChange('0.42', '0.31') }, false);
+    const allAscii = [...(sample.head + sample.verb + sample.detail)]
+        .every(c => c.charCodeAt(0) >= 0x20 && c.charCodeAt(0) <= 0x7E);
+    eq('toast text stays inside the font', allAscii, true);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

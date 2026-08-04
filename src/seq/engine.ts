@@ -75,9 +75,19 @@ export function uiTick(): number {
     return uiTickCount;
 }
 
+/* Undo's inspection hook, registered by undo/record.ts. Lives as a callback
+ * rather than a direct import because undo/ imports this file — and because a
+ * hook here catches EVERY seqCmd, including a new call site that never thought
+ * about undo. That is the point: a bypass is exactly what it must notice. */
+let editGuard: ((op: string) => void) | null = null;
+export function setEditGuard(fn: ((op: string) => void) | null): void {
+    editGuard = fn;
+}
+
 /* Queue one engine op, e.g. "play" or "tog 0 0 60 100". Sent on the next
  * tick (held through boot, dropped only if the engine never appears). */
 export function seqCmd(op: string): void {
+    if (editGuard) editGuard(op);
     cmdQueue.push(op);
 }
 
@@ -89,6 +99,16 @@ export function takeLabelSync(): boolean {
     if (!labelSyncPending) return false;
     labelSyncPending = false;
     return true;
+}
+
+/* The engine reports (via `unop`) that a committed group changed nothing. Held
+ * here and drained by the app tick rather than dispatched directly, so this
+ * file keeps no import of undo/ — which imports this one. */
+let noopSnapId = -1;
+export function takeNoopSnapId(): number {
+    const id = noopSnapId;
+    noopSnapId = -1;
+    return id;
 }
 
 export function seqEngineTick(): void {
@@ -229,6 +249,7 @@ function parseStatus(s: string): void {
         else if (key === 'mute') muteFromStr(val);
         else if (key === 'sess') sessionFromStr(val);
         else if (key === 'occ') occFromHex(val);
+        else if (key === 'unop') noopSnapId = Number(val);
         else if (key === 'alanes') seqState.autoAssigned = parseInt(val, 16) || 0;
         else if (key === 'aauto') seqState.autoActive = parseInt(val, 16) || 0;
         else if (key === 'hauto') {

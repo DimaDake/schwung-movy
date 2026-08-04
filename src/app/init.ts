@@ -10,6 +10,10 @@ import { resetTrackMutes } from '../mixer/track-mutes.js';
 import { resetDrumSync } from '../seq/drum-sync.js';
 import { claimLedOwnership } from './led-ownership.js';
 import { resetHeldInput } from './input-reset.js';
+import { installEditGuard } from '../undo/record.js';
+import { resetUndoState } from '../undo/state.js';
+import { resetUndoGroups } from '../undo/group.js';
+import { resetUndoToast } from '../undo/toast.js';
 import { mlog } from '../log.js';
 
 export function init(): void {
@@ -17,6 +21,14 @@ export function init(): void {
     mlog('init: activeSlot=' + appState.activeSlot);
 
     claimLedOwnership();
+
+    /* Undo history is in-memory and per session: a fresh open starts empty, and
+     * the guard that reports un-grouped edits is installed before any input can
+     * arrive. */
+    installEditGuard();
+    resetUndoState();
+    resetUndoGroups();
+    resetUndoToast();
 
     appState.trackModels = Array.from({ length: 4 }, (_, slot) =>
         CHAIN_SLOTS.map((s, i) => isLfoSlot(i) ? createLfoModel(slot) : createModel(slot, s.componentKey))

@@ -41,6 +41,11 @@ import { drawLeaveModal } from '../renderer/leave-modal-view.js';
 import { captureOverlayActive } from '../seq/capture.js';
 import { buildCaptureVM } from '../seq/capture-vm.js';
 import { drawCaptureOverlay } from '../renderer/capture-overlay.js';
+import { drawUndoOverlay } from '../renderer/undo-overlay.js';
+import { undoTick } from '../undo/group.js';
+import { flushOrphanedSnaps, onEngineNoop, undoWatchContext } from '../undo/apply.js';
+import { undoToast, undoToastActive, undoToastTick } from '../undo/toast.js';
+import { takeNoopSnapId } from '../seq/engine.js';
 import { stepPageState, stepPageAvailable } from '../seq/step-page.js';
 import { buildStepPageVM } from '../seq/step-page-vm.js';
 import { activeHasNote, maxBarOffset, seqState } from '../seq/state.js';
@@ -287,6 +292,16 @@ export function tick(): void {
             + ' type=' + shadow_get_param(t, 'knob_' + (l + 1) + '_type'));
     });
     seqPersistTick();
+    /* Undo housekeeping, after seqPersistTick so the set uuid it watches is the
+     * one this tick resolved. Order within: close timed-out groups, notice a
+     * set/engine change, drop snapshots the stacks have released, retract a
+     * group the engine reported as a no-op. */
+    undoTick();
+    undoWatchContext();
+    flushOrphanedSnaps();
+    const noop = takeNoopSnapId();
+    if (noop >= 0) onEngineNoop(noop);
+    if (undoToastTick()) appState.dirty = true;
     /* Session toggle changes pad ownership: invalidate the seq LED cache and
      * re-init the instrument pad LEDs when returning to Note mode. */
     if (seqState.sessionMode !== lastSessionMode) {
@@ -461,6 +476,9 @@ export function tick(): void {
         if (headerShowing) drawSeqHeader();
         // The post-capture overlay owns the screen until it is dismissed.
         if (captureOverlayActive()) drawCaptureOverlay(buildCaptureVM());
+        /* Undo toast sits above the views but below the capture overlay and the
+         * leave modal, both of which own the screen while they are up. */
+        if (undoToastActive()) drawUndoOverlay(undoToast()!);
         // Leave-Movy modal draws on top of everything else.
         if (leaveModalActive()) drawLeaveModal(leaveModalLabels(), leaveModalSel());
         lastToastShowing = toastShowing;

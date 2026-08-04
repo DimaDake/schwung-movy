@@ -42,5 +42,9 @@ export function captureLedColor(pending: number): number {
     return pending > 0 ? WHITE_BRIGHT : WHITE_OFF;
 }
 
-/** Undo has no movy action yet → off (white). */
-export function undoLedColor(): number { return WHITE_OFF; }
+/** Undo: lit when there is something to undo. While Shift is held the button
+ *  means redo, so it advertises the redo stack instead — otherwise a lit button
+ *  under Shift would promise an action that does nothing. */
+export function undoLedColor(canUndo: boolean, canRedo: boolean, shiftHeld: boolean): number {
+    return (shiftHeld ? canRedo : canUndo) ? WHITE_BRIGHT : WHITE_OFF;
+}

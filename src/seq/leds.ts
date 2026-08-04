@@ -2,6 +2,7 @@
  * are sent, so unchanged frames cost nothing on the wire (davebox pattern). */
 
 import { backLedColor, arrowLedColor, stepRecArrowColor, sampleLedColor, captureLedColor, undoLedColor } from './buttons.js';
+import { canRedo, canUndo } from '../undo/state.js';
 import { C_BLACK, C_DARKGREY, C_GREEN, C_LIGHTGREY, C_REC_RED, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
 import {
     CC_PLAY, CC_REC, CC_TRACK_END, NUM_STEP_BUTTONS, PAD_MIN, STEP_NOTE_BASE,
@@ -132,7 +133,7 @@ function paintTrackButtons(): void {
     }
 }
 
-function paintAffordances(view: number, barOffset: number, maxOff: number, lp: boolean, rp: boolean): void {
+function paintAffordances(view: number, barOffset: number, maxOff: number, lp: boolean, rp: boolean, shiftHeld: boolean): void {
     cachedSetButtonLED(CC_BACK, backLedColor(view));
     // While step recording the arrows belong to the head, not to bar navigation.
     if (stepRecActive()) {
@@ -144,7 +145,7 @@ function paintAffordances(view: number, barOffset: number, maxOff: number, lp: b
         cachedSetButtonLED(CC_LEFT, arrowLedColor(-1, barOffset, maxOff, lp));
         cachedSetButtonLED(CC_RIGHT, arrowLedColor(+1, barOffset, maxOff, rp));
     }
-    cachedSetButtonLED(CC_SAMPLE, sampleLedColor()); cachedSetButtonLED(CC_CAPTURE, captureLedColor(seqState.capPending)); cachedSetButtonLED(CC_UNDO, undoLedColor());
+    cachedSetButtonLED(CC_SAMPLE, sampleLedColor()); cachedSetButtonLED(CC_CAPTURE, captureLedColor(seqState.capPending)); cachedSetButtonLED(CC_UNDO, undoLedColor(canUndo(), canRedo(), shiftHeld));
     cachedSetButtonLED(CC_LOOP, seqState.loopMode ? WHITE_BRIGHT : WHITE_DIM);
     cachedSetButtonLED(CC_COPY, WHITE_DIM); cachedSetButtonLED(CC_DELETE_BTN, WHITE_DIM); cachedSetButtonLED(CC_MUTE, WHITE_DIM);
 }
@@ -190,13 +191,13 @@ export function seqLedsTick(
         for (let i = 0; i < NUM_STEP_BUTTONS; i++) cachedSetLED(STEP_NOTE_BASE + i, C_BLACK);
         paintTrackButtons();
         paintStepIcons(shiftHeld);
-        paintAffordances(currentView, barOffset, maxOff, false, false);
+        paintAffordances(currentView, barOffset, maxOff, false, false, shiftHeld);
         paintTransport();
         return;
     }
     paintTrackButtons();
     paintStepIcons(shiftHeld);
-    paintAffordances(currentView, barOffset, maxOff, false, false);  // lp/rp: never pressed in tick path
+    paintAffordances(currentView, barOffset, maxOff, false, false, shiftHeld);  // lp/rp: never pressed in tick path
     if (seqState.loopMode) {
         paintLoopBars();
         paintTransport();

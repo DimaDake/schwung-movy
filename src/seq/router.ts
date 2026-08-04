@@ -19,9 +19,12 @@ import { openClipPage, closeClipPage, clipPageActive } from './clip-page.js';
 import { appState, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from '../app/state.js';
 import { releaseAllLive } from '../keyboard/release.js';
 import { captureButton, captureClear } from './capture.js';
+import { redoOnce, undoOnce } from '../undo/apply.js';
+import { showUndoToast } from '../undo/toast.js';
 
 const CC_MUTE = 88;
 const CC_CAPTURE = 52;
+const CC_UNDO = 56;
 
 let muteHeldState = false;
 export function setMuteHeld(down: boolean): void { muteHeldState = down; }
@@ -249,6 +252,15 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     /* Capture: keep what was just played; hold Clear to throw it away. */
     if (d1 === CC_CAPTURE) {
         if (d2 > 0) captureButton(deleteActive());
+        return true;
+    }
+
+    /* Undo, and Shift+Undo for redo — the Move OG binding (manual, "Undo"). */
+    if (d1 === CC_UNDO) {
+        if (d2 > 0) {
+            const redo = shiftHeld;
+            showUndoToast(redo ? redoOnce() : undoOnce(), redo);
+        }
         return true;
     }
 

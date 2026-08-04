@@ -57,6 +57,24 @@ export interface UiOp {
     new: string;
 }
 
+/**
+ * A whole-module snapshot taken before a PRESET change.
+ *
+ * A preset param's inverse is lossy: writing the old index back makes the DSP
+ * re-apply that preset's DEFAULTS, silently discarding whatever the user had
+ * tweaked since loading it. schwung's `<component>:state` blob is the only
+ * thing that carries those tweaks, so a preset change records one.
+ *
+ * Undo-only. Redo genuinely IS "pick preset N again", which the param op
+ * already expresses — and re-applying the new preset's defaults is exactly
+ * what the user did the first time.
+ */
+export interface StateOp {
+    slot: number;
+    componentKey: string;
+    oldState: string;
+}
+
 export interface UndoEntry {
     /* Label parts, composed at capture time — the engine state they describe
      * is gone by the time the toast is drawn. */
@@ -69,6 +87,7 @@ export interface UndoEntry {
     seqSnap?: { before: number; after: number };
     paramOps: ParamOp[];
     uiOps: UiOp[];
+    stateOp?: StateOp;
     moduleOp?: ModuleOp;
     /* Guards. The stack is cleared when either changes, because a snapshot id
      * means nothing in a different set or a reloaded (empty) engine. */

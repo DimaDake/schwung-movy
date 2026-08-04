@@ -26,7 +26,7 @@ import { beginModuleRestore, moduleRestorePending } from './module-apply.js';
 import type { UndoEntry, UndoResult } from './types.js';
 import { writeUiField, type UiField } from './ui-fields.js';
 import { changeDetail } from './label.js';
-import { syncParamsToModels } from './param-sync.js';
+import { refreshModels, syncParamsToModels } from './param-sync.js';
 import { moduleReadKey } from '../chain/config.js';
 import { captureModuleState, dumpModuleParams } from './module-dump.js';
 
@@ -91,15 +91,24 @@ function applyEntry(e: UndoEntry, undoing: boolean): void {
         const u = e.uiOps[i];
         writeUiField(u.field as UiField, undoing ? u.old : u.new);
     }
-    /* Reverse order: a gesture that wrote A then B must undo B then A, or a
-     * later write that depended on an earlier one lands on the wrong base. */
-    for (let i = e.paramOps.length - 1; i >= 0; i--) {
-        const p = e.paramOps[i];
-        setChain(p.slot, p.key, undoing ? p.old : p.new);
+    /* Undoing a preset change restores the whole module instead of writing the
+     * old index back: the index alone would make the DSP re-apply that preset's
+     * DEFAULTS and discard whatever the user had tweaked since. Redo takes the
+     * param path, because redo really is "pick that preset again". */
+    if (undoing && e.stateOp) {
+        setChain(e.stateOp.slot, e.stateOp.componentKey + ':state', e.stateOp.oldState);
+        refreshModels(e.stateOp.slot);
+    } else {
+        /* Reverse order: a gesture that wrote A then B must undo B then A, or a
+         * later write that depended on an earlier one lands on the wrong base. */
+        for (let i = e.paramOps.length - 1; i >= 0; i--) {
+            const p = e.paramOps[i];
+            setChain(p.slot, p.key, undoing ? p.old : p.new);
+        }
+        /* The write went straight to the DSP; the models mirror these values and
+         * would otherwise keep showing the pre-undo reading for seconds. */
+        if (e.paramOps.length > 0) syncParamsToModels(e.paramOps);
     }
-    /* The write went straight to the DSP; the models mirror these values and
-     * would otherwise keep showing the pre-undo reading for seconds. */
-    if (e.paramOps.length > 0) syncParamsToModels(e.paramOps);
     if (e.seqSnap) {
         const restore = undoing ? e.seqSnap.before : e.seqSnap.after;
         const capture = nextRestoreId++;

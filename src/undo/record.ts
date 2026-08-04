@@ -11,7 +11,8 @@
 
 import { mlog } from '../log.js';
 import { seqCmd, setEditGuard } from '../seq/engine.js';
-import { addParamOp, addUiOp, groupOpen, noteEditActivity } from './group.js';
+import { addParamOp, addStateOp, addUiOp, groupOpen, noteEditActivity } from './group.js';
+import { captureModuleState } from './module-dump.js';
 import { isControlVerb, isUndoableVerb, verbOf } from './verbs.js';
 import type { ParamOp } from './types.js';
 
@@ -101,6 +102,22 @@ export function recordParamOp(slot: number, key: string,
     }
     const op: ParamOp = { slot, key, old: oldVal, new: newVal };
     addParamOp(op);
+}
+
+/**
+ * Record the module's whole state before a PRESET change.
+ *
+ * Cheap enough here and nowhere else: this is one blocking read per preset
+ * GESTURE (the group is re-entrant, so repeated detents do not repeat it), and
+ * every one of those detents already makes the DSP load a whole preset. The
+ * same read on an ordinary knob turn would be a different story — `perf.mjs`
+ * caps chain reads at 2 per tick and each costs ~3-5 ms on device, which is a
+ * large slice of a 5-16 ms tick that also samples MIDI input.
+ */
+export function recordPresetState(slot: number, componentKey: string): void {
+    if (!groupOpen()) return;
+    const state = captureModuleState(slot, componentKey);
+    if (state !== null) addStateOp({ slot, componentKey, oldState: state });
 }
 
 /** Record a set-level UI field change (root note, scale). */

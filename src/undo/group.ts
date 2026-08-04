@@ -20,7 +20,7 @@ import { mlog } from '../log.js';
 import { seqCmd } from '../seq/engine.js';
 import { currentSetUuid } from '../seq/persist.js';
 import { engineGeneration } from '../seq/engine.js';
-import type { ParamOp, ModuleOp, UiOp, UndoEntry } from './types.js';
+import type { ParamOp, ModuleOp, StateOp, UiOp, UndoEntry } from './types.js';
 import { pushEntry } from './state.js';
 
 export const CLOSE = {
@@ -53,6 +53,7 @@ interface OpenGroup {
     paramOps: ParamOp[];
     uiOps: UiOp[];
     moduleOp?: ModuleOp;
+    stateOp?: StateOp;
     lastActivityMs: number;
 }
 
@@ -117,6 +118,14 @@ export function addUiOp(op: UiOp): void {
     else open.uiOps.push(op);
 }
 
+/** Attach the pre-gesture module state. The FIRST one wins: a preset knob turn
+ *  passes several presets on its way, and undo must land on where the gesture
+ *  started, not on the last preset it swept through. */
+export function addStateOp(op: StateOp): void {
+    if (!open || open.stateOp) return;
+    open.stateOp = op;
+}
+
 export function addModuleOp(op: ModuleOp): void {
     if (!open) return;
     open.lastActivityMs = now();
@@ -169,6 +178,7 @@ export function endEdit(key?: string): void {
         setUuid: currentSetUuid(),
         engineGen: engineGeneration(),
     };
+    if (g.stateOp) entry.stateOp = g.stateOp;
     if (hasSeq) entry.seqSnap = { before: g.snapId, after: -1 };
     if (g.moduleOp) entry.moduleOp = g.moduleOp;
     pushEntry(entry);

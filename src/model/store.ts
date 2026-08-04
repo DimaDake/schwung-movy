@@ -10,6 +10,7 @@ import { applyTriggerDelta, seedTriggerState } from './trigger.js';
 import { mlog } from '../log.js';
 import { setChainParam } from '../chain/set-param.js';
 import { beginGesture } from '../undo/edit.js';
+import { recordPresetState } from '../undo/record.js';
 
 function gestureFor(s: ModelState, key: string) {
     return s.paramGestures[key] ??= { lastTurnMs: 0, direction: 0 };
@@ -185,6 +186,10 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
      * gesture started. */
     beginGesture('knob:' + s.activeSlot + ':' + s.componentKey + ':' + ioKey,
         (p.label || p.key).toUpperCase(), 'T' + (s.activeSlot + 1), false);
+    /* A preset's inverse is lossy — writing the old index back re-applies that
+     * preset's defaults and loses the tweaks made since — so snapshot the whole
+     * module instead. Once per gesture: addStateOp keeps the first. */
+    if (p.renderStyle === 'preset') recordPresetState(s.activeSlot, s.componentKey);
     const ok = p.key.startsWith('test_') ? true
         : setChainParam(s.activeSlot, s.componentKey + ':' + ioKey, valStr, prevStr);
     mlog('set_param returned ' + ok);

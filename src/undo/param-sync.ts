@@ -11,6 +11,13 @@
 import { appState } from '../app/state.js';
 import type { ParamOp } from './types.js';
 
+/** A whole-module restore changed everything at once, so there is no key list
+ *  to walk — tell the slot's models to re-read from scratch. */
+export function refreshModels(slot: number): void {
+    for (const m of appState.trackModels[slot] ?? []) m.reload();
+    appState.dirty = true;
+}
+
 export function syncParamsToModels(ops: ParamOp[]): void {
     for (const op of ops) {
         const colon = op.key.indexOf(':');

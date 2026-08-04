@@ -1,6 +1,7 @@
 import { setChainParam } from '../chain/set-param.js';
 import { refreshParamKey } from './store.js';
 import { undoableEdit } from '../undo/edit.js';
+import { recordPresetState } from '../undo/record.js';
 import { createModelState } from './state.js';
 import { loadHierarchy }    from './hierarchy.js';
 import { applyKnobDelta, knobParamInfo, reseedPadParams, refreshModulatedKeys, slotToLocal }   from './store.js';
@@ -145,9 +146,15 @@ export function createModel(slot: number, componentKey = 'synth') {
                     const usesIndex = s.moduleConfig?.enumSetIndex ? true : (s.enumFmt[gi] as boolean);
                     const key = s.componentKey + ':' + p.key;
                     const old = shadow_get_param(s.activeSlot, key);
-                    undoableEdit((p.label || p.key).toUpperCase(), 'T' + (s.activeSlot + 1),
-                        () => setChainParam(s.activeSlot, key,
-                            enumSetValue(p.options, idx, usesIndex), old));
+                    undoableEdit((p.label || p.key).toUpperCase(), 'T' + (s.activeSlot + 1), () => {
+                        /* Committing a preset from the overlay is the same lossy
+                         * inverse as turning the knob — snapshot the module. */
+                        if (p.renderStyle === 'preset') {
+                            recordPresetState(s.activeSlot, s.componentKey);
+                        }
+                        setChainParam(s.activeSlot, key,
+                            enumSetValue(p.options, idx, usesIndex), old);
+                    });
                 }
                 s.enumOverlay = null;
             }

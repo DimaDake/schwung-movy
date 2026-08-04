@@ -8977,6 +8977,78 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     resetModuleRestore();
 }
 
+
+{
+    _log('\nundo — a preset change restores the tweaks it discarded:');
+    const { recordPresetState } = await import('../dist/esm/undo/record.js');
+    const { appState } = await import('../dist/esm/app/state.js');
+
+    /* The scenario: load a preset, tweak a knob, then change preset. Writing
+     * the old preset index back would make the DSP re-apply THAT preset's
+     * defaults — losing the tweak. Only the state blob carries it. */
+    const store = {
+        'synth:chain_params': JSON.stringify([{ key: 'preset' }, { key: 'cutoff' }]),
+        'synth:state': '{"preset":3,"cutoff":0.90}',   // preset 3, cutoff tweaked to 0.90
+        'synth:preset': '3', 'synth:cutoff': '0.90',
+    };
+    const writes = [];
+    globalThis.shadow_get_param = (slot, key) => store[key] ?? null;
+    globalThis.shadow_set_param = (slot, key, v) => { writes.push(key + '=' + v); store[key] = v; return true; };
+    appState.trackModels[0] = [];
+
+    resetUndoState(); resetUndoGroups(); resetUndoApply();
+    beginEdit({ key: 'knob:preset', verb: 'PRESET', target: 'T1', close: CLOSE.IMMEDIATE });
+    recordPresetState(0, 'synth');
+    recordParamOp(0, 'synth:preset', '3', '9');       // the user picks preset 9
+    endEdit();
+    eq('a preset change records an entry', undoDepth(), 1);
+    eq('carrying the whole module, not just the index',
+        peekUndo().stateOp?.oldState, '{"preset":3,"cutoff":0.90}');
+
+    writes.length = 0;
+    undoOnce();
+    eq('undo restores the module state, not the preset index',
+        writes.join(','), 'synth:state={"preset":3,"cutoff":0.90}');
+    eq('so the tweak made after loading the preset survives',
+        writes.some((w) => w.startsWith('synth:preset=')), false);
+
+    /* Redo IS "pick that preset again", so it takes the ordinary param path —
+     * re-applying the new preset's defaults is exactly what the user did. */
+    writes.length = 0;
+    redoOnce();
+    eq('redo picks the preset again', writes.join(','), 'synth:preset=9');
+
+    /* Only preset changes pay for this. An ordinary knob turn keeps its exact,
+     * surgical inverse — a whole-module restore would revert params the user
+     * never touched, including ones automation and LFOs are driving. */
+    resetUndoState(); resetUndoGroups();
+    beginEdit({ key: 'knob:cutoff', verb: 'CUTOFF', target: 'T1', close: CLOSE.IMMEDIATE });
+    recordParamOp(0, 'synth:cutoff', '0.90', '0.20');
+    endEdit();
+    eq('an ordinary knob records no module snapshot', peekUndo().stateOp, undefined);
+    writes.length = 0;
+    undoOnce();
+    eq('and undoes surgically', writes.join(','), 'synth:cutoff=0.90');
+
+    /* A module with no state blob falls back to the index — lossy, but the only
+     * thing available, and better than refusing to undo. */
+    resetUndoState(); resetUndoGroups();
+    store['synth:state'] = '';
+    beginEdit({ key: 'knob:preset', verb: 'PRESET', target: 'T1', close: CLOSE.IMMEDIATE });
+    recordPresetState(0, 'synth');
+    recordParamOp(0, 'synth:preset', '3', '9');
+    endEdit();
+    eq('a module without state records no snapshot', peekUndo().stateOp, undefined);
+    writes.length = 0;
+    undoOnce();
+    eq('and undo falls back to the preset index', writes.join(','), 'synth:preset=3');
+
+    delete globalThis.shadow_get_param;
+    delete globalThis.shadow_set_param;
+    appState.trackModels[0] = [];
+    resetUndoState(); resetUndoGroups(); resetUndoApply();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

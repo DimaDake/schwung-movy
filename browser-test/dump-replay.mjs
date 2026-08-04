@@ -212,6 +212,27 @@ for (const entry of dump.modules) {
     if (!UPDATE) checkExpect(key, snap, expect[key]);
 }
 
+/* Undo's module dump, against every real module's real chain_params. A module
+ * whose dump comes back empty cannot be restored by a module undo at all — the
+ * swap would be one-way — so it is worth knowing before a user finds out. */
+{
+    const { dumpModuleParams } = await import('../dist/esm/undo/module-dump.js');
+    const origGet = globalThis.shadow_get_param;
+    const empty = [];
+    for (const entry of dump.modules) {
+        const cp = Array.isArray(entry.chain_params) ? entry.chain_params : [];
+        if (cp.length === 0) continue;   // module published none; nothing to dump
+        globalThis.shadow_get_param = (slot, key) =>
+            key === 'synth:chain_params' ? JSON.stringify(cp) : '0';
+        if (dumpModuleParams(0, 'synth').length === 0) {
+            empty.push(`${entry.category}--${entry.id}`);
+        }
+    }
+    globalThis.shadow_get_param = origGet;
+    check(`every module with chain_params yields an undo dump (${empty.join(',')})`,
+        empty.length === 0);
+}
+
 /* Snapshot keys must exactly track the dump (no stale/missing modules). */
 if (!UPDATE) {
     const expectKeys = Object.keys(expect).sort().join(',');

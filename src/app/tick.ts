@@ -43,6 +43,7 @@ import { buildCaptureVM } from '../seq/capture-vm.js';
 import { drawCaptureOverlay } from '../renderer/capture-overlay.js';
 import { drawUndoOverlay } from '../renderer/undo-overlay.js';
 import { undoTick } from '../undo/group.js';
+import { moduleRestoreTick } from '../undo/module-apply.js';
 import { flushOrphanedSnaps, onEngineNoop, undoWatchContext } from '../undo/apply.js';
 import { undoToast, undoToastActive, undoToastTick } from '../undo/toast.js';
 import { takeNoopSnapId } from '../seq/engine.js';
@@ -297,6 +298,7 @@ export function tick(): void {
      * set/engine change, drop snapshots the stacks have released, retract a
      * group the engine reported as a no-op. */
     undoTick();
+    moduleRestoreTick();
     undoWatchContext();
     flushOrphanedSnaps();
     const noop = takeNoopSnapId();

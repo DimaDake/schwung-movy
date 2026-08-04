@@ -22,6 +22,7 @@ import {
     retractEntry, takeOrphanedSnaps,
 } from './state.js';
 import { abandonGroup, endEdit } from './group.js';
+import { beginModuleRestore, moduleRestorePending } from './module-apply.js';
 import type { UndoEntry, UndoResult } from './types.js';
 import { writeUiField, type UiField } from './ui-fields.js';
 
@@ -60,7 +61,7 @@ function applyEntry(e: UndoEntry, undoing: boolean): void {
         setChain(op.slot, op.componentKey + ':module', targetId);
         /* Params are replayed by module-apply.ts once the module reports up;
          * writing them now would land on a module that is being torn down. */
-        beginPendingParams(e, undoing);
+        beginModuleRestore(op, undoing);
     }
     for (let i = e.uiOps.length - 1; i >= 0; i--) {
         const u = e.uiOps[i];
@@ -83,19 +84,6 @@ function applyEntry(e: UndoEntry, undoing: boolean): void {
     }
 }
 
-/* Module param replay is asynchronous (the module has to come up first). The
- * queue is drained by module-apply.ts; kept as a hook so apply.ts has no
- * knowledge of the polling. */
-let pendingParams: { entry: UndoEntry; undoing: boolean } | null = null;
-function beginPendingParams(entry: UndoEntry, undoing: boolean): void {
-    pendingParams = { entry, undoing };
-}
-export function takePendingModuleRestore(): { entry: UndoEntry; undoing: boolean } | null {
-    const p = pendingParams;
-    pendingParams = null;
-    return p;
-}
-
 function result(e: UndoEntry, ok: boolean, reason?: string): UndoResult {
     const r: UndoResult = { ok, verb: e.verb, target: e.target, detail: e.detail };
     if (reason) r.reason = reason;
@@ -108,6 +96,9 @@ const NOTHING = (reason: string): UndoResult =>
 export function undoOnce(): UndoResult {
     /* A gesture still in progress is part of what the user wants undone. */
     endEdit();
+    /* A module swap is still settling: a second undo now would write params
+     * into a module that is about to be replaced again. */
+    if (moduleRestorePending()) return NOTHING('busy');
     if (!canUndo()) return NOTHING('empty');
     const e = popUndo()!;
     if (moduleDrifted(e, true)) {
@@ -122,6 +113,7 @@ export function undoOnce(): UndoResult {
 
 export function redoOnce(): UndoResult {
     endEdit();
+    if (moduleRestorePending()) return NOTHING('busy');
     if (!canRedo()) return NOTHING('empty');
     const e = popRedo()!;
     if (moduleDrifted(e, false)) {
@@ -167,7 +159,6 @@ export function onEngineNoop(snapId: number): void {
 /** Test hook. */
 export function resetUndoApply(): void {
     nextRestoreId = 1_000_000;
-    pendingParams = null;
     lastUuid = null;
     lastGen = -1;
 }

@@ -8308,6 +8308,85 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     eq('no stale allowlist entries: ' + stale.join(','), stale.length, 0);
 }
 
+
+{
+    _log('\nundo — module swaps:');
+    const { dumpModuleParams } = await import('../dist/esm/undo/module-dump.js');
+    const {
+        beginModuleRestore, moduleRestoreTick, moduleRestorePending, resetModuleRestore,
+    } = await import('../dist/esm/undo/module-apply.js');
+
+    /* A fake chain slot: chain_params lists what the module exposes, and each
+     * key reads back its value. */
+    const chain = { 'synth:module': 'plaits', 'synth:cutoff': '0.42', 'synth:res': '0.10' };
+    const cp = JSON.stringify([
+        { key: 'cutoff', type: 'float' }, { key: 'res', type: 'float' },
+        { key: 'chain_params' }, { key: 'ui_hierarchy' }, { key: 'name' },
+        { key: 'meter', readonly: true },
+    ]);
+    const writes = [];
+    globalThis.shadow_get_param = (slot, key) =>
+        key === 'synth:chain_params' ? cp : (chain[key] ?? null);
+    globalThis.shadow_set_param = (slot, key, val) => {
+        writes.push(key + '=' + val); chain[key] = val; return true;
+    };
+
+    const dump = dumpModuleParams(0, 'synth');
+    eq('a dump covers the module\'s settable params', dump.length, 2);
+    eq('and carries their values', dump.find(([k]) => k === 'cutoff')?.[1], '0.42');
+    eq('metadata channels are excluded',
+        dump.some(([k]) => k === 'chain_params' || k === 'ui_hierarchy' || k === 'name'), false);
+    eq('read-only params are excluded', dump.some(([k]) => k === 'meter'), false);
+
+    /* The restore waits for the module to come up before replaying. */
+    resetModuleRestore();
+    const op = {
+        slot: 0, componentKey: 'synth',
+        oldModuleId: 'plaits', newModuleId: 'wurl',
+        oldParams: [['cutoff', '0.42'], ['res', '0.10']],
+    };
+    chain['synth:module'] = 'wurl';        // the swap happened
+    beginModuleRestore(op, true);          // undo: waiting for 'plaits'
+    writes.length = 0;
+    moduleRestoreTick();
+    eq('nothing is written while the module is still wrong', writes.length, 0);
+    eq('and the restore stays pending', moduleRestorePending(), true);
+
+    chain['synth:module'] = 'plaits';      // the old module is back
+    moduleRestoreTick();
+    eq('the dump replays once the module is up', writes.length, 2);
+    eq('with the recorded values', writes.join(','), 'synth:cutoff=0.42,synth:res=0.10');
+    eq('and the restore completes', moduleRestorePending(), false);
+
+    /* A module that never returns must not hold the stack hostage. */
+    resetUndoState(); resetModuleRestore();
+    pushEntry({ verb: 'A', target: '', detail: '', paramOps: [], uiOps: [], setUuid: '', engineGen: 0 });
+    chain['synth:module'] = 'something-else';
+    beginModuleRestore(op, true);
+    for (let i = 0; i < 250; i++) moduleRestoreTick();
+    eq('a timed-out restore gives up', moduleRestorePending(), false);
+    eq('and drops the stack rather than half-applying', canUndo(), false);
+
+    /* Drift: the live module is not what the entry recorded, so something
+     * changed behind our back (movy can be parked while Move swaps a module). */
+    resetUndoState(); resetUndoGroups(); resetUndoApply(); resetModuleRestore();
+    pushEntry({
+        verb: 'LOAD MODULE', target: 'T1', detail: 'WURL',
+        paramOps: [], uiOps: [],
+        moduleOp: { ...op, oldParams: [] },
+        setUuid: '', engineGen: 0,
+    });
+    chain['synth:module'] = 'a-third-module';
+    const drift = undoOnce();
+    eq('a drifted module refuses to undo', drift.ok, false);
+    eq('and says why', drift.reason, 'drift');
+    eq('and clears the stack', canUndo(), false);
+
+    delete globalThis.shadow_get_param;
+    delete globalThis.shadow_set_param;
+    resetUndoState(); resetUndoGroups(); resetUndoApply(); resetModuleRestore();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

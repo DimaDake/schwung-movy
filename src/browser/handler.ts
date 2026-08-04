@@ -3,6 +3,8 @@ import { appState, VIEW_BROWSE } from '../app/state.js';
 import { moduleReadKey, type ChainSlot } from '../chain/config.js';
 import { requestLaneWarm } from '../seq/automation.js';
 import { releaseAllLive } from '../keyboard/release.js';
+import { dumpModuleParams } from '../undo/module-dump.js';
+import { addModuleOp, beginEdit, endEdit, CLOSE } from '../undo/group.js';
 
 const MODULES_BASE = '/data/UserData/schwung/modules';
 
@@ -65,7 +67,30 @@ export function loadSelectedModule(): void {
     // The outgoing module is about to be torn down; its notes must be released
     // while it is still there to receive the off.
     releaseAllLive();
+    /* Dump BEFORE the write: schwung tears the outgoing module down, and after
+     * that its params are unrecoverable. A reselect of the same module records
+     * nothing — it changes no state worth an undo press. */
+    const prevId = shadow_get_param(browserState.paramSlot,
+        moduleReadKey(browserState.componentKey)) || '';
+    if (prevId !== value) {
+        const dump = dumpModuleParams(browserState.paramSlot, browserState.componentKey);
+        beginEdit({
+            key: 'module:' + browserState.paramSlot + ':' + browserState.componentKey,
+            verb: value ? 'LOAD MODULE' : 'CLEAR SLOT',
+            target: 'T' + (browserState.paramSlot + 1),
+            detail: (mod.name || value || 'NONE').toUpperCase(),
+            close: CLOSE.IMMEDIATE, seq: true,
+        });
+        addModuleOp({
+            slot: browserState.paramSlot,
+            componentKey: browserState.componentKey,
+            oldModuleId: prevId,
+            newModuleId: value,
+            oldParams: dump,
+        });
+    }
     shadow_set_param(browserState.paramSlot, browserState.componentKey + ':module', value);
+    if (prevId !== value) endEdit();
     // The reload empties the host's static param cache; a same-id reselect won't
     // trip the module-name watcher, so schedule the warm here too (see
     // warmLaneParams) — without it, abs-CC automation is inaudible until restart.

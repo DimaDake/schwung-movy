@@ -30,6 +30,9 @@ export function buildPresetParam(
         options: allNames,
         nameKey: allNames ? undefined : (nameParam ?? undefined),
         renderStyle: 'preset',
+        /* A preset rewrites the module's other params, so undoing it needs the
+         * whole module back — see KnobSlot.capturesModuleState. */
+        capturesModuleState: true,
         automatable: false,
     };
 }

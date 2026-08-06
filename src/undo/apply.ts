@@ -95,9 +95,19 @@ function applyEntry(e: UndoEntry, undoing: boolean): void {
      * old index back: the index alone would make the DSP re-apply that preset's
      * DEFAULTS and discard whatever the user had tweaked since. Redo takes the
      * param path, because redo really is "pick that preset again". */
-    if (undoing && e.stateOp) {
-        setChain(e.stateOp.slot, e.stateOp.componentKey + ':state', e.stateOp.oldState);
-        refreshModels(e.stateOp.slot);
+    if (e.stateOp && (undoing || e.paramOps.length === 0)) {
+        const op = e.stateOp;
+        /* Capture the result before undoing it — a randomiser cannot be redone
+         * by firing it again (that rolls a different patch), so the only way
+         * back is the state it produced. */
+        if (undoing && op.newState === undefined && e.paramOps.length === 0) {
+            op.newState = captureModuleState(op.slot, op.componentKey) ?? '';
+        }
+        const blob = undoing ? op.oldState : op.newState;
+        if (blob) {
+            setChain(op.slot, op.componentKey + ':state', blob);
+            refreshModels(op.slot);
+        }
     } else {
         /* Reverse order: a gesture that wrote A then B must undo B then A, or a
          * later write that depended on an earlier one lands on the wrong base. */

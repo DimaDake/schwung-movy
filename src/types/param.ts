@@ -14,6 +14,32 @@ export interface KnobSlot {
     /* One-shot actions stay visually idle: clockwise fires once per gesture,
      * counter-clockwise sends idle and re-arms the gesture. */
     behavior?:      'trigger';
+    /**
+     * This param REWRITES other params when it changes, so its inverse is
+     * lossy: writing the old value back makes the DSP re-apply that selection's
+     * defaults, discarding anything the user tweaked afterwards. Undo therefore
+     * snapshots the whole module (schwung's `<component>:state`) before the
+     * change and restores that instead.
+     *
+     * `render: "preset"` implies this and needs no flag. Set it explicitly for
+     * the params that behave like a preset without looking like one — a bank or
+     * ROM selector (osirus `rom_index`/`bank_index`), or a plugin selector whose
+     * choice redefines what the other knobs mean (clap/airwindows
+     * `plugin_index`).
+     *
+     * Trade-offs, which are why this is opt-in rather than the default:
+     *   - One extra BLOCKING chain read per gesture (~3-5 ms on device against
+     *     a 2-reads-per-tick budget — see browser-test/perf.mjs). Fine next to a
+     *     preset load; not fine on an ordinary knob.
+     *   - The undo entry grows from ~50 bytes to the size of the state blob,
+     *     hundreds of bytes to several KB, and the stack holds 64 of them.
+     *   - Undo then restores the WHOLE module, so it also reverts params the
+     *     user never touched — including ones automation or an LFO is driving.
+     *     Only mark a param where that is the lesser evil, i.e. where the param
+     *     really does rewrite the others.
+     */
+    capturesModuleState?: boolean;
+
     /* Wide integer spaces (sample indexes, random seeds, etc.) retain
      * single-step precision on a slow turn and accelerate on a fast sweep. */
     knobAcceleration?: 'wide';
@@ -104,6 +130,9 @@ export interface KnobParam {
     filter?:        'cutoff' | 'resonance' | 'mode' | 'slope';
     automatable:    boolean;
     behavior?:      'trigger';
+    /** See KnobSlot.capturesModuleState — resolved from the config, or implied
+     *  by `renderStyle === 'preset'`. */
+    capturesModuleState?: boolean;
     knobAcceleration?: 'wide';
     /* Set when type/range were guessed (no chain_params or hierarchy metadata).
      * The first successful value read infers the real type/range, then clears

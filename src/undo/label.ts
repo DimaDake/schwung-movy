@@ -61,13 +61,27 @@ export function noteCount(n: number): string {
 
 /* Trailing zeros are an artefact of the wire format (floats are written with
  * four decimals), not something the user chose. */
-function tidy(v: string): string {
+function tidyNumber(v: string): string {
     if (!/^-?\d+\.\d+$/.test(v)) return v;
     return v.replace(/0+$/, '').replace(/\.$/, '');
 }
 
+/** The last segment of a path. A sample or preset path is far too long for a
+ *  128 px line, and the overlay trims from the END — so left whole, the one
+ *  part that identifies the file is the part that gets cut. */
+function basename(v: string): string {
+    const parts = v.split('/').filter((p) => p !== '');
+    return parts.length > 0 ? parts[parts.length - 1] : v;
+}
+
+function tidy(v: string): string {
+    if (v.indexOf('/') >= 0) return basename(v);
+    return tidyNumber(v);
+}
+
 /** A module identifier as something readable: a track slot stores an id
- *  ("wurl"), a master FX slot a DSP path. */
+ *  ("wurl"), a master FX slot a DSP path whose own basename is "dsp.so" — so
+ *  the module is the directory above it. */
 function moduleName(v: string): string {
     if (v === '') return 'NONE';
     if (v.indexOf('/') < 0) return v;

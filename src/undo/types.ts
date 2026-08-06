@@ -73,6 +73,11 @@ export interface StateOp {
     slot: number;
     componentKey: string;
     oldState: string;
+    /* The state AFTER the change, captured lazily on the first undo. A preset
+     * change does not need it — redo is "pick that preset again" and the param
+     * op says so — but a RANDOMISER has no such op: re-firing it would roll a
+     * different patch, so redo has to restore the exact one it produced. */
+    newState?: string;
 }
 
 export interface UndoEntry {

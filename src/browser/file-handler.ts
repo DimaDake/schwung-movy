@@ -97,9 +97,15 @@ export function activateFileBrowserItem(): void {
         }
         const key = state.componentKey + ':' + state.paramKey;
         const old = (typeof shadow_get_param === 'function' ? shadow_get_param(state.paramSlot, key) : null);
-        undoableEdit('LOAD FILE', 'T' + (state.paramSlot + 1),
-            () => setChainParam(state.paramSlot, key, item.path, old));
         const chainIdx = appState.trackChainIndex[state.paramSlot];
+        /* Name the param that was loaded into, not just "LOAD FILE": a drum
+         * module has one of these per pad, so the slot is the only thing that
+         * says WHICH sample the undo would put back. */
+        const label = appState.trackModels[state.paramSlot]?.[chainIdx]
+            ?.dumpLayout().params.find((q) => q?.key === state.paramKey)?.label;
+        undoableEdit('LOAD ' + (label ? label.toUpperCase() : 'FILE'),
+            'T' + (state.paramSlot + 1) + ' ' + state.componentKey.toUpperCase(),
+            () => setChainParam(state.paramSlot, key, item.path, old));
         appState.trackModels[state.paramSlot]?.[chainIdx]?.setFileValue(state.gi, item.path);
         appState.fileBrowserState = null;
         appState.currentView      = appState.browseOrigin;

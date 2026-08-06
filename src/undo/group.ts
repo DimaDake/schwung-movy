@@ -165,7 +165,7 @@ export function endEdit(key?: string): void {
     const paramOps = g.paramOps.filter((p) => p.old !== p.new);
     const uiOps = g.uiOps.filter((u) => u.old !== u.new);
     const hasSeq = g.snapId >= 0;
-    if (paramOps.length === 0 && uiOps.length === 0 && !g.moduleOp && !hasSeq) return;
+    if (paramOps.length === 0 && uiOps.length === 0 && !g.moduleOp && !g.stateOp && !hasSeq) return;
 
     if (hasSeq) seqCmd('ucommit ' + g.snapId);
 

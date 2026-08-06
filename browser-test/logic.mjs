@@ -9129,6 +9129,53 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     uninstallMockEngine();
 }
 
+
+{
+    _log('\nundo — params that rewrite the module carry a flag:');
+    const { readFileSync: rf } = await import('node:fs');
+    const { createDumpBoot } = await import('./dump-boot.mjs');
+    const fleet = JSON.parse(rf('docs/module-dump/device-dump.json', 'utf8'));
+    const { bootFromDumpEntry } = await createDumpBoot(fleet);
+    const wd = bootFromDumpEntry(fleet.modules.find((m) => m.id === 'weird-dreams'));
+    const byKey = {};
+    for (const p of wd.dumpLayout().params) if (p) byKey[p.key] = p;
+
+    /* A kit or voice preset rewrites everything under it, so its inverse is
+     * lossy — the flag is what routes undo to the whole-module snapshot. */
+    eq('the kit is a preset', byKey.kit?.renderStyle, 'preset');
+    eq('and captures module state', byKey.kit?.capturesModuleState, true);
+    eq('the voice preset is a preset', byKey.cv_preset?.renderStyle, 'preset');
+    eq('and captures module state', byKey.cv_preset?.capturesModuleState, true);
+
+    /* Randomisers rewrite the module wholesale — the same reason, and they are
+     * one-shot actions rather than values. */
+    for (const k of ['rnd_kit', 'rnd_voice', 'rnd_pitch']) {
+        eq(k + ' is a trigger', byKey[k]?.behavior, 'trigger');
+        eq(k + ' captures module state', byKey[k]?.capturesModuleState, true);
+        eq(k + ' is not automatable', byKey[k]?.automatable, false);
+    }
+
+    /* An ordinary param must NOT pay the cost — see KnobSlot.capturesModuleState
+     * for what it costs and why it is opt-in. */
+    eq('a plain knob does not capture state', byKey.cv_cutoff?.capturesModuleState, false);
+    eq('nor does a plain FX knob', byKey.rev_mix?.capturesModuleState, false);
+}
+
+{
+    _log('\nundo — a loaded file is named by its last path segment:');
+    const { valueChange } = await import('../dist/esm/undo/label.js');
+    /* The overlay trims from the END, so a full path left whole loses exactly
+     * the part that identifies the file. */
+    eq('a sample path shows the file name',
+        valueChange('/data/UserData/Samples/Kicks/old kick.wav',
+                    '/data/UserData/Samples/Snares/snare 909.wav'),
+        'old kick.wav -> snare 909.wav');
+    eq('an empty side stays empty', valueChange('', '/a/b/c.wav'), ' -> c.wav');
+    eq('a plain value is untouched', valueChange('SAW', 'SQUARE'), 'SAW -> SQUARE');
+    eq('and a number still loses its wire-format zeros',
+        valueChange('0.5000', '1.0000'), '0.5 -> 1');
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

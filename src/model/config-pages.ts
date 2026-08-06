@@ -103,6 +103,9 @@ export function buildConfigPages(
                         slot.knobAcceleration ?? cp.knob_acceleration ?? cp.knobAcceleration ??
                         hier.knob_acceleration ?? hier.knobAcceleration,
                     ),
+                    /* A preset always rewrites the module's other params, so it
+                     * implies the flag; anything else has to say so. */
+                    capturesModuleState: slot.capturesModuleState ?? (renderStyle === 'preset'),
                 };
                 /* File slots carry browse metadata. The module config (mrdrums.json)
                  * is authoritative; chain_params (root/filter/start_path) is the

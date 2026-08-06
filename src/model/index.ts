@@ -147,9 +147,9 @@ export function createModel(slot: number, componentKey = 'synth') {
                     const key = s.componentKey + ':' + p.key;
                     const old = shadow_get_param(s.activeSlot, key);
                     undoableEdit((p.label || p.key).toUpperCase(), 'T' + (s.activeSlot + 1), () => {
-                        /* Committing a preset from the overlay is the same lossy
-                         * inverse as turning the knob — snapshot the module. */
-                        if (p.renderStyle === 'preset') {
+                        /* Committing from the overlay is the same lossy inverse
+                         * as turning the knob — snapshot the module. */
+                        if (p.capturesModuleState) {
                             recordPresetState(s.activeSlot, s.componentKey);
                         }
                         setChainParam(s.activeSlot, key,

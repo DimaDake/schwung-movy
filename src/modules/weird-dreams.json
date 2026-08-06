@@ -6,7 +6,11 @@
     "padNoteStart": 36,
     "rawMidi": false,
     "shiftSelectMidi": true,
-    "padScoping": { "aliasPrefix": "cv_", "concreteKeyTemplate": "v{pad}_{suffix}", "padDigits": 1 }
+    "padScoping": {
+      "aliasPrefix": "cv_",
+      "concreteKeyTemplate": "v{pad}_{suffix}",
+      "padDigits": 1
+    }
   },
   "banks": [
     {
@@ -14,16 +18,74 @@
       "padSpecific": true,
       "rows": [
         [
-          { "key": "cv_vol",    "short": "VOL",   "full": "Volume",  "type": "float", "min": 0, "max": 1 },
-          { "key": "cv_pan",    "short": "PAN",   "full": "Pan",     "type": "float", "min": -1, "max": 1 },
-          { "key": "cv_freq",   "short": "FREQ",  "full": "Freq",    "type": "float", "min": 20, "max": 20000 },
-          { "key": "cv_decay",  "short": "DECAY", "full": "Decay",   "type": "float", "min": 0, "max": 4 }
+          {
+            "key": "cv_vol",
+            "short": "VOL",
+            "full": "Volume",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "cv_pan",
+            "short": "PAN",
+            "full": "Pan",
+            "type": "float",
+            "min": -1,
+            "max": 1
+          },
+          {
+            "key": "cv_freq",
+            "short": "FREQ",
+            "full": "Freq",
+            "type": "float",
+            "min": 20,
+            "max": 20000
+          },
+          {
+            "key": "cv_decay",
+            "short": "DECAY",
+            "full": "Decay",
+            "type": "float",
+            "min": 0,
+            "max": 4
+          }
         ],
         [
-          { "key": "cv_wave",   "short": "WAVE",  "full": "Wave",    "type": "float", "min": 0, "max": 1 },
-          { "key": "cv_mix",    "short": "MIX",   "full": "Mix",     "type": "float", "min": 0, "max": 1 },
-          { "key": "cv_cutoff", "short": "CUTOF", "full": "Cutoff",  "type": "float", "min": 20, "max": 18000 },
-          { "key": "cv_preset", "short": "PRSET", "full": "Preset",  "type": "int",   "min": 0, "max": 40 }
+          {
+            "key": "cv_wave",
+            "short": "WAVE",
+            "full": "Wave",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "cv_mix",
+            "short": "MIX",
+            "full": "Mix",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "cv_cutoff",
+            "short": "CUTOF",
+            "full": "Cutoff",
+            "type": "float",
+            "min": 20,
+            "max": 18000
+          },
+          {
+            "key": "cv_preset",
+            "short": "PRSET",
+            "full": "Preset",
+            "type": "int",
+            "min": 0,
+            "max": 40,
+            "render": "preset",
+            "capturesModuleState": true
+          }
         ]
       ]
     },
@@ -31,10 +93,52 @@
       "name": "Patch",
       "rows": [
         [
-          { "key": "kit",       "short": "KIT",   "full": "Kit",       "type": "int",   "min": 0, "max": 63 },
-          { "key": "rnd_kit",   "short": "RNKIT", "full": "Rnd Kit",   "type": "float", "min": 0, "max": 1 },
-          { "key": "rnd_voice", "short": "RNDVC", "full": "Rnd Voice", "type": "float", "min": 0, "max": 1 },
-          { "key": "rnd_pitch", "short": "RNDPT", "full": "Rnd Pitch", "type": "float", "min": 0, "max": 1 }
+          {
+            "key": "kit",
+            "short": "KIT",
+            "full": "Kit",
+            "type": "int",
+            "min": 0,
+            "max": 63,
+            "render": "preset",
+            "capturesModuleState": true
+          },
+          {
+            "key": "rnd_kit",
+            "short": "RNKIT",
+            "full": "Rnd Kit",
+            "type": "enum",
+            "behavior": "trigger",
+            "capturesModuleState": true,
+            "options": [
+              "Idle",
+              "Trigger"
+            ]
+          },
+          {
+            "key": "rnd_voice",
+            "short": "RNDVC",
+            "full": "Rnd Voice",
+            "type": "enum",
+            "behavior": "trigger",
+            "capturesModuleState": true,
+            "options": [
+              "Idle",
+              "Trigger"
+            ]
+          },
+          {
+            "key": "rnd_pitch",
+            "short": "RNDPT",
+            "full": "Rnd Pitch",
+            "type": "enum",
+            "behavior": "trigger",
+            "capturesModuleState": true,
+            "options": [
+              "Idle",
+              "Trigger"
+            ]
+          }
         ]
       ]
     },
@@ -42,16 +146,72 @@
       "name": "FX",
       "rows": [
         [
-          { "key": "rev_mix",   "short": "RVMIX", "full": "Rev Mix",   "type": "float", "min": 0, "max": 1 },
-          { "key": "rev_type",  "short": "RVTYP", "full": "Rev Type",  "type": "int",   "min": 0, "max": 2 },
-          { "key": "rev_size",  "short": "RVSIZ", "full": "Rev Size",  "type": "float", "min": 0, "max": 1 },
-          { "key": "rev_decay", "short": "RVDCY", "full": "Rev Decay", "type": "float", "min": 0, "max": 1 }
+          {
+            "key": "rev_mix",
+            "short": "RVMIX",
+            "full": "Rev Mix",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "rev_type",
+            "short": "RVTYP",
+            "full": "Rev Type",
+            "type": "int",
+            "min": 0,
+            "max": 2
+          },
+          {
+            "key": "rev_size",
+            "short": "RVSIZ",
+            "full": "Rev Size",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "rev_decay",
+            "short": "RVDCY",
+            "full": "Rev Decay",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
         ],
         [
-          { "key": "dly_mix",   "short": "DLMIX", "full": "Dly Mix",   "type": "float", "min": 0, "max": 1 },
-          { "key": "dly_rate",  "short": "DLRAT", "full": "Dly Rate",  "type": "float", "min": 0, "max": 1 },
-          { "key": "dly_fdbk",  "short": "DLFBK", "full": "Dly Fdbk", "type": "float", "min": 0, "max": 0.95 },
-          { "key": "dly_tone",  "short": "DLTON", "full": "Dly Tone",  "type": "float", "min": 0, "max": 1 }
+          {
+            "key": "dly_mix",
+            "short": "DLMIX",
+            "full": "Dly Mix",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "dly_rate",
+            "short": "DLRAT",
+            "full": "Dly Rate",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          },
+          {
+            "key": "dly_fdbk",
+            "short": "DLFBK",
+            "full": "Dly Fdbk",
+            "type": "float",
+            "min": 0,
+            "max": 0.95
+          },
+          {
+            "key": "dly_tone",
+            "short": "DLTON",
+            "full": "Dly Tone",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
         ]
       ]
     },
@@ -59,16 +219,72 @@
       "name": "EQ",
       "rows": [
         [
-          { "key": "eq_lo",     "short": "EQLO",  "full": "EQ Low",   "type": "float", "min": -12, "max": 12 },
-          { "key": "eq_mid",    "short": "EQMID", "full": "EQ Mid",   "type": "float", "min": -12, "max": 12 },
-          { "key": "eq_hi",     "short": "EQHI",  "full": "EQ High",  "type": "float", "min": -12, "max": 12 },
-          { "key": "dj_filter", "short": "DJFLT", "full": "DJ Filter","type": "float", "min": 0,   "max": 1 }
+          {
+            "key": "eq_lo",
+            "short": "EQLO",
+            "full": "EQ Low",
+            "type": "float",
+            "min": -12,
+            "max": 12
+          },
+          {
+            "key": "eq_mid",
+            "short": "EQMID",
+            "full": "EQ Mid",
+            "type": "float",
+            "min": -12,
+            "max": 12
+          },
+          {
+            "key": "eq_hi",
+            "short": "EQHI",
+            "full": "EQ High",
+            "type": "float",
+            "min": -12,
+            "max": 12
+          },
+          {
+            "key": "dj_filter",
+            "short": "DJFLT",
+            "full": "DJ Filter",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
         ],
         [
-          { "key": "lo_freq",   "short": "LOFRQ", "full": "Low Freq", "type": "int",   "min": 20,   "max": 500 },
-          { "key": "mid_freq",  "short": "MDFRQ", "full": "Mid Freq", "type": "int",   "min": 200,  "max": 8000 },
-          { "key": "hi_freq",   "short": "HIFRQ", "full": "High Freq","type": "int",   "min": 2000, "max": 18000 },
-          { "key": "comp",      "short": "COMP",  "full": "Comp",     "type": "float", "min": 0,    "max": 1 }
+          {
+            "key": "lo_freq",
+            "short": "LOFRQ",
+            "full": "Low Freq",
+            "type": "int",
+            "min": 20,
+            "max": 500
+          },
+          {
+            "key": "mid_freq",
+            "short": "MDFRQ",
+            "full": "Mid Freq",
+            "type": "int",
+            "min": 200,
+            "max": 8000
+          },
+          {
+            "key": "hi_freq",
+            "short": "HIFRQ",
+            "full": "High Freq",
+            "type": "int",
+            "min": 2000,
+            "max": 18000
+          },
+          {
+            "key": "comp",
+            "short": "COMP",
+            "full": "Comp",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
         ]
       ]
     },
@@ -76,14 +292,53 @@
       "name": "Master",
       "rows": [
         [
-          { "key": "q_lo",     "short": "QLO",   "full": "Q Low",   "type": "float", "min": 0.3, "max": 8 },
-          { "key": "q_mid",    "short": "QMID",  "full": "Q Mid",   "type": "float", "min": 0.3, "max": 8 },
-          { "key": "q_hi",     "short": "QHI",   "full": "Q High",  "type": "float", "min": 0.3, "max": 8 },
-          { "key": "master",   "short": "MASTR", "full": "Master",  "type": "float", "min": 0,   "max": 1 }
+          {
+            "key": "q_lo",
+            "short": "QLO",
+            "full": "Q Low",
+            "type": "float",
+            "min": 0.3,
+            "max": 8
+          },
+          {
+            "key": "q_mid",
+            "short": "QMID",
+            "full": "Q Mid",
+            "type": "float",
+            "min": 0.3,
+            "max": 8
+          },
+          {
+            "key": "q_hi",
+            "short": "QHI",
+            "full": "Q High",
+            "type": "float",
+            "min": 0.3,
+            "max": 8
+          },
+          {
+            "key": "master",
+            "short": "MASTR",
+            "full": "Master",
+            "type": "float",
+            "min": 0,
+            "max": 1
+          }
         ],
         [
-          { "key": "all_mono", "short": "MONO",  "full": "Mono",    "type": "enum", "options": ["Stereo", "Mono"] },
-          null, null, null
+          {
+            "key": "all_mono",
+            "short": "MONO",
+            "full": "Mono",
+            "type": "enum",
+            "options": [
+              "Stereo",
+              "Mono"
+            ]
+          },
+          null,
+          null,
+          null
         ]
       ]
     }

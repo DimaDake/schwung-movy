@@ -1,4 +1,6 @@
 import { setChainParamUntracked } from '../chain/set-param.js';
+import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
+import { recordPresetState } from '../undo/record.js';
 /* One-shot "trigger" knobs — params a module declares as actions rather than
  * values (behavior: "trigger", or the conventional ["idle","trigger"] enum).
  *
@@ -144,9 +146,25 @@ export function applyTriggerDelta(
         const value = enumSetValue(p.options, sendIndex, enumFmt());
         mlog('trigger slot=' + s.activeSlot + ' key=' + s.componentKey + ':' + ioKey + ' val=' + value);
         /* A trigger fires an action rather than holding a value, so there is no
-         * previous value to return to — recorded as untracked instead of
-         * inventing an inverse that would not undo anything. */
+         * previous value to return to — the write itself is untracked rather
+         * than given an inverse that would undo nothing.
+         *
+         * A trigger that REWRITES the module (a randomiser) is different: the
+         * action is undoable, just not through its own key. Snapshot the module
+         * around the fire. Only the action fires this, never the idle value the
+         * counter-clockwise re-arm sends. */
+        const rewrites = p.capturesModuleState && sendIndex === idx.trigger;
+        if (rewrites) {
+            beginEdit({
+                key: 'trigger:' + s.activeSlot + ':' + ioKey,
+                verb: (p.label || p.key).toUpperCase(),
+                target: 'T' + (s.activeSlot + 1),
+                close: CLOSE.IMMEDIATE,
+            });
+            recordPresetState(s.activeSlot, s.componentKey);
+        }
         setChainParamUntracked(s.activeSlot, s.componentKey + ':' + ioKey, value);
+        if (rewrites) endEdit();
     }
     s.dirty = true;
     return true;

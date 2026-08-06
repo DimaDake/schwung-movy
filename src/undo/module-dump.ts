@@ -104,6 +104,36 @@ function restorable(cp: ChainParam): boolean {
     return true;
 }
 
+/**
+ * Params a slot LFO is currently driving.
+ *
+ * These must not be captured OR restored, for three separate reasons:
+ *
+ *   1. Reading one yields a MODULATION SAMPLE — wherever the LFO happened to be
+ *      in its cycle — not a setting the user chose. Restoring it would write an
+ *      arbitrary phase point back as if it were their value.
+ *   2. It can never hold. The LFO overwrites the param on the next DSP tick, so
+ *      the verify pass would rewrite it every round and still give up reporting
+ *      "would not hold their value".
+ *   3. The user's actual value, the base the LFO swings around, does not live in
+ *      the DSP at all — movy owns it (see refreshAt in model/store.ts, which
+ *      skips these keys for exactly this reason). Nothing here could read it.
+ *
+ * Read directly rather than taken from the model so undo/ stays independent of
+ * model/; it mirrors refreshModulatedKeys and costs at most four reads on an
+ * operation that already does hundreds.
+ */
+function modulatedKeys(slot: number, componentKey: string): Set<string> {
+    const out = new Set<string>();
+    if (componentKey.startsWith('master_fx')) return out;   // slot LFOs are track-only
+    for (let i = 1; i <= 2; i++) {
+        if (shadow_get_param(slot, 'lfo' + i + ':target') !== componentKey) continue;
+        const tp = shadow_get_param(slot, 'lfo' + i + ':target_param');
+        if (tp) out.add(tp);
+    }
+    return out;
+}
+
 /** The module's declared preset-list param, or '' when it declares none. */
 function listParamOf(slot: number, componentKey: string): string {
     const raw = shadow_get_param(slot, componentKey + ':ui_hierarchy');
@@ -114,6 +144,30 @@ function listParamOf(slot: number, componentKey: string): string {
     } catch {
         return '';
     }
+}
+
+/* The slot-LFO fields that POINT AT the module: schwung stores these outside
+ * `<component>:state` (its own slot save writes `patch.lfos` separately), so
+ * neither the state blob nor a param dump carries them. Swapping the module
+ * therefore strands the assignment, and undoing the swap brought the module
+ * back with nothing driving it. The LFO's own shape/rate/depth are untouched by
+ * a swap and are deliberately not captured. */
+const LFO_ASSIGN_KEYS = ['target', 'target_param', 'enabled'];
+
+/** Capture which slot LFOs point at this component, for restore after a swap. */
+export function captureLfoAssignments(slot: number, componentKey: string): [string, string][] {
+    const out: [string, string][] = [];
+    if (typeof shadow_get_param !== 'function') return out;
+    if (componentKey.startsWith('master_fx')) return out;   // slot LFOs are track-only
+    for (let i = 1; i <= 2; i++) {
+        const prefix = 'lfo' + i + ':';
+        if (shadow_get_param(slot, prefix + 'target') !== componentKey) continue;
+        for (const k of LFO_ASSIGN_KEYS) {
+            const v = shadow_get_param(slot, prefix + k);
+            if (v !== null) out.push([prefix + k, v]);
+        }
+    }
+    return out;
 }
 
 export interface ModuleDump {
@@ -137,10 +191,12 @@ export function dumpModuleParams(slot: number, componentKey: string): ModuleDump
     }
 
     const listParam = listParamOf(slot, componentKey);
+    const modulated = modulatedKeys(slot, componentKey);
     const tiers: [string, string][][] = [[], [], []];
     const taken = new Set<string>();
     for (const cp of arr) {
         if (!restorable(cp)) continue;
+        if (modulated.has(cp.key as string)) continue;
         const v = shadow_get_param(slot, componentKey + ':' + cp.key);
         if (v === null) continue;
         taken.add(cp.key as string);
@@ -158,6 +214,7 @@ export function dumpModuleParams(slot: number, componentKey: string): ModuleDump
     const params = [...tiers[0], ...tiers[1], ...tiers[2]];
     const leadCount = tiers[0].length + tiers[1].length;
     mlog('undo: dumped ' + params.length + ' params from ' + componentKey
-        + ' (' + leadCount + ' lead)');
+        + ' (' + leadCount + ' lead'
+        + (modulated.size > 0 ? ', ' + modulated.size + ' LFO-driven skipped' : '') + ')');
     return { params, leadCount };
 }

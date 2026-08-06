@@ -182,6 +182,15 @@ function toVerify(p: Pending, op: ModuleOp): void {
 }
 
 function finish(op: ModuleOp): void {
+    /* LAST, and only after the params: re-pointing an LFO hands it the param we
+     * have just restored, so the base has to be in place first. Blocking writes
+     * — the three fields are one commit and non-blocking writes to the single
+     * param slot clobber each other (see lfo/assign.ts). */
+    for (const [key, val] of op.oldLfo ?? []) {
+        if (typeof shadow_set_param_timeout === 'function') shadow_set_param_timeout(op.slot, key, val, 100);
+        else setChainParamUntracked(op.slot, key, val);
+    }
+    if ((op.oldLfo?.length ?? 0) > 0) mlog('undo: restored ' + op.oldLfo!.length + ' LFO assignment fields');
     /* The reload emptied the host's static param cache; without the warm,
      * abs-CC automation is inaudible until a restart (see requestLaneWarm). */
     requestLaneWarm(op.slot);

@@ -30,6 +30,10 @@ export interface ModuleOp {
      * membership is the only comparison that holds for both. */
     oldIds: string[];
     newIds: string[];
+    /* Slot-LFO assignments pointing at this component. Not in `<component>:state`
+     * (schwung saves LFOs separately), so restoring the module without these
+     * brings it back with nothing modulating it. */
+    oldLfo?: [string, string][];
     /* Ordered selector → preset → the rest; `leadCount` is how many leading
      * entries are selector+preset. module-apply writes those, waits for the DSP
      * to finish re-applying the preset, then writes the rest — see

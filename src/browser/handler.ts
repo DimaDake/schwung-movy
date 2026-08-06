@@ -3,7 +3,7 @@ import { appState, VIEW_BROWSE } from '../app/state.js';
 import { moduleReadKey, type ChainSlot } from '../chain/config.js';
 import { requestLaneWarm } from '../seq/automation.js';
 import { releaseAllLive } from '../keyboard/release.js';
-import { captureModuleState, dumpModuleParams } from '../undo/module-dump.js';
+import { captureLfoAssignments, captureModuleState, dumpModuleParams } from '../undo/module-dump.js';
 import { mlog } from '../log.js';
 import { addModuleOp, beginEdit, endEdit, CLOSE } from '../undo/group.js';
 
@@ -105,6 +105,7 @@ export function loadSelectedModule(): void {
             newWrite: value,
             oldIds: ids(prevId, prev?.path ?? ''),
             newIds: ids(mod.id, mod.path),
+            oldLfo: captureLfoAssignments(browserState.paramSlot, browserState.componentKey),
             oldState: state ?? undefined,
             oldParams: dump.params,
             leadCount: dump.leadCount,

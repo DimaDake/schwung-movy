@@ -9240,6 +9240,73 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     resetUndoState(); resetUndoGroups();
 }
 
+
+{
+    _log('\nundo — an LFO-driven param is not captured, and the assignment is:');
+    const { dumpModuleParams, captureLfoAssignments } =
+        await import('../dist/esm/undo/module-dump.js');
+    const {
+        beginModuleRestore, moduleRestoreTick, resetModuleRestore,
+    } = await import('../dist/esm/undo/module-apply.js');
+
+    const store = {
+        'synth:chain_params': JSON.stringify([{ key: 'cutoff' }, { key: 'res' }]),
+        'synth:cutoff': '0.73',            // wherever the LFO happens to be
+        'synth:res': '0.20',
+        'lfo1:target': 'synth', 'lfo1:target_param': 'cutoff', 'lfo1:enabled': '1',
+        'lfo2:target': '', 'lfo2:target_param': '', 'lfo2:enabled': '0',
+        'synth_module': 'wurl',
+    };
+    const writes = [];
+    globalThis.shadow_get_param = (slot, key) => store[key] ?? null;
+    globalThis.shadow_set_param = (slot, key, v) => { writes.push(key + '=' + v); store[key] = v; return true; };
+    globalThis.shadow_set_param_timeout = (slot, key, v) => { writes.push(key + '=' + v); store[key] = v; return true; };
+
+    /* Reading a modulated param yields a phase sample, not a setting — and it
+     * could never hold anyway, since the LFO overwrites it every DSP tick. */
+    const d = dumpModuleParams(0, 'synth');
+    const keys = d.params.map(([k]) => k);
+    eq('the LFO-driven param is left out of the dump', keys.includes('cutoff'), false);
+    eq('while the rest is captured', keys.includes('res'), true);
+
+    /* An LFO on a DIFFERENT component must not suppress this one's params. */
+    store['lfo1:target'] = 'fx1';
+    eq('an LFO pointed elsewhere suppresses nothing',
+        dumpModuleParams(0, 'synth').params.map(([k]) => k).includes('cutoff'), true);
+    store['lfo1:target'] = 'synth';
+
+    /* The assignment itself lives outside <component>:state — schwung saves
+     * LFOs separately — so a swap strands it unless undo carries it. */
+    const lfo = captureLfoAssignments(0, 'synth');
+    eq('the pointing LFO is captured', lfo.length, 3);
+    eq('including its target param',
+        lfo.some(([k, v]) => k === 'lfo1:target_param' && v === 'cutoff'), true);
+    eq('an idle LFO is not captured', lfo.some(([k]) => k.startsWith('lfo2')), false);
+    eq('a master FX slot has no slot LFOs', captureLfoAssignments(0, 'master_fx:fx1').length, 0);
+
+    /* Restoring re-points the LFO — after the params, so the base is in place
+     * before the LFO starts swinging around it. */
+    resetModuleRestore();
+    store['lfo1:target'] = ''; store['lfo1:target_param'] = ''; store['lfo1:enabled'] = '0';
+    beginModuleRestore({
+        slot: 0, componentKey: 'synth', oldWrite: 'wurl', newWrite: 'rex',
+        oldIds: ['wurl'], newIds: ['rex'],
+        oldParams: d.params, leadCount: d.leadCount, oldLfo: lfo,
+    }, true);
+    writes.length = 0;
+    for (let i = 0; i < 200; i++) moduleRestoreTick();
+    eq('the LFO assignment is restored', store['lfo1:target_param'], 'cutoff');
+    eq('and re-enabled', store['lfo1:enabled'], '1');
+    const firstLfo = writes.findIndex((w) => w.startsWith('lfo1:'));
+    const lastParam = writes.map((w) => w.startsWith('synth:')).lastIndexOf(true);
+    eq('and it comes after the params it will drive', firstLfo > lastParam, true);
+
+    delete globalThis.shadow_get_param;
+    delete globalThis.shadow_set_param;
+    delete globalThis.shadow_set_param_timeout;
+    resetModuleRestore();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

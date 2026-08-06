@@ -864,6 +864,28 @@ it are not lost: undoing returns the module exactly as it was, rather than
 re-applying the old preset from scratch. Redoing picks the preset again, which
 is what you did the first time.
 
+**What Undo can't reach.** Worth knowing before you rely on it:
+
+- **Octave** (the +/- buttons) and **Solo** aren't undoable. Root and scale are;
+  octave and solo are treated as live performance controls.
+- **Parameters something else is driving** — one with an automation lane, or one
+  a track LFO is modulating — are left out of a module restore. Their on-screen
+  value belongs to Movy and the sounding value belongs to the engine, so there
+  is no single number to put back. Undo restores everything around them.
+- **A module's hidden state.** Undoing a module load restores what the module
+  itself reports; anything it doesn't publish — a sample's contents, a parameter
+  absent from its list — can't come back.
+- **Parameters the module derives** rather than stores will not hold a restored
+  value. Movy rewrites them a few times and then leaves them.
+- **Nothing outside Movy.** Edits made in Move's own UI while Movy is parked in
+  the background are invisible to it. If a module changed underneath, Movy drops
+  its history rather than apply it to the wrong thing, and says so.
+- **The oldest edits fall off.** History holds 64 entries (and a memory budget);
+  past that the oldest are discarded, and undoing that far back does nothing.
+- **A no-op costs nothing.** Quantising an already-quantised clip, or a knob
+  turned back to where it started, records no entry — so Undo will name the edit
+  before it. That's deliberate.
+
 **Limits.** History lives in memory and is cleared when you switch sets or
 close Movy. It holds the last 64 edits. Undoing a module load restores the old
 module and its parameters, but anything Movy never sees — a loaded sample's

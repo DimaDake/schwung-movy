@@ -30,6 +30,7 @@
  * reads here is affordable in a way it would never be on a knob turn. */
 
 import { mlog } from '../log.js';
+import { laneKeysForTrack } from '../seq/automation.js';
 
 /* Reads can come back empty on a transient shim round-trip; schwung's own
  * getSlotStateWithRetry retries the same way before trusting an empty answer. */
@@ -124,11 +125,15 @@ function restorable(cp: ChainParam): boolean {
  *      the DSP at all — movy owns it (see refreshAt in model/store.ts, which
  *      skips these keys for exactly this reason). Nothing here could read it.
  *
- * Read directly rather than taken from the model so undo/ stays independent of
- * model/; it mirrors refreshModulatedKeys and costs at most four reads on an
- * operation that already does hundreds.
+ * An automation lane drives a param the same way and for the same reasons, so
+ * its keys are excluded too — model/store.ts's refreshAt already treats the two
+ * as one class ("Automation lanes / LFO-modulated params are engine-driven").
+ *
+ * The LFO half is read directly rather than taken from the model so undo/ stays
+ * independent of model/; it mirrors refreshModulatedKeys and costs at most four
+ * reads on an operation that already does hundreds.
  */
-function modulatedKeys(slot: number, componentKey: string): Set<string> {
+function engineDrivenKeys(slot: number, componentKey: string): Set<string> {
     const out = new Set<string>();
     if (componentKey.startsWith('master_fx')) return out;   // slot LFOs are track-only
     for (let i = 1; i <= 2; i++) {
@@ -136,6 +141,8 @@ function modulatedKeys(slot: number, componentKey: string): Set<string> {
         const tp = shadow_get_param(slot, 'lfo' + i + ':target_param');
         if (tp) out.add(tp);
     }
+    /* Automation lanes: the registry keys on the same bare ioKey the dump does. */
+    for (const k of laneKeysForTrack(slot)) out.add(k);
     return out;
 }
 
@@ -196,7 +203,7 @@ export function dumpModuleParams(slot: number, componentKey: string): ModuleDump
     }
 
     const listParam = listParamOf(slot, componentKey);
-    const modulated = modulatedKeys(slot, componentKey);
+    const modulated = engineDrivenKeys(slot, componentKey);
     const tiers: [string, string][][] = [[], [], []];
     const taken = new Set<string>();
     for (const cp of arr) {
@@ -220,6 +227,6 @@ export function dumpModuleParams(slot: number, componentKey: string): ModuleDump
     const leadCount = tiers[0].length + tiers[1].length;
     mlog('undo: dumped ' + params.length + ' params from ' + componentKey
         + ' (' + leadCount + ' lead'
-        + (modulated.size > 0 ? ', ' + modulated.size + ' LFO-driven skipped' : '') + ')');
+        + (modulated.size > 0 ? ', ' + modulated.size + ' engine-driven skipped' : '') + ')');
     return { params, leadCount };
 }

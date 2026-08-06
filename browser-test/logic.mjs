@@ -8375,6 +8375,9 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 
 {
     _log('\nundo — module swaps:');
+    /* A lane left registered by an earlier block would be excluded from every
+     * dump below — the exclusion working, but not what these cases are testing. */
+    (await import('../dist/esm/seq/automation.js')).resetAutomation();
     const { dumpModuleParams } = await import('../dist/esm/undo/module-dump.js');
     const {
         beginModuleRestore, moduleRestoreTick, moduleRestorePending, resetModuleRestore,
@@ -8657,6 +8660,7 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 
 {
     _log('\nundo — a restored module gets its preset back, in the right order:');
+    (await import('../dist/esm/seq/automation.js')).resetAutomation();
     const { dumpModuleParams, paramTier } = await import('../dist/esm/undo/module-dump.js');
     const {
         beginModuleRestore, moduleRestoreTick, moduleRestorePending, resetModuleRestore,
@@ -9199,6 +9203,7 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 
 {
     _log('\nundo — a randomiser is undoable even with no state blob:');
+    (await import('../dist/esm/seq/automation.js')).resetAutomation();
     const { readFileSync: rf2 } = await import('node:fs');
     const { createDumpBoot: cdb } = await import('./dump-boot.mjs');
     const fleet2 = JSON.parse(rf2('docs/module-dump/device-dump.json', 'utf8'));
@@ -9247,6 +9252,7 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 
 {
     _log('\nundo — an LFO-driven param is not captured, and the assignment is:');
+    (await import('../dist/esm/seq/automation.js')).resetAutomation();
     const { dumpModuleParams, captureLfoAssignments } =
         await import('../dist/esm/undo/module-dump.js');
     const {
@@ -9272,6 +9278,22 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     const keys = d.params.map(([k]) => k);
     eq('the LFO-driven param is left out of the dump', keys.includes('cutoff'), false);
     eq('while the rest is captured', keys.includes('res'), true);
+
+    /* An automation lane drives a param exactly as an LFO does — the value read
+     * is a playback sample, and the base belongs to movy — so its keys are
+     * excluded on the same grounds. model/store.ts treats the two as one class. */
+    {
+        const { automationRegistry, resetAutomation: resetAuto } =
+            await import('../dist/esm/seq/automation.js');
+        resetAuto();
+        automationRegistry()[0][0] = { targetParam: 'synth:res', shortName: 'res',
+                                       min: 0, max: 1, type: 'float' };
+        const withLane = dumpModuleParams(0, 'synth').params.map(([k]) => k);
+        eq('an automated param is left out too', withLane.includes('res'), false);
+        resetAuto();
+        eq('and comes back once the lane is gone',
+            dumpModuleParams(0, 'synth').params.map(([k]) => k).includes('res'), true);
+    }
 
     /* An LFO on a DIFFERENT component must not suppress this one's params. */
     store['lfo1:target'] = 'fx1';

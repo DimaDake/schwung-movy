@@ -53,9 +53,14 @@ export function captureModuleState(slot: number, componentKey: string): string |
     if (typeof shadow_get_param !== 'function') return null;
     for (let i = 0; i < STATE_READ_TRIES; i++) {
         const raw = shadow_get_param(slot, componentKey + ':state');
-        /* schwung treats a blob that is not a JSON object as "unsupported"
-         * (remote_ui.go fetchAllParams), so this matches its own test. */
-        if (raw && raw.charAt(0) === '{') return raw;
+        /* ANY non-empty blob, not just JSON. schwung's own slot save takes the
+         * same line — it JSON.parses the state and, on failure, keeps it as an
+         * opaque string ("State is not JSON (e.g. key=value pairs)") — and its
+         * recall writes back whatever it stored. Demanding JSON here (as
+         * remote_ui.go does, for its own reason: it needs to FLATTEN the blob
+         * into individual params) would send a module with a key=value state
+         * down the lossy param-dump path for no reason. */
+        if (raw) return raw;
     }
     return null;
 }

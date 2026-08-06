@@ -112,6 +112,7 @@ function applyEntry(e: UndoEntry, undoing: boolean): void {
         if (blob) {
             setChain(op.slot, op.componentKey + ':state', blob);
             refreshModels(op.slot);
+            mlog('undo: restored ' + op.componentKey + ' state (' + blob.length + ' bytes)');
         } else {
             /* No blob for this side — replay the dump instead, staged so the
              * preset inside it cannot overwrite the params that follow. */

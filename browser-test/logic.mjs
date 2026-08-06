@@ -8950,12 +8950,15 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 
     eq('a JSON state blob is captured', captureModuleState(0, 'synth'),
         '{"preset":7,"cutoff":0.42}');
-    /* schwung's own test: anything that is not a JSON object means the module
-     * does not support state (remote_ui.go fetchAllParams). */
+    /* Only an EMPTY blob means unsupported. A non-JSON one is still usable:
+     * schwung's own slot save keeps it as an opaque string ("State is not JSON
+     * (e.g. key=value pairs)") and its recall writes back what it stored, so
+     * rejecting it here would drop a module to the lossy param dump for
+     * nothing. */
     store['synth:state'] = '';
     eq('an empty blob means unsupported', captureModuleState(0, 'synth'), null);
-    store['synth:state'] = 'not-json';
-    eq('a non-object blob means unsupported too', captureModuleState(0, 'synth'), null);
+    store['synth:state'] = 'a=1;b=2';
+    eq('a key=value blob is still usable', captureModuleState(0, 'synth'), 'a=1;b=2');
 
     /* Restoring writes the blob back — one write, no staging. */
     resetModuleRestore();
@@ -9209,10 +9212,11 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     for (let i = 0; i < Math.floor(gi / 8); i++) m.changePage(1);
     const physK = gi % 8;
 
-    /* weird-dreams exposes no `<component>:state`, and a randomiser has no
-     * param op of its own — so before the fallback it recorded NOTHING and the
-     * randomise simply could not be undone. */
-    eq('the module really has no state blob',
+    /* A randomiser has no param op of its own, so on a module with no
+     * `<component>:state` it recorded NOTHING and could not be undone at all.
+     * (This fixture has none — the module dump never captured that key. Real
+     * weird-dreams DOES expose one, as a non-JSON blob.) */
+    eq('this fixture has no state blob',
         globalThis.shadow_get_param(0, 'synth:state'), null);
 
     m.handleKnobTouch(physK);

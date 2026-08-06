@@ -72,12 +72,20 @@ export interface UiOp {
 export interface StateOp {
     slot: number;
     componentKey: string;
+    /* Preferred: schwung's whole-module blob. Empty when the module exposes
+     * none — then `oldParams` is the fallback. A randomiser has no param op of
+     * its own, so without one of the two there is nothing to undo AT ALL and
+     * the edit is silently lost. */
     oldState: string;
+    oldParams?: [string, string][];
+    oldLeadCount?: number;
     /* The state AFTER the change, captured lazily on the first undo. A preset
      * change does not need it — redo is "pick that preset again" and the param
      * op says so — but a RANDOMISER has no such op: re-firing it would roll a
      * different patch, so redo has to restore the exact one it produced. */
     newState?: string;
+    newParams?: [string, string][];
+    newLeadCount?: number;
 }
 
 export interface UndoEntry {

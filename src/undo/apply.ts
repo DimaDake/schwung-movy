@@ -22,7 +22,7 @@ import {
     retractEntry, takeOrphanedSnaps,
 } from './state.js';
 import { abandonGroup, endEdit } from './group.js';
-import { beginModuleRestore, moduleRestorePending } from './module-apply.js';
+import { beginModuleRestore, beginParamRestore, moduleRestorePending } from './module-apply.js';
 import type { UndoEntry, UndoResult } from './types.js';
 import { writeUiField, type UiField } from './ui-fields.js';
 import { changeDetail } from './label.js';
@@ -102,11 +102,25 @@ function applyEntry(e: UndoEntry, undoing: boolean): void {
          * back is the state it produced. */
         if (undoing && op.newState === undefined && e.paramOps.length === 0) {
             op.newState = captureModuleState(op.slot, op.componentKey) ?? '';
+            if (op.newState === '') {
+                const d = dumpModuleParams(op.slot, op.componentKey);
+                op.newParams = d.params;
+                op.newLeadCount = d.leadCount;
+            }
         }
         const blob = undoing ? op.oldState : op.newState;
         if (blob) {
             setChain(op.slot, op.componentKey + ':state', blob);
             refreshModels(op.slot);
+        } else {
+            /* No blob for this side — replay the dump instead, staged so the
+             * preset inside it cannot overwrite the params that follow. */
+            const ps = undoing ? op.oldParams : op.newParams;
+            const lead = (undoing ? op.oldLeadCount : op.newLeadCount) ?? 0;
+            if (ps && ps.length > 0) {
+                beginParamRestore(op.slot, op.componentKey, ps, lead);
+                refreshModels(op.slot);
+            }
         }
     } else {
         /* Reverse order: a gesture that wrote A then B must undo B then A, or a

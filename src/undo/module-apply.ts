@@ -41,7 +41,7 @@ const SETTLE_TICKS = 50;
 const VERIFY_ROUNDS = 3;
 const VERIFY_TICKS = 30;   // ~0.2 s between rounds
 
-type Phase = 'wait' | 'settle' | 'verify';
+type Phase = 'wait' | 'lead' | 'settle' | 'verify';
 
 interface Pending {
     op: ModuleOp;
@@ -78,6 +78,34 @@ export function beginModuleRestore(op: ModuleOp, undoing: boolean): void {
         leadCount: undoing ? op.leadCount : (op.newLeadCount ?? 0),
         wantIds: undoing ? op.oldIds : op.newIds,
         phase: 'wait',
+        ticksLeft: RESTORE_TIMEOUT_TICKS,
+        settleLeft: SETTLE_TICKS,
+        verifyLeft: VERIFY_TICKS,
+        roundsLeft: VERIFY_ROUNDS,
+    };
+}
+
+/**
+ * Restore params into the module that is ALREADY loaded — the fallback path for
+ * a preset or randomiser on a module with no state blob.
+ *
+ * Same staged writer as a module restore (selector/preset first, settle, then
+ * the params the preset rewrites, then verify), minus the wait: nothing is
+ * being loaded, so the module is ready by definition.
+ */
+export function beginParamRestore(
+    slot: number, componentKey: string,
+    params: [string, string][], leadCount: number,
+): void {
+    if (params.length === 0) return;
+    pending = {
+        op: { slot, componentKey, oldWrite: '', newWrite: '', oldIds: [], newIds: [],
+              oldParams: [], leadCount: 0 },
+        state: null,
+        params,
+        leadCount,
+        wantIds: [],
+        phase: 'lead',
         ticksLeft: RESTORE_TIMEOUT_TICKS,
         settleLeft: SETTLE_TICKS,
         verifyLeft: VERIFY_TICKS,
@@ -165,6 +193,20 @@ function finish(op: ModuleOp): void {
 export function moduleRestoreTick(): void {
     if (!pending) return;
     const { op } = pending;
+
+    if (pending.phase === 'lead') {
+        /* Already-loaded module: go straight to writing. */
+        write(pending, 0, pending.leadCount);
+        if (pending.leadCount > 0) {
+            mlog('undo: restored ' + pending.leadCount + ' selector/preset params');
+            pending.phase = 'settle';
+            return;
+        }
+        write(pending, 0, pending.params.length);
+        mlog('undo: replayed ' + pending.params.length + ' params');
+        toVerify(pending, op);
+        return;
+    }
 
     if (pending.phase === 'wait') {
         if (!moduleIsReady(pending)) {

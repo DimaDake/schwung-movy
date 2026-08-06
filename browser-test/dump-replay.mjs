@@ -216,7 +216,7 @@ for (const entry of dump.modules) {
  * whose dump comes back empty cannot be restored by a module undo at all — the
  * swap would be one-way — so it is worth knowing before a user finds out. */
 {
-    const { dumpModuleParams } = await import('../dist/esm/undo/module-dump.js');
+    const { dumpModuleParams, paramTier } = await import('../dist/esm/undo/module-dump.js');
     const origGet = globalThis.shadow_get_param;
     const empty = [], unordered = [], unsafe = [], noLead = [];
     const ACTION = /(^|_)(rnd|save|reset|init|load|clear|randomi[sz]e)(_|$)/i;
@@ -233,13 +233,14 @@ for (const entry of dump.modules) {
         if (d.params.length === 0) { empty.push(name); continue; }
 
         /* The lead must really be the leading slice — module-apply writes
-         * [0, leadCount) first and trusts that boundary. */
+         * [0, leadCount) first and trusts that boundary. Asserted with the
+         * implementation's OWN classifier: a second copy of the rule here just
+         * drifts from it and starts reporting phantom failures. */
         const keys = d.params.map(([k]) => k);
-        const lead = keys.slice(0, d.leadCount);
-        if (lead.some((k) => !/^(rom_index|bank_index|plugin_index|patchbank|bank|rom|preset|program|patchnumber|preset_index|current_preset)$/.test(k)
-                             && k !== (uh?.levels?.root?.list_param))) {
-            unordered.push(name);
-        }
+        const listP = uh?.levels?.root?.list_param ?? '';
+        const misplaced = keys.some((k, i) =>
+            (i < d.leadCount) !== (paramTier(k, listP) < 2));
+        if (misplaced) unordered.push(name);
         /* Nothing that fires an action may ever be replayed. */
         if (keys.some((k) => ACTION.test(k))) unsafe.push(name);
         /* A module that declares a preset list must put it in the lead, or its

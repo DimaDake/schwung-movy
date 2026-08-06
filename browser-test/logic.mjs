@@ -8620,7 +8620,9 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 
     const { createModel } = await import('../dist/esm/model/index.js');
     const { appState } = await import('../dist/esm/app/state.js');
-    resetUndoState(); resetUndoGroups(); resetUndoApply();
+    const { moduleRestoreTick, resetModuleRestore } =
+        await import('../dist/esm/undo/module-apply.js');
+    resetUndoState(); resetUndoGroups(); resetUndoApply(); resetModuleRestore();
 
     const m = createModel(0, 'synth');
     m.reset();
@@ -8637,6 +8639,10 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     const shown = presetVm()?.displayValue;
 
     undoOnce();
+    /* With no `<component>:state` blob this module falls back to a param dump,
+     * which is replayed in stages (preset first, then the params it rewrites) —
+     * so the restore lands over the next ticks rather than inside undoOnce. */
+    for (let i = 0; i < 120; i++) { moduleRestoreTick(); m.tick(); }
     eq('undo restored the chain value', store['synth:preset'], '0');
     eq('and the knob on screen followed it now, not seconds later',
         presetVm()?.displayValue !== shown, true);
@@ -9002,6 +9008,9 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     _log('\nundo — a preset change restores the tweaks it discarded:');
     const { recordPresetState } = await import('../dist/esm/undo/record.js');
     const { appState } = await import('../dist/esm/app/state.js');
+    const { moduleRestoreTick: moduleRestoreTick2, resetModuleRestore: resetMR2 } =
+        await import('../dist/esm/undo/module-apply.js');
+    resetMR2();
 
     /* The scenario: load a preset, tweak a knob, then change preset. Writing
      * the old preset index back would make the DSP re-apply THAT preset's
@@ -9050,18 +9059,26 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     undoOnce();
     eq('and undoes surgically', writes.join(','), 'synth:cutoff=0.90');
 
-    /* A module with no state blob falls back to the index — lossy, but the only
-     * thing available, and better than refusing to undo. */
-    resetUndoState(); resetUndoGroups();
+    /* A module with no state blob dumps its params instead. Lossier than the
+     * blob (it only covers what chain_params publishes) but far better than the
+     * preset index alone, which would re-apply the preset's defaults and lose
+     * the very tweaks this exists to protect. */
+    resetUndoState(); resetUndoGroups(); resetMR2();
     store['synth:state'] = '';
+    store['synth:preset'] = '3'; store['synth:cutoff'] = '0.90';
     beginEdit({ key: 'knob:preset', verb: 'PRESET', target: 'T1', close: CLOSE.IMMEDIATE });
     recordPresetState(0, 'synth');
     recordParamOp(0, 'synth:preset', '3', '9');
     endEdit();
-    eq('a module without state records no snapshot', peekUndo().stateOp, undefined);
+    eq('a module without state dumps its params instead',
+        peekUndo().stateOp?.oldParams?.length > 0, true);
+    eq('and the preset leads that dump', peekUndo().stateOp?.oldLeadCount, 1);
     writes.length = 0;
     undoOnce();
-    eq('and undo falls back to the preset index', writes.join(','), 'synth:preset=3');
+    for (let i = 0; i < 120; i++) moduleRestoreTick2();
+    eq('undo replays the preset first', writes[0], 'synth:preset=3');
+    eq('then the tweak it would have discarded',
+        writes.some((w) => w === 'synth:cutoff=0.90'), true);
 
     delete globalThis.shadow_get_param;
     delete globalThis.shadow_set_param;
@@ -9174,6 +9191,53 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     eq('a plain value is untouched', valueChange('SAW', 'SQUARE'), 'SAW -> SQUARE');
     eq('and a number still loses its wire-format zeros',
         valueChange('0.5000', '1.0000'), '0.5 -> 1');
+}
+
+
+{
+    _log('\nundo — a randomiser is undoable even with no state blob:');
+    const { readFileSync: rf2 } = await import('node:fs');
+    const { createDumpBoot: cdb } = await import('./dump-boot.mjs');
+    const fleet2 = JSON.parse(rf2('docs/module-dump/device-dump.json', 'utf8'));
+    const { bootFromDumpEntry: boot2 } = await cdb(fleet2);
+    const m = boot2(fleet2.modules.find((e) => e.id === 'weird-dreams'));
+    resetUndoState(); resetUndoGroups(); resetUndoRecord();
+    installEditGuard(); takeUndoViolation();
+
+    const params = m.dumpLayout().params;
+    const gi = params.findIndex((p) => p?.key === 'rnd_kit');
+    for (let i = 0; i < Math.floor(gi / 8); i++) m.changePage(1);
+    const physK = gi % 8;
+
+    /* weird-dreams exposes no `<component>:state`, and a randomiser has no
+     * param op of its own — so before the fallback it recorded NOTHING and the
+     * randomise simply could not be undone. */
+    eq('the module really has no state blob',
+        globalThis.shadow_get_param(0, 'synth:state'), null);
+
+    m.handleKnobTouch(physK);
+    m.handleKnobDelta(physK, 3);
+    for (let i = 0; i < 4; i++) m.tick();
+    eq('firing the randomiser is not an ungrouped edit', takeUndoViolation(), '');
+    eq('and it records an entry', undoDepth(), 1);
+    const e = peekUndo();
+    eq('named after the randomiser', e.verb, 'RND KIT');
+    eq('carrying a param dump in place of the blob', e.stateOp?.oldParams?.length > 0, true);
+    eq('with no state blob', e.stateOp?.oldState, '');
+
+    /* The kit and the per-voice presets must lead the dump: each rewrites the
+     * params under it, so writing them after would undo the restore. */
+    const keys = e.stateOp.oldParams.map(([k]) => k);
+    const lead = keys.slice(0, e.stateOp.oldLeadCount);
+    eq('the kit leads', lead.includes('kit'), true);
+    eq('and so do the voice presets', lead.filter((k) => k.endsWith('_preset')).length > 0, true);
+    eq('while ordinary params follow', keys.slice(e.stateOp.oldLeadCount).includes('v1_vol'), true);
+
+    /* Nothing that fires an action is ever in the dump — replaying rnd_kit
+     * during a restore would randomise again, forever. */
+    eq('the randomiser is not in its own dump', keys.includes('rnd_kit'), false);
+
+    resetUndoState(); resetUndoGroups();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

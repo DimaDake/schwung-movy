@@ -78,14 +78,16 @@ const ACTION = /(^|_)(rnd|save|reset|init|load|clear|randomi[sz]e)(_|$)/i;
 /* Tier 0 — selectors: they change what the other params mean or where the
  * preset list is read from, so they go first. A ROM contains banks, so it is
  * ordered ahead of them; `SELECTOR_ORDER` is the rank within the tier. */
-const SELECTOR = /^(rom_index|bank_index|plugin_index|patchbank|bank|rom)$/;
+const SELECTOR = /^(rom_index|bank_index|plugin_index|patchbank|bank|rom|kit)$/;
 const SELECTOR_ORDER = (key: string): number => (/^(rom_index|rom)$/.test(key) ? 0 : 1);
 
 /* Tier 1 — the preset itself. `list_param` from the module's own ui_hierarchy is
  * authoritative (it is `preset`, `program`, `plugin_index`, `preset_index` or
  * `mode` depending on the module); these names are the fallback for modules that
- * expose a preset without declaring one. */
-const PRESET = /^(preset|program|patchnumber|preset_index|current_preset)$/;
+ * expose a preset without declaring one. The `_preset` suffix catches the
+ * per-voice lists a multi-voice module publishes (weird-dreams `v1_preset` …
+ * `cv_preset`), each of which rewrites its own voice's params. */
+const PRESET = /(^|_)(preset|program|patchnumber)$|^(preset_index|current_preset)$/;
 
 export function paramTier(key: string, listParam: string): number {
     if (SELECTOR.test(key)) return 0;

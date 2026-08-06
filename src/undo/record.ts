@@ -12,7 +12,7 @@
 import { mlog } from '../log.js';
 import { seqCmd, setEditGuard } from '../seq/engine.js';
 import { addParamOp, addStateOp, addUiOp, groupOpen, noteEditActivity } from './group.js';
-import { captureModuleState } from './module-dump.js';
+import { captureModuleState, dumpModuleParams } from './module-dump.js';
 import { isControlVerb, isUndoableVerb, verbOf } from './verbs.js';
 import type { ParamOp } from './types.js';
 
@@ -117,7 +117,21 @@ export function recordParamOp(slot: number, key: string,
 export function recordPresetState(slot: number, componentKey: string): void {
     if (!groupOpen()) return;
     const state = captureModuleState(slot, componentKey);
-    if (state !== null) addStateOp({ slot, componentKey, oldState: state });
+    if (state !== null) {
+        addStateOp({ slot, componentKey, oldState: state });
+        return;
+    }
+    /* No state blob — fall back to dumping the params. Expensive (a read per
+     * param), but this runs once per preset/randomiser gesture, and the
+     * alternative is recording nothing: a randomiser has no param op of its
+     * own, so it would simply not be undoable. */
+    const d = dumpModuleParams(slot, componentKey);
+    if (d.params.length > 0) {
+        addStateOp({
+            slot, componentKey, oldState: '',
+            oldParams: d.params, oldLeadCount: d.leadCount,
+        });
+    }
 }
 
 /** Record a set-level UI field change (root note, scale). */

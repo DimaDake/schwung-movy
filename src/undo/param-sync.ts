@@ -26,8 +26,13 @@ export function syncParamsToModels(ops: ParamOp[]): void {
         const ioKey = op.key.slice(colon + 1);
         const models = appState.trackModels[op.slot];
         if (!models) continue;
+        /* A slot LFO param is written as `lfo1:rate_hz`, but the track's LFO
+         * page presents BOTH LFOs as one virtual component keyed 'lfo' — so the
+         * prefix has to be mapped or the page is never found and never
+         * repaints. */
+        const target = /^lfo\d+$/.test(componentKey) ? 'lfo' : componentKey;
         for (const m of models) {
-            if (m.getComponentKey() === componentKey && m.refreshParamKey(ioKey)) break;
+            if (m.getComponentKey() === target && m.refreshParamKey(ioKey)) break;
         }
     }
     appState.dirty = true;

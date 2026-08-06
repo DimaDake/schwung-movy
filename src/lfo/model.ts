@@ -259,9 +259,11 @@ export function createLfoModel(track: number): Model {
         clearFileOverlay(): void { /* no file params */ },
         setFileValue(_gi: number, _path: string): void { /* no file params */ },
         getComponentKey(): string { return 'lfo'; },
-        /* The LFO page reads its values live from schwung on every build, so a
-         * restored value shows on the next frame with nothing to invalidate. */
-        refreshParamKey(): boolean { return false; },
+        /* The page's values are read from schwung ONCE and owned by movy after
+         * that (see `loaded`), so a value restored behind its back — by an undo
+         * writing straight to the chain — leaves the display showing the old
+         * one. Drop the cache; the next build re-reads both LFOs. */
+        refreshParamKey(): boolean { loaded = false; dirty = true; return true; },
         getKnobParamInfo(_physK: number) { return null; },     // not automatable
         setNoRefreshKeys(_keys: string[]): void { /* no automation lanes */ },
         refreshModulation(): void { /* LFO params aren't modulation targets */ },

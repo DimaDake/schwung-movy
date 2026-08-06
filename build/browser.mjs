@@ -49,6 +49,7 @@ await esbuild.build({
         resolve(root, 'src/undo/module-dump.ts'),
         resolve(root, 'src/undo/module-apply.ts'),
         resolve(root, 'src/undo/rec-pass.ts'),
+        resolve(root, 'src/undo/param-sync.ts'),
         resolve(root, 'src/undo/edit.ts'),
         resolve(root, 'src/undo/ui-fields.ts'),
         resolve(root, 'src/chain/set-param.ts'),

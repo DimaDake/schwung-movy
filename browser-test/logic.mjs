@@ -9333,6 +9333,56 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     resetModuleRestore();
 }
 
+
+{
+    _log('\nundo — a restored LFO value reaches the LFO page:');
+    const { createLfoModel } = await import('../dist/esm/lfo/model.js');
+    const { appState } = await import('../dist/esm/app/state.js');
+    const { syncParamsToModels } = await import('../dist/esm/undo/param-sync.js');
+
+    const store = {
+        'lfo1:depth': '0.20', 'lfo1:rate_hz': '2.0', 'lfo1:shape': '0',
+        'lfo1:target': '', 'lfo1:target_param': '', 'lfo1:enabled': '0',
+        'lfo1:phase_offset': '0', 'lfo1:retrigger': '0', 'lfo1:mode': '0',
+        'lfo2:depth': '0.10', 'lfo2:rate_hz': '1.0', 'lfo2:shape': '0',
+        'lfo2:target': '', 'lfo2:target_param': '', 'lfo2:enabled': '0',
+        'lfo2:phase_offset': '0', 'lfo2:retrigger': '0', 'lfo2:mode': '0',
+    };
+    globalThis.shadow_get_param = (slot, key) => store[key] ?? null;
+    globalThis.shadow_set_param = (slot, key, v) => { store[key] = v; return true; };
+
+    const lfo = createLfoModel(0);
+    lfo.reset();
+    const shown = () => JSON.stringify(lfo.getViewModel().rows);
+    const before = shown();
+
+    /* The page reads its values from schwung ONCE and owns them after that, so
+     * a value changed behind its back — which is exactly what an undo does,
+     * writing straight to the chain — left the display on the old reading. */
+    store['lfo1:depth'] = '0.90';
+    eq('the page does not notice a write behind its back', shown(), before);
+
+    appState.trackModels[0] = [lfo];
+    /* Slot LFO params are written as `lfo1:…`, but the page is one virtual
+     * component keyed 'lfo' — without mapping the prefix nothing is found. */
+    syncParamsToModels([{ slot: 0, key: 'lfo1:depth', old: '0.20', new: '0.90' }]);
+    eq('after the undo sync it re-reads', shown() !== before, true);
+    eq('and the frame is marked for repaint', appState.dirty, true);
+
+    /* The second LFO is a page of its own, so look at it there — a reload drops
+     * the cache for both, which is what lets an undo on either one show. */
+    lfo.changePage(1);
+    const lfo2Before = shown();
+    store['lfo2:rate_hz'] = '8.0';
+    eq('LFO 2 also ignores a write behind its back', shown(), lfo2Before);
+    syncParamsToModels([{ slot: 0, key: 'lfo2:rate_hz', old: '1.0', new: '8.0' }]);
+    eq('and re-reads after the undo sync', shown() !== lfo2Before, true);
+
+    appState.trackModels[0] = [];
+    delete globalThis.shadow_get_param;
+    delete globalThis.shadow_set_param;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

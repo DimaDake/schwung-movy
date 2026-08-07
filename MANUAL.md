@@ -836,7 +836,8 @@ the arrow is what it is *now*, so the same reading works for both:
 clear / delete / copy / paste / duplicate, clip scale, length and transpose
 (each its own undo, committed when you let the knob go), loop length and start, per-step trig
 properties, automation (locks, lane values, clearing a lane or a step),
-tempo, swing, root and key, track mute and volume, synth and LFO parameters,
+tempo, swing, root and key, track mute, solo and volume, synth and LFO
+parameters,
 LFO assignments, and module or preset loads.
 
 **What isn't.** Anything that only changes what you're looking at — selecting a
@@ -866,8 +867,8 @@ is what you did the first time.
 
 **What Undo can't reach.** Worth knowing before you rely on it:
 
-- **Octave** (the +/- buttons) and **Solo** aren't undoable. Root and scale are;
-  octave and solo are treated as live performance controls.
+- **Octave** (the +/- buttons) isn't undoable — it's treated as a live
+  performance control. Root, scale, mute and solo all are.
 - **Parameters something else is driving** — one with an automation lane, or one
   a track LFO is modulating — are left out of a module restore. Their on-screen
   value belongs to Movy and the sounding value belongs to the engine, so there

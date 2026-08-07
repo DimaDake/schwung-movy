@@ -9383,6 +9383,71 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     delete globalThis.shadow_set_param;
 }
 
+
+{
+    _log('\nundo — mute and solo are one entry each, and consistent:');
+    const {
+        toggleMute, toggleSolo, isMuted, isSoloed, anySolo, resetTrackMutes,
+    } = await import('../dist/esm/mixer/track-mutes.js');
+    const { seqState: st, resetSeqState: resetSt } = await import('../dist/esm/seq/state.js');
+    const engine = installMockEngine();
+    resetUndoState(); resetUndoGroups(); resetUndoRecord(); resetSt(); resetTrackMutes();
+    resetSeqEngine(); seqEngineTick();
+    installEditGuard(); takeUndoViolation();
+
+    /* Solo derives EVERY track's mute, so it moves up to four at once. Each
+     * used to open its own entry — four undos for one press, and undoing them
+     * singly left the engine's mutes disagreeing with the solo latch. */
+    toggleSolo(1);
+    seqEngineTick();
+    eq('one solo press is one entry', undoDepth(), 1);
+    eq('not one per track it muted', undoDepth() < 4, true);
+    eq('and nothing escaped the guard', takeUndoViolation(), '');
+    eq('the solo took effect', isSoloed(1), true);
+    eq('silencing the others', st.muted[0], true);
+    eq('but not itself', st.muted[1], false);
+    eq('labelled as a solo', peekUndo().verb, 'SOLO');
+
+    /* Undo has to put BOTH halves back — the engine's mutes and movy's own solo
+     * bookkeeping — or they describe different worlds. */
+    undoOnce();
+    eq('undo clears the solo latch', anySolo(), false);
+    eq('and queues the engine mutes back', engine.ops.some((o) => o.startsWith('mute ')), true);
+
+    /* A plain mute is still one entry, and still undoable. */
+    resetUndoState(); resetTrackMutes(); resetSt();
+    toggleMute(2);
+    seqEngineTick();
+    eq('a mute is one entry too', undoDepth(), 1);
+    eq('labelled as a mute', peekUndo().verb, 'MUTE');
+    eq('and it muted', isMuted(2), true);
+    engine.ops.length = 0;
+    undoOnce();
+    seqEngineTick();
+    /* The two halves are restored by different mechanisms: the engine's mutes
+     * come back with the snapshot (a uswap — the mock does not replay engine
+     * state, so seqState.muted stays where it was here), and movy's own
+     * bookkeeping comes back with the ui op. */
+    eq('undo queues the engine half', engine.ops.some((o) => o.startsWith('uswap ')), true);
+    eq('and leaves no stray solo latch', anySolo(), false);
+
+    /* Muting while a solo is up edits the held base, not the derived mute —
+     * still one entry. */
+    resetUndoState(); resetTrackMutes(); resetSt();
+    toggleSolo(0);
+    resetUndoState();
+    toggleMute(3);
+    seqEngineTick();
+    eq('a mute under a solo is one entry', undoDepth(), 1);
+    eq('and is remembered underneath', isMuted(3), true);
+    undoOnce();
+    eq('undoing it restores the base', isMuted(3), false);
+    eq('leaving the solo alone', isSoloed(0), true);
+
+    resetUndoState(); resetUndoGroups(); resetTrackMutes(); resetSt(); resetSeqEngine();
+    uninstallMockEngine();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

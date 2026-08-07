@@ -1,4 +1,6 @@
-import { undoableEdit } from '../undo/edit.js';
+import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
+import { recordUiOp } from '../undo/record.js';
+import { readUiField } from '../undo/ui-fields.js';
 import { trackLabel } from '../undo/label.js';
 import { seqCmd } from '../seq/engine.js';
 import { releaseLiveOnTrack } from '../keyboard/release.js';
@@ -49,8 +51,24 @@ function setEngineMute(track: number, want: boolean): void {
     if (seqState.muted[track] === want) return;
     seqState.muted[track] = want;
     if (want) releaseLiveOnTrack(track);
-    undoableEdit(want ? 'MUTE' : 'UNMUTE', trackLabel(track),
-        () => seqCmd('mute ' + track + ' ' + (want ? 1 : 0)));
+    /* No entry of its own: a single gesture can move all four (solo derives
+     * every track's mute), and one entry per track meant a solo press pushed
+     * four, each undoable separately into a state where the derived mutes and
+     * the solo bookkeeping disagreed. The gesture wraps itself instead. */
+    seqCmd('mute ' + track + ' ' + (want ? 1 : 0));
+}
+
+/* One entry per GESTURE, covering both halves of the state it moves: the
+ * engine's mutes (via the snapshot) and movy's own solo bookkeeping (via the
+ * ui op). Undoing either a mute or a solo has to put both back or they end up
+ * describing different worlds. */
+function asOneEdit(verb: string, target: string, fn: () => void): void {
+    const before = readUiField('mutes');
+    beginEdit({ key: 'mutes:' + verb + ':' + target, verb, target,
+                close: CLOSE.IMMEDIATE, seq: true });
+    fn();
+    recordUiOp('mutes', before, readUiField('mutes'));
+    endEdit();
 }
 
 function apply(): void {
@@ -65,10 +83,12 @@ function apply(): void {
 
 export function toggleMute(track: number): void {
     if (track < 0 || track > 3) return;
-    if (base) base[track] = !base[track];
-    else setEngineMute(track, !seqState.muted[track]);
+    asOneEdit(isMuted(track) ? 'UNMUTE' : 'MUTE', trackLabel(track), () => {
+        if (base) base[track] = !base[track];
+        else setEngineMute(track, !seqState.muted[track]);
+        apply();
+    });
     mlog('mute t=' + track + ' -> ' + (isMuted(track) ? 1 : 0));
-    apply();
     markUiStateDirty();
     seqToast('T' + (track + 1) + (isMuted(track) ? ' MUTED' : ' UNMUTED'));
 }
@@ -76,9 +96,11 @@ export function toggleMute(track: number): void {
 export function toggleSolo(track: number): void {
     if (track < 0 || track > 3) return;
     const was = solo[track];
-    for (let t = 0; t < 4; t++) solo[t] = false;   // exclusive — one solo at a time
-    solo[track] = !was;
-    apply();
+    asOneEdit(was ? 'UNSOLO' : 'SOLO', trackLabel(track), () => {
+        for (let t = 0; t < 4; t++) solo[t] = false;   // exclusive — one at a time
+        solo[track] = !was;
+        apply();
+    });
     /* mutes= is the mirror, which the engine's status poll overwrites — so a
      * line logged after the fact shows what the engine actually holds. */
     mlog('solo t=' + track + ' -> ' + (solo[track] ? 1 : 0)

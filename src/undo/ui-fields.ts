@@ -12,16 +12,28 @@
  * accident, and design §1 excludes exactly that. */
 
 import { keyboardState } from '../keyboard/state.js';
+import { mutesSnapshot, restoreMutes } from '../mixer/track-mutes.js';
 import { markUiStateDirty } from '../seq/persist.js';
 
-export type UiField = 'rootPc' | 'scale';
+export type UiField = 'rootPc' | 'scale' | 'mutes';
 
 export function readUiField(f: UiField): string {
     if (f === 'rootPc') return String(keyboardState.rootPc);
+    if (f === 'mutes') return JSON.stringify(mutesSnapshot());
     return String(keyboardState.scale);
 }
 
 export function writeUiField(f: UiField, v: string): void {
+    /* Solo bookkeeping: which track is soloed and the user's own mutes held
+     * underneath it. The engine holds the DERIVED mutes and a seq snapshot
+     * restores those; this is the half that lives only in movy, and without it
+     * an undo would leave the two disagreeing — a latched solo over mutes that
+     * no longer match it. */
+    if (f === 'mutes') {
+        try { restoreMutes(JSON.parse(v)); } catch {}
+        markUiStateDirty();
+        return;
+    }
     const n = Number(v);
     if (!isFinite(n)) return;
     if (f === 'rootPc') keyboardState.rootPc = n;

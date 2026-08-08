@@ -12,9 +12,9 @@
 export const UNDOABLE_VERBS: string[] = [
     // step entry and note editing
     'tog', 'addp', 'del', 'evel', 'elen', 'enudge', 'etrn', 'slen',
-    'eprob', 'econd', 'einv', 'quant',
+    'eprob', 'econd', 'einv',
     // clip shape and clip-level edits
-    'clen', 'cscl', 'ctr', 'dbl', 'loop', 'ltog',
+    'clen', 'cscl', 'ctr', 'cq', 'dbl', 'loop', 'ltog',
     'pst',
     // whole-clip gestures
     'clipdel', 'clipdelat', 'clipdup', 'clippaste',
@@ -36,6 +36,10 @@ export const CONTROL_VERBS: string[] = [
     'cpy', 'cpyclr', 'clipcopy',
     'non', 'nof',
     'abase', 'abaseq', 'alabel',
+    /* `dq` applies a setting the UI owns and persists (ui-state.ts + prefs),
+     * so its undo entry is a UI-field op — an engine snapshot could not
+     * restore it, because the default is not in the engine's own blob. */
+    'dq',
     'capclr', 'capdone',
     'usnap', 'uswap', 'ucommit', 'udrop', 'uclr',
     'cmd',

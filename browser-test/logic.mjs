@@ -30,6 +30,9 @@ import {
 } from '../dist/esm/seq/persist-store.js';
 import { shadowPath } from '../dist/esm/seq/set-context.js';
 import { keyboardState } from '../dist/esm/keyboard/state.js';
+import {
+    quantCandidates, nextQuantCandidate, quantIndexForPct, candidateIndex,
+} from '../dist/esm/seq/quant.js';
 import { installMockEngine, uninstallMockEngine } from './mock-engine.mjs';
 import {
     pushEntry, popUndo, pushRedo, canUndo, canRedo, undoDepth, retractEntry, peekUndo,
@@ -9446,6 +9449,34 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 
     resetUndoState(); resetUndoGroups(); resetTrackMutes(); resetSt(); resetSeqEngine();
     uninstallMockEngine();
+}
+
+/* ── Quantization: value list and the Shift+Step 16 cycle ─────────────────── */
+{
+    _log('\nQuantization cycle');
+
+    eq('candidates are 0/def/100',
+        JSON.stringify(quantCandidates(70)), JSON.stringify([0, 70, 100]));
+    eq('candidates collapse when the default is 0',
+        JSON.stringify(quantCandidates(0)), JSON.stringify([0, 100]));
+    eq('candidates collapse when the default is 100',
+        JSON.stringify(quantCandidates(100)), JSON.stringify([0, 100]));
+
+    eq('cycle advances to the next higher candidate', nextQuantCandidate(0, 70), 70);
+    eq('cycle advances past the default', nextQuantCandidate(70, 70), 100);
+    eq('cycle wraps from the top', nextQuantCandidate(100, 70), 0);
+    eq('cycle from an off-cycle value picks the next higher',
+        nextQuantCandidate(40, 70), 70);
+    eq('cycle from above the default picks 100', nextQuantCandidate(80, 70), 100);
+    eq('cycle wraps with a collapsed candidate list', nextQuantCandidate(100, 0), 0);
+
+    eq('index maps 0%', quantIndexForPct(0), 0);
+    eq('index maps 70%', quantIndexForPct(70), 7);
+    eq('index maps 100%', quantIndexForPct(100), 10);
+    eq('index snaps an off-list value to the nearest', quantIndexForPct(74), 7);
+
+    eq('candidateIndex finds the default', candidateIndex(70, 70), 1);
+    eq('candidateIndex reports off-cycle values', candidateIndex(40, 70), -1);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

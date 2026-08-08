@@ -9,7 +9,7 @@
 //!   bpm <bpm_x100>
 //!   tk <track> <active_clip> <muted0|1>
 //!   cl <track> <slot> <len_steps> <loop_start_steps> <notes>
-//!   cp <track> <slot> <scale_num> <scale_den> <transpose>
+//!   cp <track> <slot> <scale_num> <scale_den> <transpose> <quant>
 //! where <notes> is `tick:gate:pitch:vel;…` (omitted when the clip is empty).
 //! The `cp` line is optional — clips from older saves load with defaults.
 //! Unknown lines are ignored so the format can grow.
@@ -46,8 +46,8 @@ pub fn serialize(engine: &Engine) -> String {
                 // Clip params on their own line (after `cl`, since load_clip
                 // recreates the clip): omitted-on-legacy → defaults.
                 s.push_str(&format!(
-                    "cp {} {} {} {} {}\n",
-                    ti, ci, c.scale_num, c.scale_den, c.transpose
+                    "cp {} {} {} {} {} {}\n",
+                    ti, ci, c.scale_num, c.scale_den, c.transpose, c.quant
                 ));
             }
             if !c.locks.is_empty() {
@@ -132,12 +132,17 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
             }
             Some("cl") => load_clip(engine, &mut it),
             Some("cp") => {
-                // cp <track> <slot> <scale_num> <scale_den> <transpose>
+                // cp <track> <slot> <scale_num> <scale_den> <transpose> [quant]
                 let track = it.next().and_then(|x| x.parse::<usize>().ok());
                 let slot = it.next().and_then(|x| x.parse::<usize>().ok());
                 let sn = it.next().and_then(|x| x.parse::<u8>().ok());
                 let sd = it.next().and_then(|x| x.parse::<u8>().ok());
                 let tr = it.next().and_then(|x| x.parse::<i8>().ok());
+                // Sixth field absent = written before non-destructive
+                // quantization existed. Those notes were either already hard
+                // quantized or meant to stay raw, so 0 keeps the set sounding
+                // exactly as it did.
+                let q = it.next().and_then(|x| x.parse::<u8>().ok()).unwrap_or(0);
                 if let (Some(track), Some(slot), Some(sn), Some(sd), Some(tr)) =
                     (track, slot, sn, sd, tr)
                 {
@@ -146,6 +151,7 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
                         c.scale_num = sn.max(1);
                         c.scale_den = sd.max(1);
                         c.transpose = tr.clamp(-36, 36);
+                        c.quant = q.min(100);
                     }
                 }
             }
@@ -182,6 +188,9 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
             }
         }
     }
+    // Slots that stayed empty must carry the current default so the next clip
+    // recorded into them is born with it. Loaded clips keep their own value.
+    engine.reseed_empty_clips();
     true
 }
 
@@ -281,6 +290,30 @@ fn load_clip<'a>(engine: &mut Engine, it: &mut impl Iterator<Item = &'a str>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn round_trips_clip_quant() {
+        let mut e = Engine::new(44100, 12000);
+        e.tracks[0].clips[0].toggle_step(0, &[(60, 100)]);
+        e.tracks[0].clips[0].quant = 70;
+        let blob = serialize(&e);
+        let mut e2 = Engine::new(44100, 12000);
+        assert!(load(&mut e2, &blob));
+        assert_eq!(e2.tracks[0].clips[0].quant, 70);
+    }
+
+    #[test]
+    fn legacy_cp_line_loads_quant_zero() {
+        // A five-field `cp` is every save written before this feature. Those
+        // clips must stay at 0 so existing sets sound exactly as they did,
+        // even when the user has since picked a non-zero default.
+        let blob = "movy1\ncl 0 0 16 0 0:24:60:100\ncp 0 0 1 1 0\n";
+        let mut e = Engine::new(44100, 12000);
+        e.default_quant = 80;
+        assert!(load(&mut e, blob));
+        assert_eq!(e.tracks[0].clips[0].quant, 0, "loaded clip keeps its own value");
+        assert_eq!(e.tracks[0].clips[1].quant, 80, "empty slot carries the default");
+    }
 
     #[test]
     fn round_trips_state() {

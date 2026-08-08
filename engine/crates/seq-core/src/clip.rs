@@ -25,6 +25,10 @@ pub struct Note {
     /// so the take you just played doesn't double-trigger on the same pass
     /// (davebox suppress_until_wrap).
     pub suppress: bool,
+    /// Already sounded this pass. Cleared on wrap alongside `suppress`: a
+    /// quantization change can move a note's fire tick past the playhead
+    /// after it has played, which would otherwise retrigger it.
+    pub fired: bool,
 }
 
 /// Max automation locks per clip (8 lanes × generous step budget).
@@ -96,6 +100,10 @@ pub struct Clip {
     /// (Distinct from the `transpose(..)` method, which is the destructive
     /// per-step note-edit gesture.)
     pub transpose: i8,
+    /// Non-destructive timing strength, 0..=100 %. Interpolates each note's
+    /// emitted tick between what was played and its `step` anchor; stored
+    /// ticks are never modified. 0 on legacy saves, so they sound unchanged.
+    pub quant: u8,
 }
 
 impl Default for Clip {
@@ -115,6 +123,7 @@ impl Clip {
             scale_num: 1,
             scale_den: 1,
             transpose: 0,
+            quant: 0,
         }
     }
 
@@ -316,6 +325,7 @@ impl Clip {
                 vel: n.vel,
                 step: n.step + len,
                 suppress: false,
+                fired: false,
             })
             .collect();
         for n in copies {
@@ -362,6 +372,7 @@ impl Clip {
             vel,
             step,
             suppress: false,
+            fired: false,
         });
     }
 
@@ -374,13 +385,17 @@ impl Clip {
         let bar = STEPS_PER_BAR as u32;
         let step = ((tick + TICKS_PER_STEP / 2) / TICKS_PER_STEP) as u16;
         self.extend_to_step(step.min((MAX_STEPS as u32 - bar) as u16));
-        self.notes.push(Note { tick, gate: gate.max(1), pitch, vel, step, suppress: true });
+        self.notes.push(Note {
+            tick, gate: gate.max(1), pitch, vel, step, suppress: true, fired: false,
+        });
     }
 
-    /// Clear the suppress flag on all notes (called when the clip wraps).
-    pub fn release_suppressed(&mut self) {
+    /// Start a fresh pass (called when the clip wraps): recorded notes become
+    /// audible and every note is eligible to fire again.
+    pub fn release_pass_flags(&mut self) {
         for n in &mut self.notes {
             n.suppress = false;
+            n.fired = false;
         }
     }
 
@@ -562,7 +577,7 @@ impl Clip {
             return;
         }
         self.extend_to_step(step);
-        self.notes.push(Note { tick, gate, pitch, vel, step, suppress: false });
+        self.notes.push(Note { tick, gate, pitch, vel, step, suppress: false, fired: false });
     }
 
     /// Add `pitch` to every step in [s0, s1] that doesn't already have it

@@ -475,6 +475,11 @@ impl Engine {
         for t in &mut self.tracks {
             let start = t.playing().map_or(0, |c| c.loop_start_ticks());
             t.pos_tick = start;
+            // The playhead is back at the loop start, so every note is owed
+            // another turn — stale per-pass flags would silence the first pass.
+            if let Some(slot) = t.playing_slot {
+                t.clips[slot].release_pass_flags();
+            }
             t.last_auto_step = -1; // re-emit automation from step 0 on (re)start
             t.auto_cur = [-1; 8];
             t.cycle = 1;           // restart the A:B trig-condition play count
@@ -1378,6 +1383,9 @@ impl Engine {
                     t.playing_slot = Some(slot);
                     t.active_clip = slot;
                     t.pos_tick = t.clips[slot].loop_start_ticks();
+                    // Stale per-pass flags from an earlier playing pass would
+                    // silence the first bar of the take we just launched.
+                    t.clips[slot].release_pass_flags();
                     t.last_auto_step = -1;
                     t.auto_cur = [-1; 8];
                     t.cycle = 1;
@@ -1476,6 +1484,9 @@ impl Engine {
                         self.tracks[ti].clips[slot].scale_num,
                         self.tracks[ti].clips[slot].scale_den,
                     );
+                    let quant = self.tracks[ti].clips[slot].quant.min(100) as i64;
+                    let clip_end = self.tracks[ti].clips[slot].loop_end_ticks();
+                    let clip_span = self.tracks[ti].clips[slot].length_ticks().max(1);
                     // Per-tick decision cache: (note.step, governing-lane) -> play?
                     // so a chord on one trig shares a single condition+probability
                     // decision (all notes play or all skip). Few notes fire per
@@ -1483,14 +1494,36 @@ impl Engine {
                     let mut decided: Vec<((u16, Option<u8>), bool)> = Vec::new();
                     for ni in 0..len {
                         let n = self.tracks[ti].clips[slot].notes[ni];
-                        // Swing shifts an off-beat step's note later within its
-                        // own cell (delay < TICKS_PER_STEP, so it never collides
-                        // with the next step). Recorded micro-timed notes keep
-                        // their stored tick + the step-parity offset.
-                        let fire_tick = n.tick + self.swing_delay(n.step, snum, sden);
-                        if fire_tick != pos || n.suppress {
+                        // Non-destructive quantization scales how far a note
+                        // sits from its `step` anchor: full strength lands it
+                        // on the grid (what the old destructive quantize did),
+                        // zero leaves the tick that was played. Swing is added
+                        // at full weight either way — it is a groove control,
+                        // not a quantization one, and scaling it here would
+                        // silently disable the SWING knob for programmed
+                        // patterns, which sit exactly on the anchor.
+                        let anchor = n.step as u32 * TICKS_PER_STEP;
+                        let dev = n.tick as i64 - anchor as i64;
+                        let half = if dev >= 0 { 50 } else { -50 };
+                        let pulled = dev - (dev * quant + half) / 100;
+                        let mut fire_tick = (anchor as i64 + pulled
+                            + self.swing_delay(n.step, snum, sden) as i64)
+                            .max(0) as u32;
+                        // A note played just before a bar line anchors to the
+                        // next bar's downbeat, which at full strength lands on
+                        // the loop end — i.e. the loop start. Interpolating
+                        // toward the UNwrapped target and wrapping the result
+                        // keeps partial strengths from sweeping the note
+                        // backwards through the whole bar.
+                        if fire_tick >= clip_end {
+                            fire_tick -= clip_span;
+                        }
+                        if fire_tick != pos || n.suppress || n.fired {
                             continue;
                         }
+                        // Claimed before the trig decision: a note that rolls
+                        // "skip" has still had its turn this pass.
+                        self.tracks[ti].clips[slot].notes[ni].fired = true;
                         let clip = &self.tracks[ti].clips[slot];
                         let lane_key = if clip.trigs.iter()
                             .any(|t| t.step == n.step && t.lane == Some(n.pitch))
@@ -1542,7 +1575,7 @@ impl Engine {
                         c.set_loop(c.loop_start_steps, c.length_steps + bar);
                     } else {
                         self.tracks[ti].pos_tick = start;
-                        self.tracks[ti].clips[slot].release_suppressed();
+                        self.tracks[ti].clips[slot].release_pass_flags();
                         self.tracks[ti].cycle = self.tracks[ti].cycle.wrapping_add(1);
                     }
                 }
@@ -3739,6 +3772,89 @@ mod tests {
         let before = e.tracks[0].clips[2].length_steps;
         run_ticks(&mut e, crate::TICKS_PER_BAR as u64);
         assert!(e.tracks[0].clips[2].length_steps > before, "new clip did not auto-extend");
+    }
+
+    /// Clip-position tick at which pitch 60 fires. Same technique as
+    /// `swing_delays_offbeat_steps_only`: 8-frame blocks so at most one tick
+    /// elapses per block, and status `tick=` is post-increment, so the note
+    /// fired while pos was (tick - 1).
+    fn quant_fire_tick(step: u16, nudge: i32, quant: u8, swing: u32) -> u64 {
+        let mut e = Engine::new(44100, 12000);
+        e.swing_pct = swing;
+        e.tracks[0].active_mut().toggle_step(step, &[(60, 100)]);
+        e.tracks[0].active_mut().nudge(step, step, None, nudge);
+        e.tracks[0].active_mut().quant = quant;
+        e.play();
+        let mut out = Vec::new();
+        for _ in 0..5000 {
+            out.clear();
+            e.advance_block(8, &mut out);
+            if out.iter().any(|ev| matches!(ev, OutEvent::NoteOn { pitch: 60, .. })) {
+                let st = e.status();
+                let tick = st.split_whitespace()
+                    .find_map(|kv| kv.strip_prefix("tick="))
+                    .and_then(|v| v.parse::<u64>().ok())
+                    .expect("status has tick=");
+                return tick - 1;
+            }
+        }
+        panic!("note never fired (quant {quant})");
+    }
+
+    #[test]
+    fn quant_100_snaps_to_grid() {
+        assert_eq!(quant_fire_tick(2, 7, 100, 50), (2 * TICKS_PER_STEP) as u64);
+    }
+
+    #[test]
+    fn quant_0_plays_raw_timing() {
+        assert_eq!(quant_fire_tick(2, 7, 0, 50), (2 * TICKS_PER_STEP + 7) as u64);
+    }
+
+    #[test]
+    fn quant_scales_deviation_and_leaves_swing_alone() {
+        // Swing is a groove control, not a quantization one. Scaling it with
+        // strength would make the SWING knob inert for programmed patterns,
+        // which sit exactly on the anchor and so have no deviation to scale.
+        let swing = (66 - 50) * TICKS_PER_STEP / 60;   // 6 ticks on an off-beat 16th
+        assert_eq!(quant_fire_tick(1, 5, 0, 66), (TICKS_PER_STEP + 5 + swing) as u64);
+        assert_eq!(quant_fire_tick(1, 5, 100, 66), (TICKS_PER_STEP + swing) as u64);
+        assert_eq!(quant_fire_tick(1, 5, 60, 66), (TICKS_PER_STEP + 2 + swing) as u64);
+    }
+
+    #[test]
+    fn quant_50_lands_midway_toward_grid() {
+        assert_eq!(quant_fire_tick(2, 8, 50, 50), (2 * TICKS_PER_STEP + 4) as u64);
+    }
+
+    #[test]
+    fn quant_pulls_early_note_forward() {
+        // Rounding has to work in both directions: a note before its anchor
+        // moves later as strength rises.
+        assert_eq!(quant_fire_tick(2, -8, 50, 50), (2 * TICKS_PER_STEP - 4) as u64);
+    }
+
+    #[test]
+    fn quant_change_mid_pass_does_not_double_trigger() {
+        // The note sounds quantized at step 2; dropping strength moves its
+        // target later within the same pass. Without `fired` it sounds twice.
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(2, &[(60, 100)]);
+        e.tracks[0].active_mut().nudge(2, 2, None, 9);
+        e.tracks[0].active_mut().quant = 100;
+        e.play();
+        let mut out = Vec::new();
+        while e.clock.tick <= (2 * TICKS_PER_STEP + 3) as u64 {
+            e.advance_block(8, &mut out);
+        }
+        e.tracks[0].active_mut().quant = 0;
+        while e.clock.tick <= (3 * TICKS_PER_STEP) as u64 {
+            e.advance_block(8, &mut out);
+        }
+        let ons = out.iter()
+            .filter(|ev| matches!(ev, OutEvent::NoteOn { pitch: 60, .. }))
+            .count();
+        assert_eq!(ons, 1, "the note had already sounded this pass");
     }
 
     #[test]

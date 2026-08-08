@@ -101,6 +101,13 @@ Movy stands on the shoulders of several projects:
 
   ![Capture tempo selector](docs/assets/capture_select.png)
 
+- **Non-destructive quantization** — every clip carries a strength from 0 to
+  100 % applied as it plays, so the timing you recorded is never rewritten and
+  you can dial it back at any time. **Shift + Step 16** cycles 0 / your default
+  / 100 %; new clips are born with the default, which follows you into new sets.
+
+  ![Quantize](docs/assets/quant-overlay-three.png)
+
 - **Undo & redo** — **Undo** takes back the last edit, **Shift + Undo** redoes
   it, and an overlay names what changed. One gesture is one undo: a whole knob
   turn, or one pass of live recording. Covers notes, clips, automation, synth

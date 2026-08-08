@@ -15,6 +15,31 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Non-destructive quantization.** Quantization is now a per-clip value from
+  0 to 100 %, applied as notes are emitted rather than by rewriting them, so
+  recorded timing survives and can be dialled back at any time. **Shift +
+  Step 16** cycles the clip through 0 % / the set default / 100 % and shows the
+  choices for 1.2 s, with the jog picking between them while the panel is up.
+  **QUANT** on the Clip page sets one clip; **QUANT** on the Set page sets the
+  default new clips are created with. The default lives in a machine-level
+  `prefs.json`, so it follows you into sets you have never opened.
+
+### Changed
+
+- **Quantize (Shift + Step 16) no longer destroys recorded timing.** It sets a
+  strength instead; 100 % reproduces the old behaviour exactly. The `quant`
+  engine command is replaced by `cq` / `dq`.
+- Clips saved before this release load at 0 % quantization, so existing sets
+  play back exactly as they did.
+
+### Fixed
+
+- **A note played just before the count-in ended was lost.** Live recording
+  only began capturing when the count-in reached zero, so leaning into the
+  first downbeat dropped the note entirely rather than misplacing it. Notes
+  within half a step of the start are now recorded on the downbeat, keeping
+  their true length.
+
 - **Undo & redo.** **Undo** takes back the last edit and **Shift + Undo**
   redoes it, with an overlay naming what changed. Covers every musical edit —
   notes and steps, clip and bar operations, automation, tempo/swing/root/key,

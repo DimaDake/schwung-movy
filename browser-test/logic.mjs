@@ -9549,16 +9549,17 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
         JSON.stringify(vm.values), JSON.stringify(['0%', '100%']));
     eq('and marks nothing', vm.defIdx, -1);
 
-    /* Jog: DETENT_DIV = 8, so one physical click is a delta of 8. */
+    /* One CC event = one candidate: the jog is read as a direction, the way
+     * every other jog consumer in movy reads it. */
     seqState.defaultQuant = 70; seqState.clipQuant = 0;
     armQuantOverlay(1000);
-    quantOverlayJog(8, 1100);
+    quantOverlayJog(1, 1100);
     seqEngineTick();
-    eq('jog selects the next candidate', seqState.clipQuant, 70);
+    eq('one jog event selects the next candidate', seqState.clipQuant, 70);
     eq('jog commits it', lastOp(), 'cq 0 70');
-    quantOverlayJog(8, 1200); quantOverlayJog(8, 1300);
+    quantOverlayJog(1, 1200); quantOverlayJog(1, 1300);
     eq('jog clamps at the top', seqState.clipQuant, 100);
-    quantOverlayJog(-8, 1400); quantOverlayJog(-8, 1500); quantOverlayJog(-8, 1600);
+    quantOverlayJog(-1, 1400); quantOverlayJog(-1, 1500); quantOverlayJog(-1, 1600);
     eq('jog clamps at the bottom', seqState.clipQuant, 0);
     eq('jog re-armed the timer', quantOverlayTickAt(2500), false);
     eq('and it still expires later', quantOverlayTickAt(2801), true);

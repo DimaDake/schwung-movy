@@ -8,7 +8,6 @@
 import { seqState } from './state.js';
 import { seqCmd } from './engine.js';
 import { appState } from '../app/state.js';
-import { countDetents } from './detent.js';
 import { quantCandidates, candidateIndex } from './quant.js';
 import { endEdit } from '../undo/group.js';
 import {
@@ -39,13 +38,11 @@ const DISMISSING_SHIFT_STEPS: number[] = [
 export type QuantOverlayAction = 'jog' | 'swallow' | 'dismiss' | 'through';
 
 let untilMs = 0;
-const accum = [0];
 
 export function quantOverlayActive(): boolean { return untilMs > 0; }
 
 export function armQuantOverlay(nowMs: number): void {
     untilMs = nowMs + LIFETIME_MS;
-    accum[0] = 0;
     appState.dirty = true;
 }
 
@@ -71,9 +68,13 @@ export function dismissQuantOverlay(): void {
 /** Jog while the panel is up: move the selection, commit, and re-arm. */
 export function quantOverlayJog(delta: number, nowMs: number): void {
     if (untilMs === 0) return;
-    const n = countDetents(accum, 0, delta);
-    /* Re-arm even on a turn too small to move the selection — otherwise the
-     * panel dies under the user's hand mid-dial. */
+    /* Direction, not accumulated detents: every other jog consumer in movy
+     * reads it as `delta > 0 ? 1 : -1` (chain nav, loop resize, the capture
+     * picker). DETENT_DIV belongs to the eight param knobs, which are finer —
+     * using it here would cost eight CC events per candidate. */
+    const n = delta > 0 ? 1 : delta < 0 ? -1 : 0;
+    /* Re-arm even on a null turn — otherwise the panel dies under the user's
+     * hand mid-dial. */
     untilMs = nowMs + LIFETIME_MS;
     if (n === 0) return;
     const cands = quantCandidates(seqState.defaultQuant);
@@ -96,7 +97,6 @@ export function quantOverlayHold(nowMs: number): void {
 
 export function resetQuantOverlay(): void {
     untilMs = 0;
-    accum[0] = 0;
 }
 
 /** How `data` should be treated while the panel is up. */

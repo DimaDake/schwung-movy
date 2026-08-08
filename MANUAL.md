@@ -476,7 +476,9 @@ for the concepts:
 - **Session view & clip launching** — press **Note/Session** to see the clip
   grid; pads launch clips. Hold it for a momentary peek; tap to latch.
 - **Live recording** — **Rec** arms recording with a one-bar **count-in**; play
-  the pads to record. Clips start only after the count-in.
+  the pads to record. Clips start only after the count-in. A note played
+  slightly *ahead* of the final beat still lands on the downbeat rather than
+  being dropped, so leaning into the first hit does not cost you the note.
 - **Metronome** — toggle with **Shift + Step 6**.
 - **Step recording** — hold **Rec** while stopped and play the pads to enter
   notes one step at a time; see [Step recording](#step-recording) below.
@@ -492,7 +494,7 @@ for the concepts:
   pad from the whole clip — one lane emptied without touching the others,
   wherever its notes fall. A pad that plays nothing (outside the drum grid, or
   a gap in a piano layout) clears nothing.
-- **Quantize** — **Shift + Step 16**.
+- **Quantize** — **Shift + Step 16**. See [Quantization](#quantization).
 - **Mute** — press **Mute** on its own to mute the current track; or hold
   **Mute** and press a track button to mute that one instead. Using the
   track-button form suppresses the current-track toggle, so one press never
@@ -522,6 +524,47 @@ red, only actionable buttons lit, the playhead sweeps the step row, etc.).
 
 > **Note:** Movy's sequencer intentionally does **not** copy Davebox's timing
 > where Davebox deviates from Move — the goal is to match native Move.
+
+### Quantization
+
+Quantization in Movy is a **value, not an action**. Every clip carries a
+strength from 0 to 100 %, applied as notes are played rather than by rewriting
+them, so the timing you recorded is never destroyed and you can dial it back at
+any time.
+
+- **0 %** — the take plays exactly as you played it.
+- **100 %** — every note lands dead on the step grid.
+- In between, notes are pulled toward the grid by that fraction. 60–80 % tightens
+  a take without flattening the feel out of it.
+
+**Shift + Step 16** cycles the current clip through **0 % → the set default →
+100 %**, and shows the choices for a moment. `DEF` marks the default:
+
+![Quantize overlay](docs/assets/quant-overlay-three.png)
+
+While the panel is up the **jog** picks between the same values, and **Back**
+closes it. Playing pads or entering steps does not disturb it. When the default
+is already 0 or 100 there are only two values to cycle.
+
+For anything other than those three, **QUANT** on the
+[Clip page](#clip-parameters--shift--step-3) sets the clip directly:
+
+![Clip quantize](docs/assets/clip-quant.png)
+
+**QUANT** on the [Set page](#set-parameters--shift--step-5--7--9) sets the
+**default** — the strength new clips are created with, so a take you record gets
+your preferred tightness immediately. Changing it never re-times clips that
+already exist; each clip owns its own value from the moment it is created.
+
+![Default quantize](docs/assets/main-quant.png)
+
+The default follows you into **new sets**, so it is a preference you set once
+rather than per project. Clips from sets made before this existed load at 0 %,
+so an older set sounds exactly as it always did.
+
+Notes entered on the step buttons are already on the grid, so quantization has
+no effect on programmed patterns — only on what you play in. **Swing is
+independent**: it applies at full strength whatever the quantization is.
 
 ### Step recording
 
@@ -773,6 +816,7 @@ In Track view, **Shift + Step 3** opens the **Clip** page for the active clip:
 | 1 | **SCALE** — the clip's musical scale. |
 | 2 | **LEN** — clip length in steps. |
 | 3 | **TRANS** — transpose. Reads `n/a` on a drum track (see below). |
+| 4 | **QUANT** — [quantization strength](#quantization) for this clip, 0–100 %. |
 
 (Clip parameters apply to a single clip, so this page is Track-view only.)
 
@@ -797,6 +841,7 @@ that already carried one from before a drum module was loaded onto the track.
 | 1 | **TEMPO** |
 | 2 | **SWING** |
 | 3 | **LINK** — Play/Stop propagation to Move |
+| 4 | **QUANT** — the [quantization](#quantization) new clips are created with |
 | 5 | **ROOT** — the tonic's pitch class |
 | 6 | **KEY** — scale |
 | 7 | **MODE** — Chromatic or In Key |
@@ -983,7 +1028,7 @@ behaviour you'd like — or, better, a PR.
 | **Shift + Step 6** | Toggle the **metronome**. |
 | **Shift + Step 10** | Toggle **full velocity**. |
 | **Shift + Step 15** | **Double** the loop. |
-| **Shift + Step 16** | **Quantize** the current track. |
+| **Shift + Step 16** | Cycle the current clip's **quantization** (0 / default / 100 %). |
 
 ---
 

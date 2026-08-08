@@ -38,7 +38,9 @@ const MOVE_PLAY_RELEASE_GAP: u64 = 2205;
 struct RecPending {
     pitch: u8,
     vel: u8,
-    start_tick: u32,
+    /// Signed: negative means the note began inside the count-in, that many
+    /// ticks before the recording start (see `Engine::preroll_offset`).
+    start_tick: i32,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1156,28 +1158,58 @@ impl Engine {
     /// Record a live pad note-on. The UI sounds the note directly (zero
     /// latency); this only captures it for recording, so there's no double
     /// trigger. No-op unless recording this track.
+    /// How far before the recording start a note played right now sits, if it
+    /// still belongs to the take. During the count-in `pos_tick` never advances
+    /// (all of `step_tick` is gated on it), so `count_in_left` IS that distance.
+    ///
+    /// Half a step is where `record_note` already puts the boundary between one
+    /// grid position and the next — this removes an artificial floor at zero
+    /// rather than inventing a rule, so time before the downbeat rounds like
+    /// time after it. At PPQN 96 that is ~62 ms at 120 BPM: wider than human
+    /// push, narrow enough not to swallow a deliberate pickup, and it scales
+    /// with tempo for free.
+    fn preroll_offset(&self) -> Option<i32> {
+        if self.count_in_left > 0 && self.count_in_left <= TICKS_PER_STEP / 2 {
+            Some(-(self.count_in_left as i32))
+        } else {
+            None
+        }
+    }
+
     pub fn live_note_on(&mut self, track: usize, pitch: u8, vel: u8) {
         self.capture_push(track, pitch, vel, true);
-        if track < NUM_TRACKS && self.recording && track == self.rec_track {
-            self.rec_pending.push(RecPending {
-                pitch,
-                vel,
-                start_tick: self.tracks[track].pos_tick,
-            });
+        if track >= NUM_TRACKS || track != self.rec_track {
+            return;
         }
+        // Gating on `recording` alone dropped the note you play a few
+        // milliseconds early on the count-in's last beat — not misplaced,
+        // lost outright, since nothing downstream could recover it.
+        let start_tick = if self.recording {
+            self.tracks[track].pos_tick as i32
+        } else if let Some(off) = self.preroll_offset() {
+            off
+        } else {
+            return;
+        };
+        self.rec_pending.push(RecPending { pitch, vel, start_tick });
     }
 
     /// Finalize a recorded note (start → now) into the clip on note-off,
     /// handling loop wrap. No-op unless recording this track.
     pub fn live_note_off(&mut self, track: usize, pitch: u8) {
         self.capture_push(track, pitch, 0, false);
-        if track >= NUM_TRACKS || !self.recording || track != self.rec_track {
+        if track >= NUM_TRACKS || track != self.rec_track {
+            return;
+        }
+        // Released inside the count-in, a note the pre-roll window accepted
+        // still has to resolve, or it stays pending for ever.
+        if !self.recording && self.preroll_offset().is_none() {
             return;
         }
         if let Some(idx) = self.rec_pending.iter().rposition(|p| p.pitch == pitch) {
             let p = self.rec_pending.swap_remove(idx);
-            let now = self.tracks[track].pos_tick;
-            let span = self.tracks[track].active().length_ticks().max(1);
+            let now = self.tracks[track].pos_tick as i32;
+            let span = self.tracks[track].active().length_ticks().max(1) as i32;
             let gate = if now >= p.start_tick {
                 now - p.start_tick
             } else {
@@ -1187,7 +1219,15 @@ impl Engine {
             // (which re-adds transpose at emit) reproduces exactly what the pad
             // played. Keeps recorded notes aligned with the untransposed pads.
             let stored = (pitch as i32 - self.active_clip_transpose(track)).clamp(0, 127) as u8;
-            self.tracks[track].active_mut().record_note(p.start_tick, gate.max(1), stored, p.vel);
+            // A pre-roll note anchors at the clip start: the push itself is not
+            // preserved (that would need notes stored before their anchor), but
+            // the gate keeps its true length from the signed start.
+            self.tracks[track].active_mut().record_note(
+                p.start_tick.max(0) as u32,
+                gate.max(1) as u32,
+                stored,
+                p.vel,
+            );
         }
     }
 
@@ -3797,6 +3837,68 @@ mod tests {
             }
         }
         panic!("note never fired (quant {quant})");
+    }
+
+    /// Arm recording and run the count-in down to `left` ticks remaining.
+    fn armed_with_count_in_left(left: u32) -> Engine {
+        let mut e = engine();
+        let mut out = Vec::new();
+        e.toggle_record(0);
+        assert!(e.count_in_left > 0, "recording should arm a count-in");
+        while e.count_in_left > left {
+            e.advance_block(8, &mut out);
+        }
+        e
+    }
+
+    #[test]
+    fn preroll_note_is_captured_at_the_clip_start() {
+        let mut e = armed_with_count_in_left(6);
+        let mut out = Vec::new();
+        e.live_note_on(0, 60, 100);
+        while e.count_in_left > 0 {
+            e.advance_block(8, &mut out);
+        }
+        e.live_note_off(0, 60);
+        let n = e.tracks[0].active().notes.iter().find(|n| n.pitch == 60);
+        assert!(n.is_some(), "a note played inside the count-in must be recorded");
+        assert_eq!(n.unwrap().step, 0);
+        assert_eq!(n.unwrap().tick, 0);
+    }
+
+    #[test]
+    fn preroll_gate_spans_the_count_in() {
+        let mut e = armed_with_count_in_left(6);
+        let mut out = Vec::new();
+        e.live_note_on(0, 60, 100);
+        while e.count_in_left > 0 {
+            e.advance_block(8, &mut out);
+        }
+        let target = e.tracks[0].pos_tick + 10;
+        while e.tracks[0].pos_tick < target {
+            e.advance_block(8, &mut out);
+        }
+        e.live_note_off(0, 60);
+        let n = *e.tracks[0].active().notes.iter().find(|n| n.pitch == 60).unwrap();
+        assert!(n.gate >= 16, "gate {} should span the pre-roll too", n.gate);
+    }
+
+    #[test]
+    fn preroll_note_released_before_recording_still_records() {
+        let mut e = armed_with_count_in_left(8);
+        e.live_note_on(0, 62, 100);
+        e.live_note_off(0, 62);
+        assert!(e.tracks[0].active().notes.iter().any(|n| n.pitch == 62));
+    }
+
+    #[test]
+    fn note_earlier_than_half_a_step_is_ignored() {
+        // Beyond half a step it belongs to a different grid position, which is
+        // exactly where record_note's own rounding boundary sits.
+        let mut e = armed_with_count_in_left(TICKS_PER_STEP);
+        e.live_note_on(0, 64, 100);
+        e.live_note_off(0, 64);
+        assert!(!e.tracks[0].active().notes.iter().any(|n| n.pitch == 64));
     }
 
     #[test]

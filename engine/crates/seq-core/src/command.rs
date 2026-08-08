@@ -15,6 +15,11 @@ pub fn apply_batch(engine: &mut Engine, batch: &str, out: &mut Vec<OutEvent>) {
         if !op.is_empty() {
             let verb = op.split(' ').next().unwrap_or("");
             apply_op(engine, op, out);
+            /* An op may have created or cleared a clip, or moved the default
+             * itself. Re-seeding here (rather than at each creation site) keeps
+             * `dq 60; tog …` in one batch correct: the new clip is born with
+             * 60, because the seed lands between the two ops. */
+            engine.reseed_empty_clips();
             /* A UI command may have changed saved state — except the undo ring
              * ops, which only read it. Marking dirty for `usnap` would make
              * every knob touch schedule an autosave that then finds nothing to
@@ -59,9 +64,9 @@ fn clears_capture(verb: &str) -> bool {
         "rec"
         // step entry and note editing
         | "tog" | "addp" | "del" | "evel" | "elen" | "enudge" | "etrn" | "slen"
-        | "eprob" | "econd" | "einv" | "quant"
+        | "eprob" | "econd" | "einv"
         // clip shape and clip-level edits
-        | "clen" | "cscl" | "ctr" | "dbl" | "loop" | "ltog"
+        | "clen" | "cscl" | "ctr" | "cq" | "dbl" | "loop" | "ltog"
         | "cpy" | "cpyclr" | "pst"
         // whole-clip and session gestures
         | "clipcopy" | "clipdel" | "clipdelat" | "clipdup" | "clippaste"
@@ -99,9 +104,9 @@ pub fn is_undoable_edit(verb: &str) -> bool {
         verb,
         // step entry and note editing
         "tog" | "addp" | "del" | "evel" | "elen" | "enudge" | "etrn" | "slen"
-        | "eprob" | "econd" | "einv" | "quant"
+        | "eprob" | "econd" | "einv"
         // clip shape and clip-level edits
-        | "clen" | "cscl" | "ctr" | "dbl" | "loop" | "ltog" | "pst"
+        | "clen" | "cscl" | "ctr" | "cq" | "dbl" | "loop" | "ltog" | "pst"
         // whole-clip gestures
         | "clipdel" | "clipdelat" | "clipdup" | "clippaste"
         // automation edits
@@ -132,6 +137,10 @@ pub fn is_control_verb(verb: &str) -> bool {
         | "non" | "nof"
         // automation bookkeeping (not gestures — see is_undoable_edit)
         | "abase" | "abaseq" | "alabel"
+        // `dq` applies a setting the UI owns and persists (ui-state.ts), so
+        // the undo entry is recorded UI-side. An engine snapshot could not
+        // restore it — the default is not in the engine's own blob.
+        | "dq"
         // retroactive capture bookkeeping (the edits are in is_undoable_edit)
         | "capclr" | "capdone"
         // undo machinery
@@ -368,10 +377,18 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 engine.set_metronome(v != 0);
             }
         }
-        // quant <t> — quantize the active clip to the grid.
-        "quant" => {
-            if let Some(t) = next() {
-                engine.quantize_active(t as usize);
+        // cq <t> <pct> — active clip quantization strength (non-destructive).
+        "cq" => {
+            if let (Some(t), Some(v)) = (next(), next()) {
+                if (t as usize) < NUM_TRACKS {
+                    engine.tracks[t as usize].active_mut().quant = v.clamp(0, 100) as u8;
+                }
+            }
+        }
+        // dq <pct> — set default, stamped onto clips created from here on.
+        "dq" => {
+            if let Some(v) = next() {
+                engine.default_quant = v.clamp(0, 100) as u8;
             }
         }
         // non/nof <t> <pitch> [vel] — live pad note for recording capture.
@@ -616,6 +633,49 @@ mod tests {
 
     fn engine() -> Engine {
         Engine::new(44100, 12000)
+    }
+
+    #[test]
+    fn cq_sets_active_clip_quantization() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        apply_batch(&mut e, "cq 0 70", &mut out);
+        assert_eq!(e.tracks[0].active().quant, 70);
+        apply_batch(&mut e, "cq 0 250", &mut out);
+        assert_eq!(e.tracks[0].active().quant, 100, "clamped");
+    }
+
+    #[test]
+    fn new_clip_inherits_default_quant() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "dq 60", &mut out);
+        e.tracks[0].clips[3].toggle_step(0, &[(60, 100)]);
+        assert_eq!(e.tracks[0].clips[3].quant, 60);
+    }
+
+    #[test]
+    fn default_change_does_not_retime_existing_clips() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "dq 40", &mut out);
+        e.tracks[0].clips[0].toggle_step(0, &[(60, 100)]);
+        apply_batch(&mut e, "dq 90", &mut out);
+        assert_eq!(e.tracks[0].clips[0].quant, 40, "clips own a copy, not a link");
+        e.tracks[0].clips[1].toggle_step(0, &[(60, 100)]);
+        assert_eq!(e.tracks[0].clips[1].quant, 90);
+    }
+
+    #[test]
+    fn cleared_slot_reseeds_to_the_current_default() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "dq 30", &mut out);
+        e.tracks[0].clips[0].toggle_step(0, &[(60, 100)]);
+        apply_batch(&mut e, "dq 80;clipdel 0 0", &mut out);
+        e.tracks[0].clips[0].toggle_step(0, &[(60, 100)]);
+        assert_eq!(e.tracks[0].clips[0].quant, 80);
     }
 
     #[test]

@@ -77,6 +77,10 @@ pub struct Engine {
     /// Count-in ticks remaining before capture begins (0 = not counting in).
     count_in_left: u32,
     pub metronome: bool,
+    /// Set-level quantization stamped onto clips as they are created. Held in
+    /// every EMPTY clip too (see `reseed_empty_clips`), so a clip is born with
+    /// the right value and no creation path has to know about the default.
+    pub default_quant: u8,
     rec_pending: Vec<RecPending>,
     /// Retroactive capture input (Move manual §14.3). Runtime-only.
     capture: CaptureRing,
@@ -199,6 +203,7 @@ impl Engine {
             rec_empty_start: false,
             count_in_left: 0,
             metronome: false,
+            default_quant: 0,
             rec_pending: Vec::new(),
             capture: CaptureRing::new(),
             capture_gen: 0,
@@ -706,10 +711,18 @@ impl Engine {
         self.metronome = on;
     }
 
-    /// Quantize the watched track's active clip to the step grid.
-    pub fn quantize_active(&mut self, track: usize) {
-        if track < NUM_TRACKS {
-            self.tracks[track].active_mut().quantize();
+    /// Push the set default into every slot that holds no clip yet, so a clip
+    /// is born already carrying it. Cheap (32 checks) and idempotent, which is
+    /// why it can simply run after every command rather than being threaded
+    /// through `ensure_exists` and the four `Clip` methods that reach it.
+    pub fn reseed_empty_clips(&mut self) {
+        let q = self.default_quant;
+        for t in &mut self.tracks {
+            for c in &mut t.clips {
+                if !c.exists() {
+                    c.quant = q;
+                }
+            }
         }
     }
 
@@ -1872,7 +1885,7 @@ impl Engine {
         let htp = self.held_trig();
         let hlmax = self.held_max_gate();
         format!(
-            "play={} tick={} bpm={} ext={} link={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={} cap={}.{}",
+            "play={} tick={} bpm={} ext={} link={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={} quant={} dquant={} cap={}.{}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -1908,6 +1921,8 @@ impl Engine {
             clip.scale_num,
             clip.scale_den,
             clip.transpose,
+            clip.quant,
+            self.default_quant,
             self.capture.pending(self.watch_track as u8),
             self.capture_gen,
         )
@@ -3399,7 +3414,7 @@ mod tests {
         // old notes into a clip that has since been edited by hand.
         let mut out = Vec::new();
         for op in [
-            "rec 0", "tog 0 0 60 100", "del 0 0 15 -1", "quant 0", "clen 0 32",
+            "rec 0", "tog 0 0 60 100", "del 0 0 15 -1", "cq 0 100", "clen 0 32",
             "dbl 0", "clipdel 0 0", "launch 0 1", "evel 0 0 0 -1 5", "aset 0 0 64",
         ] {
             let mut e = engine();
@@ -3497,23 +3512,6 @@ mod tests {
         assert!(e.recording);
         e.toggle_record(0);
         assert!(!e.recording);
-    }
-
-    #[test]
-    fn quantize_snaps_notes_to_grid() {
-        let mut e = engine();
-        let mut out = Vec::new();
-        // Place a note then nudge it off-grid.
-        e.tracks[0].active_mut().toggle_step(2, &[(60, 100)]);
-        e.tracks[0].active_mut().nudge(2, 2, None, 7);
-        assert_ne!(e.tracks[0].active().notes[0].tick % TICKS_PER_STEP, 0);
-        apply_quant(&mut e, &mut out);
-        assert_eq!(e.tracks[0].active().notes[0].tick % TICKS_PER_STEP, 0);
-        assert_eq!(e.tracks[0].active().notes[0].step, 2);
-    }
-
-    fn apply_quant(e: &mut Engine, _out: &mut Vec<OutEvent>) {
-        e.quantize_active(0);
     }
 
     #[test]

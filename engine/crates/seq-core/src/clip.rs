@@ -399,16 +399,6 @@ impl Clip {
         }
     }
 
-    /// Quantize every note's start to the nearest step (Shift+Step 16, full
-    /// strength for v1).
-    pub fn quantize(&mut self) {
-        for n in &mut self.notes {
-            let step = (n.tick + TICKS_PER_STEP / 2) / TICKS_PER_STEP;
-            n.tick = step * TICKS_PER_STEP;
-            n.step = step as u16;
-        }
-    }
-
     /// Melodic step toggle: a step containing any notes is cleared; an empty
     /// step gets the given pitches (a chord) placed with a one-step gate.
     /// Returns true if notes were added (relevant for transport auto-start).

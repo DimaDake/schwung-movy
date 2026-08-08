@@ -7,6 +7,9 @@ import { keyboardState, OCT_MIN, OCT_MAX } from '../keyboard/state.js';
 import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
 import { SCALES } from './scales.js';
 import { mutesSnapshot, restoreMutes, resetTrackMutes } from '../mixer/track-mutes.js';
+import { seqState } from './state.js';
+import { seqCmd } from './engine.js';
+import { readPrefDefaultQuant } from './prefs.js';
 
 const clampInt = (v: unknown, lo: number, hi: number, dflt: number): number =>
     typeof v === 'number' && isFinite(v) ? Math.max(lo, Math.min(hi, v | 0)) : dflt;
@@ -23,6 +26,7 @@ export function serializeUiState(): string {
         layout: keyboardState.layout,
         oct:    keyboardState.octave.slice(),
         mutes:  mutesSnapshot(),
+        defaultQuant: seqState.defaultQuant,
     });
 }
 
@@ -46,7 +50,20 @@ export function applyUiState(blob: string): void {
         keyboardState.mode   = clampInt(o.mode,   0, MODE_NAMES.length - 1, 0);
         keyboardState.layout = clampInt(o.layout, 0, layoutNames(keyboardState.mode).length - 1, 0);
         if (o.mutes) restoreMutes(o.mutes);
+        /* Absent = a set written before this feature, or a brand new one. Both
+         * adopt the machine default rather than snapping to zero — that is the
+         * whole point of keeping it outside the set. */
+        applyDefaultQuant(typeof o.defaultQuant === 'number'
+            ? clampInt(o.defaultQuant, 0, 100, readPrefDefaultQuant())
+            : readPrefDefaultQuant());
     } catch { /* corrupt file → keep defaults */ }
+}
+
+/* The engine needs the default to stamp clips as they are created, so every
+ * path that resolves it also pushes it. */
+function applyDefaultQuant(pct: number): void {
+    seqState.defaultQuant = pct;
+    seqCmd('dq ' + pct);
 }
 
 /* Defaults match init(): C tonic, Major, Chromatic/4ths, C3 on every track. */
@@ -57,4 +74,5 @@ export function resetUiState(): void {
     keyboardState.layout = 0;
     for (let t = 0; t < 4; t++) keyboardState.octave[t] = 4;
     resetTrackMutes();
+    applyDefaultQuant(readPrefDefaultQuant());
 }

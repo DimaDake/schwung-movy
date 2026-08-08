@@ -22,8 +22,9 @@ import { captureButton, captureClear } from './capture.js';
 import { redoOnce, undoOnce } from '../undo/apply.js';
 import { showUndoToast } from '../undo/toast.js';
 import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
-import { undoableEdit } from '../undo/edit.js';
+import { undoableEdit, beginGesture } from '../undo/edit.js';
 import { trackLabel } from '../undo/label.js';
+import { nextQuantCandidate } from './quant.js';
 
 const CC_MUTE = 88;
 const CC_CAPTURE = 52;
@@ -364,10 +365,20 @@ function shiftStepFunction(step: number): void {
         seqCmd('metro ' + (seqState.metro ? 0 : 1));
         seqToast(seqState.metro ? 'Metronome Off' : 'Metronome On');
     } else if (step === STEP_QUANTIZE) {
-        undoableEdit('QUANTIZE', trackLabel(seqState.watchTrack),
-            () => seqCmd('quant ' + seqState.watchTrack));
-        seqToast('Quantized');
+        cycleQuantize();
     }
+}
+
+/* Shift+Step 16: advance the watched clip's quantization to the next candidate
+ * (0 / set default / 100) and show the panel. One gesture key for the whole
+ * audition, so pressing through 0 -> 70 -> 100 is a single undo back to where
+ * you started rather than three; the panel is the feedback, so no toast. */
+function cycleQuantize(): void {
+    const track = seqState.watchTrack;
+    const next = nextQuantCandidate(seqState.clipQuant, seqState.defaultQuant);
+    beginGesture('quant:' + track, 'CLIP QUANT', trackLabel(track));
+    seqState.clipQuant = next;
+    seqCmd('cq ' + track + ' ' + next);
 }
 
 function navigateBar(delta: number): void {

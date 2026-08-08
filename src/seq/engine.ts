@@ -218,6 +218,8 @@ function parseStatus(s: string): void {
             seqState.clipScaleIdx = rationalToIdx(n || 1, d || 1);
         }
         else if (key === 'ctr') seqState.clipTranspose = Number(val) || 0;
+        else if (key === 'quant') seqState.clipQuant = Number(val) || 0;
+        else if (key === 'dquant') seqState.defaultQuant = Number(val) || 0;
         else if (key === 'rec') seqState.recording = val === '1';
         else if (key === 'cin') seqState.countingIn = val === '1';
         else if (key === 'cap') {

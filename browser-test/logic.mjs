@@ -33,6 +33,9 @@ import { keyboardState } from '../dist/esm/keyboard/state.js';
 import {
     quantCandidates, nextQuantCandidate, quantIndexForPct, candidateIndex,
 } from '../dist/esm/seq/quant.js';
+import {
+    readPrefDefaultQuant, writePrefDefaultQuant, PREFS_PATH, FACTORY_DEFAULT_QUANT,
+} from '../dist/esm/seq/prefs.js';
 import { installMockEngine, uninstallMockEngine } from './mock-engine.mjs';
 import {
     pushEntry, popUndo, pushRedo, canUndo, canRedo, undoDepth, retractEntry, peekUndo,
@@ -2803,7 +2806,7 @@ _log('\nTest: drumPadOn');
     eq('Shift+Step6 toggles metronome', lastOp(), 'metro 1');
     seqHandleMidi([0x90, 16 + 15, 127], true);
     seqEngineTick();
-    eq('Shift+Step16 quantizes', lastOp(), 'quant 0');
+    eq('Shift+Step16 cycles quantization', lastOp(), 'cq 0 100');
 
     // Live pad notes forward non/nof for recording capture.
     reset(); seqEngineTick();
@@ -9449,6 +9452,34 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 
     resetUndoState(); resetUndoGroups(); resetTrackMutes(); resetSt(); resetSeqEngine();
     uninstallMockEngine();
+}
+
+/* ── Quantization: machine-level prefs ────────────────────────────────────── */
+{
+    _log('\nQuantization prefs');
+
+    let fs = installMockFs();
+    eq('missing prefs fall back to the factory default',
+        readPrefDefaultQuant(), FACTORY_DEFAULT_QUANT);
+
+    writePrefDefaultQuant(70);
+    eq('prefs round-trip', readPrefDefaultQuant(), 70);
+
+    uninstallMockFs();
+    fs = installMockFs({ [PREFS_PATH]: '{not json' });
+    eq('corrupt prefs fall back to the factory default',
+        readPrefDefaultQuant(), FACTORY_DEFAULT_QUANT);
+
+    uninstallMockFs();
+    fs = installMockFs({ [PREFS_PATH]: JSON.stringify({ defaultQuant: 999 }) });
+    eq('out-of-range prefs are clamped', readPrefDefaultQuant(), 100);
+
+    uninstallMockFs();
+    fs = installMockFs();
+    fs.failWrites = true;
+    writePrefDefaultQuant(40);   // must not throw; the value is simply not durable
+    ok('a failed prefs write is survivable');
+    uninstallMockFs();
 }
 
 /* ── Quantization: value list and the Shift+Step 16 cycle ─────────────────── */

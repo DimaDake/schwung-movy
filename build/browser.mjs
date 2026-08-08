@@ -125,6 +125,7 @@ await esbuild.build({
         resolve(root, 'src/seq/clip-page-vm.ts'),
         resolve(root, 'src/seq/drum-sync.ts'),
         resolve(root, 'src/seq/quant.ts'),
+        resolve(root, 'src/seq/prefs.ts'),
     ],
     bundle:    true,
     splitting: true,

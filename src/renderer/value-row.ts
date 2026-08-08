@@ -11,7 +11,9 @@ import { fontPrintBig, fontWidthBig, BIG_FONT_HEIGHT } from '../font/big.js';
 import { W } from './layout.js';
 
 const GUTTER = 10;
-const BOX_PAD = 2;
+/** How far the selection box overhangs its glyphs, on every side. Callers that
+ *  stack something under the row need it to clear the box, not the text. */
+export const SEL_BOX_PAD = 2;
 
 export interface RowSeparator {
     width: number;
@@ -24,13 +26,16 @@ export interface ValueRowLayout {
     widths: number[];
 }
 
+/** `regionX`/`regionW` bound the area the row is centred in — a panel's
+ *  interior, or the whole screen by default. */
 export function drawValueRow(
     values: string[], selIdx: number, y: number, sep?: RowSeparator,
+    regionX = 0, regionW = W,
 ): ValueRowLayout {
     const widths = values.map(fontWidthBig);
     const sepW = sep ? sep.width + GUTTER : 0;
     const total = widths.reduce((a, b) => a + b, 0) + GUTTER * (widths.length - 1) + sepW;
-    let x = Math.max(0, Math.floor((W - total) / 2));
+    let x = regionX + Math.max(0, Math.floor((regionW - total) / 2));
 
     const slotX: number[] = [];
     for (let i = 0; i < values.length; i++) {
@@ -41,8 +46,8 @@ export function drawValueRow(
         slotX.push(x);
         if (i === selIdx) {
             // Solid box, digits knocked out — the same inversion the header uses.
-            fill_rect(x - BOX_PAD, y - BOX_PAD,
-                      widths[i] + BOX_PAD * 2, BIG_FONT_HEIGHT + BOX_PAD * 2, 1);
+            fill_rect(x - SEL_BOX_PAD, y - SEL_BOX_PAD,
+                      widths[i] + SEL_BOX_PAD * 2, BIG_FONT_HEIGHT + SEL_BOX_PAD * 2, 1);
             fontPrintBig(x, y, values[i], 0);
         } else {
             fontPrintBig(x, y, values[i], 1);

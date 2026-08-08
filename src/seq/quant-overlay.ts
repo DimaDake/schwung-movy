@@ -119,6 +119,8 @@ export function quantOverlayAction(data: number[], shiftHeld: boolean): QuantOve
 }
 
 export interface QuantOverlayVM {
+    /** Track the panel is editing — it names the clip in the title. */
+    track: number;
     values: string[];
     selIdx: number;
     /** Index of the set default, or -1 when it coincides with an end. */
@@ -129,6 +131,7 @@ export function buildQuantOverlayVM(): QuantOverlayVM {
     const cands = quantCandidates(seqState.defaultQuant);
     const d = Math.max(0, Math.min(100, Math.round(seqState.defaultQuant)));
     return {
+        track: seqState.watchTrack,
         values: cands.map((v) => v + '%'),
         selIdx: candidateIndex(seqState.clipQuant, seqState.defaultQuant),
         defIdx: d === 0 || d === 100 ? -1 : cands.indexOf(d),

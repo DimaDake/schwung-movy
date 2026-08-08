@@ -6,7 +6,7 @@
 import { seqState } from './state.js';
 import { beginGesture } from '../undo/edit.js';
 import { recordUiOp } from '../undo/record.js';
-import { readUiField } from '../undo/ui-fields.js';
+import { readUiField, writeUiField } from '../undo/ui-fields.js';
 import { endEdit } from '../undo/group.js';
 import { seqCmd } from './engine.js';
 import { scheduleTempoOverride } from './tempo-override.js';
@@ -15,6 +15,7 @@ import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
 import { keyboardState } from '../keyboard/state.js';
 import { setRootPc } from '../keyboard/handler.js';
 import { countDetents } from './detent.js';
+import { QUANT_VALUES, quantIndexForPct } from './quant.js';
 import { markUiStateDirty } from './ui-dirty.js';
 
 const BPM_MIN_X100 = 2000, BPM_MAX_X100 = 30000;
@@ -22,10 +23,12 @@ const SWING_MIN = 50, SWING_MAX = 80;
 
 /* Knob map: 0 TEMPO, 1 SWING, 2 LINK, 3 unused, 4 ROOT, 5 KEY, 6 MODE,
  * 7 LAYOUT — the four musical params share the bottom row. */
-const K_TEMPO = 0, K_SWING = 1, K_LINK = 2, K_ROOT = 4, K_KEY = 5, K_MODE = 6, K_LAYOUT = 7;
+const K_TEMPO = 0, K_SWING = 1, K_LINK = 2, K_QUANT = 3;
+const K_ROOT = 4, K_KEY = 5, K_MODE = 6, K_LAYOUT = 7;
 /* Toast verbs, indexed by knob slot. */
 const KNOB_VERBS: Record<number, string> = {
-    [K_TEMPO]: 'TEMPO', [K_SWING]: 'SWING', [K_ROOT]: 'ROOT', [K_KEY]: 'KEY',
+    [K_TEMPO]: 'TEMPO', [K_SWING]: 'SWING', [K_QUANT]: 'DEFAULT QUANT',
+    [K_ROOT]: 'ROOT', [K_KEY]: 'KEY',
 };
 
 const OVERLAY_KNOBS = [K_KEY, K_MODE, K_LAYOUT];
@@ -132,6 +135,17 @@ export function mainPageKnob(k: number, delta: number): void {
             seqState.linkEnabled = on;
             seqCmd('link ' + (on ? 1 : 0));
             markUiStateDirty();
+        }
+    } else if (k === K_QUANT) {
+        /* Goes through writeUiField so the three places the default lives —
+         * seqState, the engine (which stamps new clips) and prefs.json (which
+         * carries it into the next new set) — can never drift apart. */
+        const before = readUiField('defaultQuant');
+        const i = Math.max(0, Math.min(QUANT_VALUES.length - 1,
+            quantIndexForPct(seqState.defaultQuant) + n));
+        if (QUANT_VALUES[i] !== seqState.defaultQuant) {
+            writeUiField('defaultQuant', String(QUANT_VALUES[i]));
+            recordUiOp('defaultQuant', before, readUiField('defaultQuant'));
         }
     } else if (k === K_ROOT) {
         // Cycles the pitch class, wrapping B↔C; the +/- buttons own the octave.

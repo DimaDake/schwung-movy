@@ -47,7 +47,8 @@ const PRESETS = [
     'main-default', 'main-tempo-touched', 'main-swing-touched',
     'main-root-touched', 'main-key-overlay', 'main-mode-overlay', 'main-layout-overlay',
     'main-ext-sync', 'main-link-on',
-    'clip-default', 'clip-fraction', 'clip-overlay', 'clip-drum',
+    'clip-default', 'clip-fraction', 'clip-overlay', 'clip-drum', 'clip-quant',
+    'main-quant',
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
     'filter_slope24', 'filter_dual', 'filter_open',
@@ -82,7 +83,7 @@ const BASE = {
     'main-layout-overlay': 'test8',
     'main-ext-sync': 'test8', 'main-link-on': 'test8',
     'clip-default': 'test8', 'clip-fraction': 'test8', 'clip-overlay': 'test8',
-    'clip-drum': 'test8',
+    'clip-drum': 'test8', 'clip-quant': 'test8',
     trigger_armed: 'triggers', trigger_fired: 'triggers',
     trigger_blink_off: 'triggers', trigger_touched: 'triggers',
     trigger_cooling: 'triggers', trigger_cooling_low: 'triggers',
@@ -395,6 +396,17 @@ function applyView(preset) {
             lastRender();
             break;
         }
+        case 'main-quant': {         // set default quantization at 70%
+            resetSeqState(); resetMainPage();
+            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
+            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
+            seqState.bpmX100 = 12000; seqState.swingPct = 50;
+            seqState.defaultQuant = 70;
+            mainPageState.touchedKnob = 3;
+            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
+            lastRender();
+            break;
+        }
         case 'main-default': {
             resetSeqState(); resetMainPage();
             keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
@@ -498,6 +510,17 @@ function applyView(preset) {
             const vm = undoToastVM(
                 { ok: true, verb: 'CLIP LENGTH', target: 'T1', detail: '16 -> 9' }, false);
             lastRender = () => { renderKnobsView(buildClipPageVM(), false, 0); drawUndoOverlay(vm); };
+            lastRender();
+            break;
+        }
+        /* QUANT dialled off both ends of its list, with its toast up: proves the
+         * enum index and the '%' display, which a 0% cell cannot. */
+        case 'clip-quant': {
+            resetSeqState(); resetClipPage();
+            seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
+            seqState.clipQuant = 70;
+            clipPageState.touchedKnob = 3;
+            lastRender = () => renderKnobsView(buildClipPageVM(), false, 0);
             lastRender();
             break;
         }

@@ -1,4 +1,5 @@
-/* Clip Parameters page: per-clip Scale / Length / Transpose on knobs 0-2,
+/* Clip Parameters page: per-clip Scale / Length / Transpose / Quantize on
+ * knobs 0-3,
  * opened with Shift+Step 3 in Track view, closed with Back or a Session-view
  * switch. Mirrors main-page.ts; rendering reads clip-page-vm. Edits the active
  * track's playing clip via engine commands; seqState mirrors the values. */
@@ -12,19 +13,22 @@ import { trackIsDrum } from '../app/state.js';
 import { countDetents } from './detent.js';
 import { MAX_STEPS } from './constants.js';
 import { SCALE_RATIONALS, SCALE_DEFAULT_IDX } from './clip-scale.js';
+import { QUANT_VALUES, quantIndexForPct } from './quant.js';
 
 const TRANSPOSE_MIN = -36, TRANSPOSE_MAX = 36;
 
 /* One undo per knob: the key carries the knob, so turning LENGTH after
  * TRANSPOSE closes the first group instead of joining it, and each release
  * commits its own entry. */
-const KNOB_VERBS: Record<number, string> = { 0: 'CLIP SCALE', 1: 'CLIP LENGTH', 2: 'TRANSPOSE' };
+const KNOB_VERBS: Record<number, string> = {
+    0: 'CLIP SCALE', 1: 'CLIP LENGTH', 2: 'TRANSPOSE', 3: 'CLIP QUANT',
+};
 const gestureKey = (k: number, track: number) => 'clip:' + track + ':' + k;
 
 export const clipPageState = {
     active: false,
     origin: 0,                          // view to restore on Back
-    touchedKnob: -1,                    // 0..2 drives the top toast; -1 none
+    touchedKnob: -1,                    // 0..3 drives the top toast; -1 none
     scaleOverlay: false,                // SCALE list open (knob 0 held)
     scaleSel: SCALE_DEFAULT_IDX,        // highlighted scale while the list is open
 };
@@ -98,6 +102,11 @@ export function clipPageKnob(k: number, delta: number, track: number): void {
         // (`tdrum`); the knob refuses to set a value that could never apply.
         const next = Math.max(TRANSPOSE_MIN, Math.min(TRANSPOSE_MAX, seqState.clipTranspose + n));
         if (next !== seqState.clipTranspose) { seqState.clipTranspose = next; seqCmd('ctr ' + track + ' ' + next); }
+    } else if (k === 3) {
+        const i = Math.max(0, Math.min(QUANT_VALUES.length - 1,
+            quantIndexForPct(seqState.clipQuant) + n));
+        const next = QUANT_VALUES[i];
+        if (next !== seqState.clipQuant) { seqState.clipQuant = next; seqCmd('cq ' + track + ' ' + next); }
     }
 }
 

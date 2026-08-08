@@ -5297,11 +5297,11 @@ _log('\nautomation label sync:');
     keyboardState.mode = 0; keyboardState.layout = 0;
     mainPageState.active = true; mainPageState.touchedKnob = 0;
     let vm = buildMainPageVM();
-    // Row 0: TEMPO SWING LINK -, row 1: ROOT KEY MODE LAYOUT.
+    // Row 0: TEMPO SWING LINK QUANT, row 1: ROOT KEY MODE LAYOUT.
     eq('tempo cell shows 120', vm.rows[0][0].displayValue, '120');
     eq('swing cell shows 50%', vm.rows[0][1].displayValue, '50%');
     eq('link cell shows OFF', vm.rows[0][2].displayValue, 'OFF');
-    eq('row 0 slot 3 is empty', vm.rows[0][3], null);
+    eq('quant cell shows the default', vm.rows[0][3].displayValue, '0%');
     eq('root cell shows C', vm.rows[1][0].displayValue, 'C');
     eq('key cell shows Major', vm.rows[1][1].displayValue, 'Major');
     eq('mode cell shows Chromatic', vm.rows[1][2].displayValue, 'Chromatic');

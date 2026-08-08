@@ -172,7 +172,7 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         if (clipPageActive()) {
-            if (d1 < 3) {
+            if (d1 < 4) {
                 if (d2 > 0) clipPageTouch(d1, true);
                 else clipPageRelease(d1, appState.activeSlot);
             }
@@ -286,7 +286,7 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         if (clipPageActive()) {
-            if (k < 3) { clipPageKnob(k, delta, appState.activeSlot); appState.dirty = true; }
+            if (k < 4) { clipPageKnob(k, delta, appState.activeSlot); appState.dirty = true; }
             return;
         }
         // Step page owns the knobs while it is selected (intrinsic trig props,

@@ -1,4 +1,4 @@
-/* Builds the Main Params page ViewModel. Row 0 is TEMPO / SWING / LINK, row 1
+/* Builds the Main Params page ViewModel. Row 0 is TEMPO / SWING / LINK / QUANT, row 1
  * ROOT / KEY / MODE / LAYOUT. Big-font 'preset' cells for tempo/swing/root; key,
  * mode and layout are enums that open the scrollable overlay. Mirrors
  * step-page-vm's cell/toast conventions. */
@@ -11,6 +11,7 @@ import { keyboardState } from '../keyboard/state.js';
 import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
 import { SCALE_NAMES } from './scales.js';
 import { midiNoteName } from '../keyboard/notes.js';
+import { QUANT_LABELS, quantIndexForPct } from './quant.js';
 
 /* Tonic name without the octave suffix — midiNoteName(0) is 'C-1'. */
 function rootName(): string {
@@ -46,6 +47,14 @@ export function buildMainPageVM(): ViewModel {
         shortName: 'LINK', fullName: 'Play Link', renderStyle: 'hbar',
         displayValue: linkOn ? 'ON' : 'OFF', normalizedValue: linkOn ? 1 : 0,
     });
+    // Knob 3: the quantization new clips are born with. Same enum-square
+    // treatment as the step page's PROB cell.
+    const dq = seqState.defaultQuant;
+    const quant = cell({
+        shortName: 'QUANT', fullName: 'Default Quantize', type: 'enum',
+        options: QUANT_LABELS, enumIndex: quantIndexForPct(dq),
+        displayValue: dq + '%', normalizedValue: clamp01(dq / 100),
+    });
     const root = cell({
         shortName: 'ROOT', fullName: 'Root', renderStyle: 'preset',
         displayValue: rootName(), normalizedValue: keyboardState.rootPc / 11,
@@ -71,9 +80,9 @@ export function buildMainPageVM(): ViewModel {
         normalizedValue: lNames.length > 1 ? li / (lNames.length - 1) : 0,
     });
 
-    // Knob-indexed, not cell-order-indexed: knob 3 is empty, so the toast must
-    // not slide the bottom row up by one.
-    const cells = [tempo, sw, link, null, root, key, mode, layout];
+    // Knob-indexed, not cell-order-indexed, so the toast always names the knob
+    // that was touched rather than a neighbour.
+    const cells = [tempo, sw, link, quant, root, key, mode, layout];
     const tk = mainPageState.touchedKnob;
     const touched = tk >= 0 && tk < cells.length ? cells[tk] : null;
     let toast = null;
@@ -98,7 +107,7 @@ export function buildMainPageVM(): ViewModel {
     return {
         moduleName: 'SET PARAMETERS', headerOverride: 'SET PARAMETERS',
         bankName: '', bankIndex: 0, bankCount: 1,
-        rows: [[tempo, sw, link, null], [root, key, mode, layout]],
+        rows: [[tempo, sw, link, quant], [root, key, mode, layout]],
         touchedSlot: null, toast, overlay, isEmpty: false,
         drumPadCount: 0, drumCurrentPad: 0, drumCurrentPhysPad: 0, isPadSpecific: false,
         automationHeld: false, automationPoolFull: false,

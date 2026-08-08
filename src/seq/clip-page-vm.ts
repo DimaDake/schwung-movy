@@ -1,6 +1,7 @@
 /* Builds the Clip Params page ViewModel. Knob 0 SCALE (len-style box +
  * scrollable overlay), 1 LENGTH (big preset, 'N steps' toast), 2 TRANSPOSE
- * (big preset signed, '±N ct' toast). Mirrors main-page-vm conventions. */
+ * (big preset signed, '±N ct' toast), 3 QUANT (enum square, '%' toast).
+ * Mirrors main-page-vm conventions. */
 
 import type { ViewModel } from '../types/viewmodel.js';
 import { paramCell as cell } from './param-vm.js';
@@ -9,6 +10,7 @@ import { seqState } from './state.js';
 import { appState, trackIsDrum } from '../app/state.js';
 import { MAX_STEPS } from './constants.js';
 import { SCALE_LABELS, SCALE_RATIONALS, scaleCellText, scaleToastText } from './clip-scale.js';
+import { QUANT_LABELS, quantIndexForPct } from './quant.js';
 
 const clamp01 = (x: number): number => Math.max(0, Math.min(1, x));
 
@@ -40,13 +42,23 @@ export function buildClipPageVM(): ViewModel {
         normalizedValue: isDrum ? 0 : clamp01((tr + 36) / 72),
     });
 
-    const cells = [scale, length, transpose];
+    // Same enum-square treatment as the step page's PROB cell — a percentage
+    // picked off a fixed list.
+    const q = seqState.clipQuant;
+    const quant = cell({
+        shortName: 'QUANT', fullName: 'Clip Quantize', type: 'enum',
+        options: QUANT_LABELS, enumIndex: quantIndexForPct(q),
+        displayValue: q + '%', normalizedValue: clamp01(q / 100),
+    });
+
+    const cells = [scale, length, transpose, quant];
     const tk = clipPageState.touchedKnob;
     let toast = null;
     if (tk >= 0 && tk < cells.length) {
         cells[tk].touched = true;
         const value = tk === 0 ? scaleToastText(sIdx)
             : tk === 1 ? len + ' steps'
+            : tk === 3 ? q + '%'
             : isDrum ? 'n/a on drums'
             : (tr >= 0 ? '+' + tr : String(tr)) + ' ct';
         toast = { fullName: cells[tk].fullName, value, browseHint: false };
@@ -59,7 +71,7 @@ export function buildClipPageVM(): ViewModel {
     return {
         moduleName: 'CLIP PARAMETERS', headerOverride: 'CLIP PARAMETERS',
         bankName: '', bankIndex: 0, bankCount: 1,
-        rows: [[scale, length, transpose, null], [null, null, null, null]],
+        rows: [[scale, length, transpose, quant], [null, null, null, null]],
         touchedSlot: null, toast, overlay, isEmpty: false,
         drumPadCount: 0, drumCurrentPad: 0, drumCurrentPhysPad: 0, isPadSpecific: false,
         automationHeld: false, automationPoolFull: false,

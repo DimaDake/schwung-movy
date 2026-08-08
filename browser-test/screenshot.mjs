@@ -48,7 +48,7 @@ const PRESETS = [
     'main-root-touched', 'main-key-overlay', 'main-mode-overlay', 'main-layout-overlay',
     'main-ext-sync', 'main-link-on',
     'clip-default', 'clip-fraction', 'clip-overlay', 'clip-drum', 'clip-quant',
-    'main-quant',
+    'main-quant', 'quant-overlay-three', 'quant-overlay-two',
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
     'filter_slope24', 'filter_dual', 'filter_open',
@@ -84,6 +84,7 @@ const BASE = {
     'main-ext-sync': 'test8', 'main-link-on': 'test8',
     'clip-default': 'test8', 'clip-fraction': 'test8', 'clip-overlay': 'test8',
     'clip-drum': 'test8', 'clip-quant': 'test8',
+    'quant-overlay-three': 'test8', 'quant-overlay-two': 'test8',
     trigger_armed: 'triggers', trigger_fired: 'triggers',
     trigger_blink_off: 'triggers', trigger_touched: 'triggers',
     trigger_cooling: 'triggers', trigger_cooling_low: 'triggers',
@@ -142,6 +143,9 @@ const { holdTouch, holdTick, assignToastText, resetAssignMode } = await import('
 const { drawJogToast }     = await import('../dist/esm/renderer/overlay.js');
 const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view.js');
 const { drawCaptureOverlay } = await import('../dist/esm/renderer/capture-overlay.js');
+const { drawQuantOverlay } = await import('../dist/esm/renderer/quant-overlay.js');
+const { armQuantOverlay, buildQuantOverlayVM, resetQuantOverlay } =
+    await import('../dist/esm/seq/quant-overlay.js');
 const { drawUndoOverlay } = await import('../dist/esm/renderer/undo-overlay.js');
 const { undoToastVM } = await import('../dist/esm/undo/label.js');
 const { buildCaptureVM }     = await import('../dist/esm/seq/capture-vm.js');
@@ -298,6 +302,25 @@ function applyView(preset) {
         case 'chain_jog_toast':  showChain(1, true); break;
         case 'knobs_jog_toast':  showKnobsJogToast(); break;
         /* Post-capture overlay, both variants, over the view it interrupts. */
+        /* The quantize panel over the Clip Params page: it is a strip, not a
+         * takeover, so the page underneath has to survive. `three` puts the
+         * selection on the default, where box and DEF marker coincide — the
+         * common case. */
+        case 'quant-overlay-three':
+        case 'quant-overlay-two': {
+            resetSeqState(); resetClipPage();
+            seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
+            const three = preset === 'quant-overlay-three';
+            seqState.defaultQuant = three ? 70 : 0;
+            seqState.clipQuant = three ? 70 : 100;
+            armQuantOverlay(Date.now());
+            lastRender = () => {
+                renderKnobsView(buildClipPageVM(), false, 0);
+                drawQuantOverlay(buildQuantOverlayVM());
+            };
+            lastRender();
+            break;
+        }
         case 'capture_select':
         case 'capture_fixed': {
             showChain(1, false);

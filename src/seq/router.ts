@@ -9,8 +9,10 @@
  * runs. */
 
 import {
-    CC_NOTE_SESSION, CC_PLAY, CC_REC, CC_TRACK_END, CC_TRACK_START,
+    CC_NOTE_SESSION, CC_PLAY, CC_REC, CC_TRACK_END, CC_TRACK_START, CC_MUTE,
     NUM_STEP_BUTTONS, PAD_MAX, PAD_MIN, STEP_NOTE_BASE,
+    MAIN_PAGE_STEPS, STEP_CLIP_PARAMS, STEP_METRO, STEP_FULL_VEL,
+    STEP_DOUBLE_LOOP, STEP_QUANTIZE,
 } from './constants.js';
 import { mlog } from '../log.js';
 import { toggleMute, toggleSolo } from '../mixer/track-mutes.js';
@@ -25,8 +27,8 @@ import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
 import { undoableEdit, beginGesture } from '../undo/edit.js';
 import { trackLabel } from '../undo/label.js';
 import { nextQuantCandidate } from './quant.js';
+import { armQuantOverlay } from './quant-overlay.js';
 
-const CC_MUTE = 88;
 const CC_CAPTURE = 52;
 const CC_UNDO = 56;
 
@@ -77,17 +79,6 @@ const CC_PLUS = 55;      // MoveUp / +
 const CC_MINUS = 54;     // MoveDown / -
 const CC_COPY = 60;
 const CC_DELETE = 119;
-const STEP_METRO = 5;     // Step 6  — Shift+Step 6  = Metronome
-const STEP_FULL_VEL = 9;  // Step 10 — Shift+Step 10 = Full Velocity
-const STEP_DOUBLE_LOOP = 14; // Step 15 — Shift+Step 15 = Double Loop
-const STEP_QUANTIZE = 15; // Step 16 — Shift+Step 16 = Quantize
-
-/* Shift+Step 5/7/9 all open the Main Params page (page 0). The map keeps room
- * for future pages — point a step at a different page index here. */
-const MAIN_PAGE_STEPS: Record<number, number> = { 4: 0, 6: 0, 8: 0 };
-
-/* Shift+Step 3 (0-indexed 2) opens the Clip Params page — Track view only. */
-const STEP_CLIP_PARAMS = 2;
 
 /* Pads currently held, padNote → midiNote, for chord step entry. Mirrors the
  * pads physically down so a step press can place the whole chord. */
@@ -379,6 +370,7 @@ function cycleQuantize(): void {
     beginGesture('quant:' + track, 'CLIP QUANT', trackLabel(track));
     seqState.clipQuant = next;
     seqCmd('cq ' + track + ' ' + next);
+    armQuantOverlay(Date.now());
 }
 
 function navigateBar(delta: number): void {

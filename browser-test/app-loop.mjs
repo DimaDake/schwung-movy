@@ -1425,6 +1425,31 @@ _log('\napp-loop: no edit escapes undo');
         eq(name + ' is recorded', takeUndoViolation(), '');
     }
 
+    /* The quantize panel's input policy, through the real router: Back closes
+     * it and is consumed, while a step press runs underneath without even
+     * closing it (a step neither repaints the screen nor toasts). */
+    {
+        const { quantOverlayActive } =
+            await import('../dist/esm/seq/quant-overlay.js');
+        sendMidi([0xB0, CC_SHIFT, 127]); sendMidi([0x90, STEP_NOTE_BASE + 15, 127]);
+        sendMidi([0x80, STEP_NOTE_BASE + 15, 0]); sendMidi([0xB0, CC_SHIFT, 0]);
+        advance(1);
+        eq('Shift+Step16 raises the quantize panel', quantOverlayActive(), true);
+
+        engine.ops.length = 0;
+        sendMidi([0x90, STEP_NOTE_BASE + 6, 127]); sendMidi([0x80, STEP_NOTE_BASE + 6, 0]);
+        advance(2);
+        /* `ltog` not `tog`: the surrounding section leaves loop mode on. Either
+         * way the press reached the sequencer instead of being swallowed. */
+        eq('a step press runs underneath the panel',
+            engine.ops.some((o) => /^(tog|ltog)\b/.test(o)), true);
+        eq('and leaves it up', quantOverlayActive(), true);
+
+        sendMidi([0xB0, 51, 127]);   // MoveBack
+        advance(1);
+        eq('Back closes the panel', quantOverlayActive(), false);
+    }
+
     /* The button itself, through the router. */
     resetUndoState(); resetUndoGroups();
     sendMidi([0x90, STEP_NOTE_BASE + 7, 127]); sendMidi([0x80, STEP_NOTE_BASE + 7, 0]);

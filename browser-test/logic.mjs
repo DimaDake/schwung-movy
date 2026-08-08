@@ -36,6 +36,10 @@ import {
 import {
     readPrefDefaultQuant, writePrefDefaultQuant, PREFS_PATH, FACTORY_DEFAULT_QUANT,
 } from '../dist/esm/seq/prefs.js';
+import {
+    armQuantOverlay, quantOverlayActive, quantOverlayTickAt, quantOverlayJog,
+    quantOverlayAction, buildQuantOverlayVM, dismissQuantOverlay, resetQuantOverlay,
+} from '../dist/esm/seq/quant-overlay.js';
 import { installMockEngine, uninstallMockEngine } from './mock-engine.mjs';
 import {
     pushEntry, popUndo, pushRedo, canUndo, canRedo, undoDepth, retractEntry, peekUndo,
@@ -9508,6 +9512,85 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 
     eq('candidateIndex finds the default', candidateIndex(70, 70), 1);
     eq('candidateIndex reports off-cycle values', candidateIndex(40, 70), -1);
+}
+
+/* ── Quantization: the transient overlay ──────────────────────────────────── */
+{
+    _log('\nQuantize overlay');
+
+    const CC = 0xB0, NOTE = 0x90;
+    const STEP_BASE = 16;                 // seq/constants.ts STEP_NOTE_BASE
+    const STEP = (n) => STEP_BASE + n;
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const engine = installMockEngine();
+    const lastOp = () => lastMusicalOp(engine.ops);
+
+    resetSeqEngine(); resetSeqState(); resetQuantOverlay(); engine.reset();
+    seqEngineTick();   // prime: seqCmd only flushes once the engine is ready
+    seqState.watchTrack = 0; seqState.defaultQuant = 70; seqState.clipQuant = 0;
+
+    armQuantOverlay(1000);
+    eq('overlay is up after arming', quantOverlayActive(), true);
+    eq('overlay survives short of its lifetime', quantOverlayTickAt(2100), false);
+    eq('overlay expires at 1200 ms', quantOverlayTickAt(2201), true);
+    eq('and is then down', quantOverlayActive(), false);
+
+    armQuantOverlay(1000);
+    let vm = buildQuantOverlayVM();
+    eq('overlay shows 0/DEF/100',
+        JSON.stringify(vm.values), JSON.stringify(['0%', '70%', '100%']));
+    eq('overlay marks the default', vm.defIdx, 1);
+    eq('overlay boxes the current value', vm.selIdx, 0);
+
+    seqState.defaultQuant = 0;
+    vm = buildQuantOverlayVM();
+    eq('a 0 default collapses to two values',
+        JSON.stringify(vm.values), JSON.stringify(['0%', '100%']));
+    eq('and marks nothing', vm.defIdx, -1);
+
+    /* Jog: DETENT_DIV = 8, so one physical click is a delta of 8. */
+    seqState.defaultQuant = 70; seqState.clipQuant = 0;
+    armQuantOverlay(1000);
+    quantOverlayJog(8, 1100);
+    seqEngineTick();
+    eq('jog selects the next candidate', seqState.clipQuant, 70);
+    eq('jog commits it', lastOp(), 'cq 0 70');
+    quantOverlayJog(8, 1200); quantOverlayJog(8, 1300);
+    eq('jog clamps at the top', seqState.clipQuant, 100);
+    quantOverlayJog(-8, 1400); quantOverlayJog(-8, 1500); quantOverlayJog(-8, 1600);
+    eq('jog clamps at the bottom', seqState.clipQuant, 0);
+    eq('jog re-armed the timer', quantOverlayTickAt(2500), false);
+    eq('and it still expires later', quantOverlayTickAt(2801), true);
+
+    /* Input policy. Back and the jog assembly are consumed; anything that
+     * neither repaints nor toasts runs underneath without closing it. */
+    armQuantOverlay(1000);
+    eq('Back is consumed', quantOverlayAction([CC, MoveBack, 127], false), 'dismiss');
+    eq('jog turn is jog', quantOverlayAction([CC, MoveMainKnob, 1], false), 'jog');
+    eq('jog press is consumed',
+        quantOverlayAction([CC, MoveMainButton, 127], false), 'dismiss');
+    eq('jog touch is swallowed', quantOverlayAction([NOTE, 9, 127], false), 'swallow');
+    eq('Shift+Step 16 advances instead of dismissing',
+        quantOverlayAction([NOTE, STEP(15), 127], true), 'through');
+    eq('Mute dismisses', quantOverlayAction([CC, 88, 127], false), 'dismiss');
+    eq('Shift+Step 5 (page open) dismisses',
+        quantOverlayAction([NOTE, STEP(4), 127], true), 'dismiss');
+    eq('Shift+Step 10 (Full Vel toast) dismisses',
+        quantOverlayAction([NOTE, STEP(9), 127], true), 'dismiss');
+    eq('a pad passes through', quantOverlayAction([NOTE, 68, 100], false), 'through');
+    eq('a plain step passes through',
+        quantOverlayAction([NOTE, STEP(3), 127], false), 'through');
+    eq('Play passes through', quantOverlayAction([CC, 85, 127], false), 'through');
+    eq('Rec passes through', quantOverlayAction([CC, 86, 127], false), 'through');
+    eq('Shift-up does not dismiss', quantOverlayAction([CC, 49, 0], false), 'through');
+    eq('a Back release passes through',
+        quantOverlayAction([CC, MoveBack, 0], false), 'through');
+
+    dismissQuantOverlay();
+    eq('dismiss takes it down', quantOverlayActive(), false);
+    resetQuantOverlay(); resetSeqEngine(); resetSeqState();
+    uninstallMockEngine();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

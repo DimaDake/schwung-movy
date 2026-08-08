@@ -22,6 +22,10 @@ import { holdTouch, holdRelease, holdTurnCancel, assignActive, assignCycle, assi
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
 import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm } from '../app/leave-modal.js';
+import {
+    quantOverlayActive, quantOverlayAction, quantOverlayJog, quantOverlayHold,
+    dismissQuantOverlay,
+} from '../seq/quant-overlay.js';
 import { captureOverlayActive, captureOverlayAction, captureJog, captureDismiss } from '../seq/capture.js';
 import { resetHeldInput } from '../app/input-reset.js';
 import { jogHintTouch } from '../app/jog-hint.js';
@@ -129,6 +133,17 @@ export function onMidiMessageInternal(data: number[]): void {
         if (action === 'jog') { captureJog(decodeDelta(data[2])); return; }
         if (action === 'swallow') return;
         if (action === 'dismiss') { captureDismiss(data); return; }
+    }
+
+    /* The quantize panel is a confirmation, not a decision: only Back and the
+     * jog assembly are consumed, and anything that neither repaints nor toasts
+     * runs underneath without even closing it. Below capture's gate, so a
+     * screen-owning overlay always wins. */
+    if (quantOverlayActive()) {
+        const action = quantOverlayAction(data, appState.shiftHeld);
+        if (action === 'jog') { quantOverlayJog(decodeDelta(data[2]), Date.now()); return; }
+        if (action === 'swallow') { quantOverlayHold(Date.now()); return; }
+        if (action === 'dismiss') { dismissQuantOverlay(); return; }
     }
 
     if (leaveModalActive()) {

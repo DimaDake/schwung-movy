@@ -41,6 +41,10 @@ import { drawLeaveModal } from '../renderer/leave-modal-view.js';
 import { captureOverlayActive } from '../seq/capture.js';
 import { buildCaptureVM } from '../seq/capture-vm.js';
 import { drawCaptureOverlay } from '../renderer/capture-overlay.js';
+import {
+    quantOverlayActive, quantOverlayTickAt, buildQuantOverlayVM,
+} from '../seq/quant-overlay.js';
+import { drawQuantOverlay } from '../renderer/quant-overlay.js';
 import { drawUndoOverlay } from '../renderer/undo-overlay.js';
 import { undoTick } from '../undo/group.js';
 import { moduleRestoreTick } from '../undo/module-apply.js';
@@ -399,6 +403,9 @@ export function tick(): void {
     }
 
     seqToastTick();
+    /* Wall-clock, unlike the toast's tick counter — see quant-overlay.ts. The
+     * expiry sets appState.dirty itself, so the view underneath repaints once. */
+    quantOverlayTickAt(Date.now());
     seqHeaderTick();
     const toastShowing = seqToastActive();
     const headerShowing = seqHeaderActive();
@@ -478,6 +485,9 @@ export function tick(): void {
         if (assignActive()) { drawJogToast(assignToastText()); jogToastShown = true; }
         if (toastShowing) drawSeqToast();
         if (headerShowing) drawSeqHeader();
+        /* Quantize panel: a strip over the view, below every overlay that owns
+         * the screen — it is a confirmation, not a decision. */
+        if (quantOverlayActive()) drawQuantOverlay(buildQuantOverlayVM());
         // The post-capture overlay owns the screen until it is dismissed.
         if (captureOverlayActive()) drawCaptureOverlay(buildCaptureVM());
         /* Undo toast sits above the views but below the capture overlay and the

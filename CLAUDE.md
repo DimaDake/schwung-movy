@@ -25,8 +25,12 @@ mirror in the UI.
 - **UI — `src/seq/`:** `engine.ts` (the only IPC: one batched `cmd`
   set_param/tick + a `status` poll), `state.ts` (mirror), `router.ts`
   (first-look MIDI dispatch — sequencer events never touch the param-page
-  handlers), `leds.ts`/`session.ts`/`render.ts` (cached LEDs, clip grid, Loop
-  Overview strip), plus `loop-mode.ts`, `step-edit.ts`, `edit-ops.ts`,
+  handlers) with `router-steps.ts` / `router-pads.ts` / `router-buttons.ts`
+  holding the three halves it dispatches to (the step row, pads + held chord,
+  and the modal/edit buttons; transport, encoders and arrows stay in
+  `router.ts`, which also re-exports the others' public surface so callers keep
+  one import site), `leds.ts`/`session.ts`/`render.ts` (cached LEDs, clip grid,
+  Loop Overview strip), plus `loop-mode.ts`, `step-edit.ts`, `edit-ops.ts`,
   `pads.ts`, `persist.ts`, `colors.ts`, `constants.ts`.
 
 ### Hard rules (learned on device — do not relearn)

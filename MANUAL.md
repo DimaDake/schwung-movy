@@ -1023,8 +1023,8 @@ behaviour you'd like — or, better, a PR.
 
 | Combo | Action |
 | --- | --- |
-| **Shift + Step 3** | Open **Clip parameters** (Track view). |
-| **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/link, root/key/mode/layout). |
+| **Shift + Step 3** | Open **Clip parameters** (scale, length, transpose, quantize; Track view). |
+| **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/link/quantize, root/key/mode/layout). |
 | **Shift + Step 6** | Toggle the **metronome**. |
 | **Shift + Step 10** | Toggle **full velocity**. |
 | **Shift + Step 15** | **Double** the loop. |

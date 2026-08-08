@@ -190,8 +190,9 @@ Movy intentionally tracks Move's behaviour, but it is **not** a full
 reimplementation. Notable gaps (all candidates for future work — contributions
 welcome):
 
-- **No undo.**
 - **No automation capture** — Capture keeps notes; knob moves are not captured.
+- **Four Schwung tracks only** — not Move's native instruments, drum racks or
+  sampler.
 - Sequencer **resolution and some clip-level features** are simplified.
 
 A fuller list, with context, is in the [manual](MANUAL.md#limitations-vs-move).

@@ -102,27 +102,25 @@ function applyEntry(e: UndoEntry, undoing: boolean): void {
          * back is the state it produced. */
         if (undoing && op.newState === undefined && e.paramOps.length === 0) {
             op.newState = captureModuleState(op.slot, op.componentKey) ?? '';
-            if (op.newState === '') {
-                const d = dumpModuleParams(op.slot, op.componentKey);
-                op.newParams = d.params;
-                op.newLeadCount = d.leadCount;
-            }
+            const d = dumpModuleParams(op.slot, op.componentKey);
+            op.newParams = d.params;
+            op.newLeadCount = d.leadCount;
         }
         const blob = undoing ? op.oldState : op.newState;
         if (blob) {
             setChain(op.slot, op.componentKey + ':state', blob);
-            refreshModels(op.slot);
             mlog('undo: restored ' + op.componentKey + ' state (' + blob.length + ' bytes)');
-        } else {
-            /* No blob for this side — replay the dump instead, staged so the
-             * preset inside it cannot overwrite the params that follow. */
-            const ps = undoing ? op.oldParams : op.newParams;
-            const lead = (undoing ? op.oldLeadCount : op.newLeadCount) ?? 0;
-            if (ps && ps.length > 0) {
-                beginParamRestore(op.slot, op.componentKey, ps, lead);
-                refreshModels(op.slot);
-            }
         }
+        /* Then the params, over the top. A blob is only as good as the module's
+         * own round-trip, and at least one module's is broken (see
+         * recordPresetState) — restoring to silence. The dump is movy's own
+         * record of the same moment, so it corrects whatever the blob got
+         * wrong, and the staged writer keeps a preset inside it from
+         * overwriting the params that follow. */
+        const ps = undoing ? op.oldParams : op.newParams;
+        const lead = (undoing ? op.oldLeadCount : op.newLeadCount) ?? 0;
+        if (ps && ps.length > 0) beginParamRestore(op.slot, op.componentKey, ps, lead);
+        refreshModels(op.slot);
     } else {
         /* Reverse order: a gesture that wrote A then B must undo B then A, or a
          * later write that depended on an earlier one lands on the wrong base. */

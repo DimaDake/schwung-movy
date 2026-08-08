@@ -9594,6 +9594,61 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     uninstallMockEngine();
 }
 
+
+{
+    _log('\nundo — a state blob that lies is corrected by the param dump:');
+    const { recordPresetState: recPS } = await import('../dist/esm/undo/record.js');
+    const { moduleRestoreTick: mrt, moduleRestorePending: mrp, resetModuleRestore: rmr } =
+        await import('../dist/esm/undo/module-apply.js');
+    const { appState: app } = await import('../dist/esm/app/state.js');
+    (await import('../dist/esm/seq/automation.js')).resetAutomation();
+
+    /* A module whose state round-trip is broken: writing the blob back does NOT
+     * reproduce what it reported. weird-dreams is a real instance — its
+     * deserializer reads one more master field than its serializer writes, so
+     * every field after lands in the wrong slot and it restores to silence.
+     * Modelled here by a blob write that mangles a param. */
+    const store = {
+        'synth:chain_params': JSON.stringify([{ key: 'master' }, { key: 'cutoff' }]),
+        'synth:state': 'OPAQUE-BLOB', 'synth:master': '0.80', 'synth:cutoff': '0.42',
+    };
+    const writes = [];
+    globalThis.shadow_get_param = (slot, key) => store[key] ?? null;
+    globalThis.shadow_set_param = (slot, key, v) => {
+        writes.push(key + '=' + v); store[key] = v;
+        /* The module bug: applying the blob silences the module. */
+        if (key === 'synth:state') { store['synth:master'] = '0'; store['synth:cutoff'] = '0'; }
+        return true;
+    };
+    resetUndoState(); resetUndoGroups(); resetUndoApply(); rmr();
+    app.trackModels[0] = [];
+
+    beginEdit({ key: 'k', verb: 'RND', target: 'T1', close: CLOSE.IMMEDIATE });
+    recPS(0, 'synth');
+    endEdit();
+    const op = peekUndo().stateOp;
+    eq('both records are kept, not just the blob', op.oldState !== '' && op.oldParams.length > 0, true);
+
+    /* The blob goes on first — it reaches state movy cannot see — and the dump
+     * follows to correct whatever the blob got wrong. */
+    store['synth:master'] = '0.10'; store['synth:cutoff'] = '0.99';   // randomised
+    writes.length = 0;
+    undoOnce();
+    eq('the blob is applied first', writes[0], 'synth:state=OPAQUE-BLOB');
+    eq('and it corrupts the module, as the real one does', store['synth:master'], '0');
+    for (let i = 0; i < 200; i++) mrt();
+    eq('but the dump puts the params back', store['synth:master'], '0.80');
+    eq('all of them', store['synth:cutoff'], '0.42');
+
+    /* An in-place repair must not block the next undo — only a module SWAP,
+     * which is genuinely still settling, does that. */
+    eq('a finished repair leaves undo free', mrp(), false);
+
+    delete globalThis.shadow_get_param;
+    delete globalThis.shadow_set_param;
+    resetUndoState(); resetUndoGroups(); resetUndoApply(); rmr();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

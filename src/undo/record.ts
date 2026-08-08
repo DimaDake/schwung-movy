@@ -116,22 +116,30 @@ export function recordParamOp(slot: number, key: string,
  */
 export function recordPresetState(slot: number, componentKey: string): void {
     if (!groupOpen()) return;
+    /* BOTH, when both are available — they cover different ground and neither
+     * is sufficient alone.
+     *
+     * The blob reaches state movy cannot see (anything the module keeps but
+     * does not publish in chain_params), so it is applied first and broadly.
+     * The dump is the authority for everything movy CAN see, and it is applied
+     * after, because a state blob is only as good as the module's own
+     * round-trip: weird-dreams' deserializer reads one more master field than
+     * its serializer writes, so every field after it lands in the wrong slot
+     * and the module restores to silence. A module bug, but one that any
+     * consumer of `<component>:state` inherits — schwung's own set reload
+     * included — and undo is better placed than most to correct it, since it
+     * holds a second, independent record of the same moment.
+     *
+     * Cost is a read per published param, on a gesture (preset, randomiser,
+     * module swap) that is deliberate and rare. */
     const state = captureModuleState(slot, componentKey);
-    if (state !== null) {
-        addStateOp({ slot, componentKey, oldState: state });
-        return;
-    }
-    /* No state blob — fall back to dumping the params. Expensive (a read per
-     * param), but this runs once per preset/randomiser gesture, and the
-     * alternative is recording nothing: a randomiser has no param op of its
-     * own, so it would simply not be undoable. */
     const d = dumpModuleParams(slot, componentKey);
-    if (d.params.length > 0) {
-        addStateOp({
-            slot, componentKey, oldState: '',
-            oldParams: d.params, oldLeadCount: d.leadCount,
-        });
-    }
+    if (state === null && d.params.length === 0) return;
+    addStateOp({
+        slot, componentKey,
+        oldState: state ?? '',
+        oldParams: d.params, oldLeadCount: d.leadCount,
+    });
 }
 
 /** Record a set-level UI field change (root note, scale). */

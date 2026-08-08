@@ -57,6 +57,12 @@ interface Pending {
     /* Identifiers that mean "the module we asked for is up". Empty = we asked
      * for an empty slot, so an empty read is the arrival. */
     wantIds: string[];
+    /* Whether a further undo must wait. A module SWAP is settling — a second
+     * undo would write params into a module about to be replaced again. An
+     * in-place param restore has no such hazard: nothing is loading, and a
+     * second undo simply supersedes it. Blocking on that made every preset
+     * undo refuse the next press for a third of a second. */
+    blocksUndo: boolean;
     phase: Phase;
     ticksLeft: number;
     settleLeft: number;
@@ -66,7 +72,9 @@ interface Pending {
 
 let pending: Pending | null = null;
 
-export function moduleRestorePending(): boolean { return pending !== null; }
+export function moduleRestorePending(): boolean {
+    return pending !== null && pending.blocksUndo;
+}
 
 /** Begin replaying `op`'s dump. `undoing` picks which module we are waiting
  *  for: undo returns to the old one, redo to the new. */
@@ -77,6 +85,7 @@ export function beginModuleRestore(op: ModuleOp, undoing: boolean): void {
         params: undoing ? op.oldParams : (op.newParams ?? []),
         leadCount: undoing ? op.leadCount : (op.newLeadCount ?? 0),
         wantIds: undoing ? op.oldIds : op.newIds,
+        blocksUndo: true,
         phase: 'wait',
         ticksLeft: RESTORE_TIMEOUT_TICKS,
         settleLeft: SETTLE_TICKS,
@@ -105,6 +114,7 @@ export function beginParamRestore(
         params,
         leadCount,
         wantIds: [],
+        blocksUndo: false,
         phase: 'lead',
         ticksLeft: RESTORE_TIMEOUT_TICKS,
         settleLeft: SETTLE_TICKS,

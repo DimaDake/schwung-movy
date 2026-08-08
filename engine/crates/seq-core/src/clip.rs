@@ -378,12 +378,15 @@ impl Clip {
 
     /// Record a live note at an explicit tick/gate, suppressed until the clip
     /// next wraps so the just-played take doesn't double-trigger this pass.
-    pub fn record_note(&mut self, tick: u32, gate: u32, pitch: u8, vel: u8) {
+    ///
+    /// `step` is the caller's anchor, not derived here: under swing the step a
+    /// note belongs to is the one whose SWUNG position is nearest, which only
+    /// the engine knows (see `Engine::anchor_step`).
+    pub fn record_note(&mut self, step: u16, tick: u32, gate: u32, pitch: u8, vel: u8) {
         if self.notes.len() >= MAX_NOTES {
             return;
         }
         let bar = STEPS_PER_BAR as u32;
-        let step = ((tick + TICKS_PER_STEP / 2) / TICKS_PER_STEP) as u16;
         self.extend_to_step(step.min((MAX_STEPS as u32 - bar) as u16));
         self.notes.push(Note {
             tick, gate: gate.max(1), pitch, vel, step, suppress: true, fired: false,

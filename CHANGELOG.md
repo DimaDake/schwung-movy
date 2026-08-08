@@ -34,6 +34,19 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Recording or capturing against swing lost the upbeats.** A note's step
+  anchor was rounded against the straight grid, but swing moves an off-beat
+  16th later inside its own cell — so on swing 70 there were only 4 ticks
+  (~21 ms at 120 BPM) of late tolerance before an upbeat anchored to the
+  following on-beat step. Quantization then snapped it onto the downbeat and
+  the upbeat vanished. Anchors now round against the swung grid, at live
+  recording and at both capture paths. (The mis-anchoring predates
+  non-destructive quantization; it was inaudible while playback used the raw
+  tick, showing only as a note on the wrong step LED.)
+- **Note anchors are stored rather than re-derived on load.** The `cl` line is
+  parsed before `cp` says what the clip's playback scale is, so a saved swung
+  anchor could not be recomputed correctly. Notes gain a fifth `step` field;
+  four-field notes from older saves fall back to the rounding that wrote them.
 - **A note played just before the count-in ended was lost.** Live recording
   only began capturing when the count-in reached zero, so leaning into the
   first downbeat dropped the note entirely rather than misplacing it. Notes

@@ -10,7 +10,12 @@
 //!   tk <track> <active_clip> <muted0|1>
 //!   cl <track> <slot> <len_steps> <loop_start_steps> <notes>
 //!   cp <track> <slot> <scale_num> <scale_den> <transpose> <quant>
-//! where <notes> is `tick:gate:pitch:vel;…` (omitted when the clip is empty).
+//! where <notes> is `tick:gate:pitch:vel:step;…` (omitted when the clip is
+//! empty). `step` is stored rather than re-derived from `tick`, because under
+//! swing the step a note belongs to depends on the swing amount and the clip's
+//! playback scale — neither of which is known while the `cl` line is parsed.
+//! Legacy four-field notes fall back to the straight-grid rounding that wrote
+//! them.
 //! The `cp` line is optional — clips from older saves load with defaults.
 //! Unknown lines are ignored so the format can grow.
 
@@ -40,7 +45,8 @@ pub fn serialize(engine: &Engine) -> String {
                     if i > 0 {
                         s.push(';');
                     }
-                    s.push_str(&format!("{}:{}:{}:{}", n.tick, n.gate, n.pitch, n.vel));
+                    s.push_str(&format!(
+                        "{}:{}:{}:{}:{}", n.tick, n.gate, n.pitch, n.vel, n.step));
                 }
                 s.push('\n');
                 // Clip params on their own line (after `cl`, since load_clip
@@ -266,14 +272,20 @@ fn load_clip<'a>(engine: &mut Engine, it: &mut impl Iterator<Item = &'a str>) {
     if let Some(notes) = it.next() {
         for tok in notes.split(';') {
             let parts: Vec<&str> = tok.split(':').collect();
-            if parts.len() == 4 {
+            if parts.len() >= 4 {
                 if let (Ok(tick), Ok(gate), Ok(pitch), Ok(vel)) = (
                     parts[0].parse::<u32>(),
                     parts[1].parse::<u32>(),
                     parts[2].parse::<u8>(),
                     parts[3].parse::<u8>(),
                 ) {
-                    let step = ((tick + crate::TICKS_PER_STEP / 2) / crate::TICKS_PER_STEP) as u16;
+                    // Fifth field absent = written before anchors were stored.
+                    // Those saves were made with straight-grid rounding, so
+                    // reproducing it restores exactly what they held.
+                    let step = parts.get(4)
+                        .and_then(|x| x.parse::<u16>().ok())
+                        .unwrap_or(((tick + crate::TICKS_PER_STEP / 2)
+                            / crate::TICKS_PER_STEP) as u16);
                     clip.add_note_raw(step, tick, gate.max(1), pitch.min(127), vel.clamp(1, 127));
                 }
             }
@@ -290,6 +302,34 @@ fn load_clip<'a>(engine: &mut Engine, it: &mut impl Iterator<Item = &'a str>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn round_trips_the_swung_step_anchor() {
+        // Under swing the anchor cannot be re-derived from the tick: the `cl`
+        // line is parsed before `cp` says what the clip's playback scale is,
+        // and straight-grid rounding would move a swung upbeat onto the next
+        // on-beat step. So it is stored.
+        let mut e = Engine::new(44100, 12000);
+        e.swing_pct = 70;
+        e.tracks[0].clips[0].record_note(1, crate::TICKS_PER_STEP + 13, 6, 42, 100);
+        assert_eq!(e.tracks[0].clips[0].notes[0].step, 1);
+        let blob = serialize(&e);
+        let mut e2 = Engine::new(44100, 12000);
+        assert!(load(&mut e2, &blob));
+        assert_eq!(e2.tracks[0].clips[0].notes[0].step, 1, "anchor survived the save");
+        assert_eq!(e2.tracks[0].clips[0].notes[0].tick, crate::TICKS_PER_STEP + 13);
+    }
+
+    #[test]
+    fn legacy_notes_without_an_anchor_still_load() {
+        let blob = "movy1\ncl 0 0 16 0 0:24:60:100;36:24:62:90\n";
+        let mut e = Engine::new(44100, 12000);
+        assert!(load(&mut e, blob));
+        let n = &e.tracks[0].clips[0].notes;
+        assert_eq!(n.len(), 2);
+        assert_eq!(n[0].step, 0);
+        assert_eq!(n[1].step, 2, "straight-grid rounding, as those saves were written");
+    }
 
     #[test]
     fn round_trips_clip_quant() {

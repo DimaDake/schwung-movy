@@ -297,6 +297,34 @@ impl Engine {
         (self.swing_pct - 50) * sixteenth_ticks / 60
     }
 
+    /// The step a note played at `tick` belongs to: the one whose SWUNG
+    /// position is nearest, not the nearest point on the straight grid.
+    ///
+    /// Swing moves an off-beat 16th later inside its own cell, so the moment
+    /// you hear — and play to — that step is `step*24 + swing_delay(step)`.
+    /// Rounding against the straight grid leaves only
+    /// `TICKS_PER_STEP/2 - swing_delay` ticks of late tolerance (4 ticks, ~21 ms
+    /// at 120 BPM, on swing 70), after which an upbeat anchors to the following
+    /// ON-beat step — where swing is zero, so at full quantization it lands on
+    /// top of the downbeat and the upbeat is lost.
+    ///
+    /// Ties go to the later step, matching the `(tick + TICKS_PER_STEP/2) /
+    /// TICKS_PER_STEP` rounding this replaces (identical at swing 50).
+    fn anchor_step(&self, tick: u32, scale_num: u8, scale_den: u8) -> u16 {
+        let straight = (tick / TICKS_PER_STEP) as u16;
+        let mut best = straight;
+        let mut best_d = u32::MAX;
+        for cand in [straight.saturating_sub(1), straight, straight + 1] {
+            let pos = cand as u32 * TICKS_PER_STEP + self.swing_delay(cand, scale_num, scale_den);
+            let d = pos.abs_diff(tick);
+            if d <= best_d {
+                best_d = d;
+                best = cand;
+            }
+        }
+        best
+    }
+
     /// xorshift64* → a 0..=99 percent roll. Free-running (Elektron-style).
     fn roll_pct(&mut self) -> u8 {
         let mut x = self.rng_state;
@@ -930,6 +958,10 @@ impl Engine {
         let span_ticks = self.tracks[track].active().length_ticks().max(1);
         let loop_start = self.tracks[track].active().loop_start_ticks();
         let len_steps = self.tracks[track].active().length_steps;
+        let (snum, sden) = {
+            let c = self.tracks[track].active();
+            (c.scale_num, c.scale_den)
+        };
         if !keep_length {
             self.tracks[track]
                 .active_mut()
@@ -967,7 +999,7 @@ impl Engine {
             } else {
                 start
             };
-            let mut step = ((tick + TICKS_PER_STEP / 2) / TICKS_PER_STEP) as u16;
+            let mut step = self.anchor_step(tick, snum, sden);
             if keep_length {
                 step = step.min(len_steps.saturating_sub(1));
             }
@@ -1069,6 +1101,10 @@ impl Engine {
         let fresh = self.tracks[track].active().notes.is_empty();
         let span = self.tracks[track].active().length_ticks().max(1);
         let loop_start = self.tracks[track].active().loop_start_ticks();
+        let (snum, sden) = {
+            let c = self.tracks[track].active();
+            (c.scale_num, c.scale_den)
+        };
         let Some(first_abs) = self
             .capture
             .iter()
@@ -1122,7 +1158,7 @@ impl Engine {
             // reaches it, but a captured note was played in the past. Anything
             // now ahead of the playhead — a phrase that ran over the loop end —
             // has to sound this time round rather than wait for the next repeat.
-            let step = ((tick + TICKS_PER_STEP / 2) / TICKS_PER_STEP) as u16;
+            let step = self.anchor_step(tick, snum, sden);
             self.tracks[track]
                 .active_mut()
                 .add_note_raw(step, tick, gate, stored, ev.vel);
@@ -1210,6 +1246,10 @@ impl Engine {
             let p = self.rec_pending.swap_remove(idx);
             let now = self.tracks[track].pos_tick as i32;
             let span = self.tracks[track].active().length_ticks().max(1) as i32;
+            let (snum, sden) = {
+                let c = self.tracks[track].active();
+                (c.scale_num, c.scale_den)
+            };
             let gate = if now >= p.start_tick {
                 now - p.start_tick
             } else {
@@ -1222,8 +1262,11 @@ impl Engine {
             // A pre-roll note anchors at the clip start: the push itself is not
             // preserved (that would need notes stored before their anchor), but
             // the gate keeps its true length from the signed start.
+            let tick = p.start_tick.max(0) as u32;
+            let step = self.anchor_step(tick, snum, sden);
             self.tracks[track].active_mut().record_note(
-                p.start_tick.max(0) as u32,
+                step,
+                tick,
                 gate.max(1) as u32,
                 stored,
                 p.vel,
@@ -3899,6 +3942,70 @@ mod tests {
         e.live_note_on(0, 64, 100);
         e.live_note_off(0, 64);
         assert!(!e.tracks[0].active().notes.iter().any(|n| n.pitch == 64));
+    }
+
+    #[test]
+    fn swung_upbeat_recorded_late_keeps_its_own_step() {
+        // Swing 70 puts the off-beat 16th 8 ticks late, so that is where the
+        // player hears it and plays it. Rounding against the straight grid left
+        // only 4 ticks of late tolerance (~21 ms at 120 BPM) before the note
+        // anchored to the next ON-beat step — and at 100 % quantization it then
+        // landed on top of the downbeat, losing the upbeat.
+        let mut e = engine();
+        e.swing_pct = 70;
+        for late in [0u32, 4, 8, 12, 15] {
+            assert_eq!(e.anchor_step(TICKS_PER_STEP + late, 1, 1), 1,
+                "played {late} ticks after the beat");
+        }
+        // Past the midpoint between the two swung positions it does belong to
+        // the next step.
+        assert_eq!(e.anchor_step(TICKS_PER_STEP + 17, 1, 1), 2);
+    }
+
+    #[test]
+    fn straight_grid_anchoring_is_unchanged_without_swing() {
+        let e = engine();
+        assert_eq!(e.anchor_step(0, 1, 1), 0);
+        assert_eq!(e.anchor_step(11, 1, 1), 0);
+        assert_eq!(e.anchor_step(12, 1, 1), 1);   // ties round up, as before
+        assert_eq!(e.anchor_step(TICKS_PER_STEP, 1, 1), 1);
+    }
+
+    #[test]
+    fn swung_hihat_take_keeps_every_upbeat() {
+        // The reported failure end to end: a 16th hihat pattern played against
+        // swing 70 and quantized to 100 % must fire on the swung grid. Counting
+        // hits is not enough — a collapsed upbeat still emits a NoteOn, just
+        // doubled on the downbeat — so this asserts WHERE each hit lands.
+        let mut e = engine();
+        e.swing_pct = 70;
+        let swing = (70 - 50) * TICKS_PER_STEP / 60;      // 8 ticks
+        for step in 0..16u16 {
+            // Off-beats played where they are heard, plus 5 ticks of human lag:
+            // inside the swung cell, but past the old straight-grid boundary.
+            let tick = step as u32 * TICKS_PER_STEP
+                + if step % 2 == 1 { swing + 5 } else { 0 };
+            let anchor = e.anchor_step(tick, 1, 1);
+            e.tracks[0].active_mut().record_note(anchor, tick, 6, 42, 100);
+        }
+        e.tracks[0].active_mut().quant = 100;
+        e.tracks[0].active_mut().release_pass_flags();   // undo record suppression
+        e.play();
+
+        let mut fired: Vec<u64> = Vec::new();
+        let mut out = Vec::new();
+        while e.clock.tick < crate::TICKS_PER_BAR as u64 {
+            out.clear();
+            e.advance_block(8, &mut out);
+            if out.iter().any(|ev| matches!(ev, OutEvent::NoteOn { pitch: 42, .. })) {
+                fired.push(e.clock.tick - 1);   // status tick is post-increment
+            }
+        }
+        let expected: Vec<u64> = (0..16u64)
+            .map(|s| s * TICKS_PER_STEP as u64
+                + if s % 2 == 1 { swing as u64 } else { 0 })
+            .collect();
+        assert_eq!(fired, expected, "hits should land on the swung grid");
     }
 
     #[test]

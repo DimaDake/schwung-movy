@@ -96,6 +96,20 @@ The last rule bounds the state and keeps a never-released note from staying
 invisible. The check runs at the existing wrap branch and only when `rec_tail`
 is non-empty.
 
+### The tail must not be marked "play from next pass"
+
+`Clip::record_note` marks a new note `suppress`, so the scheduler skips it until
+the clip next wraps — without it, quantization moving a note's fire tick ahead
+of the playhead sounds it twice on the pass you played it.
+
+A tail is finalized at the clip end, which is the same tick on which
+`release_pass_flags` has just cleared that flag for every note. Marked
+suppressed there, it waits for the *next* wrap instead: recorded correctly,
+silent for a whole loop. `record_note` therefore takes the flag as an argument,
+and `commit_rec_note` passes `cycle == p.start_cycle` — suppress only while the
+pass the note was played on is still running. The same fix covers a pad released
+on any later pass.
+
 **The cap is the clip END, not the clip length.** Capping at the length let a
 note that began mid-clip run past the loop point and still be sounding when it
 came round to its own start — a drone on every pass, which is worse than the

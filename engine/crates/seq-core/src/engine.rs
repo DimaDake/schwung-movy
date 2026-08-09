@@ -1272,7 +1272,14 @@ impl Engine {
         // the gate keeps its true length from the signed start.
         let tick = p.start_tick.max(0) as u32;
         let step = self.anchor_step(tick, snum, sden);
-        self.tracks[p.track].clips[p.slot].record_note(step, tick, gate, stored, p.vel);
+        // Suppress only while the pass the note was played on is still running.
+        // A note finalized after the clip has wrapped — a tail expiring at the
+        // clip end, or a pad released on a later pass — is written just after
+        // `release_pass_flags` has run, so suppressing it would mute it until
+        // the NEXT wrap: recorded correctly, silent for a whole loop.
+        let same_pass = cycle == p.start_cycle;
+        self.tracks[p.track].clips[p.slot]
+            .record_note(step, tick, gate, stored, p.vel, same_pass);
     }
 
     /// The longest gate a captured note may be given.
@@ -3786,6 +3793,36 @@ mod tests {
     }
 
     #[test]
+    fn a_tail_note_is_audible_on_the_very_next_loop() {
+        // The tail is finalized at the clip end — the same tick on which
+        // `release_pass_flags` has just cleared everyone's suppress flag. Marked
+        // suppressed like any freshly recorded note, it would then wait for the
+        // NEXT wrap: recorded correctly, but silent for the whole first loop.
+        let mut e = recording_with_a_held_note(60);
+        e.toggle_record(0);                  // stop; the pad is never released
+        let span = e.tracks[0].active().length_ticks() as u64;
+
+        let first = run_ticks(&mut e, span);
+        let heard = |o: &[OutEvent]| {
+            o.iter().filter(|x| matches!(x, OutEvent::NoteOn { pitch: 60, .. })).count()
+        };
+        assert!(!e.tracks[0].active().notes.is_empty(), "precondition: it was recorded");
+        assert_eq!(heard(&first), 1, "the held note was silent for the first loop");
+        let second = run_ticks(&mut e, span);
+        assert_eq!(heard(&second), 1, "and it must keep playing after that");
+    }
+
+    #[test]
+    fn a_note_finalized_on_its_own_pass_is_still_suppressed() {
+        // The other half: a note released while the pass it was played on is
+        // still running must stay suppressed, or quantization moving its fire
+        // tick past the playhead sounds it a second time on that same pass.
+        let mut e = recording_with_a_held_note(60);
+        e.live_note_off(0, 60);
+        assert!(e.tracks[0].active().notes[0].suppress, "same-pass note lost its guard");
+    }
+
+    #[test]
     fn a_long_tail_stops_at_the_clip_end_instead_of_droning() {
         // Capping a tail at the pattern LENGTH rather than at the clip END let a
         // note that began mid-clip run past the loop point and still be sounding
@@ -4273,7 +4310,7 @@ mod tests {
             let tick = step as u32 * TICKS_PER_STEP
                 + if step % 2 == 1 { swing + 5 } else { 0 };
             let anchor = e.anchor_step(tick, 1, 1);
-            e.tracks[0].active_mut().record_note(anchor, tick, 6, 42, 100);
+            e.tracks[0].active_mut().record_note(anchor, tick, 6, 42, 100, true);
         }
         e.tracks[0].active_mut().quant = 100;
         e.tracks[0].active_mut().release_pass_flags();   // undo record suppression
@@ -4393,4 +4430,5 @@ mod tests {
         assert!(e.status().contains("swing=66"));
     }
 }
+
 

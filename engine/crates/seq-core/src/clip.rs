@@ -392,14 +392,19 @@ impl Clip {
     /// `step` is the caller's anchor, not derived here: under swing the step a
     /// note belongs to is the one whose SWUNG position is nearest, which only
     /// the engine knows (see `Engine::anchor_step`).
-    pub fn record_note(&mut self, step: u16, tick: u32, gate: u32, pitch: u8, vel: u8) {
+    /// `suppress`: skip this note until the clip next wraps. True for a note
+    /// finalized on the pass it was played on — quantization can move its fire
+    /// tick ahead of the playhead, which would sound it a second time. A note
+    /// whose pass has already ended must pass false, or clearing the flag would
+    /// wait for a wrap that has just happened and mute it for a whole loop.
+    pub fn record_note(&mut self, step: u16, tick: u32, gate: u32, pitch: u8, vel: u8, suppress: bool) {
         if self.notes.len() >= MAX_NOTES {
             return;
         }
         let bar = STEPS_PER_BAR as u32;
         self.extend_to_step(step.min((MAX_STEPS as u32 - bar) as u16));
         self.notes.push(Note {
-            tick, gate: gate.max(1), pitch, vel, step, suppress: true, fired: false,
+            tick, gate: gate.max(1), pitch, vel, step, suppress, fired: false,
         });
     }
 

@@ -311,7 +311,7 @@ mod tests {
         // on-beat step. So it is stored.
         let mut e = Engine::new(44100, 12000);
         e.swing_pct = 70;
-        e.tracks[0].clips[0].record_note(1, crate::TICKS_PER_STEP + 13, 6, 42, 100);
+        e.tracks[0].clips[0].record_note(1, crate::TICKS_PER_STEP + 13, 6, 42, 100, true);
         assert_eq!(e.tracks[0].clips[0].notes[0].step, 1);
         let blob = serialize(&e);
         let mut e2 = Engine::new(44100, 12000);

@@ -51,7 +51,10 @@ far. Earlier work is summarised in the timeline below for context.
   on every pass. Recording itself still stops immediately: nothing played after
   the stop is captured. A note whose pad is never released is written when it
   reaches the clip end, and one held as Movy closes is finalized before the set
-  is saved.
+  is saved. The kept note also **sounds on the very next loop**: it is written
+  on the same tick the wrap clears every note's play-once-later guard, so
+  marking it like a freshly recorded note left it correct in the clip but
+  silent for a whole pass.
 - **Recording or capturing against swing lost the upbeats.** A note's step
   anchor was rounded against the straight grid, but swing moves an off-beat
   16th later inside its own cell — so on swing 70 there were only 4 ticks

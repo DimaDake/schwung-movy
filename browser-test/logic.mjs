@@ -8525,38 +8525,69 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 
 {
     _log('\nundo — one entry per record pass:');
-    const { recPassTick, resetRecPass } = await import('../dist/esm/undo/rec-pass.js');
+    const { recPassTick, recToggle, resetRecPass } = await import('../dist/esm/undo/rec-pass.js');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
     const engine = installMockEngine();
     resetUndoState(); resetUndoGroups(); resetRecPass(); resetSeqState();
     resetSeqEngine(); seqEngineTick();
 
     seqState.lenSteps = 16;
-    seqState.recording = true;
-    seqState.curStep = 0;
-    recPassTick();                       // recording starts -> pass 1 opens
-    eq('a pass is open while recording', groupOpen(), true);
+
+    /* Arming CREATES the clip when the slot is empty (Engine::toggle_record
+     * calls ensure_exists), so the snapshot has to be queued before the engine
+     * sees `rec`. Taken later — once recording was rolling — it already held the
+     * clip, and undoing the first pass removed the notes but left an empty clip
+     * behind. */
+    engine.ops.length = 0;
+    recToggle(0);
+    seqEngineTick();
+    const ops = engine.ops.filter((o) => /^(usnap|rec)\b/.test(o));
+    eq('the snapshot is queued before the rec command', ops[0]?.startsWith('usnap '), true);
+    eq('and the rec command follows it', ops[1]?.startsWith('rec '), true);
+
+    /* The group stays open across the count-in — the clip already exists. */
+    seqState.countingIn = true;
+    recPassTick();
+    eq('a pass is open during the count-in', groupOpen(), true);
     eq('and nothing is on the stack yet', undoDepth(), 0);
 
+    seqState.countingIn = false;
+    seqState.recording = true;
+    seqState.curStep = 0;
+    recPassTick();
     for (const step of [4, 8, 12]) { seqState.curStep = step; recPassTick(); }
     eq('advancing within the loop keeps one pass', undoDepth(), 0);
 
     seqState.curStep = 0;                // wrap
     recPassTick();
-    eq('the wrap closes pass 1', undoDepth(), 1);
-    eq('and opens pass 2', groupOpen(), true);
+    eq('the wrap closes the first pass', undoDepth(), 1);
+    eq('and opens the next', groupOpen(), true);
+    /* The label carries no pass number: it meant nothing to anyone reading it. */
+    const e = popUndo();
+    eq('labelled simply RECORD', e.verb, 'RECORD');
+    eq('with no pass number', e.detail, '');
 
+    resetUndoState();
     seqState.curStep = 8; recPassTick();
     seqState.curStep = 0; recPassTick();
-    eq('two loops are two undos', undoDepth(), 2);
+    eq('a second loop is a second undo', undoDepth(), 1);
 
     seqState.recording = false;
     recPassTick();
-    eq('stopping closes the pass in progress', undoDepth(), 3);
+    eq('stopping closes the pass in progress', undoDepth(), 2);
     eq('and leaves no group open', groupOpen(), false);
+
+    /* Arming and disarming before the engine answers must not strand the group.
+     * The mirror lags the arm by a poll, so the close waits — but not forever. */
+    resetUndoState(); resetRecPass(); resetSeqState();
+    recToggle(0);
+    eq('the group opens on the press', groupOpen(), true);
+    for (let i = 0; i < 60; i++) recPassTick();   // engine never confirms
+    eq('an unconfirmed arm gives the group up', groupOpen(), false);
 
     resetUndoState(); resetUndoGroups(); resetRecPass(); resetSeqState(); resetSeqEngine();
     uninstallMockEngine();
+
 }
 
 

@@ -18,6 +18,7 @@ import {
     NUM_STEP_BUTTONS, PAD_MAX, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
 import { engineReady, seqCmd } from './engine.js';
+import { recToggle } from '../undo/rec-pass.js';
 import { loopHeld, loopWheel } from './loop-mode.js';
 import { momentaryGesture } from './momentary.js';
 import { sessionPad } from './session.js';
@@ -69,9 +70,9 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
      * keeps the old meaning, toggling live recording with its one-bar count-in. */
     if (d1 === CC_REC) {
         if (d2 > 0) {
-            if (!stepRecDown()) seqCmd('rec ' + seqState.watchTrack);
+            if (!stepRecDown()) recToggle(seqState.watchTrack);
         } else if (stepRecUp()) {
-            seqCmd('rec ' + seqState.watchTrack);
+            recToggle(seqState.watchTrack);
         }
         return true;
     }

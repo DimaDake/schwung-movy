@@ -6,3 +6,4 @@ dist/
 ui.js
 browser-test/screenshots/actual/
 *.js.map
+.DS_Store

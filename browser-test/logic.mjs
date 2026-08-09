@@ -9692,15 +9692,17 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     eq('both records are kept, not just the blob', op.oldState !== '' && op.oldParams.length > 0, true);
 
     /* The blob goes on first — it reaches state movy cannot see — and the dump
-     * follows to correct whatever the blob got wrong. */
+     * follows only to CHECK it. */
     store['synth:master'] = '0.10'; store['synth:cutoff'] = '0.99';   // randomised
     writes.length = 0;
     undoOnce();
     eq('the blob is applied first', writes[0], 'synth:state=OPAQUE-BLOB');
     eq('and it corrupts the module, as the real one does', store['synth:master'], '0');
     for (let i = 0; i < 200; i++) mrt();
-    eq('but the dump puts the params back', store['synth:master'], '0.80');
+    eq('the verify pass puts the params back', store['synth:master'], '0.80');
     eq('all of them', store['synth:cutoff'], '0.42');
+    /* Only the drifted ones are touched — nothing is blanket-rewritten. */
+    eq('and the preset is never re-written', writes.some((w) => w.startsWith('synth:preset=')), false);
 
     /* An in-place repair must not block the next undo — only a module SWAP,
      * which is genuinely still settling, does that. */
@@ -9764,6 +9766,60 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     eq('and only the missing ones cost a read', reads > 50 && reads < readCost, true);
 
     delete globalThis.shadow_get_param;
+}
+
+
+{
+    _log('\nundo — a blob that works is not overwritten afterwards:');
+    const { moduleRestoreTick: mrt2, resetModuleRestore: rmr2 } =
+        await import('../dist/esm/undo/module-apply.js');
+    const { appState: app2 } = await import('../dist/esm/app/state.js');
+    const { recordPresetState: recPS2 } = await import('../dist/esm/undo/record.js');
+    (await import('../dist/esm/seq/automation.js')).resetAutomation();
+
+    /* Surge XT restores correctly from its blob. Replaying the dump on top was
+     * actively destructive: the lead is the preset index, so re-writing it made
+     * the DSP RELOAD that preset over everything the blob had just restored,
+     * then took 300 individual writes while it was mid-load. The instrument came
+     * back silent or noisy. */
+    const store = {
+        'synth:chain_params': JSON.stringify([{ key: 'preset' }, { key: 'cutoff' }, { key: 'res' }]),
+        'synth:ui_hierarchy': JSON.stringify({ levels: { root: { list_param: 'preset' } } }),
+        'synth:state': '{"preset":7,"cutoff":0.42,"res":0.20}',
+        'synth:preset': '7', 'synth:cutoff': '0.42', 'synth:res': '0.20',
+    };
+    const writes = [];
+    globalThis.shadow_get_param = (slot, key) => store[key] ?? null;
+    globalThis.shadow_set_param = (slot, key, v) => {
+        writes.push(key + '=' + v); store[key] = v;
+        /* A faithful module: applying the blob restores every param. */
+        if (key === 'synth:state') {
+            const o = JSON.parse(v);
+            for (const k of Object.keys(o)) store['synth:' + k] = String(o[k]);
+        }
+        return true;
+    };
+    resetUndoState(); resetUndoGroups(); resetUndoApply(); rmr2();
+    app2.trackModels[0] = [];
+
+    beginEdit({ key: 'kk', verb: 'PRESET', target: 'T1', close: CLOSE.IMMEDIATE });
+    recPS2(0, 'synth');
+    recordParamOp(0, 'synth:preset', '7', '19');
+    endEdit();
+
+    store['synth:preset'] = '19'; store['synth:cutoff'] = '0.90';   // the preset change
+    writes.length = 0;
+    undoOnce();
+    for (let i = 0; i < 300; i++) mrt2();
+
+    eq('the blob restored the module', store['synth:cutoff'], '0.42');
+    eq('the preset is never re-written', writes.some((w) => w.startsWith('synth:preset=')), false);
+    eq('and no param is written after the blob',
+        writes.filter((w) => !w.startsWith('synth:state=')).length, 0);
+
+    delete globalThis.shadow_get_param;
+    delete globalThis.shadow_set_param;
+    resetUndoState(); resetUndoGroups(); resetUndoApply(); rmr2();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

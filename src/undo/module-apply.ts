@@ -105,6 +105,7 @@ export function beginModuleRestore(op: ModuleOp, undoing: boolean): void {
 export function beginParamRestore(
     slot: number, componentKey: string,
     params: [string, string][], leadCount: number,
+    verifyOnly = false,
 ): void {
     if (params.length === 0) return;
     pending = {
@@ -115,7 +116,14 @@ export function beginParamRestore(
         leadCount,
         wantIds: [],
         blocksUndo: false,
-        phase: 'lead',
+        /* verifyOnly: a state blob has already restored the module, so writing
+         * the params again would be worse than useless. The lead is the preset,
+         * and re-writing it makes the DSP RELOAD that preset — throwing away
+         * what the blob just restored, then taking hundreds of individual writes
+         * while it is mid-load. Surge XT came back silent or noisy from exactly
+         * that. Verify instead: read back, and rewrite only what the module
+         * actually failed to restore. */
+        phase: verifyOnly ? 'verify' : 'lead',
         ticksLeft: RESTORE_TIMEOUT_TICKS,
         settleLeft: SETTLE_TICKS,
         verifyLeft: VERIFY_TICKS,
@@ -242,7 +250,10 @@ export function moduleRestoreTick(): void {
         if (pending.state !== null) {
             setChainParamUntracked(op.slot, op.componentKey + ':state', pending.state);
             mlog('undo: restored module state (' + pending.state.length + ' bytes)');
-            finish(op);
+            /* Trust the blob, then check it. A module that cannot parse its own
+             * state is repaired by the verify pass; one that can pays nothing. */
+            if (pending.params.length > pending.leadCount) pending.phase = 'verify';
+            else finish(op);
             return;
         }
         write(pending, 0, pending.leadCount);

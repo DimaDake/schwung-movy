@@ -111,15 +111,19 @@ function applyEntry(e: UndoEntry, undoing: boolean): void {
             setChain(op.slot, op.componentKey + ':state', blob);
             mlog('undo: restored ' + op.componentKey + ' state (' + blob.length + ' bytes)');
         }
-        /* Then the params, over the top. A blob is only as good as the module's
-         * own round-trip, and at least one module's is broken (see
-         * recordPresetState) — restoring to silence. The dump is movy's own
-         * record of the same moment, so it corrects whatever the blob got
-         * wrong, and the staged writer keeps a preset inside it from
-         * overwriting the params that follow. */
+        /* Then the params — but only to CHECK the blob, never to redo its work.
+         * A blob is only as good as the module's own round-trip and at least one
+         * module's is broken (see recordPresetState), so the dump is kept as
+         * movy's independent record of the same moment. Replaying it wholesale
+         * on top of a blob that worked is destructive: the lead is the preset,
+         * and re-writing it makes the DSP reload that preset over everything
+         * just restored. So a blob restore hands over to the verify pass, which
+         * rewrites only the params the module genuinely failed to bring back. */
         const ps = undoing ? op.oldParams : op.newParams;
         const lead = (undoing ? op.oldLeadCount : op.newLeadCount) ?? 0;
-        if (ps && ps.length > 0) beginParamRestore(op.slot, op.componentKey, ps, lead);
+        if (ps && ps.length > 0) {
+            beginParamRestore(op.slot, op.componentKey, ps, lead, !!blob);
+        }
         refreshModels(op.slot);
     } else {
         /* Reverse order: a gesture that wrote A then B must undo B then A, or a

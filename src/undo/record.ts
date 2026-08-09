@@ -140,7 +140,9 @@ export function recordPresetState(slot: number, componentKey: string): void {
      * Cost is a read per published param, on a gesture (preset, randomiser,
      * module swap) that is deliberate and rare. */
     const state = captureModuleState(slot, componentKey);
-    const d = dumpModuleParams(slot, componentKey);
+    /* Hand the blob to the dump: when it is JSON it already holds every value,
+     * so the dump reads it instead of polling each param one at a time. */
+    const d = dumpModuleParams(slot, componentKey, state);
     if (state === null && d.params.length === 0) return;
     addStateOp({
         slot, componentKey,

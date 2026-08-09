@@ -9711,6 +9711,61 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     resetUndoState(); resetUndoGroups(); resetUndoApply(); rmr();
 }
 
+
+{
+    _log('\nundo — a JSON state blob supplies the dump values:');
+    const { dumpModuleParams } = await import('../dist/esm/undo/module-dump.js');
+    (await import('../dist/esm/seq/automation.js')).resetAutomation();
+
+    const keys = [];
+    for (let i = 0; i < 60; i++) keys.push({ key: 'p' + i });
+    const blobObj = { preset: 7 };
+    for (let i = 0; i < 60; i++) blobObj['p' + i] = i / 100;
+
+    let reads = 0;
+    const store = {
+        'synth:chain_params': JSON.stringify([{ key: 'preset' }, ...keys]),
+        'synth:ui_hierarchy': JSON.stringify({ levels: { root: { list_param: 'preset' } } }),
+    };
+    for (const k of Object.keys(blobObj)) store['synth:' + k] = String(blobObj[k]);
+    globalThis.shadow_get_param = (slot, key) => { reads++; return store[key] ?? null; };
+
+    /* Reading each param one at a time is what made the first detent of a preset
+     * turn stall for the best part of a second on Surge XT (302 params, 884 ms
+     * measured on device). The blob already holds every value. */
+    reads = 0;
+    const viaReads = dumpModuleParams(0, 'synth');
+    const readCost = reads;
+
+    reads = 0;
+    const viaBlob = dumpModuleParams(0, 'synth', JSON.stringify(blobObj));
+    const blobCost = reads;
+
+    eq('both routes capture the same params', viaBlob.params.length, viaReads.params.length);
+    eq('and the same values',
+        JSON.stringify(viaBlob.params), JSON.stringify(viaReads.params));
+    eq('but the blob costs a small fixed number of reads', blobCost < 10, true);
+    eq('where per-param reading scales with the module', readCost > 60, true);
+    _log(`    (61 params: ${readCost} reads one-at-a-time, ${blobCost} from the blob)`);
+
+    /* A non-JSON blob is not usable as a value source — weird-dreams ships one —
+     * so those modules keep the per-param route. */
+    reads = 0;
+    dumpModuleParams(0, 'synth', 'not-json-at-all');
+    eq('a non-JSON blob falls back to reading', reads > 60, true);
+
+    /* A key the blob omits is still read, so coverage never depends on the
+     * module having been thorough. */
+    const partial = JSON.stringify({ preset: 7, p0: 0.5 });
+    reads = 0;
+    const viaPartial = dumpModuleParams(0, 'synth', partial);
+    eq('a key missing from the blob is read individually',
+        viaPartial.params.length, viaReads.params.length);
+    eq('and only the missing ones cost a read', reads > 50 && reads < readCost, true);
+
+    delete globalThis.shadow_get_param;
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

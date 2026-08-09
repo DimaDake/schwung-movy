@@ -182,6 +182,42 @@ export function captureLfoAssignments(slot: number, componentKey: string): [stri
     return out;
 }
 
+/**
+ * Param values taken from a JSON state blob, or null when it is not JSON.
+ *
+ * The blob already carries every value the module publishes, so parsing it
+ * costs ONE read where reading each param costs hundreds — 884 ms for Surge
+ * XT's 302 params on device, in a single tick, which is a visible stall on the
+ * first detent of a preset turn.
+ *
+ * It also keeps the repair this dump exists for. A module's blob is CONTENT
+ * written by its own getter; the weird-dreams bug was in its parser. Taking the
+ * values from the blob and writing them back one at a time bypasses the
+ * parser entirely, which is exactly what corrects a module that cannot read its
+ * own state.
+ *
+ * Value formatting mirrors schwung's own flattening of this blob
+ * (remote_ui.go fetchAllParams): strings verbatim, numbers stringified,
+ * booleans as 1/0, anything else skipped.
+ */
+function valuesFromState(raw: string | null): Record<string, string> | null {
+    if (!raw || raw.charAt(0) !== '{') return null;
+    let obj: Record<string, unknown>;
+    try {
+        obj = JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+        return null;
+    }
+    const out: Record<string, string> = {};
+    for (const k of Object.keys(obj)) {
+        const v = obj[k];
+        if (typeof v === 'string') out[k] = v;
+        else if (typeof v === 'number') out[k] = String(v);
+        else if (typeof v === 'boolean') out[k] = v ? '1' : '0';
+    }
+    return out;
+}
+
 export interface ModuleDump {
     params: [string, string][];
     /* How many leading entries are tier 0+1. module-apply writes those, waits
@@ -189,7 +225,9 @@ export interface ModuleDump {
     leadCount: number;
 }
 
-export function dumpModuleParams(slot: number, componentKey: string): ModuleDump {
+export function dumpModuleParams(
+    slot: number, componentKey: string, stateBlob?: string | null,
+): ModuleDump {
     const empty: ModuleDump = { params: [], leadCount: 0 };
     if (typeof shadow_get_param !== 'function') return empty;
     const raw = shadow_get_param(slot, componentKey + ':chain_params');
@@ -202,6 +240,10 @@ export function dumpModuleParams(slot: number, componentKey: string): ModuleDump
         return empty;
     }
 
+    const _t0 = (typeof Date !== 'undefined' && Date.now) ? Date.now() : 0;
+    /* Values come from the blob when it is JSON; a per-key read is the fallback
+     * for anything it omits, and for modules whose state is not JSON. */
+    const fromState = valuesFromState(stateBlob ?? null);
     const listParam = listParamOf(slot, componentKey);
     const modulated = engineDrivenKeys(slot, componentKey);
     const tiers: [string, string][][] = [[], [], []];
@@ -209,8 +251,9 @@ export function dumpModuleParams(slot: number, componentKey: string): ModuleDump
     for (const cp of arr) {
         if (!restorable(cp)) continue;
         if (modulated.has(cp.key as string)) continue;
-        const v = shadow_get_param(slot, componentKey + ':' + cp.key);
-        if (v === null) continue;
+        const v = (fromState ? fromState[cp.key as string] : undefined)
+            ?? shadow_get_param(slot, componentKey + ':' + cp.key);
+        if (v === null || v === undefined) continue;
         taken.add(cp.key as string);
         tiers[paramTier(cp.key as string, listParam)].push([cp.key as string, v]);
     }
@@ -219,14 +262,18 @@ export function dumpModuleParams(slot: number, componentKey: string): ModuleDump
      * there while `plugin_index` picks which plugin those six belong to. Missing
      * it would restore six numbers into whatever plugin happened to be loaded. */
     if (listParam && !taken.has(listParam)) {
-        const v = shadow_get_param(slot, componentKey + ':' + listParam);
-        if (v !== null) tiers[paramTier(listParam, listParam)].push([listParam, v]);
+        const v = (fromState ? fromState[listParam] : undefined)
+            ?? shadow_get_param(slot, componentKey + ':' + listParam);
+        if (v !== null && v !== undefined) tiers[paramTier(listParam, listParam)].push([listParam, v]);
     }
     tiers[0].sort((a, b) => SELECTOR_ORDER(a[0]) - SELECTOR_ORDER(b[0]));
     const params = [...tiers[0], ...tiers[1], ...tiers[2]];
     const leadCount = tiers[0].length + tiers[1].length;
     mlog('undo: dumped ' + params.length + ' params from ' + componentKey
         + ' (' + leadCount + ' lead'
-        + (modulated.size > 0 ? ', ' + modulated.size + ' engine-driven skipped' : '') + ')');
+        + (modulated.size > 0 ? ', ' + modulated.size + ' engine-driven skipped' : '')
+        + (fromState ? ', from state' : '')
+        + ((typeof Date !== 'undefined' && Date.now) ? ', ' + (Date.now() - _t0) + ' ms' : '')
+        + ')');
     return { params, leadCount };
 }

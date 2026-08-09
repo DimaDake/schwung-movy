@@ -102,7 +102,7 @@ function applyEntry(e: UndoEntry, undoing: boolean): void {
          * back is the state it produced. */
         if (undoing && op.newState === undefined && e.paramOps.length === 0) {
             op.newState = captureModuleState(op.slot, op.componentKey) ?? '';
-            const d = dumpModuleParams(op.slot, op.componentKey);
+            const d = dumpModuleParams(op.slot, op.componentKey, op.newState);
             op.newParams = d.params;
             op.newLeadCount = d.leadCount;
         }

@@ -360,14 +360,24 @@ impl Clip {
         self.notes.iter().any(|n| n.step == step)
     }
 
-    fn push_note(&mut self, step: u16, pitch: u8, vel: u8) {
+    /// `inherit`: join whatever is already anchored at this step, taking its
+    /// span instead of the grid default (see `step_footprint`). Off for a drum
+    /// lane, where notes sharing a step are independent voices that merely
+    /// coincide, and off for an empty step, which has nothing to join.
+    fn push_note(&mut self, step: u16, pitch: u8, vel: u8, inherit: bool) {
         if self.notes.len() >= MAX_NOTES {
             return;
         }
         self.extend_to_step(step);
+        let (tick, gate) = match inherit.then(|| self.step_footprint(step)).flatten() {
+            // Capped like any length edit: an inherited span must not run the
+            // new note through its own next occurrence.
+            Some((t, g)) => (t, g.min(self.max_gate_at(t, pitch))),
+            None => (step as u32 * TICKS_PER_STEP, TICKS_PER_STEP),
+        };
         self.notes.push(Note {
-            tick: step as u32 * TICKS_PER_STEP,
-            gate: TICKS_PER_STEP,
+            tick,
+            gate,
             pitch,
             vel,
             step,
@@ -416,8 +426,10 @@ impl Clip {
         if pitches.is_empty() {
             return false;
         }
+        // The step was empty (cleared above, or never occupied), so there is no
+        // span to join — every pitch of the new chord lands on the grid.
         for &(pitch, vel) in pitches {
-            self.push_note(step, pitch, vel);
+            self.push_note(step, pitch, vel, false);
         }
         true
     }
@@ -425,7 +437,7 @@ impl Clip {
     /// Drum-lane toggle: toggle just `pitch` at `step` (add if that pitch is
     /// absent, remove if present), leaving other pitches in the step alone.
     /// Returns true if the note was added.
-    pub fn toggle_step_pitch(&mut self, step: u16, pitch: u8, vel: u8) -> bool {
+    pub fn toggle_step_pitch(&mut self, step: u16, pitch: u8, vel: u8, inherit: bool) -> bool {
         if step >= MAX_STEPS {
             return false;
         }
@@ -433,7 +445,7 @@ impl Clip {
             self.notes.remove(i);
             return false;
         }
-        self.push_note(step, pitch, vel);
+        self.push_note(step, pitch, vel, inherit);
         true
     }
 
@@ -547,13 +559,36 @@ impl Clip {
         let Some(n) = self.notes.iter().find(|n| Clip::note_matches(n, step, step, lane)) else {
             return 0;
         };
-        let mut cap = self.length_ticks().saturating_sub(n.tick);
+        self.max_gate_at(n.tick, n.pitch)
+    }
+
+    /// How long a note of `pitch` starting at `tick` may sound before it reaches
+    /// its own next occurrence or the clip end. Shared by the length editor's
+    /// cap and by an added note inheriting a step's span, so the two cannot
+    /// disagree about what "as long as it fits" means.
+    fn max_gate_at(&self, tick: u32, pitch: u8) -> u32 {
+        let mut cap = self.length_ticks().saturating_sub(tick);
         for o in &self.notes {
-            if o.pitch == n.pitch && o.tick > n.tick {
-                cap = cap.min(o.tick - n.tick);
+            if o.pitch == pitch && o.tick > tick {
+                cap = cap.min(o.tick - tick);
             }
         }
         cap.max(1)
+    }
+
+    /// The span every note anchored at `step` occupies: earliest start, and the
+    /// gate that reaches the latest end. None when the step is empty.
+    ///
+    /// This is what a note added to an occupied step inherits, so it sounds for
+    /// as long as the chord it is joining rather than snapping to the grid.
+    fn step_footprint(&self, step: u16) -> Option<(u32, u32)> {
+        let mut start: Option<u32> = None;
+        let mut end = 0;
+        for n in self.notes.iter().filter(|n| n.step == step) {
+            start = Some(start.map_or(n.tick, |s: u32| s.min(n.tick)));
+            end = end.max(n.tick + n.gate);
+        }
+        start.map(|s| (s, end.saturating_sub(s).max(1)))
     }
 
     /// Remove notes whose step anchor is in [s0, s1] (optionally only the
@@ -575,12 +610,12 @@ impl Clip {
 
     /// Add `pitch` to every step in [s0, s1] that doesn't already have it
     /// (Loop Mode "add a note to every step in a bar"). Returns added count.
-    pub fn add_pitch_range(&mut self, s0: u16, s1: u16, pitch: u8, vel: u8) -> usize {
+    pub fn add_pitch_range(&mut self, s0: u16, s1: u16, pitch: u8, vel: u8, inherit: bool) -> usize {
         let mut added = 0;
         for step in s0..=s1.min(MAX_STEPS - 1) {
             let present = self.notes.iter().any(|n| n.step == step && n.pitch == pitch);
             if !present {
-                self.push_note(step, pitch, vel);
+                self.push_note(step, pitch, vel, inherit);
                 added += 1;
             }
         }
@@ -741,20 +776,137 @@ mod tests {
     fn toggle_step_pitch_is_per_pitch() {
         let mut c = Clip::new();
         // Two lanes (drum pitches) share step 4.
-        assert!(c.toggle_step_pitch(4, 36, 100));
-        assert!(c.toggle_step_pitch(4, 38, 100));
+        assert!(c.toggle_step_pitch(4, 36, 100, false));
+        assert!(c.toggle_step_pitch(4, 38, 100, false));
         assert_eq!(c.notes.len(), 2);
         // Removing one lane leaves the other.
-        assert!(!c.toggle_step_pitch(4, 36, 100));
+        assert!(!c.toggle_step_pitch(4, 36, 100, false));
         assert_eq!(c.notes.len(), 1);
         assert_eq!(c.notes[0].pitch, 38);
+    }
+
+    /// The note just added by a hold-step + pad gesture.
+    fn added(c: &Clip, pitch: u8) -> Note {
+        *c.notes.iter().find(|n| n.pitch == pitch).expect("the note was not added")
+    }
+
+    #[test]
+    fn a_note_added_to_a_step_copies_the_note_already_there() {
+        // Adding a voice to a chord recorded behind the beat used to snap the
+        // new note to the grid and cut it to one step, so it did not sound as
+        // part of the chord.
+        let mut c = Clip::new();
+        c.set_loop(0, 16);
+        c.add_note_raw(4, 100, 60, 60, 100);      // played late, held 2.5 steps
+        assert!(c.toggle_step_pitch(4, 67, 110, true));
+
+        let n = added(&c, 67);
+        assert_eq!(n.tick, 100, "start did not follow the existing note");
+        assert_eq!(n.gate, 60, "length did not follow the existing note");
+        assert_eq!(n.step, 4, "the step anchor must stay put");
+        assert_eq!(n.vel, 110, "velocity still comes from the pad");
+    }
+
+    #[test]
+    fn a_note_added_to_a_chord_spans_all_of_it() {
+        // The notes of a played chord never agree exactly. The new one covers
+        // the whole thing: earliest start, latest end.
+        let mut c = Clip::new();
+        c.set_loop(0, 16);
+        c.add_note_raw(4, 100, 40, 60, 100);      // 100 → 140
+        c.add_note_raw(4, 102, 38, 64, 100);      // 102 → 140
+        c.add_note_raw(4, 104, 42, 67, 100);      // 104 → 146
+        assert!(c.toggle_step_pitch(4, 72, 100, true));
+
+        let n = added(&c, 72);
+        assert_eq!(n.tick, 100, "not the earliest start");
+        assert_eq!(n.tick + n.gate, 146, "not the latest end");
+    }
+
+    #[test]
+    fn a_note_added_to_an_empty_step_stays_on_the_grid() {
+        let mut c = Clip::new();
+        c.set_loop(0, 16);
+        assert!(c.toggle_step_pitch(4, 60, 100, true));
+        let n = added(&c, 60);
+        assert_eq!(n.tick, 4 * TICKS_PER_STEP);
+        assert_eq!(n.gate, TICKS_PER_STEP);
+    }
+
+    #[test]
+    fn a_drum_lane_add_does_not_inherit() {
+        // Drums sharing a step are separate voices that merely coincide, so a
+        // lengthened open hat must not hand its length to a kick.
+        let mut c = Clip::new();
+        c.set_loop(0, 16);
+        c.add_note_raw(4, 100, 60, 46, 100);      // open hat, held
+        assert!(c.toggle_step_pitch(4, 36, 100, false));
+        let n = added(&c, 36);
+        assert_eq!(n.tick, 4 * TICKS_PER_STEP);
+        assert_eq!(n.gate, TICKS_PER_STEP);
+    }
+
+    #[test]
+    fn an_inherited_span_stops_at_the_next_note_of_its_own_pitch() {
+        // Same cap the length knob applies: the new note must not run through
+        // its own next occurrence.
+        let mut c = Clip::new();
+        c.set_loop(0, 16);
+        c.add_note_raw(4, 96, 96, 60, 100);       // the chord spans 4 steps
+        c.add_note_raw(6, 144, 24, 67, 100);      // ...but 67 returns at step 6
+        assert!(c.toggle_step_pitch(4, 67, 100, true));
+
+        let n = *c.notes.iter().find(|n| n.pitch == 67 && n.step == 4).unwrap();
+        assert_eq!(n.tick, 96);
+        assert_eq!(n.gate, 48, "ran into its own next occurrence");
+    }
+
+    #[test]
+    fn an_inherited_span_stops_at_the_clip_end() {
+        // A note left longer than the clip (recorded, then the clip shortened)
+        // must not pass that overhang on.
+        let mut c = Clip::new();
+        c.set_loop(0, 16);                        // 384 ticks
+        c.add_note_raw(15, 370, 100, 60, 100);    // played late, would end at 470
+        assert!(c.toggle_step_pitch(15, 67, 100, true));
+        let n = added(&c, 67);
+        assert_eq!(n.tick, 370, "start did not follow the existing note");
+        assert_eq!(n.gate, 14, "overran the clip");
+    }
+
+    #[test]
+    fn a_bar_add_inherits_each_steps_own_span() {
+        // Loop Mode adds a pitch across a whole bar; each step joins whatever
+        // is at that step, and an empty one still lands on the grid.
+        let mut c = Clip::new();
+        c.set_loop(0, 16);
+        c.add_note_raw(2, 50, 70, 60, 100);
+        c.add_note_raw(5, 130, 12, 60, 100);
+        assert_eq!(c.add_pitch_range(0, 7, 72, 100, true), 8);
+
+        let at = |s: u16| *c.notes.iter().find(|n| n.pitch == 72 && n.step == s).unwrap();
+        assert_eq!((at(2).tick, at(2).gate), (50, 70));
+        assert_eq!((at(5).tick, at(5).gate), (130, 12));
+        assert_eq!((at(0).tick, at(0).gate), (0, TICKS_PER_STEP), "empty step");
+    }
+
+    #[test]
+    fn an_added_note_is_governed_by_the_steps_trig_props() {
+        // Probability/condition/invert are held per step (lane None) in melodic
+        // view, so a note added to the step is already covered by them.
+        let mut c = Clip::new();
+        c.set_loop(0, 16);
+        c.add_note_raw(4, 96, 24, 60, 100);
+        c.set_trig_prob(4, 4, None, 50);
+        assert!(c.toggle_step_pitch(4, 67, 100, true));
+        assert_eq!(c.governing_trig(4, 67).prob, 50);
     }
 
     #[test]
     fn occupancy_lane_filters_by_pitch() {
         let mut c = Clip::new();
-        c.toggle_step_pitch(0, 36, 100); // kick lane
-        c.toggle_step_pitch(4, 38, 100); // snare lane
+        c.toggle_step_pitch(0, 36, 100, false); // kick lane
+        c.toggle_step_pitch(4, 38, 100, false); // snare lane
         // Snare lane sees only step 4.
         let snare = c.occupancy_hex_lane(Some(38));
         assert_eq!(&snare[0..2], "08"); // step 4 = bit 3 of byte 0

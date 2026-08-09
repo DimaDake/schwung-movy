@@ -478,11 +478,13 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
             {
                 if (t as usize) < NUM_TRACKS && (0..128).contains(&p) {
                     let pitch = untranspose(engine, t as usize, p as u8);
+                    let inherit = engine.watch_lane.is_none();
                     engine.tracks[t as usize].active_mut().add_pitch_range(
                         s0.clamp(0, 255) as u16,
                         s1.clamp(0, 255) as u16,
                         pitch,
                         v.clamp(1, 127) as u8,
+                        inherit,
                     );
                 }
             }
@@ -510,10 +512,14 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
             if let (Some(t), Some(s), Some(p), Some(v)) = (next(), next(), next(), next()) {
                 if (t as usize) < NUM_TRACKS && (0..128).contains(&p) {
                     let pitch = untranspose(engine, t as usize, p as u8);
+                    // Melodic only: a drum lane's neighbours at the same step are
+                    // separate voices, not a chord to join.
+                    let inherit = engine.watch_lane.is_none();
                     engine.tracks[t as usize].active_mut().toggle_step_pitch(
                         s.clamp(0, 255) as u16,
                         pitch,
                         v.clamp(1, 127) as u8,
+                        inherit,
                     );
                     engine.ensure_selected_playing(t as usize);
                 }

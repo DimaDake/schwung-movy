@@ -31,6 +31,14 @@ far. Earlier work is summarised in the timeline below for context.
   engine command is replaced by `cq` / `dq`.
 - Clips saved before this release load at 0 % quantization, so existing sets
   play back exactly as they did.
+- **A note added to an occupied step now joins what is already there.** Holding
+  a step and pressing a pad used to place the new note hard on the grid with a
+  one-step length, so a voice added to a chord played behind the beat and held
+  for three steps started early and stopped short. It now takes the earliest
+  start and the latest end of the step's notes — an exact copy when they agree —
+  capped at the next note of the same pitch and at the clip end. Melodic view
+  only: drum hits sharing a step are separate voices, not a chord. Also applies
+  to the Loop-mode "add a pitch across a bar" gesture, per step.
 
 ### Fixed
 

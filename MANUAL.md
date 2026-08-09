@@ -490,6 +490,12 @@ for the concepts:
   [Capture](#capture--keep-what-you-just-played) below.
 - **Step entry & editing** — tap a step to toggle a note; **hold a step** to edit
   it (and to open its [step parameters](#6-beyond-move-step-clip--set-parameters)).
+  Adding a pad to a step that already has notes **joins what is there**: the new
+  note takes the earliest start and the latest end of the notes on that step, so
+  a voice added to a chord you played behind the beat sounds with the chord
+  instead of snapping to the grid. It stops at the next note of the same pitch,
+  or at the clip end. Drum lanes are exempt — hits sharing a step are separate
+  voices, not a chord, so they keep the grid.
 - **Note length** — **hold step A, then press step B** to set A's length up to B.
 - **Loop / bars** — the **Loop** button shows the bar overview; **Left/Right**
   navigate bars. **Shift + Step 15** doubles the loop.
@@ -996,7 +1002,7 @@ behaviour you'd like — or, better, a PR.
 | **Step buttons 1–16** | Toggle a note on/off at that step. |
 | **Hold a step** | Edit that step; opens its **Step parameters** (page 0). |
 | **Hold step A + press step B** | Set step A's note length up to B. |
-| **Hold a step + pad** | Edit that step's notes from the keyboard. |
+| **Hold a step + pad** | Edit that step's notes from the keyboard. An added note takes the step's existing start and length (melodic only). |
 | **Play** | Start / stop the transport. When **LINK** is on, also starts / stops Move's native sequencer (a Movy-initiated start waits ~1 bar for Move's Link grid). |
 | **Rec** (tap) | Arm recording (one-bar count-in). Tapping again stops; a pad still held is kept and gets its full played length. |
 | **Hold Rec** (stopped) | **Step recording** — play the pads to enter notes step by step. |

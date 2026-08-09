@@ -3814,6 +3814,23 @@ mod tests {
     }
 
     #[test]
+    fn ltog_inherits_the_step_span_in_melodic_view_only() {
+        // Where the melodic-vs-drum decision is actually made: `ltog` reads
+        // watch_lane. A chord's added voice joins the chord; a drum lane's
+        // neighbour at the same step is a separate voice and keeps the grid.
+        let mut out = Vec::new();
+        for (wlane, want) in [("-1", (100u32, 60u32)), ("36", (4 * TICKS_PER_STEP, TICKS_PER_STEP))] {
+            let mut e = engine();
+            e.tracks[0].active_mut().set_loop(0, 16);
+            e.tracks[0].active_mut().add_note_raw(4, 100, 60, 60, 100);
+            apply_batch(&mut e, &format!("wlane {wlane};ltog 0 4 67 110"), &mut out);
+
+            let n = *e.tracks[0].active().notes.iter().find(|n| n.pitch == 67).unwrap();
+            assert_eq!((n.tick, n.gate), want, "wlane {wlane}");
+        }
+    }
+
+    #[test]
     fn toggle_record_twice_stops() {
         let mut e = engine();
         e.toggle_record(0);

@@ -9817,6 +9817,24 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     eq('and no param is written after the blob',
         writes.filter((w) => !w.startsWith('synth:state=')).length, 0);
 
+    /* Not even when the module is still settling. A dump PARSED from the blob
+     * is the same data the blob holds, so comparing it against a module that
+     * just applied that blob measures timing, not correctness — Surge XT was
+     * caught mid-patch-load and had 225 params "corrected" into a half-loaded
+     * synth. */
+    resetUndoState(); resetUndoGroups(); rmr2();
+    beginEdit({ key: 'kk2', verb: 'PRESET', target: 'T1', close: CLOSE.IMMEDIATE });
+    recPS2(0, 'synth');
+    recordParamOp(0, 'synth:preset', '7', '31');
+    endEdit();
+    globalThis.shadow_set_param = (slot, key, v) => { writes.push(key + '=' + v); store[key] = v; return true; };
+    store['synth:cutoff'] = '0.99';        // module mid-apply: value not there yet
+    writes.length = 0;
+    undoOnce();
+    for (let i = 0; i < 300; i++) mrt2();
+    eq('a slow-settling module is left alone',
+        writes.filter((w) => !w.startsWith('synth:state=')).length, 0);
+
     delete globalThis.shadow_get_param;
     delete globalThis.shadow_set_param;
     resetUndoState(); resetUndoGroups(); resetUndoApply(); rmr2();

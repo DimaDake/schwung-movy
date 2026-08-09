@@ -28,7 +28,7 @@ import { writeUiField, type UiField } from './ui-fields.js';
 import { changeDetail } from './label.js';
 import { refreshModels, syncParamsToModels } from './param-sync.js';
 import { moduleReadKey } from '../chain/config.js';
-import { captureModuleState, dumpModuleParams } from './module-dump.js';
+import { captureModuleState, dumpModuleParams, stateIsParsable } from './module-dump.js';
 
 /* Snapshot ids allocated for the redo side of a uswap. Shares the counter with
  * group.ts by staying above it — group ids are odd-free and monotonic, so a
@@ -111,17 +111,24 @@ function applyEntry(e: UndoEntry, undoing: boolean): void {
             setChain(op.slot, op.componentKey + ':state', blob);
             mlog('undo: restored ' + op.componentKey + ' state (' + blob.length + ' bytes)');
         }
-        /* Then the params — but only to CHECK the blob, never to redo its work.
-         * A blob is only as good as the module's own round-trip and at least one
-         * module's is broken (see recordPresetState), so the dump is kept as
-         * movy's independent record of the same moment. Replaying it wholesale
-         * on top of a blob that worked is destructive: the lead is the preset,
-         * and re-writing it makes the DSP reload that preset over everything
-         * just restored. So a blob restore hands over to the verify pass, which
-         * rewrites only the params the module genuinely failed to bring back. */
+        /* The dump is the fallback, and the check on a blob that cannot be
+         * trusted. Which of those applies depends on where its values came from:
+         *
+         *   - Values READ per param are an independent record, so they can tell
+         *     us the module failed to restore itself (weird-dreams) and put it
+         *     right.
+         *   - Values PARSED from the blob are the same data the blob holds.
+         *     Comparing them against a module that just applied that blob proves
+         *     nothing about correctness — only about timing. Surge XT takes a
+         *     moment to settle a patch, so the check caught it mid-apply and
+         *     "corrected" 225 params into a half-loaded synth, which is what
+         *     left it silent or noisy.
+         *
+         * So: verify only when the dump is genuinely independent of the blob. */
         const ps = undoing ? op.oldParams : op.newParams;
         const lead = (undoing ? op.oldLeadCount : op.newLeadCount) ?? 0;
-        if (ps && ps.length > 0) {
+        const derivedFromBlob = stateIsParsable(blob);
+        if (ps && ps.length > 0 && !derivedFromBlob) {
             beginParamRestore(op.slot, op.componentKey, ps, lead, !!blob);
         }
         refreshModels(op.slot);

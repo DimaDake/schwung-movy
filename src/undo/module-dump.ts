@@ -200,6 +200,12 @@ export function captureLfoAssignments(slot: number, componentKey: string): [stri
  * (remote_ui.go fetchAllParams): strings verbatim, numbers stringified,
  * booleans as 1/0, anything else skipped.
  */
+/** Whether a blob can be parsed for values — i.e. whether a dump taken with it
+ *  is derived FROM it rather than read independently. */
+export function stateIsParsable(raw: string | null | undefined): boolean {
+    return !!raw && raw.charAt(0) === '{';
+}
+
 function valuesFromState(raw: string | null): Record<string, string> | null {
     if (!raw || raw.charAt(0) !== '{') return null;
     let obj: Record<string, unknown>;

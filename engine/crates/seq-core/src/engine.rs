@@ -1242,7 +1242,7 @@ impl Engine {
     /// track's current position. Every way a note can stop being pending — the
     /// pad release, a transport stop, arming the next take, running out its
     /// length — resolves through here, so they cannot disagree about placement.
-    fn commit_rec_note(&mut self, p: RecPending) {
+    fn commit_rec_note(&mut self, p: RecPending, tail: bool) {
         if p.track >= NUM_TRACKS || p.slot >= CLIPS_PER_TRACK {
             return;
         }
@@ -1253,16 +1253,16 @@ impl Engine {
         }
         let now = self.tracks[p.track].pos_tick as i64;
         let cycle = self.tracks[p.track].cycle;
-        let (span, snum, sden) = {
+        let (span, end, snum, sden) = {
             let c = &self.tracks[p.track].clips[p.slot];
-            (c.length_ticks().max(1) as i64, c.scale_num, c.scale_den)
+            (c.length_ticks().max(1) as i64, c.loop_end_ticks() as i64, c.scale_num, c.scale_den)
         };
         // Laps completed since the note began, so a note held across the loop
         // point keeps its true length instead of wrapping to a negative one.
-        // Clamped to the clip: a note can never be longer than the pattern that
-        // carries it, and the clamp also bounds the arithmetic.
+        // The clamp also bounds the arithmetic.
         let laps = cycle.wrapping_sub(p.start_cycle).min(64) as i64;
-        let gate = (laps * span + now - p.start_tick as i64).clamp(1, span) as u32;
+        let limit = self.rec_gate_limit(&p, tail, span, end);
+        let gate = (laps * span + now - p.start_tick as i64).clamp(1, limit) as u32;
         // Store the pad's concert pitch minus the clip transpose, so playback
         // (which re-adds transpose at emit) reproduces exactly what the pad
         // played. Keeps recorded notes aligned with the untransposed pads.
@@ -1275,20 +1275,36 @@ impl Engine {
         self.tracks[p.track].clips[p.slot].record_note(step, tick, gate, stored, p.vel);
     }
 
+    /// The longest gate a captured note may be given.
+    ///
+    /// While recording, a note held across the loop point is a real musical
+    /// wrap and keeps the pattern length as its ceiling. A tail has no take
+    /// still running behind it, so it ends at the clip end instead: allowed to
+    /// wrap, a long hold becomes a note that is still sounding when it comes
+    /// round to its own start, i.e. a drone on every pass.
+    fn rec_gate_limit(&self, p: &RecPending, tail: bool, span: i64, end: i64) -> i64 {
+        if !tail {
+            return span;
+        }
+        (end - p.start_tick.max(0) as i64).clamp(1, span)
+    }
+
     /// Resolve every note left holding when recording ended, ending each at the
     /// current position. Used where a tail can no longer wait for its release:
     /// the transport stopping, or the next take being armed over it.
     fn commit_rec_tail(&mut self) {
         for p in std::mem::take(&mut self.rec_tail) {
-            self.commit_rec_note(p);
+            self.commit_rec_note(p, true);
         }
     }
 
     /// A pad that is never released would leave its note invisible indefinitely.
-    /// One clip length is the natural cap — a note cannot be longer than the
-    /// pattern anyway — so at that point it is written at full length and drops
-    /// out of the tail, becoming audible on the next pass like any other
-    /// recorded note. Runs per track per tick, behind an empty check.
+    /// The clip end caps it (`rec_gate_limit`), and that is also the moment it
+    /// can no longer grow — so it is written there and drops out of the tail,
+    /// becoming audible on the next pass like any other recorded note. Keeping
+    /// the two on the same boundary is what stops a long hold turning into a
+    /// note that is still sounding when it reaches its own start.
+    /// Runs per track per tick, behind an empty check.
     fn expire_rec_tail(&mut self, track: usize) {
         if self.rec_tail.is_empty() {
             return;
@@ -1302,11 +1318,12 @@ impl Engine {
                 i += 1;
                 continue;
             }
-            let span = self.tracks[track].clips[p.slot].length_ticks().max(1) as i64;
+            let clip = &self.tracks[track].clips[p.slot];
+            let (span, end) = (clip.length_ticks().max(1) as i64, clip.loop_end_ticks() as i64);
             let laps = cycle.wrapping_sub(p.start_cycle).min(64) as i64;
-            if laps * span + now - p.start_tick as i64 >= span {
+            if laps * span + now - p.start_tick as i64 >= self.rec_gate_limit(p, true, span, end) {
                 let done = self.rec_tail.swap_remove(i); // swap_remove: do not advance
-                self.commit_rec_note(done);
+                self.commit_rec_note(done, true);
             } else {
                 i += 1;
             }
@@ -1359,19 +1376,15 @@ impl Engine {
         // holding when you press Rec survive — and a note that was never
         // captured simply finds no entry. Notes accepted by the pre-roll window
         // during the count-in resolve through the same lookup.
-        let found = self
-            .rec_pending
-            .iter()
-            .rposition(|p| p.pitch == pitch)
-            .map(|i| self.rec_pending.swap_remove(i))
-            .or_else(|| {
-                self.rec_tail
-                    .iter()
-                    .rposition(|p| p.pitch == pitch)
-                    .map(|i| self.rec_tail.swap_remove(i))
-            });
-        if let Some(p) = found {
-            self.commit_rec_note(p);
+        // Which list it came from decides the ceiling on its length: a note
+        // still being recorded may wrap the loop, a tail may not (see
+        // `rec_gate_limit`).
+        if let Some(i) = self.rec_pending.iter().rposition(|p| p.pitch == pitch) {
+            let p = self.rec_pending.swap_remove(i);
+            self.commit_rec_note(p, false);
+        } else if let Some(i) = self.rec_tail.iter().rposition(|p| p.pitch == pitch) {
+            let p = self.rec_tail.swap_remove(i);
+            self.commit_rec_note(p, true);
         }
     }
 
@@ -3755,19 +3768,50 @@ mod tests {
     }
 
     #[test]
-    fn an_unreleased_tail_is_finalized_at_one_clip_length() {
+    fn an_unreleased_tail_is_finalized_at_the_clip_end() {
         // A pad that is never released must not leave its note invisible for
-        // ever. One loop caps it, and the note is a full-length one.
+        // ever. The clip end caps it, and is also where it gets written.
         let mut e = recording_with_a_held_note(60);
         e.toggle_record(0);
         let span = e.tracks[0].active().length_ticks();
         run_ticks(&mut e, span as u64 + TICKS_PER_STEP as u64);
 
         assert_eq!(e.tracks[0].active().notes.len(), 1);
-        assert_eq!(e.tracks[0].active().notes[0].gate, span, "gate is capped at the clip");
+        let n = e.tracks[0].active().notes[0];
+        let end = e.tracks[0].active().loop_end_ticks();
+        assert_eq!(n.tick + n.gate, end, "did not stop at the clip end");
         // Already written, so the eventual release must not write it twice.
         e.live_note_off(0, 60);
         assert_eq!(e.tracks[0].active().notes.len(), 1, "the release duplicated it");
+    }
+
+    #[test]
+    fn a_long_tail_stops_at_the_clip_end_instead_of_droning() {
+        // Capping a tail at the pattern LENGTH rather than at the clip END let a
+        // note that began mid-clip run past the loop point and still be sounding
+        // when it reached its own start — audible as a drone on every pass.
+        // Recording a new clip, so it auto-extends: the note begins in bar 1 and
+        // the take runs into bar 2 before the stop.
+        let mut e = engine();
+        e.toggle_record(0);
+        run_ticks(&mut e, crate::TICKS_PER_BAR as u64 + 1);
+        run_ticks(&mut e, 14 * TICKS_PER_STEP as u64);   // near the bar line
+        e.live_note_on(0, 60, 100);
+        run_ticks(&mut e, 6 * TICKS_PER_STEP as u64);    // cross into bar 2
+        e.toggle_record(0);                              // stop, still held
+        run_ticks(&mut e, 40 * TICKS_PER_STEP as u64);   // hold on and on
+        e.live_note_off(0, 60);
+
+        let c = e.tracks[0].active();
+        assert_eq!(c.notes.len(), 1);
+        let n = c.notes[0];
+        assert!(n.tick > 0, "precondition: the note begins mid-clip");
+        assert_eq!(n.tick + n.gate, c.loop_end_ticks(), "did not stop at the clip end");
+        assert!(
+            n.gate < c.length_ticks(),
+            "gate {} fills the whole clip from a mid-clip start — it wraps into itself",
+            n.gate
+        );
     }
 
     #[test]
@@ -4349,3 +4393,4 @@ mod tests {
         assert!(e.status().contains("swing=66"));
     }
 }
+

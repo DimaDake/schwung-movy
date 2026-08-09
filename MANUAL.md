@@ -482,7 +482,9 @@ for the concepts:
   A pad still **held when you press Rec to stop** (or when you stop the
   transport) is kept, not discarded: recording stops there, but the note you
   are sounding is written with the length you actually play it for, so ending a
-  take on a sustained chord keeps that chord. Its length is capped at the clip.
+  take on a sustained chord keeps that chord. It ends at your release or at the
+  **end of the clip**, whichever comes first — so however long you lean on the
+  pad, it never wraps round the loop into a drone.
 - **Metronome** — toggle with **Shift + Step 6**.
 - **Step recording** — hold **Rec** while stopped and play the pads to enter
   notes one step at a time; see [Step recording](#step-recording) below.

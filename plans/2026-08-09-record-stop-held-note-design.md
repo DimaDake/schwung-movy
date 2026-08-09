@@ -90,13 +90,20 @@ Gate is clamped to the clip length.
 | Transport stop (`Engine::stop`) | Finalized at the stop point; fixes Play-to-stop |
 | New recording armed | Finalized first, so nothing leaks into the next take |
 | Clip deleted or cleared | Dropped — the target no longer exists |
-| One clip length elapsed | Finalized at full length |
+| The clip end reached | Finalized there |
 
 The last rule bounds the state and keeps a never-released note from staying
-invisible: when the rec track wraps back past the note's start position, the
-engine writes it at full length and drops it, so it becomes audible on the next
-pass like any recorded note. The check runs at the existing wrap branch and only
-when `rec_tail` is non-empty.
+invisible. The check runs at the existing wrap branch and only when `rec_tail`
+is non-empty.
+
+**The cap is the clip END, not the clip length.** Capping at the length let a
+note that began mid-clip run past the loop point and still be sounding when it
+came round to its own start — a drone on every pass, which is worse than the
+bug this fixes. A note still being recorded keeps the pattern length as its
+ceiling, since a wrap there is a real musical wrap with a take still running
+behind it; `rec_gate_limit` is the one place that decides which applies. The
+clip end is also where the note stops being able to grow, so it is where the
+unreleased-tail expiry fires: one boundary, not two.
 
 ### UI (`src/`)
 

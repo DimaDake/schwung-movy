@@ -46,10 +46,12 @@ far. Earlier work is summarised in the timeline below for context.
   sustained note — press Rec while the pad is down — discarded that note
   outright rather than shortening it, and stopping the transport mid-note did
   the same. Held notes now survive the stop and are written with the length
-  they were actually played for, capped at the clip. Recording itself still
-  stops immediately: nothing played after the stop is captured. A note whose
-  pad is never released is written at full length after one loop, and one held
-  as Movy closes is finalized before the set is saved.
+  they were actually played for, ending at the release or at the clip end,
+  whichever comes first — so a long hold cannot wrap round the loop and drone
+  on every pass. Recording itself still stops immediately: nothing played after
+  the stop is captured. A note whose pad is never released is written when it
+  reaches the clip end, and one held as Movy closes is finalized before the set
+  is saved.
 - **Recording or capturing against swing lost the upbeats.** A note's step
   anchor was rounded against the straight grid, but swing moves an off-beat
   16th later inside its own cell — so on swing 70 there were only 4 ticks

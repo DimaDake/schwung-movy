@@ -41,6 +41,14 @@ struct RecPending {
     /// Signed: negative means the note began inside the count-in, that many
     /// ticks before the recording start (see `Engine::preroll_offset`).
     start_tick: i32,
+    /// Where the note belongs, captured at the note-on. A tail note outlives
+    /// the recording state, so resolving either of these at the release would
+    /// write it into whatever happens to be active by then.
+    track: usize,
+    slot: usize,
+    /// The track's loop count when the note began, so a note held across one or
+    /// more wraps still measures its true length.
+    start_cycle: u32,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -84,6 +92,11 @@ pub struct Engine {
     /// the right value and no creation path has to know about the default.
     pub default_quant: u8,
     rec_pending: Vec<RecPending>,
+    /// Notes still held when recording ended, kept until their release so the
+    /// pad you are sounding as you press Rec is not thrown away. Separate from
+    /// `rec_pending` on purpose: a new take pushes fresh entries, and a stale
+    /// same-pitch entry sharing that list would never be matched again.
+    rec_tail: Vec<RecPending>,
     /// Retroactive capture input (Move manual §14.3). Runtime-only.
     capture: CaptureRing,
     /// A stopped capture's take, frame-stamped, kept while the overlay is up so
@@ -207,6 +220,7 @@ impl Engine {
             metronome: false,
             default_quant: 0,
             rec_pending: Vec::new(),
+            rec_tail: Vec::new(),
             capture: CaptureRing::new(),
             capture_gen: 0,
             cap_take: Vec::new(),
@@ -387,7 +401,9 @@ impl Engine {
 
     pub fn delete_clip(&mut self, track: usize) {
         if track < NUM_TRACKS {
+            let slot = self.tracks[track].active_clip;
             self.tracks[track].active_mut().clear();
+            self.drop_rec_notes_for(track, slot);
             self.free_unused_lanes(track);
         }
     }
@@ -396,6 +412,7 @@ impl Engine {
     pub fn delete_clip_at(&mut self, track: usize, slot: usize) {
         if track < NUM_TRACKS && slot < CLIPS_PER_TRACK {
             self.tracks[track].clips[slot].clear();
+            self.drop_rec_notes_for(track, slot);
             self.free_unused_lanes(track);
         }
     }
@@ -607,7 +624,10 @@ impl Engine {
         self.playing = false;
         self.recording = false;
         self.count_in_left = 0;
-        self.rec_pending.clear();
+        // The playhead is about to stop, so a held note has nothing left to
+        // measure against: end it here rather than throw it away.
+        self.rec_tail.append(&mut self.rec_pending);
+        self.commit_rec_tail();
         self.capture.clear();
         for t in &mut self.tracks {
             t.last_auto_step = -1;
@@ -705,9 +725,15 @@ impl Engine {
         if self.recording || self.count_in_left > 0 {
             self.recording = false;
             self.count_in_left = 0;
-            self.rec_pending.clear();
+            // Whatever is still held becomes a tail: capture stops immediately,
+            // but a pad you are sounding as you press Rec belongs to the take
+            // and gets its real length when you let go. Clearing here erased it.
+            self.rec_tail.append(&mut self.rec_pending);
             return;
         }
+        // The previous take's tail cannot outlive the arming of the next one:
+        // it would be finalized against a position that no longer relates to it.
+        self.commit_rec_tail();
         self.rec_track = track;
         self.watch_track = track;
         self.rec_empty_start = self.tracks[track].active().notes.is_empty();
@@ -1212,6 +1238,90 @@ impl Engine {
         }
     }
 
+    /// Write a captured note into the clip it was played into, ending it at the
+    /// track's current position. Every way a note can stop being pending — the
+    /// pad release, a transport stop, arming the next take, running out its
+    /// length — resolves through here, so they cannot disagree about placement.
+    fn commit_rec_note(&mut self, p: RecPending) {
+        if p.track >= NUM_TRACKS || p.slot >= CLIPS_PER_TRACK {
+            return;
+        }
+        // The clip can have been deleted while the note was held; recording into
+        // it again would resurrect a single note in an otherwise empty slot.
+        if !self.tracks[p.track].clips[p.slot].exists() {
+            return;
+        }
+        let now = self.tracks[p.track].pos_tick as i64;
+        let cycle = self.tracks[p.track].cycle;
+        let (span, snum, sden) = {
+            let c = &self.tracks[p.track].clips[p.slot];
+            (c.length_ticks().max(1) as i64, c.scale_num, c.scale_den)
+        };
+        // Laps completed since the note began, so a note held across the loop
+        // point keeps its true length instead of wrapping to a negative one.
+        // Clamped to the clip: a note can never be longer than the pattern that
+        // carries it, and the clamp also bounds the arithmetic.
+        let laps = cycle.wrapping_sub(p.start_cycle).min(64) as i64;
+        let gate = (laps * span + now - p.start_tick as i64).clamp(1, span) as u32;
+        // Store the pad's concert pitch minus the clip transpose, so playback
+        // (which re-adds transpose at emit) reproduces exactly what the pad
+        // played. Keeps recorded notes aligned with the untransposed pads.
+        let stored = (p.pitch as i32 - self.clip_transpose(p.track, p.slot)).clamp(0, 127) as u8;
+        // A pre-roll note anchors at the clip start: the push itself is not
+        // preserved (that would need notes stored before their anchor), but
+        // the gate keeps its true length from the signed start.
+        let tick = p.start_tick.max(0) as u32;
+        let step = self.anchor_step(tick, snum, sden);
+        self.tracks[p.track].clips[p.slot].record_note(step, tick, gate, stored, p.vel);
+    }
+
+    /// Resolve every note left holding when recording ended, ending each at the
+    /// current position. Used where a tail can no longer wait for its release:
+    /// the transport stopping, or the next take being armed over it.
+    fn commit_rec_tail(&mut self) {
+        for p in std::mem::take(&mut self.rec_tail) {
+            self.commit_rec_note(p);
+        }
+    }
+
+    /// A pad that is never released would leave its note invisible indefinitely.
+    /// One clip length is the natural cap — a note cannot be longer than the
+    /// pattern anyway — so at that point it is written at full length and drops
+    /// out of the tail, becoming audible on the next pass like any other
+    /// recorded note. Runs per track per tick, behind an empty check.
+    fn expire_rec_tail(&mut self, track: usize) {
+        if self.rec_tail.is_empty() {
+            return;
+        }
+        let now = self.tracks[track].pos_tick as i64;
+        let cycle = self.tracks[track].cycle;
+        let mut i = 0;
+        while i < self.rec_tail.len() {
+            let p = &self.rec_tail[i];
+            if p.track != track || p.slot >= CLIPS_PER_TRACK {
+                i += 1;
+                continue;
+            }
+            let span = self.tracks[track].clips[p.slot].length_ticks().max(1) as i64;
+            let laps = cycle.wrapping_sub(p.start_cycle).min(64) as i64;
+            if laps * span + now - p.start_tick as i64 >= span {
+                let done = self.rec_tail.swap_remove(i); // swap_remove: do not advance
+                self.commit_rec_note(done);
+            } else {
+                i += 1;
+            }
+        }
+    }
+
+    /// Forget any captured note bound for `slot` on `track`. The clip it was
+    /// played into has been cleared, and writing the note now would leave a
+    /// single stray note in a slot the user just emptied.
+    fn drop_rec_notes_for(&mut self, track: usize, slot: usize) {
+        self.rec_pending
+            .retain(|p| p.track != track || p.slot != slot);
+        self.rec_tail.retain(|p| p.track != track || p.slot != slot);
+    }
+
     pub fn live_note_on(&mut self, track: usize, pitch: u8, vel: u8) {
         self.capture_push(track, pitch, vel, true);
         if track >= NUM_TRACKS || track != self.rec_track {
@@ -1227,7 +1337,14 @@ impl Engine {
         } else {
             return;
         };
-        self.rec_pending.push(RecPending { pitch, vel, start_tick });
+        self.rec_pending.push(RecPending {
+            pitch,
+            vel,
+            start_tick,
+            track,
+            slot: self.tracks[track].active_clip,
+            start_cycle: self.tracks[track].cycle,
+        });
     }
 
     /// Finalize a recorded note (start → now) into the clip on note-off,
@@ -1237,40 +1354,24 @@ impl Engine {
         if track >= NUM_TRACKS || track != self.rec_track {
             return;
         }
-        // Released inside the count-in, a note the pre-roll window accepted
-        // still has to resolve, or it stays pending for ever.
-        if !self.recording && self.preroll_offset().is_none() {
-            return;
-        }
-        if let Some(idx) = self.rec_pending.iter().rposition(|p| p.pitch == pitch) {
-            let p = self.rec_pending.swap_remove(idx);
-            let now = self.tracks[track].pos_tick as i32;
-            let span = self.tracks[track].active().length_ticks().max(1) as i32;
-            let (snum, sden) = {
-                let c = self.tracks[track].active();
-                (c.scale_num, c.scale_den)
-            };
-            let gate = if now >= p.start_tick {
-                now - p.start_tick
-            } else {
-                span - p.start_tick + now
-            };
-            // Store the pad's concert pitch minus the clip transpose, so playback
-            // (which re-adds transpose at emit) reproduces exactly what the pad
-            // played. Keeps recorded notes aligned with the untransposed pads.
-            let stored = (pitch as i32 - self.active_clip_transpose(track)).clamp(0, 127) as u8;
-            // A pre-roll note anchors at the clip start: the push itself is not
-            // preserved (that would need notes stored before their anchor), but
-            // the gate keeps its true length from the signed start.
-            let tick = p.start_tick.max(0) as u32;
-            let step = self.anchor_step(tick, snum, sden);
-            self.tracks[track].active_mut().record_note(
-                step,
-                tick,
-                gate.max(1) as u32,
-                stored,
-                p.vel,
-            );
+        // No `recording` guard: a note is written because it was captured, not
+        // because capture is still running. That is what lets the pad you are
+        // holding when you press Rec survive — and a note that was never
+        // captured simply finds no entry. Notes accepted by the pre-roll window
+        // during the count-in resolve through the same lookup.
+        let found = self
+            .rec_pending
+            .iter()
+            .rposition(|p| p.pitch == pitch)
+            .map(|i| self.rec_pending.swap_remove(i))
+            .or_else(|| {
+                self.rec_tail
+                    .iter()
+                    .rposition(|p| p.pitch == pitch)
+                    .map(|i| self.rec_tail.swap_remove(i))
+            });
+        if let Some(p) = found {
+            self.commit_rec_note(p);
         }
     }
 
@@ -1675,6 +1776,7 @@ impl Engine {
                         self.tracks[ti].cycle = self.tracks[ti].cycle.wrapping_add(1);
                     }
                 }
+                self.expire_rec_tail(ti);
                 // Parameter automation: emit on step entry (revert-to-base).
                 let cur = (self.tracks[ti].pos_tick / TICKS_PER_STEP) as i32;
                 if cur != self.tracks[ti].last_auto_step {
@@ -3585,6 +3687,130 @@ mod tests {
             bar.iter().filter(|x| matches!(x, OutEvent::Click { accent: true })).count(),
             1
         );
+    }
+
+    /// Arm, sit through the count-in, and play a note that is still held on
+    /// return — the state every tail test starts from.
+    fn recording_with_a_held_note(pitch: u8) -> Engine {
+        let mut e = engine();
+        e.toggle_record(0);
+        run_ticks(&mut e, crate::TICKS_PER_BAR as u64 + 1);
+        assert!(e.recording, "precondition: past the count-in");
+        e.live_note_on(0, pitch, 100);
+        run_ticks(&mut e, 2 * TICKS_PER_STEP as u64);
+        e
+    }
+
+    #[test]
+    fn rec_stop_keeps_a_note_that_is_still_held() {
+        // The reported bug: pressing Rec to stop while a pad was down erased
+        // that note outright. It belongs to the take and keeps the length it
+        // was actually played for, past the stop.
+        let mut e = recording_with_a_held_note(60);
+        e.toggle_record(0);
+        assert!(!e.recording, "capture stops immediately");
+        run_ticks(&mut e, 2 * TICKS_PER_STEP as u64);
+        e.live_note_off(0, 60);
+
+        assert_eq!(e.tracks[0].active().notes.len(), 1, "the held note was lost");
+        let n = e.tracks[0].active().notes[0];
+        assert_eq!(n.pitch, 60);
+        assert_eq!(n.vel, 100);
+        // ~4 steps: two inside the recording, two after the stop.
+        assert!(
+            n.gate >= 3 * TICKS_PER_STEP && n.gate <= 5 * TICKS_PER_STEP,
+            "gate {} is not the performed length",
+            n.gate
+        );
+    }
+
+    #[test]
+    fn rec_stop_captures_nothing_played_after_it() {
+        // The other half of punch-out: the note you were already holding is
+        // finished, but recording really has stopped.
+        let mut e = recording_with_a_held_note(60);
+        e.toggle_record(0);
+        e.live_note_on(0, 67, 100);
+        run_ticks(&mut e, TICKS_PER_STEP as u64);
+        e.live_note_off(0, 67);
+        e.live_note_off(0, 60);
+        let pitches: Vec<u8> = e.tracks[0].active().notes.iter().map(|n| n.pitch).collect();
+        assert_eq!(pitches, vec![60], "a note played after the stop was recorded");
+    }
+
+    #[test]
+    fn transport_stop_ends_a_held_note_there() {
+        // Stopping the transport had the same erasing bug. There is no playhead
+        // left to measure against, so the note ends at the stop.
+        let mut e = recording_with_a_held_note(60);
+        let mut out = Vec::new();
+        e.stop(&mut out);
+        assert_eq!(e.tracks[0].active().notes.len(), 1, "the held note was lost");
+        let n = e.tracks[0].active().notes[0];
+        assert!(
+            n.gate >= TICKS_PER_STEP && n.gate <= 3 * TICKS_PER_STEP,
+            "gate {} is not the length played before the stop",
+            n.gate
+        );
+    }
+
+    #[test]
+    fn an_unreleased_tail_is_finalized_at_one_clip_length() {
+        // A pad that is never released must not leave its note invisible for
+        // ever. One loop caps it, and the note is a full-length one.
+        let mut e = recording_with_a_held_note(60);
+        e.toggle_record(0);
+        let span = e.tracks[0].active().length_ticks();
+        run_ticks(&mut e, span as u64 + TICKS_PER_STEP as u64);
+
+        assert_eq!(e.tracks[0].active().notes.len(), 1);
+        assert_eq!(e.tracks[0].active().notes[0].gate, span, "gate is capped at the clip");
+        // Already written, so the eventual release must not write it twice.
+        e.live_note_off(0, 60);
+        assert_eq!(e.tracks[0].active().notes.len(), 1, "the release duplicated it");
+    }
+
+    #[test]
+    fn arming_the_next_take_resolves_the_previous_tail() {
+        // A tail cannot outlive the take after it: the position it would be
+        // measured against no longer has anything to do with the note.
+        let mut e = recording_with_a_held_note(60);
+        e.toggle_record(0);
+        e.toggle_record(0); // re-arm while the pad is still down
+        assert_eq!(e.tracks[0].active().notes.len(), 1, "the tail was not resolved");
+        e.live_note_off(0, 60);
+        assert_eq!(e.tracks[0].active().notes.len(), 1, "the release wrote it again");
+    }
+
+    #[test]
+    fn a_tail_lands_in_the_clip_it_was_played_into() {
+        // Releasing the pad after switching clips used to write the note
+        // wherever the track happened to be pointing by then.
+        let mut e = recording_with_a_held_note(60);
+        let mut out = Vec::new();
+        e.toggle_record(0);
+        apply_batch(&mut e, "clipsel 0 1", &mut out);
+        e.live_note_off(0, 60);
+        assert_eq!(e.tracks[0].clips[0].notes.len(), 1, "not in the clip it was played into");
+        assert_eq!(e.tracks[0].clips[1].notes.len(), 0, "written into the newly selected clip");
+    }
+
+    #[test]
+    fn deleting_the_clip_drops_its_tail() {
+        // Writing the note on release would leave one stray note in a slot the
+        // user just emptied.
+        let mut e = recording_with_a_held_note(60);
+        let mut out = Vec::new();
+        e.toggle_record(0);
+        apply_batch(&mut e, "clipdel 0", &mut out);
+        assert_eq!(e.tracks[0].active().notes.len(), 0, "precondition: emptied");
+
+        // Rebuilding the clip by hand must not give the stale note somewhere to
+        // land: the slot exists again by the time the pad is finally released.
+        apply_batch(&mut e, "tog 0 4 64 100", &mut out);
+        e.live_note_off(0, 60);
+        let pitches: Vec<u8> = e.tracks[0].active().notes.iter().map(|n| n.pitch).collect();
+        assert_eq!(pitches, vec![64], "the deleted clip's note came back");
     }
 
     #[test]

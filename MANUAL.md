@@ -479,6 +479,10 @@ for the concepts:
   the pads to record. Clips start only after the count-in. A note played
   slightly *ahead* of the final beat still lands on the downbeat rather than
   being dropped, so leaning into the first hit does not cost you the note.
+  A pad still **held when you press Rec to stop** (or when you stop the
+  transport) is kept, not discarded: recording stops there, but the note you
+  are sounding is written with the length you actually play it for, so ending a
+  take on a sustained chord keeps that chord. Its length is capped at the clip.
 - **Metronome** — toggle with **Shift + Step 6**.
 - **Step recording** — hold **Rec** while stopped and play the pads to enter
   notes one step at a time; see [Step recording](#step-recording) below.
@@ -994,7 +998,7 @@ behaviour you'd like — or, better, a PR.
 | **Hold step A + press step B** | Set step A's note length up to B. |
 | **Hold a step + pad** | Edit that step's notes from the keyboard. |
 | **Play** | Start / stop the transport. When **LINK** is on, also starts / stops Move's native sequencer (a Movy-initiated start waits ~1 bar for Move's Link grid). |
-| **Rec** (tap) | Arm recording (one-bar count-in). |
+| **Rec** (tap) | Arm recording (one-bar count-in). Tapping again stops; a pad still held is kept and gets its full played length. |
 | **Hold Rec** (stopped) | **Step recording** — play the pads to enter notes step by step. |
 | **Hold Rec + pads** | Enter a note or chord at the head; the head advances when the last pad lifts. |
 | **Hold Rec + Right / Left** | Rest / step back — or tie / untie the chord being held. |

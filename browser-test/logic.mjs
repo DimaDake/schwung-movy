@@ -7306,6 +7306,37 @@ _log('\nTest: note-off channel follows the ledger, not the active track');
   globalThis.shadow_set_param = origSetParam;
 }
 
+_log('\nTest: a pad held at teardown is finalized in the engine, not dropped');
+
+{
+  const L = await import('../dist/esm/keyboard/held-notes.js');
+  const { onUnload } = await import('../dist/esm/app/unload.js');
+  const { seqNotePadPlayed, resetSeqChord } = await import('../dist/esm/seq/router.js');
+  const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+  const { resetSeqState } = await import('../dist/esm/seq/state.js');
+
+  const engine = installMockEngine();
+  resetSeqEngine(); resetSeqState(); resetSeqChord(); L.drainAll();
+  seqEngineTick();                       // boot probe → ready
+
+  const origSendMidi = globalThis.shadow_send_midi_to_dsp;
+  globalThis.shadow_send_midi_to_dsp = () => {};
+
+  L.noteSounded(80, 1, 72);              // ledger: pad 80 sounded note 72 on track 1
+  seqNotePadPlayed(1, 80, 72, 110);
+  seqEngineTick();                       // drain the `non`
+  engine.ops.length = 0;
+
+  /* Closing the capture needs the ledger (so it must run before the release
+   * drains it) and there is no tick after onUnload to flush the queue, so
+   * this fails if either half is reordered away. */
+  onUnload();
+  eq('the held pad is closed in the engine', engine.ops.includes('nof 1 72'), true);
+
+  globalThis.shadow_send_midi_to_dsp = origSendMidi;
+  uninstallMockEngine(); resetSeqEngine(); resetSeqState(); L.drainAll();
+}
+
 /* ── release points ──────────────────────────────────────────────────────── */
 
 _log('\nTest: mute releases only that track\'s live notes');

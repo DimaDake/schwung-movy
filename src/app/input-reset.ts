@@ -43,7 +43,7 @@ export function resetHeldInput(notifyEngine: boolean): void {
     resetEditOps();       // Delete held
     resetDuplicate();     // Copy held
     resetLoopMode();      // Loop held
-    resetSeqChord();      // pads held for chord step entry
+    resetSeqChord(notifyEngine);   // pads held for chord step entry
     resetStepRec();       // Rec held for step recording
     resetTrackVolume();   // track-button + volume-knob gesture
     resetAssignMode();    // knob held → LFO assign

@@ -1,4 +1,6 @@
 import { releaseAllLive, emitNoteOff } from '../keyboard/release.js';
+import { seqCmdFlush } from '../seq/engine.js';
+import { resetSeqChord } from '../seq/router.js';
 import { seqState } from '../seq/state.js';
 import { seqPersistFlush } from '../seq/persist.js';
 import { mlog } from '../log.js';
@@ -15,6 +17,11 @@ import { mlog } from '../log.js';
  * the host's CC 123 sweep fires right after this call and covers the residue.
  * We do not depend on that sweep for anything we can account for ourselves. */
 export function onUnload(): void {
+    /* Before the ledger is drained: closing a held pad's recording capture
+     * needs the track it was sounded on, and a note still down at teardown
+     * would otherwise be dropped from the take rather than finalized. Only
+     * queues — the note-offs below still go out first. */
+    resetSeqChord(true);
     releaseAllLive();
     let gates = 0;
     for (let t = 0; t < 4; t++) {
@@ -27,6 +34,10 @@ export function onUnload(): void {
         }
     }
     mlog('unload: released ' + gates + ' sequencer note(s)');
+
+    /* There is no next tick to drain the queue, and the engine has to have
+     * applied those note-offs before it serializes the state below. */
+    seqCmdFlush();
 
     /* Last chance to persist: the autosave only runs every ~3 s, so without
      * this every exit dropped whatever was done since the last one. Notes are

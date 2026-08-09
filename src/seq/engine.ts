@@ -91,6 +91,15 @@ export function seqCmd(op: string): void {
     cmdQueue.push(op);
 }
 
+/* Send the queued ops now rather than on the next tick. Teardown has no next
+ * tick, so anything the engine must have applied before its state is
+ * serialized — a note-off closing a recording capture — has to go out here. */
+export function seqCmdFlush(): void {
+    if (!engineReady() || cmdQueue.length === 0) return;
+    engineSet('cmd', cmdQueue.join(';'));
+    cmdQueue.length = 0;
+}
+
 /* Automation label re-sync request: set on engine boot/reload; the app tick
  * consumes it once to fetch `alabels` and rebuild the lane registry. */
 let labelSyncPending = false;
@@ -127,10 +136,7 @@ export function seqEngineTick(): void {
         probeTick();
         return;
     }
-    if (cmdQueue.length > 0) {
-        engineSet('cmd', cmdQueue.join(';'));
-        cmdQueue.length = 0;
-    }
+    seqCmdFlush();
     if (--pollCountdown <= 0) {
         pollCountdown = STATUS_POLL_TICKS;
         const s = host_module_get_param('status');

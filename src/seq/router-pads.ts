@@ -4,6 +4,7 @@
  * Split out of router.ts, which is the dispatcher; this is the pad half of what
  * it dispatches to. */
 
+import { soundingTrack } from '../keyboard/held-notes.js';
 import { deleteActive, deletePad } from './edit-ops.js';
 import { engineReady, seqCmd } from './engine.js';
 import { setHeldSet } from './held.js';
@@ -22,8 +23,21 @@ export function heldChordPitches(): number[] {
 
 /* Forget the held chord. A pad release that never arrives (Session mode
  * swallows pad note-offs by design; a modal swallows everything) would
- * otherwise leave that pitch in every step entered from then on. */
-export function resetSeqChord(): void { heldChord.clear(); }
+ * otherwise leave that pitch in every step entered from then on.
+ *
+ * `notifyEngine` also closes each pad's recording capture, so a note held
+ * through a teardown is finalized with the length it was played for instead of
+ * being dropped from the take. The track comes from the ledger, as for any
+ * other release — deriving it from the current state strands notes. */
+export function resetSeqChord(notifyEngine = false): void {
+    if (notifyEngine && engineReady()) {
+        for (const [padNote, midiNote] of heldChord) {
+            const track = soundingTrack(padNote);
+            if (track !== undefined) seqCmd(`nof ${track} ${midiNote}`);
+        }
+    }
+    heldChord.clear();
+}
 
 /* Pad note-on: remember the active track's last-played note (step-entry
  * value). If a step is held, the pad edits that step's notes (hold-step +

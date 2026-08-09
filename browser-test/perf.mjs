@@ -44,6 +44,12 @@ const RENDER_MEDIAN_MS_MAX = 2;
  * per-tick param refresh is a fixed-cost cursor. */
 const VM_MEDIAN_MS_MAX = 1;
 
+/* Max shadow_get_param calls for one knob detent, once a gesture is under way.
+ * A turn should cost about what a tick costs: it reads the param it is about to
+ * change and little else. Anything that scales with the module's param count
+ * belongs once per gesture, not per detent — see Test 5. */
+const KNOB_DETENT_GETS_MAX = 6;
+
 /* ── Globals ─────────────────────────────────────────────────────────────── */
 
 let fillRectCount = 0;
@@ -522,6 +528,67 @@ _origLog('\nTest 5: sequencer perf budgets');
     drawLoopStrip();
     check('loop strip fill_rect calls', fillRectCount, 40);
     _origLog(`    (strip: ${fillRectCount} fill_rect)`);
+}
+
+/* ── Test 5: cost of turning a knob ──────────────────────────────────────── */
+
+_origLog('\nTest 5: shadow_get_param calls per knob detent (plain + preset)');
+
+{
+    const { resetUndoState } = await import('../dist/esm/undo/state.js');
+    const { resetUndoGroups, endEdit } = await import('../dist/esm/undo/group.js');
+
+    /* Every knob turn goes through applyKnobDelta, and one class of param —
+     * anything flagged capturesModuleState — snapshots the whole module for
+     * undo. That snapshot is one blocking read per published param, so it must
+     * happen ONCE per gesture. Doing it per detent put ~300 reads (Surge XT)
+     * between the knob and the screen, several ms each on device: the display
+     * fell seconds behind the hand. Nothing else here measured a knob turn, so
+     * nothing caught it. */
+    const detent = (model, k) => {
+        getParamCount = 0;
+        model.handleKnobDelta(k, 3);
+        model.tick();
+        return getParamCount;
+    };
+
+    mockState = { ...MOCK_SYNTHS.moog, 'synth:preset': '0' };
+    resetUndoState(); resetUndoGroups();
+    const model = createModel(0, 'synth');
+    for (let i = 0; i < 40; i++) model.tick();   // settle hierarchy + first reads
+
+    const params = model.dumpLayout().params;
+    const presetGi = params.findIndex((p) => p?.capturesModuleState);
+    /* Both knobs must be on the page the model is showing, or the physical slot
+     * maps to a different param than intended. */
+    let plainK = -1;
+    for (let k = 0; k < 8; k++) {
+        const p = params[k];
+        if (p && !p.capturesModuleState && p.type !== 'file') { plainK = k; break; }
+    }
+
+    /* A plain knob must stay flat — it has no snapshot to take. */
+    let plainMax = 0;
+    for (let i = 0; i < 8; i++) plainMax = Math.max(plainMax, detent(model, plainK));
+    check('plain knob: GETs per detent', plainMax, KNOB_DETENT_GETS_MAX);
+    endEdit();
+
+    if (presetGi >= 0) {
+        for (let i = 0; i < model.dumpLayout().params.length && model.getKnobPage() !== Math.floor(presetGi / 8); i++) {
+            model.changePage(1);
+        }
+        const k = presetGi % 8;
+        const first = detent(model, k);          // the gesture's one snapshot
+        let restMax = 0;
+        for (let i = 0; i < 8; i++) restMax = Math.max(restMax, detent(model, k));
+        check('preset knob: GETs per detent after the first', restMax, KNOB_DETENT_GETS_MAX);
+        _origLog(`    (first detent ${first} GETs — the once-per-gesture snapshot; then ${restMax})`);
+        endEdit();
+    } else {
+        fail('preset knob detent cost', 'no capturesModuleState param in the mock');
+    }
+
+    resetUndoState(); resetUndoGroups();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

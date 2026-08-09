@@ -126,6 +126,13 @@ export function addStateOp(op: StateOp): void {
     open.stateOp = op;
 }
 
+/** Whether the open group already holds a module snapshot. Callers check this
+ *  BEFORE capturing one: the capture is hundreds of blocking reads, and
+ *  addStateOp would only discard the result. */
+export function hasStateOp(): boolean {
+    return open !== null && open.stateOp !== undefined;
+}
+
 export function addModuleOp(op: ModuleOp): void {
     if (!open) return;
     open.lastActivityMs = now();

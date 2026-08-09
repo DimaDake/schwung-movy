@@ -11,7 +11,7 @@
 
 import { mlog } from '../log.js';
 import { seqCmd, setEditGuard } from '../seq/engine.js';
-import { addParamOp, addStateOp, addUiOp, groupOpen, noteEditActivity } from './group.js';
+import { addParamOp, addStateOp, addUiOp, groupOpen, hasStateOp, noteEditActivity } from './group.js';
 import { captureModuleState, dumpModuleParams } from './module-dump.js';
 import { isControlVerb, isUndoableVerb, verbOf } from './verbs.js';
 import type { ParamOp } from './types.js';
@@ -116,6 +116,13 @@ export function recordParamOp(slot: number, key: string,
  */
 export function recordPresetState(slot: number, componentKey: string): void {
     if (!groupOpen()) return;
+    /* Once per gesture, and the check has to come FIRST. A preset knob calls
+     * this on every detent, and the capture below is one blocking read per
+     * published param — 303 of them on Surge XT, several ms each. Capturing and
+     * then letting addStateOp discard it cost about a second per detent, so the
+     * display fell a long way behind the knob. What undo wants is the state
+     * before the gesture began, which is what the first capture already holds. */
+    if (hasStateOp()) return;
     /* BOTH, when both are available — they cover different ground and neither
      * is sufficient alone.
      *

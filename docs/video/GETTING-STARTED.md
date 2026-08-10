@@ -58,6 +58,23 @@ The five things worth trying first, in the order the video does them:
 | Keep your timing instead of losing it | **Shift + Step 3** → turn QUANT down |
 | Modulate anything | **Hold a knob** ~1 s → pick an LFO → jog-click |
 
+### Does this change my Move?
+
+**Move's own instruments keep working.** Schwung runs alongside Move's software
+rather than replacing it, so Drift, Wavetable, your drum racks and your existing
+Sets are all still there. Movy can even keep sequencing in the background while
+Move's own screens are in front (Back at the root → Background).
+
+**Your drum racks work as they are** — Movy loads native Move `.ablpreset` drum
+racks straight into a sampler module, so kits you already have need no conversion.
+
+**Performance:** four tracks of Schwung synths generally run fine, including
+heavier ones like Helm. Very dense patches across all four tracks are the case to
+watch — if you hear trouble, simplify a patch or drop a voice count.
+
+**After a Move firmware update** you may need to install Schwung again. Your Sets
+are not affected; see Schwung's own documentation for the current procedure.
+
 ### "I loaded a drum module and the pads are silent"
 
 Not a bug. **Mr Drums is a sample player, so it loads empty** and needs a kit:

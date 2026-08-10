@@ -34,7 +34,7 @@ const segments = [
   { name: 'What is this', start: 50, every: 3.7, hold: 3.2, cards: [
     ["QUICKLY — WHAT IS THIS?", "Empty chain view. Hands rest."],
     ["SCHWUNG RUNS NEW SYNTHS ON MOVE", "PiP: Schwung web UI, module store list."],
-    ["FREE. AND MOVE STILL WORKS.", "PiP: Move's own screen, then back to Schwung."],
+    ["MOVE'S OWN SOUNDS STILL WORK", "PiP: Move's own instrument screen, then back to Schwung."],
     ["MOVY IS THE PART YOU PLAY", "PiP: a Movy knob page — env_dual (still)."],
     ["INSTALL SCHWUNG, THEN MOVY", "PiP: store, Install pressed on Movy."],
     ["LINKS BELOW. NOW — THE BEAT.", "Hands return to the device. PiP: empty chain view."],

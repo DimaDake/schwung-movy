@@ -49,7 +49,7 @@ The reasoning behind these choices — why each module, page and cut — is in
 | --- | --- | --- | --- | --- |
 | 15 | 0:50 | 0:53 | **QUICKLY — WHAT IS THIS?** | Empty chain view. Hands rest. |
 | 16 | 0:53 | 0:56 | **SCHWUNG RUNS NEW SYNTHS ON MOVE** | PiP: Schwung web UI, module store list. |
-| 17 | 0:57 | 1:00 | **FREE. AND MOVE STILL WORKS.** | PiP: Move's own screen, then back to Schwung. |
+| 17 | 0:57 | 1:00 | **MOVE'S OWN SOUNDS STILL WORK** | PiP: Move's own instrument screen, then back to Schwung. |
 | 18 | 1:01 | 1:04 | **MOVY IS THE PART YOU PLAY** | PiP: a Movy knob page — env_dual (still). |
 | 19 | 1:04 | 1:08 | **INSTALL SCHWUNG, THEN MOVY** | PiP: store, Install pressed on Movy. |
 | 20 | 1:08 | 1:11 | **LINKS BELOW. NOW — THE BEAT.** | Hands return to the device. PiP: empty chain view. |

@@ -608,13 +608,27 @@ That trade is reversed: Helm is seven cards, the session block is eight, and
   real fear — *do my sets survive?* — but its payoff is that nothing visibly
   changes, which a top-down shot cannot dramatise.
 
-### Still unanswered, and worth deciding before you shoot
+### The three open questions, now answered
 
-The reviewer finished the video without knowing whether Schwung survives an
-Ableton firmware update, whether Move's own instruments still work alongside it,
-or whether four tracks with Helm stay glitch-free on Move's CPU. The first two
-belong in `GETTING-STARTED.md`; the third is a fair question this script does not
-address at all.
+The reviewer finished the video not knowing whether Move's own instruments still
+work, whether four tracks with Helm hold up on Move's CPU, or whether Schwung
+survives an Ableton firmware update. All three are settled, and each is answered
+at the altitude it deserves:
+
+- **Move's own instruments keep working.** This is the one that earns a card,
+  because it is the fear that would stop someone installing: **"MOVE'S OWN SOUNDS
+  STILL WORK"** at 0:57. It replaced a vaguer "FREE. AND MOVE STILL WORKS." —
+  free is already established in the cold open, so the card can spend all six
+  words on the reassurance.
+- **CPU is fine** for four tracks including heavier synths. It goes in
+  `GETTING-STARTED.md`, not the video: a performance promise made in a subtitle
+  is a promise you cannot qualify, and the honest version has an "unless" in it.
+- **A Move firmware update may require reinstalling Schwung.** Documented in
+  `GETTING-STARTED.md` in one line, alongside the fact that Sets are unaffected.
+  Deliberately not in the video and not in the description — it is true, a viewer
+  who is about to install deserves to find it, and it is not something a
+  ten-second card can state without sounding worse than it is. Someone who hits
+  it will search for it; someone deciding whether to try Movy will not.
 
 ---
 

@@ -9,9 +9,12 @@ Movy turns an Ableton Move into a 4-track sequencer for custom synths — with
 Elektron-style knob pages, per-step probability and conditions, assignable LFOs,
 and non-destructive quantization. All on the device. No computer in the chain.
 
+It works with everything in the Schwung store — synths, drums and effects alike.
+Movy reads each module's own parameters, so there's nothing to set up per module.
+
 In this video I build a techno loop from an empty set using four Schwung
 modules: Mr Drums, Weird Dreams, OB-Xd and Helm. Your existing Move drum racks
-load straight into it — the kit at 3:06 is one I converted from a Maschine kit.
+load straight into it — the kit at 3:30 is one I converted from a Maschine kit.
 
 Movy is free and open source. It's also an early prototype — expect rough edges.
 
@@ -35,16 +38,16 @@ think it's the more interesting fact, not the embarrassing one.
 ⏱ CHAPTERS
 0:00 What this is
 0:45 Schwung & Movy, and how to install them
-1:30 Track 1 — OB-Xd: knob pages Movy builds itself
-3:06 Track 2 — Mr Drums, and loading a Move drum rack
-4:19 Quantize that doesn't destroy your timing (+ per-clip scale)
-5:08 Track 3 — Weird Dreams, and step recording
-6:03 Step parameters — probability, conditions, p-locks
-7:02 Track 4 — Helm, 34 pages, generated automatically
-7:58 Hold a knob to assign an LFO
-8:39 Automation and undo
-9:20 Session view
-9:41 Outro
+1:41 Track 1 — OB-Xd: the whole synth on eight knobs
+3:30 Track 2 — Mr Drums, and loading a Move drum rack
+4:42 Quantize that doesn't destroy your timing (+ per-clip scale)
+5:31 Track 3 — Weird Dreams, and step recording
+6:26 Step parameters — probability, conditions, p-locks
+7:25 Track 4 — Helm, 34 pages of it
+8:20 Hold a knob to assign an LFO
+9:00 Automation and undo
+9:41 Session view
+10:01 Outro
 
 🎹 MODULES USED
 Mr Drums — https://github.com/handcraftedcc/schwung-mrdrums

@@ -1,6 +1,6 @@
 # Movy — YouTube video scenario
 
-**Runtime:** ~10:20 · **Voice-over:** none · **Camera:** one fixed top-down shot, never moves
+**Runtime:** ~10:40 · **Voice-over:** none · **Camera:** one fixed top-down shot, never moves
 
 A single static overhead shot of the Move, plus a live inset of Movy's display
 composited in post. All narration is carried by bold subtitle cards — see
@@ -11,8 +11,30 @@ action it belongs to, and [`subtitles.srt`](subtitles.srt).
 Rationale is kept out of there on purpose.
 
 **Audience:** people who know Move's stock UI and have never heard of Schwung or
-Movy. Everything that matches stock Move behaviour is shown fast and without
+Movy. Non-technical, but fluent in synths — envelope, filter, LFO and p-lock need
+no explaining; firmware, frameworks and parameter hierarchies do, and therefore
+have no place in a subtitle.
+
+Everything that matches stock Move behaviour is shown fast and without
 explanation; the time goes to what Move cannot do.
+
+### The rule for every card
+
+**A card may say what the viewer sees, hears, or should press. It may not explain
+how Movy works.** Cards that broke this and were cut:
+
+| Cut | Why | Became |
+| --- | --- | --- |
+| MOVE RUNS ITS OWN FIRMWARE | Technical framing of a musical problem | MOVE ONLY PLAYS ITS OWN SOUNDS |
+| MOVY BUILT THIS FROM THE SYNTH | About the software, not the sound | THE WHOLE SYNTH ON EIGHT KNOBS |
+| NOBODY DREW IT BY HAND | Implementation trivia | *(cut)* |
+| IT FOUND THE ATTACK AND DECAY | Narrates detection, not music | THERE'S THE ENVELOPE |
+| TURN A KNOB — IT REDRAWS | Describes the screen updating | SHORTER DECAY, LONGER RELEASE |
+| SHIFT + JOG SKIPS BY SECTION | A shortcut nobody needs on first contact | *(cut)* |
+
+The pattern: the viewer does not care that the pages are generated. They care
+that the synth is on the knobs and the envelope is right there. State the result;
+the cleverness is implied by it working.
 
 ---
 
@@ -75,10 +97,10 @@ Requires `ffmpeg` on the recording machine (`brew install ffmpeg`).
 
 | Track | Module | Role | Introduced |
 | --- | --- | --- | --- |
-| 1 | **OB-Xd** | Bass | 1:30 |
-| 2 | **Mr Drums** | Kick, clap, hats | 3:06 |
-| 3 | **Weird Dreams** | Synth percussion, toms | 5:08 |
-| 4 | **Helm** | Acid lead | 7:02 |
+| 1 | **OB-Xd** | Bass | 1:41 |
+| 2 | **Mr Drums** | Kick, clap, hats | 3:30 |
+| 3 | **Weird Dreams** | Synth percussion, toms | 5:31 |
+| 4 | **Helm** | Acid lead | 7:25 |
 
 Dark, hypnotic techno, ~130 BPM. The genre earns its keep here: it is built on a
 repeating loop, so every feature demo doubles as musical progress, and constant
@@ -106,17 +128,17 @@ from the empty set.
 | Time | Segment | Feature |
 | --- | --- | --- |
 | 0:00 | Cold open | Hook — the finished beat + flashes of the good stuff |
-| 0:45 | What is this | Schwung, Movy, install |
-| 1:30 | Track 1 — OB-Xd | Generated knob pages, envelope graphic, filter curve, in-key pads, live record |
-| 3:06 | Track 2 — Mr Drums | Loading a drum rack, 4×4 rack, per-pad pages, live record |
-| 4:19 | Beyond Move ① | Clip page — quantize + scale |
-| 5:08 | Track 3 — Weird Dreams | Step recording |
-| 6:03 | Beyond Move ② | Step parameters (p-locks) |
-| 7:02 | Track 4 — Helm | 34 pages, generated automatically |
-| 7:58 | LFO | Hold-to-assign on the bass |
-| 8:39 | Automation | Filter sweep + undo/redo |
-| 9:20 | Session | Clip launching, background mode, LINK |
-| 9:41 | Outro | AI disclosure, Discord, links |
+| 0:45 | What is this | Schwung, Movy, works with everything, install |
+| 1:41 | Track 1 — OB-Xd | Knob pages, envelope, filter curve, piano pads, Capture, step automation |
+| 3:30 | Track 2 — Mr Drums | Loading a drum rack, 4×4 rack, per-pad pages, live record |
+| 4:42 | Beyond Move ① | Clip page — quantize + scale |
+| 5:31 | Track 3 — Weird Dreams | Step recording |
+| 6:26 | Beyond Move ② | Step parameters (p-locks) |
+| 7:25 | Track 4 — Helm | 34 pages, generated automatically |
+| 8:20 | LFO | Hold-to-assign on the bass |
+| 9:00 | Automation | Filter sweep + undo/redo |
+| 9:41 | Session | Clip launching, background mode, LINK |
+| 10:01 | Outro | AI disclosure, Discord, links |
 
 ---
 
@@ -145,25 +167,37 @@ empty set.
 
 ---
 
-## 0:45–1:30 — What is this
+## 0:45–1:40 — What is this
 
 **Playing:** nothing. Empty set, chain view showing four empty slots.
 
-Hands rest. This is the only passive stretch in the video and it is kept to 45
-seconds for exactly that reason.
+Hands rest. This is the only passive stretch in the video, which is why it is
+kept under a minute.
 
 **PiP:** the empty chain view, then two still cards composited full-inset for the
 install steps — Schwung's web UI module store with Movy in the list, and Movy's
 entry in Schwung's Tools menu on the device.
 
-**The three facts, in this order:**
+**The four facts, in this order:**
 
-1. Move runs its own firmware. Schwung is a free community framework that runs
-   custom synths and effects on it.
+1. Move only plays its own sounds. Schwung adds new ones — free, community built.
 2. Movy is a *tool* inside Schwung: every module gets **Elektron-style knob
    pages**, and it adds a 4-track sequencer.
-3. Install Schwung, then install Movy from Schwung's own module store. Two steps,
+3. **It works with everything in the Schwung store** — synths, drums and effects
+   alike, with no setup per module.
+4. Install Schwung, then install Movy from Schwung's own module store. Two steps,
    no building, no terminal.
+
+**Fact 3 is the one that converts.** A viewer who likes what they see will
+immediately wonder whether it works with the module *they* already installed, and
+the answer is yes — Movy reads each module's own parameter list, so it does not
+need to have heard of it. The claim is made here and then paid off at 7:25, where
+Helm's 34 pages are the evidence. Two cards early, one card late; never argued.
+
+**No "firmware", no "framework".** An earlier draft opened with "MOVE RUNS ITS
+OWN FIRMWARE", which is both true and useless to someone who wants to make a
+beat. "Move only plays its own sounds / Schwung adds new ones" says the same
+thing in the viewer's terms.
 
 **Why so compressed:** the install genuinely is two steps now that Movy is in the
 public catalog. Spending more than 45 seconds on it would cost a feature segment
@@ -174,15 +208,15 @@ and tell the viewer this is complicated when it isn't. The details live in
 "UI" names a category where the viewer needs to picture a thing — and "knob
 pages" is both literally what's on screen and Elektron's own vocabulary, so it
 lands for people who know those boxes without losing anyone who doesn't. The
-same reason "behind Move's screens" replaced "behind Move's UI" at 9:20.
+same reason "behind Move's screens" replaced "behind Move's UI" at 9:41.
 
-Naming Elektron here also sets up the callback at 6:03, where the step page is
+Naming Elektron here also sets up the callback at 6:26, where the step page is
 introduced as "ELEKTRON CALLS THESE P-LOCKS" — by then the comparison has already
 been made, so that card confirms a promise instead of making a new claim.
 
 ---
 
-## 1:30–3:06 — Track 1: OB-Xd
+## 1:41–3:29 — Track 1: OB-Xd
 
 The opener, and the segment that has to earn the next nine minutes. Movy is a
 screen-and-knobs tool, so the first thing it is seen doing is drawing a screen
@@ -198,12 +232,16 @@ worth looking at.
 6. Turn CUTOFF — the filter curve slides
 7. Turn RESONANCE — the peak grows
 8. Play a chord: the sound you just designed
-9. **Shift + Step 5** → Set page; knob 7 **MODE** → **In Key**
-10. Run a hand across the pads — every note is in key
-11. **Rec** → count-in → play the bass line, deliberately a little behind
+9. **Shift + Step 5** → Set page; knob 8 **LAYOUT** → **Piano**
+10. Pads relight as two octaves of piano; run a hand up them
+11. Transport already running — **just play** the bass line, a little behind
+12. Press **Capture** — the take lands in the clip and loops
+13. **Hold one step**, and turn CUTOFF while holding it
+14. Release — that one note now plays brighter than the rest
 
 **PiP:** module browser → OB-Xd Main page → `env_dual` → `filter_lp` →
-`filter_lp_reso` → `main-default` → `main-mode-overlay` → keyboard view.
+`filter_lp_reso` → `main-default` → `main-layout-overlay` → keyboard view →
+`auto_live`.
 
 **Why OB-Xd specifically.** Movy's replay snapshot records `envelopeLines: 3` for
 it — three separate envelope graphics across its pages — and its **Main** page
@@ -212,20 +250,33 @@ without navigating anywhere, gives a live-redrawing envelope and a moving filter
 curve. It is also a sound a Move owner recognises instantly, and it needs no
 preset to make noise.
 
-**The claim to land:** nobody drew this page. Movy read the synth and built it.
-That is the argument for why *every* Schwung module gets a usable screen, and
-making it in the first ninety seconds means every later segment inherits it.
+**Piano layout, not In Key.** Move already has scales and an in-key pad mode, so
+selling that back to a Move owner spends time on something they have. The **piano
+layout** is the one Move does not offer — two octaves with black keys and white
+keys where you expect them — so that is what the cards name, framed as
+"Move has scales too, but not a piano layout".
 
-**Play the bass loose on purpose.** It sets up the quantize demo at 4:19, and the
-card "REMEMBER THAT. WE'LL COME BACK." tells the viewer the sloppiness is
-deliberate — otherwise it just reads as bad playing for two minutes.
+**Capture, not Rec.** Capture is the better story for an opener: no arming, no
+count-in, no committing before you know whether the take is any good. Play until
+something works, then keep it. It also leaves the take exactly as played, which
+is what the quantize demo at 4:42 needs.
+
+**Then step automation, in three cards.** Holding a step and turning a module
+knob locks that value to that step — an Elektron p-lock, reached with a gesture
+the viewer has already seen. It goes here rather than in the automation segment
+because it is the cheapest possible demonstration that the knob pages and the
+sequencer are the same instrument, not two features side by side.
+
+**Play the bass loose on purpose.** It sets up the quantize demo at 4:42, and the
+card "MY TIMING IS HUMAN. THAT'S FINE." tells the viewer the sloppiness is
+deliberate — otherwise it reads as bad playing for two minutes.
 
 **Depth note:** OB-Xd's other 14 pages are not toured. Helm carries scale; this
 segment carries *quality*.
 
 ---
 
-## 3:06–4:19 — Track 2: Mr Drums, and loading a kit
+## 3:30–4:41 — Track 2: Mr Drums, and loading a kit
 
 **Mr Drums loads empty.** It is a sample player, so until a kit is loaded the
 pads are silent. That is why it is no longer the opener — but it lands fine here,
@@ -245,7 +296,7 @@ kits work untouched — including kits converted from elsewhere.
 5. Jog through the kits, jog-click to load one
 6. Play the pads over the bass — now they sound
 7. Press the kick pad → knobs re-read that voice (per-pad page)
-8. Jog to page 1 — the `SAMPL` cell, same gesture, swaps one pad's sample
+8. Jog to page 1 and **turn** the `SAMPL` knob — samples scroll inline
 9. **Rec** → count-in → play kick, then clap
 
 **PiP:** the empty rack → the Preset page → the file browser listing kits →
@@ -255,19 +306,22 @@ kits work untouched — including kits converted from elsewhere.
 came from Maschine" says the kits you own already work, *and* that the door is
 open to kits from elsewhere. Pick one with a characterful kick.
 
-**Teach the gesture once, use it twice.** Hold-knob-plus-jog-click also swaps an
-individual pad's sample on page 1, and the cards say so immediately after the
-per-pad page appears.
+**Two file pickers, and the segment uses the easy one twice over.** Movy has
+both: *turning* a file knob scans the current folder and scrolls it inline, like
+an enum; *holding* it and clicking the jog opens the full directory browser. The
+kit needs the browser because it navigates to `Track Presets`. Swapping one pad's
+sample does not — you just turn the knob — so that is what the cards show. It
+lands as "turn it to swap the sample", which needs no explaining at all.
 
 **Production notes:**
 
 - **Time the preset load before the take.** If it takes a beat, that is dead air;
   the "CLICK TO LOAD" card is placed to cover it. Widen the gap if needed.
-- The module browser is not re-explained here — it was taught at 1:34.
+- The module browser is not re-explained here — it was taught at 1:45.
 
 ---
 
-## 4:19–5:08 — Beyond Move ①: Clip page
+## 4:42–5:30 — Beyond Move ①: Clip page
 
 **Shift + Step 3** opens the clip page. SCALE, LEN, TRANS and QUANT all live on
 this one page, so two features cost one page visit.
@@ -297,7 +351,7 @@ Then scale, on the same page. Per-clip, not per-set, is the part to stress.
 
 ---
 
-## 5:08–6:03 — Track 3: Weird Dreams (step recording)
+## 5:31–6:25 — Track 3: Weird Dreams (step recording)
 
 **Setup:** load Weird Dreams on track 3, audition two or three voices. Keep it
 brief — the module is the excuse, step recording is the subject.
@@ -326,11 +380,11 @@ Mr Drums.
 ⚠️ **Verify before the take.** The card "NOTHING TO LOAD — IT JUST PLAYS" assumes
 Weird Dreams is audible on load with no preset. It is a synthesis module so it
 should be, but Mr Drums was expected to be too. Load it on a clean slot and hit a
-pad; if it also needs a preset, drop the card and reuse the gesture from 3:06.
+pad; if it also needs a preset, drop the card and reuse the gesture from 3:30.
 
 ---
 
-## 6:03–7:02 — Beyond Move ②: Step parameters
+## 6:26–7:24 — Beyond Move ②: Step parameters
 
 The percussion loop from the previous segment repeats identically every bar, and
 the subtitles name that as the problem before showing the fix.
@@ -353,16 +407,17 @@ the pattern stop repeating, and a card would compete with that.
 
 ---
 
-## 7:02–7:58 — Track 4: Helm
+## 7:25–8:19 — Track 4: Helm
 
 **Gesture sequence:**
 
 1. Load Helm on track 4
 2. Play a lead line
-3. Turn the jog to walk pages; **Shift + jog** to jump by section
+3. Turn the jog to walk pages
 4. Land on an envelope page, then the step sequencer pages
 5. Open an enum parameter → the overlay scrolls
 6. Land on one of Helm's own LFO pages
+7. Play the lead over the running loop
 
 **PiP:** `deep_page`, `env_dual`, `enum_overlay`, `lfo_helm_pyramid`.
 
@@ -382,7 +437,7 @@ otherwise "hold a knob to assign an LFO" reads as a Helm feature.
 
 ---
 
-## 7:58–8:39 — LFO: hold to assign
+## 8:20–8:59 — LFO: hold to assign
 
 Deliberately performed on **OB-Xd**, not Helm.
 
@@ -407,7 +462,7 @@ bar-aligned and drift-free however long it runs.
 
 ---
 
-## 8:39–9:20 — Automation and undo
+## 9:00–9:40 — Automation and undo
 
 **Gesture sequence:**
 
@@ -426,7 +481,7 @@ parameters and module loads alike.
 
 ---
 
-## 9:20–9:41 — Session view and the fast flashes
+## 9:41–10:00 — Session view and the fast flashes
 
 **Gesture sequence:**
 
@@ -442,7 +497,7 @@ is that nothing visibly changes, which a top-down shot cannot sell.
 
 ---
 
-## 9:41–10:20 — Outro
+## 10:01–10:40 — Outro
 
 **Playing:** the full loop, all four tracks, running out under the closing cards.
 
@@ -485,7 +540,7 @@ a screen-and-knobs tool whose first demonstrated feature is a *file browser*, on
 a module whose Main page is `SAMPL VOL PAN TUNE`, with silent pads until a kit
 loads. OB-Xd opens instead, and three things fell into place as a result:
 
-- The kit load stopped being an obstacle — by 3:06 the viewer is sold and has
+- The kit load stopped being an obstacle — by 3:30 the viewer is sold and has
   bass playing underneath, so a file browser is just another gesture.
 - Quantize got its reference. Moving the clip page after the drums means the
   loose bass is heard against a kick, where drift is obvious, instead of alone,

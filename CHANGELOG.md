@@ -11,7 +11,7 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
-## [Unreleased]
+## [0.26.0] — 2026-08-10
 
 ### Added
 
@@ -23,56 +23,6 @@ far. Earlier work is summarised in the timeline below for context.
   **QUANT** on the Clip page sets one clip; **QUANT** on the Set page sets the
   default new clips are created with. The default lives in a machine-level
   `prefs.json`, so it follows you into sets you have never opened.
-
-### Changed
-
-- **Quantize (Shift + Step 16) no longer destroys recorded timing.** It sets a
-  strength instead; 100 % reproduces the old behaviour exactly. The `quant`
-  engine command is replaced by `cq` / `dq`.
-- Clips saved before this release load at 0 % quantization, so existing sets
-  play back exactly as they did.
-- **A note added to an occupied step now joins what is already there.** Holding
-  a step and pressing a pad used to place the new note hard on the grid with a
-  one-step length, so a voice added to a chord played behind the beat and held
-  for three steps started early and stopped short. It now takes the earliest
-  start and the latest end of the step's notes — an exact copy when they agree —
-  capped at the next note of the same pitch and at the clip end. Melodic view
-  only: drum hits sharing a step are separate voices, not a chord. Also applies
-  to the Loop-mode "add a pitch across a bar" gesture, per step.
-
-### Fixed
-
-- **A pad still held when recording stopped was erased.** Ending a take on a
-  sustained note — press Rec while the pad is down — discarded that note
-  outright rather than shortening it, and stopping the transport mid-note did
-  the same. Held notes now survive the stop and are written with the length
-  they were actually played for, ending at the release or at the clip end,
-  whichever comes first — so a long hold cannot wrap round the loop and drone
-  on every pass. Recording itself still stops immediately: nothing played after
-  the stop is captured. A note whose pad is never released is written when it
-  reaches the clip end, and one held as Movy closes is finalized before the set
-  is saved. The kept note also **sounds on the very next loop**: it is written
-  on the same tick the wrap clears every note's play-once-later guard, so
-  marking it like a freshly recorded note left it correct in the clip but
-  silent for a whole pass.
-- **Recording or capturing against swing lost the upbeats.** A note's step
-  anchor was rounded against the straight grid, but swing moves an off-beat
-  16th later inside its own cell — so on swing 70 there were only 4 ticks
-  (~21 ms at 120 BPM) of late tolerance before an upbeat anchored to the
-  following on-beat step. Quantization then snapped it onto the downbeat and
-  the upbeat vanished. Anchors now round against the swung grid, at live
-  recording and at both capture paths. (The mis-anchoring predates
-  non-destructive quantization; it was inaudible while playback used the raw
-  tick, showing only as a note on the wrong step LED.)
-- **Note anchors are stored rather than re-derived on load.** The `cl` line is
-  parsed before `cp` says what the clip's playback scale is, so a saved swung
-  anchor could not be recomputed correctly. Notes gain a fifth `step` field;
-  four-field notes from older saves fall back to the rounding that wrote them.
-- **A note played just before the count-in ended was lost.** Live recording
-  only began capturing when the count-in reached zero, so leaning into the
-  first downbeat dropped the note entirely rather than misplacing it. Notes
-  within half a step of the start are now recorded on the downbeat, keeping
-  their true length.
 
 - **Undo & redo.** **Undo** takes back the last edit and **Shift + Undo**
   redoes it, with an overlay naming what changed. Covers every musical edit —
@@ -129,8 +79,64 @@ far. Earlier work is summarised in the timeline below for context.
 
   ![Step recording](docs/assets/step_rec_header.png)
 
+### Changed
+
+- **Quantize (Shift + Step 16) no longer destroys recorded timing.** It sets a
+  strength instead; 100 % reproduces the old behaviour exactly. The `quant`
+  engine command is replaced by `cq` / `dq`.
+- Clips saved before this release load at 0 % quantization, so existing sets
+  play back exactly as they did.
+- **A note added to an occupied step now joins what is already there.** Holding
+  a step and pressing a pad used to place the new note hard on the grid with a
+  one-step length, so a voice added to a chord played behind the beat and held
+  for three steps started early and stopped short. It now takes the earliest
+  start and the latest end of the step's notes — an exact copy when they agree —
+  capped at the next note of the same pitch and at the clip end. Melodic view
+  only: drum hits sharing a step are separate voices, not a chord. Also applies
+  to the Loop-mode "add a pitch across a bar" gesture, per step.
+- **Long lists no longer drag the UI.** An enum's options were re-classified by
+  the shape/filter detectors on every frame — three full scans of the list per
+  rebuild — so Surge's 274-option modulation pickers made the page behind the
+  knob crawl. The classification is cached on the parameter now (a module swap
+  rebuilds it, so nothing goes stale): a 1024-option page rebuilds ~50× faster.
+  Opening the **file overlay** on a big sample folder ran five chained passes
+  and an `os.stat` per entry; it is one pass now, and an entry matching the
+  parameter's own extension filter is taken as a file unstatted — 1024 entries
+  went from 8.7 ms and 1024 syscalls to 0.17 ms and none.
+
 ### Fixed
 
+- **A pad still held when recording stopped was erased.** Ending a take on a
+  sustained note — press Rec while the pad is down — discarded that note
+  outright rather than shortening it, and stopping the transport mid-note did
+  the same. Held notes now survive the stop and are written with the length
+  they were actually played for, ending at the release or at the clip end,
+  whichever comes first — so a long hold cannot wrap round the loop and drone
+  on every pass. Recording itself still stops immediately: nothing played after
+  the stop is captured. A note whose pad is never released is written when it
+  reaches the clip end, and one held as Movy closes is finalized before the set
+  is saved. The kept note also **sounds on the very next loop**: it is written
+  on the same tick the wrap clears every note's play-once-later guard, so
+  marking it like a freshly recorded note left it correct in the clip but
+  silent for a whole pass.
+- **Recording or capturing against swing lost the upbeats.** A note's step
+  anchor was rounded against the straight grid, but swing moves an off-beat
+  16th later inside its own cell — so on swing 70 there were only 4 ticks
+  (~21 ms at 120 BPM) of late tolerance before an upbeat anchored to the
+  following on-beat step. Quantization then snapped it onto the downbeat and
+  the upbeat vanished. Anchors now round against the swung grid, at live
+  recording and at both capture paths. (The mis-anchoring predates
+  non-destructive quantization; it was inaudible while playback used the raw
+  tick, showing only as a note on the wrong step LED.)
+- **Note anchors are stored rather than re-derived on load.** The `cl` line is
+  parsed before `cp` says what the clip's playback scale is, so a saved swung
+  anchor could not be recomputed correctly. Notes gain a fifth `step` field;
+  four-field notes from older saves fall back to the rounding that wrote them.
+- **A note played just before the count-in ended was lost.** Live recording
+  only began capturing when the count-in reached zero, so leaning into the
+  first downbeat dropped the note entirely rather than misplacing it. Notes
+  within half a step of the start are now recorded on the downbeat, keeping
+  their true length.
 - **The knobs no longer lock up.** After a while of ordinary use — adding and
   removing modules, editing steps — the encoders would stop changing anything
   Movy owns (tempo, clip length, step length) until Movy was closed and

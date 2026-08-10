@@ -50,6 +50,12 @@ const VM_MEDIAN_MS_MAX = 1;
  * belongs once per gesture, not per detent — see Test 5. */
 const KNOB_DETENT_GETS_MAX = 6;
 
+/* buildViewModel time for a 1024-option enum divided by the same for an 8-option
+ * one. Anything that reads the whole option list per frame shows up here as a
+ * multiple; 3 leaves room for allocation noise while catching a return to
+ * per-frame scanning (which measured ~17x). */
+const ENUM_VM_RATIO_MAX = 3;
+
 /* ── Globals ─────────────────────────────────────────────────────────────── */
 
 let fillRectCount = 0;
@@ -589,6 +595,48 @@ _origLog('\nTest 5: shadow_get_param calls per knob detent (plain + preset)');
     }
 
     resetUndoState(); resetUndoGroups();
+}
+
+/* ── Test 6: view-model cost must not scale with an enum's option count ─── */
+
+_origLog('\nTest 6: buildViewModel with a long enum (8 vs 1024 options)');
+
+{
+    /* A preset list of a thousand entries is ordinary (Surge XT, minijv). The
+     * view model is rebuilt every frame, and it used to classify every enum on
+     * the page from scratch each time — three regex passes over the whole list,
+     * because isSlopeEnum re-runs isFilterModeEnum before its own. Opening or
+     * scrolling a long enum overlay lagged behind the knob. */
+    const build = (nOpts) => {
+        const opts = Array.from({ length: nOpts }, (_, i) => 'Preset ' + i);
+        mockState = {
+            'synth:name': 'Test',
+            'synth:ui_hierarchy': JSON.stringify({ levels: { root: { knobs: ['sel'], params: [] } } }),
+            'synth:chain_params': JSON.stringify([{ key: 'sel', name: 'Sel', type: 'enum', options: opts }]),
+            'synth:sel': opts[0],
+        };
+        const m = createModel(0, 'synth');
+        for (let i = 0; i < 40; i++) m.tick();
+        return m;
+    };
+    const median50 = (m) => {
+        const runs = [];
+        for (let i = 0; i < 50; i++) {
+            const t0 = process.hrtime.bigint();
+            m.getViewModel();
+            runs.push(Number(process.hrtime.bigint() - t0) / 1e6);
+        }
+        return median(runs);
+    };
+
+    const small = median50(build(8));
+    const large = median50(build(1024));
+    /* Ratio, not absolute time: the machine running this is irrelevant, the
+     * SHAPE of the curve is the invariant. 128x the options must not cost
+     * meaningfully more — it was ~17x before the classification was cached. */
+    const ratio = small > 0 ? large / small : 1;
+    check('view-model cost ratio, 1024 options vs 8', ratio, ENUM_VM_RATIO_MAX, 'x');
+    _origLog(`    (8 opts: ${small.toFixed(4)}ms, 1024 opts: ${large.toFixed(4)}ms)`);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

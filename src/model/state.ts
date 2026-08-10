@@ -12,6 +12,11 @@ export interface FileOverlay {
     slot:     number;
     gi:       number;
     items:    string[];   // absolute paths, filtered + sorted
+    /* Display labels for `items`, built once when the overlay opens. The view
+     * model is rebuilt every frame, and deriving these there re-ran a basename
+     * and a slice over the whole list on each one — the reason a folder of many
+     * samples scrolled badly. */
+    labels:   string[];
     selected: number;     // index into items
     original: string;     // path at touch time
     accum:    number;     // fractional delta accumulator

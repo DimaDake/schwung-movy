@@ -120,6 +120,7 @@ export function createModel(slot: number, componentKey = 'synth') {
                     const selIdx = currentPath ? items.indexOf(currentPath) : 0;
                     s.fileOverlay = {
                         slot: k, gi, items,
+                        labels: items.map((f) => basename(f).slice(0, 12)),
                         selected: selIdx >= 0 ? selIdx : 0,
                         original: currentPath, accum: 0,
                     };

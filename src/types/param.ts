@@ -134,6 +134,10 @@ export interface KnobParam {
      *  by `renderStyle === 'preset'`. */
     capturesModuleState?: boolean;
     knobAcceleration?: 'wide';
+    /* Cached enum classification (shape / division / filter mode / slope). See
+     * model/enum-class.ts: computing it reads the whole option list several
+     * times, and the page layout that needs it is rebuilt every frame. */
+    enumClass?:     import('../model/enum-class.js').EnumClass;
     /* Set when type/range were guessed (no chain_params or hierarchy metadata).
      * The first successful value read infers the real type/range, then clears
      * this. See model/meta-infer.ts. */

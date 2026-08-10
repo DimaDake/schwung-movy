@@ -5,7 +5,8 @@
  * relative indices only; live values + off-page mode resolve in filter-vm.ts. */
 
 import type { KnobParam } from '../types/param.js';
-import { isFilterModeEnum, isSlopeEnum, staticModeFromTokens, type FilterMode } from './filter-mode.js';
+import { staticModeFromTokens, type FilterMode } from './filter-mode.js';
+import { enumClassOf } from './enum-class.js';
 
 export interface FilterGroup {
     cutoff: number;                  // page-relative indices
@@ -105,8 +106,8 @@ export function detectFilterViz(params: (KnobParam | null)[]): FilterGroup[] {
     const slopeEnums: { idx: number; qual: string }[] = [];
     params.forEach((p, i) => {
         if (!p || p.type !== 'enum') return;
-        if (isFilterModeEnum(p.options)) modeEnums.push({ idx: i, qual: enumQualifier(p) });
-        else if (isSlopeEnum(p.options)) slopeEnums.push({ idx: i, qual: enumQualifier(p) });
+        if (enumClassOf(p).filterMode) modeEnums.push({ idx: i, qual: enumQualifier(p) });
+        else if (enumClassOf(p).slope) slopeEnums.push({ idx: i, qual: enumQualifier(p) });
     });
 
     const pairs: { cut: { idx: number; qual: string }; res: { idx: number; qual: string } }[] = [];

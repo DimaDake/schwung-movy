@@ -1,6 +1,6 @@
 # Movy — YouTube video scenario
 
-**Runtime:** ~9:16 · **Voice-over:** none · **Camera:** one fixed top-down shot, never moves
+**Runtime:** ~9:08 · **Voice-over:** none · **Camera:** one fixed top-down shot, never moves
 
 A single static overhead shot of the Move, plus a live inset of Movy's display
 composited in post. All narration is carried by bold subtitle cards — see
@@ -35,6 +35,31 @@ how Movy works.** Cards that broke this and were cut:
 The pattern: the viewer does not care that the pages are generated. They care
 that the synth is on the knobs and the envelope is right there. State the result;
 the cleverness is implied by it working.
+
+### Never score points off Move
+
+**No card compares Movy favourably to Move.** Every viewer owns a Move and likes
+it — that is why they are watching — so a card that tells them what their machine
+lacks reads as sneering at their gear, and it is redundant besides: a Move owner
+watching probability change a pattern already knows their Move cannot do that.
+Show the thing; let them draw the conclusion.
+
+| Cut | Became |
+| --- | --- |
+| MOVE HAS NONE OF THIS | *(cut — the pattern varying says it)* |
+| MOVE HAS NOTHING LIKE THIS | *(cut — "THE BASS BREATHES NOW" says it)* |
+| MOVE HAS NO MASTER BUS | ONE CHAIN ACROSS ALL FOUR |
+| MOVE'S QUANTIZE IS ONE-WAY | *(cut with the quantize trim)* |
+| MOVE HAS SCALES. NOT A PIANO. | NOW LAY THEM OUT LIKE A PIANO |
+| MOVE CAN'T DO THIS | NO PICKING STEPS ONE BY ONE |
+
+The two Move references that stay are both reassurance, not comparison:
+**"MOVE'S OWN SOUNDS STILL WORK"** and **"AND YOUR MOVE STAYS YOUR MOVE"**. Those
+answer a fear rather than claim a win.
+
+This also removes the last of the factually risky cards. Three of the six above
+were the ones a Move owner would have argued with — the comparison was both rude
+and, in some cases, wrong.
 
 ---
 
@@ -99,8 +124,8 @@ Requires `ffmpeg` on the recording machine (`brew install ffmpeg`).
 | --- | --- | --- | --- |
 | 1 | **OB-Xd** | Bass | 1:10 |
 | 2 | **Weird Dreams** | Kick, synth percussion | 2:47 |
-| 3 | **Helm** | Acid lead | 5:20 |
-| 4 | **Mr Drums** | Hats, claps, sampled layer | 5:51 |
+| 3 | **Helm** | Acid lead | 5:16 |
+| 4 | **Mr Drums** | Hats, claps, sampled layer | 5:47 |
 
 Dark, hypnotic techno, ~130 BPM. The genre earns its keep here: it is built on a
 repeating loop, so every feature demo doubles as musical progress, and constant
@@ -133,13 +158,13 @@ from the empty set.
 | 2:47 | Track 2 — Weird Dreams | Synth drums that play instantly, then step recording |
 | 3:48 | Beyond Move ① | Clip page — non-destructive quantize, per-clip scale |
 | 4:13 | Beyond Move ② | Step parameters |
-| 4:58 | **Listen** | No gestures, barely any text — the pattern varying is the point |
-| 5:20 | Track 3 — Helm | Depth, in seven cards |
-| 5:51 | Track 4 — Mr Drums | Loading a drum rack, 4×4 rack, per-pad pages, live record |
-| 6:56 | LFO | Hold-to-assign on the bass |
-| 7:29 | Automation | Filter sweep + undo |
-| 8:02 | Session | Clip launching, master FX, background, LINK |
-| 8:35 | Outro | AI disclosure, Discord, links |
+| 4:54 | **Listen** | No gestures, barely any text — the pattern varying is the point |
+| 5:16 | Track 3 — Helm | Depth, in seven cards |
+| 5:47 | Track 4 — Mr Drums | Loading a drum rack, 4×4 rack, per-pad pages, live record |
+| 6:52 | LFO | Hold-to-assign on the bass |
+| 7:21 | Automation | Filter sweep + undo |
+| 7:54 | Session | Clip launching, master FX, background, LINK |
+| 8:27 | Outro | AI disclosure, Discord, links |
 
 ---
 
@@ -293,7 +318,7 @@ so the kick lands within fifteen seconds of the module loading.
 **Why Weird Dreams goes first and Mr Drums last.** It is synthesis, not samples,
 so it makes sound the moment it loads — the beat gets its backbone with no
 detour. Mr Drums needs a kit loaded before a single pad speaks, and that detour
-(silent pads, a two-handed gesture, a file browser) is safe at 5:51 when the
+(silent pads, a two-handed gesture, a file browser) is safe at 5:47 when the
 viewer is invested and actively dangerous at 2:47 when they are still deciding.
 Swapping them also moves the Maschine-kit reveal to the back half, where it plays
 as a bonus rather than a speed bump.
@@ -316,7 +341,7 @@ goes in as fast as you can find the notes. And on an empty clip, the clip grows
 to exactly what you played — seven notes gives a seven-step clip.
 
 **Musical roles:** Weird Dreams owns the kick and the synth percussion — the
-drum backbone. Mr Drums arrives at 5:51 as sampled hats and claps layered on top,
+drum backbone. Mr Drums arrives at 5:47 as sampled hats and claps layered on top,
 which is why the video can add a fourth track that late and have it feel like an
 arrangement decision rather than a feature demo.
 
@@ -359,7 +384,7 @@ Then scale, on the same page. Per-clip, not per-set, is the part to stress, and
 
 ---
 
-## 4:13–5:17 — Beyond Move ②: Step parameters, then listening
+## 4:13–5:13 — Beyond Move ②: Step parameters, then listening
 
 The percussion loop from the previous segment repeats identically every bar, and
 the subtitles name that as the problem before showing the fix.
@@ -382,7 +407,7 @@ the pattern stop repeating, and a card would compete with that.
 
 ---
 
-## 5:20–5:48 — Track 3: Helm
+## 5:16–5:44 — Track 3: Helm
 
 **Gesture sequence:**
 
@@ -412,10 +437,10 @@ otherwise "hold a knob to assign an LFO" reads as a Helm feature.
 
 ---
 
-## 5:51–6:54 — Track 4: Mr Drums, and loading a kit
+## 5:47–6:50 — Track 4: Mr Drums, and loading a kit
 
 **The last layer, and the safest place for the one awkward thing in the video.**
-Mr Drums is a sample player: until a kit is loaded the pads are silent. At 5:51
+Mr Drums is a sample player: until a kit is loaded the pads are silent. At 5:47
 that costs nothing — three tracks are already playing, the viewer is invested, and
 the kit load reads as the next arrangement step rather than as the tool failing to
 work. Musically it is the layer that finishes the beat: sampled hats and claps on
@@ -459,7 +484,7 @@ lands as "turn it to swap the sample", which needs no explaining at all.
 
 ---
 
-## 6:56–7:27 — LFO: hold to assign
+## 6:52–7:19 — LFO: hold to assign
 
 Deliberately performed on **OB-Xd**, not Helm.
 
@@ -484,7 +509,7 @@ bar-aligned and drift-free however long it runs.
 
 ---
 
-## 7:29–8:00 — Automation and undo
+## 7:21–7:52 — Automation and undo
 
 **Gesture sequence:**
 
@@ -503,7 +528,7 @@ parameters and module loads alike.
 
 ---
 
-## 8:02–8:32 — Session, master FX and background
+## 7:54–8:24 — Session, master FX and background
 
 **Gesture sequence:**
 
@@ -519,7 +544,7 @@ is that nothing visibly changes, which a top-down shot cannot sell.
 
 ---
 
-## 8:35–9:16 — Outro
+## 8:27–9:08 — Outro
 
 **Playing:** the full loop, all four tracks, running out under the closing cards.
 
@@ -668,7 +693,7 @@ a module whose Main page is `SAMPL VOL PAN TUNE`, with silent pads until a kit
 loads. OB-Xd opens instead, and three things fell into place as a result:
 
 - The kit load stopped being an obstacle. It has since moved further still, to
-  5:51 as the fourth and last track, where three parts are already playing and a
+  5:47 as the fourth and last track, where three parts are already playing and a
   file browser is just another gesture.
 - Quantize got its reference. Moving the clip page after the drums means the
   loose bass is heard against a kick, where drift is obvious, instead of alone,

@@ -56,7 +56,7 @@ const segments = [
     ["ADDING RESONANCE", "Turn RESONANCE; the peak grows. PiP: filter_lp_reso."],
     ["THAT'S OUR BASS SOUND", "Play a chord — the new sound."],
     ["NOW THE PADS", "Shift + Step 5. PiP: main-default."],
-    ["MOVE HAS SCALES. NOT A PIANO.", "Turn knob 8 LAYOUT to Piano. PiP: main-layout-overlay."],
+    ["NOW LAY THEM OUT LIKE A PIANO", "Turn knob 8 LAYOUT to Piano. PiP: main-layout-overlay."],
     ["WHITE KEYS AND BLACK KEYS", "Pads relight as two octaves of piano. Run a hand up them."],
     ["PLAY IT, THEN PRESS CAPTURE", "Transport running. Play the bass line by hand, then press Capture."],
     ["MY TIMING IS HUMAN. THAT'S FINE.", "The take lands in the clip and loops, audibly loose."],
@@ -98,17 +98,16 @@ const segments = [
     ["PROBABILITY —", "Hand moves to knob 3."],
     ["60% MEANS IT SKIPS SOMETIMES", "Turn knob 3 to 60. PiP: PROB 60%."],
     ["OR ONLY ON CERTAIN BARS", "Turn knob 4 to 2:3. PiP: COND cell."],
-    ["INVERT FLIPS THAT ROUND", "Turn knob 5. PiP: INV toggles."],
-    ["MOVE HAS NONE OF THIS", "Release the step."],
+    ["INVERT FLIPS THAT ROUND", "Turn knob 5. PiP: INV toggles. Release the step."],
   ]},
   /* Deliberately sparse: the pattern varying is the whole point here, and a card
    * every four seconds would make the viewer read instead of listen. */
-  { name: 'Listen', start: 298, every: 8.0, hold: 3.6, cards: [
+  { name: 'Listen', start: 294, every: 8.0, hold: 3.6, cards: [
     ["NOW LISTEN", "Hands off. Loop runs."],
     ["SAME CLIP. NEVER THE SAME BAR.", "Four bars play; the pattern varies each time. No text for eight seconds either side."],
     ["ONE HELD STEP DID THAT", "Loop continues. Hands still off."],
   ]},
-  { name: 'Track 3 — Helm', start: 320, every: 4.2, hold: 3.6, cards: [
+  { name: 'Track 3 — Helm', start: 316, every: 4.2, hold: 3.6, cards: [
     ["TRACK 3: HELM", "Press track 3, click the wheel, load Helm."],
     ["A FULL SOFT SYNTH. ON MOVE.", "Play a lead line on the pads."],
     ["THREE ENVELOPES. TWO LFOS. AN ARP.", "Turn the wheel; a few pages go past. PiP: env_dual."],
@@ -117,7 +116,7 @@ const segments = [
     ["NOW THE LEAD", "Turn back to a filter page."],
     ["PLAYING OVER THE LOOP", "Play the lead over the running loop. Hands off."],
   ]},
-  { name: 'Track 4 — Mr Drums', start: 351, every: 4.0, hold: 3.5, cards: [
+  { name: 'Track 4 — Mr Drums', start: 347, every: 4.0, hold: 3.5, cards: [
     ["TRACK 4: ONE MORE LAYER", "Press track 4, click the wheel."],
     ["MR DRUMS — A SAMPLER", "Load Mr Drums. Pads light as a 4×4 grid. PiP: drum-mrdrums-global."],
     ["A SAMPLER NEEDS A KIT", "Hit pads — silent. Jog to page 4. PiP: Preset page."],
@@ -135,17 +134,16 @@ const segments = [
     ["HATS ON THE OFFBEATS", "Play the hat pattern in."],
     ["THAT'S ALL FOUR TRACKS", "Full loop playing. Hands off."],
   ]},
-  { name: 'LFO — hold to assign', start: 416, every: 4.0, hold: 3.5, cards: [
+  { name: 'LFO — hold to assign', start: 412, every: 4.0, hold: 3.5, cards: [
     ["TWO LFOS ON EVERY TRACK", "Back to chain view. PiP: LFO slot at the end of the chain."],
     ["ON ANY KNOB YOU LIKE", "Press track 1. PiP: OB-Xd filter page."],
     ["HOLD A KNOB FOR A SECOND", "Hold the cutoff knob. PiP: lfo_assign_toast."],
     ["PICK LFO 1. CLICK.", "Turn the wheel to LFO1, click. PiP: lfo_lfo1 page."],
     ["SHAPE AND PHASE, DRAWN LIVE", "Turn SHAPE, then PHASE; the waveform morphs and slides."],
     ["LOCK IT TO THE BAR", "Turn SYNC on, set DEPTH. The LFO cycles with the bar."],
-    ["THE BASS BREATHES NOW", "Loop plays, bass filter moving. Hands off."],
-    ["MOVE HAS NOTHING LIKE THIS", "Loop continues."],
+    ["THE BASS BREATHES NOW", "Loop plays, bass filter moving. Hands off for a few bars."],
   ]},
-  { name: 'Automation and undo', start: 449, every: 4.0, hold: 3.5, cards: [
+  { name: 'Automation and undo', start: 441, every: 4.0, hold: 3.5, cards: [
     ["RECORD, THEN TURN A KNOB", "Press track 3. Tap Rec, count-in. PiP: Helm filter page."],
     ["SWEEPING HELM'S FILTER", "Sweep the cutoff knob across two bars."],
     ["IT'S IN THE CLIP NOW", "Tap Rec to stop. The loop replays the sweep."],
@@ -155,17 +153,17 @@ const segments = [
     ["ONE GESTURE = ONE UNDO", "Loop plays without the sweep."],
     ["NOTES, CLIPS, KNOBS, SYNTHS", "Shift + Undo; the sweep returns. Hands off."],
   ]},
-  { name: 'Session, master FX, background', start: 482, every: 3.9, hold: 3.4, cards: [
+  { name: 'Session, master FX, background', start: 474, every: 3.9, hold: 3.4, cards: [
     ["SESSION VIEW: PADS LAUNCH CLIPS", "Press Note/Session. Pads become the clip grid."],
     ["A MASTER FX CHAIN, TOO", "Launch clips on two tracks. PiP: session grid, then master FX slot."],
-    ["MOVE HAS NO MASTER BUS", "PiP: master FX chain."],
+    ["ONE CHAIN ACROSS ALL FOUR", "PiP: master FX chain."],
     ["REVERB ACROSS THE WHOLE KIT", "Turn a reverb knob; the whole loop washes out."],
     ["AND MOVY CAN RUN IN THE BACKGROUND", "Back at the root. PiP: leave_modal → Background."],
     ["MOVE'S OWN SCREENS COME BACK", "Move's native UI appears on the device."],
     ["THE SEQUENCER KEEPS PLAYING", "Loop continues underneath, untouched."],
     ["ONE TRANSPORT, BOTH SEQUENCERS", "Shift + Step 5, LINK on. Press Play — both start. PiP: main-link-on."],
   ]},
-  { name: 'Outro', start: 515, every: 4.2, hold: 3.7, cards: [
+  { name: 'Outro', start: 507, every: 4.2, hold: 3.7, cards: [
     ["THAT'S THE BEAT", "All four tracks playing. Hands perform."],
     ["FOUR TRACKS. ONE MOVE.", "Mute and unmute track 3."],
     ["NO COMPUTER IN THE CHAIN", "Ride the Helm filter."],

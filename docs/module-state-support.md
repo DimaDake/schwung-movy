@@ -8,8 +8,8 @@ get_param("state")   ->  every setting, as one string
 set_param("state", s)->  restore them all
 ```
 
-Seven of them don't provide one at all, and their settings are lost whenever a
-Set is reopened. Eight more provide one that isn't JSON, which persists but
+Eight of them don't provide one at all, and their settings are lost whenever a
+Set is reopened. Ten more provide one that isn't JSON, which persists but
 costs more to read and can't be shown by the web UI. This documents what breaks,
 which modules are affected, and what each needs.
 
@@ -18,14 +18,12 @@ and reading `<component>:state` from inside Movy.
 
 | Category | JSON state | Non-JSON state | No state | Scanned |
 |---|---:|---:|---:|---|
-| Sound generators | 18 | 5 | 4 | 27 of 35 |
+| Sound generators | 23 | 7 | 5 | 35 of 35 |
 | Audio FX | 27 | 3 | 2 | 32 of 32 |
 | MIDI FX | 8 | 0 | 1 | 9 of 9 |
-| **Total** | **53** | **8** | **7** | **68 of 76** |
+| **Total** | **58** | **10** | **8** | **76 of 76** |
 
-Eight sound generators produced no reading — `belt-in`, `braids`, `denis`,
-`fizzik`, `granny`, `krautdrums`, `rex`, `smack-in` — because they did not load
-during the scan. They are untested here, not known-good.
+Every installed module has a reading.
 
 ---
 
@@ -118,6 +116,7 @@ performance one.
 | `forge` | 193 | absent | Implement `get_param`/`set_param("state")`. Largest exposure here: 193 params, all lost on reload. |
 | `osirus` | 156 | 0 bytes | Implement, or find why it returns empty. Note the ROM/bank selectors must be restored **before** the preset index, or the preset addresses the wrong bank. |
 | `chordism` | 135 | 0 bytes | Implement, or find why it returns empty. |
+| `denis` | 61 | absent | Implement `get_param`/`set_param("state")`. |
 | `linein` | 20 | absent | Probably fine to leave — a line input has little worth persisting. Confirm and close. |
 
 #### Audio FX
@@ -149,6 +148,8 @@ correctness fix.
 | `weird-dreams` | 219 | 1067 B | ~880 ms |
 | `signal` | 146 | 2012 B | ~580 ms |
 | `aphex` | 83 | 1396 B | ~330 ms |
+| `fizzik` | 73 | 1072 B | ~290 ms |
+| `krautdrums` | 41 | 292 B | ~160 ms |
 | `essaim` | 34 | 3171 B | ~140 ms |
 | `wurl` | 11 | 91 B | negligible |
 
@@ -165,9 +166,10 @@ a tooling improvement only (the web UI can then show their parameters).
 
 ### Working — JSON state
 
-**Sound generators:** `303`, `breakbeat`, `chiptune`, `dexed`, `freak`, `hera`,
-`hush1`, `minijv`, `moog`, `mrdrums`, `mrsample`, `nusaw`, `obxd`, `plaits`,
-`po32-drum`, `sf2`, `sfz`, `surge`.
+**Sound generators:** `303`, `belt-in`, `braids`, `breakbeat`, `chiptune`,
+`dexed`, `freak`, `granny`, `hera`, `hush1`, `minijv`, `moog`, `mrdrums`,
+`mrsample`, `nusaw`, `obxd`, `plaits`, `po32-drum`, `rex`, `sf2`, `sfz`,
+`smack-in`, `surge`.
 
 **Audio FX:** `ambiotica`, `belt`, `chowtape`, `clap`, `cloudseed`,
 `dragonfly-hall`, `ducker`, `filter`, `freeverb`, `gate`, `granular`,

@@ -27,14 +27,29 @@ UI — the envelope graphics, the enum overlays, the `~` modulation mark are the
 whole pitch. So a crisp upscaled feed of the actual display sits in a corner of
 the frame, added in post.
 
-`scripts/grab-screen.mjs` already reads a single frame from
-`/dev/shm/schwung-display` over SSH and writes a PNG. A continuous version of
-that (poll → upscale 4–6× nearest-neighbour → write frames or pipe to a video
-file) gives a pixel-exact feed with no camera involved. Record it alongside the
-camera take and sync on the first Play.
+Record it with **`scripts/capture-screen.mjs`**, which streams the display
+straight to a lossless video file:
 
-Nearest-neighbour scaling only — the display is 1-bit, and smooth interpolation
-turns crisp pixels into grey mush.
+```bash
+node scripts/capture-screen.mjs --stats          # measure first, no file
+node scripts/capture-screen.mjs screen.mp4 --fps 30 --scale 6
+```
+
+Start it just before the take, stop it with Ctrl-C after, and sync it to the
+camera on the first Play. Output is 768×384 and pixel-exact — nearest-neighbour
+only, because the display is 1-bit and smooth interpolation turns crisp pixels
+into grey mush.
+
+**Run `--stats` before a real take.** It reports achieved frame rate and warns
+if the device fell behind, which is the cheap way to confirm the capture isn't
+costing you anything before you commit to ten minutes of performance. The script
+holds a single SSH connection open for the whole capture precisely so it doesn't:
+a per-frame `scp` (the way `grab-screen.mjs` grabs single stills) would pay an
+SSH handshake and an sshd fork per frame, and since Movy's tick period doubles as
+its MIDI input sampling interval, that load would show up as worse pad latency in
+the very video meant to sell the instrument.
+
+Requires `ffmpeg` on the recording machine (`brew install ffmpeg`).
 
 ### The kit
 

@@ -96,7 +96,7 @@ if (!statsOnly) {
  * audio over a ten-minute take even if the link stutters. */
 const gray = Buffer.alloc(W * H);
 let pending = null, received = 0, written = 0, repeats = 0, superseded = 0;
-let acc = Buffer.alloc(0);
+let acc = Buffer.alloc(0), firstFrame = 0;
 
 ssh.stdout.on('data', (chunk) => {
     acc = acc.length ? Buffer.concat([acc, chunk]) : chunk;
@@ -104,7 +104,10 @@ ssh.stdout.on('data', (chunk) => {
         if (pending) superseded++;
         pending = acc.subarray(0, FRAME);
         acc = acc.subarray(FRAME);
-        received++;
+        // Timed from the first frame, not process start: otherwise SSH connect
+        // and python startup are amortised into the rate and a short --stats
+        // run under-reports what the link actually sustains.
+        if (!received++) firstFrame = Date.now();
     }
 });
 
@@ -135,9 +138,13 @@ setTimeout(tick, 1000 / fps);
 const finish = (code = 0) => {
     if (finished) return;
     finished = true;
-    const secs = (Date.now() - start) / 1000;
+    const secs = (Date.now() - (firstFrame || start)) / 1000;
     try { ssh.kill(); } catch {}
     const summary = () => {
+        if (!received) {
+            console.error('\n  no frames received — nothing recorded.');
+            process.exit(code || 1);
+        }
         console.error(`\n  ${secs.toFixed(1)}s · ${received} frames from device ` +
             `(${(received / secs).toFixed(1)} fps, target ${fps})`);
         console.error(`  ${written} frames written · ${repeats} repeated (link fell behind)` +
@@ -151,6 +158,10 @@ const finish = (code = 0) => {
 };
 
 process.on('SIGINT', () => finish(0));
-ssh.on('close', (c) => { if (c) console.error(`ssh exited ${c}`); finish(c ? 1 : 0); });
+ssh.on('close', (c) => {
+    if (finished) return;   // our own Ctrl-C killed it; not an error worth reporting
+    if (c) console.error(`ssh exited ${c} — is ${host} reachable?`);
+    finish(c ? 1 : 0);
+});
 console.error(`capturing from ${host} at ${fps} fps — Ctrl-C to stop` +
     (statsOnly ? ' (stats only, no file)' : ` → ${out}`));

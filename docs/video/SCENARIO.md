@@ -40,14 +40,30 @@ camera on the first Play. Output is 768×384 and pixel-exact — nearest-neighbo
 only, because the display is 1-bit and smooth interpolation turns crisp pixels
 into grey mush.
 
-**Run `--stats` before a real take.** It reports achieved frame rate and warns
-if the device fell behind, which is the cheap way to confirm the capture isn't
-costing you anything before you commit to ten minutes of performance. The script
-holds a single SSH connection open for the whole capture precisely so it doesn't:
-a per-frame `scp` (the way `grab-screen.mjs` grabs single stills) would pay an
-SSH handshake and an sshd fork per frame, and since Movy's tick period doubles as
-its MIDI input sampling interval, that load would show up as worse pad latency in
-the very video meant to sell the instrument.
+**It does not cost the device anything measurable.** Measured on hardware
+(idle ticks per 10 s, 4000 = four fully idle cores):
+
+| Condition | Idle | CPU used | Rate achieved |
+| --- | --- | --- | --- |
+| Baseline | 3178 / 3180 | — | — |
+| Streaming at 30 fps | 3133 | 4.5 % of one core | 29.2 fps |
+| Per-frame `scp` | 2837 | 34 % of one core | ~2.3 fps |
+
+That is ~0.15 vs ~14.8 CPU ticks per frame — about 100× cheaper. The script holds
+one SSH connection open for the whole capture precisely for this reason: a
+per-frame `scp` (the way `grab-screen.mjs` grabs single stills) pays an SSH
+handshake and an sshd fork every frame, needs 13 s to fetch one second of
+30 fps video, and since Movy's tick period doubles as its MIDI input sampling
+interval, that load would surface as worse pad latency in the very video meant to
+sell the instrument.
+
+A 55-second soak held 29.8 fps with one repeated and one superseded frame.
+Output is lossless — a frame pulled back out of the MP4 is pure black and white
+with no interpolated values.
+
+`--stats` reports the achieved rate without writing a file; run it once before
+committing to a ten-minute take. Rates are timed from the first frame, so the
+figure reflects the link rather than SSH startup.
 
 Requires `ffmpeg` on the recording machine (`brew install ffmpeg`).
 

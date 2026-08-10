@@ -1,6 +1,6 @@
 # Movy — YouTube video scenario
 
-**Runtime:** ~10:40 · **Voice-over:** none · **Camera:** one fixed top-down shot, never moves
+**Runtime:** ~9:34 · **Voice-over:** none · **Camera:** one fixed top-down shot, never moves
 
 A single static overhead shot of the Move, plus a live inset of Movy's display
 composited in post. All narration is carried by bold subtitle cards — see
@@ -97,10 +97,10 @@ Requires `ffmpeg` on the recording machine (`brew install ffmpeg`).
 
 | Track | Module | Role | Introduced |
 | --- | --- | --- | --- |
-| 1 | **OB-Xd** | Bass | 1:41 |
-| 2 | **Mr Drums** | Kick, clap, hats | 3:30 |
-| 3 | **Weird Dreams** | Synth percussion, toms | 5:31 |
-| 4 | **Helm** | Acid lead | 7:25 |
+| 1 | **OB-Xd** | Bass | 1:13 |
+| 2 | **Mr Drums** | Kick, clap, hats | 2:50 |
+| 3 | **Weird Dreams** | Synth percussion, toms | 4:42 |
+| 4 | **Helm** | Acid lead | 6:39 |
 
 Dark, hypnotic techno, ~130 BPM. The genre earns its keep here: it is built on a
 repeating loop, so every feature demo doubles as musical progress, and constant
@@ -127,22 +127,23 @@ from the empty set.
 
 | Time | Segment | Feature |
 | --- | --- | --- |
-| 0:00 | Cold open | Hook — the finished beat + flashes of the good stuff |
-| 0:45 | What is this | Schwung, Movy, works with everything, install |
-| 1:41 | Track 1 — OB-Xd | Knob pages, envelope, filter curve, piano pads, Capture, step automation |
-| 3:30 | Track 2 — Mr Drums | Loading a drum rack, 4×4 rack, per-pad pages, live record |
-| 4:42 | Beyond Move ① | Clip page — quantize + scale |
-| 5:31 | Track 3 — Weird Dreams | Step recording |
-| 6:26 | Beyond Move ② | Step parameters (p-locks) |
-| 7:25 | Track 4 — Helm | 34 pages, generated automatically |
-| 8:20 | LFO | Hold-to-assign on the bass |
-| 9:00 | Automation | Filter sweep + undo/redo |
-| 9:41 | Session | Clip launching, background mode, LINK |
-| 10:01 | Outro | AI disclosure, Discord, links |
+| 0:00 | Cold open | **The three things Move can't do**, then the beat + the honest caveats |
+| 0:50 | What is this | Schwung, Movy, install — 21 seconds |
+| 1:13 | Track 1 — OB-Xd | Works with every synth, knob pages, envelope, filter curve, piano pads, Capture, step automation |
+| 2:50 | Track 2 — Mr Drums | Loading a drum rack, 4×4 rack, per-pad pages, live record |
+| 3:52 | Beyond Move ① | Clip page — quantize + scale |
+| 4:42 | Track 3 — Weird Dreams | Step recording |
+| 5:32 | Beyond Move ② | Step parameters |
+| 6:17 | **Listen** | No gestures, barely any text — the pattern varying is the point |
+| 6:39 | Track 4 — Helm | Depth, in seven cards |
+| 7:11 | LFO | Hold-to-assign on the bass |
+| 7:46 | Automation | Filter sweep + undo |
+| 8:20 | Session | Clip launching, master FX, background, LINK |
+| 8:53 | Outro | AI disclosure, Discord, links |
 
 ---
 
-## 0:00–0:45 — Cold open
+## 0:00–0:49 — Cold open
 
 **Playing:** the finished loop, full arrangement, from the prepared set.
 
@@ -167,7 +168,7 @@ empty set.
 
 ---
 
-## 0:45–1:40 — What is this
+## 0:50–1:11 — What is this
 
 **Playing:** nothing. Empty set, chain view showing four empty slots.
 
@@ -183,16 +184,15 @@ entry in Schwung's Tools menu on the device.
 1. Move only plays its own sounds. Schwung adds new ones — free, community built.
 2. Movy is a *tool* inside Schwung: every module gets **Elektron-style knob
    pages**, and it adds a 4-track sequencer.
-3. **It works with everything in the Schwung store** — synths, drums and effects
-   alike, with no setup per module.
-4. Install Schwung, then install Movy from Schwung's own module store. Two steps,
+3. Install Schwung, then install Movy from Schwung's own module store. Two steps,
    no building, no terminal.
 
-**Fact 3 is the one that converts.** A viewer who likes what they see will
-immediately wonder whether it works with the module *they* already installed, and
-the answer is yes — Movy reads each module's own parameter list, so it does not
-need to have heard of it. The claim is made here and then paid off at 7:25, where
-Helm's 34 pages are the evidence. Two cards early, one card late; never argued.
+**"Works with everything" is deliberately not said here.** It is the claim that
+converts — a viewer who likes what they see immediately wonders whether it works
+with the module *they* already installed — but stated over an empty chain view it
+is an abstract promise. It moves to 1:41, where the module browser is open and a
+long list of modules is physically scrolling past. Same words, but now the screen
+is the evidence. It is paid off again at 7:25, where Helm's 34 pages prove it.
 
 **No "firmware", no "framework".** An earlier draft opened with "MOVE RUNS ITS
 OWN FIRMWARE", which is both true and useless to someone who wants to make a
@@ -216,7 +216,7 @@ been made, so that card confirms a promise instead of making a new claim.
 
 ---
 
-## 1:41–3:29 — Track 1: OB-Xd
+## 1:13–2:48 — Track 1: OB-Xd
 
 The opener, and the segment that has to earn the next nine minutes. Movy is a
 screen-and-knobs tool, so the first thing it is seen doing is drawing a screen
@@ -225,7 +225,8 @@ worth looking at.
 **Gesture sequence:**
 
 1. Jog-click the empty slot → module browser opens
-2. Turn jog to OB-Xd → jog-click to load
+2. Turn the jog slowly — let the list of modules run past on screen
+3. Land on OB-Xd → jog-click to load
 3. Play chords — it sounds immediately, with no setup
 4. Hands off; hold on the **Main** page
 5. Turn DECAY, then RELEASE — the envelope graphic reshapes live
@@ -242,6 +243,13 @@ worth looking at.
 **PiP:** module browser → OB-Xd Main page → `env_dual` → `filter_lp` →
 `filter_lp_reso` → `main-default` → `main-layout-overlay` → keyboard view →
 `auto_live`.
+
+**The compatibility claim lands here, not in the intro.** Cards 4–5 ("SYNTHS,
+DRUMS, EFFECTS — / EVERYTHING IN THE SCHWUNG STORE") play while the module
+browser is open and the list is physically scrolling past. Said over an empty
+chain view it was an abstract promise; said over a scrolling list of modules, the
+screen is the evidence and the words barely have to work. Turn the jog slowly
+enough that the list is clearly long.
 
 **Why OB-Xd specifically.** Movy's replay snapshot records `envelopeLines: 3` for
 it — three separate envelope graphics across its pages — and its **Main** page
@@ -276,7 +284,7 @@ segment carries *quality*.
 
 ---
 
-## 3:30–4:41 — Track 2: Mr Drums, and loading a kit
+## 2:50–3:49 — Track 2: Mr Drums, and loading a kit
 
 **Mr Drums loads empty.** It is a sample player, so until a kit is loaded the
 pads are silent. That is why it is no longer the opener — but it lands fine here,
@@ -317,11 +325,11 @@ lands as "turn it to swap the sample", which needs no explaining at all.
 
 - **Time the preset load before the take.** If it takes a beat, that is dead air;
   the "CLICK TO LOAD" card is placed to cover it. Widen the gap if needed.
-- The module browser is not re-explained here — it was taught at 1:45.
+- The module browser is not re-explained here — it was taught at 1:37.
 
 ---
 
-## 4:42–5:30 — Beyond Move ①: Clip page
+## 3:52–4:39 — Beyond Move ①: Clip page
 
 **Shift + Step 3** opens the clip page. SCALE, LEN, TRANS and QUANT all live on
 this one page, so two features cost one page visit.
@@ -351,7 +359,7 @@ Then scale, on the same page. Per-clip, not per-set, is the part to stress.
 
 ---
 
-## 5:31–6:25 — Track 3: Weird Dreams (step recording)
+## 4:42–5:29 — Track 3: Weird Dreams (step recording)
 
 **Setup:** load Weird Dreams on track 3, audition two or three voices. Keep it
 brief — the module is the excuse, step recording is the subject.
@@ -384,7 +392,7 @@ pad; if it also needs a preset, drop the card and reuse the gesture from 3:30.
 
 ---
 
-## 6:26–7:24 — Beyond Move ②: Step parameters
+## 5:32–6:36 — Beyond Move ②: Step parameters, then listening
 
 The percussion loop from the previous segment repeats identically every bar, and
 the subtitles name that as the problem before showing the fix.
@@ -407,7 +415,7 @@ the pattern stop repeating, and a card would compete with that.
 
 ---
 
-## 7:25–8:19 — Track 4: Helm
+## 6:39–7:07 — Track 4: Helm
 
 **Gesture sequence:**
 
@@ -437,7 +445,7 @@ otherwise "hold a knob to assign an LFO" reads as a Helm feature.
 
 ---
 
-## 8:20–8:59 — LFO: hold to assign
+## 7:11–7:42 — LFO: hold to assign
 
 Deliberately performed on **OB-Xd**, not Helm.
 
@@ -462,7 +470,7 @@ bar-aligned and drift-free however long it runs.
 
 ---
 
-## 9:00–9:40 — Automation and undo
+## 7:46–8:17 — Automation and undo
 
 **Gesture sequence:**
 
@@ -481,7 +489,7 @@ parameters and module loads alike.
 
 ---
 
-## 9:41–10:00 — Session view and the fast flashes
+## 8:20–8:50 — Session, master FX and background
 
 **Gesture sequence:**
 
@@ -497,7 +505,7 @@ is that nothing visibly changes, which a top-down shot cannot sell.
 
 ---
 
-## 10:01–10:40 — Outro
+## 8:53–9:34 — Outro
 
 **Playing:** the full loop, all four tracks, running out under the closing cards.
 
@@ -517,6 +525,96 @@ the "you could be doing this" shot, and it should look effortless.
 hedging, immediately followed by the human-authorship card. Putting it up front
 would reframe the whole video as an AI demo rather than an instrument demo;
 burying it entirely would be worse. Two adjacent cards, no apology.
+
+---
+
+## What a cold read found
+
+The script was reviewed by someone who owns a Move, knows its stock UI, and had
+never heard of Schwung or Movy — reading the shooting script only, with the
+Move manual open. Everything below is a change made because of that read.
+
+### Three claims that were wrong
+
+Checked against Movy's own `MANUAL.md`, which lists step recording, Capture and
+automation under *"the following all work essentially as they do on Move"*. The
+reviewer was right on all three.
+
+| Claim | Reality | Fix |
+| --- | --- | --- |
+| **"MOVE CAN'T DO THIS"** after step recording | Move has step entry: hold a step, press a pad. What Movy adds is the auto-advancing head, rests and back-stepping. | **"NO PICKING STEPS ONE BY ONE"** |
+| Hold a step + turn a knob, presented as new | Move does this with the identical gesture. Movy's difference is that it works on any knob of any Schwung synth. | **"AND TURN ANY KNOB YOU LIKE"** |
+| 17 seconds explaining Capture | Capture is Move's own button, described in Move's words. | One card: **"PLAY IT, THEN PRESS CAPTURE"** |
+
+Every viewer owns the device these claims are about. One false line becomes the
+top comment and the thing people remember instead of the quantize dial.
+
+Two direct contradictions also went: **"NO ARMING. NO COUNT-IN."** against
+**"REC = ONE BAR COUNT-IN"** ninety seconds later, and **"THE WHOLE SYNTH ON
+EIGHT KNOBS"** against **"OB-XD HAD 16 PAGES / HELM HAS 34."** The Helm
+page-count brag is gone entirely — it read as a warning that this would be work.
+
+### The first ninety seconds were backwards
+
+The explainer ran 54 seconds of static web-UI screenshots, with no hands and no
+music, starting one minute in — and it never actually answered *what Schwung is*.
+It is now **21 seconds** and answers the three questions a Move owner actually
+has: what it does (runs new synths on Move), what it costs (free), and whether it
+breaks anything (**"AND MOVE STILL WORKS"**). Install is one card plus the link.
+
+The reclaimed time went to the front. The cold open now leads with the three
+things Move genuinely cannot do — **dial quantize, per-step probability, an LFO
+on any knob** — because those are the reasons to keep watching, and they were
+previously buried at 4:42, 6:26 and 8:20. "IT'S FREE. IT'S A PROTOTYPE." moved
+into the cold open too: the honesty is worth more early, where it buys trust,
+than at 10:13 where it only plants doubt.
+
+### Vocabulary
+
+**"JOG" became "WHEEL"** everywhere. Ableton calls it the wheel and so does every
+Move owner; using a different word for the control they touch most made the whole
+thing feel like it came from someone who doesn't share their hardware.
+**"MODULE" became "SYNTH"**, and **"SLOT"** is gone.
+
+Cards cut for being about software rather than music: **"LONG LISTS SCROLL"** (a
+widget), **"AND NEVER DRIFTS"** (invents a worry the viewer didn't have), and
+**"A ~ SHOWS WHAT'S MOVING"** (a single tilde on a 128×64 inset, invisible on a
+phone). **"ELEKTRON CALLS THESE P-LOCKS"** became **"ELEKTRON OWNERS WILL
+RECOGNISE IT"** — p-locks are per-step *parameter* values; velocity, probability
+and conditions are Elektron's TRIG page, so the original was wrong in a way
+Elektron owners would have corrected in the comments.
+
+### Pacing
+
+160 cards over 640 seconds was a card every four seconds for ten minutes with no
+break. In a video with no voice-over, reading *is* the workload. The script is
+now **137 cards over 574 seconds**, and the step-parameter payoff is split into
+its own **Listen** segment at 6:17 with an eight-second cadence — the pattern
+varying is the entire point there, and text on top of it made the viewer read
+instead of listen.
+
+Session view, master FX, background mode and transport LINK had four headline
+capabilities crammed into nineteen seconds while a Helm menu tour got thirty.
+That trade is reversed: Helm is seven cards, the session block is eight, and
+**"MOVE HAS NO MASTER BUS"** is now said out loud because it is a concrete want.
+
+### Left deliberately
+
+- **The AI disclosure stays at the end**, trimmed to two cards. The reviewer
+  wanted it gone or moved, on the grounds that it sits at the highest-retention
+  moment and invites comments about AI rather than about music. Kept because
+  disclosure is a requirement of this project, not a persuasion choice.
+- **Background mode still gets four cards**, not a full segment. It answers a
+  real fear — *do my sets survive?* — but its payoff is that nothing visibly
+  changes, which a top-down shot cannot dramatise.
+
+### Still unanswered, and worth deciding before you shoot
+
+The reviewer finished the video without knowing whether Schwung survives an
+Ableton firmware update, whether Move's own instruments still work alongside it,
+or whether four tracks with Helm stay glitch-free on Move's CPU. The first two
+belong in `GETTING-STARTED.md`; the third is a fair question this script does not
+address at all.
 
 ---
 

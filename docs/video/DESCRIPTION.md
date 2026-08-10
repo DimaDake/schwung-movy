@@ -14,7 +14,7 @@ Movy reads each module's own parameters, so there's nothing to set up per module
 
 In this video I build a techno loop from an empty set using four Schwung
 modules: Mr Drums, Weird Dreams, OB-Xd and Helm. Your existing Move drum racks
-load straight into it — the kit at 3:30 is one I converted from a Maschine kit.
+load straight into it — the kit at 2:50 is one I converted from a Maschine kit.
 
 Movy is free and open source. It's also an early prototype — expect rough edges.
 
@@ -36,18 +36,18 @@ human. I'm saying it up front because you'd work it out anyway, and because I
 think it's the more interesting fact, not the embarrassing one.
 
 ⏱ CHAPTERS
-0:00 What this is
-0:45 Schwung & Movy, and how to install them
-1:41 Track 1 — OB-Xd: the whole synth on eight knobs
-3:30 Track 2 — Mr Drums, and loading a Move drum rack
-4:42 Quantize that doesn't destroy your timing (+ per-clip scale)
-5:31 Track 3 — Weird Dreams, and step recording
-6:26 Step parameters — probability, conditions, p-locks
-7:25 Track 4 — Helm, 34 pages of it
-8:20 Hold a knob to assign an LFO
-9:00 Automation and undo
-9:41 Session view
-10:01 Outro
+0:00 Three things Move can't do
+0:50 What Schwung and Movy are
+1:13 Track 1 — OB-Xd: the whole synth on eight knobs
+2:50 Track 2 — Mr Drums, and loading a Move drum rack
+3:52 Quantize as a dial, not a button (+ per-clip scale)
+4:42 Track 3 — Weird Dreams, and step recording
+5:32 Step parameters — probability, conditions, invert
+6:39 Track 4 — Helm
+7:11 Hold a knob to assign an LFO
+7:46 Automation and undo
+8:20 Session view, master FX, background mode
+8:53 Outro
 
 🎹 MODULES USED
 Mr Drums — https://github.com/handcraftedcc/schwung-mrdrums

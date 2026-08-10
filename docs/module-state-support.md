@@ -8,11 +8,24 @@ get_param("state")   ->  every setting, as one string
 set_param("state", s)->  restore them all
 ```
 
-Nine of the 35 sound generators installed on this device don't provide a usable
-one. This documents what breaks, which modules are affected, and what each needs.
+Seven of them don't provide one at all, and their settings are lost whenever a
+Set is reopened. Eight more provide one that isn't JSON, which persists but
+costs more to read and can't be shown by the web UI. This documents what breaks,
+which modules are affected, and what each needs.
 
-**Scanned 2026-08-09** on `move.local`, by loading each module and reading
-`<component>:state` from inside Movy.
+**Scanned 2026-08-10** on `move.local`, by loading each module into a chain slot
+and reading `<component>:state` from inside Movy.
+
+| Category | JSON state | Non-JSON state | No state | Scanned |
+|---|---:|---:|---:|---|
+| Sound generators | 18 | 5 | 4 | 27 of 35 |
+| Audio FX | 27 | 3 | 2 | 32 of 32 |
+| MIDI FX | 8 | 0 | 1 | 9 of 9 |
+| **Total** | **53** | **8** | **7** | **68 of 76** |
+
+Eight sound generators produced no reading — `belt-in`, `braids`, `denis`,
+`fizzik`, `granny`, `krautdrums`, `rex`, `smack-in` — because they did not load
+during the scan. They are untested here, not known-good.
 
 ---
 
@@ -93,6 +106,11 @@ caught the `weird-dreams` bug before release.
 
 ## Affected modules
 
+The FX modules are all small — none exceeds 49 parameters — so the capture cost
+Movy pays for them is tens of milliseconds, not the hundreds the big synths
+cost. **For FX this is purely a Set-reload correctness issue**, not a
+performance one.
+
 ### No usable state — settings lost on Set reload
 
 | Module | Params | State read | Work needed |
@@ -102,10 +120,23 @@ caught the `weird-dreams` bug before release.
 | `chordism` | 135 | 0 bytes | Implement, or find why it returns empty. |
 | `linein` | 20 | absent | Probably fine to leave — a line input has little worth persisting. Confirm and close. |
 
-> **Caveat on `osirus` and `chordism`:** the 0-byte reading was taken as the
-> module's hierarchy loaded. Both may populate their state later — `osirus`
-> loads a ROM asynchronously. Worth re-reading after a full load before treating
-> the state as genuinely absent.
+#### Audio FX
+
+| Module | Params | State read | Work needed |
+|---|---:|---|---|
+| `superboom` | 36 | absent | Implement `get_param`/`set_param("state")`. |
+| `midiverb` | 14 | absent | Implement. Its `program` selector rewrites the other params, so it must be restored before them. |
+
+#### MIDI FX
+
+| Module | Params | State read | Work needed |
+|---|---:|---|---|
+| `branchage` | 27 | absent | Implement `get_param`/`set_param("state")`. |
+
+> **Caveat on the 0-byte and absent readings:** each was taken as the module's
+> hierarchy loaded. A module that populates its state later would look empty
+> here — `osirus` loads a ROM asynchronously, for one. Worth re-reading after a
+> full load before treating any of these as genuinely absent.
 
 ### State present but not JSON — persists, but slow to capture
 
@@ -121,14 +152,35 @@ correctness fix.
 | `essaim` | 34 | 3171 B | ~140 ms |
 | `wurl` | 11 | 91 B | negligible |
 
+#### Audio FX with non-JSON state
+
+All small enough that the capture cost is negligible; converting them to JSON is
+a tooling improvement only (the web UI can then show their parameters).
+
+| Module | Params | State size |
+|---|---:|---:|
+| `magneto` | 49 | 542 B |
+| `palette` | 29 | 126 B |
+| `dissolver` | 18 | 215 B |
+
 ### Working — JSON state
 
-`303`, `breakbeat`, `chiptune`, `dexed`, `freak`, `hera`, `hush1`, `minijv`,
-`moog`, `mrdrums`, `mrsample`, `nusaw`, `obxd`, `plaits`, `po32-drum`, `sf2`,
-`sfz`, `surge`.
+**Sound generators:** `303`, `breakbeat`, `chiptune`, `dexed`, `freak`, `hera`,
+`hush1`, `minijv`, `moog`, `mrdrums`, `mrsample`, `nusaw`, `obxd`, `plaits`,
+`po32-drum`, `sf2`, `sfz`, `surge`.
+
+**Audio FX:** `ambiotica`, `belt`, `chowtape`, `clap`, `cloudseed`,
+`dragonfly-hall`, `ducker`, `filter`, `freeverb`, `gate`, `granular`,
+`junologue-chorus`, `mverb`, `nam`, `ottx`, `psxverb`, `punchfx`, `pushnpull`,
+`smack`, `spectra`, `structor`, `tapedelay`, `tapescam`, `usefulity`,
+`verglas`, `vocoder`, `war_bells`.
+
+**MIDI FX:** `arp`, `chord`, `eucalypso`, `euclidrum`, `genera`,
+`impressive-chords`, `superarp`, `velocity_scale`.
 
 `minijv` (418 params, 12 KB blob) and `surge` (302 params, 6.8 KB) show the
-approach scales.
+approach scales; `euclidrum` (3 KB) and `eucalypso` (1.5 KB) show it is normal
+for MIDI FX too.
 
 ---
 

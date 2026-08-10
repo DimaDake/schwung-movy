@@ -1,6 +1,6 @@
 # Movy — YouTube video scenario
 
-**Runtime:** ~10:10 · **Voice-over:** none · **Camera:** one fixed top-down shot, never moves
+**Runtime:** ~10:04 · **Voice-over:** none · **Camera:** one fixed top-down shot, never moves
 
 A single static overhead shot of the Move, plus a live inset of Movy's display
 composited in post. All narration is carried by bold subtitle cards — see
@@ -92,15 +92,15 @@ device. Start the take from the empty set.
 | --- | --- | --- |
 | 0:00 | Cold open | Hook — the finished beat + flashes of the good stuff |
 | 0:45 | What is this | Schwung, Movy, install |
-| 1:30 | Track 1 | Mr Drums, 4×4 rack, per-pad pages, live record |
-| 2:40 | Track 2 | Weird Dreams, step recording |
-| 3:40 | Beyond Move ① | Step parameters (p-locks) |
-| 4:40 | Track 3 | OB-Xd, in-key pads, live record |
-| 5:40 | Beyond Move ② | Clip page — quantize + scale |
-| 6:25 | Track 4 | Helm, deep pages, envelope + filter graphics |
-| 7:25 | LFO | Hold-to-assign on the bass |
-| 8:10 | Automation | Filter sweep + undo/redo |
-| 8:55 | Session | Clip launching, background mode, LINK |
+| 1:30 | Track 1 | Mr Drums, **loading a drum rack preset**, 4×4 rack, per-pad pages, live record |
+| 3:05 | Track 2 | Weird Dreams, step recording |
+| 4:00 | Beyond Move ① | Step parameters (p-locks) |
+| 5:00 | Track 3 | OB-Xd, in-key pads, live record |
+| 5:45 | Beyond Move ② | Clip page — quantize + scale |
+| 6:30 | Track 4 | Helm, deep pages, envelope + filter graphics |
+| 7:30 | LFO | Hold-to-assign on the bass |
+| 8:15 | Automation | Filter sweep + undo/redo |
+| 9:00 | Session | Clip launching, background mode, LINK |
 | 9:20 | Outro | AI disclosure, Discord, links |
 
 ---
@@ -157,34 +157,64 @@ and tell the viewer this is complicated when it isn't. The details live in
 
 ---
 
-## 1:30–2:40 — Track 1: Mr Drums
+## 1:30–3:05 — Track 1: Mr Drums, and loading a kit
+
+**Mr Drums loads empty.** It is a sample player, so until a kit is loaded the
+pads are silent — the demo cannot skip this, and a video whose first minute of
+"playing" makes no sound is dead on arrival. So the kit load is staged as the
+first real feature rather than as setup.
+
+That turns out to be lucky, because it is genuinely reassuring material for this
+audience: the presets it loads are **native Move drum racks** (`.ablpreset` files
+under `UserLibrary/Track Presets`, filtered to drum racks), so a Move owner's
+existing kits work untouched — including kits converted from elsewhere.
 
 **Gesture sequence:**
 
 1. Jog-click the empty slot → module browser opens
 2. Turn jog to Mr Drums → jog-click to load
-3. Pads switch to the 4×4 drum rack
-4. Press the kick pad → knobs re-read that voice
-5. Tune the kick on the per-pad page
-6. Shift + Step 6 → metronome on
-7. Rec (tap) → one-bar count-in → play kick, then clap
-8. Tap a couple of steps to nudge the pattern
+3. Pads switch to the 4×4 drum rack — and are silent
+4. Jog to **page 4, Preset**
+5. **Hold the PRSET knob, then click the jog** → the file browser opens
+6. Jog through the kits, jog-click to load one
+7. Play the pads — now they sound
+8. Press the kick pad → knobs re-read that voice (per-pad page)
+9. Tune the kick
+10. Shift + Step 6 → metronome on
+11. Rec (tap) → one-bar count-in → play kick, then clap
 
-**PiP:** browser list → `drum-mrdrums-global` → the per-pad page with the pad
-icon in the header tracking the selection.
+**PiP:** browser list → the empty rack → the Preset page → the file browser
+listing kits → `drum-mrdrums-global` with the pad icon in the header tracking
+the selection.
 
-**Why this page:** the per-pad page is the one place where Movy's drum handling
-visibly differs from a plain knob grid — the header's pad icon following your
-pad press is a two-second idea that lands without explanation.
+**Use a converted Maschine kit here.** "These are Move drum racks — and this one
+came from Maschine" is a stronger line than either half alone: it says the kits
+you own already work, *and* that the door is open to kits from elsewhere. Pick
+one with an obviously characterful kick so the payoff at step 7 is audible.
 
-**Pacing note:** this is the most Move-familiar segment in the video and is
-deliberately the fastest per idea. The subtitles say so out loud
-("NOTHING NEW HERE — THAT'S THE POINT"), which buys credibility for the claims
-in the segments that follow.
+**Teach the gesture once, use it twice.** Hold-knob-plus-jog-click is the same
+gesture that swaps an individual pad's sample on page 1 (`SAMPL`), so the
+subtitles name that immediately after the per-pad page appears. It is also a
+third kind of browser after the module browser and the enum overlay — the cards
+keep it concrete ("HOLD THE KNOB — CLICK THE JOG") rather than naming it.
+
+**Why the per-pad page:** it is where Movy's drum handling visibly differs from a
+plain knob grid — the header's pad icon following your pad press is a two-second
+idea that lands without explanation.
+
+**Production notes:**
+
+- **Check the preset loads instantly.** If loading a kit takes a beat, that is
+  dead air on a static shot; the "CLICK TO LOAD" card is placed to cover it, but
+  time the real thing before the take and widen that gap if needed.
+- The kit must be on the device and reachable from
+  `/data/UserData/UserLibrary/Track Presets` before rolling.
+- Step editing is no longer demoed here — it now appears in the step-recording
+  and step-parameter segments, which do it better.
 
 ---
 
-## 2:40–3:40 — Track 2: Weird Dreams (step recording)
+## 3:05–4:00 — Track 2: Weird Dreams (step recording)
 
 **Setup:** load Weird Dreams on track 2, audition two or three voices. Keep it
 brief — the module is the excuse, step recording is the subject.
@@ -211,9 +241,21 @@ genuinely different mental model from "16 steps, fill some in".
 static shot where you cannot see a waveform, and it is one of the drum modules
 that ships a Movy layout template, so the demo works out of the box.
 
+It also makes sound the moment it loads, which is the useful contrast after
+Mr Drums — the card "NOTHING TO LOAD — IT JUST PLAYS" both explains the
+difference and quietly tells the viewer that the previous segment's kit-loading
+step was about Mr Drums being a sampler, not about Movy being fiddly.
+
+⚠️ **Verify this before the take.** That card assumes Weird Dreams is audible on
+load with no preset. It is a synthesis module rather than a sample player so it
+should be, but Mr Drums was expected to be too. Load it on a clean slot and hit a
+pad; if it also needs a preset, drop the card and fold the load into the same
+gesture the viewer just learned — it costs about eight seconds and the segment
+has the room.
+
 ---
 
-## 3:40–4:40 — Beyond Move ①: Step parameters
+## 4:00–5:00 — Beyond Move ①: Step parameters
 
 The pivot of the video. The percussion loop from the previous segment repeats
 identically every bar, and the subtitles name that as the problem before showing
@@ -238,7 +280,7 @@ with that.
 
 ---
 
-## 4:40–5:40 — Track 3: OB-Xd (in-key pads, live record)
+## 5:00–5:45 — Track 3: OB-Xd (in-key pads, live record)
 
 **Gesture sequence:**
 
@@ -256,13 +298,20 @@ keyboard view.
 **Why deliberately loose:** the sloppy take is the setup for the next segment.
 Play it a little behind the beat on purpose and let the subtitles admit it.
 
+**This segment paid for the kit load.** It lost 15 seconds so Track 1 could gain
+them, and the cut came from here because the Set page is the most Move-adjacent
+idea left — Move owners already understand scales and root notes. Steps 3–5 now
+run as one continuous move with a single card ("SET MODE TO IN KEY") rather than
+a card per knob. Keep turning ROOT and LAYOUT on camera; just don't wait for the
+subtitles to catch up.
+
 **Depth note:** OB-Xd's own parameter pages are *not* toured here — Helm carries
 the deep-synth segment. OB-Xd stays a bass sound until it comes back as the LFO
-target at 7:25, which gives it a second appearance without a second tour.
+target at 7:30, which gives it a second appearance without a second tour.
 
 ---
 
-## 5:40–6:25 — Beyond Move ②: Clip page
+## 5:45–6:30 — Beyond Move ②: Clip page
 
 **Shift + Step 3** opens the clip page. SCALE, LEN, TRANS and QUANT are all on
 this one page, so two separate features cost one page visit.
@@ -289,7 +338,7 @@ setting before anything exists. Per-clip, not per-set, is the part to stress.
 
 ---
 
-## 6:25–7:25 — Track 4: Helm
+## 6:30–7:30 — Track 4: Helm
 
 **Gesture sequence:**
 
@@ -317,7 +366,7 @@ Movy one.
 
 ---
 
-## 7:25–8:10 — LFO: hold to assign
+## 7:30–8:15 — LFO: hold to assign
 
 Deliberately performed on **OB-Xd**, not Helm.
 
@@ -346,7 +395,7 @@ tells a viewer the thing was built by someone who cared.
 
 ---
 
-## 8:10–8:55 — Automation and undo
+## 8:15–9:00 — Automation and undo
 
 **Gesture sequence:**
 
@@ -367,7 +416,7 @@ loads alike.
 
 ---
 
-## 8:55–9:20 — Session view and the fast flashes
+## 9:00–9:20 — Session view and the fast flashes
 
 **Gesture sequence:**
 
@@ -385,7 +434,7 @@ things the camera can prove.
 
 ---
 
-## 9:20–10:10 — Outro
+## 9:20–10:05 — Outro
 
 **Playing:** the full loop, all four tracks, running out under the closing cards.
 
@@ -419,6 +468,12 @@ demo; burying it entirely would be worse. Two adjacent cards, no apology.
 | **Mute / solo, loop editing, copy/delete** | All match Move closely. Visible in passing, never explained. |
 | **Forge / Libpo32 per-voice pages** | Excellent material, but a second drum module is one too many for a 10-minute first-contact video. |
 | **Background mode, LINK** | Reduced to 3-second flashes — genuinely useful, but their payoff is the *absence* of visible change. |
+| **Step editing in Track 1** | Tapping steps on/off was cut when the kit load moved in. Step entry is covered better by the step-recording and step-parameter segments, and it was the segment's least informative beat — the one the old subtitles admitted was "nothing new". |
+
+**Where the 25 seconds for the kit load came from:** OB-Xd −15 s (the Set page
+runs as one move instead of a card per knob), Weird Dreams −5 s, Session −5 s
+(one card fewer), Outro −5 s. Spread thin on purpose — gutting one segment to
+fund another would have cost more than trimming four.
 
 ---
 

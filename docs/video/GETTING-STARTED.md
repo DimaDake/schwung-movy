@@ -52,10 +52,28 @@ The five things worth trying first, in the order the video does them:
 | Try this | How |
 | --- | --- |
 | Load a drum module | Jog-click an empty slot |
+| Give it sounds | See below — a sampler module loads empty |
 | Step-record a fast part | Hold **Rec** while stopped, play the pads |
 | Make a loop stop repeating | **Hold a step** → set PROB and COND |
 | Keep your timing instead of losing it | **Shift + Step 3** → turn QUANT down |
 | Modulate anything | **Hold a knob** ~1 s → pick an LFO → jog-click |
+
+### "I loaded a drum module and the pads are silent"
+
+Not a bug. **Mr Drums is a sample player, so it loads empty** and needs a kit:
+
+1. Jog to **page 4 (Preset)**
+2. **Hold the PRSET knob and click the jog** — a file browser opens
+3. Pick a drum rack and jog-click to load it
+
+Those are **native Move drum racks** (`.ablpreset` files in
+`UserLibrary/Track Presets`), so kits you already have on the Move work as they
+are. The same hold-knob-then-jog-click gesture opens the file browser anywhere a
+parameter takes a file — including `SAMPL` on page 1, which swaps the sample on
+a single pad.
+
+Synthesis-based drum modules like Weird Dreams make sound as soon as they load;
+only samplers need this step.
 
 ---
 

@@ -10,7 +10,8 @@ Elektron-style knob pages, per-step probability and conditions, assignable LFOs,
 and non-destructive quantization. All on the device. No computer in the chain.
 
 In this video I build a techno loop from an empty set using four Schwung
-modules: Mr Drums, Weird Dreams, OB-Xd and Helm.
+modules: Mr Drums, Weird Dreams, OB-Xd and Helm. Your existing Move drum racks
+load straight into it — the kit at 1:30 is one I converted from a Maschine kit.
 
 Movy is free and open source. It's also an early prototype — expect rough edges.
 
@@ -34,15 +35,15 @@ think it's the more interesting fact, not the embarrassing one.
 ⏱ CHAPTERS
 0:00 What this is
 0:45 Schwung & Movy, and how to install them
-1:30 Track 1 — Mr Drums, and the 4×4 rack
-2:40 Track 2 — Weird Dreams, and step recording
-3:40 Step parameters — probability, conditions, p-locks
-4:40 Track 3 — OB-Xd, and in-key pads
-5:40 Quantize that doesn't destroy your timing (+ per-clip scale)
-6:25 Track 4 — Helm, 30 pages, envelopes and filter curves
-7:25 Hold a knob to assign an LFO
-8:10 Automation and undo
-8:55 Session view
+1:30 Track 1 — Mr Drums, and loading a Move drum rack
+3:05 Track 2 — Weird Dreams, and step recording
+4:00 Step parameters — probability, conditions, p-locks
+5:00 Track 3 — OB-Xd, and in-key pads
+5:45 Quantize that doesn't destroy your timing (+ per-clip scale)
+6:30 Track 4 — Helm, 30 pages, envelopes and filter curves
+7:30 Hold a knob to assign an LFO
+8:15 Automation and undo
+9:00 Session view
 9:20 Outro
 
 🎹 MODULES USED

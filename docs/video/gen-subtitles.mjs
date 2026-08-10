@@ -19,8 +19,7 @@ const segments = [
     ["THIS IS AN ABLETON MOVE", "Finished loop playing. Hands over the pads. PiP: chain view."],
     ["RUNNING SOMETHING ELSE", "Hands ride the Helm filter knob."],
     ["THREE THINGS IT NOW DOES", "Hands off. Playhead sweeps the step row."],
-    ["QUANTIZE IS A DIAL, NOT A BUTTON", "Turn knob 4 on the clip page; the bass tightens. PiP: clip-quant."],
-    ["RIDE IT BACK. NOTHING IS LOST.", "Turn it back down; the loose feel returns."],
+    ["QUANTIZE YOU CAN DIAL BACK", "Turn knob 4 on the clip page; the bass tightens, then loosens again. PiP: clip-quant."],
     ["EVERY STEP CAN ROLL DICE", "Hold a step. PiP: step_page_knobs, PROB cell."],
     ["THE LOOP NEVER REPEATS ITSELF", "Hands off. Two bars play, audibly different."],
     ["AN LFO ON ANY KNOB", "PiP: lfo_lfo1, waveform animating."],
@@ -31,7 +30,7 @@ const segments = [
     ["AND YOUR MOVE STAYS YOUR MOVE", "Loop plays."],
     ["LET'S BUILD A BEAT", "Hands lift away. Switch to the empty set. PiP: four empty slots."],
   ]},
-  { name: 'What is this', start: 50, every: 3.7, hold: 3.2, cards: [
+  { name: 'What is this', start: 47, every: 3.7, hold: 3.2, cards: [
     ["QUICKLY — WHAT IS THIS?", "Empty chain view. Hands rest."],
     ["SCHWUNG RUNS NEW SYNTHS ON MOVE", "PiP: Schwung web UI, module store list."],
     ["MOVE'S OWN SOUNDS STILL WORK", "PiP: Move's own instrument screen, then back to Schwung."],
@@ -39,7 +38,7 @@ const segments = [
     ["INSTALL SCHWUNG, THEN MOVY", "PiP: store, Install pressed on Movy."],
     ["LINKS BELOW. NOW — THE BEAT.", "Hands return to the device. PiP: empty chain view."],
   ]},
-  { name: 'Track 1 — OB-Xd', start: 73, every: 4.0, hold: 3.5, cards: [
+  { name: 'Track 1 — OB-Xd', start: 70, every: 4.0, hold: 3.5, cards: [
     ["TRACK 1: A SYNTH", "Press track button 1. PiP: chain view, slot 1 empty."],
     ["PRESS THE WHEEL TO ADD ONE", "Click the wheel. PiP: module browser opens."],
     ["PICK FROM THE LIST", "Turn the wheel slowly; the list scrolls."],
@@ -65,41 +64,13 @@ const segments = [
     ["AND TURN ANY KNOB YOU LIKE", "Still holding, turn CUTOFF. PiP: auto_live."],
     ["THAT STEP KEEPS ITS OWN SOUND", "Release. Loop plays; one note is brighter than the rest."],
   ]},
-  { name: 'Track 2 — Mr Drums', start: 170, every: 4.0, hold: 3.5, cards: [
-    ["TRACK 2: DRUMS", "Press track 2, click the wheel, load Mr Drums."],
-    ["PADS BECOME A 4×4 RACK", "Pads light as a 4×4 grid. PiP: drum-mrdrums-global."],
-    ["A SAMPLER NEEDS A KIT", "Hit pads — silent. Jog to page 4. PiP: Preset page."],
-    ["HOLD THE KNOB, PRESS THE WHEEL", "Hold knob 1, click the wheel. PiP: file browser of kits."],
-    ["THESE ARE MOVE DRUM RACKS", "Turn the wheel; the kit list scrolls."],
-    ["YOUR OWN KITS. UNCHANGED.", "Keep scrolling past the stock kits."],
-    ["THIS ONE CAME FROM MASCHINE", "Land on the converted kit."],
-    ["CONVERTED, AND IT JUST LOADS", "Click to load. PiP: kit name fills the PRSET cell."],
-    ["NOW THE PADS PLAY", "Play the pads over the bass — kick, clap and hat all sound."],
-    ["PRESS A PAD TO EDIT THAT VOICE", "Press the kick pad. PiP: per-pad page, pad icon in the header."],
-    ["THE KNOBS FOLLOW THE PAD", "Press a different pad; knob values change."],
-    ["TURN IT TO SWAP THE SAMPLE", "Jog to page 1, turn the SAMPL knob — samples scroll inline."],
-    ["REC, COUNT-IN, PLAY", "Tap Rec. Count-in bar; step LEDs pulse."],
-    ["KICK, THEN CLAP", "Play kick on the downbeats, clap on 2 and 4."],
-    ["NOW IT'S A BEAT", "Drums and bass loop together. Hands off."],
-  ]},
-  { name: 'Beyond Move ① — clip page', start: 232, every: 4.0, hold: 3.5, cards: [
-    ["THE BASS IS STILL LOOSE", "Loop plays; the drift against the kick is audible."],
-    ["EASY TO HEAR NOW", "Loop continues. Hands off."],
-    ["SHIFT + STEP 3 = CLIP PAGE", "Press track 1, then Shift + Step 3. PiP: clip-default."],
-    ["QUANTIZE IS A DIAL, NOT A BUTTON", "Hand moves to knob 4."],
-    ["0% — EXACTLY AS PLAYED", "Turn knob 4 to 0. PiP: QUANT 0%."],
-    ["100% — DEAD ON THE GRID", "Turn knob 4 to 100. The bass locks to the kick."],
-    ["ANYWHERE IN BETWEEN", "Turn to about 40. PiP: clip-quant."],
-    ["AND BACK. NOTHING WAS LOST.", "Turn back to 0 — the original feel returns."],
-    ["MOVE'S QUANTIZE IS ONE-WAY", "Loop plays at the chosen amount."],
-    ["SAME PAGE: SCALE", "Hand moves to knob 1. PiP: SCALE cell."],
-    ["EACH CLIP HAS ITS OWN", "PiP: clip page held."],
-    ["ONE KNOB. NEW MOOD.", "Turn knob 1 to Phrygian. The bass re-maps. Hands off."],
-  ]},
-  { name: 'Track 3 — Weird Dreams / step recording', start: 282, every: 4.0, hold: 3.5, cards: [
-    ["TRACK 3: WEIRD DREAMS", "Press track 3, click the wheel, load Weird Dreams."],
-    ["SYNTH DRUMS. NO SAMPLES.", "Hit pads — they sound immediately."],
-    ["THIS PART IS TOO FAST TO PLAY", "Transport stopped. Hands hover over the pads."],
+  { name: 'Track 2 — Weird Dreams / step recording', start: 167, every: 4.0, hold: 3.5, cards: [
+    ["TRACK 2: DRUMS", "Press track 2, click the wheel, load Weird Dreams."],
+    ["WEIRD DREAMS — SYNTH DRUMS", "Hit pads — they sound immediately."],
+    ["NO SAMPLES. NOTHING TO LOAD.", "Hit a few more pads."],
+    ["THERE'S THE KICK", "Play a four-on-the-floor kick under the bass."],
+    ["NOW A FAST PERCUSSION PART", "Hands hover over the pads."],
+    ["TOO FAST TO PLAY BY HAND", "Transport stopped. Hands come off the pads."],
     ["HOLD REC WHILE STOPPED", "Hold Rec. A red head blinks on the step row."],
     ["THAT'S STEP RECORDING", "PiP: step_rec_header."],
     ["TAP PADS — THE STEP MOVES ON", "Tap pads; the head advances by itself."],
@@ -108,11 +79,19 @@ const segments = [
     ["LEFT ARROW STEPS BACK", "Press Left. The previous note plays, its pad lights."],
     ["THE CLIP GROWS TO FIT", "Keep tapping; the step row grows."],
     ["RELEASE REC. DONE.", "Release Rec. Press Play."],
-    ["FASTER THAN YOU COULD PLAY IT", "Pattern loops with the rest. Hands off."],
+    ["FASTER THAN YOU COULD PLAY IT", "Pattern loops over the bass. Hands off."],
   ]},
-  { name: 'Beyond Move ② — step parameters', start: 332, every: 4.2, hold: 3.6, cards: [
+  { name: 'Beyond Move ① — clip page', start: 228, every: 4.0, hold: 3.5, cards: [
+    ["SHIFT + STEP 3 = CLIP PAGE", "Press track 1, then Shift + Step 3. PiP: clip-default."],
+    ["QUANTIZE HERE IS A DIAL", "Turn knob 4 up; the bass tightens to the kick. PiP: clip-quant."],
+    ["DIAL IT BACK ANY TIME", "Turn it back down; the played feel returns."],
+    ["NOTHING IS EVER REWRITTEN", "Loop plays at the chosen amount. Hands off."],
+    ["SAME PAGE: SCALE, PER CLIP", "Hand moves to knob 1. PiP: SCALE cell."],
+    ["ONE KNOB. NEW MOOD.", "Turn knob 1 to Phrygian. The bass re-maps. Hands off."],
+  ]},
+  { name: 'Beyond Move ② — step parameters', start: 253, every: 4.2, hold: 3.6, cards: [
     ["BUT IT REPEATS EVERY BAR", "Loop plays unchanged for a bar. Hands off."],
-    ["HOLD ANY STEP", "Hold a step that has a note."],
+    ["HOLD ANY STEP", "Hold a step on the percussion track."],
     ["THIS IS THE STEP PAGE", "PiP: step_page_knobs, five cells."],
     ["ELEKTRON OWNERS WILL RECOGNISE IT", "Held step stays lit."],
     ["VELOCITY. LENGTH.", "Turn knob 1, then knob 2. PiP: VEL and LEN move."],
@@ -124,21 +103,39 @@ const segments = [
   ]},
   /* Deliberately sparse: the pattern varying is the whole point here, and a card
    * every four seconds would make the viewer read instead of listen. */
-  { name: 'Listen', start: 377, every: 8.0, hold: 3.6, cards: [
+  { name: 'Listen', start: 298, every: 8.0, hold: 3.6, cards: [
     ["NOW LISTEN", "Hands off. Loop runs."],
     ["SAME CLIP. NEVER THE SAME BAR.", "Four bars play; the pattern varies each time. No text for eight seconds either side."],
     ["ONE HELD STEP DID THAT", "Loop continues. Hands still off."],
   ]},
-  { name: 'Track 4 — Helm', start: 399, every: 4.2, hold: 3.6, cards: [
-    ["TRACK 4: HELM", "Press track 4, click the wheel, load Helm."],
+  { name: 'Track 3 — Helm', start: 320, every: 4.2, hold: 3.6, cards: [
+    ["TRACK 3: HELM", "Press track 3, click the wheel, load Helm."],
     ["A FULL SOFT SYNTH. ON MOVE.", "Play a lead line on the pads."],
     ["THREE ENVELOPES. TWO LFOS. AN ARP.", "Turn the wheel; a few pages go past. PiP: env_dual."],
     ["ALL OF IT ON THE KNOBS", "PiP: deep_page."],
     ["EVERY SYNTH WORKS LIKE THIS", "PiP: page headers streaming past."],
-    ["NOW THE LEAD", "Turn back to a filter page. Play the lead over the loop."],
+    ["NOW THE LEAD", "Turn back to a filter page."],
+    ["PLAYING OVER THE LOOP", "Play the lead over the running loop. Hands off."],
+  ]},
+  { name: 'Track 4 — Mr Drums', start: 351, every: 4.0, hold: 3.5, cards: [
+    ["TRACK 4: ONE MORE LAYER", "Press track 4, click the wheel."],
+    ["MR DRUMS — A SAMPLER", "Load Mr Drums. Pads light as a 4×4 grid. PiP: drum-mrdrums-global."],
+    ["A SAMPLER NEEDS A KIT", "Hit pads — silent. Jog to page 4. PiP: Preset page."],
+    ["HOLD THE KNOB, PRESS THE WHEEL", "Hold knob 1, click the wheel. PiP: file browser of kits."],
+    ["THESE ARE MOVE DRUM RACKS", "Turn the wheel; the kit list scrolls."],
+    ["YOUR OWN KITS. UNCHANGED.", "Keep scrolling past the stock kits."],
+    ["THIS ONE CAME FROM MASCHINE", "Land on the converted kit."],
+    ["CONVERTED, AND IT JUST LOADS", "Click to load. PiP: kit name fills the PRSET cell."],
+    ["NOW THE PADS PLAY", "Play the pads over the running loop."],
+    ["HATS AND CLAPS ON TOP", "Play hats and claps against the synth drums."],
+    ["PRESS A PAD TO EDIT THAT VOICE", "Press a pad. PiP: per-pad page, pad icon in the header."],
+    ["THE KNOBS FOLLOW THE PAD", "Press a different pad; knob values change."],
+    ["TURN IT TO SWAP THE SAMPLE", "Jog to page 1, turn the SAMPL knob — samples scroll inline."],
+    ["REC, COUNT-IN, PLAY", "Tap Rec. Count-in bar; step LEDs pulse."],
+    ["HATS ON THE OFFBEATS", "Play the hat pattern in."],
     ["THAT'S ALL FOUR TRACKS", "Full loop playing. Hands off."],
   ]},
-  { name: 'LFO — hold to assign', start: 431, every: 4.0, hold: 3.5, cards: [
+  { name: 'LFO — hold to assign', start: 416, every: 4.0, hold: 3.5, cards: [
     ["TWO LFOS ON EVERY TRACK", "Back to chain view. PiP: LFO slot at the end of the chain."],
     ["ON ANY KNOB YOU LIKE", "Press track 1. PiP: OB-Xd filter page."],
     ["HOLD A KNOB FOR A SECOND", "Hold the cutoff knob. PiP: lfo_assign_toast."],
@@ -148,8 +145,8 @@ const segments = [
     ["THE BASS BREATHES NOW", "Loop plays, bass filter moving. Hands off."],
     ["MOVE HAS NOTHING LIKE THIS", "Loop continues."],
   ]},
-  { name: 'Automation and undo', start: 466, every: 4.0, hold: 3.5, cards: [
-    ["RECORD, THEN TURN A KNOB", "Press track 4. Tap Rec, count-in. PiP: Helm filter page."],
+  { name: 'Automation and undo', start: 449, every: 4.0, hold: 3.5, cards: [
+    ["RECORD, THEN TURN A KNOB", "Press track 3. Tap Rec, count-in. PiP: Helm filter page."],
     ["SWEEPING HELM'S FILTER", "Sweep the cutoff knob across two bars."],
     ["IT'S IN THE CLIP NOW", "Tap Rec to stop. The loop replays the sweep."],
     ["THE KNOB MOVES BY ITSELF", "Hands off; the on-screen arc follows playback. PiP: auto_live."],
@@ -158,7 +155,7 @@ const segments = [
     ["ONE GESTURE = ONE UNDO", "Loop plays without the sweep."],
     ["NOTES, CLIPS, KNOBS, SYNTHS", "Shift + Undo; the sweep returns. Hands off."],
   ]},
-  { name: 'Session, master FX, background', start: 500, every: 3.9, hold: 3.4, cards: [
+  { name: 'Session, master FX, background', start: 482, every: 3.9, hold: 3.4, cards: [
     ["SESSION VIEW: PADS LAUNCH CLIPS", "Press Note/Session. Pads become the clip grid."],
     ["A MASTER FX CHAIN, TOO", "Launch clips on two tracks. PiP: session grid, then master FX slot."],
     ["MOVE HAS NO MASTER BUS", "PiP: master FX chain."],
@@ -168,7 +165,7 @@ const segments = [
     ["THE SEQUENCER KEEPS PLAYING", "Loop continues underneath, untouched."],
     ["ONE TRANSPORT, BOTH SEQUENCERS", "Shift + Step 5, LINK on. Press Play — both start. PiP: main-link-on."],
   ]},
-  { name: 'Outro', start: 533, every: 4.2, hold: 3.7, cards: [
+  { name: 'Outro', start: 515, every: 4.2, hold: 3.7, cards: [
     ["THAT'S THE BEAT", "All four tracks playing. Hands perform."],
     ["FOUR TRACKS. ONE MOVE.", "Mute and unmute track 3."],
     ["NO COMPUTER IN THE CHAIN", "Ride the Helm filter."],

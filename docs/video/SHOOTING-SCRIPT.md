@@ -1,6 +1,6 @@
 # Movy video — shooting script
 
-137 cards, ending at 9:34. Every subtitle with the action it belongs to.
+134 cards, ending at 9:16. Every subtitle with the action it belongs to.
 No voice-over: the cards carry the whole video.
 
 Import [`subtitles.srt`](subtitles.srt) into the editor for the burnt-in titles.
@@ -22,229 +22,226 @@ The reasoning behind these choices — why each module, page and cut — is in
 
 ## Cold open
 
-0:00 – 0:49
+0:00 – 0:45
 
 | # | In | Out | Subtitle | On screen |
 | --- | --- | --- | --- | --- |
 | 1 | 0:00 | 0:03 | **THIS IS AN ABLETON MOVE** | Finished loop playing. Hands over the pads. PiP: chain view. |
 | 2 | 0:04 | 0:07 | **RUNNING SOMETHING ELSE** | Hands ride the Helm filter knob. |
 | 3 | 0:07 | 0:10 | **THREE THINGS IT NOW DOES** | Hands off. Playhead sweeps the step row. |
-| 4 | 0:11 | 0:14 | **QUANTIZE IS A DIAL, NOT A BUTTON** | Turn knob 4 on the clip page; the bass tightens. PiP: clip-quant. |
-| 5 | 0:14 | 0:17 | **RIDE IT BACK. NOTHING IS LOST.** | Turn it back down; the loose feel returns. |
-| 6 | 0:18 | 0:21 | **EVERY STEP CAN ROLL DICE** | Hold a step. PiP: step_page_knobs, PROB cell. |
-| 7 | 0:21 | 0:24 | **THE LOOP NEVER REPEATS ITSELF** | Hands off. Two bars play, audibly different. |
-| 8 | 0:25 | 0:28 | **AN LFO ON ANY KNOB** | PiP: lfo_lfo1, waveform animating. |
-| 9 | 0:28 | 0:31 | **HOLD THE KNOB. THAT'S IT.** | Hold a knob. PiP: lfo_assign_toast. |
-| 10 | 0:32 | 0:35 | **PLUS ENVELOPES YOU CAN SEE** | PiP: env_dual. |
-| 11 | 0:35 | 0:38 | **AND FILTER CURVES THAT MOVE** | Turn a filter knob. PiP: filter_lp_reso, curve moving. |
-| 12 | 0:39 | 0:42 | **IT'S FREE. IT'S A PROTOTYPE.** | Hands off. Loop plays. |
-| 13 | 0:42 | 0:45 | **AND YOUR MOVE STAYS YOUR MOVE** | Loop plays. |
-| 14 | 0:46 | 0:49 | **LET'S BUILD A BEAT** | Hands lift away. Switch to the empty set. PiP: four empty slots. |
+| 4 | 0:11 | 0:14 | **QUANTIZE YOU CAN DIAL BACK** | Turn knob 4 on the clip page; the bass tightens, then loosens again. PiP: clip-quant. |
+| 5 | 0:14 | 0:17 | **EVERY STEP CAN ROLL DICE** | Hold a step. PiP: step_page_knobs, PROB cell. |
+| 6 | 0:18 | 0:21 | **THE LOOP NEVER REPEATS ITSELF** | Hands off. Two bars play, audibly different. |
+| 7 | 0:21 | 0:24 | **AN LFO ON ANY KNOB** | PiP: lfo_lfo1, waveform animating. |
+| 8 | 0:25 | 0:28 | **HOLD THE KNOB. THAT'S IT.** | Hold a knob. PiP: lfo_assign_toast. |
+| 9 | 0:28 | 0:31 | **PLUS ENVELOPES YOU CAN SEE** | PiP: env_dual. |
+| 10 | 0:32 | 0:35 | **AND FILTER CURVES THAT MOVE** | Turn a filter knob. PiP: filter_lp_reso, curve moving. |
+| 11 | 0:35 | 0:38 | **IT'S FREE. IT'S A PROTOTYPE.** | Hands off. Loop plays. |
+| 12 | 0:39 | 0:42 | **AND YOUR MOVE STAYS YOUR MOVE** | Loop plays. |
+| 13 | 0:42 | 0:45 | **LET'S BUILD A BEAT** | Hands lift away. Switch to the empty set. PiP: four empty slots. |
 
 ## What is this
 
-0:50 – 1:11
+0:47 – 1:08
 
 | # | In | Out | Subtitle | On screen |
 | --- | --- | --- | --- | --- |
-| 15 | 0:50 | 0:53 | **QUICKLY — WHAT IS THIS?** | Empty chain view. Hands rest. |
-| 16 | 0:53 | 0:56 | **SCHWUNG RUNS NEW SYNTHS ON MOVE** | PiP: Schwung web UI, module store list. |
-| 17 | 0:57 | 1:00 | **MOVE'S OWN SOUNDS STILL WORK** | PiP: Move's own instrument screen, then back to Schwung. |
-| 18 | 1:01 | 1:04 | **MOVY IS THE PART YOU PLAY** | PiP: a Movy knob page — env_dual (still). |
-| 19 | 1:04 | 1:08 | **INSTALL SCHWUNG, THEN MOVY** | PiP: store, Install pressed on Movy. |
-| 20 | 1:08 | 1:11 | **LINKS BELOW. NOW — THE BEAT.** | Hands return to the device. PiP: empty chain view. |
+| 14 | 0:47 | 0:50 | **QUICKLY — WHAT IS THIS?** | Empty chain view. Hands rest. |
+| 15 | 0:50 | 0:53 | **SCHWUNG RUNS NEW SYNTHS ON MOVE** | PiP: Schwung web UI, module store list. |
+| 16 | 0:54 | 0:57 | **MOVE'S OWN SOUNDS STILL WORK** | PiP: Move's own instrument screen, then back to Schwung. |
+| 17 | 0:58 | 1:01 | **MOVY IS THE PART YOU PLAY** | PiP: a Movy knob page — env_dual (still). |
+| 18 | 1:01 | 1:05 | **INSTALL SCHWUNG, THEN MOVY** | PiP: store, Install pressed on Movy. |
+| 19 | 1:05 | 1:08 | **LINKS BELOW. NOW — THE BEAT.** | Hands return to the device. PiP: empty chain view. |
 
 ## Track 1 — OB-Xd
 
-1:13 – 2:48
+1:10 – 2:45
 
 | # | In | Out | Subtitle | On screen |
 | --- | --- | --- | --- | --- |
-| 21 | 1:13 | 1:16 | **TRACK 1: A SYNTH** | Press track button 1. PiP: chain view, slot 1 empty. |
-| 22 | 1:17 | 1:20 | **PRESS THE WHEEL TO ADD ONE** | Click the wheel. PiP: module browser opens. |
-| 23 | 1:21 | 1:24 | **PICK FROM THE LIST** | Turn the wheel slowly; the list scrolls. |
-| 24 | 1:25 | 1:28 | **SYNTHS, DRUMS, EFFECTS —** | Keep scrolling; the list runs past many modules. |
-| 25 | 1:29 | 1:32 | **EVERYTHING IN THE SCHWUNG STORE** | Still scrolling. PiP: browser, long list. |
-| 26 | 1:33 | 1:36 | **THIS IS OB-XD** | Stop on OB-Xd, click the wheel. |
-| 27 | 1:37 | 1:40 | **A CLASSIC ANALOG POLY** | Play a chord on the pads. |
-| 28 | 1:41 | 1:44 | **IT PLAYS STRAIGHT AWAY** | Play a few more chords. |
-| 29 | 1:45 | 1:48 | **NOW LOOK AT THE SCREEN** | Hands off. PiP: OB-Xd Main page. |
-| 30 | 1:49 | 1:52 | **ELEKTRON-STYLE PAGES, BUILT FOR IT** | PiP: Main page held. |
-| 31 | 1:53 | 1:56 | **THERE'S THE ENVELOPE** | PiP: envelope graphic on the Main page. |
-| 32 | 1:57 | 2:00 | **SHORTER DECAY, LONGER RELEASE** | Turn DECAY, then RELEASE; the envelope reshapes live. |
-| 33 | 2:01 | 2:04 | **AND THERE'S THE FILTER** | PiP: filter curve on the same page. |
-| 34 | 2:05 | 2:08 | **OPENING THE CUTOFF** | Turn CUTOFF; the curve slides. PiP: filter_lp. |
-| 35 | 2:09 | 2:12 | **ADDING RESONANCE** | Turn RESONANCE; the peak grows. PiP: filter_lp_reso. |
-| 36 | 2:13 | 2:16 | **THAT'S OUR BASS SOUND** | Play a chord — the new sound. |
-| 37 | 2:17 | 2:20 | **NOW THE PADS** | Shift + Step 5. PiP: main-default. |
-| 38 | 2:21 | 2:24 | **MOVE HAS SCALES. NOT A PIANO.** | Turn knob 8 LAYOUT to Piano. PiP: main-layout-overlay. |
-| 39 | 2:25 | 2:28 | **WHITE KEYS AND BLACK KEYS** | Pads relight as two octaves of piano. Run a hand up them. |
-| 40 | 2:29 | 2:32 | **PLAY IT, THEN PRESS CAPTURE** | Transport running. Play the bass line by hand, then press Capture. |
-| 41 | 2:33 | 2:36 | **MY TIMING IS HUMAN. THAT'S FINE.** | The take lands in the clip and loops, audibly loose. |
-| 42 | 2:37 | 2:40 | **NOW HOLD ONE STEP** | Hold a single step on the bass track. |
-| 43 | 2:41 | 2:44 | **AND TURN ANY KNOB YOU LIKE** | Still holding, turn CUTOFF. PiP: auto_live. |
-| 44 | 2:45 | 2:48 | **THAT STEP KEEPS ITS OWN SOUND** | Release. Loop plays; one note is brighter than the rest. |
+| 20 | 1:10 | 1:13 | **TRACK 1: A SYNTH** | Press track button 1. PiP: chain view, slot 1 empty. |
+| 21 | 1:14 | 1:17 | **PRESS THE WHEEL TO ADD ONE** | Click the wheel. PiP: module browser opens. |
+| 22 | 1:18 | 1:21 | **PICK FROM THE LIST** | Turn the wheel slowly; the list scrolls. |
+| 23 | 1:22 | 1:25 | **SYNTHS, DRUMS, EFFECTS —** | Keep scrolling; the list runs past many modules. |
+| 24 | 1:26 | 1:29 | **EVERYTHING IN THE SCHWUNG STORE** | Still scrolling. PiP: browser, long list. |
+| 25 | 1:30 | 1:33 | **THIS IS OB-XD** | Stop on OB-Xd, click the wheel. |
+| 26 | 1:34 | 1:37 | **A CLASSIC ANALOG POLY** | Play a chord on the pads. |
+| 27 | 1:38 | 1:41 | **IT PLAYS STRAIGHT AWAY** | Play a few more chords. |
+| 28 | 1:42 | 1:45 | **NOW LOOK AT THE SCREEN** | Hands off. PiP: OB-Xd Main page. |
+| 29 | 1:46 | 1:49 | **ELEKTRON-STYLE PAGES, BUILT FOR IT** | PiP: Main page held. |
+| 30 | 1:50 | 1:53 | **THERE'S THE ENVELOPE** | PiP: envelope graphic on the Main page. |
+| 31 | 1:54 | 1:57 | **SHORTER DECAY, LONGER RELEASE** | Turn DECAY, then RELEASE; the envelope reshapes live. |
+| 32 | 1:58 | 2:01 | **AND THERE'S THE FILTER** | PiP: filter curve on the same page. |
+| 33 | 2:02 | 2:05 | **OPENING THE CUTOFF** | Turn CUTOFF; the curve slides. PiP: filter_lp. |
+| 34 | 2:06 | 2:09 | **ADDING RESONANCE** | Turn RESONANCE; the peak grows. PiP: filter_lp_reso. |
+| 35 | 2:10 | 2:13 | **THAT'S OUR BASS SOUND** | Play a chord — the new sound. |
+| 36 | 2:14 | 2:17 | **NOW THE PADS** | Shift + Step 5. PiP: main-default. |
+| 37 | 2:18 | 2:21 | **MOVE HAS SCALES. NOT A PIANO.** | Turn knob 8 LAYOUT to Piano. PiP: main-layout-overlay. |
+| 38 | 2:22 | 2:25 | **WHITE KEYS AND BLACK KEYS** | Pads relight as two octaves of piano. Run a hand up them. |
+| 39 | 2:26 | 2:29 | **PLAY IT, THEN PRESS CAPTURE** | Transport running. Play the bass line by hand, then press Capture. |
+| 40 | 2:30 | 2:33 | **MY TIMING IS HUMAN. THAT'S FINE.** | The take lands in the clip and loops, audibly loose. |
+| 41 | 2:34 | 2:37 | **NOW HOLD ONE STEP** | Hold a single step on the bass track. |
+| 42 | 2:38 | 2:41 | **AND TURN ANY KNOB YOU LIKE** | Still holding, turn CUTOFF. PiP: auto_live. |
+| 43 | 2:42 | 2:45 | **THAT STEP KEEPS ITS OWN SOUND** | Release. Loop plays; one note is brighter than the rest. |
 
-## Track 2 — Mr Drums
+## Track 2 — Weird Dreams / step recording
 
-2:50 – 3:49
+2:47 – 3:46
 
 | # | In | Out | Subtitle | On screen |
 | --- | --- | --- | --- | --- |
-| 45 | 2:50 | 2:53 | **TRACK 2: DRUMS** | Press track 2, click the wheel, load Mr Drums. |
-| 46 | 2:54 | 2:57 | **PADS BECOME A 4×4 RACK** | Pads light as a 4×4 grid. PiP: drum-mrdrums-global. |
-| 47 | 2:58 | 3:01 | **A SAMPLER NEEDS A KIT** | Hit pads — silent. Jog to page 4. PiP: Preset page. |
-| 48 | 3:02 | 3:05 | **HOLD THE KNOB, PRESS THE WHEEL** | Hold knob 1, click the wheel. PiP: file browser of kits. |
-| 49 | 3:06 | 3:09 | **THESE ARE MOVE DRUM RACKS** | Turn the wheel; the kit list scrolls. |
-| 50 | 3:10 | 3:13 | **YOUR OWN KITS. UNCHANGED.** | Keep scrolling past the stock kits. |
-| 51 | 3:14 | 3:17 | **THIS ONE CAME FROM MASCHINE** | Land on the converted kit. |
-| 52 | 3:18 | 3:21 | **CONVERTED, AND IT JUST LOADS** | Click to load. PiP: kit name fills the PRSET cell. |
-| 53 | 3:22 | 3:25 | **NOW THE PADS PLAY** | Play the pads over the bass — kick, clap and hat all sound. |
-| 54 | 3:26 | 3:29 | **PRESS A PAD TO EDIT THAT VOICE** | Press the kick pad. PiP: per-pad page, pad icon in the header. |
-| 55 | 3:30 | 3:33 | **THE KNOBS FOLLOW THE PAD** | Press a different pad; knob values change. |
-| 56 | 3:34 | 3:37 | **TURN IT TO SWAP THE SAMPLE** | Jog to page 1, turn the SAMPL knob — samples scroll inline. |
-| 57 | 3:38 | 3:41 | **REC, COUNT-IN, PLAY** | Tap Rec. Count-in bar; step LEDs pulse. |
-| 58 | 3:42 | 3:45 | **KICK, THEN CLAP** | Play kick on the downbeats, clap on 2 and 4. |
-| 59 | 3:46 | 3:49 | **NOW IT'S A BEAT** | Drums and bass loop together. Hands off. |
+| 44 | 2:47 | 2:50 | **TRACK 2: DRUMS** | Press track 2, click the wheel, load Weird Dreams. |
+| 45 | 2:51 | 2:54 | **WEIRD DREAMS — SYNTH DRUMS** | Hit pads — they sound immediately. |
+| 46 | 2:55 | 2:58 | **NO SAMPLES. NOTHING TO LOAD.** | Hit a few more pads. |
+| 47 | 2:59 | 3:02 | **THERE'S THE KICK** | Play a four-on-the-floor kick under the bass. |
+| 48 | 3:03 | 3:06 | **NOW A FAST PERCUSSION PART** | Hands hover over the pads. |
+| 49 | 3:07 | 3:10 | **TOO FAST TO PLAY BY HAND** | Transport stopped. Hands come off the pads. |
+| 50 | 3:11 | 3:14 | **HOLD REC WHILE STOPPED** | Hold Rec. A red head blinks on the step row. |
+| 51 | 3:15 | 3:18 | **THAT'S STEP RECORDING** | PiP: step_rec_header. |
+| 52 | 3:19 | 3:22 | **TAP PADS — THE STEP MOVES ON** | Tap pads; the head advances by itself. |
+| 53 | 3:23 | 3:26 | **NO PICKING STEPS ONE BY ONE** | Keep tapping; steps fill quickly. |
+| 54 | 3:27 | 3:30 | **RIGHT ARROW LEAVES A REST** | Press Right. Head advances, no note. |
+| 55 | 3:31 | 3:34 | **LEFT ARROW STEPS BACK** | Press Left. The previous note plays, its pad lights. |
+| 56 | 3:35 | 3:38 | **THE CLIP GROWS TO FIT** | Keep tapping; the step row grows. |
+| 57 | 3:39 | 3:42 | **RELEASE REC. DONE.** | Release Rec. Press Play. |
+| 58 | 3:43 | 3:46 | **FASTER THAN YOU COULD PLAY IT** | Pattern loops over the bass. Hands off. |
 
 ## Beyond Move ① — clip page
 
-3:52 – 4:39
+3:48 – 4:11
 
 | # | In | Out | Subtitle | On screen |
 | --- | --- | --- | --- | --- |
-| 60 | 3:52 | 3:55 | **THE BASS IS STILL LOOSE** | Loop plays; the drift against the kick is audible. |
-| 61 | 3:56 | 3:59 | **EASY TO HEAR NOW** | Loop continues. Hands off. |
-| 62 | 4:00 | 4:03 | **SHIFT + STEP 3 = CLIP PAGE** | Press track 1, then Shift + Step 3. PiP: clip-default. |
-| 63 | 4:04 | 4:07 | **QUANTIZE IS A DIAL, NOT A BUTTON** | Hand moves to knob 4. |
-| 64 | 4:08 | 4:11 | **0% — EXACTLY AS PLAYED** | Turn knob 4 to 0. PiP: QUANT 0%. |
-| 65 | 4:12 | 4:15 | **100% — DEAD ON THE GRID** | Turn knob 4 to 100. The bass locks to the kick. |
-| 66 | 4:16 | 4:19 | **ANYWHERE IN BETWEEN** | Turn to about 40. PiP: clip-quant. |
-| 67 | 4:20 | 4:23 | **AND BACK. NOTHING WAS LOST.** | Turn back to 0 — the original feel returns. |
-| 68 | 4:24 | 4:27 | **MOVE'S QUANTIZE IS ONE-WAY** | Loop plays at the chosen amount. |
-| 69 | 4:28 | 4:31 | **SAME PAGE: SCALE** | Hand moves to knob 1. PiP: SCALE cell. |
-| 70 | 4:32 | 4:35 | **EACH CLIP HAS ITS OWN** | PiP: clip page held. |
-| 71 | 4:36 | 4:39 | **ONE KNOB. NEW MOOD.** | Turn knob 1 to Phrygian. The bass re-maps. Hands off. |
-
-## Track 3 — Weird Dreams / step recording
-
-4:42 – 5:29
-
-| # | In | Out | Subtitle | On screen |
-| --- | --- | --- | --- | --- |
-| 72 | 4:42 | 4:45 | **TRACK 3: WEIRD DREAMS** | Press track 3, click the wheel, load Weird Dreams. |
-| 73 | 4:46 | 4:49 | **SYNTH DRUMS. NO SAMPLES.** | Hit pads — they sound immediately. |
-| 74 | 4:50 | 4:53 | **THIS PART IS TOO FAST TO PLAY** | Transport stopped. Hands hover over the pads. |
-| 75 | 4:54 | 4:57 | **HOLD REC WHILE STOPPED** | Hold Rec. A red head blinks on the step row. |
-| 76 | 4:58 | 5:01 | **THAT'S STEP RECORDING** | PiP: step_rec_header. |
-| 77 | 5:02 | 5:05 | **TAP PADS — THE STEP MOVES ON** | Tap pads; the head advances by itself. |
-| 78 | 5:06 | 5:09 | **NO PICKING STEPS ONE BY ONE** | Keep tapping; steps fill quickly. |
-| 79 | 5:10 | 5:13 | **RIGHT ARROW LEAVES A REST** | Press Right. Head advances, no note. |
-| 80 | 5:14 | 5:17 | **LEFT ARROW STEPS BACK** | Press Left. The previous note plays, its pad lights. |
-| 81 | 5:18 | 5:21 | **THE CLIP GROWS TO FIT** | Keep tapping; the step row grows. |
-| 82 | 5:22 | 5:25 | **RELEASE REC. DONE.** | Release Rec. Press Play. |
-| 83 | 5:26 | 5:29 | **FASTER THAN YOU COULD PLAY IT** | Pattern loops with the rest. Hands off. |
+| 59 | 3:48 | 3:51 | **SHIFT + STEP 3 = CLIP PAGE** | Press track 1, then Shift + Step 3. PiP: clip-default. |
+| 60 | 3:52 | 3:55 | **QUANTIZE HERE IS A DIAL** | Turn knob 4 up; the bass tightens to the kick. PiP: clip-quant. |
+| 61 | 3:56 | 3:59 | **DIAL IT BACK ANY TIME** | Turn it back down; the played feel returns. |
+| 62 | 4:00 | 4:03 | **NOTHING IS EVER REWRITTEN** | Loop plays at the chosen amount. Hands off. |
+| 63 | 4:04 | 4:07 | **SAME PAGE: SCALE, PER CLIP** | Hand moves to knob 1. PiP: SCALE cell. |
+| 64 | 4:08 | 4:11 | **ONE KNOB. NEW MOOD.** | Turn knob 1 to Phrygian. The bass re-maps. Hands off. |
 
 ## Beyond Move ② — step parameters
 
-5:32 – 6:13
+4:13 – 4:54
 
 | # | In | Out | Subtitle | On screen |
 | --- | --- | --- | --- | --- |
-| 84 | 5:32 | 5:35 | **BUT IT REPEATS EVERY BAR** | Loop plays unchanged for a bar. Hands off. |
-| 85 | 5:36 | 5:39 | **HOLD ANY STEP** | Hold a step that has a note. |
-| 86 | 5:40 | 5:44 | **THIS IS THE STEP PAGE** | PiP: step_page_knobs, five cells. |
-| 87 | 5:44 | 5:48 | **ELEKTRON OWNERS WILL RECOGNISE IT** | Held step stays lit. |
-| 88 | 5:48 | 5:52 | **VELOCITY. LENGTH.** | Turn knob 1, then knob 2. PiP: VEL and LEN move. |
-| 89 | 5:53 | 5:56 | **PROBABILITY —** | Hand moves to knob 3. |
-| 90 | 5:57 | 6:00 | **60% MEANS IT SKIPS SOMETIMES** | Turn knob 3 to 60. PiP: PROB 60%. |
-| 91 | 6:01 | 6:05 | **OR ONLY ON CERTAIN BARS** | Turn knob 4 to 2:3. PiP: COND cell. |
-| 92 | 6:05 | 6:09 | **INVERT FLIPS THAT ROUND** | Turn knob 5. PiP: INV toggles. |
-| 93 | 6:09 | 6:13 | **MOVE HAS NONE OF THIS** | Release the step. |
+| 65 | 4:13 | 4:16 | **BUT IT REPEATS EVERY BAR** | Loop plays unchanged for a bar. Hands off. |
+| 66 | 4:17 | 4:20 | **HOLD ANY STEP** | Hold a step on the percussion track. |
+| 67 | 4:21 | 4:25 | **THIS IS THE STEP PAGE** | PiP: step_page_knobs, five cells. |
+| 68 | 4:25 | 4:29 | **ELEKTRON OWNERS WILL RECOGNISE IT** | Held step stays lit. |
+| 69 | 4:29 | 4:33 | **VELOCITY. LENGTH.** | Turn knob 1, then knob 2. PiP: VEL and LEN move. |
+| 70 | 4:34 | 4:37 | **PROBABILITY —** | Hand moves to knob 3. |
+| 71 | 4:38 | 4:41 | **60% MEANS IT SKIPS SOMETIMES** | Turn knob 3 to 60. PiP: PROB 60%. |
+| 72 | 4:42 | 4:46 | **OR ONLY ON CERTAIN BARS** | Turn knob 4 to 2:3. PiP: COND cell. |
+| 73 | 4:46 | 4:50 | **INVERT FLIPS THAT ROUND** | Turn knob 5. PiP: INV toggles. |
+| 74 | 4:50 | 4:54 | **MOVE HAS NONE OF THIS** | Release the step. |
 
 ## Listen
 
-6:17 – 6:36
+4:58 – 5:17
 
 | # | In | Out | Subtitle | On screen |
 | --- | --- | --- | --- | --- |
-| 94 | 6:17 | 6:20 | **NOW LISTEN** | Hands off. Loop runs. |
-| 95 | 6:25 | 6:28 | **SAME CLIP. NEVER THE SAME BAR.** | Four bars play; the pattern varies each time. No text for eight seconds either side. |
-| 96 | 6:33 | 6:36 | **ONE HELD STEP DID THAT** | Loop continues. Hands still off. |
+| 75 | 4:58 | 5:01 | **NOW LISTEN** | Hands off. Loop runs. |
+| 76 | 5:06 | 5:09 | **SAME CLIP. NEVER THE SAME BAR.** | Four bars play; the pattern varies each time. No text for eight seconds either side. |
+| 77 | 5:14 | 5:17 | **ONE HELD STEP DID THAT** | Loop continues. Hands still off. |
 
-## Track 4 — Helm
+## Track 3 — Helm
 
-6:39 – 7:07
+5:20 – 5:48
 
 | # | In | Out | Subtitle | On screen |
 | --- | --- | --- | --- | --- |
-| 97 | 6:39 | 6:42 | **TRACK 4: HELM** | Press track 4, click the wheel, load Helm. |
-| 98 | 6:43 | 6:46 | **A FULL SOFT SYNTH. ON MOVE.** | Play a lead line on the pads. |
-| 99 | 6:47 | 6:51 | **THREE ENVELOPES. TWO LFOS. AN ARP.** | Turn the wheel; a few pages go past. PiP: env_dual. |
-| 100 | 6:51 | 6:55 | **ALL OF IT ON THE KNOBS** | PiP: deep_page. |
-| 101 | 6:55 | 6:59 | **EVERY SYNTH WORKS LIKE THIS** | PiP: page headers streaming past. |
-| 102 | 7:00 | 7:03 | **NOW THE LEAD** | Turn back to a filter page. Play the lead over the loop. |
-| 103 | 7:04 | 7:07 | **THAT'S ALL FOUR TRACKS** | Full loop playing. Hands off. |
+| 78 | 5:20 | 5:23 | **TRACK 3: HELM** | Press track 3, click the wheel, load Helm. |
+| 79 | 5:24 | 5:27 | **A FULL SOFT SYNTH. ON MOVE.** | Play a lead line on the pads. |
+| 80 | 5:28 | 5:32 | **THREE ENVELOPES. TWO LFOS. AN ARP.** | Turn the wheel; a few pages go past. PiP: env_dual. |
+| 81 | 5:32 | 5:36 | **ALL OF IT ON THE KNOBS** | PiP: deep_page. |
+| 82 | 5:36 | 5:40 | **EVERY SYNTH WORKS LIKE THIS** | PiP: page headers streaming past. |
+| 83 | 5:41 | 5:44 | **NOW THE LEAD** | Turn back to a filter page. |
+| 84 | 5:45 | 5:48 | **PLAYING OVER THE LOOP** | Play the lead over the running loop. Hands off. |
+
+## Track 4 — Mr Drums
+
+5:51 – 6:54
+
+| # | In | Out | Subtitle | On screen |
+| --- | --- | --- | --- | --- |
+| 85 | 5:51 | 5:54 | **TRACK 4: ONE MORE LAYER** | Press track 4, click the wheel. |
+| 86 | 5:55 | 5:58 | **MR DRUMS — A SAMPLER** | Load Mr Drums. Pads light as a 4×4 grid. PiP: drum-mrdrums-global. |
+| 87 | 5:59 | 6:02 | **A SAMPLER NEEDS A KIT** | Hit pads — silent. Jog to page 4. PiP: Preset page. |
+| 88 | 6:03 | 6:06 | **HOLD THE KNOB, PRESS THE WHEEL** | Hold knob 1, click the wheel. PiP: file browser of kits. |
+| 89 | 6:07 | 6:10 | **THESE ARE MOVE DRUM RACKS** | Turn the wheel; the kit list scrolls. |
+| 90 | 6:11 | 6:14 | **YOUR OWN KITS. UNCHANGED.** | Keep scrolling past the stock kits. |
+| 91 | 6:15 | 6:18 | **THIS ONE CAME FROM MASCHINE** | Land on the converted kit. |
+| 92 | 6:19 | 6:22 | **CONVERTED, AND IT JUST LOADS** | Click to load. PiP: kit name fills the PRSET cell. |
+| 93 | 6:23 | 6:26 | **NOW THE PADS PLAY** | Play the pads over the running loop. |
+| 94 | 6:27 | 6:30 | **HATS AND CLAPS ON TOP** | Play hats and claps against the synth drums. |
+| 95 | 6:31 | 6:34 | **PRESS A PAD TO EDIT THAT VOICE** | Press a pad. PiP: per-pad page, pad icon in the header. |
+| 96 | 6:35 | 6:38 | **THE KNOBS FOLLOW THE PAD** | Press a different pad; knob values change. |
+| 97 | 6:39 | 6:42 | **TURN IT TO SWAP THE SAMPLE** | Jog to page 1, turn the SAMPL knob — samples scroll inline. |
+| 98 | 6:43 | 6:46 | **REC, COUNT-IN, PLAY** | Tap Rec. Count-in bar; step LEDs pulse. |
+| 99 | 6:47 | 6:50 | **HATS ON THE OFFBEATS** | Play the hat pattern in. |
+| 100 | 6:51 | 6:54 | **THAT'S ALL FOUR TRACKS** | Full loop playing. Hands off. |
 
 ## LFO — hold to assign
 
-7:11 – 7:42
+6:56 – 7:27
 
 | # | In | Out | Subtitle | On screen |
 | --- | --- | --- | --- | --- |
-| 104 | 7:11 | 7:14 | **TWO LFOS ON EVERY TRACK** | Back to chain view. PiP: LFO slot at the end of the chain. |
-| 105 | 7:15 | 7:18 | **ON ANY KNOB YOU LIKE** | Press track 1. PiP: OB-Xd filter page. |
-| 106 | 7:19 | 7:22 | **HOLD A KNOB FOR A SECOND** | Hold the cutoff knob. PiP: lfo_assign_toast. |
-| 107 | 7:23 | 7:26 | **PICK LFO 1. CLICK.** | Turn the wheel to LFO1, click. PiP: lfo_lfo1 page. |
-| 108 | 7:27 | 7:30 | **SHAPE AND PHASE, DRAWN LIVE** | Turn SHAPE, then PHASE; the waveform morphs and slides. |
-| 109 | 7:31 | 7:34 | **LOCK IT TO THE BAR** | Turn SYNC on, set DEPTH. The LFO cycles with the bar. |
-| 110 | 7:35 | 7:38 | **THE BASS BREATHES NOW** | Loop plays, bass filter moving. Hands off. |
-| 111 | 7:39 | 7:42 | **MOVE HAS NOTHING LIKE THIS** | Loop continues. |
+| 101 | 6:56 | 6:59 | **TWO LFOS ON EVERY TRACK** | Back to chain view. PiP: LFO slot at the end of the chain. |
+| 102 | 7:00 | 7:03 | **ON ANY KNOB YOU LIKE** | Press track 1. PiP: OB-Xd filter page. |
+| 103 | 7:04 | 7:07 | **HOLD A KNOB FOR A SECOND** | Hold the cutoff knob. PiP: lfo_assign_toast. |
+| 104 | 7:08 | 7:11 | **PICK LFO 1. CLICK.** | Turn the wheel to LFO1, click. PiP: lfo_lfo1 page. |
+| 105 | 7:12 | 7:15 | **SHAPE AND PHASE, DRAWN LIVE** | Turn SHAPE, then PHASE; the waveform morphs and slides. |
+| 106 | 7:16 | 7:19 | **LOCK IT TO THE BAR** | Turn SYNC on, set DEPTH. The LFO cycles with the bar. |
+| 107 | 7:20 | 7:23 | **THE BASS BREATHES NOW** | Loop plays, bass filter moving. Hands off. |
+| 108 | 7:24 | 7:27 | **MOVE HAS NOTHING LIKE THIS** | Loop continues. |
 
 ## Automation and undo
 
-7:46 – 8:17
+7:29 – 8:00
 
 | # | In | Out | Subtitle | On screen |
 | --- | --- | --- | --- | --- |
-| 112 | 7:46 | 7:49 | **RECORD, THEN TURN A KNOB** | Press track 4. Tap Rec, count-in. PiP: Helm filter page. |
-| 113 | 7:50 | 7:53 | **SWEEPING HELM'S FILTER** | Sweep the cutoff knob across two bars. |
-| 114 | 7:54 | 7:57 | **IT'S IN THE CLIP NOW** | Tap Rec to stop. The loop replays the sweep. |
-| 115 | 7:58 | 8:01 | **THE KNOB MOVES BY ITSELF** | Hands off; the on-screen arc follows playback. PiP: auto_live. |
-| 116 | 8:02 | 8:05 | **TOO MUCH? UNDO.** | Press Undo. |
-| 117 | 8:06 | 8:09 | **AND IT TELLS YOU WHAT IT UNDID** | PiP: undo_toast naming the change. |
-| 118 | 8:10 | 8:13 | **ONE GESTURE = ONE UNDO** | Loop plays without the sweep. |
-| 119 | 8:14 | 8:17 | **NOTES, CLIPS, KNOBS, SYNTHS** | Shift + Undo; the sweep returns. Hands off. |
+| 109 | 7:29 | 7:32 | **RECORD, THEN TURN A KNOB** | Press track 3. Tap Rec, count-in. PiP: Helm filter page. |
+| 110 | 7:33 | 7:36 | **SWEEPING HELM'S FILTER** | Sweep the cutoff knob across two bars. |
+| 111 | 7:37 | 7:40 | **IT'S IN THE CLIP NOW** | Tap Rec to stop. The loop replays the sweep. |
+| 112 | 7:41 | 7:44 | **THE KNOB MOVES BY ITSELF** | Hands off; the on-screen arc follows playback. PiP: auto_live. |
+| 113 | 7:45 | 7:48 | **TOO MUCH? UNDO.** | Press Undo. |
+| 114 | 7:49 | 7:52 | **AND IT TELLS YOU WHAT IT UNDID** | PiP: undo_toast naming the change. |
+| 115 | 7:53 | 7:56 | **ONE GESTURE = ONE UNDO** | Loop plays without the sweep. |
+| 116 | 7:57 | 8:00 | **NOTES, CLIPS, KNOBS, SYNTHS** | Shift + Undo; the sweep returns. Hands off. |
 
 ## Session, master FX, background
 
-8:20 – 8:50
+8:02 – 8:32
 
 | # | In | Out | Subtitle | On screen |
 | --- | --- | --- | --- | --- |
-| 120 | 8:20 | 8:23 | **SESSION VIEW: PADS LAUNCH CLIPS** | Press Note/Session. Pads become the clip grid. |
-| 121 | 8:23 | 8:27 | **A MASTER FX CHAIN, TOO** | Launch clips on two tracks. PiP: session grid, then master FX slot. |
-| 122 | 8:27 | 8:31 | **MOVE HAS NO MASTER BUS** | PiP: master FX chain. |
-| 123 | 8:31 | 8:35 | **REVERB ACROSS THE WHOLE KIT** | Turn a reverb knob; the whole loop washes out. |
-| 124 | 8:35 | 8:39 | **AND MOVY CAN RUN IN THE BACKGROUND** | Back at the root. PiP: leave_modal → Background. |
-| 125 | 8:39 | 8:42 | **MOVE'S OWN SCREENS COME BACK** | Move's native UI appears on the device. |
-| 126 | 8:43 | 8:46 | **THE SEQUENCER KEEPS PLAYING** | Loop continues underneath, untouched. |
-| 127 | 8:47 | 8:50 | **ONE TRANSPORT, BOTH SEQUENCERS** | Shift + Step 5, LINK on. Press Play — both start. PiP: main-link-on. |
+| 117 | 8:02 | 8:05 | **SESSION VIEW: PADS LAUNCH CLIPS** | Press Note/Session. Pads become the clip grid. |
+| 118 | 8:05 | 8:09 | **A MASTER FX CHAIN, TOO** | Launch clips on two tracks. PiP: session grid, then master FX slot. |
+| 119 | 8:09 | 8:13 | **MOVE HAS NO MASTER BUS** | PiP: master FX chain. |
+| 120 | 8:13 | 8:17 | **REVERB ACROSS THE WHOLE KIT** | Turn a reverb knob; the whole loop washes out. |
+| 121 | 8:17 | 8:21 | **AND MOVY CAN RUN IN THE BACKGROUND** | Back at the root. PiP: leave_modal → Background. |
+| 122 | 8:21 | 8:24 | **MOVE'S OWN SCREENS COME BACK** | Move's native UI appears on the device. |
+| 123 | 8:25 | 8:28 | **THE SEQUENCER KEEPS PLAYING** | Loop continues underneath, untouched. |
+| 124 | 8:29 | 8:32 | **ONE TRANSPORT, BOTH SEQUENCERS** | Shift + Step 5, LINK on. Press Play — both start. PiP: main-link-on. |
 
 ## Outro
 
-8:53 – 9:34
+8:35 – 9:16
 
 | # | In | Out | Subtitle | On screen |
 | --- | --- | --- | --- | --- |
-| 128 | 8:53 | 8:56 | **THAT'S THE BEAT** | All four tracks playing. Hands perform. |
-| 129 | 8:57 | 9:00 | **FOUR TRACKS. ONE MOVE.** | Mute and unmute track 3. |
-| 130 | 9:01 | 9:05 | **NO COMPUTER IN THE CHAIN** | Ride the Helm filter. |
-| 131 | 9:05 | 9:09 | **IT'S FREE AND OPEN SOURCE** | Launch a different clip. |
-| 132 | 9:09 | 9:13 | **AND AN EARLY PROTOTYPE** | Hands keep moving over the loop. |
-| 133 | 9:14 | 9:17 | **EXPECT ROUGH EDGES** | Loop plays. Hands slow. |
-| 134 | 9:18 | 9:21 | **EVERYTHING HERE WAS BUILT WITH AI** | Loop plays. |
-| 135 | 9:22 | 9:26 | **EVERY IDEA CAME FROM A HUMAN** | Hands lift away. |
-| 136 | 9:26 | 9:30 | **JOIN #MOVY IN THE SCHWUNG DISCORD** | Loop plays, hands off. |
-| 137 | 9:30 | 9:34 | **LINKS BELOW. GO MAKE SOMETHING.** | Loop plays out and stops. |
+| 125 | 8:35 | 8:38 | **THAT'S THE BEAT** | All four tracks playing. Hands perform. |
+| 126 | 8:39 | 8:42 | **FOUR TRACKS. ONE MOVE.** | Mute and unmute track 3. |
+| 127 | 8:43 | 8:47 | **NO COMPUTER IN THE CHAIN** | Ride the Helm filter. |
+| 128 | 8:47 | 8:51 | **IT'S FREE AND OPEN SOURCE** | Launch a different clip. |
+| 129 | 8:51 | 8:55 | **AND AN EARLY PROTOTYPE** | Hands keep moving over the loop. |
+| 130 | 8:56 | 8:59 | **EXPECT ROUGH EDGES** | Loop plays. Hands slow. |
+| 131 | 9:00 | 9:03 | **EVERYTHING HERE WAS BUILT WITH AI** | Loop plays. |
+| 132 | 9:04 | 9:08 | **EVERY IDEA CAME FROM A HUMAN** | Hands lift away. |
+| 133 | 9:08 | 9:12 | **JOIN #MOVY IN THE SCHWUNG DISCORD** | Loop plays, hands off. |
+| 134 | 9:12 | 9:16 | **LINKS BELOW. GO MAKE SOMETHING.** | Loop plays out and stops. |
 

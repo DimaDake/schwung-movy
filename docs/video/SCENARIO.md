@@ -1,6 +1,6 @@
 # Movy — YouTube video scenario
 
-**Runtime:** ~9:34 · **Voice-over:** none · **Camera:** one fixed top-down shot, never moves
+**Runtime:** ~9:16 · **Voice-over:** none · **Camera:** one fixed top-down shot, never moves
 
 A single static overhead shot of the Move, plus a live inset of Movy's display
 composited in post. All narration is carried by bold subtitle cards — see
@@ -97,10 +97,10 @@ Requires `ffmpeg` on the recording machine (`brew install ffmpeg`).
 
 | Track | Module | Role | Introduced |
 | --- | --- | --- | --- |
-| 1 | **OB-Xd** | Bass | 1:13 |
-| 2 | **Mr Drums** | Kick, clap, hats | 2:50 |
-| 3 | **Weird Dreams** | Synth percussion, toms | 4:42 |
-| 4 | **Helm** | Acid lead | 6:39 |
+| 1 | **OB-Xd** | Bass | 1:10 |
+| 2 | **Weird Dreams** | Kick, synth percussion | 2:47 |
+| 3 | **Helm** | Acid lead | 5:20 |
+| 4 | **Mr Drums** | Hats, claps, sampled layer | 5:51 |
 
 Dark, hypnotic techno, ~130 BPM. The genre earns its keep here: it is built on a
 repeating loop, so every feature demo doubles as musical progress, and constant
@@ -127,23 +127,23 @@ from the empty set.
 
 | Time | Segment | Feature |
 | --- | --- | --- |
-| 0:00 | Cold open | **The three things Move can't do**, then the beat + the honest caveats |
-| 0:50 | What is this | Schwung, Movy, install — 21 seconds |
-| 1:13 | Track 1 — OB-Xd | Works with every synth, knob pages, envelope, filter curve, piano pads, Capture, step automation |
-| 2:50 | Track 2 — Mr Drums | Loading a drum rack, 4×4 rack, per-pad pages, live record |
-| 3:52 | Beyond Move ① | Clip page — quantize + scale |
-| 4:42 | Track 3 — Weird Dreams | Step recording |
-| 5:32 | Beyond Move ② | Step parameters |
-| 6:17 | **Listen** | No gestures, barely any text — the pattern varying is the point |
-| 6:39 | Track 4 — Helm | Depth, in seven cards |
-| 7:11 | LFO | Hold-to-assign on the bass |
-| 7:46 | Automation | Filter sweep + undo |
-| 8:20 | Session | Clip launching, master FX, background, LINK |
-| 8:53 | Outro | AI disclosure, Discord, links |
+| 0:00 | Cold open | **The things Move can't do**, then the beat + the honest caveats |
+| 0:47 | What is this | Schwung, Movy, install — 21 seconds |
+| 1:10 | Track 1 — OB-Xd | Works with every synth, knob pages, envelope, filter curve, piano pads, Capture, step automation |
+| 2:47 | Track 2 — Weird Dreams | Synth drums that play instantly, then step recording |
+| 3:48 | Beyond Move ① | Clip page — non-destructive quantize, per-clip scale |
+| 4:13 | Beyond Move ② | Step parameters |
+| 4:58 | **Listen** | No gestures, barely any text — the pattern varying is the point |
+| 5:20 | Track 3 — Helm | Depth, in seven cards |
+| 5:51 | Track 4 — Mr Drums | Loading a drum rack, 4×4 rack, per-pad pages, live record |
+| 6:56 | LFO | Hold-to-assign on the bass |
+| 7:29 | Automation | Filter sweep + undo |
+| 8:02 | Session | Clip launching, master FX, background, LINK |
+| 8:35 | Outro | AI disclosure, Discord, links |
 
 ---
 
-## 0:00–0:49 — Cold open
+## 0:00–0:45 — Cold open
 
 **Playing:** the finished loop, full arrangement, from the prepared set.
 
@@ -168,7 +168,7 @@ empty set.
 
 ---
 
-## 0:50–1:11 — What is this
+## 0:47–1:08 — What is this
 
 **Playing:** nothing. Empty set, chain view showing four empty slots.
 
@@ -216,7 +216,7 @@ been made, so that card confirms a promise instead of making a new claim.
 
 ---
 
-## 1:13–2:48 — Track 1: OB-Xd
+## 1:10–2:45 — Track 1: OB-Xd
 
 The opener, and the segment that has to earn the next nine minutes. Movy is a
 screen-and-knobs tool, so the first thing it is seen doing is drawing a screen
@@ -267,7 +267,7 @@ keys where you expect them — so that is what the cards name, framed as
 **Capture, not Rec.** Capture is the better story for an opener: no arming, no
 count-in, no committing before you know whether the take is any good. Play until
 something works, then keep it. It also leaves the take exactly as played, which
-is what the quantize demo at 4:42 needs.
+is what the quantize demo at 3:48 needs.
 
 **Then step automation, in three cards.** Holding a step and turning a module
 knob locks that value to that step — an Elektron p-lock, reached with a gesture
@@ -275,7 +275,7 @@ the viewer has already seen. It goes here rather than in the automation segment
 because it is the cheapest possible demonstration that the knob pages and the
 sequencer are the same instrument, not two features side by side.
 
-**Play the bass loose on purpose.** It sets up the quantize demo at 4:42, and the
+**Play the bass loose on purpose.** It sets up the quantize demo at 3:48, and the
 card "MY TIMING IS HUMAN. THAT'S FINE." tells the viewer the sloppiness is
 deliberate — otherwise it reads as bad playing for two minutes.
 
@@ -284,12 +284,142 @@ segment carries *quality*.
 
 ---
 
-## 2:50–3:49 — Track 2: Mr Drums, and loading a kit
+## 2:47–3:46 — Track 2: Weird Dreams (step recording)
 
-**Mr Drums loads empty.** It is a sample player, so until a kit is loaded the
-pads are silent. That is why it is no longer the opener — but it lands fine here,
-because the viewer has already seen Movy draw a good screen and now has bass
-playing underneath.
+**Setup:** load Weird Dreams on track 2 and play a four-on-the-floor kick under
+the bass straight away. This is the segment that turns a bass line into a beat,
+so the kick lands within fifteen seconds of the module loading.
+
+**Why Weird Dreams goes first and Mr Drums last.** It is synthesis, not samples,
+so it makes sound the moment it loads — the beat gets its backbone with no
+detour. Mr Drums needs a kit loaded before a single pad speaks, and that detour
+(silent pads, a two-handed gesture, a file browser) is safe at 5:51 when the
+viewer is invested and actively dangerous at 2:47 when they are still deciding.
+Swapping them also moves the Maschine-kit reveal to the back half, where it plays
+as a bonus rather than a speed bump.
+
+**Gesture sequence:**
+
+1. Transport **stopped**
+2. Hold **Rec** — the head appears, blinking red on the step row
+3. Play a fast percussion figure, one pad per step
+4. Press **Right** to leave a rest
+5. Press **Left** to step back — that step's note plays and its pad lights
+6. Replay it
+7. Release Rec
+
+**PiP:** `step_rec_header` — the head position and the notes under it, with the
+module's parameters still visible underneath.
+
+**The point to make:** nothing is timed. A phrase nobody could play in real time
+goes in as fast as you can find the notes. And on an empty clip, the clip grows
+to exactly what you played — seven notes gives a seven-step clip.
+
+**Musical roles:** Weird Dreams owns the kick and the synth percussion — the
+drum backbone. Mr Drums arrives at 5:51 as sampled hats and claps layered on top,
+which is why the video can add a fourth track that late and have it feel like an
+arrangement decision rather than a feature demo.
+
+⚠️ **Verify before the take — this now carries more weight.** The cards "NO
+SAMPLES. NOTHING TO LOAD." and "THERE'S THE KICK" assume Weird Dreams is audible
+on load with no preset. It is a synthesis module so it should be, but Mr Drums was
+expected to be too. Load it on a clean slot and hit a pad. If it also needs a
+preset, the running order has to change back — this segment's whole job is to be
+the module that just works.
+
+---
+
+## 3:48–4:11 — Beyond Move ①: Clip page
+
+**Shift + Step 3** opens the clip page. SCALE, LEN, TRANS and QUANT all live on
+this one page, so two features cost one page visit.
+
+**Gesture sequence:**
+
+1. Press track 1 (the bass), then Shift + Step 3
+2. Knob 4 **QUANT** → 0% — the bass sits exactly where it was played
+3. Turn to 100% — it locks to the kick
+4. Turn to ~40% — the original feel is still there
+5. Turn back to 0
+6. Knob 1 **SCALE** → minor to phrygian, over the playing loop
+
+**PiP:** `clip-default`, then `clip-quant`.
+
+**Deliberately brief — six cards, 23 seconds.** An earlier draft spent 47 seconds
+here walking 0% → 100% → 40% → 0%. That is a thorough demonstration of a setting,
+and it was more time than the idea needs. The single point is that quantization
+here is **a dial you can turn back**, not a button that rewrites your notes — one
+turn up, one turn down, and move on. Anyone who wants the detail has the manual.
+
+It still has to come after the drums: timing is only audible against a reference,
+and a loose bass on its own sounds like a stylistic choice rather than drift.
+
+Then scale, on the same page. Per-clip, not per-set, is the part to stress, and
+"ONE KNOB. NEW MOOD." does it in four words.
+
+---
+
+## 4:13–5:17 — Beyond Move ②: Step parameters, then listening
+
+The percussion loop from the previous segment repeats identically every bar, and
+the subtitles name that as the problem before showing the fix.
+
+**Gesture sequence:**
+
+1. **Hold a step** that has a note → page 0 becomes the Step page
+2. Knob 1 **VEL** — accent it
+3. Knob 3 **PROB** → 60%
+4. Knob 4 **COND** → `2:3`
+5. Knob 5 **INV** — flip it
+6. Release, let the loop run four bars
+
+**PiP:** `step_page_knobs`, held long enough to actually read the five cells.
+
+**Why this is the centrepiece:** Elektron-style parameter locks on a Move,
+audible within four bars, one gesture to reach. Let the loop play for 8–10
+seconds after the edits with no new subtitle card — the viewer needs to *hear*
+the pattern stop repeating, and a card would compete with that.
+
+---
+
+## 5:20–5:48 — Track 3: Helm
+
+**Gesture sequence:**
+
+1. Load Helm on track 4
+2. Play a lead line
+3. Turn the jog to walk pages
+4. Land on an envelope page, then the step sequencer pages
+5. Open an enum parameter → the overlay scrolls
+6. Land on one of Helm's own LFO pages
+7. Play the lead over the running loop
+
+**PiP:** `deep_page`, `env_dual`, `enum_overlay`, `lfo_helm_pyramid`.
+
+**Helm's job is scale, not beauty.** OB-Xd already proved the pages look good, so
+repeating "look, an envelope" here would be a flat second helping. The claim now
+is *how much* Movy generates unattended: OB-Xd had 16 pages, Helm has 34 — three
+envelopes, two LFOs, a step sequencer and an arpeggiator — and Movy was never
+told anything about either synth. It read them.
+
+⚠️ **Check the page count on the device.** 34 comes from Movy's replay snapshot
+(`browser-test/dump-expect.json`); the README still says 30. If the device
+disagrees, fix the card rather than the device.
+
+**The nod that matters:** Helm has its own internal LFOs and Movy lays them out
+like any other page. Naming that here prevents confusion in the next segment —
+otherwise "hold a knob to assign an LFO" reads as a Helm feature.
+
+---
+
+## 5:51–6:54 — Track 4: Mr Drums, and loading a kit
+
+**The last layer, and the safest place for the one awkward thing in the video.**
+Mr Drums is a sample player: until a kit is loaded the pads are silent. At 5:51
+that costs nothing — three tracks are already playing, the viewer is invested, and
+the kit load reads as the next arrangement step rather than as the tool failing to
+work. Musically it is the layer that finishes the beat: sampled hats and claps on
+top of Weird Dreams' synth kick.
 
 The presets are **native Move drum racks** (`.ablpreset` files under
 `UserLibrary/Track Presets`, filtered to drum racks), so a Move owner's existing
@@ -325,127 +455,11 @@ lands as "turn it to swap the sample", which needs no explaining at all.
 
 - **Time the preset load before the take.** If it takes a beat, that is dead air;
   the "CLICK TO LOAD" card is placed to cover it. Widen the gap if needed.
-- The module browser is not re-explained here — it was taught at 1:37.
+- The module browser is not re-explained here — it was taught at 1:14.
 
 ---
 
-## 3:52–4:39 — Beyond Move ①: Clip page
-
-**Shift + Step 3** opens the clip page. SCALE, LEN, TRANS and QUANT all live on
-this one page, so two features cost one page visit.
-
-**Gesture sequence:**
-
-1. Press track 1 (the bass), then Shift + Step 3
-2. Knob 4 **QUANT** → 0% — the bass sits exactly where it was played
-3. Turn to 100% — it locks to the kick
-4. Turn to ~40% — the original feel is still there
-5. Turn back to 0
-6. Knob 1 **SCALE** → minor to phrygian, over the playing loop
-
-**PiP:** `clip-default`, then `clip-quant`.
-
-**This is why the clip page moved after the drums.** Quantization is a timing
-feature, and timing is only audible against a reference. A loose bass on its own
-sounds like a choice; the same bass against a four-on-the-floor kick sounds
-*wrong*, and fixing it is instantly satisfying. Sequencing this segment before
-the drums would have thrown away the whole demonstration.
-
-The idea worth landing is that quantization is a **value the clip carries**, not
-an action performed on it — turning it back down restores the timing, because
-nothing was ever rewritten.
-
-Then scale, on the same page. Per-clip, not per-set, is the part to stress.
-
----
-
-## 4:42–5:29 — Track 3: Weird Dreams (step recording)
-
-**Setup:** load Weird Dreams on track 3, audition two or three voices. Keep it
-brief — the module is the excuse, step recording is the subject.
-
-**Gesture sequence:**
-
-1. Transport **stopped**
-2. Hold **Rec** — the head appears, blinking red on the step row
-3. Play a fast percussion figure, one pad per step
-4. Press **Right** to leave a rest
-5. Press **Left** to step back — that step's note plays and its pad lights
-6. Replay it
-7. Release Rec
-
-**PiP:** `step_rec_header` — the head position and the notes under it, with the
-module's parameters still visible underneath.
-
-**The point to make:** nothing is timed. A phrase nobody could play in real time
-goes in as fast as you can find the notes. And on an empty clip, the clip grows
-to exactly what you played — seven notes gives a seven-step clip.
-
-**Why Weird Dreams:** synth drums have more character than sampled ones on a
-static shot, and it makes sound the moment it loads — the useful contrast after
-Mr Drums.
-
-⚠️ **Verify before the take.** The card "NOTHING TO LOAD — IT JUST PLAYS" assumes
-Weird Dreams is audible on load with no preset. It is a synthesis module so it
-should be, but Mr Drums was expected to be too. Load it on a clean slot and hit a
-pad; if it also needs a preset, drop the card and reuse the gesture from 3:30.
-
----
-
-## 5:32–6:36 — Beyond Move ②: Step parameters, then listening
-
-The percussion loop from the previous segment repeats identically every bar, and
-the subtitles name that as the problem before showing the fix.
-
-**Gesture sequence:**
-
-1. **Hold a step** that has a note → page 0 becomes the Step page
-2. Knob 1 **VEL** — accent it
-3. Knob 3 **PROB** → 60%
-4. Knob 4 **COND** → `2:3`
-5. Knob 5 **INV** — flip it
-6. Release, let the loop run four bars
-
-**PiP:** `step_page_knobs`, held long enough to actually read the five cells.
-
-**Why this is the centrepiece:** Elektron-style parameter locks on a Move,
-audible within four bars, one gesture to reach. Let the loop play for 8–10
-seconds after the edits with no new subtitle card — the viewer needs to *hear*
-the pattern stop repeating, and a card would compete with that.
-
----
-
-## 6:39–7:07 — Track 4: Helm
-
-**Gesture sequence:**
-
-1. Load Helm on track 4
-2. Play a lead line
-3. Turn the jog to walk pages
-4. Land on an envelope page, then the step sequencer pages
-5. Open an enum parameter → the overlay scrolls
-6. Land on one of Helm's own LFO pages
-7. Play the lead over the running loop
-
-**PiP:** `deep_page`, `env_dual`, `enum_overlay`, `lfo_helm_pyramid`.
-
-**Helm's job is scale, not beauty.** OB-Xd already proved the pages look good, so
-repeating "look, an envelope" here would be a flat second helping. The claim now
-is *how much* Movy generates unattended: OB-Xd had 16 pages, Helm has 34 — three
-envelopes, two LFOs, a step sequencer and an arpeggiator — and Movy was never
-told anything about either synth. It read them.
-
-⚠️ **Check the page count on the device.** 34 comes from Movy's replay snapshot
-(`browser-test/dump-expect.json`); the README still says 30. If the device
-disagrees, fix the card rather than the device.
-
-**The nod that matters:** Helm has its own internal LFOs and Movy lays them out
-like any other page. Naming that here prevents confusion in the next segment —
-otherwise "hold a knob to assign an LFO" reads as a Helm feature.
-
----
-
-## 7:11–7:42 — LFO: hold to assign
+## 6:56–7:27 — LFO: hold to assign
 
 Deliberately performed on **OB-Xd**, not Helm.
 
@@ -470,7 +484,7 @@ bar-aligned and drift-free however long it runs.
 
 ---
 
-## 7:46–8:17 — Automation and undo
+## 7:29–8:00 — Automation and undo
 
 **Gesture sequence:**
 
@@ -489,7 +503,7 @@ parameters and module loads alike.
 
 ---
 
-## 8:20–8:50 — Session, master FX and background
+## 8:02–8:32 — Session, master FX and background
 
 **Gesture sequence:**
 
@@ -505,7 +519,7 @@ is that nothing visibly changes, which a top-down shot cannot sell.
 
 ---
 
-## 8:53–9:34 — Outro
+## 8:35–9:16 — Outro
 
 **Playing:** the full loop, all four tracks, running out under the closing cards.
 
@@ -562,10 +576,11 @@ It is now **21 seconds** and answers the three questions a Move owner actually
 has: what it does (runs new synths on Move), what it costs (free), and whether it
 breaks anything (**"AND MOVE STILL WORKS"**). Install is one card plus the link.
 
-The reclaimed time went to the front. The cold open now leads with the three
-things Move genuinely cannot do — **dial quantize, per-step probability, an LFO
+The reclaimed time went to the front. The cold open now leads with what Move
+genuinely cannot do — **quantize you can dial back, per-step probability, an LFO
 on any knob** — because those are the reasons to keep watching, and they were
-previously buried at 4:42, 6:26 and 8:20. "IT'S FREE. IT'S A PROTOTYPE." moved
+previously buried deep in the body. Quantize gets one card there rather than two:
+it is a real differentiator but a quiet one, and the loud ones should lead. "IT'S FREE. IT'S A PROTOTYPE." moved
 into the cold open too: the honesty is worth more early, where it buys trust,
 than at 10:13 where it only plants doubt.
 
@@ -652,8 +667,9 @@ a screen-and-knobs tool whose first demonstrated feature is a *file browser*, on
 a module whose Main page is `SAMPL VOL PAN TUNE`, with silent pads until a kit
 loads. OB-Xd opens instead, and three things fell into place as a result:
 
-- The kit load stopped being an obstacle — by 3:30 the viewer is sold and has
-  bass playing underneath, so a file browser is just another gesture.
+- The kit load stopped being an obstacle. It has since moved further still, to
+  5:51 as the fourth and last track, where three parts are already playing and a
+  file browser is just another gesture.
 - Quantize got its reference. Moving the clip page after the drums means the
   loose bass is heard against a kick, where drift is obvious, instead of alone,
   where it sounds like a choice.

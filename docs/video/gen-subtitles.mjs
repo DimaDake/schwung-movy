@@ -36,7 +36,7 @@ const segments = [
     ["SCHWUNG RUNS CUSTOM SYNTHS ON IT", "PiP: Schwung web UI, module store list."],
     ["FREE. COMMUNITY BUILT.", "PiP: store list scrolling."],
     ["MOVY IS A TOOL FOR SCHWUNG", "PiP: Movy's entry in the store."],
-    ["IT GIVES EVERY SYNTH A KNOB UI", "PiP: a Movy knob page (still)."],
+    ["EVERY SYNTH GETS ELEKTRON-STYLE PAGES", "PiP: a Movy knob page — env_dual (still)."],
     ["AND ADDS A 4-TRACK SEQUENCER", "PiP: session clip grid (still)."],
     ["INSTALL SCHWUNG FIRST", "PiP: Schwung install page."],
     ["THEN GET MOVY FROM ITS STORE", "PiP: store, Install pressed on Movy."],
@@ -172,7 +172,7 @@ const segments = [
   { name: 'Session view + flashes', start: 540.5, every: 3.9, hold: 3.4, cards: [
     ["SESSION VIEW: PADS LAUNCH CLIPS", "Press Note/Session. Pads become the clip grid."],
     ["PLUS A MASTER FX CHAIN", "Launch clips on two tracks. PiP: session grid, then master FX slot."],
-    ["MOVY CAN RUN BEHIND MOVE'S UI", "Back at the root. PiP: leave_modal → Background. Move's own screen appears; the loop keeps playing."],
+    ["MOVY CAN RUN BEHIND MOVE'S SCREENS", "Back at the root. PiP: leave_modal → Background. Move's own screen appears; the loop keeps playing."],
     ["AND SHARE ONE TRANSPORT WITH IT", "Shift + Step 5, turn LINK on. PiP: main-link-on. Press Play — Move's sequencer starts too."],
     ["THE MANUAL IS LINKED BELOW", "Return to Movy. Full loop playing."],
   ]},

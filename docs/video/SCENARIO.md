@@ -149,8 +149,8 @@ entry in Schwung's Tools menu on the device.
 
 1. Move runs its own firmware. Schwung is a free community framework that runs
    custom synths and effects on it.
-2. Movy is a *tool* inside Schwung: it gives every Schwung module a knob UI, and
-   adds a 4-track sequencer.
+2. Movy is a *tool* inside Schwung: every module gets **Elektron-style knob
+   pages**, and it adds a 4-track sequencer.
 3. Install Schwung, then install Movy from Schwung's own module store. Two steps,
    no building, no terminal.
 
@@ -158,6 +158,16 @@ entry in Schwung's Tools menu on the device.
 public catalog. Spending more than 45 seconds on it would cost a feature segment
 and tell the viewer this is complicated when it isn't. The details live in
 [`GETTING-STARTED.md`](GETTING-STARTED.md), linked in the description.
+
+**"Knob pages", never "UI".** The cards say *Elektron-style knob pages* because
+"UI" names a category where the viewer needs to picture a thing — and "knob
+pages" is both literally what's on screen and Elektron's own vocabulary, so it
+lands for people who know those boxes without losing anyone who doesn't. The
+same reason "behind Move's screens" replaced "behind Move's UI" at 9:00.
+
+Naming Elektron here also sets up the callback at 4:00, where the step page is
+introduced as "ELEKTRON CALLS THESE P-LOCKS" — by then the comparison has already
+been made, so that card confirms a promise instead of making a new claim.
 
 ---
 

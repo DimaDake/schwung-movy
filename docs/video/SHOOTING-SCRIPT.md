@@ -51,7 +51,7 @@ The reasoning behind these choices — why each module, page and cut — is in
 | 16 | 0:53 | 0:57 | **SCHWUNG RUNS CUSTOM SYNTHS ON IT** | PiP: Schwung web UI, module store list. |
 | 17 | 0:57 | 1:01 | **FREE. COMMUNITY BUILT.** | PiP: store list scrolling. |
 | 18 | 1:01 | 1:05 | **MOVY IS A TOOL FOR SCHWUNG** | PiP: Movy's entry in the store. |
-| 19 | 1:05 | 1:08 | **IT GIVES EVERY SYNTH A KNOB UI** | PiP: a Movy knob page (still). |
+| 19 | 1:05 | 1:08 | **EVERY SYNTH GETS ELEKTRON-STYLE PAGES** | PiP: a Movy knob page — env_dual (still). |
 | 20 | 1:09 | 1:12 | **AND ADDS A 4-TRACK SEQUENCER** | PiP: session clip grid (still). |
 | 21 | 1:13 | 1:16 | **INSTALL SCHWUNG FIRST** | PiP: Schwung install page. |
 | 22 | 1:17 | 1:20 | **THEN GET MOVY FROM ITS STORE** | PiP: store, Install pressed on Movy. |
@@ -232,7 +232,7 @@ The reasoning behind these choices — why each module, page and cut — is in
 | --- | --- | --- | --- | --- |
 | 135 | 9:00 | 9:03 | **SESSION VIEW: PADS LAUNCH CLIPS** | Press Note/Session. Pads become the clip grid. |
 | 136 | 9:04 | 9:07 | **PLUS A MASTER FX CHAIN** | Launch clips on two tracks. PiP: session grid, then master FX slot. |
-| 137 | 9:08 | 9:11 | **MOVY CAN RUN BEHIND MOVE'S UI** | Back at the root. PiP: leave_modal → Background. Move's own screen appears; the loop keeps playing. |
+| 137 | 9:08 | 9:11 | **MOVY CAN RUN BEHIND MOVE'S SCREENS** | Back at the root. PiP: leave_modal → Background. Move's own screen appears; the loop keeps playing. |
 | 138 | 9:12 | 9:15 | **AND SHARE ONE TRANSPORT WITH IT** | Shift + Step 5, turn LINK on. PiP: main-link-on. Press Play — Move's sequencer starts too. |
 | 139 | 9:16 | 9:19 | **THE MANUAL IS LINKED BELOW** | Return to Movy. Full loop playing. |
 

@@ -56,6 +56,15 @@ const KNOB_DETENT_GETS_MAX = 6;
  * per-frame scanning (which measured ~17x). */
 const ENUM_VM_RATIO_MAX = 3;
 
+/* Opening the file overlay on a 1024-file folder, divided by the same on a
+ * 16-file one. Some growth is inherent — the list really is longer — but the
+ * five-pass scan made it ~50x. */
+const FILE_OPEN_RATIO_MAX = 12;
+/* os.stat calls when opening a 1024-file folder whose entries all match the
+ * module's extension filter. Each is a syscall on device; a filtered entry is
+ * taken as a file, so this should be nil. */
+const FILE_OPEN_STATS_MAX = 8;
+
 /* ── Globals ─────────────────────────────────────────────────────────────── */
 
 let fillRectCount = 0;
@@ -637,6 +646,64 @@ _origLog('\nTest 6: buildViewModel with a long enum (8 vs 1024 options)');
     const ratio = small > 0 ? large / small : 1;
     check('view-model cost ratio, 1024 options vs 8', ratio, ENUM_VM_RATIO_MAX, 'x');
     _origLog(`    (8 opts: ${small.toFixed(4)}ms, 1024 opts: ${large.toFixed(4)}ms)`);
+}
+
+/* ── Test 7: opening the file overlay must not scale with the folder ────── */
+
+_origLog('\nTest 7: file overlay open cost (16 vs 1024 files)');
+
+{
+    /* A sample folder can hold hundreds of files. Building the overlay ran five
+     * chained array passes and called os.stat on every surviving entry — a
+     * syscall each — before the list could appear, so it opened visibly late.
+     * One pass now, and an entry that matched the module's own extension filter
+     * is taken as a file without statting. */
+    let statCalls = 0;
+    const origOs = globalThis.os;
+    const mkFiles = (n) => Array.from({ length: n }, (_, i) => `sample_${i}.wav`);
+
+    const openCost = (n) => {
+        const files = mkFiles(n);
+        globalThis.os = {
+            readdir: () => [files, 0],
+            stat: () => { statCalls++; return [{ mode: 0x8000 }, 0]; },
+        };
+        mockState = {
+            'synth:name': 'T',
+            'synth:chain_params': JSON.stringify([
+                { key: 'smp', name: 'Smp', type: 'filepath', root: '/d',
+                  start_path: '/d', filter: ['.wav'] },
+            ]),
+            'synth:smp': '/d/sample_0.wav',
+        };
+        const m = createModel(0, 'synth');
+        for (let i = 0; i < 40; i++) m.tick();
+        statCalls = 0;
+        const runs = [];
+        for (let i = 0; i < 10; i++) {
+            m.clearTouch();
+            const t0 = process.hrtime.bigint();
+            m.handleKnobTouch(0);
+            for (let t = 0; t < 175; t++) m.tick();     // long-press opens it
+            runs.push(Number(process.hrtime.bigint() - t0) / 1e6);
+        }
+        const opened = !!m.getViewModel().overlay;
+        return { ms: median(runs), stats: Math.round(statCalls / 10), opened };
+    };
+
+    const small = openCost(16);
+    const large = openCost(1024);
+    globalThis.os = origOs;
+
+    check('file overlay opened at all', large.opened ? 0 : 1, 0);
+    /* Ratio, so the machine does not matter. 64x the files measured ~50x the
+     * time before the scan was made single-pass. */
+    const ratio = small.ms > 0 ? large.ms / small.ms : 1;
+    check('file overlay open cost ratio, 1024 files vs 16', ratio, FILE_OPEN_RATIO_MAX, 'x');
+    /* The syscalls are the part that hurts on device, where each is real I/O. */
+    check('os.stat calls when opening 1024 filtered files', large.stats, FILE_OPEN_STATS_MAX);
+    _origLog(`    (16 files: ${small.ms.toFixed(3)}ms/${small.stats} stats, ` +
+             `1024: ${large.ms.toFixed(3)}ms/${large.stats} stats)`);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

@@ -30,21 +30,39 @@ function isDir(path: string): boolean {
 /* Flat file list for the inline jog-browse overlay. The overlay has no
  * directory navigation, so folders are excluded — selecting one would set the
  * param to a folder path and crash the loader. The full-screen browser
- * (browser/file-handler.ts) is the one that shows folders for navigation. */
+ * (browser/file-handler.ts) is the one that shows folders for navigation.
+ *
+ * One pass, and as few stats as possible. Both matter on a real sample folder:
+ * this ran five chained array passes, each allocating, and called isDir — an
+ * os.stat SYSCALL — on every surviving entry. A thousand samples meant a
+ * thousand stats before the overlay could appear, which is why opening it
+ * lagged.
+ *
+ * An entry that matched the extension filter is taken as a file without
+ * statting. The filter is the module's own statement of what it loads, so a
+ * directory would have to be named exactly like a sample ("kick.wav/") to slip
+ * through. Entries reaching here WITHOUT a filter are still statted, so the
+ * unfiltered case keeps its old guarantee. */
 function scanFiles(dir: string, filter: string[]): string[] {
     try {
         const [entries] = (os as { readdir(p: string): [string[], number] }).readdir(dir);
         if (!Array.isArray(entries)) return [];
-        return entries
-            .filter(n => n !== '.' && n !== '..' && !n.startsWith('.'))
-            .filter(n => {
-                if (filter.length === 0) return true;
+        const out: string[] = [];
+        for (const n of entries) {
+            if (n === '.' || n === '..' || n.charAt(0) === '.') continue;
+            let matched = false;
+            if (filter.length > 0) {
                 const lower = n.toLowerCase();
-                return filter.some(ext => lower.endsWith(ext));
-            })
-            .map(n => dir + '/' + n)
-            .filter(p => !isDir(p))
-            .sort();
+                for (const ext of filter) {
+                    if (lower.endsWith(ext)) { matched = true; break; }
+                }
+                if (!matched) continue;
+            }
+            const path = dir + '/' + n;
+            if (!matched && isDir(path)) continue;
+            out.push(path);
+        }
+        return out.sort();
     } catch { return []; }
 }
 

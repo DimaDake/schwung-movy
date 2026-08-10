@@ -4,7 +4,11 @@
 
 A single static overhead shot of the Move, plus a live inset of Movy's display
 composited in post. All narration is carried by bold subtitle cards — see
-[`SUBTITLES.md`](SUBTITLES.md) and [`subtitles.srt`](subtitles.srt).
+[`SHOOTING-SCRIPT.md`](SHOOTING-SCRIPT.md), which pairs every card with the
+action it belongs to, and [`subtitles.srt`](subtitles.srt).
+
+**This document is the reasoning; the shooting script is what you shoot from.**
+Rationale is kept out of there on purpose.
 
 **Audience:** people who know Move's stock UI and have never heard of Schwung or
 Movy. Everything that matches stock Move behaviour is shown fast and without
@@ -482,7 +486,7 @@ fund another would have cost more than trimming four.
 | File | What it is |
 | --- | --- |
 | [`SCENARIO.md`](SCENARIO.md) | This document |
-| [`SUBTITLES.md`](SUBTITLES.md) | The subtitle script, readable, grouped by segment |
+| [`SHOOTING-SCRIPT.md`](SHOOTING-SCRIPT.md) | **Shoot from this** — every subtitle beside what happens on screen, in order |
 | [`subtitles.srt`](subtitles.srt) | The same cards as a timed SRT, ready to import |
 | [`GETTING-STARTED.md`](GETTING-STARTED.md) | Short install guide to link from the description |
 | [`DESCRIPTION.md`](DESCRIPTION.md) | YouTube description with chapters and links |

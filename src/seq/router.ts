@@ -22,7 +22,7 @@ import { recToggle } from '../undo/rec-pass.js';
 import { loopHeld, loopWheel } from './loop-mode.js';
 import { momentaryGesture } from './momentary.js';
 import { sessionPad } from './session.js';
-import { seqState } from './state.js';
+import { requestLoopWindowAdopt, seqState } from './state.js';
 import { anyStepHeld, editNudge, editTranspose, editVelocity } from './step-edit.js';
 import { stepRecArrow, stepRecDown, stepRecEnd, stepRecUp } from './step-rec.js';
 import { handleStepButton, navigateBar } from './router-steps.js';
@@ -124,6 +124,7 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         if (!muteHeld() && track !== seqState.watchTrack) {
             seqState.watchTrack = track;
             seqState.barOffset = 0;
+            requestLoopWindowAdopt();  // the new track's window may start past bar 1
             seqCmd('watch ' + track);
         }
         return false;
@@ -137,6 +138,7 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
 export function seqRestoreWatch(track: number): void {
     seqState.watchTrack = track;
     seqState.barOffset = 0;
+    requestLoopWindowAdopt();
     seqCmd('watch ' + track);
 }
 
@@ -147,5 +149,6 @@ export function seqSetLane(lane: number): void {
     if (lane === seqState.watchLane) return;
     seqState.watchLane = lane;
     seqState.barOffset = 0;
+    requestLoopWindowAdopt();
     seqCmd('wlane ' + (lane < 0 ? -1 : lane));
 }

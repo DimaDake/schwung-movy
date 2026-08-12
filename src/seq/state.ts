@@ -189,6 +189,34 @@ export function maxBarOffset(): number {
     return Math.min(loopEndBar() + 1, 15);
 }
 
+/* The loop window is engine-owned and arrives asynchronously on a status poll;
+ * barOffset is UI-owned and starts at 0. Those disagree on a cold start — and
+ * after any switch that resets the view to bar 0 — whenever the clip's loop does
+ * not begin at bar 1, and the strip then leads with inactive bars nobody
+ * navigated to.
+ *
+ * Reconcile only when the window MOVES. Selecting a bar outside the loop (pressing
+ * an inactive bar in Loop mode) is a designed state — the navigable "+" bar — so it
+ * has to survive every poll that reports the same window. */
+let lastLoopStart = -1;
+let lastLenSteps = -1;
+
+export function adoptLoopWindow(): void {
+    if (seqState.loopStart === lastLoopStart && seqState.lenSteps === lastLenSteps) return;
+    lastLoopStart = seqState.loopStart;
+    lastLenSteps = seqState.lenSteps;
+    if (seqState.lenSteps === 0) return;   // no clip in the slot → nothing to adopt
+    seqState.barOffset = Math.max(minBarOffset(), Math.min(seqState.barOffset, maxBarOffset()));
+}
+
+/* Make the next poll re-adopt the window unconditionally. Used where the view is
+ * reset for a track or lane switch: bar 0 is a placeholder there, not a choice,
+ * and the incoming window may happen to match the outgoing one. */
+export function requestLoopWindowAdopt(): void {
+    lastLoopStart = -1;
+    lastLenSteps = -1;
+}
+
 /* Is this absolute step inside the loop window the engine actually plays? The
  * engine loops [loop_start_steps, loop_start_steps + length_steps) (seq-core
  * clip.rs), so every consumer must ask through here rather than comparing
@@ -211,6 +239,7 @@ export const seqState: SeqUiState = defaults();
 
 export function resetSeqState(): void {
     Object.assign(seqState, defaults());
+    requestLoopWindowAdopt();   // a fresh mirror has learned no window yet
 }
 
 export function occHasStep(step: number): boolean {

@@ -10278,6 +10278,68 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     resetSeqState(); resetLoopMode();
 }
 
+/* ── first status adopts the clip's loop window ───────────────────────────── */
+{
+    _log('\nfirst status adopts the loop window:');
+    const { parseStatusForTest } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState, minBarOffset, maxBarOffset } =
+        await import('../dist/esm/seq/state.js');
+    const { drawLoopStrip } = await import('../dist/esm/seq/render.js');
+
+    const rects = [];
+    const origFill = globalThis.fill_rect;
+    globalThis.fill_rect = (x, y, w, h, v) => rects.push({ x, y, w, h, v });
+
+    /* Cold start: barOffset defaults to 0 while the engine has not been heard
+     * from yet. The first poll reports a clip whose loop starts at bar 3 — the
+     * view has to adopt it, or the strip leads with inactive bars nobody
+     * navigated to. */
+    resetSeqState();
+    parseStatusForTest('play=0 trk=0 step=0 pos=768 len=32 lstart=32');
+    eq('window was learned', seqState.loopStart, 32);
+    eq('view adopted the loop start', seqState.barOffset, 2);
+    eq('view is inside the navigable range',
+        seqState.barOffset >= minBarOffset() && seqState.barOffset <= maxBarOffset(), true);
+
+    rects.length = 0;
+    drawLoopStrip();
+    const lit = rects.slice(1).filter((r) => r.v === 1);
+    eq('strip draws only the active bars', lit.length, 2);
+    eq('no plus marker on a fresh start', lit.every((r) => r.h !== 3), true);
+
+    /* A deliberate out-of-window selection (pressing an inactive bar in Loop
+     * mode) must survive polls that report the SAME window — the "+" navigable
+     * bar is a designed state, not drift. */
+    seqState.barOffset = 6;
+    parseStatusForTest('play=0 trk=0 step=0 pos=768 len=32 lstart=32');
+    eq('an unchanged window leaves the selection alone', seqState.barOffset, 6);
+
+    /* …but a window that moves out from under the view pulls it back in. Bar 6 is
+     * still legal while the loop ends at bar 6 (it is the navigable bar past the
+     * end), so move the loop somewhere that genuinely strands it: bars 2-3, whose
+     * navigable range tops out at bar 4. */
+    parseStatusForTest('play=0 trk=0 step=0 pos=768 len=32 lstart=16');
+    eq('a moved window pulls the view in', seqState.barOffset, 3);
+
+    /* Switching tracks resets the view to bar 0 as a placeholder, so it must adopt
+     * the new track's window too — including when that window happens to be
+     * identical to the outgoing one, where change detection alone sees nothing. */
+    const { seqHandleMidi } = await import('../dist/esm/seq/router.js');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    installMockEngine();
+    resetSeqState();
+    parseStatusForTest('play=0 trk=0 step=0 pos=768 len=32 lstart=32');
+    eq('track 0 view adopted its window', seqState.barOffset, 2);
+    seqHandleMidi([0xB0, 42, 127], false);        // CC 42 = track 1
+    eq('track switched', seqState.watchTrack, 1);
+    parseStatusForTest('play=0 trk=1 step=0 pos=768 len=32 lstart=32');
+    eq('the new track re-adopts an identical window', seqState.barOffset, 2);
+    uninstallMockEngine();
+
+    globalThis.fill_rect = origFill;
+    resetSeqState();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

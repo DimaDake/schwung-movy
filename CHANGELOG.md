@@ -63,6 +63,12 @@ far. Earlier work is summarised in the timeline below for context.
 
   ![A loop on bars 3-4](docs/assets/loop_strip_midclip.png)
 
+- **Opening Movy shows the bars that play, not bar 1.** On a fresh start the bar
+  indicator led with the clip's *first* bars as inactive `+` markers whenever the
+  loop began later — the view was parked on bar 1 while the engine looped, say,
+  bars 3–5. The view now adopts the window as soon as the engine reports it, and
+  again whenever that window moves under it (switching tracks, launching a clip,
+  undo). Deliberately selecting a bar outside the loop in Loop view still sticks.
 - **Setting a loop no longer strands the view outside it.** Pressing two bars, or
   shrinking with Loop + jog, left the viewed bar where it was — which could be a
   bar that had just stopped playing, so edits went somewhere you could not hear.

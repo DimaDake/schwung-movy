@@ -15,7 +15,7 @@
 
 import { mlog } from '../log.js';
 import { ENGINE_DSP_PATH, ENGINE_VERSION } from './constants.js';
-import { activeFromStr, muteFromStr, occFromHex, seqState, sessionFromStr } from './state.js';
+import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, seqState, sessionFromStr } from './state.js';
 import { rationalToIdx } from './clip-scale.js';
 
 const STATUS_POLL_TICKS = 8;  // ~24 Hz at the ~196 Hz device tick rate
@@ -268,6 +268,7 @@ function parseStatus(s: string): void {
             }
         }
     }
+    adoptLoopWindow();   // a window the UI has not seen before takes the view with it
     if (lastEnginePlay !== seqState.playing) {
         mlog('seq: play=' + (seqState.playing ? 1 : 0));
         lastEnginePlay = seqState.playing;

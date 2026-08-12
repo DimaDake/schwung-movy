@@ -960,14 +960,16 @@ _log('\nTest: knob delta normalizes sweep across param ranges');
   // A float that was hair-trigger (coarse step) is normalized down to the same feel.
   eq('coarse-step float normalized, not faster', near(fracPerDetent(mkP(0, 1, 'float', 0.2)), REF), true);
   // Int keeps its natural step as a floor (small range still moves by ≥1).
-  const iMove = (min, max) => {
+  // A narrow range needs a whole step's worth of clicks to show it (see the
+  // four-clicks-per-step block below), so ask for that many.
+  const iMove = (min, max, delta = 1) => {
     const s = { activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
       knobParams: [mkP(min, max, 'int', 1)], knobValues: [min], enumFmt: [undefined],
-      fileValues: [null], slotMapCache: null, dirty: false };
-    applyKnobDelta(s, 0, 1);
+      fileValues: [null], slotMapCache: null, detentAccum: [], dirty: false };
+    applyKnobDelta(s, 0, delta);
     return s.knobValues[0] - min;
   };
-  eq('int 0..7 moves by 1 (floor)', iMove(0, 7), 1);
+  eq('int 0..7 moves by 1 (floor)', iMove(0, 7, 4), 1);
   eq('int 20..20000 moves fast (range/100)', iMove(20, 20000) >= 90, true);
 }
 
@@ -984,24 +986,25 @@ _log('\nTest: a knob moves the same amount in both directions');
       activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
       knobParams: [p], knobValues: [start], enumFmt: [undefined],
       fileValues: [null], slotMapCache: null, paramGestures: {}, triggerStates: {},
-      dirty: false,
+      detentAccum: [], dirty: false,
     };
     applyKnobDelta(s, 0, delta);
     return s.knobValues[0] - start;
   };
   /* Both edges of an obxd-style octave (int -2..2) and its cutoff (int 0..100)
-   * from mid-range, one detent each way. A half-unit step used to round the
+   * from mid-range, one step each way. A half-unit step used to round the
    * clockwise tie up and the counter-clockwise one back to where it started, so
    * ccw was DEAD at one detent — the reported "sticks at the edges, too fast in
-   * the middle". Every int in the dumped fleet with a range <= 200 had it. */
-  for (const [name, p, start] of [
-    ['octave int -2..2', mkP(-2, 2, 'int'), 0],
-    ['cutoff int 0..100', mkP(0, 100, 'int'), 50],
-    ['int 1..16', mkP(1, 16, 'int'), 8],
-    ['int -24..24', mkP(-24, 24, 'int'), 0],
+   * the middle". Every int in the dumped fleet with a range <= 200 had it.
+   * `clicks` is what one step costs: 4 for a narrow range, 1 for a wide one. */
+  for (const [name, p, start, clicks] of [
+    ['octave int -2..2', mkP(-2, 2, 'int'), 0, 4],
+    ['cutoff int 0..100', mkP(0, 100, 'int'), 50, 1],
+    ['int 1..16', mkP(1, 16, 'int'), 8, 1],
+    ['int -24..24', mkP(-24, 24, 'int'), 0, 1],
   ]) {
-    eq(`${name}: one cw detent moves +1`,  move(p, start, 1),  1);
-    eq(`${name}: one ccw detent moves -1`, move(p, start, -1), -1);
+    eq(`${name}: one cw step moves +1`,  move(p, start, clicks),  1);
+    eq(`${name}: one ccw step moves -1`, move(p, start, -clicks), -1);
   }
   // Multi-detent flushes (a fast turn) stay symmetric too.
   eq('int 0..100: 3 detents cw = +3',  move(mkP(0, 100, 'int'), 50, 3),  3);
@@ -1017,6 +1020,64 @@ _log('\nTest: a knob moves the same amount in both directions');
   const w = mkP(1, 9999, 'int', 1, { knobAcceleration: 'wide' });
   eq('wide-acceleration int: ±1 per deliberate detent',
     move(w, 500, 1) === 1 && move(w, 500, -1) === -1, true);
+}
+
+_log('\nTest: narrow discrete params take four clicks per step');
+{
+  const { applyKnobDelta } = await import('../dist/esm/model/store.js');
+  const mkP = (min, max, type = 'int', step = 1, extra = {}) => ({
+    key: 'p', label: 'p', shortLabel: null, type, min, max, step,
+    options: null, renderStyle: 'arc', automatable: true, ...extra,
+  });
+  const st = (p, value) => ({
+    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    knobParams: [p], knobValues: [value], enumFmt: [undefined], fileValues: [null],
+    slotMapCache: null, paramGestures: {}, triggerStates: {}, detentAccum: [],
+    dirty: false,
+  });
+  const writes = [];
+  const origSet = globalThis.shadow_set_param;
+  globalThis.shadow_set_param = (_s, k, v) => { writes.push([k, v]); return true; };
+
+  // One click at a time: nothing moves until the fourth.
+  const s = st(mkP(-2, 2), 0);
+  const seen = [];
+  for (let i = 0; i < 8; i++) { applyKnobDelta(s, 0, 1); seen.push(s.knobValues[0]); }
+  eq('narrow int: 4 clicks per step up', JSON.stringify(seen),
+    JSON.stringify([0, 0, 0, 1, 1, 1, 1, 2]));
+  // Counter-clockwise is the mirror image.
+  const d = st(mkP(-2, 2), 2);
+  const seenDown = [];
+  for (let i = 0; i < 8; i++) { applyKnobDelta(d, 0, -1); seenDown.push(d.knobValues[0]); }
+  eq('narrow int: 4 clicks per step down', JSON.stringify(seenDown),
+    JSON.stringify([2, 2, 2, 1, 1, 1, 1, 0]));
+  // A sub-step turn writes nothing at all: no IPC, no undo entry.
+  writes.length = 0;
+  const q = st(mkP(0, 3), 1);
+  applyKnobDelta(q, 0, 1);
+  applyKnobDelta(q, 0, 1);
+  eq('sub-step turn writes nothing', writes.length, 0);
+  applyKnobDelta(q, 0, 2);
+  eq('crossing the step writes once', writes.length, 1);
+  eq('crossing the step moves by one', q.knobValues[0], 2);
+  // A batched flush of 4 detents moves one step, like 4 separate clicks.
+  const b = st(mkP(1, 8), 4);
+  applyKnobDelta(b, 0, 4);
+  eq('batched 4 detents = one step', b.knobValues[0], 5);
+  // Excluded: 0..1 toggles, wide ranges, floats, and 'wide' acceleration.
+  const t = st(mkP(0, 1, 'int', 1, { renderStyle: 'hbar' }), 0);
+  applyKnobDelta(t, 0, 1);
+  eq('0..1 toggle still flips on one click', t.knobValues[0], 1);
+  const wide = st(mkP(0, 100), 50);
+  applyKnobDelta(wide, 0, 1);
+  eq('wide int unchanged: one unit per click', wide.knobValues[0], 51);
+  const flt = st(mkP(0, 1, 'float', 0.01), 0.5);
+  applyKnobDelta(flt, 0, 1);
+  eq('float unchanged', Math.abs(flt.knobValues[0] - 0.505) < 1e-9, true);
+  const acc = st(mkP(1, 8, 'int', 1, { knobAcceleration: 'wide' }), 4);
+  applyKnobDelta(acc, 0, 1);
+  eq("'wide' acceleration keeps its own rate", acc.knobValues[0], 5);
+  globalThis.shadow_set_param = origSet;
 }
 
 _log('\nTest: module interaction metadata drives triggers, acceleration, and automation');

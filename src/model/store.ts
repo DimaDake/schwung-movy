@@ -1,7 +1,8 @@
 import type { KnobParam } from '../types/param.js';
 import type { ModelState } from './state.js';
 import { KNOBS_PER_PAGE, ENUM_DELTA_DIV, REFRESH_SUPPRESS_TICKS } from './constants.js';
-import { perDetentStep } from './knob-step.js';
+import { detentsPerStep, perDetentStep } from './knob-step.js';
+import { countDetents } from '../seq/detent.js';
 import { moduleReadKey } from '../chain/config.js';
 import { concreteKey } from './pad-scope.js';
 import { enumRawToIndex, enumUsesIndex, enumSetValue } from './enum-value.js';
@@ -152,10 +153,20 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
         }
     }
 
+    /* Several clicks per step for a narrow range. Returning early on a turn that
+     * has not yet crossed a step is deliberate: no set_param, and no undo entry
+     * for an edit that changed nothing. */
+    const div = detentsPerStep(p);
+    let steps = delta;
+    if (div > 1) {
+        steps = countDetents(s.detentAccum, gi, delta, div);
+        if (steps === 0) return;
+    }
+
     // Enums are exempt (fixed detents-per-step); see knob-step.ts for the rest.
     const scaled = p.type === 'enum' ? delta / ENUM_DELTA_DIV
         : p.knobAcceleration === 'wide' ? wideStepCount(s, p, delta) * p.step
-        : delta * perDetentStep(p);
+        : steps * perDetentStep(p);
     /* Snapshot the outgoing value in the same encoding the write uses, so the
      * inverse is byte-identical to what the DSP last received. */
     const prevNum = s.knobValues[gi] as number;

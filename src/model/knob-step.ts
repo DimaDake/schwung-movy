@@ -2,7 +2,25 @@
  * the rule is stated once and can be asserted against real module metadata
  * (browser-test/dump-replay.mjs) without driving a whole model. */
 import type { KnobParam } from '../types/param.js';
-import { ARC_DELTA_SCALE, MIN_STEP_RANGE_FRAC } from './constants.js';
+import { ARC_DELTA_SCALE, ENUM_DELTA_DIV, MIN_STEP_RANGE_FRAC } from './constants.js';
+
+/* A range this narrow or narrower is stepped rather than swept. */
+export const NARROW_RANGE_MAX = 8;
+
+/* Physical clicks per value step. A handful of discrete values spread across a
+ * whole knob is a hair trigger — one click crossing a quarter of an octave
+ * param's range is what made it "too fast in the middle" — so a narrow int is
+ * stepped at the same rate as the enum knobs (ENUM_DELTA_DIV), which is what a
+ * module that publishes its octave AS an enum already feels like.
+ *
+ * A range of 1 is an on/off switch drawn as a bar: it never had the fractional
+ * step problem below, and a switch needing four clicks to flip is worse than the
+ * hair trigger, so it is left alone. 'wide' acceleration owns its own rate. */
+export function detentsPerStep(p: KnobParam): number {
+    if (p.type !== 'int' || p.knobAcceleration === 'wide') return 1;
+    const range = p.max - p.min;
+    return range >= 2 && range <= NARROW_RANGE_MAX ? ENUM_DELTA_DIV : 1;
+}
 
 /* Per-detent movement in the param's own units, for the continuous branch of
  * applyKnobDelta (enums and 'wide' acceleration have their own step rules).

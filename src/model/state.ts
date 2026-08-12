@@ -61,6 +61,11 @@ export interface ModelState {
     /* Memoized physical-knob → page-param permutation for the current page (set
      * by store.slotToLocal; invalidated on hierarchy reload). */
     slotMapCache:        { page: number; map: number[] } | null;
+    /* Sub-step turn progress per PARAM index, for knobs that need several clicks
+     * per value (knob-step.ts:detentsPerStep). Keyed by param, not by physical
+     * knob like enumAccums, so paging away mid-turn resumes where it left off.
+     * Cleared on a module change so it cannot leak into another module's knob. */
+    detentAccum:         number[];
     longPressCountdown:  number;
     enumOverlay:         EnumOverlay | null;
     fileOverlay:         FileOverlay | null;
@@ -125,6 +130,7 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         knobPage:            0,
         touchedSlots:        [],
         slotMapCache:        null,
+        detentAccum:         [],
         longPressCountdown:  -1,
         enumOverlay:         null,
         fileOverlay:         null,

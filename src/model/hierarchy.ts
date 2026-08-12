@@ -26,6 +26,7 @@ export function loadHierarchy(s: ModelState): void {
     s.presetDeclared = false;
     s.degenerateKeys = [];
     s.slotMapCache = null;
+    s.detentAccum  = [];
     s.hierarchyKey = s.activeModuleName;
 
     mlog('loadHierarchy: slot=' + s.activeSlot + ' module=' + s.activeModuleName);

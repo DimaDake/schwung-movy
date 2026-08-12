@@ -1,6 +1,7 @@
 import type { KnobParam } from '../types/param.js';
 import type { ModelState } from './state.js';
-import { KNOBS_PER_PAGE, ENUM_DELTA_DIV, ARC_DELTA_SCALE, REFRESH_SUPPRESS_TICKS, MIN_STEP_RANGE_FRAC } from './constants.js';
+import { KNOBS_PER_PAGE, ENUM_DELTA_DIV, REFRESH_SUPPRESS_TICKS } from './constants.js';
+import { perDetentStep } from './knob-step.js';
 import { moduleReadKey } from '../chain/config.js';
 import { concreteKey } from './pad-scope.js';
 import { enumRawToIndex, enumUsesIndex, enumSetValue } from './enum-value.js';
@@ -151,20 +152,10 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
         }
     }
 
-    const arcScale = p.renderStyle === 'arc' ? ARC_DELTA_SCALE : 1;
-    // Normalize the per-detent step to a fraction of the range so every knob
-    // takes a consistent sweep regardless of units — a wide range (reso 0.5..20)
-    // isn't crawling and a narrow one isn't hair-trigger. Float: normalize
-    // outright. Int: keep its natural (usually integer) step as a floor so
-    // discrete values still move. Enums are exempt (fixed detents-per-step).
-    const rangeStep = (p.max - p.min) * MIN_STEP_RANGE_FRAC;
-    const effStep = p.max <= p.min ? p.step
-        : p.type === 'float' ? rangeStep
-        : p.type === 'int'   ? Math.max(p.step, rangeStep)
-        : p.step;
+    // Enums are exempt (fixed detents-per-step); see knob-step.ts for the rest.
     const scaled = p.type === 'enum' ? delta / ENUM_DELTA_DIV
         : p.knobAcceleration === 'wide' ? wideStepCount(s, p, delta) * p.step
-        : delta * effStep * arcScale;
+        : delta * perDetentStep(p);
     /* Snapshot the outgoing value in the same encoding the write uses, so the
      * inverse is byte-identical to what the DSP last received. */
     const prevNum = s.knobValues[gi] as number;

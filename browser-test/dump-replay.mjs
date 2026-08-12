@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import {
     MOVY, loadDump, createDumpBoot, serializePages, expandLayoutKeys,
 } from './dump-boot.mjs';
+import { perDetentStep } from '../dist/esm/model/knob-step.js';
 
 const EXPECT_PATH = join(MOVY, 'browser-test', 'dump-expect.json');
 const UPDATE = process.argv.includes('--update');
@@ -166,6 +167,28 @@ function checkDeclaredKnobsReachable(key, model, entry) {
         unlisted.length === 0);
 }
 
+/* N detents must move a knob N steps, whichever way it is turned. store.ts
+ * rounds the value it keeps, so a fractional step on an INT param is dropped
+ * rather than carried — and Math.round breaks the .5 tie upward, which made a
+ * half-unit step advance clockwise and stall completely counter-clockwise. That
+ * hit 257 of the fleet's 464 int params (every range <= 200: obxd octave,
+ * obxd cutoff, fizzik tune, …), so assert the rule over the real metadata rather
+ * than on hand-written params only. */
+function checkKnobStepSymmetric(key, model) {
+    for (const p of model.dumpLayout().params) {
+        if (!p || p.type === 'file' || p.type === 'enum' || p.options?.length) continue;
+        if (p.behavior === 'trigger' || p.knobAcceleration === 'wide') continue;
+        if (p.max <= p.min) continue;              // unreachable knob; clamp pins it
+        const step = perDetentStep(p);
+        check(`${key}: ${p.key} (${p.type} ${p.min}..${p.max}) moves per detent (got ${step})`,
+            step > 0);
+        if (p.type === 'int') {
+            check(`${key}: int ${p.key} steps whole units, so both directions match (got ${step})`,
+                Number.isInteger(step));
+        }
+    }
+}
+
 /* An enum knob may only offer the options the module itself reports. Option
  * lists are CONFIG-FIRST in hierarchy.ts (slot.options wins over cp.options),
  * so a hand-written list silently overrides the truth — and an option the DSP
@@ -209,6 +232,7 @@ for (const entry of dump.modules) {
     checkInvariants(key, model, snap);
     checkDeclaredKnobsReachable(key, model, entry);
     checkEnumOptionsMatchModule(key, model, entry);
+    checkKnobStepSymmetric(key, model);
     if (!UPDATE) checkExpect(key, snap, expect[key]);
 }
 

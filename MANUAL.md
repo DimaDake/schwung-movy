@@ -252,6 +252,12 @@ layout could only expose the lower eight, so chords using the top four notes
 Turning a knob edits the parameter live. Touching a knob (without turning) shows
 its exact value at the top of the screen.
 
+Knobs are normalised so a full sweep feels the same on every parameter whatever
+its units — about a hundred clicks from end to end — and a parameter with
+discrete values (an octave, a voice count, a mode) moves in whole steps instead.
+Either way a click moves the same distance clockwise and counter-clockwise, and
+turning faster covers proportionally more ground rather than less.
+
 ---
 
 ## 3. The module chain

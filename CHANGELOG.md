@@ -11,6 +11,25 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
+## [Unreleased]
+
+### Fixed
+
+- **A knob now moves the same distance in both directions.** On any parameter
+  with discrete values and a range of 200 or less — which is most of them, 257
+  of the 464 in the surveyed module fleet, including every knob on OB-Xd's
+  Global and Filter pages — one click clockwise moved the value by one while one
+  click counter-clockwise moved it by nothing at all. The arc sensitivity scale
+  put those parameters on a half-unit step, which the rounding that stores an
+  integer resolved upward in one direction and swallowed in the other. Discrete
+  parameters now step whole units, so counter-clockwise matches the clockwise
+  feel that was already correct.
+- **Turning a knob faster no longer covers less ground.** The same fractional
+  step also lost the remainder each time the host batched several clicks into one
+  tick, so a quick sweep advanced roughly half as far as the same clicks made
+  slowly — the "clockwise is smoother" half of the report above. A turn now
+  moves in proportion to how far it is turned, at any speed.
+
 ## [0.26.0] — 2026-08-10
 
 ### Added

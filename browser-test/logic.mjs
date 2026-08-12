@@ -971,6 +971,54 @@ _log('\nTest: knob delta normalizes sweep across param ranges');
   eq('int 20..20000 moves fast (range/100)', iMove(20, 20000) >= 90, true);
 }
 
+_log('\nTest: a knob moves the same amount in both directions');
+{
+  const { applyKnobDelta } = await import('../dist/esm/model/store.js');
+  const mkP = (min, max, type, step = 1, extra = {}) => ({
+    key: 'p', label: 'p', shortLabel: null, type, min, max, step,
+    options: null, renderStyle: 'arc', automatable: true, ...extra,
+  });
+  /* Signed movement of one flush of `delta` detents from `start`. */
+  const move = (p, start, delta) => {
+    const s = {
+      activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+      knobParams: [p], knobValues: [start], enumFmt: [undefined],
+      fileValues: [null], slotMapCache: null, paramGestures: {}, triggerStates: {},
+      dirty: false,
+    };
+    applyKnobDelta(s, 0, delta);
+    return s.knobValues[0] - start;
+  };
+  /* Both edges of an obxd-style octave (int -2..2) and its cutoff (int 0..100)
+   * from mid-range, one detent each way. A half-unit step used to round the
+   * clockwise tie up and the counter-clockwise one back to where it started, so
+   * ccw was DEAD at one detent — the reported "sticks at the edges, too fast in
+   * the middle". Every int in the dumped fleet with a range <= 200 had it. */
+  for (const [name, p, start] of [
+    ['octave int -2..2', mkP(-2, 2, 'int'), 0],
+    ['cutoff int 0..100', mkP(0, 100, 'int'), 50],
+    ['int 1..16', mkP(1, 16, 'int'), 8],
+    ['int -24..24', mkP(-24, 24, 'int'), 0],
+  ]) {
+    eq(`${name}: one cw detent moves +1`,  move(p, start, 1),  1);
+    eq(`${name}: one ccw detent moves -1`, move(p, start, -1), -1);
+  }
+  // Multi-detent flushes (a fast turn) stay symmetric too.
+  eq('int 0..100: 3 detents cw = +3',  move(mkP(0, 100, 'int'), 50, 3),  3);
+  eq('int 0..100: 3 detents ccw = -3', move(mkP(0, 100, 'int'), 50, -3), -3);
+  // Unaffected paths keep their existing speed, in both directions.
+  eq('wide int keeps its range/100 step cw',  move(mkP(20, 20000, 'int'), 10000, 1),  100);
+  eq('wide int keeps its range/100 step ccw', move(mkP(20, 20000, 'int'), 10000, -1), -100);
+  const f = mkP(0, 1, 'float', 0.01);
+  eq('float unchanged: symmetric 0.5% of range',
+    Math.abs(move(f, 0.5, 1) + move(f, 0.5, -1)) < 1e-9 && Math.abs(move(f, 0.5, 1) - 0.005) < 1e-9,
+    true);
+  // 'wide' acceleration has its own unit-step path — untouched.
+  const w = mkP(1, 9999, 'int', 1, { knobAcceleration: 'wide' });
+  eq('wide-acceleration int: ±1 per deliberate detent',
+    move(w, 500, 1) === 1 && move(w, 500, -1) === -1, true);
+}
+
 _log('\nTest: module interaction metadata drives triggers, acceleration, and automation');
 {
   const { applyKnobDelta } = await import('../dist/esm/model/store.js');

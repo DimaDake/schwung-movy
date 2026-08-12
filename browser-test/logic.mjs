@@ -1080,6 +1080,54 @@ _log('\nTest: narrow discrete params take four clicks per step');
   globalThis.shadow_set_param = origSet;
 }
 
+_log('\nTest: octave and voice-count params become step cells');
+{
+  const { cellStyleFor } = await import('../dist/esm/model/step-labels.js');
+  const { formatValue } = await import('../dist/esm/model/store.js');
+  const style = (key, min, max, type = 'int') => {
+    const c = cellStyleFor(key, type, min, max);
+    return c.renderStyle + (c.signed ? '+' : '');
+  };
+  // Octave-like, signed because the range is a transpose.
+  eq('obxd octave -2..2',            style('octave', -2, 2),             'steps+');
+  eq('octave_transpose -3..3',       style('octave_transpose', -3, 3),   'steps+');
+  eq('lane1_octave -3..3',           style('lane1_octave', -3, 3),       'steps+');
+  eq('nusaw sub_octave -2..0',       style('sub_octave', -2, 0),         'steps+');
+  eq('moog osc1_range -2..2',        style('osc1_range', -2, 2),         'steps+');
+  // Octave-like counts are unsigned.
+  eq('helm arp_octaves 1..4',        style('arp_octaves', 1, 4),         'steps');
+  // Voice counts are unsigned at any width.
+  eq('obxd voice_count 1..8',        style('voice_count', 1, 8),         'steps');
+  eq('freak unison 1..8',            style('unison', 1, 8),              'steps');
+  eq('granny active_voices 0..8',    style('active_voices', 0, 8),       'steps');
+  eq('forge cho_voices 2..8',        style('cho_voices', 2, 8),          'steps');
+  eq('helm osc_1_unison_voices',     style('osc_1_unison_voices', 1, 15),'steps');
+  eq('mrdrums g_polyphony 1..64',    style('g_polyphony', 1, 64),        'steps');
+  eq('sfz voices 1..128',            style('voices', 1, 128),            'steps');
+  // Excluded: toggles stay bars.
+  eq('helm sub_octave 0..1',         style('sub_octave', 0, 1),          'hbar');
+  eq('obxd unison 0..1',             style('unison', 0, 1),              'hbar');
+  eq('obxd bend_range 0..1',         style('bend_range', 0, 1),          'hbar');
+  // Excluded: too wide to be an octave, amounts, randomisers, non-ints.
+  eq('genera octaves 0..100',        style('octaves', 0, 100),           'arc');
+  eq('lane1_oct_seed 0..65535',      style('lane1_oct_seed', 0, 65535),  'arc');
+  eq('signal rnd_voices 0..127',     style('rnd_voices', 0, 127),        'arc');
+  eq('obxd unison_det 0..100',       style('unison_det', 0, 100),        'arc');
+  eq('osirus unison_detune 0..127',  style('unison_detune', 0, 127),     'arc');
+  eq('hera pitch_range 0..2',        style('pitch_range', 0, 2),         'arc');
+  eq('obxd legato 0..3',             style('legato', 0, 3),              'arc');
+  eq('obxd cutoff 0..100',           style('cutoff', 0, 100),            'arc');
+  eq('float octave-named stays arc', style('octave', -2, 2, 'float'),    'arc');
+  // The sign shows up in the value text, so box and touched readout agree.
+  const p = (signed) => ({ key: 'octave', label: 'Octave', shortLabel: null, type: 'int',
+    min: -2, max: 2, step: 1, options: null, renderStyle: 'steps', automatable: true,
+    ...(signed ? { signed: true } : {}) });
+  eq('signed int shows +1',  formatValue(p(true), 1),   '+1');
+  eq('signed int shows 0',   formatValue(p(true), 0),   '0');
+  eq('signed int shows -2',  formatValue(p(true), -2),  '-2');
+  eq('count shows 4 unsigned', formatValue(p(false), 4), '4');
+}
+
 _log('\nTest: module interaction metadata drives triggers, acceleration, and automation');
 {
   const { applyKnobDelta } = await import('../dist/esm/model/store.js');

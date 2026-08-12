@@ -2,6 +2,7 @@
  * structure; this file owns what a single knob looks like once its metadata has
  * been gathered from chain_params and/or ui_hierarchy. */
 import type { KnobParam } from '../types/param.js';
+import { cellStyleFor } from './step-labels.js';
 
 /* One param's metadata as published by a module — either a chain_params entry
  * or a ui_hierarchy params[]/knobs[] entry. Both shapes are partial and the
@@ -12,10 +13,6 @@ export interface RawMeta {
     automatable?: boolean; behavior?: string;
     knob_acceleration?: string; knobAcceleration?: string;
     root?: string; filter?: unknown; start_path?: string;
-}
-
-export function inferRenderStyle(type: KnobParam['type'], min: number, max: number): KnobParam['renderStyle'] {
-    return (type === 'int' && min === 0 && max === 1) ? 'hbar' : 'arc';
 }
 
 export function inferBehavior(explicit: unknown, options: string[] | null): KnobParam['behavior'] | undefined {
@@ -72,7 +69,7 @@ export function buildGenericParam(key: string, cp: RawMeta, def: RawMeta): KnobP
         shortLabel: null,
         type:       type as KnobParam['type'],
         options, min, max, step,
-        renderStyle: inferRenderStyle(type as KnobParam['type'], min, max),
+        ...cellStyleFor(key, type as KnobParam['type'], min, max),
         // Config-less fallback: the `g_` global-naming convention is the
         // only signal available here. Modules with a movy config use
         // bank.global instead (see the config path in hierarchy.ts).

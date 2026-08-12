@@ -86,7 +86,10 @@ export function formatValue(p: KnobParam, v: number | null | undefined): string 
         if (p.options && p.options[Math.round(v)]) return p.options[Math.round(v)].substring(0, 5);
         return String(Math.round(v));
     }
-    if (p.type === 'int') return String(Math.round(v));
+    if (p.type === 'int') {
+        const n = Math.round(v);
+        return (p.signed && n > 0 ? '+' : '') + n;
+    }
     const range = (p.max - p.min) || 1;
     return Math.round((v - p.min) / range * 100) + '%';
 }

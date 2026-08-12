@@ -7,7 +7,8 @@ import { mlog } from '../log.js';
 import { KNOBS_PER_PAGE } from './constants.js';
 import { buildPresetParam } from './preset-param.js';
 import type { RawMeta } from './param-build.js';
-import { inferRenderStyle, inferBehavior, inferAcceleration, parseFilter } from './param-build.js';
+import { inferBehavior, inferAcceleration, parseFilter } from './param-build.js';
+import { cellStyleFor } from './step-labels.js';
 
 interface CfgLevel { count_param?: string; name_param?: string }
 
@@ -78,14 +79,16 @@ export function buildConfigPages(
                 let max  = cp.max  != null ? cp.max  : (hier.max  != null ? hier.max  : (slot.max  != null ? slot.max  : 1));
                 let step = cp.step != null ? cp.step : (hier.step != null ? hier.step : (slot.step != null ? slot.step : (type === 'float' ? 0.01 : 1)));
                 if (type === 'enum') { min = 0; max = options ? options.length - 1 : 127; step = 1; }
-                const renderStyle = slot.render ?? inferRenderStyle(type as KnobParam['type'], min, max);
+                const style = slot.render
+                    ? { renderStyle: slot.render }
+                    : cellStyleFor(slot.key, type as KnobParam['type'], min, max);
                 const behavior = inferBehavior(slot.behavior ?? hier.behavior ?? cp.behavior, options);
                 const param: KnobParam = {
                     key:        slot.key,
                     label:      slot.full || cp.name || hier.label || slot.key,
                     shortLabel: slot.short ?? null,
                     type:       type as KnobParam['type'],
-                    options, min, max, step, renderStyle,
+                    options, min, max, step, ...style,
                     env:        slot.env,
                     lfo:        slot.lfo,
                     filter:     slot.filter,
@@ -105,7 +108,7 @@ export function buildConfigPages(
                     ),
                     /* A preset always rewrites the module's other params, so it
                      * implies the flag; anything else has to say so. */
-                    capturesModuleState: slot.capturesModuleState ?? (renderStyle === 'preset'),
+                    capturesModuleState: slot.capturesModuleState ?? (style.renderStyle === 'preset'),
                 };
                 /* File slots carry browse metadata. The module config (mrdrums.json)
                  * is authoritative; chain_params (root/filter/start_path) is the

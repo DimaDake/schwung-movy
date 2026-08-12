@@ -8,7 +8,7 @@ export interface ParamVM {
     isLongEnum:      boolean;
     options:         string[] | null;
     enumIndex:       number;
-    renderStyle:     'arc' | 'hbar' | 'vbar' | 'preset' | 'xbox';   // xbox = framed X (LFO target None); hbar doubles as a binary on/off bar
+    renderStyle:     'arc' | 'hbar' | 'vbar' | 'preset' | 'xbox' | 'steps';   // xbox = framed X (LFO target None); hbar doubles as a binary on/off bar; steps = framed number (octave/voice count)
     automated:       boolean;   // lane has ≥1 lock → show the dot
     automatable:     boolean;   // can be assigned a lane (numeric, non-global)
     assigned:        boolean;   // already bound to an automation lane

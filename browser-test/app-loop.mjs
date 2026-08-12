@@ -1285,36 +1285,79 @@ _log('\napp-loop: step recording advertises the arrows it can act on');
     seqState.engineTick = 0;
 }
 
-_log('\napp-loop: loop-mode content bars blink while the transport is stopped');
+_log('\napp-loop: loop-mode bars pulse on the firmware channels, not on any tick');
 {
     resetApp();
     const { occToggleStep } = await import('../dist/esm/seq/state.js');
-    const { trackColor, C_BLACK } = await import('../dist/esm/seq/colors.js');
+    const { trackColor, C_DARKGREY, ANIM_PULSE, ANIM_PULSE_SLOW }
+        = await import('../dist/esm/seq/colors.js');
     const CC_LOOP = 58;
 
+    /* Capture the raw note-ons so the animation CHANNEL is visible — the whole
+     * point of the change is that the hardware owns the pulse. The old version of
+     * this scene guarded a JS blink derived from the engine tick, which froze
+     * while the transport was stopped; nothing about a bar is JS-timed now, so
+     * the guard becomes "a frozen tick and a moving clock change nothing". */
+    const msgs = [];
+    globalThis.move_midi_internal_send = (m) => msgs.push(m);
+
     seqState.playing = false;
-    seqState.lenSteps = 32;
+    seqState.loopStart = 16;
+    seqState.lenSteps = 32;              // loop = bars 2-3
+    seqState.barOffset = 1;              // bar 2 selected
     seqState.engineTick = 24;            // frozen in an odd block, as when stopped
-    occToggleStep(16);                   // content in bar 2 (bar 1 is the selected one)
+    occToggleStep(16 * 3 + 2);           // content outside the loop — not indicated
 
     const realNow = Date.now;
     let t = 500000;
     Date.now = () => t;
 
+    /* Paint the step row in Note mode FIRST so lastNoteLed is warm. Without this
+     * the exit-repaint assertion below passes either way — an empty cache always
+     * sends — and proves nothing about the two-cache hazard. */
+    advance(4);
+    const noteModeRow = [...Array(16).keys()].map((i) => ledByPad[STEP_NOTE_BASE + i]);
+    eq('step row warm before entering Loop mode',
+        noteModeRow.every((c) => c !== undefined), true);
+
     sendMidi([0xB0, CC_LOOP, 127]); sendMidi([0xB0, CC_LOOP, 0]);   // tap → Loop mode
-    advance(3);
+    advance(4);                          // base frame + animation frame + budget
     eq('loop mode entered', seqState.loopMode, true);
-    eq('a content bar lights even with the engine tick frozen',
-        ledByPad[STEP_NOTE_BASE + 1], trackColor(seqState.watchTrack));
+    const chanOf = (n) => msgs.filter((m) => m[2] === n).map((m) => m[1] & 0x0f);
+    const lastColor = (n) => msgs.filter((m) => m[2] === n).at(-1)?.[3];
+    eq('selected bar pulses slowly with a frozen engine tick',
+        chanOf(STEP_NOTE_BASE + 1).includes(ANIM_PULSE_SLOW), true);
+    eq('the other loop bar pulses at the quarter rate',
+        chanOf(STEP_NOTE_BASE + 2).includes(ANIM_PULSE), true);
+    eq('selected bar breathes toward the track colour',
+        lastColor(STEP_NOTE_BASE + 1), trackColor(seqState.watchTrack));
+    eq('a bar outside the loop is dark grey', lastColor(STEP_NOTE_BASE + 0), C_DARKGREY);
 
+    // Time passing sends nothing further: the pulse is not redrawn per frame.
+    msgs.length = 0;
     t += 250;
-    advance(1);
-    eq('and it really blinks', ledByPad[STEP_NOTE_BASE + 1], C_BLACK);
-
-    sendMidi([0xB0, CC_LOOP, 127]); sendMidi([0xB0, CC_LOOP, 0]);   // back to Note mode
     advance(2);
+    eq('no LED traffic while only the clock moves', msgs.length, 0);
+
+    /* Leaving Loop mode must repaint the step row. The bars were written through
+     * cachedSetAnimLED (lastAnimLed) while the step colours live in lastNoteLed —
+     * two caches over the same 16 notes. Without forgetting both on the toggle,
+     * the step row diffs against colours the hardware no longer shows and skips
+     * the sends, leaving the bars on screen in Note mode. */
+    msgs.length = 0;
+    for (const k of Object.keys(ledByPad)) delete ledByPad[k];
+    sendMidi([0xB0, CC_LOOP, 127]); sendMidi([0xB0, CC_LOOP, 0]);   // back to Note mode
+    advance(4);
+    eq('left loop mode', seqState.loopMode, false);
+    const stepRowRepainted = [...Array(16).keys()]
+        .filter((i) => ledByPad[STEP_NOTE_BASE + i] !== undefined).length;
+    eq('the whole step row is repainted on the way out', stepRowRepainted, 16);
+
     Date.now = realNow;
+    delete globalThis.move_midi_internal_send;
+    seqState.loopStart = 0;
     seqState.lenSteps = 0;
+    seqState.barOffset = 0;
     seqState.engineTick = 0;
 }
 

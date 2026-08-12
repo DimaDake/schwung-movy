@@ -2773,18 +2773,15 @@ _log('\nTest: drumPadOn');
     _log('\nseq loop LEDs:');
     const { seqLedsTick, seqLedsInvalidate } = await import('../dist/esm/seq/leds.js');
     const { seqState, resetSeqState, occToggleStep } = await import('../dist/esm/seq/state.js');
-    const { C_WHITE, C_DARKGREY, trackColor } = await import('../dist/esm/seq/colors.js');
+    const { C_WHITE, C_DARKGREY, trackColor, ANIM_PULSE, ANIM_PULSE_SLOW }
+        = await import('../dist/esm/seq/colors.js');
 
-    const ledCalls = [];
-    const origSetLED = globalThis.setLED;
-    globalThis.setLED = (note, color) => ledCalls.push([note, color]);
-
-    /* The content-bar blink runs on wall time (it has to keep going while the
-     * transport is stopped, where the engine's tick freezes), so pin the clock
-     * to an even 250 ms block — the lit half — instead of letting the assertion
-     * depend on when the suite happens to run. */
-    const realNow = Date.now;
-    Date.now = () => 500000;
+    /* Bars pulse on the firmware's animation channels now, so the assertions read
+     * the raw note-ons (channel = animation) rather than setLED colours. No clock
+     * pinning any more either: nothing about a bar's appearance is JS-timed. */
+    const msgs = [];
+    const origSend = globalThis.move_midi_internal_send;
+    globalThis.move_midi_internal_send = (m) => msgs.push(m);
 
     resetSeqState(); seqLedsInvalidate();
     seqState.loopMode = true;
@@ -2792,26 +2789,23 @@ _log('\nTest: drumPadOn');
     seqState.loopStart = 16;   // loop = bar 1..2
     seqState.lenSteps = 32;
     seqState.barOffset = 1;    // bar 1 is selected
-    occToggleStep(16 * 3 + 2); // content in bar 3
+    occToggleStep(16 * 3 + 2); // content in bar 3 — deliberately NOT indicated
 
+    // cachedSetAnimLED establishes the base first and animates on the next tick,
+    // so a pulsing bar needs two frames to reach its final state.
     seqLedsTick();
-    const byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
-    // New loop-bar semantics: selected=white, content=blink track color, else off.
-    eq('selected bar white (bar 1)', byNote[17], C_WHITE);
-    eq('empty bar off (bar 2)', byNote[18], 0);
-    eq('content bar blink on = track color', byNote[19], trackColor(0));
-    eq('empty bar off (bar 0)', byNote[16], 0);
-
-    /* …and the other half of the blink really is dark. */
-    Date.now = () => 500250;
-    ledCalls.length = 0;
-    seqLedsInvalidate();
     seqLedsTick();
-    const byNote2 = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
-    eq('content bar blink off = dark', byNote2[19], 0);
+    const chanOf = (note) => msgs.filter((m) => m[2] === note).map((m) => m[1] & 0x0f);
+    const lastColor = (note) => msgs.filter((m) => m[2] === note).at(-1)[3];
 
-    Date.now = realNow;
-    globalThis.setLED = origSetLED;
+    eq('selected in-loop bar pulses slow (bar 1)', chanOf(17).includes(ANIM_PULSE_SLOW), true);
+    eq('selected bar breathes toward the track colour', lastColor(17), trackColor(0));
+    eq('other in-loop bar pulses at quarter rate (bar 2)', chanOf(18).includes(ANIM_PULSE), true);
+    eq('bar outside the loop is solid (bar 3)', chanOf(19).every((c) => c === 0), true);
+    eq('content in bar 3 is not indicated', lastColor(19), C_DARKGREY);
+    eq('bar 0 outside the loop is dark grey', lastColor(16), C_DARKGREY);
+
+    globalThis.move_midi_internal_send = origSend;
     resetSeqState(); seqLedsInvalidate();
 }
 
@@ -3704,14 +3698,28 @@ _log('\nautomation: restore re-requests label sync:');
 {
     _log('\nloop bar color:');
     const { loopBarColor } = await import('../dist/esm/seq/leds.js');
-    const { trackColor } = await import('../dist/esm/seq/colors.js');
+    const { trackColor, C_DARKGREY, C_WHITE, C_GREEN,
+            ANIM_NONE, ANIM_PULSE, ANIM_PULSE_SLOW } = await import('../dist/esm/seq/colors.js');
 
-    const base = { isPlayhead:false, selected:false, hasContent:false, inLoop:false, blink:true, track:1 };
-    eq('playhead green', loopBarColor({ ...base, isPlayhead:true }), 11);
-    eq('selected white', loopBarColor({ ...base, selected:true }), 120);
-    eq('content blink on = track', loopBarColor({ ...base, hasContent:true, blink:true }), trackColor(1));
-    eq('content blink off = off', loopBarColor({ ...base, hasContent:true, blink:false }), 0);
-    eq('empty = off', loopBarColor({ ...base }), 0);
+    const base = { isPlayhead: false, selected: false, inLoop: false, track: 1 };
+    const led = (o) => JSON.stringify(loopBarColor({ ...base, ...o }));
+    const want = (b, a, ch) => JSON.stringify({ base: b, anim: a, channel: ch });
+
+    // Playhead outranks everything and is solid — it is already moving.
+    eq('playhead solid green', led({ isPlayhead: true, inLoop: true, selected: true }),
+        want(C_GREEN, C_GREEN, ANIM_NONE));
+    // Selected + active: white breathing toward the track colour at session
+    // view's "selected clip" rate.
+    eq('selected active pulses slow', led({ selected: true, inLoop: true }),
+        want(C_WHITE, trackColor(1), ANIM_PULSE_SLOW));
+    // Selected but navigated outside the loop: still breathes, but toward grey.
+    eq('selected inactive pulses to grey', led({ selected: true }),
+        want(C_WHITE, C_DARKGREY, ANIM_PULSE_SLOW));
+    // Active, not selected: session's playing-clip pair, exactly.
+    eq('active pulses at quarter rate', led({ inLoop: true }),
+        want(trackColor(1), C_WHITE, ANIM_PULSE));
+    // Inactive: very dark grey, solid. Content is not indicated either way.
+    eq('inactive is dark grey', led({}), want(C_DARKGREY, C_DARKGREY, ANIM_NONE));
 }
 
 /* ── session cell color ──────────────────────────────────────────────────── */

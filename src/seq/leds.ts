@@ -3,7 +3,7 @@
 
 import { backLedColor, arrowLedColor, stepRecArrowColor, sampleLedColor, captureLedColor, undoLedColor } from './buttons.js';
 import { canRedo, canUndo } from '../undo/state.js';
-import { C_BLACK, C_DARKGREY, C_GREEN, C_LIGHTGREY, C_REC_RED, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
+import { ANIM_NONE, ANIM_PULSE, ANIM_PULSE_SLOW, C_BLACK, C_DARKGREY, C_GREEN, C_LIGHTGREY, C_REC_RED, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
 import {
     CC_PLAY, CC_REC, CC_TRACK_END, NUM_STEP_BUTTONS, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
@@ -29,11 +29,7 @@ const ICON_METRO = 5, ICON_FULLVEL = 9, ICON_DBLLOOP = 14, ICON_QUANT = 15;
 const ICON_MAIN: readonly number[] = [4, 6, 8];
 const ICON_CLIP = 2; // Shift+Step 3 opens Clip Params (Track view only)
 
-function barHasContent(bar: number): boolean {
-    const b = bar * NUM_STEP_BUTTONS;
-    for (let i = 0; i < NUM_STEP_BUTTONS; i++) if (occHasStep(b + i)) return true;
-    return false;
-}
+let lastLoopMode = false;
 
 const BLINK_MS = 250;
 /* Affordance blinks run on wall time, never on the engine's master tick.
@@ -46,28 +42,35 @@ const BLINK_MS = 250;
 function blinkPhase(): boolean {
     return Math.floor(Date.now() / BLINK_MS) % 2 === 0;
 }
-interface BarCtx { isPlayhead: boolean; selected: boolean; hasContent: boolean; inLoop: boolean; blink: boolean; track: number; }
-export function loopBarColor(c: BarCtx): number {
-    if (c.isPlayhead) return C_GREEN;
-    if (c.selected)   return C_WHITE;
-    if (c.hasContent) return c.blink ? trackColor(c.track) : C_BLACK;
-    return C_BLACK;
+/* Loop-mode bars borrow session view's pulse vocabulary wholesale (session.ts
+ * sessionCellColor): the colour says WHAT a bar is, the firmware pulse rate says
+ * how it relates to you. The active pair is byte-identical to a playing clip's,
+ * so loop bars and session pads breathe in hardware phase-lock. Content is
+ * deliberately NOT shown — a bar's job here is to say whether it plays. */
+interface BarCtx { isPlayhead: boolean; selected: boolean; inLoop: boolean; track: number; }
+export interface CellLed { base: number; anim: number; channel: number; }
+
+export function loopBarColor(c: BarCtx): CellLed {
+    const tc = trackColor(c.track);
+    if (c.isPlayhead) return { base: C_GREEN, anim: C_GREEN, channel: ANIM_NONE };
+    if (c.selected)   return { base: C_WHITE, anim: c.inLoop ? tc : C_DARKGREY, channel: ANIM_PULSE_SLOW };
+    if (c.inLoop)     return { base: tc, anim: C_WHITE, channel: ANIM_PULSE };
+    return { base: C_DARKGREY, anim: C_DARKGREY, channel: ANIM_NONE };
 }
 
-/* Loop Mode: step buttons are bars — selected white, content blink track color, playhead green. */
+/* Loop Mode: step buttons are bars. */
 function paintLoopBars(): void {
     const start = loopStartBar();
     const end = loopEndBar();
     const playBar = seqState.playing ? Math.floor(seqState.curStep / NUM_STEP_BUTTONS) : -1;
-    const blink = blinkPhase();
     for (let bar = 0; bar < NUM_STEP_BUTTONS; bar++) {
-        cachedSetLED(STEP_NOTE_BASE + bar, loopBarColor({
+        const led = loopBarColor({
             isPlayhead: bar === playBar,
             selected: bar === seqState.barOffset,
-            hasContent: barHasContent(bar),
             inLoop: bar >= start && bar <= end,
-            blink, track: seqState.watchTrack,
-        }));
+            track: seqState.watchTrack,
+        });
+        cachedSetAnimLED(STEP_NOTE_BASE + bar, led.base, led.anim, led.channel);
     }
 }
 
@@ -183,6 +186,14 @@ export function seqLedsTick(
     maxOff: number = 0,
 ): void {
     ledFrameReset();
+    /* The step row is painted through cachedSetLED outside Loop mode and
+     * cachedSetAnimLED inside it — two independent caches over the same notes.
+     * Whichever map is idle goes stale, so a toggle has to forget both or the
+     * first frame after it silently keeps the old colours. */
+    if (seqState.loopMode !== lastLoopMode) {
+        lastLoopMode = seqState.loopMode;
+        seqLedsInvalidate();
+    }
     // Session mode owns the 32-pad clip grid; the step row is not part of it,
     // so keep the step button LEDs dark (the master FX chain has no per-step
     // editing). Pads paint first for priority within the frame budget.

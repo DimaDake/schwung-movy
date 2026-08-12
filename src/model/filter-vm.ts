@@ -16,6 +16,30 @@ function words(text: string): string[] {
 }
 const enumQualifier = (p: KnobParam) => words(p.key).filter(w => !ENUM_ROLE.has(w)).join('');
 
+/* Which params could supply an off-page filter mode, and under what qualifier.
+ * Derived purely from the module's metadata, so it is fixed for the life of a
+ * loaded hierarchy — but the search below runs on every frame of every knob
+ * turn, and re-deriving it walked all ~180 of helm's params doing regex work per
+ * enum. Keyed on the knobParams array itself: loadHierarchy assigns a fresh
+ * array (meta-retry settles by forcing a rebuild, never by mutating in place),
+ * so a stale entry cannot outlive the metadata it came from. */
+type ModeCandidate = { idx: number; qual: string };
+const candidateCache = new WeakMap<object, ModeCandidate[]>();
+
+function modeCandidates(allParams: (KnobParam | null)[]): ModeCandidate[] {
+    let found = candidateCache.get(allParams);
+    if (found) return found;
+    found = [];
+    for (let i = 0; i < allParams.length; i++) {
+        const p = allParams[i];
+        if (!p || p.type !== 'enum' || !isFilterModeEnum(p.options)) continue;
+        const qual = enumQualifier(p);
+        if (qual !== '') found.push({ idx: i, qual });
+    }
+    candidateCache.set(allParams, found);
+    return found;
+}
+
 export function buildFilterViz(
     lines: FilterLine[], pageParams: (KnobParam | null)[], pageValues: (number | null)[],
     allParams: (KnobParam | null)[], allValues: (number | null)[],
@@ -33,11 +57,10 @@ export function buildFilterViz(
     // Off-page mode: a filter-mode enum elsewhere in the chain whose qualifier
     // matches this pair (chordism/osirus/surge keep MODE on a separate page).
     const offPageMode = (quals: string[]): FilterMode | null => {
-        for (let i = 0; i < allParams.length; i++) {
-            const p = allParams[i];
-            if (!p || p.type !== 'enum' || !isFilterModeEnum(p.options)) continue;
-            const q = enumQualifier(p);
-            if (q !== '' && quals.includes(q)) return filterModeFromEnum(p.options, raw(allValues, i));
+        for (const c of modeCandidates(allParams)) {
+            if (quals.includes(c.qual)) {
+                return filterModeFromEnum(allParams[c.idx]!.options, raw(allValues, c.idx));
+            }
         }
         return null;
     };

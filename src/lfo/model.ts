@@ -271,6 +271,11 @@ export function createLfoModel(track: number): Model {
         hasLoadedParams(): boolean { return loaded; },
         getValueByKey(_key: string) { return null; },
         getDrumConfig() { return null; },
+        /* A virtual LFO chain slot is never a drum module; mirrors the module
+         * model's cheap accessors so the app tick never has to build a VM to ask. */
+        getDrumPadCount() { return 0; },
+        getDrumCurrentPad() { return 0; },
+        getDrumCurrentPhysPad() { return 0; },
         updateDrumPad(_pad: number, _physPad: number): void { /* not a drum */ },
         /* The LFO page is fixed-function (no KnobParams); nothing to dump. */
         dumpLayout() {

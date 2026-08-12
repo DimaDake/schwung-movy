@@ -56,7 +56,7 @@ import { stepPageState, stepPageAvailable } from '../seq/step-page.js';
 import { buildStepPageVM } from '../seq/step-page-vm.js';
 import { activeHasNote, maxBarOffset, seqState } from '../seq/state.js';
 import { engineReady } from '../seq/engine.js';
-import { perfProbeEnter, perfProbeTick } from './perf-probe.js';
+import { perfProbeEnter, perfProbeTick, perfPhase, perfPhaseEnd } from './perf-probe.js';
 import {
     drawLoopStrip, drawSeqToast, drawSeqHeader,
     seqToastActive, seqToastTick,
@@ -99,7 +99,7 @@ function buildAutomationView(track: number, model: Model): AutomationView {
     // lane belonging to a different pad matches no key on the current page (its
     // dot vanishes) — switching the focused pad re-scopes the display for free.
     const ps   = model.getDrumConfig()?.padScoping;
-    const pad  = model.getViewModel().drumCurrentPad;
+    const pad  = model.getDrumCurrentPad();
     const ck   = model.getComponentKey();
     const laneForKey = (key: string): number => {
         const tp = ck + ':' + concreteKey(ps, pad, key);
@@ -216,6 +216,7 @@ export function tick(): void {
 }
 
 function tickBody(): void {
+    perfPhase('seqengine');
     // Keep the engine mirror synced first (flushes any queued command, polls
     // status) — the mock/real engine reports transport + step state regardless
     // of whether we are on screen.
@@ -223,12 +224,15 @@ function tickBody(): void {
     // Tell the engine which tracks are drum tracks (it suppresses clip transpose
     // on those). Queued as a command, so it rides the same batch as everything
     // else and is held through engine boot.
+    perfPhase('drumsync');
     drumSyncTick();
     // Flush a debounced tempo-knob change to Move's Link override before the
     // parked early-return, so a tempo edit made just before backgrounding
     // still reaches Move (the write is cheap and independent of the display).
+    perfPhase('tempocap');
     tempoOverrideTick();
     captureTick();
+    perfPhase('rest');
     // Parked in the background: Move's native UI is on screen and the host
     // no-ops our draw calls. The DSP keeps sequencing + emitting Phase 1 clock
     // on its own, so the JS side only has to stay synced (above) and keep
@@ -332,8 +336,7 @@ function tickBody(): void {
      * chain module is currently selected — drum pads and step lane stay active
      * even when the user is browsing FX parameters on the same track. */
     const synthModel = appState.trackModels[appState.activeSlot]?.[1];
-    const synthDvm   = synthModel?.getViewModel();
-    const isDrum     = (synthDvm?.drumPadCount ?? 0) > 0;
+    const isDrum     = (synthModel?.getDrumPadCount() ?? 0) > 0;
 
     /* A track switch changes what the pads mean, so the grid must repaint even
      * where the new colour matches the cached one. Detected here (before the
@@ -345,7 +348,7 @@ function tickBody(): void {
     }
     if (isDrum) {
         const cfg = synthModel!.getDrumConfig();
-        seqSetLane(cfg ? cfg.padNoteStart + (synthDvm!.drumCurrentPad - 1) : -1);
+        seqSetLane(cfg ? cfg.padNoteStart + (synthModel!.getDrumCurrentPad() - 1) : -1);
     } else {
         seqSetLane(-1);
     }
@@ -376,7 +379,9 @@ function tickBody(): void {
     // Automation lanes are driven by playback — keep the page from reading them
     // back (decouples display from automation; avoids per-step repaints).
     activeModel?.setNoRefreshKeys(laneKeysForTrack(appState.activeSlot));
+    perfPhase('modeltick');
     const modelDirty  = activeModel?.tick() ?? false;
+    perfPhaseEnd();
 
     /* A module swap on the focused component changes its param set → re-validate
      * this track's automation lanes (the label sync drops lanes the new module
@@ -460,16 +465,24 @@ function tickBody(): void {
             if (stepAvail && stepPageState.selected) {
                 vm = buildStepPageVM(heldTrigInput(), activeModel!.getBankCount());
             } else {
-                vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot, activeModel!));
+                perfPhase('autoview');
+                const av = buildAutomationView(appState.activeSlot, activeModel!);
+                perfPhase('buildvm');
+                vm = activeModel!.getViewModel(av);
+                perfPhaseEnd();
                 if (stepAvail) { vm.stepPagePresent = true; vm.stepPageSelected = false; }
             }
             diagAutoRender(vm);
+            perfPhase('render');
             renderKnobsView(vm, jogHintVisible(), appState.activeSlot);
+            perfPhaseEnd();
             // The pool-full toast shares the bottom rows with the Loop strip;
             // claim them so the strip yields to it (like every other toast).
             jogToastShown = (vm.automationHeld && vm.automationPoolFull)
                 || !!vm.toast?.browseHint || jogHintVisible();
+            perfPhase('leds');
             updateKnobLEDs(vm);
+            perfPhaseEnd();
         } else if (appState.currentView === VIEW_CHAIN) {
             const stepAvail = stepPageAvailable();
             let vm;
@@ -514,7 +527,7 @@ function tickBody(): void {
      * the user physically holding it (the live-note ledger) — and reverts when it
      * stops. Green wins over the white "selected" pad and the resting track
      * color (priority lives in drumPadLedColor). In Session mode the clip grid
-     * owns the pads (painted by seqLedsTick). synthModel/synthDvm/isDrum come
+     * owns the pads (painted by seqLedsTick). synthModel/isDrum come
      * from the synth slot regardless of the active chain index, so drum pads
      * light up even on FX parameter pages. */
     const drumNow = !seqState.sessionMode && isDrum;
@@ -543,7 +556,7 @@ function tickBody(): void {
                 drumCacheStale = false;
             }
             const track = seqState.watchTrack;
-            const sel   = synthDvm!.drumCurrentPhysPad;
+            const sel   = synthModel!.getDrumCurrentPhysPad();
             for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {
                 const p = PAD_MIN + i;
                 // Derive the pad's MIDI note to check activeHasNote (mirrors drumPadLedColor's mapping).

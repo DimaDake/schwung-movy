@@ -355,6 +355,15 @@ export function createModel(slot: number, componentKey = 'synth') {
             return s.moduleConfig?.drum ?? null;
         },
 
+        /* The two drum facts the app tick needs every frame. They are plain
+         * ModelState fields; reading them through getViewModel() meant building
+         * the whole view model — pages, envelopes, filter curves — and throwing
+         * all but one number away, on every tick and for a model that may not
+         * even be on screen. */
+        getDrumPadCount(): number { return s.drumPadCount; },
+        getDrumCurrentPad(): number { return s.drumCurrentPad; },
+        getDrumCurrentPhysPad(): number { return s.drumCurrentPhysPad; },
+
         /* Read-only layout snapshot for external tooling (scripts/dump-movy-layout.mjs).
          * Exposes raw KnobParams (incl. step, which no other public accessor has). */
         dumpLayout(): {

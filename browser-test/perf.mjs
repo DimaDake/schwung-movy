@@ -56,6 +56,12 @@ const KNOB_DETENT_GETS_MAX = 6;
  * per-frame scanning (which measured ~17x). */
 const ENUM_VM_RATIO_MAX = 3;
 
+/* buildViewModel for a page holding a filter pair, on a 400-param module divided
+ * by the same on a 16-param one. The page is identical; only the rest of the
+ * module grows. The off-page filter-mode search made this ~5x, which is what a
+ * dense module (helm, 180 params) paid on every frame of every knob turn. */
+const FILTER_VM_RATIO_MAX = 2;
+
 /* Opening the file overlay on a 1024-file folder, divided by the same on a
  * 16-file one. Some growth is inherent — the list really is longer — but the
  * five-pass scan made it ~50x. */
@@ -646,6 +652,59 @@ _origLog('\nTest 6: buildViewModel with a long enum (8 vs 1024 options)');
     const ratio = small > 0 ? large / small : 1;
     check('view-model cost ratio, 1024 options vs 8', ratio, ENUM_VM_RATIO_MAX, 'x');
     _origLog(`    (8 opts: ${small.toFixed(4)}ms, 1024 opts: ${large.toFixed(4)}ms)`);
+}
+
+/* ── Test 8: a filter page's VM must not scale with the module's param count ─ */
+
+_origLog('\nTest 8: buildViewModel for a filter page (16 vs 400 module params)');
+
+{
+    /* When a filter pair has no mode enum on its own page, the type is looked up
+     * from a mode enum elsewhere in the chain. That search walked EVERY param in
+     * the module and ran a regex/split/join qualifier over each enum — every
+     * frame, and a knob turn dirties every frame. It is why helm's Main page
+     * (180 params, no same-page mode enum) turned visibly slower than its other
+     * pages while ob-xd's structurally identical Main page was fine. */
+    const build = (nFillers) => {
+        const params = [
+            { key: 'cutoff',    name: 'Cutoff', type: 'float', min: 0, max: 1, step: 0.01 },
+            { key: 'resonance', name: 'Res',    type: 'float', min: 0, max: 1, step: 0.01 },
+        ];
+        /* Filler enums that LOOK like filter modes (so the qualifier work runs)
+         * but whose qualifier never matches the pair — the worst case, and the
+         * one a real module with several filters actually hits. */
+        for (let i = 0; i < nFillers; i++) {
+            params.push({ key: 'osc' + i + '_mode', name: 'Osc' + i, type: 'enum',
+                          options: ['LP', 'HP', 'BP', 'Notch'] });
+        }
+        const knobs = params.map(p => p.key);
+        mockState = {
+            'synth:name': 'Test',
+            'synth:ui_hierarchy': JSON.stringify({ levels: { root: { knobs, params: [] } } }),
+            'synth:chain_params': JSON.stringify(params),
+            'synth:cutoff': '0.5',
+            'synth:resonance': '0.5',
+        };
+        for (let i = 0; i < nFillers; i++) mockState['synth:osc' + i + '_mode'] = 'LP';
+        const m = createModel(0, 'synth');
+        for (let i = 0; i < 40; i++) m.tick();
+        return m;
+    };
+    const median50 = (m) => {
+        const runs = [];
+        for (let i = 0; i < 50; i++) {
+            const t0 = process.hrtime.bigint();
+            m.getViewModel();
+            runs.push(Number(process.hrtime.bigint() - t0) / 1e6);
+        }
+        return median(runs);
+    };
+
+    const small = median50(build(14));
+    const large = median50(build(398));
+    const ratio = small > 0 ? large / small : 1;
+    check('filter-page VM cost ratio, 400 params vs 16', ratio, FILTER_VM_RATIO_MAX, 'x');
+    _origLog(`    (16 params: ${small.toFixed(4)}ms, 400 params: ${large.toFixed(4)}ms)`);
 }
 
 /* ── Test 7: opening the file overlay must not scale with the folder ────── */

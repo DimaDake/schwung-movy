@@ -35,6 +35,19 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Knobs keep up on a big synth's busiest page.** Turning a knob on Helm's Main
+  page lagged the hardware badly, while the same page on OB-Xd was fine. Two
+  causes, both paid on every tick: the app read `drumPadCount` and
+  `drumCurrentPad` through `getViewModel()`, building the entire page — layout,
+  envelope and filter graphics — and discarding all but one number, up to three
+  times per tick and even on frames that did not repaint; and a filter pair with
+  no mode enum on its own page re-scanned all of the module's parameters, with a
+  regex per enum, to find one elsewhere. Both now use cheap accessors and a cache
+  keyed on the loaded parameter list. On device, Helm's Main page went from 52 ms
+  to 8 ms per tick and its tick rate from ~18 Hz to ~105 Hz; of 150 injected
+  detents it registered 136 where it had registered 14. The tick period is also
+  how often Movy samples knob MIDI, which is why the dropped detents felt like
+  lag. Every module benefits — Helm was simply the one dense enough to show it.
 - **An empty track no longer slows every knob down.** Movy asks the host what
   module a track holds so the engine knows whether to transpose its clip. An
   *empty* slot never answers, so the question was asked again on the very next

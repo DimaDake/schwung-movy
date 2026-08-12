@@ -1471,6 +1471,38 @@ _log('\napp-loop: no edit escapes undo');
     seqState.lenSteps = 0;
 }
 
+_log('\napp-loop: a tick builds each ViewModel at most once');
+{
+    /* buildViewModel is the dearest thing a tick does — it lays out the page and
+     * computes envelope/filter graphics. The tick used to call getViewModel()
+     * unconditionally just to read drumPadCount, and buildAutomationView called
+     * it again for drumCurrentPad, so a param-dense module (helm, 180 params)
+     * paid for up to three full builds per tick, on EVERY tick, even undirtied
+     * ones — and the tick period is the knob's MIDI sampling interval, so the
+     * knobs on its costliest page turned visibly behind the hardware. */
+    resetApp();
+    appState.currentView = VIEW_KNOBS;
+    appState.activeSlot  = 0;
+
+    const counts = new Map();
+    for (const track of appState.trackModels) {
+        for (const m of track) {
+            if (!m || typeof m.getViewModel !== 'function' || m.__vmSpy) continue;
+            const orig = m.getViewModel.bind(m);
+            m.__vmSpy = true;
+            m.getViewModel = (...a) => { counts.set(m, (counts.get(m) ?? 0) + 1); return orig(...a); };
+        }
+    }
+
+    const TICKS = 10;
+    counts.clear();
+    advance(TICKS);
+    let worst = 0;
+    for (const n of counts.values()) if (n > worst) worst = n;
+    eq(`no model is built more than once per tick (worst ${worst}/${TICKS} ticks)`,
+        worst <= TICKS, true);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

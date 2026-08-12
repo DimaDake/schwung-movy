@@ -80,6 +80,26 @@ export function installPerfProbe(): void {
     wrap('host_module_set_param', 'mset', 0);
 }
 
+/* Coarse in-tick phase timing. tick_ms says the tick is slow; this says which
+ * part of it is. Named phases are summed over the window and reported beside
+ * the IPC breakdown. */
+const phases: Record<string, number> = {};
+let phaseStart = 0;
+let phaseName  = '';
+
+export function perfPhase(name: string): void {
+    const now = Date.now();
+    if (phaseName !== '') phases[phaseName] = (phases[phaseName] ?? 0) + (now - phaseStart);
+    phaseName  = name;
+    phaseStart = now;
+}
+
+export function perfPhaseEnd(): void {
+    if (phaseName === '') return;
+    phases[phaseName] = (phases[phaseName] ?? 0) + (Date.now() - phaseStart);
+    phaseName = '';
+}
+
 let tickStart  = 0;
 let inTickMs   = 0;   /* wall time inside tick() */
 let periodMs   = 0;   /* wall time between successive tick() entries */
@@ -115,6 +135,15 @@ export function perfProbeTick(): void {
     }
     /* period = in-tick + host-loop overhead. Splitting them says whether a slow
      * tick rate is movy's own work or the host loop's pacing. */
+    const pnames = Object.keys(phases).sort((a, b) => phases[b] - phases[a]);
+    let pline = '';
+    for (let i = 0; i < pnames.length && i < 6; i++) {
+        pline += ' ' + pnames[i] + '=' + (phases[pnames[i]] / ticks).toFixed(1);
+        delete phases[pnames[i]];
+    }
+    for (const k of Object.keys(phases)) delete phases[k];
+    if (pline) mlog('perf_phase' + pline);
+
     mlog('perf_ipc calls/tick=' + (total / ticks).toFixed(1)
         + ' peak=' + maxCalls
         + ' ipc_ms=' + (totalMs / ticks).toFixed(1)

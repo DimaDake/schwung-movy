@@ -1,7 +1,9 @@
 import { G5 } from './glyphs5x3.js';
 import { drawGlyphRun, glyphRunWidth, type Glyph } from './blit.js';
 
-const CHARS5 = ' !"\'()+,-./:0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ%<>=?*';
+/* Exported so a test can enumerate the font's coverage without a second copy of
+ * the string drifting from this one. */
+export const CHARS5 = ' !"\'()+,-./:0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ%<>=?*';
 
 const glyphFor = (cp: number): Glyph | null => {
     const idx = CHARS5.indexOf(String.fromCharCode(cp));

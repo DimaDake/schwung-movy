@@ -59,6 +59,7 @@ const PRESETS = [
     'track_volume_unity', 'track_volume_quiet', 'track_volume_min', 'track_volume_max',
     'trigger_armed', 'trigger_fired', 'trigger_blink_off', 'trigger_touched',
     'trigger_cooling', 'trigger_cooling_low',
+    'font_5x3_all', 'font_small_all', 'font_big_all_1', 'font_big_all_2',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -168,6 +169,32 @@ const { resetStepRec, stepRecDownAt } = await import('../dist/esm/seq/step-rec.j
 const { stepRecTick }      = await import('../dist/esm/seq/step-rec-view.js');
 const { drawSeqHeader, resetSeqHeader } = await import('../dist/esm/seq/render.js');
 const { MOCK_SYNTHS }      = await import('./mock-synth.mjs');
+const { fontPrint5x3, fontWidth5x3, FONT5_HEIGHT, CHARS5 } =
+    await import('../dist/esm/font/index5x3.js');
+const { fontPrint, fontWidth, FONT_HEIGHT } = await import('../dist/esm/font/index.js');
+const { fontPrintBig, fontWidthBig, BIG_FONT_HEIGHT } = await import('../dist/esm/font/big.js');
+
+/* Every glyph of one font, wrapped to the 128 px screen. A whole font on one
+ * reviewed image is what turns "the 1 looks mirrored" from something you notice
+ * on a device months later into a baseline diff: the earlier misdrawn '+', '='
+ * and '1' were all in cells nobody had screenshotted. `page` exists because the
+ * big font needs more than 64 px of lines. */
+function drawFontChart(chars, measure, print, lineH, page = 0) {
+    const lines = [];
+    let line = '';
+    for (const ch of chars) {
+        const next = line + ch;
+        if (measure(next) > W - 2) { lines.push(line); line = ch; } else { line = next; }
+    }
+    if (line) lines.push(line);
+    const perPage = Math.floor((H - 1) / (lineH + 2));
+    const slice = lines.slice(page * perPage, (page + 1) * perPage);
+    if (slice.length === 0) throw new Error(`font chart page ${page} is empty (${lines.length} lines)`);
+    slice.forEach((l, i) => print(1, 1 + i * (lineH + 2), l, 1));
+}
+
+/* Printable ASCII, the range the normal and big fonts index directly. */
+const ASCII = Array.from({ length: 0x7E - 0x20 + 1 }, (_, i) => String.fromCharCode(0x20 + i)).join('');
 
 const COMPONENT_KEYS = ['midi_fx1', 'synth', 'fx1', 'fx2'];
 const chainModels = COMPONENT_KEYS.map(k => createModel(0, k));
@@ -267,6 +294,26 @@ function applyView(preset) {
         case 'trigger_touched':     settle(); model.handleKnobTouch(0); forceRender(); break;
         case 'trigger_cooling':     fireTrigger(250); break;
         case 'trigger_cooling_low': fireTrigger(620); break;
+        /* Font charts: every glyph of each font, reviewed as pixels. The 5x3 one
+         * also pins the signed/numeric strings the step cells draw, which is
+         * where a swallowed minus and a top-aligned '+' were found. */
+        case 'font_5x3_all':
+            clear_screen();
+            drawFontChart(CHARS5, fontWidth5x3, fontPrint5x3, FONT5_HEIGHT);
+            fontPrint5x3(1, 3 * (FONT5_HEIGHT + 2) + 1, '-3 +2 -1 0 12 128', 1);
+            break;
+        case 'font_small_all':
+            clear_screen();
+            drawFontChart(ASCII, (s) => fontWidth(s), (x, y, s, c) => fontPrint(x, y, s, c), FONT_HEIGHT);
+            break;
+        case 'font_big_all_1':
+            clear_screen();
+            drawFontChart(ASCII, fontWidthBig, fontPrintBig, BIG_FONT_HEIGHT, 0);
+            break;
+        case 'font_big_all_2':
+            clear_screen();
+            drawFontChart(ASCII, fontWidthBig, fontPrintBig, BIG_FONT_HEIGHT, 1);
+            break;
         case 'env_dual':    forceRender(); break;
         case 'env_touched': model.handleKnobTouch(2); forceRender(); break;   // touch Sustain
         case 'env_ad':      forceRender(); break;

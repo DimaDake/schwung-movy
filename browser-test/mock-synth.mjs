@@ -244,6 +244,33 @@ export const MOCK_SYNTHS = {
         "synth:vel":    "0.50",
     },
 
+    /* Step cells (model/step-labels.ts) beside the neighbours that must NOT
+     * become one. Octaves sit off zero so the sign is actually visible: no other
+     * baseline catches a "+2" turning into a "2". */
+    test_steps: {
+        "synth:name": "Steps",
+        "synth:ui_hierarchy": hier([
+            { key: "octave",      label: "Oct",   type: "int", min: -3, max: 3, step: 1 },
+            { key: "osc1_range",  label: "Rng",   type: "int", min: -2, max: 2, step: 1 },
+            { key: "arp_octaves", label: "ArpOc", type: "int", min: 1,  max: 4, step: 1 },
+            { key: "voice_count", label: "Voice", type: "int", min: 1,  max: 8, step: 1 },
+            // Not step cells: a mode with a narrow range, a wide count, a
+            // toggle, and a float. These stay an arc, an arc, a bar and an arc.
+            { key: "legato",      label: "Legat", type: "int", min: 0,  max: 3, step: 1 },
+            { key: "bend_range",  label: "Bend",  type: "int", min: 0,  max: 1, step: 1 },
+            { key: "unison_det",  label: "Detun", type: "int", min: 0,  max: 100, step: 1 },
+            { key: "cutoff",      label: "Cut",   type: "float", min: 0, max: 1, step: 0.01 },
+        ]),
+        "synth:octave":      "2",
+        "synth:osc1_range":  "-1",
+        "synth:arp_octaves": "3",
+        "synth:voice_count": "6",
+        "synth:legato":      "2",
+        "synth:bend_range":  "1",
+        "synth:unison_det":  "40",
+        "synth:cutoff":      "0.60",
+    },
+
     /* Name-based enums (like the arp midi_fx): get/set speak the option NAME,
      * not the index. `division` has >6 options → opens the overlay. */
     name_enum: {

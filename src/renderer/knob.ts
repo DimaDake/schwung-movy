@@ -203,6 +203,10 @@ export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
         drawLengthSquare(kx, ky, pvm.displayValue);
     } else if (pvm.type === 'file') {
         drawEnumSquare(kx, ky, [pvm.displayValue], 0);
+    } else if (pvm.renderStyle === 'steps') {
+        /* One pre-formatted string, not an options array — sfz's voice count runs
+         * to 128, and a label per value rebuilt every frame would be absurd. */
+        drawEnumSquare(kx, ky, [pvm.displayValue], 0);
     } else if (pvm.type === 'enum') {
         drawEnumSquare(kx, ky, pvm.options, pvm.enumIndex);
     } else if (pvm.renderStyle === 'xbox') {

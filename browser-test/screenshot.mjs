@@ -30,7 +30,7 @@ const ACTUAL_DIR = join(__dir, 'screenshots', 'actual');
 const UPDATE     = process.argv.includes('--update');
 
 const PRESETS = [
-    'test8', 'test16', 'test_enum', 'plaits', 'wurl',
+    'test8', 'test16', 'test_enum', 'test_steps', 'plaits', 'wurl',
     'enum_overlay', 'knob_toast', 'no_params', 'keys_view', 'browse_view',
     'obxd_preset_page', 'obxd_main_page', 'obxd_filter_page',
     'lfo_prefix', 'collide_osc',

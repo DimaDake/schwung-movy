@@ -10,7 +10,7 @@ import {
 import { mainPageActive } from './main-page.js';
 import { clipPageActive } from './clip-page.js';
 import { sessionPaintGrid } from './session.js';
-import { loopEndBar, loopStartBar, occHasStep, seqState } from './state.js';
+import { loopEndBar, loopStartBar, occHasStep, seqState, stepInLoop } from './state.js';
 import { stepRecActive, stepRecCanGoLeft, stepRecHead } from './step-rec.js';
 import { cachedSetLED, cachedSetButtonLED, cachedSetAnimLED, ledFrameReset, seqLedsInvalidate } from './led-cache.js';
 
@@ -223,16 +223,16 @@ export function seqLedsTick(
             color = headBlink ? C_REC_RED : C_BLACK;
         } else if (emptyMetro) {
             color = metronomeStep(i, seqState.engineTick) ? C_GREEN : C_BLACK;
-        } else if (seqState.lenSteps > 0 && step >= seqState.lenSteps) {
-            // Steps past the clip length are not part of the pattern → fully off
-            // (overrides occupancy/playhead, which never land out here anyway).
+        } else if (seqState.lenSteps > 0 && !stepInLoop(step)) {
+            // Steps outside the loop window are not part of the pattern → fully
+            // off (overrides occupancy/playhead, which never land out here).
             color = C_BLACK;
         } else {
             const span = lengthSpanColor(step, holdStep, holdLen, watchTrack);
             if (span >= 0) color = span;
             else if (step === playStep) color = seqState.recording ? C_REC_RED : C_GREEN;
             else if (occHasStep(step)) color = C_WHITE;
-            else if (seqState.lenSteps > 0 && step < seqState.lenSteps) color = dimTrack;
+            else if (seqState.lenSteps > 0 && stepInLoop(step)) color = dimTrack;
             else color = C_DARKGREY;
         }
         cachedSetLED(STEP_NOTE_BASE + i, color);

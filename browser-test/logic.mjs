@@ -10119,6 +10119,43 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     resetSeqState();
 }
 
+/* ── seq step row inside a mid-clip loop ─────────────────────────────────── */
+{
+    _log('\nseq step row in a mid-clip loop:');
+    const sent = new Map();
+    const savedLed = globalThis.setLED, savedBtn = globalThis.setButtonLED;
+    globalThis.setLED = (n, c) => sent.set(n, c);
+    globalThis.setButtonLED = () => {};
+
+    const leds = await import('../dist/esm/seq/leds.js');
+    const { seqState, resetSeqState, occToggleStep } = await import('../dist/esm/seq/state.js');
+    const { trackColorDim } = await import('../dist/esm/seq/colors.js');
+
+    // Loop = bars 3-4 (steps 32..63), viewing bar 3, notes on steps 32 and 36.
+    resetSeqState();
+    seqState.loopStart = 32; seqState.lenSteps = 32; seqState.barOffset = 2;
+    occToggleStep(32); occToggleStep(36);
+    leds.seqLedsInvalidate();
+    // Two ticks: the first frame's 40-send budget also pays for buttons/icons.
+    leds.seqLedsTick(false, 0, 2, 4);
+    leds.seqLedsTick(false, 0, 2, 4);
+    eq('occupied step 32 is white', sent.get(16), 120);
+    eq('occupied step 36 is white', sent.get(20), 120);
+    eq('empty in-loop step is track-dim', sent.get(17), trackColorDim(0));
+    eq('mid-loop row is not blacked out',
+        [...Array(16).keys()].every((i) => sent.get(16 + i) === 0), false);
+
+    // The bar past the loop end stays dark (unchanged affordance).
+    sent.clear(); seqState.barOffset = 4;
+    leds.seqLedsInvalidate();
+    leds.seqLedsTick(false, 0, 4, 4);
+    leds.seqLedsTick(false, 0, 4, 4);
+    eq('bar past the loop is dark', sent.get(16), 0);
+
+    globalThis.setLED = savedLed; globalThis.setButtonLED = savedBtn;
+    resetSeqState(); leds.seqLedsInvalidate();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

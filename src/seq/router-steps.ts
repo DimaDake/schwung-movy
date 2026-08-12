@@ -150,8 +150,11 @@ function toggleStep(button: number): void {
     // bar; pressing one is inert (no entry). The next empty bar stays tappable
     // so the native "tap into the next bar to grow the clip" still works, and a
     // pre-existing note past the length can still be cleared.
-    const barEnd = Math.ceil(seqState.lenSteps / NUM_STEP_BUTTONS) * NUM_STEP_BUTTONS;
-    if (seqState.lenSteps > 0 && step >= seqState.lenSteps && step < barEnd && !occHasStep(step)) return;
+    // Measured from the loop END (absolute): a loop starting mid-clip has its own
+    // last bar, and lenSteps alone would put the boundary in the wrong place.
+    const loopEnd = seqState.loopStart + seqState.lenSteps;
+    const barEnd = Math.ceil(loopEnd / NUM_STEP_BUTTONS) * NUM_STEP_BUTTONS;
+    if (seqState.lenSteps > 0 && step >= loopEnd && step < barEnd && !occHasStep(step)) return;
     const wasSet = occHasStep(step);
 
     beginEdit({

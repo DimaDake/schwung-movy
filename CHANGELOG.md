@@ -13,6 +13,26 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Changed
+
+- **A handful of values no longer means a hair trigger.** Any parameter with
+  eight discrete values or fewer now takes four clicks per step — the rate
+  Movy's enum knobs already used — so OB-Xd's five-position octave takes a
+  deliberate turn instead of crossing its whole range in four clicks. 86
+  parameters across 23 modules are affected, Dexed's operator settings and
+  OB-Xd's `voice_count` and `legato` among them. On/off switches are untouched
+  and still flip on a single click. A turn that doesn't cross a step now writes
+  nothing at all, so it costs no undo entry either.
+- **Octave offsets and voice counts read as numbers, not arcs.** 41 parameters
+  across 24 modules — every `octave`/`octave_transpose`, Moog's four oscillator
+  ranges, and every voice count from `obxd voice_count` to `sfz voices` — are
+  drawn as a framed value, with a sign on the 26 that are offsets. An arc shows a
+  position in a range, which is the wrong reading for a value you think of by
+  name; the cell otherwise showed the parameter's name and revealed the number
+  only while the knob was touched.
+
+  ![Step cells](docs/assets/test_steps.png)
+
 ### Fixed
 
 - **A knob now moves the same distance in both directions.** On any parameter

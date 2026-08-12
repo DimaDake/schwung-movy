@@ -258,6 +258,21 @@ discrete values (an octave, a voice count, a mode) moves in whole steps instead.
 Either way a click moves the same distance clockwise and counter-clockwise, and
 turning faster covers proportionally more ground rather than less.
 
+A parameter with only a handful of values — eight or fewer — takes four clicks
+per step, so a five-position octave is no longer a quarter of its range per
+click. On/off switches are the exception and still flip on a single click.
+
+Octave offsets and voice counts are drawn as a framed number rather than an arc,
+because an arc shows a position in a range and these are values you think of by
+name. An offset shows its sign, so you can read `+2` or `-1` without touching the
+knob:
+
+![Step cells](docs/assets/test_steps.png)
+
+Here `OCT` and `RNG` are octave offsets, `ARPOC` and `VOICE` are counts, and the
+neighbours keep their usual shapes — `LEGAT` is a four-value mode, `BEND` an
+on/off switch, `DETUN` a wide amount and `CUT` continuous.
+
 ---
 
 ## 3. The module chain

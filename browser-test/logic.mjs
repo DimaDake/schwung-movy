@@ -10087,6 +10087,38 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     resetUndoState(); resetUndoGroups(); resetUndoApply(); rmr2();
 }
 
+/* ── seq loop window coordinates ─────────────────────────────────────────── */
+{
+    _log('\nseq loop window coords:');
+    const { seqState, resetSeqState, stepInLoop, minBarOffset, maxBarOffset, loopBarCount } =
+        await import('../dist/esm/seq/state.js');
+
+    // Loop = bars 3-4 (0-based 2-3): absolute steps 32..63.
+    resetSeqState(); seqState.loopStart = 32; seqState.lenSteps = 32;
+    eq('loop start bar navigable', minBarOffset(), 2);
+    eq('one bar past the loop navigable', maxBarOffset(), 4);
+    eq('loop spans 2 bars', loopBarCount(), 2);
+    eq('step before the loop is out', stepInLoop(31), false);
+    eq('first loop step is in', stepInLoop(32), true);
+    eq('last loop step is in', stepInLoop(63), true);
+    eq('step past the loop is out', stepInLoop(64), false);
+
+    // loopStart 0 → unchanged from the old formulas (regression guard).
+    resetSeqState(); seqState.lenSteps = 32;
+    eq('bar 0 loop starts at 0', minBarOffset(), 0);
+    eq('bar 0 loop max offset unchanged', maxBarOffset(), 2);
+
+    // Empty slot: nowhere to navigate.
+    resetSeqState();
+    eq('empty clip max offset is 0', maxBarOffset(), 0);
+    eq('empty clip min offset is 0', minBarOffset(), 0);
+
+    // 16-bar cap holds even at the last bar.
+    resetSeqState(); seqState.loopStart = 240; seqState.lenSteps = 16;
+    eq('last bar caps at 15', maxBarOffset(), 15);
+    resetSeqState();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

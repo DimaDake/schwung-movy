@@ -163,16 +163,39 @@ export function sessionFromStr(s: string): void {
     }
 }
 
-/* Number of bars in the watched clip, with one extra empty bar available to
- * navigate into (native: stepping past the loop shows an empty bar that
- * becomes part of the loop once a note is added). Capped at 16 bars. */
+/* Number of bars the watched clip's loop spans (its length, bar-rounded), capped
+ * at 16. NOT an absolute bar index — the loop can start anywhere; ask
+ * loopStartBar() for where it begins. */
 export function clipBars(): number {
     return Math.max(1, Math.ceil(seqState.lenSteps / 16));
 }
 
+export function loopBarCount(): number {
+    return loopEndBar() - loopStartBar() + 1;
+}
+
+/* Navigable bar range: the loop's own bars plus ONE empty bar past its end
+ * (native: stepping past the loop shows an empty bar that becomes part of the
+ * loop once a note is added). Absolute bar indices — a loop that starts at bar 3
+ * must not let the arrows wander back to bar 1, and must be able to reach its
+ * own last bar. */
+export function minBarOffset(): number {
+    if (seqState.lenSteps === 0) return 0;
+    return loopStartBar();
+}
+
 export function maxBarOffset(): number {
     if (seqState.lenSteps === 0) return 0;
-    return Math.min(clipBars(), 15);
+    return Math.min(loopEndBar() + 1, 15);
+}
+
+/* Is this absolute step inside the loop window the engine actually plays? The
+ * engine loops [loop_start_steps, loop_start_steps + length_steps) (seq-core
+ * clip.rs), so every consumer must ask through here rather than comparing
+ * against lenSteps — that is a LENGTH, not an end index, and reading it as one
+ * broke the strip, the sweep, the step row and bar navigation at once. */
+export function stepInLoop(step: number): boolean {
+    return step >= seqState.loopStart && step < seqState.loopStart + seqState.lenSteps;
 }
 
 /* First and last (inclusive) loop bar indices for the watched clip. */

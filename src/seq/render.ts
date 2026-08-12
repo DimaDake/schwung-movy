@@ -50,6 +50,22 @@ export function drawSeqHeader(): void {
 
 export function resetSeqHeader(): void { headerText = ''; headerTtl = 0; }
 
+/* Loop-mode readout. The timed announcement flashed for ~0.3 s and then left the
+ * screen with nothing saying which window you were editing; while Loop mode is on
+ * this band stays up and tracks navigation. Bars are 1-based here so the numbers
+ * match the step buttons the user is looking at. */
+export function loopHeaderText(): string {
+    const first = loopStartBar() + 1;
+    const last = loopEndBar() + 1;
+    const window = first === last ? `${first}` : `${first}-${last}`;
+    return `LOOP ${window}  BAR ${seqState.barOffset + 1}`;
+}
+
+export function drawLoopHeader(): void {
+    fill_rect(0, 0, W, 9, 1);              // inverted band, as the announcement uses
+    fontPrint(2, 1, loopHeaderText(), 0);
+}
+
 /* Loop Overview strip: one segment per bar at the very bottom of the display —
  * thick = selected bar (thin if the loop is a single bar), thin = in-loop bar, a
  * small "+" = a bar outside the loop (the navigable empty bar), and a vertical

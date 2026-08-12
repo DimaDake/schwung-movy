@@ -58,7 +58,7 @@ import { activeHasNote, maxBarOffset, seqState } from '../seq/state.js';
 import { engineReady } from '../seq/engine.js';
 import { perfProbeEnter, perfProbeTick, perfPhase, perfPhaseEnd } from './perf-probe.js';
 import {
-    drawLoopStrip, drawSeqToast, drawSeqHeader,
+    drawLoopStrip, drawLoopHeader, drawSeqToast, drawSeqHeader,
     seqToastActive, seqToastTick,
     seqHeaderActive, seqHeaderTick,
 } from '../seq/render.js';
@@ -617,6 +617,10 @@ function tickBody(): void {
     // over it a few milliseconds later.
     if (engineReady() && !seqToastActive() && !jogToastShown && !seqState.sessionMode
         && !isBrowseView && !captureOverlayActive()) {
+        /* Loop mode's readout runs on the same per-tick schedule as the strip:
+         * both track state that moves without a dirty frame (bar navigation, the
+         * sweep). While it is up it supersedes the timed announcement. */
+        if (seqState.loopMode) drawLoopHeader();
         drawLoopStrip();
     }
 }

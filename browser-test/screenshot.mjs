@@ -44,7 +44,7 @@ const PRESETS = [
     'bankbar-mid', 'bankbar-surge', 'bankbar-dense',
     'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
     'step_page_knobs', 'step_page_chain', 'step_indicator', 'step_rec_header',
-    'loop_strip_midclip', 'loop_strip_outside',
+    'loop_strip_midclip', 'loop_strip_outside', 'loop_header',
     'main-default', 'main-tempo-touched', 'main-swing-touched',
     'main-root-touched', 'main-key-overlay', 'main-mode-overlay', 'main-layout-overlay',
     'main-ext-sync', 'main-link-on',
@@ -79,7 +79,7 @@ const BASE = {
     auto_dot: 'test8', auto_held: 'test8', auto_live: 'test8', auto_limit: 'test8',
     step_page_knobs: 'test8', step_page_chain: 'test8', step_indicator: 'test8',
     step_rec_header: 'test8',
-    loop_strip_midclip: 'test8', loop_strip_outside: 'test8',
+    loop_strip_midclip: 'test8', loop_strip_outside: 'test8', loop_header: 'test8',
     'main-default': 'test8', 'main-tempo-touched': 'test8',
     'main-swing-touched': 'test8', 'main-root-touched': 'test8',
     'main-key-overlay': 'test8', 'main-mode-overlay': 'test8',
@@ -169,7 +169,8 @@ const { appState }                     = await import('../dist/esm/app/state.js'
 const { keyboardState }                = await import('../dist/esm/keyboard/state.js');
 const { resetStepRec, stepRecDownAt } = await import('../dist/esm/seq/step-rec.js');
 const { stepRecTick }      = await import('../dist/esm/seq/step-rec-view.js');
-const { drawSeqHeader, resetSeqHeader, drawLoopStrip } = await import('../dist/esm/seq/render.js');
+const { drawSeqHeader, resetSeqHeader, drawLoopStrip, drawLoopHeader } =
+    await import('../dist/esm/seq/render.js');
 const { MOCK_SYNTHS }      = await import('./mock-synth.mjs');
 const { fontPrint5x3, fontWidth5x3, FONT5_HEIGHT, CHARS5 } =
     await import('../dist/esm/font/index5x3.js');
@@ -455,6 +456,19 @@ function applyView(preset) {
             seqState.holdNotes = [60, 64, 67];
             stepRecTick();
             lastRender = () => { renderKnobsView(model.getViewModel()); drawSeqHeader(); };
+            lastRender();
+            break;
+        }
+        case 'loop_header': {
+            // Loop mode over a live param page: readout band on top, strip below.
+            // The band replaces a 0.3s flash that left no indication of the window.
+            resetSeqState(); resetSeqHeader();
+            seqState.loopMode = true;
+            seqState.loopStart = 32; seqState.lenSteps = 32; seqState.barOffset = 2;
+            lastRender = () => {
+                renderKnobsView(model.getViewModel());
+                drawLoopHeader(); drawLoopStrip();
+            };
             lastRender();
             break;
         }

@@ -11,6 +11,7 @@
  * commands and the optimistic mirror is corrected by the next status poll. */
 
 import { NUM_STEP_BUTTONS } from './constants.js';
+import { appState } from '../app/state.js';
 import { undoableEdit } from '../undo/edit.js';
 import { trackLabel } from '../undo/label.js';
 import { seqCmd, uiTick } from './engine.js';
@@ -36,13 +37,18 @@ export function loopButton(down: boolean): void {
     if (down) {
         held = true;
         loopPrev = seqState.loopMode;
-        momentaryDown(CC_LOOP_BTN, () => { seqState.loopMode = loopPrev; seqHeaderAnnounce(loopPrev ? 'Loop' : 'Note'); });
+        momentaryDown(CC_LOOP_BTN, () => {
+            seqState.loopMode = loopPrev;
+            appState.dirty = true;   // erase the readout band on the way out
+            seqHeaderAnnounce(loopPrev ? 'Loop' : 'Note');
+        });
         seqState.loopMode = true;
         seqHeaderAnnounce('Loop');
     } else {
         held = false;
         if (momentaryUp(CC_LOOP_BTN) === 'tap' && loopPrev) {
             seqState.loopMode = false; // tap while already in Loop → back to Note
+            appState.dirty = true;
             seqHeaderAnnounce('Note');
         }
     }

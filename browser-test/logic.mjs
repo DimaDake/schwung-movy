@@ -10199,6 +10199,24 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     resetSeqState(); leds.seqLedsInvalidate();
 }
 
+/* ── loop mode header readout ────────────────────────────────────────────── */
+{
+    _log('\nloop header readout:');
+    const { loopHeaderText } = await import('../dist/esm/seq/render.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+
+    // Loop = bars 3-4, viewing bar 3. Bars read 1-based, as printed on the unit.
+    resetSeqState(); seqState.loopStart = 32; seqState.lenSteps = 32; seqState.barOffset = 2;
+    eq('multi-bar window', loopHeaderText(), 'LOOP 3-4  BAR 3');
+    // A single-bar loop reads as one number, not "3-3".
+    resetSeqState(); seqState.loopStart = 32; seqState.lenSteps = 16; seqState.barOffset = 2;
+    eq('single-bar window', loopHeaderText(), 'LOOP 3  BAR 3');
+    // Navigated outside the loop: BAR still reports where you actually are.
+    resetSeqState(); seqState.loopStart = 32; seqState.lenSteps = 16; seqState.barOffset = 3;
+    eq('outside the window', loopHeaderText(), 'LOOP 3  BAR 4');
+    resetSeqState();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

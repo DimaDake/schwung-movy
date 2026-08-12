@@ -7,15 +7,19 @@
 import { drawJogToast } from '../renderer/overlay.js';
 import { W } from '../renderer/layout.js';
 import { fontPrint } from '../font/index.js';
-import { clipBars, seqState } from './state.js';
+import { loopBarCount, loopEndBar, loopStartBar, seqState } from './state.js';
+import { NUM_STEP_BUTTONS } from './constants.js';
 
 const TICKS_PER_STEP = 24; // mirror of seq-core
 
-/* Continuous playhead x within the strip: fraction of the clip elapsed. */
-export function playheadX(posTick: number, lenSteps: number, stripW: number): number {
+/* Continuous playhead x within the active window: fraction of the LOOP elapsed.
+ * `loopStartTick` is required, not optional — posTick is absolute (seq-core seeds
+ * it from loop_start_ticks), and the caller that forgot to subtract the window
+ * origin pinned the sweep to the right edge for a whole mid-clip loop. */
+export function playheadX(posTick: number, loopStartTick: number, lenSteps: number, stripW: number): number {
     const lenTicks = Math.max(lenSteps, 16) * TICKS_PER_STEP;
     if (lenTicks <= 0) return 0;
-    const x = Math.round((posTick / lenTicks) * stripW);
+    const x = Math.round(((posTick - loopStartTick) / lenTicks) * stripW);
     return Math.max(0, Math.min(x, stripW - 1));
 }
 
@@ -46,11 +50,11 @@ export function drawSeqHeader(): void {
 
 export function resetSeqHeader(): void { headerText = ''; headerTtl = 0; }
 
-/* Loop Overview strip (manual §12.1): one segment per bar at the very bottom
- * of the display — thick = selected bar (thin if the loop is a single bar),
- * thin = in-loop bar, a small "+" = a bar outside the loop (the navigable
- * empty bar), and a vertical line sweeps across at the play position. Drawn
- * over the param view; a toast temporarily covers it. */
+/* Loop Overview strip: one segment per bar at the very bottom of the display —
+ * thick = selected bar (thin if the loop is a single bar), thin = in-loop bar, a
+ * small "+" = a bar outside the loop (the navigable empty bar), and a vertical
+ * line sweeps across at the play position. Drawn over the param view; a toast
+ * temporarily covers it. */
 const STRIP_Y = 62; // baseline row (display is 64 tall)
 
 export function drawLoopStrip(): void {
@@ -59,30 +63,39 @@ export function drawLoopStrip(): void {
     // No clip in the current slot → no bar line at all (clipBars() floors to 1,
     // so guard on the real emptiness signal).
     if (seqState.lenSteps === 0) return;
-    const bars = clipBars();
-    // Include the empty bar the user has navigated into, if any.
-    const view = Math.max(bars, seqState.barOffset + 1, 1);
+    /* The strip spans the ACTIVE window, extended to reach the selected bar when
+     * the user has navigated outside it. Absolute bar indices throughout — the
+     * loop can start anywhere, and reading lenSteps as a bar count drew the
+     * segments at bars 1..N while the loop played somewhere else entirely. */
+    const first = loopStartBar();
+    const last = loopEndBar();
+    const from = Math.min(first, seqState.barOffset);
+    const to = Math.max(last, seqState.barOffset);
+    const view = to - from + 1;
     const segW = Math.max(3, Math.floor(W / view));
-    const single = bars <= 1;
+    const single = first === last;
 
-    for (let i = 0; i < view; i++) {
-        const x0 = i * segW;
+    for (let bar = from; bar <= to; bar++) {
+        const x0 = (bar - from) * segW;
         const cx = x0 + Math.floor(segW / 2);
-        if (i < bars) {
-            const selected = i === seqState.barOffset;
+        if (bar >= first && bar <= last) {
+            const selected = bar === seqState.barOffset;
             const thick = selected && !single;
             fill_rect(x0 + 1, thick ? STRIP_Y - 1 : STRIP_Y, segW - 2, thick ? 2 : 1, 1);
         } else {
-            // "+" marker for an out-of-loop bar.
+            // "+" marker for a bar outside the loop (navigated into).
             fill_rect(cx - 1, STRIP_Y, 3, 1, 1);
             fill_rect(cx, STRIP_Y - 1, 1, 3, 1);
         }
     }
 
-    // Playhead sweep: smooth continuous tick position across the full strip.
+    // Playhead sweep: continuous, confined to the active window's segments.
     if (seqState.playing) {
-        const px = playheadX(seqState.posTick, seqState.lenSteps, W);
-        fill_rect(px, STRIP_Y - 2, 1, 4, 1);
+        const originX = (first - from) * segW;
+        const windowW = loopBarCount() * segW;
+        const px = playheadX(seqState.posTick, first * NUM_STEP_BUTTONS * TICKS_PER_STEP,
+            seqState.lenSteps, windowW);
+        fill_rect(originX + px, STRIP_Y - 2, 1, 4, 1);
     }
 }
 

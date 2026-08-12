@@ -44,6 +44,7 @@ const PRESETS = [
     'bankbar-mid', 'bankbar-surge', 'bankbar-dense',
     'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
     'step_page_knobs', 'step_page_chain', 'step_indicator', 'step_rec_header',
+    'loop_strip_midclip', 'loop_strip_outside',
     'main-default', 'main-tempo-touched', 'main-swing-touched',
     'main-root-touched', 'main-key-overlay', 'main-mode-overlay', 'main-layout-overlay',
     'main-ext-sync', 'main-link-on',
@@ -78,6 +79,7 @@ const BASE = {
     auto_dot: 'test8', auto_held: 'test8', auto_live: 'test8', auto_limit: 'test8',
     step_page_knobs: 'test8', step_page_chain: 'test8', step_indicator: 'test8',
     step_rec_header: 'test8',
+    loop_strip_midclip: 'test8', loop_strip_outside: 'test8',
     'main-default': 'test8', 'main-tempo-touched': 'test8',
     'main-swing-touched': 'test8', 'main-root-touched': 'test8',
     'main-key-overlay': 'test8', 'main-mode-overlay': 'test8',
@@ -167,7 +169,7 @@ const { appState }                     = await import('../dist/esm/app/state.js'
 const { keyboardState }                = await import('../dist/esm/keyboard/state.js');
 const { resetStepRec, stepRecDownAt } = await import('../dist/esm/seq/step-rec.js');
 const { stepRecTick }      = await import('../dist/esm/seq/step-rec-view.js');
-const { drawSeqHeader, resetSeqHeader } = await import('../dist/esm/seq/render.js');
+const { drawSeqHeader, resetSeqHeader, drawLoopStrip } = await import('../dist/esm/seq/render.js');
 const { MOCK_SYNTHS }      = await import('./mock-synth.mjs');
 const { fontPrint5x3, fontWidth5x3, FONT5_HEIGHT, CHARS5 } =
     await import('../dist/esm/font/index5x3.js');
@@ -453,6 +455,25 @@ function applyView(preset) {
             seqState.holdNotes = [60, 64, 67];
             stepRecTick();
             lastRender = () => { renderKnobsView(model.getViewModel()); drawSeqHeader(); };
+            lastRender();
+            break;
+        }
+        case 'loop_strip_midclip': {
+            // Loop = bars 3-4, viewing bar 3, playing: the segments sit on the
+            // active bars and the sweep stays inside them. Reading lenSteps as a
+            // bar count used to draw this at bars 1-2 with the sweep pinned right.
+            resetSeqState();
+            seqState.loopStart = 32; seqState.lenSteps = 32; seqState.barOffset = 2;
+            seqState.playing = true; seqState.posTick = 40 * 24;
+            lastRender = () => { renderKnobsView(model.getViewModel()); drawLoopStrip(); };
+            lastRender();
+            break;
+        }
+        case 'loop_strip_outside': {
+            // Navigated a bar past a mid-clip loop: a "+" leads out to it.
+            resetSeqState();
+            seqState.loopStart = 32; seqState.lenSteps = 32; seqState.barOffset = 4;
+            lastRender = () => { renderKnobsView(model.getViewModel()); drawLoopStrip(); };
             lastRender();
             break;
         }

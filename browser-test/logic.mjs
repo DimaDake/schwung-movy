@@ -3298,6 +3298,36 @@ _log('\nTest: drumPadOn');
     drawLoopStrip();
     eq('empty slot draws no playhead while playing', rects.slice(1).filter(r => r.v === 1).length, 0);
 
+    // Loop = bars 3-4 (steps 32..63), viewing bar 3. Segments must land on the
+    // ACTIVE bars; before the fix these drew at bars 0-1 and bar 2 became a "+".
+    resetSeqState();
+    seqState.loopStart = 32; seqState.lenSteps = 32; seqState.barOffset = 2;
+    rects.length = 0;
+    drawLoopStrip();
+    const mid = rects.slice(1).filter(r => r.v === 1);
+    eq('mid-clip loop draws two segments', mid.length, 2);
+    eq('selected loop bar is thick', mid[0].h, 2);
+    eq('selected segment starts at x=1', mid[0].x, 1);
+    eq('other loop bar is thin', mid[1].h, 1);
+
+    // Viewing the empty bar past a mid-clip loop → 3 spans, the last a "+".
+    resetSeqState();
+    seqState.loopStart = 32; seqState.lenSteps = 32; seqState.barOffset = 4;
+    rects.length = 0;
+    drawLoopStrip();
+    // 2 loop segments + plus icon (2 rects) = 4 lit rects.
+    eq('bar past a mid-clip loop shows a plus', rects.slice(1).filter(r => r.v === 1).length, 4);
+
+    // Sweep stays inside the active window, never over the "+" bar.
+    resetSeqState();
+    seqState.loopStart = 32; seqState.lenSteps = 32; seqState.barOffset = 4;
+    seqState.playing = true; seqState.posTick = 32 * 24;   // first tick of the loop
+    rects.length = 0;
+    drawLoopStrip();
+    const sweep = rects.slice(1).find(r => r.v === 1 && r.h === 4);
+    eq('sweep drawn', sweep !== undefined, true);
+    eq('sweep starts at the window origin', sweep.x, 0);
+
     globalThis.fill_rect = origFill;
     resetSeqState();
 }
@@ -4241,10 +4271,15 @@ _log('\nautomation: restore re-requests label sync:');
     _log('\nplayhead position:');
     const { playheadX } = await import('../dist/esm/seq/render.js');
     const W = 128;
-    eq('start at 0', playheadX(0, 32, W), 0);
-    eq('mid', playheadX(16 * 24, 32, W), 64);   // half of a 32-step clip
-    eq('clamps to width-1', playheadX(999999, 32, W), W - 1);
-    eq('empty clip → 0', playheadX(0, 0, W), 0);
+    eq('start at 0', playheadX(0, 0, 32, W), 0);
+    eq('mid', playheadX(16 * 24, 0, 32, W), 64);   // half of a 32-step clip
+    eq('clamps to width-1', playheadX(999999, 0, 32, W), W - 1);
+    eq('empty clip → 0', playheadX(0, 0, 0, W), 0);
+    // A loop starting at bar 3 (step 32): the sweep is relative to the WINDOW,
+    // so its own first tick is x=0, not the right edge.
+    eq('mid-clip loop starts at 0', playheadX(32 * 24, 32 * 24, 32, W), 0);
+    eq('mid-clip loop halfway', playheadX(48 * 24, 32 * 24, 32, W), 64);
+    eq('before the window clamps to 0', playheadX(0, 32 * 24, 32, W), 0);
 }
 
 /* ── batch3 status mirror ────────────────────────────────────────────────── */

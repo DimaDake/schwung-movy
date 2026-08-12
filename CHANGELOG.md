@@ -15,6 +15,21 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
+- **Loop-view bars breathe like Session clips.** The bar selector now speaks
+  Session view's LED language: the bar you are viewing is white and breathes
+  slowly, the bars in the loop pulse on the beat in the track colour, and
+  everything outside the loop is near-black. The hardware does the fade, so the
+  pulse is smooth and no longer freezes while the transport is stopped — and an
+  idle Loop view sends no LED traffic at all, where the old JS blink sent the
+  whole row four times a second. Whether a bar holds notes is deliberately no
+  longer shown: in this view a bar's job is to tell you whether it plays.
+- **Loop mode says which window you are editing.** Entering it flashed `Loop` for
+  a third of a second and then left nothing on screen. A band now stays up naming
+  the window and the bar you are on — `LOOP 3-4  BAR 3` — and follows you as you
+  navigate.
+
+  ![The Loop view](docs/assets/loop_header.png)
+
 - **A handful of values no longer means a hair trigger.** Any parameter with
   eight discrete values or fewer now takes four clicks per step — the rate
   Movy's enum knobs already used — so OB-Xd's five-position octave takes a
@@ -35,6 +50,26 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **A loop set in the middle of a part now works at all.** Pressing two bars to
+  loop, say, bars 3–4 left every view wrong, because the engine stores an
+  absolute window while the display read the loop's *length* as if it always
+  started at bar 1. The step row went completely dark, hiding the notes and
+  making step editing blind; the bar strip drew its segments on bars 1–2 and
+  marked bar 3 — selected and playing — as an out-of-loop bar; the play line sat
+  pinned to the right edge for the whole loop; the arrows could not reach the
+  loop's own last bar but could wander below its first; and Loop view gave no
+  indication of the window at all, so a bar holding leftover notes outside the
+  loop looked exactly like one inside it.
+
+  ![A loop on bars 3-4](docs/assets/loop_strip_midclip.png)
+
+- **Setting a loop no longer strands the view outside it.** Pressing two bars, or
+  shrinking with Loop + jog, left the viewed bar where it was — which could be a
+  bar that had just stopped playing, so edits went somewhere you could not hear.
+- **A bar double-tap is a consistent length now.** The window counted engine
+  ticks, and the tick rate moves with load (63–205 Hz observed), so the same
+  double-tap was anywhere from 0.29 s to 0.95 s depending on what the UI was
+  busy with. It is 450 ms of wall clock.
 - **Knobs keep up on a big synth's busiest page.** Turning a knob on Helm's Main
   page lagged the hardware badly, while the same page on OB-Xd was fine. Two
   causes, both paid on every tick: the app read `drumPadCount` and

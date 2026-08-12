@@ -520,8 +520,8 @@ for the concepts:
   or at the clip end. Drum lanes are exempt — hits sharing a step are separate
   voices, not a chord, so they keep the grid.
 - **Note length** — **hold step A, then press step B** to set A's length up to B.
-- **Loop / bars** — the **Loop** button shows the bar overview; **Left/Right**
-  navigate bars. **Shift + Step 15** doubles the loop.
+- **Loop / bars** — the **Loop** button turns the step row into a bar selector;
+  **Left/Right** navigate bars. See [The Loop view](#the-loop-view) below.
 - **Duplicate / delete** — **Copy** and **Delete** (a.k.a. Clear) act on steps,
   clips, or bars depending on context. **Hold Clear + a drum pad** wipes that
   pad from the whole clip — one lane emptied without touching the others,
@@ -557,6 +557,51 @@ red, only actionable buttons lit, the playhead sweeps the step row, etc.).
 
 > **Note:** Movy's sequencer intentionally does **not** copy Davebox's timing
 > where Davebox deviates from Move — the goal is to match native Move.
+
+### The Loop view
+
+A clip's **loop window** is the range of bars that actually plays. It does not
+have to start at bar 1 — you can loop bars 3–4 of an eight-bar part and leave the
+rest in place, untouched, ready to come back to.
+
+**Loop** shows the window on the step buttons: tap it to latch the view, or hold
+it for a momentary peek. While it is up, the step row is a bar selector:
+
+| Gesture | Result |
+|---|---|
+| Press a bar | View that bar (the step row follows) |
+| **Double-tap** a bar | Loop just that bar |
+| Press **two bars** | Loop the range between them, inclusive |
+| Hold **Loop** + jog | Grow or shrink the loop by whole bars |
+| **Shift + Step 15** | Double the loop — notes and length |
+
+Setting a window brings the view with it, so you are never left editing a bar
+that has just stopped playing.
+
+**What the bar LEDs mean.** The lighting borrows Session view's vocabulary, so a
+pulse means the same thing in both places:
+
+| Bar | Appearance |
+|---|---|
+| Playing now | Solid green |
+| Selected (the bar on the step row) | White, breathing slowly |
+| In the loop | Track colour, pulsing on the beat |
+| Outside the loop | Near-black |
+
+Whether a bar contains notes is deliberately *not* shown — in this view a bar's
+job is to tell you whether it plays. Press it to see its notes on the step row.
+
+**On screen**, a band names the window and the bar you are on, and the strip
+along the bottom draws one segment per bar of the loop — thick for the selected
+bar — with a line sweeping across at the play position:
+
+![The Loop view](docs/assets/loop_header.png)
+
+Navigating past the end of the loop shows a **`+`** for the empty bar you have
+stepped into. Add a note there and it becomes part of the loop, so a part grows
+by simply playing into the next bar:
+
+![Navigated past the loop](docs/assets/loop_strip_outside.png)
 
 ### Quantization
 
@@ -1036,8 +1081,9 @@ behaviour you'd like — or, better, a PR.
 | **Clear + Capture** | Throw the buffered input away. (Not Shift + Capture — that belongs to schwung's skip-back and never reaches Movy.) |
 | **Jog** (capture overlay) | Take another tempo — applied as you pass it. Any other press closes the overlay. |
 | **Note / Session** | Show the Session clip grid (momentary hold = peek, tap = latch). Pads launch clips. |
-| **Loop** | Toggle the bar/loop overview; hold + jog resizes the loop. |
-| **Left / Right** | Navigate bars (or nudge held steps). |
+| **Loop** | Toggle the bar selector; hold + jog resizes the loop. See [The Loop view](#the-loop-view). |
+| **Loop + bar** | Press one bar to view it, two to loop that range, double-tap for a 1-bar loop. |
+| **Left / Right** | Navigate bars — the loop's own bars plus one empty bar past its end (or nudge held steps). |
 | **Copy** | Duplicate a step / clip / bar (context-dependent). |
 | **Delete (Clear)** | Delete a step / clip / bar; in Session, delete a clip. Hold + knob-touch clears that knob's automation lane. |
 | **Hold Clear + pad** | Clear every note of that pad's pitch from the clip — a whole drum lane at once. |

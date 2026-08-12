@@ -35,6 +35,14 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **An automated parameter now shows its value before you touch it.** A parameter
+  with an automation lane, or one an LFO targets, deliberately stops reading its
+  value back so the page keeps showing the base you set. But that base was only
+  ever filled in by turning the knob, so a parameter automated before it was
+  first touched had no value at all: its arc sat pinned at the bottom of its
+  range (on an octave −3..3 that looks like a real −3), and assigning automation
+  used the range minimum as the base rather than the real value. It is now read
+  once, then left alone as before.
 - **A knob now moves the same distance in both directions.** On any parameter
   with discrete values and a range of 200 or less — which is most of them, 257
   of the 464 in the surveyed module fleet, including every knob on OB-Xd's

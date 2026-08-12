@@ -274,7 +274,20 @@ function refreshAt(s: ModelState, i: number): void {
 
     // Automation lanes / LFO-modulated params are engine-driven; reading them
     // back would overwrite the UI-owned base and repaint every tick. Show base.
-    if (s.noRefreshKeys.has(ioKey) || s.modulatedKeys.has(ioKey)) return;
+    //
+    // The base has to EXIST first, though. It starts null and only a knob turn
+    // ever filled it, so a param automated (or LFO-targeted) before it was first
+    // touched had no value at all: its cell read "...", its arc sat pinned at
+    // minimum — on an octave -3..3 that looks like a real -3 — and
+    // knobParamInfo handed automation p.min as the base. So seed it once, then
+    // stop reading. A lane already playing means that one read lands on whatever
+    // the engine is driving rather than a pristine base, which is still far
+    // closer than the bottom of the range.
+    if (s.noRefreshKeys.has(ioKey) || s.modulatedKeys.has(ioKey)) {
+        const unseeded = p.type !== 'file'
+            && (s.knobValues[i] === null || s.knobValues[i] === undefined);
+        if (!unseeded) return;
+    }
 
     if (p.type === 'file') {
         const path = shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey);

@@ -1128,6 +1128,34 @@ _log('\nTest: octave and voice-count params become step cells');
   eq('count shows 4 unsigned', formatValue(p(false), 4), '4');
 }
 
+_log('\nTest: a suppressed param still learns its value once');
+{
+  /* An automation lane (or an LFO target) suppresses read-back so the page keeps
+   * showing the UI-owned base instead of the engine-driven value. But that base
+   * starts as null, and only a knob TURN used to seed it — so a param that was
+   * automated before it was ever touched had no value at all: its step cell read
+   * "..." and its arc sat at minimum (which on an octave -3..3 looks like a real
+   * -3). knobParamInfo also handed automation p.min as the base. The device
+   * fixture puts a lane on exactly this param, which is how it was found. */
+  /* The lane must exist before the first refresh, exactly as it does on device:
+   * the set is restored (with its automation) and only then does movy tick. */
+  env.setParams(MOCK_SYNTHS.test_steps);
+  const m = createModel(0, 'synth');
+  m.setNoRefreshKeys(['octave']);
+  m.reload();
+  for (let i = 0; i < 40; i++) m.tick();          // plenty of refresh cursors
+  const oct = m.getViewModel().rows.flat().find(c => c && c.shortName === 'OCT');
+  eq('suppressed param shows its value, not "..."', oct.displayValue, '+2');
+  eq('suppressed param arc is not pinned at minimum', oct.normalizedValue > 0, true);
+  const info = m.getKnobParamInfo(0);
+  eq('automation gets the real base, not min', info.value, 2);
+  /* Still suppressed after seeding: the engine-driven value must not creep in. */
+  env.setParams({ ...MOCK_SYNTHS.test_steps, 'synth:octave': '-3' });
+  for (let i = 0; i < 40; i++) m.tick();
+  eq('read-back stays suppressed once seeded',
+    m.getViewModel().rows.flat().find(c => c && c.shortName === 'OCT').displayValue, '+2');
+}
+
 _log('\nTest: module interaction metadata drives triggers, acceleration, and automation');
 {
   const { applyKnobDelta } = await import('../dist/esm/model/store.js');

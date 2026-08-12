@@ -10217,6 +10217,67 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     resetSeqState();
 }
 
+/* ── loop mode gestures ──────────────────────────────────────────────────── */
+{
+    _log('\nloop mode gestures:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { loopStepOnAt, loopStepOff, loopButton, loopWheel, resetLoopMode } =
+        await import('../dist/esm/seq/loop-mode.js');
+    const { navigateBar } = await import('../dist/esm/seq/router-steps.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    installMockEngine();
+
+    // Double-tap is wall-clock, so the window does not shrink 3x when the device
+    // tick rate rises under load (63-205 Hz observed across schwung builds).
+    resetSeqState(); resetLoopMode();
+    seqState.lenSteps = 64;                 // 4-bar clip from bar 1
+    loopStepOnAt(2, 1000); loopStepOff(2);
+    loopStepOnAt(2, 1449); loopStepOff(2);  // inside 450 ms → 1-bar loop at bar 3
+    eq('double-tap sets a 1-bar loop', seqState.lenSteps, 16);
+    eq('double-tap loop starts at bar 3', seqState.loopStart, 32);
+
+    resetSeqState(); resetLoopMode();
+    seqState.lenSteps = 64;
+    loopStepOnAt(2, 1000); loopStepOff(2);
+    loopStepOnAt(2, 1451); loopStepOff(2);  // past 450 ms → just a selection
+    eq('slow re-tap does not resize', seqState.lenSteps, 64);
+
+    // Two bars pressed → window, and the view follows into it.
+    resetSeqState(); resetLoopMode();
+    seqState.lenSteps = 64; seqState.barOffset = 0;
+    loopStepOnAt(2, 2000);
+    loopStepOnAt(4, 2050);
+    eq('two-bar press sets the window', seqState.loopStart, 32);
+    eq('two-bar press sets the length', seqState.lenSteps, 48);
+    eq('view follows into the window', seqState.barOffset, 2);
+
+    /* Shrinking with Loop+wheel is the other way the view got stranded: nothing
+     * moves barOffset, so a view above the new end kept editing a bar that had
+     * just left the loop. It clamps down to the window's last bar. */
+    resetSeqState(); resetLoopMode();
+    seqState.lenSteps = 64; seqState.barOffset = 3;   // 4-bar loop, viewing bar 4
+    loopButton(true);
+    loopWheel(-1);                                   // shrink to 3 bars
+    eq('wheel shrink resizes the loop', seqState.lenSteps, 48);
+    eq('view clamps down to the window end', seqState.barOffset, 2);
+    loopButton(false);
+
+    // Arrows cannot wander below a mid-clip loop's first bar, and DO reach its last.
+    resetSeqState(); resetLoopMode();
+    seqState.loopStart = 32; seqState.lenSteps = 32; seqState.barOffset = 2;
+    navigateBar(-1);
+    eq('left arrow stops at the loop start', seqState.barOffset, 2);
+    navigateBar(1);
+    eq('right arrow reaches the loop end', seqState.barOffset, 3);
+    navigateBar(1);
+    eq('right arrow reaches one bar past the loop', seqState.barOffset, 4);
+    navigateBar(1);
+    eq('right arrow stops there', seqState.barOffset, 4);
+
+    uninstallMockEngine();
+    resetSeqState(); resetLoopMode();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

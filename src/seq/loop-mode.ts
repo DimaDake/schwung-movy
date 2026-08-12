@@ -14,20 +14,24 @@ import { NUM_STEP_BUTTONS } from './constants.js';
 import { appState } from '../app/state.js';
 import { undoableEdit } from '../undo/edit.js';
 import { trackLabel } from '../undo/label.js';
-import { seqCmd, uiTick } from './engine.js';
+import { seqCmd } from './engine.js';
 import { momentaryDown, momentaryGesture, momentaryUp } from './momentary.js';
 import { seqHeaderAnnounce, seqToast } from './render.js';
 import { clipBars, loopStartBar, seqState } from './state.js';
 
 const MAX_BARS = 16;
-const DOUBLE_TAP_TICKS = 60; // ~0.3s at the ~196 Hz device rate
+/* Wall-clock, not tick-counted: the device tick rate is not a stable constant
+ * (63-205 Hz observed, and it moves with load), so a tick-based window silently
+ * swung from 0.29s to 0.95s depending on how busy the UI was. Same reasoning as
+ * momentary.ts's hold threshold. */
+const DOUBLE_TAP_MS = 450;
 const CC_LOOP_BTN = 58;
 
 let held = false;          // Loop button currently down
 let loopPrev = false;      // loopMode before the current press (tap/hold decision)
 const heldBars = new Set<number>();
 let lastTapBar = -1;
-let lastTapTick = -DOUBLE_TAP_TICKS;
+let lastTapMs = -DOUBLE_TAP_MS;
 
 /* Loop button (CC 58): momentary. Down shows the loop bars; a clean tap latches
  * (or toggles back to Note if already in Loop); a hold or a wheel/bar gesture
@@ -70,8 +74,9 @@ export function loopWheel(delta: number): boolean {
     return true;
 }
 
-/* Step press in Loop Mode = bar selection. */
-export function loopStepOn(bar: number): void {
+/* Step press in Loop Mode = bar selection. The *At variant takes the timestamp so
+ * the double-tap window is testable without sleeping. */
+export function loopStepOnAt(bar: number, nowMs: number): void {
     heldBars.add(bar);
     momentaryGesture(); // selecting/setting bars while Loop held = modifier use
     if (heldBars.size >= 2) {
@@ -80,13 +85,17 @@ export function loopStepOn(bar: number): void {
         heldBars.clear();
         return;
     }
-    if (bar === lastTapBar && uiTick() - lastTapTick <= DOUBLE_TAP_TICKS) {
+    if (bar === lastTapBar && nowMs - lastTapMs <= DOUBLE_TAP_MS) {
         setLoopBars(bar, bar);
     } else {
         seqState.barOffset = bar;   // single press selects the viewed bar
     }
     lastTapBar = bar;
-    lastTapTick = uiTick();
+    lastTapMs = nowMs;
+}
+
+export function loopStepOn(bar: number): void {
+    loopStepOnAt(bar, Date.now());
 }
 
 export function loopStepOff(bar: number): void {
@@ -103,6 +112,11 @@ function setLoopBars(startBar: number, endBar: number): void {
     // Optimistic mirror.
     seqState.loopStart = startStep;
     seqState.lenSteps = lenStep;
+    /* Keep the viewed bar inside the new window: a two-bar press or a wheel shrink
+     * used to leave barOffset outside it, so the step row then edited a bar that
+     * no longer plays. Clamping (rather than jumping to the start) keeps you as
+     * near as possible to where you were looking. */
+    seqState.barOffset = Math.max(s, Math.min(seqState.barOffset, e));
     seqHeaderAnnounce(s === e ? `Loop ${s + 1}` : `Loop ${s + 1}-${e + 1}`);
 }
 
@@ -122,5 +136,5 @@ export function resetLoopMode(): void {
     loopPrev = false;
     heldBars.clear();
     lastTapBar = -1;
-    lastTapTick = -DOUBLE_TAP_TICKS;
+    lastTapMs = -DOUBLE_TAP_MS;
 }

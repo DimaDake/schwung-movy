@@ -19,7 +19,7 @@ import { dupActive, onUnit as dupOnUnit } from './duplicate.js';
 import { seqCmd } from './engine.js';
 import { doubleLoop, loopStepOff, loopStepOn } from './loop-mode.js';
 import { seqToast } from './render.js';
-import { maxBarOffset, occHasStep, occToggleStep, seqState } from './state.js';
+import { maxBarOffset, minBarOffset, occHasStep, occToggleStep, seqState } from './state.js';
 import { heldSetList, setHeldSet } from './held.js';
 import {
     anyStepHeld, editStepDown, editStepUp, heldStepAbs, setLengthTo,
@@ -139,7 +139,7 @@ function cycleQuantize(): void {
 }
 
 export function navigateBar(delta: number): void {
-    const next = Math.max(0, Math.min(seqState.barOffset + delta, maxBarOffset()));
+    const next = Math.max(minBarOffset(), Math.min(seqState.barOffset + delta, maxBarOffset()));
     seqState.barOffset = next;
 }
 

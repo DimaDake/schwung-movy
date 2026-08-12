@@ -82,6 +82,8 @@ await esbuild.build({
         resolve(root, 'src/lfo/assign-mode.ts'),
         resolve(root, 'src/font/big.ts'),
         resolve(root, 'src/font/index.ts'),
+        resolve(root, 'src/font/index5x3.ts'),
+        resolve(root, 'src/font/glyphs5x3.ts'),
         resolve(root, 'src/seq/engine.ts'),
         resolve(root, 'src/seq/automation.ts'),
         resolve(root, 'src/seq/router.ts'),

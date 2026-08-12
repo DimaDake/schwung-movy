@@ -1156,6 +1156,49 @@ _log('\nTest: a suppressed param still learns its value once');
     m.getViewModel().rows.flat().find(c => c && c.shortName === 'OCT').displayValue, '+2');
 }
 
+_log('\nTest: a numeric cell keeps its sign, and +/1 sit right in the box');
+{
+  const { enumSquareLines } = await import('../dist/esm/renderer/shorten.js');
+  const { fontWidth5x3 }    = await import('../dist/esm/font/index5x3.js');
+  const { G5 }              = await import('../dist/esm/font/glyphs5x3.js');
+  const CHARS5 = ' !"\'()+,-./:0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ%<>=?*';
+
+  /* enumSquareLines turns '-' into a word separator so LOW_PASS and SAMPLE-HOLD
+   * split across the two lines of the box. A NUMBER is not a two-word label:
+   * that rule silently ate the minus, so "-3" drew as "3" — identical to
+   * positive 3, which surge publishes as an octave option right beside it. */
+  const lines = (v) => JSON.stringify(enumSquareLines(v));
+  eq('-3 keeps its sign',   lines('-3'),   JSON.stringify(['-3', '']));
+  eq('-1 keeps its sign',   lines('-1'),   JSON.stringify(['-1', '']));
+  eq('+2 unchanged',        lines('+2'),   JSON.stringify(['+2', '']));
+  eq('0 unchanged',         lines('0'),    JSON.stringify(['0', '']));
+  eq('128 stays one line',  lines('128'),  JSON.stringify(['128', '']));
+  // Word labels must still split exactly as before.
+  eq('LOW_PASS still splits',    lines('LOW_PASS'),    JSON.stringify(['LOW', 'PAS']));
+  eq('SAMPLE-HOLD still splits', lines('SAMPLE-HOLD'), JSON.stringify(['SAM', 'HOL']));
+  eq('LINEAR still wraps',       lines('LINEAR'),      JSON.stringify(['LIN', 'EAR']));
+  // The widest value any step cell can show must fit the box (KW 16 → inner 14).
+  eq('widest count fits the box', fontWidth5x3('128') <= 14, true);
+  eq('signed offset fits the box', fontWidth5x3('-4') <= 14, true);
+
+  /* Glyph geometry, against 5x3-font.otf: the plus is drawn on rows 1-3 of the
+   * 5-row cell (it was on 0-2, so it floated 1-2px above the digits beside it),
+   * and the 1's flag points LEFT off a right-hand stem. */
+  const rowsOf = (ch) => G5[CHARS5.indexOf(ch)].slice(4);
+  const art = (ch) => rowsOf(ch).map(b => [0,1,2].map(c => (b & (1 << c)) ? '#' : '.').join(''));
+  eq('plus is vertically centred', JSON.stringify(art('+')),
+    JSON.stringify(['...', '.#.', '###', '.#.', '...']));
+  eq('minus is vertically centred', JSON.stringify(art('-')),
+    JSON.stringify(['...', '...', '###', '...', '...']));
+  eq('one has a left flag and no foot', JSON.stringify(art('1')),
+    JSON.stringify(['##.', '.#.', '.#.', '.#.', '.#.']));
+  eq('equals is vertically centred', JSON.stringify(art('=')),
+    JSON.stringify(['...', '###', '...', '###', '...']));
+  // Digits stay monospaced so a value does not shift as it changes.
+  eq('every digit advances by 4',
+    '0123456789'.split('').every(d => G5[CHARS5.indexOf(d)][0] === 4), true);
+}
+
 _log('\nTest: module interaction metadata drives triggers, acceleration, and automation');
 {
   const { applyKnobDelta } = await import('../dist/esm/model/store.js');

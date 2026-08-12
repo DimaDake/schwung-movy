@@ -35,6 +35,16 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **A negative value in a boxed cell no longer loses its minus sign.** The box
+  splits a label across two lines on `_` and `-` so `LOW_PASS` reads `LOW`/`PAS`,
+  but it applied that to numbers too: `-3` drew as `3`, identical to the positive
+  `3` that Surge publishes as the very next octave option. Affected every enum
+  with signed numeric options (Surge's four octave selectors, Essaim's `v_octave`,
+  Eucalypso's and SuperArp's octave ranges) as well as the new octave cells.
+- **Fixed three glyphs in the small font**, checked against `5x3-font.otf`: `+`
+  sat two pixels above the digits beside it, `=` had the same slip, and `1` was
+  mirrored — its flag pointed right off a left-hand stem, so `12` read oddly in
+  cells like the filter's `SLOPE`. The normal and large fonts were already correct.
 - **An automated parameter now shows its value before you touch it.** A parameter
   with an automation lane, or one an LFO targets, deliberately stops reading its
   value back so the page keeps showing the base you set. But that base was only

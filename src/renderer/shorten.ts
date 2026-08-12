@@ -165,6 +165,13 @@ export function dedupShortNames(
 }
 
 export function enumSquareLines(value: string): [string, string] {
+    /* A number is a value, not a two-word label. The '-' → separator rule below
+     * exists so LOW_PASS and SAMPLE-HOLD split across the box's two lines, but on
+     * a number it ate the minus sign: "-3" drew as "3", indistinguishable from
+     * the positive 3 that surge publishes as the very next octave option. Widest
+     * real value is 3 chars (sfz voices 1..128) = 12px in a 14px box. */
+    const num = value.trim();
+    if (/^[+-]?\d+$/.test(num)) return [num, ''];
     const parts = value.toUpperCase().replace(/[_\-]/g, ' ').trim().split(/\s+/);
     if (parts.length >= 2) {
         return [parts[0].substring(0, 3), parts[1].substring(0, 3)];

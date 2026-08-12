@@ -3,7 +3,7 @@
 
 import { backLedColor, arrowLedColor, stepRecArrowColor, sampleLedColor, captureLedColor, undoLedColor } from './buttons.js';
 import { canRedo, canUndo } from '../undo/state.js';
-import { ANIM_NONE, ANIM_PULSE, ANIM_PULSE_SLOW, C_BLACK, C_DARKGREY, C_GREEN, C_LIGHTGREY, C_REC_RED, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
+import { ANIM_NONE, ANIM_PULSE, C_BLACK, C_DARKGREY, C_GREEN, C_LIGHTGREY, C_REC_RED, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
 import {
     CC_PLAY, CC_REC, CC_TRACK_END, NUM_STEP_BUTTONS, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
@@ -42,19 +42,25 @@ const BLINK_MS = 250;
 function blinkPhase(): boolean {
     return Math.floor(Date.now() / BLINK_MS) % 2 === 0;
 }
-/* Loop-mode bars borrow session view's pulse vocabulary wholesale (session.ts
- * sessionCellColor): the colour says WHAT a bar is, the firmware pulse rate says
- * how it relates to you. The active pair is byte-identical to a playing clip's,
- * so loop bars and session pads breathe in hardware phase-lock. Content is
- * deliberately NOT shown — a bar's job here is to say whether it plays. */
+/* Loop-mode bars fade their own colour against black — one hue per meaning, where
+ * blending two colours muddied both — and every pulsing bar shares ONE animation
+ * channel so the whole row breathes in step. Mixing rates (a slow selected bar
+ * against on-beat neighbours) cannot stay in lockstep by definition: the firmware
+ * drives each rate off its own division, so peaks only coincide every other cycle.
+ * Colour alone separates the states now.
+ *
+ * The lit colour goes in `anim`, never in `base` — led-cache.ts's contract is that
+ * a firmware which ignores the base once a pulse channel is set still shows the
+ * animation colour, so colour-in-base would pulse black against black there.
+ *
+ * Content is deliberately NOT shown: a bar's job here is to say whether it plays. */
 interface BarCtx { isPlayhead: boolean; selected: boolean; inLoop: boolean; track: number; }
 export interface CellLed { base: number; anim: number; channel: number; }
 
 export function loopBarColor(c: BarCtx): CellLed {
-    const tc = trackColor(c.track);
-    if (c.isPlayhead) return { base: C_GREEN, anim: C_GREEN, channel: ANIM_NONE };
-    if (c.selected)   return { base: C_WHITE, anim: c.inLoop ? tc : C_DARKGREY, channel: ANIM_PULSE_SLOW };
-    if (c.inLoop)     return { base: tc, anim: C_WHITE, channel: ANIM_PULSE };
+    if (c.isPlayhead) return { base: C_BLACK, anim: C_GREEN, channel: ANIM_PULSE };
+    if (c.selected)   return { base: C_BLACK, anim: C_WHITE, channel: ANIM_PULSE };
+    if (c.inLoop)     return { base: C_BLACK, anim: trackColor(c.track), channel: ANIM_PULSE };
     return { base: C_DARKGREY, anim: C_DARKGREY, channel: ANIM_NONE };
 }
 

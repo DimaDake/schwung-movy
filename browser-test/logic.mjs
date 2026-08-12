@@ -2773,7 +2773,7 @@ _log('\nTest: drumPadOn');
     _log('\nseq loop LEDs:');
     const { seqLedsTick, seqLedsInvalidate } = await import('../dist/esm/seq/leds.js');
     const { seqState, resetSeqState, occToggleStep } = await import('../dist/esm/seq/state.js');
-    const { C_WHITE, C_DARKGREY, trackColor, ANIM_PULSE, ANIM_PULSE_SLOW }
+    const { C_WHITE, C_DARKGREY, trackColor, ANIM_PULSE }
         = await import('../dist/esm/seq/colors.js');
 
     /* Bars pulse on the firmware's animation channels now, so the assertions read
@@ -2798,9 +2798,10 @@ _log('\nTest: drumPadOn');
     const chanOf = (note) => msgs.filter((m) => m[2] === note).map((m) => m[1] & 0x0f);
     const lastColor = (note) => msgs.filter((m) => m[2] === note).at(-1)[3];
 
-    eq('selected in-loop bar pulses slow (bar 1)', chanOf(17).includes(ANIM_PULSE_SLOW), true);
-    eq('selected bar breathes toward the track colour', lastColor(17), trackColor(0));
-    eq('other in-loop bar pulses at quarter rate (bar 2)', chanOf(18).includes(ANIM_PULSE), true);
+    eq('selected in-loop bar pulses (bar 1)', chanOf(17).includes(ANIM_PULSE), true);
+    eq('selected bar pulses white', lastColor(17), C_WHITE);
+    eq('other in-loop bar pulses on the same channel (bar 2)', chanOf(18).includes(ANIM_PULSE), true);
+    eq('active bar pulses the track colour', lastColor(18), trackColor(0));
     eq('bar outside the loop is solid (bar 3)', chanOf(19).every((c) => c === 0), true);
     eq('content in bar 3 is not indicated', lastColor(19), C_DARKGREY);
     eq('bar 0 outside the loop is dark grey', lastColor(16), C_DARKGREY);
@@ -3698,28 +3699,35 @@ _log('\nautomation: restore re-requests label sync:');
 {
     _log('\nloop bar color:');
     const { loopBarColor } = await import('../dist/esm/seq/leds.js');
-    const { trackColor, C_DARKGREY, C_WHITE, C_GREEN,
-            ANIM_NONE, ANIM_PULSE, ANIM_PULSE_SLOW } = await import('../dist/esm/seq/colors.js');
+    const { trackColor, C_BLACK, C_DARKGREY, C_WHITE, C_GREEN,
+            ANIM_NONE, ANIM_PULSE } = await import('../dist/esm/seq/colors.js');
 
     const base = { isPlayhead: false, selected: false, inLoop: false, track: 1 };
     const led = (o) => JSON.stringify(loopBarColor({ ...base, ...o }));
     const want = (b, a, ch) => JSON.stringify({ base: b, anim: a, channel: ch });
 
-    // Playhead outranks everything and is solid — it is already moving.
-    eq('playhead solid green', led({ isPlayhead: true, inLoop: true, selected: true }),
-        want(C_GREEN, C_GREEN, ANIM_NONE));
-    // Selected + active: white breathing toward the track colour at session
-    // view's "selected clip" rate.
-    eq('selected active pulses slow', led({ selected: true, inLoop: true }),
-        want(C_WHITE, trackColor(1), ANIM_PULSE_SLOW));
-    // Selected but navigated outside the loop: still breathes, but toward grey.
-    eq('selected inactive pulses to grey', led({ selected: true }),
-        want(C_WHITE, C_DARKGREY, ANIM_PULSE_SLOW));
-    // Active, not selected: session's playing-clip pair, exactly.
-    eq('active pulses at quarter rate', led({ inLoop: true }),
-        want(trackColor(1), C_WHITE, ANIM_PULSE));
+    /* Every state fades its own colour against black, and every one of them uses
+     * the SAME channel so the row pulses in step — mixed rates cannot stay
+     * synchronised. The lit colour must be `anim`, since a firmware that ignores
+     * the base once a channel is set would otherwise pulse black on black. */
+    eq('playhead pulses green', led({ isPlayhead: true, inLoop: true, selected: true }),
+        want(C_BLACK, C_GREEN, ANIM_PULSE));
+    eq('selected pulses white', led({ selected: true, inLoop: true }),
+        want(C_BLACK, C_WHITE, ANIM_PULSE));
+    // Selected outside the loop looks the same: it says "this is where you are".
+    eq('selected inactive pulses white too', led({ selected: true }),
+        want(C_BLACK, C_WHITE, ANIM_PULSE));
+    eq('active pulses the track colour', led({ inLoop: true }),
+        want(C_BLACK, trackColor(1), ANIM_PULSE));
     // Inactive: very dark grey, solid. Content is not indicated either way.
     eq('inactive is dark grey', led({}), want(C_DARKGREY, C_DARKGREY, ANIM_NONE));
+
+    const chans = [
+        loopBarColor({ ...base, isPlayhead: true }).channel,
+        loopBarColor({ ...base, selected: true }).channel,
+        loopBarColor({ ...base, inLoop: true }).channel,
+    ];
+    eq('every pulsing bar shares one channel', new Set(chans).size, 1);
 }
 
 /* ── session cell color ──────────────────────────────────────────────────── */

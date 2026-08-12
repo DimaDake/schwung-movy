@@ -578,15 +578,18 @@ it for a momentary peek. While it is up, the step row is a bar selector:
 Setting a window brings the view with it, so you are never left editing a bar
 that has just stopped playing.
 
-**What the bar LEDs mean.** The lighting borrows Session view's vocabulary, so a
-pulse means the same thing in both places:
+**What the bar LEDs mean.** Every bar that matters fades in and out against black,
+all of them in step with each other, and the colour tells you which is which:
 
 | Bar | Appearance |
 |---|---|
-| Playing now | Solid green |
-| Selected (the bar on the step row) | White, breathing slowly |
-| In the loop | Track colour, pulsing on the beat |
-| Outside the loop | Near-black |
+| Playing now | Green, pulsing |
+| Selected (the bar on the step row) | White, pulsing |
+| In the loop | Track colour, pulsing |
+| Outside the loop | Near-black, steady |
+
+The pulse comes from the hardware, so it keeps breathing while the transport is
+stopped — which is exactly when you are looking at these.
 
 Whether a bar contains notes is deliberately *not* shown — in this view a bar's
 job is to tell you whether it plays. Press it to see its notes on the step row.

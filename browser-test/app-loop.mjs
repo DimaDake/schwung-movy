@@ -1289,7 +1289,7 @@ _log('\napp-loop: loop-mode bars pulse on the firmware channels, not on any tick
 {
     resetApp();
     const { occToggleStep } = await import('../dist/esm/seq/state.js');
-    const { trackColor, C_DARKGREY, ANIM_PULSE, ANIM_PULSE_SLOW }
+    const { trackColor, C_DARKGREY, C_WHITE, ANIM_PULSE }
         = await import('../dist/esm/seq/colors.js');
     const CC_LOOP = 58;
 
@@ -1325,12 +1325,13 @@ _log('\napp-loop: loop-mode bars pulse on the firmware channels, not on any tick
     eq('loop mode entered', seqState.loopMode, true);
     const chanOf = (n) => msgs.filter((m) => m[2] === n).map((m) => m[1] & 0x0f);
     const lastColor = (n) => msgs.filter((m) => m[2] === n).at(-1)?.[3];
-    eq('selected bar pulses slowly with a frozen engine tick',
-        chanOf(STEP_NOTE_BASE + 1).includes(ANIM_PULSE_SLOW), true);
-    eq('the other loop bar pulses at the quarter rate',
+    eq('selected bar pulses with a frozen engine tick',
+        chanOf(STEP_NOTE_BASE + 1).includes(ANIM_PULSE), true);
+    eq('the other loop bar pulses on the same channel',
         chanOf(STEP_NOTE_BASE + 2).includes(ANIM_PULSE), true);
-    eq('selected bar breathes toward the track colour',
-        lastColor(STEP_NOTE_BASE + 1), trackColor(seqState.watchTrack));
+    eq('selected bar pulses white', lastColor(STEP_NOTE_BASE + 1), C_WHITE);
+    eq('active bar pulses the track colour',
+        lastColor(STEP_NOTE_BASE + 2), trackColor(seqState.watchTrack));
     eq('a bar outside the loop is dark grey', lastColor(STEP_NOTE_BASE + 0), C_DARKGREY);
 
     // Time passing sends nothing further: the pulse is not redrawn per frame.

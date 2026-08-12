@@ -15,14 +15,16 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
-- **Loop-view bars breathe like Session clips.** The bar selector now speaks
-  Session view's LED language: the bar you are viewing is white and breathes
-  slowly, the bars in the loop pulse on the beat in the track colour, and
-  everything outside the loop is near-black. The hardware does the fade, so the
-  pulse is smooth and no longer freezes while the transport is stopped — and an
-  idle Loop view sends no LED traffic at all, where the old JS blink sent the
-  whole row four times a second. Whether a bar holds notes is deliberately no
-  longer shown: in this view a bar's job is to tell you whether it plays.
+- **Loop-view bars breathe, together.** The bar selector fades each bar in and out
+  against black — green for the bar playing, white for the one you are viewing,
+  the track colour for the rest of the loop, near-black for everything outside it
+  — with every pulsing bar on one animation channel, so the row breathes as a
+  single movement instead of drifting apart. The hardware does the fade, so it
+  stays smooth and no longer freezes while the transport is stopped, which is
+  precisely when you are reading these. An idle Loop view now sends no LED
+  traffic at all, where the old blink sent the whole row four times a second.
+  Whether a bar holds notes is deliberately no longer shown: in this view a bar's
+  job is to tell you whether it plays.
 - **Loop mode says which window you are editing.** Entering it flashed `Loop` for
   a third of a second and then left nothing on screen. A band now stays up naming
   the window and the bar you are on — `LOOP 3-4  BAR 3` — and follows you as you

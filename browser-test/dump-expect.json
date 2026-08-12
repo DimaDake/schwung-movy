@@ -44,7 +44,9 @@
    "mod_sync",
    "mode",
    "scatter"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--belt": {
   "pageCount": 3,
@@ -97,7 +99,9 @@
    "scale",
    "spread",
    "wet"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--chowtape": {
   "pageCount": 2,
@@ -135,7 +139,9 @@
    "saturation",
    "speed",
    "tone"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--clap": {
   "pageCount": 2,
@@ -171,7 +177,9 @@
    "param_6",
    "param_7",
    "plugin_index"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--cloudseed": {
   "pageCount": 2,
@@ -209,7 +217,9 @@
    "mod_rate",
    "predelay",
    "size"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--dissolver": {
   "pageCount": 3,
@@ -266,7 +276,9 @@
    "smoothing",
    "stereo_width",
    "tilt_freq"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--dragonfly-hall": {
   "pageCount": 3,
@@ -321,7 +333,9 @@
    "size",
    "wander",
    "width"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--ducker": {
   "pageCount": 2,
@@ -357,7 +371,9 @@
    "release",
    "trigger_note",
    "vel_sens"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--filter": {
   "pageCount": 5,
@@ -418,7 +434,9 @@
    "model",
    "output",
    "resonance"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--freeverb": {
   "pageCount": 1,
@@ -443,7 +461,9 @@
    "room_size",
    "wet",
    "width"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--gate": {
   "pageCount": 1,
@@ -474,7 +494,9 @@
    "ratio",
    "release",
    "threshold"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--granular": {
   "pageCount": 5,
@@ -545,7 +567,11 @@
    "rhythm",
    "sync",
    "voice_count"
-  ]
+  ],
+  "stepCells": [
+   "voice_count"
+  ],
+  "slowCells": []
  },
  "audio_fx--junologue-chorus": {
   "pageCount": 1,
@@ -566,7 +592,9 @@
    "brightness",
    "mix",
    "mode"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--magneto": {
   "pageCount": 8,
@@ -704,7 +732,9 @@
    "varspeed",
    "volume",
    "wow"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--midiverb": {
   "pageCount": 3,
@@ -751,7 +781,9 @@
    "program",
    "tilt",
    "width"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--mverb": {
   "pageCount": 2,
@@ -787,7 +819,9 @@
    "mix",
    "predelay",
    "size"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--nam": {
   "pageCount": 1,
@@ -808,7 +842,9 @@
    "cab_bypass",
    "input_level",
    "output_level"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--ottx": {
   "pageCount": 5,
@@ -887,7 +923,9 @@
    "rel_time",
    "time",
    "upward"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--palette": {
   "pageCount": 6,
@@ -983,7 +1021,9 @@
    "tempo_bpm",
    "tempo_src",
    "time_div"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--psxverb": {
   "pageCount": 1,
@@ -1008,7 +1048,9 @@
    "mix",
    "model",
    "reverb_level"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--punchfx": {
   "pageCount": 1,
@@ -1029,7 +1071,9 @@
    "bpm",
    "mix",
    "volume"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--pushnpull": {
   "pageCount": 3,
@@ -1080,7 +1124,9 @@
    "shift",
    "slope",
    "volume"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--smack": {
   "pageCount": 6,
@@ -1160,7 +1206,9 @@
    "slice_res",
    "transport",
    "wet"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--spectra": {
   "pageCount": 5,
@@ -1251,7 +1299,9 @@
    "scoop",
    "stereo_width",
    "timbre"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--structor": {
   "pageCount": 4,
@@ -1327,7 +1377,9 @@
    "seq_on",
    "seq_time",
    "time_warp"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--superboom": {
   "pageCount": 5,
@@ -1426,7 +1478,9 @@
    "shift",
    "thresh",
    "vocGain"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--tapedelay": {
   "pageCount": 1,
@@ -1453,7 +1507,9 @@
    "stereo_width",
    "time",
    "tone"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--tapescam": {
   "pageCount": 2,
@@ -1493,7 +1549,9 @@
    "tone",
    "widen",
    "wobble"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--usefulity": {
   "pageCount": 2,
@@ -1535,7 +1593,9 @@
    "phase_l",
    "phase_r",
    "width"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--verglas": {
   "pageCount": 3,
@@ -1596,7 +1656,9 @@
    "size",
    "stereo_spread",
    "texture"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--vocoder": {
   "pageCount": 2,
@@ -1632,7 +1694,9 @@
    "mod_gain",
    "output_gain",
    "release"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "audio_fx--war_bells": {
   "pageCount": 11,
@@ -1779,7 +1843,9 @@
    "variation",
    "warp",
    "width"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "midi_fx--arp": {
   "pageCount": 1,
@@ -1802,7 +1868,9 @@
    "division",
    "mode",
    "sync"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "midi_fx--branchage": {
   "pageCount": 4,
@@ -1880,7 +1948,9 @@
    "snare_note",
    "steps",
    "sync"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "midi_fx--chord": {
   "pageCount": 1,
@@ -1905,7 +1975,9 @@
    "strum_dir",
    "type",
    "voicing"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "midi_fx--eucalypso": {
   "pageCount": 13,
@@ -2129,6 +2201,21 @@
    "scale_rng",
    "swing",
    "sync"
+  ],
+  "stepCells": [
+   "lane1_octave +",
+   "lane2_octave +",
+   "lane3_octave +",
+   "lane4_octave +",
+   "max_voices",
+   "octave +"
+  ],
+  "slowCells": [
+   "lane1_octave",
+   "lane2_octave",
+   "lane3_octave",
+   "lane4_octave",
+   "octave"
   ]
  },
  "midi_fx--euclidrum": {
@@ -2476,7 +2563,11 @@
    "rnd_preset",
    "swing",
    "sync"
-  ]
+  ],
+  "stepCells": [
+   "max_voices"
+  ],
+  "slowCells": []
  },
  "midi_fx--genera": {
   "pageCount": 3,
@@ -2532,7 +2623,9 @@
    "tempo",
    "vel_mode",
    "velocity"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "midi_fx--impressive-chords": {
   "pageCount": 3,
@@ -2583,6 +2676,10 @@
    "tilt",
    "timing",
    "transpose"
+  ],
+  "stepCells": [],
+  "slowCells": [
+   "articulate"
   ]
  },
  "midi_fx--superarp": {
@@ -2690,7 +2787,11 @@
    "velocity",
    "velocity_random_amount",
    "velocity_seed"
-  ]
+  ],
+  "stepCells": [
+   "max_voices"
+  ],
+  "slowCells": []
  },
  "midi_fx--velocity_scale": {
   "pageCount": 1,
@@ -2713,7 +2814,9 @@
    "curve_preset",
    "max",
    "min"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "sound_generator--303": {
   "pageCount": 3,
@@ -2770,7 +2873,9 @@
    "tuning",
    "volume",
    "waveform"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "sound_generator--aphex": {
   "pageCount": 16,
@@ -3004,6 +3109,12 @@
    "vel_amt",
    "volume",
    "x_mod_amt"
+  ],
+  "stepCells": [
+   "octave +"
+  ],
+  "slowCells": [
+   "octave"
   ]
  },
  "sound_generator--belt-in": {
@@ -3057,7 +3168,9 @@
    "scale",
    "spread",
    "wet"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "sound_generator--braids": {
   "pageCount": 6,
@@ -3131,6 +3244,12 @@
    "sustain",
    "timbre",
    "volume"
+  ],
+  "stepCells": [
+   "octave_transpose +"
+  ],
+  "slowCells": [
+   "octave_transpose"
   ]
  },
  "sound_generator--breakbeat": {
@@ -3186,7 +3305,9 @@
    "roll",
    "save_preset",
    "status"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "sound_generator--chiptune": {
   "pageCount": 3,
@@ -3244,6 +3365,15 @@
    "vibrato_depth",
    "vibrato_rate",
    "volume",
+   "wavetable"
+  ],
+  "stepCells": [
+   "octave_transpose +"
+  ],
+  "slowCells": [
+   "duty",
+   "octave_transpose",
+   "sweep",
    "wavetable"
   ]
  },
@@ -3551,6 +3681,10 @@
    "wave_3",
    "wave_4",
    "width"
+  ],
+  "stepCells": [],
+  "slowCells": [
+   "fm_modulator"
   ]
  },
  "sound_generator--denis": {
@@ -3713,7 +3847,9 @@
    "sh_rate",
    "sustain",
    "vel_to_filter"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "sound_generator--dexed": {
   "pageCount": 29,
@@ -4132,6 +4268,45 @@
    "pitch_eg_r4",
    "preset",
    "transpose"
+  ],
+  "stepCells": [
+   "octave_transpose +"
+  ],
+  "slowCells": [
+   "feedback",
+   "lfo_pms",
+   "lfo_wave",
+   "octave_transpose",
+   "op1_amp_mod",
+   "op1_key_lc",
+   "op1_key_rc",
+   "op1_rate_scale",
+   "op1_vel_sens",
+   "op2_amp_mod",
+   "op2_key_lc",
+   "op2_key_rc",
+   "op2_rate_scale",
+   "op2_vel_sens",
+   "op3_amp_mod",
+   "op3_key_lc",
+   "op3_key_rc",
+   "op3_rate_scale",
+   "op3_vel_sens",
+   "op4_amp_mod",
+   "op4_key_lc",
+   "op4_key_rc",
+   "op4_rate_scale",
+   "op4_vel_sens",
+   "op5_amp_mod",
+   "op5_key_lc",
+   "op5_key_rc",
+   "op5_rate_scale",
+   "op5_vel_sens",
+   "op6_amp_mod",
+   "op6_key_lc",
+   "op6_key_rc",
+   "op6_rate_scale",
+   "op6_vel_sens"
   ]
  },
  "sound_generator--essaim": {
@@ -4201,7 +4376,9 @@
    "timbre",
    "transpose",
    "volume"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "sound_generator--fizzik": {
   "pageCount": 10,
@@ -4389,7 +4566,9 @@
    "vel_level",
    "voicing",
    "width"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "sound_generator--forge": {
   "pageCount": 12,
@@ -5305,7 +5484,9 @@
    "v6_lvl",
    "v7_lvl",
    "v8_lvl"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "sound_generator--freak": {
   "pageCount": 17,
@@ -5538,6 +5719,14 @@
    "velocity_curve",
    "voice_mode",
    "volume"
+  ],
+  "stepCells": [
+   "polyphony",
+   "unison"
+  ],
+  "slowCells": [
+   "polyphony",
+   "unison"
   ]
  },
  "sound_generator--granny": {
@@ -5631,6 +5820,12 @@
    "trigger_mode",
    "window_shape",
    "window_type"
+  ],
+  "stepCells": [
+   "polyphony"
+  ],
+  "slowCells": [
+   "polyphony"
   ]
  },
  "sound_generator--helm": {
@@ -6097,6 +6292,15 @@
    "unison_2_harmonize",
    "velocity_track",
    "volume"
+  ],
+  "stepCells": [
+   "arp_octaves",
+   "osc_1_unison_voices",
+   "osc_2_unison_voices",
+   "polyphony"
+  ],
+  "slowCells": [
+   "arp_octaves"
   ]
  },
  "sound_generator--hera": {
@@ -6197,6 +6401,14 @@
    "vcf_lfo",
    "vcf_resonance",
    "volume"
+  ],
+  "stepCells": [
+   "octave_transpose +"
+  ],
+  "slowCells": [
+   "octave_transpose",
+   "pitch_range",
+   "pwm_mod"
   ]
  },
  "sound_generator--hush1": {
@@ -6336,6 +6548,12 @@
    "velocity_sens",
    "volume",
    "white_noise"
+  ],
+  "stepCells": [
+   "octave_transpose +"
+  ],
+  "slowCells": [
+   "octave_transpose"
   ]
  },
  "sound_generator--krautdrums": {
@@ -6448,7 +6666,9 @@
    "tape_amount",
    "tempo",
    "tempo_mode"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "sound_generator--linein": {
   "pageCount": 6,
@@ -6518,7 +6738,9 @@
    "safety_limiter",
    "soft_clip",
    "subsonic_freq"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "sound_generator--minijv": {
   "pageCount": 70,
@@ -7588,6 +7810,20 @@
    "patchnumber",
    "preset",
    "reverbswitch"
+  ],
+  "stepCells": [
+   "octave_transpose +"
+  ],
+  "slowCells": [
+   "nvram_tone_0_randompitchdepth",
+   "nvram_tone_0_tvaenvvelocitycurve",
+   "nvram_tone_1_randompitchdepth",
+   "nvram_tone_1_tvaenvvelocitycurve",
+   "nvram_tone_2_randompitchdepth",
+   "nvram_tone_2_tvaenvvelocitycurve",
+   "nvram_tone_3_randompitchdepth",
+   "nvram_tone_3_tvaenvvelocitycurve",
+   "octave_transpose"
   ]
  },
  "sound_generator--mono-voice": {
@@ -7871,7 +8107,9 @@
    "syn7",
    "syn8",
    "syn9"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "sound_generator--moog": {
   "pageCount": 12,
@@ -8009,6 +8247,24 @@
    "sustain",
    "vel_sens",
    "volume"
+  ],
+  "stepCells": [
+   "octave_transpose +",
+   "osc1_range +",
+   "osc2_range +",
+   "osc3_range +",
+   "osc4_range +"
+  ],
+  "slowCells": [
+   "octave_transpose",
+   "osc1_range",
+   "osc1_wave",
+   "osc2_range",
+   "osc2_wave",
+   "osc3_range",
+   "osc3_wave",
+   "osc4_range",
+   "osc4_wave"
   ]
  },
  "sound_generator--mrdrums": {
@@ -8277,7 +8533,11 @@
    "pad_tune",
    "pad_vol",
    "ui_preset_path"
-  ]
+  ],
+  "stepCells": [
+   "g_polyphony"
+  ],
+  "slowCells": []
  },
  "sound_generator--mrsample": {
   "pageCount": 8,
@@ -8364,7 +8624,11 @@
    "sample_start",
    "sustain",
    "transpose"
-  ]
+  ],
+  "stepCells": [
+   "polyphony"
+  ],
+  "slowCells": []
  },
  "sound_generator--nusaw": {
   "pageCount": 9,
@@ -8466,6 +8730,14 @@
    "sustain",
    "vel_sens",
    "volume"
+  ],
+  "stepCells": [
+   "octave_transpose +",
+   "sub_octave +"
+  ],
+  "slowCells": [
+   "octave_transpose",
+   "sub_octave"
   ]
  },
  "sound_generator--obxd": {
@@ -8688,6 +8960,17 @@
    "voice_count",
    "volume",
    "xmod"
+  ],
+  "stepCells": [
+   "octave +",
+   "octave_transpose +",
+   "voice_count"
+  ],
+  "slowCells": [
+   "legato",
+   "octave",
+   "octave_transpose",
+   "voice_count"
   ]
  },
  "sound_generator--osirus": {
@@ -9081,6 +9364,12 @@
    "unison_lfo_phase",
    "unison_mode",
    "unison_pan_spread"
+  ],
+  "stepCells": [
+   "octave_transpose +"
+  ],
+  "slowCells": [
+   "octave_transpose"
   ]
  },
  "sound_generator--plaits": {
@@ -9127,6 +9416,12 @@
    "timbre",
    "timbre_mod",
    "velocity_sensitivity"
+  ],
+  "stepCells": [
+   "octave_transpose +"
+  ],
+  "slowCells": [
+   "octave_transpose"
   ]
  },
  "sound_generator--po32-drum": {
@@ -9148,7 +9443,9 @@
    "decay",
    "kit",
    "level"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "sound_generator--rex": {
   "pageCount": 2,
@@ -9184,7 +9481,9 @@
    "start_note",
    "sustain",
    "transpose"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "sound_generator--sf2": {
   "pageCount": 1,
@@ -9211,6 +9510,12 @@
    "octave_transpose",
    "reverb_level",
    "reverb_on"
+  ],
+  "stepCells": [
+   "octave_transpose +"
+  ],
+  "slowCells": [
+   "octave_transpose"
   ]
  },
  "sound_generator--sfz": {
@@ -9270,6 +9575,13 @@
    "sustain",
    "tune",
    "voices"
+  ],
+  "stepCells": [
+   "octave_transpose +",
+   "voices"
+  ],
+  "slowCells": [
+   "octave_transpose"
   ]
  },
  "sound_generator--signal": {
@@ -9543,6 +9855,10 @@
    "v4_vfreq",
    "v4_vol",
    "v4_wave"
+  ],
+  "stepCells": [],
+  "slowCells": [
+   "cv_sub_div"
   ]
  },
  "sound_generator--smack-in": {
@@ -9623,7 +9939,9 @@
    "slice_res",
    "transport",
    "wet"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "sound_generator--surge": {
   "pageCount": 50,
@@ -10385,6 +10703,12 @@
    "volume",
    "ws_drive",
    "ws_type"
+  ],
+  "stepCells": [
+   "octave_transpose +"
+  ],
+  "slowCells": [
+   "octave_transpose"
   ]
  },
  "sound_generator--weird-dreams": {
@@ -10542,6 +10866,10 @@
    "v8_preset",
    "v8_vol",
    "v8_wave"
+  ],
+  "stepCells": [],
+  "slowCells": [
+   "rev_type"
   ]
  },
  "sound_generator--wurl": {
@@ -10580,6 +10908,8 @@
    "tremolo",
    "tune",
    "volume"
-  ]
+  ],
+  "stepCells": [],
+  "slowCells": []
  }
 }

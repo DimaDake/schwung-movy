@@ -22,7 +22,7 @@ import { join } from 'node:path';
 import {
     MOVY, loadDump, createDumpBoot, serializePages, expandLayoutKeys,
 } from './dump-boot.mjs';
-import { perDetentStep } from '../dist/esm/model/knob-step.js';
+import { detentsPerStep, perDetentStep } from '../dist/esm/model/knob-step.js';
 
 const EXPECT_PATH = join(MOVY, 'browser-test', 'dump-expect.json');
 const UPDATE = process.argv.includes('--update');
@@ -80,6 +80,15 @@ function snapshot(model, entry) {
         lfoViz: pages.reduce((n, p) => n + p.lfoVizCount, 0),
         hidden,
         shownKeys: [...shown].sort(),
+        /* Which knobs read as a framed number, and which are stepped rather than
+         * swept. Frozen per module because both rules are name-based: a naming
+         * tweak that quietly recruits or drops a param shows up here as a named
+         * diff instead of as a surprise on the device. */
+        stepCells: [...new Set(model.dumpLayout().params
+            .filter(p => p?.renderStyle === 'steps')
+            .map(p => p.key + (p.signed ? ' +' : '')))].sort(),
+        slowCells: [...new Set(model.dumpLayout().params
+            .filter(p => p && detentsPerStep(p) > 1).map(p => p.key))].sort(),
     };
 }
 
@@ -128,6 +137,10 @@ function checkExpect(key, snap, expect) {
         JSON.stringify(snap.pageShortNames) === JSON.stringify(expect.pageShortNames));
     check(`${key}: shownKeys match`,
         JSON.stringify(snap.shownKeys) === JSON.stringify(expect.shownKeys));
+    for (const field of ['stepCells', 'slowCells']) {
+        check(`${key}: ${field} = ${JSON.stringify(expect[field])} (got ${JSON.stringify(snap[field])})`,
+            JSON.stringify(snap[field]) === JSON.stringify(expect[field]));
+    }
 }
 
 /* Every knob a module declares in ANY hierarchy level must be reachable on some
@@ -185,6 +198,15 @@ function checkKnobStepSymmetric(key, model) {
         if (p.type === 'int') {
             check(`${key}: int ${p.key} steps whole units, so both directions match (got ${step})`,
                 Number.isInteger(step));
+        }
+        /* An on/off switch must keep flipping on one click: it never had the
+         * fractional-step bug, and four clicks to flip is worse. */
+        if (p.max - p.min <= 1) {
+            check(`${key}: toggle ${p.key} keeps one click per flip`, detentsPerStep(p) === 1);
+            check(`${key}: toggle ${p.key} is not a step cell`, p.renderStyle !== 'steps');
+        }
+        if (p.renderStyle === 'steps') {
+            check(`${key}: step cell ${p.key} is an int`, p.type === 'int');
         }
     }
 }

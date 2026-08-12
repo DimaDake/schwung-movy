@@ -56,6 +56,7 @@ import { stepPageState, stepPageAvailable } from '../seq/step-page.js';
 import { buildStepPageVM } from '../seq/step-page-vm.js';
 import { activeHasNote, maxBarOffset, seqState } from '../seq/state.js';
 import { engineReady } from '../seq/engine.js';
+import { perfProbeEnter, perfProbeTick } from './perf-probe.js';
 import {
     drawLoopStrip, drawSeqToast, drawSeqHeader,
     seqToastActive, seqToastTick,
@@ -208,6 +209,13 @@ export function invalidateLedCachesOnResume(): void {
 }
 
 export function tick(): void {
+    perfProbeEnter();
+    tickBody();
+    /* Outside tickBody so the parked early-return is still accounted for. */
+    perfProbeTick();
+}
+
+function tickBody(): void {
     // Keep the engine mirror synced first (flushes any queued command, polls
     // status) — the mock/real engine reports transport + step state regardless
     // of whether we are on screen.

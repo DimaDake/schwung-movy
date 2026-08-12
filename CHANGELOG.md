@@ -35,6 +35,17 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **An empty track no longer slows every knob down.** Movy asks the host what
+  module a track holds so the engine knows whether to transpose its clip. An
+  *empty* slot never answers, so the question was asked again on the very next
+  tick — forever. Each ask is a blocking round-trip the audio shim only services
+  once per SPI frame (~2.7 ms), and the tick period is also how often Movy samples
+  knob MIDI, so a set with three empty tracks spent most of every tick waiting and
+  the knobs felt heavy. Unanswered slots are now retried on the same ~1 s cadence
+  as the module-name poll, so a module loaded from outside Movy is still picked
+  up. On a set with one empty track this cut host round-trips per tick from 2.6 to
+  1.7 and the tick period from 13.1 ms to ~11.9 ms; the effect grows with the
+  number of empty tracks.
 - **A negative value in a boxed cell no longer loses its minus sign.** The box
   splits a label across two lines on `_` and `-` so `LOW_PASS` reads `LOW`/`PAS`,
   but it applied that to numbers too: `-3` drew as `3`, identical to the positive

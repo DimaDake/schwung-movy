@@ -9,6 +9,7 @@ import { appState, trackIsDrum } from '../app/state.js';
 import { moduleReadKey } from '../chain/config.js';
 import { loadModuleConfig } from '../modules/loader.js';
 import { seqCmd } from './engine.js';
+import { NAME_POLL_TICKS } from '../model/constants.js';
 
 const NUM_TRACKS = 4;
 
@@ -16,6 +17,15 @@ const NUM_TRACKS = 4;
 const sent = [-1, -1, -1, -1];
 /* Tracks already answered by the direct probe below (see `probeTrack`). */
 const probed = [false, false, false, false];
+/* Ticks to wait before re-probing a track that gave no answer. An empty slot
+ * never answers, so without this the probe repeats every tick for the life of
+ * the tool — and each probe is a blocking round-trip the shim only services
+ * once per SPI frame (~2.7 ms). Four empty tracks cost ~11 ms of every tick,
+ * which is most of the tick period, and the tick period is also how often knob
+ * MIDI is sampled. Retrying on the name-poll cadence keeps the "a module was
+ * loaded from outside movy" case working at ~1 s granularity, for ~0.3% of the
+ * IPC. */
+const retryIn = [0, 0, 0, 0];
 
 /* Drum identity for a track whose model hasn't loaded — only the *active*
  * track's model ticks, so an unvisited track would otherwise never report, and
@@ -44,8 +54,10 @@ export function drumSyncTick(): void {
             drum = trackIsDrum(t) ? 1 : 0;   // the model is authoritative
             probed[t] = true;
         } else if (!probed[t]) {
+            if (retryIn[t] > 0) { retryIn[t]--; continue; }
             drum = probeTrack(t);
             if (drum !== null) probed[t] = true;
+            else retryIn[t] = NAME_POLL_TICKS;
         } else {
             continue;
         }
@@ -60,4 +72,5 @@ export function drumSyncTick(): void {
 export function resetDrumSync(): void {
     sent.fill(-1);
     probed.fill(false);
+    retryIn.fill(0);
 }

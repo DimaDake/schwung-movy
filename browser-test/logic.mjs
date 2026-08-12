@@ -5442,6 +5442,25 @@ _log('\nautomation label sync:');
     globalThis.shadow_get_param = () => null;
     drumSyncTick();
     eq('empty slot is not reported', peekSeqCmdQueue().some((c) => c.startsWith('tdrum 0')), false);
+
+    /* Every probe is a blocking round-trip the shim only services once per SPI
+     * frame (~2.7 ms), so it sets the tick period — and the tick period is the
+     * knob's MIDI sampling interval. An empty slot never answers, so probing it
+     * per tick spent a whole frame per empty track, every tick, forever. */
+    resetSeqEngine(); resetDrumSync();
+    let probeReads = 0;
+    globalThis.shadow_get_param = () => { probeReads++; return null; };
+    for (let i = 0; i < 200; i++) drumSyncTick();
+    eq('empty slot is not re-probed every tick (' + probeReads + ' reads / 200 ticks)', probeReads <= 4, true);
+    // …but it is still re-probed eventually, so a module loaded from outside
+    // movy is picked up without reopening the tool.
+    globalThis.shadow_get_param = (slot, key) => (slot === 0 && key === 'synth_module' ? 'mrdrums' : null);
+    let found = false;
+    for (let i = 0; i < 800 && !found; i++) {
+        drumSyncTick();
+        found = peekSeqCmdQueue().some((c) => c === 'tdrum 0 1');
+    }
+    eq('a module appearing in a previously empty slot is still detected', found, true);
     globalThis.shadow_get_param = savedGet;
 
     appState.trackModels = savedModels;

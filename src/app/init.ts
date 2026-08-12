@@ -15,8 +15,10 @@ import { resetUndoState } from '../undo/state.js';
 import { resetUndoGroups } from '../undo/group.js';
 import { resetUndoToast } from '../undo/toast.js';
 import { mlog } from '../log.js';
+import { installPerfProbe } from './perf-probe.js';
 
 export function init(): void {
+    installPerfProbe();   // wrap the host globals before anything calls them
     appState.activeSlot = (typeof shadow_get_ui_slot === 'function') ? shadow_get_ui_slot() : 0;
     mlog('init: activeSlot=' + appState.activeSlot);
 

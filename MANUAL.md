@@ -102,6 +102,25 @@ automatically. You don't configure anything for most modules.
 
   ![Enum overlay](docs/assets/enum_overlay.png)
 
+- **Waveform silhouettes** — when a list is a *waveform* picker, Movy draws the
+  shape instead of an abbreviation, so a glance tells you what the oscillator is
+  doing. It applies to plain single-knob waveform parameters — an oscillator
+  wave, a modulation shape — not just LFOs:
+
+  ![Waveform knob cells](docs/assets/wave_cells.png)
+
+  The overlay lists the names with the same silhouettes beside them, so the
+  mapping is learnable at a glance:
+
+  ![Waveform enum overlay](docs/assets/wave_overlay.png)
+
+  Movy only does this when **every** option in the list has its own distinct
+  silhouette. Lists where several entries would end up drawn identically — an
+  Osirus wavetable list of *Wave 3*…*Wave 64*, or Helm's *3/4/8 Step* — keep
+  their text, because one picture standing for several different waveforms is
+  worse than the abbreviation it replaced. Lists that aren't waveforms at all
+  (*Gate/Envelope*, *Off/On*) are untouched.
+
 - **Envelope graphics** — when a page contains a recognisable
   Attack/Decay/Sustain/Release group, Movy draws it as a **single envelope
   shape** instead of four separate knobs, which is far easier to read:

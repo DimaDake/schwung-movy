@@ -97,13 +97,23 @@ export function drawWave(
     const mid = y + (h - 1) / 2, amp = (h - 1) / 2;
     const yAt = (px: number): number =>
         Math.round(mid - shapeSample(shape, ((px - x) / w) * cycles) * amp);
-    let py = yAt(x);
+    const vline = (px: number, a: number, b: number): void =>
+        fill_rect(px, Math.min(a, b), 1, Math.abs(a - b) + 1, colour);
+
+    const firstY = yAt(x);
+    let py = firstY;
     fill_rect(x, py, 1, 1, colour);
     for (let px = x + 1; px < x + w; px++) {
         const ny = yAt(px);
-        fill_rect(px, Math.min(py, ny), 1, Math.abs(ny - py) + 1, colour);
+        vline(px, py, ny);
         py = ny;
     }
+    /* Close the cycle. A periodic wave jumps from its last sample back to its
+     * first, and that jump is a real edge of the shape: without it a saw is a
+     * bare ramp that just stops, and a square never shows the rising edge that
+     * makes it a square. Drawn at the final column so the silhouette stays
+     * inside its box. */
+    if (py !== firstY) vline(x + w - 1, py, firstY);
 }
 
 export function drawLfoWave(rowY: number, g: LfoVizVM): void {

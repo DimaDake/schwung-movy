@@ -7099,12 +7099,25 @@ _log('\nTest: drawWave draws straight vertical risers');
      * diagonal pixels. Bresenham risers read as slanted steps at this size. */
     eq('square riser is a single full-height vertical rect',
         sq.some(c => c.h === 5), true);
-    eq('one rect per column', sq.length, 13);
+    /* One rect per column, plus the closing edge: a periodic wave jumps from
+     * its last sample back to its first, and that jump is a real edge — without
+     * it a saw is a bare ramp that just stops. */
+    eq('one rect per column plus a closing edge', sq.length, 14);
+    eq('closing edge sits on the last column',
+        sq.filter(c => c.x === 12).length, 2);
 
-    // Off never rises — every column is a single pixel on the centre line.
+    // A saw closes too: the ramp's drop back to the start.
+    const saw = shot(2);
+    eq('saw has a closing edge', saw.length, 14);
+    eq('saw closing edge is full height',
+        saw.filter(c => c.x === 12).some(c => c.h === 5), true);
+
+    // Off never rises — every column is a single pixel on the centre line, and
+    // a continuous shape must NOT get a spurious edge.
     const off = shot(19);
     eq('off is flat: no risers', off.every(c => c.h === 1), true);
     eq('off sits on one row', new Set(off.map(c => c.y)).size, 1);
+    eq('off gets no closing edge', off.length, 13);
 
     // Colour 0 is honoured, for the inverted (selected) overlay row.
     eq('colour 0 honoured', shot(3, 13, 5, 1, 0).every(c => c.v === 0), true);

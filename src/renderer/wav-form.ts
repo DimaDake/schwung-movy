@@ -12,8 +12,12 @@ import type { WavVizVM } from '../types/viewmodel.js';
 import { CELL_W } from './layout.js';
 
 export function drawWavForm(rowY: number, viz: WavVizVM): void {
-    const x0 = viz.startCol * CELL_W + 2;
-    const x1 = (viz.startCol + viz.cellCount) * CELL_W - 2;
+    /* Full cell width, unlike the other graphics. They inset 1-2px so adjacent
+     * curves stay visually separate; a waveform has no neighbour to collide
+     * with (it owns every cell it spans) and every pixel is another slice of
+     * the sample, so the padding was pure lost resolution. */
+    const x0 = viz.startCol * CELL_W;
+    const x1 = (viz.startCol + viz.cellCount) * CELL_W;
     const w = x1 - x0;
     const topY = rowY + 1, botY = rowY + 14;
     const midY = Math.round((topY + botY) / 2);
@@ -35,7 +39,11 @@ export function drawWavForm(rowY: number, viz: WavVizVM): void {
         else fill_rect(x0 + i, midY - h, 1, 2 * h + 1, 1);
     }
 
-    const mi = Math.round(Math.max(0, Math.min(1, viz.position)) * (w - 1));
+    /* Same mapping the envelope itself uses: column i covers the frames
+     * [i/w, (i+1)/w) of the sample, so the marker belongs in floor(p*w). The
+     * obvious round(p*(w-1)) disagrees with that for a quarter of all positions
+     * and lands a pixel off the column that will actually play. */
+    const mi = Math.min(w - 1, Math.floor(Math.max(0, Math.min(1, viz.position)) * w));
     const h = halfAt(mi), mx = x0 + mi;
     fill_rect(mx, midY - h, 1, 2 * h + 1, 0);                       // cut the sample out
     if (midY - h > topY) fill_rect(mx, topY, 1, (midY - h) - topY, 1);

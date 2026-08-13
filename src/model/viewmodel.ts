@@ -197,6 +197,22 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             position: norm01(wv.position),
         };
     });
+    /* Lone marker that kept its own cell: same graphic, one cell wide, at
+     * whatever column the layout ended up giving it. */
+    if (layout.wavCell !== null) {
+        const cell = layout.cells.find((c) => c.idx === layout.wavCell);
+        const fileIdx = pageSlice.findIndex((p) => p?.type === 'file');
+        const path = fileIdx < 0 ? null : (s.fileValues[pageStart + fileIdx] ?? null);
+        if (cell) {
+            const width = 32;
+            s.wavRequest = path ? { path, width } : null;
+            wavViz.push({
+                line: cell.line, startCol: cell.col, cellCount: 1,
+                points: wavPeaks(path, width)?.points ?? [],
+                position: norm01(layout.wavCell),
+            });
+        }
+    }
     const cutViz = layout.cuts.map((c) => ({
         line: c.line, startCol: c.startCol, cellCount: c.cellCount,
         lowcut: norm01(c.lowcut), highcut: norm01(c.highcut),

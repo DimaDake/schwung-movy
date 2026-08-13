@@ -7488,11 +7488,11 @@ _log('\nTest: waveform marker inverts over the sample');
         globalThis.fill_rect = origFill;
         return r;
     };
-    const W = 2 * 32 - 4;
+    const W = 2 * 32;   // wav spans the FULL cells, no side inset
     // Quiet everywhere: the marker is a tall LIT line.
     {
         const r = shot(new Array(W).fill(0), 0.5);
-        const mx = 2 + Math.round(0.5 * (W - 1));
+        const mx = Math.floor(0.5 * W);
         const lit = r.filter((q) => q.x === mx && q.v === 1);
         const tall = lit.reduce((n, q) => Math.max(n, q.h), 0);
         eq('marker is a tall lit line through silence', tall >= 6, true);
@@ -7500,11 +7500,30 @@ _log('\nTest: waveform marker inverts over the sample');
     // Full scale everywhere: the marker becomes a CLEARED notch instead.
     {
         const r = shot(new Array(W).fill(1), 0.5);
-        const mx = 2 + Math.round(0.5 * (W - 1));
+        const mx = Math.floor(0.5 * W);
         const cleared = r.filter((q) => q.x === mx && q.v === 0);
         eq('marker is a cleared notch through a loud passage', cleared.length > 0, true);
         eq('the notch spans the sample', cleared[0].h >= 6, true);
     }
+    /* The marker must sit in the SAME column the envelope built for that
+     * position — column i covers frames [i/w,(i+1)/w). round(p*(w-1)) disagrees
+     * for a quarter of all positions and points a pixel off what will play. */
+    {
+        const markerCol = (p) => {
+            const pts = new Array(W).fill(0);
+            const r = shot(pts, p);
+            const lit = r.filter((q) => q.v === 1 && q.h > 2).map((q) => q.x);
+            return Math.min(...lit);
+        };
+        let off = 0;
+        for (let k = 0; k <= 200; k++) {
+            const p = k / 200;
+            const want = Math.min(W - 1, Math.floor(p * W));
+            if (markerCol(p) !== want) off++;
+        }
+        eq('marker sits in the column that will play, at every position', off, 0);
+    }
+
     // The marker tracks position.
     {
         const at = (p) => {

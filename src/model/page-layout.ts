@@ -65,6 +65,9 @@ export interface WavLine {
 export interface PageLayout {
     cells: PageCell[]; envelopes: EnvLine[]; lfos: LfoLine[];
     filters: FilterLine[]; eqs: EqLine[]; cuts: CutLine[]; wavs: WavLine[];
+    /* A lone position marker that could not claim a line: drawn as a one-cell
+     * waveform wherever the page already put it, so the layout is untouched. */
+    wavCell: number | null;
 }
 
 /* Physical knob (slot = line*4 + col) → page-relative param index, honoring the
@@ -107,6 +110,7 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
     const eqs: EqLine[] = [];
     const cuts: CutLine[] = [];
     const wavs: WavLine[] = [];
+    let wavCell: number | null = null;
     const used = new Set<number>();
     const claimed = new Set<number>();
 
@@ -176,11 +180,33 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
      * whole purpose is resolution, so it gets a line before the cut pair does. */
     for (const g of detectWavViz(params)) {
         if (used.size >= 2) break;
-        const idxs = g.file === null ? [g.position] : [g.file, g.position];
+        /* Pair with the sample file only when the module already put them on
+         * the SAME line. Dragging a file cell up from the other row would
+         * rewrite a hand-tuned layout — mrdrums puts its sample on row 0 and
+         * its start point on row 1, and pulling them together shifted every
+         * other knob on the page. */
+        const sameLine = g.file !== null && Math.floor(g.file / 4) === Math.floor(g.position / 4);
+        const idxs = sameLine ? [g.file as number, g.position] : [g.position];
         if (idxs.some(i => claimed.has(i))) continue;
-        const line = assign(idxs, (Math.floor(Math.min(...idxs) / 4)) as 0 | 1);
-        if (line >= 0) wavs.push({
-            line: line as 0 | 1, startCol: 0, cellCount: idxs.length,
+        /* Take a line only if it is the group's OWN line. Envelopes are placed
+         * first and may already hold it (mrdrums: attack+decay on row 1, the
+         * start point beside them) — and displacing the other row to make space
+         * would rewrite a layout the module deliberately chose. When that
+         * happens the waveform still draws, just in the one cell it already
+         * occupies, via wavCell below. */
+        const want = (Math.floor(Math.min(...idxs) / 4)) as 0 | 1;
+        if (used.has(want)) { if (g.file === null || !sameLine) wavCell = g.position; continue; }
+        const line = assign(idxs, want);
+        if (line < 0) continue;
+        /* Stretch into whatever the page is not using. A waveform is the one
+         * graphic whose whole value is horizontal resolution, so it takes the
+         * FREE cells — but never a cell another param needs: the other params
+         * must still all fit in what is left of the two lines. */
+        const total = params.filter(Boolean).length;
+        const room = 8 - total + idxs.length;
+        const cellCount = Math.max(idxs.length, Math.min(4, room));
+        wavs.push({
+            line: line as 0 | 1, startCol: 0, cellCount,
             position: g.position, idxs,
         });
     }
@@ -211,5 +237,5 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
         while (col <= 3 && li < leftover.length) cells.push({ line, col: (col++) as 0 | 1 | 2 | 3, idx: leftover[li++] });
         if (line === 1) break;
     }
-    return { cells, envelopes, lfos, filters, eqs, cuts, wavs };
+    return { cells, envelopes, lfos, filters, eqs, cuts, wavs, wavCell };
 }

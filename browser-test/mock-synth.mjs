@@ -194,6 +194,27 @@ export const MOCK_SYNTHS = {
         "synth:level": "0.60",
     },
 
+    /* EQ band groups. Row 1 is a 3-band "smile" (low up, mid down, high up);
+     * row 2 is the 2-band case plus a crossover FREQUENCY pair that must NOT be
+     * mistaken for an EQ — it is unipolar, which is the whole test. */
+    eq_bands: {
+        "synth:name": "EQ",
+        "synth:ui_hierarchy": hier([
+            { key: "eq_mid", label: "Mid",  type: "float", min: -12, max: 12, step: 0.5 },
+            { key: "eq_hi",  label: "High", type: "float", min: -12, max: 12, step: 0.5 },
+            { key: "eq_lo",  label: "Low",  type: "float", min: -12, max: 12, step: 0.5 },
+            { key: "trim",   label: "Trim", type: "float", min: -12, max: 12, step: 0.5 },
+            { key: "drv_body", label: "Body", type: "float", min: -6, max: 6, step: 0.5 },
+            { key: "drv_air",  label: "Air",  type: "float", min: -6, max: 6, step: 0.5 },
+            { key: "low_xo",  label: "Low/Mid Hz", type: "float", min: 200, max: 1200, step: 10 },
+            { key: "high_xo", label: "Mid/Hi Hz",  type: "float", min: 1000, max: 16000, step: 100 },
+        ]),
+        "synth:eq_lo": "9", "synth:eq_mid": "-6", "synth:eq_hi": "7",
+        "synth:trim": "0",
+        "synth:drv_body": "3", "synth:drv_air": "-5",
+        "synth:low_xo": "600", "synth:high_xo": "4000",
+    },
+
     /* Lone envelope stages. `attack` and `decay` share a qualifier, so the
      * EXISTING envelope graphic claims them — the scene proves that precedence:
      * only stages with no partner get the new glyph. The rest show decays

@@ -64,6 +64,16 @@ export interface FilterVizVM {
     slope?:    0 | 1;    // 0 = 12 dB, 1 = 24 dB (steeper) — set only when known
 }
 
+/* An EQ band group drawn as one response curve across its 2-3 cells. `gains`
+ * are signed −1..1 in the same order as `bands` (low→high). */
+export interface EqVizVM {
+    line:      0 | 1;
+    startCol:  number;
+    cellCount: number;
+    bands:     import('../model/eq-viz.js').EqBand[];
+    gains:     number[];
+}
+
 export interface ToastState {
     fullName:   string;
     value:      string;
@@ -99,6 +109,7 @@ export interface ViewModel {
     lfoViz?:         LfoVizVM[];
     /* Filter-response groups on this page (cutoff+resonance drawn as a curve). */
     filterViz?:      FilterVizVM[];
+    eqViz?:          EqVizVM[];
     touchedSlot:    number | null;
     toast:          ToastState | null;
     overlay:        OverlayState | null;

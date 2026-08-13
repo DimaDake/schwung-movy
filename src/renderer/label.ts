@@ -1,9 +1,10 @@
-import type { ParamVM, ViewModel, LfoVizVM, EnvelopeVM, FilterVizVM } from '../types/viewmodel.js';
+import type { ParamVM, ViewModel, LfoVizVM, EnvelopeVM, FilterVizVM, EqVizVM } from '../types/viewmodel.js';
 import { fontPrint, fontWidth } from '../font/index.js';
 import { drawKnobWidget } from './knob.js';
 import { drawEnvelope } from './envelope.js';
 import { drawLfoWave } from './lfo-wave.js';
 import { drawFilterCurve } from './filter-curve.js';
+import { drawEqCurve } from './eq-curve.js';
 import { CELL_W, LBL_H, ROW0_Y, LBL0_Y, ROW1_Y, LBL1_Y } from './layout.js';
 
 /* Modulation mark — a 4×2 dither: top row 1010, bottom row 0101. Mirror of the
@@ -57,6 +58,7 @@ export function drawKnobRow(
     params: (ParamVM | null)[], rowY: number, lblY: number,
     held = false, poolFull = false, env: EnvelopeVM | null = null,
     lfoViz: LfoVizVM | null = null, filterViz: FilterVizVM | null = null,
+    eqViz: EqVizVM | null = null,
 ): void {
     // An envelope draws one graphic across its cells (startCol..+cellCount-1); an
     // LFO/filter viz group draws over its two cells. Each replaces those knob
@@ -64,6 +66,7 @@ export function drawKnobRow(
     if (env) drawEnvelope(rowY, params, env);
     else if (lfoViz) drawLfoWave(rowY, lfoViz);
     if (filterViz) drawFilterCurve(rowY, filterViz);
+    if (eqViz) drawEqCurve(rowY, eqViz);
     for (let col = 0; col < 4; col++) {
         const pvm = params[col];
         if (!pvm) continue;
@@ -71,7 +74,8 @@ export function drawKnobRow(
         const inEnv = !!env && col >= env.startCol && col < env.startCol + env.cellCount;
         const inViz = !!lfoViz && col >= lfoViz.startCol && col < lfoViz.startCol + 2;
         const inFlt = !!filterViz && col >= filterViz.startCol && col < filterViz.startCol + 2;
-        if (!inEnv && !inViz && !inFlt) drawKnobWidget(col, rowY, pvm);
+        const inEq  = !!eqViz && col >= eqViz.startCol && col < eqViz.startCol + eqViz.cellCount;
+        if (!inEnv && !inViz && !inFlt && !inEq) drawKnobWidget(col, rowY, pvm);
         drawLabelCell(col, lblY, pvm);
     }
 }
@@ -86,7 +90,9 @@ export function drawKnobParams(vm: ViewModel): void {
         const viz1 = vm.lfoViz?.find(g => g.line === 1) ?? null;
         const flt0 = vm.filterViz?.find(g => g.line === 0) ?? null;
         const flt1 = vm.filterViz?.find(g => g.line === 1) ?? null;
-        drawKnobRow(vm.rows[0], ROW0_Y, LBL0_Y, vm.automationHeld, vm.automationPoolFull, vm.envelopeLines?.[0] ?? null, viz0, flt0);
-        drawKnobRow(vm.rows[1], ROW1_Y, LBL1_Y, vm.automationHeld, vm.automationPoolFull, vm.envelopeLines?.[1] ?? null, viz1, flt1);
+        const eq0  = vm.eqViz?.find(g => g.line === 0) ?? null;
+        const eq1  = vm.eqViz?.find(g => g.line === 1) ?? null;
+        drawKnobRow(vm.rows[0], ROW0_Y, LBL0_Y, vm.automationHeld, vm.automationPoolFull, vm.envelopeLines?.[0] ?? null, viz0, flt0, eq0);
+        drawKnobRow(vm.rows[1], ROW1_Y, LBL1_Y, vm.automationHeld, vm.automationPoolFull, vm.envelopeLines?.[1] ?? null, viz1, flt1, eq1);
     }
 }

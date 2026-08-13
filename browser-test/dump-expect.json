@@ -637,12 +637,12 @@
     "STOP"
    ],
    [
-    "TRIM",
+    "LOW",
+    "MID",
     "HIGH",
+    "TRIM",
     "HF",
     "MF",
-    "MID",
-    "LOW",
     "PAN",
     "VOLUM"
    ],
@@ -872,11 +872,11 @@
    [
     "ATTAC",
     "RELEA",
+    "THR",
+    "RATIO",
     "GAIN",
     "MID",
     "HI",
-    "THR",
-    "RATIO",
     "DN"
    ],
    [
@@ -6588,13 +6588,13 @@
     "ALDCY"
    ],
    [
+    "BODY",
+    "AIR",
     "DRIVE",
     "TAPE",
-    "HPF",
-    "BODY",
     "CUTOF",
     "RESO",
-    "AIR",
+    "HPF",
     "PHASE"
    ],
    [

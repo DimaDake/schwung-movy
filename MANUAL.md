@@ -201,6 +201,19 @@ automatically. You don't configure anything for most modules.
 
   ![Two filter curves on one page](docs/assets/filter_dual.png)
 
+- **EQ graphics** — when a page carries two or three **band gains** (low / mid /
+  high, or a module's own names like *Body* and *Air*), Movy reorders them onto
+  one line in frequency order and draws the **response curve** across them. The
+  dotted line is 0 dB, so a cut reads as clearly as a boost: low and high are
+  shelves, mid is a bell:
+
+  ![EQ band curve](docs/assets/eq_bands.png)
+
+  Only genuine **boost/cut** controls qualify — a band gain swings either side
+  of zero. A crossover *frequency*, a per-band *Q*, or a low/high pair that is
+  really a random range all keep their own knobs, because drawing an EQ curve
+  for them would say something untrue.
+
 - **Multiple pages** — modules with more than 8 parameters split into pages
   (`MAIN`, `PAGE 1`, `PAGE 2`, …). Scroll them with the jog wheel (or Left/Right
   when the sequencer isn't using those buttons). The line under the title is the

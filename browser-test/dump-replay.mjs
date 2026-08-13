@@ -287,6 +287,16 @@ const ENV_STAGES_EXPECTED = [
     'sound_generator--weird-dreams::cv_decay d',
 ];
 
+/* EQ band groups drawn as one response curve. Pinned like the others; the
+ * bipolar-dB test is what keeps crossover frequencies and per-band Q out. */
+const EQ_GROUPS_EXPECTED = [
+    'audio_fx--magneto low/mid/high',
+    'audio_fx--ottx low/mid/high',
+    'sound_generator--forge low/mid/high',
+    'sound_generator--krautdrums mid/high',
+    'sound_generator--weird-dreams low/mid/high',
+];
+
 const WAVE_CELLS_EXPECTED = [
     'audio_fx--ambiotica::mod_shape',
     'audio_fx--spectra::motion_shape',
@@ -316,7 +326,7 @@ const WAVE_CELLS_EXPECTED = [
  * so the names come from the detector over the same page slices the VM uses;
  * the VM is then cross-checked to have produced that many 'wave' cells, which
  * is what proves the detector is actually wired through to renderStyle. */
-function collectWaveCells(key, model, into, intoToggles, intoStages) {
+function collectWaveCells(key, model, into, intoToggles, intoStages, intoEqs) {
     const params = model.dumpLayout().params;
     let detected = 0;
     for (let start = 0; start < params.length; start += 8) {
@@ -331,6 +341,7 @@ function collectWaveCells(key, model, into, intoToggles, intoStages) {
             intoToggles.push(`${key}::${page[i].key}`);
             detected++;
         }
+        for (const q of layout.eqs) intoEqs.push(`${key} ${q.bands.join('/')}`);
         if (model.getComponentKey() === 'synth') {
             for (const [i, st] of envStageCells(page, claimed)) {
                 intoStages.push(`${key}::${page[i].key} ${st}`);
@@ -363,6 +374,7 @@ const snapshots = {};
 const waveCells = [];
 const waveToggles = [];
 const envStages = [];
+const eqGroups = [];
 
 for (const entry of dump.modules) {
     const key = `${entry.category}--${entry.id}`;
@@ -380,8 +392,18 @@ for (const entry of dump.modules) {
     checkDeclaredKnobsReachable(key, model, entry);
     checkEnumOptionsMatchModule(key, model, entry);
     checkKnobStepSymmetric(key, model);
-    collectWaveCells(key, model, waveCells, waveToggles, envStages);
+    collectWaveCells(key, model, waveCells, waveToggles, envStages, eqGroups);
     if (!UPDATE) checkExpect(key, snap, expect[key]);
+}
+
+/* Fleet-wide EQ band groups. */
+{
+    const got = [...new Set(eqGroups)].sort();
+    const want = EQ_GROUPS_EXPECTED.slice().sort();
+    const added   = got.filter(k => !want.includes(k));
+    const dropped = want.filter(k => !got.includes(k));
+    check(`eq groups: ${got.length}${added.length ? ` — UNEXPECTED: ${added.join(', ')}` : ''}${dropped.length ? ` — MISSING: ${dropped.join(', ')}` : ''}`,
+        added.length === 0 && dropped.length === 0);
 }
 
 /* Fleet-wide lone-envelope-stage set. */

@@ -8,6 +8,7 @@ import { envStageCells } from './env-stage.js';
 import { enumClassOf } from './enum-class.js';
 import { buildLfoViz } from './lfo-vm.js';
 import { buildFilterViz } from './filter-vm.js';
+import { buildEqViz } from './eq-vm.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
 import { dedupShortNames } from '../renderer/shorten.js';
 import { basename } from './path.js';
@@ -160,6 +161,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     // Filter-response groups: cutoff+resonance drawn as a curve. Mode may live on
     // another page, so the resolver also reads the full cached param/value lists.
     const filterViz = buildFilterViz(layout.filters, pageParams, pageValues, s.knobParams, allValues);
+    const eqViz = buildEqViz(layout.eqs, pageParams, pageValues);
 
     // Toast follows the physical knob last touched → its displayed param (the
     // rearrange means screen slot ≠ page index).
@@ -226,5 +228,6 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         stepPageSelected:   false,
         lfoViz:             lfoViz.length ? lfoViz : undefined,
         filterViz:          filterViz.length ? filterViz : undefined,
+        eqViz:              eqViz.length ? eqViz : undefined,
     };
 }

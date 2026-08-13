@@ -78,6 +78,7 @@ import { enumClassOf } from '../dist/esm/model/enum-class.js';
 import { waveCellIndices } from '../dist/esm/model/wave-viz.js';
 import { waveToggleOf } from '../dist/esm/model/wave-toggle.js';
 import { envStageOf } from '../dist/esm/model/env-stage.js';
+import { detectEqViz } from '../dist/esm/model/eq-viz.js';
 import { lfoTargetsParam, assignLfoTarget, clearLfoTarget } from '../dist/esm/lfo/assign.js';
 import { holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle, assignCommit, assignToastText, resetAssignMode } from '../dist/esm/lfo/assign-mode.js';
 import { jogHintTouch, jogHintTick, jogHintVisible } from '../dist/esm/app/jog-hint.js';
@@ -7251,6 +7252,56 @@ _log('\nTest: envStageOf — lone attack/decay knobs');
     // An enum named Decay is a mode list, not a time.
     eq('enum decay rejected',
         envStageOf({ key: 'decay', label: 'Decay', type: 'enum', options: ['Short', 'Long'] }), null);
+}
+
+_log('\nTest: detectEqViz — low/mid/high gain groups');
+{
+    const G = (key, label, min = -12, max = 12) =>
+        ({ key, label, type: 'float', min, max, renderStyle: 'arc' });
+    const pad = (a) => { const r = a.slice(); while (r.length < 8) r.push(null); return r; };
+    const one = (a) => detectEqViz(pad(a));
+
+    // Three bands under one qualifier.
+    {
+        const g = one([G('eq_lo', 'Low'), G('eq_mid', 'Mid'), G('eq_hi', 'High')]);
+        eq('3-band group found', g.length, 1);
+        eq('3-band bands', g[0].bands.join('/'), 'low/mid/high');
+        eq('3-band indices', [g[0].low, g[0].mid, g[0].high].join(','), '0,1,2');
+    }
+    // Two bands is enough; krautdrums names them Body and Air.
+    {
+        const g = one([G('eq_body', 'Body', -6, 6), G('eq_air', 'Air', -6, 6)]);
+        eq('2-band group found', g.length, 1);
+        eq('2-band bands', g[0].bands.join('/'), 'mid/high');
+    }
+    /* OTT-X keys its bands lgain/mgain/hgain, so each key token would become a
+     * different qualifier and the group would never form. */
+    {
+        const g = one([G('lgain', 'Low Gain', -30, 30), G('mgain', 'Mid Gain', -30, 30),
+                       G('hgain', 'Hi Gain', -30, 30)]);
+        eq('glued band+gain keys group', g.length, 1);
+        eq('glued bands', g[0].bands.join('/'), 'low/mid/high');
+    }
+    // A single band is a knob, not a curve.
+    eq('one band is not a group', one([G('eq_lo', 'Low')]).length, 0);
+
+    /* The bipolar-dB test is what rejects everything the words let through.
+     * Each of these is a real fleet param that matched on words alone. */
+    eq('crossover frequencies rejected',
+        one([G('low_xo', 'Low/Mid Hz', 200, 1200), G('high_xo', 'Mid/Hi Hz', 1000, 16000)]).length, 0);
+    eq('per-band Q rejected',
+        one([G('q_lo', 'Q Low', 0.3, 8), G('q_mid', 'Q Mid', 0.3, 8), G('q_hi', 'Q Hi', 0.3, 8)]).length, 0);
+    eq('random low/high bounds rejected',
+        one([G('kick_rand_low', 'Low', 0, 127), G('kick_rand_high', 'High', 0, 127)]).length, 0);
+    eq('unipolar tone controls rejected',
+        one([G('delay_tone_lo', 'Lo', 0, 1), G('delay_tone_hi', 'Hi', 0, 1)]).length, 0);
+    // A cut/shelf FREQUENCY is a filter control, not a band gain.
+    eq('low cut rejected',
+        one([G('low_cut', 'Low Cut'), G('high_cut', 'High Cut')]).length, 0);
+
+    // Different qualifiers stay apart.
+    eq('separate qualifiers do not merge',
+        one([G('eq_lo', 'Low'), G('drive_hi', 'Drive High')]).length, 0);
 }
 
 /* ── dumpLayout: external layout snapshot (scripts/dump-movy-layout.mjs) ── */

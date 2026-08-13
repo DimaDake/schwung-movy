@@ -8,6 +8,7 @@ import type { KnobParam } from '../types/param.js';
 import { detectEnvelopes, type EnvRole } from './envelope.js';
 import { detectLfoViz } from './lfo-viz.js';
 import { detectFilterViz } from './filter-viz.js';
+import { detectEqViz } from './eq-viz.js';
 
 export interface PageCell { line: 0 | 1; col: 0 | 1 | 2 | 3; idx: number }
 export interface EnvLine {
@@ -38,7 +39,18 @@ export interface FilterLine {
     staticMode: import('./filter-mode.js').FilterMode | null;
     slopeIdx: number | null;
 }
-export interface PageLayout { cells: PageCell[]; envelopes: EnvLine[]; lfos: LfoLine[]; filters: FilterLine[] }
+/* An EQ placement: the group's 2-3 band gains seated on one line in FREQUENCY
+ * order (low, mid, high) starting at startCol, so the curve reads left-to-right
+ * as the spectrum regardless of the order the module declared them. */
+export interface EqLine {
+    line: 0 | 1; startCol: number; cellCount: number;
+    bands: import('./eq-viz.js').EqBand[];
+    idxs: number[];   // page-relative param index per band, same order as bands
+}
+export interface PageLayout {
+    cells: PageCell[]; envelopes: EnvLine[]; lfos: LfoLine[];
+    filters: FilterLine[]; eqs: EqLine[];
+}
 
 /* Physical knob (slot = line*4 + col) → page-relative param index, honoring the
  * rearrange so a knob always drives the param shown at its position. */
@@ -60,6 +72,7 @@ export function claimedCells(layout: PageLayout): Set<number> {
             if (i !== null) out.add(i);
         }
     }
+    for (const q of layout.eqs) for (const i of q.idxs) out.add(i);
     for (const f of layout.filters) {
         out.add(f.cutoff);
         out.add(f.resonance);
@@ -74,6 +87,7 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
     const envelopes: EnvLine[] = [];
     const lfos: LfoLine[] = [];
     const filters: FilterLine[] = [];
+    const eqs: EqLine[] = [];
     const used = new Set<number>();
     const claimed = new Set<number>();
 
@@ -124,6 +138,21 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
         });
     }
 
+    /* EQ groups last: a band gain is never an envelope stage or a filter
+     * cutoff, so nothing above can have taken these cells — but the line budget
+     * is shared, and an envelope is the more important picture when both want
+     * the same row. */
+    for (const g of detectEqViz(params)) {
+        if (used.size >= 2) break;
+        const idxs = g.bands.map(b => g[b] as number);
+        if (idxs.some(i => claimed.has(i))) continue;
+        const line = assign(idxs, (Math.floor(Math.min(...idxs) / 4)) as 0 | 1);
+        if (line >= 0) eqs.push({
+            line: line as 0 | 1, startCol: 0, cellCount: idxs.length,
+            bands: g.bands, idxs,
+        });
+    }
+
     const leftover: number[] = [];
     params.forEach((p, i) => { if (p && !claimed.has(i)) leftover.push(i); });
 
@@ -136,5 +165,5 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
         while (col <= 3 && li < leftover.length) cells.push({ line, col: (col++) as 0 | 1 | 2 | 3, idx: leftover[li++] });
         if (line === 1) break;
     }
-    return { cells, envelopes, lfos, filters };
+    return { cells, envelopes, lfos, filters, eqs };
 }

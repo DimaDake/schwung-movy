@@ -62,7 +62,7 @@ const PRESETS = [
     'trigger_cooling', 'trigger_cooling_low',
     'font_5x3_all', 'font_small_all', 'font_big_all_1', 'font_big_all_2',
     'wave_cells', 'wave_overlay', 'wave_helm', 'wave_toggles',
-    'env_stages',
+    'env_stages', 'eq_bands',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -100,7 +100,7 @@ const BASE = {
     deep_page: 'hier_knobs_and_children',
     lfo_helm_step: 'lfo_helm', lfo_helm_pyramid: 'lfo_helm',
     wave_cells: 'wave_cells', wave_overlay: 'wave_cells', wave_helm: 'helm_waves',
-    wave_toggles: 'wave_toggles', env_stages: 'env_stages',
+    wave_toggles: 'wave_toggles', env_stages: 'env_stages', eq_bands: 'eq_bands',
     signal_voice: 'signal', forge_voice: 'forge',
     forge_filter: 'forge', forge_mod: 'forge', forge_send: 'forge', forge_mix: 'forge',
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
@@ -352,6 +352,14 @@ function applyView(preset) {
          * inverted glyph on the selected row and the flat "Off" entry are all
          * in one shot. Long-press is 172 ticks, so the hold is driven
          * explicitly rather than left to settle()'s idle heuristic. */
+        case 'eq_bands':
+            setFilter({
+                eq_lo: '9', eq_mid: '-6', eq_hi: '7', trim: '0',
+                drv_body: '3', drv_air: '-5', low_xo: '600', high_xo: '4000',
+            });
+            for (let i = 0; i < 120; i++) model.tick();
+            forceRender();
+            break;
         case 'env_stages':
             setFilter({
                 decay: '0.15', mod_decay: '0.45', all_decay: '0.75', lpg_decay: '1.0',

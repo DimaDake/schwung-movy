@@ -75,6 +75,23 @@ deleted with them — removing **256 `occHasStep()` calls per frame**.
 | active | `trackColor` | `C_WHITE` | `ANIM_PULSE` |
 | inactive | `C_DARKGREY` | — | `ANIM_NONE` |
 
+> **Superseded on review (2026-08-12).** The two-colour blends muddied both hues,
+> and mixed rates cannot stay synchronised — the firmware drives each rate off its
+> own division, so a slow selected bar only meets its on-beat neighbours every
+> other cycle. Shipped instead: every state fades **its own colour against black**
+> on **one** channel, so the row breathes as a single movement.
+>
+> | Bar state | base | anim | channel |
+> |---|---|---|---|
+> | playhead (playing) | `C_BLACK` | `C_GREEN` | `ANIM_PULSE` |
+> | selected (in or out of loop) | `C_BLACK` | `C_WHITE` | `ANIM_PULSE` |
+> | active | `C_BLACK` | `trackColor` | `ANIM_PULSE` |
+> | inactive | `C_DARKGREY` | — | `ANIM_NONE` |
+>
+> This also resolves the open question below in the safe direction: the lit colour
+> now lives in `anim`, which the firmware honours even where it ignores `base`.
+> The original pairs put white in `base` and would have pulsed black-on-black there.
+
 Priority: playhead > selected > active > inactive, mirroring session's
 `queued > playing > selected`. The active row is byte-identical to session's
 playing-clip pair, so it breathes in hardware phase-lock with it.

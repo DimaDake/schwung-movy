@@ -76,11 +76,12 @@ function drawEnumSquare(kx: number, ky: number, options: string[] | null, enumIn
  * parameter this is, so the frame was spending a third of the cell to repeat
  * that it is a list. */
 function drawWaveCell(cellX: number, ky: number, shape: number): void {
-    /* Same geometry as drawLfoWave, one cell wide instead of two: inset 1px
-     * horizontally, and rowY+1..rowY+14 vertically. Matching it means a
-     * single-knob waveform and a two-cell LFO waveform on the same page sit on
-     * the same baseline and read as the same kind of drawing. */
-    drawWave(cellX + 1, ky + 1, CELL_W - 2, KW - 2, shape, 1, 1);
+    /* drawLfoWave's vertical geometry (rowY+1..rowY+14) so a single-knob
+     * waveform and a two-cell LFO waveform on the same page share a baseline.
+     * Horizontally it is inset 2px rather than the LFO's 1px: neighbouring
+     * cells each end in a full-height closing edge, and at a 1px inset those
+     * two edges sit 2px apart and read as one shape spanning both cells. */
+    drawWave(cellX + 2, ky + 1, CELL_W - 4, KW - 2, shape, 1, 1);
 }
 
 /* Framed X: an empty box with a big diagonal cross — the LFO target when it is

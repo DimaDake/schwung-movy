@@ -74,6 +74,7 @@ import { detectFilterViz } from '../dist/esm/model/filter-viz.js';
 import { buildFilterViz } from '../dist/esm/model/filter-vm.js';
 import { normalizeFilterOption, isFilterModeEnum, filterModeFromEnum, isSlopeEnum, staticModeFromTokens } from '../dist/esm/model/filter-mode.js';
 import { shapeId as lfoShapeId, isShapeEnum } from '../dist/esm/model/lfo-shapes.js';
+import { enumClassOf } from '../dist/esm/model/enum-class.js';
 import { lfoTargetsParam, assignLfoTarget, clearLfoTarget } from '../dist/esm/lfo/assign.js';
 import { holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle, assignCommit, assignToastText, resetAssignMode } from '../dist/esm/lfo/assign-mode.js';
 import { jogHintTouch, jogHintTick, jogHintVisible } from '../dist/esm/app/jog-hint.js';
@@ -7011,6 +7012,52 @@ _log('\nTest: new waveform glyph ids and name mappings');
         }
     }
     eq('shapes 13-19 all sample within [-1,1]', bad, 0);
+}
+
+_log('\nTest: uniqueShape — every option maps to its OWN glyph');
+{
+    const E = (options) => ({ key: 'k', label: 'L', type: 'enum', options });
+
+    // Qualifies: every option maps, all distinct.
+    eq('303 waveform qualifies',    enumClassOf(E(['Saw', 'Square'])).uniqueShape, true);
+    eq('forge cv_wave qualifies',
+        enumClassOf(E(['Sine', 'Tri', 'Saw', 'Square', 'Noise'])).uniqueShape, true);
+    eq('chordism wave_N qualifies',
+        enumClassOf(E(['Off', 'Sine', 'Triangle', 'Saw', 'Square', 'Pulse Tr', 'Wavetable'])).uniqueShape, true);
+    eq('signal mod_shape qualifies',
+        enumClassOf(E(['Sine', 'Tri', 'Saw', 'Square', 'S&H', 'Random'])).uniqueShape, true);
+    eq('aphex v2_wave qualifies',
+        enumClassOf(E(['Saw', 'Square', 'Pulse', 'Ring'])).uniqueShape, true);
+    eq('ambiotica mod_shape qualifies',
+        enumClassOf(E(['Sine', 'Warp', 'Sink'])).uniqueShape, true);
+    eq('war_bells mot_shape qualifies',
+        enumClassOf(E(['Sine', 'Tri', 'Ramp', 'Rand'])).uniqueShape, true);
+
+    // Rejected — a name has no glyph at all.
+    eq('hush1 vca_mode rejected',    enumClassOf(E(['Gate', 'Envelope'])).uniqueShape, false);
+    eq('chordism vib_stray rejected', enumClassOf(E(['LFO', 'Random'])).uniqueShape, false);
+    eq('freak random_mode rejected',
+        enumClassOf(E(['sample_hold', 'smooth', 'drift'])).uniqueShape, false);
+
+    /* Rejected — two options would draw the SAME glyph. This half of the rule is
+     * what keeps helm and osirus out; without it they would render several
+     * different waveforms as one silhouette. */
+    eq('helm osc waveform rejected (step counts collapse)',
+        enumClassOf(E(['Sine', 'Triangle', 'Square', 'Saw Down', 'Saw Up',
+                       '3 Step', '4 Step', '8 Step',
+                       '3 Pyramid', '5 Pyramid', '9 Pyramid'])).uniqueShape, false);
+    eq('osirus wavetables rejected',
+        enumClassOf(E(['Sine', 'Triangle', 'Wave 3', 'Wave 4'])).uniqueShape, false);
+
+    // Non-enums and empty lists are inert.
+    eq('float param inert',
+        enumClassOf({ key: 'k', label: 'L', type: 'float', options: null }).uniqueShape, false);
+    eq('empty option list inert', enumClassOf(E([])).uniqueShape, false);
+
+    // shapeIds is populated exactly when uniqueShape holds.
+    eq('shapeIds resolved',  JSON.stringify(enumClassOf(E(['Saw', 'Square'])).shapeIds), '[2,3]');
+    eq('shapeIds null when not qualifying',
+        enumClassOf(E(['Gate', 'Envelope'])).shapeIds, null);
 }
 
 /* ── dumpLayout: external layout snapshot (scripts/dump-movy-layout.mjs) ── */

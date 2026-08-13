@@ -17,7 +17,7 @@
  * swap or reload starts over with no explicit cache to clear. */
 
 import type { KnobParam } from '../types/param.js';
-import { isShapeEnum } from './lfo-shapes.js';
+import { isShapeEnum, shapeId } from './lfo-shapes.js';
 import { isFilterModeEnum, isSlopeEnum } from './filter-mode.js';
 
 export interface EnumClass {
@@ -25,9 +25,18 @@ export interface EnumClass {
     division: boolean;   // a clock-division list (LFO rate viz)
     filterMode: boolean; // a filter-type picker (filter curve viz)
     slope: boolean;      // a dB-per-octave picker (filter curve viz)
+    /* Every option maps to a glyph AND no two share one — the bar for replacing
+     * the option TEXT with a silhouette on a single knob. A list failing either
+     * half would draw two different options identically, which is worse than the
+     * abbreviation it replaces: helm's 3/4/8 Step, osirus's 62 "Wave N". */
+    uniqueShape: boolean;
+    shapeIds: number[] | null;   // non-null exactly when uniqueShape
 }
 
-const NONE: EnumClass = { shape: false, division: false, filterMode: false, slope: false };
+const NONE: EnumClass = {
+    shape: false, division: false, filterMode: false, slope: false,
+    uniqueShape: false, shapeIds: null,
+};
 
 /* Options that read as clock divisions (1/4, 1/8T, 3/16) → a rate enum. Moved
  * here verbatim from lfo-viz so every scan of an option list goes through the
@@ -36,12 +45,31 @@ function isDivisionEnum(opts: string[] | null): boolean {
     return !!opts && opts.filter((o) => /\d\/\d/.test(o)).length * 2 >= opts.length;
 }
 
+/* Resolve every option to a glyph id, or null when any is unmapped or repeats. */
+function uniqueShapeIds(opts: string[]): number[] | null {
+    const ids: number[] = [];
+    const seen: Record<number, true> = {};
+    for (const o of opts) {
+        const id = shapeId(o);
+        if (id === null || seen[id]) return null;
+        seen[id] = true;
+        ids.push(id);
+    }
+    return ids;
+}
+
 export function enumClassOf(p: KnobParam): EnumClass {
     if (!p.options || p.options.length === 0) return NONE;
-    return (p.enumClass ??= {
-        shape: isShapeEnum(p.options),
-        division: isDivisionEnum(p.options),
-        filterMode: isFilterModeEnum(p.options),
-        slope: isSlopeEnum(p.options),
-    });
+    if (!p.enumClass) {
+        const ids = uniqueShapeIds(p.options);
+        p.enumClass = {
+            shape: isShapeEnum(p.options),
+            division: isDivisionEnum(p.options),
+            filterMode: isFilterModeEnum(p.options),
+            slope: isSlopeEnum(p.options),
+            uniqueShape: ids !== null,
+            shapeIds: ids,
+        };
+    }
+    return p.enumClass;
 }

@@ -9,6 +9,7 @@ import { enumClassOf } from './enum-class.js';
 import { buildLfoViz } from './lfo-vm.js';
 import { buildFilterViz } from './filter-vm.js';
 import { buildEqViz } from './eq-vm.js';
+import { cutKindOf } from './cut-viz.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
 import { dedupShortNames } from '../renderer/shorten.js';
 import { basename } from './path.js';
@@ -63,6 +64,15 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     const envStages = s.componentKey === 'synth'
         ? envStageCells(pageSlice, claimed)
         : new Map<number, import('./env-stage.js').EnvStage>();
+    /* A LONE low/high cut draws its single corner in its own cell. The paired
+     * case is a two-cell graphic placed by the layout, so those cells are in
+     * `claimed` and never reach here. */
+    const loneCuts = new Map<number, import('./cut-viz.js').CutKind>();
+    pageSlice.forEach((p, i) => {
+        if (!p || claimed.has(i)) return;
+        const k = cutKindOf(p);
+        if (k) loneCuts.set(i, k);
+    });
     const rows: ViewModel['rows'] = [[null, null, null, null], [null, null, null, null]];
     const envelopeLines: (EnvelopeVM | null)[] = [null, null];
     for (const e of layout.envelopes)
@@ -118,8 +128,10 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             enumIndex:       enumIdx,
             renderStyle:     (waveCells.has(localIdx) || waveToggles.has(localIdx))
                 ? 'wave'
-                : envStages.has(localIdx) ? 'envstage' : p.renderStyle,
+                : envStages.has(localIdx) ? 'envstage'
+                : loneCuts.has(localIdx) ? 'cut' : p.renderStyle,
             ...(envStages.has(localIdx) ? { envStage: envStages.get(localIdx) } : {}),
+            ...(loneCuts.has(localIdx) ? { cutKind: loneCuts.get(localIdx) } : {}),
             /* enumClass is already populated by the waveCellIndices call above,
              * so this is a cached array index, not a per-frame name lookup. */
             ...(waveCells.has(localIdx)
@@ -162,6 +174,17 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     // another page, so the resolver also reads the full cached param/value lists.
     const filterViz = buildFilterViz(layout.filters, pageParams, pageValues, s.knobParams, allValues);
     const eqViz = buildEqViz(layout.eqs, pageParams, pageValues);
+    /* A cut pair is one band-pass across two cells; the normalised corner comes
+     * from the same renorm the arc would have used. */
+    const norm01 = (i: number): number => {
+        const p = pageParams[i]; const v = pageValues[i];
+        if (!p || v === null || v === undefined || p.max === p.min) return 0;
+        return Math.max(0, Math.min(1, (v - p.min) / (p.max - p.min)));
+    };
+    const cutViz = layout.cuts.map((c) => ({
+        line: c.line, startCol: c.startCol, cellCount: c.cellCount,
+        lowcut: norm01(c.lowcut), highcut: norm01(c.highcut),
+    }));
 
     // Toast follows the physical knob last touched → its displayed param (the
     // rearrange means screen slot ≠ page index).
@@ -229,5 +252,6 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         lfoViz:             lfoViz.length ? lfoViz : undefined,
         filterViz:          filterViz.length ? filterViz : undefined,
         eqViz:              eqViz.length ? eqViz : undefined,
+        cutViz:             cutViz.length ? cutViz : undefined,
     };
 }

@@ -9,6 +9,7 @@ import { detectEnvelopes, type EnvRole } from './envelope.js';
 import { detectLfoViz } from './lfo-viz.js';
 import { detectFilterViz } from './filter-viz.js';
 import { detectEqViz } from './eq-viz.js';
+import { detectCutPair } from './cut-viz.js';
 
 export interface PageCell { line: 0 | 1; col: 0 | 1 | 2 | 3; idx: number }
 export interface EnvLine {
@@ -47,9 +48,16 @@ export interface EqLine {
     bands: import('./eq-viz.js').EqBand[];
     idxs: number[];   // page-relative param index per band, same order as bands
 }
+/* A low-cut + high-cut placement: the two corners seated on one line, lowcut
+ * first, drawn as a single band-pass across both cells. A LONE cut is not here
+ * — it needs no line of its own and renders as a per-cell style. */
+export interface CutLine {
+    line: 0 | 1; startCol: number; cellCount: number;
+    lowcut: number; highcut: number;
+}
 export interface PageLayout {
     cells: PageCell[]; envelopes: EnvLine[]; lfos: LfoLine[];
-    filters: FilterLine[]; eqs: EqLine[];
+    filters: FilterLine[]; eqs: EqLine[]; cuts: CutLine[];
 }
 
 /* Physical knob (slot = line*4 + col) → page-relative param index, honoring the
@@ -73,6 +81,7 @@ export function claimedCells(layout: PageLayout): Set<number> {
         }
     }
     for (const q of layout.eqs) for (const i of q.idxs) out.add(i);
+    for (const c of layout.cuts) { out.add(c.lowcut); out.add(c.highcut); }
     for (const f of layout.filters) {
         out.add(f.cutoff);
         out.add(f.resonance);
@@ -88,6 +97,7 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
     const lfos: LfoLine[] = [];
     const filters: FilterLine[] = [];
     const eqs: EqLine[] = [];
+    const cuts: CutLine[] = [];
     const used = new Set<number>();
     const claimed = new Set<number>();
 
@@ -153,6 +163,20 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
         });
     }
 
+    /* Low-cut + high-cut pairs last, seated lowcut-first so the band-pass reads
+     * left-to-right as the spectrum. A lone cut is deliberately NOT placed: it
+     * draws in whatever cell it lands in, so it never spends a line. */
+    for (const c of detectCutPair(params)) {
+        if (used.size >= 2) break;
+        const idxs = [c.lowcut as number, c.highcut as number];
+        if (idxs.some(i => claimed.has(i))) continue;
+        const line = assign(idxs, (Math.floor(Math.min(...idxs) / 4)) as 0 | 1);
+        if (line >= 0) cuts.push({
+            line: line as 0 | 1, startCol: 0, cellCount: 2,
+            lowcut: idxs[0], highcut: idxs[1],
+        });
+    }
+
     const leftover: number[] = [];
     params.forEach((p, i) => { if (p && !claimed.has(i)) leftover.push(i); });
 
@@ -165,5 +189,5 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
         while (col <= 3 && li < leftover.length) cells.push({ line, col: (col++) as 0 | 1 | 2 | 3, idx: leftover[li++] });
         if (line === 1) break;
     }
-    return { cells, envelopes, lfos, filters, eqs };
+    return { cells, envelopes, lfos, filters, eqs, cuts };
 }

@@ -26,6 +26,7 @@ import { detentsPerStep, perDetentStep } from '../dist/esm/model/knob-step.js';
 import { waveCellIndices } from '../dist/esm/model/wave-viz.js';
 import { waveToggleCells } from '../dist/esm/model/wave-toggle.js';
 import { envStageCells } from '../dist/esm/model/env-stage.js';
+import { cutKindOf } from '../dist/esm/model/cut-viz.js';
 import { planPageLayout, claimedCells } from '../dist/esm/model/page-layout.js';
 
 const EXPECT_PATH = join(MOVY, 'browser-test', 'dump-expect.json');
@@ -289,6 +290,29 @@ const ENV_STAGES_EXPECTED = [
 
 /* EQ band groups drawn as one response curve. Pinned like the others; the
  * bipolar-dB test is what keeps crossover frequencies and per-band Q out. */
+/* Low/high cut corners: pairs drawn as one band-pass, lone cuts as one corner
+ * in their own cell. Pinned like the others. */
+const CUT_PAIRS_EXPECTED = [
+    'audio_fx--cloudseed low_cut+high_cut',
+    'audio_fx--dragonfly-hall low_cut+high_cut',
+    'audio_fx--midiverb low_cut_hz+high_cut_hz',
+    'audio_fx--spectra hpf+lpf',
+    'audio_fx--verglas filter_hp+filter_lp',
+    'sound_generator--aphex esp_lo_cut+esp_hi_cut',
+    'sound_generator--noisemaker delay_lo+delay_hi',
+    'sound_generator--noisemaker reverb_lo+reverb_hi',
+];
+const CUT_SINGLES_EXPECTED = [
+    'audio_fx--magneto lowcut lowcut',
+    'audio_fx--superboom hiCut highcut',
+    'sound_generator--303 feedback_hpf lowcut',
+    'sound_generator--chordism reverb_lowcut lowcut',
+    'sound_generator--hera hpf lowcut',
+    'sound_generator--krautdrums hpf_freq lowcut',
+    'sound_generator--noisemaker highpass lowcut',
+    'sound_generator--surge lowcut lowcut',
+];
+
 const EQ_GROUPS_EXPECTED = [
     'audio_fx--magneto low/mid/high',
     'audio_fx--ottx low/mid/high',
@@ -326,7 +350,7 @@ const WAVE_CELLS_EXPECTED = [
  * so the names come from the detector over the same page slices the VM uses;
  * the VM is then cross-checked to have produced that many 'wave' cells, which
  * is what proves the detector is actually wired through to renderStyle. */
-function collectWaveCells(key, model, into, intoToggles, intoStages, intoEqs) {
+function collectWaveCells(key, model, into, intoToggles, intoStages, intoEqs, intoCuts, intoCutSingles) {
     const params = model.dumpLayout().params;
     let detected = 0;
     for (let start = 0; start < params.length; start += 8) {
@@ -342,6 +366,13 @@ function collectWaveCells(key, model, into, intoToggles, intoStages, intoEqs) {
             detected++;
         }
         for (const q of layout.eqs) intoEqs.push(`${key} ${q.bands.join('/')}`);
+        for (const c of layout.cuts)
+            intoCuts.push(`${key} ${page[c.lowcut].key}+${page[c.highcut].key}`);
+        page.forEach((p, i) => {
+            if (!p || claimed.has(i)) return;
+            const k = cutKindOf(p);
+            if (k) intoCutSingles.push(`${key} ${p.key} ${k}`);
+        });
         if (model.getComponentKey() === 'synth') {
             for (const [i, st] of envStageCells(page, claimed)) {
                 intoStages.push(`${key}::${page[i].key} ${st}`);
@@ -375,6 +406,8 @@ const waveCells = [];
 const waveToggles = [];
 const envStages = [];
 const eqGroups = [];
+const cutPairs = [];
+const cutSingles = [];
 
 for (const entry of dump.modules) {
     const key = `${entry.category}--${entry.id}`;
@@ -392,8 +425,21 @@ for (const entry of dump.modules) {
     checkDeclaredKnobsReachable(key, model, entry);
     checkEnumOptionsMatchModule(key, model, entry);
     checkKnobStepSymmetric(key, model);
-    collectWaveCells(key, model, waveCells, waveToggles, envStages, eqGroups);
+    collectWaveCells(key, model, waveCells, waveToggles, envStages, eqGroups, cutPairs, cutSingles);
     if (!UPDATE) checkExpect(key, snap, expect[key]);
+}
+
+/* Fleet-wide low/high cut placements. */
+for (const [label, got0, want0] of [
+    ['cut pairs', cutPairs, CUT_PAIRS_EXPECTED],
+    ['cut singles', cutSingles, CUT_SINGLES_EXPECTED],
+]) {
+    const got = [...new Set(got0)].sort();
+    const want = want0.slice().sort();
+    const added   = got.filter(k => !want.includes(k));
+    const dropped = want.filter(k => !got.includes(k));
+    check(`${label}: ${got.length}${added.length ? ` — UNEXPECTED: ${added.join(', ')}` : ''}${dropped.length ? ` — MISSING: ${dropped.join(', ')}` : ''}`,
+        added.length === 0 && dropped.length === 0);
 }
 
 /* Fleet-wide EQ band groups. */

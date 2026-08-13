@@ -8,10 +8,11 @@ export interface ParamVM {
     isLongEnum:      boolean;
     options:         string[] | null;
     enumIndex:       number;
-    renderStyle:     'arc' | 'hbar' | 'vbar' | 'preset' | 'xbox' | 'steps' | 'wave' | 'envstage';   // xbox = framed X (LFO target None); hbar doubles as a binary on/off bar; steps = framed number (octave/voice count); wave = waveform silhouette; envstage = a lone attack/decay ramp
+    renderStyle:     'arc' | 'hbar' | 'vbar' | 'preset' | 'xbox' | 'steps' | 'wave' | 'envstage' | 'cut';   // xbox = framed X (LFO target None); hbar doubles as a binary on/off bar; steps = framed number (octave/voice count); wave = waveform silhouette; envstage = a lone attack/decay ramp
     waveShape?:      number;    // glyph id for renderStyle 'wave' (see lfo-shapes.ts)
     waveOff?:        boolean;   // waveform toggle that is currently NOT sounding → drawn dotted
     envStage?:       'a' | 'd'; // which stage renderStyle 'envstage' draws (attack is the mirror)
+    cutKind?:        'lowcut' | 'highcut';   // lone cut drawn as one corner (renderStyle 'cut')
     automated:       boolean;   // lane has ≥1 lock → show the dot
     automatable:     boolean;   // can be assigned a lane (numeric, non-global)
     assigned:        boolean;   // already bound to an automation lane
@@ -74,6 +75,15 @@ export interface EqVizVM {
     gains:     number[];
 }
 
+/* A low-cut + high-cut pair drawn as one band-pass across its two cells. */
+export interface CutVizVM {
+    line:      0 | 1;
+    startCol:  number;
+    cellCount: number;
+    lowcut:    number;   // 0..1 corner position
+    highcut:   number;
+}
+
 export interface ToastState {
     fullName:   string;
     value:      string;
@@ -110,6 +120,7 @@ export interface ViewModel {
     /* Filter-response groups on this page (cutoff+resonance drawn as a curve). */
     filterViz?:      FilterVizVM[];
     eqViz?:          EqVizVM[];
+    cutViz?:         CutVizVM[];
     touchedSlot:    number | null;
     toast:          ToastState | null;
     overlay:        OverlayState | null;

@@ -193,9 +193,9 @@
     "DECAY",
     "SIZE",
     "PRE-D",
-    "DIFFU",
     "LOW",
     "HIGH",
+    "DIFFU",
     "MOD"
    ],
    [
@@ -302,12 +302,12 @@
     "WIDTH"
    ],
    [
+    "CUT2",
+    "CUT",
     "MODUL",
     "WANDE",
-    "CUT",
     "CROSS",
     "HM",
-    "CUT2",
     "CROS2",
     "LM"
    ]
@@ -752,9 +752,9 @@
     "FEEDB",
     "INPUT",
     "OG",
-    "PRE-D",
     "LOW",
     "HIGH",
+    "PRE-D",
     "WIDTH"
    ],
    [
@@ -1235,10 +1235,10 @@
     "RESON",
     "OCT",
     "COMPR",
-    "PRE",
-    "POST",
     "HPF",
-    "LPF"
+    "LPF",
+    "PRE",
+    "POST"
    ],
    [
     "LIMIT",
@@ -2972,11 +2972,11 @@
     "E2REL"
    ],
    [
+    "LO",
+    "HI",
     "FREQ",
     "SHAPE",
     "SIG",
-    "LO",
-    "HI",
     "CV",
     "THRES",
     "MG PW"
@@ -8769,9 +8769,9 @@
     "CHOII",
     "RW",
     "RD",
-    "RP",
-    "RH",
     "RL",
+    "RH",
+    "RP",
     "VOLUM"
    ],
    [
@@ -8779,10 +8779,10 @@
     "TIME",
     "FEEDB",
     "SYNC",
-    "2X L",
-    "2X R",
+    "LOCUT",
     "HICUT",
-    "LOCUT"
+    "2X L",
+    "2X R"
    ]
   ],
   "envelopeLines": 3,

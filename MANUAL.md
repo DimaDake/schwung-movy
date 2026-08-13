@@ -201,6 +201,17 @@ automatically. You don't configure anything for most modules.
 
   ![Two filter curves on one page](docs/assets/filter_dual.png)
 
+- **Low cut / high cut** — a **Low Cut** and a **High Cut** on the same page are
+  reordered onto one line and drawn as the band they leave behind; each corner
+  follows its own knob. A cut with no partner keeps its own cell and shows just
+  its corner — rising for a low cut, falling for a high cut:
+
+  ![Low and high cut curves](docs/assets/cut_filters.png)
+
+  Only a corner **frequency** qualifies. A filter *slope* (dB per octave), or a
+  modulation *amount* aimed at a filter, keeps its knob — it moves the corner
+  rather than being it.
+
 - **EQ graphics** — when a page carries two or three **band gains** (low / mid /
   high, or a module's own names like *Body* and *Air*), Movy reorders them onto
   one line in frequency order and draws the **response curve** across them. The

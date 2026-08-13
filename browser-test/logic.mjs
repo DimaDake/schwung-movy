@@ -79,6 +79,7 @@ import { waveCellIndices } from '../dist/esm/model/wave-viz.js';
 import { waveToggleOf } from '../dist/esm/model/wave-toggle.js';
 import { envStageOf } from '../dist/esm/model/env-stage.js';
 import { detectEqViz } from '../dist/esm/model/eq-viz.js';
+import { cutKindOf, detectCutPair } from '../dist/esm/model/cut-viz.js';
 import { lfoTargetsParam, assignLfoTarget, clearLfoTarget } from '../dist/esm/lfo/assign.js';
 import { holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle, assignCommit, assignToastText, resetAssignMode } from '../dist/esm/lfo/assign-mode.js';
 import { jogHintTouch, jogHintTick, jogHintVisible } from '../dist/esm/app/jog-hint.js';
@@ -7302,6 +7303,43 @@ _log('\nTest: detectEqViz — low/mid/high gain groups');
     // Different qualifiers stay apart.
     eq('separate qualifiers do not merge',
         one([G('eq_lo', 'Low'), G('drive_hi', 'Drive High')]).length, 0);
+}
+
+_log('\nTest: cutKindOf — low/high cut corner frequencies');
+{
+    const F = (key, label, min = 0, max = 1) => ({ key, label, type: 'float', min, max });
+
+    // "Low cut" removes lows → a high-pass corner.
+    eq('low_cut → lowcut',   cutKindOf(F('low_cut', 'Low Cut')), 'lowcut');
+    eq('hpf → lowcut',       cutKindOf(F('hpf', 'HPF')), 'lowcut');
+    eq('highpass → lowcut',  cutKindOf(F('highpass', 'High Pass')), 'lowcut');
+    eq('esp_lo_cut → lowcut', cutKindOf(F('esp_lo_cut', 'Lo Cut')), 'lowcut');
+    // "High cut" removes highs → a low-pass corner.
+    eq('high_cut → highcut', cutKindOf(F('high_cut', 'High Cut')), 'highcut');
+    eq('lpf → highcut',      cutKindOf(F('lpf', 'LPF')), 'highcut');
+    eq('hiCut → highcut',    cutKindOf(F('hiCut', 'HiCut')), 'highcut');
+
+    /* A SLOPE is dB per octave, not a corner — mono-voice's "HP Slope". */
+    eq('HP Slope rejected',  cutKindOf(F('flt13', 'HP Slope', 0, 127)), null);
+    /* A modulation AMOUNT aimed at the filter is not the filter's corner:
+     * aphex keys them hpf_mg/lpf_mg (mg = modulation generator). */
+    eq('hpf_mg rejected',    cutKindOf(F('hpf_mg', 'HPF MG', -1, 1)), null);
+    eq('lpf_mg rejected',    cutKindOf(F('lpf_mg', 'LPF MG', -1, 1)), null);
+    // Damping and band gains merely mention a band.
+    eq('reverb damp rejected', cutKindOf(F('reverb_hi_damp', 'Hi Damp')), null);
+    eq('high gain rejected',   cutKindOf(F('high_gain', 'High Gain', -12, 12)), null);
+    // A crossover names BOTH ends, so it is not one corner.
+    eq('Low/Mid Hz rejected',  cutKindOf(F('low_xo', 'Low/Mid Hz', 200, 1200)), null);
+
+    // A pair on one page becomes a single band-pass; a lone cut does not pair.
+    const pad = (a) => { const r = a.slice(); while (r.length < 8) r.push(null); return r; };
+    {
+        const g = detectCutPair(pad([F('low_cut', 'Low Cut'), F('high_cut', 'High Cut')]));
+        eq('pair found', g.length, 1);
+        eq('pair indices', `${g[0].lowcut},${g[0].highcut}`, '0,1');
+    }
+    eq('lone lowcut is not a pair', detectCutPair(pad([F('hpf', 'HPF')])).length, 0);
+    eq('lone highcut is not a pair', detectCutPair(pad([F('lpf', 'LPF')])).length, 0);
 }
 
 /* ── dumpLayout: external layout snapshot (scripts/dump-movy-layout.mjs) ── */

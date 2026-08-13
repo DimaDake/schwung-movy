@@ -25,6 +25,8 @@ await esbuild.build({
         resolve(root, 'src/model/eq-viz.ts'),
         resolve(root, 'src/model/eq-vm.ts'),
         resolve(root, 'src/renderer/eq-curve.ts'),
+        resolve(root, 'src/model/cut-viz.ts'),
+        resolve(root, 'src/renderer/cut-curve.ts'),
         resolve(root, 'src/modules/loader.ts'),
         resolve(root, 'src/model/viewmodel.ts'),
         resolve(root, 'src/model/store.ts'),

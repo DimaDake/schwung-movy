@@ -6,6 +6,7 @@ import { fontPrintBig, fontWidthBig, BIG_FONT_HEIGHT } from '../font/big.js';
 import { enumSquareLines } from './shorten.js';
 import { drawLine } from './primitives.js';
 import { drawWave } from './lfo-wave.js';
+import { drawCutCurve } from './cut-curve.js';
 
 function drawCircleBorder(cx: number, cy: number, r: number): void {
     let x = r, y = 0, err = 0;
@@ -265,6 +266,12 @@ export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
         drawEnumSquare(kx, ky, [pvm.displayValue], 0);
     } else if (pvm.renderStyle === 'wave') {
         drawWaveCell(col * CELL_W, ky, pvm.waveShape ?? 10, pvm.waveOff === true);
+    } else if (pvm.renderStyle === 'cut') {
+        /* One cell, same geometry as the paired graphic — a lone low cut shows
+         * only its rising corner, a lone high cut only its falling one. */
+        drawCutCurve(ky - 1, col, 1,
+            pvm.cutKind === 'lowcut' ? pvm.normalizedValue : null,
+            pvm.cutKind === 'highcut' ? pvm.normalizedValue : null);
     } else if (pvm.renderStyle === 'envstage') {
         drawEnvStage(col * CELL_W, ky, pvm.normalizedValue, pvm.envStage ?? 'd');
     } else if (pvm.type === 'enum') {

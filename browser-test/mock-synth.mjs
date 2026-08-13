@@ -194,6 +194,29 @@ export const MOCK_SYNTHS = {
         "synth:level": "0.60",
     },
 
+    /* Low/high cut. Row 1 is the PAIR — reordered lowcut-first and drawn as one
+     * band-pass across two cells. Row 2 is the two SINGLE cases, each one cell,
+     * plus a slope and a filter mod amount that must keep their knobs. */
+    cut_filters: {
+        "synth:name": "Cuts",
+        "synth:ui_hierarchy": hier([
+            { key: "high_cut", label: "High Cut", type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "low_cut",  label: "Low Cut",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "mix",      label: "Mix",      type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "width",    label: "Width",    type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "hpf",      label: "HPF",      type: "float", min: 0, max: 1, step: 0.01 },
+            /* Between the two singles on purpose: adjacent lone cuts read as a
+             * false band-pass, and this scene is the doc screenshot. */
+            { key: "hp_slope", label: "HP Slope", type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "lpf_only", label: "Hi Cut",   type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "hpf_mg",   label: "HPF MG",   type: "float", min: -1, max: 1, step: 0.01 },
+        ]),
+        "synth:high_cut": "0.75", "synth:low_cut": "0.25",
+        "synth:mix": "0.5", "synth:width": "0.5",
+        "synth:hpf": "0.4", "synth:lpf_only": "0.6",
+        "synth:hp_slope": "0.5", "synth:hpf_mg": "0",
+    },
+
     /* EQ band groups. Row 1 is a 3-band "smile" (low up, mid down, high up);
      * row 2 is the 2-band case plus a crossover FREQUENCY pair that must NOT be
      * mistaken for an EQ — it is unipolar, which is the whole test. */

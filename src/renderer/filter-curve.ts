@@ -7,7 +7,7 @@ import type { FilterVizVM } from '../types/viewmodel.js';
 import { drawLine, drawDottedH } from './primitives.js';
 import { CELL_W } from './layout.js';
 
-const PASS = 0.62;    // nominal pass-band gain (0..1 of the cell height)
+export const PASS = 0.62;    // nominal pass-band gain (0..1 of the cell height)
 /* Keep the corner this far inside the span (fraction of width) so the roll-off
  * stays visible even fully open/closed — never a bare flat line. */
 const EDGE = 0.10;
@@ -18,7 +18,7 @@ const bump = (u: number, c: number, w: number) => Math.exp(-(((u - c) * w) ** 2)
  * roll-off is a quarter-ellipse: rounded (flat-tangent) at the corner, near-
  * vertical where it meets the floor, and 0 beyond — so the line ends at the
  * bottom axis instead of running on as a floor. */
-function gainAt(u: number, mode: FilterVizVM['mode'], c: number, r: number, steep: boolean): number {
+export function gainAt(u: number, mode: FilterVizVM['mode'], c: number, r: number, steep: boolean): number {
     const cx    = EDGE + c * (1 - 2 * EDGE);   // corner clamped inside the span
     const dropW = steep ? 0.07 : 0.11;         // horizontal width of the roll-off
     const pk    = r * (1 - PASS);              // resonance peak above the passband

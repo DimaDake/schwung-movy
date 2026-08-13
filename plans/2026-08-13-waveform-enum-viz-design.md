@@ -88,10 +88,14 @@ needs none of that machinery.
 ### Cell rendering — `renderer/knob.ts`
 
 `renderStyle: 'wave'` on the `ParamVM`, carrying the resolved shape id.
-`drawWaveSquare(kx, ky, shapeId)` keeps `drawEnumSquare`'s 1px frame — the frame
-is what marks the cell as an option list rather than a continuous arc, and
-distinguishes it from the frameless 2-cell LFO graphic — and fills the ~14px
-interior with the silhouette instead of the two text lines.
+`drawWaveCell(cellX, ky, shapeId)` draws the silhouette across the **whole
+cell** (30×16) — no frame, no 16px box.
+
+Resolution turned out to be the whole game. A framed 12×8 glyph made Helm's
+`8 Step` pixel-identical to the same list's smooth `Saw Up`; 12×12 made it
+borderline; the full cell makes it obvious, and takes `9 Pyramid` vs `Triangle`
+with it. The frame was spending a third of the cell repeating what the label
+underneath already says.
 
 Interaction is unchanged: turning steps options, long-press opens the overlay.
 

@@ -68,19 +68,15 @@ function drawEnumSquare(kx: number, ky: number, options: string[] | null, enumIn
     }
 }
 
-/* Waveform cell: the enum square's frame with a silhouette instead of the two
- * abbreviated text lines. The frame stays because it is what marks the cell as
- * an option list rather than a continuous value, and it keeps this visually
- * distinct from the frameless two-cell LFO graphic. */
-function drawWaveSquare(kx: number, ky: number, shape: number): void {
-    fill_rect(kx, ky, KW, 1, 1);
-    fill_rect(kx, ky + KW - 1, KW, 1, 1);
-    fill_rect(kx, ky, 1, KW, 1);
-    fill_rect(kx + KW - 1, ky, 1, KW, 1);
-    /* Full interior height, not a squat band. A stepped silhouette only reads
-     * as stepped when its levels are more than a pixel apart — at 8px tall,
-     * Helm's "8 Step" is pixel-identical to the same list's plain "Saw Up". */
-    drawWave(kx + 2, ky + 2, KW - 4, KW - 4, shape, 1, 1);
+/* Waveform cell: the silhouette alone, spanning the WHOLE cell — no frame and
+ * no 16px box. Resolution is the entire point of this drawing: a stepped shape
+ * only reads as stepped when its levels are more than a pixel apart, and at
+ * 30×16 Helm's "8 Step" is plainly not the same list's smooth "Saw Up", which
+ * a framed 12×12 box left borderline. The label underneath already says which
+ * parameter this is, so the frame was spending a third of the cell to repeat
+ * that it is a list. */
+function drawWaveCell(cellX: number, ky: number, shape: number): void {
+    drawWave(cellX + 1, ky, CELL_W - 2, KW, shape, 1, 1);
 }
 
 /* Framed X: an empty box with a big diagonal cross — the LFO target when it is
@@ -224,7 +220,7 @@ export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
          * to 128, and a label per value rebuilt every frame would be absurd. */
         drawEnumSquare(kx, ky, [pvm.displayValue], 0);
     } else if (pvm.renderStyle === 'wave') {
-        drawWaveSquare(kx, ky, pvm.waveShape ?? 10);
+        drawWaveCell(col * CELL_W, ky, pvm.waveShape ?? 10);
     } else if (pvm.type === 'enum') {
         drawEnumSquare(kx, ky, pvm.options, pvm.enumIndex);
     } else if (pvm.renderStyle === 'xbox') {

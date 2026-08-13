@@ -5,12 +5,26 @@
 import type { LfoVizVM } from '../types/viewmodel.js';
 import { drawLine, drawDottedH } from './primitives.js';
 import { CELL_W } from './layout.js';
+import { STEP_BASE, PYR_BASE } from '../model/lfo-shapes.js';
 
 
 /* Bipolar (−1..1) sample of an LFO shape at phase `t` (one cycle = 1). s&h and
  * swishy use fixed deterministic patterns so screenshots are stable. */
+/* N-level staircase / N-level pyramid. Split out because the level count rides
+ * in the shape id (STEP_BASE + n, PYR_BASE + n) rather than being fixed. */
+function steppedRamp(n: number, ph: number): number {
+    return (Math.floor(ph * n) / (n - 1)) * 2 - 1;
+}
+function steppedPyramid(n: number, ph: number): number {
+    const up = ph < 0.5;
+    const k = Math.floor((up ? ph : 1 - ph) * 2 * n);
+    return (Math.min(k, n - 1) / (n - 1)) * 2 - 1;
+}
+
 export function shapeSample(shape: number, t: number): number {
     const ph = t - Math.floor(t);
+    if (shape >= PYR_BASE)  return steppedPyramid(shape - PYR_BASE, ph);
+    if (shape >= STEP_BASE) return steppedRamp(shape - STEP_BASE, ph);
     switch (shape) {
         case 0: return Math.sin(ph * 2 * Math.PI);                 // sine
         case 1:                                                     // tri
@@ -43,16 +57,10 @@ export function shapeSample(shape: number, t: number): number {
         case 10:                                                   // generic squiggle (mseg/wavetable)
             return Math.sin(ph * 2 * Math.PI) * 0.5 + Math.sin(ph * 6 * Math.PI) * 0.3
                  + Math.sin(ph * 10 * Math.PI) * 0.2;
-        case 11: {                                                 // stepped ramp ("3/4/8 Step")
-            const n = 4;
-            return (Math.floor(ph * n) / (n - 1)) * 2 - 1;
-        }
-        case 12: {                                                 // stepped triangle ("N Pyramid")
-            const n = 3;                                           // levels per side
-            const up = ph < 0.5;
-            const k = Math.floor((up ? ph : 1 - ph) * 2 * n);
-            return (Math.min(k, n - 1) / (n - 1)) * 2 - 1;
-        }
+        /* Countless fallbacks, kept for any caller holding a legacy id. Named
+         * counts now arrive as STEP_BASE/PYR_BASE + n. */
+        case 11: return steppedRamp(4, ph);                        // stepped ramp
+        case 12: return steppedPyramid(3, ph);                     // stepped triangle
         case 13: return ph < 0.25 ? 1 : -1;                        // pulse (25% duty)
         case 14: return ph < 0.15 ? 1 : -1;                        // pw-square (narrow)
         /* Ring mod: a carrier gated by a much faster modulator, so the

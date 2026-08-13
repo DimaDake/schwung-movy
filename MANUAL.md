@@ -114,12 +114,18 @@ automatically. You don't configure anything for most modules.
 
   ![Waveform enum overlay](docs/assets/wave_overlay.png)
 
+  Stepped shapes carry their level count, so Helm's *3 Step*, *4 Step* and
+  *8 Step* are three different pictures — and a stepped climb stays tellable
+  from the same list's smooth *Saw Up*:
+
+  ![Helm stepped waveforms](docs/assets/wave_helm.png)
+
   Movy only does this when **every** option in the list has its own distinct
-  silhouette. Lists where several entries would end up drawn identically — an
-  Osirus wavetable list of *Wave 3*…*Wave 64*, or Helm's *3/4/8 Step* — keep
-  their text, because one picture standing for several different waveforms is
-  worse than the abbreviation it replaced. Lists that aren't waveforms at all
-  (*Gate/Envelope*, *Off/On*) are untouched.
+  silhouette. A list where several entries would be drawn identically — an
+  Osirus wavetable list of *Wave 3*…*Wave 64*, where the names carry no shape
+  at all — keeps its text, because one picture standing for several different
+  waveforms is worse than the abbreviation it replaced. Lists that aren't
+  waveforms (*Gate/Envelope*, *Off/On*) are untouched.
 
 - **Envelope graphics** — when a page contains a recognisable
   Attack/Decay/Sustain/Release group, Movy draws it as a **single envelope
@@ -147,8 +153,9 @@ automatically. You don't configure anything for most modules.
   Modules name these things differently, and Movy reads the common variants —
   a rate called *Frequency*, a depth called *Amp*, a shape list using *Saw Up*
   or *Sample & Glide*, and keys that run the two together (`lfo1rate`). Helm's
-  stepped families get their own silhouettes: **N Step** climbs in levels,
-  **N Pyramid** climbs and falls again.
+  stepped families get their own silhouettes, drawn with the number of levels
+  the name gives: **N Step** climbs in levels, **N Pyramid** climbs and falls
+  again.
 
   ![Stepped ramp LFO](docs/assets/lfo_helm_step.png)
   ![Stepped triangle LFO](docs/assets/lfo_helm_pyramid.png)

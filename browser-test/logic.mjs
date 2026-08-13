@@ -6386,8 +6386,20 @@ _log('\nTest: module-LFO viz inference (A3)');
             'Sample & Hold', 'Sample & Glide'];
         eq('map: Saw Up → saw-up 2',            lfoShapeId('Saw Up'), 2);
         eq('map: Sample & Glide → smooth 5',    lfoShapeId('Sample & Glide'), 5);
-        eq('map: 8 Step → stepped ramp 11',     lfoShapeId('8 Step'), 11);
-        eq('map: 5 Pyramid → stepped tri 12',   lfoShapeId('5 Pyramid'), 12);
+        /* The level COUNT rides in the id, so 3/4/8 Step are three different
+         * silhouettes rather than one. Without this they collapse together. */
+        eq('map: 8 Step → stepped ramp, count 8',   lfoShapeId('8 Step'), 108);
+        eq('map: 3 Step → stepped ramp, count 3',   lfoShapeId('3 Step'), 103);
+        eq('map: 5 Pyramid → stepped tri, count 5', lfoShapeId('5 Pyramid'), 205);
+        eq('map: 9 Pyramid → stepped tri, count 9', lfoShapeId('9 Pyramid'), 209);
+        eq('step counts are distinct',
+            new Set(['3 Step','4 Step','8 Step'].map(lfoShapeId)).size, 3);
+        eq('pyramid counts are distinct',
+            new Set(['3 Pyramid','5 Pyramid','9 Pyramid'].map(lfoShapeId)).size, 3);
+        /* A stepped climb must not collide with the SAME list's smooth Saw Up
+         * or Triangle — that pair is why the cell glyph uses full height. */
+        eq('8 Step is not Saw Up',   lfoShapeId('8 Step') !== lfoShapeId('Saw Up'), true);
+        eq('9 Pyramid is not Triangle', lfoShapeId('9 Pyramid') !== lfoShapeId('Triangle'), true);
         eq('isShapeEnum: helm waveform list',   isShapeEnum(HELM_SHAPES), true);
         // A quantize enum that merely mentions steps stays a non-shape list.
         eq('isShapeEnum: smack quantize list is not a shape',
@@ -6406,7 +6418,7 @@ _log('\nTest: module-LFO viz inference (A3)');
         const L = planPageLayout(params);
         eq('helm layout: partner is rate', L.lfos[0].partnerRole, 'rate');
         const vm = viz(params, [7, 0.5, 0.5, 0]);   // option 7 = "8 Step"
-        eq('helm vm: shape id 11', vm[0].shape, 11);
+        eq('helm vm: shape id 108 (8 Step)', vm[0].shape, 108);
     }
     // minijv-like: the role word is glued onto the LFO token in the key.
     {
@@ -7043,10 +7055,15 @@ _log('\nTest: uniqueShape — every option maps to its OWN glyph');
     /* Rejected — two options would draw the SAME glyph. This half of the rule is
      * what keeps helm and osirus out; without it they would render several
      * different waveforms as one silhouette. */
-    eq('helm osc waveform rejected (step counts collapse)',
+    /* Helm qualifies now that the level count is part of the id: all eleven
+     * options resolve to eleven different silhouettes. */
+    eq('helm osc waveform qualifies (counts encoded)',
         enumClassOf(E(['Sine', 'Triangle', 'Square', 'Saw Down', 'Saw Up',
                        '3 Step', '4 Step', '8 Step',
-                       '3 Pyramid', '5 Pyramid', '9 Pyramid'])).uniqueShape, false);
+                       '3 Pyramid', '5 Pyramid', '9 Pyramid'])).uniqueShape, true);
+    /* But a list that repeats a count still fails — the rule itself is intact. */
+    eq('a repeated step count is still rejected',
+        enumClassOf(E(['3 Step', '3 Step', 'Sine'])).uniqueShape, false);
     eq('osirus wavetables rejected',
         enumClassOf(E(['Sine', 'Triangle', 'Wave 3', 'Wave 4'])).uniqueShape, false);
 

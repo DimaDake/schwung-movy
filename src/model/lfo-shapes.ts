@@ -35,6 +35,14 @@ const NAMED: Record<string, number> = {
     off: 19,
 };
 
+/* Level count encoded into the id for the stepped families. Kept well clear of
+ * the hand-drawn ids (0-19) so both stay readable in logs and tests. */
+export const STEP_BASE = 100, PYR_BASE = 200;
+/* 2 is the floor: the samplers divide by (n-1), and a one-level "staircase"
+ * is a flat line, not a shape. 99 keeps a count inside its own id range. */
+const clampCount = (digits: string): number =>
+    Math.max(2, Math.min(99, parseInt(digits, 10) || 2));
+
 const norm = (name: string): string => name.toLowerCase().replace(/[&\s_]+/g, '');
 
 /* Shape id for an option name, or null when it is not a shape. Digital wavetable
@@ -45,13 +53,17 @@ export function shapeId(name: string): number | null {
     const n = norm(name);
     if (n in NAMED) return NAMED[n];
     if (/^wave\d+$/.test(n)) return 10;   // Osirus/Virus digital wavetables
-    /* Helm's stepped families. They get their own silhouettes rather than
-     * reusing 9 (a step-SEQUENCER pattern, which reads as random) or 1 (a
-     * smooth triangle): "N Step" climbs in levels, "N Pyramid" climbs and
-     * falls. The step count in the name is not encoded — at two cells wide a
-     * 9-level staircase reads as noise, so the family is what's drawn. */
-    if (/^\d+step$/.test(n)) return 11;
-    if (/^\d+pyramid$/.test(n)) return 12;
+    /* Helm's stepped families: "N Step" climbs in levels, "N Pyramid" climbs
+     * and falls. The COUNT is encoded in the id, because without it 3/4/8 Step
+     * all draw the same picture — and a silhouette standing for three different
+     * waveforms is exactly what the uniqueShape rule exists to prevent.
+     * Counting the levels is not the point (nobody counts 8 steps in 12px);
+     * telling a stepped climb from the list's own smooth "Saw Up" is, and that
+     * needs the full cell height (see drawWaveSquare). */
+    const step = /^(\d+)step$/.exec(n);
+    if (step) return STEP_BASE + clampCount(step[1]);
+    const pyr = /^(\d+)pyramid$/.exec(n);
+    if (pyr) return PYR_BASE + clampCount(pyr[1]);
     return null;
 }
 

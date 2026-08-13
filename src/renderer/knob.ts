@@ -77,7 +77,10 @@ function drawWaveSquare(kx: number, ky: number, shape: number): void {
     fill_rect(kx, ky + KW - 1, KW, 1, 1);
     fill_rect(kx, ky, 1, KW, 1);
     fill_rect(kx + KW - 1, ky, 1, KW, 1);
-    drawWave(kx + 2, ky + 4, KW - 4, KW - 8, shape, 1, 1);
+    /* Full interior height, not a squat band. A stepped silhouette only reads
+     * as stepped when its levels are more than a pixel apart — at 8px tall,
+     * Helm's "8 Step" is pixel-identical to the same list's plain "Saw Up". */
+    drawWave(kx + 2, ky + 2, KW - 4, KW - 4, shape, 1, 1);
 }
 
 /* Framed X: an empty box with a big diagonal cross — the LFO target when it is

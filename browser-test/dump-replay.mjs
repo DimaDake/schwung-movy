@@ -253,6 +253,12 @@ const WAVE_CELLS_EXPECTED = [
     'sound_generator--chordism::wave_3',
     'sound_generator--chordism::wave_4',
     'sound_generator--forge::cv_wave',
+    /* Helm's stepped families qualify because the level count is encoded in the
+     * glyph id; at the cell's full height a stepped climb is distinguishable
+     * from the same list's smooth Saw Up. */
+    'sound_generator--helm::osc_1_waveform',
+    'sound_generator--helm::osc_2_waveform',
+    'sound_generator--helm::sub_waveform',
     'sound_generator--noisemaker::osc1_wave',
     'sound_generator--noisemaker::osc2_wave',
     'sound_generator--osirus::delay_lfo_shape',

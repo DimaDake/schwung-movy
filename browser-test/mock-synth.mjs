@@ -34,6 +34,10 @@ function multiLevel(name, sizes) {
     };
 }
 
+/* Helm's 11-entry oscillator waveform list, in its published order. */
+const HELM_WAVES = ['Sine', 'Triangle', 'Square', 'Saw Down', 'Saw Up',
+    '3 Step', '4 Step', '8 Step', '3 Pyramid', '5 Pyramid', '9 Pyramid'];
+
 export const MOCK_SYNTHS = {
 
     /* Smack-style one-shot actions for the trigger badge states. Two triggers so a
@@ -188,6 +192,28 @@ export const MOCK_SYNTHS = {
         "synth:mod_shape": "5",// Random   → smooth walk, not the stepped S&H
         "synth:vca_mode": "0", // not a waveform enum → stays a text square
         "synth:level": "0.60",
+    },
+
+    /* Helm's oscillator waveform list on single knobs. The scene exists for one
+     * comparison: a stepped climb next to the SAME list's smooth Saw Up, and a
+     * stepped pyramid next to its Triangle. If the cell glyph ever loses height
+     * those pairs become pixel-identical and this baseline catches it. */
+    helm_waves: {
+        "synth:name": "Helm",
+        "synth:ui_hierarchy": hier([
+            { key: "w_step3", label: "Step 3", type: "enum", options: HELM_WAVES },
+            { key: "w_step4", label: "Step 4", type: "enum", options: HELM_WAVES },
+            { key: "w_step8", label: "Step 8", type: "enum", options: HELM_WAVES },
+            { key: "w_sawup", label: "Saw Up", type: "enum", options: HELM_WAVES },
+            { key: "w_pyr3",  label: "Pyr 3",  type: "enum", options: HELM_WAVES },
+            { key: "w_pyr5",  label: "Pyr 5",  type: "enum", options: HELM_WAVES },
+            { key: "w_pyr9",  label: "Pyr 9",  type: "enum", options: HELM_WAVES },
+            { key: "w_tri",   label: "Tri",    type: "enum", options: HELM_WAVES },
+        ]),
+        "synth:w_step3": "5", "synth:w_step4": "6", "synth:w_step8": "7",
+        "synth:w_sawup": "4",
+        "synth:w_pyr3": "8", "synth:w_pyr5": "9", "synth:w_pyr9": "10",
+        "synth:w_tri": "1",
     },
 
     /* Helm's LFO page: shape names ("Saw Up", "N Step", "N Pyramid") and role

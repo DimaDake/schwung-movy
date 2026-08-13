@@ -37,7 +37,7 @@ interface Job {
     dataOffset: number; dataSize: number;
     blockAlign: number; bits: number; fmt: number; channels: number;
     frameCount: number;
-    block: number; totalBlocks: number; blockStride: number;
+    block: number; totalBlocks: number; blockStride: number; blockBytes: number;
     buf: ArrayBuffer; view: Uint8Array;
 }
 
@@ -50,6 +50,14 @@ const u32 = (b: Uint8Array, i: number): number =>
 const s16 = (b: Uint8Array, i: number): number => {
     const v = b[i] | (b[i + 1] << 8);
     return (v & 0x8000) ? v - 65536 : v;
+};
+/* 24-bit PCM. Worth its own branch rather than being rejected as an exotic
+ * format: sample libraries ship it as a matter of course — the whole Neon Drive
+ * set on this device is 24-bit — and a sampler that cannot draw its own library
+ * is not much of a feature. */
+const s24 = (b: Uint8Array, i: number): number => {
+    const v = b[i] | (b[i + 1] << 8) | (b[i + 2] << 16);
+    return (v & 0x800000) ? v - 0x1000000 : v;
 };
 /* float32 without a DataView: QuickJS has typed arrays, and one shared
  * scratch pair avoids allocating per sample. */
@@ -97,17 +105,21 @@ function startJob(path: string, width: number, key: string): Job | null {
         const channels = Math.max(1, u16(b, fmtAt + 2));
         const bits = u16(b, fmtAt + 14);
         const blockAlign = Math.max(1, u16(b, fmtAt + 12));
-        const ok = (fmt === 1 && (bits === 8 || bits === 16)) || (fmt === 3 && bits === 32);
+        const ok = (fmt === 1 && (bits === 8 || bits === 16 || bits === 24)) || (fmt === 3 && bits === 32);
         if (!ok) { f.close(); return null; }
         f.close();
 
         const frameCount = Math.max(1, Math.floor(dataSize / blockAlign));
-        const totalBlocks = Math.max(1, Math.ceil(dataSize / BLOCK_BYTES));
+        /* Block size must be a whole number of FRAMES. 32768 is not a multiple
+         * of a 3-byte 24-bit frame, so an unaligned block started mid-sample
+         * and every value after the first block decoded as noise. */
+        const blockBytes = Math.max(blockAlign, Math.floor(BLOCK_BYTES / blockAlign) * blockAlign);
+        const totalBlocks = Math.max(1, Math.ceil(dataSize / blockBytes));
         const buf = new ArrayBuffer(BLOCK_BYTES);
         return {
             key, path, width, points: new Array(width).fill(0),
             dataOffset: dataAt, dataSize, blockAlign, bits, fmt, channels, frameCount,
-            block: 0, totalBlocks,
+            block: 0, totalBlocks, blockBytes,
             blockStride: Math.max(1, Math.ceil(totalBlocks / MAX_BLOCKS)),
             buf, view: new Uint8Array(buf),
         };
@@ -124,8 +136,8 @@ function runBlock(j: Job): boolean {
     try {
         f = std.open(j.path, 'rb');
         if (!f) return false;
-        const byteStart = j.block * BLOCK_BYTES;
-        const want = Math.min(BLOCK_BYTES, j.dataSize - byteStart);
+        const byteStart = j.block * j.blockBytes;
+        const want = Math.min(j.blockBytes, j.dataSize - byteStart);
         if (want <= 0) { f.close(); return false; }
         f.seek(j.dataOffset + byteStart, 0);          // 0 = SEEK_SET
         const got = f.read(j.buf, 0, want);
@@ -140,6 +152,7 @@ function runBlock(j: Job): boolean {
         for (let off = 0; off + sampleBytes <= got; off += step) {
             let v = 0;
             if (j.fmt === 1 && j.bits === 16) v = s16(b, off) / 32768;
+            else if (j.fmt === 1 && j.bits === 24) v = s24(b, off) / 8388608;
             else if (j.fmt === 1 && j.bits === 8) v = (b[off] - 128) / 128;
             else v = f32(b, off);
             if (v < 0) v = -v;

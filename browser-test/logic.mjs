@@ -7439,6 +7439,38 @@ _log('\nTest: WAV peaks — accuracy, chunking and caching');
      * key carries the width for exactly this reason. */
     eq('other width is not served from cache', wavPeaks('/s/burst.wav', 28), null);
 
+    /* 24-bit PCM. Sample libraries ship it constantly — every Neon Drive file
+     * on the device is 24-bit — and rejecting it as exotic meant a sampler
+     * could not draw its own library. Device verification is what caught it. */
+    {
+        const make24 = (frames, ampAt) => {
+            const dataBytes = frames * 3;
+            const b = new Uint8Array(44 + dataBytes);
+            const ws2 = (o, t) => { for (let i = 0; i < t.length; i++) b[o + i] = t.charCodeAt(i); };
+            const w32 = (o, v) => { b[o] = v & 255; b[o+1] = (v>>8)&255; b[o+2] = (v>>16)&255; b[o+3] = (v>>>24)&255; };
+            const w16 = (o, v) => { b[o] = v & 255; b[o+1] = (v>>8)&255; };
+            ws2(0, 'RIFF'); w32(4, 36 + dataBytes); ws2(8, 'WAVE');
+            ws2(12, 'fmt '); w32(16, 16); w16(20, 1); w16(22, 1);
+            w32(24, 44100); w32(28, 132300); w16(32, 3); w16(34, 24);   // blockAlign 3, 24-bit
+            ws2(36, 'data'); w32(40, dataBytes);
+            for (let i = 0; i < frames; i++) {
+                let v = Math.round(ampAt(i / frames) * 8388607);
+                if (v < 0) v += 0x1000000;
+                const o = 44 + i * 3;
+                b[o] = v & 255; b[o+1] = (v>>8)&255; b[o+2] = (v>>16)&255;
+            }
+            return b;
+        };
+        env.setFiles({ '/s/24bit.wav': make24(120000, (t) => (t > 0.4 && t < 0.6) ? 1 : 0) });
+        resetWavPeaks();
+        let n = 0;
+        while (!wavPeaks('/s/24bit.wav', WIDTH)?.done && n < 500) { wavPeaksTick('/s/24bit.wav', WIDTH); n++; }
+        const p24 = wavPeaks('/s/24bit.wav', WIDTH);
+        eq('24-bit PCM is read', p24.error, '');
+        eq('24-bit silence at the start', p24.points[2], 0);
+        eq('24-bit full scale in the middle', p24.points[30] > 0.99, true);
+    }
+
     // Unreadable paths fail once and stay failed rather than retrying forever.
     resetWavPeaks();
     wavPeaksTick('/s/missing.wav', WIDTH);

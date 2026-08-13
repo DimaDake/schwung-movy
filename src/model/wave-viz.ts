@@ -5,28 +5,8 @@
  * Pure: indices only, no rendering. */
 
 import type { KnobParam } from '../types/param.js';
-import type { PageLayout } from './page-layout.js';
+import { claimedCells, type PageLayout } from './page-layout.js';
 import { enumClassOf } from './enum-class.js';
-
-/* Cells already drawn by a multi-cell graphic. An LFO's Shape param is drawn as
- * part of the LFO waveform, so re-styling its cell would draw it twice.
- * Envelope stages are numeric, never enums, so they cannot collide here. */
-function claimedCells(layout: PageLayout): Set<number> {
-    const out = new Set<number>();
-    for (const l of layout.lfos) {
-        out.add(l.shape);
-        for (const i of [l.phase, l.rate, l.depth, l.deform, l.mode, l.retrig]) {
-            if (i !== null) out.add(i);
-        }
-    }
-    for (const f of layout.filters) {
-        out.add(f.cutoff);
-        out.add(f.resonance);
-        if (f.modeIdx !== null) out.add(f.modeIdx);
-        if (f.slopeIdx !== null) out.add(f.slopeIdx);
-    }
-    return out;
-}
 
 export function waveCellIndices(
     params: (KnobParam | null)[], layout: PageLayout,

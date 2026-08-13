@@ -10,6 +10,7 @@ export interface ParamVM {
     enumIndex:       number;
     renderStyle:     'arc' | 'hbar' | 'vbar' | 'preset' | 'xbox' | 'steps' | 'wave';   // xbox = framed X (LFO target None); hbar doubles as a binary on/off bar; steps = framed number (octave/voice count); wave = waveform silhouette
     waveShape?:      number;    // glyph id for renderStyle 'wave' (see lfo-shapes.ts)
+    waveOff?:        boolean;   // waveform toggle that is currently NOT sounding → drawn dotted
     automated:       boolean;   // lane has ≥1 lock → show the dot
     automatable:     boolean;   // can be assigned a lane (numeric, non-global)
     assigned:        boolean;   // already bound to an automation lane

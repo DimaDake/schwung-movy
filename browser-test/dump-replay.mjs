@@ -24,7 +24,8 @@ import {
 } from './dump-boot.mjs';
 import { detentsPerStep, perDetentStep } from '../dist/esm/model/knob-step.js';
 import { waveCellIndices } from '../dist/esm/model/wave-viz.js';
-import { planPageLayout } from '../dist/esm/model/page-layout.js';
+import { waveToggleCells } from '../dist/esm/model/wave-toggle.js';
+import { planPageLayout, claimedCells } from '../dist/esm/model/page-layout.js';
 
 const EXPECT_PATH = join(MOVY, 'browser-test', 'dump-expect.json');
 const UPDATE = process.argv.includes('--update');
@@ -241,6 +242,21 @@ function checkEnumOptionsMatchModule(key, model, entry) {
  * regression is a specific module drifting in or out (a new glyph accidentally
  * making helm's step counts "unique", or a remap silently dropping chordism),
  * and a bare count would let one module swap for another unnoticed. */
+/* Binary "is this waveform sounding?" switches, drawn as a dotted/solid
+ * silhouette instead of an on/off bar. Pinned for the same reason as the
+ * pickers: the failure mode is a module drifting in or out unnoticed. */
+const WAVE_TOGGLES_EXPECTED = [
+    'sound_generator--hush1::white_noise',
+    'sound_generator--obxd::lfo_sh',
+    'sound_generator--obxd::lfo_sin',
+    'sound_generator--obxd::lfo_square',
+    'sound_generator--obxd::osc1_pulse',
+    'sound_generator--obxd::osc1_saw',
+    'sound_generator--obxd::osc2_pulse',
+    'sound_generator--obxd::osc2_saw',
+    'sound_generator--surge::mute_noise',   // inverted: ON means silent
+];
+
 const WAVE_CELLS_EXPECTED = [
     'audio_fx--ambiotica::mod_shape',
     'audio_fx--spectra::motion_shape',
@@ -270,13 +286,18 @@ const WAVE_CELLS_EXPECTED = [
  * so the names come from the detector over the same page slices the VM uses;
  * the VM is then cross-checked to have produced that many 'wave' cells, which
  * is what proves the detector is actually wired through to renderStyle. */
-function collectWaveCells(key, model, into) {
+function collectWaveCells(key, model, into, intoToggles) {
     const params = model.dumpLayout().params;
     let detected = 0;
     for (let start = 0; start < params.length; start += 8) {
         const page = params.slice(start, start + 8);
-        for (const i of waveCellIndices(page, planPageLayout(page))) {
+        const layout = planPageLayout(page);
+        for (const i of waveCellIndices(page, layout)) {
             into.push(`${key}::${page[i].key}`);
+            detected++;
+        }
+        for (const [i] of waveToggleCells(page, claimedCells(layout))) {
+            intoToggles.push(`${key}::${page[i].key}`);
             detected++;
         }
     }
@@ -303,6 +324,7 @@ const { bootFromDumpEntry } = await createDumpBoot(dump);
 const expect = UPDATE ? {} : JSON.parse(readFileSync(EXPECT_PATH, 'utf8'));
 const snapshots = {};
 const waveCells = [];
+const waveToggles = [];
 
 for (const entry of dump.modules) {
     const key = `${entry.category}--${entry.id}`;
@@ -320,8 +342,18 @@ for (const entry of dump.modules) {
     checkDeclaredKnobsReachable(key, model, entry);
     checkEnumOptionsMatchModule(key, model, entry);
     checkKnobStepSymmetric(key, model);
-    collectWaveCells(key, model, waveCells);
+    collectWaveCells(key, model, waveCells, waveToggles);
     if (!UPDATE) checkExpect(key, snap, expect[key]);
+}
+
+/* Fleet-wide waveform-toggle set. */
+{
+    const got = waveToggles.slice().sort();
+    const want = WAVE_TOGGLES_EXPECTED.slice().sort();
+    const added   = got.filter(k => !want.includes(k));
+    const dropped = want.filter(k => !got.includes(k));
+    check(`wave toggles: ${got.length} params${added.length ? ` — UNEXPECTED: ${added.join(', ')}` : ''}${dropped.length ? ` — MISSING: ${dropped.join(', ')}` : ''}`,
+        added.length === 0 && dropped.length === 0);
 }
 
 /* Fleet-wide waveform-silhouette set. */

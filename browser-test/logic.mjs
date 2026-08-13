@@ -76,6 +76,7 @@ import { normalizeFilterOption, isFilterModeEnum, filterModeFromEnum, isSlopeEnu
 import { shapeId as lfoShapeId, isShapeEnum } from '../dist/esm/model/lfo-shapes.js';
 import { enumClassOf } from '../dist/esm/model/enum-class.js';
 import { waveCellIndices } from '../dist/esm/model/wave-viz.js';
+import { waveToggleOf } from '../dist/esm/model/wave-toggle.js';
 import { lfoTargetsParam, assignLfoTarget, clearLfoTarget } from '../dist/esm/lfo/assign.js';
 import { holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle, assignCommit, assignToastText, resetAssignMode } from '../dist/esm/lfo/assign-mode.js';
 import { jogHintTouch, jogHintTick, jogHintVisible } from '../dist/esm/app/jog-hint.js';
@@ -7163,6 +7164,52 @@ _log('\nTest: waveCellIndices — which cells get a silhouette');
         const got = sel(pad([E('wave_1', W), E('wave_2', W), E('wave_3', W), E('wave_4', W)]));
         eq('four waveform enums on one page', got.size, 4);
     }
+}
+
+_log('\nTest: waveToggleOf — binary "is this waveform sounding?" switches');
+{
+    const B = (key, label) => ({ key, label, type: 'int', min: 0, max: 1, renderStyle: 'hbar' });
+    const E = (key, label, options) => ({ key, label, type: 'enum', options, renderStyle: 'arc' });
+    const sh = (p) => waveToggleOf(p)?.shape ?? null;
+
+    // OB-Xd's per-oscillator switches — the case this exists for.
+    eq('osc1_saw → saw',      sh(B('osc1_saw', 'Osc1 Saw')), 2);
+    eq('osc1_pulse → pulse',  sh(B('osc1_pulse', 'Osc1 Pulse')), 13);
+    eq('lfo_sin → sine',      sh(B('lfo_sin', 'LFO Sine')), 0);
+    eq('lfo_square → square', sh(B('lfo_square', 'LFO Square')), 3);
+    eq('lfo_sh → s&h',        sh(B('lfo_sh', 'LFO S&H')), 4);
+    // Two-option Off/On enums count as binary too.
+    eq('white_noise enum → noise', sh(E('white_noise', 'White Noise', ['Off', 'On'])), 7);
+
+    // A Mute is the same switch read the other way round.
+    eq('mute_noise → noise', sh(E('mute_noise', 'Noise Mute', ['Off', 'On'])), 7);
+    eq('mute_noise inverts', waveToggleOf(E('mute_noise', 'Noise Mute', ['Off', 'On'])).invert, true);
+    eq('plain toggle does not invert', waveToggleOf(B('osc1_saw', 'Osc1 Saw')).invert, false);
+
+    /* Rejected: names a shape but the switch is about something else.
+     * "Sub Octave Down" is an octave switch that happens to say Sub. */
+    eq('sub_octave rejected',   waveToggleOf(B('sub_octave', 'Sub Octave Down')), null);
+    eq('osc2_sync rejected',    waveToggleOf(B('osc2_sync', 'Osc2 Sync')), null);
+    eq('saw pitch rejected',    waveToggleOf(B('saw_pitch', 'Saw Pitch')), null);
+
+    // Rejected: not binary, or names no shape at all.
+    eq('non-binary rejected',
+        waveToggleOf({ key: 'saw_level', label: 'Saw Level', type: 'float', min: 0, max: 1 }), null);
+    eq('shapeless toggle rejected', waveToggleOf(B('osc1_on', 'Osc1 On')), null);
+    /* 'off' is itself a glyph name (the flat line). Stripping role words is what
+     * stops "saw_off" resolving to flat instead of saw. */
+    eq('saw_off still reads as saw', sh(B('saw_off', 'Saw Off')), 2);
+    // Two shapes named → which one does the switch control? Refuse to guess.
+    eq('two shapes rejected', waveToggleOf(B('saw_square', 'Saw Square')), null);
+
+    /* A randomiser is an action, not the thing it names (same rule as
+     * step-labels.ts) — and 'rnd' resolves to the smooth-random glyph, so
+     * without this every Randomise button became a waveform switch. */
+    eq('rnd_preset rejected',  waveToggleOf(B('rnd_preset', 'Randomise Preset')), null);
+    eq('rnd_motion rejected',  waveToggleOf(B('rnd_motion', 'Rnd Motion')), null);
+    /* Ring names a modulator PAIR, not a shape: Surge mutes Ring 1x2 and
+     * Ring 2x3 separately and both would draw the identical glyph. */
+    eq('mute_ring12 rejected', waveToggleOf(B('mute_ring12', 'Ring 1x2 Mute')), null);
 }
 
 /* ── dumpLayout: external layout snapshot (scripts/dump-movy-layout.mjs) ── */

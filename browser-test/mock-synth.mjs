@@ -194,6 +194,29 @@ export const MOCK_SYNTHS = {
         "synth:level": "0.60",
     },
 
+    /* OB-Xd's oscillator section: Saw and Pulse are independent on/off switches
+     * rather than one shape enum, so the cell shows WHICH waveform each switch
+     * controls (solid = sounding, dotted = not). Surge's Noise Mute is here too
+     * because its sense is inverted — ON means silent. */
+    wave_toggles: {
+        "synth:name": "OB-Xd",
+        "synth:ui_hierarchy": hier([
+            { key: "osc1_saw",   label: "Osc1 Saw",   type: "int", min: 0, max: 1, step: 1 },
+            { key: "osc1_pulse", label: "Osc1 Pulse", type: "int", min: 0, max: 1, step: 1 },
+            { key: "osc2_saw",   label: "Osc2 Saw",   type: "int", min: 0, max: 1, step: 1 },
+            { key: "osc2_pulse", label: "Osc2 Pulse", type: "int", min: 0, max: 1, step: 1 },
+            { key: "lfo_sin",    label: "LFO Sine",   type: "int", min: 0, max: 1, step: 1 },
+            { key: "lfo_square", label: "LFO Square", type: "int", min: 0, max: 1, step: 1 },
+            { key: "mute_noise", label: "Noise Mute", type: "enum", options: ["Off", "On"] },
+            { key: "cutoff",     label: "Cutoff",     type: "float", min: 0, max: 1, step: 0.01 },
+        ]),
+        "synth:osc1_saw": "1", "synth:osc1_pulse": "0",
+        "synth:osc2_saw": "0", "synth:osc2_pulse": "1",
+        "synth:lfo_sin": "1",  "synth:lfo_square": "0",
+        "synth:mute_noise": "1",   // muted → drawn dotted despite the value being ON
+        "synth:cutoff": "0.60",
+    },
+
     /* Helm's oscillator waveform list on single knobs. The scene exists for one
      * comparison: a stepped climb next to the SAME list's smooth Saw Up, and a
      * stepped pyramid next to its Triangle. If the cell glyph ever loses height

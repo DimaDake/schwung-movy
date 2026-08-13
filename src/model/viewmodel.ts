@@ -1,8 +1,9 @@
 import type { ViewModel, AutomationView, EnvelopeVM, LfoVizVM } from '../types/viewmodel.js';
 import type { ModelState } from './state.js';
 import { formatValue, paramIoKey, paramAutomatable } from './store.js';
-import { planPageLayout } from './page-layout.js';
+import { planPageLayout, claimedCells } from './page-layout.js';
 import { waveCellIndices } from './wave-viz.js';
+import { waveToggleCells } from './wave-toggle.js';
 import { enumClassOf } from './enum-class.js';
 import { buildLfoViz } from './lfo-vm.js';
 import { buildFilterViz } from './filter-vm.js';
@@ -48,8 +49,11 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     const layout = planPageLayout(s.knobParams.slice(pageStart, pageStart + KNOBS_PER_PAGE));
     /* Cells whose enum draws as a waveform silhouette instead of option text.
      * Per-cell, so unlike the groups above it does not touch the layout. */
-    const waveCells = waveCellIndices(
-        s.knobParams.slice(pageStart, pageStart + KNOBS_PER_PAGE), layout);
+    const pageSlice = s.knobParams.slice(pageStart, pageStart + KNOBS_PER_PAGE);
+    const waveCells = waveCellIndices(pageSlice, layout);
+    /* Binary "is this waveform sounding?" switches — drawn as the silhouette,
+     * dotted when off, instead of an on/off bar that says nothing about shape. */
+    const waveToggles = waveToggleCells(pageSlice, claimedCells(layout));
     const rows: ViewModel['rows'] = [[null, null, null, null], [null, null, null, null]];
     const envelopeLines: (EnvelopeVM | null)[] = [null, null];
     for (const e of layout.envelopes)
@@ -103,11 +107,20 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             isLongEnum:      p.type === 'enum' && (p.options?.length ?? 0) > 6,
             options:         p.options,
             enumIndex:       enumIdx,
-            renderStyle:     waveCells.has(localIdx) ? 'wave' : p.renderStyle,
+            renderStyle:     (waveCells.has(localIdx) || waveToggles.has(localIdx))
+                ? 'wave' : p.renderStyle,
             /* enumClass is already populated by the waveCellIndices call above,
              * so this is a cached array index, not a per-frame name lookup. */
             ...(waveCells.has(localIdx)
                 ? { waveShape: (p.enumClass?.shapeIds ?? [])[enumIdx] ?? 10 }
+                : {}),
+            ...(waveToggles.has(localIdx)
+                ? (() => {
+                    const t = waveToggles.get(localIdx) as import('./wave-toggle.js').WaveToggle;
+                    /* A Mute reads the other way round: its ON value is silent. */
+                    const on = (v === null || v === undefined ? 0 : Math.round(v)) > 0;
+                    return { waveShape: t.shape, waveOff: t.invert ? on : !on };
+                })()
                 : {}),
             automated,
             automatable:     paramAutomatable(s, p),

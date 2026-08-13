@@ -120,6 +120,14 @@ automatically. You don't configure anything for most modules.
 
   ![Helm stepped waveforms](docs/assets/wave_helm.png)
 
+  Some synths don't use a list at all — OB-Xd gives each oscillator separate
+  **Saw** and **Pulse** on/off switches. Those draw the waveform too: **solid
+  when it is sounding, dotted when it is not**, so you can see which shape each
+  switch controls instead of a bare on/off bar. A *Mute* switch reads the other
+  way round and is drawn accordingly:
+
+  ![Waveform on/off switches](docs/assets/wave_toggles.png)
+
   Movy only does this when **every** option in the list has its own distinct
   silhouette. A list where several entries would be drawn identically — an
   Osirus wavetable list of *Wave 3*…*Wave 64*, where the names carry no shape

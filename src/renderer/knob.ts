@@ -75,13 +75,13 @@ function drawEnumSquare(kx: number, ky: number, options: string[] | null, enumIn
  * a framed 12×12 box left borderline. The label underneath already says which
  * parameter this is, so the frame was spending a third of the cell to repeat
  * that it is a list. */
-function drawWaveCell(cellX: number, ky: number, shape: number): void {
+function drawWaveCell(cellX: number, ky: number, shape: number, off = false): void {
     /* drawLfoWave's vertical geometry (rowY+1..rowY+14) so a single-knob
      * waveform and a two-cell LFO waveform on the same page share a baseline.
      * Horizontally it is inset 2px rather than the LFO's 1px: neighbouring
      * cells each end in a full-height closing edge, and at a 1px inset those
      * two edges sit 2px apart and read as one shape spanning both cells. */
-    drawWave(cellX + 2, ky + 1, CELL_W - 4, KW - 2, shape, 1, 1);
+    drawWave(cellX + 2, ky + 1, CELL_W - 4, KW - 2, shape, 1, 1, off);
 }
 
 /* Framed X: an empty box with a big diagonal cross — the LFO target when it is
@@ -225,7 +225,7 @@ export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
          * to 128, and a label per value rebuilt every frame would be absurd. */
         drawEnumSquare(kx, ky, [pvm.displayValue], 0);
     } else if (pvm.renderStyle === 'wave') {
-        drawWaveCell(col * CELL_W, ky, pvm.waveShape ?? 10);
+        drawWaveCell(col * CELL_W, ky, pvm.waveShape ?? 10, pvm.waveOff === true);
     } else if (pvm.type === 'enum') {
         drawEnumSquare(kx, ky, pvm.options, pvm.enumIndex);
     } else if (pvm.renderStyle === 'xbox') {

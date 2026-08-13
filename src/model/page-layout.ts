@@ -42,6 +42,27 @@ export function pageSlotMap(params: (KnobParam | null)[]): number[] {
     return map;
 }
 
+/* Cells a multi-cell graphic already draws. Any per-CELL style (the waveform
+ * silhouette, the waveform toggle) has to stay out of these or it would draw
+ * the same param twice. Envelope stages are numeric, so they cannot collide
+ * with the enum/binary styles and are not collected here. */
+export function claimedCells(layout: PageLayout): Set<number> {
+    const out = new Set<number>();
+    for (const l of layout.lfos) {
+        out.add(l.shape);
+        for (const i of [l.phase, l.rate, l.depth, l.deform, l.mode, l.retrig]) {
+            if (i !== null) out.add(i);
+        }
+    }
+    for (const f of layout.filters) {
+        out.add(f.cutoff);
+        out.add(f.resonance);
+        if (f.modeIdx !== null) out.add(f.modeIdx);
+        if (f.slopeIdx !== null) out.add(f.slopeIdx);
+    }
+    return out;
+}
+
 export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
     const rowCells: (number[] | null)[] = [null, null];   // cells claimed per line, in order
     const envelopes: EnvLine[] = [];

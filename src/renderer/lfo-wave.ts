@@ -93,16 +93,26 @@ function skewPhase(ph: number, d: number): number {
 export function drawWave(
     x: number, y: number, w: number, h: number,
     shape: number, cycles: number, colour: 0 | 1,
+    dotted = false,
 ): void {
     const mid = y + (h - 1) / 2, amp = (h - 1) / 2;
     const yAt = (px: number): number =>
         Math.round(mid - shapeSample(shape, ((px - x) / w) * cycles) * amp);
-    const vline = (px: number, a: number, b: number): void =>
-        fill_rect(px, Math.min(a, b), 1, Math.abs(a - b) + 1, colour);
+    /* Dotted marks "not sounding". Broken on a diagonal parity (x+y) rather than
+     * per-column, so a vertical edge and a flat run both come out dashed — a
+     * per-column rule would leave whole edges either solid or missing. */
+    const vline = (px: number, a: number, b: number): void => {
+        if (!dotted) {
+            fill_rect(px, Math.min(a, b), 1, Math.abs(a - b) + 1, colour);
+            return;
+        }
+        const lo = Math.min(a, b), hi = Math.max(a, b);
+        for (let yy = lo; yy <= hi; yy++) if (((yy + px) & 1) === 0) fill_rect(px, yy, 1, 1, colour);
+    };
 
     const firstY = yAt(x);
     let py = firstY;
-    fill_rect(x, py, 1, 1, colour);
+    vline(x, py, py);
     for (let px = x + 1; px < x + w; px++) {
         const ny = yAt(px);
         vline(px, py, ny);

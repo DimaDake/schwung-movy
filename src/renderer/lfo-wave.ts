@@ -108,12 +108,17 @@ export function drawWave(
         vline(px, py, ny);
         py = ny;
     }
-    /* Close the cycle. A periodic wave jumps from its last sample back to its
-     * first, and that jump is a real edge of the shape: without it a saw is a
-     * bare ramp that just stops, and a square never shows the rising edge that
-     * makes it a square. Drawn at the final column so the silhouette stays
-     * inside its box. */
-    if (py !== firstY) vline(x + w - 1, py, firstY);
+    /* Close the cycle at BOTH ends. A periodic wave jumps from its last sample
+     * back to its first, and that jump is a real edge of the shape — it lands
+     * on the right boundary and, coming from the previous cycle, on the left
+     * one too. Without them a saw is a bare ramp that just stops and a square
+     * never shows the rising edge that makes it a square. Only drawn when the
+     * endpoints actually differ, so a flat "Off" or a pyramid that returns to
+     * its start gets no spurious line. */
+    if (py !== firstY) {
+        vline(x, py, firstY);
+        vline(x + w - 1, py, firstY);
+    }
 }
 
 export function drawLfoWave(rowY: number, g: LfoVizVM): void {

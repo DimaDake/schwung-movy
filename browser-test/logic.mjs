@@ -7102,15 +7102,17 @@ _log('\nTest: drawWave draws straight vertical risers');
     /* One rect per column, plus the closing edge: a periodic wave jumps from
      * its last sample back to its first, and that jump is a real edge — without
      * it a saw is a bare ramp that just stops. */
-    eq('one rect per column plus a closing edge', sq.length, 14);
-    eq('closing edge sits on the last column',
-        sq.filter(c => c.x === 12).length, 2);
+    eq('one rect per column plus a closing edge at each end', sq.length, 15);
+    eq('closing edge on the last column',  sq.filter(c => c.x === 12).length, 2);
+    eq('closing edge on the first column', sq.filter(c => c.x === 0).length, 2);
 
-    // A saw closes too: the ramp's drop back to the start.
+    // A saw closes too: the ramp's drop back to the start, at both ends.
     const saw = shot(2);
-    eq('saw has a closing edge', saw.length, 14);
-    eq('saw closing edge is full height',
+    eq('saw has a closing edge at each end', saw.length, 15);
+    eq('saw right edge is full height',
         saw.filter(c => c.x === 12).some(c => c.h === 5), true);
+    eq('saw left edge is full height',
+        saw.filter(c => c.x === 0).some(c => c.h === 5), true);
 
     // Off never rises — every column is a single pixel on the centre line, and
     // a continuous shape must NOT get a spurious edge.

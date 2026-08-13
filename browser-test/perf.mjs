@@ -20,6 +20,7 @@ import { mainPageState, resetMainPage } from '../dist/esm/seq/main-page.js';
 import { seqState, resetSeqState } from '../dist/esm/seq/state.js';
 import { keyboardState } from '../dist/esm/keyboard/state.js';
 import { LONG_PRESS_TICKS } from '../dist/esm/model/constants.js';
+import { wavPeaksTick, wavPeaks, resetWavPeaks } from '../dist/esm/model/wav-peaks.js';
 import { MOCK_SYNTHS }     from './mock-synth.mjs';
 
 /* ── Thresholds ──────────────────────────────────────────────────────────── */
@@ -27,6 +28,7 @@ import { MOCK_SYNTHS }     from './mock-synth.mjs';
 /* fill_rect calls per full renderKnobsView (8-knob page, all arc knobs).
  * Baseline: 520 (test16, arc knobs). Threshold allows ~3× before failing.
  * Catches someone adding a per-pixel inner loop or doubling the draw calls. */
+const WAV_TICK_MAX_MS = 4.0;   // a tick that misses its slot is felt as input lag
 const FILL_RECT_PER_RENDER_MAX = 1500;
 
 /* Max shadow_get_param calls in any single tick over a 70-tick window.
@@ -303,6 +305,62 @@ _origLog('\nTest 4: fill_rect calls per renderKnobsView (test_enum)');
 
     check('fill_rect calls (enum view)', fillRectCount, FILL_RECT_PER_RENDER_MAX);
     _origLog(`    (baseline: ${fillRectCount} calls)`);
+}
+
+/* ── Test 4z: chunked WAV peak read — per-TICK cost ──────────────────────── */
+
+_origLog('\nTest 4z: WAV peak read cost per tick (movy\'s tick period is its MIDI sampling interval)');
+
+{
+    const FR = 500000;                      // ~11 s of 44.1 kHz mono 16-bit
+    const bytes = new Uint8Array(44 + FR * 2);
+    const ws = (o, t) => { for (let i = 0; i < t.length; i++) bytes[o + i] = t.charCodeAt(i); };
+    const w32 = (o, v) => { bytes[o] = v & 255; bytes[o+1] = (v>>8)&255; bytes[o+2] = (v>>16)&255; bytes[o+3] = (v>>>24)&255; };
+    const w16 = (o, v) => { bytes[o] = v & 255; bytes[o+1] = (v>>8)&255; };
+    ws(0, 'RIFF'); w32(4, 36 + FR * 2); ws(8, 'WAVE');
+    ws(12, 'fmt '); w32(16, 16); w16(20, 1); w16(22, 1);
+    w32(24, 44100); w32(28, 88200); w16(32, 2); w16(34, 16);
+    ws(36, 'data'); w32(40, FR * 2);
+    for (let i = 0; i < FR; i++) { const v = Math.round(Math.sin(i * 0.01) * 30000); w16(44 + i * 2, v < 0 ? v + 65536 : v); }
+    /* perf.mjs stubs globals directly (no installEnv), so std/os are provided
+     * here rather than via env.setFiles. */
+    const files = { '/perf/big.wav': bytes };
+    globalThis.os = { ...(globalThis.os ?? {}),
+        stat: (p) => (files[p] ? [{ size: files[p].length, mtime: 1 }, 0] : [null, -1]) };
+    globalThis.std = {
+        open(p2) {
+            const d = files[p2]; if (!d) return null;
+            let pos = 0;
+            return {
+                read(buffer, offset, length) {
+                    const n = Math.max(0, Math.min(length, d.length - pos));
+                    new Uint8Array(buffer, offset, n).set(d.subarray(pos, pos + n));
+                    pos += n; return n;
+                },
+                seek(o) { pos = o; return 0; }, close() {},
+            };
+        },
+    };
+    resetWavPeaks();
+
+    const times = [];
+    let ticks = 0;
+    while (!wavPeaks('/perf/big.wav', 60)?.done && ticks < 400) {
+        const t0 = performance.now();
+        wavPeaksTick('/perf/big.wav', 60);
+        times.push(performance.now() - t0);
+        ticks++;
+    }
+    const worst = Math.max(...times);
+    check('worst single tick', worst, WAV_TICK_MAX_MS, 'ms');
+    _origLog(`    (${ticks} ticks, median ${median(times).toFixed(3)}ms, worst ${worst.toFixed(3)}ms — a 1 MB file)`);
+
+    /* Once done it must cost NOTHING: a completed read that kept re-reading
+     * would be a permanent tax on every tick for as long as the page is open. */
+    const t0 = performance.now();
+    for (let i = 0; i < 100; i++) wavPeaksTick('/perf/big.wav', 60);
+    const idle = (performance.now() - t0) / 100;
+    check('idle tick after completion', idle, 0.02, 'ms');
 }
 
 /* ── Test 4a: waveform silhouettes, cells and overlay ────────────────────── */

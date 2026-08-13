@@ -10,6 +10,7 @@ import { detectLfoViz } from './lfo-viz.js';
 import { detectFilterViz } from './filter-viz.js';
 import { detectEqViz } from './eq-viz.js';
 import { detectCutPair } from './cut-viz.js';
+import { detectWavViz } from './wav-viz.js';
 
 export interface PageCell { line: 0 | 1; col: 0 | 1 | 2 | 3; idx: number }
 export interface EnvLine {
@@ -55,9 +56,15 @@ export interface CutLine {
     line: 0 | 1; startCol: number; cellCount: number;
     lowcut: number; highcut: number;
 }
+/* A sample waveform placement: the position marker and, when present, its file
+ * companion, seated together so the envelope has room to be a picture. */
+export interface WavLine {
+    line: 0 | 1; startCol: number; cellCount: number;
+    position: number; idxs: number[];
+}
 export interface PageLayout {
     cells: PageCell[]; envelopes: EnvLine[]; lfos: LfoLine[];
-    filters: FilterLine[]; eqs: EqLine[]; cuts: CutLine[];
+    filters: FilterLine[]; eqs: EqLine[]; cuts: CutLine[]; wavs: WavLine[];
 }
 
 /* Physical knob (slot = line*4 + col) → page-relative param index, honoring the
@@ -82,6 +89,7 @@ export function claimedCells(layout: PageLayout): Set<number> {
     }
     for (const q of layout.eqs) for (const i of q.idxs) out.add(i);
     for (const c of layout.cuts) { out.add(c.lowcut); out.add(c.highcut); }
+    for (const wv of layout.wavs) for (const i of wv.idxs) out.add(i);
     for (const f of layout.filters) {
         out.add(f.cutoff);
         out.add(f.resonance);
@@ -98,6 +106,7 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
     const filters: FilterLine[] = [];
     const eqs: EqLine[] = [];
     const cuts: CutLine[] = [];
+    const wavs: WavLine[] = [];
     const used = new Set<number>();
     const claimed = new Set<number>();
 
@@ -163,6 +172,19 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
         });
     }
 
+    /* Sample waveform first among the late groups: it is the only graphic whose
+     * whole purpose is resolution, so it gets a line before the cut pair does. */
+    for (const g of detectWavViz(params)) {
+        if (used.size >= 2) break;
+        const idxs = g.file === null ? [g.position] : [g.file, g.position];
+        if (idxs.some(i => claimed.has(i))) continue;
+        const line = assign(idxs, (Math.floor(Math.min(...idxs) / 4)) as 0 | 1);
+        if (line >= 0) wavs.push({
+            line: line as 0 | 1, startCol: 0, cellCount: idxs.length,
+            position: g.position, idxs,
+        });
+    }
+
     /* Low-cut + high-cut pairs last, seated lowcut-first so the band-pass reads
      * left-to-right as the spectrum. A lone cut is deliberately NOT placed: it
      * draws in whatever cell it lands in, so it never spends a line. */
@@ -189,5 +211,5 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
         while (col <= 3 && li < leftover.length) cells.push({ line, col: (col++) as 0 | 1 | 2 | 3, idx: leftover[li++] });
         if (line === 1) break;
     }
-    return { cells, envelopes, lfos, filters, eqs, cuts };
+    return { cells, envelopes, lfos, filters, eqs, cuts, wavs };
 }

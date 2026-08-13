@@ -80,6 +80,17 @@ declare const MoveDown: number;
 declare const MidiNoteOn: number;
 declare const MidiNoteOff: number;
 
+/* QuickJS std module — available as a global on device via banner import.
+ * Only the handful of file operations wav-peaks.ts needs are declared. */
+declare namespace std {
+    interface FILE {
+        read(buffer: ArrayBuffer, position: number, length: number): number;
+        seek(offset: number, whence: number): number;
+        close(): void;
+    }
+    function open(path: string, mode: string): FILE | null;
+}
+
 /* QuickJS os module — available as a global on device via banner import */
 declare namespace os {
     function readdir(path: string): [string[], number];

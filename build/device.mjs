@@ -10,6 +10,7 @@ const root  = resolve(__dir, '..');
 // them before any bundled code. They must not appear in the bundle body.
 const SCHWUNG_BANNER = [
     'import * as os from "os";',
+    'import * as std from "std";',
     'import { Black, DarkGrey, White, BrightRed, NeonGreen,',
     '         MovePads, MoveKnob1, MidiNoteOn, MidiNoteOff,',
     '         MoveKnob1Touch, MoveKnob8Touch,',

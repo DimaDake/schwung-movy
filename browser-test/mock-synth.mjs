@@ -194,6 +194,27 @@ export const MOCK_SYNTHS = {
         "synth:level": "0.60",
     },
 
+    /* Granular sampler: a `wav_position` marker and its sample file, drawn as
+     * the waveform with the position cut into it. The scene's WAV is built in
+     * screenshot.mjs so the peaks are real rather than mocked. */
+    wav_sample: {
+        "synth:name": "Granny",
+        "synth:ui_hierarchy": hier([
+            { key: "sample_path", label: "Sample", type: "filepath", root: "/s" },
+            { key: "position",    label: "Position", type: "wav_position", min: 0, max: 1, step: 0.01 },
+            { key: "size_ms",     label: "Size",     type: "float", min: 5, max: 500, step: 1 },
+            { key: "density",     label: "Density",  type: "float", min: 1, max: 60, step: 1 },
+            { key: "spray",       label: "Spray",    type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "jitter",      label: "Jitter",   type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "scan",        label: "Scan",     type: "float", min: -10, max: 10, step: 0.1 },
+            { key: "grain_gain",  label: "Gain",     type: "float", min: 0, max: 1, step: 0.01 },
+        ]),
+        "synth:sample_path": "/s/scene.wav",
+        "synth:position": "0.42",
+        "synth:size_ms": "120", "synth:density": "20", "synth:spray": "0.3",
+        "synth:jitter": "0.2", "synth:scan": "0", "synth:grain_gain": "0.8",
+    },
+
     /* Low/high cut. Row 1 is the PAIR — reordered lowcut-first and drawn as one
      * band-pass across two cells. Row 2 is the two SINGLE cases, each one cell,
      * plus a slope and a filter mod amount that must keep their knobs. */

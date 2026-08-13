@@ -1,4 +1,5 @@
 import type { ModelState } from './state.js';
+import { wavPeaksTick } from './wav-peaks.js';
 import { loadHierarchy } from './hierarchy.js';
 import { applyKnobDelta, refreshOneParam, pollModuleName, refreshModulatedKeys, slotToLocal } from './store.js';
 import { triggerAnimationTick } from './trigger.js';
@@ -12,6 +13,14 @@ let _perfSampleMs     = 0;
 let _perfRefreshMaxMs = 0;
 
 export function processTick(s: ModelState): boolean {
+    /* Chip away at the sample waveform. The read is deliberately here and not
+     * in buildViewModel: movy's tick period IS its MIDI sampling interval, so
+     * this does a couple of 32 KB blocks and returns, repainting only on the
+     * ticks that actually advanced the picture. */
+    const wavDirty = s.wavRequest
+        ? wavPeaksTick(s.wavRequest.path, s.wavRequest.width) : false;
+    if (wavDirty) s.dirty = true;
+
     if (s.hierarchyKey !== s.activeModuleName) {
         const prevModuleId = s.moduleId;
         loadHierarchy(s);

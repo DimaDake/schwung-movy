@@ -81,6 +81,9 @@ import { envStageOf } from '../dist/esm/model/env-stage.js';
 import { detectEqViz } from '../dist/esm/model/eq-viz.js';
 import { cutKindOf, detectCutPair } from '../dist/esm/model/cut-viz.js';
 import { drawCutCurve } from '../dist/esm/renderer/cut-curve.js';
+import { detectWavViz } from '../dist/esm/model/wav-viz.js';
+import { wavPeaksTick, wavPeaks, resetWavPeaks } from '../dist/esm/model/wav-peaks.js';
+import { drawWavForm } from '../dist/esm/renderer/wav-form.js';
 import { lfoTargetsParam, assignLfoTarget, clearLfoTarget } from '../dist/esm/lfo/assign.js';
 import { holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle, assignCommit, assignToastText, resetAssignMode } from '../dist/esm/lfo/assign-mode.js';
 import { jogHintTouch, jogHintTick, jogHintVisible } from '../dist/esm/app/jog-hint.js';
@@ -7375,6 +7378,109 @@ _log('\nTest: cutKindOf — low/high cut corner frequencies');
         eq('only the extreme is dead (raw mapping leaves 6 of 25)', dead, 1);
     }
     eq('lone highcut is not a pair', detectCutPair(pad([F('lpf', 'LPF')])).length, 0);
+}
+
+_log('\nTest: WAV peaks — accuracy, chunking and caching');
+{
+    /* A real 16-bit mono WAV: silent, then a loud burst in the middle third.
+     * Building the bytes rather than mocking the parser is the point — an
+     * off-by-one in a chunk header or a stride would sail past a fake. */
+    const makeWav = (frames, amplitudeAt) => {
+        const dataBytes = frames * 2;
+        const b = new Uint8Array(44 + dataBytes);
+        const ws = (o, str) => { for (let i = 0; i < str.length; i++) b[o + i] = str.charCodeAt(i); };
+        const w32 = (o, v) => { b[o] = v & 255; b[o+1] = (v>>8)&255; b[o+2] = (v>>16)&255; b[o+3] = (v>>>24)&255; };
+        const w16 = (o, v) => { b[o] = v & 255; b[o+1] = (v>>8)&255; };
+        ws(0, 'RIFF'); w32(4, 36 + dataBytes); ws(8, 'WAVE');
+        ws(12, 'fmt '); w32(16, 16); w16(20, 1); w16(22, 1);      // PCM, mono
+        w32(24, 44100); w32(28, 88200); w16(32, 2); w16(34, 16);  // blockAlign 2, 16-bit
+        ws(36, 'data'); w32(40, dataBytes);
+        for (let i = 0; i < frames; i++) {
+            const v = Math.round(amplitudeAt(i / frames) * 32767);
+            w16(44 + i * 2, v < 0 ? v + 65536 : v);
+        }
+        return b;
+    };
+
+    /* Big enough to need several ticks: 300k frames = 600 KB = 19 blocks at
+     * 32 KB, and the reader does 2 blocks per tick. */
+    const FRAMES = 300000;
+    const wav = makeWav(FRAMES, (t) => (t > 0.33 && t < 0.66) ? 1 : 0);
+    env.setFiles({ '/s/burst.wav': wav });
+    resetWavPeaks();
+
+    const WIDTH = 60;
+    // The job must NOT finish in one tick — that is the whole point of chunking.
+    const first = wavPeaksTick('/s/burst.wav', WIDTH);
+    eq('first tick does work', first, true);
+    eq('first tick does not finish', wavPeaks('/s/burst.wav', WIDTH).done, false);
+
+    let ticks = 1;
+    while (!wavPeaks('/s/burst.wav', WIDTH).done && ticks < 500) {
+        wavPeaksTick('/s/burst.wav', WIDTH); ticks++;
+    }
+    eq('job completes across several ticks', ticks > 1 && ticks < 500, true);
+
+    const pk = wavPeaks('/s/burst.wav', WIDTH);
+    eq('one point per column', pk.points.length, WIDTH);
+    eq('no error', pk.error, '');
+    // The burst sits in the middle third and nowhere else.
+    eq('silence at the start', pk.points[2], 0);
+    eq('silence at the end', pk.points[WIDTH - 3], 0);
+    eq('full scale in the middle', pk.points[30] > 0.99, true);
+    const loud = pk.points.filter((v) => v > 0.5).length;
+    eq('roughly a third of columns are loud', loud >= 16 && loud <= 22, true);
+    eq('read is chunked, not one big gulp', ticks >= 8, true);
+
+    // Cached: a further tick neither works nor changes the answer.
+    eq('completed job does no more work', wavPeaksTick('/s/burst.wav', WIDTH), false);
+
+    /* A DIFFERENT width is a different picture and must recompute — the cache
+     * key carries the width for exactly this reason. */
+    eq('other width is not served from cache', wavPeaks('/s/burst.wav', 28), null);
+
+    // Unreadable paths fail once and stay failed rather than retrying forever.
+    resetWavPeaks();
+    wavPeaksTick('/s/missing.wav', WIDTH);
+    eq('missing file reports an error', wavPeaks('/s/missing.wav', WIDTH).error !== '', true);
+    eq('missing file does not retry', wavPeaksTick('/s/missing.wav', WIDTH), false);
+}
+
+_log('\nTest: waveform marker inverts over the sample');
+{
+    const origFill = globalThis.fill_rect;
+    const shot = (points, position) => {
+        const r = [];
+        globalThis.fill_rect = (x, y, w, h, v) => r.push({ x, y, w, h, v });
+        drawWavForm(11, { line: 0, startCol: 0, cellCount: 2, points, position });
+        globalThis.fill_rect = origFill;
+        return r;
+    };
+    const W = 2 * 32 - 4;
+    // Quiet everywhere: the marker is a tall LIT line.
+    {
+        const r = shot(new Array(W).fill(0), 0.5);
+        const mx = 2 + Math.round(0.5 * (W - 1));
+        const lit = r.filter((q) => q.x === mx && q.v === 1);
+        const tall = lit.reduce((n, q) => Math.max(n, q.h), 0);
+        eq('marker is a tall lit line through silence', tall >= 6, true);
+    }
+    // Full scale everywhere: the marker becomes a CLEARED notch instead.
+    {
+        const r = shot(new Array(W).fill(1), 0.5);
+        const mx = 2 + Math.round(0.5 * (W - 1));
+        const cleared = r.filter((q) => q.x === mx && q.v === 0);
+        eq('marker is a cleared notch through a loud passage', cleared.length > 0, true);
+        eq('the notch spans the sample', cleared[0].h >= 6, true);
+    }
+    // The marker tracks position.
+    {
+        const at = (p) => {
+            const r = shot(new Array(W).fill(0), p);
+            return Math.min(...r.filter((q) => q.v === 1 && q.h > 2).map((q) => q.x));
+        };
+        eq('marker moves left to right', at(0.1) < at(0.9), true);
+    }
 }
 
 /* ── dumpLayout: external layout snapshot (scripts/dump-movy-layout.mjs) ── */

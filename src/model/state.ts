@@ -67,6 +67,10 @@ export interface ModelState {
      * Cleared on a module change so it cannot leak into another module's knob. */
     detentAccum:         number[];
     longPressCountdown:  number;
+    /* Sample + width the waveform graphic wants peaks for, set by
+     * buildViewModel and consumed by processTick — the read is chunked across
+     * ticks and must never happen on a render path. */
+    wavRequest:          { path: string; width: number } | null;
     enumOverlay:         EnumOverlay | null;
     fileOverlay:         FileOverlay | null;
     activeModuleName:    string;
@@ -132,6 +136,7 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         slotMapCache:        null,
         detentAccum:         [],
         longPressCountdown:  -1,
+        wavRequest:          null,
         enumOverlay:         null,
         fileOverlay:         null,
         activeModuleName:    '—',

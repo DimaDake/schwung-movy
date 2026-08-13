@@ -1,4 +1,4 @@
-import type { ParamVM, ViewModel, LfoVizVM, EnvelopeVM, FilterVizVM, EqVizVM, CutVizVM } from '../types/viewmodel.js';
+import type { ParamVM, ViewModel, LfoVizVM, EnvelopeVM, FilterVizVM, EqVizVM, CutVizVM, WavVizVM } from '../types/viewmodel.js';
 import { fontPrint, fontWidth } from '../font/index.js';
 import { drawKnobWidget } from './knob.js';
 import { drawEnvelope } from './envelope.js';
@@ -6,6 +6,7 @@ import { drawLfoWave } from './lfo-wave.js';
 import { drawFilterCurve } from './filter-curve.js';
 import { drawEqCurve } from './eq-curve.js';
 import { drawCutCurve } from './cut-curve.js';
+import { drawWavForm } from './wav-form.js';
 import { CELL_W, LBL_H, ROW0_Y, LBL0_Y, ROW1_Y, LBL1_Y } from './layout.js';
 
 /* Modulation mark — a 4×2 dither: top row 1010, bottom row 0101. Mirror of the
@@ -60,6 +61,7 @@ export function drawKnobRow(
     held = false, poolFull = false, env: EnvelopeVM | null = null,
     lfoViz: LfoVizVM | null = null, filterViz: FilterVizVM | null = null,
     eqViz: EqVizVM | null = null, cutViz: CutVizVM | null = null,
+    wavViz: WavVizVM | null = null,
 ): void {
     // An envelope draws one graphic across its cells (startCol..+cellCount-1); an
     // LFO/filter viz group draws over its two cells. Each replaces those knob
@@ -69,6 +71,7 @@ export function drawKnobRow(
     if (filterViz) drawFilterCurve(rowY, filterViz);
     if (eqViz) drawEqCurve(rowY, eqViz);
     if (cutViz) drawCutCurve(rowY, cutViz.startCol, cutViz.cellCount, cutViz.lowcut, cutViz.highcut);
+    if (wavViz) drawWavForm(rowY, wavViz);
     for (let col = 0; col < 4; col++) {
         const pvm = params[col];
         if (!pvm) continue;
@@ -78,7 +81,8 @@ export function drawKnobRow(
         const inFlt = !!filterViz && col >= filterViz.startCol && col < filterViz.startCol + 2;
         const inEq  = !!eqViz && col >= eqViz.startCol && col < eqViz.startCol + eqViz.cellCount;
         const inCut = !!cutViz && col >= cutViz.startCol && col < cutViz.startCol + cutViz.cellCount;
-        if (!inEnv && !inViz && !inFlt && !inEq && !inCut) drawKnobWidget(col, rowY, pvm);
+        const inWav = !!wavViz && col >= wavViz.startCol && col < wavViz.startCol + wavViz.cellCount;
+        if (!inEnv && !inViz && !inFlt && !inEq && !inCut && !inWav) drawKnobWidget(col, rowY, pvm);
         drawLabelCell(col, lblY, pvm);
     }
 }
@@ -97,7 +101,9 @@ export function drawKnobParams(vm: ViewModel): void {
         const eq1  = vm.eqViz?.find(g => g.line === 1) ?? null;
         const cut0 = vm.cutViz?.find(g => g.line === 0) ?? null;
         const cut1 = vm.cutViz?.find(g => g.line === 1) ?? null;
-        drawKnobRow(vm.rows[0], ROW0_Y, LBL0_Y, vm.automationHeld, vm.automationPoolFull, vm.envelopeLines?.[0] ?? null, viz0, flt0, eq0, cut0);
-        drawKnobRow(vm.rows[1], ROW1_Y, LBL1_Y, vm.automationHeld, vm.automationPoolFull, vm.envelopeLines?.[1] ?? null, viz1, flt1, eq1, cut1);
+        const wav0 = vm.wavViz?.find(g => g.line === 0) ?? null;
+        const wav1 = vm.wavViz?.find(g => g.line === 1) ?? null;
+        drawKnobRow(vm.rows[0], ROW0_Y, LBL0_Y, vm.automationHeld, vm.automationPoolFull, vm.envelopeLines?.[0] ?? null, viz0, flt0, eq0, cut0, wav0);
+        drawKnobRow(vm.rows[1], ROW1_Y, LBL1_Y, vm.automationHeld, vm.automationPoolFull, vm.envelopeLines?.[1] ?? null, viz1, flt1, eq1, cut1, wav1);
     }
 }

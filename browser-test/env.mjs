@@ -35,6 +35,33 @@ export function installEnv() {
         clearInjected() { injected.length = 0; },
     };
 
+    /* QuickJS std/os file access, used by wav-peaks.ts. Tests install their own
+     * fake WAV via env.setFiles(); by default nothing is readable. */
+    let files = {};
+    env.setFiles = (map) => { files = { ...map }; };
+    globalThis.std = {
+        open(path, mode) {
+            const data = files[path];
+            if (!data || String(mode).indexOf('r') < 0) return null;
+            let pos = 0;
+            return {
+                read(buffer, offset, length) {
+                    const n = Math.max(0, Math.min(length, data.length - pos));
+                    new Uint8Array(buffer, offset, n).set(data.subarray(pos, pos + n));
+                    pos += n;
+                    return n;
+                },
+                seek(off) { pos = off; return 0; },
+                close() {},
+            };
+        },
+    };
+    globalThis.os = globalThis.os ?? {};
+    const baseStat = globalThis.os.stat;
+    globalThis.os.stat = (path) => (files[path]
+        ? [{ size: files[path].length, mtime: 1 }, 0]
+        : (baseStat ? baseStat(path) : [null, -1]));
+
     globalThis.fill_rect          = () => {};
     globalThis.clear_screen       = () => {};
     globalThis.shadow_get_param   = (_s, key) => params[key] ?? null;

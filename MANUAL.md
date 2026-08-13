@@ -201,6 +201,18 @@ automatically. You don't configure anything for most modules.
 
   ![Two filter curves on one page](docs/assets/filter_dual.png)
 
+- **Sample waveform** — a sampler that exposes a playback **position** together
+  with its sample file draws them as one graphic: the waveform of the file
+  (first channel), with the position marked. The marker is **inverted over the
+  sample** — a bright line through a quiet passage, a dark notch through a loud
+  one — so it stays the highest-contrast thing on the line wherever it sits:
+
+  ![Sample waveform with position](docs/assets/wav_sample.png)
+
+  The file is read a little at a time in the background, so a long sample fills
+  in over a moment rather than stalling the knobs, and the result is kept until
+  the file or its size changes.
+
 - **Low cut / high cut** — a **Low Cut** and a **High Cut** on the same page are
   reordered onto one line and drawn as the band they leave behind; each corner
   follows its own knob. A cut with no partner keeps its own cell and shows just

@@ -10,6 +10,7 @@ import { buildLfoViz } from './lfo-vm.js';
 import { buildFilterViz } from './filter-vm.js';
 import { buildEqViz } from './eq-vm.js';
 import { cutKindOf } from './cut-viz.js';
+import { wavPeaks } from './wav-peaks.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
 import { dedupShortNames } from '../renderer/shorten.js';
 import { basename } from './path.js';
@@ -181,6 +182,21 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         if (!p || v === null || v === undefined || p.max === p.min) return 0;
         return Math.max(0, Math.min(1, (v - p.min) / (p.max - p.min)));
     };
+    /* Sample waveform. The peaks come from the cache only — the read itself is
+     * chunked across ticks in processTick, so this stays allocation-light and
+     * never touches the filesystem on a render. */
+    const wavViz = layout.wavs.map((wv) => {
+        const fileIdx = wv.idxs.find((i) => i !== wv.position);
+        const path = fileIdx === undefined ? null : (s.fileValues[pageStart + fileIdx] ?? null);
+        const width = wv.cellCount * 32 - 4;
+        s.wavRequest = path ? { path, width } : null;
+        const pk = wavPeaks(path, width);
+        return {
+            line: wv.line, startCol: wv.startCol, cellCount: wv.cellCount,
+            points: pk?.points ?? [],
+            position: norm01(wv.position),
+        };
+    });
     const cutViz = layout.cuts.map((c) => ({
         line: c.line, startCol: c.startCol, cellCount: c.cellCount,
         lowcut: norm01(c.lowcut), highcut: norm01(c.highcut),
@@ -253,5 +269,6 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         filterViz:          filterViz.length ? filterViz : undefined,
         eqViz:              eqViz.length ? eqViz : undefined,
         cutViz:             cutViz.length ? cutViz : undefined,
+        wavViz:             wavViz.length ? wavViz : undefined,
     };
 }

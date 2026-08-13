@@ -2,7 +2,7 @@ export interface KnobSlot {
     key:            string;
     short:          string;
     full:           string;
-    type:           'float' | 'int' | 'enum' | 'file';
+    type:           'float' | 'int' | 'enum' | 'file' | 'wav_position';
     render?:        'arc' | 'hbar' | 'vbar' | 'preset';
     env?:           'a' | 'd' | 's' | 'r';
     lfo?:           'shape' | 'phase' | 'mode' | 'retrig' | 'rate' | 'depth' | 'deform';
@@ -118,7 +118,7 @@ export interface KnobParam {
     key:            string;
     label:          string;
     shortLabel:     string | null;
-    type:           'float' | 'int' | 'enum' | 'file';
+    type:           'float' | 'int' | 'enum' | 'file' | 'wav_position';
     min:            number;
     max:            number;
     step:           number;

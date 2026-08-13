@@ -84,6 +84,15 @@ export interface CutVizVM {
     highcut:   number;
 }
 
+/* A sample waveform with a position marker, spanning its group's cells. */
+export interface WavVizVM {
+    line:      0 | 1;
+    startCol:  number;
+    cellCount: number;
+    points:    number[];   // 0..1 peak per column; may be partial while loading
+    position:  number;     // 0..1 marker
+}
+
 export interface ToastState {
     fullName:   string;
     value:      string;
@@ -121,6 +130,7 @@ export interface ViewModel {
     filterViz?:      FilterVizVM[];
     eqViz?:          EqVizVM[];
     cutViz?:         CutVizVM[];
+    wavViz?:         WavVizVM[];
     touchedSlot:    number | null;
     toast:          ToastState | null;
     overlay:        OverlayState | null;

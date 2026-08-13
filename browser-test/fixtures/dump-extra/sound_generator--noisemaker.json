@@ -1,0 +1,1241 @@
+{
+ "id": "noisemaker",
+ "dir": "noisemaker",
+ "category": "sound_generator",
+ "component_key": "synth",
+ "status": "ok",
+ "module_json": null,
+ "movy_config": null,
+ "ui_hierarchy": {
+  "modes": null,
+  "levels": {
+   "root": {
+    "label": "Noisemaker",
+    "list_param": "preset",
+    "count_param": "preset_count",
+    "name_param": "preset_name",
+    "knobs": [
+     "wave",
+     "tune2",
+     "cutoff",
+     "resonance",
+     "filter_env",
+     "fenv_time",
+     "aenv_time",
+     "volume"
+    ],
+    "params": [
+     {
+      "key": "editor",
+      "label": "Editor"
+     },
+     {
+      "level": "banks",
+      "label": "Preset Bank"
+     },
+     {
+      "level": "macros",
+      "label": "Macros"
+     },
+     {
+      "level": "osc",
+      "label": "Oscillators"
+     },
+     {
+      "level": "filter",
+      "label": "Filter"
+     },
+     {
+      "level": "fenv",
+      "label": "Filter Env"
+     },
+     {
+      "level": "aenv",
+      "label": "Amp Env"
+     },
+     {
+      "level": "lfo1",
+      "label": "LFO 1"
+     },
+     {
+      "level": "lfo2",
+      "label": "LFO 2"
+     },
+     {
+      "level": "env3",
+      "label": "Env 3 (Free)"
+     },
+     {
+      "level": "envd",
+      "label": "Env Draw"
+     },
+     {
+      "level": "voice",
+      "label": "Voicing / Vel"
+     },
+     {
+      "level": "fx",
+      "label": "Chorus / Reverb"
+     },
+     {
+      "level": "delay",
+      "label": "Delay"
+     }
+    ]
+   },
+   "banks": {
+    "label": "Preset Bank",
+    "items_param": "bank_list",
+    "select_param": "bank_index"
+   },
+   "macros": {
+    "knobs": [
+     "wave",
+     "tune2",
+     "cutoff",
+     "resonance",
+     "filter_env",
+     "fenv_time",
+     "aenv_time",
+     "volume"
+    ],
+    "params": [
+     "wave",
+     "tune2",
+     "fenv_time",
+     "aenv_time",
+     "cutoff",
+     "resonance",
+     "filter_env",
+     "volume"
+    ]
+   },
+   "osc": {
+    "knobs": [
+     "osc1_wave",
+     "osc2_wave",
+     "osc1_vol",
+     "osc2_vol",
+     "osc3_vol",
+     "detune",
+     "osc1_pw",
+     "ringmod"
+    ],
+    "params": [
+     "osc1_wave",
+     "osc1_vol",
+     "osc1_tune",
+     "osc1_fine",
+     "osc1_pw",
+     "osc1_phase",
+     "osc2_wave",
+     "osc2_vol",
+     "osc2_tune",
+     "osc2_fine",
+     "osc2_phase",
+     "osc2_fm",
+     "osc3_vol",
+     "osc_sync",
+     "ringmod",
+     "detune",
+     "osc_tune",
+     "bitcrush",
+     "vintage"
+    ]
+   },
+   "filter": {
+    "knobs": [
+     "filter_type",
+     "cutoff",
+     "resonance",
+     "keyfollow",
+     "filter_env",
+     "filter_drive",
+     "highpass",
+     "vel_cut"
+    ],
+    "params": [
+     "filter_type",
+     "cutoff",
+     "resonance",
+     "keyfollow",
+     "filter_env",
+     "filter_drive",
+     "highpass"
+    ]
+   },
+   "fenv": {
+    "knobs": [
+     "fenv_a",
+     "fenv_d",
+     "fenv_s",
+     "fenv_r",
+     "fenv_time",
+     "filter_env",
+     "cutoff",
+     "resonance"
+    ],
+    "params": [
+     "fenv_a",
+     "fenv_d",
+     "fenv_s",
+     "fenv_r",
+     "fenv_time"
+    ]
+   },
+   "aenv": {
+    "knobs": [
+     "aenv_a",
+     "aenv_d",
+     "aenv_s",
+     "aenv_r",
+     "aenv_time",
+     "vel_vol",
+     "volume",
+     "cutoff"
+    ],
+    "params": [
+     "aenv_a",
+     "aenv_d",
+     "aenv_s",
+     "aenv_r",
+     "aenv_time"
+    ]
+   },
+   "lfo1": {
+    "knobs": [
+     "lfo1_wave",
+     "lfo1_rate",
+     "lfo1_amount",
+     "lfo1_dest",
+     "lfo1_sync",
+     "lfo1_keytrig",
+     "lfo1_phase",
+     "volume"
+    ],
+    "params": [
+     "lfo1_wave",
+     "lfo1_rate",
+     "lfo1_amount",
+     "lfo1_dest",
+     "lfo1_sync",
+     "lfo1_keytrig",
+     "lfo1_phase"
+    ]
+   },
+   "lfo2": {
+    "knobs": [
+     "lfo2_wave",
+     "lfo2_rate",
+     "lfo2_amount",
+     "lfo2_dest",
+     "lfo2_sync",
+     "lfo2_keytrig",
+     "lfo2_phase",
+     "volume"
+    ],
+    "params": [
+     "lfo2_wave",
+     "lfo2_rate",
+     "lfo2_amount",
+     "lfo2_dest",
+     "lfo2_sync",
+     "lfo2_keytrig",
+     "lfo2_phase"
+    ]
+   },
+   "env3": {
+    "knobs": [
+     "free_a",
+     "free_d",
+     "free_amt",
+     "free_dest",
+     "cutoff",
+     "resonance",
+     "filter_env",
+     "volume"
+    ],
+    "params": [
+     "free_a",
+     "free_d",
+     "free_amt",
+     "free_dest"
+    ]
+   },
+   "envd": {
+    "knobs": [
+     "env_dest",
+     "env_amt",
+     "env_speed",
+     "cutoff",
+     "resonance",
+     "filter_env",
+     "aenv_a",
+     "volume"
+    ],
+    "params": [
+     "env_dest",
+     "env_amt",
+     "env_speed"
+    ]
+   },
+   "voice": {
+    "knobs": [
+     "voices",
+     "portamento",
+     "porta_mode",
+     "vel_vol",
+     "vel_env",
+     "vel_cut",
+     "pw_pitch",
+     "pw_cutoff"
+    ],
+    "params": [
+     "voices",
+     "portamento",
+     "porta_mode",
+     "vel_vol",
+     "vel_env",
+     "vel_cut",
+     "pw_pitch",
+     "pw_cutoff"
+    ]
+   },
+   "fx": {
+    "knobs": [
+     "chorus1",
+     "chorus2",
+     "reverb_wet",
+     "reverb_decay",
+     "reverb_pre",
+     "reverb_hi",
+     "reverb_lo",
+     "volume"
+    ],
+    "params": [
+     "chorus1",
+     "chorus2",
+     "reverb_wet",
+     "reverb_decay",
+     "reverb_pre",
+     "reverb_hi",
+     "reverb_lo"
+    ]
+   },
+   "delay": {
+    "knobs": [
+     "delay_wet",
+     "delay_time",
+     "delay_fb",
+     "delay_sync",
+     "delay_fac_l",
+     "delay_fac_r",
+     "delay_hi",
+     "delay_lo"
+    ],
+    "params": [
+     "delay_wet",
+     "delay_time",
+     "delay_fb",
+     "delay_sync",
+     "delay_fac_l",
+     "delay_fac_r",
+     "delay_hi",
+     "delay_lo"
+    ]
+   }
+  }
+ },
+ "chain_params": [
+  {
+   "key": "editor",
+   "name": "Bank Editor",
+   "type": "canvas",
+   "canvas_script": "canvas.js#bank_editor",
+   "show_footer": false,
+   "show_value": false
+  },
+  {
+   "key": "wave",
+   "name": "Wave",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "tune2",
+   "name": "Osc2 Pitch",
+   "type": "int",
+   "min": 0,
+   "max": 255
+  },
+  {
+   "key": "fenv_time",
+   "name": "Filter Time",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1
+  },
+  {
+   "key": "aenv_time",
+   "name": "Amp Time",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1
+  },
+  {
+   "key": "volume",
+   "name": "Volume",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "highpass",
+   "name": "High Pass",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "osc1_wave",
+   "name": "Osc1 Wave",
+   "type": "enum",
+   "options": [
+    "Saw",
+    "Pulse",
+    "Noise"
+   ]
+  },
+  {
+   "key": "osc2_wave",
+   "name": "Osc2 Wave",
+   "type": "enum",
+   "options": [
+    "Saw",
+    "Pulse",
+    "Tri",
+    "Sine",
+    "Noise"
+   ]
+  },
+  {
+   "key": "osc1_vol",
+   "name": "Osc1 Level",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "osc2_vol",
+   "name": "Osc2 Level",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "osc3_vol",
+   "name": "Sub Level",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "osc_tune",
+   "name": "Master Tune",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1
+  },
+  {
+   "key": "osc1_tune",
+   "name": "Osc1 Tune",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1
+  },
+  {
+   "key": "osc2_tune",
+   "name": "Osc2 Tune",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1
+  },
+  {
+   "key": "osc1_fine",
+   "name": "Osc1 Fine",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1
+  },
+  {
+   "key": "osc2_fine",
+   "name": "Osc2 Fine",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1
+  },
+  {
+   "key": "osc1_pw",
+   "name": "Osc1 PW",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "osc1_phase",
+   "name": "Osc1 Phase",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "osc2_phase",
+   "name": "Osc2 Phase",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "osc2_fm",
+   "name": "Osc2 FM",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "osc_sync",
+   "name": "Osc Sync",
+   "type": "enum",
+   "options": [
+    "Off",
+    "On"
+   ]
+  },
+  {
+   "key": "ringmod",
+   "name": "Ring Mod",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "detune",
+   "name": "Detune",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "bitcrush",
+   "name": "Bitcrusher",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "vintage",
+   "name": "Vintage",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "filter_type",
+   "name": "Filter Type",
+   "type": "enum",
+   "options": [
+    "LP24",
+    "LP18",
+    "LP12",
+    "LP6",
+    "HP24",
+    "BP24",
+    "Notch",
+    "SV-LP",
+    "SV-HP",
+    "SV-BP",
+    "Moog",
+    "Moog2"
+   ]
+  },
+  {
+   "key": "cutoff",
+   "name": "Cutoff",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "resonance",
+   "name": "Resonance",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "keyfollow",
+   "name": "Key Follow",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "filter_env",
+   "name": "Filter Env",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "filter_drive",
+   "name": "Filter Drive",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "fenv_a",
+   "name": "Filter Attack",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "fenv_d",
+   "name": "Filter Decay",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "fenv_s",
+   "name": "Filter Sustain",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "fenv_r",
+   "name": "Filter Release",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "aenv_a",
+   "name": "Amp Attack",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "aenv_d",
+   "name": "Amp Decay",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "aenv_s",
+   "name": "Amp Sustain",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "aenv_r",
+   "name": "Amp Release",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "lfo1_wave",
+   "name": "LFO1 Wave",
+   "type": "enum",
+   "options": [
+    "Sin",
+    "Tri",
+    "Saw",
+    "Sqr",
+    "S+H",
+    "Rnd"
+   ]
+  },
+  {
+   "key": "lfo1_rate",
+   "name": "LFO1 Rate",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "lfo1_amount",
+   "name": "LFO1 Amount",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "lfo1_dest",
+   "name": "LFO1 Dest",
+   "type": "enum",
+   "options": [
+    "None",
+    "Filter",
+    "Osc1",
+    "Osc2",
+    "PW",
+    "FM",
+    "LFO2",
+    "Osc1+2"
+   ]
+  },
+  {
+   "key": "lfo1_sync",
+   "name": "LFO1 Sync",
+   "type": "enum",
+   "options": [
+    "Off",
+    "On"
+   ]
+  },
+  {
+   "key": "lfo1_keytrig",
+   "name": "LFO1 KeyTrig",
+   "type": "enum",
+   "options": [
+    "Off",
+    "On"
+   ]
+  },
+  {
+   "key": "lfo1_phase",
+   "name": "LFO1 Phase",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "lfo2_wave",
+   "name": "LFO2 Wave",
+   "type": "enum",
+   "options": [
+    "Sin",
+    "Tri",
+    "Saw",
+    "Sqr",
+    "S+H",
+    "Rnd"
+   ]
+  },
+  {
+   "key": "lfo2_rate",
+   "name": "LFO2 Rate",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "lfo2_amount",
+   "name": "LFO2 Amount",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "lfo2_dest",
+   "name": "LFO2 Dest",
+   "type": "enum",
+   "options": [
+    "None",
+    "Filter",
+    "Osc1",
+    "Osc2",
+    "Pan",
+    "Volume",
+    "LFO1",
+    "Osc1+2"
+   ]
+  },
+  {
+   "key": "lfo2_sync",
+   "name": "LFO2 Sync",
+   "type": "enum",
+   "options": [
+    "Off",
+    "On"
+   ]
+  },
+  {
+   "key": "lfo2_keytrig",
+   "name": "LFO2 KeyTrig",
+   "type": "enum",
+   "options": [
+    "Off",
+    "On"
+   ]
+  },
+  {
+   "key": "lfo2_phase",
+   "name": "LFO2 Phase",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "free_a",
+   "name": "Env3 Attack",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "free_d",
+   "name": "Env3 Decay",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "free_amt",
+   "name": "Env3 Amount",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1
+  },
+  {
+   "key": "free_dest",
+   "name": "Env3 Dest",
+   "type": "enum",
+   "options": [
+    "Off",
+    "Filter",
+    "Osc1",
+    "Osc2",
+    "PW",
+    "FM"
+   ]
+  },
+  {
+   "key": "vel_vol",
+   "name": "Vel > Vol",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "vel_env",
+   "name": "Vel > Env",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "vel_cut",
+   "name": "Vel > Cutoff",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "pw_cutoff",
+   "name": "Wheel > Cutoff",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "pw_pitch",
+   "name": "Bend Range",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "portamento",
+   "name": "Portamento",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "porta_mode",
+   "name": "Porta Mode",
+   "type": "enum",
+   "options": [
+    "Off",
+    "Auto",
+    "On"
+   ]
+  },
+  {
+   "key": "voices",
+   "name": "Voices",
+   "type": "int",
+   "min": 1,
+   "max": 6
+  },
+  {
+   "key": "chorus1",
+   "name": "Chorus I",
+   "type": "enum",
+   "options": [
+    "Off",
+    "On"
+   ]
+  },
+  {
+   "key": "chorus2",
+   "name": "Chorus II",
+   "type": "enum",
+   "options": [
+    "Off",
+    "On"
+   ]
+  },
+  {
+   "key": "reverb_wet",
+   "name": "Reverb Wet",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "reverb_decay",
+   "name": "Reverb Decay",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "reverb_pre",
+   "name": "Reverb PreDly",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "reverb_hi",
+   "name": "Reverb HiCut",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "reverb_lo",
+   "name": "Reverb LoCut",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "delay_wet",
+   "name": "Delay Wet",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "delay_time",
+   "name": "Delay Time",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "delay_sync",
+   "name": "Delay Sync",
+   "type": "enum",
+   "options": [
+    "Off",
+    "On"
+   ]
+  },
+  {
+   "key": "delay_fac_l",
+   "name": "Delay 2x L",
+   "type": "enum",
+   "options": [
+    "Off",
+    "On"
+   ]
+  },
+  {
+   "key": "delay_fac_r",
+   "name": "Delay 2x R",
+   "type": "enum",
+   "options": [
+    "Off",
+    "On"
+   ]
+  },
+  {
+   "key": "delay_fb",
+   "name": "Delay Feedbk",
+   "type": "int",
+   "min": 0,
+   "max": 200,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "delay_hi",
+   "name": "Delay HiCut",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "delay_lo",
+   "name": "Delay LoCut",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "env_amt",
+   "name": "Env Draw Amt",
+   "type": "int",
+   "min": 0,
+   "max": 100,
+   "step": 1,
+   "unit": "%"
+  },
+  {
+   "key": "env_speed",
+   "name": "Env Draw Speed",
+   "type": "enum",
+   "options": [
+    "x1",
+    "x2",
+    "x4",
+    "x8",
+    "x16",
+    "x32"
+   ]
+  },
+  {
+   "key": "env_dest",
+   "name": "Env Draw Dest",
+   "type": "enum",
+   "options": [
+    "Off",
+    "Filter",
+    "Osc1",
+    "Osc2",
+    "Osc1+2",
+    "FM",
+    "RingMod",
+    "Volume"
+   ]
+  }
+ ],
+ "presets": {
+  "list_param": "preset",
+  "count_param": "preset_count",
+  "name_param": "preset_name",
+  "count": 0,
+  "names": null
+ },
+ "params": {
+  "preset_name": "! Startup Juno Osc TAL",
+  "aenv_a": "0",
+  "aenv_d": "0",
+  "aenv_r": "0",
+  "aenv_s": "100",
+  "aenv_time": "50",
+  "bank_name": "",
+  "bitcrush": "100",
+  "chorus1": "0",
+  "chorus2": "0",
+  "cutoff": "100",
+  "delay_fac_l": "0",
+  "delay_fac_r": "0",
+  "delay_fb": "100",
+  "delay_hi": "0",
+  "delay_lo": "0",
+  "delay_sync": "0",
+  "delay_time": "50",
+  "delay_wet": "0",
+  "detune": "0",
+  "env_amt": "0",
+  "env_dest": "0",
+  "env_speed": "0",
+  "fenv_a": "0",
+  "fenv_d": "0",
+  "fenv_r": "0",
+  "fenv_s": "100",
+  "fenv_time": "50",
+  "filter_drive": "0",
+  "filter_env": "50",
+  "filter_type": "0",
+  "free_a": "0",
+  "free_amt": "0",
+  "free_d": "0",
+  "free_dest": "0",
+  "highpass": "0",
+  "keyfollow": "0",
+  "lfo1_amount": "50",
+  "lfo1_dest": "0",
+  "lfo1_keytrig": "0",
+  "lfo1_phase": "0",
+  "lfo1_rate": "0",
+  "lfo1_sync": "0",
+  "lfo1_wave": "0",
+  "lfo2_amount": "50",
+  "lfo2_dest": "0",
+  "lfo2_keytrig": "0",
+  "lfo2_phase": "0",
+  "lfo2_rate": "0",
+  "lfo2_sync": "0",
+  "lfo2_wave": "0",
+  "octave_transpose": "0",
+  "osc1_fine": "50",
+  "osc1_phase": "50",
+  "osc1_pw": "50",
+  "osc1_tune": "25",
+  "osc1_vol": "80",
+  "osc1_wave": "0",
+  "osc2_fine": "50",
+  "osc2_fm": "0",
+  "osc2_phase": "0",
+  "osc2_tune": "50",
+  "osc2_vol": "0",
+  "osc2_wave": "0",
+  "osc3_vol": "80",
+  "osc_sync": "0",
+  "osc_tune": "50",
+  "porta_mode": "0",
+  "portamento": "0",
+  "preset": "0",
+  "pw_cutoff": "0",
+  "pw_pitch": "0",
+  "resonance": "0",
+  "reverb_decay": "50",
+  "reverb_hi": "0",
+  "reverb_lo": "100",
+  "reverb_pre": "0",
+  "reverb_wet": "0",
+  "ringmod": "0",
+  "tune2": "0",
+  "vel_cut": "0",
+  "vel_env": "0",
+  "vel_vol": "0",
+  "vintage": "0",
+  "voices": "1",
+  "volume": "41",
+  "wave": "0",
+  "ui_hierarchy": "{\"modes\":null,\"levels\":{\"root\":{\"label\":\"Noisemaker\",\"list_param\":\"preset\",\"count_param\":\"preset_count\",\"name_param\":\"preset_name\",\"knobs\":[\"wave\",\"tune2\",\"cutoff\",\"resonance\",\"filter_env\",\"fenv_time\",\"aenv_time\",\"volume\"],\"params\":[{\"key\":\"editor\",\"label\":\"Editor\"},{\"level\":\"banks\",\"label\":\"Preset Bank\"},{\"level\":\"macros\",\"label\":\"Macros\"},{\"level\":\"osc\",\"label\":\"Oscillators\"},{\"level\":\"filter\",\"label\":\"Filter\"},{\"level\":\"fenv\",\"label\":\"Filter Env\"},{\"level\":\"aenv\",\"label\":\"Amp Env\"},{\"level\":\"lfo1\",\"label\":\"LFO 1\"},{\"level\":\"lfo2\",\"label\":\"LFO 2\"},{\"level\":\"env3\",\"label\":\"Env 3 (Free)\"},{\"level\":\"envd\",\"label\":\"Env Draw\"},{\"level\":\"voice\",\"label\":\"Voicing / Vel\"},{\"level\":\"fx\",\"label\":\"Chorus / Reverb\"},{\"level\":\"delay\",\"label\":\"Delay\"}]},\"banks\":{\"label\":\"Preset Bank\",\"items_param\":\"bank_list\",\"select_param\":\"bank_index\"},\"macros\":{\"knobs\":[\"wave\",\"tune2\",\"cutoff\",\"resonance\",\"filter_env\",\"fenv_time\",\"aenv_time\",\"volume\"],\"params\":[\"wave\",\"tune2\",\"fenv_time\",\"aenv_time\",\"cutoff\",\"resonance\",\"filter_env\",\"volume\"]},\"osc\":{\"knobs\":[\"osc1_wave\",\"osc2_wave\",\"osc1_vol\",\"osc2_vol\",\"osc3_vol\",\"detune\",\"osc1_pw\",\"ringmod\"],\"params\":[\"osc1_wave\",\"osc1_vol\",\"osc1_tune\",\"osc1_fine\",\"osc1_pw\",\"osc1_phase\",\"osc2_wave\",\"osc2_vol\",\"osc2_tune\",\"osc2_fine\",\"osc2_phase\",\"osc2_fm\",\"osc3_vol\",\"osc_sync\",\"ringmod\",\"detune\",\"osc_tune\",\"bitcrush\",\"vintage\"]},\"filter\":{\"knobs\":[\"filter_type\",\"cutoff\",\"resonance\",\"keyfollow\",\"filter_env\",\"filter_drive\",\"highpass\",\"vel_cut\"],\"params\":[\"filter_type\",\"cutoff\",\"resonance\",\"keyfollow\",\"filter_env\",\"filter_drive\",\"highpass\"]},\"fenv\":{\"knobs\":[\"fenv_a\",\"fenv_d\",\"fenv_s\",\"fenv_r\",\"fenv_time\",\"filter_env\",\"cutoff\",\"resonance\"],\"params\":[\"fenv_a\",\"fenv_d\",\"fenv_s\",\"fenv_r\",\"fenv_time\"]},\"aenv\":{\"knobs\":[\"aenv_a\",\"aenv_d\",\"aenv_s\",\"aenv_r\",\"aenv_time\",\"vel_vol\",\"volume\",\"cutoff\"],\"params\":[\"aenv_a\",\"aenv_d\",\"aenv_s\",\"aenv_r\",\"aenv_time\"]},\"lfo1\":{\"knobs\":[\"lfo1_wave\",\"lfo1_rate\",\"lfo1_amount\",\"lfo1_dest\",\"lfo1_sync\",\"lfo1_keytrig\",\"lfo1_phase\",\"volume\"],\"params\":[\"lfo1_wave\",\"lfo1_rate\",\"lfo1_amount\",\"lfo1_dest\",\"lfo1_sync\",\"lfo1_keytrig\",\"lfo1_phase\"]},\"lfo2\":{\"knobs\":[\"lfo2_wave\",\"lfo2_rate\",\"lfo2_amount\",\"lfo2_dest\",\"lfo2_sync\",\"lfo2_keytrig\",\"lfo2_phase\",\"volume\"],\"params\":[\"lfo2_wave\",\"lfo2_rate\",\"lfo2_amount\",\"lfo2_dest\",\"lfo2_sync\",\"lfo2_keytrig\",\"lfo2_phase\"]},\"env3\":{\"knobs\":[\"free_a\",\"free_d\",\"free_amt\",\"free_dest\",\"cutoff\",\"resonance\",\"filter_env\",\"volume\"],\"params\":[\"free_a\",\"free_d\",\"free_amt\",\"free_dest\"]},\"envd\":{\"knobs\":[\"env_dest\",\"env_amt\",\"env_speed\",\"cutoff\",\"resonance\",\"filter_env\",\"aenv_a\",\"volume\"],\"params\":[\"env_dest\",\"env_amt\",\"env_speed\"]},\"voice\":{\"knobs\":[\"voices\",\"portamento\",\"porta_mode\",\"vel_vol\",\"vel_env\",\"vel_cut\",\"pw_pitch\",\"pw_cutoff\"],\"params\":[\"voices\",\"portamento\",\"porta_mode\",\"vel_vol\",\"vel_env\",\"vel_cut\",\"pw_pitch\",\"pw_cutoff\"]},\"fx\":{\"knobs\":[\"chorus1\",\"chorus2\",\"reverb_wet\",\"reverb_decay\",\"reverb_pre\",\"reverb_hi\",\"reverb_lo\",\"volume\"],\"params\":[\"chorus1\",\"chorus2\",\"reverb_wet\",\"reverb_decay\",\"reverb_pre\",\"reverb_hi\",\"reverb_lo\"]},\"delay\":{\"knobs\":[\"delay_wet\",\"delay_time\",\"delay_fb\",\"delay_sync\",\"delay_fac_l\",\"delay_fac_r\",\"delay_hi\",\"delay_lo\"],\"params\":[\"delay_wet\",\"delay_time\",\"delay_fb\",\"delay_sync\",\"delay_fac_l\",\"delay_fac_r\",\"delay_hi\",\"delay_lo\"]}}}",
+  "chain_params": "[{\"key\":\"editor\",\"name\":\"Bank Editor\",\"type\":\"canvas\",\"canvas_script\":\"canvas.js#bank_editor\",\"show_footer\":false,\"show_value\":false},{\"key\":\"wave\",\"name\":\"Wave\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"tune2\",\"name\":\"Osc2 Pitch\",\"type\":\"int\",\"min\":0,\"max\":255},{\"key\":\"fenv_time\",\"name\":\"Filter Time\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1},{\"key\":\"aenv_time\",\"name\":\"Amp Time\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1},{\"key\":\"volume\",\"name\":\"Volume\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"highpass\",\"name\":\"High Pass\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"osc1_wave\",\"name\":\"Osc1 Wave\",\"type\":\"enum\",\"options\":[\"Saw\",\"Pulse\",\"Noise\"]},{\"key\":\"osc2_wave\",\"name\":\"Osc2 Wave\",\"type\":\"enum\",\"options\":[\"Saw\",\"Pulse\",\"Tri\",\"Sine\",\"Noise\"]},{\"key\":\"osc1_vol\",\"name\":\"Osc1 Level\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"osc2_vol\",\"name\":\"Osc2 Level\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"osc3_vol\",\"name\":\"Sub Level\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"osc_tune\",\"name\":\"Master Tune\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1},{\"key\":\"osc1_tune\",\"name\":\"Osc1 Tune\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1},{\"key\":\"osc2_tune\",\"name\":\"Osc2 Tune\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1},{\"key\":\"osc1_fine\",\"name\":\"Osc1 Fine\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1},{\"key\":\"osc2_fine\",\"name\":\"Osc2 Fine\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1},{\"key\":\"osc1_pw\",\"name\":\"Osc1 PW\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"osc1_phase\",\"name\":\"Osc1 Phase\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"osc2_phase\",\"name\":\"Osc2 Phase\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"osc2_fm\",\"name\":\"Osc2 FM\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"osc_sync\",\"name\":\"Osc Sync\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},{\"key\":\"ringmod\",\"name\":\"Ring Mod\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"detune\",\"name\":\"Detune\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"bitcrush\",\"name\":\"Bitcrusher\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"vintage\",\"name\":\"Vintage\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"filter_type\",\"name\":\"Filter Type\",\"type\":\"enum\",\"options\":[\"LP24\",\"LP18\",\"LP12\",\"LP6\",\"HP24\",\"BP24\",\"Notch\",\"SV-LP\",\"SV-HP\",\"SV-BP\",\"Moog\",\"Moog2\"]},{\"key\":\"cutoff\",\"name\":\"Cutoff\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"resonance\",\"name\":\"Resonance\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"keyfollow\",\"name\":\"Key Follow\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"filter_env\",\"name\":\"Filter Env\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"filter_drive\",\"name\":\"Filter Drive\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"fenv_a\",\"name\":\"Filter Attack\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"fenv_d\",\"name\":\"Filter Decay\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"fenv_s\",\"name\":\"Filter Sustain\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"fenv_r\",\"name\":\"Filter Release\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"aenv_a\",\"name\":\"Amp Attack\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"aenv_d\",\"name\":\"Amp Decay\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"aenv_s\",\"name\":\"Amp Sustain\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"aenv_r\",\"name\":\"Amp Release\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"lfo1_wave\",\"name\":\"LFO1 Wave\",\"type\":\"enum\",\"options\":[\"Sin\",\"Tri\",\"Saw\",\"Sqr\",\"S+H\",\"Rnd\"]},{\"key\":\"lfo1_rate\",\"name\":\"LFO1 Rate\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"lfo1_amount\",\"name\":\"LFO1 Amount\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"lfo1_dest\",\"name\":\"LFO1 Dest\",\"type\":\"enum\",\"options\":[\"None\",\"Filter\",\"Osc1\",\"Osc2\",\"PW\",\"FM\",\"LFO2\",\"Osc1+2\"]},{\"key\":\"lfo1_sync\",\"name\":\"LFO1 Sync\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},{\"key\":\"lfo1_keytrig\",\"name\":\"LFO1 KeyTrig\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},{\"key\":\"lfo1_phase\",\"name\":\"LFO1 Phase\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"lfo2_wave\",\"name\":\"LFO2 Wave\",\"type\":\"enum\",\"options\":[\"Sin\",\"Tri\",\"Saw\",\"Sqr\",\"S+H\",\"Rnd\"]},{\"key\":\"lfo2_rate\",\"name\":\"LFO2 Rate\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"lfo2_amount\",\"name\":\"LFO2 Amount\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"lfo2_dest\",\"name\":\"LFO2 Dest\",\"type\":\"enum\",\"options\":[\"None\",\"Filter\",\"Osc1\",\"Osc2\",\"Pan\",\"Volume\",\"LFO1\",\"Osc1+2\"]},{\"key\":\"lfo2_sync\",\"name\":\"LFO2 Sync\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},{\"key\":\"lfo2_keytrig\",\"name\":\"LFO2 KeyTrig\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},{\"key\":\"lfo2_phase\",\"name\":\"LFO2 Phase\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"free_a\",\"name\":\"Env3 Attack\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"free_d\",\"name\":\"Env3 Decay\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"free_amt\",\"name\":\"Env3 Amount\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1},{\"key\":\"free_dest\",\"name\":\"Env3 Dest\",\"type\":\"enum\",\"options\":[\"Off\",\"Filter\",\"Osc1\",\"Osc2\",\"PW\",\"FM\"]},{\"key\":\"vel_vol\",\"name\":\"Vel > Vol\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"vel_env\",\"name\":\"Vel > Env\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"vel_cut\",\"name\":\"Vel > Cutoff\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"pw_cutoff\",\"name\":\"Wheel > Cutoff\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"pw_pitch\",\"name\":\"Bend Range\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"portamento\",\"name\":\"Portamento\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"porta_mode\",\"name\":\"Porta Mode\",\"type\":\"enum\",\"options\":[\"Off\",\"Auto\",\"On\"]},{\"key\":\"voices\",\"name\":\"Voices\",\"type\":\"int\",\"min\":1,\"max\":6},{\"key\":\"chorus1\",\"name\":\"Chorus I\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},{\"key\":\"chorus2\",\"name\":\"Chorus II\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},{\"key\":\"reverb_wet\",\"name\":\"Reverb Wet\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"reverb_decay\",\"name\":\"Reverb Decay\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"reverb_pre\",\"name\":\"Reverb PreDly\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"reverb_hi\",\"name\":\"Reverb HiCut\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"reverb_lo\",\"name\":\"Reverb LoCut\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"delay_wet\",\"name\":\"Delay Wet\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"delay_time\",\"name\":\"Delay Time\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"delay_sync\",\"name\":\"Delay Sync\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},{\"key\":\"delay_fac_l\",\"name\":\"Delay 2x L\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},{\"key\":\"delay_fac_r\",\"name\":\"Delay 2x R\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"]},{\"key\":\"delay_fb\",\"name\":\"Delay Feedbk\",\"type\":\"int\",\"min\":0,\"max\":200,\"step\":1,\"unit\":\"%\"},{\"key\":\"delay_hi\",\"name\":\"Delay HiCut\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"delay_lo\",\"name\":\"Delay LoCut\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"env_amt\",\"name\":\"Env Draw Amt\",\"type\":\"int\",\"min\":0,\"max\":100,\"step\":1,\"unit\":\"%\"},{\"key\":\"env_speed\",\"name\":\"Env Draw Speed\",\"type\":\"enum\",\"options\":[\"x1\",\"x2\",\"x4\",\"x8\",\"x16\",\"x32\"]},{\"key\":\"env_dest\",\"name\":\"Env Draw Dest\",\"type\":\"enum\",\"options\":[\"Off\",\"Filter\",\"Osc1\",\"Osc2\",\"Osc1+2\",\"FM\",\"RingMod\",\"Volume\"]}]"
+ }
+}

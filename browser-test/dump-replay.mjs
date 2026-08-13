@@ -45,6 +45,8 @@ const UNREACHABLE_OK = new Set([
     // `view` is a `canvas` — a drawing surface for pushnpull's own web UI, with
     // no knob semantics. level-extras.ts skips types movy cannot render.
     'audio_fx--pushnpull::view',
+    // Same: noisemaker's preset-bank editor is a canvas (canvas.js#bank_editor).
+    'sound_generator--noisemaker::editor',
 ]);
 
 const KNOWN_COLLIDING_PAGES = new Set([

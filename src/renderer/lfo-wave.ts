@@ -77,6 +77,27 @@ function skewPhase(ph: number, d: number): number {
     return Math.pow(ph, k);
 }
 
+/* Plain waveform silhouette in a w×h box — the single-knob enum cell and the
+ * enum-overlay row, which differ only in size. Each column is one pixel plus a
+ * VERTICAL connector spanning the gap to the previous column: square and pulse
+ * edges must be straight risers. drawLfoWave's Bresenham diagonals read as
+ * slanted steps once the box is only 5px tall. */
+export function drawWave(
+    x: number, y: number, w: number, h: number,
+    shape: number, cycles: number, colour: 0 | 1,
+): void {
+    const mid = y + (h - 1) / 2, amp = (h - 1) / 2;
+    const yAt = (px: number): number =>
+        Math.round(mid - shapeSample(shape, ((px - x) / w) * cycles) * amp);
+    let py = yAt(x);
+    fill_rect(x, py, 1, 1, colour);
+    for (let px = x + 1; px < x + w; px++) {
+        const ny = yAt(px);
+        fill_rect(px, Math.min(py, ny), 1, Math.abs(ny - py) + 1, colour);
+        py = ny;
+    }
+}
+
 export function drawLfoWave(rowY: number, g: LfoVizVM): void {
     const x0 = g.startCol * CELL_W + 1;
     const spanW = 2 * CELL_W - 2;                          // 62px

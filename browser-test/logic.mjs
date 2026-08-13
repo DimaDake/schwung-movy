@@ -78,7 +78,7 @@ import { enumClassOf } from '../dist/esm/model/enum-class.js';
 import { lfoTargetsParam, assignLfoTarget, clearLfoTarget } from '../dist/esm/lfo/assign.js';
 import { holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle, assignCommit, assignToastText, resetAssignMode } from '../dist/esm/lfo/assign-mode.js';
 import { jogHintTouch, jogHintTick, jogHintVisible } from '../dist/esm/app/jog-hint.js';
-import { shapeSample } from '../dist/esm/renderer/lfo-wave.js';
+import { shapeSample, drawWave } from '../dist/esm/renderer/lfo-wave.js';
 import { CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../dist/esm/chain/config.js';
 import { init } from '../dist/esm/app/init.js';
 import { appState } from '../dist/esm/app/state.js';
@@ -7058,6 +7058,43 @@ _log('\nTest: uniqueShape — every option maps to its OWN glyph');
     eq('shapeIds resolved',  JSON.stringify(enumClassOf(E(['Saw', 'Square'])).shapeIds), '[2,3]');
     eq('shapeIds null when not qualifying',
         enumClassOf(E(['Gate', 'Envelope'])).shapeIds, null);
+}
+
+_log('\nTest: drawWave draws straight vertical risers');
+{
+    const origFill = globalThis.fill_rect;
+    const shot = (shape, w = 13, h = 5, cycles = 1, colour = 1) => {
+        const rects = [];
+        globalThis.fill_rect = (x, y, ww, hh, v) => rects.push({ x, y, w: ww, h: hh, v });
+        drawWave(0, 0, w, h, shape, cycles, colour);
+        globalThis.fill_rect = origFill;
+        return rects;
+    };
+
+    const sq = shot(3);                       // square
+    eq('drawWave drew something', sq.length > 0, true);
+    eq('every column is 1px wide', sq.every(c => c.w === 1), true);
+    eq('colour honoured', sq.every(c => c.v === 1), true);
+    eq('stays inside the box vertically', sq.every(c => c.y >= 0 && c.y + c.h <= 5), true);
+    eq('stays inside the box horizontally', sq.every(c => c.x >= 0 && c.x < 13), true);
+    /* The whole point: a square's edge is ONE full-height rect, not a stack of
+     * diagonal pixels. Bresenham risers read as slanted steps at this size. */
+    eq('square riser is a single full-height vertical rect',
+        sq.some(c => c.h === 5), true);
+    eq('one rect per column', sq.length, 13);
+
+    // Off never rises — every column is a single pixel on the centre line.
+    const off = shot(19);
+    eq('off is flat: no risers', off.every(c => c.h === 1), true);
+    eq('off sits on one row', new Set(off.map(c => c.y)).size, 1);
+
+    // Colour 0 is honoured, for the inverted (selected) overlay row.
+    eq('colour 0 honoured', shot(3, 13, 5, 1, 0).every(c => c.v === 0), true);
+
+    // The 16px cell geometry also stays in bounds.
+    const cell = shot(0, 12, 8);
+    eq('cell-size wave stays in bounds',
+        cell.every(c => c.y >= 0 && c.y + c.h <= 8 && c.x >= 0 && c.x < 12), true);
 }
 
 /* ── dumpLayout: external layout snapshot (scripts/dump-movy-layout.mjs) ── */

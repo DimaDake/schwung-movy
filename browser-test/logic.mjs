@@ -7341,10 +7341,10 @@ _log('\nTest: cutKindOf — low/high cut corner frequencies');
     }
     eq('lone lowcut is not a pair', detectCutPair(pad([F('hpf', 'HPF')])).length, 0);
 
-    /* The pair's corners are squeezed into opposite halves so they can never
-     * cross. Without it, low cut fully up against high cut fully down collapses
-     * the curve onto the floor — and a flat floor says nothing about where
-     * EITHER knob sits, which is the state a reverb LoCut/HiCut sweep lands in. */
+    /* The pair's corners share the span, overlapping past the middle. They must
+     * still MEET and shut the band at the extreme of both knobs — that state is
+     * real — but the raw values leave it dead across 6 of 25 sampled positions,
+     * every one drawing the same floor. */
     {
         const origFill = globalThis.fill_rect;
         const bandHeight = (lo, hi) => {
@@ -7361,10 +7361,18 @@ _log('\nTest: cutKindOf — low/high cut corner frequencies');
         for (const lo of [0, 0.25, 0.5, 0.75, 1]) {
             for (const hi of [0, 0.25, 0.5, 0.75, 1]) worst = Math.min(worst, bandHeight(lo, hi));
         }
-        eq('every pair of corner values still shows a band', worst > 0, true);
-        eq('worst case is the full passband height', worst >= 8, true);
-        // The extreme that used to collapse.
-        eq('lowcut max + highcut min still draws', bandHeight(1, 0) > 0, true);
+        let dead = 0;
+        for (const lo of [0, 0.25, 0.5, 0.75, 1]) {
+            for (const hi of [0, 0.25, 0.5, 0.75, 1]) if (bandHeight(lo, hi) === 0) dead++;
+        }
+        // Both knobs at their extremes: the band genuinely shuts.
+        eq('lowcut max + highcut min closes to a flat line', bandHeight(1, 0), 0);
+        // And it closes GRADUALLY rather than snapping from full to nothing.
+        eq('one step back from the extreme still shows a band',
+            bandHeight(1, 0.25) > 0 && bandHeight(1, 0.25) < 8, true);
+        // Everything away from the extreme keeps a full passband.
+        eq('mid settings keep the full passband', bandHeight(0.5, 0.5), 8);
+        eq('only the extreme is dead (raw mapping leaves 6 of 25)', dead, 1);
     }
     eq('lone highcut is not a pair', detectCutPair(pad([F('lpf', 'LPF')])).length, 0);
 }

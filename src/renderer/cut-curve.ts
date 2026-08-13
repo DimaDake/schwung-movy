@@ -16,24 +16,30 @@ import { drawLine, drawDottedH } from './primitives.js';
 import { CELL_W } from './layout.js';
 import { gainAt, EDGE } from './filter-curve.js';
 
-/* Half the guaranteed gap between a PAIR's two corners, as a fraction of the
- * span. With EDGE at 0.10 this gives the low cut [0.10, 0.40] and the high cut
- * [0.60, 0.90] — always at least a fifth of the span left open between them. */
-const GAP = 0.10;
+/* How far a PAIR's two corners may cross past the middle, as a fraction of the
+ * span: the low cut travels [0.10, 0.66] and the high cut [0.34, 0.90].
+ *
+ * They still MEET and shut the band to a flat line — that state is real and
+ * worth showing — but only once both knobs are near their extremes. On the raw
+ * values the corners are inverted for 6 of 25 sampled positions and every one
+ * of those draws the same dead floor; here it is 1, and the band closes
+ * gradually (full, half, shut) rather than snapping.
+ *
+ * Sized against the roll-off: gainAt's corner is dropW = 0.11 wide either side,
+ * so the corners must cross by at least 2*dropW to reach a true flat line.
+ * Below that the band never fully shuts; well above it, the dead cases return. */
+const OVERLAP = 0.32;
 
 /* gainAt maps its 0..1 argument to a corner at EDGE + c*(1-2*EDGE). To land a
  * corner at `target` instead, hand it the value that transform inverts to. */
 const atSpan = (target: number): number => (target - EDGE) / (1 - 2 * EDGE);
 
-/* When both corners are present they are squeezed into opposite halves so they
- * can never cross. Letting them meet costs information rather than showing it:
- * a low cut fully up against a high cut fully down collapses the curve onto the
- * floor, and a flat floor says nothing about where EITHER knob sits — which is
- * exactly the state a reverb's LoCut/HiCut sit in when someone sweeps them. The
- * corners still move over their whole travel; only the span they map onto
- * shrinks, and the label under each knob carries the real value. */
-const pairLow  = (v: number): number => atSpan(EDGE + v * (0.5 - GAP - EDGE));
-const pairHigh = (v: number): number => atSpan(0.5 + GAP + v * (1 - EDGE - 0.5 - GAP));
+/* Each corner takes a little over half the span, overlapping past the middle.
+ * A dead floor says nothing about where EITHER knob sits, so the travel is
+ * spent on states that differ instead. The label under each knob carries the
+ * real value throughout. */
+const pairLow  = (v: number): number => atSpan(EDGE + v * (0.5 + OVERLAP / 2 - EDGE));
+const pairHigh = (v: number): number => atSpan(0.5 - OVERLAP / 2 + v * (1 - EDGE - 0.5 + OVERLAP / 2));
 
 export function drawCutCurve(
     rowY: number, startCol: number, cellCount: number,

@@ -61,6 +61,7 @@ const PRESETS = [
     'trigger_armed', 'trigger_fired', 'trigger_blink_off', 'trigger_touched',
     'trigger_cooling', 'trigger_cooling_low',
     'font_5x3_all', 'font_small_all', 'font_big_all_1', 'font_big_all_2',
+    'wave_cells',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -97,6 +98,7 @@ const BASE = {
     filter_dual: 'filter_dual', filter_open: 'filter_demo',
     deep_page: 'hier_knobs_and_children',
     lfo_helm_step: 'lfo_helm', lfo_helm_pyramid: 'lfo_helm',
+    wave_cells: 'wave_cells',
     signal_voice: 'signal', forge_voice: 'forge',
     forge_filter: 'forge', forge_mod: 'forge', forge_send: 'forge', forge_mix: 'forge',
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
@@ -326,6 +328,23 @@ function applyView(preset) {
          * header shares 128 px with the module name, so this is reviewed as
          * pixels rather than assumed to fit. */
         case 'deep_page':   model.changePage(3); forceRender(); break;
+        /* Waveform silhouettes on single knobs. Values are pinned per shot (the
+         * mock's own defaults do not survive the runner's reload) so each cell
+         * shows a DIFFERENT glyph: flat Off, saw, square and pulse side by side
+         * make the duty-cycle difference and the straight risers reviewable. */
+        case 'wave_cells':
+            setFilter({
+                wave_1: '0', wave_2: '3', wave_3: '4', wave_4: '5',
+                osc_wave: '1', mod_shape: '5', vca_mode: '0', level: '0.60',
+            });
+            /* settle() stops after 5 idle ticks, but the round-robin value
+             * refresh does not mark every tick dirty — so how far it has got
+             * depends on the state the PREVIOUS scene left behind. Tick a fixed
+             * count here instead: this scene is entirely about which glyph each
+             * value selects, so it must not render half-refreshed. */
+            for (let i = 0; i < 120; i++) model.tick();
+            forceRender();
+            break;
         case 'lfo_helm_step':    forceRender(); break;                       // "8 Step" → stepped ramp
         case 'lfo_helm_pyramid': setFilter({ mono_lfo_1_waveform: '9' }); break;  // "5 Pyramid" → stepped triangle
         case 'filter_lp':      forceRender(); break;                         // demo defaults: LP, reso 0.30

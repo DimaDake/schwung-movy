@@ -5,6 +5,7 @@ import { fontPrint, fontWidth, FONT_HEIGHT } from '../font/index.js';
 import { fontPrintBig, fontWidthBig, BIG_FONT_HEIGHT } from '../font/big.js';
 import { enumSquareLines } from './shorten.js';
 import { drawLine } from './primitives.js';
+import { drawWave } from './lfo-wave.js';
 
 function drawCircleBorder(cx: number, cy: number, r: number): void {
     let x = r, y = 0, err = 0;
@@ -65,6 +66,18 @@ function drawEnumSquare(kx: number, ky: number, options: string[] | null, enumIn
         const l2w = fontWidth5x3(line2);
         fontPrint5x3(kx + 1 + Math.floor((inner - l2w) / 2), startY + 6, line2, 1);
     }
+}
+
+/* Waveform cell: the enum square's frame with a silhouette instead of the two
+ * abbreviated text lines. The frame stays because it is what marks the cell as
+ * an option list rather than a continuous value, and it keeps this visually
+ * distinct from the frameless two-cell LFO graphic. */
+function drawWaveSquare(kx: number, ky: number, shape: number): void {
+    fill_rect(kx, ky, KW, 1, 1);
+    fill_rect(kx, ky + KW - 1, KW, 1, 1);
+    fill_rect(kx, ky, 1, KW, 1);
+    fill_rect(kx + KW - 1, ky, 1, KW, 1);
+    drawWave(kx + 2, ky + 4, KW - 4, KW - 8, shape, 1, 1);
 }
 
 /* Framed X: an empty box with a big diagonal cross — the LFO target when it is
@@ -207,6 +220,8 @@ export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
         /* One pre-formatted string, not an options array — sfz's voice count runs
          * to 128, and a label per value rebuilt every frame would be absurd. */
         drawEnumSquare(kx, ky, [pvm.displayValue], 0);
+    } else if (pvm.renderStyle === 'wave') {
+        drawWaveSquare(kx, ky, pvm.waveShape ?? 10);
     } else if (pvm.type === 'enum') {
         drawEnumSquare(kx, ky, pvm.options, pvm.enumIndex);
     } else if (pvm.renderStyle === 'xbox') {

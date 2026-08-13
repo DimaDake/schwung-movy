@@ -158,6 +158,38 @@ export const MOCK_SYNTHS = {
         "synth:cutoff": "0.60", "synth:reso": "0.30",
     },
 
+    /* Single-knob waveform silhouettes. Four qualifying waveform enums on one
+     * page (chordism's shape), so one shot covers the frame, the flat "Off"
+     * glyph and the square/pulse risers side by side. A non-qualifying enum
+     * (Gate/Envelope) sits alongside to prove it keeps its text square. */
+    wave_cells: {
+        "synth:name": "Waves",
+        "synth:ui_hierarchy": hier([
+            { key: "wave_1", label: "Wave 1", type: "enum",
+              options: ["Off", "Sine", "Triangle", "Saw", "Square", "Pulse Tr", "Wavetable"] },
+            { key: "wave_2", label: "Wave 2", type: "enum",
+              options: ["Off", "Sine", "Triangle", "Saw", "Square", "Pulse Tr", "Wavetable"] },
+            { key: "wave_3", label: "Wave 3", type: "enum",
+              options: ["Off", "Sine", "Triangle", "Saw", "Square", "Pulse Tr", "Wavetable"] },
+            { key: "wave_4", label: "Wave 4", type: "enum",
+              options: ["Off", "Sine", "Triangle", "Saw", "Square", "Pulse Tr", "Wavetable"] },
+            { key: "osc_wave", label: "Osc Wave", type: "enum",
+              options: ["Saw", "Pulse", "Noise"] },
+            { key: "mod_shape", label: "Mod Shape", type: "enum",
+              options: ["Sine", "Tri", "Saw", "Square", "S&H", "Random"] },
+            { key: "vca_mode", label: "VCA Mode", type: "enum", options: ["Gate", "Envelope"] },
+            { key: "level", label: "Level", type: "float", min: 0, max: 1, step: 0.01 },
+        ]),
+        "synth:wave_1": "0",   // Off      → flat line
+        "synth:wave_2": "3",   // Saw
+        "synth:wave_3": "4",   // Square   → straight risers
+        "synth:wave_4": "5",   // Pulse Tr → narrower duty than Square
+        "synth:osc_wave": "1", // Pulse
+        "synth:mod_shape": "5",// Random   → smooth walk, not the stepped S&H
+        "synth:vca_mode": "0", // not a waveform enum → stays a text square
+        "synth:level": "0.60",
+    },
+
     /* Helm's LFO page: shape names ("Saw Up", "N Step", "N Pyramid") and role
      * words ("Frequency", "Amp") the name inference had to learn. The scene
      * overrides synth:mono_lfo_1_waveform to shoot each new silhouette. */

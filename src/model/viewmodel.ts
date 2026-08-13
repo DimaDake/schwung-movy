@@ -2,6 +2,7 @@ import type { ViewModel, AutomationView, EnvelopeVM, LfoVizVM } from '../types/v
 import type { ModelState } from './state.js';
 import { formatValue, paramIoKey, paramAutomatable } from './store.js';
 import { planPageLayout } from './page-layout.js';
+import { waveCellIndices } from './wave-viz.js';
 import { buildLfoViz } from './lfo-vm.js';
 import { buildFilterViz } from './filter-vm.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
@@ -36,6 +37,10 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     const shortNames = dedupShortNames(pageEntries, 5);
 
     const layout = planPageLayout(s.knobParams.slice(pageStart, pageStart + KNOBS_PER_PAGE));
+    /* Cells whose enum draws as a waveform silhouette instead of option text.
+     * Per-cell, so unlike the groups above it does not touch the layout. */
+    const waveCells = waveCellIndices(
+        s.knobParams.slice(pageStart, pageStart + KNOBS_PER_PAGE), layout);
     const rows: ViewModel['rows'] = [[null, null, null, null], [null, null, null, null]];
     const envelopeLines: (EnvelopeVM | null)[] = [null, null];
     for (const e of layout.envelopes)
@@ -89,7 +94,12 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             isLongEnum:      p.type === 'enum' && (p.options?.length ?? 0) > 6,
             options:         p.options,
             enumIndex:       enumIdx,
-            renderStyle:     p.renderStyle,
+            renderStyle:     waveCells.has(localIdx) ? 'wave' : p.renderStyle,
+            /* enumClass is already populated by the waveCellIndices call above,
+             * so this is a cached array index, not a per-frame name lookup. */
+            ...(waveCells.has(localIdx)
+                ? { waveShape: (p.enumClass?.shapeIds ?? [])[enumIdx] ?? 10 }
+                : {}),
             automated,
             automatable:     paramAutomatable(s, p),
             assigned:        lane >= 0,

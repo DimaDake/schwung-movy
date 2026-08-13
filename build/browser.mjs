@@ -19,6 +19,7 @@ await esbuild.build({
         resolve(root, 'src/model/filter-vm.ts'),
         resolve(root, 'src/model/filter-mode.ts'),
         resolve(root, 'src/model/enum-class.ts'),
+        resolve(root, 'src/model/wave-viz.ts'),
         resolve(root, 'src/modules/loader.ts'),
         resolve(root, 'src/model/viewmodel.ts'),
         resolve(root, 'src/model/store.ts'),

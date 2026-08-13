@@ -23,6 +23,8 @@ import {
     MOVY, loadDump, createDumpBoot, serializePages, expandLayoutKeys,
 } from './dump-boot.mjs';
 import { detentsPerStep, perDetentStep } from '../dist/esm/model/knob-step.js';
+import { waveCellIndices } from '../dist/esm/model/wave-viz.js';
+import { planPageLayout } from '../dist/esm/model/page-layout.js';
 
 const EXPECT_PATH = join(MOVY, 'browser-test', 'dump-expect.json');
 const UPDATE = process.argv.includes('--update');
@@ -234,12 +236,67 @@ function checkEnumOptionsMatchModule(key, model, entry) {
     }
 }
 
+/* Every param in the fleet that draws a waveform silhouette instead of its
+ * option text. Pinned as an explicit list rather than a count: the interesting
+ * regression is a specific module drifting in or out (a new glyph accidentally
+ * making helm's step counts "unique", or a remap silently dropping chordism),
+ * and a bare count would let one module swap for another unnoticed. */
+const WAVE_CELLS_EXPECTED = [
+    'audio_fx--ambiotica::mod_shape',
+    'audio_fx--spectra::motion_shape',
+    'audio_fx--war_bells::mot_shape',
+    'sound_generator--303::waveform',
+    'sound_generator--aphex::v1_wave',
+    'sound_generator--aphex::v2_wave',
+    'sound_generator--chordism::wave_1',
+    'sound_generator--chordism::wave_2',
+    'sound_generator--chordism::wave_3',
+    'sound_generator--chordism::wave_4',
+    'sound_generator--forge::cv_wave',
+    'sound_generator--noisemaker::osc1_wave',
+    'sound_generator--noisemaker::osc2_wave',
+    'sound_generator--osirus::delay_lfo_shape',
+    'sound_generator--osirus::sub_osc_shape',
+    'sound_generator--signal::mod_shape',
+];
+
+/* Record which params draw a waveform silhouette. ParamVM carries no param key,
+ * so the names come from the detector over the same page slices the VM uses;
+ * the VM is then cross-checked to have produced that many 'wave' cells, which
+ * is what proves the detector is actually wired through to renderStyle. */
+function collectWaveCells(key, model, into) {
+    const params = model.dumpLayout().params;
+    let detected = 0;
+    for (let start = 0; start < params.length; start += 8) {
+        const page = params.slice(start, start + 8);
+        for (const i of waveCellIndices(page, planPageLayout(page))) {
+            into.push(`${key}::${page[i].key}`);
+            detected++;
+        }
+    }
+    let styled = 0;
+    /* snapshot() already walked every page and changePage CLAMPS at the last one
+     * rather than wrapping, so rewind before counting or every read repeats the
+     * final page. */
+    model.changePage(-model.getBankCount());
+    for (let pg = 0; pg < model.getBankCount(); pg++) {
+        const vm = model.getViewModel();
+        for (const row of vm.rows) {
+            for (const pvm of row) if (pvm?.renderStyle === 'wave') styled++;
+        }
+        model.changePage(1);
+    }
+    check(`${key}: VM styles every detected wave cell (${detected} detected, ${styled} styled)`,
+        detected === styled);
+}
+
 /* ── run ─────────────────────────────────────────────────────────────────── */
 
 const dump = loadDump();
 const { bootFromDumpEntry } = await createDumpBoot(dump);
 const expect = UPDATE ? {} : JSON.parse(readFileSync(EXPECT_PATH, 'utf8'));
 const snapshots = {};
+const waveCells = [];
 
 for (const entry of dump.modules) {
     const key = `${entry.category}--${entry.id}`;
@@ -257,7 +314,18 @@ for (const entry of dump.modules) {
     checkDeclaredKnobsReachable(key, model, entry);
     checkEnumOptionsMatchModule(key, model, entry);
     checkKnobStepSymmetric(key, model);
+    collectWaveCells(key, model, waveCells);
     if (!UPDATE) checkExpect(key, snap, expect[key]);
+}
+
+/* Fleet-wide waveform-silhouette set. */
+{
+    const got = waveCells.slice().sort();
+    const want = WAVE_CELLS_EXPECTED.slice().sort();
+    const added   = got.filter(k => !want.includes(k));
+    const dropped = want.filter(k => !got.includes(k));
+    check(`wave cells: ${got.length} params${added.length ? ` — UNEXPECTED: ${added.join(', ')}` : ''}${dropped.length ? ` — MISSING: ${dropped.join(', ')}` : ''}`,
+        added.length === 0 && dropped.length === 0);
 }
 
 /* Undo's module dump, against every real module's real chain_params. A module

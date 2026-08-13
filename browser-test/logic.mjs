@@ -75,6 +75,7 @@ import { buildFilterViz } from '../dist/esm/model/filter-vm.js';
 import { normalizeFilterOption, isFilterModeEnum, filterModeFromEnum, isSlopeEnum, staticModeFromTokens } from '../dist/esm/model/filter-mode.js';
 import { shapeId as lfoShapeId, isShapeEnum } from '../dist/esm/model/lfo-shapes.js';
 import { enumClassOf } from '../dist/esm/model/enum-class.js';
+import { waveCellIndices } from '../dist/esm/model/wave-viz.js';
 import { lfoTargetsParam, assignLfoTarget, clearLfoTarget } from '../dist/esm/lfo/assign.js';
 import { holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle, assignCommit, assignToastText, resetAssignMode } from '../dist/esm/lfo/assign-mode.js';
 import { jogHintTouch, jogHintTick, jogHintVisible } from '../dist/esm/app/jog-hint.js';
@@ -7095,6 +7096,41 @@ _log('\nTest: drawWave draws straight vertical risers');
     const cell = shot(0, 12, 8);
     eq('cell-size wave stays in bounds',
         cell.every(c => c.y >= 0 && c.y + c.h <= 8 && c.x >= 0 && c.x < 12), true);
+}
+
+_log('\nTest: waveCellIndices — which cells get a silhouette');
+{
+    const E = (key, options, extra = {}) =>
+        ({ key, label: key, type: 'enum', options, renderStyle: 'arc', ...extra });
+    const F = (key) => ({ key, label: key, type: 'float', min: 0, max: 1, renderStyle: 'arc' });
+    const pad = (arr) => { const a = arr.slice(); while (a.length < 8) a.push(null); return a; };
+    const sel = (params) => waveCellIndices(params, planPageLayout(params));
+
+    // A lone waveform enum gets the style.
+    eq('lone waveform enum selected', sel(pad([E('waveform', ['Saw', 'Square'])])).has(0), true);
+
+    /* A Shape inside a detected LFO group belongs to the two-cell LFO graphic;
+     * re-styling its cell would draw the same param twice. */
+    {
+        const params = pad([E('lfo_shape', ['Sine', 'Tri', 'Saw', 'Square', 'Noise']), F('lfo_rate')]);
+        const L = planPageLayout(params);
+        eq('LFO group detected (guard)', L.lfos.length, 1);
+        eq('LFO-owned shape is not re-styled', waveCellIndices(params, L).has(0), false);
+    }
+
+    // Not a waveform picker at all.
+    eq('non-waveform enum untouched', sel(pad([E('vca_mode', ['Gate', 'Envelope'])])).has(0), false);
+
+    // A module config's explicit render style stays authoritative.
+    eq('config render override wins',
+        sel(pad([E('waveform', ['Saw', 'Square'], { renderStyle: 'preset' })])).has(0), false);
+
+    // Several on one page all qualify (chordism's four osc waves).
+    {
+        const W = ['Off', 'Sine', 'Triangle', 'Saw', 'Square', 'Pulse Tr', 'Wavetable'];
+        const got = sel(pad([E('wave_1', W), E('wave_2', W), E('wave_3', W), E('wave_4', W)]));
+        eq('four waveform enums on one page', got.size, 4);
+    }
 }
 
 /* ── dumpLayout: external layout snapshot (scripts/dump-movy-layout.mjs) ── */

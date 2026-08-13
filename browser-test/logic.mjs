@@ -80,6 +80,7 @@ import { waveToggleOf } from '../dist/esm/model/wave-toggle.js';
 import { envStageOf } from '../dist/esm/model/env-stage.js';
 import { detectEqViz } from '../dist/esm/model/eq-viz.js';
 import { cutKindOf, detectCutPair } from '../dist/esm/model/cut-viz.js';
+import { drawCutCurve } from '../dist/esm/renderer/cut-curve.js';
 import { lfoTargetsParam, assignLfoTarget, clearLfoTarget } from '../dist/esm/lfo/assign.js';
 import { holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle, assignCommit, assignToastText, resetAssignMode } from '../dist/esm/lfo/assign-mode.js';
 import { jogHintTouch, jogHintTick, jogHintVisible } from '../dist/esm/app/jog-hint.js';
@@ -7339,6 +7340,32 @@ _log('\nTest: cutKindOf — low/high cut corner frequencies');
         eq('pair indices', `${g[0].lowcut},${g[0].highcut}`, '0,1');
     }
     eq('lone lowcut is not a pair', detectCutPair(pad([F('hpf', 'HPF')])).length, 0);
+
+    /* The pair's corners are squeezed into opposite halves so they can never
+     * cross. Without it, low cut fully up against high cut fully down collapses
+     * the curve onto the floor — and a flat floor says nothing about where
+     * EITHER knob sits, which is the state a reverb LoCut/HiCut sweep lands in. */
+    {
+        const origFill = globalThis.fill_rect;
+        const bandHeight = (lo, hi) => {
+            const rects = [];
+            globalThis.fill_rect = (x, y, w, h, v) => rects.push({ x, y, w, h, v });
+            drawCutCurve(11, 0, 2, lo, hi);
+            globalThis.fill_rect = origFill;
+            const baseY = 11 + 14;
+            // Ignore the dotted axis: anything drawn ABOVE the floor is band.
+            const above = rects.filter(r => r.y < baseY);
+            return above.length === 0 ? 0 : baseY - Math.min(...above.map(r => r.y));
+        };
+        let worst = 99;
+        for (const lo of [0, 0.25, 0.5, 0.75, 1]) {
+            for (const hi of [0, 0.25, 0.5, 0.75, 1]) worst = Math.min(worst, bandHeight(lo, hi));
+        }
+        eq('every pair of corner values still shows a band', worst > 0, true);
+        eq('worst case is the full passband height', worst >= 8, true);
+        // The extreme that used to collapse.
+        eq('lowcut max + highcut min still draws', bandHeight(1, 0) > 0, true);
+    }
     eq('lone highcut is not a pair', detectCutPair(pad([F('lpf', 'LPF')])).length, 0);
 }
 

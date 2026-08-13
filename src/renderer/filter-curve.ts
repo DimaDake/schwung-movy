@@ -10,7 +10,7 @@ import { CELL_W } from './layout.js';
 export const PASS = 0.62;    // nominal pass-band gain (0..1 of the cell height)
 /* Keep the corner this far inside the span (fraction of width) so the roll-off
  * stays visible even fully open/closed — never a bare flat line. */
-const EDGE = 0.10;
+export const EDGE = 0.10;
 const bump = (u: number, c: number, w: number) => Math.exp(-(((u - c) * w) ** 2));
 
 /* Gain 0..1 at horizontal position u (0..1 across the span) for the given mode.

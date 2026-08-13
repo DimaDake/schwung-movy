@@ -65,7 +65,7 @@ export function buildClipPageVM(): ViewModel {
     }
 
     const overlay = clipPageState.scaleOverlay
-        ? { slot: 0, options: SCALE_LABELS, selected: clipPageState.scaleSel }
+        ? { slot: 0, options: SCALE_LABELS, selected: clipPageState.scaleSel, shapeIds: null }
         : null;
 
     return {

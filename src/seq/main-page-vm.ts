@@ -101,6 +101,7 @@ export function buildMainPageVM(): ViewModel {
             slot: mainPageState.overlayKnob,
             options: overlayOptions(mainPageState.overlayKnob),
             selected: mainPageState.overlaySel,
+            shapeIds: null,   // key/mode/layout lists, never waveforms
         }
         : null;
 

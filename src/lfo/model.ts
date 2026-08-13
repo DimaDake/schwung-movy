@@ -139,7 +139,10 @@ export function createLfoModel(track: number): Model {
             rows: [cells.slice(0, 4), cells.slice(4, 8)],
             touchedSlot: primary >= 0 ? primary : null,
             toast,
-            overlay: overlay ? { slot: overlay.pos, options: overlay.options, selected: overlay.selected } : null,
+            // Target destinations, never waveforms — no glyph gutter.
+            overlay: overlay
+                ? { slot: overlay.pos, options: overlay.options, selected: overlay.selected, shapeIds: null }
+                : null,
             isEmpty: false,
             drumPadCount: 0, drumCurrentPad: 0, drumCurrentPhysPad: 0, isPadSpecific: false,
             // LFO editing is independent of automation — never hide/held.

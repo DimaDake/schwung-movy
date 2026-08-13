@@ -19,6 +19,7 @@ import { buildMainPageVM } from '../dist/esm/seq/main-page-vm.js';
 import { mainPageState, resetMainPage } from '../dist/esm/seq/main-page.js';
 import { seqState, resetSeqState } from '../dist/esm/seq/state.js';
 import { keyboardState } from '../dist/esm/keyboard/state.js';
+import { LONG_PRESS_TICKS } from '../dist/esm/model/constants.js';
 import { MOCK_SYNTHS }     from './mock-synth.mjs';
 
 /* ── Thresholds ──────────────────────────────────────────────────────────── */
@@ -302,6 +303,34 @@ _origLog('\nTest 4: fill_rect calls per renderKnobsView (test_enum)');
 
     check('fill_rect calls (enum view)', fillRectCount, FILL_RECT_PER_RENDER_MAX);
     _origLog(`    (baseline: ${fillRectCount} calls)`);
+}
+
+/* ── Test 4a: waveform silhouettes, cells and overlay ────────────────────── */
+
+_origLog('\nTest 4a: fill_rect calls with waveform silhouettes (wave_cells)');
+
+{
+    mockState = { ...MOCK_SYNTHS.wave_cells };
+    const model = createModel(0, 'synth');
+    for (let i = 0; i < 120; i++) model.tick();
+
+    fillRectCount = 0;
+    renderKnobsView(model.getViewModel(), false);
+    check('fill_rect calls (6 wave cells)', fillRectCount, FILL_RECT_PER_RENDER_MAX);
+    _origLog(`    (baseline: ${fillRectCount} calls — a silhouette is one 1px rect per column)`);
+
+    /* Overlay open on a 7-entry waveform list. Only the 6 visible rows draw a
+     * glyph no matter how long the list is, so this is the whole cost. */
+    model.handleKnobTouch(0);
+    for (let i = 0; i < LONG_PRESS_TICKS + 10; i++) model.tick();
+    const ovm = model.getViewModel();
+    check('overlay is actually open', ovm.overlay ? 1 : 0, 1);
+    check('overlay carries glyph ids', ovm.overlay?.shapeIds ? 1 : 0, 1);
+
+    fillRectCount = 0;
+    renderKnobsView(ovm, false);
+    check('fill_rect calls (wave overlay)', fillRectCount, FILL_RECT_PER_RENDER_MAX);
+    _origLog(`    (baseline: ${fillRectCount} calls — 6 rows × 13 columns max)`);
 }
 
 /* ── Test 4b: Main Params page (4-knob Tempo/Swing/Root/Key view) ──────────── */

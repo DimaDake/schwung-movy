@@ -1,6 +1,7 @@
 import type { ViewModel } from '../types/viewmodel.js';
 import { fontPrint, fontWidth } from '../font/index.js';
 import { CELL_W, ROW0_Y, LBL1_Y, LBL_H, W, TOAST_Y, TOAST_H } from './layout.js';
+import { drawWave } from './lfo-wave.js';
 
 // Centred toast bar at the bottom — inverted so it reads over any content below
 export function drawJogToast(text: string): void {
@@ -9,6 +10,12 @@ export function drawJogToast(text: string): void {
     const tx = Math.max(1, Math.floor((W - tw) / 2));
     fontPrint(tx, TOAST_Y + 1, text, 0);
 }
+
+/* Waveform gutter geometry. 13×5 at ONE cycle: at two cycles sine and triangle
+ * collapse into the same squiggle at this height, and a 7px-tall glyph bleeds
+ * into the neighbouring row and gets clipped by the selection bar. The 16px
+ * gutter still leaves 78px of text, which fits the longest option names. */
+const GLYPH_W = 13, GLYPH_H = 5, GUTTER = 16;
 
 export function drawEnumOverlay(vm: ViewModel): void {
     const ov  = vm.overlay!;
@@ -31,12 +38,15 @@ export function drawEnumOverlay(vm: ViewModel): void {
         const idx = start + i;
         if (idx >= n) break;
         const y = listTop + i * ROW_H;
-        if (idx === ov.selected) {
-            fill_rect(ovX, y, ovW - 2, ROW_H, 1);
-            fontPrint(ovX + 2, y + 1, ov.options[idx], 0);
-        } else {
-            fontPrint(ovX + 2, y + 1, ov.options[idx], 1);
+        const sel = idx === ov.selected;
+        if (sel) fill_rect(ovX, y, ovW - 2, ROW_H, 1);
+        if (ov.shapeIds) {
+            /* Drawn in the row's FOREGROUND colour so it inverts along with the
+             * text. Drawing it lit and then inverting the gutter erases it. */
+            drawWave(ovX + 2, y + Math.floor((ROW_H - GLYPH_H) / 2),
+                     GLYPH_W, GLYPH_H, ov.shapeIds[idx] ?? 10, 1, sel ? 0 : 1);
         }
+        fontPrint(ovX + (ov.shapeIds ? GUTTER : 2), y + 1, ov.options[idx], sel ? 0 : 1);
     }
 
     if (n > VISIBLE) {

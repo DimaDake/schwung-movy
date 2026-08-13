@@ -3,6 +3,7 @@ import type { ModelState } from './state.js';
 import { formatValue, paramIoKey, paramAutomatable } from './store.js';
 import { planPageLayout } from './page-layout.js';
 import { waveCellIndices } from './wave-viz.js';
+import { enumClassOf } from './enum-class.js';
 import { buildLfoViz } from './lfo-vm.js';
 import { buildFilterViz } from './filter-vm.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
@@ -16,6 +17,14 @@ const NO_AUTOMATION: AutomationView = {
     assignedLanes: 0, activeLanes: 0, held: false, poolFull: false,
     heldValues: new Map(), liveValues: new Map(), laneForKey: () => -1,
 };
+
+/* Glyph ids for the open enum overlay's option list, or null when that param is
+ * not a qualifying waveform enum. The overlay owns the param's global index, so
+ * this needs no page arithmetic. */
+function overlayShapeIds(s: ModelState): number[] | null {
+    const p = s.enumOverlay ? s.knobParams[s.enumOverlay.gi] : null;
+    return p ? enumClassOf(p).shapeIds : null;
+}
 
 export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATION): ViewModel {
     const nBanks = Math.max(1, Math.ceil(s.knobParams.length / KNOBS_PER_PAGE));
@@ -169,9 +178,19 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         touchedSlot:    primary >= 0 ? primary : null,
         toast,
         overlay: s.enumOverlay
-            ? { slot: s.enumOverlay.slot, options: s.enumOverlay.options, selected: s.enumOverlay.selected }
+            ? {
+                slot: s.enumOverlay.slot,
+                options: s.enumOverlay.options,
+                selected: s.enumOverlay.selected,
+                /* Read straight off the cached EnumClass — resolving a 64-entry
+                 * option list per frame is what enum-class.ts exists to avoid. */
+                shapeIds: overlayShapeIds(s),
+              }
             : s.fileOverlay
-            ? { slot: s.fileOverlay.slot, options: s.fileOverlay.labels, selected: s.fileOverlay.selected }
+            ? {
+                slot: s.fileOverlay.slot, options: s.fileOverlay.labels,
+                selected: s.fileOverlay.selected, shapeIds: null,
+              }
             : null,
         isEmpty:        s.moduleId === '' && s.activeModuleName === '—',
         drumPadCount:       s.drumPadCount,

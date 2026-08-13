@@ -61,7 +61,7 @@ const PRESETS = [
     'trigger_armed', 'trigger_fired', 'trigger_blink_off', 'trigger_touched',
     'trigger_cooling', 'trigger_cooling_low',
     'font_5x3_all', 'font_small_all', 'font_big_all_1', 'font_big_all_2',
-    'wave_cells',
+    'wave_cells', 'wave_overlay',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -98,7 +98,7 @@ const BASE = {
     filter_dual: 'filter_dual', filter_open: 'filter_demo',
     deep_page: 'hier_knobs_and_children',
     lfo_helm_step: 'lfo_helm', lfo_helm_pyramid: 'lfo_helm',
-    wave_cells: 'wave_cells',
+    wave_cells: 'wave_cells', wave_overlay: 'wave_cells',
     signal_voice: 'signal', forge_voice: 'forge',
     forge_filter: 'forge', forge_mod: 'forge', forge_send: 'forge', forge_mix: 'forge',
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
@@ -146,6 +146,7 @@ const { createModel }      = await import('../dist/esm/model/index.js');
 const { createLfoModel }   = await import('../dist/esm/lfo/model.js');
 const { holdTouch, holdTick, assignToastText, resetAssignMode } = await import('../dist/esm/lfo/assign-mode.js');
 const { drawJogToast }     = await import('../dist/esm/renderer/overlay.js');
+const { LONG_PRESS_TICKS } = await import('../dist/esm/model/constants.js');
 const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view.js');
 const { drawCaptureOverlay } = await import('../dist/esm/renderer/capture-overlay.js');
 const { drawQuantOverlay } = await import('../dist/esm/renderer/quant-overlay.js');
@@ -343,6 +344,20 @@ function applyView(preset) {
              * count here instead: this scene is entirely about which glyph each
              * value selects, so it must not render half-refreshed. */
             for (let i = 0; i < 120; i++) model.tick();
+            forceRender();
+            break;
+        /* Same list with the overlay open on knob 0, so the glyph gutter, the
+         * inverted glyph on the selected row and the flat "Off" entry are all
+         * in one shot. Long-press is 172 ticks, so the hold is driven
+         * explicitly rather than left to settle()'s idle heuristic. */
+        case 'wave_overlay':
+            setFilter({
+                wave_1: '4', wave_2: '3', wave_3: '4', wave_4: '5',
+                osc_wave: '1', mod_shape: '5', vca_mode: '0', level: '0.60',
+            });
+            for (let i = 0; i < 120; i++) model.tick();
+            model.handleKnobTouch(0);
+            for (let i = 0; i < LONG_PRESS_TICKS + 10; i++) model.tick();
             forceRender();
             break;
         case 'lfo_helm_step':    forceRender(); break;                       // "8 Step" → stepped ramp

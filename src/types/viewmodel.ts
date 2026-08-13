@@ -72,6 +72,9 @@ export interface OverlayState {
     slot:     number;
     options:  string[];
     selected: number;
+    /* Per-option glyph ids when the param is a qualifying waveform enum; null
+     * for every other list, which then renders exactly as it did before. */
+    shapeIds: number[] | null;
 }
 
 export interface ViewModel {

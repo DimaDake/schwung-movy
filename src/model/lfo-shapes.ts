@@ -3,22 +3,36 @@
  * viz resolves the current option by name rather than by raw index. Ids:
  *   0 sine  1 tri  2 saw-up  3 square  4 s&h  5 smooth-random
  *   6 saw-down  7 noise  8 envelope glyph  9 staircase glyph  10 generic
- *   11 stepped ramp  12 stepped triangle
+ *   11 stepped ramp  12 stepped triangle  13 pulse  14 pw-square  15 ring
+ *   16 wavetable  17 warp  18 sink  19 off (flat)
  * Returns null when a name is not a shape at all (so a non-shape enum — e.g. a
  * clock-division or Off/On list — fails the "is this a shape enum?" test). */
 
+/* Three names moved out of their original slots: `random` was 4 (s&h),
+ * `pulse`/`warmpulse` were 3 (square), and `warp`/`sink` were 0 (sine). Each
+ * moved because some module lists BOTH members of the pair — signal:mod_shape
+ * has S&H and Random, aphex:v2_wave has Square and Pulse, ambiotica:mod_shape
+ * has Sine, Warp and Sink — and a silhouette that draws two options identically
+ * is worse than the abbreviation it replaces. */
 const NAMED: Record<string, number> = {
-    sine: 0, sin: 0, skewedsine: 0, sink: 0, warp: 0,
+    sine: 0, sin: 0, skewedsine: 0,
     tri: 1, triangle: 1,
-    saw: 2, sawtooth: 2, rampup: 2, softsaw: 2, sawup: 2,
-    square: 3, sqr: 3, squ: 3, rect: 3, pulse: 3, warmpulse: 3, softsquare: 3,
-    sh: 4, samplehold: 4, rnd1: 4, random: 4,
-    smoothrandom: 5, sg: 5, rnd2: 5, drift: 5, sampleglide: 5,
+    saw: 2, sawtooth: 2, rampup: 2, softsaw: 2, sawup: 2, ramp: 2,
+    square: 3, sqr: 3, squ: 3, rect: 3, softsquare: 3,
+    sh: 4, samplehold: 4, rnd1: 4, rand: 4,
+    smoothrandom: 5, sg: 5, rnd2: 5, drift: 5, sampleglide: 5, random: 5,
     rampdown: 6, sawdown: 6,
     noise: 7,
     envelope: 8,
     stepsequencer: 9, step: 9,
     mseg: 10, formula: 10,
+    pulse: 13, pulsetr: 13, warmpulse: 13,
+    'pw-square': 14,
+    ring: 15,
+    wavetable: 16,
+    warp: 17,
+    sink: 18,
+    off: 19,
 };
 
 const norm = (name: string): string => name.toLowerCase().replace(/[&\s_]+/g, '');

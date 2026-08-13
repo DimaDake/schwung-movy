@@ -6969,6 +6969,50 @@ _log('\nTest: jog hint waits out a hold');
     Date.now = realNow;
 }
 
+/* ── waveform glyphs for single-knob enums ───────────────────────────────── */
+
+_log('\nTest: new waveform glyph ids and name mappings');
+{
+    // Names that had no glyph before.
+    eq('map: Pulse → 13',      lfoShapeId('Pulse'), 13);
+    eq('map: Pulse Tr → 13',   lfoShapeId('Pulse Tr'), 13);
+    eq('map: PW-Square → 14',  lfoShapeId('PW-Square'), 14);
+    eq('map: Ring → 15',       lfoShapeId('Ring'), 15);
+    eq('map: Wavetable → 16',  lfoShapeId('Wavetable'), 16);
+    eq('map: Warp → 17',       lfoShapeId('Warp'), 17);
+    eq('map: Sink → 18',       lfoShapeId('Sink'), 18);
+    eq('map: Off → 19',        lfoShapeId('Off'), 19);
+
+    // Pure aliases — no new glyph, they reuse an existing silhouette.
+    eq('map: Ramp → saw-up 2', lfoShapeId('Ramp'), 2);
+    eq('map: Rand → s&h 4',    lfoShapeId('Rand'), 4);
+
+    /* The three splits. Each exists because some module lists BOTH members of
+     * the pair, and a silhouette that draws them identically is worse than the
+     * abbreviation it replaces. */
+    eq('Pulse and Square differ (aphex v2_wave)',
+        lfoShapeId('Pulse') !== lfoShapeId('Square'), true);
+    eq('map: Random → smooth-random 5', lfoShapeId('Random'), 5);
+    eq('S&H and Random differ (signal mod_shape)',
+        lfoShapeId('S&H') !== lfoShapeId('Random'), true);
+    eq('Warp and Sink differ from Sine (ambiotica mod_shape)',
+        new Set([lfoShapeId('Sine'), lfoShapeId('Warp'), lfoShapeId('Sink')]).size, 3);
+
+    // Off is a flat line at zero for the whole cycle.
+    eq('shape 19 flat at 0.0',  shapeSample(19, 0.0), 0);
+    eq('shape 19 flat at 0.5',  shapeSample(19, 0.5), 0);
+
+    // Every new id must sample finite and inside [-1, 1].
+    let bad = 0;
+    for (let id = 13; id <= 19; id++) {
+        for (const t of [0, 0.1, 0.25, 0.5, 0.75, 0.99]) {
+            const v = shapeSample(id, t);
+            if (!Number.isFinite(v) || v < -1 || v > 1) bad++;
+        }
+    }
+    eq('shapes 13-19 all sample within [-1,1]', bad, 0);
+}
+
 /* ── dumpLayout: external layout snapshot (scripts/dump-movy-layout.mjs) ── */
 
 _log('\nTest: dumpLayout exposes banks + raw params');

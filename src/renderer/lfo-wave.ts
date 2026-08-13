@@ -53,6 +53,18 @@ export function shapeSample(shape: number, t: number): number {
             const k = Math.floor((up ? ph : 1 - ph) * 2 * n);
             return (Math.min(k, n - 1) / (n - 1)) * 2 - 1;
         }
+        case 13: return ph < 0.25 ? 1 : -1;                        // pulse (25% duty)
+        case 14: return ph < 0.15 ? 1 : -1;                        // pw-square (narrow)
+        /* Ring mod: a carrier gated by a much faster modulator, so the
+         * silhouette reads as a dense burst rather than a smooth tone. */
+        case 15: return Math.sin(ph * 2 * Math.PI) * Math.sin(ph * 10 * Math.PI);
+        case 16: return Math.sin(ph * 2 * Math.PI) * 0.6           // wavetable
+                      + Math.sin(ph * 8 * Math.PI) * 0.4;
+        /* Warp/Sink are Sine bent toward a square and toward a spike. They exist
+         * only so ambiotica's Sine|Warp|Sink list gets three distinct glyphs. */
+        case 17: { const s = Math.sin(ph * 2 * Math.PI); return Math.sign(s) * Math.pow(Math.abs(s), 0.35); }
+        case 18: { const s = Math.sin(ph * 2 * Math.PI); return Math.sign(s) * Math.pow(Math.abs(s), 3); }
+        case 19: return 0;                                         // off — flat line
         default: return Math.sin(ph * 2 * Math.PI);
     }
 }

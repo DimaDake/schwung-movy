@@ -4,6 +4,7 @@ import { formatValue, paramIoKey, paramAutomatable } from './store.js';
 import { planPageLayout, claimedCells } from './page-layout.js';
 import { waveCellIndices } from './wave-viz.js';
 import { waveToggleCells } from './wave-toggle.js';
+import { envStageCells } from './env-stage.js';
 import { enumClassOf } from './enum-class.js';
 import { buildLfoViz } from './lfo-vm.js';
 import { buildFilterViz } from './filter-vm.js';
@@ -53,7 +54,14 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     const waveCells = waveCellIndices(pageSlice, layout);
     /* Binary "is this waveform sounding?" switches — drawn as the silhouette,
      * dotted when off, instead of an on/off bar that says nothing about shape. */
-    const waveToggles = waveToggleCells(pageSlice, claimedCells(layout));
+    const claimed = claimedCells(layout);
+    const waveToggles = waveToggleCells(pageSlice, claimed);
+    /* Lone Attack/Decay knobs, drawn as a single ramp. Sound generators only:
+     * a reverb's "Decay" is a tail length, and an FX chain full of envelope
+     * ramps would say the wrong thing about what those knobs do. */
+    const envStages = s.componentKey === 'synth'
+        ? envStageCells(pageSlice, claimed)
+        : new Map<number, import('./env-stage.js').EnvStage>();
     const rows: ViewModel['rows'] = [[null, null, null, null], [null, null, null, null]];
     const envelopeLines: (EnvelopeVM | null)[] = [null, null];
     for (const e of layout.envelopes)
@@ -108,7 +116,9 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             options:         p.options,
             enumIndex:       enumIdx,
             renderStyle:     (waveCells.has(localIdx) || waveToggles.has(localIdx))
-                ? 'wave' : p.renderStyle,
+                ? 'wave'
+                : envStages.has(localIdx) ? 'envstage' : p.renderStyle,
+            ...(envStages.has(localIdx) ? { envStage: envStages.get(localIdx) } : {}),
             /* enumClass is already populated by the waveCellIndices call above,
              * so this is a cached array index, not a per-frame name lookup. */
             ...(waveCells.has(localIdx)

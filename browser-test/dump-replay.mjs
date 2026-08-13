@@ -25,6 +25,7 @@ import {
 import { detentsPerStep, perDetentStep } from '../dist/esm/model/knob-step.js';
 import { waveCellIndices } from '../dist/esm/model/wave-viz.js';
 import { waveToggleCells } from '../dist/esm/model/wave-toggle.js';
+import { envStageCells } from '../dist/esm/model/env-stage.js';
 import { planPageLayout, claimedCells } from '../dist/esm/model/page-layout.js';
 
 const EXPECT_PATH = join(MOVY, 'browser-test', 'dump-expect.json');
@@ -257,6 +258,35 @@ const WAVE_TOGGLES_EXPECTED = [
     'sound_generator--surge::mute_noise',   // inverted: ON means silent
 ];
 
+/* Lone Attack/Decay knobs drawn as a single ramp (sound generators only).
+ * Pinned like the others: the failure mode is a module silently drifting in or
+ * out as the word rules change. */
+const ENV_STAGES_EXPECTED = [
+    'sound_generator--303::accent_decay d',
+    'sound_generator--303::decay d',
+    'sound_generator--303::normal_decay d',
+    'sound_generator--303::soft_attack a',
+    'sound_generator--essaim::decay d',
+    'sound_generator--fizzik::a_decay d',
+    'sound_generator--fizzik::b_decay d',
+    'sound_generator--forge::all_decay d',
+    'sound_generator--forge::cv_e2_dec d',
+    'sound_generator--forge::cv_pe_dec d',
+    'sound_generator--freak::lpg_decay d',
+    'sound_generator--krautdrums::all_decay d',
+    /* noisemaker lists aenv_a twice: on the Amp Env page it is part of a placed
+     * ADSR (claimed), and on the Env Draw page it stands alone. */
+    'sound_generator--noisemaker::aenv_a a',
+    'sound_generator--plaits::attack a',
+    'sound_generator--plaits::decay d',
+    'sound_generator--po32-drum::decay d',
+    'sound_generator--signal::all_decay d',
+    'sound_generator--signal::cv_attack a',
+    'sound_generator--signal::cv_decay d',
+    'sound_generator--signal::mod_decay d',
+    'sound_generator--weird-dreams::cv_decay d',
+];
+
 const WAVE_CELLS_EXPECTED = [
     'audio_fx--ambiotica::mod_shape',
     'audio_fx--spectra::motion_shape',
@@ -286,7 +316,7 @@ const WAVE_CELLS_EXPECTED = [
  * so the names come from the detector over the same page slices the VM uses;
  * the VM is then cross-checked to have produced that many 'wave' cells, which
  * is what proves the detector is actually wired through to renderStyle. */
-function collectWaveCells(key, model, into, intoToggles) {
+function collectWaveCells(key, model, into, intoToggles, intoStages) {
     const params = model.dumpLayout().params;
     let detected = 0;
     for (let start = 0; start < params.length; start += 8) {
@@ -296,9 +326,16 @@ function collectWaveCells(key, model, into, intoToggles) {
             into.push(`${key}::${page[i].key}`);
             detected++;
         }
-        for (const [i] of waveToggleCells(page, claimedCells(layout))) {
+        const claimed = claimedCells(layout);
+        for (const [i] of waveToggleCells(page, claimed)) {
             intoToggles.push(`${key}::${page[i].key}`);
             detected++;
+        }
+        if (model.getComponentKey() === 'synth') {
+            for (const [i, st] of envStageCells(page, claimed)) {
+                intoStages.push(`${key}::${page[i].key} ${st}`);
+                detected++;
+            }
         }
     }
     let styled = 0;
@@ -309,11 +346,11 @@ function collectWaveCells(key, model, into, intoToggles) {
     for (let pg = 0; pg < model.getBankCount(); pg++) {
         const vm = model.getViewModel();
         for (const row of vm.rows) {
-            for (const pvm of row) if (pvm?.renderStyle === 'wave') styled++;
+            for (const pvm of row) if (pvm?.renderStyle === 'wave' || pvm?.renderStyle === 'envstage') styled++;
         }
         model.changePage(1);
     }
-    check(`${key}: VM styles every detected wave cell (${detected} detected, ${styled} styled)`,
+    check(`${key}: VM styles every detected wave/stage cell (${detected} detected, ${styled} styled)`,
         detected === styled);
 }
 
@@ -325,6 +362,7 @@ const expect = UPDATE ? {} : JSON.parse(readFileSync(EXPECT_PATH, 'utf8'));
 const snapshots = {};
 const waveCells = [];
 const waveToggles = [];
+const envStages = [];
 
 for (const entry of dump.modules) {
     const key = `${entry.category}--${entry.id}`;
@@ -342,8 +380,18 @@ for (const entry of dump.modules) {
     checkDeclaredKnobsReachable(key, model, entry);
     checkEnumOptionsMatchModule(key, model, entry);
     checkKnobStepSymmetric(key, model);
-    collectWaveCells(key, model, waveCells, waveToggles);
+    collectWaveCells(key, model, waveCells, waveToggles, envStages);
     if (!UPDATE) checkExpect(key, snap, expect[key]);
+}
+
+/* Fleet-wide lone-envelope-stage set. */
+{
+    const got = [...new Set(envStages)].sort();
+    const want = ENV_STAGES_EXPECTED.slice().sort();
+    const added   = got.filter(k => !want.includes(k));
+    const dropped = want.filter(k => !got.includes(k));
+    check(`env stages: ${got.length} params${added.length ? ` — UNEXPECTED: ${added.join(', ')}` : ''}${dropped.length ? ` — MISSING: ${dropped.join(', ')}` : ''}`,
+        added.length === 0 && dropped.length === 0);
 }
 
 /* Fleet-wide waveform-toggle set. */

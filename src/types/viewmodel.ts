@@ -8,9 +8,10 @@ export interface ParamVM {
     isLongEnum:      boolean;
     options:         string[] | null;
     enumIndex:       number;
-    renderStyle:     'arc' | 'hbar' | 'vbar' | 'preset' | 'xbox' | 'steps' | 'wave';   // xbox = framed X (LFO target None); hbar doubles as a binary on/off bar; steps = framed number (octave/voice count); wave = waveform silhouette
+    renderStyle:     'arc' | 'hbar' | 'vbar' | 'preset' | 'xbox' | 'steps' | 'wave' | 'envstage';   // xbox = framed X (LFO target None); hbar doubles as a binary on/off bar; steps = framed number (octave/voice count); wave = waveform silhouette; envstage = a lone attack/decay ramp
     waveShape?:      number;    // glyph id for renderStyle 'wave' (see lfo-shapes.ts)
     waveOff?:        boolean;   // waveform toggle that is currently NOT sounding → drawn dotted
+    envStage?:       'a' | 'd'; // which stage renderStyle 'envstage' draws (attack is the mirror)
     automated:       boolean;   // lane has ≥1 lock → show the dot
     automatable:     boolean;   // can be assigned a lane (numeric, non-global)
     assigned:        boolean;   // already bound to an automation lane

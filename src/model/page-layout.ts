@@ -10,7 +10,13 @@ import { detectLfoViz } from './lfo-viz.js';
 import { detectFilterViz } from './filter-viz.js';
 
 export interface PageCell { line: 0 | 1; col: 0 | 1 | 2 | 3; idx: number }
-export interface EnvLine { line: 0 | 1; name: string; startCol: number; cellCount: number; roles: EnvRole[] }
+export interface EnvLine {
+    line: 0 | 1; name: string; startCol: number; cellCount: number; roles: EnvRole[];
+    /* Page-relative indices of the stages this graphic draws. Carried so a
+     * per-cell style can tell a stage that is already on screen as part of an
+     * envelope from a LONE stage that needs its own glyph (env-stage.ts). */
+    idxs: number[];
+}
 
 /* An LFO waveform placement: Shape at startCol, its partner at startCol+1. The
  * partner is the only non-shape param drawn "under" the graphic, so only it is
@@ -43,11 +49,11 @@ export function pageSlotMap(params: (KnobParam | null)[]): number[] {
 }
 
 /* Cells a multi-cell graphic already draws. Any per-CELL style (the waveform
- * silhouette, the waveform toggle) has to stay out of these or it would draw
- * the same param twice. Envelope stages are numeric, so they cannot collide
- * with the enum/binary styles and are not collected here. */
+ * silhouette, the waveform toggle, the lone envelope stage) has to stay out of
+ * these or it would draw the same param twice. */
 export function claimedCells(layout: PageLayout): Set<number> {
     const out = new Set<number>();
+    for (const e of layout.envelopes) for (const i of e.idxs) out.add(i);
     for (const l of layout.lfos) {
         out.add(l.shape);
         for (const i of [l.phase, l.rate, l.depth, l.deform, l.mode, l.retrig]) {
@@ -85,7 +91,10 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
         if (used.size >= 2) break;
         const idxs = e.roles.map(r => e[r] as number);
         const line = assign(idxs, (Math.floor(Math.min(...idxs) / 4)) as 0 | 1);
-        if (line >= 0) envelopes.push({ line: line as 0 | 1, name: e.name, startCol: 0, cellCount: idxs.length, roles: e.roles });
+        if (line >= 0) envelopes.push({
+            line: line as 0 | 1, name: e.name, startCol: 0,
+            cellCount: idxs.length, roles: e.roles, idxs,
+        });
     }
     for (const g of detectLfoViz(params)) {
         if (used.size >= 2) break;

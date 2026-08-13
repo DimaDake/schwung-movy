@@ -135,6 +135,19 @@ automatically. You don't configure anything for most modules.
   waveforms is worse than the abbreviation it replaced. Lists that aren't
   waveforms (*Gate/Envelope*, *Off/On*) are untouched.
 
+- **Lone attack / decay ramps** — a synth with a single **Decay** knob and no
+  matching attack (drum modules, Plaits, the 303) draws that stage as a ramp
+  instead of an arc, so a click and a long tail are told apart at a glance. The
+  ramp's length is the value. **Attack is the mirror**: the rise climbs to the
+  right. The dotted edge is the side this knob does not control:
+
+  ![Lone attack and decay stages](docs/assets/env_stages.png)
+
+  When a real envelope exists — an attack *and* a decay that belong together —
+  the full envelope graphic below wins instead; the ramp is only for stages
+  standing on their own. Reverb "decay" is a room size rather than an
+  amplitude stage, so it keeps its knob.
+
 - **Envelope graphics** — when a page contains a recognisable
   Attack/Decay/Sustain/Release group, Movy draws it as a **single envelope
   shape** instead of four separate knobs, which is far easier to read:

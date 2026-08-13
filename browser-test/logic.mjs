@@ -77,6 +77,7 @@ import { shapeId as lfoShapeId, isShapeEnum } from '../dist/esm/model/lfo-shapes
 import { enumClassOf } from '../dist/esm/model/enum-class.js';
 import { waveCellIndices } from '../dist/esm/model/wave-viz.js';
 import { waveToggleOf } from '../dist/esm/model/wave-toggle.js';
+import { envStageOf } from '../dist/esm/model/env-stage.js';
 import { lfoTargetsParam, assignLfoTarget, clearLfoTarget } from '../dist/esm/lfo/assign.js';
 import { holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle, assignCommit, assignToastText, resetAssignMode } from '../dist/esm/lfo/assign-mode.js';
 import { jogHintTouch, jogHintTick, jogHintVisible } from '../dist/esm/app/jog-hint.js';
@@ -7210,6 +7211,46 @@ _log('\nTest: waveToggleOf — binary "is this waveform sounding?" switches');
     /* Ring names a modulator PAIR, not a shape: Surge mutes Ring 1x2 and
      * Ring 2x3 separately and both would draw the identical glyph. */
     eq('mute_ring12 rejected', waveToggleOf(B('mute_ring12', 'Ring 1x2 Mute')), null);
+}
+
+_log('\nTest: envStageOf — lone attack/decay knobs');
+{
+    const N = (key, label) => ({ key, label, type: 'float', min: 0, max: 1 });
+
+    eq('decay → d',        envStageOf(N('decay', 'Decay')), 'd');
+    eq('cv_decay → d',     envStageOf(N('cv_decay', 'Decay')), 'd');
+    eq('cv_e2_dec → d',    envStageOf(N('cv_e2_dec', 'E2 Decay')), 'd');
+    eq('attack → a',       envStageOf(N('attack', 'Attack')), 'a');
+    eq('soft_attack → a',  envStageOf(N('soft_attack', 'Soft Attack')), 'a');
+
+    /* A randomiser is an amount, not the thing it names — euclidrum has eight
+     * "Decay Rnd" knobs that randomise decay rather than set it. */
+    eq('decay_rnd rejected',  envStageOf(N('lane1_decay_rnd', 'Decay Rnd')), null);
+    /* A reverb tail is a room size, not an amplitude stage. */
+    eq('rev_decay rejected',  envStageOf(N('rev_decay', 'Reverb Dcy')), null);
+    eq('delay decay rejected', envStageOf(N('delay_decay', 'Delay Decay')), null);
+    // envelope.ts's own vetoes: a curve/mode control is not a time.
+    eq('decay_shape rejected', envStageOf(N('decay_shape', 'Decay Shape')), null);
+    eq('lfo decay rejected',   envStageOf(N('lfo1_decay', 'LFO1 Decay')), null);
+
+    /* No bare-letter fallback. minijv labels a multi-segment Roland TVA
+     * envelope "A.Env L1" (Amp Envelope); reading that 'a' as the attack STAGE
+     * turned 32 level/time params into attacks. */
+    eq('A.Env L1 is not an attack', envStageOf(N('nvram_tone_0_tvaenvlevel1', 'A.Env L1')), null);
+    eq('A.Env T3 is not an attack', envStageOf(N('nvram_tone_0_tvaenvtime3', 'A.Env T3')), null);
+
+    /* The veto spans key AND label. Chordism keys its reverb tail
+     * `reverb_decay` but labels it plain "Decay"; vetoing only the text that
+     * carried the word let the label through and drew an amplitude envelope
+     * for a room size. */
+    eq('reverb key + plain Decay label rejected',
+        envStageOf(N('reverb_decay', 'Decay')), null);
+    eq('rnd key + plain Decay label rejected',
+        envStageOf(N('lane1_decay_rnd', 'Decay')), null);
+
+    // An enum named Decay is a mode list, not a time.
+    eq('enum decay rejected',
+        envStageOf({ key: 'decay', label: 'Decay', type: 'enum', options: ['Short', 'Long'] }), null);
 }
 
 /* ── dumpLayout: external layout snapshot (scripts/dump-movy-layout.mjs) ── */

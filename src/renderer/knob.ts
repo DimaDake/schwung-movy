@@ -84,6 +84,45 @@ function drawWaveCell(cellX: number, ky: number, shape: number, off = false): vo
     drawWave(cellX + 2, ky + 1, CELL_W - 4, KW - 2, shape, 1, 1, off);
 }
 
+/* A lone envelope stage, in the waveform cell's box. Decay: a dotted vertical
+ * rise on the left, then a straight fall whose LENGTH is the value, then the
+ * floor out to the right edge. Attack is the exact mirror — floor, rise, dotted
+ * vertical on the right.
+ *
+ * The rise (decay) or fall (attack) is dotted because that edge is NOT this
+ * knob: the module gives no control over it here. Same reading as the dotted
+ * waveform toggle — an outline means "not yours".
+ *
+ * Straight, not exponential: a real decay curve collapses to a near-vertical
+ * spike below about a fifth of the range, and at 28px those short values stop
+ * being tellable apart. */
+function drawEnvStage(cellX: number, ky: number, norm: number, stage: 'a' | 'd'): void {
+    const x = cellX + 2, y = ky + 1, w = CELL_W - 4, h = KW - 2;
+    const top = y, bot = y + h - 1;
+    const len = Math.max(2, Math.round(Math.max(0, Math.min(1, norm)) * (w - 1)));
+    const dottedV = (px: number): void => {
+        for (let yy = top; yy <= bot; yy++) if (((yy + px) & 1) === 0) fill_rect(px, yy, 1, 1, 1);
+    };
+    const ramp = (x0: number, fromY: number, toY: number): void => {
+        let py = fromY;
+        for (let i = 1; i <= len; i++) {
+            const ny = Math.round(fromY + (toY - fromY) * (i / len));
+            fill_rect(x0 + i, Math.min(py, ny), 1, Math.abs(ny - py) + 1, 1);
+            py = ny;
+        }
+    };
+    if (stage === 'd') {
+        dottedV(x);
+        ramp(x, top, bot);
+        if (x + len < x + w - 1) fill_rect(x + len, bot, (x + w - 1) - (x + len) + 1, 1, 1);
+    } else {
+        const riseStart = x + w - 1 - len;
+        if (riseStart > x) fill_rect(x, bot, riseStart - x + 1, 1, 1);
+        ramp(riseStart, bot, top);
+        dottedV(x + w - 1);
+    }
+}
+
 /* Framed X: an empty box with a big diagonal cross — the LFO target when it is
  * None (drawn, not a font glyph). Same frame as the enum square. */
 function drawXBox(kx: number, ky: number): void {
@@ -226,6 +265,8 @@ export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
         drawEnumSquare(kx, ky, [pvm.displayValue], 0);
     } else if (pvm.renderStyle === 'wave') {
         drawWaveCell(col * CELL_W, ky, pvm.waveShape ?? 10, pvm.waveOff === true);
+    } else if (pvm.renderStyle === 'envstage') {
+        drawEnvStage(col * CELL_W, ky, pvm.normalizedValue, pvm.envStage ?? 'd');
     } else if (pvm.type === 'enum') {
         drawEnumSquare(kx, ky, pvm.options, pvm.enumIndex);
     } else if (pvm.renderStyle === 'xbox') {

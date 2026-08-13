@@ -194,6 +194,30 @@ export const MOCK_SYNTHS = {
         "synth:level": "0.60",
     },
 
+    /* Lone envelope stages. `attack` and `decay` share a qualifier, so the
+     * EXISTING envelope graphic claims them — the scene proves that precedence:
+     * only stages with no partner get the new glyph. The rest show decays
+     * across the range plus the mirrored attack, and a randomiser and a reverb
+     * tail that must keep their arcs. */
+    env_stages: {
+        "synth:name": "Stages",
+        "synth:ui_hierarchy": hier([
+            { key: "decay",      label: "Decay",      type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "mod_decay",  label: "Mod Decay",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "all_decay",  label: "All Decay",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "lpg_decay",  label: "LPG Decay",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "attack",     label: "Attack",     type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "soft_attack", label: "Soft Attack", type: "float", min: 0, max: 1, step: 0.01 },
+            /* Not stages: a randomiser and a reverb tail must keep their arcs. */
+            { key: "decay_rnd",  label: "Decay Rnd",  type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "rev_decay",  label: "Reverb Dcy", type: "float", min: 0, max: 1, step: 0.01 },
+        ]),
+        "synth:decay": "0.15", "synth:mod_decay": "0.45",
+        "synth:all_decay": "0.75", "synth:lpg_decay": "1.0",
+        "synth:attack": "0.30", "synth:soft_attack": "0.80",
+        "synth:decay_rnd": "0.50", "synth:rev_decay": "0.50",
+    },
+
     /* OB-Xd's oscillator section: Saw and Pulse are independent on/off switches
      * rather than one shape enum, so the cell shows WHICH waveform each switch
      * controls (solid = sounding, dotted = not). Surge's Noise Mute is here too

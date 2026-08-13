@@ -21,6 +21,7 @@ await esbuild.build({
         resolve(root, 'src/model/enum-class.ts'),
         resolve(root, 'src/model/wave-viz.ts'),
         resolve(root, 'src/model/wave-toggle.ts'),
+        resolve(root, 'src/model/env-stage.ts'),
         resolve(root, 'src/modules/loader.ts'),
         resolve(root, 'src/model/viewmodel.ts'),
         resolve(root, 'src/model/store.ts'),

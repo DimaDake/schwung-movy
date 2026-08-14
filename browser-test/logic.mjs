@@ -1896,26 +1896,34 @@ _log('\nTest: mrdrums per-pad scoping');
   const md = bootModel(MOCK_SYNTHS.mrdrums, 0, 'synth');
   eq('focus defaults to 1 (not DSP pad 5)', md.getViewModel().drumCurrentPad, 1);
 
+  /* Locate VOL rather than hard-coding a knob number: this asserts pad
+   * SCOPING (alias → concrete key), and pinning it to a slot made it fail
+   * whenever the page's layout legitimately changed — the sample waveform
+   * seats the sample and its start marker together, which moves VOL along. */
+  const volKnob = [0, 1, 2, 3, 4, 5, 6, 7]
+      .find((k) => md.getKnobParamInfo(k)?.key === 'pad_vol');
+  eq('VOL knob is on page 0', volKnob !== undefined, true);
+
   // A normal knob turn writes the concrete focused-pad key, never the alias.
   const seen = [];
   const origSet = globalThis.shadow_set_param;
   globalThis.shadow_set_param = (s, k, v) => { seen.push(k); return origSet(s, k, v); };
-  md.handleKnobDelta(1, 5);  // page 0, knob 1 = pad_vol (VOL); queued
-  md.tick();                 // flush pending delta through applyKnobDelta
+  md.handleKnobDelta(volKnob, 5);   // queued
+  md.tick();                        // flush pending delta through applyKnobDelta
   globalThis.shadow_set_param = origSet;
   eq('normal edit writes p01_vol', seen.includes('synth:p01_vol'), true);
   eq('normal edit avoids alias pad_vol', seen.includes('synth:pad_vol'), false);
 
   // The automation info exposes the concrete I/O key for lane assignment.
-  const info = md.getKnobParamInfo(1);
+  const info = md.getKnobParamInfo(volKnob);
   eq('ioKey is concrete for focused pad', info.ioKey, 'p01_vol');
   eq('pad VOL automatable', info.automatable, true);
 
   // Switching the focused pad re-reads that pad's values immediately.
   md.updateDrumPad(5, 76);
   eq('focus moved to pad 5', md.getViewModel().drumCurrentPad, 5);
-  eq('VOL re-read for pad 5 (p05_vol=0.50)', md.getKnobParamInfo(1).value, 0.5);
-  eq('ioKey follows focus', md.getKnobParamInfo(1).ioKey, 'p05_vol');
+  eq('VOL re-read for pad 5 (p05_vol=0.50)', md.getKnobParamInfo(volKnob).value, 0.5);
+  eq('ioKey follows focus', md.getKnobParamInfo(volKnob).ioKey, 'p05_vol');
 
   // A Global-bank numeric param is non-automatable via bank.global (not `g_`).
   md.changePage(2);  // Main(0) → Rand(1) → Global(2)

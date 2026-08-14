@@ -5755,13 +5755,13 @@
     "QUALI"
    ],
    [
+    "SF",
     "POSIT",
     "SIZE",
     "DENSI",
     "SPRAY",
     "JITTE",
-    "GRAIN",
-    "SF"
+    "GRAIN"
    ],
    [
     "ENABL",
@@ -8278,12 +8278,12 @@
   "pageShortNames": [
    [
     "SAMPL",
+    "START",
     "VOL",
     "PAN",
-    "TUNE",
     "ATTK",
     "DECAY",
-    "START",
+    "TUNE",
     "MODE"
    ],
    [
@@ -8566,12 +8566,12 @@
     "GAIN"
    ],
    [
+    "SAMPL",
     "START",
     "LOOP",
     "LS",
     "END",
-    "XFADE",
-    "SAMPL"
+    "XFADE"
    ],
    [
     "ATTAC",

@@ -179,14 +179,11 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
     /* Sample waveform first among the late groups: it is the only graphic whose
      * whole purpose is resolution, so it gets a line before the cut pair does. */
     for (const g of detectWavViz(params)) {
-        if (used.size >= 2) break;
-        /* Pair with the sample file only when the module already put them on
-         * the SAME line. Dragging a file cell up from the other row would
-         * rewrite a hand-tuned layout — mrdrums puts its sample on row 0 and
-         * its start point on row 1, and pulling them together shifted every
-         * other knob on the page. */
-        const sameLine = g.file !== null && Math.floor(g.file / 4) === Math.floor(g.position / 4);
-        const idxs = sameLine ? [g.file as number, g.position] : [g.position];
+        /* Seat the sample and its marker together, the way an envelope gathers
+         * its stages — file first, so the waveform reads left-to-right with the
+         * marker over it. Modules routinely put them on different rows
+         * (mrdrums: sample on row 0, start on row 1). */
+        const idxs = g.file === null ? [g.position] : [g.file, g.position];
         if (idxs.some(i => claimed.has(i))) continue;
         /* Take a line only if it is the group's OWN line. Envelopes are placed
          * first and may already hold it (mrdrums: attack+decay on row 1, the
@@ -195,7 +192,9 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
          * happens the waveform still draws, just in the one cell it already
          * occupies, via wavCell below. */
         const want = (Math.floor(Math.min(...idxs) / 4)) as 0 | 1;
-        if (used.has(want)) { if (g.file === null || !sameLine) wavCell = g.position; continue; }
+        /* No line to be had — both are spoken for, or this group's own line is.
+         * The marker still draws, one cell wide, where the page already put it. */
+        if (used.size >= 2 || used.has(want)) { wavCell = g.position; continue; }
         const line = assign(idxs, want);
         if (line < 0) continue;
         /* Stretch into whatever the page is not using. A waveform is the one

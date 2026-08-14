@@ -11,7 +11,116 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
-## [Unreleased]
+## [0.27.0] — 2026-08-14
+
+### Added — parameter visualisations
+
+Movy already drew filter curves, envelopes and LFO shapes. This release extends
+that to the rest of a synth's page: a control now shows **what it is** in its own
+cell, so a page can be read at a glance instead of one five-character label at a
+time. Everything below is detected from what the module reports — no per-module
+configuration, and a control that does not genuinely qualify keeps its knob.
+
+- **Waveform selectors draw their wave.** A knob that picks an oscillator or LFO
+  shape draws the shape itself — sine, triangle, saw, square, pulse, ring,
+  wavetable, noise — rather than abbreviating its name. 22 selectors across the
+  79-module fleet qualify:
+
+  ![Waveform knob cells](docs/assets/wave_cells.png)
+
+  The full-screen list shows the same glyph beside every name, so choosing a
+  shape is a matter of recognising it:
+
+  ![The waveform list](docs/assets/wave_overlay.png)
+
+  Where a module's shapes are *stepped* — Helm's stepped ramp and pyramid — the
+  drawing carries the level count, so a 4-step ramp reads as four steps and a
+  16-step one as a slope:
+
+  ![Helm's stepped waveforms](docs/assets/wave_helm.png)
+
+  And where a module offers its waves as separate on/off switches instead of one
+  selector (9 placements), each draws solid when on, dotted when off:
+
+  ![Waveform on/off toggles](docs/assets/wave_toggles.png)
+
+- **A sampler shows its sample.** A playback **position** next to the file it
+  plays draws them as one graphic: the waveform of the sample, with the position
+  marked. The marker is **inverted over the wave** — a bright line through a
+  quiet passage, a dark notch through a loud one — so it stays the
+  highest-contrast thing on the line wherever it sits. The waveform is
+  normalised to the full cell height, so a quiet recording is still readable:
+
+  ![Sample waveform with position](docs/assets/wav_sample.png)
+
+  WAV (8/16/24-bit and float) and **AIFF** are both read, a block at a time in
+  the background so a long sample fills in over a moment instead of stalling the
+  knobs, and the result is kept until the file changes.
+
+- **Loop points draw as brackets on the sample.** A sampler's loop start and end
+  are drawn where they fall in the file, so the loop is visible as a span rather
+  than as two percentages:
+
+  ![Loop brackets on the waveform](docs/assets/wav_loop.png)
+
+  Parameters a module says do not currently apply are now **hidden** rather than
+  shown dead: switching the loop off takes its start/end away and the waveform
+  takes back the room:
+
+  ![The same page with the loop off](docs/assets/wav_loop_off.png)
+
+- **A granular sampler sprays visibly.** Grain **spray** is drawn as the span of
+  file it can reach around the play position, dotted at its edges — so you can
+  see it widen, and see it saturate once it covers the whole sample:
+
+  ![Granular spray across the sample](docs/assets/spray_saturated.png)
+
+- **Band gains draw an EQ curve.** Two or three band gains on a page (low / mid /
+  high, or a module's own names such as *Body* and *Air*) are placed in frequency
+  order and drawn as one response curve. The dotted line is 0 dB, so a cut reads
+  as clearly as a boost — shelves at the ends, a bell in the middle. 5 modules
+  qualify:
+
+  ![EQ band curve](docs/assets/eq_bands.png)
+
+- **Low cut and high cut draw the band they leave.** A cut pair on one page is
+  drawn as the band that survives it, each corner following its own knob; a cut
+  with no partner keeps its cell and shows just its corner, rising for a low cut
+  and falling for a high cut. 8 pairs and 8 lone cuts across the fleet:
+
+  ![Low and high cut curves](docs/assets/cut_filters.png)
+
+- **A lone attack or decay draws as a ramp.** An envelope stage with no ADSR
+  partners to group with is drawn as the ramp it is — a rise for an attack, a
+  fall for a decay — instead of an arc that says nothing about its shape. 21
+  placements, Plaits' `DECAY` among them. An attack/decay pair on one line is
+  drawn as the single shape it makes:
+
+  ![Lone attack and decay stages](docs/assets/env_stages.png)
+  ![A lone decay on Plaits' main page](docs/assets/plaits.png)
+
+- **Loudness knobs are faders.** A control that sets a level — a volume, a gain,
+  an oscillator or send level — is drawn as a fader: a filled bar between two
+  dotted rails with a head at the value. It fills from the bottom in every case,
+  so one glance across a page finds the levels. 140 parameters across 53 modules:
+
+  ![Loudness knobs drawn as faders](docs/assets/faders.png)
+
+  Only a genuine output level qualifies — an envelope's *Level*, a key-follow
+  amount, a compressor *Threshold* and anything measured in dB-per-something keep
+  their knobs, because each is an amount of something else.
+
+- **Booleans are on/off switches.** An on/off parameter is drawn as a switch,
+  filled with its knob to the right when on and hollow with the knob to the left
+  when off, so its state reads from across the desk. 222 parameters across 44
+  modules, plus Movy's own Retrigger and Play Link:
+
+  ![Boolean knobs drawn as switches](docs/assets/switches.png)
+
+Several of these share a page routinely — here a drum pad's sample, its level,
+its attack and its mode, each drawn as what it is:
+
+  ![Graphics sharing one page](docs/assets/drum-mrdrums-pad5.png)
 
 ### Changed
 
@@ -52,6 +161,29 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Two graphics side by side no longer merge into one.** A curve or waveform
+  that ran to the very edge of its cell touched whatever was drawn next to it,
+  reading as a single shape. Every span graphic is now inset by the same amount
+  on both sides — but only where it meets a neighbour, never against the screen
+  edge, where there is nothing to separate from and the pixels were wasted:
+
+  ![Graphics that meet, kept apart](docs/assets/wav_beside_filter.png)
+
+- **A sample position no longer jumps to the start when you let go.** A sampler's
+  position is a fractional value the module reports as an integer type, so
+  releasing the knob wrote back a rounded 0 and the sound snapped to the top of
+  the file. Movy now keeps the value the knob is actually holding.
+
+- **The browse hint appears on the chain page too.** The prompt that tells you a
+  long jog press opens the module browser only showed on parameter pages, which
+  is not where you go looking to change a module.
+
+- **Watching a parameter's visibility costs nothing.** Deciding whether a control
+  applies was polled from the host every tick, then on a throttle; it is now read
+  from the value the ordinary refresh already caches, so it makes no host call at
+  all. Sample peaks also survive a resize — toggling a loop used to widen the
+  graphic and re-read the whole file, which is exactly when the stall was felt.
+
 - **A loop set in the middle of a part now works at all.** Pressing two bars to
   loop, say, bars 3–4 left every view wrong, because the engine stores an
   absolute window while the display read the loop's *length* as if it always
@@ -74,6 +206,9 @@ far. Earlier work is summarised in the timeline below for context.
 - **Setting a loop no longer strands the view outside it.** Pressing two bars, or
   shrinking with Loop + jog, left the viewed bar where it was — which could be a
   bar that had just stopped playing, so edits went somewhere you could not hear.
+  Navigating out of the loop deliberately still works, and the strip says so:
+
+  ![Navigated past the loop](docs/assets/loop_strip_outside.png)
 - **A bar double-tap is a consistent length now.** The window counted engine
   ticks, and the tick rate moves with load (63–205 Hz observed), so the same
   double-tap was anywhere from 0.29 s to 0.95 s depending on what the UI was

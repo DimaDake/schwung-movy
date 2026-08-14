@@ -230,7 +230,27 @@ automatically. You don't configure anything for most modules.
 
   The file is read a little at a time in the background, so a long sample fills
   in over a moment rather than stalling the knobs, and the result is kept until
-  the file or its size changes.
+  the file or its size changes. WAV (8/16/24-bit and float) and AIFF are both
+  read; the waveform is normalised to the full height of the cell, so a quiet
+  recording is as readable as a loud one.
+
+  **Loop points** are drawn on the same waveform as brackets, where they fall in
+  the file — the loop is a span you can see rather than two percentages:
+
+  ![Loop brackets on the waveform](docs/assets/wav_loop.png)
+
+  **Grain spray** (on a granular sampler) is drawn as the stretch of file the
+  grains can reach around the position, dotted at its edges, so you can watch it
+  widen and see when it has saturated the whole sample:
+
+  ![Granular spray across the sample](docs/assets/spray_saturated.png)
+
+- **Parameters that do not apply are hidden** — when a module says a control is
+  inactive in the current mode, Movy takes it off the page instead of showing a
+  dead knob, and the remaining graphics take back the room. Switching a sampler's
+  loop off removes its loop start and end:
+
+  ![The same page with the loop off](docs/assets/wav_loop_off.png)
 
 - **Low cut / high cut** — a **Low Cut** and a **High Cut** on the same page are
   reordered onto one line and drawn as the band they leave behind; each corner

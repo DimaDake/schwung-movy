@@ -67,6 +67,16 @@ Movy stands on the shoulders of several projects:
   ![Filter curve](docs/assets/filter_lp.png)
   ![Enum overlay](docs/assets/enum_overlay.png)
 
+- **Every control drawn as what it is** — waveform selectors draw their wave, a
+  sampler draws its sample with the play position, loop and grain spray on it,
+  band gains draw an EQ curve, cuts draw the band they leave, levels are faders
+  and booleans are switches. All detected from what the module reports.
+
+  ![Waveform knob cells](docs/assets/wave_cells.png)
+  ![Sample waveform with position](docs/assets/wav_sample.png)
+  ![Loudness knobs drawn as faders](docs/assets/faders.png)
+  ![Boolean knobs drawn as switches](docs/assets/switches.png)
+
 - **Full chain navigation** — MIDI FX, Synth, FX 1, FX 2 per track, plus a
   master FX chain in Session view.
 

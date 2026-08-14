@@ -266,6 +266,25 @@ export const MOCK_SYNTHS = {
         "synth:loop_start": "0.40", "synth:loop_end": "0.80", "synth:loop_xfade_ms": "20",
     },
 
+    /* Faders: loudness params next to two knobs that merely mention level-ish
+     * words, so the rule's exclusions are visible in the picture too. */
+    faders: {
+        "synth:name": "Faders",
+        "synth:ui_hierarchy": hier([
+            { key: "volume",    label: "Volume",   type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "gain",      label: "Gain",     type: "float", min: 0, max: 2, step: 0.01 },
+            { key: "lvl_snare", label: "Snare",    type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "sub_level", label: "Sub",      type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "trim_db",   label: "Trim",     type: "float", min: -12, max: 12, step: 0.5 },
+            { key: "pre_gain",  label: "Pre Gain", type: "float", min: -60, max: 30, step: 1 },
+            { key: "cutoff",    label: "Cutoff",   type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "rate",      label: "Rate",     type: "float", min: 0, max: 1, step: 0.01 },
+        ]),
+        "synth:volume": "0.75", "synth:gain": "0.3", "synth:lvl_snare": "1.0",
+        "synth:sub_level": "0", "synth:trim_db": "0", "synth:pre_gain": "-9",
+        "synth:cutoff": "0.5", "synth:rate": "0.4",
+    },
+
     /* Low/high cut. Row 1 is the PAIR — reordered lowcut-first and drawn as one
      * band-pass across two cells. Row 2 is the two SINGLE cases, each one cell,
      * plus a slope and a filter mod amount that must keep their knobs. */

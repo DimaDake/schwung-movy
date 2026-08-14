@@ -85,6 +85,7 @@ import { detectWavViz } from '../dist/esm/model/wav-viz.js';
 import { wavPeaksTick, wavPeaks, resetWavPeaks, resamplePeaks, PEAK_WIDTH } from '../dist/esm/model/wav-peaks.js';
 import { drawWavForm } from '../dist/esm/renderer/wav-form.js';
 import { drawFilterCurve } from '../dist/esm/renderer/filter-curve.js';
+import { isFaderParam } from '../dist/esm/model/fader.js';
 import { renderKnobsView } from '../dist/esm/renderer/knob-view.js';
 import { renderChainView } from '../dist/esm/renderer/chain-view.js';
 import { lfoTargetsParam, assignLfoTarget, clearLfoTarget } from '../dist/esm/lfo/assign.js';
@@ -7561,6 +7562,62 @@ _log('\nTest: the browse hint is drawn on every view that shows the overlay');
     };
     eq('knobs view draws the browse hint', bottomLit(() => renderKnobsView(vm, false, 0)) > 0, true);
     eq('chain view draws it too', bottomLit(() => renderChainView(vm, 1, false, 'T1')) > 0, true);
+}
+
+_log('\nTest: loudness knobs become faders');
+{
+    const P = (key, label, min = 0, max = 1, type = 'float') => ({ key, label, type, min, max });
+    const yes = (k, l, mn, mx) => eq(`${l} is a fader`, isFaderParam(P(k, l, mn, mx)), true);
+    const no  = (k, l, mn, mx) => eq(`${l} is NOT a fader`, isFaderParam(P(k, l, mn, mx)), false);
+
+    yes('volume', 'Volume'); yes('gain', 'Gain'); yes('lvl_snare', 'Snare');
+    yes('op1_level', 'Op1 Lvl', 0, 99); yes('send_fx_1', 'Send FX 1 Level');
+    yes('master_vol', 'Master Vol');
+
+    /* The exclusions carry the rule. Each of these is a real fleet param that
+     * says "level" while being an amount of something else. */
+    no('random_vol', 'Rdm Vol');                       // granular: a randomiser
+    no('level_var', 'Level Var', 0, 100);              // obxd: variance
+    no('nvram_tone_0_levelkeyfollow', 'Level KF', 0, 15);  // minijv: glued role
+    no('mat_2_7', 'S&H->Level', -1, 1);                // denis: a mod-matrix row
+    no('amp_env_level', 'Env Level');                  // a modulation of a level
+    no('vel_vol', 'Vel Vol');                          // velocity sensitivity
+    no('pan', 'Pan', -1, 1);                           // placement
+    no('gain_thres', 'Threshold', -60, 0);             // dynamics
+    // Not continuous, so a fader would be the wrong shape entirely.
+    eq('an enum called Volume stays an enum',
+        isFaderParam({ key: 'volume', label: 'Volume', type: 'enum', min: 0, max: 1 }), false);
+
+}
+
+_log('\nTest: the fader graphic');
+{
+    const { drawKnobWidget } = await import('../dist/esm/renderer/knob.js');
+    /* Column of lit pixels at the fader's centre line, top row first. The rails
+     * sit 4px to either side, so sampling the centre sees only fill and head. */
+    const CX = 16;                                       // cell 0: kx=8, centre kx+8
+    const column = (normalizedValue) => {
+        const lit = [];
+        const orig = globalThis.fill_rect;
+        globalThis.fill_rect = (x, y, w, h, v) => {
+            if (v !== 1 || x > CX || x + w <= CX) return;
+            for (let i = 0; i < h; i++) lit.push(y + i);
+        };
+        drawKnobWidget(0, 0, {
+            shortName: 'VOL', fullName: 'Volume', type: 'float',
+            renderStyle: 'vbar', normalizedValue, value: '', enumIndex: 0,
+        });
+        globalThis.fill_rect = orig;
+        return lit.sort((a, b) => a - b);
+    };
+    /* The fill runs from the head down to the bottom of the travel — never from
+     * a mid-point. Bipolar gains fill from the bottom too (no faderZero). */
+    const c25 = column(0.25);
+    eq('fader fills to the bottom of the travel', c25[c25.length - 1], 14);
+    eq('at 25% the head sits a quarter up', c25[0], 11);
+    eq('at 100% the head is at the top', column(1)[0], 1);
+    /* At 0 there is no fill at all, only the 1px head on the bottom row. */
+    eq('at 0 only the head is drawn', column(0).join(','), '14');
 }
 
 _log('\nTest: adjacent graphics keep a gap on both sides');

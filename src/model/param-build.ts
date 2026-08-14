@@ -2,6 +2,7 @@
  * structure; this file owns what a single knob looks like once its metadata has
  * been gathered from chain_params and/or ui_hierarchy. */
 import type { KnobParam } from '../types/param.js';
+import { isFaderParam } from './fader.js';
 import { cellStyleFor } from './step-labels.js';
 
 /* One param's metadata as published by a module — either a chain_params entry
@@ -97,4 +98,12 @@ export function buildGenericParam(key: string, cp: RawMeta, def: RawMeta): KnobP
             ? { filepathParam: String(cp.filepath_param ?? def.filepath_param) } : {}),
         ...(metaGuessed ? { metaGuessed: true } : {}),
     };
+}
+
+/* A loudness param draws as a fader unless the module's own config asked for
+ * something else. Applied AFTER the param is built so the rule can read the
+ * resolved label, which is where half the naming lives. */
+export function applyFaderStyle(p: KnobParam): KnobParam {
+    if (p.renderStyle === 'arc' && isFaderParam(p)) p.renderStyle = 'vbar';
+    return p;
 }

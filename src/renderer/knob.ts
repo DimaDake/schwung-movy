@@ -41,14 +41,31 @@ function drawHorzBar(kx: number, ky: number, normVal: number): void {
     if (fillW > 0) fill_rect(kx + 2, ky + 6, fillW, 4, 1);
 }
 
-/* Vertical bar: fills bottom→up — used for mix/volume params in module configs */
-function drawVertBar(kx: number, ky: number, normVal: number): void {
-    fill_rect(kx + 5, ky + 1, 6, 1, 1);
-    fill_rect(kx + 5, ky + 14, 6, 1, 1);
-    fill_rect(kx + 5, ky + 1, 1, 14, 1);
-    fill_rect(kx + 10, ky + 1, 1, 14, 1);
-    const fillH = Math.round(normVal * 12);
-    if (fillH > 0) fill_rect(kx + 6, ky + 2 + (12 - fillH), 4, fillH, 1);
+/* A mixer fader, for loudness params (see model/fader.ts).
+ *
+ * Three elements only: two dotted rails marking the travel, a 3px column filled
+ * from the bottom, and a 1px head across it. Earlier passes drew a track line, a
+ * slot through the head and a ladder of metering ticks; at 13 pixels of travel
+ * all of that collides with itself and the thing stops reading as a fader.
+ *
+ * The rails are dotted so they stay a scale rather than becoming a second bar
+ * competing with the fill, and they sit a pixel clear of it on each side.
+ *
+ * Always fills from the bottom, including on bipolar gains. A −60..+30 range
+ * would want its origin two thirds up, but a fader whose fill starts somewhere
+ * different per param is a worse picture than a consistent one — the number
+ * under it already says which side of unity you are on. */
+function drawFader(kx: number, ky: number, normVal: number): void {
+    const top = ky + 1, bot = ky + 14, h = bot - top;
+    const cx = kx + 8;
+
+    for (let y = top; y <= bot; y += 2) {
+        fill_rect(cx - 4, y, 1, 1, 1);
+        fill_rect(cx + 4, y, 1, 1, 1);
+    }
+    const y = Math.round(bot - Math.max(0, Math.min(1, normVal)) * h);
+    if (y < bot) fill_rect(cx - 1, y, 3, bot - y + 1, 1);
+    fill_rect(cx - 3, y, 7, 1, 1);                   // head
 }
 
 function drawEnumSquare(kx: number, ky: number, options: string[] | null, enumIndex: number): void {
@@ -281,7 +298,7 @@ export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
     } else if (pvm.renderStyle === 'hbar') {
         drawHorzBar(kx, ky, pvm.normalizedValue);
     } else if (pvm.renderStyle === 'vbar') {
-        drawVertBar(kx, ky, pvm.normalizedValue);
+        drawFader(kx, ky, pvm.normalizedValue);
     } else {
         drawArcKnob(kx, ky, pvm.normalizedValue);
     }

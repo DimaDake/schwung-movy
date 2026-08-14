@@ -10,7 +10,7 @@ import type { WalkLevel } from './hierarchy-walk.js';
 import { makeExtrasPicker } from './level-extras.js';
 import { buildPresetParam } from './preset-param.js';
 import type { RawMeta } from './param-build.js';
-import { buildGenericParam } from './param-build.js';
+import { applyFaderStyle, buildGenericParam } from './param-build.js';
 
 export interface GenericLevel {
     name?: string;
@@ -130,9 +130,9 @@ export function buildGenericPages(
             if (!key) { s.knobParams.push(null); continue; }
             if (key === listParam && presetParam) { s.knobParams.push(presetParam); continue; }
 
-            s.knobParams.push(buildGenericParam(
+            s.knobParams.push(applyFaderStyle(buildGenericParam(
                 key, cpMap[key] ?? {}, paramDefs[key] ?? knobInline[key] ?? {},
-            ));
+            )));
         }
     }
 

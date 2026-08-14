@@ -11,6 +11,8 @@ export interface ParamVM {
     renderStyle:     'arc' | 'hbar' | 'vbar' | 'preset' | 'xbox' | 'steps' | 'wave' | 'envstage' | 'cut';   // xbox = framed X (LFO target None); hbar doubles as a binary on/off bar; steps = framed number (octave/voice count); wave = waveform silhouette; envstage = a lone attack/decay ramp
     waveShape?:      number;    // glyph id for renderStyle 'wave' (see lfo-shapes.ts)
     waveOff?:        boolean;   // waveform toggle that is currently NOT sounding → drawn dotted
+    /* Fader origin, 0..1 of travel — unity on a bipolar gain. Absent (fills
+     * from the bottom) for an ordinary level. */
     envStage?:       'a' | 'd'; // which stage renderStyle 'envstage' draws (attack is the mirror)
     cutKind?:        'lowcut' | 'highcut';   // lone cut drawn as one corner (renderStyle 'cut')
     automated:       boolean;   // lane has ≥1 lock → show the dot

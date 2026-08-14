@@ -8,6 +8,7 @@ import { KNOBS_PER_PAGE } from './constants.js';
 import { buildPresetParam } from './preset-param.js';
 import type { RawMeta } from './param-build.js';
 import { inferBehavior, inferAcceleration, parseFilter } from './param-build.js';
+import { isFaderParam } from './fader.js';
 import { cellStyleFor } from './step-labels.js';
 
 interface CfgLevel { count_param?: string; name_param?: string }
@@ -87,6 +88,11 @@ export function buildConfigPages(
                 const style = slot.render
                     ? { renderStyle: slot.render }
                     : cellStyleFor(slot.key, type as KnobParam['type'], min, max);
+                /* A hand-written config states the layout; the fader rule only
+                 * fills in where it said nothing. */
+                const autoFader = !slot.render && style.renderStyle === 'arc'
+                    && isFaderParam({ key: slot.key, label: String(slot.full || cp.name || hier.label || slot.key),
+                                      type: type as KnobParam['type'], min, max } as KnobParam);
                 const behavior = inferBehavior(slot.behavior ?? hier.behavior ?? cp.behavior, options);
                 const param: KnobParam = {
                     key:        slot.key,
@@ -94,6 +100,7 @@ export function buildConfigPages(
                     shortLabel: slot.short ?? null,
                     type:       type as KnobParam['type'],
                     options, min, max, step, ...style,
+                    ...(autoFader ? { renderStyle: 'vbar' as const } : {}),
                     env:        slot.env,
                     lfo:        slot.lfo,
                     filter:     slot.filter,

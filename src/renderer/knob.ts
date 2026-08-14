@@ -34,35 +34,39 @@ function drawArcKnob(kx: number, ky: number, normVal: number): void {
 
 /* An on/off switch, for boolean params (see model/toggle.ts).
  *
- * A 16x11 pill with a 7px round knob that slides to the right when on. The ON
- * state also INVERTS: the pill fills and the knob is knocked out of it. Position
- * alone is too weak a signal at 5px of travel — on a page of eight switches you
- * would have to inspect each one. Filled-vs-outline reads at a glance, which is
- * the whole reason a switch beats the two-item enum square it replaces.
+ * A 26x11 capsule with a 9px knob that slides right when on. The ON state also
+ * INVERTS — the capsule fills and the knob is knocked out of it. Position alone
+ * is too weak a signal at this size: on a page of eight switches you would have
+ * to inspect each one, where filled-vs-outline reads at a glance. That is the
+ * whole reason a switch beats the two-item enum square it replaces.
  *
- * The knob's 7px diameter leaves exactly 1px clear above and below, so its curve
- * echoes the pill's end cap; a smaller knob floating in the middle read as a
- * bar with a dot on it rather than something that slides. */
+ * The three tables below are ONE circle at three radii. The capsule's end cap is
+ * a circle of radius 5; eroding it by a pixel gives the interior (radius 4), and
+ * the knob is that same radius-4 circle. So the knob nests in the cap
+ * concentrically with a uniform 1px gap, instead of being a round dot rattling
+ * inside a squarish box — which is what a hand-stepped 2px chamfer looked like.
+ *
+ * Tables rather than per-pixel math because this redraws every frame for every
+ * knob, and movy's tick period is also its MIDI sampling interval. */
+const SW_X = [4, 2, 1, 1, 0, 0, 0, 1, 1, 2, 4];          // capsule, r=5
+const SW_W = [18, 22, 24, 24, 26, 26, 26, 24, 24, 22, 18];
+const SW_IN_X = [3, 1, 1, 0, 0, 0, 1, 1, 3];             // eroded by 1px, r=4
+const SW_IN_W = [18, 22, 22, 24, 24, 24, 22, 22, 18];
+const SW_KN_X = [3, 1, 1, 0, 0, 0, 1, 1, 3];             // the same r=4 circle
+const SW_KN_W = [3, 7, 7, 9, 9, 9, 7, 7, 3];
+
 function drawSwitch(kx: number, ky: number, on: boolean): void {
-    const x = kx, y = ky + 2, w = 16, h = 11;
-    /* Corners stepped in 2px. A 1px chamfer still read as a rectangle. */
-    if (on) {
-        fill_rect(x + 2, y, w - 4, h, 1);
-        fill_rect(x + 1, y + 1, w - 2, h - 2, 1);
-        fill_rect(x, y + 2, w, h - 4, 1);
-    } else {
-        fill_rect(x + 2, y, w - 4, 1, 1);
-        fill_rect(x + 2, y + h - 1, w - 4, 1, 1);
-        fill_rect(x, y + 2, 1, h - 4, 1);
-        fill_rect(x + w - 1, y + 2, 1, h - 4, 1);
-        for (const [dx, dy] of [[1, 1], [w - 2, 1], [1, h - 2], [w - 2, h - 2]])
-            fill_rect(x + dx, y + dy, 1, 1, 1);
-    }
-    const cx = on ? x + 10 : x + 5, cy = y + 5;
-    const v: 0 | 1 = on ? 0 : 1;                     // knocked out of a filled pill
-    fill_rect(cx - 1, cy - 3, 3, 1, v); fill_rect(cx - 1, cy + 3, 3, 1, v);
-    fill_rect(cx - 2, cy - 2, 5, 1, v); fill_rect(cx - 2, cy + 2, 5, 1, v);
-    fill_rect(cx - 3, cy - 1, 7, 3, v);
+    /* 26 wide in a 32px cell, so it straddles the 16px knob box — the same
+     * liberty drawWaveCell takes. Width is set by the knob, not by taste: with a
+     * real semicircular cap the knob is nearly as tall as the capsule, and at 20
+     * wide it ate half the fill, leaving ON and OFF pixel-identical across the
+     * centre rows. The extra width is what lets the inversion read. */
+    const x = kx - 5, y = ky + 2;
+    for (let i = 0; i < 11; i++) fill_rect(x + SW_X[i], y + i, SW_W[i], 1, 1);
+    if (!on) for (let i = 0; i < 9; i++) fill_rect(x + 1 + SW_IN_X[i], y + 1 + i, SW_IN_W[i], 1, 0);
+    const seat = on ? x + 16 : x + 1;                    // 1px clear of the cap
+    const v: 0 | 1 = on ? 0 : 1;                         // knocked out when filled
+    for (let i = 0; i < 9; i++) fill_rect(seat + SW_KN_X[i], y + 1 + i, SW_KN_W[i], 1, v);
 }
 
 /* Horizontal bar: fills left→right — used for binary (on/off) params */

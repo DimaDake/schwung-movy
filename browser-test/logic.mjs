@@ -7646,9 +7646,10 @@ _log('\nTest: booleans become on/off switches');
 _log('\nTest: the switch graphic');
 {
     const { drawKnobWidget } = await import('../dist/esm/renderer/knob.js');
-    /* One row of the switch as a bitmap string. Single pixels are useless here:
-     * when ON, the knob is a HOLE punched in a filled pill, so the same
-     * coordinate can be dark in both states for opposite reasons. */
+    /* One row of the switch as a bitmap string, across the 26px capsule (cell 0
+     * spans x=3..28). Single pixels are useless here: when ON the knob is a HOLE
+     * punched in a filled capsule, so a coordinate can be dark in both states
+     * for opposite reasons. */
     const row = (vm, ry) => {
         const lit = new Set();
         const orig = globalThis.fill_rect;
@@ -7664,26 +7665,37 @@ _log('\nTest: the switch graphic');
         });
         globalThis.fill_rect = orig;
         let out = '';
-        for (let x = 8; x < 24; x++) out += lit.has(x + ',' + ry) ? '#' : '.';
+        for (let x = 3; x < 29; x++) out += lit.has(x + ',' + ry) ? '#' : '.';
         return out;
     };
     const OFF = { normalizedValue: 0 }, ON = { normalizedValue: 1 };
 
     /* Centre row. OFF is an outline with the knob parked left; ON fills the
-     * whole pill and knocks the knob out on the right. That inversion is the
-     * signal — position alone is 5px of travel and unreadable across a page. */
-    eq('OFF: hollow pill, knob left',  row(OFF, 7), '#.#######......#');
-    eq('ON: filled pill, knob right',  row(ON, 7),  '#######.......##');
+     * capsule and knocks the knob out on the right. */
+    eq('OFF: hollow capsule, knob left',
+        row(OFF, 7), '##########...............#');
+    eq('ON: filled capsule, knob right',
+        row(ON, 7),  '################.........#');
 
-    /* Top and bottom rows are identical in both states: the 2px corner chamfer
-     * is what makes it a pill rather than a rectangle at this size. */
-    eq('OFF top edge is chamfered',    row(OFF, 2),  '..############..');
-    eq('ON top edge is chamfered',     row(ON, 2),   '..############..');
-    eq('bottom edge matches the top',  row(OFF, 12), row(OFF, 2));
+    /* The states must differ on every INTERIOR row (3..11 — the outermost two
+     * are pure cap arc and identical by design). At 20px wide the knob ate half
+     * the fill and rows 6-8 came out pixel-identical in both states, silently
+     * destroying the filled-vs-outline signal that the whole design rests on. */
+    let same = 0;
+    for (let ry = 3; ry <= 11; ry++) if (row(OFF, ry) === row(ON, ry)) same++;
+    eq('every interior row differs between states', same, 0);
 
-    /* The knob is 7px across, so it fills the pill's 11px height with exactly
-     * 1px of clearance — rows 3 and 11 stay clear of it on the seated side. */
-    eq('knob clears the pill top',     row(OFF, 3).slice(2, 9), '.......');
+    /* Cap and knob come from one circle at two radii, so the knob nests with a
+     * uniform 1px gap. Row 3 is where a stepped chamfer used to disagree with a
+     * round knob: the cap is inset 2 and the knob 1 further, every row. */
+    eq('OFF row 3 nests the knob in the cap',
+        row(OFF, 3),  '..#####...............##..');
+    eq('OFF top edge is the cap arc',
+        row(OFF, 2),  '....##################....');
+    eq('bottom edge mirrors the top',
+        row(OFF, 12), row(OFF, 2));
+    eq('ON keeps the same outer silhouette',
+        row(ON, 2),   row(OFF, 2));
 
     /* An enum switch reads its state from the option INDEX, not the value: its
      * normalizedValue is whatever the range happens to make of index 1. */

@@ -3,7 +3,7 @@ import { wavPeaksTick } from './wav-peaks.js';
 import { loadHierarchy, visibilitySignature } from './hierarchy.js';
 import { applyKnobDelta, refreshOneParam, pollModuleName, refreshModulatedKeys, slotToLocal } from './store.js';
 import { triggerAnimationTick } from './trigger.js';
-import { KNOBS_PER_PAGE, NAME_POLL_TICKS } from './constants.js';
+import { VISIBILITY_POLL_TICKS, KNOBS_PER_PAGE, NAME_POLL_TICKS } from './constants.js';
 import { retryUnsettledMeta } from './meta-retry.js';
 import { mlog } from '../log.js';
 
@@ -23,8 +23,9 @@ export function processTick(s: ModelState): boolean {
 
     /* A visible_if controller moved (mrsample's Loop switch) — the page's param
      * set is different now, so rebuild it. Cheap to check, rare to fire. */
-    if (s.visibilityWatch.length > 0 && visibilitySignature(s) !== s.visibilitySig) {
-        s.hierarchyKey = '';
+    if (s.visibilityWatch.length > 0 && --s.visibilityCountdown <= 0) {
+        s.visibilityCountdown = VISIBILITY_POLL_TICKS;
+        if (visibilitySignature(s) !== s.visibilitySig) s.hierarchyKey = '';
     }
 
     if (s.hierarchyKey !== s.activeModuleName) {

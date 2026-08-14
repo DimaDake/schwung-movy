@@ -7442,6 +7442,31 @@ _log('\nTest: visible_if hides params, and their LEDs go dark');
     const anyNull = rows.flat().some(c => c === null);
     eq('the page has dark (null) cells to spare', anyNull, true);
 
+    /* The controller is re-read on a throttle, not every tick: movy's tick
+     * period is its MIDI sampling interval, so a per-tick IPC read is paid for
+     * in input latency. Toggling must still take effect promptly. */
+    {
+        const m = bootModel({ ...MOCK_SYNTHS.wav_loop, 'synth:loop_mode': 'off' }, 0, 'synth');
+        eq('starts hidden', m.dumpLayout().params.filter(Boolean).map(p => p.key).includes('loop_start'), false);
+        let gets = 0;
+        const orig = globalThis.shadow_get_param;
+        globalThis.shadow_get_param = (slot, key) => {
+            if (key === 'synth:loop_mode') gets++;
+            return orig(slot, key);
+        };
+        for (let i = 0; i < 64; i++) m.tick();
+        globalThis.shadow_get_param = orig;
+        /* 64 ticks at a 16-tick throttle is ~4 polls; the round-robin refresh
+         * reads it too, so allow headroom but catch a per-tick read. */
+        eq('controller is not polled every tick', gets < 20, true);
+
+        // A toggle still lands within the throttle window.
+        globalThis.shadow_set_param(0, 'synth:loop_mode', 'on');
+        for (let i = 0; i < 40; i++) m.tick();
+        eq('toggling shows the hidden params', 
+            m.dumpLayout().params.filter(Boolean).map(p => p.key).includes('loop_start'), true);
+    }
+
     // Index-style enum values work too: a module may report "1" instead of "on".
     const idx = bootModel({ ...MOCK_SYNTHS.wav_loop, 'synth:loop_mode': '1' }, 0, 'synth');
     eq('numeric enum value satisfies equals:"on"',

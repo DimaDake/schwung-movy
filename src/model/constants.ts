@@ -3,6 +3,12 @@
 export const META_RETRY_LIMIT       = 8;
 export const NAME_POLL_TICKS        = 344;  /* ~1 s at device tick rate */
 export const LONG_PRESS_TICKS       = 172;  /* ~0.5 s */
+/* How often a visible_if controller is re-read. movy's tick period IS its MIDI
+ * sampling interval, so an IPC read on EVERY tick is paid for in input latency
+ * — but the page must still follow a toggle quickly enough to feel immediate.
+ * ~16 ticks is well under the ~150 ms a user reads as instant, and cuts the
+ * cost to well under a tenth of a call per tick. */
+export const VISIBILITY_POLL_TICKS  = 16;
 export const REFRESH_SUPPRESS_TICKS = 100;  /* ticks of knob-idle before refresh resumes (~200 ms) */
 /* Hold-without-moving before a "you can also do X here" gesture fires: knob
  * hold → LFO assign mode, jog touch → the bottom CLICK JOG hint. One constant

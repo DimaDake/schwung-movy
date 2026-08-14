@@ -76,6 +76,7 @@ export interface ModelState {
     hiddenKeys:          Set<string>;
     visibilityWatch:     string[];
     visibilitySig:       string;
+    visibilityCountdown: number;
     enumOverlay:         EnumOverlay | null;
     fileOverlay:         FileOverlay | null;
     activeModuleName:    string;
@@ -145,6 +146,7 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         hiddenKeys:          new Set<string>(),
         visibilityWatch:     [],
         visibilitySig:       '',
+        visibilityCountdown: 0,
         enumOverlay:         null,
         fileOverlay:         null,
         activeModuleName:    '—',

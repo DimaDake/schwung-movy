@@ -62,6 +62,10 @@ export interface WavLine {
     line: 0 | 1; startCol: number; cellCount: number;
     position: number; idxs: number[];
     markers: import('./wav-viz.js').WavMarker[];
+    /* Page index of the spread param the fences come from, if the module has
+     * one. Absorbed like a marker, so it frees its knob cell and the graphic
+     * widens by one — the picture pays for its own width. */
+    spray: number | null;
 }
 export interface PageLayout {
     cells: PageCell[]; envelopes: EnvLine[]; lfos: LfoLine[];
@@ -193,7 +197,8 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
          * Start and Loop End are separate knobs that only mean something
          * against the region that plays, so they share the one graphic. */
         const markerIdxs = g.markers.map(mk => mk.idx);
-        const idxs = g.file === null ? markerIdxs : [g.file, ...markerIdxs];
+        const withSpray = g.spray === null ? markerIdxs : [...markerIdxs, g.spray];
+        const idxs = g.file === null ? withSpray : [g.file, ...withSpray];
         if (idxs.some(i => claimed.has(i))) continue;
         /* Take a line only if it is the group's OWN line. Envelopes are placed
          * first and may already hold it (mrdrums: attack+decay on row 1, the
@@ -217,7 +222,7 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
         rowSpan[line] = cellCount;
         wavs.push({
             line: line as 0 | 1, startCol: 0, cellCount,
-            position: g.position, idxs, markers: g.markers,
+            position: g.position, idxs, markers: g.markers, spray: g.spray,
         });
     }
 

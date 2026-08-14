@@ -186,7 +186,12 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
      * chunked across ticks in processTick, so this stays allocation-light and
      * never touches the filesystem on a render. */
     const wavViz: import('../types/viewmodel.js').WavVizVM[] = layout.wavs.map((wv) => {
-        const fileIdx = wv.idxs.find((i) => i !== wv.position);
+        /* The file is the one absorbed index that is neither a marker nor the
+         * spread — picking "the first index that is not the position" started
+         * returning a loop bound (or the spray) once the group grew. */
+        const notFile = new Set<number>(wv.markers.map((m) => m.idx));
+        if (wv.spray !== null) notFile.add(wv.spray);
+        const fileIdx = wv.idxs.find((i) => !notFile.has(i));
         const path = fileIdx === undefined ? null : (s.fileValues[pageStart + fileIdx] ?? null);
         const width = wv.cellCount * 32;
         s.wavRequest = path ? { path, width } : null;
@@ -202,6 +207,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             position: norm01(wv.position),
             loopStart: at('loopStart'),
             loopEnd: at('loopEnd'),
+            ...(wv.spray === null ? {} : { spray: norm01(wv.spray) }),
         };
     });
     /* Lone marker that kept its own cell: same graphic, one cell wide, at

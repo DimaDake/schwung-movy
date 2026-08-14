@@ -100,6 +100,10 @@ export interface WavVizVM {
     /* Loop bounds on the same sample, 0..1, drawn as brackets. */
     loopStart?: number;
     loopEnd?:   number;
+    /* Granular spread around , 0..1 of the WHOLE file, drawn as a
+     * fence either side. Grains wrap past the file edges, and +-0.5 already
+     * covers everything, so the drawing wraps and saturates to match. */
+    spray?:     number;
 }
 
 export interface ToastState {

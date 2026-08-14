@@ -14,7 +14,20 @@ export interface WavGroup {
     position: number;        // page-relative index of the primary marker
     file: number | null;     // its sample-file companion on this page, if any
     markers: WavMarker[];    // every marker on the same sample, primary first
+    spray: number | null;    // random spread around the position, if declared
 }
+
+/* A granular sampler picks each grain from a random offset around the position,
+ * which is a REGION on the same axis the marker already lives on — so it draws
+ * as a pair of fences rather than as a knob showing a percentage.
+ *
+ * The key must match exactly. "Spread", "Scatter", "Diffuse" are all over the
+ * fleet and not one of them is a read-position spread: granny's OWN `spread` is
+ * stereo width between voices, fizzik/nusaw/freak spread is stereo, chordism's
+ * is chord voicing, cloudseed's diffusion is a reverb control. Matching them
+ * would draw a region on the sample that the DSP never reads from. */
+const isSprayParam = (p: KnobParam): boolean =>
+    p.key.toLowerCase() === 'spray' && p.type === 'float' && p.min === 0 && p.max === 1;
 
 /* Index of the file param a marker names, or -1. */
 const declaredFile = (params: (KnobParam | null)[], p: KnobParam): number =>
@@ -74,5 +87,13 @@ export function detectWavViz(params: (KnobParam | null)[]): WavGroup[] {
         const sameFile = file !== null && declaredFile(params, p) === file;
         if (sameGroup || sameFile) markers.push({ idx: i, kind: markerKind(p) });
     });
-    return [{ position, file, markers }];
+
+    /* Only a PLAYBACK cursor has a spread — a loop bound does not. */
+    let spray: number | null = null;
+    if (markerKind(marker) === 'position') {
+        params.forEach((p, i) => {
+            if (spray === null && p && i !== position && isSprayParam(p)) spray = i;
+        });
+    }
+    return [{ position, file, markers, spray }];
 }

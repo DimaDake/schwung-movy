@@ -58,7 +58,32 @@ export function drawWavForm(rowY: number, viz: WavVizVM): void {
     bracket(viz.loopStart, true);
     bracket(viz.loopEnd, false);
 
-    const mi = Math.min(w - 1, Math.floor(Math.max(0, Math.min(1, viz.position)) * w));
+    /* Granular spread: the region grains are actually drawn from, as a dotted
+     * fence either side of the cursor. Dotted rather than solid so it reads as
+     * a boundary the cursor may wander past, not a second cursor.
+     *
+     * Two behaviours copied from granny's engine rather than guessed:
+     *   max_offset = spray * (sample_len - 1)      -> the whole file, not a window
+     *   start_idx wraps into [0, len)              -> so the fence wraps too
+     * and because the offset is symmetric, ±0.5 already reaches every frame:
+     * past that the region cannot grow, so the fences stop at the file edges
+     * instead of drifting on and implying a spread the DSP never applies. */
+    if (viz.spray !== undefined && viz.spray > 0) {
+        const wrap = (f: number): number => f - Math.floor(f);
+        const full = viz.spray >= 0.5;
+        for (const side of [-1, 1]) {
+            const at = full ? (side < 0 ? 0 : 1 - 1 / w)
+                            : wrap(viz.position + side * viz.spray);
+            const fx = x0 + colOf(at);
+            for (let yy = topY; yy <= botY; yy++) {
+                if (((yy + fx) & 1) !== 0) continue;
+                const inWave = yy >= midY - halfAt(fx - x0) && yy <= midY + halfAt(fx - x0);
+                fill_rect(fx, yy, 1, 1, inWave ? 0 : 1);
+            }
+        }
+    }
+
+    const mi = colOf(viz.position);
     const h = halfAt(mi), mx = x0 + mi;
     fill_rect(mx, midY - h, 1, 2 * h + 1, 0);                       // cut the sample out
     if (midY - h > topY) fill_rect(mx, topY, 1, (midY - h) - topY, 1);

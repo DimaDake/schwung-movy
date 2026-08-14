@@ -7643,6 +7643,86 @@ _log('\nTest: booleans become on/off switches');
         triggerIndices(I('trigger')), null);
 }
 
+_log('\nTest: granular spray fences');
+{
+    const P = (key, extra = {}) => ({
+        key, label: key, type: 'float', min: 0, max: 1, step: 0.01,
+        options: null, renderStyle: 'arc', automatable: true, ...extra,
+    });
+    const page = (over = {}) => [
+        { ...P('sample_path'), type: 'file' },
+        P('position', { uiType: 'wav_position', filepathParam: 'sample_path' }),
+        P('size_ms', { min: 5, max: 500 }),
+        P('density', { min: 1, max: 60 }),
+        over.spray === null ? P('nothing') : P('spray'),
+        P('jitter'), P('scan', { min: -10, max: 10 }), P('grain_gain'),
+    ];
+
+    /* Detection. The key must match EXACTLY: granny ships its own `spread`
+     * (stereo width between voices) on another page, and the fleet has eight
+     * more spread/scatter/diffuse params, not one of which is a read-position
+     * spread. Matching them would draw a region the DSP never reads from. */
+    const g = detectWavViz(page())[0];
+    eq('spray joins the sample group', g.spray, 4);
+    eq('no spray param → null', detectWavViz(page({ spray: null }))[0].spray, null);
+    const withSpread = page();
+    withSpread[4] = P('spread');
+    eq('"spread" is NOT a read-position spray', detectWavViz(withSpread)[0].spray, null);
+    const wrongRange = page();
+    wrongRange[4] = P('spray', { min: 0, max: 100 });
+    eq('spray must be the 0..1 the DSP scales by', detectWavViz(wrongRange)[0].spray, null);
+
+    /* Absorbing it frees its knob cell, so the graphic pays for its own width:
+     * 8 params, 3 absorbed → 3 cells instead of 2. */
+    const lay = planPageLayout(page());
+    eq('the graphic widens to 3 cells', lay.wavs[0].cellCount, 3);
+    eq('and claims the spray cell', lay.wavs[0].idxs.includes(4), true);
+
+    /* Fence geometry, against granny's engine rather than guesswork:
+     *   max_offset = spray * (sample_len - 1)   -> the whole file
+     *   start_idx  wraps into [0, len)          -> fences wrap
+     *   symmetric  -> ±0.5 already reaches every frame, so it saturates */
+    const { drawWavForm } = await import('../dist/esm/renderer/wav-form.js');
+    const fences = (position, spray) => {
+        const cols = new Map();
+        const orig = globalThis.fill_rect;
+        globalThis.fill_rect = (x, y, w, h, v) => {
+            if (w === 1 && h === 1) cols.set(x, (cols.get(x) ?? 0) + 1);
+        };
+        drawWavForm(0, {
+            line: 0, startCol: 0, cellCount: 4,
+            points: new Array(128).fill(0.5), gain: 1, position, spray,
+        });
+        globalThis.fill_rect = orig;
+        /* A fence is drawn one pixel at a time down a whole column; the
+         * waveform body is drawn as tall single fill_rects, so it never shows
+         * up here. The marker is 1x1 only where the sample is silent. */
+        return [...cols.entries()].filter(([, n]) => n > 3).map(([x]) => x).sort((a, b) => a - b);
+    };
+
+    const mid = fences(0.5, 0.2);
+    eq('two fences, one either side', mid.length, 2);
+    eq('left fence sits at position - spray', mid[0], 38);
+    eq('right fence sits at position + spray', mid[1], 89);
+
+    /* Past an edge the region continues from the OTHER end of the file, because
+     * granny wraps start_idx rather than clamping it. Clamping would put the
+     * fence at column 0 and claim grains come from the first frame — they come
+     * from the last. Both directions, since the offset is symmetric. */
+    eq('a fence past the start wraps to the end',
+        JSON.stringify(fences(0.1, 0.2)), JSON.stringify([38, 115]));
+    eq('a fence past the end wraps to the start',
+        JSON.stringify(fences(0.9, 0.2)), JSON.stringify([12, 89]));
+
+    /* ±0.5 already covers every frame, so the region cannot grow past it. */
+    eq('spray saturates at 0.5', JSON.stringify(fences(0.5, 0.5)),
+        JSON.stringify(fences(0.5, 0.9)));
+    eq('and saturated means the file edges', JSON.stringify(fences(0.5, 0.9)),
+        JSON.stringify([0, 127]));
+
+    eq('spray 0 draws no fence', fences(0.5, 0).length, 0);
+}
+
 _log('\nTest: no page keeps the retired on/off bar');
 {
     /* The module paths run every boolean through model/toggle.ts, but movy's OWN

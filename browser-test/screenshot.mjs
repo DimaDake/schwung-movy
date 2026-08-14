@@ -63,7 +63,7 @@ const PRESETS = [
     'font_5x3_all', 'font_small_all', 'font_big_all_1', 'font_big_all_2',
     'wave_cells', 'wave_overlay', 'wave_helm', 'wave_toggles',
     'env_stages', 'eq_bands', 'cut_filters', 'faders', 'wav_sample', 'wav_loop', 'wav_loop_off', 'wav_beside_filter',
-    'switches',
+    'switches', 'spray_saturated',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -102,7 +102,8 @@ const BASE = {
     lfo_helm_step: 'lfo_helm', lfo_helm_pyramid: 'lfo_helm',
     wave_cells: 'wave_cells', wave_overlay: 'wave_cells', wave_helm: 'helm_waves',
     wave_toggles: 'wave_toggles', env_stages: 'env_stages', eq_bands: 'eq_bands', cut_filters: 'cut_filters',
-    faders: 'faders', switches: 'switches', wav_sample: 'wav_sample', wav_loop: 'wav_loop', wav_loop_off: 'wav_loop',
+    faders: 'faders', switches: 'switches',
+    spray_saturated: 'wav_sample', wav_sample: 'wav_sample', wav_loop: 'wav_loop', wav_loop_off: 'wav_loop',
     wav_beside_filter: 'wav_beside_filter',
     signal_voice: 'signal', forge_voice: 'forge',
     forge_filter: 'forge', forge_mod: 'forge', forge_send: 'forge', forge_mix: 'forge',
@@ -402,6 +403,14 @@ function applyView(preset) {
             forceRender();
             break;
         }
+        case 'spray_saturated':
+            /* Past 0.5 the region already covers the whole file, so the fences
+             * sit on the edges and stop moving — granny's offset wraps, so a
+             * wider spread reaches no new frames. */
+            setFilter({ position: '0.2', spray: '0.6' });
+            for (let i = 0; i < 300; i++) model.tick();
+            forceRender();
+            break;
         case 'switches':
             setFilter({ osc2_sync: '1', legato: 'Off', unison: '0', bypass: 'on',
                         lfo_mode: 'Sync', rnd_patch: '0', cutoff: '0.5', voice_mode: 'Poly' });

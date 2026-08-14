@@ -96,6 +96,25 @@ automatically. You don't configure anything for most modules.
 - **Knobs / arc knobs** — continuous parameters are drawn as a circular knob
   with a pointer; the on-screen arc follows the value (including when automation
   moves it).
+- **On/off switches** — a parameter with exactly two states — silence or
+  sound, bypassed or engaged — is drawn as a **switch** rather than a dial or a
+  word in a box. Off is a hollow pill with the knob to the left; on fills the
+  pill and the knob moves right, so a page tells you what is engaged without
+  reading a single label:
+
+  ![Boolean knobs drawn as switches](docs/assets/switches.png)
+
+  It covers both spellings of a boolean: a plain 0/1 parameter, and a two-item
+  list whose options read *Off/On*, *No/Yes*, *Disabled/Enabled*. The order
+  matters — a list that puts "on" first keeps its box, because a switch would
+  then show the knob left while the module reports on.
+
+  Two-item lists that are a **choice** rather than a state keep their box:
+  *Free/Sync*, *Poly/Mono*, *Saw/Square*, *Digital/Analog*. Neither option is
+  "off", so a switch would say something untrue. A momentary **action** — a
+  randomiser, an init, a save — gets the trigger badge instead, since a switch
+  would sit stuck on after one use.
+
 - **Enum knobs & the enum overlay** — list-type parameters (waveforms, modes…)
   show the current choice in a square. Touching the knob opens a **full-screen
   scrollable list** so you can see all the options:

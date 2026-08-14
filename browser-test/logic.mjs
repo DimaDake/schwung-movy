@@ -7380,6 +7380,33 @@ _log('\nTest: cutKindOf — low/high cut corner frequencies');
     eq('lone highcut is not a pair', detectCutPair(pad([F('lpf', 'LPF')])).length, 0);
 }
 
+_log('\nTest: wav_position pairs with the file the MODULE names');
+{
+    const P = (key, type, extra = {}) => ({ key, label: key, type, min: 0, max: 1, ...extra });
+    const pad = (a) => { const r = a.slice(); while (r.length < 8) r.push(null); return r; };
+
+    /* A page with a preset path AND a sample path: guessing "first file param"
+     * would index the preset. The module declares the link, so use it. */
+    {
+        const g = detectWavViz(pad([
+            P('ui_preset_path', 'file'),
+            P('sample_path', 'file'),
+            P('start', 'wav_position', { filepathParam: 'sample_path' }),
+        ]));
+        eq('marker pairs with the declared file', g[0].file, 1);
+    }
+    // No declaration → fall back to the first file param on the page.
+    {
+        const g = detectWavViz(pad([P('sample_path', 'file'), P('start', 'wav_position')]));
+        eq('undeclared marker falls back to the page file', g[0].file, 0);
+    }
+    // A named file that is not on this page leaves the marker unpaired.
+    {
+        const g = detectWavViz(pad([P('start', 'wav_position', { filepathParam: 'elsewhere' })]));
+        eq('marker alone when its file is off-page', g[0].file, null);
+    }
+}
+
 _log('\nTest: WAV peaks — accuracy, chunking and caching');
 {
     /* A real 16-bit mono WAV: silent, then a loud burst in the middle third.

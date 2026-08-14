@@ -13,6 +13,7 @@ export interface RawMeta {
     automatable?: boolean; behavior?: string;
     knob_acceleration?: string; knobAcceleration?: string;
     root?: string; filter?: unknown; start_path?: string;
+    filepath_param?: string;   // wav_position → the file param it indexes
 }
 
 export function inferBehavior(explicit: unknown, options: string[] | null): KnobParam['behavior'] | undefined {
@@ -80,6 +81,8 @@ export function buildGenericParam(key: string, cp: RawMeta, def: RawMeta): KnobP
             cp.knob_acceleration ?? cp.knobAcceleration ??
             def.knob_acceleration ?? def.knobAcceleration,
         ),
+        ...(cp.filepath_param || def.filepath_param
+            ? { filepathParam: String(cp.filepath_param ?? def.filepath_param) } : {}),
         ...(metaGuessed ? { metaGuessed: true } : {}),
     };
 }

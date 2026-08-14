@@ -109,6 +109,9 @@ export function buildConfigPages(
                     /* A preset always rewrites the module's other params, so it
                      * implies the flag; anything else has to say so. */
                     capturesModuleState: slot.capturesModuleState ?? (style.renderStyle === 'preset'),
+                    /* Module-declared, never config-declared: the template names
+                     * layout, the module names which file a marker indexes. */
+                    ...(cp.filepath_param ? { filepathParam: String(cp.filepath_param) } : {}),
                 };
                 /* File slots carry browse metadata. The module config (mrdrums.json)
                  * is authoritative; chain_params (root/filter/start_path) is the

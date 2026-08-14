@@ -58,6 +58,10 @@ export interface KnobSlot {
     presetNameKey?:  string;
     fileRoot?:      string;
     fileFilter?:    string[];
+    /* wav_position only: the key of the file param whose sample this marker
+     * indexes. Schwung declares the link explicitly, so the waveform never has
+     * to guess which of a page's file params it belongs to. */
+    filepathParam?: string;
     fileStartPath?: string;
     fileRequireContains?: string;
 }
@@ -146,6 +150,10 @@ export interface KnobParam {
     metaGuessed?:   boolean;
     fileRoot?:      string;
     fileFilter?:    string[];
+    /* wav_position only: the key of the file param whose sample this marker
+     * indexes. Schwung declares the link explicitly, so the waveform never has
+     * to guess which of a page's file params it belongs to. */
+    filepathParam?: string;
     fileStartPath?: string;
     fileRequireContains?: string;
 }

@@ -13,11 +13,23 @@ export interface WavGroup {
 
 export function detectWavViz(params: (KnobParam | null)[]): WavGroup[] {
     let position = -1;
-    let file: number | null = null;
     params.forEach((p, i) => {
-        if (!p) return;
-        if (position < 0 && p.type === 'wav_position') position = i;
-        if (file === null && p.type === 'file') file = i;
+        if (p && position < 0 && p.type === 'wav_position') position = i;
     });
-    return position < 0 ? [] : [{ position, file }];
+    if (position < 0) return [];
+
+    /* Prefer the module's OWN declaration of which file this marker indexes
+     * (schwung's `filepath_param`) over "the first file param on the page" —
+     * a page holding both a preset path and a sample path would otherwise be a
+     * coin toss. Fall back to the guess when the module says nothing. */
+    const want = params[position]?.filepathParam;
+    let file: number | null = null;
+    if (want) {
+        const i = params.findIndex((p) => p?.key === want);
+        if (i >= 0) file = i;
+    }
+    if (file === null) {
+        params.forEach((p, i) => { if (file === null && p?.type === 'file') file = i; });
+    }
+    return [{ position, file }];
 }

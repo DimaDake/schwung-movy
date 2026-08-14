@@ -1,6 +1,6 @@
 import type { ParamVM, EnvelopeVM } from '../types/viewmodel.js';
 import { drawLine, drawDot, drawDottedV } from './primitives.js';
-import { W, CELL_W } from './layout.js';
+import { W, CELL_W, spanX } from './layout.js';
 
 /* An envelope graphic in place of its knob widgets. A full ADSR spans the whole
  * line; partial envelopes (AD/AR/ASR/ADS) span only their cells (env.startCol..
@@ -28,13 +28,13 @@ function drawFullAdsr(rowY: number, adsr: (ParamVM | null)[]): void {
     const usableH = baseY - topY;                 // 13px of vertical travel
     const gateX = 88;                             // fixed note-off reference
 
-    const startX = 2;
+    const startX = 0;                              // full line: no edge inset
     const peakX  = startX + Math.round(a * 26);                       // 2..28
     let sustStartX = peakX + 4 + Math.round(d * 24);
     if (sustStartX > gateX - 2) sustStartX = gateX - 2;
     const susY   = baseY - Math.round(s * usableH);                   // sustain level
     let relEndX  = gateX + 4 + Math.round(r * 33);
-    if (relEndX > W - 2) relEndX = W - 2;                             // 92..126
+    if (relEndX > W - 1) relEndX = W - 1;                             // 92..127
 
     drawLine(startX, baseY, peakX, topY);          // attack rise
     drawLine(peakX, topY, sustStartX, susY);       // decay fall
@@ -57,8 +57,10 @@ function drawFullAdsr(rowY: number, adsr: (ParamVM | null)[]): void {
  * sustain stage holds a plateau at its level. Geometry is proportional to the
  * span so a 2-cell and a 3-cell envelope both read clearly at their width. */
 function drawPartialEnv(rowY: number, params: (ParamVM | null)[], env: EnvelopeVM): void {
-    const leftX  = env.startCol * CELL_W + 2;
-    const rightX = (env.startCol + env.cellCount) * CELL_W - 2;
+    /* Shared rule: inset only where the graphic meets another cell, never at
+     * the screen edge (see spanX). */
+    const [leftX, xEnd] = spanX(env.startCol, env.cellCount);
+    const rightX = xEnd - 1;
     const baseY = rowY + 14, topY = rowY + 1;
     const usableH = baseY - topY;
     const span = rightX - leftX;

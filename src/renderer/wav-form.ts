@@ -9,16 +9,10 @@
  * body. Either way it is the highest-contrast thing in the column. */
 
 import type { WavVizVM } from '../types/viewmodel.js';
-import { CELL_W } from './layout.js';
+import { spanX } from './layout.js';
 
 export function drawWavForm(rowY: number, viz: WavVizVM): void {
-    /* Inset 1px per side, the same as the filter and LFO graphics. A waveform
-     * does own every cell it spans, but it is not always alone on the line —
-     * mrsample seats a filter curve directly beside it — and without the inset
-     * the two drawings run together into one shape. Two pixels out of sixty is
-     * a cheaper price than an ambiguous picture. */
-    const x0 = viz.startCol * CELL_W + 1;
-    const x1 = (viz.startCol + viz.cellCount) * CELL_W - 1;
+    const [x0, x1] = spanX(viz.startCol, viz.cellCount);
     const w = x1 - x0;
     const topY = rowY + 1, botY = rowY + 14;
     const midY = Math.round((topY + botY) / 2);

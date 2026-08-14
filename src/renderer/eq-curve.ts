@@ -5,7 +5,7 @@
 
 import type { EqVizVM } from '../types/viewmodel.js';
 import { drawDottedH } from './primitives.js';
-import { CELL_W } from './layout.js';
+import { spanX } from './layout.js';
 
 /* Band weights across the span (u = 0..1). The shelves are logistic so they
  * flatten at the edges the way a real shelving filter does, and the mid bell
@@ -18,13 +18,13 @@ const bellMid   = (u: number): number => Math.exp(-(((u - 0.5) / 0.20) ** 2));
 const WEIGHT = { low: shelfLow, mid: bellMid, high: shelfHigh };
 
 export function drawEqCurve(rowY: number, viz: EqVizVM): void {
-    const x0 = viz.startCol * CELL_W + 1;
-    const spanW = viz.cellCount * CELL_W - 2;
+    const [x0, xEnd] = spanX(viz.startCol, viz.cellCount);
+    const spanW = xEnd - x0;
     const topY = rowY + 1, botY = rowY + 14;
     const midY = Math.round((topY + botY) / 2);
     const amp = (botY - topY) / 2;
 
-    drawDottedH(x0, x0 + spanW, midY);            // 0 dB
+    drawDottedH(x0, xEnd - 1, midY);            // 0 dB
 
     const gainAt = (u: number): number => {
         let v = 0;
@@ -36,9 +36,14 @@ export function drawEqCurve(rowY: number, viz: EqVizVM): void {
      * diagonals would break the line at this height. */
     const yAt = (px: number): number =>
         Math.round(midY - gainAt((px - x0) / spanW) * amp);
+    /* The last column is left BLANK so the graphic is inset one pixel on each
+     * side, not just on the left. Flush-right meant a neighbouring graphic on
+     * the same line got a single pixel of separation and the two drawings read
+     * as one — mrsample seats a filter curve directly beside the sample
+     * waveform. One pixel from each side gives the two the eye expects. */
     let py = yAt(x0);
     fill_rect(x0, py, 1, 1, 1);
-    for (let px = x0 + 1; px <= x0 + spanW; px++) {
+    for (let px = x0 + 1; px < xEnd; px++) {
         const ny = yAt(px);
         fill_rect(px, Math.min(py, ny), 1, Math.abs(ny - py) + 1, 1);
         py = ny;

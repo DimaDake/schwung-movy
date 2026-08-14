@@ -13,7 +13,7 @@
  * same page sit on the same baseline. 1-bit pixels via fill_rect only. */
 
 import { drawLine, drawDottedH } from './primitives.js';
-import { CELL_W } from './layout.js';
+import { spanX } from './layout.js';
 import { gainAt, EDGE } from './filter-curve.js';
 
 /* How far a PAIR's two corners may cross past the middle, as a fraction of the
@@ -45,8 +45,8 @@ export function drawCutCurve(
     rowY: number, startCol: number, cellCount: number,
     lowcut: number | null, highcut: number | null,
 ): void {
-    const leftX = startCol * CELL_W + 2;
-    const rightX = (startCol + cellCount) * CELL_W - 2;
+    const [leftX, rightXEnd] = spanX(startCol, cellCount);
+    const rightX = rightXEnd - 1;
     const baseY = rowY + 14, topY = rowY + 1;
     const h = baseY - topY;
     const span = rightX - leftX;

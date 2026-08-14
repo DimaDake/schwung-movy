@@ -25,6 +25,7 @@ await esbuild.build({
         resolve(root, 'src/model/eq-viz.ts'),
         resolve(root, 'src/model/eq-vm.ts'),
         resolve(root, 'src/renderer/eq-curve.ts'),
+        resolve(root, 'src/renderer/filter-curve.ts'),
         resolve(root, 'src/model/cut-viz.ts'),
         resolve(root, 'src/renderer/cut-curve.ts'),
         resolve(root, 'src/model/wav-viz.ts'),

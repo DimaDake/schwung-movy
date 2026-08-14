@@ -4,7 +4,7 @@
 
 import type { LfoVizVM } from '../types/viewmodel.js';
 import { drawLine, drawDottedH } from './primitives.js';
-import { CELL_W } from './layout.js';
+import { spanX } from './layout.js';
 import { STEP_BASE, PYR_BASE } from '../model/lfo-shapes.js';
 
 
@@ -132,8 +132,8 @@ export function drawWave(
 }
 
 export function drawLfoWave(rowY: number, g: LfoVizVM): void {
-    const x0 = g.startCol * CELL_W + 1;
-    const spanW = 2 * CELL_W - 2;                          // 62px
+    const [x0, xEnd] = spanX(g.startCol, 2);
+    const spanW = xEnd - x0;
     const topY = rowY + 1, botY = rowY + 14;
     const bipolar = g.mode === 1;
     const baseY = bipolar ? Math.round((topY + botY) / 2) : botY;
@@ -142,7 +142,7 @@ export function drawLfoWave(rowY: number, g: LfoVizVM): void {
     const cycles = g.cycles ?? 2;
     const amp = (g.ampScale ?? 1) * (bipolar ? (botY - topY) / 2 : (botY - topY));
 
-    drawDottedH(x0, x0 + spanW, baseY);                    // baseline conveys mode
+    drawDottedH(x0, xEnd - 1, baseY);                    // baseline conveys mode
 
     const yAt = (px: number): number => {
         const u = (px - x0) / spanW;                        // 0..1 across span
@@ -154,8 +154,13 @@ export function drawLfoWave(rowY: number, g: LfoVizVM): void {
             : Math.round(botY - ((v + 1) / 2) * amp);
     };
 
+    /* The last column is left BLANK so the graphic is inset one pixel on each
+     * side, not just on the left. Flush-right meant a neighbouring graphic on
+     * the same line got a single pixel of separation and the two drawings read
+     * as one — mrsample seats a filter curve directly beside the sample
+     * waveform. One pixel from each side gives the two the eye expects. */
     let prevX = x0, prevY = yAt(x0);
-    for (let px = x0 + 1; px <= x0 + spanW; px++) {
+    for (let px = x0 + 1; px < xEnd; px++) {
         const y = yAt(px);
         drawLine(prevX, prevY, px, y);
         prevX = px; prevY = y;

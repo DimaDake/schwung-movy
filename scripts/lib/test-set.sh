@@ -18,6 +18,16 @@ TS_DEVICE_DIR=/data/UserData/schwung/_movy-fixture
 
 ts_ssh() { ssh "ableton@$HOST" "$@"; }
 
+# Drop-in for `grep -q`, same arguments, in a pipeline.
+#
+# `grep -q` exits at its first match, which hands the writer EPIPE; under
+# `set -o pipefail` the pipeline then reports 141 and a *found* line reads as a
+# failed check. It only bites once the piped log outgrows the pipe buffer, so it
+# arrives late and looks like a device fault: a 96 KB debug.log made test-seq.sh
+# report five missing lines that were all present, several times over. Without
+# -q grep reads to EOF, so the writer always finishes and the status is grep's.
+qgrep() { grep "$@" >/dev/null; }
+
 # Phase timing. Device work is slow enough that a silent 60 s stretch looks like
 # a hang; naming each phase and printing its cost makes it obvious which step is
 # expensive and whether it is getting worse.
@@ -202,7 +212,7 @@ ts_wait_ui_state() {
     local want="$1" waited=0 cur
     while [ $waited -lt 30 ]; do
         cur=$(ts_ssh "cat '$(ts_ui_path)' 2>/dev/null || true")
-        echo "$cur" | grep -qE "$want" && return 0
+        echo "$cur" | qgrep -E "$want" && return 0
         sleep 2; waited=$((waited + 2))
     done
     echo "test-set: ui-state never matched /$want/ after ${waited}s" >&2
@@ -215,7 +225,7 @@ ts_wait_seq_state() {
     local want="$1" waited=0 cur
     while [ $waited -lt 30 ]; do
         cur=$(ts_ssh "cat '$(ts_seq_path)' 2>/dev/null || true")
-        echo "$cur" | grep -qE "$want" && return 0
+        echo "$cur" | qgrep -E "$want" && return 0
         sleep 2; waited=$((waited + 2))
     done
     echo "test-set: seq-state never matched /$want/ after ${waited}s" >&2

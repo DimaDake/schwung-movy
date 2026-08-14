@@ -235,6 +235,9 @@ info "Persistence: waiting for autosave, then reopening Movy to restore..."
 sleep 4   # autosave fires ~3s after the last edit
 # State is now per-set under sets/<uuid>/seq-state.json (keyed by active_set.txt).
 SETS_DIR="/data/UserData/schwung/modules/tools/movy/sets"
+# grep -q, not qgrep: this pipeline runs on the DEVICE, where the helper does
+# not exist — and it is safe there (find's output is a handful of paths, and the
+# remote shell has no pipefail).
 STATE_OK=$(ssh "ableton@$HOST" "find $SETS_DIR -name seq-state.json -size +0c 2>/dev/null | grep -q . && echo yes || echo no")
 ssh "ableton@$HOST" 'python3 -c "
 import mmap, json
@@ -265,16 +268,16 @@ echo -e "${BLD}=== Seq log ===${RST}"
 echo "$LOG" | grep -E "seq:|movy-dsp" || echo "(no seq lines)"
 echo ""
 
-echo "$LOG" | grep -q "movy-dsp.*create_instance" \
+echo "$LOG" | qgrep "movy-dsp.*create_instance" \
     && pass "Engine loaded" || fail "Engine missing"
 
 # Undo. The button reaching movy at all is the part only the device can prove:
 # CC 56 is one of the buttons schwung's overtake owns, and the local suites
 # drive the router directly rather than through the shim.
-echo "$LOG" | grep -q "\[movy\] undo: " \
+echo "$LOG" | qgrep "\[movy\] undo: " \
     && pass "Undo (CC 56) reached movy and applied an entry" \
     || fail "Undo did not apply (no '[movy] undo:' line)"
-echo "$LOG" | grep -q "\[movy\] redo: " \
+echo "$LOG" | qgrep "\[movy\] redo: " \
     && pass "Shift+Undo redid the entry" \
     || fail "Shift+Undo did not redo (no '[movy] redo:' line)"
 # An un-grouped edit means some gesture mutates the set without recording an
@@ -284,27 +287,27 @@ UNGROUPED=$(echo "$LOG" | grep -c "undo: ungrouped" || true)
 [ "$UNGROUPED" -eq 0 ] \
     && pass "No un-grouped edits during the whole run" \
     || fail "$UNGROUPED edit(s) bypassed undo — see 'undo: ungrouped' in the log"
-echo "$PRE_PLAY_LOG" | grep -q "seq: play=1" \
+echo "$PRE_PLAY_LOG" | qgrep "seq: play=1" \
     && fail "Step entry auto-started transport (it must not)" \
     || pass "Step entry did not auto-start the transport"
-echo "$LOG" | grep -q "seq: play=1" \
+echo "$LOG" | qgrep "seq: play=1" \
     && pass "Play button started the transport" || fail "Play did not start (seq: play=1 missing)"
 
 [[ "$STATE_OK" == "yes" ]] \
     && pass "Autosave wrote a non-empty per-set state file" || fail "No autosave file under $SETS_DIR"
 # Capture: the button committed, and the engine answered with an overlay — which
 # only happens when a take was actually written and the transport rolled.
-echo "$LOG" | grep -q "seq: capture commit" \
+echo "$LOG" | qgrep "seq: capture commit" \
     && pass "Capture committed the buffered phrase" \
     || fail "Capture did not commit (seq: capture commit missing — was anything buffered?)"
-echo "$LOG" | grep -qE "seq: capture select bpm=[0-9]+" \
+echo "$LOG" | qgrep -E "seq: capture select bpm=[0-9]+" \
     && pass "Empty clip: capture detected a tempo and offered it — $(echo "$LOG" | grep -oE 'seq: capture select bpm=[0-9]+ bars=[0-9]+' | tail -1)" \
     || fail "Empty-clip capture did not open the tempo selector (no seq: capture select line)"
-echo "$LOG" | grep -qE "seq: capture fixed bpm=[0-9]+ bars=[0-9]+ why=notes" \
+echo "$LOG" | qgrep -E "seq: capture fixed bpm=[0-9]+ bars=[0-9]+ why=notes" \
     && pass "Clip with notes: capture fitted the take instead of retempoing" \
     || fail "Overdub capture did not report a fixed tempo (no seq: capture fixed ... why=notes)"
 
-echo "$LOG" | grep -q "seq: loaded set" \
+echo "$LOG" | qgrep "seq: loaded set" \
     && pass "Set state loaded on reopen" || fail "No set load on reopen (seq: loaded set missing)"
 
 # Drum multi-step: each step entered on a drum lane logs "seq: step <n> lane <l>".
@@ -319,7 +322,7 @@ echo "$LOG" | grep -q "seq: loaded set" \
 # Right-arrow rest between them must land on steps 0 and 2 — the rest is what
 # proves the arrow moved the head rather than the notes simply stacking.
 STEPREC_LINES=$(echo "$LOG" | grep -c "seq: steprec" || true)
-if [[ "$STEPREC_LINES" -ge 2 ]] && echo "$LOG" | grep -q "seq: steprec 2"; then
+if [[ "$STEPREC_LINES" -ge 2 ]] && echo "$LOG" | qgrep "seq: steprec 2"; then
     pass "Step record entered $STEPREC_LINES steps, the rest advanced the head"
 else
     fail "Step record entered $STEPREC_LINES step(s); expected 2, with one on step 2"
@@ -349,4 +352,5 @@ if [[ $FAILURES -eq 0 ]]; then
     echo -e "${GRN}${BLD}SEQ DEVICE TEST PASSED${RST} — the placed note should have been looping audibly"
 else
     echo -e "${RED}${BLD}$FAILURES CHECK(S) FAILED${RST}"
+    exit 1
 fi

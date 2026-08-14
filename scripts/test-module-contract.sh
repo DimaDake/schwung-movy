@@ -151,12 +151,12 @@ info "Trigger — stays visually idle and offers no automation lane..."
 ssh "ableton@$HOST" "> $LOG" >/dev/null 2>&1
 burst $KNOB_REROLL 1 1 0; sleep 1.5
 L=$(movylog)
-if echo "$L" | grep -qE "knob_[0-9]+_set .*reroll"; then
+if echo "$L" | qgrep -E "knob_[0-9]+_set .*reroll"; then
     fail "reroll was bound to an automation lane (should be automatable:false)"
 else
     pass "No automation lane bound to the trigger"
 fi
-if echo "$L" | grep -qE "RE-RO:a[1-9]"; then
+if echo "$L" | qgrep -E "RE-RO:a[1-9]"; then
     fail "Automation dot drawn on a trigger knob"
 else
     pass "No automation dot on the trigger knob"

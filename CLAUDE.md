@@ -89,7 +89,7 @@ the user must run it): stop `move-launcher`, pkill the schwung stack, start
 Run tests in this order at the end of every task:
 
 Run `npm run build:browser` first (refreshes `dist/esm`), then in order
-(or just `npm test`, which builds + runs all five):
+(or just `npm test`, which builds + runs all six):
 
 ```bash
 # 1. Local (always) — viewmodel/business logic assertions
@@ -108,6 +108,10 @@ node browser-test/screenshot.mjs
 
 # 3. Local (always) — performance regression (fill_rect count, IPC call count, render time)
 node browser-test/perf.mjs
+
+# 3a. Local (always) — invariants on the device scripts themselves, so a device
+#     suite cannot report "missing" for a log line that is present
+node browser-test/device-scripts.mjs
 
 # 4. Device (when reachable) — deploy + automated MIDI/log test + perf timing
 ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \

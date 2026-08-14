@@ -110,7 +110,7 @@ else
     fail "no trackvol log line — CC 79 did not reach the handler"
 fi
 
-if echo "$APPLIED" | grep -q "d=$DETENTS "; then
+if echo "$APPLIED" | qgrep "d=$DETENTS "; then
     pass "applied $DETENTS detents in one packet"
 else
     fail "expected a single d=$DETENTS packet, got: $APPLIED"

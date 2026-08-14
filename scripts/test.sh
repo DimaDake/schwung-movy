@@ -145,7 +145,7 @@ echo ""
 echo -e "${BLD}=== Results ===${RST}"
 
 # Init
-if echo "$LOG" | grep -q "init: activeSlot="; then
+if echo "$LOG" | qgrep "init: activeSlot="; then
     SLOT=$(echo "$LOG" | grep "init: activeSlot=" | tail -1 | grep -o "activeSlot=[0-9]*" | cut -d= -f2)
     pass "Module loaded — targeting slot $SLOT"
 else
@@ -153,11 +153,11 @@ else
 fi
 
 # Hierarchy load
-if echo "$LOG" | grep -q "loadHierarchy:"; then
-    if echo "$LOG" | grep -qE "[0-9]+ params(,| loaded)"; then
+if echo "$LOG" | qgrep "loadHierarchy:"; then
+    if echo "$LOG" | qgrep -E "[0-9]+ params(,| loaded)"; then
         N=$(echo "$LOG" | grep -E "[0-9]+ params" | tail -1 | grep -o "[0-9]* params" | awk '{print $1}')
         pass "Hierarchy loaded — $N params"
-    elif echo "$LOG" | grep -q "ui_hierarchy null"; then
+    elif echo "$LOG" | qgrep "ui_hierarchy null"; then
         pass "Hierarchy: no synth loaded — fallback test params active"
     else
         fail "loadHierarchy ran but outcome unclear"
@@ -167,10 +167,10 @@ else
 fi
 
 # chain_params + config (only meaningful if real synth loaded)
-if echo "$LOG" | grep -q "config loaded for"; then
+if echo "$LOG" | qgrep "config loaded for"; then
     MOD=$(echo "$LOG" | grep "config loaded for" | tail -1 | grep -o "for [a-z]*" | cut -d' ' -f2)
     pass "Module config loaded for '$MOD' — named banks active"
-elif echo "$LOG" | grep -q "loadHierarchy:.*module="; then
+elif echo "$LOG" | qgrep "loadHierarchy:.*module="; then
     MOD=$(echo "$LOG" | grep "loadHierarchy:.*module=" | tail -1 | grep -o "module=[^ ]*" | cut -d= -f2)
     if [[ -z "$MOD" || "$MOD" == "—" ]]; then
         pass "No synth loaded — config lookup skipped (expected)"
@@ -180,7 +180,7 @@ elif echo "$LOG" | grep -q "loadHierarchy:.*module="; then
 fi
 
 # Knob CCs
-if echo "$LOG" | grep -q "knobCC k="; then
+if echo "$LOG" | qgrep "knobCC k="; then
     N=$(echo "$LOG" | grep -c "knobCC k=" || true)
     pass "Knob CCs received ($N events)"
 else
@@ -188,17 +188,17 @@ else
 fi
 
 # set_param
-if echo "$LOG" | grep -q "^.*set slot="; then
+if echo "$LOG" | qgrep "^.*set slot="; then
     pass "applyKnobDelta ran — param write attempted"
-    if echo "$LOG" | grep -q "set_param returned true"; then
+    if echo "$LOG" | qgrep "set_param returned true"; then
         pass "shadow_set_param returned true — IPC OK"
-    elif echo "$LOG" | grep -q "set_param returned false"; then
+    elif echo "$LOG" | qgrep "set_param returned false"; then
         fail "shadow_set_param returned false — IPC timeout or key rejected"
     else
         pass "Test params path — IPC skipped (no real synth)"
     fi
 else
-    if echo "$LOG" | grep -q "no param\|empty slot"; then
+    if echo "$LOG" | qgrep "no param\|empty slot"; then
         fail "applyKnobDelta: knobParams empty at knob turn time"
     else
         fail "applyKnobDelta never reached"
@@ -206,10 +206,10 @@ else
 fi
 
 # Jog wheel — chain navigation or page change
-if echo "$LOG" | grep -q "chain chainIndex="; then
+if echo "$LOG" | qgrep "chain chainIndex="; then
     IDX=$(echo "$LOG" | grep "chain chainIndex=" | tail -1 | grep -o "chainIndex=[0-9]*" | cut -d= -f2)
     pass "Jog wheel CC navigates chain — chainIndex=$IDX"
-elif echo "$LOG" | grep -q "changePage delta="; then
+elif echo "$LOG" | qgrep "changePage delta="; then
     PLINE=$(echo "$LOG" | grep "changePage delta=" | head -1 | sed 's/.*\[movy\] //')
     pass "Jog wheel CC reaches changePage — $PLINE"
 else
@@ -220,14 +220,14 @@ fi
 CLAIMS=$(echo "$LOG" | grep -c "LED ownership claimed" || true)
 if [[ "$CLAIMS" -ge 2 ]]; then
     pass "LED ownership re-claimed on resume ($CLAIMS claims)"
-elif echo "$LOG" | grep -q "resume from background"; then
+elif echo "$LOG" | qgrep "resume from background"; then
     fail "LED ownership not re-claimed on resume (claims=$CLAIMS, expected >=2)"
 else
     fail "movy never parked/resumed — park injection did not land (claims=$CLAIMS)"
 fi
 
 # Knob LEDs
-if echo "$LOG" | grep -q "knobLED k="; then
+if echo "$LOG" | qgrep "knobLED k="; then
     SAMPLE=$(echo "$LOG" | grep "knobLED k=0 " | tail -1 | sed 's/.*\[movy\] //')
     pass "Knob LEDs firing — $SAMPLE"
 else
@@ -252,7 +252,7 @@ TICK_RATE_MIN=60
 # real per-tick blocking detector (any single sample over threshold fails).
 REFRESH_MS_MAX=10
 
-if echo "$LOG" | grep -q "perf_tick_rate="; then
+if echo "$LOG" | qgrep "perf_tick_rate="; then
     RATE=$(echo "$LOG" | grep "perf_tick_rate=" | grep -o "perf_tick_rate=[0-9]*" | cut -d= -f2 | sort -n | tail -1)
     if [[ -n "$RATE" ]] && (( RATE >= TICK_RATE_MIN )); then
         pass "Tick rate ${RATE} ticks/sec (max) >= ${TICK_RATE_MIN} (threshold)"
@@ -265,7 +265,7 @@ else
     fail "perf_tick_rate not found in log — timing instrumentation missing or not reached"
 fi
 
-if echo "$LOG" | grep -q "perf_refresh_ms="; then
+if echo "$LOG" | qgrep "perf_refresh_ms="; then
     # Check all refresh samples in the log — all must be below threshold.
     REFRESH_FAILURES=0
     REFRESH_MAX_SEEN=0
@@ -292,4 +292,5 @@ if [[ $FAILURES -eq 0 ]]; then
 else
     echo -e "${RED}${BLD}$FAILURES CHECK(S) FAILED${RST}"
     echo -e "Live log: ${YLW}ssh ableton@$HOST 'tail -f /data/UserData/schwung/debug.log | grep \\[movy\\]'${RST}"
+    exit 1
 fi

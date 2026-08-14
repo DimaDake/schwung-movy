@@ -62,7 +62,7 @@ inj cc $CC_JOG 127; sleep 0.1; inj cc $CC_JOG 0; sleep 0.4          # chain → 
 # this no longer skips when the set happens to have none — an absent lane now
 # means the fixture did not load, which is a real failure.
 LANES=$(mlog | grep 'auto lanes t=0' | tail -1)
-if ! echo "$LANES" | grep -qE 'auto lanes t=0 \[[a-zA-Z]'; then
+if ! echo "$LANES" | qgrep -E 'auto lanes t=0 \[[a-zA-Z]'; then
     fail "no automation lane on track 0 — the fixture's 'au' line did not load"
     exit 1
 fi
@@ -80,7 +80,7 @@ WARM=$(mlog | grep 'auto warm t=0' | tail -1)
 info "warm log: ${WARM##*\[movy\] }"
 if [ -z "$WARM" ]; then
     fail "no 'auto warm' after reselect — requestLaneWarm/laneWarmTick wiring is broken"
-elif echo "$WARM" | grep -qE 'cache=1\.00 type=float'; then
+elif echo "$WARM" | qgrep -E 'cache=1\.00 type=float'; then
     fail "cache EMPTY after reselect (fallback 1.00/float) — abs-CC automation would be silent (fix regressed)"
 else
     pass "cache repopulated after reselect (proven necessary+sufficient for abs-CC audibility)"
@@ -115,9 +115,9 @@ UNDO_LOG=$(mlog)
 # drift check called that "the module changed behind our back", and every module
 # undo refused and wiped the stack. Only the device proves the real key
 # convention — a mock can always be written to agree with the code.
-if echo "$UNDO_LOG" | grep -q 'undo: cleared (module drift)'; then
+if echo "$UNDO_LOG" | qgrep 'undo: cleared (module drift)'; then
     fail "module undo refused as drift — the module read key is wrong again"
-elif echo "$UNDO_LOG" | grep -qE '\[movy\] undo: (LOAD MODULE|CLEAR SLOT)'; then
+elif echo "$UNDO_LOG" | qgrep -E '\[movy\] undo: (LOAD MODULE|CLEAR SLOT)'; then
     # Either verb: jogging one entry down the browser list can land on NONE,
     # which is a clear rather than a load and just as undoable.
     pass "module swap undone"
@@ -129,15 +129,15 @@ fi
 # ordering to get right. The per-param replay is the fallback for modules that
 # expose no state, and its preset must go first or applying it would overwrite
 # everything just restored.
-if echo "$UNDO_LOG" | grep -q 'undo: restored module state'; then
+if echo "$UNDO_LOG" | qgrep 'undo: restored module state'; then
     pass "the module was restored from its own state blob"
-    echo "$UNDO_LOG" | grep -q 'undo: captured module state' \
+    echo "$UNDO_LOG" | qgrep 'undo: captured module state' \
         && pass "and that blob was captured before the swap" \
         || fail "restored a state blob that was never captured"
-elif echo "$UNDO_LOG" | grep -q 'undo: replayed'; then
+elif echo "$UNDO_LOG" | qgrep 'undo: replayed'; then
     pass "the outgoing module's params were replayed (no state blob)"
-    if echo "$UNDO_LOG" | grep -q 'undo: restored .* selector/preset params'; then
-        echo "$UNDO_LOG" | grep -q 'after settle' \
+    if echo "$UNDO_LOG" | qgrep 'undo: restored .* selector/preset params'; then
+        echo "$UNDO_LOG" | qgrep 'after settle' \
             && pass "preset written first, params after the settle" \
             || fail "lead written but the post-settle params never followed"
     else

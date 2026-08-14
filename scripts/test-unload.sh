@@ -93,7 +93,7 @@ LOG=$(ssh "ableton@$HOST" 'grep -E "\[movy\] unload|invokeModuleOnUnload" /data/
 echo "$LOG"
 
 echo -e "\n${BLD}=== Results ===${RST}"
-if echo "$LOG" | grep -q "\[movy\] unload: released"; then
+if echo "$LOG" | qgrep "\[movy\] unload: released"; then
     pass "onUnload fired on Close Movy"
     N=$(echo "$LOG" | grep -o "released [0-9]*" | tail -1 | cut -d' ' -f2)
     if [ "${N:-0}" -gt 0 ]; then

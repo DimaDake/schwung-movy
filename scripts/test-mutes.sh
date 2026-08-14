@@ -101,7 +101,7 @@ inject 88:127 sleep:120 88:0 >/dev/null; sleep 1.5   # back to unmuted
 ssh "ableton@$HOST" "> $LOG"
 inject 49:127 88:127 sleep:300 88:0 49:0 >/dev/null; sleep 2
 SOLO=$(logtail 'solo t=')
-if echo "$SOLO" | grep -q 'set=1000 mutes=0111'; then pass "Shift+Mute solos track 1, muting the rest"
+if echo "$SOLO" | qgrep 'set=1000 mutes=0111'; then pass "Shift+Mute solos track 1, muting the rest"
 else fail "expected 'set=1000 mutes=0111', got: $SOLO"; fi
 
 # 3. The regression: the solo must survive a reopen, so un-solo still restores.
@@ -116,7 +116,7 @@ open_movy
 ssh "ableton@$HOST" "> $LOG"
 inject 49:127 88:127 sleep:300 88:0 49:0 >/dev/null; sleep 2
 UNSOLO=$(logtail 'solo t=')
-if echo "$UNSOLO" | grep -q '\-> 0 set=0000 mutes=0000'; then
+if echo "$UNSOLO" | qgrep '\-> 0 set=0000 mutes=0000'; then
     pass "solo survives a reopen — un-solo unmutes the borrowed tracks"
 else
     fail "stranded mutes after reopen: $UNSOLO"

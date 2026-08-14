@@ -65,7 +65,7 @@ movylog() {
 page_past_preset() {
     for _ in 1 2 3; do
         CUR=$(movylog | grep "auto render" | tail -1 || true)
-        echo "$CUR" | grep -qE "auto render .*\| PRESE:[^ ]*$" || break
+        echo "$CUR" | qgrep -E "auto render .*\| PRESE:[^ ]*$" || break
         info "  landed on the Preset page — jogging to the next page"
         inj cc $CC_JOG_TURN 1; sleep 0.5
     done
@@ -118,13 +118,13 @@ L=$(movylog)
 echo -e "${BLD}=== auto render (held) ===${RST}"; echo "$L" | grep "auto render held=1" | tail -8 || true
 
 # A consumed knob turn recorded a lock at the held step.
-if echo "$L" | grep -qE "aset|auto render held=1.*t1="; then :; fi
+if echo "$L" | qgrep -E "aset|auto render held=1.*t1="; then :; fi
 # The held value shows inverted (t1) with a percentage — and changes as we turn.
 # `|| true`: no match is a RESULT (the value never changed), not a reason to
 # abort. Without it pipefail kills the script here and every check below goes
 # unreported — the failure mode this test exists to catch would exit silent.
 HELD_VALUES=$(echo "$L" | grep "auto render held=1" | grep -oE "t1=[0-9]+%" | sort -u | wc -l | tr -d ' ' || true)
-if echo "$L" | grep -q "auto render held=1.*t1="; then
+if echo "$L" | qgrep "auto render held=1.*t1="; then
     pass "P1: held-step value highlighted while holding (touched=1)"
 else
     fail "P1: held value never highlighted (no 'auto render held=1 ... t1=' line)"
@@ -135,7 +135,7 @@ else
     fail "P1: held value did not change while turning ($HELD_VALUES distinct values)"
 fi
 # The automation dot is set on the turned param (a1) once a lane exists.
-if echo "$L" | grep -qE "auto render .*:a1t"; then
+if echo "$L" | qgrep -E "auto render .*:a1t"; then
     pass "P2: automation dot shown on automated param (a1)"
 else
     fail "P2: automation dot never shown (no ':a1' in any 'auto render' line)"
@@ -161,7 +161,7 @@ inj cc $CC_REC 127; sleep 0.1; inj cc $CC_REC 0                     # stop recor
 LL=$(movylog)
 echo -e "${BLD}=== auto render (live, held=0) ===${RST}"; echo "$LL" | grep "auto render held=0" | grep -E "t1=" | tail -8 || true
 LIVE_VALUES=$(echo "$LL" | grep "auto render held=0" | grep -oE "t1=[0-9]+%" | sort -u | wc -l | tr -d ' ' || true)
-if echo "$LL" | grep -qE "auto render held=0.*t1="; then
+if echo "$LL" | qgrep -E "auto render held=0.*t1="; then
     pass "P4: live-record value highlighted while turning (no step held)"
 else
     fail "P4: live take never repainted the arc/value (screen frozen while turning)"
@@ -193,13 +193,13 @@ L2=$(movylog)
 echo -e "${BLD}=== auto lanes after reopen ===${RST}"; echo "$L2" | grep "auto lanes" | tail -4 || true
 
 # The UI lane registry must be non-empty after restore (the bug: it was []).
-if echo "$L2" | grep -qE "auto lanes t=[0-9]+ \[[^]]+\]"; then
+if echo "$L2" | qgrep -E "auto lanes t=[0-9]+ \[[^]]+\]"; then
     pass "P3: lane registry repopulated from restore (non-empty)"
 else
     fail "P3: lane registry empty after reopen — restore re-sync broken"
 fi
 # And the dot shows on reopen WITHOUT any knob touch (registry-driven).
-if echo "$L2" | grep -qE "auto render .*:a1t"; then
+if echo "$L2" | qgrep -E "auto render .*:a1t"; then
     pass "P2/P3: dot shown on reopen without re-touching a knob"
 else
     fail "P2/P3: no dot after reopen (registry/automated flag not restored)"

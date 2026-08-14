@@ -237,6 +237,20 @@ automatically. You don't configure anything for most modules.
   really a random range all keep their own knobs, because drawing an EQ curve
   for them would say something untrue.
 
+- **Faders** — a knob that sets a **loudness** — a volume, a gain, an
+  oscillator or send level — is drawn as a **fader** instead of a dial: a
+  filled bar between two dotted rails, with a head marking the value. It fills
+  from the bottom in every case, including a gain that runs either side of
+  0 dB, so a glance across a page finds the levels without reading the labels:
+
+  ![Loudness knobs drawn as faders](docs/assets/faders.png)
+
+  Only a genuine output level qualifies. A *Level KF* (key-follow), an
+  envelope's *Level*, a randomiser's *Rdm Vol*, a mod-matrix row aimed at a
+  level, a compressor *Threshold* and anything measured in dB-per-something all
+  keep their knobs — each is an amount of something else that happens to say
+  "level".
+
 - **Multiple pages** — modules with more than 8 parameters split into pages
   (`MAIN`, `PAGE 1`, `PAGE 2`, …). Scroll them with the jog wheel (or Left/Right
   when the sequencer isn't using those buttons). The line under the title is the

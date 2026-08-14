@@ -64,7 +64,12 @@ function drawSwitch(kx: number, ky: number, on: boolean): void {
     const x = kx - 5, y = ky + 2;
     for (let i = 0; i < 11; i++) fill_rect(x + SW_X[i], y + i, SW_W[i], 1, 1);
     if (!on) for (let i = 0; i < 9; i++) fill_rect(x + 1 + SW_IN_X[i], y + 1 + i, SW_IN_W[i], 1, 0);
-    const seat = on ? x + 16 : x + 1;                    // 1px clear of the cap
+    /* The two states need DIFFERENT clearances because their figure/ground is
+     * inverted. When on, the knob is a hole and the 1px of capsule left beyond
+     * it reads as a bright rim. When off, the knob is solid and butts straight
+     * onto the equally bright outline, so the two merge into one blob — seating
+     * it a pixel further in opens a dark gap that traces the cap's arc. */
+    const seat = on ? x + 16 : x + 2;
     const v: 0 | 1 = on ? 0 : 1;                         // knocked out when filled
     for (let i = 0; i < 9; i++) fill_rect(seat + SW_KN_X[i], y + 1 + i, SW_KN_W[i], 1, v);
 }

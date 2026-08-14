@@ -23,6 +23,7 @@ export interface WavPeaks {
     key:    string;      // path:size:mtime:width — changes ⇒ recompute
     width:  number;
     points: number[];    // 0..1 per column, filled as the job progresses
+    peak:   number;      // loudest sample seen so far — the normalisation divisor
     done:   boolean;
     error:  string;
 }
@@ -39,9 +40,10 @@ interface Job {
     frameCount: number;
     block: number; totalBlocks: number; blockStride: number; blockBytes: number;
     buf: ArrayBuffer; view: Uint8Array;
+    peak: number;
 }
 
-let cache: WavPeaks = { key: '', width: 0, points: [], done: false, error: '' };
+let cache: WavPeaks = { key: '', width: 0, points: [], peak: 0, done: false, error: '' };
 let job: Job | null = null;
 
 const u16 = (b: Uint8Array, i: number): number => b[i] | (b[i + 1] << 8);
@@ -121,7 +123,7 @@ function startJob(path: string, width: number, key: string): Job | null {
             dataOffset: dataAt, dataSize, blockAlign, bits, fmt, channels, frameCount,
             block: 0, totalBlocks, blockBytes,
             blockStride: Math.max(1, Math.ceil(totalBlocks / MAX_BLOCKS)),
-            buf, view: new Uint8Array(buf),
+            buf, view: new Uint8Array(buf), peak: 0,
         };
     } catch {
         if (f) { try { f.close(); } catch { /* already gone */ } }
@@ -161,6 +163,10 @@ function runBlock(j: Job): boolean {
             let col = Math.floor((frame * j.width) / j.frameCount);
             if (col < 0) col = 0; else if (col >= j.width) col = j.width - 1;
             if (v > j.points[col]) j.points[col] = v;
+            /* Running peak, folded in here rather than rescanned per frame:
+             * the renderer normalises against it so a quiet sample still uses
+             * the full height. */
+            if (v > j.peak) j.peak = v;
         }
         return true;
     } catch {
@@ -177,7 +183,7 @@ export function wavPeaksTick(path: string | null, width: number): boolean {
     const key = fileSignature(path, width);
     if (!key) {
         if (cache.key !== `missing:${path}`) {
-            cache = { key: `missing:${path}`, width, points: [], done: true, error: 'file not found' };
+            cache = { key: `missing:${path}`, width, points: [], peak: 0, done: true, error: 'file not found' };
             return true;
         }
         return false;
@@ -187,10 +193,10 @@ export function wavPeaksTick(path: string | null, width: number): boolean {
     if (!job || job.key !== key) {
         job = startJob(path, width, key);
         if (!job) {
-            cache = { key, width, points: [], done: true, error: 'unreadable wav' };
+            cache = { key, width, points: [], peak: 0, done: true, error: 'unreadable wav' };
             return true;
         }
-        cache = { key, width, points: job.points, done: false, error: '' };
+        cache = { key, width, points: job.points, peak: 0, done: false, error: '' };
     }
 
     let worked = false;
@@ -199,8 +205,9 @@ export function wavPeaksTick(path: string | null, width: number): boolean {
         job.block += job.blockStride;
         worked = true;
     }
+    if (worked) cache.peak = job.peak;   // scale tracks the data as it fills in
     if (job.block >= job.totalBlocks) {
-        cache = { key, width, points: job.points, done: true, error: '' };
+        cache = { key, width, points: job.points, peak: job.peak, done: true, error: '' };
         job = null;
     }
     return worked;
@@ -217,6 +224,6 @@ export function wavPeaks(path: string | null, width: number): WavPeaks | null {
 
 /* Test seam: the cache is module-level so a job survives across ticks. */
 export function resetWavPeaks(): void {
-    cache = { key: '', width: 0, points: [], done: false, error: '' };
+    cache = { key: '', width: 0, points: [], peak: 0, done: false, error: '' };
     job = null;
 }

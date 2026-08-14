@@ -7439,6 +7439,21 @@ _log('\nTest: WAV peaks — accuracy, chunking and caching');
      * key carries the width for exactly this reason. */
     eq('other width is not served from cache', wavPeaks('/s/burst.wav', 28), null);
 
+    /* A sample mixed well below 0 dB must still use the full height: the peak
+     * is tracked as blocks fold in and the renderer divides by it. Without it a
+     * quiet one-shot draws as a thin line and shows none of its shape. */
+    {
+        env.setFiles({ '/s/quiet.wav': makeWav(120000, (t) => ((t > 0.4 && t < 0.6) ? 0.08 : 0)) });
+        resetWavPeaks();
+        let n = 0;
+        while (!wavPeaks('/s/quiet.wav', WIDTH)?.done && n < 500) { wavPeaksTick('/s/quiet.wav', WIDTH); n++; }
+        const q = wavPeaks('/s/quiet.wav', WIDTH);
+        eq('quiet sample keeps its real peak', Math.abs(q.peak - 0.08) < 0.01, true);
+        const gain = 1 / q.peak;
+        eq('normalised loudest column reaches full height', q.points[30] * gain > 0.99, true);
+        eq('normalised silence stays silent', q.points[2] * gain, 0);
+    }
+
     /* 24-bit PCM. Sample libraries ship it constantly — every Neon Drive file
      * on the device is 24-bit — and rejecting it as exotic meant a sampler
      * could not draw its own library. Device verification is what caught it. */
@@ -7484,7 +7499,7 @@ _log('\nTest: waveform marker inverts over the sample');
     const shot = (points, position) => {
         const r = [];
         globalThis.fill_rect = (x, y, w, h, v) => r.push({ x, y, w, h, v });
-        drawWavForm(11, { line: 0, startCol: 0, cellCount: 2, points, position });
+        drawWavForm(11, { line: 0, startCol: 0, cellCount: 2, points, position, gain: 1 });
         globalThis.fill_rect = origFill;
         return r;
     };

@@ -90,6 +90,10 @@ export interface WavVizVM {
     startCol:  number;
     cellCount: number;
     points:    number[];   // 0..1 peak per column; may be partial while loading
+    /* Multiplier that takes the loudest column to full height. A sample mixed
+     * well below 0 dB would otherwise draw as a thin line through the middle
+     * and show none of its shape. */
+    gain:      number;
     position:  number;     // 0..1 marker
 }
 

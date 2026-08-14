@@ -29,7 +29,7 @@ export function drawWavForm(rowY: number, viz: WavVizVM): void {
         /* points are computed at exactly `w` columns, but a partial job or a
          * width change can leave a shorter array — index defensively rather
          * than draw garbage. */
-        const v = pts[Math.min(pts.length - 1, i)] ?? 0;
+        const v = (pts[Math.min(pts.length - 1, i)] ?? 0) * viz.gain;
         return Math.round(Math.max(0, Math.min(1, v)) * amp);
     };
 

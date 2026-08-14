@@ -369,7 +369,10 @@ function applyView(preset) {
                 const t = i / FR;
                 const hit = (x) => x < 0 ? 0 : Math.exp(-9 * x);
                 const env = Math.max(hit(t - 0.02), hit(t - 0.55) * 0.7);
-                const v = Math.round(Math.sin(i * 0.07) * env * 32000);
+                /* Deliberately mixed low (~-18 dBFS): the graphic normalises,
+                 * so this baseline is what proves a quiet sample still fills
+                 * the height instead of drawing as a thin middle line. */
+                const v = Math.round(Math.sin(i * 0.07) * env * 4000);
                 w16(44 + i * 2, v < 0 ? v + 65536 : v);
             }
             env.setFiles({ '/s/scene.wav': bytes });

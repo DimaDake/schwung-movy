@@ -194,6 +194,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         return {
             line: wv.line, startCol: wv.startCol, cellCount: wv.cellCount,
             points: pk?.points ?? [],
+            gain: pk && pk.peak > 0 ? 1 / pk.peak : 1,
             position: norm01(wv.position),
         };
     });
@@ -209,6 +210,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             wavViz.push({
                 line: cell.line, startCol: cell.col, cellCount: 1,
                 points: wavPeaks(path, width)?.points ?? [],
+                gain: (() => { const q = wavPeaks(path, width); return q && q.peak > 0 ? 1 / q.peak : 1; })(),
                 position: norm01(layout.wavCell),
             });
         }

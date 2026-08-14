@@ -69,16 +69,6 @@ function drawSwitch(kx: number, ky: number, on: boolean): void {
     for (let i = 0; i < 9; i++) fill_rect(seat + SW_KN_X[i], y + 1 + i, SW_KN_W[i], 1, v);
 }
 
-/* Horizontal bar: fills left→right — used for binary (on/off) params */
-function drawHorzBar(kx: number, ky: number, normVal: number): void {
-    fill_rect(kx + 1, ky + 5, 14, 1, 1);
-    fill_rect(kx + 1, ky + 10, 14, 1, 1);
-    fill_rect(kx + 1, ky + 5, 1, 6, 1);
-    fill_rect(kx + 14, ky + 5, 1, 6, 1);
-    const fillW = Math.round(normVal * 12);
-    if (fillW > 0) fill_rect(kx + 2, ky + 6, fillW, 4, 1);
-}
-
 /* A mixer fader, for loudness params (see model/fader.ts).
  *
  * Three elements only: two dotted rails marking the travel, a 3px column filled
@@ -315,9 +305,13 @@ export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
         drawLengthSquare(kx, ky, pvm.displayValue);
     } else if (pvm.type === 'file') {
         drawEnumSquare(kx, ky, [pvm.displayValue], 0);
-    } else if (pvm.renderStyle === 'switch') {
+    } else if (pvm.renderStyle === 'switch' || pvm.renderStyle === 'hbar') {
         /* Ahead of the enum branch below: a two-item off/on list is a boolean,
-         * and printing its option name is exactly what the switch replaces. */
+         * and printing its option name is exactly what the switch replaces.
+         *
+         * `hbar` was the old on/off bar. Nothing in movy emits it any more, but a
+         * third-party movy_config.json can still ask for it by name, and what it
+         * always meant was "this param is a boolean" - so it draws the switch. */
         drawSwitch(kx, ky, toggleIsOn(pvm.type, pvm.enumIndex, pvm.normalizedValue));
     } else if (pvm.renderStyle === 'steps') {
         /* One pre-formatted string, not an options array — sfz's voice count runs
@@ -337,8 +331,6 @@ export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
         drawEnumSquare(kx, ky, pvm.options, pvm.enumIndex);
     } else if (pvm.renderStyle === 'xbox') {
         drawXBox(kx, ky);
-    } else if (pvm.renderStyle === 'hbar') {
-        drawHorzBar(kx, ky, pvm.normalizedValue);
     } else if (pvm.renderStyle === 'vbar') {
         drawFader(kx, ky, pvm.normalizedValue);
     } else {

@@ -114,7 +114,9 @@ export function createLfoModel(track: number): Model {
                 normalizedValue: v.shape / (LFO_SHAPES.length - 1) }),
             cell({ shortName: 'PHASE', fullName: 'Phase', type: 'float', renderStyle: 'arc',
                 displayValue: formatPhase(v.phase), normalizedValue: v.phase }),
-            cell({ shortName: 'RETRIG', fullName: 'Retrigger', type: 'int', renderStyle: 'hbar',
+            /* Hand-built cell, so it names the style model/toggle.ts infers for
+             * every module boolean — otherwise movy's own pages keep the old bar. */
+            cell({ shortName: 'RETRIG', fullName: 'Retrigger', type: 'int', renderStyle: 'switch',
                 displayValue: v.retrigger ? 'On' : 'Off', normalizedValue: v.retrigger }),
             cell({ shortName: 'DEPTH', fullName: 'Depth', type: 'float', renderStyle: 'arc',
                 displayValue: formatDepth(v.depth), normalizedValue: (v.depth + 1) / 2 }),

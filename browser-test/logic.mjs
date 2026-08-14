@@ -7643,6 +7643,42 @@ _log('\nTest: booleans become on/off switches');
         triggerIndices(I('trigger')), null);
 }
 
+_log('\nTest: no page keeps the retired on/off bar');
+{
+    /* The module paths run every boolean through model/toggle.ts, but movy's OWN
+     * pages — the track LFO, the sequencer's main page — build their ParamVMs by
+     * hand and name renderStyle directly, skipping the rule entirely. That is how
+     * the LFO page kept the old bar after all 209 of the fleet's booleans had been
+     * converted: nothing in the module pipeline could see it. A source sweep is
+     * the only check that covers hand-written cells. */
+    const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+        const full = dir + '/' + e.name;
+        return e.isDirectory() ? walk(full) : (full.endsWith('.ts') ? [full] : []);
+    });
+    const srcDir = new URL('../src', import.meta.url).pathname;
+    const offenders = walk(srcDir).filter((f) =>
+        /renderStyle:\s*'hbar'/.test(readFileSync(f, 'utf8')));
+    eq('no source file emits hbar (' + offenders.join(', ') + ')', offenders.length, 0);
+
+    /* Aliased, not deleted: a third-party movy_config.json may still ask for
+     * hbar by name, and what it always meant was "this param is a boolean". */
+    const { drawKnobWidget } = await import('../dist/esm/renderer/knob.js');
+    const paint = (style, on) => {
+        const lit = [];
+        const orig = globalThis.fill_rect;
+        globalThis.fill_rect = (x, y, w, h, v) => lit.push([x, y, w, h, v].join(','));
+        drawKnobWidget(0, 0, {
+            shortName: 'B', fullName: 'Bool', type: 'int', renderStyle: style,
+            value: '', enumIndex: 0, normalizedValue: on ? 1 : 0,
+        });
+        globalThis.fill_rect = orig;
+        return lit.join('|');
+    };
+    eq('legacy hbar draws the switch (off)', paint('hbar', false), paint('switch', false));
+    eq('legacy hbar draws the switch (on)',  paint('hbar', true),  paint('switch', true));
+    eq('and it is not a blank cell', paint('hbar', true).length > 0, true);
+}
+
 _log('\nTest: the switch graphic');
 {
     const { drawKnobWidget } = await import('../dist/esm/renderer/knob.js');

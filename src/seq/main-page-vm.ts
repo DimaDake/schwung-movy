@@ -40,11 +40,12 @@ export function buildMainPageVM(): ViewModel {
         displayValue: swing + '%', normalizedValue: clamp01((swing - 50) / 30),
     });
     // Knob 2: bidirectional Move transport link (Play/Stop propagation). OFF by
-    // default; clock-follow (EXT) works regardless. Rendered as the binary
-    // on/off horizontal bar (full = on, empty = off).
+    // default; clock-follow (EXT) works regardless. Drawn as the on/off switch —
+    // this page builds its cells by hand, so it has to name the style that
+    // model/toggle.ts infers for every module boolean.
     const linkOn = seqState.linkEnabled;
     const link = cell({
-        shortName: 'LINK', fullName: 'Play Link', renderStyle: 'hbar',
+        shortName: 'LINK', fullName: 'Play Link', renderStyle: 'switch',
         displayValue: linkOn ? 'ON' : 'OFF', normalizedValue: linkOn ? 1 : 0,
     });
     // Knob 3: the quantization new clips are born with. Same enum-square

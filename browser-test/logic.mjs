@@ -7671,11 +7671,9 @@ _log('\nTest: the switch graphic');
     const OFF = { normalizedValue: 0 }, ON = { normalizedValue: 1 };
 
     /* Centre row. OFF is an outline with the knob parked left; ON fills the
-     * capsule and knocks the knob out on the right. The dark pixel between the
-     * OFF knob and the outline is deliberate: two equally bright shapes touching
-     * merge into one blob, where the ON knob is a hole and needs no such gap. */
-    eq('OFF: knob parked left, clear of the outline',
-        row(OFF, 7), '#.#########..............#');
+     * capsule and knocks the knob out on the right. */
+    eq('OFF: hollow capsule, knob left',
+        row(OFF, 7), '##########...............#');
     eq('ON: filled capsule, knob right',
         row(ON, 7),  '################.........#');
 
@@ -7687,12 +7685,11 @@ _log('\nTest: the switch graphic');
     for (let ry = 3; ry <= 11; ry++) if (row(OFF, ry) === row(ON, ry)) same++;
     eq('every interior row differs between states', same, 0);
 
-    /* Cap and knob come from one circle at two radii, so the gap traces the
-     * cap's arc rather than pinching at the corners — row 3 has the same single
-     * dark pixel as the centre row. This is where a stepped chamfer used to
-     * disagree with a round knob. */
-    eq('OFF row 3 keeps the gap around the arc',
-        row(OFF, 3),  '..##.###..............##..');
+    /* Cap and knob come from one circle at two radii, so the knob nests with a
+     * uniform 1px gap. Row 3 is where a stepped chamfer used to disagree with a
+     * round knob: the cap is inset 2 and the knob 1 further, every row. */
+    eq('OFF row 3 nests the knob in the cap',
+        row(OFF, 3),  '..#####...............##..');
     eq('OFF top edge is the cap arc',
         row(OFF, 2),  '....##################....');
     eq('bottom edge mirrors the top',

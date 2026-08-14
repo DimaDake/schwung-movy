@@ -85,6 +85,8 @@ import { detectWavViz } from '../dist/esm/model/wav-viz.js';
 import { wavPeaksTick, wavPeaks, resetWavPeaks, resamplePeaks, PEAK_WIDTH } from '../dist/esm/model/wav-peaks.js';
 import { drawWavForm } from '../dist/esm/renderer/wav-form.js';
 import { drawFilterCurve } from '../dist/esm/renderer/filter-curve.js';
+import { renderKnobsView } from '../dist/esm/renderer/knob-view.js';
+import { renderChainView } from '../dist/esm/renderer/chain-view.js';
 import { lfoTargetsParam, assignLfoTarget, clearLfoTarget } from '../dist/esm/lfo/assign.js';
 import { holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle, assignCommit, assignToastText, resetAssignMode } from '../dist/esm/lfo/assign-mode.js';
 import { jogHintTouch, jogHintTick, jogHintVisible } from '../dist/esm/app/jog-hint.js';
@@ -7532,6 +7534,33 @@ _log('\nTest: loop bounds join the waveform as brackets');
     const tipsAt = (col, dx) => r.some(q => q.x === col + dx && q.h === 2 && q.v === 1);
     eq('loop-start tips point right', tipsAt(sCol, 1), true);
     eq('loop-end tips point left', tipsAt(eCol, -1), true);
+}
+
+_log('\nTest: the browse hint is drawn on every view that shows the overlay');
+{
+    /* The file-browse gesture is model-level, so it works on the chain page as
+     * well as the knobs page, and BOTH draw the file overlay. Only the knobs
+     * page drew the hint, so the same touch showed the list with no way to
+     * discover the full browser — which reads as the toast appearing at random. */
+    const origFill = globalThis.fill_rect;
+    const bottomLit = (draw) => {
+        let n = 0;
+        globalThis.fill_rect = (x, y, w, h, v) => { if (v === 1 && y >= 58) n += w * h; };
+        draw();
+        globalThis.fill_rect = origFill;
+        return n;
+    };
+    const vm = {
+        moduleName: 'M', bankName: '', bankIndex: 0, bankCount: 1,
+        rows: [[null, null, null, null], [null, null, null, null]],
+        touchedSlot: 0, overlay: null, isEmpty: false,
+        drumPadCount: 0, drumCurrentPad: 0, drumCurrentPhysPad: 0, isPadSpecific: false,
+        automationHeld: false, automationPoolFull: false,
+        stepPagePresent: false, stepPageSelected: false,
+        toast: { fullName: 'Sample', value: '—', browseHint: true },
+    };
+    eq('knobs view draws the browse hint', bottomLit(() => renderKnobsView(vm, false, 0)) > 0, true);
+    eq('chain view draws it too', bottomLit(() => renderChainView(vm, 1, false, 'T1')) > 0, true);
 }
 
 _log('\nTest: adjacent graphics keep a gap on both sides');

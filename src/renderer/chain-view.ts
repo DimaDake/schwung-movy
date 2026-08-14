@@ -45,5 +45,11 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
     drawKnobParams(vm);
 
     if (vm.overlay) drawEnumOverlay(vm);
-    if (jogTouched) drawJogToast(isLfoSlot(chainIndex) ? 'CLICK JOG: EDIT LFOS' : 'SHIFT+CLICK SWAP  CLICK OPEN');
+    /* The file-browse gesture works here too — the touched param lives on the
+     * model, not the view (see midi/router.ts) — and this view already draws
+     * the file overlay. Without the hint the same touch showed the list on the
+     * chain page but not how to open the full browser, which reads as the toast
+     * appearing only sometimes. */
+    if (vm.toast?.browseHint) drawJogToast('JOG: BROWSE');
+    else if (jogTouched) drawJogToast(isLfoSlot(chainIndex) ? 'CLICK JOG: EDIT LFOS' : 'SHIFT+CLICK SWAP  CLICK OPEN');
 }

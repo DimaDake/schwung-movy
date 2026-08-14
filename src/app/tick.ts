@@ -494,7 +494,10 @@ function tickBody(): void {
             }
             diagAutoRender(vm);
             renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeSlot + 1));
-            jogToastShown = jogHintVisible();
+            /* Must match what renderChainView actually drew: the Loop strip
+             * clears rows 60-63 every tick and would erase a toast it was not
+             * told about. */
+            jogToastShown = !!vm.toast?.browseHint || jogHintVisible();
             updateKnobLEDs(vm);
         }
         /* Track-volume slider sits above the view it was invoked from. Only

@@ -4,7 +4,7 @@ import { mlog } from '../log.js';
 import { moduleReadKey } from '../chain/config.js';
 import { buildConfigPages } from './config-pages.js';
 import { buildGenericPages } from './generic-pages.js';
-import { visibleIfOf, conditionHolds, watchedKeys } from './visible-if.js';
+import { conditionHolds, collectRules } from './visible-if.js';
 import type { RawMeta } from './param-build.js';
 
 type HierParam = RawMeta;
@@ -16,17 +16,6 @@ interface HierLevel {
     list_param?: string; count_param?: string; name_param?: string;
     items_param?: string; select_param?: string;
     children?: string;
-}
-
-/* Current values of every param a visible_if watches, joined. Cheap: modules
- * declare at most a couple of controllers, and this runs once per tick. */
-export function visibilitySignature(s: ModelState): string {
-    if (s.visibilityWatch.length === 0) return '';
-    let sig = '';
-    for (const k of s.visibilityWatch) {
-        sig += k + '=' + (shadow_get_param(s.activeSlot, s.componentKey + ':' + k) ?? '') + ';';
-    }
-    return sig;
 }
 
 export function loadHierarchy(s: ModelState): void {
@@ -127,18 +116,15 @@ export function loadHierarchy(s: ModelState): void {
 
     /* Which params the module is hiding right now. Evaluated against live
      * values, and re-evaluated whenever a watched value changes (processTick). */
+    s.visibilityRules = collectRules(paramDefs);
     s.hiddenKeys = new Set<string>();
-    s.visibilityWatch = watchedKeys(paramDefs);
-    if (s.visibilityWatch.length > 0) {
-        for (const [key, def] of Object.entries(paramDefs)) {
-            const cond = visibleIfOf(def);
-            if (!cond) continue;
-            const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + cond.param);
-            const opts = (cpMap[cond.param]?.options ?? paramDefs[cond.param]?.options) ?? null;
-            if (!conditionHolds(cond, raw, opts)) s.hiddenKeys.add(key);
-        }
+    for (const r of s.visibilityRules) {
+        /* One read per rule, at LOAD only. After this the value cache carries
+         * it (see hiddenNow in tick.ts) and no further host call is made. */
+        const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + r.param);
+        const opts = (cpMap[r.param]?.options ?? paramDefs[r.param]?.options) ?? null;
+        if (!conditionHolds(r, raw, opts)) s.hiddenKeys.add(r.key);
     }
-    s.visibilitySig = visibilitySignature(s);
 
     /* ── Custom config path (Plaits, Wurl, etc.) ─────────────────────────── */
     if (s.moduleConfig) {

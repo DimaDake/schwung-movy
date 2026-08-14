@@ -46,12 +46,14 @@ export function conditionHolds(
     return false;
 }
 
-/* Every param named by a visible_if anywhere in the module's defs. */
-export function watchedKeys(defs: Record<string, RawMeta>): string[] {
-    const out: string[] = [];
-    for (const def of Object.values(defs)) {
+/* Every visible_if the module declares, flattened. */
+export function collectRules(
+    defs: Record<string, RawMeta>,
+): { key: string; param: string; equals: string }[] {
+    const out: { key: string; param: string; equals: string }[] = [];
+    for (const [key, def] of Object.entries(defs)) {
         const c = visibleIfOf(def);
-        if (c && out.indexOf(c.param) < 0) out.push(c.param);
+        if (c) out.push({ key, param: c.param, equals: c.equals });
     }
     return out;
 }

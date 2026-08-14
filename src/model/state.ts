@@ -74,9 +74,10 @@ export interface ModelState {
     /* Params the module is hiding via visible_if, and the params those
      * conditions watch — a change in any watched value rebuilds the page. */
     hiddenKeys:          Set<string>;
-    visibilityWatch:     string[];
-    visibilitySig:       string;
-    visibilityCountdown: number;
+    /* The module's visible_if rules, kept so visibility can be re-evaluated
+     * from CACHED values — the round-robin refresh already reads every param,
+     * so watching for a change costs no host call at all. */
+    visibilityRules:     { key: string; param: string; equals: string }[];
     enumOverlay:         EnumOverlay | null;
     fileOverlay:         FileOverlay | null;
     activeModuleName:    string;
@@ -144,9 +145,7 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         longPressCountdown:  -1,
         wavRequest:          null,
         hiddenKeys:          new Set<string>(),
-        visibilityWatch:     [],
-        visibilitySig:       '',
-        visibilityCountdown: 0,
+        visibilityRules:     [],
         enumOverlay:         null,
         fileOverlay:         null,
         activeModuleName:    '—',

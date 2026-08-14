@@ -82,7 +82,7 @@ import { detectEqViz } from '../dist/esm/model/eq-viz.js';
 import { cutKindOf, detectCutPair } from '../dist/esm/model/cut-viz.js';
 import { drawCutCurve } from '../dist/esm/renderer/cut-curve.js';
 import { detectWavViz } from '../dist/esm/model/wav-viz.js';
-import { wavPeaksTick, wavPeaks, resetWavPeaks } from '../dist/esm/model/wav-peaks.js';
+import { wavPeaksTick, wavPeaks, resetWavPeaks, resamplePeaks, PEAK_WIDTH } from '../dist/esm/model/wav-peaks.js';
 import { drawWavForm } from '../dist/esm/renderer/wav-form.js';
 import { lfoTargetsParam, assignLfoTarget, clearLfoTarget } from '../dist/esm/lfo/assign.js';
 import { holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle, assignCommit, assignToastText, resetAssignMode } from '../dist/esm/lfo/assign-mode.js';
@@ -7442,9 +7442,10 @@ _log('\nTest: visible_if hides params, and their LEDs go dark');
     const anyNull = rows.flat().some(c => c === null);
     eq('the page has dark (null) cells to spare', anyNull, true);
 
-    /* The controller is re-read on a throttle, not every tick: movy's tick
-     * period is its MIDI sampling interval, so a per-tick IPC read is paid for
-     * in input latency. Toggling must still take effect promptly. */
+    /* Visibility is re-evaluated from the CACHED value the round-robin refresh
+     * already maintains, so watching a controller costs NO host call — movy's
+     * tick period is its MIDI sampling interval, and a poll here was paid for
+     * in input latency. A toggle must still take effect promptly. */
     {
         const m = bootModel({ ...MOCK_SYNTHS.wav_loop, 'synth:loop_mode': 'off' }, 0, 'synth');
         eq('starts hidden', m.dumpLayout().params.filter(Boolean).map(p => p.key).includes('loop_start'), false);
@@ -7456,9 +7457,9 @@ _log('\nTest: visible_if hides params, and their LEDs go dark');
         };
         for (let i = 0; i < 64; i++) m.tick();
         globalThis.shadow_get_param = orig;
-        /* 64 ticks at a 16-tick throttle is ~4 polls; the round-robin refresh
-         * reads it too, so allow headroom but catch a per-tick read. */
-        eq('controller is not polled every tick', gets < 20, true);
+        const perTick = gets / 64;
+        /* Only the round-robin refresh should touch it — nothing polls it. */
+        eq('controller is never polled for visibility (round-robin only)', perTick < 0.2, true);
 
         // A toggle still lands within the throttle window.
         globalThis.shadow_set_param(0, 'synth:loop_mode', 'on');
@@ -7556,35 +7557,42 @@ _log('\nTest: WAV peaks — accuracy, chunking and caching');
     env.setFiles({ '/s/burst.wav': wav });
     resetWavPeaks();
 
-    const WIDTH = 60;
+    const WIDTH = PEAK_WIDTH;
     // The job must NOT finish in one tick — that is the whole point of chunking.
-    const first = wavPeaksTick('/s/burst.wav', WIDTH);
+    const first = wavPeaksTick('/s/burst.wav');
     eq('first tick does work', first, true);
-    eq('first tick does not finish', wavPeaks('/s/burst.wav', WIDTH).done, false);
+    eq('first tick does not finish', wavPeaks('/s/burst.wav').done, false);
 
     let ticks = 1;
-    while (!wavPeaks('/s/burst.wav', WIDTH).done && ticks < 500) {
-        wavPeaksTick('/s/burst.wav', WIDTH); ticks++;
+    while (!wavPeaks('/s/burst.wav').done && ticks < 500) {
+        wavPeaksTick('/s/burst.wav'); ticks++;
     }
     eq('job completes across several ticks', ticks > 1 && ticks < 500, true);
 
-    const pk = wavPeaks('/s/burst.wav', WIDTH);
+    const pk = wavPeaks('/s/burst.wav');
     eq('one point per column', pk.points.length, WIDTH);
     eq('no error', pk.error, '');
     // The burst sits in the middle third and nowhere else.
     eq('silence at the start', pk.points[2], 0);
     eq('silence at the end', pk.points[WIDTH - 3], 0);
-    eq('full scale in the middle', pk.points[30] > 0.99, true);
+    eq('full scale in the middle', pk.points[Math.floor(WIDTH / 2)] > 0.99, true);
     const loud = pk.points.filter((v) => v > 0.5).length;
-    eq('roughly a third of columns are loud', loud >= 16 && loud <= 22, true);
+    eq('roughly a third of columns are loud', loud > WIDTH * 0.28 && loud < WIDTH * 0.38, true);
     eq('read is chunked, not one big gulp', ticks >= 8, true);
 
     // Cached: a further tick neither works nor changes the answer.
-    eq('completed job does no more work', wavPeaksTick('/s/burst.wav', WIDTH), false);
+    eq('completed job does no more work', wavPeaksTick('/s/burst.wav'), false);
 
-    /* A DIFFERENT width is a different picture and must recompute — the cache
-     * key carries the width for exactly this reason. */
-    eq('other width is not served from cache', wavPeaks('/s/burst.wav', 28), null);
+    /* Width is NOT part of the cache: peaks are stored at full display
+     * resolution and resampled down. Resizing the graphic — mrsample's Loop
+     * switch grows it from two cells to four — used to re-read the whole file,
+     * a visible stall on a knob turn. */
+    const half = resamplePeaks(pk.points, 64);
+    eq('resampled to the requested width', half.length, 64);
+    eq('resampling keeps the burst', half[32] > 0.99, true);
+    eq('resampling keeps the silence', half[2], 0);
+    const wide = resamplePeaks(pk.points, 128);
+    eq('same width is passed through', wide === pk.points, true);
 
     /* A sample mixed well below 0 dB must still use the full height: the peak
      * is tracked as blocks fold in and the renderer divides by it. Without it a
@@ -7593,11 +7601,11 @@ _log('\nTest: WAV peaks — accuracy, chunking and caching');
         env.setFiles({ '/s/quiet.wav': makeWav(120000, (t) => ((t > 0.4 && t < 0.6) ? 0.08 : 0)) });
         resetWavPeaks();
         let n = 0;
-        while (!wavPeaks('/s/quiet.wav', WIDTH)?.done && n < 500) { wavPeaksTick('/s/quiet.wav', WIDTH); n++; }
-        const q = wavPeaks('/s/quiet.wav', WIDTH);
+        while (!wavPeaks('/s/quiet.wav')?.done && n < 500) { wavPeaksTick('/s/quiet.wav'); n++; }
+        const q = wavPeaks('/s/quiet.wav');
         eq('quiet sample keeps its real peak', Math.abs(q.peak - 0.08) < 0.01, true);
         const gain = 1 / q.peak;
-        eq('normalised loudest column reaches full height', q.points[30] * gain > 0.99, true);
+        eq('normalised loudest column reaches full height', q.points[Math.floor(WIDTH / 2)] * gain > 0.99, true);
         eq('normalised silence stays silent', q.points[2] * gain, 0);
     }
 
@@ -7626,18 +7634,18 @@ _log('\nTest: WAV peaks — accuracy, chunking and caching');
         env.setFiles({ '/s/24bit.wav': make24(120000, (t) => (t > 0.4 && t < 0.6) ? 1 : 0) });
         resetWavPeaks();
         let n = 0;
-        while (!wavPeaks('/s/24bit.wav', WIDTH)?.done && n < 500) { wavPeaksTick('/s/24bit.wav', WIDTH); n++; }
-        const p24 = wavPeaks('/s/24bit.wav', WIDTH);
+        while (!wavPeaks('/s/24bit.wav')?.done && n < 500) { wavPeaksTick('/s/24bit.wav'); n++; }
+        const p24 = wavPeaks('/s/24bit.wav');
         eq('24-bit PCM is read', p24.error, '');
         eq('24-bit silence at the start', p24.points[2], 0);
-        eq('24-bit full scale in the middle', p24.points[30] > 0.99, true);
+        eq('24-bit full scale in the middle', p24.points[Math.floor(WIDTH / 2)] > 0.99, true);
     }
 
     // Unreadable paths fail once and stay failed rather than retrying forever.
     resetWavPeaks();
-    wavPeaksTick('/s/missing.wav', WIDTH);
-    eq('missing file reports an error', wavPeaks('/s/missing.wav', WIDTH).error !== '', true);
-    eq('missing file does not retry', wavPeaksTick('/s/missing.wav', WIDTH), false);
+    wavPeaksTick('/s/missing.wav');
+    eq('missing file reports an error', wavPeaks('/s/missing.wav').error !== '', true);
+    eq('missing file does not retry', wavPeaksTick('/s/missing.wav'), false);
 }
 
 _log('\nTest: waveform marker inverts over the sample');

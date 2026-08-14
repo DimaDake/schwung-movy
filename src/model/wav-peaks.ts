@@ -28,6 +28,13 @@ export interface WavPeaks {
     error:  string;
 }
 
+/* Peaks are always computed at the display's full width and RESAMPLED down to
+ * whatever the graphic currently spans. Width used to be part of the cache key,
+ * which meant anything that resized the graphic — toggling mrsample's Loop
+ * switch grows it from two cells to four — threw the envelope away and re-read
+ * the whole file, a visible stall on a knob turn. */
+export const PEAK_WIDTH = 128;
+
 const BLOCK_BYTES     = 32768;
 const BLOCKS_PER_TICK = 2;
 const MAX_BLOCKS      = 64;      // ≤ 2 MB read for any one file
@@ -71,11 +78,11 @@ const f32 = (b: Uint8Array, i: number): number => {
     return f32f[0];
 };
 
-function fileSignature(path: string, width: number): string | null {
+function fileSignature(path: string): string | null {
     try {
         const st = (os as { stat(p: string): [{ size?: number; mtime?: number }, number] }).stat(path);
         if (!st || st[1] !== 0 || !st[0]) return null;
-        return `${path}:${st[0].size ?? 0}:${st[0].mtime ?? 0}:${width}`;
+        return `${path}:${st[0].size ?? 0}:${st[0].mtime ?? 0}`;
     } catch { return null; }
 }
 
@@ -178,9 +185,10 @@ function runBlock(j: Job): boolean {
 /* Advance the job for `path` at `width`. Call once per tick from processTick —
  * never from a render path. Returns true when the picture changed, so the
  * caller can mark the frame dirty without repainting on idle ticks. */
-export function wavPeaksTick(path: string | null, width: number): boolean {
-    if (!path || width <= 0) return false;
-    const key = fileSignature(path, width);
+export function wavPeaksTick(path: string | null): boolean {
+    if (!path) return false;
+    const width = PEAK_WIDTH;
+    const key = fileSignature(path);
     if (!key) {
         if (cache.key !== `missing:${path}`) {
             cache = { key: `missing:${path}`, width, points: [], peak: 0, done: true, error: 'file not found' };
@@ -215,11 +223,27 @@ export function wavPeaksTick(path: string | null, width: number): boolean {
 
 /* The current envelope — possibly partial while a job is running. Never does
  * I/O, so it is safe to call from buildViewModel on every frame. */
-export function wavPeaks(path: string | null, width: number): WavPeaks | null {
+export function wavPeaks(path: string | null): WavPeaks | null {
     if (!path) return null;
     if (!cache.key.startsWith(`${path}:`) && cache.key !== `missing:${path}`) return null;
-    if (cache.width !== width && cache.width !== 0) return null;
     return cache;
+}
+
+/* Collapse the full-width envelope onto `width` columns, keeping the PEAK of
+ * each source range — averaging would flatten exactly the transients the
+ * picture exists to show. */
+export function resamplePeaks(points: number[], width: number): number[] {
+    if (width <= 0 || points.length === 0) return [];
+    if (points.length === width) return points;
+    const out = new Array<number>(width).fill(0);
+    for (let i = 0; i < width; i++) {
+        const a = Math.floor((i * points.length) / width);
+        const b = Math.max(a + 1, Math.floor(((i + 1) * points.length) / width));
+        let mx = 0;
+        for (let j = a; j < b && j < points.length; j++) if (points[j] > mx) mx = points[j];
+        out[i] = mx;
+    }
+    return out;
 }
 
 /* Test seam: the cache is module-level so a job survives across ticks. */

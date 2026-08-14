@@ -10,7 +10,7 @@ import { buildLfoViz } from './lfo-vm.js';
 import { buildFilterViz } from './filter-vm.js';
 import { buildEqViz } from './eq-vm.js';
 import { cutKindOf } from './cut-viz.js';
-import { wavPeaks } from './wav-peaks.js';
+import { wavPeaks, resamplePeaks } from './wav-peaks.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
 import { dedupShortNames } from '../renderer/shorten.js';
 import { basename } from './path.js';
@@ -188,16 +188,16 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     const wavViz: import('../types/viewmodel.js').WavVizVM[] = layout.wavs.map((wv) => {
         const fileIdx = wv.idxs.find((i) => i !== wv.position);
         const path = fileIdx === undefined ? null : (s.fileValues[pageStart + fileIdx] ?? null);
-        const width = wv.cellCount * 32 - 4;
+        const width = wv.cellCount * 32;
         s.wavRequest = path ? { path, width } : null;
-        const pk = wavPeaks(path, width);
+        const pk = wavPeaks(path);
         const at = (kind: string): number | undefined => {
             const mk = wv.markers.find((m) => m.kind === kind);
             return mk ? norm01(mk.idx) : undefined;
         };
         return {
             line: wv.line, startCol: wv.startCol, cellCount: wv.cellCount,
-            points: pk?.points ?? [],
+            points: pk ? resamplePeaks(pk.points, width) : [],
             gain: pk && pk.peak > 0 ? 1 / pk.peak : 1,
             position: norm01(wv.position),
             loopStart: at('loopStart'),
@@ -227,10 +227,10 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             const cellCount = joined ? 2 : 1;
             const width = cellCount * 32;
             s.wavRequest = path ? { path, width } : null;
-            const pk = wavPeaks(path, width);
+            const pk = wavPeaks(path);
             wavViz.push({
                 line: cell.line, startCol, cellCount,
-                points: pk?.points ?? [],
+                points: pk ? resamplePeaks(pk.points, width) : [],
                 gain: pk && pk.peak > 0 ? 1 / pk.peak : 1,
                 position: norm01(layout.wavCell),
             });

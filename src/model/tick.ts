@@ -1,9 +1,10 @@
 import type { ModelState } from './state.js';
 import { wavPeaksTick } from './wav-peaks.js';
-import { loadHierarchy, visibilitySignature } from './hierarchy.js';
+import { conditionHolds } from './visible-if.js';
+import { loadHierarchy } from './hierarchy.js';
 import { applyKnobDelta, refreshOneParam, pollModuleName, refreshModulatedKeys, slotToLocal } from './store.js';
 import { triggerAnimationTick } from './trigger.js';
-import { VISIBILITY_POLL_TICKS, KNOBS_PER_PAGE, NAME_POLL_TICKS } from './constants.js';
+import { KNOBS_PER_PAGE, NAME_POLL_TICKS } from './constants.js';
 import { retryUnsettledMeta } from './meta-retry.js';
 import { mlog } from '../log.js';
 
@@ -12,21 +13,39 @@ let _perfTickCount    = 0;
 let _perfSampleMs     = 0;
 let _perfRefreshMaxMs = 0;
 
+/* Has a visible_if condition flipped? Evaluated against the CACHED value the
+ * round-robin refresh already maintains, so this makes no host call — movy's
+ * tick period is its MIDI sampling interval, and a poll here was paid for in
+ * input latency. A controller the module does not put on any page keeps the
+ * value read at load; nothing else can change it behind our back. */
+function visibilityChanged(s: ModelState): boolean {
+    for (const r of s.visibilityRules) {
+        let idx = -1;
+        for (let i = 0; i < s.knobParams.length; i++) {
+            if (s.knobParams[i]?.key === r.param) { idx = i; break; }
+        }
+        if (idx < 0) continue;                       // off-page: settled at load
+        const v = s.knobValues[idx];
+        if (v === null || v === undefined) continue; // not read back yet
+        const opts = s.knobParams[idx]?.options ?? null;
+        const holds = conditionHolds(r, String(v), opts);
+        if (holds === s.hiddenKeys.has(r.key)) return true;   // state disagrees
+    }
+    return false;
+}
+
 export function processTick(s: ModelState): boolean {
     /* Chip away at the sample waveform. The read is deliberately here and not
      * in buildViewModel: movy's tick period IS its MIDI sampling interval, so
      * this does a couple of 32 KB blocks and returns, repainting only on the
      * ticks that actually advanced the picture. */
     const wavDirty = s.wavRequest
-        ? wavPeaksTick(s.wavRequest.path, s.wavRequest.width) : false;
+        ? wavPeaksTick(s.wavRequest.path) : false;
     if (wavDirty) s.dirty = true;
 
     /* A visible_if controller moved (mrsample's Loop switch) — the page's param
      * set is different now, so rebuild it. Cheap to check, rare to fire. */
-    if (s.visibilityWatch.length > 0 && --s.visibilityCountdown <= 0) {
-        s.visibilityCountdown = VISIBILITY_POLL_TICKS;
-        if (visibilitySignature(s) !== s.visibilitySig) s.hierarchyKey = '';
-    }
+    if (s.visibilityRules.length > 0 && visibilityChanged(s)) s.hierarchyKey = '';
 
     if (s.hierarchyKey !== s.activeModuleName) {
         const prevModuleId = s.moduleId;

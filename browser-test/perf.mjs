@@ -345,9 +345,9 @@ _origLog('\nTest 4z: WAV peak read cost per tick (movy\'s tick period is its MID
 
     const times = [];
     let ticks = 0;
-    while (!wavPeaks('/perf/big.wav', 60)?.done && ticks < 400) {
+    while (!wavPeaks('/perf/big.wav')?.done && ticks < 400) {
         const t0 = performance.now();
-        wavPeaksTick('/perf/big.wav', 60);
+        wavPeaksTick('/perf/big.wav');
         times.push(performance.now() - t0);
         ticks++;
     }
@@ -358,7 +358,7 @@ _origLog('\nTest 4z: WAV peak read cost per tick (movy\'s tick period is its MID
     /* Once done it must cost NOTHING: a completed read that kept re-reading
      * would be a permanent tax on every tick for as long as the page is open. */
     const t0 = performance.now();
-    for (let i = 0; i < 100; i++) wavPeaksTick('/perf/big.wav', 60);
+    for (let i = 0; i < 100; i++) wavPeaksTick('/perf/big.wav');
     const idle = (performance.now() - t0) / 100;
     check('idle tick after completion', idle, 0.02, 'ms');
 }

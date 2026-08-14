@@ -7,6 +7,7 @@ import { enumSquareLines } from './shorten.js';
 import { drawLine } from './primitives.js';
 import { drawWave } from './lfo-wave.js';
 import { drawCutCurve } from './cut-curve.js';
+import { toggleIsOn } from '../model/toggle.js';
 
 function drawCircleBorder(cx: number, cy: number, r: number): void {
     let x = r, y = 0, err = 0;
@@ -29,6 +30,39 @@ function drawArcKnob(kx: number, ky: number, normVal: number): void {
     const ex = Math.round(cx + r * Math.sin(rad));
     const ey = Math.round(cy - r * Math.cos(rad));
     drawLine(cx, cy, ex, ey);
+}
+
+/* An on/off switch, for boolean params (see model/toggle.ts).
+ *
+ * A 16x11 pill with a 7px round knob that slides to the right when on. The ON
+ * state also INVERTS: the pill fills and the knob is knocked out of it. Position
+ * alone is too weak a signal at 5px of travel — on a page of eight switches you
+ * would have to inspect each one. Filled-vs-outline reads at a glance, which is
+ * the whole reason a switch beats the two-item enum square it replaces.
+ *
+ * The knob's 7px diameter leaves exactly 1px clear above and below, so its curve
+ * echoes the pill's end cap; a smaller knob floating in the middle read as a
+ * bar with a dot on it rather than something that slides. */
+function drawSwitch(kx: number, ky: number, on: boolean): void {
+    const x = kx, y = ky + 2, w = 16, h = 11;
+    /* Corners stepped in 2px. A 1px chamfer still read as a rectangle. */
+    if (on) {
+        fill_rect(x + 2, y, w - 4, h, 1);
+        fill_rect(x + 1, y + 1, w - 2, h - 2, 1);
+        fill_rect(x, y + 2, w, h - 4, 1);
+    } else {
+        fill_rect(x + 2, y, w - 4, 1, 1);
+        fill_rect(x + 2, y + h - 1, w - 4, 1, 1);
+        fill_rect(x, y + 2, 1, h - 4, 1);
+        fill_rect(x + w - 1, y + 2, 1, h - 4, 1);
+        for (const [dx, dy] of [[1, 1], [w - 2, 1], [1, h - 2], [w - 2, h - 2]])
+            fill_rect(x + dx, y + dy, 1, 1, 1);
+    }
+    const cx = on ? x + 10 : x + 5, cy = y + 5;
+    const v: 0 | 1 = on ? 0 : 1;                     // knocked out of a filled pill
+    fill_rect(cx - 1, cy - 3, 3, 1, v); fill_rect(cx - 1, cy + 3, 3, 1, v);
+    fill_rect(cx - 2, cy - 2, 5, 1, v); fill_rect(cx - 2, cy + 2, 5, 1, v);
+    fill_rect(cx - 3, cy - 1, 7, 3, v);
 }
 
 /* Horizontal bar: fills left→right — used for binary (on/off) params */
@@ -277,6 +311,10 @@ export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
         drawLengthSquare(kx, ky, pvm.displayValue);
     } else if (pvm.type === 'file') {
         drawEnumSquare(kx, ky, [pvm.displayValue], 0);
+    } else if (pvm.renderStyle === 'switch') {
+        /* Ahead of the enum branch below: a two-item off/on list is a boolean,
+         * and printing its option name is exactly what the switch replaces. */
+        drawSwitch(kx, ky, toggleIsOn(pvm.type, pvm.enumIndex, pvm.normalizedValue));
     } else if (pvm.renderStyle === 'steps') {
         /* One pre-formatted string, not an options array — sfz's voice count runs
          * to 128, and a label per value rebuilt every frame would be absurd. */

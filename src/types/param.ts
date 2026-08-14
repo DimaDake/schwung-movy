@@ -135,7 +135,7 @@ export interface KnobParam {
     step:           number;
     options:        string[] | null;
     nameKey?:       string;
-    renderStyle:    'arc' | 'hbar' | 'vbar' | 'preset' | 'xbox' | 'steps';
+    renderStyle:    'arc' | 'hbar' | 'vbar' | 'switch' | 'preset' | 'xbox' | 'steps';
     /** Step cell whose value reads as an offset: show a leading + above zero. */
     signed?:        boolean;
     env?:           'a' | 'd' | 's' | 'r';

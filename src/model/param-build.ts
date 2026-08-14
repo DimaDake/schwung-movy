@@ -3,6 +3,7 @@
  * been gathered from chain_params and/or ui_hierarchy. */
 import type { KnobParam } from '../types/param.js';
 import { isFaderParam } from './fader.js';
+import { isActionParam, isToggleParam } from './toggle.js';
 import { cellStyleFor } from './step-labels.js';
 
 /* One param's metadata as published by a module — either a chain_params entry
@@ -100,10 +101,22 @@ export function buildGenericParam(key: string, cp: RawMeta, def: RawMeta): KnobP
     };
 }
 
-/* A loudness param draws as a fader unless the module's own config asked for
- * something else. Applied AFTER the param is built so the rule can read the
- * resolved label, which is where half the naming lives. */
-export function applyFaderStyle(p: KnobParam): KnobParam {
+/* The name-driven cell styles, applied AFTER the param is built so each rule
+ * can read the RESOLVED label and options — which is where half the naming
+ * lives. Shared by the generic and config paths so the two cannot drift.
+ *
+ * `explicitRender` means a hand-written config named the style itself; a
+ * template that states its layout outranks anything inferred here. */
+export function applyAutoStyle(p: KnobParam, explicitRender = false): KnobParam {
+    /* Before the switch: an action is boolean-shaped, and drawing it as one
+     * would leave it stuck on after a single use. */
+    if (!p.behavior && isActionParam(p)) {
+        p.behavior = 'trigger';
+        p.automatable = false;
+        return p;
+    }
+    if (explicitRender) return p;
+    if (isToggleParam(p)) { p.renderStyle = 'switch'; return p; }
     if (p.renderStyle === 'arc' && isFaderParam(p)) p.renderStyle = 'vbar';
     return p;
 }

@@ -86,6 +86,8 @@ import { wavPeaksTick, wavPeaks, resetWavPeaks, resamplePeaks, PEAK_WIDTH } from
 import { drawWavForm } from '../dist/esm/renderer/wav-form.js';
 import { drawFilterCurve } from '../dist/esm/renderer/filter-curve.js';
 import { isFaderParam } from '../dist/esm/model/fader.js';
+import { isToggleParam, isActionParam } from '../dist/esm/model/toggle.js';
+import { triggerIndices } from '../dist/esm/model/trigger.js';
 import { renderKnobsView } from '../dist/esm/renderer/knob-view.js';
 import { renderChainView } from '../dist/esm/renderer/chain-view.js';
 import { lfoTargetsParam, assignLfoTarget, clearLfoTarget } from '../dist/esm/lfo/assign.js';
@@ -1118,10 +1120,10 @@ _log('\nTest: octave and voice-count params become step cells');
   eq('helm osc_1_unison_voices',     style('osc_1_unison_voices', 1, 15),'steps');
   eq('mrdrums g_polyphony 1..64',    style('g_polyphony', 1, 64),        'steps');
   eq('sfz voices 1..128',            style('voices', 1, 128),            'steps');
-  // Excluded: toggles stay bars.
-  eq('helm sub_octave 0..1',         style('sub_octave', 0, 1),          'hbar');
-  eq('obxd unison 0..1',             style('unison', 0, 1),              'hbar');
-  eq('obxd bend_range 0..1',         style('bend_range', 0, 1),          'hbar');
+  // Booleans are switches, not framed numbers.
+  eq('helm sub_octave 0..1',         style('sub_octave', 0, 1),          'switch');
+  eq('obxd unison 0..1',             style('unison', 0, 1),              'switch');
+  eq('obxd bend_range 0..1',         style('bend_range', 0, 1),          'switch');
   // Excluded: too wide to be an octave, amounts, randomisers, non-ints.
   eq('genera octaves 0..100',        style('octaves', 0, 100),           'arc');
   eq('lane1_oct_seed 0..65535',      style('lane1_oct_seed', 0, 65535),  'arc');
@@ -7588,6 +7590,107 @@ _log('\nTest: loudness knobs become faders');
     eq('an enum called Volume stays an enum',
         isFaderParam({ key: 'volume', label: 'Volume', type: 'enum', min: 0, max: 1 }), false);
 
+}
+
+_log('\nTest: booleans become on/off switches');
+{
+    const I = (key, label = key) => ({ key, label, type: 'int', min: 0, max: 1 });
+    const E = (key, options, label = key) =>
+        ({ key, label, type: 'enum', options, min: 0, max: options.length - 1 });
+    const sw  = (p) => isToggleParam(p);
+    const act = (p) => isActionParam(p);
+
+    // Both spellings of the same control.
+    eq('int 0..1 is a switch',            sw(I('osc2_sync', 'Osc2 Sync')), true);
+    eq('Off/On enum is a switch',         sw(E('legato', ['Off', 'On'])), true);
+    eq('off/on lower case',               sw(E('sync', ['off', 'on'])), true);
+    eq('0/1 with no names',               sw(E('all_mono', ['0', '1'])), true);
+    eq('Disabled/Enabled',                sw(E('eco', ['Disabled', 'Enabled'])), true);
+
+    /* Order matters: a reversed pair drawn as a switch would show the knob left
+     * while the module reports "on". None exist in the fleet; the rule keeps it
+     * that way rather than trusting that. */
+    eq('reversed On/Off is NOT a switch', sw(E('byp', ['On', 'Off'])), false);
+
+    // Two options, but neither of them is "absent".
+    eq('Free/Sync stays an enum',         sw(E('mode', ['Free', 'Sync'])), false);
+    eq('Poly/Mono stays an enum',         sw(E('voice', ['Poly', 'Mono'])), false);
+    eq('Saw/Square stays an enum',        sw(E('shape', ['Saw', 'Square'])), false);
+    eq('three options is not a switch',   sw(E('m', ['Off', 'On', 'Auto'])), false);
+    eq('a wider int is not a switch',     sw({ ...I('oct'), max: 4 }), false);
+
+    /* Actions go to the trigger badge: a switch would sit stuck on after one
+     * use. The verb must lead the key — these four are the modes that a looser
+     * rule turned into buttons. */
+    eq('rnd_patch is an action',          act(I('rnd_patch', 'Rnd Patch')), true);
+    eq('save_preset is an action',        act(I('save_preset', 'Save Preset')), true);
+    eq('init_freq is an action',          act(E('init_freq', ['0', '1'])), true);
+    eq('cv_init is an action',            act(E('cv_init', ['0', '1'])), true);
+    eq('bare "trigger" is an action',     act(I('trigger', 'Trigger')), true);
+    eq('lfo_trigger is a MODE',           act(I('lfo_trigger', 'LFO Trigger')), false);
+    eq('trigger_mode is a MODE',          act(E('trigger_mode', ['Off', 'On'])), false);
+    eq('vca_hard_reset is a MODE',        act(E('vca_hard_reset', ['Off', 'On'])), false);
+    eq('random_retrig is a MODE',         act(E('random_retrig', ['off', 'on'])), false);
+    eq('an action is not also a switch',  sw(I('rnd_patch', 'Rnd Patch')), false);
+    eq('a mode still switches',           sw(I('lfo_trigger', 'LFO Trigger')), true);
+
+    /* An int trigger has no options to name its states. triggerIndices used to
+     * reject it, which drew the badge and then did nothing on every turn. */
+    eq('int 0..1 trigger resolves indexes',
+        JSON.stringify(triggerIndices({ ...I('trigger'), behavior: 'trigger' })),
+        JSON.stringify({ idle: 0, trigger: 1 }));
+    eq('a non-trigger resolves nothing',
+        triggerIndices(I('trigger')), null);
+}
+
+_log('\nTest: the switch graphic');
+{
+    const { drawKnobWidget } = await import('../dist/esm/renderer/knob.js');
+    /* One row of the switch as a bitmap string. Single pixels are useless here:
+     * when ON, the knob is a HOLE punched in a filled pill, so the same
+     * coordinate can be dark in both states for opposite reasons. */
+    const row = (vm, ry) => {
+        const lit = new Set();
+        const orig = globalThis.fill_rect;
+        globalThis.fill_rect = (x, y, w, h, v) => {
+            for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+                const k = (x + i) + ',' + (y + j);
+                if (v === 1) lit.add(k); else lit.delete(k);
+            }
+        };
+        drawKnobWidget(0, 0, {
+            shortName: 'S', fullName: 'Sync', type: 'int', renderStyle: 'switch',
+            value: '', enumIndex: 0, normalizedValue: 0, ...vm,
+        });
+        globalThis.fill_rect = orig;
+        let out = '';
+        for (let x = 8; x < 24; x++) out += lit.has(x + ',' + ry) ? '#' : '.';
+        return out;
+    };
+    const OFF = { normalizedValue: 0 }, ON = { normalizedValue: 1 };
+
+    /* Centre row. OFF is an outline with the knob parked left; ON fills the
+     * whole pill and knocks the knob out on the right. That inversion is the
+     * signal — position alone is 5px of travel and unreadable across a page. */
+    eq('OFF: hollow pill, knob left',  row(OFF, 7), '#.#######......#');
+    eq('ON: filled pill, knob right',  row(ON, 7),  '#######.......##');
+
+    /* Top and bottom rows are identical in both states: the 2px corner chamfer
+     * is what makes it a pill rather than a rectangle at this size. */
+    eq('OFF top edge is chamfered',    row(OFF, 2),  '..############..');
+    eq('ON top edge is chamfered',     row(ON, 2),   '..############..');
+    eq('bottom edge matches the top',  row(OFF, 12), row(OFF, 2));
+
+    /* The knob is 7px across, so it fills the pill's 11px height with exactly
+     * 1px of clearance — rows 3 and 11 stay clear of it on the seated side. */
+    eq('knob clears the pill top',     row(OFF, 3).slice(2, 9), '.......');
+
+    /* An enum switch reads its state from the option INDEX, not the value: its
+     * normalizedValue is whatever the range happens to make of index 1. */
+    eq('enum index 1 draws ON',
+        row({ type: 'enum', enumIndex: 1, normalizedValue: 0 }, 7), row(ON, 7));
+    eq('enum index 0 draws OFF',
+        row({ type: 'enum', enumIndex: 0, normalizedValue: 1 }, 7), row(OFF, 7));
 }
 
 _log('\nTest: the fader graphic');

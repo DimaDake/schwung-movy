@@ -27,6 +27,7 @@ import { waveCellIndices } from '../dist/esm/model/wave-viz.js';
 import { waveToggleCells } from '../dist/esm/model/wave-toggle.js';
 import { envStageCells } from '../dist/esm/model/env-stage.js';
 import { cutKindOf } from '../dist/esm/model/cut-viz.js';
+import { triggerIndices } from '../dist/esm/model/trigger.js';
 import { planPageLayout, claimedCells } from '../dist/esm/model/page-layout.js';
 
 const EXPECT_PATH = join(MOVY, 'browser-test', 'dump-expect.json');
@@ -108,9 +109,16 @@ function checkInvariants(key, model, snap) {
         if (p.type === 'file') continue;
         if (p.behavior === 'trigger') {
             check(`${key}: trigger ${p.key} is not automatable`, !p.automatable);
+            /* The badge fires by writing one of exactly two states, so a trigger
+             * must HAVE two — either named (idle/trigger), or the bare int 0..1
+             * that modules like aphex and spectra use for the same thing. A
+             * trigger the badge cannot resolve draws fine and does nothing. */
             const opts = (p.options ?? []).map(o => String(o).toLowerCase());
-            check(`${key}: trigger ${p.key} exposes idle + trigger`,
-                opts.includes('idle') && opts.includes('trigger'));
+            const named = opts.includes('idle') && opts.includes('trigger');
+            const twoState = opts.length === 2
+                || (p.type === 'int' && p.min === 0 && p.max === 1);
+            check(`${key}: trigger ${p.key} has two resolvable states`, named || twoState);
+            check(`${key}: trigger ${p.key} resolves fire indexes`, !!triggerIndices(p));
         }
         const isEnum = p.type === 'enum' || (p.options && p.options.length > 0);
         if (isEnum) {
@@ -353,6 +361,241 @@ const WAVE_CELLS_EXPECTED = [
  * so the names come from the detector over the same page slices the VM uses;
  * the VM is then cross-checked to have produced that many 'wave' cells, which
  * is what proves the detector is actually wired through to renderStyle. */
+/* Every knob drawn as an on/off switch, and every boolean-shaped ACTION routed
+ * to the trigger badge instead. Both rules are name-driven, and the action one
+ * is the dangerous half: a verb matched too loosely turns a mode into a button.
+ * Earlier drafts swept up `lfo_trigger`, `trigger_mode`, `vca_hard_reset` and
+ * `random_retrig` — all four are settings you leave in a position, not actions.
+ * Pinning both sets by name is what makes that visible as a named diff. */
+const BOOL_ACTIONS_EXPECTED = [
+    'audio_fx--palette::rnd_amount',
+    'audio_fx--palette::rnd_effect',
+    'audio_fx--palette::rnd_macro',
+    'audio_fx--palette::rnd_patch',
+    'audio_fx--palette::rnd_values',
+    'audio_fx--spectra::rnd_motion',
+    'audio_fx--spectra::rnd_pan',
+    'audio_fx--spectra::rnd_preset',
+    'audio_fx--spectra::rnd_spectra',
+    'sound_generator--aphex::mutate',
+    'sound_generator--aphex::reset_patch',
+    'sound_generator--aphex::rnd_mod',
+    'sound_generator--aphex::rnd_patch',
+    'sound_generator--aphex::trigger',
+    'sound_generator--breakbeat::save_preset',
+    'sound_generator--forge::cv_init',
+    'sound_generator--forge::init_decay',
+    'sound_generator--forge::init_freq',
+    'sound_generator--forge::rnd_kit',
+    'sound_generator--forge::rnd_kit_params',
+    'sound_generator--forge::rnd_pan',
+    'sound_generator--forge::rnd_pitch',
+    'sound_generator--forge::rnd_voice',
+];
+
+const SWITCHES_EXPECTED = [
+    'audio_fx--ambiotica::lofi_tails',
+    'audio_fx--ambiotica::mod_sync',
+    'audio_fx--belt::hard',
+    'audio_fx--granular::freeze',
+    'audio_fx--granular::mute',
+    'audio_fx--granular::sync',
+    'audio_fx--magneto::bwd',
+    'audio_fx--magneto::fwd',
+    'audio_fx--magneto::tape_stop',
+    'audio_fx--nam::cab_bypass',
+    'audio_fx--pushnpull::band_on',
+    'audio_fx--smack::pad_play',
+    'audio_fx--spectra::limiter',
+    'audio_fx--structor::seq_on',
+    'audio_fx--superboom::limiter',
+    'audio_fx--superboom::micControl',
+    'audio_fx--tapescam::widen',
+    'audio_fx--usefulity::bass_audition',
+    'audio_fx--usefulity::bass_mono',
+    'audio_fx--usefulity::dc_filter',
+    'audio_fx--usefulity::mono',
+    'audio_fx--usefulity::mute',
+    'audio_fx--verglas::freeze',
+    'audio_fx--verglas::limiter_on',
+    'audio_fx--war_bells::bypass',
+    'audio_fx--war_bells::bypass_trails',
+    'audio_fx--war_bells::eco',
+    'audio_fx--war_bells::hold',
+    'audio_fx--war_bells::loop_only',
+    'audio_fx--war_bells::loop_reverse',
+    'audio_fx--war_bells::looper_on',
+    'audio_fx--war_bells::reverse',
+    'midi_fx--branchage::hat_branch_enabled',
+    'midi_fx--branchage::kick_branch_enabled',
+    'midi_fx--branchage::snare_branch_enabled',
+    'midi_fx--eucalypso::lane1_enabled',
+    'midi_fx--eucalypso::lane2_enabled',
+    'midi_fx--eucalypso::lane3_enabled',
+    'midi_fx--eucalypso::lane4_enabled',
+    'midi_fx--euclidrum::lane1_enabled',
+    'midi_fx--euclidrum::lane2_enabled',
+    'midi_fx--euclidrum::lane3_enabled',
+    'midi_fx--euclidrum::lane4_enabled',
+    'midi_fx--euclidrum::lane5_enabled',
+    'midi_fx--euclidrum::lane6_enabled',
+    'midi_fx--euclidrum::lane7_enabled',
+    'midi_fx--euclidrum::lane8_enabled',
+    'midi_fx--euclidrum::passthrough',
+    'midi_fx--impressive-chords::choke',
+    'midi_fx--impressive-chords::fit',
+    'midi_fx--impressive-chords::gate',
+    'midi_fx--impressive-chords::scan',
+    'midi_fx--superarp::latch',
+    'midi_fx--superarp::triplet',
+    'sound_generator--303::devil_mod_switch',
+    'sound_generator--aphex::ms10_mode',
+    'sound_generator--aphex::v2_sync',
+    'sound_generator--aphex::v2_xmod',
+    'sound_generator--belt-in::hard',
+    'sound_generator--chordism::arp_enabled',
+    'sound_generator--chordism::arp_hold',
+    'sound_generator--chordism::vca_drone',
+    'sound_generator--chordism::vca_hard_reset',
+    'sound_generator--denis::legato',
+    'sound_generator--dexed::lfo_sync',
+    'sound_generator--dexed::op1_osc_mode',
+    'sound_generator--dexed::op2_osc_mode',
+    'sound_generator--dexed::op3_osc_mode',
+    'sound_generator--dexed::op4_osc_mode',
+    'sound_generator--dexed::op5_osc_mode',
+    'sound_generator--dexed::op6_osc_mode',
+    'sound_generator--dexed::osc_sync',
+    'sound_generator--forge::all_mono',
+    'sound_generator--freak::cycle_bipolar',
+    'sound_generator--freak::cycle_retrig',
+    'sound_generator--freak::cycle_sync',
+    'sound_generator--freak::env_retrig',
+    'sound_generator--freak::random_retrig',
+    'sound_generator--granny::scan_enable',
+    'sound_generator--helm::arp_on',
+    'sound_generator--helm::delay_on',
+    'sound_generator--helm::distortion_on',
+    'sound_generator--helm::filter_on',
+    'sound_generator--helm::formant_on',
+    'sound_generator--helm::legato',
+    'sound_generator--helm::mod_0_enable',
+    'sound_generator--helm::mod_1_enable',
+    'sound_generator--helm::mod_2_enable',
+    'sound_generator--helm::mod_3_enable',
+    'sound_generator--helm::mod_4_enable',
+    'sound_generator--helm::mod_5_enable',
+    'sound_generator--helm::mod_6_enable',
+    'sound_generator--helm::mod_7_enable',
+    'sound_generator--helm::reverb_on',
+    'sound_generator--helm::stutter_on',
+    'sound_generator--helm::sub_octave',
+    'sound_generator--helm::sync_bpm',
+    'sound_generator--helm::unison_1_harmonize',
+    'sound_generator--helm::unison_2_harmonize',
+    'sound_generator--hera::chorus_i',
+    'sound_generator--hera::chorus_ii',
+    'sound_generator--hera::lfo_trigger',
+    'sound_generator--hera::vca_type',
+    'sound_generator--hush1::filter_env_full_range',
+    'sound_generator--hush1::hold',
+    'sound_generator--hush1::lfo_invert',
+    'sound_generator--hush1::lfo_pitch_snap',
+    'sound_generator--hush1::same_note_quirk',
+    'sound_generator--krautdrums::limiter',
+    'sound_generator--linein::hum_notch',
+    'sound_generator--linein::riaa_eq',
+    'sound_generator--linein::safety_limiter',
+    'sound_generator--linein::soft_clip',
+    'sound_generator--minijv::chorusswitch',
+    'sound_generator--minijv::link_tones',
+    'sound_generator--minijv::nvram_patchCommon_portamentoswitch',
+    'sound_generator--minijv::nvram_patchCommon_sololegato',
+    'sound_generator--minijv::nvram_patchCommon_velocityswitch',
+    'sound_generator--minijv::nvram_tone_0_fxmswitch',
+    'sound_generator--minijv::nvram_tone_0_lfo1synchro',
+    'sound_generator--minijv::nvram_tone_0_toneswitch',
+    'sound_generator--minijv::nvram_tone_1_fxmswitch',
+    'sound_generator--minijv::nvram_tone_1_lfo1synchro',
+    'sound_generator--minijv::nvram_tone_1_toneswitch',
+    'sound_generator--minijv::nvram_tone_2_fxmswitch',
+    'sound_generator--minijv::nvram_tone_2_lfo1synchro',
+    'sound_generator--minijv::nvram_tone_2_toneswitch',
+    'sound_generator--minijv::nvram_tone_3_fxmswitch',
+    'sound_generator--minijv::nvram_tone_3_lfo1synchro',
+    'sound_generator--minijv::nvram_tone_3_toneswitch',
+    'sound_generator--minijv::reverbswitch',
+    'sound_generator--mrsample::loop_mode',
+    'sound_generator--noisemaker::chorus1',
+    'sound_generator--noisemaker::chorus2',
+    'sound_generator--noisemaker::delay_fac_l',
+    'sound_generator--noisemaker::delay_fac_r',
+    'sound_generator--noisemaker::delay_sync',
+    'sound_generator--noisemaker::lfo1_sync',
+    'sound_generator--noisemaker::lfo2_sync',
+    'sound_generator--noisemaker::osc_sync',
+    'sound_generator--obxd::as_played',
+    'sound_generator--obxd::bandpass',
+    'sound_generator--obxd::bend_osc2',
+    'sound_generator--obxd::bend_range',
+    'sound_generator--obxd::env_pitch_both',
+    'sound_generator--obxd::fenv_inv',
+    'sound_generator--obxd::fourpole',
+    'sound_generator--obxd::lfo_filter',
+    'sound_generator--obxd::lfo_osc1',
+    'sound_generator--obxd::lfo_osc2',
+    'sound_generator--obxd::lfo_pw1',
+    'sound_generator--obxd::lfo_pw2',
+    'sound_generator--obxd::lfo_sync',
+    'sound_generator--obxd::osc2_sync',
+    'sound_generator--obxd::osc_quantize',
+    'sound_generator--obxd::pw_env_both',
+    'sound_generator--obxd::self_osc',
+    'sound_generator--obxd::unison',
+    'sound_generator--osirus::arp_hold',
+    'sound_generator--osirus::filter2_cutoff_link',
+    'sound_generator--osirus::lfo1_env_mode',
+    'sound_generator--osirus::lfo2_env_mode',
+    'sound_generator--osirus::osc2_sync',
+    'sound_generator--plaits::legato',
+    'sound_generator--rex::choke',
+    'sound_generator--signal::cv_ghost_crescendo',
+    'sound_generator--smack-in::pad_play',
+    'sound_generator--surge::f2_cf_is_offset',
+    'sound_generator--surge::f2_link_resonance',
+    'sound_generator--surge::lfo0_unipolar',
+    'sound_generator--surge::lfo10_unipolar',
+    'sound_generator--surge::lfo11_unipolar',
+    'sound_generator--surge::lfo1_unipolar',
+    'sound_generator--surge::lfo2_unipolar',
+    'sound_generator--surge::lfo3_unipolar',
+    'sound_generator--surge::lfo4_unipolar',
+    'sound_generator--surge::lfo5_unipolar',
+    'sound_generator--surge::lfo6_unipolar',
+    'sound_generator--surge::lfo7_unipolar',
+    'sound_generator--surge::lfo8_unipolar',
+    'sound_generator--surge::lfo9_unipolar',
+    'sound_generator--surge::mod_0_enable',
+    'sound_generator--surge::mod_1_enable',
+    'sound_generator--surge::mod_2_enable',
+    'sound_generator--surge::mod_3_enable',
+    'sound_generator--surge::mod_4_enable',
+    'sound_generator--surge::mod_5_enable',
+    'sound_generator--surge::mpe_enabled',
+    'sound_generator--surge::mute_o1',
+    'sound_generator--surge::mute_o2',
+    'sound_generator--surge::mute_o3',
+    'sound_generator--surge::mute_ring12',
+    'sound_generator--surge::mute_ring23',
+    'sound_generator--surge::osc1_keytrack',
+    'sound_generator--surge::osc1_retrigger',
+    'sound_generator--surge::osc2_keytrack',
+    'sound_generator--surge::osc2_retrigger',
+    'sound_generator--surge::osc3_keytrack',
+    'sound_generator--surge::osc3_retrigger',
+    'sound_generator--surge::sync_bpm',
+];
+
 function collectWaveCells(key, model, into, intoToggles, intoStages, intoEqs, intoCuts, intoCutSingles) {
     const params = model.dumpLayout().params;
     let detected = 0;
@@ -371,10 +614,20 @@ function collectWaveCells(key, model, into, intoToggles, intoStages, intoEqs, in
         for (const q of layout.eqs) intoEqs.push(`${key} ${q.bands.join('/')}`);
         for (const c of layout.cuts)
             intoCuts.push(`${key} ${page[c.lowcut].key}+${page[c.highcut].key}`);
+        const toggleIdx = new Set([...waveToggleCells(page, claimed)].map(([i]) => i));
         page.forEach((p, i) => {
             if (!p || claimed.has(i)) return;
             const k = cutKindOf(p);
             if (k) intoCutSingles.push(`${key} ${p.key} ${k}`);
+            /* A waveform toggle draws its own silhouette, so it is a boolean
+             * that is deliberately NOT a switch — exclude it from the pin. */
+            if (toggleIdx.has(i)) return;
+            const opts = (p.options ?? []).map(o => String(o).toLowerCase());
+            if (p.behavior === 'trigger') {
+                if (!opts.includes('idle')) boolActions.push(`${key}::${p.key}`);
+            } else if (p.renderStyle === 'switch') {
+                switches.push(`${key}::${p.key}`);
+            }
         });
         if (model.getComponentKey() === 'synth') {
             for (const [i, st] of envStageCells(page, claimed)) {
@@ -411,6 +664,8 @@ const envStages = [];
 const eqGroups = [];
 const cutPairs = [];
 const cutSingles = [];
+const switches = [];
+const boolActions = [];
 
 for (const entry of dump.modules) {
     const key = `${entry.category}--${entry.id}`;
@@ -472,6 +727,26 @@ for (const [label, got0, want0] of [
     const added   = got.filter(k => !want.includes(k));
     const dropped = want.filter(k => !got.includes(k));
     check(`wave toggles: ${got.length} params${added.length ? ` — UNEXPECTED: ${added.join(', ')}` : ''}${dropped.length ? ` — MISSING: ${dropped.join(', ')}` : ''}`,
+        added.length === 0 && dropped.length === 0);
+}
+
+/* Fleet-wide on/off switch set. */
+{
+    const got = [...new Set(switches)].sort();
+    const want = SWITCHES_EXPECTED.slice().sort();
+    const added   = got.filter(k => !want.includes(k));
+    const dropped = want.filter(k => !got.includes(k));
+    check(`switches: ${got.length} params${added.length ? ` — UNEXPECTED: ${added.join(', ')}` : ''}${dropped.length ? ` — MISSING: ${dropped.join(', ')}` : ''}`,
+        added.length === 0 && dropped.length === 0);
+}
+
+/* Fleet-wide boolean-shaped actions routed to the trigger badge. */
+{
+    const got = [...new Set(boolActions)].sort();
+    const want = BOOL_ACTIONS_EXPECTED.slice().sort();
+    const added   = got.filter(k => !want.includes(k));
+    const dropped = want.filter(k => !got.includes(k));
+    check(`bool actions: ${got.length} params${added.length ? ` — UNEXPECTED: ${added.join(', ')}` : ''}${dropped.length ? ` — MISSING: ${dropped.join(', ')}` : ''}`,
         added.length === 0 && dropped.length === 0);
 }
 

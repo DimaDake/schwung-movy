@@ -8,7 +8,7 @@ export interface ParamVM {
     isLongEnum:      boolean;
     options:         string[] | null;
     enumIndex:       number;
-    renderStyle:     'arc' | 'hbar' | 'vbar' | 'preset' | 'xbox' | 'steps' | 'wave' | 'envstage' | 'cut';   // xbox = framed X (LFO target None); hbar doubles as a binary on/off bar; steps = framed number (octave/voice count); wave = waveform silhouette; envstage = a lone attack/decay ramp
+    renderStyle:     'arc' | 'hbar' | 'vbar' | 'switch' | 'preset' | 'xbox' | 'steps' | 'wave' | 'envstage' | 'cut';   // xbox = framed X (LFO target None); hbar doubles as a binary on/off bar; steps = framed number (octave/voice count); wave = waveform silhouette; envstage = a lone attack/decay ramp
     waveShape?:      number;    // glyph id for renderStyle 'wave' (see lfo-shapes.ts)
     waveOff?:        boolean;   // waveform toggle that is currently NOT sounding → drawn dotted
     /* Fader origin, 0..1 of travel — unity on a bipolar gain. Absent (fills

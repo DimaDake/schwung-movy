@@ -38,7 +38,7 @@ await esbuild.build({
         resolve(root, 'src/model/knob-step.ts'),
         resolve(root, 'src/model/step-labels.ts'),
         resolve(root, 'src/model/trigger.ts'),
-        resolve(root, 'src/model/constants.ts'),
+        resolve(root, 'src/model/toggle.ts'),        resolve(root, 'src/model/constants.ts'),
         resolve(root, 'src/model/enum-value.ts'),
         resolve(root, 'src/model/meta-infer.ts'),
         resolve(root, 'src/model/file-validate.ts'),

@@ -24,7 +24,7 @@ const COUNT_LIKE = /voice_count|voices|polyphony/;
 export function cellStyleFor(
     key: string, type: KnobParam['type'], min: number, max: number,
 ): { renderStyle: KnobParam['renderStyle']; signed?: boolean } {
-    if (type === 'int' && min === 0 && max === 1) return { renderStyle: 'hbar' };
+    if (type === 'int' && min === 0 && max === 1) return { renderStyle: 'switch' };
     if (type !== 'int' || max - min < 2) return { renderStyle: 'arc' };
     const k = key.toLowerCase();
     /* A randomiser is an amount or an action, never the thing it names. */

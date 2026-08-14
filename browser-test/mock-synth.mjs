@@ -266,6 +266,26 @@ export const MOCK_SYNTHS = {
         "synth:loop_start": "0.40", "synth:loop_end": "0.80", "synth:loop_xfade_ms": "20",
     },
 
+    /* Switches: both spellings of a boolean (int 0..1 and an off/on enum) next
+     * to the near-misses — a Free/Sync pair that is a mode rather than a state,
+     * and a randomiser that becomes a trigger badge instead. */
+    switches: {
+        "synth:name": "Switches",
+        "synth:ui_hierarchy": hier([
+            { key: "osc2_sync",  label: "Osc2 Sync", type: "int",  min: 0, max: 1 },
+            { key: "legato",     label: "Legato",    type: "enum", options: ["Off", "On"] },
+            { key: "unison",     label: "Unison",    type: "int",  min: 0, max: 1 },
+            { key: "bypass",     label: "Bypass",    type: "enum", options: ["off", "on"] },
+            { key: "lfo_mode",   label: "LFO Mode",  type: "enum", options: ["Free", "Sync"] },
+            { key: "rnd_patch",  label: "Rnd Patch", type: "int",  min: 0, max: 1 },
+            { key: "cutoff",     label: "Cutoff",    type: "float", min: 0, max: 1, step: 0.01 },
+            { key: "voice_mode", label: "Voices",    type: "enum", options: ["Poly", "Mono"] },
+        ]),
+        "synth:osc2_sync": "1", "synth:legato": "Off", "synth:unison": "0",
+        "synth:bypass": "on", "synth:lfo_mode": "Sync", "synth:rnd_patch": "0",
+        "synth:cutoff": "0.5", "synth:voice_mode": "Poly",
+    },
+
     /* Faders: loudness params next to two knobs that merely mention level-ish
      * words, so the rule's exclusions are visible in the picture too. */
     faders: {

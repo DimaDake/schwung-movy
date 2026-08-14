@@ -63,6 +63,7 @@ const PRESETS = [
     'font_5x3_all', 'font_small_all', 'font_big_all_1', 'font_big_all_2',
     'wave_cells', 'wave_overlay', 'wave_helm', 'wave_toggles',
     'env_stages', 'eq_bands', 'cut_filters', 'faders', 'wav_sample', 'wav_loop', 'wav_loop_off', 'wav_beside_filter',
+    'switches',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -101,7 +102,7 @@ const BASE = {
     lfo_helm_step: 'lfo_helm', lfo_helm_pyramid: 'lfo_helm',
     wave_cells: 'wave_cells', wave_overlay: 'wave_cells', wave_helm: 'helm_waves',
     wave_toggles: 'wave_toggles', env_stages: 'env_stages', eq_bands: 'eq_bands', cut_filters: 'cut_filters',
-    faders: 'faders', wav_sample: 'wav_sample', wav_loop: 'wav_loop', wav_loop_off: 'wav_loop',
+    faders: 'faders', switches: 'switches', wav_sample: 'wav_sample', wav_loop: 'wav_loop', wav_loop_off: 'wav_loop',
     wav_beside_filter: 'wav_beside_filter',
     signal_voice: 'signal', forge_voice: 'forge',
     forge_filter: 'forge', forge_mod: 'forge', forge_send: 'forge', forge_mix: 'forge',
@@ -401,6 +402,12 @@ function applyView(preset) {
             forceRender();
             break;
         }
+        case 'switches':
+            setFilter({ osc2_sync: '1', legato: 'Off', unison: '0', bypass: 'on',
+                        lfo_mode: 'Sync', rnd_patch: '0', cutoff: '0.5', voice_mode: 'Poly' });
+            for (let i = 0; i < 80; i++) model.tick();
+            forceRender();
+            break;
         case 'faders':
             setFilter({ volume: '0.75', gain: '0.3', lvl_snare: '1.0', sub_level: '0',
                         trim_db: '0', pre_gain: '-9', cutoff: '0.5', rate: '0.4' });

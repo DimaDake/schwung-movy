@@ -34,9 +34,19 @@ export interface TriggerVisual {
 const ARMED: TriggerVisual = { phase: 'armed', coolSteps: 0, blinkOn: false };
 
 /* A trigger's idle/trigger option indexes. Named options win; an explicit
- * behavior:"trigger" on some other 2+ option enum falls back to 0/1. */
+ * behavior:"trigger" on some other 2+ option enum falls back to 0/1.
+ *
+ * An action can also arrive as a plain `int 0..1` with no options at all —
+ * aphex's Trigger, spectra's randomisers. Those have no names to read, but 0
+ * and 1 are exactly the two states, and enumSetValue falls back to writing the
+ * index as a bare number for them. Rejecting them here left the badge drawn but
+ * inert: every turn returned null before it could fire. */
 export function triggerIndices(p: KnobParam): { idle: number; trigger: number } | null {
-    if (p.behavior !== 'trigger' || !p.options || p.options.length < 2) return null;
+    if (p.behavior !== 'trigger') return null;
+    if (!p.options || p.options.length < 2) {
+        return p.type === 'int' && p.min === 0 && p.max === 1
+            ? { idle: 0, trigger: 1 } : null;
+    }
     const normalized = p.options.map(v => String(v).trim().toLowerCase());
     const idle = normalized.indexOf('idle');
     const trigger = normalized.indexOf('trigger');

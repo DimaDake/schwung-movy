@@ -7415,6 +7415,33 @@ _log('\nTest: wav_position pairs with the file the MODULE names');
     }
 }
 
+_log('\nTest: a stretched waveform reserves the columns it covers');
+{
+    const P = (key, type, extra = {}) => ({ key, label: key, type, min: 0, max: 1, renderStyle: 'arc', ...extra });
+    const pad = (a) => { const r = a.slice(); while (r.length < 8) r.push(null); return r; };
+
+    /* mrsample page 2: six params, so the graphic stretches to four cells. It
+     * must RESERVE those columns — filling them with leftover knobs puts live
+     * controls under the picture, editable and invisible. */
+    const params = pad([
+        P('sample_start', 'float', { filepathParam: 'sample_path' }),
+        P('loop_mode', 'enum', { options: ['Off', 'On'] }),
+        P('loop_start', 'float'), P('loop_end', 'float'),
+        P('loop_xfade_ms', 'float'), P('sample_path', 'file'),
+    ]);
+    const L = planPageLayout(params);
+    eq('graphic stretched into the free space', L.wavs[0].cellCount, 4);
+
+    // Nothing is drawn under the graphic's columns.
+    const covered = L.cells.filter((c) => c.line === L.wavs[0].line
+        && c.col >= L.wavs[0].startCol && c.col < L.wavs[0].startCol + L.wavs[0].cellCount);
+    eq('only the graphic\'s own params sit under it',
+        covered.every((c) => L.wavs[0].idxs.includes(c.idx)), true);
+
+    // And nothing is lost: every param still has a cell.
+    eq('no param is dropped off the page', L.cells.length, params.filter(Boolean).length);
+}
+
 _log('\nTest: WAV peaks — accuracy, chunking and caching');
 {
     /* A real 16-bit mono WAV: silent, then a loud burst in the middle third.

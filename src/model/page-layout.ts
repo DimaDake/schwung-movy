@@ -104,6 +104,11 @@ export function claimedCells(layout: PageLayout): Set<number> {
 
 export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
     const rowCells: (number[] | null)[] = [null, null];   // cells claimed per line, in order
+    /* Columns a line has given up entirely. A stretched graphic covers more
+     * columns than it has params — without reserving them the planner fills the
+     * rest of the line with leftover knobs and the graphic paints straight over
+     * them, live and editable underneath. */
+    const rowSpan: number[] = [0, 0];
     const envelopes: EnvLine[] = [];
     const lfos: LfoLine[] = [];
     const filters: FilterLine[] = [];
@@ -204,6 +209,7 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
         const total = params.filter(Boolean).length;
         const room = 8 - total + idxs.length;
         const cellCount = Math.max(idxs.length, Math.min(4, room));
+        rowSpan[line] = cellCount;
         wavs.push({
             line: line as 0 | 1, startCol: 0, cellCount,
             position: g.position, idxs,
@@ -233,6 +239,7 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
         let col = 0;
         const rc = rowCells[line];
         if (rc) for (const idx of rc) cells.push({ line, col: (col++) as 0 | 1 | 2 | 3, idx });
+        if (rowSpan[line] > col) col = rowSpan[line];   // skip the graphic's reserved columns
         while (col <= 3 && li < leftover.length) cells.push({ line, col: (col++) as 0 | 1 | 2 | 3, idx: leftover[li++] });
         if (line === 1) break;
     }

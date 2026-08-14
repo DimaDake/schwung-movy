@@ -202,15 +202,30 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
      * whatever column the layout ended up giving it. */
     if (layout.wavCell !== null) {
         const cell = layout.cells.find((c) => c.idx === layout.wavCell);
-        const fileIdx = pageSlice.findIndex((p) => p?.type === 'file');
+        const marker = pageSlice[layout.wavCell];
+        const named = marker?.filepathParam;
+        const fileIdx = named
+            ? pageSlice.findIndex((p) => p?.key === named)
+            : pageSlice.findIndex((p) => p?.type === 'file');
         const path = fileIdx < 0 ? null : (s.fileValues[pageStart + fileIdx] ?? null);
         if (cell) {
-            const width = 32;
+            /* The group never got a line, but the page may still have left the
+             * sample sitting immediately to the marker's left — mrsample's ADSR
+             * and filter take both lines and push the pair to the end of one.
+             * Span both cells when that happens; it is the same graphic, twice
+             * the resolution, and the file cell was only showing a truncated
+             * path anyway. */
+            const fileCell = layout.cells.find((c) => c.idx === fileIdx);
+            const joined = !!fileCell && fileCell.line === cell.line && fileCell.col === cell.col - 1;
+            const startCol = joined ? fileCell.col : cell.col;
+            const cellCount = joined ? 2 : 1;
+            const width = cellCount * 32;
             s.wavRequest = path ? { path, width } : null;
+            const pk = wavPeaks(path, width);
             wavViz.push({
-                line: cell.line, startCol: cell.col, cellCount: 1,
-                points: wavPeaks(path, width)?.points ?? [],
-                gain: (() => { const q = wavPeaks(path, width); return q && q.peak > 0 ? 1 / q.peak : 1; })(),
+                line: cell.line, startCol, cellCount,
+                points: pk?.points ?? [],
+                gain: pk && pk.peak > 0 ? 1 / pk.peak : 1,
                 position: norm01(layout.wavCell),
             });
         }

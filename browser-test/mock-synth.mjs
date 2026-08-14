@@ -1036,6 +1036,11 @@ export const MOCK_SYNTHS = {
         "synth:g_polyphony":      "16",
         /* Concrete per-pad keys movy addresses directly (focused-pad scoping). */
         "synth:p01_vol":          "0.10",
+        /* The pad's sample start. Present so a knob edit has a base value to
+         * move from — without it applyKnobDelta bails before writing, which
+         * hid the wav_position encode bug from the model-level tests. */
+        "synth:p01_start":        "0.20",
+        "synth:p05_start":        "0.40",
         "synth:p02_vol":          "0.20",
         "synth:p05_vol":          "0.50",
         /* Name format, as the real DSP reports it (mode_to_string) — this is

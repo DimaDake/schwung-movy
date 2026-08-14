@@ -26,7 +26,7 @@ const declaredFile = (params: (KnobParam | null)[], p: KnobParam): number =>
  * knob is a position into that sample, and it is a stronger signal than the
  * type string. */
 function isMarker(params: (KnobParam | null)[], p: KnobParam): boolean {
-    if (p.type === 'wav_position') return true;
+    if (p.uiType === 'wav_position') return true;
     if (p.type !== 'float' && p.type !== 'int') return false;
     return declaredFile(params, p) >= 0;
 }

@@ -73,7 +73,12 @@ export function buildConfigPages(
                 // 'filepath' compare. A module reporting 'filepath' is normalized
                 // to movy's 'file' render type.
                 const rawType = (slot.type || hier.type || cp.type || 'float') as string;
-                let type = (rawType === 'filepath' ? 'file' : rawType) as KnobParam['type'];
+                const uiType = String(cp.ui_type ?? hier.ui_type ?? '')
+                    || (rawType === 'wav_position' ? 'wav_position' : '');
+                /* wav_position is a float that draws differently — see
+                 * param-build.ts. Keeping it as a type broke the write path. */
+                const normType = rawType === 'wav_position' ? 'float' : rawType;
+                let type = (normType === 'filepath' ? 'file' : normType) as KnobParam['type'];
                 const options = slot.options ?? hier.options ?? cp.options ?? null;
                 let min  = cp.min  != null ? cp.min  : (hier.min  != null ? hier.min  : (slot.min  != null ? slot.min  : 0));
                 let max  = cp.max  != null ? cp.max  : (hier.max  != null ? hier.max  : (slot.max  != null ? slot.max  : 1));
@@ -113,6 +118,7 @@ export function buildConfigPages(
                      * layout, the module names which file a marker indexes. */
                     ...(cp.filepath_param ? { filepathParam: String(cp.filepath_param) } : {}),
                     ...(cp.view_group ? { viewGroup: String(cp.view_group) } : {}),
+                    ...(uiType ? { uiType } : {}),
                 };
                 /* File slots carry browse metadata. The module config (mrdrums.json)
                  * is authoritative; chain_params (root/filter/start_path) is the

@@ -7399,20 +7399,52 @@ _log('\nTest: wav_position pairs with the file the MODULE names');
         const g = detectWavViz(pad([
             P('ui_preset_path', 'file'),
             P('sample_path', 'file'),
-            P('start', 'wav_position', { filepathParam: 'sample_path' }),
+            P('start', 'float', { uiType: 'wav_position', filepathParam: 'sample_path' }),
         ]));
         eq('marker pairs with the declared file', g[0].file, 1);
     }
     // No declaration → fall back to the first file param on the page.
     {
-        const g = detectWavViz(pad([P('sample_path', 'file'), P('start', 'wav_position')]));
+        const g = detectWavViz(pad([P('sample_path', 'file'), P('start', 'float', { uiType: 'wav_position' })]));
         eq('undeclared marker falls back to the page file', g[0].file, 0);
     }
     // A named file that is not on this page leaves the marker unpaired.
     {
-        const g = detectWavViz(pad([P('start', 'wav_position', { filepathParam: 'elsewhere' })]));
+        const g = detectWavViz(pad([P('start', 'float', { uiType: 'wav_position', filepathParam: 'elsewhere' })]));
         eq('marker alone when its file is off-page', g[0].file, null);
     }
+}
+
+_log('\nTest: a wav_position knob keeps its fractional value');
+{
+    /* Reported from the device: editing mrdrums' Start snapped back to 0% on
+     * every release. wav_position was carried as its own TYPE, so the encode
+     * in applyKnobDelta fell through to String(Math.round(v)) — every value
+     * below 0.5 was written as "0". The knob looked right until the value was
+     * read back. Assert the string that actually reaches the DSP. */
+    const writes = [];
+    const origSet = globalThis.shadow_set_param;
+    globalThis.shadow_set_param = (slot, key, val) => {
+        if (key.indexOf('start') >= 0) writes.push(val);
+        return origSet(slot, key, val);
+    };
+    const md = bootModel(MOCK_SYNTHS.mrdrums, 0, 'synth');
+    const startKnob = [0, 1, 2, 3, 4, 5, 6, 7]
+        .find((k) => md.getKnobParamInfo(k)?.key === 'pad_start');
+    eq('mrdrums Start is on page 0', startKnob !== undefined, true);
+    eq('Start is a float, not its own type', md.getKnobParamInfo(startKnob).type, 'float');
+
+    // Let the round-robin read the current value first; a delta applied before
+    // the param has been read has no base to move from.
+    for (let i = 0; i < 40; i++) md.tick();
+    md.handleKnobDelta(startKnob, 6);
+    md.tick();
+    globalThis.shadow_set_param = origSet;
+
+    eq('the edit was written', writes.length > 0, true);
+    const last = writes.length ? writes[writes.length - 1] : '';
+    eq('a fractional start is not rounded to zero', Number(last) > 0, true);
+    eq('it is written with real precision', String(last).indexOf('.') > 0, true);
 }
 
 _log('\nTest: visible_if hides params, and their LEDs go dark');

@@ -2,7 +2,7 @@ export interface KnobSlot {
     key:            string;
     short:          string;
     full:           string;
-    type:           'float' | 'int' | 'enum' | 'file' | 'wav_position';
+    type:           'float' | 'int' | 'enum' | 'file';
     render?:        'arc' | 'hbar' | 'vbar' | 'preset';
     env?:           'a' | 'd' | 's' | 'r';
     lfo?:           'shape' | 'phase' | 'mode' | 'retrig' | 'rate' | 'depth' | 'deform';
@@ -61,6 +61,11 @@ export interface KnobSlot {
     /* wav_position only: the key of the file param whose sample this marker
      * indexes. Schwung declares the link explicitly, so the waveform never has
      * to guess which of a page's file params it belongs to. */
+    /* Render hint that does NOT change the data type — schwung's `ui_type`.
+     * A wav_position is a float; treating it as its own type made the write
+     * path fall through to String(Math.round(v)) and store 0 for every value
+     * below 0.5. */
+    uiType?:        string;
     filepathParam?: string;
     /* Markers sharing a view group draw on one waveform (schwung's view_group). */
     viewGroup?:     string;
@@ -124,7 +129,7 @@ export interface KnobParam {
     key:            string;
     label:          string;
     shortLabel:     string | null;
-    type:           'float' | 'int' | 'enum' | 'file' | 'wav_position';
+    type:           'float' | 'int' | 'enum' | 'file';
     min:            number;
     max:            number;
     step:           number;
@@ -155,6 +160,11 @@ export interface KnobParam {
     /* wav_position only: the key of the file param whose sample this marker
      * indexes. Schwung declares the link explicitly, so the waveform never has
      * to guess which of a page's file params it belongs to. */
+    /* Render hint that does NOT change the data type — schwung's `ui_type`.
+     * A wav_position is a float; treating it as its own type made the write
+     * path fall through to String(Math.round(v)) and store 0 for every value
+     * below 0.5. */
+    uiType?:        string;
     filepathParam?: string;
     /* Markers sharing a view group draw on one waveform (schwung's view_group). */
     viewGroup?:     string;

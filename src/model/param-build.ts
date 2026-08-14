@@ -40,7 +40,13 @@ export function parseFilter(filter: unknown): string[] {
 /* Generic (no movy config) path: chain_params metadata `cp` wins over the
  * hierarchy's own `def`, which wins over movy's guesses. */
 export function buildGenericParam(key: string, cp: RawMeta, def: RawMeta): KnobParam {
-    const type = cp.type || def.type || 'float';
+    const rawUiType = cp.ui_type || def.ui_type || '';
+    /* `wav_position` is a float with a picture attached. Carrying it as a TYPE
+     * meant every `type === 'float'` branch skipped it — including the one that
+     * encodes the value for writing, which rounded it to an integer. */
+    const declared = cp.type || def.type || 'float';
+    const uiType = rawUiType || (declared === 'wav_position' ? 'wav_position' : '');
+    const type = declared === 'wav_position' ? 'float' : declared;
     if (type === 'filepath') {
         return {
             key,
@@ -84,6 +90,7 @@ export function buildGenericParam(key: string, cp: RawMeta, def: RawMeta): KnobP
             cp.knob_acceleration ?? cp.knobAcceleration ??
             def.knob_acceleration ?? def.knobAcceleration,
         ),
+        ...(uiType ? { uiType } : {}),
         ...(cp.view_group || def.view_group
             ? { viewGroup: String(cp.view_group ?? def.view_group) } : {}),
         ...(cp.filepath_param || def.filepath_param

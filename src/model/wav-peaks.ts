@@ -39,11 +39,17 @@ const BLOCK_BYTES     = 32768;
 const BLOCKS_PER_TICK = 2;
 const MAX_BLOCKS      = 64;      // ≤ 2 MB read for any one file
 
+/* How one frame's first channel is decoded. AIFF is big-endian by definition,
+ * except AIFF-C 'sowt', which is byte-swapped little-endian — the same layout
+ * as WAV. Keeping this as a flag rather than a second code path means the
+ * block loop, the striding and the resume logic are shared. */
+type Codec = 'pcm8' | 'pcm16le' | 'pcm24le' | 'f32le' | 'pcm16be' | 'pcm24be';
+
 interface Job {
-    key: string; path: string; width: number;
+    key: string; path: string; width: number; codec: Codec;
     points: number[];
     dataOffset: number; dataSize: number;
-    blockAlign: number; bits: number; fmt: number; channels: number;
+    blockAlign: number;
     frameCount: number;
     block: number; totalBlocks: number; blockStride: number; blockBytes: number;
     buf: ArrayBuffer; view: Uint8Array;
@@ -68,6 +74,18 @@ const s24 = (b: Uint8Array, i: number): number => {
     const v = b[i] | (b[i + 1] << 8) | (b[i + 2] << 16);
     return (v & 0x800000) ? v - 0x1000000 : v;
 };
+const u16be = (b: Uint8Array, i: number): number => (b[i] << 8) | b[i + 1];
+const u32be = (b: Uint8Array, i: number): number =>
+    ((b[i] << 16) | (b[i + 1] << 8) | b[i + 2]) * 256 + b[i + 3];
+const s16be = (b: Uint8Array, i: number): number => {
+    const v = (b[i] << 8) | b[i + 1];
+    return (v & 0x8000) ? v - 65536 : v;
+};
+const s24be = (b: Uint8Array, i: number): number => {
+    const v = (b[i] << 16) | (b[i + 1] << 8) | b[i + 2];
+    return (v & 0x800000) ? v - 0x1000000 : v;
+};
+
 /* float32 without a DataView: QuickJS has typed arrays, and one shared
  * scratch pair avoids allocating per sample. */
 const f32buf = new ArrayBuffer(4);
@@ -86,8 +104,10 @@ function fileSignature(path: string): string | null {
     } catch { return null; }
 }
 
-/* Read the header and locate the data chunk. Only the first 4 KB is touched —
- * enough for RIFF + fmt + any stray LIST/INFO chunk before the audio. */
+/* Read the header and locate the audio data. Only the first 4 KB is touched —
+ * enough for the container header plus any metadata chunk sitting before the
+ * audio. Understands RIFF/WAVE and FORM/AIFF(-C); both are chunk containers,
+ * they just disagree on byte order and on what the fields are called. */
 function startJob(path: string, width: number, key: string): Job | null {
     let f: { read(b: ArrayBuffer, p: number, n: number): number; seek(o: number, w: number): number; close(): void } | null = null;
     try {
@@ -96,27 +116,19 @@ function startJob(path: string, width: number, key: string): Job | null {
         const head = new ArrayBuffer(4096);
         const n = f.read(head, 0, 4096);
         const b = new Uint8Array(head, 0, Math.max(0, n));
-        if (b.length < 44) { f.close(); return null; }
-        // "RIFF"…"WAVE"
-        if (!(b[0] === 82 && b[1] === 73 && b[2] === 70 && b[3] === 70)) { f.close(); return null; }
-
-        let cur = 12, fmtAt = -1, dataAt = -1, dataSize = 0;
-        while (cur + 8 <= b.length) {
-            const id = String.fromCharCode(b[cur], b[cur + 1], b[cur + 2], b[cur + 3]);
-            const sz = u32(b, cur + 4);
-            if (id === 'fmt ') fmtAt = cur + 8;
-            else if (id === 'data') { dataAt = cur + 8; dataSize = sz; break; }
-            cur = cur + 8 + sz + (sz % 2);
-        }
-        if (fmtAt < 0 || dataAt < 0 || dataSize <= 0) { f.close(); return null; }
-
-        const fmt = u16(b, fmtAt);
-        const channels = Math.max(1, u16(b, fmtAt + 2));
-        const bits = u16(b, fmtAt + 14);
-        const blockAlign = Math.max(1, u16(b, fmtAt + 12));
-        const ok = (fmt === 1 && (bits === 8 || bits === 16 || bits === 24)) || (fmt === 3 && bits === 32);
-        if (!ok) { f.close(); return null; }
         f.close();
+        f = null;
+        if (b.length < 44) return null;
+
+        const tag = (i: number): string =>
+            String.fromCharCode(b[i], b[i + 1], b[i + 2], b[i + 3]);
+        const parsed = tag(0) === 'RIFF' ? parseRiff(b, tag)
+            : tag(0) === 'FORM' ? parseAiff(b, tag)
+            : null;
+        if (!parsed) return null;
+
+        const { dataOffset, dataSize, blockAlign, codec } = parsed;
+        if (dataSize <= 0 || blockAlign <= 0) return null;
 
         const frameCount = Math.max(1, Math.floor(dataSize / blockAlign));
         /* Block size must be a whole number of FRAMES. 32768 is not a multiple
@@ -126,8 +138,8 @@ function startJob(path: string, width: number, key: string): Job | null {
         const totalBlocks = Math.max(1, Math.ceil(dataSize / blockBytes));
         const buf = new ArrayBuffer(BLOCK_BYTES);
         return {
-            key, path, width, points: new Array(width).fill(0),
-            dataOffset: dataAt, dataSize, blockAlign, bits, fmt, channels, frameCount,
+            key, path, width, codec, points: new Array(width).fill(0),
+            dataOffset, dataSize, blockAlign, frameCount,
             block: 0, totalBlocks, blockBytes,
             blockStride: Math.max(1, Math.ceil(totalBlocks / MAX_BLOCKS)),
             buf, view: new Uint8Array(buf), peak: 0,
@@ -136,6 +148,70 @@ function startJob(path: string, width: number, key: string): Job | null {
         if (f) { try { f.close(); } catch { /* already gone */ } }
         return null;
     }
+}
+
+interface Parsed { dataOffset: number; dataSize: number; blockAlign: number; codec: Codec }
+
+/* RIFF/WAVE: little-endian chunks, `fmt ` describes the codec, `data` holds it. */
+function parseRiff(b: Uint8Array, tag: (i: number) => string): Parsed | null {
+    let cur = 12, fmtAt = -1, dataAt = -1, dataSize = 0;
+    while (cur + 8 <= b.length) {
+        const id = tag(cur);
+        const sz = u32(b, cur + 4);
+        if (id === 'fmt ') fmtAt = cur + 8;
+        else if (id === 'data') { dataAt = cur + 8; dataSize = sz; break; }
+        cur = cur + 8 + sz + (sz % 2);
+    }
+    if (fmtAt < 0 || dataAt < 0) return null;
+    const fmt = u16(b, fmtAt);
+    const bits = u16(b, fmtAt + 14);
+    const blockAlign = Math.max(1, u16(b, fmtAt + 12));
+    const codec: Codec | null =
+        fmt === 1 && bits === 8 ? 'pcm8'
+        : fmt === 1 && bits === 16 ? 'pcm16le'
+        : fmt === 1 && bits === 24 ? 'pcm24le'
+        : fmt === 3 && bits === 32 ? 'f32le'
+        : null;
+    return codec ? { dataOffset: dataAt, dataSize, blockAlign, codec } : null;
+}
+
+/* FORM/AIFF(-C): big-endian chunks. COMM carries the frame count and sample
+ * size; SSND holds the audio after an 8-byte offset/blockSize preamble that is
+ * NOT part of the samples. AIFF-C adds a compression tag — only the
+ * uncompressed ones are readable, and 'sowt' means the samples are stored
+ * little-endian despite the big-endian container. */
+function parseAiff(b: Uint8Array, tag: (i: number) => string): Parsed | null {
+    const form = tag(8);
+    if (form !== 'AIFF' && form !== 'AIFC') return null;
+    let cur = 12, chans = 0, bits = 0, ssndAt = -1, ssndSize = 0;
+    let compression = 'NONE';
+    while (cur + 8 <= b.length) {
+        const id = tag(cur);
+        const sz = u32be(b, cur + 4);
+        if (id === 'COMM') {
+            chans = u16be(b, cur + 8);
+            bits = u16be(b, cur + 14);
+            /* AIFF-C: 4-char compression tag after the 10-byte sample rate. */
+            if (form === 'AIFC' && cur + 8 + 22 + 4 <= b.length) compression = tag(cur + 8 + 18);
+        } else if (id === 'SSND') {
+            /* offset + blockSize, then the frames. */
+            const off = u32be(b, cur + 8);
+            ssndAt = cur + 16 + off;
+            ssndSize = Math.max(0, sz - 8 - off);
+            break;
+        }
+        cur = cur + 8 + sz + (sz % 2);
+    }
+    if (ssndAt < 0 || chans <= 0) return null;
+    const swapped = compression === 'sowt';
+    if (compression !== 'NONE' && compression !== 'sowt') return null;   // compressed
+    const codec: Codec | null =
+        bits === 8 ? 'pcm8'
+        : bits === 16 ? (swapped ? 'pcm16le' : 'pcm16be')
+        : bits === 24 ? (swapped ? 'pcm24le' : 'pcm24be')
+        : null;
+    const blockAlign = Math.max(1, chans * Math.floor(bits / 8));
+    return codec ? { dataOffset: ssndAt, dataSize: ssndSize, blockAlign, codec } : null;
 }
 
 /* One block: fold every frame in it into the column it belongs to. Channel 0
@@ -156,13 +232,18 @@ function runBlock(j: Job): boolean {
 
         const b = j.view;
         const step = j.blockAlign;
-        const sampleBytes = j.bits / 8;
+        const codec = j.codec;
+        const sampleBytes = codec === 'pcm8' ? 1
+            : codec === 'pcm24le' || codec === 'pcm24be' ? 3
+            : codec === 'f32le' ? 4 : 2;
         const firstFrame = Math.floor(byteStart / step);
         for (let off = 0; off + sampleBytes <= got; off += step) {
             let v = 0;
-            if (j.fmt === 1 && j.bits === 16) v = s16(b, off) / 32768;
-            else if (j.fmt === 1 && j.bits === 24) v = s24(b, off) / 8388608;
-            else if (j.fmt === 1 && j.bits === 8) v = (b[off] - 128) / 128;
+            if (codec === 'pcm16le') v = s16(b, off) / 32768;
+            else if (codec === 'pcm16be') v = s16be(b, off) / 32768;
+            else if (codec === 'pcm24le') v = s24(b, off) / 8388608;
+            else if (codec === 'pcm24be') v = s24be(b, off) / 8388608;
+            else if (codec === 'pcm8') v = (b[off] - 128) / 128;
             else v = f32(b, off);
             if (v < 0) v = -v;
             if (v > 1) v = 1;

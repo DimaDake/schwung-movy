@@ -7641,6 +7641,74 @@ _log('\nTest: WAV peaks — accuracy, chunking and caching');
         eq('24-bit full scale in the middle', p24.points[Math.floor(WIDTH / 2)] > 0.99, true);
     }
 
+    /* AIFF — mrsample AND mrdrums both accept .aif/.aiff, and it is the format
+     * Move's own recordings use. Big-endian samples in a FORM container, with
+     * an 8-byte offset/blockSize preamble inside SSND that is NOT audio; get
+     * that wrong and every frame decodes shifted. */
+    {
+        const makeAiff = (frames, ampAt, { sowt = false, bits = 16 } = {}) => {
+            const sb = bits / 8;
+            const dataBytes = frames * sb;
+            const commSize = sowt ? 22 + 4 + 2 : 18;
+            const total = 4 + (8 + commSize) + (8 + 8 + dataBytes);
+            const b = new Uint8Array(8 + total);
+            const ws2 = (o, t) => { for (let i = 0; i < t.length; i++) b[o + i] = t.charCodeAt(i); };
+            const w32be = (o, v) => { b[o] = (v>>>24)&255; b[o+1] = (v>>16)&255; b[o+2] = (v>>8)&255; b[o+3] = v&255; };
+            const w16be = (o, v) => { b[o] = (v>>8)&255; b[o+1] = v&255; };
+            ws2(0, 'FORM'); w32be(4, total); ws2(8, sowt ? 'AIFC' : 'AIFF');
+            let o = 12;
+            ws2(o, 'COMM'); w32be(o+4, commSize);
+            w16be(o+8, 1);            // 1 channel
+            w32be(o+10, frames);
+            w16be(o+14, bits);
+            // 10-byte extended sample rate left zeroed; unread by movy.
+            if (sowt) { ws2(o+8+18, 'sowt'); w16be(o+8+22, 0); }
+            o += 8 + commSize;
+            ws2(o, 'SSND'); w32be(o+4, 8 + dataBytes);
+            /* offset stays 0, but blockSize is deliberately a LOUD bit pattern:
+             * if the 8-byte preamble is not skipped it decodes as two
+             * full-scale samples at the very start, so the silence assertion
+             * below actually catches the classic AIFF mistake. */
+            w32be(o+8, 0); w32be(o+12, 0x7FFF7FFF);
+            const d = o + 16;
+            for (let i = 0; i < frames; i++) {
+                let v = Math.round(ampAt(i / frames) * 32767);
+                if (v < 0) v += 65536;
+                if (sowt) { b[d+i*2] = v & 255; b[d+i*2+1] = (v>>8)&255; }   // little-endian
+                else      { b[d+i*2] = (v>>8)&255; b[d+i*2+1] = v & 255; }   // big-endian
+            }
+            return b;
+        };
+        const burst = (t) => (t > 0.4 && t < 0.6) ? 1 : 0;
+
+        for (const [name, bytes] of [
+            ['big-endian AIFF', makeAiff(120000, burst)],
+            ['AIFF-C sowt (little-endian)', makeAiff(120000, burst, { sowt: true })],
+        ]) {
+            env.setFiles({ '/s/a.aiff': bytes });
+            resetWavPeaks();
+            let n = 0;
+            while (!wavPeaks('/s/a.aiff')?.done && n < 500) { wavPeaksTick('/s/a.aiff'); n++; }
+            const pa = wavPeaks('/s/a.aiff');
+            eq(name + ': read without error', pa.error, '');
+            /* Column 0 specifically: a missed SSND preamble lands its bytes
+             * exactly there and nowhere else. */
+            eq(name + ': silence in the very first column', pa.points[0], 0);
+            eq(name + ': silence at the start', pa.points[2], 0);
+            eq(name + ': full scale in the middle', pa.points[Math.floor(WIDTH / 2)] > 0.99, true);
+        }
+
+        /* A compressed AIFF-C cannot be decoded here — it must FAIL rather than
+         * draw noise from bytes it does not understand. */
+        const comp = makeAiff(1000, burst, { sowt: true });
+        comp[12 + 8 + 18] = 0x75; comp[12 + 8 + 19] = 0x6c;   // 'ul' → 'ulaw'-ish
+        env.setFiles({ '/s/c.aifc': comp });
+        resetWavPeaks();
+        wavPeaksTick('/s/c.aifc');
+        eq('compressed AIFF-C is refused, not guessed at',
+            wavPeaks('/s/c.aifc').error !== '', true);
+    }
+
     // Unreadable paths fail once and stay failed rather than retrying forever.
     resetWavPeaks();
     wavPeaksTick('/s/missing.wav');

@@ -12,12 +12,13 @@ import type { WavVizVM } from '../types/viewmodel.js';
 import { CELL_W } from './layout.js';
 
 export function drawWavForm(rowY: number, viz: WavVizVM): void {
-    /* Full cell width, unlike the other graphics. They inset 1-2px so adjacent
-     * curves stay visually separate; a waveform has no neighbour to collide
-     * with (it owns every cell it spans) and every pixel is another slice of
-     * the sample, so the padding was pure lost resolution. */
-    const x0 = viz.startCol * CELL_W;
-    const x1 = (viz.startCol + viz.cellCount) * CELL_W;
+    /* Inset 1px per side, the same as the filter and LFO graphics. A waveform
+     * does own every cell it spans, but it is not always alone on the line —
+     * mrsample seats a filter curve directly beside it — and without the inset
+     * the two drawings run together into one shape. Two pixels out of sixty is
+     * a cheaper price than an ambiguous picture. */
+    const x0 = viz.startCol * CELL_W + 1;
+    const x1 = (viz.startCol + viz.cellCount) * CELL_W - 1;
     const w = x1 - x0;
     const topY = rowY + 1, botY = rowY + 14;
     const midY = Math.round((topY + botY) / 2);

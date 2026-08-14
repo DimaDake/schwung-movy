@@ -62,7 +62,7 @@ const PRESETS = [
     'trigger_cooling', 'trigger_cooling_low',
     'font_5x3_all', 'font_small_all', 'font_big_all_1', 'font_big_all_2',
     'wave_cells', 'wave_overlay', 'wave_helm', 'wave_toggles',
-    'env_stages', 'eq_bands', 'cut_filters', 'wav_sample', 'wav_loop', 'wav_loop_off',
+    'env_stages', 'eq_bands', 'cut_filters', 'wav_sample', 'wav_loop', 'wav_loop_off', 'wav_beside_filter',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -102,6 +102,7 @@ const BASE = {
     wave_cells: 'wave_cells', wave_overlay: 'wave_cells', wave_helm: 'helm_waves',
     wave_toggles: 'wave_toggles', env_stages: 'env_stages', eq_bands: 'eq_bands', cut_filters: 'cut_filters',
     wav_sample: 'wav_sample', wav_loop: 'wav_loop', wav_loop_off: 'wav_loop',
+    wav_beside_filter: 'wav_beside_filter',
     signal_voice: 'signal', forge_voice: 'forge',
     forge_filter: 'forge', forge_mod: 'forge', forge_send: 'forge', forge_mix: 'forge',
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
@@ -377,6 +378,13 @@ function applyView(preset) {
          * inverted glyph on the selected row and the flat "Off" entry are all
          * in one shot. Long-press is 172 ticks, so the hold is driven
          * explicitly rather than left to settle()'s idle heuristic. */
+        case 'wav_beside_filter': {
+            makeSceneWav();
+            setFilter({ sample_start: '0.45' });
+            for (let i = 0; i < 300; i++) model.tick();
+            forceRender();
+            break;
+        }
         case 'wav_loop':
         case 'wav_loop_off': {
             makeSceneWav();

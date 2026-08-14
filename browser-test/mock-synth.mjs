@@ -215,6 +215,31 @@ export const MOCK_SYNTHS = {
         "synth:jitter": "0.2", "synth:scan": "0", "synth:grain_gain": "0.8",
     },
 
+    /* mrsample page 0: an ADSR envelope takes one line and a filter curve the
+     * other, so the sample+marker pair lands BESIDE the filter graphic. The
+     * scene exists to prove the two drawings stay visually separate. */
+    wav_beside_filter: {
+        "synth:name": "MrSample",
+        "synth:ui_hierarchy": JSON.stringify({ levels: { root: {
+            knobs: ['attack_ms', 'decay_ms', 'sustain', 'release_ms',
+                    'filter_cutoff', 'filter_res', 'sample_path', 'sample_start'],
+            params: [
+                { key: 'attack_ms', label: 'Attack', type: 'float', min: 0, max: 5000, step: 1 },
+                { key: 'decay_ms', label: 'Decay', type: 'float', min: 0, max: 5000, step: 1 },
+                { key: 'sustain', label: 'Sustain', type: 'float', min: 0, max: 1, step: 0.01 },
+                { key: 'release_ms', label: 'Release', type: 'float', min: 0, max: 5000, step: 1 },
+                { key: 'filter_cutoff', label: 'Cutoff', type: 'float', min: 0, max: 1, step: 0.01 },
+                { key: 'filter_res', label: 'Reso', type: 'float', min: 0, max: 1, step: 0.01 },
+                { key: 'sample_path', label: 'Sample', type: 'filepath', root: '/s' },
+                { key: 'sample_start', label: 'Start', type: 'float', ui_type: 'wav_position',
+                  filepath_param: 'sample_path', min: 0, max: 1, step: 0.01 },
+            ],
+        } } }),
+        "synth:attack_ms": "200", "synth:decay_ms": "800", "synth:sustain": "0.6",
+        "synth:release_ms": "1200", "synth:filter_cutoff": "0.55", "synth:filter_res": "0.35",
+        "synth:sample_path": "/s/scene.wav", "synth:sample_start": "0.45",
+    },
+
     /* mrsample's loop page: a playback marker plus loop bounds, all on the one
      * waveform. loop_mode gates the bounds via visible_if. */
     wav_loop: {

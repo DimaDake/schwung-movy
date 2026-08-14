@@ -7494,8 +7494,8 @@ _log('\nTest: loop bounds join the waveform as brackets');
     globalThis.fill_rect = (x, y, w, h, v) => r.push({ x, y, w, h, v });
     drawWavForm(11, { ...wv, points: new Array(4 * 32).fill(0), gain: 1 });
     globalThis.fill_rect = origFill;
-    const W2 = 4 * 32;
-    const sCol = Math.floor(0.40 * W2), eCol = Math.floor(0.80 * W2);
+    const W2 = 4 * 32 - 2;                       // 1px inset per side
+    const sCol = 1 + Math.floor(0.40 * W2), eCol = 1 + Math.floor(0.80 * W2);
     const tipsAt = (col, dx) => r.some(q => q.x === col + dx && q.h === 2 && q.v === 1);
     eq('loop-start tips point right', tipsAt(sCol, 1), true);
     eq('loop-end tips point left', tipsAt(eCol, -1), true);
@@ -7658,11 +7658,11 @@ _log('\nTest: waveform marker inverts over the sample');
         globalThis.fill_rect = origFill;
         return r;
     };
-    const W = 2 * 32;   // wav spans the FULL cells, no side inset
+    const W = 2 * 32 - 2;   // wav insets 1px per side, like the filter graphic
     // Quiet everywhere: the marker is a tall LIT line.
     {
         const r = shot(new Array(W).fill(0), 0.5);
-        const mx = Math.floor(0.5 * W);
+        const mx = 1 + Math.floor(0.5 * W);
         const lit = r.filter((q) => q.x === mx && q.v === 1);
         const tall = lit.reduce((n, q) => Math.max(n, q.h), 0);
         eq('marker is a tall lit line through silence', tall >= 6, true);
@@ -7670,7 +7670,7 @@ _log('\nTest: waveform marker inverts over the sample');
     // Full scale everywhere: the marker becomes a CLEARED notch instead.
     {
         const r = shot(new Array(W).fill(1), 0.5);
-        const mx = Math.floor(0.5 * W);
+        const mx = 1 + Math.floor(0.5 * W);
         const cleared = r.filter((q) => q.x === mx && q.v === 0);
         eq('marker is a cleared notch through a loud passage', cleared.length > 0, true);
         eq('the notch spans the sample', cleared[0].h >= 6, true);
@@ -7683,7 +7683,7 @@ _log('\nTest: waveform marker inverts over the sample');
             const pts = new Array(W).fill(0);
             const r = shot(pts, p);
             const lit = r.filter((q) => q.v === 1 && q.h > 2).map((q) => q.x);
-            return Math.min(...lit);
+            return Math.min(...lit) - 1;
         };
         let off = 0;
         for (let k = 0; k <= 200; k++) {

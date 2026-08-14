@@ -7415,6 +7415,66 @@ _log('\nTest: wav_position pairs with the file the MODULE names');
     }
 }
 
+_log('\nTest: visible_if hides params, and their LEDs go dark');
+{
+    const boot = (loopMode) => bootModel({ ...MOCK_SYNTHS.wav_loop, 'synth:loop_mode': loopMode }, 0, 'synth');
+
+    const on = boot('on');
+    const keysOn = on.dumpLayout().params.filter(Boolean).map(p => p.key);
+    eq('loop bounds shown when loop is on', keysOn.includes('loop_start') && keysOn.includes('loop_end'), true);
+    eq('loop xfade shown when loop is on', keysOn.includes('loop_xfade_ms'), true);
+
+    const off = boot('off');
+    const keysOff = off.dumpLayout().params.filter(Boolean).map(p => p.key);
+    eq('loop start hidden when loop is off', keysOff.includes('loop_start'), false);
+    eq('loop end hidden when loop is off', keysOff.includes('loop_end'), false);
+    eq('loop xfade hidden when loop is off', keysOff.includes('loop_xfade_ms'), false);
+    // The controlling param and the unconditional ones stay.
+    eq('the loop switch itself stays', keysOff.includes('loop_mode'), true);
+    eq('unconditional params stay', keysOff.includes('sample_start'), true);
+
+    /* A hidden param leaves no cell, and knob-leds.ts darkens a null cell —
+     * so the knob under a hidden param goes out instead of glowing for a
+     * control that is not there. */
+    const rows = off.getViewModel().rows;
+    const filled = rows.flat().filter(Boolean).length;
+    eq('hidden params take no cell', filled, keysOff.length);
+    const anyNull = rows.flat().some(c => c === null);
+    eq('the page has dark (null) cells to spare', anyNull, true);
+
+    // Index-style enum values work too: a module may report "1" instead of "on".
+    const idx = bootModel({ ...MOCK_SYNTHS.wav_loop, 'synth:loop_mode': '1' }, 0, 'synth');
+    eq('numeric enum value satisfies equals:"on"',
+        idx.dumpLayout().params.filter(Boolean).map(p => p.key).includes('loop_start'), true);
+}
+
+_log('\nTest: loop bounds join the waveform as brackets');
+{
+    const m = bootModel({ ...MOCK_SYNTHS.wav_loop, 'synth:loop_mode': 'on' }, 0, 'synth');
+    // Values arrive on the round-robin refresh, not at boot.
+    for (let i = 0; i < 60; i++) m.tick();
+    const vm = m.getViewModel();
+    const wv = vm.wavViz?.[0];
+    eq('one waveform graphic', !!wv, true);
+    eq('it spans the sample and all three markers', wv.cellCount, 4);
+    eq('playback marker at Start', Math.abs(wv.position - 0.18) < 0.02, true);
+    eq('loop start marker present', Math.abs(wv.loopStart - 0.40) < 0.02, true);
+    eq('loop end marker present', Math.abs(wv.loopEnd - 0.80) < 0.02, true);
+
+    /* Brackets face INWARD — that is what tells a start from an end without a
+     * label, so it is worth pinning rather than trusting the constant. */
+    const origFill = globalThis.fill_rect;
+    const r = [];
+    globalThis.fill_rect = (x, y, w, h, v) => r.push({ x, y, w, h, v });
+    drawWavForm(11, { ...wv, points: new Array(4 * 32).fill(0), gain: 1 });
+    globalThis.fill_rect = origFill;
+    const W2 = 4 * 32;
+    const sCol = Math.floor(0.40 * W2), eCol = Math.floor(0.80 * W2);
+    const tipsAt = (col, dx) => r.some(q => q.x === col + dx && q.h === 2 && q.v === 1);
+    eq('loop-start tips point right', tipsAt(sCol, 1), true);
+    eq('loop-end tips point left', tipsAt(eCol, -1), true);
+}
+
 _log('\nTest: a stretched waveform reserves the columns it covers');
 {
     const P = (key, type, extra = {}) => ({ key, label: key, type, min: 0, max: 1, renderStyle: 'arc', ...extra });

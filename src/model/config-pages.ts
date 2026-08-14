@@ -112,6 +112,7 @@ export function buildConfigPages(
                     /* Module-declared, never config-declared: the template names
                      * layout, the module names which file a marker indexes. */
                     ...(cp.filepath_param ? { filepathParam: String(cp.filepath_param) } : {}),
+                    ...(cp.view_group ? { viewGroup: String(cp.view_group) } : {}),
                 };
                 /* File slots carry browse metadata. The module config (mrdrums.json)
                  * is authoritative; chain_params (root/filter/start_path) is the

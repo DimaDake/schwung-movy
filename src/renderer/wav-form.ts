@@ -43,6 +43,26 @@ export function drawWavForm(rowY: number, viz: WavVizVM): void {
      * [i/w, (i+1)/w) of the sample, so the marker belongs in floor(p*w). The
      * obvious round(p*(w-1)) disagrees with that for a quarter of all positions
      * and lands a pixel off the column that will actually play. */
+    /* Loop bounds first, so the playback cursor is drawn ON TOP of them — the
+     * cursor is the thing that moves and the thing you are usually looking for.
+     * Brackets face INWARD (the tips point at the looped region), which is how
+     * you tell a start from an end without a label. */
+    const colOf = (p: number): number =>
+        Math.min(w - 1, Math.floor(Math.max(0, Math.min(1, p)) * w));
+    const bracket = (p: number | undefined, opening: boolean): void => {
+        if (p === undefined) return;
+        const bx = x0 + colOf(p);
+        fill_rect(bx, topY, 1, botY - topY + 1, 1);          // the stem
+        const dir = opening ? 1 : -1;                         // tips point inward
+        const tipX = bx + dir;
+        if (tipX >= x0 && tipX < x1) {
+            fill_rect(tipX, topY, 1, 2, 1);
+            fill_rect(tipX, botY - 1, 1, 2, 1);
+        }
+    };
+    bracket(viz.loopStart, true);
+    bracket(viz.loopEnd, false);
+
     const mi = Math.min(w - 1, Math.floor(Math.max(0, Math.min(1, viz.position)) * w));
     const h = halfAt(mi), mx = x0 + mi;
     fill_rect(mx, midY - h, 1, 2 * h + 1, 0);                       // cut the sample out

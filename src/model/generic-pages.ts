@@ -42,7 +42,13 @@ export function buildGenericPages(
         bankEntries.push({ name, keys: padded, group });
     }
 
-    function addLevel(label: string, keys: string[]): void {
+    function addLevel(label: string, keys0: string[]): void {
+        /* Drop what the module says does not apply right now (visible_if).
+         * Filtering HERE rather than at render time keeps every downstream
+         * consumer honest at once: the param never gets a cell, so the knob
+         * cannot edit it, automation cannot bind it, and knob-leds sees a null
+         * cell and darkens the LED. */
+        const keys = keys0.filter(k => !s.hiddenKeys.has(k));
         const group = nextGroup++;
         const pages = Math.max(1, Math.ceil(keys.length / KNOBS_PER_PAGE));
         for (let i = 0; i < pages; i++) {

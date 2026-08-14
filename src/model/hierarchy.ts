@@ -4,6 +4,7 @@ import { mlog } from '../log.js';
 import { moduleReadKey } from '../chain/config.js';
 import { buildConfigPages } from './config-pages.js';
 import { buildGenericPages } from './generic-pages.js';
+import { visibleIfOf, conditionHolds, watchedKeys } from './visible-if.js';
 import type { RawMeta } from './param-build.js';
 
 type HierParam = RawMeta;
@@ -15,6 +16,17 @@ interface HierLevel {
     list_param?: string; count_param?: string; name_param?: string;
     items_param?: string; select_param?: string;
     children?: string;
+}
+
+/* Current values of every param a visible_if watches, joined. Cheap: modules
+ * declare at most a couple of controllers, and this runs once per tick. */
+export function visibilitySignature(s: ModelState): string {
+    if (s.visibilityWatch.length === 0) return '';
+    let sig = '';
+    for (const k of s.visibilityWatch) {
+        sig += k + '=' + (shadow_get_param(s.activeSlot, s.componentKey + ':' + k) ?? '') + ';';
+    }
+    return sig;
 }
 
 export function loadHierarchy(s: ModelState): void {
@@ -112,6 +124,21 @@ export function loadHierarchy(s: ModelState): void {
             }
         } catch (e) { mlog('ui_hierarchy parse error: ' + e); }
     }
+
+    /* Which params the module is hiding right now. Evaluated against live
+     * values, and re-evaluated whenever a watched value changes (processTick). */
+    s.hiddenKeys = new Set<string>();
+    s.visibilityWatch = watchedKeys(paramDefs);
+    if (s.visibilityWatch.length > 0) {
+        for (const [key, def] of Object.entries(paramDefs)) {
+            const cond = visibleIfOf(def);
+            if (!cond) continue;
+            const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + cond.param);
+            const opts = (cpMap[cond.param]?.options ?? paramDefs[cond.param]?.options) ?? null;
+            if (!conditionHolds(cond, raw, opts)) s.hiddenKeys.add(key);
+        }
+    }
+    s.visibilitySig = visibilitySignature(s);
 
     /* ── Custom config path (Plaits, Wurl, etc.) ─────────────────────────── */
     if (s.moduleConfig) {

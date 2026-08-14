@@ -185,17 +185,23 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     /* Sample waveform. The peaks come from the cache only — the read itself is
      * chunked across ticks in processTick, so this stays allocation-light and
      * never touches the filesystem on a render. */
-    const wavViz = layout.wavs.map((wv) => {
+    const wavViz: import('../types/viewmodel.js').WavVizVM[] = layout.wavs.map((wv) => {
         const fileIdx = wv.idxs.find((i) => i !== wv.position);
         const path = fileIdx === undefined ? null : (s.fileValues[pageStart + fileIdx] ?? null);
         const width = wv.cellCount * 32 - 4;
         s.wavRequest = path ? { path, width } : null;
         const pk = wavPeaks(path, width);
+        const at = (kind: string): number | undefined => {
+            const mk = wv.markers.find((m) => m.kind === kind);
+            return mk ? norm01(mk.idx) : undefined;
+        };
         return {
             line: wv.line, startCol: wv.startCol, cellCount: wv.cellCount,
             points: pk?.points ?? [],
             gain: pk && pk.peak > 0 ? 1 / pk.peak : 1,
             position: norm01(wv.position),
+            loopStart: at('loopStart'),
+            loopEnd: at('loopEnd'),
         };
     });
     /* Lone marker that kept its own cell: same graphic, one cell wide, at

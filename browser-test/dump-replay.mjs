@@ -155,6 +155,9 @@ function checkExpect(key, snap, expect) {
  * guards — this is the invariant helm violated (152 params declared, 9 shown).
  * Modules with a movy config curate a subset on purpose and are exempt. */
 function checkDeclaredKnobsReachable(key, model, entry) {
+    /* A param the module itself is hiding right now (visible_if) is not
+     * missing — mrsample hides Loop Start/End/Xfade until Loop is on. */
+    const hidden = new Set(model.dumpLayout().hiddenKeys ?? []);
     const layout = model.dumpLayout();
     if (layout.hasConfig) return;
     const levels = entry.ui_hierarchy?.levels;
@@ -167,7 +170,7 @@ function checkDeclaredKnobsReachable(key, model, entry) {
         }
     }
     const shown = expandLayoutKeys(layout);
-    const missing = [...declared].filter(k => !shown.has(k));
+    const missing = [...declared].filter(k => !shown.has(k) && !hidden.has(k));
     check(`${key}: all ${declared.size} declared knobs reachable (missing: ${missing.slice(0, 5).join(',')})`,
         missing.length === 0);
 
@@ -182,7 +185,7 @@ function checkDeclaredKnobsReachable(key, model, entry) {
         }
     }
     const unlisted = [...listed]
-        .filter(k => !shown.has(k) && !UNREACHABLE_OK.has(`${key}::${k}`));
+        .filter(k => !shown.has(k) && !hidden.has(k) && !UNREACHABLE_OK.has(`${key}::${k}`));
     check(`${key}: all ${listed.size} listed params reachable (missing: ${unlisted.slice(0, 5).join(',')})`,
         unlisted.length === 0);
 }

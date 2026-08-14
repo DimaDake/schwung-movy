@@ -71,6 +71,11 @@ export interface ModelState {
      * buildViewModel and consumed by processTick — the read is chunked across
      * ticks and must never happen on a render path. */
     wavRequest:          { path: string; width: number } | null;
+    /* Params the module is hiding via visible_if, and the params those
+     * conditions watch — a change in any watched value rebuilds the page. */
+    hiddenKeys:          Set<string>;
+    visibilityWatch:     string[];
+    visibilitySig:       string;
     enumOverlay:         EnumOverlay | null;
     fileOverlay:         FileOverlay | null;
     activeModuleName:    string;
@@ -137,6 +142,9 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         detentAccum:         [],
         longPressCountdown:  -1,
         wavRequest:          null,
+        hiddenKeys:          new Set<string>(),
+        visibilityWatch:     [],
+        visibilitySig:       '',
         enumOverlay:         null,
         fileOverlay:         null,
         activeModuleName:    '—',

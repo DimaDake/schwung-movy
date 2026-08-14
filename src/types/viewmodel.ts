@@ -94,7 +94,10 @@ export interface WavVizVM {
      * well below 0 dB would otherwise draw as a thin line through the middle
      * and show none of its shape. */
     gain:      number;
-    position:  number;     // 0..1 marker
+    position:  number;     // 0..1 playback marker
+    /* Loop bounds on the same sample, 0..1, drawn as brackets. */
+    loopStart?: number;
+    loopEnd?:   number;
 }
 
 export interface ToastState {

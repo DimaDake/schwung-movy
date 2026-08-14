@@ -215,6 +215,32 @@ export const MOCK_SYNTHS = {
         "synth:jitter": "0.2", "synth:scan": "0", "synth:grain_gain": "0.8",
     },
 
+    /* mrsample's loop page: a playback marker plus loop bounds, all on the one
+     * waveform. loop_mode gates the bounds via visible_if. */
+    wav_loop: {
+        "synth:name": "MrSample",
+        "synth:ui_hierarchy": JSON.stringify({ levels: { root: {
+            knobs: ['sample_path', 'sample_start', 'loop_mode', 'loop_start', 'loop_end', 'loop_xfade_ms'],
+            params: [
+                { key: 'sample_path', label: 'Sample', type: 'filepath', root: '/s' },
+                { key: 'sample_start', label: 'Start', type: 'float', ui_type: 'wav_position',
+                  filepath_param: 'sample_path', view_group: 'loop', min: 0, max: 1, step: 0.01 },
+                { key: 'loop_mode', label: 'Loop', type: 'enum', options: ['off', 'on'] },
+                { key: 'loop_start', label: 'Loop Start', type: 'float', ui_type: 'wav_position',
+                  filepath_param: 'sample_path', view_group: 'loop', min: 0, max: 1, step: 0.01,
+                  visible_if: { param: 'loop_mode', equals: 'on' } },
+                { key: 'loop_end', label: 'Loop End', type: 'float', ui_type: 'wav_position',
+                  filepath_param: 'sample_path', view_group: 'loop', min: 0, max: 1, step: 0.01,
+                  visible_if: { param: 'loop_mode', equals: 'on' } },
+                { key: 'loop_xfade_ms', label: 'Loop Xfade', type: 'float', min: 0, max: 500, step: 1,
+                  visible_if: { param: 'loop_mode', equals: 'on' } },
+            ],
+        } } }),
+        "synth:sample_path": "/s/scene.wav",
+        "synth:sample_start": "0.18", "synth:loop_mode": "on",
+        "synth:loop_start": "0.40", "synth:loop_end": "0.80", "synth:loop_xfade_ms": "20",
+    },
+
     /* Low/high cut. Row 1 is the PAIR — reordered lowcut-first and drawn as one
      * band-pass across two cells. Row 2 is the two SINGLE cases, each one cell,
      * plus a slope and a filter mod amount that must keep their knobs. */

@@ -62,7 +62,7 @@ const PRESETS = [
     'trigger_cooling', 'trigger_cooling_low',
     'font_5x3_all', 'font_small_all', 'font_big_all_1', 'font_big_all_2',
     'wave_cells', 'wave_overlay', 'wave_helm', 'wave_toggles',
-    'env_stages', 'eq_bands', 'cut_filters', 'wav_sample',
+    'env_stages', 'eq_bands', 'cut_filters', 'wav_sample', 'wav_loop', 'wav_loop_off',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -101,7 +101,7 @@ const BASE = {
     lfo_helm_step: 'lfo_helm', lfo_helm_pyramid: 'lfo_helm',
     wave_cells: 'wave_cells', wave_overlay: 'wave_cells', wave_helm: 'helm_waves',
     wave_toggles: 'wave_toggles', env_stages: 'env_stages', eq_bands: 'eq_bands', cut_filters: 'cut_filters',
-    wav_sample: 'wav_sample',
+    wav_sample: 'wav_sample', wav_loop: 'wav_loop', wav_loop_off: 'wav_loop',
     signal_voice: 'signal', forge_voice: 'forge',
     forge_filter: 'forge', forge_mod: 'forge', forge_send: 'forge', forge_mix: 'forge',
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
@@ -274,6 +274,30 @@ function autoView({ held = false, poolFull = false, assignedLanes = 1, heldVal =
     };
 }
 
+/* A real WAV for the sample-waveform scenes: two decaying hits, so the envelope
+ * has a shape the eye can check rather than a synthetic ramp, and deliberately
+ * mixed low (~-18 dBFS) — the baselines are what prove the graphic normalises
+ * a quiet sample to the full height instead of drawing a thin middle line. */
+function makeSceneWav() {
+    const FR = 120000;
+    const bytes = new Uint8Array(44 + FR * 2);
+    const ws = (o, t) => { for (let i = 0; i < t.length; i++) bytes[o + i] = t.charCodeAt(i); };
+    const w32 = (o, v) => { bytes[o] = v & 255; bytes[o+1] = (v>>8)&255; bytes[o+2] = (v>>16)&255; bytes[o+3] = (v>>>24)&255; };
+    const w16 = (o, v) => { bytes[o] = v & 255; bytes[o+1] = (v>>8)&255; };
+    ws(0, 'RIFF'); w32(4, 36 + FR * 2); ws(8, 'WAVE');
+    ws(12, 'fmt '); w32(16, 16); w16(20, 1); w16(22, 1);
+    w32(24, 44100); w32(28, 88200); w16(32, 2); w16(34, 16);
+    ws(36, 'data'); w32(40, FR * 2);
+    for (let i = 0; i < FR; i++) {
+        const t = i / FR;
+        const hit = (x) => x < 0 ? 0 : Math.exp(-9 * x);
+        const envl = Math.max(hit(t - 0.02), hit(t - 0.55) * 0.7);
+        const v = Math.round(Math.sin(i * 0.07) * envl * 4000);
+        w16(44 + i * 2, v < 0 ? v + 65536 : v);
+    }
+    env.setFiles({ '/s/scene.wav': bytes });
+}
+
 /* Drive model.tick()+repaint until the render converges (mirrors the old
  * deterministic settle: 5 clean ticks, or a 200-tick cap). Only the synth
  * model ticks — matching the harness rAF loop — so chain slots that were never
@@ -353,29 +377,16 @@ function applyView(preset) {
          * inverted glyph on the selected row and the flat "Off" entry are all
          * in one shot. Long-press is 172 ticks, so the hold is driven
          * explicitly rather than left to settle()'s idle heuristic. */
+        case 'wav_loop':
+        case 'wav_loop_off': {
+            makeSceneWav();
+            setFilter(preset === 'wav_loop_off' ? { loop_mode: '0' } : { loop_mode: '1' });
+            for (let i = 0; i < 300; i++) model.tick();
+            forceRender();
+            break;
+        }
         case 'wav_sample': {
-            /* A real WAV: two decaying hits, so the envelope has shape the eye
-             * can check rather than a synthetic ramp. */
-            const FR = 120000;
-            const bytes = new Uint8Array(44 + FR * 2);
-            const ws = (o, t) => { for (let i = 0; i < t.length; i++) bytes[o + i] = t.charCodeAt(i); };
-            const w32 = (o, v) => { bytes[o] = v & 255; bytes[o+1] = (v>>8)&255; bytes[o+2] = (v>>16)&255; bytes[o+3] = (v>>>24)&255; };
-            const w16 = (o, v) => { bytes[o] = v & 255; bytes[o+1] = (v>>8)&255; };
-            ws(0, 'RIFF'); w32(4, 36 + FR * 2); ws(8, 'WAVE');
-            ws(12, 'fmt '); w32(16, 16); w16(20, 1); w16(22, 1);
-            w32(24, 44100); w32(28, 88200); w16(32, 2); w16(34, 16);
-            ws(36, 'data'); w32(40, FR * 2);
-            for (let i = 0; i < FR; i++) {
-                const t = i / FR;
-                const hit = (x) => x < 0 ? 0 : Math.exp(-9 * x);
-                const env = Math.max(hit(t - 0.02), hit(t - 0.55) * 0.7);
-                /* Deliberately mixed low (~-18 dBFS): the graphic normalises,
-                 * so this baseline is what proves a quiet sample still fills
-                 * the height instead of drawing as a thin middle line. */
-                const v = Math.round(Math.sin(i * 0.07) * env * 4000);
-                w16(44 + i * 2, v < 0 ? v + 65536 : v);
-            }
-            env.setFiles({ '/s/scene.wav': bytes });
+            makeSceneWav();
             setFilter({ position: '0.42' });
             /* Enough ticks for the chunked read to finish (19 blocks, 2/tick). */
             for (let i = 0; i < 300; i++) model.tick();

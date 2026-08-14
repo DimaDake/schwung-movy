@@ -1,6 +1,6 @@
 import type { ModelState } from './state.js';
 import { wavPeaksTick } from './wav-peaks.js';
-import { loadHierarchy } from './hierarchy.js';
+import { loadHierarchy, visibilitySignature } from './hierarchy.js';
 import { applyKnobDelta, refreshOneParam, pollModuleName, refreshModulatedKeys, slotToLocal } from './store.js';
 import { triggerAnimationTick } from './trigger.js';
 import { KNOBS_PER_PAGE, NAME_POLL_TICKS } from './constants.js';
@@ -20,6 +20,12 @@ export function processTick(s: ModelState): boolean {
     const wavDirty = s.wavRequest
         ? wavPeaksTick(s.wavRequest.path, s.wavRequest.width) : false;
     if (wavDirty) s.dirty = true;
+
+    /* A visible_if controller moved (mrsample's Loop switch) — the page's param
+     * set is different now, so rebuild it. Cheap to check, rare to fire. */
+    if (s.visibilityWatch.length > 0 && visibilitySignature(s) !== s.visibilitySig) {
+        s.hierarchyKey = '';
+    }
 
     if (s.hierarchyKey !== s.activeModuleName) {
         const prevModuleId = s.moduleId;

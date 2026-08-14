@@ -61,6 +61,7 @@ export interface CutLine {
 export interface WavLine {
     line: 0 | 1; startCol: number; cellCount: number;
     position: number; idxs: number[];
+    markers: import('./wav-viz.js').WavMarker[];
 }
 export interface PageLayout {
     cells: PageCell[]; envelopes: EnvLine[]; lfos: LfoLine[];
@@ -188,7 +189,11 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
          * its stages — file first, so the waveform reads left-to-right with the
          * marker over it. Modules routinely put them on different rows
          * (mrdrums: sample on row 0, start on row 1). */
-        const idxs = g.file === null ? [g.position] : [g.file, g.position];
+        /* Seat the sample and EVERY marker on it together. mrsample's Loop
+         * Start and Loop End are separate knobs that only mean something
+         * against the region that plays, so they share the one graphic. */
+        const markerIdxs = g.markers.map(mk => mk.idx);
+        const idxs = g.file === null ? markerIdxs : [g.file, ...markerIdxs];
         if (idxs.some(i => claimed.has(i))) continue;
         /* Take a line only if it is the group's OWN line. Envelopes are placed
          * first and may already hold it (mrdrums: attack+decay on row 1, the
@@ -212,7 +217,7 @@ export function planPageLayout(params: (KnobParam | null)[]): PageLayout {
         rowSpan[line] = cellCount;
         wavs.push({
             line: line as 0 | 1, startCol: 0, cellCount,
-            position: g.position, idxs,
+            position: g.position, idxs, markers: g.markers,
         });
     }
 

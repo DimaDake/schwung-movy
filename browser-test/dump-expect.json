@@ -8568,10 +8568,7 @@
    [
     "SAMPL",
     "START",
-    "LOOP",
-    "LS",
-    "END",
-    "XFADE"
+    "LOOP"
    ],
    [
     "ATTAC",
@@ -8601,7 +8598,7 @@
   ],
   "envelopeLines": 2,
   "lfoViz": 0,
-  "hidden": 0,
+  "hidden": 3,
   "shownKeys": [
    "attack_ms",
    "decay_ms",
@@ -8613,10 +8610,7 @@
    "gain",
    "lfo_depth",
    "lfo_rate_hz",
-   "loop_end",
    "loop_mode",
-   "loop_start",
-   "loop_xfade_ms",
    "polyphony",
    "release_ms",
    "root_note",

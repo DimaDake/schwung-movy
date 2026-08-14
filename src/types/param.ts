@@ -62,6 +62,8 @@ export interface KnobSlot {
      * indexes. Schwung declares the link explicitly, so the waveform never has
      * to guess which of a page's file params it belongs to. */
     filepathParam?: string;
+    /* Markers sharing a view group draw on one waveform (schwung's view_group). */
+    viewGroup?:     string;
     fileStartPath?: string;
     fileRequireContains?: string;
 }
@@ -154,6 +156,8 @@ export interface KnobParam {
      * indexes. Schwung declares the link explicitly, so the waveform never has
      * to guess which of a page's file params it belongs to. */
     filepathParam?: string;
+    /* Markers sharing a view group draw on one waveform (schwung's view_group). */
+    viewGroup?:     string;
     fileStartPath?: string;
     fileRequireContains?: string;
 }

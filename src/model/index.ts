@@ -372,6 +372,10 @@ export function createModel(slot: number, componentKey = 'synth') {
             componentKey: string;
             banks:        { name: string; global: boolean; padSpecific: boolean }[];
             hasConfig:    boolean;
+            /* Keys the module is hiding via visible_if right now. Exposed so the
+             * dump-replay reachability invariant can tell a deliberately hidden
+             * param from one movy lost. */
+            hiddenKeys:   string[];
             drum:         import('../types/param.js').DrumConfig | null;
             params:       (import('../types/param.js').KnobParam | null)[];
         } {
@@ -386,6 +390,7 @@ export function createModel(slot: number, componentKey = 'synth') {
                 componentKey: s.componentKey,
                 banks,
                 hasConfig:    s.moduleConfig !== null,
+                hiddenKeys:   [...s.hiddenKeys],
                 drum:         s.moduleConfig?.drum ?? null,
                 params:       s.knobParams.map(p => p ? { ...p } : null),
             };

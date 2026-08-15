@@ -145,9 +145,9 @@ echo ""
 echo -e "${BLD}=== Results ===${RST}"
 
 # Init
-if echo "$LOG" | qgrep "init: activeSlot="; then
-    SLOT=$(echo "$LOG" | grep "init: activeSlot=" | tail -1 | grep -o "activeSlot=[0-9]*" | cut -d= -f2)
-    pass "Module loaded — targeting slot $SLOT"
+if echo "$LOG" | qgrep "init: activeTrack="; then
+    SLOT=$(echo "$LOG" | grep "init: activeTrack=" | tail -1 | grep -o "activeTrack=[0-9]*" | cut -d= -f2)
+    pass "Module loaded — targeting track $SLOT"
 else
     fail "init never ran (syntax error or path issue?)"
 fi

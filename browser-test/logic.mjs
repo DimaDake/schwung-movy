@@ -9885,6 +9885,7 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
         'src/model/hierarchy.ts':       'setOnLoad seeds at module load',
         'src/lfo/assign.ts':            'records before writing (three-key gesture)',
         'src/keyboard/drum-handler.ts': 'focused drum pad — view state, not an edit',
+        'src/track/host-port.ts':       'the host-track door — writes go through setChainParam above it',
     };
     const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
         const full = dir + '/' + e.name;
@@ -11571,6 +11572,57 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
   eq('trackRef carries index', r.index, 6);
   eq('trackRef carries kind', r.kind, 'movy');
   eq('HOST_TRACKS is 4', HOST_TRACKS, 4);
+}
+
+{
+  _log('\ntrack ports — host port wraps the shadow API:');
+  const { portFor, resetPorts } = await import('../dist/esm/track/registry.js');
+
+  const gets = [], sets = [], midi = [];
+  const origGet = globalThis.shadow_get_param;
+  const origSet = globalThis.shadow_set_param;
+  const origMidi = globalThis.shadow_send_midi_to_dsp;
+  globalThis.shadow_get_param = (slot, key) => { gets.push([slot, key]); return 'v:' + key; };
+  globalThis.shadow_set_param = (slot, key, val) => { sets.push([slot, key, val]); return true; };
+  globalThis.shadow_send_midi_to_dsp = (m) => { midi.push(m.slice()); };
+
+  resetPorts();
+  const p2 = portFor(2);
+
+  eq('port knows its track', p2.track.index, 2);
+  eq('port knows its kind', p2.track.kind, 'host');
+
+  eq('getParam returns the value', p2.getParam('synth:cutoff'), 'v:synth:cutoff');
+  eq('getParam addressed the right slot', gets[0][0], 2);
+  eq('getParam passed the key through', gets[0][1], 'synth:cutoff');
+
+  p2.setParam('synth:cutoff', '0.5');
+  eq('setParam addressed the right slot', sets[0][0], 2);
+  eq('setParam passed key/value', sets[0][1] + '=' + sets[0][2], 'synth:cutoff=0.5');
+
+  /* getMany is one call per key for a host track — the batching only pays off
+   * for movy chains. What matters here is that the ORDER of results matches the
+   * order of keys, because callers index into it positionally. */
+  gets.length = 0;
+  const many = p2.getMany(['a', 'b', 'c']);
+  eq('getMany returns one result per key', many.length, 3);
+  eq('getMany preserves order', many.join(','), 'v:a,v:b,v:c');
+  eq('getMany issued one get per key', gets.length, 3);
+
+  /* The channel is the port's job: a caller passes the TYPE nibble only. */
+  p2.sendMidi(0x90, 60, 100);
+  eq('sendMidi ORs in the track channel', midi[0][0], 0x92);
+  eq('sendMidi passes pitch', midi[0][1], 60);
+  eq('sendMidi passes velocity', midi[0][2], 100);
+
+  /* Ports are cached: rebuilding one per call would allocate on every param
+   * read, and reads happen per tick. */
+  eq('portFor caches', portFor(2) === p2, true);
+
+  globalThis.shadow_get_param = origGet;
+  globalThis.shadow_set_param = origSet;
+  globalThis.shadow_send_midi_to_dsp = origMidi;
+  resetPorts();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

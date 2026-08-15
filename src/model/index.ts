@@ -161,11 +161,11 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
                     // Send in the module's own enum format (name vs index), learned
                     // on read; probe once if this enum was never read.
                     if (s.enumFmt[gi] === undefined) {
-                        s.enumFmt[gi] = enumUsesIndex(p.options, shadow_get_param(s.activeSlot, s.componentKey + ':' + p.key));
+                        s.enumFmt[gi] = enumUsesIndex(p.options, s.port.getParam(s.componentKey + ':' + p.key));
                     }
                     const usesIndex = s.moduleConfig?.enumSetIndex ? true : (s.enumFmt[gi] as boolean);
                     const key = s.componentKey + ':' + p.key;
-                    const old = shadow_get_param(s.activeSlot, key);
+                    const old = s.port.getParam(key);
                     undoableEdit((p.label || p.key).toUpperCase(), 'T' + (s.activeSlot + 1), () => {
                         /* Committing from the overlay is the same lossy inverse
                          * as turning the knob — snapshot the module. */
@@ -185,7 +185,7 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
                     if (fileContentAllows(path, p.fileRequireContains)) {
                         s.fileValues[s.fileOverlay.gi] = path;
                         const key = s.componentKey + ':' + p.key;
-                        const old = shadow_get_param(s.activeSlot, key);
+                        const old = s.port.getParam(key);
                         undoableEdit('LOAD FILE', 'T' + (s.activeSlot + 1),
                             () => setChainParam(s.activeSlot, key, path, old));
                     } else {

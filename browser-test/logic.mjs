@@ -11648,6 +11648,19 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
   resetPorts();
 }
 
+{
+  _log('\nmodel readers — no direct slot reads remain in model/:');
+  /* Guard, not a behaviour test. Once model/ reads through the port, a NEW
+   * direct read is a regression that reintroduces the slot assumption — and it
+   * would work fine on host tracks and fail only on movy ones, which is exactly
+   * the bug that is expensive to find later. */
+  const offenders = readdirSync('src/model')
+    .filter((f) => f.endsWith('.ts'))
+    .map((f) => 'src/model/' + f)
+    .filter((f) => readFileSync(f, 'utf8').includes('shadow_get_param('));
+  eq('no model file reads params by slot: ' + offenders.join(','), offenders.length, 0);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

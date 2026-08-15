@@ -98,7 +98,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         const dv = p.type === 'file'
             ? (s.fileValues[gi] ? basename(s.fileValues[gi] as string) : '—')
             : p.nameKey
-                ? (shadow_get_param(s.activeSlot, s.componentKey + ':' + p.nameKey) ?? formatValue(p, v))
+                ? (s.port.getParam(s.componentKey + ':' + p.nameKey) ?? formatValue(p, v))
                 : formatValue(p, v);
         const lane = auto.laneForKey(p.key);
         const automated = lane >= 0 && (auto.activeLanes & (1 << lane)) !== 0;
@@ -261,7 +261,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             if (p.type === 'file') {
                 tv = s.fileValues[gi] ? basename(s.fileValues[gi] as string) : '—';
             } else if (p.nameKey) {
-                tv = shadow_get_param(s.activeSlot, s.componentKey + ':' + p.nameKey) ?? formatValue(p, s.knobValues[gi]);
+                tv = s.port.getParam(s.componentKey + ':' + p.nameKey) ?? formatValue(p, s.knobValues[gi]);
             } else {
                 tv = formatValue(p, s.knobValues[gi]);
             }

@@ -42,6 +42,13 @@ pub struct ChainSlots {
     /// currently loaded. The CPU ceiling has to come from measurement on real
     /// modules (design §5.3), and this is what a device test reads.
     active_last_block: usize,
+    /// Output peak of each chain's LAST rendered block, 0-32767.
+    ///
+    /// A benchmark that cannot see this cannot tell "this synth costs the same
+    /// at 1 and 4 notes because it renders its voices anyway" from "the notes
+    /// never reached it and I measured silence" — and those look identical in a
+    /// cost table. Cheap: one abs-max over a block movy has already rendered.
+    peaks: Vec<i32>,
     /// Bumped whenever a chain's modules change. The UI watches this in `status`
     /// and marks its per-set state dirty, so a chain change is persisted no
     /// matter who made it — a browser load, a restore, an undo, or a remote
@@ -65,6 +72,7 @@ impl ChainSlots {
             host_failed: false,
             module_dir: String::new(),
             audible: vec![false; MOVY_CHAINS],
+            peaks: vec![0; MOVY_CHAINS],
             generation: 0,
             active_last_block: 0,
         }
@@ -103,6 +111,16 @@ impl ChainSlots {
             module: module.to_string(),
             state: None,
         });
+    }
+
+    /// Per-chain output peak of the last block, comma separated.
+    pub fn peaks_csv(&self) -> String {
+        let mut out = String::with_capacity(MOVY_CHAINS * 6);
+        for (i, p) in self.peaks.iter().enumerate() {
+            if i > 0 { out.push(','); }
+            out.push_str(&p.to_string());
+        }
+        out
     }
 
     /// Monotonic count of serviced chain-module changes.
@@ -212,13 +230,11 @@ impl ChainSlots {
             let scratch = &mut self.scratch[..frames];
             inst.render_block(scratch);
 
-            if !self.audible[i] {
-                // Cheap: only until the slot has proven itself once.
-                let peak = scratch.iter().fold(0i32, |m, &s| m.max((s as i32).abs()));
-                if peak > 0 {
-                    self.audible[i] = true;
-                    host::log(&format!("chain {}: audio active (peak {})", i, peak));
-                }
+            let peak = scratch.iter().fold(0i32, |m, &s| m.max((s as i32).abs()));
+            self.peaks[i] = peak;
+            if !self.audible[i] && peak > 0 {
+                self.audible[i] = true;
+                host::log(&format!("chain {}: audio active (peak {})", i, peak));
             }
             mix_into(&mut out[..frames], scratch, &self.mixes[i]);
         }

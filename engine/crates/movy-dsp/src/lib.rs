@@ -11,8 +11,10 @@ mod chain_host;
 mod chain_slots;
 mod load_queue;
 mod mixer;
+mod pad_route;
 
 use chain_slots::ChainSlots;
+use pad_route::PadRoute;
 use click::Click;
 use core::ffi::{c_char, c_int, c_void};
 use ffi::*;
@@ -72,6 +74,7 @@ struct Instance {
     click: Click,
     blocks: u64,
     chains: ChainSlots,
+    pads: PadRoute,
 }
 
 impl Instance {
@@ -83,6 +86,7 @@ impl Instance {
             click: Click::new(rate),
             blocks: 0,
             chains: ChainSlots::new(),
+            pads: PadRoute::new(),
         }
     }
 
@@ -100,6 +104,26 @@ impl Instance {
                 }
             }
             "file_path" => {}
+            /* Ask the engine to log each chain's current output peak. The
+             * remote-UI socket can WRITE an engine param but has no read verb,
+             * so a device benchmark cannot poll `chpeak` — it pokes this and
+             * greps the log instead. Only ever driven by a test. */
+            /* "<chain>,<32 pitches>" — the UI pushes this whenever the pad
+             * mapping changes, and the DSP then answers pad notes itself
+             * instead of the UI paying a blocking param write per note. */
+            "padmap" => {
+                if !self.pads.set_map(val) {
+                    host::log("padmap: refused a malformed map");
+                } else {
+                    // Anything still held belonged to the previous routing.
+                    for (chain, pitch) in self.pads.drain_held() {
+                        self.chains.on_midi(chain, &[0x80, pitch, 0], MOVE_MIDI_SOURCE_INTERNAL);
+                    }
+                }
+            }
+            "chpeaklog" => {
+                host::log(&format!("chain peaks: {}", self.chains.peaks_csv()));
+            }
             /* Bring chain hosting up: `<schwung chain module dir>|<movy dir>`.
              * The UI sends it once at boot because only the UI knows the
              * install paths. Refreshing movy's private copy and dlopening it
@@ -184,6 +208,7 @@ impl Instance {
                 Some(s)
             }
             "chgen" => Some(self.chains.generation().to_string()),
+            "chpeak" => Some(self.chains.peaks_csv()),
             "diag" => Some(format!(
                 "blocks={} out_cap={} chains={} pending={} active={}",
                 self.blocks,
@@ -358,12 +383,19 @@ unsafe extern "C" fn on_midi(instance: *mut c_void, msg: *const u8, len: c_int, 
          * It cannot be confirmed by injection: writes to /dev/shm/schwung-ui-midi
          * enter the UI ring, while that delivery sits in the HARDWARE MIDI scan.
          * One physical pad press settles it. Logged once, then free. */
-        if len >= 3 && (status & 0xF0) == 0x90 {
-            use std::sync::atomic::{AtomicBool, Ordering};
-            static SEEN: AtomicBool = AtomicBool::new(false);
-            if !SEEN.swap(true, Ordering::Relaxed) {
-                let d1 = unsafe { *msg.add(1) };
-                host::log(&format!("probe: on_midi got a note-on d1={} len={}", d1, len));
+        /* Live pads, handled here on the AUDIO THREAD rather than costing the
+         * UI a blocking param write per note (see pad_route). The UI stops
+         * sending them itself while a map is active, so this is the only
+         * source — hence the ledger inside PadRoute. */
+        if len >= 3 {
+            let d1 = unsafe { *msg.add(1) };
+            let d2 = unsafe { *msg.add(2) };
+            if let Some(i) = inst(instance) {
+                if let Some((chain, pitch, on)) = i.pads.route(status, d1, d2) {
+                    let m = if on { [0x90, pitch, d2] } else { [0x80, pitch, 0] };
+                    i.chains.on_midi(chain, &m, MOVE_MIDI_SOURCE_INTERNAL);
+                    return;
+                }
             }
         }
         if status < 0xF8 {

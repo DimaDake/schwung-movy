@@ -92,18 +92,27 @@ for MOD in "${MODULES[@]}"; do
     sleep 2
 
     LOADED=$(ssh "ableton@$HOST" "grep -c 'chain [0-9]*: synth = $MOD' $LOG" 2>/dev/null || echo 0)
-    printf '  %-10s %-10s %-10s %s\n' "notes" "work" "total" "verdict"
+    printf '  %-8s %-10s %-10s %-10s %s\n' "notes" "work" "total" "sounding" "verdict"
     for N in 1 2 3 4; do
         for c in $(seq 0 $((CHAINS-1))); do
             for i in $(seq 0 $((N-1))); do ep "ch$c:midi" "144.${P[$i]}.100"; done
         done
         ssh "ableton@$HOST" "> $LOG"; sleep "$SETTLE"
         read -r W T <<<"$(frame)"
+        # Are the chains ACTUALLY sounding? A synth that costs the same at 1 and
+        # 4 notes might render its voices regardless — or might have received
+        # nothing at all. Those are indistinguishable in a cost table, so ask the
+        # engine for each chain's output peak before trusting the row.
+        ep "chpeaklog" "1"; sleep 0.5
+        PEAKS=$(ssh "ableton@$HOST" "grep -o 'chain peaks: .*' $LOG | tail -n 1" | sed 's/chain peaks: //')
+        SOUNDING=$(printf '%s' "$PEAKS" | tr ',' '\n' | awk '$1+0 > 0' | wc -l | tr -d ' ')
+        [ -z "$SOUNDING" ] && SOUNDING=0
         for c in $(seq 0 $((CHAINS-1))); do
             for i in $(seq 0 $((N-1))); do ep "ch$c:midi" "128.${P[$i]}.0"; done
         done
         if [ "$W" -le "$WORK_CEILING" ]; then V="${GRN}OK${RST}"; else V="${RED}OVER${RST}"; fi
-        printf '  %-10s %-10s %-10s %b\n' "$N" "${W}us" "${T}us" "$V"
+        [ "${SOUNDING:-0}" -eq 0 ] && V="${YEL}SILENT${RST}"
+        printf '  %-8s %-10s %-10s %-10s %b\n' "$N" "${W}us" "${T}us" "${SOUNDING}/$CHAINS" "$V"
         sleep 1
     done
     echo "  (chains that reported a load: $LOADED)"

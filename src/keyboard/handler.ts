@@ -1,4 +1,5 @@
 import { portFor } from '../track/registry.js';
+import { engineOwnsPads } from '../track/pad-route.js';
 import { TRACK_COUNT } from '../track/ref.js';
 import { keyboardState, OCT_MIN, OCT_MAX } from './state.js';
 import { noteSounded, noteReleased } from './held-notes.js';
@@ -15,7 +16,11 @@ export function noteOn(padNote: number, padMin: number, track: number, vel: numb
     if (midiNote < 0) return;              // dead pad: piano gap or out of range
     noteSounded(padNote, track, midiNote);
     keyboardState.lastPlayedNote = midiNote;
-    portFor(track).sendMidi(MidiNoteOn, midiNote, vel);
+    /* The ledger entry above is recorded either way — it drives pad LEDs and the
+     * teardown release. Only the SEND is skipped: when the engine owns pads it
+     * has already sounded this note from the audio thread, and a second copy
+     * from here would double-trigger it. */
+    if (!engineOwnsPads(track)) portFor(track).sendMidi(MidiNoteOn, midiNote, vel);
     setLED(padNote, C_GREEN, true); // immediate green feedback before the next poll
 }
 

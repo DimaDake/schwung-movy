@@ -140,6 +140,7 @@ await esbuild.build({
         resolve(root, 'src/track/registry.ts'),
         resolve(root, 'src/track/focus.ts'),
         resolve(root, 'src/track/bulk.ts'),
+        resolve(root, 'src/track/pad-route.ts'),
         resolve(root, 'src/track/chain-persist.ts'),
         resolve(root, 'src/browser/handler.ts'),
         resolve(root, 'src/browser/state.ts'),

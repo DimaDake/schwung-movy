@@ -11998,6 +11998,53 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
   resetPorts();
 }
 
+{
+  _log('\npad routing to the engine:');
+  const { syncPadRoute, resetPadRoute, engineOwnsPads } =
+    await import('../dist/esm/track/pad-route.js');
+  const { appState } = await import('../dist/esm/app/state.js');
+  const { selectTrack } = await import('../dist/esm/track/focus.js');
+
+  const sent = [];
+  const send = (k, v) => sent.push([k, v]);
+
+  /* A host track keeps its own pad handling: chain -1, and the UI must still
+   * send its notes. */
+  resetPadRoute();
+  selectTrack(0);
+  syncPadRoute(send);
+  eq('a map is pushed for a host track', sent.length, 1);
+  eq('host track pushes chain -1', sent[0][1].split(',')[0], '-1');
+  eq('the UI still owns host-track pads', engineOwnsPads(0), false);
+
+  /* A movy track hands pads to the engine. */
+  sent.length = 0;
+  selectTrack(6);                       // movy chain 2
+  syncPadRoute(send);
+  eq('a map is pushed for a movy track', sent.length, 1);
+  eq('the key is padmap', sent[0][0], 'padmap');
+  eq('it names the chain', sent[0][1].split(',')[0], '2');
+  eq('it carries 32 pad entries', sent[0][1].split(',').length - 1, 32);
+  eq('the engine owns pads for that track', engineOwnsPads(6), true);
+  eq('but not for a different chain', engineOwnsPads(7), false);
+
+  /* Pushed by comparison: an unchanged map costs nothing. */
+  sent.length = 0;
+  syncPadRoute(send);
+  syncPadRoute(send);
+  eq('an unchanged map is not re-sent', sent.length, 0);
+
+  /* A re-dlopened engine has no map; claiming otherwise leaves pads dead. */
+  resetPadRoute();
+  eq('after a reset the engine owns nothing', engineOwnsPads(6), false);
+  sent.length = 0;
+  syncPadRoute(send);
+  eq('and the map is pushed again', sent.length, 1);
+
+  resetPadRoute();
+  selectTrack(0);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

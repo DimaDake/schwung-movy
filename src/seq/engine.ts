@@ -18,6 +18,7 @@ import { CHAIN_MODULE_DIR, ENGINE_DSP_PATH, ENGINE_VERSION, MOVY_MODULE_DIR } fr
 import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, seqState, sessionFromStr } from './state.js';
 import { rationalToIdx } from './clip-scale.js';
 import { markUiStateDirty } from './ui-dirty.js';
+import { resetPadRoute, syncPadRoute } from '../track/pad-route.js';
 
 /* -1 until the first poll: the opening value is not a change, and treating it
  * as one would mark every fresh open dirty and rewrite the set for nothing. */
@@ -141,6 +142,11 @@ export function seqEngineTick(): void {
         probeTick();
         return;
     }
+    /* Keep the engine's pad map current. Rebuilt and compared every tick — the
+     * comparison is what makes it correct, because the set of things that change
+     * the mapping (track, octave, root, scale, layout, drum lane, module) is a
+     * list that would rot, and a stale map sends notes to the wrong pitch. */
+    syncPadRoute(engineSet);
     seqCmdFlush();
     if (--pollCountdown <= 0) {
         pollCountdown = STATUS_POLL_TICKS;
@@ -182,6 +188,9 @@ function probeTick(): void {
          * copy and dlopening the chain host both happen inside this set, off
          * the render path. */
         engineSet('chain_host', CHAIN_MODULE_DIR + '|' + MOVY_MODULE_DIR);
+        /* A re-dlopened engine has no pad map; believing otherwise would leave
+         * the pads dead until something happened to change the mapping. */
+        resetPadRoute();
         requestLabelSync(); // rebuild automation registry + re-apply chain mappings
         return;
     }

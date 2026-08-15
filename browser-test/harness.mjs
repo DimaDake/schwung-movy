@@ -8,6 +8,7 @@
  */
 
 import { createModel }    from '../dist/esm/model/index.js';
+import { portFor } from '../dist/esm/track/registry.js';
 import { renderKnobsView } from '../dist/esm/renderer/knob-view.js';
 import { renderKeysView }  from '../dist/esm/renderer/keys-view.js';
 import { renderBrowseView } from '../dist/esm/renderer/browse-view.js';
@@ -39,7 +40,7 @@ globalThis.shadow_get_ui_slot = () => 0;
 /* ── Model ───────────────────────────────────────────────────────────────── */
 
 const COMPONENT_KEYS = ['midi_fx1', 'synth', 'fx1', 'fx2'];
-const chainModels    = COMPONENT_KEYS.map(k => createModel(0, k));
+const chainModels    = COMPONENT_KEYS.map(k => createModel(portFor(0), k));
 const model          = chainModels[1];   /* synth — backwards compat for existing test code */
 globalThis.__movy_model = model;
 

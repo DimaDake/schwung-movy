@@ -7,6 +7,7 @@
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { createModel }    from '../dist/esm/model/index.js';
+import { portFor }        from '../dist/esm/track/registry.js';
 import { dedupShortNames } from '../dist/esm/renderer/shorten.js';
 import { detectEnvelopes } from '../dist/esm/model/envelope.js';
 import { planPageLayout } from '../dist/esm/model/page-layout.js';
@@ -147,7 +148,7 @@ function musicalOps(ops) { return ops.filter((o) => !UNDO_RING.test(o)); }
 
 function bootModel(preset, slot = 0, componentKey = 'synth') {
     env.setParams(preset);
-    const m = createModel(slot, componentKey);
+    const m = createModel(portFor(slot), componentKey);
     m.reload();  // sets pollCountdown=1 so pollModuleName fires on next tick
     m.tick();    // tick 1: polls name, resets hierarchyKey
     m.tick();    // tick 2: reloads hierarchy with the real module name
@@ -960,7 +961,7 @@ _log('\nTest: knob delta normalizes sweep across param ranges');
   // Fraction of the param's range moved by one detent.
   const fracPerDetent = (p, delta = 1) => {
     const s = {
-      activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+      port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
       knobParams: [p], knobValues: [p.min], enumFmt: [undefined],
       fileValues: [null], slotMapCache: null, dirty: false,
     };
@@ -979,7 +980,7 @@ _log('\nTest: knob delta normalizes sweep across param ranges');
   // A narrow range needs a whole step's worth of clicks to show it (see the
   // four-clicks-per-step block below), so ask for that many.
   const iMove = (min, max, delta = 1) => {
-    const s = { activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    const s = { port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
       knobParams: [mkP(min, max, 'int', 1)], knobValues: [min], enumFmt: [undefined],
       fileValues: [null], slotMapCache: null, detentAccum: [], dirty: false };
     applyKnobDelta(s, 0, delta);
@@ -999,7 +1000,7 @@ _log('\nTest: a knob moves the same amount in both directions');
   /* Signed movement of one flush of `delta` detents from `start`. */
   const move = (p, start, delta) => {
     const s = {
-      activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+      port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
       knobParams: [p], knobValues: [start], enumFmt: [undefined],
       fileValues: [null], slotMapCache: null, paramGestures: {}, triggerStates: {},
       detentAccum: [], dirty: false,
@@ -1046,7 +1047,7 @@ _log('\nTest: narrow discrete params take four clicks per step');
     options: null, renderStyle: 'arc', automatable: true, ...extra,
   });
   const st = (p, value) => ({
-    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [p], knobValues: [value], enumFmt: [undefined], fileValues: [null],
     slotMapCache: null, paramGestures: {}, triggerStates: {}, detentAccum: [],
     dirty: false,
@@ -1156,7 +1157,7 @@ _log('\nTest: a suppressed param still learns its value once');
   /* The lane must exist before the first refresh, exactly as it does on device:
    * the set is restored (with its automation) and only then does movy tick. */
   env.setParams(MOCK_SYNTHS.test_steps);
-  const m = createModel(0, 'synth');
+  const m = createModel(portFor(0), 'synth');
   m.setNoRefreshKeys(['octave']);
   m.reload();
   for (let i = 0; i < 40; i++) m.tick();          // plenty of refresh cursors
@@ -1229,7 +1230,7 @@ _log('\nTest: module interaction metadata drives triggers, acceleration, and aut
     renderStyle: 'arc', automatable: true, knobAcceleration: 'wide',
   };
   const state = (p, value) => ({
-    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [p], knobValues: [value], enumFmt: [undefined],
     fileValues: [null], slotMapCache: null, paramGestures: {}, triggerStates: {},
     dirty: false,
@@ -1351,7 +1352,7 @@ _log('\nTest: wide acceleration scales a unit step, not the accumulated delta');
     let now = 1000;
     Date.now = () => now;
     const s = {
-      activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+      port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
       knobParams: [seed], knobValues: [5000], enumFmt: [undefined],
       fileValues: [null], slotMapCache: null, paramGestures: {}, triggerStates: {},
       dirty: false,
@@ -1379,7 +1380,7 @@ _log('\nTest: trigger badge phases run armed -> fired -> cooling -> armed');
     renderStyle: 'arc', automatable: false, behavior: 'trigger',
   };
   const mkState = () => ({
-    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [TRIG], knobValues: [0], enumFmt: [true], fileValues: [null],
     slotMapCache: null, paramGestures: {}, triggerStates: {}, dirty: false,
   });
@@ -1448,7 +1449,7 @@ _log('\nTest: the fired icon blinks on a fixed half-period');
   Date.now = () => now;
   globalThis.shadow_set_param = () => true;
   const s = {
-    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [TRIG], knobValues: [0], enumFmt: [true], fileValues: [null],
     slotMapCache: null, paramGestures: {}, triggerStates: {}, dirty: false,
   };
@@ -1487,7 +1488,7 @@ _log('\nTest: a trigger writes only when the action actually changes');
   let writes = [];
   globalThis.shadow_set_param = (_s, k, v) => { writes.push(v); return true; };
   const s = {
-    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [TRIG], knobValues: [0], enumFmt: [true], fileValues: [null],
     slotMapCache: null, paramGestures: {}, triggerStates: {}, dirty: false,
   };
@@ -1531,7 +1532,7 @@ _log('\nTest: the cooldown drain empties in COOL_STEPS quantised steps');
   Date.now = () => now;
   globalThis.shadow_set_param = () => true;
   const s = {
-    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [TRIG], knobValues: [0], enumFmt: [true], fileValues: [null],
     slotMapCache: null, paramGestures: {}, triggerStates: {}, dirty: false,
   };
@@ -6552,7 +6553,7 @@ _log('\nTest: buildViewModel emits lfoViz (synth reuse)');
         min: over.min ?? 0, max: over.max ?? 1, step: 1, options: over.options ?? null,
         renderStyle: 'arc', automatable: false, lfo: over.lfo });
     const s = {
-        activeSlot: 0, componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
+        port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
         knobParams: [
             kp({ key: 'a' }), kp({ key: 'b' }), kp({ key: 'mode', type: 'enum', options: ['U','B'], max: 1, lfo: 'mode' }), kp({ key: 'd' }),
             kp({ key: 'shp', type: 'enum', options: ['a','b','c','d','e','f'], max: 5, lfo: 'shape' }),
@@ -6834,7 +6835,7 @@ _log('\nTest: buildViewModel emits filterViz + claim priority (A1)');
         min: over.min ?? 0, max: over.max ?? 1, step: 1, options: over.options ?? null,
         renderStyle: 'arc', automatable: false });
     const base = {
-        activeSlot: 0, componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
+        port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
         enumFmt: [], touchedSlots: [], enumOverlay: null, fileOverlay: null,
         activeModuleName: 'X', moduleId: 'x', drumPadCount: 0, drumCurrentPad: 0,
         drumCurrentPhysPad: 0, noRefreshKeys: new Set(), modulatedKeys: new Set(),
@@ -6905,7 +6906,7 @@ _log('\nTest: buildViewModel marks modulated params (from cache)');
     const kp = (key) => ({ key, label: key, shortLabel: null, type: 'float', min: 0, max: 1, step: 1,
         options: null, renderStyle: 'arc', automatable: true });
     const s = {
-        activeSlot: 0, componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
+        port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
         knobParams: [kp('cutoff'), kp('reso'), null, null, null, null, null, null],
         knobValues: [0, 0, null, null, null, null, null, null],
         enumFmt: [], fileValues: new Array(8).fill(null), touchedSlots: [],
@@ -10189,7 +10190,7 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
         await import('../dist/esm/undo/module-apply.js');
     resetUndoState(); resetUndoGroups(); resetUndoApply(); resetModuleRestore();
 
-    const m = createModel(0, 'synth');
+    const m = createModel(portFor(0), 'synth');
     m.reset();
     for (let i = 0; i < 40; i++) m.tick();
     appState.trackModels[0] = [m];
@@ -11622,6 +11623,28 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
   globalThis.shadow_get_param = origGet;
   globalThis.shadow_set_param = origSet;
   globalThis.shadow_send_midi_to_dsp = origMidi;
+  resetPorts();
+}
+
+{
+  _log('\nmodel state — reads go through the port:');
+  const { createModelState } = await import('../dist/esm/model/state.js');
+  const { resetPorts } = await import('../dist/esm/track/registry.js');
+
+  const gets = [];
+  const origGet = globalThis.shadow_get_param;
+  globalThis.shadow_get_param = (slot, key) => { gets.push([slot, key]); return '0.25'; };
+
+  resetPorts();
+  const s = createModelState(portFor(1), 'synth');
+  eq('state carries the port', s.port.track.index, 1);
+  eq('activeSlot still agrees with the port', s.activeSlot, 1);
+
+  /* The point of the refactor: a read names a key, not a slot. */
+  eq('port read reaches the right slot', s.port.getParam('synth:cutoff'), '0.25');
+  eq('the slot came from the port', gets[0][0], 1);
+
+  globalThis.shadow_get_param = origGet;
   resetPorts();
 }
 

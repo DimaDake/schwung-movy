@@ -1,4 +1,5 @@
 import type { KnobParam, ModuleConfig } from '../types/param.js';
+import type { TrackPort } from '../track/port.js';
 import { KNOBS_PER_PAGE, NAME_POLL_TICKS, REFRESH_SUPPRESS_TICKS } from './constants.js';
 
 export interface EnumOverlay {
@@ -45,6 +46,10 @@ export interface TriggerState {
 }
 
 export interface ModelState {
+    /* How this model talks to its track. Everything below that used to take
+     * `activeSlot` as a slot number now asks the port instead — that is what
+     * lets a movy-hosted track reuse this whole layer unchanged. */
+    port:                TrackPort;
     activeSlot:          number;
     componentKey:        string;
     knobParams:          (KnobParam | null)[];
@@ -128,9 +133,10 @@ export interface ModelState {
     triggerStates:       Record<string, TriggerState>;
 }
 
-export function createModelState(activeSlot: number, componentKey: string): ModelState {
+export function createModelState(port: TrackPort, componentKey: string): ModelState {
     return {
-        activeSlot,
+        port,
+        activeSlot: port.track.index,
         componentKey,
         knobParams:          [],
         knobValues:          [],

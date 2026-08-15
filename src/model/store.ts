@@ -74,7 +74,7 @@ export function paramIoKey(s: ModelState, p: KnobParam): string {
 function enumFmtFor(s: ModelState, gi: number, p: KnobParam, ioKey: string): boolean {
     if (s.moduleConfig?.enumSetIndex) return true;   // DSP writes by index, reads by name
     if (s.enumFmt[gi] === undefined) {
-        s.enumFmt[gi] = enumUsesIndex(p.options, shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey));
+        s.enumFmt[gi] = enumUsesIndex(p.options, s.port.getParam(s.componentKey + ':' + ioKey));
     }
     return s.enumFmt[gi] as boolean;
 }
@@ -144,7 +144,7 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
     const ioKey = paramIoKey(s, p);
     if (applyTriggerDelta(s, gi, p, ioKey, delta, () => enumFmtFor(s, gi, p, ioKey))) return;
     if (s.knobValues[gi] === null || s.knobValues[gi] === undefined) {
-        const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey);
+        const raw = s.port.getParam(s.componentKey + ':' + ioKey);
         if (raw === null && !p.key.startsWith('test_')) return;
         maybeInferMeta(p, raw);
         if (p.type === 'enum') {
@@ -216,7 +216,7 @@ export function reseedPadParams(s: ModelState): void {
         if (!p) continue;
         const ioKey = concreteKey(ps, s.drumCurrentPad, p.key);
         if (ioKey === p.key) continue; // not pad-scoped
-        const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey);
+        const raw = s.port.getParam(s.componentKey + ':' + ioKey);
         if (p.type === 'file') {
             s.fileValues[i] = raw;
         } else if (raw !== null) {
@@ -290,7 +290,7 @@ function refreshAt(s: ModelState, i: number): void {
     }
 
     if (p.type === 'file') {
-        const path = shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey);
+        const path = s.port.getParam(s.componentKey + ':' + ioKey);
         if (path !== s.fileValues[i]) {
             s.fileValues[i] = path;
             s.dirty = true;
@@ -298,7 +298,7 @@ function refreshAt(s: ModelState, i: number): void {
         return;
     }
 
-    const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + ioKey);
+    const raw = s.port.getParam(s.componentKey + ':' + ioKey);
     if (raw === null) return;
     maybeInferMeta(p, raw);
     if (p.type === 'enum') {
@@ -320,8 +320,8 @@ function refreshAt(s: ModelState, i: number): void {
 }
 
 export function pollModuleName(s: ModelState): void {
-    const name = shadow_get_param(s.activeSlot, s.componentKey + ':name')
-              || shadow_get_param(s.activeSlot, moduleReadKey(s.componentKey))
+    const name = s.port.getParam(s.componentKey + ':name')
+              || s.port.getParam(moduleReadKey(s.componentKey))
               || '—';
     if (name !== s.activeModuleName) {
         s.activeModuleName = name;
@@ -338,8 +338,8 @@ export function refreshModulatedKeys(s: ModelState): void {
     s.modulatedKeys.clear();
     if (!s.componentKey.startsWith('master_fx')) {
         for (let i = 1; i <= 2; i++) {
-            if (shadow_get_param(s.activeSlot, 'lfo' + i + ':target') === s.componentKey) {
-                const tp = shadow_get_param(s.activeSlot, 'lfo' + i + ':target_param');
+            if (s.port.getParam('lfo' + i + ':target') === s.componentKey) {
+                const tp = s.port.getParam('lfo' + i + ':target_param');
                 if (tp) s.modulatedKeys.add(tp);
             }
         }

@@ -1,4 +1,5 @@
 import { createModel }  from '../model/index.js';
+import { portFor }      from '../track/registry.js';
 import { createLfoModel } from '../lfo/model.js';
 import { appState, VIEW_CHAIN } from './state.js';
 import { jogHintTouch } from './jog-hint.js';
@@ -33,9 +34,11 @@ export function init(): void {
     resetUndoToast();
 
     appState.trackModels = Array.from({ length: 4 }, (_, slot) =>
-        CHAIN_SLOTS.map((s, i) => isLfoSlot(i) ? createLfoModel(slot) : createModel(slot, s.componentKey))
+        CHAIN_SLOTS.map((s, i) => isLfoSlot(i)
+            ? createLfoModel(slot)
+            : createModel(portFor(slot), s.componentKey))
     );
-    appState.masterFxModels  = MASTER_FX_SLOTS.map(s => createModel(0, s.componentKey));
+    appState.masterFxModels  = MASTER_FX_SLOTS.map(s => createModel(portFor(0), s.componentKey));
     appState.masterChainIndex = 0;
     appState.masterDetail     = false;
     appState.trackChainIndex = [1, 1, 1, 1];

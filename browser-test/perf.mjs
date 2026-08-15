@@ -14,6 +14,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createModel }     from '../dist/esm/model/index.js';
+import { portFor } from '../dist/esm/track/registry.js';
 import { renderKnobsView } from '../dist/esm/renderer/knob-view.js';
 import { buildMainPageVM } from '../dist/esm/seq/main-page-vm.js';
 import { mainPageState, resetMainPage } from '../dist/esm/seq/main-page.js';
@@ -124,7 +125,7 @@ _origLog('\nTest 1: fill_rect calls per renderKnobsView (test16, 8 arc knobs)');
 
 {
     mockState = { ...MOCK_SYNTHS.test16 };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
 
     /* Tick once so hierarchy loads; the initial immediate refresh also fires. */
     getParamCount = 0;
@@ -144,7 +145,7 @@ _origLog('\nTest 2: max shadow_get_param calls in any single tick (test16, 70 ti
 
 {
     mockState = { ...MOCK_SYNTHS.test16 };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
 
     /* Tick 1 loads hierarchy; its GETs are excluded from per-tick measurement. */
     model.tick();
@@ -170,7 +171,7 @@ _origLog('\nTest 2: max shadow_get_param calls in any single tick (test16, 70 ti
 _origLog('\nTest 2b: automation lanes never repaint the page (no feedback loop)');
 {
     mockState = { ...MOCK_SYNTHS.test16 };
-    const probe = createModel(0, 'synth');
+    const probe = createModel(portFor(0), 'synth');
     probe.tick();
     const key = probe.getKnobParamInfo(0).key;
     const synthKey = 'synth:' + key;
@@ -191,7 +192,7 @@ _origLog('\nTest 2b: automation lanes never repaint the page (no feedback loop)'
 
     // Suppressed (it's an automation lane) → never read back → no feedback loop.
     mockState = { ...MOCK_SYNTHS.test16 };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     model.tick();
     model.setNoRefreshKeys([key]);
     for (let i = 0; i < 5; i++) model.tick();
@@ -204,7 +205,7 @@ _origLog('\nTest 2b: automation lanes never repaint the page (no feedback loop)'
     // Contrast: an un-suppressed param IS read back as it changes — proving the
     // suppression is what eliminates the loop.
     mockState = { ...MOCK_SYNTHS.test16 };
-    const ctrl = createModel(0, 'synth');
+    const ctrl = createModel(portFor(0), 'synth');
     ctrl.tick();
     for (let i = 0; i < 5; i++) ctrl.tick();
     const ctrlReads = runReads(ctrl);
@@ -218,7 +219,7 @@ _origLog('\nTest 3: renderKnobsView median time — Node.js V8 (no-op fill_rect)
 
 {
     mockState = { ...MOCK_SYNTHS.test16 };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     model.tick();
     const vm = model.getViewModel();
 
@@ -254,7 +255,7 @@ _origLog('\nTest 3b: helm-scale module (full ui_hierarchy traversal)');
     mockState['synth_module'] = 'helm';
     mockState['synth:name']   = 'Helm';
 
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     model.reload();
     model.tick();
     model.tick();
@@ -296,7 +297,7 @@ _origLog('\nTest 4: fill_rect calls per renderKnobsView (test_enum)');
 
 {
     mockState = { ...MOCK_SYNTHS.test_enum };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     model.tick();
     const vm = model.getViewModel();
 
@@ -369,7 +370,7 @@ _origLog('\nTest 4a: fill_rect calls with waveform silhouettes (wave_cells)');
 
 {
     mockState = { ...MOCK_SYNTHS.wave_cells };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     for (let i = 0; i < 120; i++) model.tick();
 
     fillRectCount = 0;
@@ -452,7 +453,7 @@ const ENVELOPE_FILL_RECT_MAX = 700;
 
 {
     mockState = { ...MOCK_SYNTHS.env_dual };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     model.tick();
 
     const vm = model.getViewModel();
@@ -477,7 +478,7 @@ _origLog('\nTest 4e: trigger badge animation (flash + drain)');
     const { TRIGGER_REARM_MS, TRIGGER_FLASH_MS } = await import('../dist/esm/model/constants.js');
 
     mockState = { ...MOCK_SYNTHS.triggers };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     for (let i = 0; i < 20; i++) model.tick();          // settle the hierarchy
 
     /* Freeze the clock and advance it by hand: one device tick at the measured
@@ -527,7 +528,7 @@ _origLog('\nTest 4e: trigger badge animation (flash + drain)');
 {
     /* Eight badges on one page vs the arc-knob baseline in Test 1. */
     mockState = { ...MOCK_SYNTHS.triggers_full };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     for (let i = 0; i < 20; i++) model.tick();
     const vm = model.getViewModel();
     fillRectCount = 0;
@@ -662,7 +663,7 @@ _origLog('\nTest 5: shadow_get_param calls per knob detent (plain + preset)');
 
     mockState = { ...MOCK_SYNTHS.moog, 'synth:preset': '0' };
     resetUndoState(); resetUndoGroups();
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     for (let i = 0; i < 40; i++) model.tick();   // settle hierarchy + first reads
 
     const params = model.dumpLayout().params;
@@ -717,7 +718,7 @@ _origLog('\nTest 6: buildViewModel with a long enum (8 vs 1024 options)');
             'synth:chain_params': JSON.stringify([{ key: 'sel', name: 'Sel', type: 'enum', options: opts }]),
             'synth:sel': opts[0],
         };
-        const m = createModel(0, 'synth');
+        const m = createModel(portFor(0), 'synth');
         for (let i = 0; i < 40; i++) m.tick();
         return m;
     };
@@ -773,7 +774,7 @@ _origLog('\nTest 8: buildViewModel for a filter page (16 vs 400 module params)')
             'synth:resonance': '0.5',
         };
         for (let i = 0; i < nFillers; i++) mockState['synth:osc' + i + '_mode'] = 'LP';
-        const m = createModel(0, 'synth');
+        const m = createModel(portFor(0), 'synth');
         for (let i = 0; i < 40; i++) m.tick();
         return m;
     };
@@ -822,7 +823,7 @@ _origLog('\nTest 7: file overlay open cost (16 vs 1024 files)');
             ]),
             'synth:smp': '/d/sample_0.wav',
         };
-        const m = createModel(0, 'synth');
+        const m = createModel(portFor(0), 'synth');
         for (let i = 0; i < 40; i++) m.tick();
         statCalls = 0;
         const runs = [];

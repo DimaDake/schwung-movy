@@ -13,6 +13,7 @@
  *   node browser-test/screenshot.mjs --update   # overwrite baselines
  */
 
+import { portFor } from '../dist/esm/track/registry.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -209,7 +210,7 @@ function drawFontChart(chars, measure, print, lineH, page = 0) {
 const ASCII = Array.from({ length: 0x7E - 0x20 + 1 }, (_, i) => String.fromCharCode(0x20 + i)).join('');
 
 const COMPONENT_KEYS = ['midi_fx1', 'synth', 'fx1', 'fx2'];
-const chainModels = COMPONENT_KEYS.map(k => createModel(0, k));
+const chainModels = COMPONENT_KEYS.map(k => createModel(portFor(0), k));
 const model = chainModels[1];   // synth slot — the default knobs view
 
 function loadPreset(id) {

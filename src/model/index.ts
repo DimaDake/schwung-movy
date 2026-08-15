@@ -3,6 +3,7 @@ import { refreshParamKey } from './store.js';
 import { undoableEdit } from '../undo/edit.js';
 import { recordPresetState } from '../undo/record.js';
 import { createModelState } from './state.js';
+import type { TrackPort } from '../track/port.js';
 import { loadHierarchy }    from './hierarchy.js';
 import { applyKnobDelta, knobParamInfo, reseedPadParams, refreshModulatedKeys, slotToLocal }   from './store.js';
 import { buildViewModel }   from './viewmodel.js';
@@ -66,8 +67,8 @@ function scanFiles(dir: string, filter: string[]): string[] {
     } catch { return []; }
 }
 
-export function createModel(slot: number, componentKey = 'synth') {
-    const s = createModelState(slot, componentKey);
+export function createModel(port: TrackPort, componentKey = 'synth') {
+    const s = createModelState(port, componentKey);
 
     function numBanks() { return Math.max(1, Math.ceil(s.knobParams.length / KNOBS_PER_PAGE)); }
 

@@ -4,7 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+# rlib alongside cdylib so `cargo test` can run this crate's unit tests.
+# Without it the crate has no test target and its logic is unverifiable
+# anywhere but the device.
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 seq-core = { path = "../seq-core" }

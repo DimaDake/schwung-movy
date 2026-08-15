@@ -6,6 +6,8 @@
 mod click;
 mod ffi;
 mod host;
+mod chain_host;
+mod load_queue;
 
 use click::Click;
 use core::ffi::{c_char, c_int, c_void};

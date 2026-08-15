@@ -1,3 +1,4 @@
+import { portFor } from '../track/registry.js';
 import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from './state.js';
 import { mainPageActive, mainPageState } from '../seq/main-page.js';
 import { buildMainPageVM } from '../seq/main-page-vm.js';
@@ -270,7 +271,7 @@ function tickBody(): void {
         if (labels) {
             syncLabelsFromEngine(
                 labels,
-                (slot, lane, tp) => shadow_set_param(slot, 'knob_' + (lane + 1) + '_set', tp),
+                (slot, lane, tp) => portFor(slot).setParam('knob_' + (lane + 1) + '_set', tp),
                 (track, tp) => {
                     // Validate against the lane's own (track, component) model param
                     // set — authoritative even for config-driven drum modules. Keep
@@ -295,7 +296,7 @@ function tickBody(): void {
             (slot, lane) => shadow_get_param(slot, 'knob_' + (lane + 1) + '_name'),
             (slot, lane, tp) => {
                 mlog('auto remap t=' + slot + ' lane=' + lane + ' ' + tp);
-                shadow_set_param(slot, 'knob_' + (lane + 1) + '_set', tp);
+                portFor(slot).setParam('knob_' + (lane + 1) + '_set', tp);
             },
         );
     }

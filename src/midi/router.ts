@@ -1,3 +1,4 @@
+import { portFor } from '../track/registry.js';
 import { setButtonHeld } from '../seq/button-held.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } from '../app/state.js';
 import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease, closeMainPage } from '../seq/main-page.js';
@@ -315,7 +316,7 @@ export function onMidiMessageInternal(data: number[]): void {
         const info  = model?.getKnobParamInfo(k) ?? null;
         const track = appState.activeSlot;
         if (info && handleAutomationKnob(track, k, info, delta,
-                (lane) => shadow_set_param(track, 'knob_' + (lane + 1) + '_set', info.target + ':' + info.ioKey))) {
+                (lane) => portFor(track).setParam('knob_' + (lane + 1) + '_set', info.target + ':' + info.ioKey))) {
             return;
         }
         model?.handleKnobDelta(k, delta);

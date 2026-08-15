@@ -1,3 +1,4 @@
+import { portFor } from '../track/registry.js';
 import type { DrumConfig } from '../types/param.js';
 import { keyboardState } from './state.js';
 import { noteSounded, noteReleased } from './held-notes.js';
@@ -36,7 +37,7 @@ export function drumPadOn(
         shadow_send_midi_to_dsp([MidiNoteOn | slot, midiNote, shiftHeld ? 1 : vel]);
     }
     if (drumConfig.currentPadParam) {
-        shadow_set_param(slot, componentKey + ':' + drumConfig.currentPadParam, String(drumPad));
+        portFor(slot).setParam(componentKey + ':' + drumConfig.currentPadParam, String(drumPad));
     }
     return drumPad;
 }

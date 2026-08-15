@@ -1,3 +1,4 @@
+import { portFor } from '../track/registry.js';
 import { recordParamOp } from '../undo/record.js';
 import { undoableEdit } from '../undo/edit.js';
 /* Slot-LFO target read/write helpers. Blocking writes for the multi-field
@@ -16,7 +17,7 @@ function setBlocking(track: number, key: string, val: string): void {
     const old = readLfo(track, key);
     if (old !== val) recordParamOp(track, key, old, val);
     if (typeof shadow_set_param_timeout === 'function') shadow_set_param_timeout(track, key, val, 100);
-    else shadow_set_param(track, key, val);
+    else portFor(track).setParam(key, val);
 }
 
 export function lfoTargetsParam(track: number, lfoIdx: number, comp: string, param: string): boolean {

@@ -173,7 +173,7 @@ export function applyTriggerDelta(
             });
             recordPresetState(s.activeSlot, s.componentKey);
         }
-        setChainParamUntracked(s.activeSlot, s.componentKey + ':' + ioKey, value);
+        setChainParamUntracked(s.port, s.componentKey + ':' + ioKey, value);
         if (rewrites) endEdit();
     }
     s.dirty = true;

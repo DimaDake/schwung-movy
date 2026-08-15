@@ -172,7 +172,7 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
                         if (p.capturesModuleState) {
                             recordPresetState(s.activeSlot, s.componentKey);
                         }
-                        setChainParam(s.activeSlot, key,
+                        setChainParam(s.port, key,
                             enumSetValue(p.options, idx, usesIndex), old);
                     });
                 }
@@ -187,7 +187,7 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
                         const key = s.componentKey + ':' + p.key;
                         const old = s.port.getParam(key);
                         undoableEdit('LOAD FILE', 'T' + (s.activeSlot + 1),
-                            () => setChainParam(s.activeSlot, key, path, old));
+                            () => setChainParam(s.port, key, path, old));
                     } else {
                         fileRejected = true;
                     }

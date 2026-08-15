@@ -51,7 +51,7 @@ export function loadHierarchy(s: ModelState): void {
      * never drifts its focused pad away from movy's manual selection). */
     if (s.moduleConfig?.setOnLoad) {
         for (const [k, v] of Object.entries(s.moduleConfig.setOnLoad)) {
-            shadow_set_param(s.activeSlot, s.componentKey + ':' + k, v);
+            s.port.setParam(s.componentKey + ':' + k, v);
         }
     }
 

@@ -21,6 +21,7 @@ import { mlog } from '../log.js';
 import { requestLabelSync } from '../seq/engine.js';
 import { requestLaneWarm } from '../seq/automation.js';
 import { setChainParamUntracked } from '../chain/set-param.js';
+import { portFor } from '../track/registry.js';
 import { moduleReadKey } from '../chain/config.js';
 import { invalidateUndo } from './state.js';
 import type { ModuleOp } from './types.js';
@@ -159,7 +160,7 @@ function write(p: Pending, from: number, to: number): void {
      * entry for the restore itself and the stack would never drain. */
     for (let i = from; i < to; i++) {
         const [key, val] = p.params[i];
-        setChainParamUntracked(p.op.slot, p.op.componentKey + ':' + key, val);
+        setChainParamUntracked(portFor(p.op.slot), p.op.componentKey + ':' + key, val);
     }
 }
 
@@ -185,7 +186,7 @@ function rewriteDrifted(p: Pending): number {
         const full = p.op.componentKey + ':' + key;
         const live = shadow_get_param(p.op.slot, full);
         if (live === null || sameValue(live, want)) continue;
-        setChainParamUntracked(p.op.slot, full, want);
+        setChainParamUntracked(portFor(p.op.slot), full, want);
         fixed++;
     }
     return fixed;
@@ -206,7 +207,7 @@ function finish(op: ModuleOp): void {
      * param slot clobber each other (see lfo/assign.ts). */
     for (const [key, val] of op.oldLfo ?? []) {
         if (typeof shadow_set_param_timeout === 'function') shadow_set_param_timeout(op.slot, key, val, 100);
-        else setChainParamUntracked(op.slot, key, val);
+        else setChainParamUntracked(portFor(op.slot), key, val);
     }
     if ((op.oldLfo?.length ?? 0) > 0) mlog('undo: restored ' + op.oldLfo!.length + ' LFO assignment fields');
     /* The reload emptied the host's static param cache; without the warm,
@@ -248,7 +249,7 @@ export function moduleRestoreTick(): void {
         /* One blob, applied by the DSP itself — no ordering to get right, no
          * settle to wait out, and it covers params movy never sees. */
         if (pending.state !== null) {
-            setChainParamUntracked(op.slot, op.componentKey + ':state', pending.state);
+            setChainParamUntracked(portFor(op.slot), op.componentKey + ':state', pending.state);
             mlog('undo: restored module state (' + pending.state.length + ' bytes)');
             /* Trust the blob, then check it. A module that cannot parse its own
              * state is repaired by the verify pass; one that can pays nothing. */

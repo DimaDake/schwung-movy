@@ -9876,17 +9876,14 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
      * directly on purpose; each is infrastructure or view state, not an edit.
      * A NEW direct write shows up here as a failure rather than as a param
      * that silently cannot be undone. */
+    /* Since the TrackPort refactor this list is down to two entries, and that is
+     * the point: every track-addressed write now goes through a port, so it will
+     * work on a movy-hosted track without revisiting the call site. A direct
+     * write would compile and pass on host tracks while silently doing nothing
+     * on a movy one — the failure this guard exists to prevent. */
     const ALLOWED = {
-        'src/chain/set-param.ts':       'the chokepoint itself',
-        'src/undo/apply.ts':            'undo applying its own inverses',
         'src/types/schwung.d.ts':       'the ambient declaration',
-        'src/app/tick.ts':              'knob_N_set lane mappings (infrastructure)',
-        'src/midi/router.ts':           'knob_N_set lane mapping (infrastructure)',
-        'src/browser/handler.ts':       'module load — recorded as a ModuleOp',
-        'src/model/hierarchy.ts':       'setOnLoad seeds at module load',
-        'src/lfo/assign.ts':            'records before writing (three-key gesture)',
-        'src/keyboard/drum-handler.ts': 'focused drum pad — view state, not an edit',
-        'src/track/host-port.ts':       'the host-track door — writes go through setChainParam above it',
+        'src/track/host-port.ts':       'the host-track door — the one place that talks to a slot',
     };
     const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
         const full = dir + '/' + e.name;
@@ -11659,6 +11656,25 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     .map((f) => 'src/model/' + f)
     .filter((f) => readFileSync(f, 'utf8').includes('shadow_get_param('));
   eq('no model file reads params by slot: ' + offenders.join(','), offenders.length, 0);
+}
+
+{
+  _log('\nchain writes — the chokepoint takes a port:');
+  const { setChainParam } = await import('../dist/esm/chain/set-param.js');
+  const { resetPorts } = await import('../dist/esm/track/registry.js');
+
+  const sets = [];
+  const origSet = globalThis.shadow_set_param;
+  globalThis.shadow_set_param = (slot, key, val) => { sets.push([slot, key, val]); return true; };
+
+  resetPorts();
+  setChainParam(portFor(3), 'synth:cutoff', '0.8', '0.2');
+  eq('write reached the port\'s slot', sets[0][0], 3);
+  eq('write passed key', sets[0][1], 'synth:cutoff');
+  eq('write passed value', sets[0][2], '0.8');
+
+  globalThis.shadow_set_param = origSet;
+  resetPorts();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

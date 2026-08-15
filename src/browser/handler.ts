@@ -1,3 +1,4 @@
+import { portFor } from '../track/registry.js';
 import { browserState } from './state.js';
 import { appState, VIEW_BROWSE } from '../app/state.js';
 import { moduleReadKey, type ChainSlot } from '../chain/config.js';
@@ -111,7 +112,7 @@ export function loadSelectedModule(): void {
             leadCount: dump.leadCount,
         });
     }
-    shadow_set_param(browserState.paramSlot, browserState.componentKey + ':module', value);
+    portFor(browserState.paramSlot).setParam(browserState.componentKey + ':module', value);
     if (changed) endEdit();
     // The reload empties the host's static param cache; a same-id reselect won't
     // trip the module-name watcher, so schedule the warm here too (see

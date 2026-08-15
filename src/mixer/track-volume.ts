@@ -1,4 +1,5 @@
 import { setChainParam } from '../chain/set-param.js';
+import { portFor } from '../track/registry.js';
 import { beginGesture } from '../undo/edit.js';
 import { endEdit } from '../undo/group.js';
 /* Hold a track button + turn the master volume knob → that track's schwung
@@ -146,7 +147,7 @@ export function volumeKnobDelta(d2: number): boolean {
     /* Four decimals, not two: the bottom of a dB fader lives below 0.01, and
      * rounding it to 2 dp would collapse the quietest ~20 dB back into silence. */
     beginGesture('vol:' + heldTrack, 'VOLUME', 'T' + (heldTrack + 1), false);
-    setChainParam(heldTrack, 'slot:volume', value.toFixed(4), volumeBefore);
+    setChainParam(portFor(heldTrack), 'slot:volume', value.toFixed(4), volumeBefore);
     mlog('trackvol t=' + heldTrack + ' d=' + delta + ' v=' + value.toFixed(4));
     return true;
 }

@@ -199,7 +199,7 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
      * keeps the first. */
     if (p.capturesModuleState) recordPresetState(s.activeSlot, s.componentKey);
     const ok = p.key.startsWith('test_') ? true
-        : setChainParam(s.activeSlot, s.componentKey + ':' + ioKey, valStr, prevStr);
+        : setChainParam(s.port, s.componentKey + ':' + ioKey, valStr, prevStr);
     mlog('set_param returned ' + ok);
     s.dirty = true;
 }

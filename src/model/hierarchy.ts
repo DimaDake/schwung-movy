@@ -30,7 +30,7 @@ export function loadHierarchy(s: ModelState): void {
     s.detentAccum  = [];
     s.hierarchyKey = s.activeModuleName;
 
-    mlog('loadHierarchy: slot=' + s.activeSlot + ' module=' + s.activeModuleName);
+    mlog('loadHierarchy: slot=' + s.port.track.index + ' module=' + s.activeModuleName);
     const prevModuleId = s.moduleId;
     s.moduleId = s.port.getParam(moduleReadKey(s.componentKey)) || '';
 

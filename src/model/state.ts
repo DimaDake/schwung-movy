@@ -46,11 +46,11 @@ export interface TriggerState {
 }
 
 export interface ModelState {
-    /* How this model talks to its track. Everything below that used to take
-     * `activeSlot` as a slot number now asks the port instead — that is what
-     * lets a movy-hosted track reuse this whole layer unchanged. */
+    /* How this model talks to its track. Everything that used to take a slot
+     * number now asks the port instead — that is what lets a movy-hosted track
+     * reuse this whole layer unchanged. The track index is still reachable as
+     * `port.track.index`, but only labels and log lines want it. */
     port:                TrackPort;
-    activeSlot:          number;
     componentKey:        string;
     knobParams:          (KnobParam | null)[];
     knobValues:          (number | null)[];
@@ -136,7 +136,6 @@ export interface ModelState {
 export function createModelState(port: TrackPort, componentKey: string): ModelState {
     return {
         port,
-        activeSlot: port.track.index,
         componentKey,
         knobParams:          [],
         knobValues:          [],

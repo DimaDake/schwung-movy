@@ -166,11 +166,11 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
                     const usesIndex = s.moduleConfig?.enumSetIndex ? true : (s.enumFmt[gi] as boolean);
                     const key = s.componentKey + ':' + p.key;
                     const old = s.port.getParam(key);
-                    undoableEdit((p.label || p.key).toUpperCase(), 'T' + (s.activeSlot + 1), () => {
+                    undoableEdit((p.label || p.key).toUpperCase(), 'T' + (s.port.track.index + 1), () => {
                         /* Committing from the overlay is the same lossy inverse
                          * as turning the knob — snapshot the module. */
                         if (p.capturesModuleState) {
-                            recordPresetState(s.activeSlot, s.componentKey);
+                            recordPresetState(s.port.track.index, s.componentKey);
                         }
                         setChainParam(s.port, key,
                             enumSetValue(p.options, idx, usesIndex), old);
@@ -186,7 +186,7 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
                         s.fileValues[s.fileOverlay.gi] = path;
                         const key = s.componentKey + ':' + p.key;
                         const old = s.port.getParam(key);
-                        undoableEdit('LOAD FILE', 'T' + (s.activeSlot + 1),
+                        undoableEdit('LOAD FILE', 'T' + (s.port.track.index + 1),
                             () => setChainParam(s.port, key, path, old));
                     } else {
                         fileRejected = true;

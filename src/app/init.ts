@@ -1,5 +1,6 @@
 import { createModel }  from '../model/index.js';
 import { portFor }      from '../track/registry.js';
+import { trackRef }     from '../track/ref.js';
 import { createLfoModel } from '../lfo/model.js';
 import { appState, VIEW_CHAIN } from './state.js';
 import { jogHintTouch } from './jog-hint.js';
@@ -20,8 +21,8 @@ import { installPerfProbe } from './perf-probe.js';
 
 export function init(): void {
     installPerfProbe();   // wrap the host globals before anything calls them
-    appState.activeSlot = (typeof shadow_get_ui_slot === 'function') ? shadow_get_ui_slot() : 0;
-    mlog('init: activeSlot=' + appState.activeSlot);
+    appState.activeTrack = trackRef((typeof shadow_get_ui_slot === 'function') ? shadow_get_ui_slot() : 0);
+    mlog('init: activeTrack=' + appState.activeTrack.index);
 
     claimLedOwnership();
 

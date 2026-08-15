@@ -1,4 +1,5 @@
 import type { Model } from '../model/index.js';
+import { trackRef, type TrackRef } from '../track/ref.js';
 
 export const VIEW_KEYS        = 0;
 export const VIEW_SESSION      = 5;
@@ -29,7 +30,10 @@ export interface FileBrowserState {
 }
 
 export const appState = {
-    activeSlot:       0,
+    /* The track the UI is editing. A TrackRef, not a slot number: a host track's
+     * index happens to equal its schwung slot, and every place that assumed the
+     * two were the same thing is what the port abstraction had to unpick. */
+    activeTrack:      trackRef(0) as TrackRef,
     currentView:      VIEW_CHAIN,
     shiftHeld:        false,
     dirty:            true,

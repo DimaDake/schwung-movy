@@ -8,6 +8,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { createModel }    from '../dist/esm/model/index.js';
 import { portFor }        from '../dist/esm/track/registry.js';
+import { trackRef }       from '../dist/esm/track/ref.js';
 import { dedupShortNames } from '../dist/esm/renderer/shorten.js';
 import { detectEnvelopes } from '../dist/esm/model/envelope.js';
 import { planPageLayout } from '../dist/esm/model/page-layout.js';
@@ -961,7 +962,7 @@ _log('\nTest: knob delta normalizes sweep across param ranges');
   // Fraction of the param's range moved by one detent.
   const fracPerDetent = (p, delta = 1) => {
     const s = {
-      port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+      port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
       knobParams: [p], knobValues: [p.min], enumFmt: [undefined],
       fileValues: [null], slotMapCache: null, dirty: false,
     };
@@ -980,7 +981,7 @@ _log('\nTest: knob delta normalizes sweep across param ranges');
   // A narrow range needs a whole step's worth of clicks to show it (see the
   // four-clicks-per-step block below), so ask for that many.
   const iMove = (min, max, delta = 1) => {
-    const s = { port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    const s = { port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
       knobParams: [mkP(min, max, 'int', 1)], knobValues: [min], enumFmt: [undefined],
       fileValues: [null], slotMapCache: null, detentAccum: [], dirty: false };
     applyKnobDelta(s, 0, delta);
@@ -1000,7 +1001,7 @@ _log('\nTest: a knob moves the same amount in both directions');
   /* Signed movement of one flush of `delta` detents from `start`. */
   const move = (p, start, delta) => {
     const s = {
-      port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+      port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
       knobParams: [p], knobValues: [start], enumFmt: [undefined],
       fileValues: [null], slotMapCache: null, paramGestures: {}, triggerStates: {},
       detentAccum: [], dirty: false,
@@ -1047,7 +1048,7 @@ _log('\nTest: narrow discrete params take four clicks per step');
     options: null, renderStyle: 'arc', automatable: true, ...extra,
   });
   const st = (p, value) => ({
-    port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [p], knobValues: [value], enumFmt: [undefined], fileValues: [null],
     slotMapCache: null, paramGestures: {}, triggerStates: {}, detentAccum: [],
     dirty: false,
@@ -1230,7 +1231,7 @@ _log('\nTest: module interaction metadata drives triggers, acceleration, and aut
     renderStyle: 'arc', automatable: true, knobAcceleration: 'wide',
   };
   const state = (p, value) => ({
-    port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [p], knobValues: [value], enumFmt: [undefined],
     fileValues: [null], slotMapCache: null, paramGestures: {}, triggerStates: {},
     dirty: false,
@@ -1352,7 +1353,7 @@ _log('\nTest: wide acceleration scales a unit step, not the accumulated delta');
     let now = 1000;
     Date.now = () => now;
     const s = {
-      port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+      port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
       knobParams: [seed], knobValues: [5000], enumFmt: [undefined],
       fileValues: [null], slotMapCache: null, paramGestures: {}, triggerStates: {},
       dirty: false,
@@ -1380,7 +1381,7 @@ _log('\nTest: trigger badge phases run armed -> fired -> cooling -> armed');
     renderStyle: 'arc', automatable: false, behavior: 'trigger',
   };
   const mkState = () => ({
-    port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [TRIG], knobValues: [0], enumFmt: [true], fileValues: [null],
     slotMapCache: null, paramGestures: {}, triggerStates: {}, dirty: false,
   });
@@ -1449,7 +1450,7 @@ _log('\nTest: the fired icon blinks on a fixed half-period');
   Date.now = () => now;
   globalThis.shadow_set_param = () => true;
   const s = {
-    port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [TRIG], knobValues: [0], enumFmt: [true], fileValues: [null],
     slotMapCache: null, paramGestures: {}, triggerStates: {}, dirty: false,
   };
@@ -1488,7 +1489,7 @@ _log('\nTest: a trigger writes only when the action actually changes');
   let writes = [];
   globalThis.shadow_set_param = (_s, k, v) => { writes.push(v); return true; };
   const s = {
-    port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [TRIG], knobValues: [0], enumFmt: [true], fileValues: [null],
     slotMapCache: null, paramGestures: {}, triggerStates: {}, dirty: false,
   };
@@ -1532,7 +1533,7 @@ _log('\nTest: the cooldown drain empties in COOL_STEPS quantised steps');
   Date.now = () => now;
   globalThis.shadow_set_param = () => true;
   const s = {
-    port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [TRIG], knobValues: [0], enumFmt: [true], fileValues: [null],
     slotMapCache: null, paramGestures: {}, triggerStates: {}, dirty: false,
   };
@@ -3847,7 +3848,7 @@ _log('\nautomation: restore re-requests label sync:');
 
     // A quick down+up (< HOLD_MS) is a tap. In Track view it mutes the active
     // track (activeSlot), even though no track button was pressed while held.
-    appState.activeSlot = 1;
+    appState.activeTrack = trackRef(1);
     seqState.sessionMode = false;
     seqState.muted[1] = false;
     seqHandleMidi([0xB0, CC_MUTE, 127], false);
@@ -3857,7 +3858,7 @@ _log('\nautomation: restore re-requests label sync:');
     // A deliberate press mutes too. Duration is not a different intent for Mute,
     // and the old hold-gated release silently swallowed any press >= 500 ms.
     resetSeqEngine(); resetMomentary();
-    appState.activeSlot = 3;
+    appState.activeTrack = trackRef(3);
     seqState.muted[3] = false;
     const realNow = Date.now;
     seqHandleMidi([0xB0, CC_MUTE, 127], false);
@@ -3871,7 +3872,7 @@ _log('\nautomation: restore re-requests label sync:');
     {
         const { momentaryGesture } = await import('../dist/esm/seq/momentary.js');
         resetSeqEngine(); resetMomentary();
-        appState.activeSlot = 0;
+        appState.activeTrack = trackRef(0);
         seqState.muted[0] = false;
         seqHandleMidi([0xB0, CC_MUTE, 127], false);
         momentaryGesture();   // stands in for Mute+track muting some other track
@@ -3882,7 +3883,7 @@ _log('\nautomation: restore re-requests label sync:');
 
     // Session view: a Mute press must NOT mute (no current track there).
     resetSeqEngine(); resetMomentary();
-    appState.activeSlot = 2;
+    appState.activeTrack = trackRef(2);
     seqState.sessionMode = true;
     seqState.muted[2] = false;
     seqHandleMidi([0xB0, CC_MUTE, 127], false);
@@ -3987,7 +3988,7 @@ _log('\nautomation: restore re-requests label sync:');
 
     // Shift+Mute press solos the current track instead of muting it.
     fresh();
-    appState.activeSlot = 1;
+    appState.activeTrack = trackRef(1);
     seqState.sessionMode = false;
     seqHandleMidi([0xB0, CC_MUTE, 127], /*shiftHeld*/ true);
     eq('shift captured at press', muteShiftHeld(), true);
@@ -4027,7 +4028,7 @@ _log('\nautomation: restore re-requests label sync:');
 
     // Shift added AFTER Mute goes down still solos (either order is natural).
     fresh();
-    appState.activeSlot = 2;
+    appState.activeTrack = trackRef(2);
     seqHandleMidi([0xB0, CC_MUTE, 127], /*shiftHeld*/ false);   // Mute first...
     seqHandleMidi([0xB0, CC_MUTE, 0], /*shiftHeld*/ true);      // ...Shift after
     eq('mute-then-shift still solos', isSoloed(2), true);
@@ -5485,11 +5486,11 @@ _log('\nautomation label sync:');
     eq('melodic track: emits ctr 1 1', peekSeqCmdQueue().some((c) => c === 'ctr 1 1'), true);
 
     // The cell reads as unavailable rather than showing a value that can't apply.
-    appState.activeSlot = 0;
+    appState.activeTrack = trackRef(0);
     eq('drum track: transpose cell shows n/a', buildClipPageVM().rows[0][2].displayValue, 'n/a');
     clipPageTouch(2, true);
     eq('drum track: transpose toast n/a', buildClipPageVM().toast.value, 'n/a on drums');
-    appState.activeSlot = 1;
+    appState.activeTrack = trackRef(1);
     eq('melodic track: cell shows the value', buildClipPageVM().rows[0][2].displayValue, '1');
 
     // The engine is told, once per change, which tracks are drums.
@@ -5540,7 +5541,7 @@ _log('\nautomation label sync:');
     globalThis.shadow_get_param = savedGet;
 
     appState.trackModels = savedModels;
-    appState.activeSlot = 0;
+    appState.activeTrack = trackRef(0);
     resetClipPage(); resetSeqEngine(); resetSeqState(); resetDrumSync();
 }
 
@@ -6553,7 +6554,7 @@ _log('\nTest: buildViewModel emits lfoViz (synth reuse)');
         min: over.min ?? 0, max: over.max ?? 1, step: 1, options: over.options ?? null,
         renderStyle: 'arc', automatable: false, lfo: over.lfo });
     const s = {
-        port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
+        port: portFor(0), componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
         knobParams: [
             kp({ key: 'a' }), kp({ key: 'b' }), kp({ key: 'mode', type: 'enum', options: ['U','B'], max: 1, lfo: 'mode' }), kp({ key: 'd' }),
             kp({ key: 'shp', type: 'enum', options: ['a','b','c','d','e','f'], max: 5, lfo: 'shape' }),
@@ -6835,7 +6836,7 @@ _log('\nTest: buildViewModel emits filterViz + claim priority (A1)');
         min: over.min ?? 0, max: over.max ?? 1, step: 1, options: over.options ?? null,
         renderStyle: 'arc', automatable: false });
     const base = {
-        port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
+        port: portFor(0), componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
         enumFmt: [], touchedSlots: [], enumOverlay: null, fileOverlay: null,
         activeModuleName: 'X', moduleId: 'x', drumPadCount: 0, drumCurrentPad: 0,
         drumCurrentPhysPad: 0, noRefreshKeys: new Set(), modulatedKeys: new Set(),
@@ -6906,7 +6907,7 @@ _log('\nTest: buildViewModel marks modulated params (from cache)');
     const kp = (key) => ({ key, label: key, shortLabel: null, type: 'float', min: 0, max: 1, step: 1,
         options: null, renderStyle: 'arc', automatable: true });
     const s = {
-        port: portFor(0), activeSlot: 0, componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
+        port: portFor(0), componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
         knobParams: [kp('cutoff'), kp('reso'), null, null, null, null, null, null],
         knobValues: [0, 0, null, null, null, null, null, null],
         enumFmt: [], fileValues: new Array(8).fill(null), touchedSlots: [],
@@ -11635,7 +11636,9 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
   resetPorts();
   const s = createModelState(portFor(1), 'synth');
   eq('state carries the port', s.port.track.index, 1);
-  eq('activeSlot still agrees with the port', s.activeSlot, 1);
+  /* activeSlot is gone: an alias would have let half the codebase keep the
+   * slot assumption alive straight through Stage 2. */
+  eq('state has no activeSlot', 'activeSlot' in s, false);
 
   /* The point of the refactor: a read names a key, not a slot. */
   eq('port read reaches the right slot', s.port.getParam('synth:cutoff'), '0.25');
@@ -11686,6 +11689,16 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     .flatMap((d) => readdirSync(d).filter((f) => f.endsWith('.ts')).map((f) => d + '/' + f))
     .filter((f) => readFileSync(f, 'utf8').includes('shadow_send_midi_to_dsp('));
   eq('no file sends DSP MIDI directly: ' + offenders.join(','), offenders.length, 0);
+}
+
+{
+  _log('\napp state — the active track is a TrackRef:');
+  const { appState } = await import('../dist/esm/app/state.js');
+  eq('activeTrack exists', typeof appState.activeTrack, 'object');
+  eq('activeTrack has an index', appState.activeTrack.index, 0);
+  eq('activeTrack has a kind', appState.activeTrack.kind, 'host');
+  /* The old field must be GONE, not aliased. */
+  eq('activeSlot is removed', 'activeSlot' in appState, false);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

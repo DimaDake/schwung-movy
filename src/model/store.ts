@@ -184,20 +184,20 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
         : (p.type === 'float') ? v.toFixed(4) : String(Math.round(v));
     const valStr = encode(newVal);
     const prevStr = encode(prevNum);
-    mlog('set slot=' + s.activeSlot + ' gi=' + gi + ' key=' + s.componentKey + ':' + ioKey + ' val=' + valStr);
+    mlog('set slot=' + s.port.track.index + ' gi=' + gi + ' key=' + s.componentKey + ':' + ioKey + ' val=' + valStr);
     /* One undo per knob GESTURE, not per detent: re-entering with the same key
      * coalesces the whole turn, and `prevStr` is the value before this detent —
      * group.ts keeps the FIRST old it is given, so undo returns to where the
      * gesture started. */
-    beginGesture('knob:' + s.activeSlot + ':' + s.componentKey + ':' + ioKey,
-        (p.label || p.key).toUpperCase(), 'T' + (s.activeSlot + 1), false);
+    beginGesture('knob:' + s.port.track.index + ':' + s.componentKey + ':' + ioKey,
+        (p.label || p.key).toUpperCase(), 'T' + (s.port.track.index + 1), false);
     /* A param that rewrites the others has a lossy inverse — writing the old
      * value back re-applies that selection's defaults and loses the tweaks made
      * since — so snapshot the whole module instead. Presets imply the flag; a
      * bank/ROM/plugin selector sets it in the module config. See
      * KnobSlot.capturesModuleState for the cost. Once per gesture: addStateOp
      * keeps the first. */
-    if (p.capturesModuleState) recordPresetState(s.activeSlot, s.componentKey);
+    if (p.capturesModuleState) recordPresetState(s.port.track.index, s.componentKey);
     const ok = p.key.startsWith('test_') ? true
         : setChainParam(s.port, s.componentKey + ':' + ioKey, valStr, prevStr);
     mlog('set_param returned ' + ok);

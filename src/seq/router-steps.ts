@@ -106,7 +106,7 @@ function shiftStepFunction(step: number): void {
     // (Session view shows the clip grid, not a single clip's params).
     if (step === STEP_CLIP_PARAMS) {
         if (!seqState.sessionMode && appState.currentView !== VIEW_CLIP_PARAMS) {
-            openClipPage(appState.currentView, appState.activeSlot);
+            openClipPage(appState.currentView, appState.activeTrack.index);
             appState.currentView = VIEW_CLIP_PARAMS;
         }
         appState.dirty = true;

@@ -65,8 +65,8 @@ export function seqHandleButtonCc(d1: number, d2: number, shiftHeld: boolean): b
         } else {
             setMuteHeld(false);
             if (momentaryUpUngated(CC_MUTE) === 'clean' && !seqState.sessionMode) {
-                if (muteShift || shiftHeld) toggleSolo(appState.activeSlot);
-                else muteTrack(appState.activeSlot);
+                if (muteShift || shiftHeld) toggleSolo(appState.activeTrack.index);
+                else muteTrack(appState.activeTrack.index);
                 appState.dirty = true;
             }
             muteShift = false;

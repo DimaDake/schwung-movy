@@ -6,6 +6,7 @@
  * input→LED pipeline — the layer the device cannot read back. Run from movy
  * root: node browser-test/app-loop.mjs */
 
+import { trackRef } from '../dist/esm/track/ref.js';
 import { installEnv } from './env.mjs';
 import { installMockEngine } from './mock-engine.mjs';
 import { MOCK_SYNTHS } from './mock-synth.mjs';
@@ -233,7 +234,7 @@ _log('\napp-loop: knob turn while a step is held writes automation');
     appState.trackModels[0][1].reload();
     advance(12);                              // settle engine + hierarchy
     appState.currentView = VIEW_KNOBS;
-    appState.activeSlot = 0;
+    appState.activeTrack = trackRef(0);
 
     // Step-automation mode + turning the Volume knob (CC 72 = knob 1) auto-assigns
     // a lane and writes a lock at the held step.
@@ -269,7 +270,7 @@ _log('\napp-loop: param page repaints when held-step automation changes');
     appState.trackModels[0][1].reload();
     advance(12);
     appState.currentView = VIEW_KNOBS;
-    appState.activeSlot = 0;
+    appState.activeTrack = trackRef(0);
 
     // Enter step-automation and turn knob 1 once to assign a lane + write a lock.
     seqState.stepAutoMode = true; seqState.holdStep = 4;
@@ -348,11 +349,11 @@ _log('\napp-loop: octave buttons disabled on drum track');
 {
     resetApp();
     const { keyboardState } = await import('../dist/esm/keyboard/state.js');
-    const octBefore = keyboardState.octave[appState.activeSlot];
+    const octBefore = keyboardState.octave[appState.activeTrack.index];
     for (const k of Object.keys(buttonLeds)) delete buttonLeds[k];
     sendMidi([0xB0, 55, 127]); // MoveUp press
     advance(1);
-    eq('drum track: MoveUp does not shift octave', keyboardState.octave[appState.activeSlot], octBefore);
+    eq('drum track: MoveUp does not shift octave', keyboardState.octave[appState.activeTrack.index], octBefore);
     eq('drum track: MoveUp button LED stays dark', buttonLeds[55] ?? 0, 0);
 }
 
@@ -370,13 +371,13 @@ _log('\napp-loop: octave buttons flash on melodic track');
     eq('melodic idle: MoveUp button dim', buttonLeds[55], 16);
     eq('melodic idle: MoveDown button dim', buttonLeds[54], 16);
 
-    const octBefore = keyboardState.octave[appState.activeSlot];
+    const octBefore = keyboardState.octave[appState.activeTrack.index];
     for (const k of Object.keys(buttonLeds)) delete buttonLeds[k];
 
     sendMidi([0xB0, 55, 127]); // MoveUp press
     advance(1);
     eq('melodic: MoveUp shifts the active track up an octave',
-        keyboardState.octave[appState.activeSlot], octBefore + 1);
+        keyboardState.octave[appState.activeTrack.index], octBefore + 1);
     eq('melodic: MoveUp button lights white', buttonLeds[55], 124); // WHITE_BRIGHT
 
     sendMidi([0xB0, 55, 0]); // MoveUp release
@@ -464,7 +465,7 @@ _log('\napp-loop: step page navigation + knob editing');
     appState.trackModels[0][1].reload();
     advance(12);
     appState.currentView = VIEW_KNOBS;
-    appState.activeSlot = 0;
+    appState.activeTrack = trackRef(0);
 
     sendMidi([0x90, 16, 127]);                // hold step 1 (abs step 0)
     occToggleStep(0);                         // the held step has a note (step page available)
@@ -526,7 +527,7 @@ _log('\napp-loop: tick renders the step page');
     appState.trackModels[0][1].reload();
     advance(12);
     appState.currentView = VIEW_KNOBS;
-    appState.activeSlot = 0;
+    appState.activeTrack = trackRef(0);
     sendMidi([0x90, 16, 127]);
     occToggleStep(0);                         // held step has a note
     seqState.stepAutoMode = true;
@@ -1526,7 +1527,7 @@ _log('\napp-loop: a tick builds each ViewModel at most once');
      * knobs on its costliest page turned visibly behind the hardware. */
     resetApp();
     appState.currentView = VIEW_KNOBS;
-    appState.activeSlot  = 0;
+    appState.activeTrack  = trackRef(0);
 
     const counts = new Map();
     for (const track of appState.trackModels) {

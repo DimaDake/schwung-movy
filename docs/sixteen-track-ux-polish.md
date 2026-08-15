@@ -20,29 +20,21 @@ before spending time on feel. Recorded here so nothing is lost to memory.
 
 ## Open
 
-- ~~**Track selection from the Session step row is unreliable**~~ — see above.
-  The original suspects, kept because the reasoning was wrong in an instructive
-  way: all four assumed the gesture was being lost, when the gesture always
-  worked and the *view* was being destroyed. Pressing a step in Session view does not always select
-  the track. Suspects, in the order worth checking:
-  1. **The step press is being swallowed upstream.** `handleStepButton` sees the
-     press only if `seqHandleMidi` routes it there; a held modifier (Copy,
-     Delete, Shift, a held step) takes priority earlier in the chain and would
-     make selection work only *sometimes*, which matches the symptom.
-  2. **`momentaryGesture()` interaction.** Session-held + step marks the
-     momentary as used. If the button is latched rather than held the call is a
-     no-op, but the two paths have not been tested against each other on device.
-  3. **LED vs state divergence.** Selection may be succeeding while the paint
-     lags, so it *looks* like nothing happened. `appState.initLedsDone` is reset
-     in `sessionStepPress`, but the clip grid repaint path is progressive and
-     may need a frame or two.
-  4. **Release handling.** `sessionStepPress` fires on press only; the release
-     still falls through to whatever the step row does next. Worth confirming a
-     release cannot re-enter note-entry handling.
+- **The browser-load gesture on a movy track is unverified on device.**
+  `browser-test/app-loop.mjs` ("the module browser loads onto a movy-hosted
+  track") drives the real `openBrowser` / `loadSelectedModule` and asserts the
+  write lands as `ch1:synth:module`, so the LOAD PATH is covered. What is not
+  covered is the jog navigation that gets you there on hardware:
+  `scripts/test-chains.sh` injects a click/turn/click sequence and no chain load
+  appears, and it reports that as a warning rather than a pass.
 
-  The local suites cover the happy path only (`app-loop.mjs` drives a clean
-  latch → press → select). Reproducing this needs either a device gesture trace
-  or an `app-loop` case with a modifier held across the press.
+  Not diagnosed, because movy logs nothing between the button press and the
+  engine write — there is no way to tell "the gesture missed the browser" from
+  "the browser refused the load". Fixing that needs either a log line when the
+  browser opens, or a framebuffer grab (`scripts/grab-screen.mjs`) to see which
+  view is actually on screen. The equivalent gesture on a HOST track is covered
+  by `test-module-contract.sh`, so the shared navigation works; only the
+  movy-track intersection is unproven.
 
 ## Also worth a look when polishing
 

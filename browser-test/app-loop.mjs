@@ -1613,6 +1613,56 @@ _log('\napp-loop: track state exists for every track, not just the first four');
     resetSeqState();
 }
 
+_log('\napp-loop: the module browser loads onto a movy-hosted track');
+{
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { openBrowser, loadSelectedModule } = await import('../dist/esm/browser/handler.js');
+    const { browserState } = await import('../dist/esm/browser/state.js');
+    const { CHAIN_SLOTS } = await import('../dist/esm/chain/config.js');
+
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.file_param);
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    advance(6);
+    installMockEngine();
+
+    /* Capture what actually reaches the engine — the whole question is whether
+     * a browser load on a movy track becomes a ch<N>: write rather than a
+     * schwung slot write that would silently hit another track. */
+    const engineWrites = [];
+    const realSet = globalThis.host_module_set_param_blocking;
+    globalThis.host_module_set_param_blocking = (k, v, t) => {
+        engineWrites.push([k, v]);
+        return realSet ? realSet(k, v, t) : true;
+    };
+
+    selectTrack(5);                       // movy track => chain instance 1
+    eq('track 5 is movy-hosted', appState.activeTrack.kind, 'movy');
+
+    openBrowser(CHAIN_SLOTS[1], appState.activeTrack.index, () => {});   // synth slot
+    eq('browser opened for the movy track', browserState.paramSlot, 5);
+
+    /* Pick the first real module (index 0 is the synthetic "NONE"). */
+    browserState.browseIndex = browserState.modules.length > 1 ? 1 : 0;
+    const picked = browserState.modules[browserState.browseIndex];
+    loadSelectedModule();
+
+    const moduleWrite = engineWrites.find(([k]) => k.endsWith(':synth:module'));
+    eq('the load reached the engine as a chain write', !!moduleWrite, true);
+    if (moduleWrite) {
+        /* Track 5 is the SECOND movy track, so chain instance 1 — an off-by-one
+         * here would load the module onto a different track entirely. */
+        eq('addressed chain instance 1 (track 5)', moduleWrite[0], 'ch1:synth:module');
+        eq('wrote the picked module id', moduleWrite[1], picked.id);
+    }
+
+    globalThis.host_module_set_param_blocking = realSet;
+    uninstallMockEngine();
+    selectTrack(0);
+    resetSeqState();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

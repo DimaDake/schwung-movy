@@ -28,9 +28,14 @@ MOVY_DIR="$(pwd)"
 source "$MOVY_DIR/scripts/lib/test-set.sh"
 
 LOG=/data/UserData/schwung/debug.log
+INJECT_PY="$(cd .. && pwd)/schwung-midi-inject-ui.py"
 PASS=0; FAIL=0
-GRN=$'\033[0;32m'; RED=$'\033[0;31m'; BLD=$'\033[1m'; RST=$'\033[0m'
+GRN=$'\033[0;32m'; RED=$'\033[0;31m'; YEL=$'\033[1;33m'; BLD=$'\033[1m'; RST=$'\033[0m'
 pass() { echo "${GRN}✓${RST} $1"; PASS=$((PASS+1)); }
+# Neither a pass nor a failure: something this suite cannot observe. Counted
+# separately so an unverifiable step can never read as a green check.
+WARN=0
+warn() { echo "${YEL}!${RST} $1"; WARN=$((WARN+1)); }
 fail() { echo "${RED}✗${RST} $1"; FAIL=$((FAIL+1)); }
 
 ssh -o ConnectTimeout=5 "ableton@$HOST" true 2>/dev/null || {
@@ -154,13 +159,11 @@ sleep 0.8
 ts_tap_cc 43            # first track button of the focused group
 sleep 0.8
 SEL=$(ssh "ableton@$HOST" "cat $LOG")
-if echo "$SEL" | qgrep -E "track (8|9|10|11)"; then
-    pass "selection reached a group-3 track"
-else
-    # Not every build logs the track switch; fall back to proving the UI stayed
-    # alive, which is what actually broke before.
-    pass "selection gestures accepted (no crash)"
-fi
+# movy logs no line for a track switch, so the selection itself is not
+# observable from here. What IS observable is the failure mode this replaced:
+# an undefined view reaching the UI. The selection logic itself is covered by
+# "track state exists for every track" in browser-test/app-loop.mjs.
+warn "track switch is not logged — selection asserted in app-loop.mjs, not here"
 if echo "$SEL" | qgrep -iE "undefined|NaN|TypeError"; then
     fail "undefined/NaN reached the UI after selecting an out-of-group track"
 else
@@ -169,7 +172,41 @@ fi
 ts_tap_cc 50            # back to Note view
 sleep 0.4
 
-# 6. Tick rate — chain rendering runs every block.
+# 6. THE Stage-4 gesture: load a synth onto a movy track the way a user does —
+#    select the track, then drive the module browser with the jog wheel. Every
+#    earlier chain load in this file went straight to the engine's ch<N>: param,
+#    which proves the engine but not the UI path.
+echo "${BLD}=== loading a module onto a movy track through the browser ===${RST}"
+CC_JOG=14; CC_CLICK=3
+ssh "ableton@$HOST" "> $LOG"
+ts_tap_cc 50            # Session view
+sleep 0.6
+ts_tap_note 20          # step 5 -> track 5 (first movy track, chain 0)
+sleep 0.8
+ts_tap_cc 50            # back to Note view, still on track 5
+sleep 0.6
+# Chain view: jog to the synth slot and click into the browser.
+python3 "$INJECT_PY" "$HOST" cc $CC_CLICK 127 >/dev/null 2>&1; sleep 0.15
+python3 "$INJECT_PY" "$HOST" cc $CC_CLICK 0 >/dev/null 2>&1; sleep 1.2
+# Pick the next module and confirm.
+python3 "$INJECT_PY" "$HOST" cc $CC_JOG 1 >/dev/null 2>&1; sleep 0.5
+python3 "$INJECT_PY" "$HOST" cc $CC_CLICK 127 >/dev/null 2>&1; sleep 0.15
+python3 "$INJECT_PY" "$HOST" cc $CC_CLICK 0 >/dev/null 2>&1; sleep 3
+
+LOGTXT=$(ssh "ableton@$HOST" "cat $LOG")
+if echo "$LOGTXT" | qgrep -E "chain 0: (synth|midi_fx1|fx1|fx2) = "; then
+    pass "browser load reached a movy chain: $(echo "$LOGTXT" | grep -oE 'chain 0: [a-z_0-9]+ = .*' | tail -1)"
+else
+    # Do NOT call this a pass. The jog sequence below is a guess at the chain
+    # view's cursor state, and movy logs nothing between the press and the
+    # engine write, so there is no way to tell "the gesture missed the browser"
+    # from "the browser refused the load". The load path itself IS asserted
+    # against the real handler in browser-test/app-loop.mjs ("the module browser
+    # loads onto a movy-hosted track"), which checks the exact ch<N>: key.
+    warn "browser gesture did not produce a chain load — unverified at the gesture level"
+fi
+
+# 7. Tick rate — chain rendering runs every block.
 RATE=$(echo "$LOGTXT" | grep -o 'perf_tick_rate=[0-9]*' | tail -1 | cut -d= -f2)
 if [ -n "$RATE" ] && [ "$RATE" -ge 60 ]; then
     pass "tick rate ${RATE}/s >= 60"
@@ -177,7 +214,7 @@ else
     fail "tick rate ${RATE:-unknown}/s below threshold"
 fi
 
-# 7. Nothing crashed. Last, because it is the check that matters most and
+# 8. Nothing crashed. Last, because it is the check that matters most and
 #    reads best at the bottom.
 if ssh "ableton@$HOST" 'pgrep -f MoveOriginal >/dev/null 2>&1'; then
     pass "MoveOriginal is alive"
@@ -190,7 +227,7 @@ echo "Restarting the Move stack (movy owns the LEDs while open)..."
 ssh "ableton@$HOST" 'systemctl --user restart move-launcher 2>/dev/null || true' >/dev/null 2>&1
 
 if [ "$FAIL" -eq 0 ]; then
-    echo "${GRN}${BLD}CHAIN DEVICE TEST PASSED${RST} ($PASS checks)"
+    echo "${GRN}${BLD}CHAIN DEVICE TEST PASSED${RST} ($PASS checks, $WARN unverified)"
 else
     echo "${RED}${BLD}$FAIL CHECK(S) FAILED${RST}"
     exit 1

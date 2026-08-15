@@ -107,6 +107,16 @@ impl ChainSlots {
         if let Some(inst) = self.slots[req.slot].as_mut() {
             inst.set_param(&format!("{}:module", req.component), &req.module);
         }
+        /* Load events are rare (never the hot path) and this is the only
+         * externally observable evidence that a chain load happened: schwung's
+         * remote-UI socket can WRITE an engine param but has no read verb, so a
+         * device test has nothing else to assert on. */
+        host::log(&format!(
+            "chain {}: {} = {}",
+            req.slot,
+            req.component,
+            if req.module.is_empty() { "(cleared)" } else { req.module.as_str() }
+        ));
     }
 
     /// Forward a param to a chain. Loading keys are NOT accepted here — they go

@@ -90,7 +90,42 @@ else
     fail "no distinct private copy (src=$SRC_INO copy=$CPY_INO)"
 fi
 
-# 4. Tick rate — chain rendering runs every block.
+# 4. Load a module INTO a movy chain and confirm it is serviced. Driven through
+#    the UI's own port by selecting track 5 (the first movy track) and opening
+#    the module browser is a Stage-4 gesture; here the load is issued directly
+#    over the remote-UI websocket to the engine's ch0 namespace, which is the
+#    same path the port uses.
+echo "${BLD}=== loading a module into movy chain 0 (track 5) ===${RST}"
+node scripts/engine-param.mjs set "ch0:synth:module" plaits "$HOST" >/dev/null 2>&1
+sleep 3
+LOGTXT=$(ssh "ableton@$HOST" "cat $LOG")
+
+# The engine logs each serviced load. That is the only external evidence
+# available: the remote-UI socket can write an engine param but has no read
+# verb, so there is nothing to poll.
+if echo "$LOGTXT" | qgrep "chain 0: synth = plaits"; then
+    pass "movy chain 0 created and loaded plaits"
+else
+    fail "no 'chain 0: synth = plaits' in the log — the load never reached the queue or was never serviced"
+fi
+
+# A second load into the same slot must reuse the instance, not leak one.
+node scripts/engine-param.mjs set "ch0:synth:module" wurl "$HOST" >/dev/null 2>&1
+sleep 3
+LOGTXT=$(ssh "ableton@$HOST" "cat $LOG")
+if echo "$LOGTXT" | qgrep "chain 0: synth = wurl"; then
+    pass "chain 0 swapped module without a reload of the host"
+else
+    fail "second load into chain 0 did not appear in the log"
+fi
+
+if echo "$LOGTXT" | qgrep "chain hosting unavailable"; then
+    fail "chain hosting dropped out during the loads"
+else
+    pass "chain hosting stayed up across loads"
+fi
+
+# 5. Tick rate — chain rendering runs every block.
 RATE=$(echo "$LOGTXT" | grep -o 'perf_tick_rate=[0-9]*' | tail -1 | cut -d= -f2)
 if [ -n "$RATE" ] && [ "$RATE" -ge 60 ]; then
     pass "tick rate ${RATE}/s >= 60"
@@ -98,7 +133,7 @@ else
     fail "tick rate ${RATE:-unknown}/s below threshold"
 fi
 
-# 5. Nothing crashed. Last, because it is the check that matters most and
+# 6. Nothing crashed. Last, because it is the check that matters most and
 #    reads best at the bottom.
 if ssh "ableton@$HOST" 'pgrep -f MoveOriginal >/dev/null 2>&1'; then
     pass "MoveOriginal is alive"

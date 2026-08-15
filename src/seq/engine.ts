@@ -14,7 +14,7 @@
  * ~3-5 ms on device, so the cadence is a deliberate IPC budget. */
 
 import { mlog } from '../log.js';
-import { ENGINE_DSP_PATH, ENGINE_VERSION } from './constants.js';
+import { CHAIN_MODULE_DIR, ENGINE_DSP_PATH, ENGINE_VERSION, MOVY_MODULE_DIR } from './constants.js';
 import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, seqState, sessionFromStr } from './state.js';
 import { rationalToIdx } from './clip-scale.js';
 
@@ -171,6 +171,12 @@ function probeTick(): void {
          * on, and only reopening movy brought the sequencer back. */
         loadAttempts = 0;
         pollCountdown = 1;
+        /* Only the UI knows the install paths, so it hands them over once the
+         * engine answers. Sent on every (re)boot because a re-dlopened engine
+         * is a brand new one that has never been told. Refreshing the private
+         * copy and dlopening the chain host both happen inside this set, off
+         * the render path. */
+        engineSet('chain_host', CHAIN_MODULE_DIR + '|' + MOVY_MODULE_DIR);
         requestLabelSync(); // rebuild automation registry + re-apply chain mappings
         return;
     }

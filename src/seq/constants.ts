@@ -36,3 +36,11 @@ export const MAIN_PAGE_STEPS: Record<number, number> = { 4: 0, 6: 0, 8: 0 };
  * load race and stale engines after redeploy). */
 export const ENGINE_VERSION = '0.32.0';
 export const ENGINE_DSP_PATH = '/data/UserData/schwung/modules/tools/movy/dsp.so';
+
+/* Where the engine finds schwung's chain host, and where it may keep its own
+ * copy of it. The copy exists so movy's chain instances get their own dlopen
+ * mapping (and their own g_host) instead of clobbering the pointer schwung's
+ * four slot instances share; the engine keeps it in step with the install, so
+ * it tracks whatever chain-host version the user has. */
+export const CHAIN_MODULE_DIR = '/data/UserData/schwung/modules/chain';
+export const MOVY_MODULE_DIR  = '/data/UserData/schwung/modules/tools/movy';

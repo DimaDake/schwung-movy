@@ -85,7 +85,7 @@ function injectHold(track: number, pressed: boolean): void {
 }
 
 function readVolume(track: number): number {
-    const raw = shadow_get_param(track, 'slot:volume');
+    const raw = portFor(track).getParam( 'slot:volume');
     const v   = raw === null ? NaN : parseFloat(raw);
     return Number.isFinite(v) ? Math.min(VOL_MAX, Math.max(VOL_MIN, v)) : 1;
 }

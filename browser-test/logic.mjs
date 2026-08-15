@@ -8,7 +8,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { createModel }    from '../dist/esm/model/index.js';
 import { portFor }        from '../dist/esm/track/registry.js';
-import { trackRef }       from '../dist/esm/track/ref.js';
+import { trackRef, TRACK_COUNT } from '../dist/esm/track/ref.js';
 import { dedupShortNames } from '../dist/esm/renderer/shorten.js';
 import { detectEnvelopes } from '../dist/esm/model/envelope.js';
 import { planPageLayout } from '../dist/esm/model/page-layout.js';
@@ -3930,10 +3930,18 @@ _log('\nautomation: restore re-requests label sync:');
 
     installMockEngine();
 
+    /* Solo mutes every OTHER track, so the expectation is derived from the
+     * track count — pasting 16 entries would just have to be rewritten at the
+     * next widening, and hides what is actually being asserted. */
+    const othersMuted = (soloed, val, except = []) =>
+      Array.from({ length: TRACK_COUNT }, (_, t) => t)
+        .filter((t) => t !== soloed && !except.includes(t))
+        .map((t) => `mute ${t} ${val}`).sort().join(',');
+
     // Solo mutes every other track in the engine and leaves the soloed one alone.
     fresh();
     toggleSolo(1);
-    eq('solo mutes the others', cmds().sort().join(','), 'mute 0 1,mute 2 1,mute 3 1');
+    eq('solo mutes the others', cmds().sort().join(','), othersMuted(1, 1));
     eq('soloed track not muted', seqState.muted[1], false);
     eq('others muted in the mirror', seqState.muted[0] && seqState.muted[3], true);
     eq('anySolo', anySolo(), true);
@@ -3946,10 +3954,10 @@ _log('\nautomation: restore re-requests label sync:');
     eq('user mute applied', seqState.muted[3], true);
     resetSeqEngine();
     toggleSolo(0);
-    eq('solo mutes others (3 already muted)', cmds().sort().join(','), 'mute 1 1,mute 2 1');
+    eq('solo mutes others (3 already muted)', cmds().sort().join(','), othersMuted(0, 1, [3]));
     resetSeqEngine();
     toggleSolo(0);                    // un-solo
-    eq('un-solo unmutes only the borrowed ones', cmds().sort().join(','), 'mute 1 0,mute 2 0');
+    eq('un-solo unmutes only the borrowed ones', cmds().sort().join(','), othersMuted(0, 0, [3]));
     eq('user mute survives un-solo', seqState.muted[3], true);
     eq('no solo left', anySolo(), false);
 
@@ -3979,7 +3987,7 @@ _log('\nautomation: restore re-requests label sync:');
     resetSeqEngine();
     toggleSolo(2);                    // same track again → no solo at all
     eq('re-press clears the solo', anySolo(), false);
-    eq('everything unmuted again', cmds().sort().join(','), 'mute 0 0,mute 1 0,mute 3 0');
+    eq('everything unmuted again', cmds().sort().join(','), othersMuted(2, 0));
 
     // Muting while a solo is up edits the underlying intent. It is not audible
     // yet — solo overrides mute — but it lands when the solo drops.
@@ -4017,7 +4025,8 @@ _log('\nautomation: restore re-requests label sync:');
     fresh();
     toggleSolo(0);
     const blob = serializeUiState();
-    eq('solo is serialized', JSON.parse(blob).mutes.solo.join(''), '1000');
+    eq('solo is serialized', JSON.parse(blob).mutes.solo.join(''),
+       '1' + '0'.repeat(TRACK_COUNT - 1));
     resetTrackMutes();                 // movy restarts: module state gone
     eq('reset clears the mirror-side bookkeeping', anySolo(), false);
     applyUiState(blob);                // ...restored from the set's UI blob
@@ -4025,7 +4034,7 @@ _log('\nautomation: restore re-requests label sync:');
     resetSeqEngine();
     toggleSolo(0);                     // un-solo now restores correctly
     eq('un-solo after reopen unmutes the others',
-        cmds().sort().join(','), 'mute 1 0,mute 2 0,mute 3 0');
+        cmds().sort().join(','), othersMuted(0, 0));
 
     // A blob written before solo became exclusive can name several — keep the first.
     resetTrackMutes();
@@ -11660,16 +11669,31 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 }
 
 {
-  _log('\nmodel readers — no direct slot reads remain in model/:');
-  /* Guard, not a behaviour test. Once model/ reads through the port, a NEW
-   * direct read is a regression that reintroduces the slot assumption — and it
-   * would work fine on host tracks and fail only on movy ones, which is exactly
-   * the bug that is expensive to find later. */
-  const offenders = readdirSync('src/model')
-    .filter((f) => f.endsWith('.ts'))
-    .map((f) => 'src/model/' + f)
+  _log('\nparam reads — nothing addresses a slot directly:');
+  /* Guard, not a behaviour test. A direct shadow_get_param(slot, ...) reads
+   * schwung's slot N, which for a MOVY track is a completely different track's
+   * chain — it compiles, passes on tracks 1-4, and silently returns the wrong
+   * synth's values on tracks 5-16. That is the bug this abstraction exists to
+   * prevent, and it is far cheaper to catch here than on device.
+   *
+   * Originally scoped to src/model/, which let 25 reads survive in browser/,
+   * undo/, lfo/, mixer/ and app/ until they were found by hand. Now the whole
+   * tree is checked. */
+  const walkTs = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const full = dir + '/' + e.name;
+    return e.isDirectory() ? walkTs(full) : (full.endsWith('.ts') ? [full] : []);
+  });
+  const READ_ALLOWED = {
+    'src/types/schwung.d.ts':  'the ambient declaration',
+    'src/track/host-port.ts':  'the host-track door — the one place that reads a slot',
+  };
+  const offenders = walkTs('src')
+    .filter((f) => !(f in READ_ALLOWED))
     .filter((f) => readFileSync(f, 'utf8').includes('shadow_get_param('));
-  eq('no model file reads params by slot: ' + offenders.join(','), offenders.length, 0);
+  eq('no file reads params by slot: ' + offenders.join(','), offenders.length, 0);
+  const staleReads = Object.keys(READ_ALLOWED)
+    .filter((f) => !readFileSync(f, 'utf8').includes('shadow_get_param('));
+  eq('no stale read-allowlist entries: ' + staleReads.join(','), staleReads.length, 0);
 }
 
 {

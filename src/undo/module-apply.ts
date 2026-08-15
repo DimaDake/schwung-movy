@@ -137,7 +137,7 @@ export function beginParamRestore(
  * the alias `synth_module`, and reading the colon form there returns null. */
 function liveModuleId(op: ModuleOp): string {
     if (typeof shadow_get_param !== 'function') return '';
-    return shadow_get_param(op.slot, moduleReadKey(op.componentKey)) || '';
+    return portFor(op.slot).getParam( moduleReadKey(op.componentKey)) || '';
 }
 
 /* Ready = the right module AND its params exist. The second half is what makes
@@ -150,7 +150,7 @@ function moduleIsReady(p: Pending): boolean {
     if (!p.wantIds.includes(live)) return false;
     if (p.state === null && p.params.length === 0) return true;   // nothing to write
     const cp = typeof shadow_get_param === 'function'
-        ? shadow_get_param(p.op.slot, p.op.componentKey + ':chain_params')
+        ? portFor(p.op.slot).getParam( p.op.componentKey + ':chain_params')
         : null;
     return !!cp && cp !== '[]';
 }
@@ -184,7 +184,7 @@ function rewriteDrifted(p: Pending): number {
     for (let i = p.leadCount; i < p.params.length; i++) {
         const [key, want] = p.params[i];
         const full = p.op.componentKey + ':' + key;
-        const live = shadow_get_param(p.op.slot, full);
+        const live = portFor(p.op.slot).getParam( full);
         if (live === null || sameValue(live, want)) continue;
         setChainParamUntracked(portFor(p.op.slot), full, want);
         fixed++;

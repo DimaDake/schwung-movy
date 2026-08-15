@@ -355,7 +355,7 @@ function warmLaneParams(track: number, readValue: (track: number, lane: number) 
  * it (not a single tick that might fire before the host finishes v2_load_synth).
  * Event-driven — nothing runs when no reload is pending, so there is no idle IPC
  * cost — and reads are strided so the window is a handful of reads, not a burst. */
-const warmPending = [0, 0, 0, 0];
+const warmPending = new Array(TRACK_COUNT).fill(0) as number[];
 const WARM_WINDOW = 96;   // ~0.5 s at the ~205 Hz device tick
 const WARM_STRIDE = 16;   // → ~6 reads across the window
 
@@ -373,7 +373,7 @@ export function laneWarmTick(
     readValue: (track: number, lane: number) => void,
     verify?: (track: number, lane: number) => void,
 ): void {
-    for (let t = 0; t < 4; t++) {
+    for (let t = 0; t < TRACK_COUNT; t++) {
         const c = warmPending[t];
         if (c <= 0) continue;
         warmPending[t] = c - 1;

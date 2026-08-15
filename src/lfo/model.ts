@@ -48,7 +48,7 @@ export function createLfoModel(track: number): Model {
     }
 
     function readLfo(lfoIdx: number): LfoVals {
-        const g = (k: string) => shadow_get_param(track, lfoPrefix(lfoIdx) + k);
+        const g = (k: string) => portFor(track).getParam( lfoPrefix(lfoIdx) + k);
         return {
             target: g('target') || '',
             targetParam: g('target_param') || '',
@@ -71,7 +71,7 @@ export function createLfoModel(track: number): Model {
 
     function setP(lfoIdx: number, key: string, val: string): void {
         const full = lfoPrefix(lfoIdx) + key;
-        const old = (typeof shadow_get_param === 'function' ? shadow_get_param(track, full) : null);
+        const old = portFor(track).getParam(full);
         beginGesture('lfo:' + track + ':' + full, key.toUpperCase(), 'T' + (track + 1), false);
         setChainParam(portFor(track), full, val, old);
     }

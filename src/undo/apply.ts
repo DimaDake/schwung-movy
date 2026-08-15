@@ -57,7 +57,7 @@ export function flushOrphanedSnaps(): void {
 function moduleDrifted(e: UndoEntry, _undoing: boolean): boolean {
     const op = e.moduleOp;
     if (!op || typeof shadow_get_param !== 'function') return false;
-    const live = shadow_get_param(op.slot, moduleReadKey(op.componentKey)) || '';
+    const live = portFor(op.slot).getParam( moduleReadKey(op.componentKey)) || '';
     if (live === '') return false;   // unreadable or a cleared slot: can't tell
     return !op.oldIds.includes(live) && !op.newIds.includes(live);
 }

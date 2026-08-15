@@ -97,7 +97,7 @@ export function activateFileBrowserItem(): void {
             return;
         }
         const key = state.componentKey + ':' + state.paramKey;
-        const old = (typeof shadow_get_param === 'function' ? shadow_get_param(state.paramSlot, key) : null);
+        const old = portFor(state.paramSlot).getParam(key);
         const chainIdx = appState.trackChainIndex[state.paramSlot];
         /* Name the param that was loaded into, not just "LOAD FILE": a drum
          * module has one of these per pad, so the slot is the only thing that

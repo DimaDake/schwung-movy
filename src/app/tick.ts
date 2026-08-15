@@ -189,7 +189,7 @@ let laneVerifyTicks = 0;
 /* Reading a mapped knob's `_value` routes through the host's find_param_by_key,
  * which repopulates the per-component param cache abs-CC needs after a reload. */
 const warmReadValue = (slot: number, lane: number): void => {
-    shadow_get_param(slot, 'knob_' + (lane + 1) + '_value');
+    portFor(slot).getParam( 'knob_' + (lane + 1) + '_value');
 };
 
 /* Return from background: the host restored the suspend-time LED snapshot to
@@ -293,7 +293,7 @@ function tickBody(): void {
     if (++laneVerifyTicks >= LANE_VERIFY_TICKS) {
         laneVerifyTicks = 0;
         verifyLaneMappings(
-            (slot, lane) => shadow_get_param(slot, 'knob_' + (lane + 1) + '_name'),
+            (slot, lane) => portFor(slot).getParam( 'knob_' + (lane + 1) + '_name'),
             (slot, lane, tp) => {
                 mlog('auto remap t=' + slot + ' lane=' + lane + ' ' + tp);
                 portFor(slot).setParam('knob_' + (lane + 1) + '_set', tp);
@@ -307,8 +307,8 @@ function tickBody(): void {
     // field observability for this failure mode, and the reselect e2e's assertion.
     laneWarmTick(warmReadValue, (t, l) => {
         mlog('auto warm t=' + t
-            + ' cache=' + shadow_get_param(t, 'knob_' + (l + 1) + '_max')
-            + ' type=' + shadow_get_param(t, 'knob_' + (l + 1) + '_type'));
+            + ' cache=' + portFor(t).getParam( 'knob_' + (l + 1) + '_max')
+            + ' type=' + portFor(t).getParam( 'knob_' + (l + 1) + '_type'));
     });
     seqPersistTick();
     /* Undo housekeeping, after seqPersistTick so the set uuid it watches is the

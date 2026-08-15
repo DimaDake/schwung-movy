@@ -5,6 +5,7 @@
  * are pad addresses, not notes — clip transpose must not shift them, or the
  * step plays a different voice (or none, when it lands off the pad range). */
 
+import { portFor } from '../track/registry.js';
 import { TRACK_COUNT } from '../track/ref.js';
 import { appState, trackIsDrum } from '../app/state.js';
 import { moduleReadKey } from '../chain/config.js';
@@ -38,7 +39,7 @@ const retryIn = [0, 0, 0, 0];
 function probeTrack(t: number): number | null {
     const model = appState.trackModels[t]?.[1];
     if (!model || typeof shadow_get_param !== 'function') return null;
-    const id = shadow_get_param(t, moduleReadKey(model.getComponentKey()));
+    const id = portFor(t).getParam( moduleReadKey(model.getComponentKey()));
     if (!id) return null;   // empty slot — leave it unanswered, not "melodic"
     return (loadModuleConfig(id)?.drum?.padCount ?? 0) > 0 ? 1 : 0;
 }

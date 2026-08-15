@@ -50,7 +50,7 @@ export function openBrowser(slot: ChainSlot, paramSlot: number, reload: () => vo
     browserState.reload       = reload;
     browserState.modules      = [{ id: '', name: 'NONE', path: '' }, ...scanModules(slot)];
     browserState.browseIndex  = 0;
-    const activeId = shadow_get_param(paramSlot, moduleReadKey(slot.componentKey)) || '';
+    const activeId = portFor(paramSlot).getParam( moduleReadKey(slot.componentKey)) || '';
     const idx = browserState.modules.findIndex(m => m.id === activeId);
     if (idx >= 0) browserState.browseIndex = idx;
     appState.currentView = VIEW_BROWSE;
@@ -72,7 +72,7 @@ export function loadSelectedModule(): void {
     /* Dump BEFORE the write: schwung tears the outgoing module down, and after
      * that its params are unrecoverable. A reselect of the same module records
      * nothing — it changes no state worth an undo press. */
-    const prevId = shadow_get_param(browserState.paramSlot,
+    const prevId = portFor(browserState.paramSlot).getParam(
         moduleReadKey(browserState.componentKey)) || '';
     /* Compare identities, not the written value: for a master slot `value` is a
      * path while `prevId` is an id, so comparing them called every reselect a

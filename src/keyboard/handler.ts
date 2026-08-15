@@ -1,3 +1,4 @@
+import { portFor } from '../track/registry.js';
 import { keyboardState, OCT_MIN, OCT_MAX } from './state.js';
 import { noteSounded, noteReleased } from './held-notes.js';
 import { emitNoteOff, releaseAllLive } from './release.js';
@@ -13,7 +14,7 @@ export function noteOn(padNote: number, padMin: number, track: number, vel: numb
     if (midiNote < 0) return;              // dead pad: piano gap or out of range
     noteSounded(padNote, track, midiNote);
     keyboardState.lastPlayedNote = midiNote;
-    shadow_send_midi_to_dsp([MidiNoteOn | track, midiNote, vel]);
+    portFor(track).sendMidi(MidiNoteOn, midiNote, vel);
     setLED(padNote, C_GREEN, true); // immediate green feedback before the next poll
 }
 

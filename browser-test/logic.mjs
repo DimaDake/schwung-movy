@@ -11677,6 +11677,17 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
   resetPorts();
 }
 
+{
+  _log('\nlive MIDI — sent through the port, channel from the ledger:');
+  /* The ledger rule is what this guard protects: if a call site goes back to
+   * building its own status byte, it is one step from deriving the track at
+   * release time, which strands notes. */
+  const offenders = ['src/keyboard', 'src/seq']
+    .flatMap((d) => readdirSync(d).filter((f) => f.endsWith('.ts')).map((f) => d + '/' + f))
+    .filter((f) => readFileSync(f, 'utf8').includes('shadow_send_midi_to_dsp('));
+  eq('no file sends DSP MIDI directly: ' + offenders.join(','), offenders.length, 0);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

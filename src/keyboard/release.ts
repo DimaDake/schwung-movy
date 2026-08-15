@@ -1,3 +1,4 @@
+import { portFor } from '../track/registry.js';
 import { drainAll, drainTrack } from './held-notes.js';
 
 /* The single exit point for live-note note-offs. Every 0x8n movy sends for a
@@ -5,7 +6,7 @@ import { drainAll, drainTrack } from './held-notes.js';
  * one place is what makes "no note-off can pick the wrong channel" checkable
  * rather than a convention. */
 export function emitNoteOff(track: number, pitch: number): void {
-    shadow_send_midi_to_dsp([MidiNoteOff | track, pitch, 0]);
+    portFor(track).sendMidi(MidiNoteOff, pitch, 0);
 }
 
 /* Release every sounding live note. Pad LEDs need no explicit repaint: the tick

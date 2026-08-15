@@ -1,5 +1,5 @@
 import type { Model } from '../model/index.js';
-import { trackRef, type TrackRef } from '../track/ref.js';
+import { trackRef, TRACK_COUNT, type TrackRef } from '../track/ref.js';
 
 export const VIEW_KEYS        = 0;
 export const VIEW_SESSION      = 5;
@@ -42,8 +42,10 @@ export const appState = {
     dirty:            true,
     initLedIndex:     0,
     initLedsDone:     false,
-    trackChainIndex:  [1, 1, 1, 1] as number[],
-    trackView:        [3, 3, 3, 3] as number[],
+    /* Sized in init() from TRACK_COUNT; these defaults only cover the boot
+     * frame before init runs. */
+    trackChainIndex:  new Array(TRACK_COUNT).fill(1) as number[],
+    trackView:        new Array(TRACK_COUNT).fill(VIEW_CHAIN) as number[],
     trackModels:      [] as Model[][],
     masterFxModels:   [] as Model[],
     masterChainIndex: 0,

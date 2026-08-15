@@ -4,10 +4,26 @@ Deferred deliberately: the 16-track work (Stages 1-2) is functionally complete
 and device-verified, and the plan is to finish the audio side (Stages 3-6)
 before spending time on feel. Recorded here so nothing is lost to memory.
 
+## Resolved
+
+- **Track selection was unreliable** (reported 2026-08-15, fixed same day).
+  **Root cause: none of my four suspects.** `appState.trackModels`,
+  `trackChainIndex` and `trackView` were never widened past 4 in Stage 2, so
+  every track above 3 had no state at all. The track-button path does
+  `appState.currentView = appState.trackView[track]`, which handed the UI
+  `undefined` for any track outside the first group — nothing to render, so the
+  selection looked like it had not happened. Selecting from the step row alone
+  survived (it does not touch currentView), which is exactly why it was
+  intermittent rather than dead.
+  Fixed by sizing all three arrays from `TRACK_COUNT`; covered by
+  "track state exists for every track" in `app-loop.mjs`.
+
 ## Open
 
-- **Track selection from the Session step row is unreliable** (reported on
-  device, 2026-08-15). Pressing a step in Session view does not always select
+- ~~**Track selection from the Session step row is unreliable**~~ — see above.
+  The original suspects, kept because the reasoning was wrong in an instructive
+  way: all four assumed the gesture was being lost, when the gesture always
+  worked and the *view* was being destroyed. Pressing a step in Session view does not always select
   the track. Suspects, in the order worth checking:
   1. **The step press is being swallowed upstream.** `handleStepButton` sees the
      press only if `seqHandleMidi` routes it there; a held modifier (Copy,

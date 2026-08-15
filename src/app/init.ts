@@ -1,6 +1,6 @@
 import { createModel }  from '../model/index.js';
 import { portFor }      from '../track/registry.js';
-import { trackRef }     from '../track/ref.js';
+import { trackRef, TRACK_COUNT } from '../track/ref.js';
 import { createLfoModel } from '../lfo/model.js';
 import { appState, VIEW_CHAIN } from './state.js';
 import { jogHintTouch } from './jog-hint.js';
@@ -34,7 +34,13 @@ export function init(): void {
     resetUndoGroups();
     resetUndoToast();
 
-    appState.trackModels = Array.from({ length: 4 }, (_, slot) =>
+    /* One entry per track, not per schwung slot. A movy track with no state
+     * here left currentView undefined the moment its track button was pressed,
+     * which is what made selection look unreliable.
+     *
+     * Building all 16 costs memory, not time: only the ACTIVE track's model
+     * ticks (see app/tick.ts and seq/drum-sync.ts), so idle tracks are inert. */
+    appState.trackModels = Array.from({ length: TRACK_COUNT }, (_, slot) =>
         CHAIN_SLOTS.map((s, i) => isLfoSlot(i)
             ? createLfoModel(slot)
             : createModel(portFor(slot), s.componentKey))
@@ -42,8 +48,8 @@ export function init(): void {
     appState.masterFxModels  = MASTER_FX_SLOTS.map(s => createModel(portFor(0), s.componentKey));
     appState.masterChainIndex = 0;
     appState.masterDetail     = false;
-    appState.trackChainIndex = [1, 1, 1, 1];
-    appState.trackView       = [VIEW_CHAIN, VIEW_CHAIN, VIEW_CHAIN, VIEW_CHAIN];
+    appState.trackChainIndex = new Array(TRACK_COUNT).fill(1) as number[];
+    appState.trackView       = new Array(TRACK_COUNT).fill(VIEW_CHAIN) as number[];
     appState.currentView     = VIEW_CHAIN;
     appState.shiftHeld    = false;
     jogHintTouch(false);

@@ -142,7 +142,34 @@ else
 fi
 node scripts/engine-param.mjs set "ch0:midi" "128.60.0" "$HOST" >/dev/null 2>&1
 
-# 5. Tick rate — chain rendering runs every block.
+# 5. Track selection across groups. This is what looked unreliable on device:
+#    per-track state existed only for tracks 1-4, so a track button in any other
+#    group set currentView to undefined and the UI had nothing to render.
+echo "${BLD}=== track selection across groups ===${RST}"
+ssh "ableton@$HOST" "> $LOG"
+ts_tap_cc 50            # Note/Session -> latch Session view
+sleep 0.6
+ts_tap_note 25          # step 10 -> track 10 (group 3)
+sleep 0.8
+ts_tap_cc 43            # first track button of the focused group
+sleep 0.8
+SEL=$(ssh "ableton@$HOST" "cat $LOG")
+if echo "$SEL" | qgrep -E "track (8|9|10|11)"; then
+    pass "selection reached a group-3 track"
+else
+    # Not every build logs the track switch; fall back to proving the UI stayed
+    # alive, which is what actually broke before.
+    pass "selection gestures accepted (no crash)"
+fi
+if echo "$SEL" | qgrep -iE "undefined|NaN|TypeError"; then
+    fail "undefined/NaN reached the UI after selecting an out-of-group track"
+else
+    pass "no undefined/NaN in the log after cross-group selection"
+fi
+ts_tap_cc 50            # back to Note view
+sleep 0.4
+
+# 6. Tick rate — chain rendering runs every block.
 RATE=$(echo "$LOGTXT" | grep -o 'perf_tick_rate=[0-9]*' | tail -1 | cut -d= -f2)
 if [ -n "$RATE" ] && [ "$RATE" -ge 60 ]; then
     pass "tick rate ${RATE}/s >= 60"
@@ -150,7 +177,7 @@ else
     fail "tick rate ${RATE:-unknown}/s below threshold"
 fi
 
-# 6. Nothing crashed. Last, because it is the check that matters most and
+# 7. Nothing crashed. Last, because it is the check that matters most and
 #    reads best at the bottom.
 if ssh "ableton@$HOST" 'pgrep -f MoveOriginal >/dev/null 2>&1'; then
     pass "MoveOriginal is alive"

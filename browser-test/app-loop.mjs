@@ -6,8 +6,8 @@
  * input→LED pipeline — the layer the device cannot read back. Run from movy
  * root: node browser-test/app-loop.mjs */
 
-import { trackRef } from '../dist/esm/track/ref.js';
-import { selectTrack } from '../dist/esm/track/focus.js';
+import { trackRef, TRACK_COUNT } from '../dist/esm/track/ref.js';
+import { selectTrack, focusGroupStep } from '../dist/esm/track/focus.js';
 import { installEnv } from './env.mjs';
 import { installMockEngine } from './mock-engine.mjs';
 import { MOCK_SYNTHS } from './mock-synth.mjs';
@@ -1579,6 +1579,37 @@ _log('\napp-loop: session view selects tracks from the step row');
     eq('octave up left the active track alone', appState.activeTrack.index, 9);
 
     selectTrack(0);
+    resetSeqState();
+}
+
+_log('\napp-loop: track state exists for every track, not just the first four');
+{
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.file_param);
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    advance(6);
+
+    eq('per-track chain index covers every track', appState.trackChainIndex.length, TRACK_COUNT);
+    eq('per-track view covers every track', appState.trackView.length, TRACK_COUNT);
+    eq('per-track models cover every track', appState.trackModels.length, TRACK_COUNT);
+
+    /* The device symptom: pressing a track button in any group but the first
+     * set currentView to undefined, because trackView[4..15] did not exist.
+     * The UI then had no view to render and selection looked broken. */
+    selectTrack(0);
+    const viewBefore = appState.currentView;
+    focusGroupStep(1);                        // focus tracks 4-7
+    sendMidi([0xB0, 43, 127]);                // first track button
+    sendMidi([0xB0, 43, 0]);
+    advance(2);
+    eq('track button in group 1 selected track 4', appState.activeTrack.index, 4);
+    eq('currentView is still a real view', typeof appState.currentView, 'number');
+    eq('a movy track has models', Array.isArray(appState.trackModels[4]), true);
+    eq('a movy track has a chain index', typeof appState.trackChainIndex[4], 'number');
+
+    selectTrack(0);
+    appState.currentView = viewBefore;
     resetSeqState();
 }
 

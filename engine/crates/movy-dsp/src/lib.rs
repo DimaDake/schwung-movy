@@ -6,10 +6,13 @@
 mod click;
 mod ffi;
 mod host;
+mod chain_copy;
 mod chain_host;
+mod chain_slots;
 mod load_queue;
 mod mixer;
 
+use chain_slots::ChainSlots;
 use click::Click;
 use core::ffi::{c_char, c_int, c_void};
 use ffi::*;
@@ -17,14 +20,32 @@ use seq_core::command::apply_batch;
 use seq_core::engine::{Engine, OutEvent};
 use std::ffi::{CStr, CString};
 
+/// Split `ch<N>:<rest>` into (slot, rest). Returns None for anything that is
+/// not a chain key, so unrelated keys starting with "ch" fall through.
+fn parse_chain_key(key: &str) -> Option<(usize, &str)> {
+    let body = key.strip_prefix("ch")?;
+    let colon = body.find(':')?;
+    let slot: usize = body[..colon].parse().ok()?;
+    if slot >= chain_slots::MOVY_CHAINS {
+        return None;
+    }
+    Some((slot, &body[colon + 1..]))
+}
+
 const DEFAULT_BPM_X100: u32 = 12000;
 const ENGINE_VERSION: &str = "0.32.0";
+
+/// Tracks backed by schwung's own shadow slots. Their notes go out as MIDI on
+/// the matching channel, exactly as before; everything above this index is a
+/// chain movy hosts itself.
+const HOST_TRACKS: u8 = 4;
 
 struct Instance {
     engine: Engine,
     out: Vec<OutEvent>,
     click: Click,
     blocks: u64,
+    chains: ChainSlots,
 }
 
 impl Instance {
@@ -35,6 +56,7 @@ impl Instance {
             out: Vec::with_capacity(256),
             click: Click::new(rate),
             blocks: 0,
+            chains: ChainSlots::new(),
         }
     }
 
@@ -52,10 +74,38 @@ impl Instance {
                 }
             }
             "file_path" => {}
+            /* Bring chain hosting up: `<schwung chain module dir>|<movy dir>`.
+             * The UI sends it once at boot because only the UI knows the
+             * install paths. Refreshing movy's private copy and dlopening it
+             * both happen here — off the render path, once. */
+            "chain_host" => {
+                let mut parts = val.splitn(2, '|');
+                if let (Some(src_dir), Some(movy_dir)) = (parts.next(), parts.next()) {
+                    let src = format!("{}/dsp.so", src_dir);
+                    let dst = format!("{}/chain-dsp.so", movy_dir);
+                    match chain_copy::ensure_copy(&src, &dst) {
+                        Ok(_) => self.chains.configure(src_dir, &dst),
+                        Err(e) => host::log(&format!("chain host copy failed: {}", e)),
+                    }
+                }
+            }
             // Load persisted state (UI sends the autosave file's contents).
             "state" => {
                 if seq_core::persist::load(&mut self.engine, val) {
                     self.engine.dirty = false;
+                }
+            }
+            /* `ch<N>:<rest>` addresses movy chain N (0-11 = tracks 5-16).
+             * Module loads are diverted into the queue so they cannot bypass
+             * the one-load-per-callback rule; everything else is a plain
+             * forward. */
+            _ if key.starts_with("ch") => {
+                if let Some((slot, rest)) = parse_chain_key(key) {
+                    if let Some(component) = rest.strip_suffix(":module") {
+                        self.chains.request_load(slot, component, val);
+                    } else {
+                        self.chains.set_param(slot, rest, val);
+                    }
                 }
             }
             _ => {}
@@ -85,7 +135,17 @@ impl Instance {
                 self.engine.dirty = false;
                 Some(s)
             }
-            "diag" => Some(format!("blocks={} out_cap={}", self.blocks, self.out.capacity())),
+            "diag" => Some(format!(
+                "blocks={} out_cap={} chains={} pending={}",
+                self.blocks,
+                self.out.capacity(),
+                self.chains.is_available() as u8,
+                self.chains.pending_loads()
+            )),
+            _ if key.starts_with("ch") => {
+                let (slot, rest) = parse_chain_key(key)?;
+                self.chains.get_param(slot, rest)
+            }
             _ => None,
         }
     }
@@ -96,17 +156,44 @@ impl Instance {
     fn drain_out(&mut self) {
         for i in 0..self.out.len() {
             match self.out[i] {
+                /* The one place that knows where a track's notes go. A host
+                 * track is addressed by MIDI channel; a movy track is a chain
+                 * movy owns, so its note never leaves this process. */
                 OutEvent::NoteOn { track, pitch, vel } => {
-                    host::midi_send_internal(0x90 | track, pitch, vel);
+                    if track < HOST_TRACKS {
+                        host::midi_send_internal(0x90 | track, pitch, vel);
+                    } else {
+                        self.chains.on_midi(
+                            (track - HOST_TRACKS) as usize,
+                            &[0x90, pitch, vel],
+                            MOVE_MIDI_SOURCE_INTERNAL,
+                        );
+                    }
                 }
                 OutEvent::NoteOff { track, pitch } => {
-                    host::midi_send_internal(0x80 | track, pitch, 0);
+                    if track < HOST_TRACKS {
+                        host::midi_send_internal(0x80 | track, pitch, 0);
+                    } else {
+                        self.chains.on_midi(
+                            (track - HOST_TRACKS) as usize,
+                            &[0x80, pitch, 0],
+                            MOVE_MIDI_SOURCE_INTERNAL,
+                        );
+                    }
                 }
                 OutEvent::Click { accent } => {
                     self.click.trigger(accent);
                 }
                 OutEvent::Cc { track, lane, val } => {
-                    host::midi_send_internal(0xB0 | track, 102 + lane, val);
+                    if track < HOST_TRACKS {
+                        host::midi_send_internal(0xB0 | track, 102 + lane, val);
+                    } else {
+                        self.chains.on_midi(
+                            (track - HOST_TRACKS) as usize,
+                            &[0xB0, 102 + lane, val],
+                            MOVE_MIDI_SOURCE_INTERNAL,
+                        );
+                    }
                 }
                 OutEvent::Start => {
                     host::midi_send_internal(0xFA, 0, 0);
@@ -138,6 +225,11 @@ impl Instance {
             .advance_block((out_audio.len() / 2) as u32, &mut self.out);
         self.drain_out();
         self.click.render(out_audio);
+        /* At most ONE queued module load per block. This is the blocking call —
+         * it dlopens — and releasing one per callback is what stops a twelve
+         * chain restore stacking into a single block (see load_queue). */
+        self.chains.service_loads();
+        self.chains.render(out_audio);
     }
 }
 
@@ -280,4 +372,48 @@ pub unsafe extern "C" fn move_plugin_init_v2(
     host::set_host(host_api);
     host::log(&format!("movy-dsp v{ENGINE_VERSION}: init"));
     &PLUGIN_API
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_a_chain_key() {
+        assert_eq!(parse_chain_key("ch0:synth:cutoff"), Some((0, "synth:cutoff")));
+        assert_eq!(parse_chain_key("ch11:fx1:wet"), Some((11, "fx1:wet")));
+    }
+
+    #[test]
+    fn rejects_slots_that_cannot_exist() {
+        // Would otherwise index past the slot vector, or silently address the
+        // wrong chain.
+        assert_eq!(parse_chain_key("ch12:synth:cutoff"), None);
+        assert_eq!(parse_chain_key("ch99:synth:cutoff"), None);
+    }
+
+    #[test]
+    fn ignores_keys_that_merely_start_with_ch() {
+        // The dispatch arm is `key.starts_with("ch")`, so anything it does not
+        // recognise must fall through rather than be eaten.
+        assert_eq!(parse_chain_key("chain_host"), None);
+        assert_eq!(parse_chain_key("cheese"), None);
+        assert_eq!(parse_chain_key("ch:synth"), None);
+        assert_eq!(parse_chain_key("chx:synth"), None);
+    }
+
+    #[test]
+    fn keeps_the_whole_remainder_including_colons() {
+        // `fx1:wet` must arrive at the chain intact, not truncated at the first
+        // colon after the slot number.
+        assert_eq!(parse_chain_key("ch3:master_fx:fx1:wet"), Some((3, "master_fx:fx1:wet")));
+    }
+
+    #[test]
+    fn module_loads_are_recognised_by_suffix() {
+        let (slot, rest) = parse_chain_key("ch5:synth:module").unwrap();
+        assert_eq!(slot, 5);
+        assert_eq!(rest.strip_suffix(":module"), Some("synth"),
+            "the component name is what the queue needs");
+    }
 }

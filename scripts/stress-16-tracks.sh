@@ -37,6 +37,16 @@ BLD=$'\033[1m'; RST=$'\033[0m'; GRN=$'\033[0;32m'; RED=$'\033[0;31m'; YEL=$'\033
 
 ssh -o ConnectTimeout=5 "ableton@$HOST" true 2>/dev/null || { echo "DEVICE OFFLINE"; exit 1; }
 ssh "ableton@$HOST" 'touch /data/UserData/schwung/debug_log_on'
+
+# Real sample files for the sampler modules, discovered on the device rather
+# than hardcoded — a path that does not exist loads nothing and measures silence.
+SAMPLES=()
+while IFS= read -r line; do [ -n "$line" ] && SAMPLES+=("$line"); done < <(
+    ssh "ableton@$HOST" 'find /data/UserData -iname "*.wav" 2>/dev/null | head -n 4' 2>/dev/null
+)
+[ ${#SAMPLES[@]} -gt 0 ] && echo "samples: ${#SAMPLES[@]} found (${SAMPLES[0]##*/} ...)" \
+                         || echo "samples: NONE FOUND — mrdrums will be silent"
+
 ep() { node scripts/engine-param.mjs set "$1" "$2" "$HOST" >/dev/null 2>&1; }
 
 frame() {  # prints "work total"
@@ -66,7 +76,18 @@ prepare() {  # prepare <module>
         helm)       for c in $(seq 0 $((CHAINS-1))); do ep "ch$c:synth:polyphony" "16"; done ;;
         freak)      for c in $(seq 0 $((CHAINS-1))); do ep "ch$c:synth:polyphony" "16"; done ;;
         obxd)       for c in $(seq 0 $((CHAINS-1))); do ep "ch$c:synth:voice_count" "16"; done ;;
-        mrdrums)    for c in $(seq 0 $((CHAINS-1))); do ep "ch$c:synth:g_polyphony" "4"; done ;;
+        mrdrums)
+            for c in $(seq 0 $((CHAINS-1))); do
+                ep "ch$c:synth:g_polyphony" "4"
+                # Four pads, four samples — "mrdrums with samples in 4 voices".
+                for i in 1 2 3 4; do
+                    [ -n "${SAMPLES[$((i-1))]:-}" ] && \
+                        ep "ch$c:synth:p0${i}_sample_path" "${SAMPLES[$((i-1))]}"
+                done
+            done ;;
+        # Kit 0 is the init kit and is silent; any loaded kit has real voices.
+        weird-dreams) for c in $(seq 0 $((CHAINS-1))); do ep "ch$c:synth:kit" "3"; done ;;
+        forge)        for c in $(seq 0 $((CHAINS-1))); do ep "ch$c:synth:kit" "5"; done ;;
         *) : ;;
     esac
 }

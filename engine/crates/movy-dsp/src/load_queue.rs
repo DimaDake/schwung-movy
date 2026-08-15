@@ -26,6 +26,14 @@ pub struct LoadRequest {
     pub component: String,
     /// Module id, or empty to unload.
     pub module: String,
+    /// Opaque module-preset blob to apply once the module is loaded.
+    ///
+    /// State CANNOT be written before its module exists — the chain forwards
+    /// `synth:state` to the synth, and there is no synth yet. Since loads are
+    /// released one per callback, a restore that wrote module and state as two
+    /// independent params would always lose the state. Carrying it on the
+    /// request makes the ordering structural instead of a timing hope.
+    pub state: Option<String>,
 }
 
 #[derive(Debug, Default)]
@@ -49,6 +57,12 @@ impl LoadQueue {
             .find(|r| r.slot == req.slot && r.component == req.component)
         {
             existing.module = req.module;
+            /* Only overwrite the blob when the newer request carries one: a
+             * restore writes the module and its state as two calls, and the
+             * second must not erase what the first attached. */
+            if req.state.is_some() {
+                existing.state = req.state;
+            }
             return;
         }
         self.pending.push(req);
@@ -71,6 +85,23 @@ impl LoadQueue {
         self.pending.is_empty()
     }
 
+    /// Attach a state blob to a pending load, if one is queued for this
+    /// slot+component. Returns false when there is nothing pending — the caller
+    /// then applies the state directly, because the module is already loaded.
+    pub fn attach_state(&mut self, slot: usize, component: &str, state: &str) -> bool {
+        match self
+            .pending
+            .iter_mut()
+            .find(|r| r.slot == slot && r.component == component)
+        {
+            Some(r) => {
+                r.state = Some(state.to_string());
+                true
+            }
+            None => false,
+        }
+    }
+
     /// Drop everything queued. Used when the engine is torn down: a pending load
     /// refers to slots that are about to stop existing.
     pub fn clear(&mut self) {
@@ -83,7 +114,12 @@ mod tests {
     use super::*;
 
     fn req(slot: usize, component: &str, module: &str) -> LoadRequest {
-        LoadRequest { slot, component: component.to_string(), module: module.to_string() }
+        LoadRequest {
+            slot,
+            component: component.to_string(),
+            module: module.to_string(),
+            state: None,
+        }
     }
 
     #[test]
@@ -138,6 +174,35 @@ mod tests {
         q.push(req(5, "synth", ""));
         let got = q.take_one().unwrap();
         assert_eq!(got.module, "", "unloading is queued like any other load");
+    }
+
+    #[test]
+    fn state_attaches_to_a_pending_load() {
+        let mut q = LoadQueue::new();
+        q.push(req(2, "synth", "plaits"));
+        assert!(q.attach_state(2, "synth", "BLOB"), "a pending load accepts state");
+        let got = q.take_one().unwrap();
+        assert_eq!(got.module, "plaits");
+        assert_eq!(got.state.as_deref(), Some("BLOB"),
+            "state rides WITH the load so it cannot be applied before the module exists");
+    }
+
+    #[test]
+    fn state_for_an_unqueued_slot_is_refused() {
+        // The caller applies it directly in this case — the module is already
+        // loaded, so there is nothing to wait for.
+        let mut q = LoadQueue::new();
+        assert!(!q.attach_state(2, "synth", "BLOB"));
+    }
+
+    #[test]
+    fn replacing_a_load_keeps_state_it_did_not_supply() {
+        let mut q = LoadQueue::new();
+        q.push(req(1, "synth", "plaits"));
+        q.attach_state(1, "synth", "BLOB");
+        q.push(req(1, "synth", "plaits"));            // no state on this one
+        assert_eq!(q.take_one().unwrap().state.as_deref(), Some("BLOB"),
+            "a second write of the same module must not erase the attached blob");
     }
 
     #[test]

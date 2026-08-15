@@ -17,6 +17,11 @@ import { mlog } from '../log.js';
 import { CHAIN_MODULE_DIR, ENGINE_DSP_PATH, ENGINE_VERSION, MOVY_MODULE_DIR } from './constants.js';
 import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, seqState, sessionFromStr } from './state.js';
 import { rationalToIdx } from './clip-scale.js';
+import { markUiStateDirty } from './ui-dirty.js';
+
+/* -1 until the first poll: the opening value is not a change, and treating it
+ * as one would mark every fresh open dirty and rewrite the set for nothing. */
+let lastChainGen = -1;
 
 const STATUS_POLL_TICKS = 8;  // ~24 Hz at the ~196 Hz device tick rate
 const PROBE_TICKS = 30;       // ping cadence while booting
@@ -232,6 +237,17 @@ function parseStatus(s: string): void {
         else if (key === 'ctr') seqState.clipTranspose = Number(val) || 0;
         else if (key === 'quant') seqState.clipQuant = Number(val) || 0;
         else if (key === 'dquant') seqState.defaultQuant = Number(val) || 0;
+        /* The engine's count of serviced chain-module changes. A movy chain
+         * lives only inside the engine, so the UI cannot know it changed unless
+         * the engine says so — and it must be persisted whoever changed it: a
+         * browser load, an undo, a restore, or a remote param write the UI never
+         * saw. Watching a counter covers all of them; hooking the browser
+         * gesture would have covered only the first. */
+        else if (key === 'chgen') {
+            const g = Number(val) || 0;
+            if (lastChainGen >= 0 && g !== lastChainGen) markUiStateDirty();
+            lastChainGen = g;
+        }
         else if (key === 'rec') seqState.recording = val === '1';
         else if (key === 'cin') seqState.countingIn = val === '1';
         else if (key === 'cap') {
@@ -301,4 +317,7 @@ export function resetSeqEngine(): void {
     pollCountdown = 1;
     statusFailures = 0;
     lastEnginePlay = null;
+    /* A re-dlopened engine starts its chain generation at 0 again; carrying the
+     * old value across would read as a change and dirty the set for nothing. */
+    lastChainGen = -1;
 }

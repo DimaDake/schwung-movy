@@ -38,6 +38,12 @@ pub struct ChainSlots {
     /// observable too. Logged on the silent -> audible TRANSITION only, so the
     /// audio thread never logs per block.
     audible: Vec<bool>,
+    /// Bumped whenever a chain's modules change. The UI watches this in `status`
+    /// and marks its per-set state dirty, so a chain change is persisted no
+    /// matter who made it — a browser load, a restore, an undo, or a remote
+    /// param write that the UI never saw. Tying the save to the UI gesture
+    /// instead meant anything else changed the chains without ever being saved.
+    generation: u32,
 }
 
 impl ChainSlots {
@@ -55,6 +61,7 @@ impl ChainSlots {
             host_failed: false,
             module_dir: String::new(),
             audible: vec![false; MOVY_CHAINS],
+            generation: 0,
         }
     }
 
@@ -89,7 +96,13 @@ impl ChainSlots {
             slot,
             component: component.to_string(),
             module: module.to_string(),
+            state: None,
         });
+    }
+
+    /// Monotonic count of serviced chain-module changes.
+    pub fn generation(&self) -> u32 {
+        self.generation
     }
 
     pub fn pending_loads(&self) -> usize {
@@ -113,17 +126,37 @@ impl ChainSlots {
         }
         if let Some(inst) = self.slots[req.slot].as_mut() {
             inst.set_param(&format!("{}:module", req.component), &req.module);
+            /* Immediately after the module exists, and before anything else can
+             * run — a restore's state would otherwise land on an empty slot. */
+            if let Some(state) = req.state.as_deref() {
+                inst.set_param(&format!("{}:state", req.component), state);
+            }
         }
         /* Load events are rare (never the hot path) and this is the only
          * externally observable evidence that a chain load happened: schwung's
          * remote-UI socket can WRITE an engine param but has no read verb, so a
          * device test has nothing else to assert on. */
+        self.generation = self.generation.wrapping_add(1);
         host::log(&format!(
             "chain {}: {} = {}",
             req.slot,
             req.component,
             if req.module.is_empty() { "(cleared)" } else { req.module.as_str() }
         ));
+    }
+
+    /// Apply a module-preset blob. Rides a pending load when there is one so it
+    /// cannot be written before its module exists; applied directly otherwise.
+    pub fn set_state(&mut self, slot: usize, component: &str, state: &str) {
+        if slot >= MOVY_CHAINS {
+            return;
+        }
+        if self.queue.attach_state(slot, component, state) {
+            return;
+        }
+        if let Some(inst) = self.slots[slot].as_mut() {
+            inst.set_param(&format!("{}:state", component), state);
+        }
     }
 
     /// Forward a param to a chain. Loading keys are NOT accepted here — they go

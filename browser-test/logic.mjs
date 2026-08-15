@@ -11912,6 +11912,92 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
   resetPorts();
 }
 
+{
+  _log('\nmovy chain persistence:');
+  const { captureChains, restoreChains } = await import('../dist/esm/track/chain-persist.js');
+  const { resetPorts } = await import('../dist/esm/track/registry.js');
+
+  const reads = [], writes = [];
+  const oG = globalThis.host_module_get_param, oS = globalThis.host_module_set_param_blocking;
+  const oBG = globalThis.shadow_get_params;
+  globalThis.host_module_set_param_blocking = (k, v) => { writes.push([k, v]); return true; };
+  globalThis.shadow_get_params = undefined;   // force the per-key path for clarity
+
+  /* Only chain 0 (track 4) holds a module; every other movy track is empty. */
+  globalThis.host_module_get_param = (k) => {
+    reads.push(k);
+    if (k === 'ch0:synth_module') return 'plaits';
+    if (k === 'ch0:synth:state') return 'BLOB42';
+    return null;
+  };
+  resetPorts();
+  const snap = captureChains();
+  eq('only loaded tracks are captured', snap.length, 1);
+  eq('captured the right track', snap[0].t, 4);
+  eq('captured the module', snap[0].comp[0].m, 'plaits');
+  eq('captured the state blob', snap[0].comp[0].s, 'BLOB42');
+  /* An empty track must not cost a blob read per component. */
+  eq('no state read for empty components',
+     reads.filter((k) => k.endsWith(':state')).length, 1);
+
+  writes.length = 0;
+  const n = restoreChains(snap);
+  eq('restored one component', n, 1);
+  eq('module written first', writes[0][0], 'ch0:synth:module');
+  eq('state written second', writes[1][0], 'ch0:synth:state');
+  eq('state value round-tripped', writes[1][1], 'BLOB42');
+
+  /* Tolerance: older blobs have no `chains` key, and a corrupt one must not
+   * throw during set load. */
+  eq('missing chains key is a no-op', restoreChains(undefined), 0);
+  eq('non-array is a no-op', restoreChains('nope'), 0);
+  eq('out-of-range track skipped', restoreChains([{ t: 99, comp: [{ c: 'synth', m: 'x' }] }]), 0);
+  eq('host track index skipped', restoreChains([{ t: 0, comp: [{ c: 'synth', m: 'x' }] }]), 0);
+  eq('unknown component skipped', restoreChains([{ t: 4, comp: [{ c: 'bogus', m: 'x' }] }]), 0);
+
+  globalThis.host_module_get_param = oG; globalThis.host_module_set_param_blocking = oS;
+  globalThis.shadow_get_params = oBG;
+  resetPorts();
+}
+
+{
+  _log('\ntrack volume routes by track kind:');
+  const { volumeTrackDown, volumeKnobDelta } = await import('../dist/esm/mixer/track-volume.js');
+  const { resetPorts } = await import('../dist/esm/track/registry.js');
+
+  const writes = [];
+  const oSet = globalThis.shadow_set_param;
+  const oMSet = globalThis.host_module_set_param_blocking;
+  const oGet = globalThis.host_module_get_param;
+  const oSGet = globalThis.shadow_get_param;
+  globalThis.shadow_set_param = (slot, k, v) => { writes.push(['host', slot, k, v]); return true; };
+  globalThis.host_module_set_param_blocking = (k, v) => { writes.push(['movy', k, v]); return true; };
+  globalThis.shadow_get_param = () => '1';
+  globalThis.host_module_get_param = () => '1,0,0';
+  resetPorts();
+
+  /* A host track keeps schwung's slot:volume — Move's mixer reads the same
+   * param, so writing anything else would desync the two. */
+  volumeTrackDown(1);
+  volumeKnobDelta(1);
+  const hostWrite = writes.find((w) => w[0] === 'host');
+  eq('host track writes slot:volume', hostWrite && hostWrite[2], 'slot:volume');
+
+  /* A movy track has no schwung slot and no Move fader, so its level is movy's
+   * own and must land on the summing mixer instead. */
+  writes.length = 0;
+  volumeTrackDown(6);
+  volumeKnobDelta(1);
+  const movyWrite = writes.find((w) => w[0] === 'movy');
+  eq('movy track writes its mixer', movyWrite && movyWrite[1], 'ch2:mix');
+  eq('mixer write is the gain,pan,mute triple',
+     !!(movyWrite && /^[0-9.]+,0,0$/.test(movyWrite[2])), true);
+
+  globalThis.shadow_set_param = oSet; globalThis.host_module_set_param_blocking = oMSet;
+  globalThis.host_module_get_param = oGet; globalThis.shadow_get_param = oSGet;
+  resetPorts();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

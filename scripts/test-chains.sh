@@ -206,7 +206,42 @@ else
     warn "browser gesture did not produce a chain load — unverified at the gesture level"
 fi
 
-# 7. Tick rate — chain rendering runs every block.
+# 7. Persistence: a movy chain must survive a reopen. Host tracks are carried by
+#    Move's own set file; a movy chain exists only inside movy, so if movy does
+#    not write it down it is gone. Reopening is the only way to prove it did.
+echo "${BLD}=== does a movy chain survive a reopen? ===${RST}"
+node scripts/engine-param.mjs set "ch0:synth:module" plaits "$HOST" >/dev/null 2>&1
+sleep 3
+# Autosave is tick-based (~8s at the real tick rate), so wait for the write
+# rather than guessing — a fixed sleep here is the classic fake persistence bug.
+SAVED=""
+for _ in 1 2 3 4 5 6 7 8; do
+    sleep 3
+    if ssh "ableton@$HOST" 'grep -l "\"chains\"" /data/UserData/schwung/modules/tools/movy/sets/*/ui-state.json 2>/dev/null | head -n 1' | qgrep .; then
+        SAVED=yes; break
+    fi
+done
+if [ -n "$SAVED" ]; then
+    pass "movy chain state reached disk"
+else
+    fail "no \"chains\" key in any ui-state.json — the chain was never saved"
+fi
+
+ssh "ableton@$HOST" "> $LOG"
+ssh "ableton@$HOST" 'python3 -c "
+import mmap, json
+open(\"/data/UserData/schwung/open_tool_cmd.json\",\"w\").write(json.dumps({\"file_path\":\"/\",\"tool_id\":\"movy\"}))
+f=open(\"/dev/shm/schwung-control\",\"r+b\"); mm=mmap.mmap(f.fileno(),0); mm[56]=1; mm.close()
+"' >/dev/null 2>&1
+sleep 8
+LOGTXT=$(ssh "ableton@$HOST" "cat $LOG")
+if echo "$LOGTXT" | qgrep "chain 0: synth = plaits"; then
+    pass "the chain was restored on reopen"
+else
+    fail "chain 0 did not reload plaits after reopen"
+fi
+
+# 8. Tick rate — chain rendering runs every block.
 RATE=$(echo "$LOGTXT" | grep -o 'perf_tick_rate=[0-9]*' | tail -1 | cut -d= -f2)
 if [ -n "$RATE" ] && [ "$RATE" -ge 60 ]; then
     pass "tick rate ${RATE}/s >= 60"
@@ -214,7 +249,7 @@ else
     fail "tick rate ${RATE:-unknown}/s below threshold"
 fi
 
-# 8. Nothing crashed. Last, because it is the check that matters most and
+# 9. Nothing crashed. Last, because it is the check that matters most and
 #    reads best at the bottom.
 if ssh "ableton@$HOST" 'pgrep -f MoveOriginal >/dev/null 2>&1'; then
     pass "MoveOriginal is alive"

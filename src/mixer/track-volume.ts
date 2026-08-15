@@ -1,5 +1,6 @@
 import { setChainParam } from '../chain/set-param.js';
 import { portFor } from '../track/registry.js';
+import { trackKind } from '../track/ref.js';
 import { beginGesture } from '../undo/edit.js';
 import { endEdit } from '../undo/group.js';
 /* Hold a track button + turn the master volume knob → that track's schwung
@@ -84,7 +85,23 @@ function injectHold(track: number, pressed: boolean): void {
     move_midi_inject_to_move([0x0B, 0xB0, trackCc(track), pressed ? 127 : 0]);
 }
 
+/* Where a track's level lives.
+ *
+ * A host track's is schwung's `slot:volume` — a chain-host param Move's own
+ * mixer also sees. A movy track has no schwung slot and no Move fader, so movy
+ * keeps its level itself and applies it in the summing mixer (design §5.4).
+ * Same gesture, same dB ladder, different destination. */
+function volumeKey(track: number): string {
+    return trackKind(track) === 'movy' ? 'mix' : 'slot:volume';
+}
+
 function readVolume(track: number): number {
+    if (trackKind(track) === 'movy') {
+        /* "gain,pan,muted" — only the gain is on the fader. */
+        const raw = portFor(track).getParam('mix');
+        const g = raw === null ? NaN : parseFloat(raw.split(',')[0]);
+        return Number.isFinite(g) ? Math.min(VOL_MAX, Math.max(VOL_MIN, g)) : 1;
+    }
     const raw = portFor(track).getParam( 'slot:volume');
     const v   = raw === null ? NaN : parseFloat(raw);
     return Number.isFinite(v) ? Math.min(VOL_MAX, Math.max(VOL_MIN, v)) : 1;
@@ -147,7 +164,14 @@ export function volumeKnobDelta(d2: number): boolean {
     /* Four decimals, not two: the bottom of a dB fader lives below 0.01, and
      * rounding it to 2 dp would collapse the quietest ~20 dB back into silence. */
     beginGesture('vol:' + heldTrack, 'VOLUME', 'T' + (heldTrack + 1), false);
-    setChainParam(portFor(heldTrack), 'slot:volume', value.toFixed(4), volumeBefore);
+    /* Pan and mute are not part of this gesture: mute is the engine's own
+     * per-track mute (so tails ring out, matching a host track), and pan has no
+     * control surface yet. Both are written at their defaults rather than left
+     * unset, because the engine parses the triple as a whole. */
+    const write = trackKind(heldTrack) === 'movy'
+        ? value.toFixed(4) + ',0,0'
+        : value.toFixed(4);
+    setChainParam(portFor(heldTrack), volumeKey(heldTrack), write, volumeBefore);
     mlog('trackvol t=' + heldTrack + ' d=' + delta + ' v=' + value.toFixed(4));
     return true;
 }

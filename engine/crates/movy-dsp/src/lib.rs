@@ -45,6 +45,19 @@ fn parse_midi_triplet(val: &str) -> Option<[u8; 3]> {
     Some([s, d1, d2])
 }
 
+/// `"0.8.-0.5.0"` -> gain 0.8, pan -0.5, unmuted. Returns None on anything
+/// malformed so a garbled param cannot silence or blast a track.
+fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
+    let mut it = val.split(',');
+    let gain: f32 = it.next()?.trim().parse().ok()?;
+    let pan: f32 = it.next()?.trim().parse().ok()?;
+    let muted = it.next()?.trim() != "0";
+    if it.next().is_some() || !gain.is_finite() || !pan.is_finite() {
+        return None;
+    }
+    Some(crate::mixer::TrackMix { gain, pan, muted })
+}
+
 const DEFAULT_BPM_X100: u32 = 12000;
 const ENGINE_VERSION: &str = "0.32.0";
 
@@ -116,6 +129,16 @@ impl Instance {
                 if let Some((slot, rest)) = parse_chain_key(key) {
                     if let Some(component) = rest.strip_suffix(":module") {
                         self.chains.request_load(slot, component, val);
+                    } else if let Some(component) = rest.strip_suffix(":state") {
+                        /* Ordered against the module load rather than racing it
+                         * — see ChainSlots::set_state. */
+                        self.chains.set_state(slot, component, val);
+                    } else if rest == "mix" {
+                        // "gain.pan.muted" — movy owns these because Move's
+                        // mixer sees all twelve chains as one channel.
+                        if let Some(mix) = parse_mix(val) {
+                            self.chains.set_mix(slot, mix);
+                        }
                     } else if rest == "midi" {
                         // Live pad notes: "status.d1.d2". A movy chain cannot be
                         // reached by shadow_send_midi_to_dsp, which addresses
@@ -143,6 +166,10 @@ impl Instance {
                 if let Some(id) = self.engine.undo.take_noop() {
                     s.push_str(&format!(" unop={id}"));
                 }
+                /* Rides the existing poll rather than costing its own IPC: the
+                 * UI needs to notice a chain change to persist it, and status
+                 * is the one thing it already reads every few ticks. */
+                s.push_str(&format!(" chgen={}", self.chains.generation()));
                 Some(s)
             }
             "capinfo" => Some(self.engine.capture_info()),
@@ -155,6 +182,7 @@ impl Instance {
                 self.engine.dirty = false;
                 Some(s)
             }
+            "chgen" => Some(self.chains.generation().to_string()),
             "diag" => Some(format!(
                 "blocks={} out_cap={} chains={} pending={}",
                 self.blocks,
@@ -397,6 +425,23 @@ pub unsafe extern "C" fn move_plugin_init_v2(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parses_a_mix_setting() {
+        let m = parse_mix("0.8,-0.5,0").unwrap();
+        assert!((m.gain - 0.8).abs() < 1e-6);
+        assert!((m.pan + 0.5).abs() < 1e-6);
+        assert!(!m.muted);
+        assert!(parse_mix("1,0,1").unwrap().muted);
+    }
+
+    #[test]
+    fn rejects_a_malformed_mix() {
+        // A garbled param must not silence a track or send it to full scale.
+        for bad in ["", "1", "1,0", "1,0,0,0", "x,0,0", "nan,0,0", "inf,0,0"] {
+            assert!(parse_mix(bad).is_none(), "{:?} must be rejected", bad);
+        }
+    }
 
     #[test]
     fn parses_a_midi_triplet() {

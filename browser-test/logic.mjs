@@ -5681,16 +5681,20 @@ _log('\nautomation label sync:');
     eq('scale restored', keyboardState.scale, 2);
     eq('mode restored', keyboardState.mode, 1);
     eq('layout restored', keyboardState.layout, 1);
-    eq('per-track octaves restored', JSON.stringify(keyboardState.octave), '[3,5,4,6]');
+    /* Only the four tracks the blob carried; the rest keep the default. */
+    eq('per-track octaves restored', JSON.stringify(keyboardState.octave.slice(0, 4)), '[3,5,4,6]');
 
     // A legacy blob has one absolute `root` and no oct/mode/layout: derive the
     // tonic and give every track that octave. Existing sets must keep working.
     keyboardState.rootPc = 0; keyboardState.scale = 0;
     keyboardState.mode = 1; keyboardState.layout = 1;
-    keyboardState.octave = [1, 1, 1, 1];
+    keyboardState.octave = new Array(16).fill(1);
     applyUiState(JSON.stringify({ root: 50, scale: 3 }));
     eq('legacy root gives pitch class', keyboardState.rootPc, 2);
-    eq('legacy root fills every octave', JSON.stringify(keyboardState.octave), '[4,4,4,4]');
+    /* "every" means every track, not just the first four — a legacy blob has one
+     * absolute note that has to reach all 16. */
+    eq('legacy root fills every octave',
+       keyboardState.octave.every((o) => o === 4) && keyboardState.octave.length === 16, true);
     eq('legacy scale restored', keyboardState.scale, 3);
     eq('legacy blob resets mode', keyboardState.mode, 0);
     eq('legacy blob resets layout', keyboardState.layout, 0);
@@ -11699,6 +11703,35 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
   eq('activeTrack has a kind', appState.activeTrack.kind, 'host');
   /* The old field must be GONE, not aliased. */
   eq('activeSlot is removed', 'activeSlot' in appState, false);
+}
+
+{
+  _log('\nseq state — 16 tracks:');
+  const { seqState, resetSeqState, muteFromStr, sessionFromStr, activeFromStr, activeHasNote } =
+    await import('../dist/esm/seq/state.js');
+  const { TRACK_COUNT } = await import('../dist/esm/track/ref.js');
+  resetSeqState();
+
+  eq('TRACK_COUNT is 16', TRACK_COUNT, 16);
+  eq('mute mirror sized per track', seqState.muted.length, 16);
+  eq('session mirror sized per track', seqState.session.length, 16);
+  eq('lastPitch sized per track', seqState.lastPitch.length, 16);
+
+  muteFromStr('0000000000000001');
+  eq('mute parses the last track', seqState.muted[15], true);
+  eq('mute leaves track 0 alone', seqState.muted[0], false);
+
+  /* 16 comma groups; only the last one carries a clip, so a parser that stops
+   * at 4 silently reports an empty grid for three quarters of the song. */
+  sessionFromStr(new Array(15).fill('0.-.-.0').join(',') + ',ff.2.-.3');
+  eq('session parses the last track exist bitmap', seqState.session[15].exist, 0xff);
+  eq('session parses the last track playing slot', seqState.session[15].playing, 2);
+  eq('session parses the last track selected slot', seqState.session[15].selected, 3);
+
+  activeFromStr(new Array(15).fill('').join(',') + ',60.64');
+  eq('active notes parse on the last track', activeHasNote(15, 60), true);
+  eq('active notes bounded by track', activeHasNote(14, 60), false);
+  resetSeqState();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

@@ -4,6 +4,8 @@
  * updated optimistically when the UI issues commands so LEDs react within
  * one tick instead of one poll interval. */
 
+import { TRACK_COUNT } from '../track/ref.js';
+
 export interface SeqUiState {
     /* engine link */
     engineOk: boolean;       // a status poll has succeeded this session
@@ -69,7 +71,7 @@ export interface SeqUiState {
 
     /* session mode */
     sessionMode: boolean;        // pads show the clip grid
-    session: SessionTrack[];     // 4 tracks of clip-slot state (from status)
+    session: SessionTrack[];     // one entry per track, clip-slot state (from status)
 
     /* parameter automation (mirrored from status, watched track / active clip) */
     autoAssigned: number;            // bitmask of assigned lanes (from `alanes`)
@@ -86,7 +88,8 @@ export interface SessionTrack {
 }
 
 function emptySession(): SessionTrack[] {
-    return [0, 1, 2, 3].map(() => ({ exist: 0, playing: -1, queued: -1, selected: 0 }));
+    return Array.from({ length: TRACK_COUNT },
+        () => ({ exist: 0, playing: -1, queued: -1, selected: 0 }));
 }
 
 function defaults(): SeqUiState {
@@ -98,7 +101,7 @@ function defaults(): SeqUiState {
         extSync: false,
         linkEnabled: false,
         swingPct: 50,
-        activeNotes: new Uint8Array(512),
+        activeNotes: new Uint8Array(TRACK_COUNT * 128),
         watchTrack: 0,
         curStep: 0,
         lenSteps: 0,
@@ -115,8 +118,8 @@ function defaults(): SeqUiState {
         capGen: -1,
         metro: false,
         dirty: false,
-        lastPitch: [60, 60, 60, 60],
-        lastVel: [100, 100, 100, 100],
+        lastPitch: new Array(TRACK_COUNT).fill(60) as number[],
+        lastVel: new Array(TRACK_COUNT).fill(100) as number[],
         barOffset: 0,
         watchLane: -1,
         fullVelocity: false,
@@ -132,7 +135,7 @@ function defaults(): SeqUiState {
         holdCondB: 1,
         holdInvert: false,
         holdMaxGate: 0,
-        muted: [false, false, false, false],
+        muted: new Array(TRACK_COUNT).fill(false) as boolean[],
         sessionMode: false,
         session: emptySession(),
         autoAssigned: 0,
@@ -144,14 +147,14 @@ function defaults(): SeqUiState {
 
 /* Parse the engine's `mute=` value (one '0'/'1' per track). */
 export function muteFromStr(s: string): void {
-    for (let t = 0; t < 4; t++) seqState.muted[t] = s[t] === '1';
+    for (let t = 0; t < TRACK_COUNT; t++) seqState.muted[t] = s[t] === '1';
 }
 
 /* Parse the engine's `sess=` value: tracks joined by ',', each `EE.P.Q.S`
  * (exist hex, playing/queued/selected slot or '-'). */
 export function sessionFromStr(s: string): void {
     const groups = s.split(',');
-    for (let t = 0; t < 4; t++) {
+    for (let t = 0; t < TRACK_COUNT; t++) {
         const g = (groups[t] ?? '').split('.');
         const slot = (v: string) => (v === '-' || v === undefined ? -1 : Number(v));
         seqState.session[t] = {
@@ -266,7 +269,7 @@ export function occFromHex(hex: string): void {
 export function activeFromStr(s: string): void {
     seqState.activeNotes.fill(0);
     const tracks = s.split(',');
-    for (let t = 0; t < 4; t++) {
+    for (let t = 0; t < TRACK_COUNT; t++) {
         const g = tracks[t];
         if (!g) continue;
         for (const ps of g.split('.')) {
@@ -277,6 +280,6 @@ export function activeFromStr(s: string): void {
 }
 
 export function activeHasNote(track: number, pitch: number): boolean {
-    if (track < 0 || track > 3 || pitch < 0 || pitch > 127) return false;
+    if (track < 0 || track >= TRACK_COUNT || pitch < 0 || pitch > 127) return false;
     return seqState.activeNotes[track * 128 + pitch] === 1;
 }

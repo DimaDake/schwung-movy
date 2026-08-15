@@ -5,6 +5,7 @@
  * are pad addresses, not notes — clip transpose must not shift them, or the
  * step plays a different voice (or none, when it lands off the pad range). */
 
+import { TRACK_COUNT } from '../track/ref.js';
 import { appState, trackIsDrum } from '../app/state.js';
 import { moduleReadKey } from '../chain/config.js';
 import { loadModuleConfig } from '../modules/loader.js';
@@ -16,7 +17,7 @@ const NUM_TRACKS = 4;
 /* Last value sent per track; -1 = unknown, so the first answer always sends. */
 const sent = [-1, -1, -1, -1];
 /* Tracks already answered by the direct probe below (see `probeTrack`). */
-const probed = [false, false, false, false];
+const probed = new Array(TRACK_COUNT).fill(false) as boolean[];
 /* Ticks to wait before re-probing a track that gave no answer. An empty slot
  * never answers, so without this the probe repeats every tick for the life of
  * the tool — and each probe is a blocking round-trip the shim only services

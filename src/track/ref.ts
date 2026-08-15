@@ -7,10 +7,11 @@
 /** Tracks backed by a schwung shadow slot. Their index IS their slot number. */
 export const HOST_TRACKS = 4;
 
-/* Stage 1 keeps this at 4. Stage 2 raises it to 16 together with the engine's
- * NUM_TRACKS — moving one without the other makes the UI and the engine
- * disagree about how many tracks exist. */
-export const TRACK_COUNT = 4;
+/* Must stay in lockstep with the engine's NUM_TRACKS (seq-core/src/track.rs):
+ * a UI that expects more tracks than the engine reports parses garbage out of
+ * the status string, and one that expects fewer silently hides three quarters
+ * of the song. */
+export const TRACK_COUNT = 16;
 
 /** Tracks per group: the 4 track buttons, and one row of the session grid. */
 export const GROUP_SIZE = 4;

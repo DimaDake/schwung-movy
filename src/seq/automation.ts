@@ -7,6 +7,7 @@
  * the ~24 Hz status poll, so we can't reseed from `heldLocks` each turn. We keep
  * a per-(track,lane) live 0..127 accumulator, reseeded only when the edit
  * context changes (held step vs. base), and emit the engine command from it. */
+import { TRACK_COUNT } from '../track/ref.js';
 import type { KnobParamInfo } from '../model/store.js';
 import { endEdit } from '../undo/group.js';
 import { beginGesture, undoableEdit } from '../undo/edit.js';
@@ -28,7 +29,7 @@ export interface LaneEntry {
 
 /* registry[track][lane] = entry | null */
 const registry: (LaneEntry | null)[][] =
-    [0, 1, 2, 3].map(() => new Array<LaneEntry | null>(8).fill(null));
+    Array.from({ length: TRACK_COUNT }, () => new Array<LaneEntry | null>(8).fill(null));
 
 /* Live accumulators, keyed "track:lane" → current 0..127 value, plus the edit
  * context they were seeded for ("h<step>" or "b"). */

@@ -3,6 +3,7 @@
  * pad is no longer the tonic, so a single absolute "root note" can no longer
  * mean both the musical root and the layout origin. */
 
+import { TRACK_COUNT } from '../track/ref.js';
 import { buildPadMap } from './layouts.js';
 
 export const OCT_MIN = 0;
@@ -13,13 +14,13 @@ export const keyboardState = {
     scale:  0,                /* index into SCALES                (global) */
     mode:   0,                /* MODE_CHROMATIC | MODE_IN_KEY     (global) */
     layout: 0,                /* index into layoutNames(mode)     (global) */
-    octave: [4, 4, 4, 4],     /* per-track; 4 → C3, the previous default base 48 */
+    octave: new Array(TRACK_COUNT).fill(4) as number[],  /* per-track; 4 → C3 */
     /* most recent pad-played MIDI note — the sequencer's step-entry value */
     lastPlayedNote: 60,
 };
 
 export function baseNoteFor(track: number): number {
-    return keyboardState.octave[track & 3] * 12 + keyboardState.rootPc;
+    return keyboardState.octave[track & (TRACK_COUNT - 1)] * 12 + keyboardState.rootPc;
 }
 
 /* One-entry cache keyed by everything buildPadMap reads. Only the active

@@ -135,6 +135,8 @@ function trackHasActiveNote(track: number): boolean {
     return false;
 }
 
+/* Four buttons, always — this loop counts HARDWARE, not tracks, which is why it
+ * stays at 4 while everything around it moved to TRACK_COUNT. */
 function paintTrackButtons(): void {
     for (let t = 0; t < 4; t++) {
         const cc = CC_TRACK_END - t; // CC 43 = track 0

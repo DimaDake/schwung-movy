@@ -32,6 +32,19 @@ fn parse_chain_key(key: &str) -> Option<(usize, &str)> {
     Some((slot, &body[colon + 1..]))
 }
 
+/// `"144.60.100"` -> `[0x90, 60, 100]`. Returns None on anything malformed, so
+/// a garbled param cannot inject a stuck note.
+fn parse_midi_triplet(val: &str) -> Option<[u8; 3]> {
+    let mut it = val.split('.');
+    let s: u8 = it.next()?.trim().parse().ok()?;
+    let d1: u8 = it.next()?.trim().parse().ok()?;
+    let d2: u8 = it.next()?.trim().parse().ok()?;
+    if it.next().is_some() {
+        return None;
+    }
+    Some([s, d1, d2])
+}
+
 const DEFAULT_BPM_X100: u32 = 12000;
 const ENGINE_VERSION: &str = "0.32.0";
 
@@ -103,6 +116,13 @@ impl Instance {
                 if let Some((slot, rest)) = parse_chain_key(key) {
                     if let Some(component) = rest.strip_suffix(":module") {
                         self.chains.request_load(slot, component, val);
+                    } else if rest == "midi" {
+                        // Live pad notes: "status.d1.d2". A movy chain cannot be
+                        // reached by shadow_send_midi_to_dsp, which addresses
+                        // schwung's slots.
+                        if let Some(msg) = parse_midi_triplet(val) {
+                            self.chains.on_midi(slot, &msg, MOVE_MIDI_SOURCE_INTERNAL);
+                        }
                     } else {
                         self.chains.set_param(slot, rest, val);
                     }
@@ -377,6 +397,20 @@ pub unsafe extern "C" fn move_plugin_init_v2(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parses_a_midi_triplet() {
+        assert_eq!(parse_midi_triplet("144.60.100"), Some([0x90, 60, 100]));
+        assert_eq!(parse_midi_triplet("128.60.0"), Some([0x80, 60, 0]));
+    }
+
+    #[test]
+    fn rejects_a_malformed_triplet() {
+        // A garbled param must not inject a note that never gets released.
+        for bad in ["", "144", "144.60", "144.60.100.7", "144.x.100", "999.60.100"] {
+            assert_eq!(parse_midi_triplet(bad), None, "{:?} must be rejected", bad);
+        }
+    }
 
     #[test]
     fn parses_a_chain_key() {

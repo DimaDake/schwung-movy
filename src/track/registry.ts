@@ -4,7 +4,7 @@
  * one per call would allocate in the hot path. */
 
 import { HostSlotPort } from './host-port.js';
-import { UnbackedPort } from './unbacked-port.js';
+import { MovyChainPort } from './movy-chain-port.js';
 import type { TrackPort } from './port.js';
 import { trackKind } from './ref.js';
 
@@ -13,10 +13,11 @@ const ports: (TrackPort | undefined)[] = [];
 export function portFor(index: number): TrackPort {
     let p = ports[index];
     if (!p) {
-        /* Movy tracks answer "nothing loaded" until Stage 3 gives them real
-         * chains. Stage 3 swaps UnbackedPort for MovyChainPort here and nothing
-         * else in the UI has to know it happened. */
-        p = trackKind(index) === 'host' ? new HostSlotPort(index) : new UnbackedPort(index);
+        /* The one place that knows the two kinds apart. A host track is a
+         * schwung shadow slot; a movy track is a chain inside movy's own engine,
+         * addressed through the `ch<N>:` param namespace. Nothing else in the UI
+         * has to know which it is holding. */
+        p = trackKind(index) === 'host' ? new HostSlotPort(index) : new MovyChainPort(index);
         ports[index] = p;
     }
     return p;

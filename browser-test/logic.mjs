@@ -11810,6 +11810,84 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
   selectTrack(0);
 }
 
+{
+  _log('\nbulk param codec:');
+  const { encodeBulk, decodeBulk } = await import('../dist/esm/track/bulk.js');
+
+  /* Wire format: <count>\n then <len>\n<bytes> per item (schwung_shim.c:3440). */
+  /* No delimiter after the bytes — the length IS the framing. */
+  eq('encodes count then length-prefixed items',
+     encodeBulk(['ab', 'cde']), '2\n2\nab3\ncde');
+  eq('encodes an empty list', encodeBulk([]), '0\n');
+
+  eq('round-trips', decodeBulk(encodeBulk(['a', 'bb', 'ccc'])).join(','), 'a,bb,ccc');
+  eq('decodes empty values', decodeBulk('2\n0\n1\nx').join('|'), '|x');
+  /* Number('') is 0, so a missing length must be rejected explicitly or every
+   * item after it is read from the wrong offset. */
+  eq('empty length field rejected', decodeBulk('1\n\nx'), null);
+
+  /* Values containing a newline must survive: lengths are the framing, not
+   * delimiters. A split-on-newline decoder would corrupt everything after. */
+  eq('a value containing a newline survives',
+     decodeBulk(encodeBulk(['{"a":1,\n"b":2}']))[0], '{"a":1,\n"b":2}');
+
+  /* A malformed response must be REJECTED, not read as empty values — empties
+   * would paint a whole page of zeroed knobs over the real ones. */
+  eq('null payload rejected', decodeBulk(null), null);
+  eq('missing header rejected', decodeBulk('garbage'), null);
+  eq('truncated item rejected', decodeBulk('2\n1\na'), null);
+  eq('negative length rejected', decodeBulk('1\n-1\nx'), null);
+}
+
+{
+  _log('\nmovy chain port:');
+  const { resetPorts } = await import('../dist/esm/track/registry.js');
+
+  const gets = [], sets = [], bulk = [];
+  const oG = globalThis.host_module_get_param, oS = globalThis.host_module_set_param_blocking;
+  const oBG = globalThis.shadow_get_params, oBS = globalThis.shadow_set_params;
+  globalThis.host_module_get_param = (k) => { gets.push(k); return 'v'; };
+  globalThis.host_module_set_param_blocking = (k, v) => { sets.push([k, v]); return true; };
+
+  resetPorts();
+  const p = portFor(7);              // track 7 = movy chain 3
+  eq('movy track gets a chain port', p.track.kind, 'movy');
+
+  /* The namespace mapping is the routing: get it wrong and edits land on
+   * another track's synth. */
+  p.getParam('synth:cutoff');
+  eq('reads are namespaced by chain index', gets[0], 'ch3:synth:cutoff');
+  p.setParam('synth:cutoff', '0.5');
+  eq('writes are namespaced by chain index', sets[0][0], 'ch3:synth:cutoff');
+  eq('writes pass the value', sets[0][1], '0.5');
+
+  /* getMany must be ONE round trip — that is the entire reason the bulk
+   * channel is used for movy tracks. */
+  globalThis.shadow_get_params = (slot, marker, payload) => {
+    bulk.push([slot, marker, payload]);
+    return '2\n2\n.72\n.3';   // <count>\n then <len>\n<bytes> each, no separator
+  };
+  gets.length = 0;
+  const many = p.getMany(['synth:a', 'synth:b']);
+  eq('getMany issued exactly one bulk call', bulk.length, 1);
+  eq('getMany issued no individual gets', gets.length, 0);
+  eq('getMany routes to the overtake DSP', bulk[0][1], 'overtake_dsp:');
+  eq('getMany namespaces every key', bulk[0][2], '2\n11\nch3:synth:a11\nch3:synth:b');
+  eq('getMany returns values in order', many.join(','), '.7,.3');
+
+  /* A short/garbled response must NOT read as empty values — falling back to
+   * individual reads keeps the knobs showing real numbers. */
+  globalThis.shadow_get_params = () => '1\n2\n.7';
+  gets.length = 0;
+  const fallback = p.getMany(['synth:a', 'synth:b']);
+  eq('a short bulk response falls back to individual reads', gets.length, 2);
+  eq('fallback still returns a value per key', fallback.length, 2);
+
+  globalThis.host_module_get_param = oG; globalThis.host_module_set_param_blocking = oS;
+  globalThis.shadow_get_params = oBG; globalThis.shadow_set_params = oBS;
+  resetPorts();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

@@ -127,14 +127,27 @@ impl ChainHost {
             host::log(&format!("chain create_instance failed for {}", module_dir));
             return None;
         }
-        Some(ChainInstance { inst, api: self.api })
+        Some(ChainInstance { inst, api: self.api, scratch: vec![0u8; PARAM_BUF] })
     }
 }
+
+/// Largest value the param channel can carry (SHADOW_PARAM_VALUE_LEN), so a
+/// value that does not fit here could not cross to the UI anyway.
+///
+/// It has to be this big: a module's `chain_params` / `ui_hierarchy` JSON is the
+/// UI's entire description of itself, and dexed's is ~13.5 KB. Reading it into a
+/// 4 KB buffer truncated it mid-JSON — the module loaded (its id is short) but
+/// every page came out wrong, which is exactly how it looked on device.
+const PARAM_BUF: usize = 64 * 1024;
 
 /// One movy-owned chain: a track's MIDI FX, synth and audio FX.
 pub struct ChainInstance {
     inst: *mut c_void,
     api: &'static plugin_api_v2_t,
+    /// Reusable read buffer. Allocated once at load time — get_param is served
+    /// from the shim's param handler on the AUDIO thread, where a per-call
+    /// allocation of this size would be a real-time hazard.
+    scratch: Vec<u8>,
 }
 
 impl ChainInstance {
@@ -148,16 +161,22 @@ impl ChainInstance {
         }
     }
 
-    pub fn get_param(&self, key: &str) -> Option<String> {
+    pub fn get_param(&mut self, key: &str) -> Option<String> {
         let k = CString::new(key).ok()?;
         let f = self.api.get_param?;
-        let mut buf = vec![0u8; 4096];
-        let n = unsafe { f(self.inst, k.as_ptr(), buf.as_mut_ptr() as *mut c_char, buf.len() as c_int) };
+        let cap = self.scratch.len();
+        let n = unsafe { f(self.inst, k.as_ptr(), self.scratch.as_mut_ptr() as *mut c_char, cap as c_int) };
         if n <= 0 {
             return None;
         }
-        let n = (n as usize).min(buf.len() - 1);
-        Some(String::from_utf8_lossy(&buf[..n]).into_owned())
+        let n = n as usize;
+        if n >= cap {
+            // Truncated: better to refuse than to hand the UI half a JSON
+            // document it will parse into a wrong page layout.
+            host::log(&format!("chain get_param {} truncated at {} bytes", key, cap));
+            return None;
+        }
+        Some(String::from_utf8_lossy(&self.scratch[..n]).into_owned())
     }
 
     pub fn on_midi(&mut self, msg: &[u8], source: c_int) {

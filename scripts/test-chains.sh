@@ -238,6 +238,27 @@ else
     warn "browser gesture did not reach the browser from this view — see the note above"
 fi
 
+# 6b. A module with LARGE metadata must survive the param channel. dexed's
+#     chain_params JSON is ~13.5 KB; movy read it into a 4 KB buffer and handed
+#     the UI truncated JSON, so the module loaded but every page rendered wrong.
+#     The engine now refuses a truncated read and says so.
+echo "${BLD}=== large-metadata module (dexed) ===${RST}"
+ssh "ableton@$HOST" "> $LOG"
+node scripts/engine-param.mjs set "ch1:synth:module" dexed "$HOST" >/dev/null 2>&1
+sleep 4
+LOGTXT=$(ssh "ableton@$HOST" "cat $LOG")
+if echo "$LOGTXT" | qgrep "chain 1: synth = dexed"; then
+    pass "dexed loaded into a movy chain"
+else
+    fail "dexed did not load"
+fi
+if echo "$LOGTXT" | qgrep "truncated at"; then
+    fail "a chain param was truncated: $(echo "$LOGTXT" | grep -o 'truncated at.*' | head -1)"
+else
+    pass "no chain param was truncated reading dexed's metadata"
+fi
+node scripts/engine-param.mjs set "ch1:synth:module" "" "$HOST" >/dev/null 2>&1
+
 # 7. Persistence: a movy chain must survive a reopen. Host tracks are carried by
 #    Move's own set file; a movy chain exists only inside movy, so if movy does
 #    not write it down it is gone. Reopening is the only way to prove it did.

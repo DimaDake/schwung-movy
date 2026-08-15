@@ -175,8 +175,8 @@ impl ChainSlots {
         }
     }
 
-    pub fn get_param(&self, slot: usize, key: &str) -> Option<String> {
-        self.slots.get(slot)?.as_ref()?.get_param(key)
+    pub fn get_param(&mut self, slot: usize, key: &str) -> Option<String> {
+        self.slots.get_mut(slot)?.as_mut()?.get_param(key)
     }
 
     pub fn set_mix(&mut self, slot: usize, mix: TrackMix) {

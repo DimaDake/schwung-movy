@@ -38,6 +38,10 @@ pub struct ChainSlots {
     /// observable too. Logged on the silent -> audible TRANSITION only, so the
     /// audio thread never logs per block.
     audible: Vec<bool>,
+    /// Rolling count of chains that rendered in the last block, and the number
+    /// currently loaded. The CPU ceiling has to come from measurement on real
+    /// modules (design §5.3), and this is what a device test reads.
+    active_last_block: usize,
     /// Bumped whenever a chain's modules change. The UI watches this in `status`
     /// and marks its per-set state dirty, so a chain change is persisted no
     /// matter who made it — a browser load, a restore, an undo, or a remote
@@ -62,6 +66,7 @@ impl ChainSlots {
             module_dir: String::new(),
             audible: vec![false; MOVY_CHAINS],
             generation: 0,
+            active_last_block: 0,
         }
     }
 
@@ -200,8 +205,10 @@ impl ChainSlots {
             return;
         }
         let frames = out.len().min(self.scratch.len());
+        let mut active = 0usize;
         for i in 0..MOVY_CHAINS {
             let Some(inst) = self.slots[i].as_mut() else { continue };
+            active += 1;
             let scratch = &mut self.scratch[..frames];
             inst.render_block(scratch);
 
@@ -215,6 +222,14 @@ impl ChainSlots {
             }
             mix_into(&mut out[..frames], scratch, &self.mixes[i]);
         }
+        self.active_last_block = active;
+    }
+
+    /// How many chains rendered in the last block. Zero for a set with no movy
+    /// instruments, which is the case the "empty chains cost nothing" rule is
+    /// about.
+    pub fn active_count(&self) -> usize {
+        self.active_last_block
     }
 
     /// Drop every chain. The engine is going away; a pending load refers to

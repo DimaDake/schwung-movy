@@ -20,7 +20,23 @@ before spending time on feel. Recorded here so nothing is lost to memory.
 
 ## Open
 
-- **The browser-load gesture on a movy track is unverified on device.**
+- **The browser-load gesture on a movy track is verified BY HAND, not
+  automatically.** Manual probe on device (2026-08-15): selecting track 5 from
+  the Session step row, then jog-clicking, gives
+  `browse: open t=4 synth n=39`, and a screen grab shows `T5 > PLAITS  OSC` —
+  the knob page rendering a movy chain's params through `MovyChainPort`. So the
+  feature works.
+
+  What is not automated is reaching the browser from `test-chains.sh`: how many
+  clicks it takes depends on which view movy is in (the chain view drills to the
+  knob page first and only browses directly when the slot is empty), and the
+  earlier blocks in that suite move the view around. Pressing Back to normalise
+  risks opening the Leave-Movy modal. The suite reports this as a warning rather
+  than a pass. A `view=` field in the status line would make it trivial.
+
+  Original note follows.
+
+- **The browser-load gesture on a movy track was unverified on device.**
   `browser-test/app-loop.mjs` ("the module browser loads onto a movy-hosted
   track") drives the real `openBrowser` / `loadSelectedModule` and asserts the
   write lands as `ch1:synth:module`, so the LOAD PATH is covered. What is not

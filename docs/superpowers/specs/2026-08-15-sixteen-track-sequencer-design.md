@@ -19,7 +19,7 @@ Source refs: `schwung` @ `120ba662` (origin/main), `movy` @ `b02e403`.
 | Topology | 4 host tracks (schwung slots 0-3) + 12 movy-hosted chains |
 | Audio | All movy tracks sum into movy's single overtake stereo bus; movy owns their gain/pan/mute |
 | Chain shape | Full parity — `midi_fx1 / synth / fx1 / fx2 / lfo`, the existing `CHAIN_SLOTS` |
-| CPU ceiling | Measure on device first, derive the cap from data |
+| CPU ceiling | Measured: ~26 µs/chain, no cap needed — see §5.3 |
 | Persistence | Full `state` blobs per movy track, per set |
 | On close | Movy tracks stop, no warning (the sequencer already stops on close) |
 | Session grid | Focused group only — 4 rows × 8 clip slots, unchanged semantics |
@@ -195,7 +195,29 @@ change makes the parse superlinear in track count, it fails.
 - **Worker thread** for `create_instance`, module loads and state restore.
   `render_block` runs on the SPI thread (SCHED_FIFO 90, core 3, ~900 µs budget):
   no filesystem access, ever.
-- **Per-block CPU meter**, so the ceiling comes from measurement.
+- **CPU: measured, and no cap is needed.** `scripts/measure-chain-cpu.sh` loads
+  chains one at a time and reads the shim's own `render=avg/max` counter (the
+  `Post(us)` half of `spi_timing`, which times
+  `shadow_inprocess_render_to_buffer` — the call that invokes movy's
+  `render_block`; `mix_audio` does NOT move with movy chains and reads a flat
+  7 µs).
+
+  | chains | render avg | per-chain |
+  |---|---|---|
+  | 0 | 27 µs | — |
+  | 1 | 60 µs | +33 |
+  | 3 | 111 µs | +25 |
+  | 6 | 189 µs | +26 |
+
+  **~26 µs per Plaits chain, linear.** Twelve extrapolates to ~340 µs average
+  against the ~900 µs SPI section budget, inside a 2900 µs frame. So the cap the
+  design reserved the right to add is **not built**: it would refuse loads the
+  hardware handles comfortably.
+
+  The number that would change this is a synth several times heavier than
+  Plaits — at ~75 µs/chain, twelve would reach the section budget. The script
+  takes a module argument so that can be re-measured rather than guessed, and
+  loading is what dominates anyway (1986 µs for a single module load, §5.2).
 
 Live pad input needs no new IPC: `schwung_shim.c:6950` already delivers internal
 cable-0 note events to the overtake DSP's `on_midi` on the audio thread,

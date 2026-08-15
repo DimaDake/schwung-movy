@@ -185,25 +185,57 @@ ts_tap_note 20          # step 5 -> track 5 (first movy track, chain 0)
 sleep 0.8
 ts_tap_cc 50            # back to Note view, still on track 5
 sleep 0.6
-# Chain view: jog to the synth slot and click into the browser.
-python3 "$INJECT_PY" "$HOST" cc $CC_CLICK 127 >/dev/null 2>&1; sleep 0.15
-python3 "$INJECT_PY" "$HOST" cc $CC_CLICK 0 >/dev/null 2>&1; sleep 1.2
+# TWO clicks, because the slot already holds plaits from the checks above:
+# the first drills chain view -> knob page, the second opens the browser
+# (midi/router.ts). A single click only browses straight from the chain view
+# when the slot is EMPTY, which is why one click silently did nothing here.
+#
+# ts_tap_cc delivers press+release in ONE device-side script: each ssh inject
+# costs ~0.5 s, so a pair sent as two injects is a >500 ms HOLD, which movy
+# reads as a different gesture entirely.
+# How many clicks reach the browser depends on which view movy is currently in
+# (chain view drills to the knob page first, and only browses directly when the
+# slot is EMPTY — this one is not, it holds plaits). Rather than assume a
+# starting view the earlier blocks do not control, click until the browser
+# actually opens.
+for _ in 1 2 3; do
+    ts_tap_cc $CC_CLICK; sleep 1.5
+    ssh "ableton@$HOST" "cat $LOG" | qgrep "browse: open" && break
+done
 # Pick the next module and confirm.
-python3 "$INJECT_PY" "$HOST" cc $CC_JOG 1 >/dev/null 2>&1; sleep 0.5
-python3 "$INJECT_PY" "$HOST" cc $CC_CLICK 127 >/dev/null 2>&1; sleep 0.15
-python3 "$INJECT_PY" "$HOST" cc $CC_CLICK 0 >/dev/null 2>&1; sleep 3
+ts_send "0x0B:0xB0:$CC_JOG:1:0.30"
+sleep 0.5
+ts_tap_cc $CC_CLICK
+sleep 3
 
 LOGTXT=$(ssh "ableton@$HOST" "cat $LOG")
-if echo "$LOGTXT" | qgrep -E "chain 0: (synth|midi_fx1|fx1|fx2) = "; then
-    pass "browser load reached a movy chain: $(echo "$LOGTXT" | grep -oE 'chain 0: [a-z_0-9]+ = .*' | tail -1)"
+# Two separate questions, so they get two separate checks: did the gesture reach
+# the browser at all, and did confirming it load the module? Collapsing them was
+# what made the earlier failure undiagnosable.
+BROWSE=$(echo "$LOGTXT" | grep -oE 'browse: open t=[0-9]+ [a-z_0-9]+ n=[0-9]+' | tail -1)
+if [ -n "$BROWSE" ]; then
+    pass "the jog gesture opened the browser: $BROWSE"
+    BROWSE_T=$(echo "$BROWSE" | grep -oE 't=[0-9]+' | cut -d= -f2)
+    if [ "${BROWSE_T:-0}" -ge 4 ]; then
+        pass "the browser opened on a movy track (t=$BROWSE_T)"
+    else
+        fail "the browser opened on host track $BROWSE_T — the track selection did not stick"
+    fi
+    if echo "$LOGTXT" | qgrep -E "chain 0: (synth|midi_fx1|fx1|fx2) = "; then
+        pass "browser load reached a movy chain: $(echo "$LOGTXT" | grep -oE 'chain 0: [a-z_0-9]+ = .*' | tail -1)"
+    else
+        fail "the browser opened but confirming it produced no chain load"
+    fi
 else
-    # Do NOT call this a pass. The jog sequence below is a guess at the chain
-    # view's cursor state, and movy logs nothing between the press and the
-    # engine write, so there is no way to tell "the gesture missed the browser"
-    # from "the browser refused the load". The load path itself IS asserted
-    # against the real handler in browser-test/app-loop.mjs ("the module browser
-    # loads onto a movy-hosted track"), which checks the exact ch<N>: key.
-    warn "browser gesture did not produce a chain load — unverified at the gesture level"
+    # How many clicks reach the browser depends on the view movy is in, and the
+    # blocks above move it around in ways this one does not control. The
+    # capability itself IS verified — by hand on device (browse: open t=4 synth
+    # n=39, with the knob page rendering plaits' params for track 5 through
+    # MovyChainPort), and automatically in browser-test/app-loop.mjs, which
+    # drives the real handler and asserts the exact ch1:synth:module write.
+    # What is missing is a way to reach a KNOWN view from here without pressing
+    # Back into the Leave-Movy modal.
+    warn "browser gesture did not reach the browser from this view — see the note above"
 fi
 
 # 7. Persistence: a movy chain must survive a reopen. Host tracks are carried by

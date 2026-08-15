@@ -46,7 +46,8 @@ that gap with two things:
    instruments. The 16 tracks are arranged as four groups of four: the step
    buttons pick a track, the +/− buttons move between groups. Tracks 1-4 are the
    four Schwung tracks; tracks 5-16 sequence and save today and gain their own
-   instruments in a later release.
+   instruments: tracks 1-4 drive the four Schwung tracks, and tracks 5-16 host
+   their own module chains inside movy, summed to one stereo output.
 
 ## Inspiration & lineage
 

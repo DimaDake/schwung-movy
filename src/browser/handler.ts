@@ -61,6 +61,11 @@ export function openBrowser(slot: ChainSlot, paramSlot: number, reload: () => vo
     const activeId = portFor(paramSlot).getParam( moduleReadKey(slot.componentKey)) || '';
     const idx = browserState.modules.findIndex(m => m.id === activeId);
     if (idx >= 0) browserState.browseIndex = idx;
+    /* The only trace the browser leaves. Without it a device test cannot tell
+     * "the gesture never reached the browser" from "the browser refused the
+     * load" — the two failures look identical from the log. */
+    mlog('browse: open t=' + paramSlot + ' ' + slot.componentKey
+        + ' n=' + browserState.modules.length);
     appState.currentView = VIEW_BROWSE;
     appState.dirty = true;
 }

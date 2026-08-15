@@ -169,7 +169,8 @@ impl Instance {
                 /* Rides the existing poll rather than costing its own IPC: the
                  * UI needs to notice a chain change to persist it, and status
                  * is the one thing it already reads every few ticks. */
-                s.push_str(&format!(" chgen={}", self.chains.generation()));
+                s.push_str(&format!(" chgen={} chact={}",
+                    self.chains.generation(), self.chains.active_count()));
                 Some(s)
             }
             "capinfo" => Some(self.engine.capture_info()),
@@ -184,11 +185,12 @@ impl Instance {
             }
             "chgen" => Some(self.chains.generation().to_string()),
             "diag" => Some(format!(
-                "blocks={} out_cap={} chains={} pending={}",
+                "blocks={} out_cap={} chains={} pending={} active={}",
                 self.blocks,
                 self.out.capacity(),
                 self.chains.is_available() as u8,
-                self.chains.pending_loads()
+                self.chains.pending_loads(),
+                self.chains.active_count()
             )),
             _ if key.starts_with("ch") => {
                 let (slot, rest) = parse_chain_key(key)?;

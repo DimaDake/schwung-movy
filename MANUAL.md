@@ -724,10 +724,22 @@ clip grid so you can reach the next four.
 within a group are easy to tell apart *and* so the same position in different
 groups never looks alike. Tracks 1-4 keep Move's own colours.
 
-> **Tracks 5-16 make no sound yet.** They record, sequence, mute, launch clips
-> and save exactly like tracks 1-4, but nothing is hosting an instrument for
-> them — that arrives in a later release. Tracks 1-4 are the four Schwung
-> tracks and behave as before.
+**Tracks 5-16 host their own instruments.** Tracks 1-4 are the four Schwung
+tracks and behave as they always have — they are Move's, and Move's mixer sees
+them. Tracks 5-16 are movy's own: load a module onto one exactly as you would on
+a track button track, and movy hosts the whole chain itself.
+
+Two differences worth knowing:
+
+- **Move's mixer sees all twelve as one channel.** Movy sums them into a single
+  stereo output, so their levels are movy's own — the hold-track + volume-encoder
+  gesture works, but the Move fader does not reach them individually.
+- **They sound only while movy is open** (or parked in Background mode). The
+  four Schwung tracks keep playing under Move's own UI; movy's twelve stop when
+  movy closes, because movy is what renders them.
+
+Their modules and settings are saved with the set, so a movy track comes back
+the way you left it.
 
 ### The Loop view
 

@@ -125,6 +125,23 @@ else
     pass "chain hosting stayed up across loads"
 fi
 
+# THE claim: a movy-hosted track actually makes a sound. Loading and rendering
+# without crashing is not the same thing, and only this proves the second. A
+# note goes straight to the chain via the engine's ch<N>:midi param, and the
+# engine reports the first non-silent block it renders.
+echo "${BLD}=== is it audible? ===${RST}"
+node scripts/engine-param.mjs set "ch0:synth:module" plaits "$HOST" >/dev/null 2>&1
+sleep 2
+node scripts/engine-param.mjs set "ch0:midi" "144.60.100" "$HOST" >/dev/null 2>&1
+sleep 2
+LOGTXT=$(ssh "ableton@$HOST" "cat $LOG")
+if echo "$LOGTXT" | qgrep "chain 0: audio active"; then
+    pass "movy chain 0 produced audio: $(echo "$LOGTXT" | grep -o 'chain 0: audio active.*' | head -1)"
+else
+    fail "chain 0 rendered only silence — the note never reached the synth, or its output is not summed"
+fi
+node scripts/engine-param.mjs set "ch0:midi" "128.60.0" "$HOST" >/dev/null 2>&1
+
 # 5. Tick rate — chain rendering runs every block.
 RATE=$(echo "$LOGTXT" | grep -o 'perf_tick_rate=[0-9]*' | tail -1 | cut -d= -f2)
 if [ -n "$RATE" ] && [ "$RATE" -ge 60 ]; then

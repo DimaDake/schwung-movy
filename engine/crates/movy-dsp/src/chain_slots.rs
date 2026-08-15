@@ -32,6 +32,12 @@ pub struct ChainSlots {
     /// retried on every block.
     host_failed: bool,
     module_dir: String,
+    /// Whether each slot has ever produced a non-silent block. Rendering without
+    /// crashing and actually making a sound are different claims, and only the
+    /// first is visible from a log line about loading — this makes the second
+    /// observable too. Logged on the silent -> audible TRANSITION only, so the
+    /// audio thread never logs per block.
+    audible: Vec<bool>,
 }
 
 impl ChainSlots {
@@ -48,6 +54,7 @@ impl ChainSlots {
             scratch: vec![0i16; SCRATCH_SAMPLES],
             host_failed: false,
             module_dir: String::new(),
+            audible: vec![false; MOVY_CHAINS],
         }
     }
 
@@ -164,6 +171,15 @@ impl ChainSlots {
             let Some(inst) = self.slots[i].as_mut() else { continue };
             let scratch = &mut self.scratch[..frames];
             inst.render_block(scratch);
+
+            if !self.audible[i] {
+                // Cheap: only until the slot has proven itself once.
+                let peak = scratch.iter().fold(0i32, |m, &s| m.max((s as i32).abs()));
+                if peak > 0 {
+                    self.audible[i] = true;
+                    host::log(&format!("chain {}: audio active (peak {})", i, peak));
+                }
+            }
             mix_into(&mut out[..frames], scratch, &self.mixes[i]);
         }
     }
@@ -174,6 +190,9 @@ impl ChainSlots {
         self.queue.clear();
         for s in self.slots.iter_mut() {
             *s = None;
+        }
+        for a in self.audible.iter_mut() {
+            *a = false;
         }
     }
 }

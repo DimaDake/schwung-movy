@@ -1826,8 +1826,11 @@ _log('\nTest: track colors — track 3 pink, track 4 blue');
   const { TRACK_COLOR, TRACK_COLOR_DIM } = await import('../dist/esm/seq/colors.js');
   eq('track 3 = BrightPink(25)', TRACK_COLOR[2], 25);
   eq('track 4 = Blue(125)',      TRACK_COLOR[3], 125);
-  eq('track 3 dim = DeepMagenta(109)', TRACK_COLOR_DIM[2], 109);
-  eq('track 4 dim = DarkBlue(95)',     TRACK_COLOR_DIM[3], 95);
+  /* Dims were re-picked when the table went to 16 entries: each is now the
+   * nearest-hue dark entry at ~35% lightness, chosen by the same search that
+   * produced the bright colours (browser-test/track-colors.mjs). */
+  eq('track 3 dim = Mauve(113)',  TRACK_COLOR_DIM[2], 113);
+  eq('track 4 dim = Indigo(99)',  TRACK_COLOR_DIM[3], 99);
 }
 
 // ── ViewModel drum fields: isPadSpecific, drumCurrentPad, drumPadCount ───
@@ -11747,6 +11750,27 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
   p.sendMidi(0x80, 60, 0);
   eq('host tracks still get a real port', portFor(0).track.kind, 'host');
   resetPorts();
+}
+
+{
+  _log('\ngroup focus:');
+  const { appState } = await import('../dist/esm/app/state.js');
+  const { selectTrack, focusedTrack } = await import('../dist/esm/track/focus.js');
+
+  selectTrack(0);
+  eq('selecting track 0 focuses group 0', appState.focusGroup, 0);
+
+  /* Selecting a track must refocus the group, or the four track buttons would
+   * keep addressing a different quartet than the one on screen. */
+  selectTrack(9);
+  eq('selecting track 9 sets it active', appState.activeTrack.index, 9);
+  eq('selecting track 9 refocuses group 2', appState.focusGroup, 2);
+
+  eq('button 0 in group 2 is track 8', focusedTrack(0), 8);
+  eq('button 3 in group 2 is track 11', focusedTrack(3), 11);
+
+  eq('out-of-range selection ignored', (selectTrack(99), appState.activeTrack.index), 9);
+  selectTrack(0);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

@@ -1,4 +1,5 @@
 import { trackRef } from '../track/ref.js';
+import { focusedTrack, selectTrack } from '../track/focus.js';
 import { portFor } from '../track/registry.js';
 import { setButtonHeld } from '../seq/button-held.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } from '../app/state.js';
@@ -330,7 +331,10 @@ export function onMidiMessageInternal(data: number[]): void {
      * Mute+track gesture mutes; otherwise momentary: down opens the track's
      * note layout, up decides tap (latch) vs hold (return to prior state). */
     if (d1 >= TRACK_CC_START && d1 <= TRACK_CC_END) {
-        const track = TRACK_CC_END - d1;
+        /* The four buttons are hardware, not tracks: they address the focused
+         * group's quartet. CC 43 is the group's first track (the mapping is
+         * reversed — CC 40 is the fourth). */
+        const track = focusedTrack(TRACK_CC_END - d1);
         if (d2 > 0) {
             volumeTrackDown(track);   // arm hold-track + volume knob
             // Mute+track mutes that track; Shift+Mute+track solos it instead.
@@ -360,7 +364,7 @@ export function onMidiMessageInternal(data: number[]): void {
                 releaseAllLive();   // the peeked track's notes must not survive the revert
                 seqState.sessionMode = prevSession;
                 seqState.loopMode = prevLoop;
-                appState.activeTrack = trackRef(prevSlot);
+                selectTrack(prevSlot);
                 appState.currentView = prevView;
                 seqRestoreWatch(prevWatchTrack);
                 appState.initLedsDone = false; appState.initLedIndex = 0;
@@ -372,7 +376,7 @@ export function onMidiMessageInternal(data: number[]): void {
             appState.masterDetail = false;
             // Cut on switch: no live note outlives the track it was played on.
             releaseAllLive();
-            appState.activeTrack = trackRef(track);
+            selectTrack(track);
             appState.currentView = appState.trackView[track];
             jogHintTouch(false);
             appState.initLedsDone = false; appState.initLedIndex = 0;

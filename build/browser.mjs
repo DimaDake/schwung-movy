@@ -138,6 +138,7 @@ await esbuild.build({
         resolve(root, 'src/model/state.ts'),
         resolve(root, 'src/track/ref.ts'),
         resolve(root, 'src/track/registry.ts'),
+        resolve(root, 'src/track/focus.ts'),
         resolve(root, 'src/seq/momentary.ts'),
         resolve(root, 'src/seq/detent.ts'),
         resolve(root, 'src/seq/main-page.ts'),

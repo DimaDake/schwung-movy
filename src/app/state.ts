@@ -34,6 +34,9 @@ export const appState = {
      * index happens to equal its schwung slot, and every place that assumed the
      * two were the same thing is what the port abstraction had to unpick. */
     activeTrack:      trackRef(0) as TrackRef,
+    /* Which quartet the four track buttons and the session clip grid address.
+     * Always the group containing activeTrack — track/focus.ts moves both. */
+    focusGroup:       0,
     currentView:      VIEW_CHAIN,
     shiftHeld:        false,
     dirty:            true,

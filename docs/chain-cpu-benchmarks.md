@@ -102,10 +102,65 @@ table above (helm at 4 notes tops out at 2 tracks).
 
 ---
 
+## Measured for real: all 12 movy chains at once
+
+The table above extrapolates from four chains. This is the actual thing — the
+same synth in **all twelve** movy chains, a chord held in every one
+(`scripts/stress-16-tracks.sh`). Baseline with no chains: 146 µs.
+
+| synth | 1 note | 2 notes | 3 notes | 4 notes |
+|---|---|---|---|---|
+| **dexed** | 197 µs ✅ | 203 ✅ | 216 ✅ | 223 ✅ |
+| **plaits** | 460 ✅ | 456 ✅ | 457 ✅ | 457 ✅ |
+| **obxd** | 1243 ✅ | 1835 ✅ | 2406 ❌ | 3112 ❌ |
+| **noisemaker** (preset 9) | 2780 ❌ | 2869 ❌ | 2826 ❌ | 2908 ❌ |
+| **surge** | 3000 ❌ | 3383 ❌ | 3761 ❌ | 4016 ❌ |
+| **helm** | 4105 ❌ | 5309 ❌ | 6753 ❌ | 8125 ❌ |
+
+✅ = under the ~2000 µs work ceiling. ❌ = over it; the frame is genuinely late
+(`total` climbs past ~2700 µs as the ioctl wait is exhausted).
+
+**So, on all twelve movy tracks at once:** dexed and plaits at any polyphony,
+obxd up to two notes. Nothing else — noisemaker on a polyphonic preset, surge and
+helm all exceed the budget with a single note in every track.
+
+### The preset trap — noisemaker
+
+The four-chain table above says noisemaker costs ~91 µs/track. The stress test
+says **220 µs/track**. Both are right: the first ran on **preset 1, which is
+monophonic**, and the second on **preset 9, which is not**. A mono preset makes a
+four-note chord cost exactly one voice, so the synth looks cheap and its
+polyphony column looks flat.
+
+This is the single biggest trap in these numbers. Any "flat across polyphony"
+row deserves suspicion before it is believed — check the preset before concluding
+a synth is efficient.
+
+### Extrapolation vs reality
+
+Worth knowing how much to trust the four-chain table. Predicted twelve-chain work
+against measured:
+
+| synth | predicted | measured | |
+|---|---|---|---|
+| obxd, 4 notes | 2882 µs | 3112 µs | 8% under |
+| surge, 1 note | 3626 µs | 3000 µs | 17% over |
+| helm, 1 note | 4706 µs | 4105 µs | 13% over |
+
+Close enough to be useful, and slightly **pessimistic** for the heavy synths — so
+the four-chain table will not tell you a configuration is fine when it is not.
+Where the answer is marginal, run the stress test rather than trusting the slope.
+
+> `surge` reported only 11 of 12 chains loaded in that run. Not diagnosed; it is
+> already far over budget at 11, so it does not change the conclusion.
+
 ## Practical guidance
 
-- **Anything up to ~80 µs/track fills all twelve chains.** dexed, plaits, forge,
-  weird-dreams and noisemaker are unconstrained — pick them freely.
+- **Only dexed and plaits comfortably fill all twelve chains** at any polyphony,
+  confirmed by the stress test rather than extrapolated.
+- **obxd fills them at one or two notes**, not three.
+- **noisemaker's cheap figure is a preset-1 (mono) artefact** — on preset 9 it
+  does not fit twelve tracks at all.
 - **obxd is the interesting middle.** Fine everywhere at one or two notes; plan
   around 7 tracks if you are playing four-note chords on all of them.
 - **surge and helm are the heavy ones.** Budget 4-5 surge tracks or 2-4 helm
@@ -115,9 +170,10 @@ table above (helm at 4 notes tops out at 2 tracks).
 
 ## Caveats
 
-- **One preset per synth** — whatever the module loads by default. A heavier
-  patch (more oscillators, more unison, an active filter) costs more; `surge` and
-  `helm` in particular vary a lot by patch.
+- **Preset choice dominates.** The four-chain table used each module's DEFAULT
+  preset, and noisemaker's default is monophonic — 91 µs/track there against
+  220 µs on polyphonic preset 9. Treat any per-synth figure as "this preset",
+  not "this synth".
 - **No audio FX.** Only the synth slot was loaded. Each FX in a chain adds its
   own cost on top.
 - **`overruns=` was not usable as a pass/fail signal.** It is cumulative since

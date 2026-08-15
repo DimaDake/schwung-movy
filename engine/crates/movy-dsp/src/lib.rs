@@ -348,6 +348,24 @@ unsafe extern "C" fn on_midi(instance: *mut c_void, msg: *const u8, len: c_int, 
             return;
         }
         let status = unsafe { *msg };
+        /* Does the shim deliver PAD notes here? schwung_shim.c:6950 delivers
+         * internal cable-0 note events (d1 >= 10) to the overtake DSP's on_midi
+         * on the audio thread, explicitly so an overtake tool can take pad input
+         * without a JS round trip. Movy's pad path currently costs a blocking
+         * param write per note (measured: 2.12 ms of IPC per tick, against 0.30
+         * for a host track), so using this would remove it entirely.
+         *
+         * It cannot be confirmed by injection: writes to /dev/shm/schwung-ui-midi
+         * enter the UI ring, while that delivery sits in the HARDWARE MIDI scan.
+         * One physical pad press settles it. Logged once, then free. */
+        if len >= 3 && (status & 0xF0) == 0x90 {
+            use std::sync::atomic::{AtomicBool, Ordering};
+            static SEEN: AtomicBool = AtomicBool::new(false);
+            if !SEEN.swap(true, Ordering::Relaxed) {
+                let d1 = unsafe { *msg.add(1) };
+                host::log(&format!("probe: on_midi got a note-on d1={} len={}", d1, len));
+            }
+        }
         if status < 0xF8 {
             return;
         }

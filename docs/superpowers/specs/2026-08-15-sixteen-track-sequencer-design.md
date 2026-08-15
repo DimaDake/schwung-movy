@@ -19,7 +19,7 @@ Source refs: `schwung` @ `120ba662` (origin/main), `movy` @ `b02e403`.
 | Topology | 4 host tracks (schwung slots 0-3) + 12 movy-hosted chains |
 | Audio | All movy tracks sum into movy's single overtake stereo bus; movy owns their gain/pan/mute |
 | Chain shape | Full parity — `midi_fx1 / synth / fx1 / fx2 / lfo`, the existing `CHAIN_SLOTS` |
-| CPU ceiling | Measured: ~26 µs/chain, no cap needed — see §5.3 |
+| CPU ceiling | Measured per synth (8-725 µs/track); no fixed cap — see `docs/chain-cpu-benchmarks.md` |
 | Persistence | Full `state` blobs per movy track, per set |
 | On close | Movy tracks stop, no warning (the sequencer already stops on close) |
 | Session grid | Focused group only — 4 rows × 8 clip slots, unchanged semantics |
@@ -214,10 +214,14 @@ change makes the parse superlinear in track count, it fails.
   design reserved the right to add is **not built**: it would refuse loads the
   hardware handles comfortably.
 
-  The number that would change this is a synth several times heavier than
-  Plaits — at ~75 µs/chain, twelve would reach the section budget. The script
-  takes a module argument so that can be re-measured rather than guessed, and
-  loading is what dominates anyway (1986 µs for a single module load, §5.2).
+  **Full per-synth data: `docs/chain-cpu-benchmarks.md`.** Seven synths at 1-4
+  held notes, plus the ramp that establishes the work budget (~2000 µs, of which
+  ~1737 µs is available to chains). The spread is 90×: dexed costs 8 µs/track and
+  fills all twelve, helm costs 725 µs/track at four notes and fits two. So a
+  fixed cap would be wrong in both directions — it is the synth and its polyphony
+  that decide, not a track count.
+
+  Loading still dominates anyway (1986 µs for a single module load, §5.2).
 
 Live pad input needs no new IPC: `schwung_shim.c:6950` already delivers internal
 cable-0 note events to the overtake DSP's `on_midi` on the audio thread,

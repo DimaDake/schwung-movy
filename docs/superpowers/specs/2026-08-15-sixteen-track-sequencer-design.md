@@ -151,18 +151,28 @@ That enum in `drain_out()` (`movy-dsp/src/lib.rs:100`) is the whole
 audio-routing change. Host tracks keep emitting `midi_send_internal(0x90|track)`
 exactly as today.
 
-### 5.2 Status protocol is the real perf risk
+### 5.2 Status protocol — predicted risk, measured away
 
-Not the track count — the polling. `sess=`, `mute=` and `act=` grow 4× and are
-parsed in QuickJS on every status poll, and movy's tick period *is* its MIDI
-input sampling interval.
+**This section predicted wrong, and the measurement is kept here rather than the
+prediction.** The concern was that `sess=`, `mute=` and `act=` grow 4× and are
+parsed in QuickJS on every poll, so status should carry only the focused group
+with the other 12 tracks on a separate low-cadence poll.
 
-**Status carries only the focused group + the watched track.** The other 12
-tracks' clip-grid state rides a separate low-cadence poll, refreshed on demand
-when the focus group changes. `act=` (currently 4×128) gets the same treatment.
+Measured (`browser-test/perf.mjs`, "status parse cost, 4 vs 16 tracks"):
 
-A perf test asserts the per-tick IPC count and status parse cost do not regress
-against the 4-track baseline.
+| tracks | parse |
+|---|---|
+| 4 | 0.0081 ms |
+| 16 | 0.0117 ms |
+
+**1.46×, not 4×** — sublinear, because the fixed part of the status string
+dominates the per-track part. Against the poll's own ~0.3 ms IPC round trip and
+a 5-15 ms tick, parsing is noise.
+
+So the **full 16-track status ships**, and the split is not built. It would have
+bought nothing and cost staleness in the off-screen groups plus a second
+protocol path to keep correct. The perf test stays as the guard: if a future
+change makes the parse superlinear in track count, it fails.
 
 ### 5.3 Chain hosting in `movy-dsp`
 

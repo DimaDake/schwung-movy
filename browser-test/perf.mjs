@@ -853,6 +853,46 @@ _origLog('\nTest 7: file overlay open cost (16 vs 1024 files)');
              `1024: ${large.ms.toFixed(3)}ms/${large.stats} stats)`);
 }
 
+/* ── Test: status parse cost at 16 tracks ───────────────────────────────────
+ *
+ * The design predicted the 4x wider status string would have to be split — the
+ * focused group in the normal poll, the rest on demand. That was a guess, so it
+ * is measured here rather than implemented on faith. The poll runs every 8
+ * ticks and its IPC round trip already costs ~0.3 ms on device, so parsing has
+ * a lot of room before it matters. */
+_origLog('\nTest: status parse cost, 4 vs 16 tracks');
+{
+    const { parseStatusForTest } = await import('../dist/esm/seq/engine.js');
+
+    const buildStatus = (n) => {
+        const sess = new Array(n).fill('ff.2.-.3').join(',');
+        const act  = new Array(n).fill('60.64.67').join(',');
+        const mute = '0'.repeat(n);
+        return `play=1 tick=4096 bpm=12000 ext=0 link=0 trk=0 step=4 pos=768 len=32 `
+             + `lstart=0 rec=0 cin=0 metro=0 dirty=1 sess=${sess} act=${act} mute=${mute} `
+             + `hlen=0 hnotes= occ=${'ff'.repeat(32)} alanes=00 aauto=00 hauto= hvel=0 `
+             + `hgate=0 hgmix=0 hprob=100 hcond=1:1 hinv=0 hlmax=0 swing=50 csc=1/1 ctr=0 `
+             + `quant=0 dquant=0 cap=0.0`;
+    };
+    const timeIt = (fn, n) => {
+        for (let i = 0; i < 200; i++) fn();          // warm
+        const t0 = performance.now();
+        for (let i = 0; i < n; i++) fn();
+        return (performance.now() - t0) / n;
+    };
+
+    const s16 = buildStatus(16), s4 = buildStatus(4);
+    const t16 = timeIt(() => parseStatusForTest(s16), 2000);
+    const t4  = timeIt(() => parseStatusForTest(s4), 2000);
+    _origLog(`    (4 tracks: ${t4.toFixed(4)}ms, 16 tracks: ${t16.toFixed(4)}ms)`);
+
+    /* A whole tick is ~5-15 ms on device; the poll is 1 tick in 8. */
+    check('16-track status parse', Number(t16.toFixed(4)), 0.5, 'ms');
+    /* Widening tracks 4x must not cost more than ~4x — a superlinear result
+     * would mean the parser is doing something quadratic in track count. */
+    check('16-track parse vs 4-track', Number((t16 / t4).toFixed(2)), 4.5, 'x');
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _origLog('');

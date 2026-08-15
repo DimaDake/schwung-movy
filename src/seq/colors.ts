@@ -13,16 +13,42 @@ export const C_LIGHTGREY = 118; // schwung LightGrey ("dim white"): note-length 
 export const C_GREEN = 11;     // NeonGreen — playhead
 export const C_REC_RED = 127;  // Red — recording indicator (same as track 0 color; index 1 renders pink)
 
-/* Bright = playing/selected clip & chromatic root; dim = empty in-loop step. */
-export const TRACK_COLOR = [127, 7, 25, 125];      // Red, VividYellow, BrightPink, Blue
-export const TRACK_COLOR_DIM = [67, 74, 109, 95];  // Brick, VeryDarkYellow, DeepMagenta, DarkBlue
+/* Track colours: 4 groups of 4. Bright = playing/selected clip & chromatic
+ * root; dim = empty in-loop step, and the unfocused tracks in the Session
+ * view's step-row selector.
+ *
+ * Every row (one group's 4 tracks) and every column (the same track index
+ * across groups) is pairwise distinct under normal vision AND both common
+ * red-green deficiencies, judged with lightness de-weighted — at LED size a
+ * pale blue and a royal blue read alike however far apart CIELAB puts them.
+ * No two members of one hue family share a row or column, with blue and violet
+ * counted as ONE family (CIELAB puts pure blue at 306° and electric violet at
+ * 311°, which is exactly why they look the same on this hardware).
+ *
+ * `browser-test/track-colors.mjs` holds all of that, and also checks these
+ * indices still mean what they mean in schwung's own palette — the table here
+ * is a copy, and a copy can drift.
+ *
+ * Group 1 keeps Move's native track colours. */
+export const TRACK_COLOR = [
+    127, 7, 25, 125,      // G1 host: Red, Vivid Yellow, Bright Pink, Pure Blue
+    15, 3, 44, 21,        // G2: Azure Blue, Bright Orange, Mint Green, Hot Magenta
+    14, 23, 6, 9,         // G3: Cyan, Neon Pink, Ochre, Forest Green
+    12, 47, 27, 5,        // G4: Teal Green, Sky Blue, Rust Red, Light Yellow
+];
+export const TRACK_COLOR_DIM = [
+    67, 77, 113, 99,      // Brick, Olive, Mauve, Indigo
+    93, 75, 89, 105,      // Deep Blue, Brown-Yellow, Muted Sea Green, Muted Violet
+    89, 109, 75, 81,      // Muted Sea Green, Deep Magenta, Brown-Yellow, Dull Olive
+    87, 17, 67, 77,       // Dark Teal, Navy, Brick, Olive
+];
 
 export function trackColor(track: number): number {
-    return TRACK_COLOR[track & 3];
+    return TRACK_COLOR[track & 15];
 }
 
 export function trackColorDim(track: number): number {
-    return TRACK_COLOR_DIM[track & 3];
+    return TRACK_COLOR_DIM[track & 15];
 }
 
 /* Native Move LED animation channels (Push-2 model: the note-on's MIDI channel

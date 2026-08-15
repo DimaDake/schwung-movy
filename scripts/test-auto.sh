@@ -98,6 +98,9 @@ open(\"/data/UserData/schwung/open_tool_cmd.json\",\"w\").write(json.dumps({\"fi
 f=open(\"/dev/shm/schwung-control\",\"r+b\"); mm=mmap.mmap(f.fileno(),0); mm[56]=1; mm.close()
 "' >/dev/null 2>&1
 sleep 3
+# movy opens on schwung's focused slot, which is device state no test owns. The
+# fixture puts the automatable synth on track 0, so land there explicitly.
+ts_focus_track0
 
 # ── 1. Create automation, verify it displays (P1, P2) ─────────────────────────
 info "Knobs view + clip + play, then hold step 5 and turn knob 5 (automatable)..."
@@ -184,6 +187,7 @@ open(\"/data/UserData/schwung/open_tool_cmd.json\",\"w\").write(json.dumps({\"fi
 f=open(\"/dev/shm/schwung-control\",\"r+b\"); mm=mmap.mmap(f.fileno(),0); mm[56]=1; mm.close()
 "' >/dev/null 2>&1
 sleep 3.5
+ts_focus_track0   # same reason as the first open: land on the fixture's track
 inj cc $CC_JOG 127; sleep 0.1; inj cc $CC_JOG 0; sleep 0.4          # show params → forces a render
 # The reopen lands on the Preset page again, and the automated param lives on
 # the next one — the dot cannot show on a page that does not contain it.

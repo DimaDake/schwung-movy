@@ -56,6 +56,9 @@ open(\"/data/UserData/schwung/open_tool_cmd.json\",\"w\").write(json.dumps({\"fi
 f=open(\"/dev/shm/schwung-control\",\"r+b\"); mm=mmap.mmap(f.fileno(),0); mm[56]=1; mm.close()
 "' >/dev/null 2>&1
 sleep 4
+# movy opens on schwung's focused slot, which is not necessarily track 0 — and
+# every assertion below is about track 0's lanes.
+ts_focus_track0
 inj cc $CC_JOG 127; sleep 0.1; inj cc $CC_JOG 0; sleep 0.4          # chain → knobs
 
 # The fixture seeds an automation lane on track 0 (`au 0 0 50 synth:decay`), so

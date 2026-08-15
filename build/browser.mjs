@@ -135,6 +135,7 @@ await esbuild.build({
         resolve(root, 'src/seq/buttons.ts'),
         resolve(root, 'src/keyboard/leds.ts'),
         resolve(root, 'src/app/state.ts'),
+        resolve(root, 'src/track/ref.ts'),
         resolve(root, 'src/seq/momentary.ts'),
         resolve(root, 'src/seq/detent.ts'),
         resolve(root, 'src/seq/main-page.ts'),

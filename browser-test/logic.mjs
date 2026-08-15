@@ -11539,6 +11539,40 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     resetSeqState();
 }
 
+{
+  _log('\ntrack refs — index arithmetic:');
+  const { trackRef, trackGroup, trackIndexInGroup, trackKind, chainInstance, HOST_TRACKS } =
+    await import('../dist/esm/track/ref.js');
+
+  eq('track 0 is host', trackKind(0), 'host');
+  eq('track 3 is host', trackKind(3), 'host');
+  /* Stage 1 ships with TRACK_COUNT=4, but the predicate is what Stage 2 turns
+   * on — so it is specified now and tested now. */
+  eq('track 4 is movy', trackKind(4), 'movy');
+  eq('track 15 is movy', trackKind(15), 'movy');
+
+  eq('group of track 0', trackGroup(0), 0);
+  eq('group of track 3', trackGroup(3), 0);
+  eq('group of track 4', trackGroup(4), 1);
+  eq('group of track 15', trackGroup(15), 3);
+
+  eq('index-in-group of 0', trackIndexInGroup(0), 0);
+  eq('index-in-group of 5', trackIndexInGroup(5), 1);
+  eq('index-in-group of 15', trackIndexInGroup(15), 3);
+
+  /* Chain instances are movy-side only and 0-based: track 4 is the FIRST movy
+   * chain, not the fifth. Getting this offset wrong would address the wrong
+   * synth on every movy track. */
+  eq('chain instance of track 4', chainInstance(4), 0);
+  eq('chain instance of track 15', chainInstance(15), 11);
+  eq('host tracks have no chain instance', chainInstance(3), -1);
+
+  const r = trackRef(6);
+  eq('trackRef carries index', r.index, 6);
+  eq('trackRef carries kind', r.kind, 'movy');
+  eq('HOST_TRACKS is 4', HOST_TRACKS, 4);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

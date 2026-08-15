@@ -1,7 +1,7 @@
 /* Sequencer LED painting through a cached diff layer — only changed colors
  * are sent, so unchanged frames cost nothing on the wire (davebox pattern). */
 
-import { backLedColor, arrowLedColor, stepRecArrowColor, sampleLedColor, captureLedColor, undoLedColor } from './buttons.js';
+import { backLedColor, arrowLedColor, groupArrowColor, stepRecArrowColor, sampleLedColor, captureLedColor, undoLedColor } from './buttons.js';
 import { canRedo, canUndo } from '../undo/state.js';
 import { ANIM_NONE, ANIM_PULSE, C_BLACK, C_DARKGREY, C_GREEN, C_LIGHTGREY, C_REC_RED, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
 import {
@@ -25,6 +25,8 @@ export { seqLedsInvalidate, cachedSetAnimLED, ledFrameReset };
 const CC_BACK = 51, CC_CAPTURE = 52, CC_UNDO = 56, CC_LOOP = 58,
       CC_COPY = 60, CC_LEFT = 62, CC_RIGHT = 63, CC_MUTE = 88,
       CC_SAMPLE = 118, CC_DELETE_BTN = 119;
+/* MoveUp / MoveDown (the +/- buttons). */
+const CC_UP = 55, CC_DOWN = 54;
 
 const STEP_ICON_CC_BASE = 16; // step-icon LEDs = CC 16..31
 // Step-icon slot indices (0-based) for the latched shortcut features.
@@ -166,6 +168,13 @@ function paintAffordances(view: number, barOffset: number, maxOff: number, shift
     cachedSetButtonLED(CC_SAMPLE, sampleLedColor()); cachedSetButtonLED(CC_CAPTURE, captureLedColor(seqState.capPending)); cachedSetButtonLED(CC_UNDO, undoLedColor(canUndo(), canRedo(), shiftHeld));
     cachedSetButtonLED(CC_LOOP, seqState.loopMode ? WHITE_BRIGHT : WHITE_DIM);
     cachedSetButtonLED(CC_COPY, WHITE_DIM); cachedSetButtonLED(CC_DELETE_BTN, WHITE_DIM); cachedSetButtonLED(CC_MUTE, WHITE_DIM);
+    /* Octave buttons move the focused track group in Session view. Outside it
+     * they are the pad octave and app/tick.ts owns them (it knows whether the
+     * track is a drum, which has no octave). */
+    if (seqState.sessionMode) {
+        cachedSetButtonLED(CC_DOWN, groupArrowColor(-1));
+        cachedSetButtonLED(CC_UP, groupArrowColor(+1));
+    }
 }
 
 /* Length-span overlay while a step is held: the steps AFTER the held step, up

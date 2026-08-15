@@ -7,6 +7,7 @@
  * root: node browser-test/app-loop.mjs */
 
 import { trackRef } from '../dist/esm/track/ref.js';
+import { selectTrack } from '../dist/esm/track/focus.js';
 import { installEnv } from './env.mjs';
 import { installMockEngine } from './mock-engine.mjs';
 import { MOCK_SYNTHS } from './mock-synth.mjs';
@@ -1546,6 +1547,39 @@ _log('\napp-loop: a tick builds each ViewModel at most once');
     for (const n of counts.values()) if (n > worst) worst = n;
     eq(`no model is built more than once per tick (worst ${worst}/${TICKS} ticks)`,
         worst <= TICKS, true);
+}
+
+_log('\napp-loop: session view selects tracks from the step row');
+{
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.file_param);
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    advance(6);
+    selectTrack(0);
+
+    /* Latch Session view: a quick press+release of the Note/Session button. */
+    sendMidi([0xB0, 50, 127]);
+    sendMidi([0xB0, 50, 0]);
+    advance(1);
+    eq('session view latched', seqState.sessionMode, true);
+
+    /* Step 9 selects track 9 and refocuses its group. */
+    sendMidi([0x90, 16 + 9, 127]);
+    advance(1);
+    eq('step press selected track 9', appState.activeTrack.index, 9);
+    eq('step press refocused group 2', appState.focusGroup, 2);
+    eq('still in session view after a latched selection', seqState.sessionMode, true);
+
+    /* Octave up moves the focused group without changing the active track. */
+    sendMidi([0xB0, 55, 127]);
+    sendMidi([0xB0, 55, 0]);
+    advance(1);
+    eq('octave up moved to group 3', appState.focusGroup, 3);
+    eq('octave up left the active track alone', appState.activeTrack.index, 9);
+
+    selectTrack(0);
+    resetSeqState();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

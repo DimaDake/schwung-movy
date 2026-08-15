@@ -19,6 +19,7 @@ import { dupActive, onUnit as dupOnUnit } from './duplicate.js';
 import { seqCmd } from './engine.js';
 import { doubleLoop, loopStepOff, loopStepOn } from './loop-mode.js';
 import { seqToast } from './render.js';
+import { momentaryGesture } from './momentary.js';
 import { sessionStepPress } from './track-select.js';
 import { maxBarOffset, minBarOffset, occHasStep, occToggleStep, seqState } from './state.js';
 import { heldSetList, setHeldSet } from './held.js';
@@ -48,7 +49,15 @@ export function handleStepButton(button: number, on: boolean, shiftHeld: boolean
      * addressing tracks. Shift is not consulted — the shifted step functions
      * stay available in Track view, where the row is actually steps. */
     if (seqState.sessionMode) {
-        if (on) sessionStepPress(button);
+        if (on) {
+            /* Marks an in-flight Note/Session HOLD as used, so its release
+             * reverts to the previous view instead of latching into Session —
+             * "hold Session, tap a track, carry on where you were". A no-op when
+             * Session is latched rather than held, which is why the same line
+             * serves both forms. */
+            momentaryGesture();
+            sessionStepPress(button);
+        }
         return;
     }
     if (on && dupActive()) {

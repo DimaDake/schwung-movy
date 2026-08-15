@@ -1,5 +1,5 @@
 import { trackRef } from '../track/ref.js';
-import { focusedTrack, selectTrack } from '../track/focus.js';
+import { focusedTrack, focusGroupStep, selectTrack } from '../track/focus.js';
 import { portFor } from '../track/registry.js';
 import { setButtonHeld } from '../seq/button-held.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } from '../app/state.js';
@@ -629,9 +629,22 @@ export function onMidiMessageInternal(data: number[]): void {
      * tracks (drum pad layout has no octave concept). On melodic tracks: press
      * flashes the button white, release clears it. */
     if (d1 === MoveUp || d1 === MoveDown) {
+        const dir = d1 === MoveUp ? 1 : -1;
+        /* In Session view the pads are the clip grid, so there is no octave to
+         * shift and these buttons move the focused GROUP instead. Checked
+         * before the drum guard: group navigation is not a per-track concept,
+         * so a drum track must not disable it. */
+        if (seqState.sessionMode) {
+            if (d2 > 0 && focusGroupStep(dir)) {
+                appState.initLedsDone = false; appState.initLedIndex = 0;
+            }
+            setButtonLED(d1, d2 > 0 ? WHITE_BRIGHT : WHITE_DIM, true);
+            appState.dirty = true;
+            return;
+        }
         if (trackIsDrum(appState.activeTrack.index)) return;
         if (d2 > 0) {
-            changeOctave(appState.activeTrack.index, d1 === MoveUp ? 1 : -1);
+            changeOctave(appState.activeTrack.index, dir);
             setButtonLED(d1, WHITE_BRIGHT, true);
         } else {
             setButtonLED(d1, WHITE_DIM, true);

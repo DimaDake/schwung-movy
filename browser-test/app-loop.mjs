@@ -1663,6 +1663,36 @@ _log('\napp-loop: the module browser loads onto a movy-hosted track');
     resetSeqState();
 }
 
+_log('\napp-loop: the step view follows the FOCUSED track, not the button index');
+{
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.file_param);
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    advance(6);
+    selectTrack(0);
+
+    /* Device report: entering steps on track 1 also set them on 5, 9 and 13.
+     * Tracks 1/5/9/13 all sit under the SAME track button, so a handler that
+     * used the raw button index instead of the focused group edited track 0
+     * whichever group was on screen. */
+    focusGroupStep(1);                    // focus tracks 4-7
+    sendMidi([0xB0, 43, 127]);            // first track button
+    sendMidi([0xB0, 43, 0]);
+    advance(2);
+    eq('active track is 4', appState.activeTrack.index, 4);
+    eq('the step view watches track 4, not 0', seqState.watchTrack, 4);
+
+    focusGroupStep(1);                    // group 2 => tracks 8-11
+    sendMidi([0xB0, 42, 127]);            // second track button
+    sendMidi([0xB0, 42, 0]);
+    advance(2);
+    eq('second button in group 2 watches track 9', seqState.watchTrack, 9);
+
+    selectTrack(0);
+    resetSeqState();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

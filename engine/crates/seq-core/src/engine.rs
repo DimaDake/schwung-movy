@@ -2212,6 +2212,19 @@ mod tests {
     }
 
     #[test]
+    fn a_step_on_one_track_does_not_appear_on_others() {
+        // Reported on device: entering steps on track 1 also set them on
+        // tracks 5, 9 and 13 — a stride-4 alias.
+        let mut e = engine();
+        apply_batch(&mut e, "tog 0 0 60 100", &mut Vec::new());
+        for t in 1..NUM_TRACKS {
+            let n = e.tracks[t].active().notes.len();
+            assert_eq!(n, 0, "track {} gained a note from a track-0 edit", t);
+        }
+        assert_eq!(e.tracks[0].active().notes.len(), 1, "track 0 kept its note");
+    }
+
+    #[test]
     fn engine_has_sixteen_tracks() {
         let e = engine();
         assert_eq!(e.tracks.len(), 16, "engine must expose 16 tracks");

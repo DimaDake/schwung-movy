@@ -18,6 +18,7 @@ import {
     NUM_STEP_BUTTONS, PAD_MAX, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
 import { engineReady, seqCmd } from './engine.js';
+import { focusedTrack } from '../track/focus.js';
 import { recToggle } from '../undo/rec-pass.js';
 import { loopHeld, loopWheel } from './loop-mode.js';
 import { momentaryGesture } from './momentary.js';
@@ -120,7 +121,13 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
      * track press is purely a mute (handled in midi/router.ts), so do not
      * retarget the step-view focus. */
     if (d1 >= CC_TRACK_START && d1 <= CC_TRACK_END && d2 > 0) {
-        const track = CC_TRACK_END - d1;
+        /* The four buttons address the FOCUSED group's quartet, not tracks 0-3.
+         * Taking the raw button index here made the step view watch track 0-3
+         * whichever group was on screen, so edits meant for track 5, 9 or 13 all
+         * landed on track 1 — they share a button. midi/router.ts already
+         * resolves this the same way for the active track; the two must agree or
+         * the screen shows one track while the steps edit another. */
+        const track = focusedTrack(CC_TRACK_END - d1);
         if (!muteHeld() && track !== seqState.watchTrack) {
             seqState.watchTrack = track;
             seqState.barOffset = 0;

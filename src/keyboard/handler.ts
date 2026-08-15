@@ -1,4 +1,5 @@
 import { portFor } from '../track/registry.js';
+import { TRACK_COUNT } from '../track/ref.js';
 import { keyboardState, OCT_MIN, OCT_MAX } from './state.js';
 import { noteSounded, noteReleased } from './held-notes.js';
 import { emitNoteOff, releaseAllLive } from './release.js';
@@ -41,7 +42,7 @@ export function setRootPc(pc: number): void {
 /* Shift one track's octave. Per-track by design: switching to a bass part
  * should not cost the lead track its register. */
 export function changeOctave(track: number, delta: number): void {
-    const t = track & 3;
+    const t = track & (TRACK_COUNT - 1);
     const next = Math.max(OCT_MIN, Math.min(OCT_MAX, keyboardState.octave[t] + delta));
     if (next === keyboardState.octave[t]) return;
     releaseAllLive();

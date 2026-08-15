@@ -4,6 +4,7 @@
  * one per call would allocate in the hot path. */
 
 import { HostSlotPort } from './host-port.js';
+import { UnbackedPort } from './unbacked-port.js';
 import type { TrackPort } from './port.js';
 import { trackKind } from './ref.js';
 
@@ -12,13 +13,10 @@ const ports: (TrackPort | undefined)[] = [];
 export function portFor(index: number): TrackPort {
     let p = ports[index];
     if (!p) {
-        /* Stage 1 is host-only. Stage 3 adds MovyChainPort here; until then a
-         * movy index would silently address a slot that does not exist, so it
-         * is refused loudly instead. */
-        if (trackKind(index) !== 'host') {
-            throw new Error('movy-hosted tracks are not implemented yet: track ' + index);
-        }
-        p = new HostSlotPort(index);
+        /* Movy tracks answer "nothing loaded" until Stage 3 gives them real
+         * chains. Stage 3 swaps UnbackedPort for MovyChainPort here and nothing
+         * else in the UI has to know it happened. */
+        p = trackKind(index) === 'host' ? new HostSlotPort(index) : new UnbackedPort(index);
         ports[index] = p;
     }
     return p;

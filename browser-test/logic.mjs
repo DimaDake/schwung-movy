@@ -11734,6 +11734,21 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
   resetSeqState();
 }
 
+{
+  _log('\nunbacked port — movy tracks before Stage 3:');
+  const { resetPorts } = await import('../dist/esm/track/registry.js');
+  resetPorts();
+  const p = portFor(7);
+  eq('movy track gets a port', p.track.kind, 'movy');
+  eq('reads answer empty', p.getParam('synth:cutoff'), null);
+  eq('batch reads answer empty', p.getMany(['a', 'b']).join(','), ',');
+  eq('writes are refused, not thrown', p.setParam('synth:cutoff', '1'), false);
+  /* Must not throw: the tick loop sends note-offs to every track on teardown. */
+  p.sendMidi(0x80, 60, 0);
+  eq('host tracks still get a real port', portFor(0).track.kind, 'host');
+  resetPorts();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _log('');

@@ -9,7 +9,11 @@ import {
 } from './constants.js';
 import { mainPageActive } from './main-page.js';
 import { clipPageActive } from './clip-page.js';
+import { appState } from '../app/state.js';
+import { focusedTrack } from '../track/focus.js';
+import { GROUP_SIZE } from '../track/ref.js';
 import { sessionPaintGrid } from './session.js';
+import { sessionStepColor } from './track-select.js';
 import { loopEndBar, loopStartBar, occHasStep, seqState, stepInLoop } from './state.js';
 import { stepRecActive, stepRecCanGoLeft, stepRecHead } from './step-rec.js';
 import { cachedSetLED, cachedSetButtonLED, cachedSetAnimLED, ledFrameReset, seqLedsInvalidate } from './led-cache.js';
@@ -135,11 +139,14 @@ function trackHasActiveNote(track: number): boolean {
     return false;
 }
 
-/* Four buttons, always — this loop counts HARDWARE, not tracks, which is why it
- * stays at 4 while everything around it moved to TRACK_COUNT. */
+/* Four buttons, always — this loop counts HARDWARE, not tracks. With 16 tracks
+ * the buttons address the focused group's quartet, so the whole row changes
+ * colour when the group moves. That is what makes the group readable at a
+ * glance from the track buttons alone. */
 function paintTrackButtons(): void {
-    for (let t = 0; t < 4; t++) {
-        const cc = CC_TRACK_END - t; // CC 43 = track 0
+    for (let n = 0; n < GROUP_SIZE; n++) {
+        const t  = focusedTrack(n);
+        const cc = CC_TRACK_END - n; // CC 43 = the group's first track
         cachedSetButtonLED(cc, trackButtonColor(t, trackHasActiveNote(t), seqState.muted[t]));
     }
 }
@@ -202,12 +209,13 @@ export function seqLedsTick(
         lastLoopMode = seqState.loopMode;
         seqLedsInvalidate();
     }
-    // Session mode owns the 32-pad clip grid; the step row is not part of it,
-    // so keep the step button LEDs dark (the master FX chain has no per-step
-    // editing). Pads paint first for priority within the frame budget.
+    // Session mode owns the 32-pad clip grid (the focused group's 4 tracks),
+    // and the step row becomes the 16-track selector. Pads paint first for
+    // priority within the frame budget.
     if (seqState.sessionMode) {
         sessionPaintGrid(cachedSetAnimLED, PAD_MIN);
-        for (let i = 0; i < NUM_STEP_BUTTONS; i++) cachedSetLED(STEP_NOTE_BASE + i, C_BLACK);
+        for (let i = 0; i < NUM_STEP_BUTTONS; i++)
+            cachedSetLED(STEP_NOTE_BASE + i, sessionStepColor(i, appState.focusGroup));
         paintTrackButtons();
         paintStepIcons(shiftHeld);
         paintAffordances(currentView, barOffset, maxOff, shiftHeld);

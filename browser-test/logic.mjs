@@ -2636,7 +2636,9 @@ _log('\nTest: drumPadOn');
 
     // Recording: playhead step is red instead of green.
     resetSeqState(); seqLedsInvalidate();
-    const { C_REC_RED: C_REC_RED_LED } = await import('../dist/esm/seq/colors.js');
+    const { C_REC_RED: C_REC_RED_LED,
+            TRACK_COLOR: TRACK_COLOR_LED,
+            TRACK_COLOR_DIM: TRACK_COLOR_DIM_LED } = await import('../dist/esm/seq/colors.js');
     seqState.watchTrack = 0; seqState.lenSteps = 16; seqState.playing = true;
     seqState.recording = true; seqState.curStep = 0;
     ledCalls.length = 0;
@@ -2644,16 +2646,18 @@ _log('\nTest: drumPadOn');
     byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
     eq('playhead red when recording', byNote[16], C_REC_RED_LED);
 
-    // Session (master chain) mode: step row goes dark — there is no per-step
-    // editing for master FX, so notes 16..31 must be painted black.
+    // Session mode: the step row is the 16-track selector, NOT steps. Step
+    // occupancy is set here precisely to prove it is ignored — the row shows
+    // track colours regardless of what the watched clip contains.
     resetSeqState(); seqLedsInvalidate();
     seqState.sessionMode = true;
     seqState.lenSteps = 16; occToggleStep(0); occToggleStep(4);
     ledCalls.length = 0;
     for (let i = 0; i < 3; i++) seqLedsTick();   // drain progressive cold frame
     byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
-    eq('session step 0 off', byNote[16], 0);
-    eq('session step 4 off', byNote[20], 0);
+    eq('session step 0 shows track 0 bright (group 0 focused)', byNote[16], TRACK_COLOR_LED[0]);
+    eq('session step 4 shows track 4 dim (group 1 unfocused)', byNote[20], TRACK_COLOR_DIM_LED[4]);
+    eq('session step row ignores clip occupancy', byNote[16] === 120, false);
 
     globalThis.setLED = origSetLED;
     globalThis.setButtonLED = origSetButtonLED;
@@ -11771,6 +11775,21 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 
   eq('out-of-range selection ignored', (selectTrack(99), appState.activeTrack.index), 9);
   selectTrack(0);
+}
+
+{
+  _log('\nsession track selector:');
+  const { sessionStepColor } = await import('../dist/esm/seq/track-select.js');
+  const { TRACK_COLOR, TRACK_COLOR_DIM } = await import('../dist/esm/seq/colors.js');
+
+  /* The focused quad is full brightness; everything else is that track's own
+   * dim colour. The BRIGHT QUAD'S POSITION is what identifies the group —
+   * colour is the backup cue, not the only one. */
+  eq('focused group step is bright', sessionStepColor(4, 1), TRACK_COLOR[4]);
+  eq('focused group last step is bright', sessionStepColor(7, 1), TRACK_COLOR[7]);
+  eq('unfocused step is dim', sessionStepColor(0, 1), TRACK_COLOR_DIM[0]);
+  eq('unfocused far step is dim', sessionStepColor(15, 1), TRACK_COLOR_DIM[15]);
+  eq('group 0 focused lights the first quad', sessionStepColor(0, 0), TRACK_COLOR[0]);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

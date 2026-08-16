@@ -12,6 +12,18 @@ import { seqState } from './state.js';
 import { anyStepHeld, editPad } from './step-edit.js';
 import { stepRecPad, stepRecPadRelease } from './step-rec.js';
 
+/* Are the 32 pads playing notes right now, or are they something else?
+ *
+ * Session view turns them into the clip grid, and router.ts consumes pad events
+ * there before they can reach a synth. That used to be the whole story — but the
+ * engine now answers pads itself on the audio thread, from a map it is pushed,
+ * and it cannot see a UI mode. So the question has to be ASKED rather than
+ * assumed, by both the router and track/pad-route.ts: a clip launch in Session
+ * view was sounding the track's synth underneath it. */
+export function padsPlayNotes(): boolean {
+    return !seqState.sessionMode;
+}
+
 /* Pads currently held, padNote → midiNote, for chord step entry. Mirrors the
  * pads physically down so a step press can place the whole chord. */
 const heldChord = new Map<number, number>();

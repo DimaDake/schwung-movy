@@ -18,6 +18,7 @@ import { copyButton as dupCopyButton } from './duplicate.js';
 import { loopButton } from './loop-mode.js';
 import { momentaryDown, momentaryUp, momentaryUpUngated } from './momentary.js';
 import { sessionDeleteButton } from './session.js';
+import { sessionButtonDown } from './track-select.js';
 import { seqState } from './state.js';
 
 const CC_LOOP = 58;
@@ -65,8 +66,8 @@ export function seqHandleButtonCc(d1: number, d2: number, shiftHeld: boolean): b
         } else {
             setMuteHeld(false);
             if (momentaryUpUngated(CC_MUTE) === 'clean' && !seqState.sessionMode) {
-                if (muteShift || shiftHeld) toggleSolo(appState.activeSlot);
-                else muteTrack(appState.activeSlot);
+                if (muteShift || shiftHeld) toggleSolo(appState.activeTrack.index);
+                else muteTrack(appState.activeTrack.index);
                 appState.dirty = true;
             }
             muteShift = false;
@@ -84,6 +85,7 @@ export function seqHandleButtonCc(d1: number, d2: number, shiftHeld: boolean): b
      * toggles back to Note if already in Session); a hold or any clip launch
      * while held reverts to the prior view on release. */
     if (d1 === CC_NOTE_SESSION) {
+        sessionButtonDown(d2 > 0);   // ends trackSelectHold on release (the switch commits)
         if (d2 > 0) {
             sessionPrev = seqState.sessionMode;
             momentaryDown(d1, () => { seqState.sessionMode = sessionPrev; });

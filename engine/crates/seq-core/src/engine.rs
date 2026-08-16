@@ -2211,6 +2211,37 @@ mod tests {
         Engine::new(RATE, 12000)
     }
 
+    #[test]
+    fn a_step_on_one_track_does_not_appear_on_others() {
+        // Reported on device: entering steps on track 1 also set them on
+        // tracks 5, 9 and 13 — a stride-4 alias.
+        let mut e = engine();
+        apply_batch(&mut e, "tog 0 0 60 100", &mut Vec::new());
+        for t in 1..NUM_TRACKS {
+            let n = e.tracks[t].active().notes.len();
+            assert_eq!(n, 0, "track {} gained a note from a track-0 edit", t);
+        }
+        assert_eq!(e.tracks[0].active().notes.len(), 1, "track 0 kept its note");
+    }
+
+    #[test]
+    fn engine_has_sixteen_tracks() {
+        let e = engine();
+        assert_eq!(e.tracks.len(), 16, "engine must expose 16 tracks");
+    }
+
+    #[test]
+    fn status_reports_every_track() {
+        let e = engine();
+        let s = e.status();
+        let mute = s.split("mute=").nth(1).unwrap().split(' ').next().unwrap();
+        assert_eq!(mute.len(), 16, "mute= carries one flag per track");
+        let sess = s.split("sess=").nth(1).unwrap().split(' ').next().unwrap();
+        assert_eq!(sess.split(',').count(), 16, "sess= carries one group per track");
+        let act = s.split("act=").nth(1).unwrap().split(' ').next().unwrap();
+        assert_eq!(act.split(',').count(), 16, "act= carries one group per track");
+    }
+
     /// Run blocks until `ticks` master ticks have elapsed; collect events.
     fn run_ticks(e: &mut Engine, ticks: u64) -> Vec<OutEvent> {
         let mut out = Vec::new();
@@ -4017,7 +4048,9 @@ mod tests {
         e.stop(&mut out); // stop drains gates (silences) → active set empties
         let s = e.status();
         let act = s.split("act=").nth(1).unwrap().split(' ').next().unwrap();
-        assert_eq!(act, ",,,"); // all four tracks empty
+        // One empty group per track: the separator count, not a fixed literal,
+        // so widening NUM_TRACKS does not need this test edited again.
+        assert_eq!(act, ",".repeat(NUM_TRACKS - 1));
     }
 
     #[test]
@@ -4118,7 +4151,9 @@ mod tests {
         apply_batch(&mut e, "mute 1 1", &mut out);
         let s = e.status();
         let m = s.split("mute=").nth(1).unwrap().split(' ').next().unwrap();
-        assert_eq!(m, "0100"); // track 1 muted
+        let mut want = vec!['0'; NUM_TRACKS];
+        want[1] = '1';
+        assert_eq!(m, want.into_iter().collect::<String>(), "track 1 muted");
     }
 
     #[test]

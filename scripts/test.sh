@@ -73,6 +73,11 @@ with open(\"/dev/shm/schwung-control\", \"r+b\") as f:
     mm.close()
 "'
 sleep 1.5   # allow fresh JS context + init + first hierarchy poll
+# movy opens on schwung's focused slot, which is device state this suite does
+# not own. The fixture's synth is on track 0, and every check below reads that
+# track's params — on any other slot they read an empty chain and the suite
+# reports feature failures that are really state drift.
+ts_focus_track0
 pass "Movy opened fresh"
 
 # ── 5. Inject knob turns ─────────────────────────────────────────────────────
@@ -145,9 +150,9 @@ echo ""
 echo -e "${BLD}=== Results ===${RST}"
 
 # Init
-if echo "$LOG" | qgrep "init: activeSlot="; then
-    SLOT=$(echo "$LOG" | grep "init: activeSlot=" | tail -1 | grep -o "activeSlot=[0-9]*" | cut -d= -f2)
-    pass "Module loaded — targeting slot $SLOT"
+if echo "$LOG" | qgrep "init: activeTrack="; then
+    SLOT=$(echo "$LOG" | grep "init: activeTrack=" | tail -1 | grep -o "activeTrack=[0-9]*" | cut -d= -f2)
+    pass "Module loaded — opened on track $SLOT, then focused track 1"
 else
     fail "init never ran (syntax error or path issue?)"
 fi

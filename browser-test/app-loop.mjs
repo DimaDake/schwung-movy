@@ -6,6 +6,8 @@
  * input→LED pipeline — the layer the device cannot read back. Run from movy
  * root: node browser-test/app-loop.mjs */
 
+import { trackRef, TRACK_COUNT } from '../dist/esm/track/ref.js';
+import { selectTrack, focusGroupStep } from '../dist/esm/track/focus.js';
 import { installEnv } from './env.mjs';
 import { installMockEngine } from './mock-engine.mjs';
 import { MOCK_SYNTHS } from './mock-synth.mjs';
@@ -233,7 +235,7 @@ _log('\napp-loop: knob turn while a step is held writes automation');
     appState.trackModels[0][1].reload();
     advance(12);                              // settle engine + hierarchy
     appState.currentView = VIEW_KNOBS;
-    appState.activeSlot = 0;
+    appState.activeTrack = trackRef(0);
 
     // Step-automation mode + turning the Volume knob (CC 72 = knob 1) auto-assigns
     // a lane and writes a lock at the held step.
@@ -269,7 +271,7 @@ _log('\napp-loop: param page repaints when held-step automation changes');
     appState.trackModels[0][1].reload();
     advance(12);
     appState.currentView = VIEW_KNOBS;
-    appState.activeSlot = 0;
+    appState.activeTrack = trackRef(0);
 
     // Enter step-automation and turn knob 1 once to assign a lane + write a lock.
     seqState.stepAutoMode = true; seqState.holdStep = 4;
@@ -348,11 +350,11 @@ _log('\napp-loop: octave buttons disabled on drum track');
 {
     resetApp();
     const { keyboardState } = await import('../dist/esm/keyboard/state.js');
-    const octBefore = keyboardState.octave[appState.activeSlot];
+    const octBefore = keyboardState.octave[appState.activeTrack.index];
     for (const k of Object.keys(buttonLeds)) delete buttonLeds[k];
     sendMidi([0xB0, 55, 127]); // MoveUp press
     advance(1);
-    eq('drum track: MoveUp does not shift octave', keyboardState.octave[appState.activeSlot], octBefore);
+    eq('drum track: MoveUp does not shift octave', keyboardState.octave[appState.activeTrack.index], octBefore);
     eq('drum track: MoveUp button LED stays dark', buttonLeds[55] ?? 0, 0);
 }
 
@@ -370,13 +372,13 @@ _log('\napp-loop: octave buttons flash on melodic track');
     eq('melodic idle: MoveUp button dim', buttonLeds[55], 16);
     eq('melodic idle: MoveDown button dim', buttonLeds[54], 16);
 
-    const octBefore = keyboardState.octave[appState.activeSlot];
+    const octBefore = keyboardState.octave[appState.activeTrack.index];
     for (const k of Object.keys(buttonLeds)) delete buttonLeds[k];
 
     sendMidi([0xB0, 55, 127]); // MoveUp press
     advance(1);
     eq('melodic: MoveUp shifts the active track up an octave',
-        keyboardState.octave[appState.activeSlot], octBefore + 1);
+        keyboardState.octave[appState.activeTrack.index], octBefore + 1);
     eq('melodic: MoveUp button lights white', buttonLeds[55], 124); // WHITE_BRIGHT
 
     sendMidi([0xB0, 55, 0]); // MoveUp release
@@ -464,7 +466,7 @@ _log('\napp-loop: step page navigation + knob editing');
     appState.trackModels[0][1].reload();
     advance(12);
     appState.currentView = VIEW_KNOBS;
-    appState.activeSlot = 0;
+    appState.activeTrack = trackRef(0);
 
     sendMidi([0x90, 16, 127]);                // hold step 1 (abs step 0)
     occToggleStep(0);                         // the held step has a note (step page available)
@@ -526,7 +528,7 @@ _log('\napp-loop: tick renders the step page');
     appState.trackModels[0][1].reload();
     advance(12);
     appState.currentView = VIEW_KNOBS;
-    appState.activeSlot = 0;
+    appState.activeTrack = trackRef(0);
     sendMidi([0x90, 16, 127]);
     occToggleStep(0);                         // held step has a note
     seqState.stepAutoMode = true;
@@ -1526,7 +1528,7 @@ _log('\napp-loop: a tick builds each ViewModel at most once');
      * knobs on its costliest page turned visibly behind the hardware. */
     resetApp();
     appState.currentView = VIEW_KNOBS;
-    appState.activeSlot  = 0;
+    appState.activeTrack  = trackRef(0);
 
     const counts = new Map();
     for (const track of appState.trackModels) {
@@ -1545,6 +1547,327 @@ _log('\napp-loop: a tick builds each ViewModel at most once');
     for (const n of counts.values()) if (n > worst) worst = n;
     eq(`no model is built more than once per tick (worst ${worst}/${TICKS} ticks)`,
         worst <= TICKS, true);
+}
+
+_log('\napp-loop: session view selects tracks from the step row');
+{
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.file_param);
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    advance(6);
+    selectTrack(0);
+
+    /* Latch Session view: a quick press+release of the Note/Session button. */
+    sendMidi([0xB0, 50, 127]);
+    sendMidi([0xB0, 50, 0]);
+    advance(1);
+    eq('session view latched', seqState.sessionMode, true);
+
+    /* Latched Session view shows the group pulse and nothing else. The
+     * selected-track read-out belongs to the HELD button — holding it is a
+     * question ("where am I?"), while a latched row is somewhere you sit and
+     * work, and a permanent white step there just competes with the group. */
+    {
+        const { C_WHITE } = await import('../dist/esm/seq/colors.js');
+        const { seqLedsInvalidate } = await import('../dist/esm/seq/leds.js');
+        const msgs = [];
+        const real = globalThis.move_midi_internal_send;
+        globalThis.move_midi_internal_send = (m) => msgs.push(m);
+        seqLedsInvalidate();
+        advance(6);
+        globalThis.move_midi_internal_send = real;
+        // Notes 16-31 only — the clip-grid pads (68-99) pulse white legitimately.
+        const white = msgs.filter((m) => m[2] >= STEP_NOTE_BASE
+            && m[2] < STEP_NOTE_BASE + 16 && m[3] === C_WHITE);
+        eq('latched session shows no white selection on the step row', white.length, 0);
+    }
+
+    /* A step press in latched Session view IS the track-button gesture: it
+     * drops straight onto that track — pads, screen and knobs. */
+    engine.ops.length = 0;
+    sendMidi([0x90, 16 + 9, 127]);
+    advance(1);
+    eq('step press selected track 9', appState.activeTrack.index, 9);
+    eq('step press refocused group 2', appState.focusGroup, 2);
+    eq('step press left session view for the track', seqState.sessionMode, false);
+    /* The bug this fixes: the selector moved the screen and the pads but not the
+     * sequencer, and the engine re-pinned watchTrack from `trk=` on every status
+     * poll — so every step edit kept landing on the track you came from. */
+    eq('step press retargeted the watched track', seqState.watchTrack, 9);
+    eq('step press emitted the engine watch', engine.ops.some((o) => o === 'watch 9'), true);
+
+    /* Quick release = tap = latch: you stay on track 9, and the release must not
+     * toggle a note under the finger that was only ever selecting a track. */
+    sendMidi([0x90, 16 + 9, 0]);
+    advance(1);
+    eq('a tap keeps the new track', appState.activeTrack.index, 9);
+    eq('a tap stays out of session view', seqState.sessionMode, false);
+    eq('the selecting press entered no note', occHasStep(9), false);
+
+    /* Hold the step instead and the release reverts — the track-button peek. */
+    sendMidi([0xB0, 50, 127]); sendMidi([0xB0, 50, 0]); advance(1);   // back to Session
+    eq('re-latched session view', seqState.sessionMode, true);
+    {
+        const realNow = Date.now; let t = 50000; Date.now = () => t;
+        sendMidi([0x90, 16 + 2, 127]);
+        advance(1);
+        eq('peek switched to track 2', appState.activeTrack.index, 2);
+        t += 600;                                    // past the 500 ms hold threshold
+        sendMidi([0x90, 16 + 2, 0]);
+        advance(1);
+        Date.now = realNow;
+        eq('a held step reverts to the track it came from', appState.activeTrack.index, 9);
+        eq('a held step reverts to session view', seqState.sessionMode, true);
+        eq('the revert put the watched track back', seqState.watchTrack, 9);
+    }
+
+    /* Octave up moves the focused group without changing the active track, and
+     * scrolls the way the grid reads: up walks towards track 1, down away. */
+    sendMidi([0xB0, 55, 127]);
+    sendMidi([0xB0, 55, 0]);
+    advance(1);
+    eq('octave up moved to group 1', appState.focusGroup, 1);
+    eq('octave up left the active track alone', appState.activeTrack.index, 9);
+
+    sendMidi([0xB0, 54, 127]);
+    sendMidi([0xB0, 54, 0]);
+    advance(1);
+    eq('octave down moved back to group 2', appState.focusGroup, 2);
+
+    /* The LEDs must agree with the buttons: at the first group there is nothing
+     * above, so up is the dark one. */
+    while (appState.focusGroup > 0) { sendMidi([0xB0, 55, 127]); sendMidi([0xB0, 55, 0]); advance(1); }
+    eq('at the first group, up is off', buttonLeds[55], 0);
+    eq('at the first group, down is dim', buttonLeds[54], 16);
+
+    selectTrack(0);
+    resetSeqState();
+}
+
+_log('\napp-loop: holding Session keeps the step row a track selector');
+{
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.file_param);
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    advance(6);
+    selectTrack(0);
+
+    /* Session held (no release yet): the pads are the clip grid, as before. */
+    sendMidi([0xB0, 50, 127]);
+    advance(2);
+    eq('session view while the button is held', seqState.sessionMode, true);
+    eq('the session button lights bright while active', buttonLeds[50], 124);
+
+    /* A step press lands on the track — pads, screen, knobs — but the row stays
+     * a selector, because the button is still down. */
+    sendMidi([0x90, 16 + 5, 127]);
+    sendMidi([0x90, 16 + 5, 0]);
+    advance(2);
+    eq('held-session step selected track 5', appState.activeTrack.index, 5);
+    eq('held-session step left the clip grid', seqState.sessionMode, false);
+    eq('the step row is still the selector', seqState.trackSelectHold, true);
+    eq('held-session step retargeted the sequencer', seqState.watchTrack, 5);
+    eq('held-session step emitted the engine watch',
+        engine.ops.some((o) => o === 'watch 5'), true);
+    eq('the selecting press entered no note',
+        engine.ops.some((o) => o.startsWith('tog ') || o.startsWith('ltog ')), false);
+
+    /* The row is visibly the SELECTOR, not steps: every one of the 16 buttons
+     * carries its own track's colour, painted through the animation channel.
+     * This is the assertion that fails if the hold ever falls back to the
+     * ordinary step painter. */
+    {
+        const { TRACK_COLOR, C_BLACK, C_WHITE } = await import('../dist/esm/seq/colors.js');
+        const { seqLedsInvalidate } = await import('../dist/esm/seq/leds.js');
+        const msgs = [];
+        const realSend = globalThis.move_midi_internal_send;
+        globalThis.move_midi_internal_send = (m) => msgs.push(m);
+        seqLedsInvalidate();
+        advance(6);
+        globalThis.move_midi_internal_send = realSend;
+        /* cachedSetAnimLED sends the base on channel 0 first (the handshake),
+         * then the pulse colour on the animation channel — so the two halves of
+         * one step have to be read apart, by channel, not by taking the last
+         * message for the note. */
+        const sentOn = (note, chan) => {
+            const hit = msgs.filter((m) => m[2] === note && (m[1] & 0x0f) === chan);
+            return hit.length ? hit[hit.length - 1][3] : undefined;
+        };
+        const pulseOf = (note) => {
+            const hit = msgs.filter((m) => m[2] === note && (m[1] & 0x0f) !== 0);
+            return hit.length ? hit[hit.length - 1][3] : undefined;
+        };
+
+        /* Track 5 is selected and the Session button is still down, so the quad
+         * is 4-7 with track 5 as the held read-out: SOLID WHITE, no animation,
+         * while its three neighbours pulse black->their own colour. Stillness is
+         * what separates it — a pulse would share the group's one channel. */
+        eq('the selected track is solid white', sentOn(STEP_NOTE_BASE + 5, 0), C_WHITE);
+        eq('and does not animate at all', pulseOf(STEP_NOTE_BASE + 5), undefined);
+
+        const neighbours = [4, 6, 7];
+        const wrongPulse = neighbours.filter((i) => pulseOf(STEP_NOTE_BASE + i) !== TRACK_COLOR[i]);
+        eq('its group neighbours pulse to their own colours', wrongPulse.length, 0);
+        eq('its group neighbours trough to black',
+            neighbours.every((i) => sentOn(STEP_NOTE_BASE + i, 0) === C_BLACK), true);
+
+        /* The other twelve do not animate at all — they sit solid in their own
+         * colour on channel 0, which is what makes the pulsing quad's POSITION
+         * the cue that identifies the group. */
+        const outside = [...Array(16).keys()].filter((i) => i < 4 || i > 7);
+        const wrongSolid = outside.filter((i) => sentOn(STEP_NOTE_BASE + i, 0) !== TRACK_COLOR[i]);
+        eq('every track outside the quad sits solid in its colour', wrongSolid.length, 0);
+        eq('and none of them pulse',
+            outside.every((i) => pulseOf(STEP_NOTE_BASE + i) === undefined), true);
+    }
+
+    /* …so the next step press switches again, without re-entering Session. */
+    sendMidi([0x90, 16 + 12, 127]);
+    sendMidi([0x90, 16 + 12, 0]);
+    advance(2);
+    eq('a second press switched again', appState.activeTrack.index, 12);
+    eq('the second press refocused group 3', appState.focusGroup, 3);
+    eq('still not the clip grid', seqState.sessionMode, false);
+
+    /* Releasing Session COMMITS — you stay where you landed, and it must not
+     * latch Session view on the way out.
+     *
+     * It also hands the row back from the selector's cachedSetAnimLED to the
+     * ordinary step painter's cachedSetLED — two caches over the same 16 notes
+     * — so the whole row has to come back through setLED. */
+    for (const k of Object.keys(ledByPad)) delete ledByPad[k];
+    sendMidi([0xB0, 50, 0]);
+    advance(4);
+    const stepRowRepainted = [...Array(16).keys()]
+        .filter((i) => ledByPad[STEP_NOTE_BASE + i] !== undefined).length;
+    eq('the whole step row is repainted on the way out', stepRowRepainted, 16);
+    eq('release commits the last track', appState.activeTrack.index, 12);
+    eq('release ends the selector row', seqState.trackSelectHold, false);
+    eq('release leaves you in track view', seqState.sessionMode, false);
+    eq('the session button falls back to dim', buttonLeds[50], 16);
+
+    /* And the row is real steps again: a press now enters a note. */
+    engine.ops.length = 0;
+    sendMidi([0x90, 16 + 3, 127]);
+    sendMidi([0x90, 16 + 3, 0]);
+    advance(2);
+    eq('the row is steps again', engine.ops.some((o) => o.startsWith('tog ')), true);
+
+    selectTrack(0);
+    resetSeqState();
+}
+
+_log('\napp-loop: track state exists for every track, not just the first four');
+{
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.file_param);
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    advance(6);
+
+    eq('per-track chain index covers every track', appState.trackChainIndex.length, TRACK_COUNT);
+    eq('per-track view covers every track', appState.trackView.length, TRACK_COUNT);
+    eq('per-track models cover every track', appState.trackModels.length, TRACK_COUNT);
+
+    /* The device symptom: pressing a track button in any group but the first
+     * set currentView to undefined, because trackView[4..15] did not exist.
+     * The UI then had no view to render and selection looked broken. */
+    selectTrack(0);
+    const viewBefore = appState.currentView;
+    focusGroupStep(1);                        // focus tracks 4-7
+    sendMidi([0xB0, 43, 127]);                // first track button
+    sendMidi([0xB0, 43, 0]);
+    advance(2);
+    eq('track button in group 1 selected track 4', appState.activeTrack.index, 4);
+    eq('currentView is still a real view', typeof appState.currentView, 'number');
+    eq('a movy track has models', Array.isArray(appState.trackModels[4]), true);
+    eq('a movy track has a chain index', typeof appState.trackChainIndex[4], 'number');
+
+    selectTrack(0);
+    appState.currentView = viewBefore;
+    resetSeqState();
+}
+
+_log('\napp-loop: the module browser loads onto a movy-hosted track');
+{
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { openBrowser, loadSelectedModule } = await import('../dist/esm/browser/handler.js');
+    const { browserState } = await import('../dist/esm/browser/state.js');
+    const { CHAIN_SLOTS } = await import('../dist/esm/chain/config.js');
+
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.file_param);
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    advance(6);
+    installMockEngine();
+
+    /* Capture what actually reaches the engine — the whole question is whether
+     * a browser load on a movy track becomes a ch<N>: write rather than a
+     * schwung slot write that would silently hit another track. */
+    const engineWrites = [];
+    const realSet = globalThis.host_module_set_param_blocking;
+    globalThis.host_module_set_param_blocking = (k, v, t) => {
+        engineWrites.push([k, v]);
+        return realSet ? realSet(k, v, t) : true;
+    };
+
+    selectTrack(5);                       // movy track => chain instance 1
+    eq('track 5 is movy-hosted', appState.activeTrack.kind, 'movy');
+
+    openBrowser(CHAIN_SLOTS[1], appState.activeTrack.index, () => {});   // synth slot
+    eq('browser opened for the movy track', browserState.paramSlot, 5);
+
+    /* Pick the first real module (index 0 is the synthetic "NONE"). */
+    browserState.browseIndex = browserState.modules.length > 1 ? 1 : 0;
+    const picked = browserState.modules[browserState.browseIndex];
+    loadSelectedModule();
+
+    const moduleWrite = engineWrites.find(([k]) => k.endsWith(':synth:module'));
+    eq('the load reached the engine as a chain write', !!moduleWrite, true);
+    if (moduleWrite) {
+        /* Track 5 is the SECOND movy track, so chain instance 1 — an off-by-one
+         * here would load the module onto a different track entirely. */
+        eq('addressed chain instance 1 (track 5)', moduleWrite[0], 'ch1:synth:module');
+        eq('wrote the picked module id', moduleWrite[1], picked.id);
+    }
+
+    globalThis.host_module_set_param_blocking = realSet;
+    uninstallMockEngine();
+    selectTrack(0);
+    resetSeqState();
+}
+
+_log('\napp-loop: the step view follows the FOCUSED track, not the button index');
+{
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.file_param);
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    advance(6);
+    selectTrack(0);
+
+    /* Device report: entering steps on track 1 also set them on 5, 9 and 13.
+     * Tracks 1/5/9/13 all sit under the SAME track button, so a handler that
+     * used the raw button index instead of the focused group edited track 0
+     * whichever group was on screen. */
+    focusGroupStep(1);                    // focus tracks 4-7
+    sendMidi([0xB0, 43, 127]);            // first track button
+    sendMidi([0xB0, 43, 0]);
+    advance(2);
+    eq('active track is 4', appState.activeTrack.index, 4);
+    eq('the step view watches track 4, not 0', seqState.watchTrack, 4);
+
+    focusGroupStep(1);                    // group 2 => tracks 8-11
+    sendMidi([0xB0, 42, 127]);            // second track button
+    sendMidi([0xB0, 42, 0]);
+    advance(2);
+    eq('second button in group 2 watches track 9', seqState.watchTrack, 9);
+
+    selectTrack(0);
+    resetSeqState();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

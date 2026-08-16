@@ -11,6 +11,12 @@ declare function shadow_set_param(slot: number, key: string, value: string): boo
  * overwrite each other — multi-field commits (e.g. LFO target+param+enabled)
  * must use this. May be absent in older shims / test env → guard with typeof. */
 declare function shadow_set_param_timeout(slot: number, key: string, value: string, timeoutMs: number): boolean;
+/* Bulk param channel (shadow_ui.c request types 3/4): collapses N round trips
+ * into one and routes to the loaded overtake DSP — for movy, its own engine.
+ * `key` is the routing marker ("overtake_dsp:"); the payload is length-prefixed
+ * (see src/track/bulk.ts). Absent on older shims → guard with typeof. */
+declare function shadow_get_params(slot: number, key: string, payload: string): string | null;
+declare function shadow_set_params(slot: number, key: string, payload: string): boolean;
 declare function shadow_get_ui_slot(): number;
 declare function shadow_send_midi_to_dsp(data: number[]): void;
 declare function host_exit_module(): void;

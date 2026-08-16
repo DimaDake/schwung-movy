@@ -3,6 +3,7 @@ import { refreshParamKey } from './store.js';
 import { undoableEdit } from '../undo/edit.js';
 import { recordPresetState } from '../undo/record.js';
 import { createModelState } from './state.js';
+import type { TrackPort } from '../track/port.js';
 import { loadHierarchy }    from './hierarchy.js';
 import { applyKnobDelta, knobParamInfo, reseedPadParams, refreshModulatedKeys, slotToLocal }   from './store.js';
 import { buildViewModel }   from './viewmodel.js';
@@ -66,8 +67,8 @@ function scanFiles(dir: string, filter: string[]): string[] {
     } catch { return []; }
 }
 
-export function createModel(slot: number, componentKey = 'synth') {
-    const s = createModelState(slot, componentKey);
+export function createModel(port: TrackPort, componentKey = 'synth') {
+    const s = createModelState(port, componentKey);
 
     function numBanks() { return Math.max(1, Math.ceil(s.knobParams.length / KNOBS_PER_PAGE)); }
 
@@ -160,18 +161,18 @@ export function createModel(slot: number, componentKey = 'synth') {
                     // Send in the module's own enum format (name vs index), learned
                     // on read; probe once if this enum was never read.
                     if (s.enumFmt[gi] === undefined) {
-                        s.enumFmt[gi] = enumUsesIndex(p.options, shadow_get_param(s.activeSlot, s.componentKey + ':' + p.key));
+                        s.enumFmt[gi] = enumUsesIndex(p.options, s.port.getParam(s.componentKey + ':' + p.key));
                     }
                     const usesIndex = s.moduleConfig?.enumSetIndex ? true : (s.enumFmt[gi] as boolean);
                     const key = s.componentKey + ':' + p.key;
-                    const old = shadow_get_param(s.activeSlot, key);
-                    undoableEdit((p.label || p.key).toUpperCase(), 'T' + (s.activeSlot + 1), () => {
+                    const old = s.port.getParam(key);
+                    undoableEdit((p.label || p.key).toUpperCase(), 'T' + (s.port.track.index + 1), () => {
                         /* Committing from the overlay is the same lossy inverse
                          * as turning the knob — snapshot the module. */
                         if (p.capturesModuleState) {
-                            recordPresetState(s.activeSlot, s.componentKey);
+                            recordPresetState(s.port.track.index, s.componentKey);
                         }
-                        setChainParam(s.activeSlot, key,
+                        setChainParam(s.port, key,
                             enumSetValue(p.options, idx, usesIndex), old);
                     });
                 }
@@ -184,9 +185,9 @@ export function createModel(slot: number, componentKey = 'synth') {
                     if (fileContentAllows(path, p.fileRequireContains)) {
                         s.fileValues[s.fileOverlay.gi] = path;
                         const key = s.componentKey + ':' + p.key;
-                        const old = shadow_get_param(s.activeSlot, key);
-                        undoableEdit('LOAD FILE', 'T' + (s.activeSlot + 1),
-                            () => setChainParam(s.activeSlot, key, path, old));
+                        const old = s.port.getParam(key);
+                        undoableEdit('LOAD FILE', 'T' + (s.port.track.index + 1),
+                            () => setChainParam(s.port, key, path, old));
                     } else {
                         fileRejected = true;
                     }

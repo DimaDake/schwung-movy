@@ -5,8 +5,10 @@
  * Delete held over a pad copy / delete that clip. Scenes are just pressing a
  * whole column (each pad launches/stops its own track).
  *
- * Pad layout: padNote 68 is bottom-left. The top row is track 0 (matching the
- * track buttons), the leftmost column is clip slot 0.
+ * Pad layout: padNote 68 is bottom-left, the leftmost column is clip slot 0.
+ * The four rows are the FOCUSED GROUP's four tracks (rowTrack below), matching
+ * the track buttons — with 16 tracks the grid shows one quartet at a time and
+ * the octave buttons scroll it.
  *
  * The engine owns clip state; this module emits commands and paints the grid
  * LEDs from the `session` mirror, pulsing queued/stopping/selected cells. */
@@ -18,6 +20,7 @@ import { seqCmd, requestLabelSync } from './engine.js';
 import { seqToast } from './render.js';
 import { seqState } from './state.js';
 import { appState } from '../app/state.js';
+import { focusedTrack } from '../track/focus.js';
 import { dupActive, onUnit as dupOnUnit } from './duplicate.js';
 
 const COLS = 8;
@@ -27,13 +30,20 @@ const ROWS = 4;
  * delete in edit-ops). Copy is handled by the shared duplicate gesture. */
 let deleteHeld = false;
 
+/* Which track a grid row addresses. The four rows are the FOCUSED GROUP's
+ * quartet — the same four the track buttons address — not tracks 0-3. Deriving
+ * it from the row alone pinned the whole grid to the first group: scrolling the
+ * group with the octave buttons moved the step-row selector and the track
+ * buttons while the clip grid kept showing (and launching, and DELETING) the
+ * first four tracks' clips. */
+function rowTrack(rowFromBottom: number): number {
+    return focusedTrack(ROWS - 1 - rowFromBottom); // top row = the group's first track
+}
+
 function padToCell(padNote: number, padMin: number): { track: number; slot: number } | null {
     const idx = padNote - padMin;
     if (idx < 0 || idx >= ROWS * COLS) return null;
-    const rowFromBottom = Math.floor(idx / COLS);
-    const slot = idx % COLS;
-    const track = ROWS - 1 - rowFromBottom; // top row = track 0
-    return { track, slot };
+    return { track: rowTrack(Math.floor(idx / COLS)), slot: idx % COLS };
 }
 
 export function sessionActive(): boolean {
@@ -102,9 +112,8 @@ export function sessionPaintGrid(
     padMin: number,
 ): void {
     for (let idx = 0; idx < ROWS * COLS; idx++) {
-        const rowFromBottom = Math.floor(idx / COLS);
         const slot = idx % COLS;
-        const track = ROWS - 1 - rowFromBottom;
+        const track = rowTrack(Math.floor(idx / COLS));
         const st = seqState.session[track];
         const exists = (st.exist & (1 << slot)) !== 0;
         // Every track shows its own selected slot — no active-track special case.

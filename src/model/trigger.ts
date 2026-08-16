@@ -154,7 +154,7 @@ export function applyTriggerDelta(
 
     if (sendIndex !== null) {
         const value = enumSetValue(p.options, sendIndex, enumFmt());
-        mlog('trigger slot=' + s.activeSlot + ' key=' + s.componentKey + ':' + ioKey + ' val=' + value);
+        mlog('trigger slot=' + s.port.track.index + ' key=' + s.componentKey + ':' + ioKey + ' val=' + value);
         /* A trigger fires an action rather than holding a value, so there is no
          * previous value to return to — the write itself is untracked rather
          * than given an inverse that would undo nothing.
@@ -166,14 +166,14 @@ export function applyTriggerDelta(
         const rewrites = p.capturesModuleState && sendIndex === idx.trigger;
         if (rewrites) {
             beginEdit({
-                key: 'trigger:' + s.activeSlot + ':' + ioKey,
+                key: 'trigger:' + s.port.track.index + ':' + ioKey,
                 verb: (p.label || p.key).toUpperCase(),
-                target: 'T' + (s.activeSlot + 1),
+                target: 'T' + (s.port.track.index + 1),
                 close: CLOSE.IMMEDIATE,
             });
-            recordPresetState(s.activeSlot, s.componentKey);
+            recordPresetState(s.port.track.index, s.componentKey);
         }
-        setChainParamUntracked(s.activeSlot, s.componentKey + ':' + ioKey, value);
+        setChainParamUntracked(s.port, s.componentKey + ':' + ioKey, value);
         if (rewrites) endEdit();
     }
     s.dirty = true;

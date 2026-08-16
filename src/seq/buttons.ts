@@ -6,6 +6,7 @@
 
 import { C_BLACK } from './colors.js';
 import { WHITE_BRIGHT, WHITE_DIM, WHITE_OFF } from './colors.js';
+import { groupStep } from '../track/focus.js';
 /** Back: dim everywhere it does something — and at the chain root it does,
  *  opening the Leave menu (Background / Close Movy). It used to sit dark there,
  *  which advertised the root as a dead end. */
@@ -31,6 +32,13 @@ export function arrowLedColor(dir: number, barOffset: number, maxOffset: number)
 export function stepRecArrowColor(dir: number, canGoLeft: boolean, blink: boolean): number {
     if (dir < 0 && !canGoLeft) return WHITE_OFF;
     return blink ? WHITE_BRIGHT : WHITE_DIM;
+}
+
+/** Octave up/down move the focused group in Session view. Off at the travel
+ *  limit, dim when a move exists — the same affordance rule the bar arrows use,
+ *  so "lit means pressable" stays true everywhere on the panel. */
+export function groupArrowColor(dir: number): number {
+    return groupStep(dir) >= 0 ? WHITE_DIM : WHITE_OFF;
 }
 
 /** Sample button has no movy action → off (RGB black). */

@@ -14,6 +14,7 @@
  * intact-looking UI. seq/persist.ts pairs every state restore with a label sync
  * for exactly this reason; an undo restore is the same operation. */
 
+import { portFor } from '../track/registry.js';
 import { mlog } from '../log.js';
 import { seqCmd, engineGeneration, requestLabelSync } from '../seq/engine.js';
 import { currentSetUuid } from '../seq/persist.js';
@@ -36,7 +37,7 @@ import { captureModuleState, dumpModuleParams, stateIsParsable } from './module-
 let nextRestoreId = 1_000_000;
 
 function setChain(slot: number, key: string, value: string): void {
-    if (typeof shadow_set_param === 'function') shadow_set_param(slot, key, value);
+    portFor(slot).setParam(key, value);
 }
 
 /** Free engine slots the stacks have let go of. Called from the app tick. */
@@ -56,7 +57,7 @@ export function flushOrphanedSnaps(): void {
 function moduleDrifted(e: UndoEntry, _undoing: boolean): boolean {
     const op = e.moduleOp;
     if (!op || typeof shadow_get_param !== 'function') return false;
-    const live = shadow_get_param(op.slot, moduleReadKey(op.componentKey)) || '';
+    const live = portFor(op.slot).getParam( moduleReadKey(op.componentKey)) || '';
     if (live === '') return false;   // unreadable or a cleared slot: can't tell
     return !op.oldIds.includes(live) && !op.newIds.includes(live);
 }

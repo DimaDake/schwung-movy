@@ -30,9 +30,9 @@ export function loadHierarchy(s: ModelState): void {
     s.detentAccum  = [];
     s.hierarchyKey = s.activeModuleName;
 
-    mlog('loadHierarchy: slot=' + s.activeSlot + ' module=' + s.activeModuleName);
+    mlog('loadHierarchy: slot=' + s.port.track.index + ' module=' + s.activeModuleName);
     const prevModuleId = s.moduleId;
-    s.moduleId = shadow_get_param(s.activeSlot, moduleReadKey(s.componentKey)) || '';
+    s.moduleId = s.port.getParam(moduleReadKey(s.componentKey)) || '';
 
     s.moduleConfig = loadModuleConfig(s.moduleId, s.componentKey);
     /* Only a genuine module change invalidates per-param gesture state. A reload
@@ -51,7 +51,7 @@ export function loadHierarchy(s: ModelState): void {
      * never drifts its focused pad away from movy's manual selection). */
     if (s.moduleConfig?.setOnLoad) {
         for (const [k, v] of Object.entries(s.moduleConfig.setOnLoad)) {
-            shadow_set_param(s.activeSlot, s.componentKey + ':' + k, v);
+            s.port.setParam(s.componentKey + ':' + k, v);
         }
     }
 
@@ -71,7 +71,7 @@ export function loadHierarchy(s: ModelState): void {
      * preserves the publish order for the no-hierarchy fallback (B1). */
     const cpMap: Record<string, HierParam & { name?: string }> = {};
     const cpOrder: string[] = [];
-    const chainParamsRaw = shadow_get_param(s.activeSlot, s.componentKey + ':chain_params');
+    const chainParamsRaw = s.port.getParam(s.componentKey + ':chain_params');
     if (chainParamsRaw) {
         try {
             const arr = JSON.parse(chainParamsRaw) as Array<{ key?: string }>;
@@ -80,7 +80,7 @@ export function loadHierarchy(s: ModelState): void {
         } catch (e) { mlog('chain_params parse error: ' + e); }
     }
 
-    const raw = shadow_get_param(s.activeSlot, s.componentKey + ':ui_hierarchy');
+    const raw = s.port.getParam(s.componentKey + ':ui_hierarchy');
     // B1: with no ui_hierarchy and no config we can still build pages from
     // chain_params (handled by the fallback in the generic path below). Only bail
     // when there's genuinely nothing — no hierarchy, no config, no chain_params.
@@ -121,7 +121,7 @@ export function loadHierarchy(s: ModelState): void {
     for (const r of s.visibilityRules) {
         /* One read per rule, at LOAD only. After this the value cache carries
          * it (see hiddenNow in tick.ts) and no further host call is made. */
-        const raw = shadow_get_param(s.activeSlot, s.componentKey + ':' + r.param);
+        const raw = s.port.getParam(s.componentKey + ':' + r.param);
         const opts = (cpMap[r.param]?.options ?? paramDefs[r.param]?.options) ?? null;
         if (!conditionHolds(r, raw, opts)) s.hiddenKeys.add(r.key);
     }

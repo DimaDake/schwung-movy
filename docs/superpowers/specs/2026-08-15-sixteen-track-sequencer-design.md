@@ -19,7 +19,7 @@ Source refs: `schwung` @ `120ba662` (origin/main), `movy` @ `b02e403`.
 | Topology | 4 host tracks (schwung slots 0-3) + 12 movy-hosted chains |
 | Audio | All movy tracks sum into movy's single overtake stereo bus; movy owns their gain/pan/mute |
 | Chain shape | Full parity — `midi_fx1 / synth / fx1 / fx2 / lfo`, the existing `CHAIN_SLOTS` |
-| CPU ceiling | Measure on device first, derive the cap from data |
+| CPU ceiling | Measured per synth (8-725 µs/track); no fixed cap — see `docs/chain-cpu-benchmarks.md` |
 | Persistence | Full `state` blobs per movy track, per set |
 | On close | Movy tracks stop, no warning (the sequencer already stops on close) |
 | Session grid | Focused group only — 4 rows × 8 clip slots, unchanged semantics |
@@ -96,44 +96,136 @@ branch becomes the track selector.
 
 ## 4. Track colours
 
+*Shipped table — see §4.3 for why it has 8 colours and not 16.*
+
 | | track 1 | track 2 | track 3 | track 4 |
 |---|---|---|---|---|
-| **G1** host | Red `127` | Vivid Yellow `7` | Bright Pink `25` | Pure Blue `125` |
-| **G2** movy | Azure Blue `15` | Bright Orange `3` | Mint Green `44` | Hot Magenta `21` |
-| **G3** movy | Cyan `14` | Neon Pink `23` | Ochre `6` | Forest Green `9` |
-| **G4** movy | Teal Green `12` | Sky Blue `47` | Rust Red `27` | Light Yellow `5` |
+| **G1** | Bright Orange `3` | Dark Grass Green `85` | Neon Pink `23` | Royal Blue `16` |
+| **G2** | Blue `33` | Bright Orange `3` | Dull Green `10` | Neon Pink `23` |
+| **G3** | Deep Green `32` | Neon Pink `23` | Navy `17` | Bright Orange `3` |
+| **G4** | Neon Pink `23` | Navy `17` | Bright Orange `3` | Dull Green `10` |
 
 ```
-TRACK_COLOR     = [127,7,25,125, 15,3,44,21, 14,23,6,9, 12,47,27,5]
-TRACK_COLOR_DIM = [ 67,77,113,99, 93,75,89,105, 89,109,75,81, 87,17,67,77]
+TRACK_COLOR     = [3,85,23,16, 33,3,10,23, 32,23,17,3, 23,17,3,10]
+TRACK_COLOR_DIM = [75,78,109,95, 95,75,83,109, 83,109,93,75, 109,93,75,83]
 ```
 
-G1 keeps Move parity. The requirement is not that all 16 are mutually distinct —
-it is that **every row and every column is pairwise distinct**: four tracks
-within a group, and the same track index across groups.
+The requirement is not that all 16 brights are mutually distinct — it is that
+**every row and every column is pairwise distinct**: four tracks within a group,
+and the same track index across groups.
 
 Chosen by search and verified numerically (`browser-test/track-colors.mjs`,
-§7): worst required pair 13.9, under normal vision **and** protanopia **and**
+§7): worst required pair **33.8**, under normal vision **and** protanopia **and**
 deuteranopia, with lightness de-weighted (×0.35) so a pale blue and a royal blue
 do not count as "far apart" — on a 3 mm LED they read the same. No two members
 of one hue family share a row or column, with blue and violet counted as **one**
 family; CIELAB puts pure blue at 306° and electric violet at 311°, which is
 exactly why they look alike on this hardware.
 
-Two honest limitations, both recorded so they are not rediscovered:
+### 4.1 The root-pad constraint (revision, 2026-08-16)
 
-- **Under deuteranopia, yellows collapse onto the playhead's neon green.** This
-  is unavoidable while keeping Move's parity colours — Move's own scheme has the
-  same property. The playhead is disambiguated by *motion*: it moves, track
-  colour does not.
-- **Dim variants collide** across distant cells (Red and Rust Red both dim to
-  Brick). Harmless: only the watched track's dim colour is ever on screen at
-  once.
+The first matrix kept Move's own colours in G1 and scored 13.9. It was wrong in
+a way the numbers could not show. A track colour does not only paint step and
+clip LEDs — it paints the **chromatic root pad**, whose neighbours are grey
+in-scale pads (`C_LIGHTGREY`) and white held pads. On device, the accents for
+tracks 5, 7 and 9 (Azure Blue, Mint Green, Cyan) were indistinguishable from a
+lit in-scale pad.
 
-An earlier attempt at 16 mutually-distinct hues was abandoned with evidence:
-once the playhead green and note white/grey are reserved, this palette holds
-~12 genuinely distinct bright colours, and the search was forced into pairs like
-tan-vs-rust at ΔE 8.
+Two causes, and only one of them was numeric:
+
+- The reserved-colour check reused the **lightness-de-weighted** metric from the
+  track-vs-track checks. Against an achromatic reference that is simply the
+  wrong metric — lightness is one of only two cues left there, not a weak one.
+  At full weight Cyan sits 12 from white and Teal Green 15. Sky Blue `47` and
+  Teal Green `12` were equally bad and had not been reached in use yet.
+- **Azure Blue passes every numeric test** — 80 from white — and still failed on
+  hardware. The reference hex table is derived from the rnbo.move.control docs
+  and describes the palette approximately; Move's LEDs wash out cool hues at
+  brightness in a way no CIELAB figure predicts.
+
+So the guard now carries two rules that are *empirical, not derived*, and the
+comment in `colors.ts` says so:
+
+1. no cool hue (LAB 145°–310°) above L 45;
+2. no pastel (L > 65 with chroma below 0.7·L) at any hue.
+
+Rule 2 was added after the search's first answer put Pale Green `#AEFF99` at
+track 10 — the same washed-out failure on the warm side of rule 1's cutoff.
+
+Move parity for G1 was dropped deliberately. Pinning G1 to Move's colours was
+measured and still reaches 20.7, so parity remains available at that cost if it
+is ever wanted back; the free search reaches 33.8.
+
+Dim variants were re-searched too *(superseded by §4.3, which returns to
+repeats)*: all 16 were made distinct, each sharing its bright
+partner's hue family, separated by at least 9.8 within any row or column. The
+Session step row shows all 16 tracks at once with unfocused groups dimmed, so
+they are compared against each other on screen and duplicates were never as
+harmless as the original note claimed.
+
+### 4.2 A third tier for the Session selector (2026-08-16) — superseded by §4.3
+
+`sessionStepColor` is the only place that puts twelve dim colours on screen at
+once, and the bright quad has to win against them. Everywhere else `dim` is
+either one track's colour (the watched track's empty in-loop steps, where it
+marks the **loop window** and must stay legible) or four muted track buttons —
+so those keep the `dim` tier and only the selector moves to `TRACK_COLOR_DIMMER`.
+
+The fix is not a uniform step down, and the measurements are why. The dim tier
+ranged L 9 to L 33, and a row reads as bright as its brightest members: Violet
+33, Mauve 33, Olive 32, Dull Yellow 31. So each dimmer entry is capped at its
+own dim partner's lightness — the ten already sitting low are unchanged, the six
+outliers come down to meet them. Mean 21.3 → 15.7, spread 8.3 → 4.6, all 16
+still distinct, worst row/column pair 7.6.
+
+Going further was tried and rejected with evidence. This palette has few dark
+chromatic entries: a uniform band at L ≤ 20 cannot produce 16 distinct hue-
+faithful colours at all, and at L ≤ 18 the best available collapses to 6 distinct
+colours with a worst pair of 1.8. Roughly L 15 is the floor for a tier that still
+reads as sixteen colours.
+
+One honest limitation remains:
+
+- **Under deuteranopia, yellows collapse onto the playhead's neon green.** The
+  playhead is disambiguated by *motion*: it moves, track colour does not.
+
+An attempt at 16 *mutually*-distinct hues — every cell far from every other,
+not just within its row and column — was abandoned with evidence: once the
+playhead green and the achromatic pads are reserved and the two hardware rules
+above are applied, the pool is 31 usable colours, and the search is forced into
+pairs like tan-vs-rust at ΔE 8. Row-and-column distinctness is what the UI
+actually needs, and it is what is asserted.
+
+### 4.3 Eight colours, repeated (revision, 2026-08-16)
+
+The 16-distinct table of §4.1 was rejected **on device**. It cleared a worst
+required pair of ΔE 33.8 and still shipped pairs that read as the same colour
+on the hardware: Neon Pink vs Electric Violet, Light Yellow vs Burnt Orange.
+The reason is visible once hue is measured instead of ΔE — those pairs sit 41°
+and 50° apart, and the table's worst row/column **hue** gap was 16°. Nothing
+asserted hue at all; CIELAB rated both pairs as perfectly safe.
+
+So the search was re-run against hue separation, and the honest answer is that
+16 well-separated hues do not exist here. The two hardware bans from §4.1 (no
+cool hue above L 45, no pastels) remove 145° of the wheel, from 139° to 284°.
+
+The rule never required 16 distinct colours — it requires distinctness within a
+row and within a column, which **repeats placed off each other's row and column
+satisfy**. That is the shipped table: a Latin-square arrangement of 8 colours,
+every row/column pair ≥ 58° apart in hue, CIELAB floor 25.0. The floor is lower
+than 33.8 deliberately — the higher number was bought with pairs the eye could
+not tell apart, so hue is the constraint that now decides and CIELAB is kept
+only as a floor. `browser-test/track-colors.mjs` asserts both, plus the
+row/column-uniqueness rule that makes the repeats legitimate.
+
+`TRACK_COLOR_DIMMER` is **removed**. It existed for one caller,
+`sessionStepColor`, and the Session step row is now the track selector
+(`plans/2026-08-16-session-track-selector-design.md`), which paints the row
+differently. The two remaining `dim`
+users — muted track buttons and the watched track's empty in-loop steps, where
+the dim colour marks the loop window — never show twelve dims at once, so the
+tier the extra level was built for no longer exists. Dims repeat exactly where
+the brights repeat, since each is derived from its bright partner's hue.
 
 ---
 
@@ -151,18 +243,28 @@ That enum in `drain_out()` (`movy-dsp/src/lib.rs:100`) is the whole
 audio-routing change. Host tracks keep emitting `midi_send_internal(0x90|track)`
 exactly as today.
 
-### 5.2 Status protocol is the real perf risk
+### 5.2 Status protocol — predicted risk, measured away
 
-Not the track count — the polling. `sess=`, `mute=` and `act=` grow 4× and are
-parsed in QuickJS on every status poll, and movy's tick period *is* its MIDI
-input sampling interval.
+**This section predicted wrong, and the measurement is kept here rather than the
+prediction.** The concern was that `sess=`, `mute=` and `act=` grow 4× and are
+parsed in QuickJS on every poll, so status should carry only the focused group
+with the other 12 tracks on a separate low-cadence poll.
 
-**Status carries only the focused group + the watched track.** The other 12
-tracks' clip-grid state rides a separate low-cadence poll, refreshed on demand
-when the focus group changes. `act=` (currently 4×128) gets the same treatment.
+Measured (`browser-test/perf.mjs`, "status parse cost, 4 vs 16 tracks"):
 
-A perf test asserts the per-tick IPC count and status parse cost do not regress
-against the 4-track baseline.
+| tracks | parse |
+|---|---|
+| 4 | 0.0081 ms |
+| 16 | 0.0117 ms |
+
+**1.46×, not 4×** — sublinear, because the fixed part of the status string
+dominates the per-track part. Against the poll's own ~0.3 ms IPC round trip and
+a 5-15 ms tick, parsing is noise.
+
+So the **full 16-track status ships**, and the split is not built. It would have
+bought nothing and cost staleness in the off-screen groups plus a second
+protocol path to keep correct. The perf test stays as the guard: if a future
+change makes the parse superlinear in track count, it fails.
 
 ### 5.3 Chain hosting in `movy-dsp`
 
@@ -185,7 +287,33 @@ against the 4-track baseline.
 - **Worker thread** for `create_instance`, module loads and state restore.
   `render_block` runs on the SPI thread (SCHED_FIFO 90, core 3, ~900 µs budget):
   no filesystem access, ever.
-- **Per-block CPU meter**, so the ceiling comes from measurement.
+- **CPU: measured, and no cap is needed.** `scripts/measure-chain-cpu.sh` loads
+  chains one at a time and reads the shim's own `render=avg/max` counter (the
+  `Post(us)` half of `spi_timing`, which times
+  `shadow_inprocess_render_to_buffer` — the call that invokes movy's
+  `render_block`; `mix_audio` does NOT move with movy chains and reads a flat
+  7 µs).
+
+  | chains | render avg | per-chain |
+  |---|---|---|
+  | 0 | 27 µs | — |
+  | 1 | 60 µs | +33 |
+  | 3 | 111 µs | +25 |
+  | 6 | 189 µs | +26 |
+
+  **~26 µs per Plaits chain, linear.** Twelve extrapolates to ~340 µs average
+  against the ~900 µs SPI section budget, inside a 2900 µs frame. So the cap the
+  design reserved the right to add is **not built**: it would refuse loads the
+  hardware handles comfortably.
+
+  **Full per-synth data: `docs/chain-cpu-benchmarks.md`.** Seven synths at 1-4
+  held notes, plus the ramp that establishes the work budget (~2000 µs, of which
+  ~1737 µs is available to chains). The spread is 90×: dexed costs 8 µs/track and
+  fills all twelve, helm costs 725 µs/track at four notes and fits two. So a
+  fixed cap would be wrong in both directions — it is the synth and its polyphony
+  that decide, not a track count.
+
+  Loading still dominates anyway (1986 µs for a single module load, §5.2).
 
 Live pad input needs no new IPC: `schwung_shim.c:6950` already delivers internal
 cable-0 note events to the overtake DSP's `on_midi` on the audio thread,

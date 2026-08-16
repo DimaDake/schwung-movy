@@ -10,10 +10,13 @@
  * knobValues). That is why the param domain journals inverses instead of
  * snapshotting, unlike the engine.
  *
- * `browser-test/logic.mjs` fails on any `shadow_set_param(` added outside this
- * file and its short allowlist. */
+ * The write itself now goes through the track's port, so this file no longer
+ * names `shadow_set_param` at all — `src/track/host-port.ts` is the one place
+ * that does. `browser-test/logic.mjs` fails on any direct shadow
+ * param write added outside that file and its short allowlist. */
 
 import { recordParamOp } from '../undo/record.js';
+import type { TrackPort } from '../track/port.js';
 
 /**
  * Write a chain param and record its inverse.
@@ -22,17 +25,17 @@ import { recordParamOp } from '../undo/record.js';
  * no meaningful previous value (a load-time seed), which is recorded as
  * un-undoable rather than guessed at.
  */
-export function setChainParam(slot: number, key: string,
+export function setChainParam(port: TrackPort, key: string,
                               value: string, oldVal: string | null): boolean {
-    if (oldVal !== null && oldVal !== value) recordParamOp(slot, key, oldVal, value);
-    if (typeof shadow_set_param !== 'function') return false;
-    return shadow_set_param(slot, key, value);
+    /* Undo records the track INDEX, which for a host track is its slot number —
+     * so existing undo history stays readable across this refactor. */
+    if (oldVal !== null && oldVal !== value) recordParamOp(port.track.index, key, oldVal, value);
+    return port.setParam(key, value);
 }
 
 /** A write that is deliberately outside undo: infrastructure rather than a
  *  user edit (lane mappings, load-time seeds, the focused drum pad). Named so
  *  the intent is visible at the call site instead of looking like an omission. */
-export function setChainParamUntracked(slot: number, key: string, value: string): boolean {
-    if (typeof shadow_set_param !== 'function') return false;
-    return shadow_set_param(slot, key, value);
+export function setChainParamUntracked(port: TrackPort, key: string, value: string): boolean {
+    return port.setParam(key, value);
 }

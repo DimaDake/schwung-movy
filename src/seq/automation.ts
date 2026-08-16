@@ -7,6 +7,7 @@
  * the ~24 Hz status poll, so we can't reseed from `heldLocks` each turn. We keep
  * a per-(track,lane) live 0..127 accumulator, reseeded only when the edit
  * context changes (held step vs. base), and emit the engine command from it. */
+import { TRACK_COUNT } from '../track/ref.js';
 import type { KnobParamInfo } from '../model/store.js';
 import { endEdit } from '../undo/group.js';
 import { beginGesture, undoableEdit } from '../undo/edit.js';
@@ -28,7 +29,7 @@ export interface LaneEntry {
 
 /* registry[track][lane] = entry | null */
 const registry: (LaneEntry | null)[][] =
-    [0, 1, 2, 3].map(() => new Array<LaneEntry | null>(8).fill(null));
+    Array.from({ length: TRACK_COUNT }, () => new Array<LaneEntry | null>(8).fill(null));
 
 /* Live accumulators, keyed "track:lane" → current 0..127 value, plus the edit
  * context they were seeded for ("h<step>" or "b"). */
@@ -354,7 +355,7 @@ function warmLaneParams(track: number, readValue: (track: number, lane: number) 
  * it (not a single tick that might fire before the host finishes v2_load_synth).
  * Event-driven — nothing runs when no reload is pending, so there is no idle IPC
  * cost — and reads are strided so the window is a handful of reads, not a burst. */
-const warmPending = [0, 0, 0, 0];
+const warmPending = new Array(TRACK_COUNT).fill(0) as number[];
 const WARM_WINDOW = 96;   // ~0.5 s at the ~205 Hz device tick
 const WARM_STRIDE = 16;   // → ~6 reads across the window
 
@@ -372,7 +373,7 @@ export function laneWarmTick(
     readValue: (track: number, lane: number) => void,
     verify?: (track: number, lane: number) => void,
 ): void {
-    for (let t = 0; t < 4; t++) {
+    for (let t = 0; t < TRACK_COUNT; t++) {
         const c = warmPending[t];
         if (c <= 0) continue;
         warmPending[t] = c - 1;

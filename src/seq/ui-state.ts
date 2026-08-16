@@ -3,6 +3,9 @@
  * engine knows nothing about any of it — it is ferried in its own JSON file
  * alongside the state blob. */
 
+import { TRACK_COUNT } from '../track/ref.js';
+import { captureChains, restoreChains } from '../track/chain-persist.js';
+import { mlog } from '../log.js';
 import { keyboardState, OCT_MIN, OCT_MAX } from '../keyboard/state.js';
 import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
 import { SCALES } from './scales.js';
@@ -27,6 +30,9 @@ export function serializeUiState(): string {
         oct:    keyboardState.octave.slice(),
         mutes:  mutesSnapshot(),
         defaultQuant: seqState.defaultQuant,
+        /* Movy-hosted chains. Host tracks are not here: Move's own set file
+         * carries those, and duplicating them would let the two disagree. */
+        chains: captureChains(),
     });
 }
 
@@ -34,8 +40,14 @@ export function serializeUiState(): string {
 export function applyUiState(blob: string): void {
     try {
         const o = JSON.parse(blob);
+        /* Before anything else: the loads are queued one per audio callback, so
+         * the sooner they start the sooner the set sounds like itself. Absent in
+         * blobs written before movy hosted chains, which restoreChains treats as
+         * "nothing to do". */
+        const n = restoreChains(o.chains);
+        if (n > 0) mlog('chains: restoring ' + n + ' movy chain component(s)');
         if (Array.isArray(o.oct)) {
-            for (let t = 0; t < 4; t++)
+            for (let t = 0; t < TRACK_COUNT; t++)
                 keyboardState.octave[t] = clampInt(o.oct[t], OCT_MIN, OCT_MAX, 4);
             keyboardState.rootPc = ((clampInt(o.rootPc, -1e6, 1e6, 0) % 12) + 12) % 12;
         } else if (typeof o.root === 'number') {
@@ -44,7 +56,7 @@ export function applyUiState(blob: string): void {
             const r = clampInt(o.root, 0, 103, 48);
             keyboardState.rootPc = r % 12;
             const oct = clampInt(Math.floor(r / 12), OCT_MIN, OCT_MAX, 4);
-            for (let t = 0; t < 4; t++) keyboardState.octave[t] = oct;
+            for (let t = 0; t < TRACK_COUNT; t++) keyboardState.octave[t] = oct;
         }
         keyboardState.scale  = clampInt(o.scale,  0, SCALES.length - 1, keyboardState.scale);
         keyboardState.mode   = clampInt(o.mode,   0, MODE_NAMES.length - 1, 0);
@@ -72,7 +84,7 @@ export function resetUiState(): void {
     keyboardState.scale = 0;
     keyboardState.mode = 0;
     keyboardState.layout = 0;
-    for (let t = 0; t < 4; t++) keyboardState.octave[t] = 4;
+    for (let t = 0; t < TRACK_COUNT; t++) keyboardState.octave[t] = 4;
     resetTrackMutes();
     applyDefaultQuant(readPrefDefaultQuant());
 }

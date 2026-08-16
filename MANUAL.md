@@ -527,7 +527,8 @@ On a melodic track the 32 pads form a playable keyboard whose shape you choose:
 
 ![Keyboard view](docs/assets/keys_view.png)
 
-- **+ / −** (Up/Down buttons) shift **the active track's** octave. Each track
+- **+ / −** (Up/Down buttons) shift **the active track's** octave (in Session
+  view they move between track groups instead). Each track
   keeps its own octave, saved with the set — so a bass part stays low when you
   come back to it, even after a device restart.
 - The root note is shown in the header.
@@ -624,7 +625,7 @@ contributed (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ## 5. The sequencer (aligned with Move)
 
-Movy's sequencer is built to **feel like Move's**, for four Schwung tracks. The
+Movy's sequencer is built to **feel like Move's**, across **16 tracks**. The
 following all work essentially as they do on Move — refer to the
 [Move manual](https://cdn-resources.ableton.com/resources/pdfs/move-manual/1/2024-10-04/move1-manual-en.pdf)
 for the concepts:
@@ -632,6 +633,8 @@ for the concepts:
 - **Clips** — one clip per track slot; steps entered on the 16 step buttons.
 - **Session view & clip launching** — press **Note/Session** to see the clip
   grid; pads launch clips. Hold it for a momentary peek; tap to latch.
+- **16 tracks in four groups** — see [Tracks and groups](#tracks-and-groups)
+  below.
 - **Live recording** — **Rec** arms recording with a one-bar **count-in**; play
   the pads to record. Clips start only after the count-in. A note played
   slightly *ahead* of the final beat still lands on the downbeat rather than
@@ -693,6 +696,72 @@ red, only actionable buttons lit, the playhead sweeps the step row, etc.).
 
 > **Note:** Movy's sequencer intentionally does **not** copy Davebox's timing
 > where Davebox deviates from Move — the goal is to match native Move.
+
+### Tracks and groups
+
+Movy sequences **16 tracks**, arranged as **four groups of four**. The four
+track buttons and the Session clip grid always address one group at a time —
+the **focused** group.
+
+**Picking a track.** In Session view the 16 step buttons become a **track
+selector**: each step is one track, lit in that track's own colour. Two things
+pulse on top of that:
+
+the **focused group's** four pulse between **black** and their colour, so you can
+see at a glance which quarter of the song you are in. It is the *position* of the
+pulsing block that tells you the group, not just its colour.
+
+**While you hold Note/Session**, the track you are currently on also lights
+**solid white** — a read-out you ask for by holding the button, rather than a
+permanent marker competing with the group pulse. It stays visible even after the
+**+ / −** buttons scroll the group away from it. Let go, or latch Session view
+with a tap, and the white goes away.
+
+Both show at once, which matters because the two come apart — the **+ / −**
+buttons move the group without changing which track is open.
+
+Press any step to **open that track**: the pads, the screen and the knobs all
+switch to it immediately, exactly as if you had pressed its track button. It
+behaves like a track button too — a quick **tap** stays there, while **holding**
+the step is a peek that returns to Session view when you let go.
+
+**Switching without leaving what you were doing.** **Hold Note/Session** and tap
+a step. Movy drops straight onto that track — pads, screen, knobs — but the step
+row *stays* a track selector for as long as you hold the button, so you can keep
+tapping through tracks and auditioning them. Let go and you stay on the last one
+you picked.
+
+**Moving between groups.** In Session view the **+ / −** buttons step the
+focused group through the track list: **+** moves towards tracks 1-4, **−**
+towards 13-16 — the direction the grid reads on screen, not the direction the
+group numbers count. They are dim while there is a group to move to and
+dark at either end, the same way the arrows behave elsewhere. Moving the group
+does not change which track is open — it re-aims the four track buttons and the
+clip grid so you can reach the next four.
+
+**Track colours.** Colours are chosen so the four tracks within a group are easy
+to tell apart *and* so the same position in different groups never looks alike.
+That takes eight colours, not sixteen: a colour reappears in another group, but
+never in the same row or the same column, so two tracks you can see at the same
+time never share one. Eight well-separated colours is also all this hardware
+offers — the pale and cool ones wash out to white next to the lit in-scale pads.
+
+**Tracks 5-16 host their own instruments.** Tracks 1-4 are the four Schwung
+tracks and behave as they always have — they are Move's, and Move's mixer sees
+them. Tracks 5-16 are movy's own: load a module onto one exactly as you would on
+a track button track, and movy hosts the whole chain itself.
+
+Two differences worth knowing:
+
+- **Move's mixer sees all twelve as one channel.** Movy sums them into a single
+  stereo output, so their levels are movy's own — the hold-track + volume-encoder
+  gesture works, but the Move fader does not reach them individually.
+- **They sound only while movy is open** (or parked in Background mode). The
+  four Schwung tracks keep playing under Move's own UI; movy's twelve stop when
+  movy closes, because movy is what renders them.
+
+Their modules and settings are saved with the set, so a movy track comes back
+the way you left it.
 
 ### The Loop view
 
@@ -1200,13 +1269,13 @@ behaviour you'd like — or, better, a PR.
 | **Back then jog-click** | From the root: background Movy (keeps playing under Move's UI). |
 | **Shift + Back** | Fully exit Movy (unload), instantly, from anywhere. |
 | **Hold track + volume encoder** | Set that track's volume (0–400%, 100% = unity, 1 dB per detent). Add **Shift** to see Movy's slider instead of Move's native overlay. |
-| **+ / −** (Up/Down) | Shift the **active track's** octave (melodic tracks only). Each track remembers its own, saved with the set. |
+| **+ / −** (Up/Down) | Shift the **active track's** octave (melodic tracks only). Each track remembers its own, saved with the set. In **Session** view they step the focused **track group** instead (**+** towards tracks 1-4, **−** towards 13-16). |
 
 ### Sequencer
 
 | Control | Action |
 | --- | --- |
-| **Step buttons 1–16** | Toggle a note on/off at that step. |
+| **Step buttons 1–16** | Toggle a note on/off at that step. In **Session** view they select one of the 16 tracks and open it — tap to stay, hold to peek. |
 | **Hold a step** | Edit that step; opens its **Step parameters** (page 0). |
 | **Hold step A + press step B** | Set step A's note length up to B. |
 | **Hold a step + pad** | Edit that step's notes from the keyboard. An added note takes the step's existing start and length (melodic only). |
@@ -1219,7 +1288,8 @@ behaviour you'd like — or, better, a PR.
 | **Capture** | Keep the notes you just played as clip data. Stopped → also reads a tempo and starts the transport. |
 | **Clear + Capture** | Throw the buffered input away. (Not Shift + Capture — that belongs to schwung's skip-back and never reaches Movy.) |
 | **Jog** (capture overlay) | Take another tempo — applied as you pass it. Any other press closes the overlay. |
-| **Note / Session** | Show the Session clip grid (momentary hold = peek, tap = latch). Pads launch clips. |
+| **Note / Session** | Show the Session clip grid (momentary hold = peek, tap = latch). Pads launch clips; step buttons select a track. Dim when idle, bright while Session view is up. |
+| **Hold Note/Session + step** | Jump to that track (pads, screen, knobs) while the step row stays a track selector — keep tapping to keep switching. Releasing keeps the last track you picked. |
 | **Loop** | Toggle the bar selector; hold + jog resizes the loop. See [The Loop view](#the-loop-view). |
 | **Loop + bar** | Press one bar to view it, two to loop that range, double-tap for a 1-bar loop. |
 | **Left / Right** | Navigate bars — the loop's own bars plus one empty bar past its end (or nudge held steps). |
@@ -1232,7 +1302,7 @@ behaviour you'd like — or, better, a PR.
 | **Mute + track** | Mute that track instead; suppresses the current-track toggle on release. |
 | **Shift + Mute** | Solo / un-solo the current track (Track view only). Exclusive — soloing another moves it. |
 | **Shift + Mute + track** | Solo that track instead. |
-| **Track buttons 1–4** | Select a track (hold = momentary peek). |
+| **Track buttons 1–4** | Select a track within the focused group of four (hold = momentary peek). |
 | **Volume encoder** | Adjust held steps' velocity. With a track button held instead, sets that track's volume; otherwise it stays Move's master volume. |
 | **TEMPO knob** (Set page) | Set the tempo; also sets Move's device-wide tempo via Link. **EXT** on the cell = locked to Move's transport. |
 | **LINK knob** (Set page) | Turn right = ON, left = OFF. Enables the shared Play/Stop transport with Move (default OFF; saved per set). Clock/tempo follow works regardless. |

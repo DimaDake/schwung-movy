@@ -8,6 +8,7 @@
  * involved, so a preview can never be mistaken for a real pad release and
  * misdirect its note-off. */
 
+import { portFor } from '../track/registry.js';
 import { emitNoteOff } from '../keyboard/release.js';
 import { seqState } from './state.js';
 import { headStep, previewWanted, takePreview } from './step-rec-head.js';
@@ -42,7 +43,7 @@ export function previewTickAt(nowMs: number): void {
     const vel = seqState.holdVel > 0 ? seqState.holdVel : 100;
     for (const p of seqState.holdNotes) {
         const pitch = Math.max(0, Math.min(127, p + seqState.clipTranspose));
-        shadow_send_midi_to_dsp([MidiNoteOn | t, pitch, vel]);
+        portFor(t).sendMidi(MidiNoteOn, pitch, vel);
         sounding.push({ track: t, pitch });
     }
     untilMs = nowMs + PREVIEW_MS;

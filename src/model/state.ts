@@ -1,4 +1,5 @@
 import type { KnobParam, ModuleConfig } from '../types/param.js';
+import type { TrackPort } from '../track/port.js';
 import { KNOBS_PER_PAGE, NAME_POLL_TICKS, REFRESH_SUPPRESS_TICKS } from './constants.js';
 
 export interface EnumOverlay {
@@ -45,7 +46,11 @@ export interface TriggerState {
 }
 
 export interface ModelState {
-    activeSlot:          number;
+    /* How this model talks to its track. Everything that used to take a slot
+     * number now asks the port instead — that is what lets a movy-hosted track
+     * reuse this whole layer unchanged. The track index is still reachable as
+     * `port.track.index`, but only labels and log lines want it. */
+    port:                TrackPort;
     componentKey:        string;
     knobParams:          (KnobParam | null)[];
     knobValues:          (number | null)[];
@@ -99,6 +104,12 @@ export interface ModelState {
      * bank_index 0..0 → 0..1 once its ROM lists the banks. */
     degenerateKeys:      string[];
     refreshParamCursor:  number;
+    /* Ticks until the next batched read on a bulk port. Per MODEL, not derived
+     * from the shared tick counter: the counter advances once per model ticked,
+     * so a model that is not the only one ticking (Session view ticks the master
+     * FX model too) sees it move in strides — with a stride of 2 a modulo-8
+     * schedule can land on the same residue forever and never refresh at all. */
+    bulkCountdown:       number;
     /* Cursor over the CURRENT page's 8 slots, interleaved with
      * refreshParamCursor (one read per tick, alternating) so on-screen values
      * converge in ~16 ticks no matter how many pages the module has. */
@@ -128,9 +139,9 @@ export interface ModelState {
     triggerStates:       Record<string, TriggerState>;
 }
 
-export function createModelState(activeSlot: number, componentKey: string): ModelState {
+export function createModelState(port: TrackPort, componentKey: string): ModelState {
     return {
-        activeSlot,
+        port,
         componentKey,
         knobParams:          [],
         knobValues:          [],
@@ -159,6 +170,7 @@ export function createModelState(activeSlot: number, componentKey: string): Mode
         presetDeclared:      false,
         degenerateKeys:      [],
         refreshParamCursor:  0,
+        bulkCountdown:       0,
         refreshPageCursor:   0,
         lastDeltaTick:       -(REFRESH_SUPPRESS_TICKS + 1),
         dirty:               false,

@@ -12,6 +12,13 @@ pub fn set_host(host: *const host_api_v1_t) {
     HOST.store(host as *mut host_api_v1_t, Ordering::SeqCst);
 }
 
+/// The raw host pointer, for forwarding to a plugin movy loads itself (the
+/// chain host). Passing movy's own host API on is what gives the chain host a
+/// working log/midi vtable without movy synthesising one.
+pub fn raw() -> *const host_api_v1_t {
+    HOST.load(Ordering::Relaxed) as *const host_api_v1_t
+}
+
 fn host() -> Option<&'static host_api_v1_t> {
     let p = HOST.load(Ordering::Relaxed);
     if p.is_null() {

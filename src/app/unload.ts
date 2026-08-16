@@ -1,3 +1,4 @@
+import { TRACK_COUNT } from '../track/ref.js';
 import { releaseAllLive, emitNoteOff } from '../keyboard/release.js';
 import { seqCmdFlush } from '../seq/engine.js';
 import { resetSeqChord } from '../seq/router.js';
@@ -24,7 +25,7 @@ export function onUnload(): void {
     resetSeqChord(true);
     releaseAllLive();
     let gates = 0;
-    for (let t = 0; t < 4; t++) {
+    for (let t = 0; t < TRACK_COUNT; t++) {
         const base = t * 128;
         for (let p = 0; p < 128; p++) {
             if (seqState.activeNotes[base + p] === 1) {

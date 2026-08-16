@@ -1,3 +1,4 @@
+import { portFor } from '../track/registry.js';
 import { browserState } from './state.js';
 import { appState, VIEW_BROWSE } from '../app/state.js';
 import { moduleReadKey, type ChainSlot } from '../chain/config.js';
@@ -39,19 +40,32 @@ function scanModules(slot: ChainSlot): { id: string; name: string; path: string 
     return result;
 }
 
-/* Open the module browser for a chain slot. `paramSlot` is the shadow param
- * slot (0-3 for track chains, 0 for the master bus); `reload` refreshes the
- * model backing this slot after a load. Generalized over CHAIN_SLOTS and
- * MASTER_FX_SLOTS so master FX slots browse/load like track slots. */
+/* Open the module browser for a chain slot.
+ *
+ * `paramSlot` is a TRACK INDEX (0-15), not a schwung slot — it stopped being a
+ * slot number when movy started hosting its own chains, and the name is kept
+ * only because it is also the key undo records module ops under. Everything
+ * here reaches the track through `portFor`, so a movy-hosted track browses and
+ * loads exactly like a host one; the write lands as `ch<N>:<component>:module`
+ * instead of a shadow-slot param. The master bus passes 0.
+ *
+ * `reload` refreshes the model backing this slot after a load. Generalized over
+ * CHAIN_SLOTS and MASTER_FX_SLOTS so master FX slots browse/load like track
+ * slots. */
 export function openBrowser(slot: ChainSlot, paramSlot: number, reload: () => void): void {
     browserState.componentKey = slot.componentKey;
     browserState.paramSlot    = paramSlot;
     browserState.reload       = reload;
     browserState.modules      = [{ id: '', name: 'NONE', path: '' }, ...scanModules(slot)];
     browserState.browseIndex  = 0;
-    const activeId = shadow_get_param(paramSlot, moduleReadKey(slot.componentKey)) || '';
+    const activeId = portFor(paramSlot).getParam( moduleReadKey(slot.componentKey)) || '';
     const idx = browserState.modules.findIndex(m => m.id === activeId);
     if (idx >= 0) browserState.browseIndex = idx;
+    /* The only trace the browser leaves. Without it a device test cannot tell
+     * "the gesture never reached the browser" from "the browser refused the
+     * load" — the two failures look identical from the log. */
+    mlog('browse: open t=' + paramSlot + ' ' + slot.componentKey
+        + ' n=' + browserState.modules.length);
     appState.currentView = VIEW_BROWSE;
     appState.dirty = true;
 }
@@ -71,7 +85,7 @@ export function loadSelectedModule(): void {
     /* Dump BEFORE the write: schwung tears the outgoing module down, and after
      * that its params are unrecoverable. A reselect of the same module records
      * nothing — it changes no state worth an undo press. */
-    const prevId = shadow_get_param(browserState.paramSlot,
+    const prevId = portFor(browserState.paramSlot).getParam(
         moduleReadKey(browserState.componentKey)) || '';
     /* Compare identities, not the written value: for a master slot `value` is a
      * path while `prevId` is an id, so comparing them called every reselect a
@@ -111,7 +125,7 @@ export function loadSelectedModule(): void {
             leadCount: dump.leadCount,
         });
     }
-    shadow_set_param(browserState.paramSlot, browserState.componentKey + ':module', value);
+    portFor(browserState.paramSlot).setParam(browserState.componentKey + ':module', value);
     if (changed) endEdit();
     // The reload empties the host's static param cache; a same-id reselect won't
     // trip the module-name watcher, so schedule the warm here too (see

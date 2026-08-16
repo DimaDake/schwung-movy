@@ -40,10 +40,14 @@ that gap with two things:
    out on the 8 knobs as tidy pages, with arc knobs, enum lists, and even
    auto-detected ADSR envelope graphics. Walk the whole chain (MIDI FX → Synth →
    FX 1 → FX 2 → LFO) with the jog wheel.
-2. **A sequencer** — a 4-track step sequencer whose behaviour is aligned as
+2. **A sequencer** — a **16-track** step sequencer whose behaviour is aligned as
    closely as possible with Move's native sequencer (clips, session view, live +
-   step recording, automation), but driving four Schwung tracks instead of
-   Move's instruments.
+   step recording, automation), but driving Schwung tracks instead of Move's
+   instruments. The 16 tracks are arranged as four groups of four: the step
+   buttons pick a track, the +/− buttons move between groups. Tracks 1-4 are the
+   four Schwung tracks; tracks 5-16 sequence and save today and gain their own
+   instruments: tracks 1-4 drive the four Schwung tracks, and tracks 5-16 host
+   their own module chains inside movy, summed to one stereo output.
 
 ## Inspiration & lineage
 
@@ -52,7 +56,7 @@ Movy stands on the shoulders of several projects:
 | Aspect | Inspired by |
 | --- | --- |
 | **Screen UI** | [Elektron](https://www.elektron.se/) boxes (knob pages, parameter locks), with a nod to [Dronage](https://github.com/charlesvestal/schwung) |
-| **Sequencer behaviour** | Ableton **Move**'s native sequencer — Movy tries to feel the same, just for 4 Schwung tracks |
+| **Sequencer behaviour** | Ableton **Move**'s native sequencer — Movy tries to feel the same, just for 16 Schwung tracks |
 | **Sequencer architecture** | [Davebox](https://github.com/legsmechanical/schwung-davebox) — the proven engine/transport approach (without copying its code, and without inheriting its deviations from native Move) |
 | **Concept** | Native Move + Davebox + Dronage, distilled into one tool |
 

@@ -8,6 +8,7 @@
  * host_read_file serving, createModel + reload + 2 ticks); it lives here once.
  */
 
+import { portFor } from '../dist/esm/track/registry.js';
 import { installEnv } from './env.mjs';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -124,7 +125,7 @@ export async function createDumpBoot(dump) {
             params[`${ck}:name`] = entry.module_json?.name || entry.id;
         }
         env.setParams(params);
-        const m = createModel(0, ck);
+        const m = createModel(portFor(0), ck);
         m.reload();
         m.tick();   // poll name → hierarchy key change
         m.tick();   // load hierarchy

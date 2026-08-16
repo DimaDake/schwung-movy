@@ -7,6 +7,8 @@
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { createModel }    from '../dist/esm/model/index.js';
+import { portFor }        from '../dist/esm/track/registry.js';
+import { trackRef, TRACK_COUNT } from '../dist/esm/track/ref.js';
 import { dedupShortNames } from '../dist/esm/renderer/shorten.js';
 import { detectEnvelopes } from '../dist/esm/model/envelope.js';
 import { planPageLayout } from '../dist/esm/model/page-layout.js';
@@ -147,7 +149,7 @@ function musicalOps(ops) { return ops.filter((o) => !UNDO_RING.test(o)); }
 
 function bootModel(preset, slot = 0, componentKey = 'synth') {
     env.setParams(preset);
-    const m = createModel(slot, componentKey);
+    const m = createModel(portFor(slot), componentKey);
     m.reload();  // sets pollCountdown=1 so pollModuleName fires on next tick
     m.tick();    // tick 1: polls name, resets hierarchyKey
     m.tick();    // tick 2: reloads hierarchy with the real module name
@@ -566,6 +568,83 @@ _log('\nTest: refresh cursor reaches the current page within 16 ticks');
     eq('refresh: no more than 2 reads per tick', reads.length <= 32, true);
 }
 
+/* ── a movy chain refreshes in batches, because its reads are round trips ── */
+
+_log('\nTest: movy-track value refresh is batched, not one read per tick');
+{
+    const { resetPorts } = await import('../dist/esm/track/registry.js');
+    const { REFRESH_BULK_TICKS } = await import('../dist/esm/model/constants.js');
+    const { encodeBulk, decodeBulk } = await import('../dist/esm/track/bulk.js');
+
+    /* The whole preset, namespaced to chain 0 — a movy track reads `ch0:` keys
+     * through the engine, never shadow_get_param. */
+    const vals = {};
+    for (const [k, v] of Object.entries(MOCK_SYNTHS.plaits)) vals['ch0:' + k] = v;
+
+    const oG  = globalThis.host_module_get_param;
+    const oBG = globalThis.shadow_get_params;
+    let gets = [], bulks = 0;
+    globalThis.host_module_get_param = (k) => { gets.push(k); return vals[k] ?? null; };
+    globalThis.shadow_get_params = (_slot, _marker, payload) => {
+        bulks++;
+        const keys = decodeBulk(payload);
+        return encodeBulk(keys.map((k) => vals[k] ?? ''));
+    };
+
+    resetPorts();
+    const m = createModel(portFor(4), 'synth');   // track 5 = movy chain 0
+    m.reload(); m.tick(); m.tick();
+
+    const TICKS = 4 * REFRESH_BULK_TICKS;
+    gets = []; bulks = 0;
+    for (let i = 0; i < TICKS; i++) m.tick();
+
+    /* The point of the change: value reads are one round trip per window, not
+     * one per tick. Without it this is ~32 blocking gets, ~2.3 ms each, on a
+     * tick period that IS the pad sampling interval. */
+    eq('movy refresh: at most one bulk read per window', bulks <= TICKS / REFRESH_BULK_TICKS, true);
+    eq('movy refresh: made some bulk reads', bulks > 0, true);
+    const valueGets = gets.filter((k) => k !== 'ch0:synth:name' && k !== 'ch0:synth_module');
+    eq('movy refresh: no per-param reads outside the batch', valueGets.join(','), '');
+
+    /* Batched must still mean CONVERGING: a value changed behind the model's
+     * back has to reach the knob, or this traded latency for a stale screen. */
+    const layout = m.dumpLayout().params;
+    const pk = layout.find((p) => p && p.type !== 'enum' && p.type !== 'file').key;
+    const before = m.getValueByKey(pk);
+    vals['ch0:synth:' + pk] = String(Number(vals['ch0:synth:' + pk]) + 0.25);
+    for (let i = 0; i < REFRESH_BULK_TICKS * 2; i++) m.tick();
+    eq('movy refresh: a value changed behind the model reaches the knob',
+       m.getValueByKey(pk), before + 0.25);
+
+    /* Session view ticks the master FX model as well, so the shared tick counter
+     * advances by two per app tick. A modulo schedule read off that counter can
+     * sit on one residue forever and never refresh; the cadence is per model. */
+    const other = createModel(portFor(0), 'synth');
+    bulks = 0;
+    for (let i = 0; i < 4 * REFRESH_BULK_TICKS; i++) { m.tick(); other.tick(); }
+    eq('movy refresh: still refreshes when a second model ticks alongside', bulks > 0, true);
+
+    globalThis.host_module_get_param = oG;
+    globalThis.shadow_get_params = oBG;
+    resetPorts();
+}
+
+/* ── the cheap port keeps reading every tick ──────────────────────────────── */
+
+_log('\nTest: a host track is NOT batched (its reads are cheap and unbatchable)');
+{
+    const m = bootModel(MOCK_SYNTHS.plaits);
+    const reads = [];
+    const realGet = globalThis.shadow_get_param;
+    globalThis.shadow_get_param = (slot, key) => { reads.push(key); return realGet(slot, key); };
+    for (let i = 0; i < 16; i++) m.tick();
+    globalThis.shadow_get_param = realGet;
+    /* The shim's bulk channel routes only to the overtake DSP, so a host slot
+     * cannot batch even if it wanted to — it must keep its per-tick read. */
+    eq('host refresh: still reads per tick', reads.length >= 8, true);
+}
+
 /* ── C1: preset knob not duplicated across pages ─────────────────────────── */
 
 _log('\nTest: preset knob renders exactly once (C1)');
@@ -960,7 +1039,7 @@ _log('\nTest: knob delta normalizes sweep across param ranges');
   // Fraction of the param's range moved by one detent.
   const fracPerDetent = (p, delta = 1) => {
     const s = {
-      activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+      port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
       knobParams: [p], knobValues: [p.min], enumFmt: [undefined],
       fileValues: [null], slotMapCache: null, dirty: false,
     };
@@ -979,7 +1058,7 @@ _log('\nTest: knob delta normalizes sweep across param ranges');
   // A narrow range needs a whole step's worth of clicks to show it (see the
   // four-clicks-per-step block below), so ask for that many.
   const iMove = (min, max, delta = 1) => {
-    const s = { activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    const s = { port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
       knobParams: [mkP(min, max, 'int', 1)], knobValues: [min], enumFmt: [undefined],
       fileValues: [null], slotMapCache: null, detentAccum: [], dirty: false };
     applyKnobDelta(s, 0, delta);
@@ -999,7 +1078,7 @@ _log('\nTest: a knob moves the same amount in both directions');
   /* Signed movement of one flush of `delta` detents from `start`. */
   const move = (p, start, delta) => {
     const s = {
-      activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+      port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
       knobParams: [p], knobValues: [start], enumFmt: [undefined],
       fileValues: [null], slotMapCache: null, paramGestures: {}, triggerStates: {},
       detentAccum: [], dirty: false,
@@ -1046,7 +1125,7 @@ _log('\nTest: narrow discrete params take four clicks per step');
     options: null, renderStyle: 'arc', automatable: true, ...extra,
   });
   const st = (p, value) => ({
-    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [p], knobValues: [value], enumFmt: [undefined], fileValues: [null],
     slotMapCache: null, paramGestures: {}, triggerStates: {}, detentAccum: [],
     dirty: false,
@@ -1156,7 +1235,7 @@ _log('\nTest: a suppressed param still learns its value once');
   /* The lane must exist before the first refresh, exactly as it does on device:
    * the set is restored (with its automation) and only then does movy tick. */
   env.setParams(MOCK_SYNTHS.test_steps);
-  const m = createModel(0, 'synth');
+  const m = createModel(portFor(0), 'synth');
   m.setNoRefreshKeys(['octave']);
   m.reload();
   for (let i = 0; i < 40; i++) m.tick();          // plenty of refresh cursors
@@ -1229,7 +1308,7 @@ _log('\nTest: module interaction metadata drives triggers, acceleration, and aut
     renderStyle: 'arc', automatable: true, knobAcceleration: 'wide',
   };
   const state = (p, value) => ({
-    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [p], knobValues: [value], enumFmt: [undefined],
     fileValues: [null], slotMapCache: null, paramGestures: {}, triggerStates: {},
     dirty: false,
@@ -1351,7 +1430,7 @@ _log('\nTest: wide acceleration scales a unit step, not the accumulated delta');
     let now = 1000;
     Date.now = () => now;
     const s = {
-      activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+      port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
       knobParams: [seed], knobValues: [5000], enumFmt: [undefined],
       fileValues: [null], slotMapCache: null, paramGestures: {}, triggerStates: {},
       dirty: false,
@@ -1379,7 +1458,7 @@ _log('\nTest: trigger badge phases run armed -> fired -> cooling -> armed');
     renderStyle: 'arc', automatable: false, behavior: 'trigger',
   };
   const mkState = () => ({
-    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [TRIG], knobValues: [0], enumFmt: [true], fileValues: [null],
     slotMapCache: null, paramGestures: {}, triggerStates: {}, dirty: false,
   });
@@ -1448,7 +1527,7 @@ _log('\nTest: the fired icon blinks on a fixed half-period');
   Date.now = () => now;
   globalThis.shadow_set_param = () => true;
   const s = {
-    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [TRIG], knobValues: [0], enumFmt: [true], fileValues: [null],
     slotMapCache: null, paramGestures: {}, triggerStates: {}, dirty: false,
   };
@@ -1487,7 +1566,7 @@ _log('\nTest: a trigger writes only when the action actually changes');
   let writes = [];
   globalThis.shadow_set_param = (_s, k, v) => { writes.push(v); return true; };
   const s = {
-    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [TRIG], knobValues: [0], enumFmt: [true], fileValues: [null],
     slotMapCache: null, paramGestures: {}, triggerStates: {}, dirty: false,
   };
@@ -1531,7 +1610,7 @@ _log('\nTest: the cooldown drain empties in COOL_STEPS quantised steps');
   Date.now = () => now;
   globalThis.shadow_set_param = () => true;
   const s = {
-    activeSlot: 0, componentKey: 'synth', knobPage: 0, moduleConfig: null,
+    port: portFor(0), componentKey: 'synth', knobPage: 0, moduleConfig: null,
     knobParams: [TRIG], knobValues: [0], enumFmt: [true], fileValues: [null],
     slotMapCache: null, paramGestures: {}, triggerStates: {}, dirty: false,
   };
@@ -1818,12 +1897,15 @@ _log('\nTest: overlay commit rejects a non-drum preset (param unchanged)');
   eq('drum preset → param set', env.params['synth:ui_preset_path'], TRACK_PRESETS + '/drum.ablpreset');
 }
 
-_log('\nTest: track colors — track 3 pink, track 4 blue');
+_log('\nTest: track colors — track 3 neon pink, track 4 royal blue');
 
 {
   const { TRACK_COLOR, TRACK_COLOR_DIM } = await import('../dist/esm/seq/colors.js');
-  eq('track 3 = BrightPink(25)', TRACK_COLOR[2], 25);
-  eq('track 4 = Blue(125)',      TRACK_COLOR[3], 125);
+  /* A cheap pin so the table is not completely unguarded on a checkout without
+   * the schwung sibling repo — track-colors.mjs skips wholesale when it is
+   * missing, and that is where the real palette reasoning lives. */
+  eq('track 3 = NeonPink(23)',       TRACK_COLOR[2], 23);
+  eq('track 4 = RoyalBlue(16)',       TRACK_COLOR[3], 16);
   eq('track 3 dim = DeepMagenta(109)', TRACK_COLOR_DIM[2], 109);
   eq('track 4 dim = DarkBlue(95)',     TRACK_COLOR_DIM[3], 95);
 }
@@ -2639,16 +2721,23 @@ _log('\nTest: drumPadOn');
     byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
     eq('playhead red when recording', byNote[16], C_REC_RED_LED);
 
-    // Session (master chain) mode: step row goes dark — there is no per-step
-    // editing for master FX, so notes 16..31 must be painted black.
+    // Session mode: the step row is the 16-track selector, NOT steps. Step
+    // occupancy is set here precisely to prove it is ignored — the row shows
+    // track colours regardless of what the watched clip contains.
     resetSeqState(); seqLedsInvalidate();
     seqState.sessionMode = true;
     seqState.lenSteps = 16; occToggleStep(0); occToggleStep(4);
+    /* The step row's colours in Session mode are pinned by the sessionStepLed
+     * unit assertions further down — deterministic, and independent of the LED
+     * cache's frame budget. What is checked HERE is only that Session mode does
+     * not fall through to the normal step painter: occupancy is set on steps 0
+     * and 4 above, and neither may show the occupied-white. */
+    seqLedsInvalidate();
     ledCalls.length = 0;
-    for (let i = 0; i < 3; i++) seqLedsTick();   // drain progressive cold frame
+    for (let i = 0; i < 8; i++) seqLedsTick();
     byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
-    eq('session step 0 off', byNote[16], 0);
-    eq('session step 4 off', byNote[20], 0);
+    eq('session step row ignores clip occupancy', byNote[16] === 120, false);
+    eq('session step row ignores occupancy on step 4', byNote[20] === 120, false);
 
     globalThis.setLED = origSetLED;
     globalThis.setButtonLED = origSetButtonLED;
@@ -3190,7 +3279,96 @@ _log('\nTest: drumPadOn');
     eq('track3 unselected-empty dark', cells[69].base, C_BLACK);   // slot 1, not selected
     eq('track3 unselected-empty solid', cells[69].channel, ANIM_NONE);
 
+    /* The grid follows the FOCUSED GROUP, like the four track buttons beside it.
+     * It used to derive the track from the pad row alone, so all four rows were
+     * pinned to tracks 1-4 whatever the octave buttons had scrolled to: moving
+     * the group repainted the step row and the track buttons and left the clip
+     * grid showing the wrong quartet's clips entirely. */
+    const { selectTrack } = await import('../dist/esm/track/focus.js');
+    const { appState } = await import('../dist/esm/app/state.js');
     resetSeqState(); resetSession();
+    // Give every track a clip in slot 0 so each row's colour identifies its track.
+    sessionFromStr(Array.from({ length: 16 }, () => '01.-.-.0').join(','));
+
+    selectTrack(9);                       // focus group 2 → tracks 8-11
+    eq('selecting track 9 focused group 2', appState.focusGroup, 2);
+    const g2 = {};
+    sessionPaintGrid((note, base, anim, channel) => { g2[note] = { base, anim, channel }; }, 68);
+    eq('top row is the group\'s first track (8)',  g2[92].base, trackColor(8));
+    eq('second row is track 9',                    g2[84].base, trackColor(9));
+    eq('third row is track 10',                    g2[76].base, trackColor(10));
+    eq('bottom row is the group\'s last track (11)', g2[68].base, trackColor(11));
+
+    selectTrack(15);                      // focus group 3 → tracks 12-15
+    const g3 = {};
+    sessionPaintGrid((note, base, anim, channel) => { g3[note] = { base, anim, channel }; }, 68);
+    eq('the last group\'s top row is track 12',  g3[92].base, trackColor(12));
+    eq('the last group\'s bottom row is track 15', g3[68].base, trackColor(15));
+
+    selectTrack(0);
+    resetSeqState(); resetSession();
+}
+
+/* ── seq session grid INPUT follows the focused group ────────────────────── */
+{
+    _log('\nseq session grid input:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi } = await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { resetSession } = await import('../dist/esm/seq/session.js');
+    const { resetDuplicate } = await import('../dist/esm/seq/duplicate.js');
+    const { resetSeqToast } = await import('../dist/esm/seq/render.js');
+    const { selectTrack } = await import('../dist/esm/track/focus.js');
+
+    const engine = installMockEngine();
+    const reset = () => { resetSeqEngine(); resetSeqState(); resetSession(); resetDuplicate(); resetSeqToast(); engine.reset(); };
+    const lastOp = () => lastMusicalOp(engine.ops);
+
+    /* Reading the grid wrong is cosmetic; PRESSING it wrong is not. Launch,
+     * Delete and Copy all resolved the pad to tracks 0-3 regardless of the
+     * focused group, so a Delete on the bottom row while looking at tracks
+     * 13-16 destroyed track 4's clip instead. */
+    reset(); seqEngineTick();
+    seqState.sessionMode = true;
+    selectTrack(9);                              // group 2 → tracks 8-11
+
+    seqHandleMidi([0x90, 92, 127], false);       // top-left pad
+    seqEngineTick();
+    eq('top-left pad launches the group\'s first track', lastOp(), 'launch 8 0');
+    eq('and retargets the watched track with it', seqState.watchTrack, 8);
+
+    seqHandleMidi([0x90, 68, 127], false);       // bottom-left pad
+    seqEngineTick();
+    eq('bottom-left pad launches the group\'s last track', lastOp(), 'launch 11 0');
+
+    seqHandleMidi([0x90, 69, 127], false);       // bottom row, one column right
+    seqEngineTick();
+    eq('columns are still slots', lastOp(), 'launch 11 1');
+
+    // Delete + pad must reach the same track the pad displays.
+    reset(); seqEngineTick(); seqState.sessionMode = true;
+    selectTrack(15);                             // group 3 → tracks 12-15
+    seqHandleMidi([0xB0, 119, 127], false);      // Delete down
+    seqHandleMidi([0x90, 68, 127], false);       // bottom-left = track 15
+    seqEngineTick();
+    eq('Delete+pad deletes the clip the pad shows', lastOp(), 'clipdelat 15 0');
+    seqHandleMidi([0xB0, 119, 0], false);
+
+    // Copy/paste too.
+    reset(); seqEngineTick(); seqState.sessionMode = true;
+    selectTrack(4);                              // group 1 → tracks 4-7
+    seqHandleMidi([0xB0, 60, 127], false);       // Copy down
+    seqHandleMidi([0x90, 92, 127], false);       // src = track 4 slot 0
+    seqEngineTick();
+    eq('clip copy uses the focused group', lastOp(), 'clipcopy 4 0');
+    seqHandleMidi([0x90, 93, 127], false);       // dest = track 4 slot 1
+    seqEngineTick();
+    eq('clip paste uses the focused group', lastOp(), 'clippaste 4 1');
+    seqHandleMidi([0xB0, 60, 0], false);
+
+    selectTrack(0);
+    uninstallMockEngine(); reset();
 }
 
 /* ── seq LED animation channel constants ─────────────────────────────────── */
@@ -3846,7 +4024,7 @@ _log('\nautomation: restore re-requests label sync:');
 
     // A quick down+up (< HOLD_MS) is a tap. In Track view it mutes the active
     // track (activeSlot), even though no track button was pressed while held.
-    appState.activeSlot = 1;
+    appState.activeTrack = trackRef(1);
     seqState.sessionMode = false;
     seqState.muted[1] = false;
     seqHandleMidi([0xB0, CC_MUTE, 127], false);
@@ -3856,7 +4034,7 @@ _log('\nautomation: restore re-requests label sync:');
     // A deliberate press mutes too. Duration is not a different intent for Mute,
     // and the old hold-gated release silently swallowed any press >= 500 ms.
     resetSeqEngine(); resetMomentary();
-    appState.activeSlot = 3;
+    appState.activeTrack = trackRef(3);
     seqState.muted[3] = false;
     const realNow = Date.now;
     seqHandleMidi([0xB0, CC_MUTE, 127], false);
@@ -3870,7 +4048,7 @@ _log('\nautomation: restore re-requests label sync:');
     {
         const { momentaryGesture } = await import('../dist/esm/seq/momentary.js');
         resetSeqEngine(); resetMomentary();
-        appState.activeSlot = 0;
+        appState.activeTrack = trackRef(0);
         seqState.muted[0] = false;
         seqHandleMidi([0xB0, CC_MUTE, 127], false);
         momentaryGesture();   // stands in for Mute+track muting some other track
@@ -3881,7 +4059,7 @@ _log('\nautomation: restore re-requests label sync:');
 
     // Session view: a Mute press must NOT mute (no current track there).
     resetSeqEngine(); resetMomentary();
-    appState.activeSlot = 2;
+    appState.activeTrack = trackRef(2);
     seqState.sessionMode = true;
     seqState.muted[2] = false;
     seqHandleMidi([0xB0, CC_MUTE, 127], false);
@@ -3921,10 +4099,18 @@ _log('\nautomation: restore re-requests label sync:');
 
     installMockEngine();
 
+    /* Solo mutes every OTHER track, so the expectation is derived from the
+     * track count — pasting 16 entries would just have to be rewritten at the
+     * next widening, and hides what is actually being asserted. */
+    const othersMuted = (soloed, val, except = []) =>
+      Array.from({ length: TRACK_COUNT }, (_, t) => t)
+        .filter((t) => t !== soloed && !except.includes(t))
+        .map((t) => `mute ${t} ${val}`).sort().join(',');
+
     // Solo mutes every other track in the engine and leaves the soloed one alone.
     fresh();
     toggleSolo(1);
-    eq('solo mutes the others', cmds().sort().join(','), 'mute 0 1,mute 2 1,mute 3 1');
+    eq('solo mutes the others', cmds().sort().join(','), othersMuted(1, 1));
     eq('soloed track not muted', seqState.muted[1], false);
     eq('others muted in the mirror', seqState.muted[0] && seqState.muted[3], true);
     eq('anySolo', anySolo(), true);
@@ -3937,10 +4123,10 @@ _log('\nautomation: restore re-requests label sync:');
     eq('user mute applied', seqState.muted[3], true);
     resetSeqEngine();
     toggleSolo(0);
-    eq('solo mutes others (3 already muted)', cmds().sort().join(','), 'mute 1 1,mute 2 1');
+    eq('solo mutes others (3 already muted)', cmds().sort().join(','), othersMuted(0, 1, [3]));
     resetSeqEngine();
     toggleSolo(0);                    // un-solo
-    eq('un-solo unmutes only the borrowed ones', cmds().sort().join(','), 'mute 1 0,mute 2 0');
+    eq('un-solo unmutes only the borrowed ones', cmds().sort().join(','), othersMuted(0, 0, [3]));
     eq('user mute survives un-solo', seqState.muted[3], true);
     eq('no solo left', anySolo(), false);
 
@@ -3970,7 +4156,7 @@ _log('\nautomation: restore re-requests label sync:');
     resetSeqEngine();
     toggleSolo(2);                    // same track again → no solo at all
     eq('re-press clears the solo', anySolo(), false);
-    eq('everything unmuted again', cmds().sort().join(','), 'mute 0 0,mute 1 0,mute 3 0');
+    eq('everything unmuted again', cmds().sort().join(','), othersMuted(2, 0));
 
     // Muting while a solo is up edits the underlying intent. It is not audible
     // yet — solo overrides mute — but it lands when the solo drops.
@@ -3986,7 +4172,7 @@ _log('\nautomation: restore re-requests label sync:');
 
     // Shift+Mute press solos the current track instead of muting it.
     fresh();
-    appState.activeSlot = 1;
+    appState.activeTrack = trackRef(1);
     seqState.sessionMode = false;
     seqHandleMidi([0xB0, CC_MUTE, 127], /*shiftHeld*/ true);
     eq('shift captured at press', muteShiftHeld(), true);
@@ -4008,7 +4194,8 @@ _log('\nautomation: restore re-requests label sync:');
     fresh();
     toggleSolo(0);
     const blob = serializeUiState();
-    eq('solo is serialized', JSON.parse(blob).mutes.solo.join(''), '1000');
+    eq('solo is serialized', JSON.parse(blob).mutes.solo.join(''),
+       '1' + '0'.repeat(TRACK_COUNT - 1));
     resetTrackMutes();                 // movy restarts: module state gone
     eq('reset clears the mirror-side bookkeeping', anySolo(), false);
     applyUiState(blob);                // ...restored from the set's UI blob
@@ -4016,7 +4203,7 @@ _log('\nautomation: restore re-requests label sync:');
     resetSeqEngine();
     toggleSolo(0);                     // un-solo now restores correctly
     eq('un-solo after reopen unmutes the others',
-        cmds().sort().join(','), 'mute 1 0,mute 2 0,mute 3 0');
+        cmds().sort().join(','), othersMuted(0, 0));
 
     // A blob written before solo became exclusive can name several — keep the first.
     resetTrackMutes();
@@ -4026,7 +4213,7 @@ _log('\nautomation: restore re-requests label sync:');
 
     // Shift added AFTER Mute goes down still solos (either order is natural).
     fresh();
-    appState.activeSlot = 2;
+    appState.activeTrack = trackRef(2);
     seqHandleMidi([0xB0, CC_MUTE, 127], /*shiftHeld*/ false);   // Mute first...
     seqHandleMidi([0xB0, CC_MUTE, 0], /*shiftHeld*/ true);      // ...Shift after
     eq('mute-then-shift still solos', isSoloed(2), true);
@@ -4135,31 +4322,39 @@ _log('\nautomation: restore re-requests label sync:');
     eq('ungated other-button none', momentaryUpUngated(58), 'none');
 }
 
-/* ── seqRestoreWatch: restores watchTrack + barOffset ───────────────────── */
+/* ── restoreTrackState: puts back watchTrack + barOffset on a peek revert ── */
 {
-    _log('\nseqRestoreWatch:');
+    _log('\nrestoreTrackState:');
     const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
     const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
-    const { seqRestoreWatch } = await import('../dist/esm/seq/router.js');
+    const { restoreTrackState } = await import('../dist/esm/track/switch.js');
 
     installMockEngine();
     resetSeqEngine(); resetSeqState();
     seqState.watchTrack = 2;
     seqState.barOffset  = 3;
 
-    seqRestoreWatch(0);
+    restoreTrackState({ track: 0, view: 0, session: false, loop: false });
     eq('watchTrack restored to 0', seqState.watchTrack, 0);
     eq('barOffset reset to 0',     seqState.barOffset,  0);
-    const cmds = peekSeqCmdQueue();
-    eq('watch cmd emitted', cmds.some(c => c === 'watch 0'), true);
+    eq('watch cmd emitted', peekSeqCmdQueue().some(c => c === 'watch 0'), true);
 
-    // Calling with same track still resets barOffset and emits watch.
+    /* Restoring to the track already being watched is a no-op on the watch
+     * target: the switch it reverts never moved it, so it never wiped the bar
+     * offset either, and re-sending `watch` would be a wasted blocking IPC. */
     resetSeqEngine();
     seqState.watchTrack = 1; seqState.barOffset = 2;
-    seqRestoreWatch(1);
-    eq('same track: barOffset reset', seqState.barOffset, 0);
-    eq('same track: watch emitted',   peekSeqCmdQueue().some(c => c === 'watch 1'), true);
+    restoreTrackState({ track: 1, view: 0, session: false, loop: false });
+    eq('same track: barOffset untouched', seqState.barOffset, 2);
+    eq('same track: no watch cmd',        peekSeqCmdQueue().some(c => c === 'watch 1'), false);
+
+    // The session/loop modes it carries are restored verbatim.
+    resetSeqEngine();
+    seqState.sessionMode = false; seqState.loopMode = false;
+    restoreTrackState({ track: 3, view: 0, session: true, loop: true });
+    eq('session restored', seqState.sessionMode, true);
+    eq('loop restored',    seqState.loopMode,    true);
 
     uninstallMockEngine(); resetSeqEngine(); resetSeqState();
 }
@@ -5221,7 +5416,7 @@ _log('\nautomation label sync:');
     const { keyboardState, resetPadMapCache } = await import('../dist/esm/keyboard/state.js');
 
     const C_BLACK = 0, C_WHITE = 120, C_DARKGREY = 124, C_LIGHTGREY = 118, C_GREEN = 11;
-    const TRACK0 = 127;
+    const TRACK0 = 3;   // track 1 = Bright Orange
     const PAD_MIN = 68;
 
     keyboardState.rootPc = 0; keyboardState.scale = 0;
@@ -5484,11 +5679,11 @@ _log('\nautomation label sync:');
     eq('melodic track: emits ctr 1 1', peekSeqCmdQueue().some((c) => c === 'ctr 1 1'), true);
 
     // The cell reads as unavailable rather than showing a value that can't apply.
-    appState.activeSlot = 0;
+    appState.activeTrack = trackRef(0);
     eq('drum track: transpose cell shows n/a', buildClipPageVM().rows[0][2].displayValue, 'n/a');
     clipPageTouch(2, true);
     eq('drum track: transpose toast n/a', buildClipPageVM().toast.value, 'n/a on drums');
-    appState.activeSlot = 1;
+    appState.activeTrack = trackRef(1);
     eq('melodic track: cell shows the value', buildClipPageVM().rows[0][2].displayValue, '1');
 
     // The engine is told, once per change, which tracks are drums.
@@ -5539,7 +5734,7 @@ _log('\nautomation label sync:');
     globalThis.shadow_get_param = savedGet;
 
     appState.trackModels = savedModels;
-    appState.activeSlot = 0;
+    appState.activeTrack = trackRef(0);
     resetClipPage(); resetSeqEngine(); resetSeqState(); resetDrumSync();
 }
 
@@ -5679,16 +5874,20 @@ _log('\nautomation label sync:');
     eq('scale restored', keyboardState.scale, 2);
     eq('mode restored', keyboardState.mode, 1);
     eq('layout restored', keyboardState.layout, 1);
-    eq('per-track octaves restored', JSON.stringify(keyboardState.octave), '[3,5,4,6]');
+    /* Only the four tracks the blob carried; the rest keep the default. */
+    eq('per-track octaves restored', JSON.stringify(keyboardState.octave.slice(0, 4)), '[3,5,4,6]');
 
     // A legacy blob has one absolute `root` and no oct/mode/layout: derive the
     // tonic and give every track that octave. Existing sets must keep working.
     keyboardState.rootPc = 0; keyboardState.scale = 0;
     keyboardState.mode = 1; keyboardState.layout = 1;
-    keyboardState.octave = [1, 1, 1, 1];
+    keyboardState.octave = new Array(16).fill(1);
     applyUiState(JSON.stringify({ root: 50, scale: 3 }));
     eq('legacy root gives pitch class', keyboardState.rootPc, 2);
-    eq('legacy root fills every octave', JSON.stringify(keyboardState.octave), '[4,4,4,4]');
+    /* "every" means every track, not just the first four — a legacy blob has one
+     * absolute note that has to reach all 16. */
+    eq('legacy root fills every octave',
+       keyboardState.octave.every((o) => o === 4) && keyboardState.octave.length === 16, true);
     eq('legacy scale restored', keyboardState.scale, 3);
     eq('legacy blob resets mode', keyboardState.mode, 0);
     eq('legacy blob resets layout', keyboardState.layout, 0);
@@ -6552,7 +6751,7 @@ _log('\nTest: buildViewModel emits lfoViz (synth reuse)');
         min: over.min ?? 0, max: over.max ?? 1, step: 1, options: over.options ?? null,
         renderStyle: 'arc', automatable: false, lfo: over.lfo });
     const s = {
-        activeSlot: 0, componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
+        port: portFor(0), componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
         knobParams: [
             kp({ key: 'a' }), kp({ key: 'b' }), kp({ key: 'mode', type: 'enum', options: ['U','B'], max: 1, lfo: 'mode' }), kp({ key: 'd' }),
             kp({ key: 'shp', type: 'enum', options: ['a','b','c','d','e','f'], max: 5, lfo: 'shape' }),
@@ -6834,7 +7033,7 @@ _log('\nTest: buildViewModel emits filterViz + claim priority (A1)');
         min: over.min ?? 0, max: over.max ?? 1, step: 1, options: over.options ?? null,
         renderStyle: 'arc', automatable: false });
     const base = {
-        activeSlot: 0, componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
+        port: portFor(0), componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
         enumFmt: [], touchedSlots: [], enumOverlay: null, fileOverlay: null,
         activeModuleName: 'X', moduleId: 'x', drumPadCount: 0, drumCurrentPad: 0,
         drumCurrentPhysPad: 0, noRefreshKeys: new Set(), modulatedKeys: new Set(),
@@ -6905,7 +7104,7 @@ _log('\nTest: buildViewModel marks modulated params (from cache)');
     const kp = (key) => ({ key, label: key, shortLabel: null, type: 'float', min: 0, max: 1, step: 1,
         options: null, renderStyle: 'arc', automatable: true });
     const s = {
-        activeSlot: 0, componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
+        port: portFor(0), componentKey: 'synth', knobPage: 0, bankNames: [], moduleConfig: null,
         knobParams: [kp('cutoff'), kp('reso'), null, null, null, null, null, null],
         knobValues: [0, 0, null, null, null, null, null, null],
         enumFmt: [], fileValues: new Array(8).fill(null), touchedSlots: [],
@@ -9875,16 +10074,14 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
      * directly on purpose; each is infrastructure or view state, not an edit.
      * A NEW direct write shows up here as a failure rather than as a param
      * that silently cannot be undone. */
+    /* Since the TrackPort refactor this list is down to two entries, and that is
+     * the point: every track-addressed write now goes through a port, so it will
+     * work on a movy-hosted track without revisiting the call site. A direct
+     * write would compile and pass on host tracks while silently doing nothing
+     * on a movy one — the failure this guard exists to prevent. */
     const ALLOWED = {
-        'src/chain/set-param.ts':       'the chokepoint itself',
-        'src/undo/apply.ts':            'undo applying its own inverses',
         'src/types/schwung.d.ts':       'the ambient declaration',
-        'src/app/tick.ts':              'knob_N_set lane mappings (infrastructure)',
-        'src/midi/router.ts':           'knob_N_set lane mapping (infrastructure)',
-        'src/browser/handler.ts':       'module load — recorded as a ModuleOp',
-        'src/model/hierarchy.ts':       'setOnLoad seeds at module load',
-        'src/lfo/assign.ts':            'records before writing (three-key gesture)',
-        'src/keyboard/drum-handler.ts': 'focused drum pad — view state, not an edit',
+        'src/track/host-port.ts':       'the host-track door — the one place that talks to a slot',
     };
     const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
         const full = dir + '/' + e.name;
@@ -10188,7 +10385,7 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
         await import('../dist/esm/undo/module-apply.js');
     resetUndoState(); resetUndoGroups(); resetUndoApply(); resetModuleRestore();
 
-    const m = createModel(0, 'synth');
+    const m = createModel(portFor(0), 'synth');
     m.reset();
     for (let i = 0; i < 40; i++) m.tick();
     appState.trackModels[0] = [m];
@@ -11537,6 +11734,559 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 
     globalThis.fill_rect = origFill;
     resetSeqState();
+}
+
+{
+  _log('\ntrack refs — index arithmetic:');
+  const { trackRef, trackGroup, trackIndexInGroup, trackKind, chainInstance, HOST_TRACKS } =
+    await import('../dist/esm/track/ref.js');
+
+  eq('track 0 is host', trackKind(0), 'host');
+  eq('track 3 is host', trackKind(3), 'host');
+  /* Stage 1 ships with TRACK_COUNT=4, but the predicate is what Stage 2 turns
+   * on — so it is specified now and tested now. */
+  eq('track 4 is movy', trackKind(4), 'movy');
+  eq('track 15 is movy', trackKind(15), 'movy');
+
+  eq('group of track 0', trackGroup(0), 0);
+  eq('group of track 3', trackGroup(3), 0);
+  eq('group of track 4', trackGroup(4), 1);
+  eq('group of track 15', trackGroup(15), 3);
+
+  eq('index-in-group of 0', trackIndexInGroup(0), 0);
+  eq('index-in-group of 5', trackIndexInGroup(5), 1);
+  eq('index-in-group of 15', trackIndexInGroup(15), 3);
+
+  /* Chain instances are movy-side only and 0-based: track 4 is the FIRST movy
+   * chain, not the fifth. Getting this offset wrong would address the wrong
+   * synth on every movy track. */
+  eq('chain instance of track 4', chainInstance(4), 0);
+  eq('chain instance of track 15', chainInstance(15), 11);
+  eq('host tracks have no chain instance', chainInstance(3), -1);
+
+  const r = trackRef(6);
+  eq('trackRef carries index', r.index, 6);
+  eq('trackRef carries kind', r.kind, 'movy');
+  eq('HOST_TRACKS is 4', HOST_TRACKS, 4);
+}
+
+{
+  _log('\ntrack ports — host port wraps the shadow API:');
+  const { portFor, resetPorts } = await import('../dist/esm/track/registry.js');
+
+  const gets = [], sets = [], midi = [];
+  const origGet = globalThis.shadow_get_param;
+  const origSet = globalThis.shadow_set_param;
+  const origMidi = globalThis.shadow_send_midi_to_dsp;
+  globalThis.shadow_get_param = (slot, key) => { gets.push([slot, key]); return 'v:' + key; };
+  globalThis.shadow_set_param = (slot, key, val) => { sets.push([slot, key, val]); return true; };
+  globalThis.shadow_send_midi_to_dsp = (m) => { midi.push(m.slice()); };
+
+  resetPorts();
+  const p2 = portFor(2);
+
+  eq('port knows its track', p2.track.index, 2);
+  eq('port knows its kind', p2.track.kind, 'host');
+
+  eq('getParam returns the value', p2.getParam('synth:cutoff'), 'v:synth:cutoff');
+  eq('getParam addressed the right slot', gets[0][0], 2);
+  eq('getParam passed the key through', gets[0][1], 'synth:cutoff');
+
+  p2.setParam('synth:cutoff', '0.5');
+  eq('setParam addressed the right slot', sets[0][0], 2);
+  eq('setParam passed key/value', sets[0][1] + '=' + sets[0][2], 'synth:cutoff=0.5');
+
+  /* getMany is one call per key for a host track — the batching only pays off
+   * for movy chains. What matters here is that the ORDER of results matches the
+   * order of keys, because callers index into it positionally. */
+  gets.length = 0;
+  const many = p2.getMany(['a', 'b', 'c']);
+  eq('getMany returns one result per key', many.length, 3);
+  eq('getMany preserves order', many.join(','), 'v:a,v:b,v:c');
+  eq('getMany issued one get per key', gets.length, 3);
+
+  /* The channel is the port's job: a caller passes the TYPE nibble only. */
+  p2.sendMidi(0x90, 60, 100);
+  eq('sendMidi ORs in the track channel', midi[0][0], 0x92);
+  eq('sendMidi passes pitch', midi[0][1], 60);
+  eq('sendMidi passes velocity', midi[0][2], 100);
+
+  /* Ports are cached: rebuilding one per call would allocate on every param
+   * read, and reads happen per tick. */
+  eq('portFor caches', portFor(2) === p2, true);
+
+  globalThis.shadow_get_param = origGet;
+  globalThis.shadow_set_param = origSet;
+  globalThis.shadow_send_midi_to_dsp = origMidi;
+  resetPorts();
+}
+
+{
+  _log('\nmodel state — reads go through the port:');
+  const { createModelState } = await import('../dist/esm/model/state.js');
+  const { resetPorts } = await import('../dist/esm/track/registry.js');
+
+  const gets = [];
+  const origGet = globalThis.shadow_get_param;
+  globalThis.shadow_get_param = (slot, key) => { gets.push([slot, key]); return '0.25'; };
+
+  resetPorts();
+  const s = createModelState(portFor(1), 'synth');
+  eq('state carries the port', s.port.track.index, 1);
+  /* activeSlot is gone: an alias would have let half the codebase keep the
+   * slot assumption alive straight through Stage 2. */
+  eq('state has no activeSlot', 'activeSlot' in s, false);
+
+  /* The point of the refactor: a read names a key, not a slot. */
+  eq('port read reaches the right slot', s.port.getParam('synth:cutoff'), '0.25');
+  eq('the slot came from the port', gets[0][0], 1);
+
+  globalThis.shadow_get_param = origGet;
+  resetPorts();
+}
+
+{
+  _log('\nparam reads — nothing addresses a slot directly:');
+  /* Guard, not a behaviour test. A direct shadow_get_param(slot, ...) reads
+   * schwung's slot N, which for a MOVY track is a completely different track's
+   * chain — it compiles, passes on tracks 1-4, and silently returns the wrong
+   * synth's values on tracks 5-16. That is the bug this abstraction exists to
+   * prevent, and it is far cheaper to catch here than on device.
+   *
+   * Originally scoped to src/model/, which let 25 reads survive in browser/,
+   * undo/, lfo/, mixer/ and app/ until they were found by hand. Now the whole
+   * tree is checked. */
+  const walkTs = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const full = dir + '/' + e.name;
+    return e.isDirectory() ? walkTs(full) : (full.endsWith('.ts') ? [full] : []);
+  });
+  const READ_ALLOWED = {
+    'src/types/schwung.d.ts':  'the ambient declaration',
+    'src/track/host-port.ts':  'the host-track door — the one place that reads a slot',
+  };
+  const offenders = walkTs('src')
+    .filter((f) => !(f in READ_ALLOWED))
+    .filter((f) => readFileSync(f, 'utf8').includes('shadow_get_param('));
+  eq('no file reads params by slot: ' + offenders.join(','), offenders.length, 0);
+  const staleReads = Object.keys(READ_ALLOWED)
+    .filter((f) => !readFileSync(f, 'utf8').includes('shadow_get_param('));
+  eq('no stale read-allowlist entries: ' + staleReads.join(','), staleReads.length, 0);
+}
+
+{
+  _log('\nchain writes — the chokepoint takes a port:');
+  const { setChainParam } = await import('../dist/esm/chain/set-param.js');
+  const { resetPorts } = await import('../dist/esm/track/registry.js');
+
+  const sets = [];
+  const origSet = globalThis.shadow_set_param;
+  globalThis.shadow_set_param = (slot, key, val) => { sets.push([slot, key, val]); return true; };
+
+  resetPorts();
+  setChainParam(portFor(3), 'synth:cutoff', '0.8', '0.2');
+  eq('write reached the port\'s slot', sets[0][0], 3);
+  eq('write passed key', sets[0][1], 'synth:cutoff');
+  eq('write passed value', sets[0][2], '0.8');
+
+  globalThis.shadow_set_param = origSet;
+  resetPorts();
+}
+
+{
+  _log('\nlive MIDI — sent through the port, channel from the ledger:');
+  /* The ledger rule is what this guard protects: if a call site goes back to
+   * building its own status byte, it is one step from deriving the track at
+   * release time, which strands notes. */
+  const offenders = ['src/keyboard', 'src/seq']
+    .flatMap((d) => readdirSync(d).filter((f) => f.endsWith('.ts')).map((f) => d + '/' + f))
+    .filter((f) => readFileSync(f, 'utf8').includes('shadow_send_midi_to_dsp('));
+  eq('no file sends DSP MIDI directly: ' + offenders.join(','), offenders.length, 0);
+}
+
+{
+  _log('\napp state — the active track is a TrackRef:');
+  const { appState } = await import('../dist/esm/app/state.js');
+  eq('activeTrack exists', typeof appState.activeTrack, 'object');
+  eq('activeTrack has an index', appState.activeTrack.index, 0);
+  eq('activeTrack has a kind', appState.activeTrack.kind, 'host');
+  /* The old field must be GONE, not aliased. */
+  eq('activeSlot is removed', 'activeSlot' in appState, false);
+}
+
+{
+  _log('\nseq state — 16 tracks:');
+  const { seqState, resetSeqState, muteFromStr, sessionFromStr, activeFromStr, activeHasNote } =
+    await import('../dist/esm/seq/state.js');
+  const { TRACK_COUNT } = await import('../dist/esm/track/ref.js');
+  resetSeqState();
+
+  eq('TRACK_COUNT is 16', TRACK_COUNT, 16);
+  eq('mute mirror sized per track', seqState.muted.length, 16);
+  eq('session mirror sized per track', seqState.session.length, 16);
+  eq('lastPitch sized per track', seqState.lastPitch.length, 16);
+
+  muteFromStr('0000000000000001');
+  eq('mute parses the last track', seqState.muted[15], true);
+  eq('mute leaves track 0 alone', seqState.muted[0], false);
+
+  /* 16 comma groups; only the last one carries a clip, so a parser that stops
+   * at 4 silently reports an empty grid for three quarters of the song. */
+  sessionFromStr(new Array(15).fill('0.-.-.0').join(',') + ',ff.2.-.3');
+  eq('session parses the last track exist bitmap', seqState.session[15].exist, 0xff);
+  eq('session parses the last track playing slot', seqState.session[15].playing, 2);
+  eq('session parses the last track selected slot', seqState.session[15].selected, 3);
+
+  activeFromStr(new Array(15).fill('').join(',') + ',60.64');
+  eq('active notes parse on the last track', activeHasNote(15, 60), true);
+  eq('active notes bounded by track', activeHasNote(14, 60), false);
+  resetSeqState();
+}
+
+{
+  _log('\nunbacked port — movy tracks before Stage 3:');
+  const { resetPorts } = await import('../dist/esm/track/registry.js');
+  resetPorts();
+  const p = portFor(7);
+  eq('movy track gets a port', p.track.kind, 'movy');
+  eq('reads answer empty', p.getParam('synth:cutoff'), null);
+  eq('batch reads answer empty', p.getMany(['a', 'b']).join(','), ',');
+  eq('writes are refused, not thrown', p.setParam('synth:cutoff', '1'), false);
+  /* Must not throw: the tick loop sends note-offs to every track on teardown. */
+  p.sendMidi(0x80, 60, 0);
+  eq('host tracks still get a real port', portFor(0).track.kind, 'host');
+  resetPorts();
+}
+
+{
+  _log('\ngroup focus:');
+  const { appState } = await import('../dist/esm/app/state.js');
+  const { selectTrack, focusedTrack } = await import('../dist/esm/track/focus.js');
+
+  selectTrack(0);
+  eq('selecting track 0 focuses group 0', appState.focusGroup, 0);
+
+  /* Selecting a track must refocus the group, or the four track buttons would
+   * keep addressing a different quartet than the one on screen. */
+  selectTrack(9);
+  eq('selecting track 9 sets it active', appState.activeTrack.index, 9);
+  eq('selecting track 9 refocuses group 2', appState.focusGroup, 2);
+
+  eq('button 0 in group 2 is track 8', focusedTrack(0), 8);
+  eq('button 3 in group 2 is track 11', focusedTrack(3), 11);
+
+  eq('out-of-range selection ignored', (selectTrack(99), appState.activeTrack.index), 9);
+  selectTrack(0);
+}
+
+{
+  _log('\nsession track selector:');
+  const { sessionStepLed } = await import('../dist/esm/seq/track-select.js');
+  const { TRACK_COLOR, C_BLACK, C_WHITE, ANIM_NONE, ANIM_PULSE } = await import('../dist/esm/seq/colors.js');
+
+  /* Every step shows its track colour; the focused group's four PULSE between
+   * black and that colour. Motion carries the focus, so it does not depend on
+   * one track's accent being lighter than another's. The PULSING QUAD'S
+   * POSITION is what identifies the group — colour is the backup cue.
+   * Third argument = the selected track; put it out of the way (12) so these
+   * cases see only the group layer. */
+  eq('focused step pulses from black',  sessionStepLed(4, 1, 12).base,    C_BLACK);
+  eq('focused step pulses to its colour', sessionStepLed(4, 1, 12).anim,  TRACK_COLOR[4]);
+  eq('focused step uses the pulse channel', sessionStepLed(4, 1, 12).channel, ANIM_PULSE);
+  eq('focused group last step pulses', sessionStepLed(7, 1, 12).channel,  ANIM_PULSE);
+  eq('unfocused step is solid colour', sessionStepLed(0, 1, 12).base,     TRACK_COLOR[0]);
+  eq('unfocused step does not animate', sessionStepLed(0, 1, 12).channel, ANIM_NONE);
+  eq('unfocused far step is solid',    sessionStepLed(15, 1, 12).base,    TRACK_COLOR[15]);
+  eq('group 0 focused pulses the first quad', sessionStepLed(0, 0, 12).channel, ANIM_PULSE);
+
+  /* The SELECTED track sits SOLID WHITE — a second layer over the group pulse,
+   * and the finer answer, so it wins where both apply. Stillness is the cue:
+   * everything else in the quad is pulsing, and a pulse here would have to
+   * share the one animation channel with the group's, which left the two either
+   * in antiphase or indistinguishable. */
+  eq('selected step is white',          sessionStepLed(6, 1, 6).base,    C_WHITE);
+  eq('selected step does not animate',  sessionStepLed(6, 1, 6).channel, ANIM_NONE);
+  eq('selected step anim matches base', sessionStepLed(6, 1, 6).anim,    C_WHITE);
+
+  /* Its neighbours in the same group keep the group pulse, so both cues read at
+   * once — which is the whole point of two layers. */
+  for (const n of [4, 5, 7]) {
+      eq(`step ${n} keeps the group pulse`,    sessionStepLed(n, 1, 6).base, C_BLACK);
+      eq(`step ${n} pulses to its own colour`, sessionStepLed(n, 1, 6).anim, TRACK_COLOR[n]);
+  }
+
+  /* Focus and selection genuinely come apart: the octave buttons scroll the
+   * group without moving the selected track, and the selection must stay
+   * visible when it does. */
+  eq('selected outside the focused group is still white',
+     sessionStepLed(6, 3, 6).base, C_WHITE);
+  eq('and is still solid',
+     sessionStepLed(6, 3, 6).channel, ANIM_NONE);
+
+  /* selectedTrack = -1 means "do not show it". The caller passes that whenever
+   * the Session button is not held, so LATCHED Session view shows only the
+   * group pulse — a permanent white step is a read-out you asked for by
+   * holding, not something to sit and work next to. Track 6 must then be
+   * indistinguishable from its neighbours. */
+  eq('no selection shown: the step falls back to the group pulse',
+     sessionStepLed(6, 1, -1).base, C_BLACK);
+  eq('no selection shown: it pulses to its own colour',
+     sessionStepLed(6, 1, -1).anim, TRACK_COLOR[6]);
+  eq('no selection shown: nothing in the row is white',
+     [...Array(16).keys()].some((i) => sessionStepLed(i, 1, -1).base === C_WHITE), false);
+
+  eq('out-of-range step is black', sessionStepLed(16, 1, 6).base, C_BLACK);
+  eq('a negative step is black',   sessionStepLed(-1, 1, 6).base, C_BLACK);
+}
+
+{
+  _log('\ngroup navigation affordances:');
+  const { groupArrowColor } = await import('../dist/esm/seq/buttons.js');
+  const { WHITE_DIM, WHITE_OFF } = await import('../dist/esm/seq/colors.js');
+  const { selectTrack, GROUP_DIR_UP, GROUP_DIR_DOWN } = await import('../dist/esm/track/focus.js');
+
+  /* Same rule the bar arrows use: dim means pressable, off means travel limit.
+   * Up scrolls towards track 1, so it is the dark one at the first group. */
+  selectTrack(0);
+  eq('at the first group, up is off', groupArrowColor(GROUP_DIR_UP), WHITE_OFF);
+  eq('at the first group, down is dim', groupArrowColor(GROUP_DIR_DOWN), WHITE_DIM);
+  selectTrack(15);
+  eq('at the last group, down is off', groupArrowColor(GROUP_DIR_DOWN), WHITE_OFF);
+  eq('at the last group, up is dim', groupArrowColor(GROUP_DIR_UP), WHITE_DIM);
+  selectTrack(4);
+  eq('mid groups can go both ways', groupArrowColor(GROUP_DIR_UP) === WHITE_DIM && groupArrowColor(GROUP_DIR_DOWN) === WHITE_DIM, true);
+  selectTrack(0);
+}
+
+{
+  _log('\nbulk param codec:');
+  const { encodeBulk, decodeBulk } = await import('../dist/esm/track/bulk.js');
+
+  /* Wire format: <count>\n then <len>\n<bytes> per item (schwung_shim.c:3440). */
+  /* No delimiter after the bytes — the length IS the framing. */
+  eq('encodes count then length-prefixed items',
+     encodeBulk(['ab', 'cde']), '2\n2\nab3\ncde');
+  eq('encodes an empty list', encodeBulk([]), '0\n');
+
+  eq('round-trips', decodeBulk(encodeBulk(['a', 'bb', 'ccc'])).join(','), 'a,bb,ccc');
+  eq('decodes empty values', decodeBulk('2\n0\n1\nx').join('|'), '|x');
+  /* Number('') is 0, so a missing length must be rejected explicitly or every
+   * item after it is read from the wrong offset. */
+  eq('empty length field rejected', decodeBulk('1\n\nx'), null);
+
+  /* Values containing a newline must survive: lengths are the framing, not
+   * delimiters. A split-on-newline decoder would corrupt everything after. */
+  eq('a value containing a newline survives',
+     decodeBulk(encodeBulk(['{"a":1,\n"b":2}']))[0], '{"a":1,\n"b":2}');
+
+  /* A malformed response must be REJECTED, not read as empty values — empties
+   * would paint a whole page of zeroed knobs over the real ones. */
+  eq('null payload rejected', decodeBulk(null), null);
+  eq('missing header rejected', decodeBulk('garbage'), null);
+  eq('truncated item rejected', decodeBulk('2\n1\na'), null);
+  eq('negative length rejected', decodeBulk('1\n-1\nx'), null);
+}
+
+{
+  _log('\nmovy chain port:');
+  const { resetPorts } = await import('../dist/esm/track/registry.js');
+
+  const gets = [], sets = [], bulk = [];
+  const oG = globalThis.host_module_get_param, oS = globalThis.host_module_set_param_blocking;
+  const oBG = globalThis.shadow_get_params, oBS = globalThis.shadow_set_params;
+  globalThis.host_module_get_param = (k) => { gets.push(k); return 'v'; };
+  globalThis.host_module_set_param_blocking = (k, v) => { sets.push([k, v]); return true; };
+
+  resetPorts();
+  const p = portFor(7);              // track 7 = movy chain 3
+  eq('movy track gets a chain port', p.track.kind, 'movy');
+
+  /* The namespace mapping is the routing: get it wrong and edits land on
+   * another track's synth. */
+  p.getParam('synth:cutoff');
+  eq('reads are namespaced by chain index', gets[0], 'ch3:synth:cutoff');
+  p.setParam('synth:cutoff', '0.5');
+  eq('writes are namespaced by chain index', sets[0][0], 'ch3:synth:cutoff');
+  eq('writes pass the value', sets[0][1], '0.5');
+
+  /* getMany must be ONE round trip — that is the entire reason the bulk
+   * channel is used for movy tracks. */
+  globalThis.shadow_get_params = (slot, marker, payload) => {
+    bulk.push([slot, marker, payload]);
+    return '2\n2\n.72\n.3';   // <count>\n then <len>\n<bytes> each, no separator
+  };
+  gets.length = 0;
+  const many = p.getMany(['synth:a', 'synth:b']);
+  eq('getMany issued exactly one bulk call', bulk.length, 1);
+  eq('getMany issued no individual gets', gets.length, 0);
+  eq('getMany routes to the overtake DSP', bulk[0][1], 'overtake_dsp:');
+  eq('getMany namespaces every key', bulk[0][2], '2\n11\nch3:synth:a11\nch3:synth:b');
+  eq('getMany returns values in order', many.join(','), '.7,.3');
+
+  /* A short/garbled response must NOT read as empty values — falling back to
+   * individual reads keeps the knobs showing real numbers. */
+  globalThis.shadow_get_params = () => '1\n2\n.7';
+  gets.length = 0;
+  const fallback = p.getMany(['synth:a', 'synth:b']);
+  eq('a short bulk response falls back to individual reads', gets.length, 2);
+  eq('fallback still returns a value per key', fallback.length, 2);
+
+  globalThis.host_module_get_param = oG; globalThis.host_module_set_param_blocking = oS;
+  globalThis.shadow_get_params = oBG; globalThis.shadow_set_params = oBS;
+  resetPorts();
+}
+
+{
+  _log('\nmovy chain persistence:');
+  const { captureChains, restoreChains } = await import('../dist/esm/track/chain-persist.js');
+  const { resetPorts } = await import('../dist/esm/track/registry.js');
+
+  const reads = [], writes = [];
+  const oG = globalThis.host_module_get_param, oS = globalThis.host_module_set_param_blocking;
+  const oBG = globalThis.shadow_get_params;
+  globalThis.host_module_set_param_blocking = (k, v) => { writes.push([k, v]); return true; };
+  globalThis.shadow_get_params = undefined;   // force the per-key path for clarity
+
+  /* Only chain 0 (track 4) holds a module; every other movy track is empty. */
+  globalThis.host_module_get_param = (k) => {
+    reads.push(k);
+    if (k === 'ch0:synth_module') return 'plaits';
+    if (k === 'ch0:synth:state') return 'BLOB42';
+    return null;
+  };
+  resetPorts();
+  const snap = captureChains();
+  eq('only loaded tracks are captured', snap.length, 1);
+  eq('captured the right track', snap[0].t, 4);
+  eq('captured the module', snap[0].comp[0].m, 'plaits');
+  eq('captured the state blob', snap[0].comp[0].s, 'BLOB42');
+  /* An empty track must not cost a blob read per component. */
+  eq('no state read for empty components',
+     reads.filter((k) => k.endsWith(':state')).length, 1);
+
+  writes.length = 0;
+  const n = restoreChains(snap);
+  eq('restored one component', n, 1);
+  eq('module written first', writes[0][0], 'ch0:synth:module');
+  eq('state written second', writes[1][0], 'ch0:synth:state');
+  eq('state value round-tripped', writes[1][1], 'BLOB42');
+
+  /* Tolerance: older blobs have no `chains` key, and a corrupt one must not
+   * throw during set load. */
+  eq('missing chains key is a no-op', restoreChains(undefined), 0);
+  eq('non-array is a no-op', restoreChains('nope'), 0);
+  eq('out-of-range track skipped', restoreChains([{ t: 99, comp: [{ c: 'synth', m: 'x' }] }]), 0);
+  eq('host track index skipped', restoreChains([{ t: 0, comp: [{ c: 'synth', m: 'x' }] }]), 0);
+  eq('unknown component skipped', restoreChains([{ t: 4, comp: [{ c: 'bogus', m: 'x' }] }]), 0);
+
+  globalThis.host_module_get_param = oG; globalThis.host_module_set_param_blocking = oS;
+  globalThis.shadow_get_params = oBG;
+  resetPorts();
+}
+
+{
+  _log('\ntrack volume routes by track kind:');
+  const { volumeTrackDown, volumeKnobDelta } = await import('../dist/esm/mixer/track-volume.js');
+  const { resetPorts } = await import('../dist/esm/track/registry.js');
+
+  const writes = [];
+  const oSet = globalThis.shadow_set_param;
+  const oMSet = globalThis.host_module_set_param_blocking;
+  const oGet = globalThis.host_module_get_param;
+  const oSGet = globalThis.shadow_get_param;
+  globalThis.shadow_set_param = (slot, k, v) => { writes.push(['host', slot, k, v]); return true; };
+  globalThis.host_module_set_param_blocking = (k, v) => { writes.push(['movy', k, v]); return true; };
+  globalThis.shadow_get_param = () => '1';
+  globalThis.host_module_get_param = () => '1,0,0';
+  resetPorts();
+
+  /* A host track keeps schwung's slot:volume — Move's mixer reads the same
+   * param, so writing anything else would desync the two. */
+  volumeTrackDown(1);
+  volumeKnobDelta(1);
+  const hostWrite = writes.find((w) => w[0] === 'host');
+  eq('host track writes slot:volume', hostWrite && hostWrite[2], 'slot:volume');
+
+  /* A movy track has no schwung slot and no Move fader, so its level is movy's
+   * own and must land on the summing mixer instead. */
+  writes.length = 0;
+  volumeTrackDown(6);
+  volumeKnobDelta(1);
+  const movyWrite = writes.find((w) => w[0] === 'movy');
+  eq('movy track writes its mixer', movyWrite && movyWrite[1], 'ch2:mix');
+  eq('mixer write is the gain,pan,mute triple',
+     !!(movyWrite && /^[0-9.]+,0,0$/.test(movyWrite[2])), true);
+
+  globalThis.shadow_set_param = oSet; globalThis.host_module_set_param_blocking = oMSet;
+  globalThis.host_module_get_param = oGet; globalThis.shadow_get_param = oSGet;
+  resetPorts();
+}
+
+{
+  _log('\npad routing to the engine:');
+  const { syncPadRoute, resetPadRoute, engineOwnsPads } =
+    await import('../dist/esm/track/pad-route.js');
+  const { appState } = await import('../dist/esm/app/state.js');
+  const { selectTrack } = await import('../dist/esm/track/focus.js');
+  const { seqState } = await import('../dist/esm/seq/state.js');
+
+  const sent = [];
+  const send = (k, v) => sent.push([k, v]);
+
+  /* A host track keeps its own pad handling: chain -1, and the UI must still
+   * send its notes. */
+  resetPadRoute();
+  selectTrack(0);
+  syncPadRoute(send);
+  eq('a map is pushed for a host track', sent.length, 1);
+  eq('host track pushes chain -1', sent[0][1].split(',')[0], '-1');
+  eq('the UI still owns host-track pads', engineOwnsPads(0), false);
+
+  /* A movy track hands pads to the engine. */
+  sent.length = 0;
+  selectTrack(6);                       // movy chain 2
+  syncPadRoute(send);
+  eq('a map is pushed for a movy track', sent.length, 1);
+  eq('the key is padmap', sent[0][0], 'padmap');
+  eq('it names the chain', sent[0][1].split(',')[0], '2');
+  eq('it carries 32 pad entries', sent[0][1].split(',').length - 1, 32);
+  eq('the engine owns pads for that track', engineOwnsPads(6), true);
+  eq('but not for a different chain', engineOwnsPads(7), false);
+
+  /* Pushed by comparison: an unchanged map costs nothing. */
+  sent.length = 0;
+  syncPadRoute(send);
+  syncPadRoute(send);
+  eq('an unchanged map is not re-sent', sent.length, 0);
+
+  /* A re-dlopened engine has no map; claiming otherwise leaves pads dead. */
+  resetPadRoute();
+  eq('after a reset the engine owns nothing', engineOwnsPads(6), false);
+  sent.length = 0;
+  syncPadRoute(send);
+  eq('and the map is pushed again', sent.length, 1);
+
+  /* Session view is the clip grid, not an instrument. The engine answers pads
+   * from the audio thread and cannot see a UI mode, so the map has to say so —
+   * otherwise launching a clip also sounds the track's synth underneath it. */
+  resetPadRoute();
+  selectTrack(6);
+  sent.length = 0;
+  syncPadRoute(send);
+  eq('a movy track hands pads to the engine while playing', engineOwnsPads(6), true);
+  seqState.sessionMode = true;
+  sent.length = 0;
+  syncPadRoute(send);
+  eq('entering Session re-pushes the map', sent.length, 1);
+  eq('Session hands the pads back to the UI', (sent[0]?.[1] ?? '').split(',')[0], '-1');
+  eq('so a clip launch cannot sound the synth', engineOwnsPads(6), false);
+  seqState.sessionMode = false;
+  sent.length = 0;
+  syncPadRoute(send);
+  eq('leaving Session gives the pads back to the engine', engineOwnsPads(6), true);
+  eq('and names the chain again', (sent[0]?.[1] ?? '').split(',')[0], '2');
+
+  resetPadRoute();
+  selectTrack(0);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

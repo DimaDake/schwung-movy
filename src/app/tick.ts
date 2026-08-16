@@ -1,3 +1,4 @@
+import { portFor } from '../track/registry.js';
 import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from './state.js';
 import { mainPageActive, mainPageState } from '../seq/main-page.js';
 import { buildMainPageVM } from '../seq/main-page-vm.js';
@@ -154,7 +155,7 @@ function mainSig(): string {
         mainPageState.overlaySel, seqState.bpmX100, seqState.swingPct,
         keyboardState.rootPc, keyboardState.scale,
         keyboardState.mode, keyboardState.layout,
-        keyboardState.octave[appState.activeSlot]].join(',');
+        keyboardState.octave[appState.activeTrack.index]].join(',');
 }
 
 let lastClipSig = '';
@@ -188,7 +189,7 @@ let laneVerifyTicks = 0;
 /* Reading a mapped knob's `_value` routes through the host's find_param_by_key,
  * which repopulates the per-component param cache abs-CC needs after a reload. */
 const warmReadValue = (slot: number, lane: number): void => {
-    shadow_get_param(slot, 'knob_' + (lane + 1) + '_value');
+    portFor(slot).getParam( 'knob_' + (lane + 1) + '_value');
 };
 
 /* Return from background: the host restored the suspend-time LED snapshot to
@@ -260,8 +261,8 @@ function tickBody(): void {
     // Diagnostic (off unless debug_log_on): the UI lane registry mirrors the
     // engine's assigned lanes. Empty here means automation display + read-back
     // suppression are dead — the device automation test asserts it is populated.
-    const laneKeys = laneKeysForTrack(appState.activeSlot).join(',');
-    if (laneKeys !== _autoLanesLog) { _autoLanesLog = laneKeys; mlog('auto lanes t=' + appState.activeSlot + ' [' + laneKeys + ']'); }
+    const laneKeys = laneKeysForTrack(appState.activeTrack.index).join(',');
+    if (laneKeys !== _autoLanesLog) { _autoLanesLog = laneKeys; mlog('auto lanes t=' + appState.activeTrack.index + ' [' + laneKeys + ']'); }
     // Engine (re)booted: rebuild the automation registry from its labels and
     // re-apply each lane's chain knob mapping so playback CCs land.
     if (engineReady() && takeLabelSync()) {
@@ -270,7 +271,7 @@ function tickBody(): void {
         if (labels) {
             syncLabelsFromEngine(
                 labels,
-                (slot, lane, tp) => shadow_set_param(slot, 'knob_' + (lane + 1) + '_set', tp),
+                (slot, lane, tp) => portFor(slot).setParam('knob_' + (lane + 1) + '_set', tp),
                 (track, tp) => {
                     // Validate against the lane's own (track, component) model param
                     // set — authoritative even for config-driven drum modules. Keep
@@ -292,10 +293,10 @@ function tickBody(): void {
     if (++laneVerifyTicks >= LANE_VERIFY_TICKS) {
         laneVerifyTicks = 0;
         verifyLaneMappings(
-            (slot, lane) => shadow_get_param(slot, 'knob_' + (lane + 1) + '_name'),
+            (slot, lane) => portFor(slot).getParam( 'knob_' + (lane + 1) + '_name'),
             (slot, lane, tp) => {
                 mlog('auto remap t=' + slot + ' lane=' + lane + ' ' + tp);
-                shadow_set_param(slot, 'knob_' + (lane + 1) + '_set', tp);
+                portFor(slot).setParam('knob_' + (lane + 1) + '_set', tp);
             },
         );
     }
@@ -306,8 +307,8 @@ function tickBody(): void {
     // field observability for this failure mode, and the reselect e2e's assertion.
     laneWarmTick(warmReadValue, (t, l) => {
         mlog('auto warm t=' + t
-            + ' cache=' + shadow_get_param(t, 'knob_' + (l + 1) + '_max')
-            + ' type=' + shadow_get_param(t, 'knob_' + (l + 1) + '_type'));
+            + ' cache=' + portFor(t).getParam( 'knob_' + (l + 1) + '_max')
+            + ' type=' + portFor(t).getParam( 'knob_' + (l + 1) + '_type'));
     });
     seqPersistTick();
     /* Undo housekeeping, after seqPersistTick so the set uuid it watches is the
@@ -335,15 +336,15 @@ function tickBody(): void {
     /* Drum status comes from the synth slot (index 1) regardless of which
      * chain module is currently selected — drum pads and step lane stay active
      * even when the user is browsing FX parameters on the same track. */
-    const synthModel = appState.trackModels[appState.activeSlot]?.[1];
+    const synthModel = appState.trackModels[appState.activeTrack.index]?.[1];
     const isDrum     = (synthModel?.getDrumPadCount() ?? 0) > 0;
 
     /* A track switch changes what the pads mean, so the grid must repaint even
      * where the new colour matches the cached one. Detected here (before the
      * chromatic-init early-return below) so it fires regardless of whether the
      * new track is a drum or melodic track. */
-    if (appState.activeSlot !== lastActiveSlot) {
-        lastActiveSlot = appState.activeSlot;
+    if (appState.activeTrack.index !== lastActiveSlot) {
+        lastActiveSlot = appState.activeTrack.index;
         drumCacheStale = true;
     }
     if (isDrum) {
@@ -361,7 +362,7 @@ function tickBody(): void {
         const end   = Math.min(appState.initLedIndex + LED_INIT_BATCH, total);
         for (let i = appState.initLedIndex; i < end; i++) {
             const p = PAD_MIN + i;
-            const color = padColor(p, PAD_MIN, appState.activeSlot, false);
+            const color = padColor(p, PAD_MIN, appState.activeTrack.index, false);
             chromaticCache[i] = color;
             setLED(p, color, true);
         }
@@ -374,11 +375,11 @@ function tickBody(): void {
         return;
     }
 
-    const chainIdx    = appState.trackChainIndex[appState.activeSlot];
-    const activeModel = appState.trackModels[appState.activeSlot]?.[chainIdx];
+    const chainIdx    = appState.trackChainIndex[appState.activeTrack.index];
+    const activeModel = appState.trackModels[appState.activeTrack.index]?.[chainIdx];
     // Automation lanes are driven by playback — keep the page from reading them
     // back (decouples display from automation; avoids per-step repaints).
-    activeModel?.setNoRefreshKeys(laneKeysForTrack(appState.activeSlot));
+    activeModel?.setNoRefreshKeys(laneKeysForTrack(appState.activeTrack.index));
     perfPhase('modeltick');
     const modelDirty  = activeModel?.tick() ?? false;
     perfPhaseEnd();
@@ -387,14 +388,14 @@ function tickBody(): void {
      * this track's automation lanes (the label sync drops lanes the new module
      * no longer has). Skipped on the first sighting (boot sync covers it) and on
      * empty transients during load. */
-    const mnKey = appState.activeSlot + ':' + chainIdx;
+    const mnKey = appState.activeTrack.index + ':' + chainIdx;
     const mn    = activeModel?.getModuleName() ?? '';
     if (mn && lastModuleName.get(mnKey) !== mn) {
         if (lastModuleName.has(mnKey)) {
             requestLabelSync();
             // The reload emptied the host's static param cache; schedule the warm
             // so abs-CC automation becomes audible again (see warmLaneParams).
-            requestLaneWarm(appState.activeSlot);
+            requestLaneWarm(appState.activeTrack.index);
         }
         lastModuleName.set(mnKey, mn);
     }
@@ -409,7 +410,7 @@ function tickBody(): void {
     // model, not the module, so the module's touch would otherwise stick).
     const shownKey = seqState.sessionMode
         ? 'M' + mIdx + (appState.masterDetail ? 'd' : '')
-        : appState.activeSlot + ':' + chainIdx;
+        : appState.activeTrack.index + ':' + chainIdx;
     if (shownKey !== lastShownKey) {
         lastShownKey = shownKey;
         (seqState.sessionMode ? masterModel : activeModel)?.clearTouch();
@@ -440,25 +441,25 @@ function tickBody(): void {
             if (appState.fileBrowserState) renderFileBrowseView(appState.fileBrowserState);
         } else if (appState.currentView === VIEW_MAIN_PARAMS) {
             const vm = buildMainPageVM();
-            renderKnobsView(vm, false, appState.activeSlot);
+            renderKnobsView(vm, false, appState.activeTrack.index);
             updateKnobLEDs(vm); // knobs 0-3 reflect value; 4-7 (null cells) off
         } else if (appState.currentView === VIEW_CLIP_PARAMS) {
             const vm = buildClipPageVM();
-            renderKnobsView(vm, false, appState.activeSlot);
+            renderKnobsView(vm, false, appState.activeTrack.index);
             updateKnobLEDs(vm); // knobs 0-2 reflect value; 3-7 (null cells) off
         } else if (seqState.sessionMode) {
             const vm = masterModel!.getViewModel();
             if (appState.masterDetail) {
                 // Drilled into the focused master slot's module: show its knob
                 // detail page (param banks scroll via jog), same as a track slot.
-                renderKnobsView(vm, jogHintVisible(), appState.activeSlot);
+                renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index);
             } else {
                 renderChainView(vm, mIdx, jogHintVisible(), 'MASTER', MASTER_FX_SLOTS[mIdx]?.label);
             }
             jogToastShown = jogHintVisible();
             updateKnobLEDs(vm);
         } else if (appState.currentView === VIEW_KEYS) {
-            renderKeysView(activeModel?.getModuleName() ?? '—', baseNoteFor(appState.activeSlot), midiNoteName);
+            renderKeysView(activeModel?.getModuleName() ?? '—', baseNoteFor(appState.activeTrack.index), midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
             const stepAvail = stepPageAvailable();
             let vm;
@@ -466,7 +467,7 @@ function tickBody(): void {
                 vm = buildStepPageVM(heldTrigInput(), activeModel!.getBankCount());
             } else {
                 perfPhase('autoview');
-                const av = buildAutomationView(appState.activeSlot, activeModel!);
+                const av = buildAutomationView(appState.activeTrack.index, activeModel!);
                 perfPhase('buildvm');
                 vm = activeModel!.getViewModel(av);
                 perfPhaseEnd();
@@ -474,7 +475,7 @@ function tickBody(): void {
             }
             diagAutoRender(vm);
             perfPhase('render');
-            renderKnobsView(vm, jogHintVisible(), appState.activeSlot);
+            renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index);
             perfPhaseEnd();
             // The pool-full toast shares the bottom rows with the Loop strip;
             // claim them so the strip yields to it (like every other toast).
@@ -489,11 +490,11 @@ function tickBody(): void {
             if (stepAvail && stepPageState.selected) {
                 vm = buildStepPageVM(heldTrigInput(), activeModel?.getBankCount() ?? 1);
             } else {
-                vm = activeModel!.getViewModel(buildAutomationView(appState.activeSlot, activeModel!));
+                vm = activeModel!.getViewModel(buildAutomationView(appState.activeTrack.index, activeModel!));
                 if (stepAvail) { vm.stepPagePresent = true; vm.stepPageSelected = false; }
             }
             diagAutoRender(vm);
-            renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeSlot + 1));
+            renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1));
             /* Must match what renderChainView actually drew: the Loop strip
              * clears rows 60-63 every tick and would erase a toast it was not
              * told about. */
@@ -593,7 +594,7 @@ function tickBody(): void {
      * the sequencer's active-note LEDs update at poll rate (~24 Hz) without
      * requiring a full UI redraw. Cache diff prevents redundant LED sends. */
     if (!seqState.sessionMode && !isDrum && appState.initLedsDone) {
-        const track     = appState.activeSlot;
+        const track     = appState.activeTrack.index;
         const map       = padMapFor(track);
         const holdNotes = seqState.holdStep >= 0 && seqState.holdNotes.length > 0
             ? displayHoldNotes() : null;

@@ -1,3 +1,4 @@
+import { TRACK_COUNT } from '../track/ref.js';
 import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
 import { recordUiOp } from '../undo/record.js';
 import { readUiField } from '../undo/ui-fields.js';
@@ -30,10 +31,10 @@ import { mlog } from '../log.js';
  * it, and pressing the soloed track again clears it.
  */
 
-const solo: boolean[] = [false, false, false, false];
+const solo: boolean[] = new Array(TRACK_COUNT).fill(false) as boolean[];
 let base: boolean[] | null = null;   /* user's own mutes, held while a solo is up */
 
-function anySoloOn(): boolean { return solo[0] || solo[1] || solo[2] || solo[3]; }
+function anySoloOn(): boolean { return solo.some((s) => s); }
 
 export function isSoloed(track: number): boolean { return solo[track] === true; }
 export function anySolo(): boolean { return anySoloOn(); }
@@ -74,9 +75,9 @@ function asOneEdit(verb: string, target: string, fn: () => void): void {
 function apply(): void {
     if (anySoloOn()) {
         if (!base) base = [...seqState.muted];
-        for (let t = 0; t < 4; t++) setEngineMute(t, !solo[t]);
+        for (let t = 0; t < TRACK_COUNT; t++) setEngineMute(t, !solo[t]);
     } else if (base) {
-        for (let t = 0; t < 4; t++) setEngineMute(t, base[t]);
+        for (let t = 0; t < TRACK_COUNT; t++) setEngineMute(t, base[t]);
         base = null;
     }
 }
@@ -97,7 +98,7 @@ export function toggleSolo(track: number): void {
     if (track < 0 || track > 3) return;
     const was = solo[track];
     asOneEdit(was ? 'UNSOLO' : 'SOLO', trackLabel(track), () => {
-        for (let t = 0; t < 4; t++) solo[t] = false;   // exclusive — one at a time
+        for (let t = 0; t < TRACK_COUNT; t++) solo[t] = false;   // exclusive — one at a time
         solo[track] = !was;
         apply();
     });
@@ -112,12 +113,12 @@ export function toggleSolo(track: number): void {
 }
 
 function soloToast(): string {
-    for (let t = 0; t < 4; t++) if (solo[t]) return 'T' + (t + 1) + ' SOLO';
+    for (let t = 0; t < TRACK_COUNT; t++) if (solo[t]) return 'T' + (t + 1) + ' SOLO';
     return 'SOLO OFF';
 }
 
 export function resetTrackMutes(): void {
-    for (let t = 0; t < 4; t++) solo[t] = false;
+    for (let t = 0; t < TRACK_COUNT; t++) solo[t] = false;
     base = null;
 }
 
@@ -138,10 +139,12 @@ export function restoreMutes(o: { solo?: unknown; base?: unknown }): void {
      * exclusive can name several. */
     if (Array.isArray(o?.solo)) {
         let seen = false;
-        for (let t = 0; t < 4; t++) {
+        for (let t = 0; t < TRACK_COUNT; t++) {
             solo[t] = !seen && o.solo[t] === 1;
             if (solo[t]) seen = true;
         }
     }
-    base = Array.isArray(o?.base) ? [0, 1, 2, 3].map((t) => (o.base as unknown[])[t] === 1) : null;
+    base = Array.isArray(o?.base)
+        ? Array.from({ length: TRACK_COUNT }, (_, t) => (o.base as unknown[])[t] === 1)
+        : null;
 }

@@ -3,7 +3,7 @@
 
 use crate::clip::Clip;
 
-pub const NUM_TRACKS: usize = 4;
+pub const NUM_TRACKS: usize = 16;
 pub const CLIPS_PER_TRACK: usize = 8;
 
 #[derive(Debug, Clone)]

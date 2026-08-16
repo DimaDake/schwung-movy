@@ -104,6 +104,9 @@ open(\"/data/UserData/schwung/open_tool_cmd.json\",\"w\").write(json.dumps({\"fi
 f=open(\"/dev/shm/schwung-control\",\"r+b\"); mm=mmap.mmap(f.fileno(),0); mm[56]=1; mm.close()
 "' >/dev/null 2>&1
 sleep 3
+# The fixture loads smack into TRACK 0's FX 1, but movy opens on schwung's
+# focused slot — navigating the chain on any other track finds an empty slot.
+ts_focus_track0
 inj cc $CC_JOG 1; sleep 0.4                                  # chain: synth → FX 1
 inj cc $CC_CLICK 127; sleep 0.15; inj cc $CC_CLICK 0; sleep 1.0   # enter knobs
 CHAIN=$(movylog | grep -oE "chain chainIndex=[0-9]+" | tail -1 || true)

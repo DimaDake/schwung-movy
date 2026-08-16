@@ -14,6 +14,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createModel }     from '../dist/esm/model/index.js';
+import { portFor } from '../dist/esm/track/registry.js';
 import { renderKnobsView } from '../dist/esm/renderer/knob-view.js';
 import { buildMainPageVM } from '../dist/esm/seq/main-page-vm.js';
 import { mainPageState, resetMainPage } from '../dist/esm/seq/main-page.js';
@@ -124,7 +125,7 @@ _origLog('\nTest 1: fill_rect calls per renderKnobsView (test16, 8 arc knobs)');
 
 {
     mockState = { ...MOCK_SYNTHS.test16 };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
 
     /* Tick once so hierarchy loads; the initial immediate refresh also fires. */
     getParamCount = 0;
@@ -144,7 +145,7 @@ _origLog('\nTest 2: max shadow_get_param calls in any single tick (test16, 70 ti
 
 {
     mockState = { ...MOCK_SYNTHS.test16 };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
 
     /* Tick 1 loads hierarchy; its GETs are excluded from per-tick measurement. */
     model.tick();
@@ -170,7 +171,7 @@ _origLog('\nTest 2: max shadow_get_param calls in any single tick (test16, 70 ti
 _origLog('\nTest 2b: automation lanes never repaint the page (no feedback loop)');
 {
     mockState = { ...MOCK_SYNTHS.test16 };
-    const probe = createModel(0, 'synth');
+    const probe = createModel(portFor(0), 'synth');
     probe.tick();
     const key = probe.getKnobParamInfo(0).key;
     const synthKey = 'synth:' + key;
@@ -191,7 +192,7 @@ _origLog('\nTest 2b: automation lanes never repaint the page (no feedback loop)'
 
     // Suppressed (it's an automation lane) → never read back → no feedback loop.
     mockState = { ...MOCK_SYNTHS.test16 };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     model.tick();
     model.setNoRefreshKeys([key]);
     for (let i = 0; i < 5; i++) model.tick();
@@ -204,7 +205,7 @@ _origLog('\nTest 2b: automation lanes never repaint the page (no feedback loop)'
     // Contrast: an un-suppressed param IS read back as it changes — proving the
     // suppression is what eliminates the loop.
     mockState = { ...MOCK_SYNTHS.test16 };
-    const ctrl = createModel(0, 'synth');
+    const ctrl = createModel(portFor(0), 'synth');
     ctrl.tick();
     for (let i = 0; i < 5; i++) ctrl.tick();
     const ctrlReads = runReads(ctrl);
@@ -218,7 +219,7 @@ _origLog('\nTest 3: renderKnobsView median time — Node.js V8 (no-op fill_rect)
 
 {
     mockState = { ...MOCK_SYNTHS.test16 };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     model.tick();
     const vm = model.getViewModel();
 
@@ -254,7 +255,7 @@ _origLog('\nTest 3b: helm-scale module (full ui_hierarchy traversal)');
     mockState['synth_module'] = 'helm';
     mockState['synth:name']   = 'Helm';
 
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     model.reload();
     model.tick();
     model.tick();
@@ -296,7 +297,7 @@ _origLog('\nTest 4: fill_rect calls per renderKnobsView (test_enum)');
 
 {
     mockState = { ...MOCK_SYNTHS.test_enum };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     model.tick();
     const vm = model.getViewModel();
 
@@ -369,7 +370,7 @@ _origLog('\nTest 4a: fill_rect calls with waveform silhouettes (wave_cells)');
 
 {
     mockState = { ...MOCK_SYNTHS.wave_cells };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     for (let i = 0; i < 120; i++) model.tick();
 
     fillRectCount = 0;
@@ -452,7 +453,7 @@ const ENVELOPE_FILL_RECT_MAX = 700;
 
 {
     mockState = { ...MOCK_SYNTHS.env_dual };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     model.tick();
 
     const vm = model.getViewModel();
@@ -477,7 +478,7 @@ _origLog('\nTest 4e: trigger badge animation (flash + drain)');
     const { TRIGGER_REARM_MS, TRIGGER_FLASH_MS } = await import('../dist/esm/model/constants.js');
 
     mockState = { ...MOCK_SYNTHS.triggers };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     for (let i = 0; i < 20; i++) model.tick();          // settle the hierarchy
 
     /* Freeze the clock and advance it by hand: one device tick at the measured
@@ -527,7 +528,7 @@ _origLog('\nTest 4e: trigger badge animation (flash + drain)');
 {
     /* Eight badges on one page vs the arc-knob baseline in Test 1. */
     mockState = { ...MOCK_SYNTHS.triggers_full };
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     for (let i = 0; i < 20; i++) model.tick();
     const vm = model.getViewModel();
     fillRectCount = 0;
@@ -662,7 +663,7 @@ _origLog('\nTest 5: shadow_get_param calls per knob detent (plain + preset)');
 
     mockState = { ...MOCK_SYNTHS.moog, 'synth:preset': '0' };
     resetUndoState(); resetUndoGroups();
-    const model = createModel(0, 'synth');
+    const model = createModel(portFor(0), 'synth');
     for (let i = 0; i < 40; i++) model.tick();   // settle hierarchy + first reads
 
     const params = model.dumpLayout().params;
@@ -717,7 +718,7 @@ _origLog('\nTest 6: buildViewModel with a long enum (8 vs 1024 options)');
             'synth:chain_params': JSON.stringify([{ key: 'sel', name: 'Sel', type: 'enum', options: opts }]),
             'synth:sel': opts[0],
         };
-        const m = createModel(0, 'synth');
+        const m = createModel(portFor(0), 'synth');
         for (let i = 0; i < 40; i++) m.tick();
         return m;
     };
@@ -773,7 +774,7 @@ _origLog('\nTest 8: buildViewModel for a filter page (16 vs 400 module params)')
             'synth:resonance': '0.5',
         };
         for (let i = 0; i < nFillers; i++) mockState['synth:osc' + i + '_mode'] = 'LP';
-        const m = createModel(0, 'synth');
+        const m = createModel(portFor(0), 'synth');
         for (let i = 0; i < 40; i++) m.tick();
         return m;
     };
@@ -822,7 +823,7 @@ _origLog('\nTest 7: file overlay open cost (16 vs 1024 files)');
             ]),
             'synth:smp': '/d/sample_0.wav',
         };
-        const m = createModel(0, 'synth');
+        const m = createModel(portFor(0), 'synth');
         for (let i = 0; i < 40; i++) m.tick();
         statCalls = 0;
         const runs = [];
@@ -850,6 +851,126 @@ _origLog('\nTest 7: file overlay open cost (16 vs 1024 files)');
     check('os.stat calls when opening 1024 filtered files', large.stats, FILE_OPEN_STATS_MAX);
     _origLog(`    (16 files: ${small.ms.toFixed(3)}ms/${small.stats} stats, ` +
              `1024: ${large.ms.toFixed(3)}ms/${large.stats} stats)`);
+}
+
+/* ── Test: status parse cost at 16 tracks ───────────────────────────────────
+ *
+ * The design predicted the 4x wider status string would have to be split — the
+ * focused group in the normal poll, the rest on demand. That was a guess, so it
+ * is measured here rather than implemented on faith. The poll runs every 8
+ * ticks and its IPC round trip already costs ~0.3 ms on device, so parsing has
+ * a lot of room before it matters. */
+_origLog('\nTest: status parse cost, 4 vs 16 tracks');
+{
+    const { parseStatusForTest } = await import('../dist/esm/seq/engine.js');
+
+    const buildStatus = (n) => {
+        const sess = new Array(n).fill('ff.2.-.3').join(',');
+        const act  = new Array(n).fill('60.64.67').join(',');
+        const mute = '0'.repeat(n);
+        return `play=1 tick=4096 bpm=12000 ext=0 link=0 trk=0 step=4 pos=768 len=32 `
+             + `lstart=0 rec=0 cin=0 metro=0 dirty=1 sess=${sess} act=${act} mute=${mute} `
+             + `hlen=0 hnotes= occ=${'ff'.repeat(32)} alanes=00 aauto=00 hauto= hvel=0 `
+             + `hgate=0 hgmix=0 hprob=100 hcond=1:1 hinv=0 hlmax=0 swing=50 csc=1/1 ctr=0 `
+             + `quant=0 dquant=0 cap=0.0`;
+    };
+    const timeIt = (fn, n) => {
+        for (let i = 0; i < 200; i++) fn();          // warm
+        const t0 = performance.now();
+        for (let i = 0; i < n; i++) fn();
+        return (performance.now() - t0) / n;
+    };
+
+    const s16 = buildStatus(16), s4 = buildStatus(4);
+    const t16 = timeIt(() => parseStatusForTest(s16), 2000);
+    const t4  = timeIt(() => parseStatusForTest(s4), 2000);
+    _origLog(`    (4 tracks: ${t4.toFixed(4)}ms, 16 tracks: ${t16.toFixed(4)}ms)`);
+
+    /* A whole tick is ~5-15 ms on device; the poll is 1 tick in 8. */
+    check('16-track status parse', Number(t16.toFixed(4)), 0.5, 'ms');
+    /* Widening tracks 4x must not cost more than ~4x — a superlinear result
+     * would mean the parser is doing something quadratic in track count. */
+    check('16-track parse vs 4-track', Number((t16 / t4).toFixed(2)), 4.5, 'x');
+}
+
+/* ── Test: every host IPC call is on the instrument ──────────────────────── */
+
+/* The probe is how every claim in docs/track-performance.md is made, so a host
+ * call it does not wrap is a hole in the evidence, not just a missing number.
+ * host_module_set_param_blocking was exactly that: every engine write movy makes
+ * is blocking, including the one a live pad note used to cost, so `ipc_ms`
+ * reported none of them and a neighbouring cost got the blame. */
+{
+    _origLog('\nTest: perf probe wraps every host IPC entry point');
+
+    const IPC_GLOBALS = [
+        'shadow_get_param',
+        'shadow_set_param',
+        'host_module_get_param',
+        'host_module_set_param',
+        'host_module_set_param_blocking',
+        'shadow_get_params',
+        'shadow_set_params',
+    ];
+    const saved = {};
+    for (const g of IPC_GLOBALS) { saved[g] = globalThis[g]; globalThis[g] = () => true; }
+
+    const originals = IPC_GLOBALS.map(g => globalThis[g]);
+
+    const { installPerfProbe, resetPerfProbeInstall } = await import('../dist/esm/app/perf-probe.js');
+    installPerfProbe();
+    const unwrapped = IPC_GLOBALS.filter(g => globalThis[g]._movyProbe !== true);
+    if (unwrapped.length) _origLog('    (unmeasured: ' + unwrapped.join(', ') + ')');
+    check('host IPC calls left unmeasured', unwrapped.length, 0);
+
+    /* Re-opening the tool re-evaluates ui.js: fresh module state, same host
+     * globals. A second install must hand the counting to the NEW evaluation —
+     * skipping because the global is already wrapped leaves every call recorded
+     * into counters nobody reports, which is how a whole call site went missing
+     * from perf_ipc on device while it was demonstrably running. */
+    /* A wrapper must report through a sink looked up at CALL time, not one
+     * captured in its closure: on device the wrappers outlive every reopen and
+     * even a stack restart, so a closure keeps filling counters that nothing
+     * reports — which is how the batched chain refresh ran 122 times in eight
+     * seconds and showed up in perf_ipc as nothing at all. */
+    const realSink = globalThis.__movyPerfSink;
+    let sunk = null;
+    globalThis.__movyPerfSink = (name) => { sunk = name; };
+    globalThis.host_module_get_param('probe:sink');
+    globalThis.__movyPerfSink = realSink;
+    check('a wrapper reports through the swappable sink', sunk === null ? 1 : 0, 0);
+
+    /* A wrapper from a build with no `_movyOrig` must still be taken over, or
+     * the call stays unmeasured for the life of the shadow_ui process — which
+     * outlives reopens AND a Move stack restart. */
+    const foreign = (...a) => globalThis.host_module_get_param._movyOrig?.(...a);
+    foreign._movyProbe = true;                 // marked, but no _movyOrig
+    const realGet = globalThis.host_module_get_param;
+    globalThis.host_module_get_param = foreign;
+    resetPerfProbeInstall();
+    installPerfProbe();
+    check('a wrapper with no recoverable original is taken over',
+          globalThis.host_module_get_param === foreign ? 1 : 0, 0);
+    globalThis.host_module_get_param = realGet;
+
+    const firstWrappers = IPC_GLOBALS.map(g => globalThis[g]);
+    resetPerfProbeInstall();
+    installPerfProbe();
+    /* The NEW evaluation must own the wrapper — same wrapper means the calls are
+     * still being recorded into the previous evaluation's counters, which is the
+     * failure that hid the batched chain refresh from perf_ipc entirely. */
+    const stale = IPC_GLOBALS.filter((g, i) => globalThis[g] === firstWrappers[i]);
+    if (stale.length) _origLog('    (still counted by the previous evaluation: ' + stale.join(', ') + ')');
+    check('host IPC calls orphaned by a reopen', stale.length, 0);
+    /* ...and it must wrap the ORIGINAL, not the previous wrapper: nesting would
+     * count every call twice and add a layer per reopen. */
+    const nested = IPC_GLOBALS.filter((g, i) => globalThis[g]._movyOrig !== originals[i]);
+    if (nested.length) _origLog('    (wrapper nested on reopen: ' + nested.join(', ') + ')');
+    check('host IPC wrappers nested by a reopen', nested.length, 0);
+
+    for (const g of IPC_GLOBALS) {
+        if (saved[g] === undefined) delete globalThis[g]; else globalThis[g] = saved[g];
+    }
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

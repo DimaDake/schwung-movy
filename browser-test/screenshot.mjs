@@ -13,6 +13,8 @@
  *   node browser-test/screenshot.mjs --update   # overwrite baselines
  */
 
+import { trackRef } from '../dist/esm/track/ref.js';
+import { portFor } from '../dist/esm/track/registry.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -209,7 +211,7 @@ function drawFontChart(chars, measure, print, lineH, page = 0) {
 const ASCII = Array.from({ length: 0x7E - 0x20 + 1 }, (_, i) => String.fromCharCode(0x20 + i)).join('');
 
 const COMPONENT_KEYS = ['midi_fx1', 'synth', 'fx1', 'fx2'];
-const chainModels = COMPONENT_KEYS.map(k => createModel(0, k));
+const chainModels = COMPONENT_KEYS.map(k => createModel(portFor(0), k));
 const model = chainModels[1];   // synth slot — the default knobs view
 
 function loadPreset(id) {
@@ -797,12 +799,12 @@ function applyView(preset) {
             seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
             // Minimal stand-in for a loaded drum module on the active track's
             // synth slot — trackIsDrum() only asks for the drum config.
-            const savedModels = appState.trackModels, savedSlot = appState.activeSlot;
+            const savedModels = appState.trackModels, savedSlot = appState.activeTrack.index;
             appState.trackModels = [[null, { getDrumConfig: () => ({ padCount: 16 }) }]];
-            appState.activeSlot = 0;
+            appState.activeTrack = trackRef(0);
             clipPageState.touchedKnob = 2;   // 'n/a on drums' toast
             const vm = buildClipPageVM();
-            appState.trackModels = savedModels; appState.activeSlot = savedSlot;
+            appState.trackModels = savedModels; appState.activeTrack = trackRef(savedSlot);
             lastRender = () => renderKnobsView(vm, false, 0);
             lastRender();
             break;

@@ -11,17 +11,17 @@ export function buildPresetParam(
     s: ModelState, listParam?: string, countParam?: string, nameParam?: string,
 ): KnobParam | null {
     if (!listParam || !countParam) return null;
-    const countRaw = shadow_get_param(s.activeSlot, s.componentKey + ':' + countParam);
+    const countRaw = s.port.getParam(s.componentKey + ':' + countParam);
     const presetCount = countRaw ? parseInt(countRaw) : 0;
     if (!(presetCount > 0)) return null;
 
     let allNames: string[] | null = null;
-    const namesRaw = shadow_get_param(s.activeSlot, s.componentKey + ':preset_names');
+    const namesRaw = s.port.getParam(s.componentKey + ':preset_names');
     if (namesRaw) { try { allNames = JSON.parse(namesRaw) as string[]; } catch {} }
-    if (!allNames && shadow_get_param(s.activeSlot, s.componentKey + ':preset_name_0') !== null) {
+    if (!allNames && s.port.getParam(s.componentKey + ':preset_name_0') !== null) {
         allNames = [];
         for (let i = 0; i < presetCount; i++) {
-            allNames.push(shadow_get_param(s.activeSlot, s.componentKey + ':preset_name_' + i) ?? String(i));
+            allNames.push(s.port.getParam(s.componentKey + ':preset_name_' + i) ?? String(i));
         }
     }
     return {

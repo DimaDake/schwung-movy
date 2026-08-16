@@ -1,3 +1,7 @@
+import { trackRef } from '../track/ref.js';
+import { focusedTrack, focusGroupStep, GROUP_DIR_UP, GROUP_DIR_DOWN } from '../track/focus.js';
+import { beginTrackSwitch, restoreTrackState, switchToTrack } from '../track/switch.js';
+import { portFor } from '../track/registry.js';
 import { setButtonHeld } from '../seq/button-held.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } from '../app/state.js';
 import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease, closeMainPage } from '../seq/main-page.js';
@@ -11,7 +15,7 @@ import { releaseAllLive } from '../keyboard/release.js';
 import { drumPadOn, drumPadOff } from '../keyboard/drum-handler.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
-import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteShiftHeld, muteTrack, seqRestoreWatch } from '../seq/router.js';
+import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteShiftHeld, muteTrack } from '../seq/router.js';
 import { anyStepHeld, editStepPageKnob } from '../seq/step-edit.js';
 import { stepPageState, setStepPageSelected, setStepTouchedKnob, stepPageAvailable } from '../seq/step-page.js';
 import { seqState } from '../seq/state.js';
@@ -70,18 +74,18 @@ function trackButtonPress(data: number[]): void {
 }
 
 function activeModel() {
-    return appState.trackModels[appState.activeSlot]?.[appState.trackChainIndex[appState.activeSlot]];
+    return appState.trackModels[appState.activeTrack.index]?.[appState.trackChainIndex[appState.activeTrack.index]];
 }
 
-function chainIndex(): number { return appState.trackChainIndex[appState.activeSlot]; }
-function setChainIndex(i: number): void { appState.trackChainIndex[appState.activeSlot] = i; }
+function chainIndex(): number { return appState.trackChainIndex[appState.activeTrack.index]; }
+function setChainIndex(i: number): void { appState.trackChainIndex[appState.activeTrack.index] = i; }
 
 /* The track's instrument always lives in chain slot 1 (synth). Drum pad input
  * is keyed off it — not the focused chain slot — so pads keep sounding and
  * selecting drum lanes while the user edits the MIDI FX or an audio-FX slot on
  * the same track. (tick.ts already reads drum status/lane from this slot.) */
 function synthModel() {
-    return appState.trackModels[appState.activeSlot]?.[1];
+    return appState.trackModels[appState.activeTrack.index]?.[1];
 }
 
 function masterModel() { return appState.masterFxModels[appState.masterChainIndex]; }
@@ -189,7 +193,7 @@ export function onMidiMessageInternal(data: number[]): void {
         if (clipPageActive()) {
             if (d1 < 4) {
                 if (d2 > 0) clipPageTouch(d1, true);
-                else clipPageRelease(d1, appState.activeSlot);
+                else clipPageRelease(d1, appState.activeTrack.index);
             }
             appState.dirty = true;
             return;
@@ -204,17 +208,17 @@ export function onMidiMessageInternal(data: number[]): void {
         if (d2 > 0) {
             const info = knobModel()?.getKnobParamInfo(d1) ?? null;
             if (deleteActive() && info) {
-                clearLaneForKnob(appState.activeSlot, info);
+                clearLaneForKnob(appState.activeTrack.index, info);
                 markDeleteActed();   // Clear release must not also delete the clip
                 return;
             }
             knobModel()?.handleKnobTouch(d1);
             automationKnobTouched(d1);    // arm tap-to-clear in step-auto mode
-            holdTouch(appState.activeSlot, d1, info);   // arm hold-to-modulate
+            holdTouch(appState.activeTrack.index, d1, info);   // arm hold-to-modulate
         } else {
             const info = knobModel()?.getKnobParamInfo(d1) ?? null;
             if (knobModel()?.handleKnobRelease(d1)) seqToast('Wrong preset type');
-            if (info) automationKnobReleased(appState.activeSlot, d1, info);
+            if (info) automationKnobReleased(appState.activeTrack.index, d1, info);
             holdRelease(d1);
         }
         return;
@@ -244,7 +248,7 @@ export function onMidiMessageInternal(data: number[]): void {
     if (d1 >= PAD_MIN && d1 <= PAD_MAX) {
         const model   = synthModel();
         const drumCfg = model?.getDrumConfig() ?? null;
-        const track = appState.activeSlot;
+        const track = appState.activeTrack.index;
         if ((status & 0xF0) === 0x90 && d2 > 0) {
             const vel = seqState.fullVelocity ? 127 : d2;
             if (drumCfg) {
@@ -301,7 +305,7 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         if (clipPageActive()) {
-            if (k < 4) { clipPageKnob(k, delta, appState.activeSlot); appState.dirty = true; }
+            if (k < 4) { clipPageKnob(k, delta, appState.activeTrack.index); appState.dirty = true; }
             return;
         }
         // Step page owns the knobs while it is selected (intrinsic trig props,
@@ -313,9 +317,9 @@ export function onMidiMessageInternal(data: number[]): void {
         mlog('knobCC k=' + k + ' d2=' + d2 + ' delta=' + delta);
         const model = knobModel();
         const info  = model?.getKnobParamInfo(k) ?? null;
-        const track = appState.activeSlot;
+        const track = appState.activeTrack.index;
         if (info && handleAutomationKnob(track, k, info, delta,
-                (lane) => shadow_set_param(track, 'knob_' + (lane + 1) + '_set', info.target + ':' + info.ioKey))) {
+                (lane) => portFor(track).setParam('knob_' + (lane + 1) + '_set', info.target + ':' + info.ioKey))) {
             return;
         }
         model?.handleKnobDelta(k, delta);
@@ -328,7 +332,10 @@ export function onMidiMessageInternal(data: number[]): void {
      * Mute+track gesture mutes; otherwise momentary: down opens the track's
      * note layout, up decides tap (latch) vs hold (return to prior state). */
     if (d1 >= TRACK_CC_START && d1 <= TRACK_CC_END) {
-        const track = TRACK_CC_END - d1;
+        /* The four buttons are hardware, not tracks: they address the focused
+         * group's quartet. CC 43 is the group's first track (the mapping is
+         * reversed — CC 40 is the fourth). */
+        const track = focusedTrack(TRACK_CC_END - d1);
         if (d2 > 0) {
             volumeTrackDown(track);   // arm hold-track + volume knob
             // Mute+track mutes that track; Shift+Mute+track solos it instead.
@@ -341,40 +348,12 @@ export function onMidiMessageInternal(data: number[]): void {
                 else muteTrack(track);
                 momentaryGesture(); appState.dirty = true; return;
             }
-            // A track button always exits the Set Parameters page first (it is a
-            // global page, not a per-track view), so it can't be saved into the
-            // per-track view memory below and re-shown on return to this track.
-            if (mainPageActive()) appState.currentView = closeMainPage();
-            if (clipPageActive()) appState.currentView = closeClipPage();
-            // Snapshot prior state so the restore closure can return exactly here.
-            // Note: seqHandleMidi already ran above and updated watchTrack/barOffset,
-            // so we capture the pre-switch slot to restore on hold release.
-            const prevSlot      = appState.activeSlot;
-            const prevView      = appState.currentView === VIEW_BROWSE ? appState.browseOrigin : appState.currentView;
-            const prevSession   = seqState.sessionMode;
-            const prevLoop      = seqState.loopMode;
-            const prevWatchTrack = prevSlot; // watchTrack should match active slot
-            momentaryDown(d1, () => {
-                releaseAllLive();   // the peeked track's notes must not survive the revert
-                seqState.sessionMode = prevSession;
-                seqState.loopMode = prevLoop;
-                appState.activeSlot = prevSlot;
-                appState.currentView = prevView;
-                seqRestoreWatch(prevWatchTrack);
-                appState.initLedsDone = false; appState.initLedIndex = 0;
-                appState.dirty = true;
-            });
-            appState.trackView[appState.activeSlot] = prevView;
-            seqState.sessionMode = false;
-            seqState.loopMode = false;
-            appState.masterDetail = false;
-            // Cut on switch: no live note outlives the track it was played on.
-            releaseAllLive();
-            appState.activeSlot = track;
-            appState.currentView = appState.trackView[track];
-            jogHintTouch(false);
-            appState.initLedsDone = false; appState.initLedIndex = 0;
-            appState.dirty = true;
+            /* Snapshot before switching so the hold-release closure returns
+             * exactly here. beginTrackSwitch also closes the global Main/Clip
+             * Params pages, which a track button always leaves. */
+            const prev = beginTrackSwitch();
+            momentaryDown(d1, () => restoreTrackState(prev));
+            switchToTrack(track, prev);
         } else {
             volumeTrackUp(track);
             momentaryUp(d1);
@@ -441,9 +420,9 @@ export function onMidiMessageInternal(data: number[]): void {
             if (r) {
                 activeModel()?.refreshModulation();   // update the ~ mark immediately
                 if (r.assigned) {
-                    appState.trackChainIndex[appState.activeSlot] = LFO_CHAIN_INDEX;
+                    appState.trackChainIndex[appState.activeTrack.index] = LFO_CHAIN_INDEX;
                     appState.currentView = VIEW_CHAIN;
-                    const lm = appState.trackModels[appState.activeSlot]?.[LFO_CHAIN_INDEX];
+                    const lm = appState.trackModels[appState.activeTrack.index]?.[LFO_CHAIN_INDEX];
                     if (lm) {
                         lm.changePage(r.lfoIdx - lm.getKnobPage());
                         lm.reload();   // re-read the freshly-written target (cache was stale)
@@ -500,7 +479,7 @@ export function onMidiMessageInternal(data: number[]): void {
                 appState.browseOrigin = appState.currentView;
                 activeModel()?.clearFileOverlay();
                 openFileBrowser(
-                    appState.activeSlot,
+                    appState.activeTrack.index,
                     activeModel()!.getComponentKey(),
                     fileTarget.key,
                     fileTarget.gi,
@@ -514,7 +493,7 @@ export function onMidiMessageInternal(data: number[]): void {
                 const isEmpty = activeModel()?.getViewModel().isEmpty ?? false;
                 // The LFO slot has no module to add/swap — a click always drills.
                 if (!isLfoSlot(chainIndex()) && (appState.shiftHeld || isEmpty)) {
-                    openBrowser(CHAIN_SLOTS[chainIndex()], appState.activeSlot, () => activeModel()?.reload());
+                    openBrowser(CHAIN_SLOTS[chainIndex()], appState.activeTrack.index, () => activeModel()?.reload());
                     appState.browseOrigin = VIEW_CHAIN;
                 } else {
                     appState.currentView = VIEW_KNOBS;
@@ -523,7 +502,7 @@ export function onMidiMessageInternal(data: number[]): void {
             } else if (!isLfoSlot(chainIndex())) {
                 // VIEW_KNOBS with no file param held → module browser (the LFO
                 // slot has no module to swap, so a click is a no-op there).
-                openBrowser(CHAIN_SLOTS[chainIndex()], appState.activeSlot, () => activeModel()?.reload());
+                openBrowser(CHAIN_SLOTS[chainIndex()], appState.activeTrack.index, () => activeModel()?.reload());
                 appState.browseOrigin = VIEW_KNOBS;
             }
         }
@@ -623,9 +602,23 @@ export function onMidiMessageInternal(data: number[]): void {
      * tracks (drum pad layout has no octave concept). On melodic tracks: press
      * flashes the button white, release clears it. */
     if (d1 === MoveUp || d1 === MoveDown) {
-        if (trackIsDrum(appState.activeSlot)) return;
+        const dir = d1 === MoveUp ? 1 : -1;
+        /* In Session view the pads are the clip grid, so there is no octave to
+         * shift and these buttons move the focused GROUP instead. Checked
+         * before the drum guard: group navigation is not a per-track concept,
+         * so a drum track must not disable it. */
+        if (seqState.sessionMode) {
+            const gdir = d1 === MoveUp ? GROUP_DIR_UP : GROUP_DIR_DOWN;
+            if (d2 > 0 && focusGroupStep(gdir)) {
+                appState.initLedsDone = false; appState.initLedIndex = 0;
+            }
+            setButtonLED(d1, d2 > 0 ? WHITE_BRIGHT : WHITE_DIM, true);
+            appState.dirty = true;
+            return;
+        }
+        if (trackIsDrum(appState.activeTrack.index)) return;
         if (d2 > 0) {
-            changeOctave(appState.activeSlot, d1 === MoveUp ? 1 : -1);
+            changeOctave(appState.activeTrack.index, dir);
             setButtonLED(d1, WHITE_BRIGHT, true);
         } else {
             setButtonLED(d1, WHITE_DIM, true);

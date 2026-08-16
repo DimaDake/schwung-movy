@@ -192,6 +192,17 @@ time.sleep(${nap:-0.05})"
 ts_tap_cc() {
     ts_send "0x0B:0xB0:$1:${2:-127}:0.05" "0x0B:0xB0:$1:0:0"
 }
+# Put movy on track 1 (index 0).
+#
+# movy opens on whatever slot schwung has focused (shadow_get_ui_slot), which is
+# device state no test owns — a suite that assumes track 0 silently asserts
+# against a different track's lanes, mutes or params. Several did, and read as
+# feature failures. CC 43 is the first track button, and on a fresh open the
+# focused group is 0, so it selects track index 0.
+ts_focus_track0() {
+    ts_tap_cc 43
+    sleep 0.5
+}
 ts_tap_note() {
     ts_send "0x09:0x90:$1:${2:-127}:0.05" "0x08:0x80:$1:0:0"
 }

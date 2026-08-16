@@ -1,7 +1,9 @@
 /* LFO parameter model: names, ranges, target-list builder, and formatters for
  * the two schwung slot LFOs surfaced on movy's track-chain LFO page. Kept pure
- * (only reads shadow_get_param) so it is unit-testable and shared by the model
- * and the render/scene code. */
+ * (reads only through the track's port) so it is unit-testable and shared by the
+ * model and the render/scene code. */
+
+import { portFor } from '../track/registry.js';
 
 export const LFO_SHAPES = ['Sine', 'Tri', 'Saw', 'Square', 'S&H', 'Swishy'];
 
@@ -64,7 +66,7 @@ export function shortenTarget(compTag: string, paramName: string): string {
 export function buildTargetOptions(track: number, lfoIdx: number): TargetOption[] {
     const opts: TargetOption[] = [{ label: 'None', target: null, param: null }];
     for (const comp of TARGET_COMPONENTS) {
-        const raw = shadow_get_param(track, comp + ':chain_params');
+        const raw = portFor(track).getParam( comp + ':chain_params');
         if (!raw) continue;
         let arr: Array<{ key?: string; name?: string; label?: string; type?: string }>;
         try { arr = JSON.parse(raw); } catch { continue; }

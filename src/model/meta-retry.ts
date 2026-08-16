@@ -35,7 +35,7 @@ export function retryUnsettledMeta(s: ModelState): boolean {
     s.metaRetries++;
 
     if (wantPreset) {
-        const raw = shadow_get_param(s.activeSlot, s.componentKey + ':preset_count');
+        const raw = s.port.getParam(s.componentKey + ':preset_count');
         if (raw && parseInt(raw) > 0) {
             mlog('meta-retry: preset list settled (' + raw + ')');
             s.hierarchyKey = '';             // processTick rebuilds on the next tick
@@ -45,7 +45,7 @@ export function retryUnsettledMeta(s: ModelState): boolean {
 
     /* Enum options live in the chain_params blob, so settling is detected by
      * re-reading it and looking for a placeholder that has become a real list. */
-    const raw = shadow_get_param(s.activeSlot, s.componentKey + ':chain_params');
+    const raw = s.port.getParam(s.componentKey + ':chain_params');
     if (raw) {
         try {
             const arr = JSON.parse(raw) as Array<{ key?: string; options?: string[]; min?: number; max?: number }>;

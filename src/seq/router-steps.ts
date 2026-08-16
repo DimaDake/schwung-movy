@@ -19,6 +19,7 @@ import { dupActive, onUnit as dupOnUnit } from './duplicate.js';
 import { seqCmd } from './engine.js';
 import { doubleLoop, loopStepOff, loopStepOn } from './loop-mode.js';
 import { seqToast } from './render.js';
+import { sessionStepPress, sessionStepRelease, trackSelectActive } from './track-select.js';
 import { maxBarOffset, minBarOffset, occHasStep, occToggleStep, seqState } from './state.js';
 import { heldSetList, setHeldSet } from './held.js';
 import {
@@ -35,11 +36,27 @@ import { armQuantOverlay } from './quant-overlay.js';
  * so a held step + gesture can edit instead of toggling (native behavior).
  * Shift+step are the shifted functions. */
 export function handleStepButton(button: number, on: boolean, shiftHeld: boolean): void {
+    /* Release of the step that opened a latched-Session track peek. By now the
+     * switch has already put us in Track view, so the row is real steps again
+     * and letting this through would toggle a note under the finger that was
+     * only ever selecting a track. Above everything, including step recording:
+     * it closes a gesture that is already in flight. */
+    if (!on && sessionStepRelease(button)) return;
     /* Step recording owns the row while it is active: a press moves the head,
      * and nothing registers as a held range — so hold-step editing and step
      * recording can never both be claiming the pads. */
     if (stepRecActive()) {
         if (on) stepRecStepTap(button);
+        return;
+    }
+    /* The step row is the 16-track selector, not steps — in Session view, and
+     * also while the Session button is held after a selection has already
+     * dropped us back onto a track (trackSelectHold). Above the edit gestures
+     * below, because none of them mean anything when the row is addressing
+     * tracks. Shift is not consulted — the shifted step functions stay
+     * available in Track view, where the row is actually steps. */
+    if (trackSelectActive()) {
+        if (on) sessionStepPress(button);
         return;
     }
     if (on && dupActive()) {
@@ -106,7 +123,7 @@ function shiftStepFunction(step: number): void {
     // (Session view shows the clip grid, not a single clip's params).
     if (step === STEP_CLIP_PARAMS) {
         if (!seqState.sessionMode && appState.currentView !== VIEW_CLIP_PARAMS) {
-            openClipPage(appState.currentView, appState.activeSlot);
+            openClipPage(appState.currentView, appState.activeTrack.index);
             appState.currentView = VIEW_CLIP_PARAMS;
         }
         appState.dirty = true;

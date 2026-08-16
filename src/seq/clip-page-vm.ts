@@ -35,7 +35,7 @@ export function buildClipPageVM(): ViewModel {
     // A drum track's pitches are pad addresses, so transpose can't apply (the
     // engine ignores it there): show the cell as unavailable rather than
     // offering a control whose value would never be heard.
-    const isDrum = trackIsDrum(appState.activeSlot);
+    const isDrum = trackIsDrum(appState.activeTrack.index);
     const transpose = cell({
         shortName: 'TRANS', fullName: 'Transpose', renderStyle: 'preset',
         displayValue: isDrum ? 'n/a' : String(tr),

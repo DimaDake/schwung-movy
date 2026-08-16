@@ -1,4 +1,5 @@
 import { setChainParam } from '../chain/set-param.js';
+import { portFor } from '../track/registry.js';
 import { undoableEdit } from '../undo/edit.js';
 import type { FileBrowserItem, FileBrowserState } from '../app/state.js';
 import { appState, VIEW_FILE_BROWSE } from '../app/state.js';
@@ -96,7 +97,7 @@ export function activateFileBrowserItem(): void {
             return;
         }
         const key = state.componentKey + ':' + state.paramKey;
-        const old = (typeof shadow_get_param === 'function' ? shadow_get_param(state.paramSlot, key) : null);
+        const old = portFor(state.paramSlot).getParam(key);
         const chainIdx = appState.trackChainIndex[state.paramSlot];
         /* Name the param that was loaded into, not just "LOAD FILE": a drum
          * module has one of these per pad, so the slot is the only thing that
@@ -105,7 +106,7 @@ export function activateFileBrowserItem(): void {
             ?.dumpLayout().params.find((q) => q?.key === state.paramKey)?.label;
         undoableEdit('LOAD ' + (label ? label.toUpperCase() : 'FILE'),
             'T' + (state.paramSlot + 1) + ' ' + state.componentKey.toUpperCase(),
-            () => setChainParam(state.paramSlot, key, item.path, old));
+            () => setChainParam(portFor(state.paramSlot), key, item.path, old));
         appState.trackModels[state.paramSlot]?.[chainIdx]?.setFileValue(state.gi, item.path);
         appState.fileBrowserState = null;
         appState.currentView      = appState.browseOrigin;

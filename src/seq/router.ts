@@ -18,6 +18,7 @@ import {
     NUM_STEP_BUTTONS, PAD_MAX, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
 import { engineReady, seqCmd } from './engine.js';
+import { focusedTrack } from '../track/focus.js';
 import { recToggle } from '../undo/rec-pass.js';
 import { loopHeld, loopWheel } from './loop-mode.js';
 import { momentaryGesture } from './momentary.js';
@@ -25,13 +26,14 @@ import { sessionPad } from './session.js';
 import { requestLoopWindowAdopt, seqState } from './state.js';
 import { anyStepHeld, editNudge, editTranspose, editVelocity } from './step-edit.js';
 import { stepRecArrow, stepRecDown, stepRecEnd, stepRecUp } from './step-rec.js';
+import { padsPlayNotes } from './router-pads.js';
 import { handleStepButton, navigateBar } from './router-steps.js';
 import { muteHeld, seqHandleButtonCc } from './router-buttons.js';
 
 /* The sequencer's public input surface stays on this module: these are its
  * other halves, re-exported so callers keep one import site. */
 export { muteHeld, muteShiftHeld, muteTrack, setMuteHeld } from './router-buttons.js';
-export { resetSeqChord, seqNotePadPlayed, seqNotePadReleased } from './router-pads.js';
+export { padsPlayNotes, resetSeqChord, seqNotePadPlayed, seqNotePadReleased } from './router-pads.js';
 
 const CC_LEFT = 62;
 const CC_RIGHT = 63;
@@ -46,7 +48,7 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     const d2 = data[2];
 
     /* Session mode owns the 32 pads as the clip grid. */
-    if (seqState.sessionMode
+    if (!padsPlayNotes()
         && (statusType === 0x90 || statusType === 0x80)
         && d1 >= PAD_MIN && d1 <= PAD_MAX) {
         if (statusType === 0x90 && d2 > 0) {
@@ -120,7 +122,13 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
      * track press is purely a mute (handled in midi/router.ts), so do not
      * retarget the step-view focus. */
     if (d1 >= CC_TRACK_START && d1 <= CC_TRACK_END && d2 > 0) {
-        const track = CC_TRACK_END - d1;
+        /* The four buttons address the FOCUSED group's quartet, not tracks 0-3.
+         * Taking the raw button index here made the step view watch track 0-3
+         * whichever group was on screen, so edits meant for track 5, 9 or 13 all
+         * landed on track 1 — they share a button. midi/router.ts already
+         * resolves this the same way for the active track; the two must agree or
+         * the screen shows one track while the steps edit another. */
+        const track = focusedTrack(CC_TRACK_END - d1);
         if (!muteHeld() && track !== seqState.watchTrack) {
             seqState.watchTrack = track;
             seqState.barOffset = 0;
@@ -131,15 +139,6 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     }
 
     return false;
-}
-
-/* Restore the watch target after a momentary track-button hold reverts.
- * Resets barOffset to 0 since the saved offset was wiped when switching away. */
-export function seqRestoreWatch(track: number): void {
-    seqState.watchTrack = track;
-    seqState.barOffset = 0;
-    requestLoopWindowAdopt();
-    seqCmd('watch ' + track);
 }
 
 /* Active module changed: set the watched step-LED lane. lane < 0 = melodic

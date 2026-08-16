@@ -5,18 +5,24 @@
  * are pad addresses, not notes — clip transpose must not shift them, or the
  * step plays a different voice (or none, when it lands off the pad range). */
 
+import { portFor } from '../track/registry.js';
+import { TRACK_COUNT, trackKind } from '../track/ref.js';
 import { appState, trackIsDrum } from '../app/state.js';
 import { moduleReadKey } from '../chain/config.js';
 import { loadModuleConfig } from '../modules/loader.js';
 import { seqCmd } from './engine.js';
 import { NAME_POLL_TICKS } from '../model/constants.js';
 
-const NUM_TRACKS = 4;
+/* Was a local 4 while `probed` had already moved to TRACK_COUNT, so drum
+ * identity was only ever probed for the first four tracks — a movy track
+ * holding a drum module never reported, and the engine went on transposing a
+ * drum clip it was already playing (the exact bug probeTrack exists to stop). */
+const NUM_TRACKS = TRACK_COUNT;
 
 /* Last value sent per track; -1 = unknown, so the first answer always sends. */
 const sent = [-1, -1, -1, -1];
 /* Tracks already answered by the direct probe below (see `probeTrack`). */
-const probed = [false, false, false, false];
+const probed = new Array(TRACK_COUNT).fill(false) as boolean[];
 /* Ticks to wait before re-probing a track that gave no answer. An empty slot
  * never answers, so without this the probe repeats every tick for the life of
  * the tool — and each probe is a blocking round-trip the shim only services
@@ -25,7 +31,7 @@ const probed = [false, false, false, false];
  * MIDI is sampled. Retrying on the name-poll cadence keeps the "a module was
  * loaded from outside movy" case working at ~1 s granularity, for ~0.3% of the
  * IPC. */
-const retryIn = [0, 0, 0, 0];
+const retryIn = new Array(TRACK_COUNT).fill(0) as number[];
 
 /* Drum identity for a track whose model hasn't loaded — only the *active*
  * track's model ticks, so an unvisited track would otherwise never report, and
@@ -37,7 +43,7 @@ const retryIn = [0, 0, 0, 0];
 function probeTrack(t: number): number | null {
     const model = appState.trackModels[t]?.[1];
     if (!model || typeof shadow_get_param !== 'function') return null;
-    const id = shadow_get_param(t, moduleReadKey(model.getComponentKey()));
+    const id = portFor(t).getParam( moduleReadKey(model.getComponentKey()));
     if (!id) return null;   // empty slot — leave it unanswered, not "melodic"
     return (loadModuleConfig(id)?.drum?.padCount ?? 0) > 0 ? 1 : 0;
 }
@@ -53,7 +59,14 @@ export function drumSyncTick(): void {
         if (model.hasLoadedParams()) {
             drum = trackIsDrum(t) ? 1 : 0;   // the model is authoritative
             probed[t] = true;
-        } else if (!probed[t]) {
+        } else if (!probed[t] && trackKind(t) === 'host') {
+            /* Host tracks only. The probe exists because a schwung slot's module
+             * can change from OUTSIDE movy, so an unvisited track's identity has
+             * to be re-read. A movy chain can only change from inside movy, so
+             * there is nothing to discover — and the read would be a blocking
+             * engine IPC (3-5 ms) rather than a cheap slot read. Twelve empty
+             * movy chains retrying on the same tick would stall it by ~50 ms
+             * once a second. */
             if (retryIn[t] > 0) { retryIn[t]--; continue; }
             drum = probeTrack(t);
             if (drum !== null) probed[t] = true;

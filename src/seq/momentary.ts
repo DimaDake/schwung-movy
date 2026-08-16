@@ -52,6 +52,15 @@ export function momentaryUpUngated(button: number): 'used' | 'clean' | 'none' {
     return 'clean';
 }
 
+/* Abandon the in-progress momentary without running its restore: the gesture
+ * made while held COMMITTED, so the release must change nothing. Distinct from
+ * momentaryGesture(), which is the opposite verdict (the gesture was a modifier
+ * use, so the release reverts). Selecting a track from the Session step row is
+ * the commit case — the point of the hold is to land on the new track. */
+export function momentaryCancel(button: number): void {
+    if (active && active.button === button) active = null;
+}
+
 export function momentaryDown(button: number, restore: () => void): void {
     momentaryDownAt(button, Date.now(), restore);
 }

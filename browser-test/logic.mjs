@@ -11832,20 +11832,33 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
   eq('unfocused far step is solid',    sessionStepLed(15, 1, 12).base,    TRACK_COLOR[15]);
   eq('group 0 focused pulses the first quad', sessionStepLed(0, 0, 12).channel, ANIM_PULSE);
 
-  /* The SELECTED track pulses its colour against white — a second layer over
-   * the group pulse, and the finer answer, so it wins where both apply. */
-  eq('selected step pulses from its colour', sessionStepLed(6, 1, 6).base, TRACK_COLOR[6]);
-  eq('selected step pulses to white',        sessionStepLed(6, 1, 6).anim, C_WHITE);
-  eq('selected step animates',               sessionStepLed(6, 1, 6).channel, ANIM_PULSE);
+  /* The SELECTED track pulses white against its own colour — a second layer
+   * over the group pulse, and the finer answer, so it wins where both apply. */
+  eq('selected step pulses from white',   sessionStepLed(6, 1, 6).base, C_WHITE);
+  eq('selected step pulses to its colour', sessionStepLed(6, 1, 6).anim, TRACK_COLOR[6]);
+  eq('selected step animates',            sessionStepLed(6, 1, 6).channel, ANIM_PULSE);
   /* Its neighbours in the same group keep the group pulse, so both cues read at
    * once — which is the whole point of two layers. */
   eq('a group neighbour keeps the group pulse', sessionStepLed(5, 1, 6).base, C_BLACK);
 
+  /* Both layers put the TRACK COLOUR in anim, so — sharing one animation
+   * channel — the whole focused quad lights its colours on the same beat and
+   * reads as one block. Colour in the selected step's base instead would put it
+   * in antiphase: white exactly when its neighbours lit. The bases are what
+   * separate them, at the trough. */
+  for (const n of [4, 5, 7]) {
+      eq(`step ${n} lights its colour with the selected one`,
+         sessionStepLed(n, 1, 6).anim, TRACK_COLOR[n]);
+      eq(`step ${n} troughs to black, not white`, sessionStepLed(n, 1, 6).base, C_BLACK);
+  }
+
   /* Focus and selection genuinely come apart: the octave buttons scroll the
    * group without moving the selected track, and the selection must stay
    * visible when it does. */
-  eq('selected outside the focused group still pulses white',
-     sessionStepLed(6, 3, 6).anim, C_WHITE);
+  eq('selected outside the focused group still troughs to white',
+     sessionStepLed(6, 3, 6).base, C_WHITE);
+  eq('and still pulses to its own colour',
+     sessionStepLed(6, 3, 6).anim, TRACK_COLOR[6]);
   eq('and is not mistaken for a solid unfocused step',
      sessionStepLed(6, 3, 6).channel, ANIM_PULSE);
 

@@ -97,10 +97,17 @@ lines to it.
 `sessionStepLed` gains a third case, ordered selected -> group -> rest:
 
 ```
-step === activeTrack   -> { base: trackColor, anim: WHITE, ANIM_PULSE }
-trackGroup === focus   -> { base: BLACK,      anim: trackColor, ANIM_PULSE }   // today
-else                   -> solid trackColor                                     // today
+step === activeTrack   -> { base: WHITE, anim: trackColor, ANIM_PULSE }
+trackGroup === focus   -> { base: BLACK, anim: trackColor, ANIM_PULSE }   // today
+else                   -> solid trackColor                                // today
 ```
+
+Both layers carry the track colour in `anim` and share one animation channel,
+so the whole focused quad lights its colours on the same beat and reads as one
+block; only the trough differs (white under the selected step, black under its
+neighbours). Colour in the selected step's `base` instead — the obvious way
+round — put it in antiphase, flashing white exactly when its three neighbours
+lit, and the group stopped reading as a group.
 
 Both cues survive, which matters because the octave buttons move `focusGroup`
 without moving `activeTrack` — the selected track stays visible after the group

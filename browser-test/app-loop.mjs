@@ -1668,14 +1668,41 @@ _log('\napp-loop: holding Session keeps the step row a track selector');
         seqLedsInvalidate();
         advance(6);
         globalThis.move_midi_internal_send = realSend;
-        const colorOf = (note) => {
-            const hit = msgs.filter((m) => m[2] === note);
+        /* cachedSetAnimLED sends the base on channel 0 first (the handshake),
+         * then the pulse colour on the animation channel — so the two halves of
+         * one step have to be read apart, by channel, not by taking the last
+         * message for the note. */
+        const sentOn = (note, chan) => {
+            const hit = msgs.filter((m) => m[2] === note && (m[1] & 0x0f) === chan);
             return hit.length ? hit[hit.length - 1][3] : undefined;
         };
-        const wrong = [...Array(16).keys()]
-            .filter((i) => ![TRACK_COLOR[i], C_BLACK, C_WHITE].includes(colorOf(STEP_NOTE_BASE + i)));
-        eq('every step wears its own track colour while Session is held', wrong.length, 0);
-        eq('the selected track pulses white', colorOf(STEP_NOTE_BASE + 5), C_WHITE);
+        const pulseOf = (note) => {
+            const hit = msgs.filter((m) => m[2] === note && (m[1] & 0x0f) !== 0);
+            return hit.length ? hit[hit.length - 1][3] : undefined;
+        };
+
+        /* Track 5 is selected, so the focused quad is 4-7. Every one of the four
+         * pulses to its OWN track colour, selected included: both layers carry
+         * the colour in anim and share one animation channel, so the quad lights
+         * together instead of the selected step flashing white in antiphase with
+         * its neighbours. */
+        const quad = [4, 5, 6, 7];
+        const wrongPulse = quad.filter((i) => pulseOf(STEP_NOTE_BASE + i) !== TRACK_COLOR[i]);
+        eq('the whole focused quad pulses to its own track colours', wrongPulse.length, 0);
+
+        /* The bases are what tell them apart, at the trough. */
+        eq('the selected track troughs to white', sentOn(STEP_NOTE_BASE + 5, 0), C_WHITE);
+        const neighbours = [4, 6, 7].map((i) => sentOn(STEP_NOTE_BASE + i, 0));
+        eq('its group neighbours trough to black', neighbours.every((c) => c === C_BLACK), true);
+
+        /* The other twelve do not animate at all — they sit solid in their own
+         * colour on channel 0, which is what makes the pulsing quad's POSITION
+         * the cue that identifies the group. */
+        const outside = [...Array(16).keys()].filter((i) => !quad.includes(i));
+        const wrongSolid = outside.filter((i) => sentOn(STEP_NOTE_BASE + i, 0) !== TRACK_COLOR[i]);
+        eq('every track outside the quad sits solid in its colour', wrongSolid.length, 0);
+        eq('and none of them pulse',
+            outside.every((i) => pulseOf(STEP_NOTE_BASE + i) === undefined), true);
     }
 
     /* …so the next step press switches again, without re-entering Session. */

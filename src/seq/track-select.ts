@@ -48,8 +48,19 @@ export function sessionStepLed(step: number, focusGroup: number, selectedTrack: 
     if (step < 0 || step >= TRACK_COUNT) return { base: C_BLACK, anim: C_BLACK, channel: ANIM_NONE };
     const tc = trackColor(step);
     /* Selected outranks focused: when the group holds the selected track both
-     * would apply, and "which one am I editing" is the finer answer. */
-    if (step === selectedTrack) return { base: tc, anim: C_WHITE, channel: ANIM_PULSE };
+     * would apply, and "which one am I editing" is the finer answer.
+     *
+     * White in the BASE and the colour in the anim, which is the inverse of the
+     * obvious way round. Both layers share one animation channel, so they move
+     * in phase: with the colour in anim, every step of the focused quad —
+     * selected included — shows its track colour on the same beat, and the quad
+     * reads as one block. Colour-in-base instead put the selected step in
+     * antiphase, flashing white exactly when its three neighbours lit, and the
+     * group stopped reading as a group.
+     *
+     * The trough is what separates them: black under the neighbours, white
+     * under the selected one. */
+    if (step === selectedTrack) return { base: C_WHITE, anim: tc, channel: ANIM_PULSE };
     /* Focused group PULSES black<->its colour; the rest sit solid. Motion is the
      * cue, so it does not depend on one track's colour being lighter than
      * another's — which is what made a dim/bright split unreadable for the

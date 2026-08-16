@@ -1,6 +1,6 @@
 # Movy — Manual
 
-This manual explains how to use **Movy**, an Elektron-style knob UI and 4-track
+This manual explains how to use **Movy**, an Elektron-style knob UI and 16-track
 sequencer for Schwung on Ableton Move. For an overview and screenshots, see the
 [README](README.md).
 
@@ -46,8 +46,10 @@ Movy runs as a Schwung **tool** on top of Move. While it's open, Move's firmware
 and the Schwung audio chain keep running underneath — Movy just takes over the
 screen, pads, knobs, and buttons.
 
-You're always working with **one of four tracks** at a time. Each track is a
-Schwung chain of up to four module slots, plus a per-track **LFO** page:
+You're always working with **one of sixteen tracks** at a time — four groups of
+four, where the first four are Schwung's own tracks and the other twelve are
+chains Movy hosts itself ([Tracks and groups](#tracks-and-groups)). Either way a
+track is a chain of up to four module slots, plus a per-track **LFO** page:
 
 ```
 MIDI FX  →  SYNTH  →  FX 1  →  FX 2  →  LFO
@@ -452,11 +454,17 @@ Whether you see *this* slider depends on Shift. Move's firmware takes over the
 screen for as long as you are touching the volume knob, so:
 
 - **Track + volume** — Move draws its own volume overlay. The track volume still
-  changes; you just see Move's display of it.
+  changes; you just see Move's display of it. **Tracks 1-4 only** — see below.
 - **Shift + track + volume** — Movy keeps the screen and shows the slider above.
+  Works on all 16 tracks.
 
-Either way the value belongs to the track's Schwung slot, and it survives
-leaving and re-entering Movy.
+⚠️ **On tracks 5-16, use the Shift variant.** The plain gesture leans on telling
+Move which track is held, and Move only has four track buttons — on a Movy-hosted
+track it has nothing to be told, so the knob stays on Move's *master* volume.
+Known limitation, not by design.
+
+The value belongs to the track — a Schwung slot for tracks 1-4, Movy's own mixer
+for 5-16 — and it survives leaving and re-entering Movy.
 
 ### The LFO page
 
@@ -704,21 +712,18 @@ track buttons and the Session clip grid always address one group at a time —
 the **focused** group.
 
 **Picking a track.** In Session view the 16 step buttons become a **track
-selector**: each step is one track, lit in that track's own colour. Two things
-pulse on top of that:
-
-the **focused group's** four pulse between **black** and their colour, so you can
-see at a glance which quarter of the song you are in. It is the *position* of the
-pulsing block that tells you the group, not just its colour.
-
-**While you hold Note/Session**, the track you are currently on also lights
-**solid white** — a read-out you ask for by holding the button, rather than a
-permanent marker competing with the group pulse. It stays visible even after the
-**+ / −** buttons scroll the group away from it. Let go, or latch Session view
-with a tap, and the white goes away.
-
-Both show at once, which matters because the two come apart — the **+ / −**
+selector**: each step is one track, lit in that track's own colour. Two markers
+sit on top of that, and they can point at different tracks — the **+ / −**
 buttons move the group without changing which track is open.
+
+- The **focused group's** four **pulse** between black and their colour, so you
+  can see at a glance which quarter of the song you are in. It is the *position*
+  of the pulsing block that tells you the group, not just its colour.
+- **While you hold Note/Session**, the track you are currently on lights **solid
+  white** — still, where everything near it is moving. It is a read-out you ask
+  for by holding the button rather than a permanent marker competing with the
+  pulse, and it stays visible even after **+ / −** has scrolled its group away.
+  Let go, or latch Session view with a tap, and the white goes away.
 
 Press any step to **open that track**: the pads, the screen and the knobs all
 switch to it immediately, exactly as if you had pressed its track button. It
@@ -754,8 +759,10 @@ a track button track, and movy hosts the whole chain itself.
 Two differences worth knowing:
 
 - **Move's mixer sees all twelve as one channel.** Movy sums them into a single
-  stereo output, so their levels are movy's own — the hold-track + volume-encoder
-  gesture works, but the Move fader does not reach them individually.
+  stereo output, so their levels are movy's own and the Move fader does not reach
+  them individually. Set them with **Shift + hold track + volume encoder** —
+  ⚠️ on tracks 5-16 the plain gesture *without* Shift does not work yet and moves
+  Move's master volume instead, so use Shift there. Tracks 1-4 take either.
 - **They sound only while movy is open** (or parked in Background mode). The
   four Schwung tracks keep playing under Move's own UI; movy's twelve stop when
   movy closes, because movy is what renders them.
@@ -1052,7 +1059,7 @@ While both run, they lock as one grid:
 
 **Working with one transport (LINK on):** for **Movy-only** playback, keep the
 native Move set silent (no clips playing). For **Move-only** playback, stop or
-mute Movy's four tracks individually. (The link propagates the Play/Stop
+mute Movy's tracks individually. (The link propagates the Play/Stop
 *buttons*; launching a Session clip does not reach across to Move.)
 
 > **Tempo & Ableton Link:** Movy's TEMPO knob sets the device tempo through
@@ -1238,8 +1245,18 @@ missing or simplified. **All of these are candidates for future work — and
 - **No automation capture.** [Capture](#capture--keep-what-you-just-played)
   keeps notes; knob moves made before you press it are not captured. Record
   automation live instead.
-- **Four Schwung tracks only.** Movy sequences four Schwung chains — not Move's
-  native instruments, drum racks, or sampler.
+- **Schwung tracks only.** Movy sequences its own 16 chains — not Move's native
+  instruments, drum racks, or sampler.
+- **The CPU runs out long before 16 tracks do.** Move will typically give up
+  somewhere around 6-7 tracks of ordinary synth modules playing notes. Pick
+  cheap modules and it goes much further — 16 tracks of Dexed playing 2-4 notes
+  each, with mverb on half of them, does run. Treat 16 as a ceiling to explore,
+  not a promise.
+- **Track + volume needs Shift on tracks 5-16** (see
+  [Track volume](#track-volume)).
+- **Movy-hosted tracks are silent while Movy is closed.** Tracks 1-4 keep playing
+  under Move's own UI; 5-16 need Movy open, or parked in
+  [Background mode](#background-mode--keep-playing-under-moves-ui).
 - **Simplified clip model.** Sequencer resolution and some clip-level features
   are reduced compared to Move.
 - **Rough edges.** Expect occasional display glitches or, rarely, a crash that
@@ -1303,7 +1320,7 @@ behaviour you'd like — or, better, a PR.
 | **Shift + Mute** | Solo / un-solo the current track (Track view only). Exclusive — soloing another moves it. |
 | **Shift + Mute + track** | Solo that track instead. |
 | **Track buttons 1–4** | Select a track within the focused group of four (hold = momentary peek). |
-| **Volume encoder** | Adjust held steps' velocity. With a track button held instead, sets that track's volume; otherwise it stays Move's master volume. |
+| **Volume encoder** | Adjust held steps' velocity. With a track button held instead, sets that track's volume (**add Shift on tracks 5-16** — see [Track volume](#track-volume)); otherwise it stays Move's master volume. |
 | **TEMPO knob** (Set page) | Set the tempo; also sets Move's device-wide tempo via Link. **EXT** on the cell = locked to Move's transport. |
 | **LINK knob** (Set page) | Turn right = ON, left = OFF. Enables the shared Play/Stop transport with Move (default OFF; saved per set). Clock/tempo follow works regardless. |
 

@@ -1,11 +1,12 @@
 # Movy
 
-**A friendly, Elektron-style knob UI and 4-track step sequencer for [Ableton Move](https://www.ableton.com/move/), built on the [Schwung](https://github.com/charlesvestal/schwung) framework.**
+**A friendly, Elektron-style knob UI and 16-track step sequencer for [Ableton Move](https://www.ableton.com/move/), built on the [Schwung](https://github.com/charlesvestal/schwung) framework.**
 
 Movy turns Move into a hands-on instrument for Schwung modules: every module's
-parameters land on the 8 knobs as clean, readable pages, and a 4-track
+parameters land on the 8 knobs as clean, readable pages, and a 16-track
 sequencer — modelled closely on Move's own — sits underneath, driven by a small
-Rust engine.
+Rust engine. Four of those tracks are Schwung's own; the other twelve are chains
+Movy hosts itself.
 
 ![Movy UI tour](docs/assets/demo.gif)
 
@@ -43,11 +44,10 @@ that gap with two things:
 2. **A sequencer** — a **16-track** step sequencer whose behaviour is aligned as
    closely as possible with Move's native sequencer (clips, session view, live +
    step recording, automation), but driving Schwung tracks instead of Move's
-   instruments. The 16 tracks are arranged as four groups of four: the step
-   buttons pick a track, the +/− buttons move between groups. Tracks 1-4 are the
-   four Schwung tracks; tracks 5-16 sequence and save today and gain their own
-   instruments: tracks 1-4 drive the four Schwung tracks, and tracks 5-16 host
-   their own module chains inside movy, summed to one stereo output.
+   instruments. Tracks 1-4 are the four Schwung tracks and behave exactly as they
+   always have; tracks 5-16 host their own module chains inside Movy, summed to
+   one stereo output. The 16 are arranged as **four groups of four**: in Session
+   view the +/− buttons move between groups, and the step buttons pick a track.
 
 ## Inspiration & lineage
 
@@ -97,11 +97,18 @@ Movy stands on the shoulders of several projects:
 
   ![LFO page](docs/assets/lfo_lfo1.png)
 
-- **4-track sequencer**, aligned with Move: clips, Session view & clip
+- **16-track sequencer**, aligned with Move: clips, Session view & clip
   launching, live recording (with count-in/metronome), step entry, loop/bar
   editing, duplicate/delete, and **parameter automation**.
 
   ![Live automation](docs/assets/auto_live.png)
+
+- **Sixteen tracks in four groups.** Tracks 1-4 are the Schwung tracks,
+  unchanged. Tracks 5-16 load a module the same way and Movy hosts the chain
+  itself, saved with the set. In Session view, **octave +/−** moves between the
+  four groups and **a step button selects a track** — or hold **Session** and
+  press a step from anywhere. How many you can actually run is a CPU question,
+  not a Movy one: see [Limitations](MANUAL.md#7-limitations-vs-move).
 
 - **Step recording** — hold **Rec** while stopped and play notes or chords in
   one step at a time, with ties, rests and back-stepping. An empty clip grows to

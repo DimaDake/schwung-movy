@@ -11,6 +11,74 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
+## [0.28.0] — 2026-08-16
+
+### Added — sixteen tracks
+
+Movy sequences **16 tracks** instead of 4. Tracks 1-4 are the same four Schwung
+tracks as before and behave exactly as they always have; tracks 5-16 are chains
+**Movy hosts itself**, summed into its single stereo output. Nothing about the
+first four changed, so an existing set opens and plays as it did.
+
+- **Four groups of four.** The four track buttons and the Session clip grid
+  always address one group. In Session view the **octave + / −** buttons move
+  between groups — **+** towards tracks 1-4, **−** towards 13-16, the direction
+  the grid reads on screen.
+- **The Session step row is a track selector.** Each of the 16 steps is one
+  track, in that track's colour. The focused group pulses; hold **Note/Session**
+  and the track you are on lights solid white. Press a step to open that
+  track — tap to stay, hold to peek.
+- **Shortcut: hold Session + press a step.** Jumps straight to that track from
+  wherever you are, and the row stays a selector while you hold, so you can keep
+  tapping through tracks and auditioning them.
+- **Tracks 5-16 take modules like any other track.** Load through the same
+  browser, edit through the same knob pages, LFOs and automation included. Their
+  modules and settings are saved with the set.
+- **Track colours are eight, in a Latin square.** A colour reappears in another
+  group but never in the same row or column, so two tracks visible at once never
+  share one. Chosen by hue separation (≥ 58°) after a 16-distinct table shipped
+  pairs that measured far apart in CIELAB and read identical on the hardware.
+
+### Added — engine and hosting
+
+- `movy-dsp` hosts its own module chains: private `dlopen`, a serialised load
+  queue that never blocks the SPI callback, a saturating summing mixer, and
+  per-chain state blobs persisted with the set. `NUM_TRACKS` 4 → 16
+  (**ENGINE_VERSION 0.33.0**).
+- A `TrackPort` abstraction replaces `activeSlot` everywhere, so the whole UI
+  works on either kind of track without branching per call site. Movy-hosted
+  params ride schwung's **bulk** get/set channel — one round trip per page,
+  not one per key.
+
+### Changed — performance
+
+Sixteen tracks meant the pad path had to be measured properly, and the
+measurement moved several things:
+
+- **Live pads are answered by the engine on the audio thread**, not routed
+  through the UI tick.
+- **Port reads are batched** and a knob page no longer pays a round trip per
+  tick — the chain refresh that dominated the pad path is now on the bulk
+  channel. On a movy track, measured tick rate 110 → 144-147 Hz, and the tick
+  period *is* the pad sampling interval.
+- Status parsing is bounded, so 16 tracks parse in 0.011 ms (1.4× the 4-track
+  cost, not 4×).
+
+Per-synth CPU is documented in `docs/chain-cpu-benchmarks.md` and
+`docs/track-performance.md`, measured on device.
+
+### Known limitations
+
+- **The CPU runs out long before the tracks do.** Expect ~6-7 tracks of ordinary
+  synths playing notes. Cheap modules go much further: 16 tracks of **dexed** at
+  2-4 notes each, with mverb on half of them, runs.
+- **Track + volume needs Shift on tracks 5-16.** The plain gesture works by
+  telling Move which track is held, and Move has only four track buttons — so on
+  a Movy-hosted track the knob stays on Move's master volume. Use
+  **Shift + track + volume** there.
+- **Tracks 5-16 are silent while Movy is closed** (Background mode keeps them
+  playing). Tracks 1-4 are unaffected — they are Schwung's.
+
 ## [0.27.0] — 2026-08-14
 
 ### Added — parameter visualisations

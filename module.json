@@ -1,9 +1,9 @@
 {
     "id": "movy",
     "name": "Movy",
-    "version": "0.27.0",
+    "version": "0.28.0",
     "author": "megadake",
-    "description": "Elektron-style knob UI + 4-track sequencer for Schwung on Ableton Move",
+    "description": "Elektron-style knob UI + 16-track sequencer for Schwung on Ableton Move",
     "component_type": "tool",
     "tool_config": {
         "interactive": true,

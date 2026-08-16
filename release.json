@@ -1,6 +1,6 @@
 {
-  "version": "0.27.0",
-  "download_url": "https://github.com/DimaDake/schwung-movy/releases/download/v0.27.0/movy-module.tar.gz",
+  "version": "0.28.0",
+  "download_url": "https://github.com/DimaDake/schwung-movy/releases/download/v0.28.0/movy-module.tar.gz",
   "name": "Movy",
-  "description": "Elektron-style knob UI + 4-track sequencer for Schwung on Ableton Move"
+  "description": "Elektron-style knob UI + 16-track sequencer for Schwung on Ableton Move"
 }

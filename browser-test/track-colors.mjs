@@ -17,7 +17,7 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { TRACK_COLOR, TRACK_COLOR_DIM } from '../dist/esm/seq/colors.js';
+import { TRACK_COLOR, TRACK_COLOR_DIM, TRACK_COLOR_DIMMER } from '../dist/esm/seq/colors.js';
 
 let failures = 0;
 const _log = (s) => process.stdout.write(s + '\n');
@@ -199,6 +199,52 @@ for (let c = 0; c < 4; c++)
             const d = dist(D[a][c], D[b][c]);
             ok(`track ${c + 1} dim: ${name(D[a][c])} vs ${name(D[b][c])} (${d.toFixed(1)})`, d >= DIM_MIN);
         }
+
+/* ── 5. the Session selector's darker tier ──────────────────────────────── */
+/* Only sessionStepColor uses this one, and only it puts twelve dim colours on
+ * screen at once. Two things must hold: no entry may be BRIGHTER than its dim
+ * partner (the tier exists to flatten that row's outliers), and the tier must
+ * still read as sixteen colours rather than sixteen dark smudges. */
+_log('\ndimmer tier is never brighter than the dim tier it replaces:');
+eq('16 dimmer variants defined', TRACK_COLOR_DIMMER.length, 16);
+eq('all 16 dimmer distinct', new Set(TRACK_COLOR_DIMMER).size, 16);
+for (let t = 0; t < 16; t++) {
+    const a = Lof(TRACK_COLOR_DIMMER[t]), b = Lof(TRACK_COLOR_DIM[t]);
+    ok(`${name(TRACK_COLOR[t])}: ${name(TRACK_COLOR_DIMMER[t])} L${a.toFixed(0)} <= ${name(TRACK_COLOR_DIM[t])} L${b.toFixed(0)}`,
+        a <= b + 0.5);
+}
+/* The whole point of the change: mean lightness clearly below the dim tier's,
+ * and a tighter spread — a row reads as bright as its brightest members. */
+{
+    const mean = (a) => a.reduce((s, i) => s + Lof(i), 0) / 16;
+    const sd = (a) => { const m = mean(a); return Math.sqrt(a.reduce((s, i) => s + (Lof(i) - m) ** 2, 0) / 16); };
+    const mDim = mean(TRACK_COLOR_DIM), mDimmer = mean(TRACK_COLOR_DIMMER);
+    ok(`mean lightness ${mDim.toFixed(1)} -> ${mDimmer.toFixed(1)} (>= 20% darker)`, mDimmer <= mDim * 0.8);
+    ok(`spread ${sd(TRACK_COLOR_DIM).toFixed(1)} -> ${sd(TRACK_COLOR_DIMMER).toFixed(1)} (tighter)`,
+        sd(TRACK_COLOR_DIMMER) < sd(TRACK_COLOR_DIM));
+}
+_log('\ndimmer tier is still not black, not grey, and still separated:');
+for (const d of TRACK_COLOR_DIMMER) {
+    let worst = Infinity, who = -1;
+    for (const g of [0, 118, 120, 124]) { const x = dEn(d, g, 'normal'); if (x < worst) { worst = x; who = g; } }
+    ok(`${name(d)} vs ${name(who)} (${worst.toFixed(1)})`, worst >= 12);
+}
+{
+    const DR = [0, 1, 2, 3].map((g) => TRACK_COLOR_DIMMER.slice(g * 4, g * 4 + 4));
+    const DIMMER_MIN = 7;
+    for (let r = 0; r < 4; r++)
+        for (let a = 0; a < 4; a++)
+            for (let b = a + 1; b < 4; b++) {
+                const d = dist(DR[r][a], DR[r][b]);
+                ok(`G${r + 1} dimmer: ${name(DR[r][a])} vs ${name(DR[r][b])} (${d.toFixed(1)})`, d >= DIMMER_MIN);
+            }
+    for (let c = 0; c < 4; c++)
+        for (let a = 0; a < 4; a++)
+            for (let b = a + 1; b < 4; b++) {
+                const d = dist(DR[a][c], DR[b][c]);
+                ok(`track ${c + 1} dimmer: ${name(DR[a][c])} vs ${name(DR[b][c])} (${d.toFixed(1)})`, d >= DIMMER_MIN);
+            }
+}
 
 _log('');
 if (failures === 0) {

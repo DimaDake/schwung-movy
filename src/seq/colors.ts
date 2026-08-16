@@ -53,12 +53,33 @@ export const TRACK_COLOR_DIM = [
     87, 35, 17, 73,       // Dark Teal, Mauve, Navy, Dull Yellow
 ];
 
+/* A third, darker tier for the ONE place that shows twelve dim colours at once:
+ * the Session view's track selector. Everywhere else `dim` is either a single
+ * track's colour (the watched track's empty in-loop steps, where it marks the
+ * loop window and must stay legible) or four muted track buttons.
+ *
+ * It is not a uniform step down. The dim tier's real problem here was spread,
+ * not level — it ranged L 9 to L 33, and a row reads as bright as its brightest
+ * members. So each entry is capped at its dim partner's lightness: the ten that
+ * already sat low are unchanged, and the six outliers come down to meet them.
+ * Mean lightness 21.3 → 15.7, spread 8.3 → 4.6. */
+export const TRACK_COLOR_DIMMER = [
+    65, 111, 105, 99,     // Deep Red, Dusty Rose, Muted Violet, Indigo
+    115, 95, 80, 81,      // Dusky Mauve, Dark Blue, Very Dark Green, Dull Olive
+    107, 83, 75, 109,     // Dark Purple, Dark Olive Green, Brown-Yellow, Deep Magenta
+    87, 113, 93, 78,      // Dark Teal, Mauve, Deep Blue, Dark Olive
+];
+
 export function trackColor(track: number): number {
     return TRACK_COLOR[track & 15];
 }
 
 export function trackColorDim(track: number): number {
     return TRACK_COLOR_DIM[track & 15];
+}
+
+export function trackColorDimmer(track: number): number {
+    return TRACK_COLOR_DIMMER[track & 15];
 }
 
 /* Native Move LED animation channels (Push-2 model: the note-on's MIDI channel

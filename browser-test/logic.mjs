@@ -2638,7 +2638,7 @@ _log('\nTest: drumPadOn');
     resetSeqState(); seqLedsInvalidate();
     const { C_REC_RED: C_REC_RED_LED,
             TRACK_COLOR: TRACK_COLOR_LED,
-            TRACK_COLOR_DIM: TRACK_COLOR_DIM_LED } = await import('../dist/esm/seq/colors.js');
+            TRACK_COLOR_DIMMER: TRACK_COLOR_DIMMER_LED } = await import('../dist/esm/seq/colors.js');
     seqState.watchTrack = 0; seqState.lenSteps = 16; seqState.playing = true;
     seqState.recording = true; seqState.curStep = 0;
     ledCalls.length = 0;
@@ -2656,7 +2656,7 @@ _log('\nTest: drumPadOn');
     for (let i = 0; i < 3; i++) seqLedsTick();   // drain progressive cold frame
     byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
     eq('session step 0 shows track 0 bright (group 0 focused)', byNote[16], TRACK_COLOR_LED[0]);
-    eq('session step 4 shows track 4 dim (group 1 unfocused)', byNote[20], TRACK_COLOR_DIM_LED[4]);
+    eq('session step 4 shows track 4 dimmer (group 1 unfocused)', byNote[20], TRACK_COLOR_DIMMER_LED[4]);
     eq('session step row ignores clip occupancy', byNote[16] === 120, false);
 
     globalThis.setLED = origSetLED;
@@ -11804,15 +11804,16 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 {
   _log('\nsession track selector:');
   const { sessionStepColor } = await import('../dist/esm/seq/track-select.js');
-  const { TRACK_COLOR, TRACK_COLOR_DIM } = await import('../dist/esm/seq/colors.js');
+  const { TRACK_COLOR, TRACK_COLOR_DIMMER } = await import('../dist/esm/seq/colors.js');
 
   /* The focused quad is full brightness; everything else is that track's own
-   * dim colour. The BRIGHT QUAD'S POSITION is what identifies the group —
-   * colour is the backup cue, not the only one. */
+   * DIMMER colour — a darker tier than `dim`, since this is the only view that
+   * shows twelve of them at once. The BRIGHT QUAD'S POSITION is what identifies
+   * the group — colour is the backup cue, not the only one. */
   eq('focused group step is bright', sessionStepColor(4, 1), TRACK_COLOR[4]);
   eq('focused group last step is bright', sessionStepColor(7, 1), TRACK_COLOR[7]);
-  eq('unfocused step is dim', sessionStepColor(0, 1), TRACK_COLOR_DIM[0]);
-  eq('unfocused far step is dim', sessionStepColor(15, 1), TRACK_COLOR_DIM[15]);
+  eq('unfocused step is dimmer', sessionStepColor(0, 1), TRACK_COLOR_DIMMER[0]);
+  eq('unfocused far step is dimmer', sessionStepColor(15, 1), TRACK_COLOR_DIMMER[15]);
   eq('group 0 focused lights the first quad', sessionStepColor(0, 0), TRACK_COLOR[0]);
 }
 

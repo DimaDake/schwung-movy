@@ -161,6 +161,27 @@ Session step row shows all 16 tracks at once with unfocused groups dimmed, so
 they are compared against each other on screen and duplicates were never as
 harmless as the original note claimed.
 
+### 4.2 A third tier for the Session selector (2026-08-16)
+
+`sessionStepColor` is the only place that puts twelve dim colours on screen at
+once, and the bright quad has to win against them. Everywhere else `dim` is
+either one track's colour (the watched track's empty in-loop steps, where it
+marks the **loop window** and must stay legible) or four muted track buttons —
+so those keep the `dim` tier and only the selector moves to `TRACK_COLOR_DIMMER`.
+
+The fix is not a uniform step down, and the measurements are why. The dim tier
+ranged L 9 to L 33, and a row reads as bright as its brightest members: Violet
+33, Mauve 33, Olive 32, Dull Yellow 31. So each dimmer entry is capped at its
+own dim partner's lightness — the ten already sitting low are unchanged, the six
+outliers come down to meet them. Mean 21.3 → 15.7, spread 8.3 → 4.6, all 16
+still distinct, worst row/column pair 7.6.
+
+Going further was tried and rejected with evidence. This palette has few dark
+chromatic entries: a uniform band at L ≤ 20 cannot produce 16 distinct hue-
+faithful colours at all, and at L ≤ 18 the best available collapses to 6 distinct
+colours with a worst pair of 1.8. Roughly L 15 is the floor for a tier that still
+reads as sixteen colours.
+
 One honest limitation remains:
 
 - **Under deuteranopia, yellows collapse onto the playhead's neon green.** The

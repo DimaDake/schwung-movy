@@ -10,7 +10,7 @@ import {
 import { mainPageActive } from './main-page.js';
 import { clipPageActive } from './clip-page.js';
 import { appState } from '../app/state.js';
-import { focusedTrack } from '../track/focus.js';
+import { focusedTrack, GROUP_DIR_DOWN, GROUP_DIR_UP } from '../track/focus.js';
 import { GROUP_SIZE } from '../track/ref.js';
 import { sessionPaintGrid } from './session.js';
 import { sessionStepColor } from './track-select.js';
@@ -172,8 +172,8 @@ function paintAffordances(view: number, barOffset: number, maxOff: number, shift
      * they are the pad octave and app/tick.ts owns them (it knows whether the
      * track is a drum, which has no octave). */
     if (seqState.sessionMode) {
-        cachedSetButtonLED(CC_DOWN, groupArrowColor(-1));
-        cachedSetButtonLED(CC_UP, groupArrowColor(+1));
+        cachedSetButtonLED(CC_DOWN, groupArrowColor(GROUP_DIR_DOWN));
+        cachedSetButtonLED(CC_UP, groupArrowColor(GROUP_DIR_UP));
     }
 }
 

@@ -1571,12 +1571,24 @@ _log('\napp-loop: session view selects tracks from the step row');
     eq('step press refocused group 2', appState.focusGroup, 2);
     eq('still in session view after a latched selection', seqState.sessionMode, true);
 
-    /* Octave up moves the focused group without changing the active track. */
+    /* Octave up moves the focused group without changing the active track, and
+     * scrolls the way the grid reads: up walks towards track 1, down away. */
     sendMidi([0xB0, 55, 127]);
     sendMidi([0xB0, 55, 0]);
     advance(1);
-    eq('octave up moved to group 3', appState.focusGroup, 3);
+    eq('octave up moved to group 1', appState.focusGroup, 1);
     eq('octave up left the active track alone', appState.activeTrack.index, 9);
+
+    sendMidi([0xB0, 54, 127]);
+    sendMidi([0xB0, 54, 0]);
+    advance(1);
+    eq('octave down moved back to group 2', appState.focusGroup, 2);
+
+    /* The LEDs must agree with the buttons: at the first group there is nothing
+     * above, so up is the dark one. */
+    while (appState.focusGroup > 0) { sendMidi([0xB0, 55, 127]); sendMidi([0xB0, 55, 0]); advance(1); }
+    eq('at the first group, up is off', buttonLeds[55], 0);
+    eq('at the first group, down is dim', buttonLeds[54], 16);
 
     selectTrack(0);
     resetSeqState();

@@ -19,6 +19,14 @@ export function focusedTrack(n: number): number {
     return appState.focusGroup * GROUP_SIZE + n;
 }
 
+/* Which way the octave buttons scroll the Session grid. The grid is read as a
+ * list of tracks running down the screen, so "up" walks towards track 1 and
+ * "down" towards track 16 — the button follows the direction the eye moves,
+ * not the direction the group index counts. Both the router and the LEDs take
+ * their direction from here so the two can never disagree. */
+export const GROUP_DIR_UP   = -1;
+export const GROUP_DIR_DOWN = +1;
+
 /** Move the focus group without changing which track is active. Used by the
  *  octave buttons in Session view, where the user is browsing groups rather
  *  than committing to a track. */

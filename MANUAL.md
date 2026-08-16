@@ -715,7 +715,9 @@ staying in Session view — Movy returns to whatever you were doing, on the new
 track.
 
 **Moving between groups.** In Session view the **+ / −** buttons step the
-focused group up and down. They are dim while there is a group to move to and
+focused group through the track list: **+** moves towards tracks 1-4, **−**
+towards 13-16 — the direction the grid reads on screen, not the direction the
+group numbers count. They are dim while there is a group to move to and
 dark at either end, the same way the arrows behave elsewhere. Moving the group
 does not change which track is open — it re-aims the four track buttons and the
 clip grid so you can reach the next four.
@@ -1247,7 +1249,7 @@ behaviour you'd like — or, better, a PR.
 | **Back then jog-click** | From the root: background Movy (keeps playing under Move's UI). |
 | **Shift + Back** | Fully exit Movy (unload), instantly, from anywhere. |
 | **Hold track + volume encoder** | Set that track's volume (0–400%, 100% = unity, 1 dB per detent). Add **Shift** to see Movy's slider instead of Move's native overlay. |
-| **+ / −** (Up/Down) | Shift the **active track's** octave (melodic tracks only). Each track remembers its own, saved with the set. In **Session** view they step the focused **track group** instead. |
+| **+ / −** (Up/Down) | Shift the **active track's** octave (melodic tracks only). Each track remembers its own, saved with the set. In **Session** view they step the focused **track group** instead (**+** towards tracks 1-4, **−** towards 13-16). |
 
 ### Sequencer
 

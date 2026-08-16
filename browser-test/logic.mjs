@@ -11820,17 +11820,18 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
   _log('\ngroup navigation affordances:');
   const { groupArrowColor } = await import('../dist/esm/seq/buttons.js');
   const { WHITE_DIM, WHITE_OFF } = await import('../dist/esm/seq/colors.js');
-  const { selectTrack } = await import('../dist/esm/track/focus.js');
+  const { selectTrack, GROUP_DIR_UP, GROUP_DIR_DOWN } = await import('../dist/esm/track/focus.js');
 
-  /* Same rule the bar arrows use: dim means pressable, off means travel limit. */
+  /* Same rule the bar arrows use: dim means pressable, off means travel limit.
+   * Up scrolls towards track 1, so it is the dark one at the first group. */
   selectTrack(0);
-  eq('at the first group, down is off', groupArrowColor(-1), WHITE_OFF);
-  eq('at the first group, up is dim', groupArrowColor(1), WHITE_DIM);
+  eq('at the first group, up is off', groupArrowColor(GROUP_DIR_UP), WHITE_OFF);
+  eq('at the first group, down is dim', groupArrowColor(GROUP_DIR_DOWN), WHITE_DIM);
   selectTrack(15);
-  eq('at the last group, up is off', groupArrowColor(1), WHITE_OFF);
-  eq('at the last group, down is dim', groupArrowColor(-1), WHITE_DIM);
+  eq('at the last group, down is off', groupArrowColor(GROUP_DIR_DOWN), WHITE_OFF);
+  eq('at the last group, up is dim', groupArrowColor(GROUP_DIR_UP), WHITE_DIM);
   selectTrack(4);
-  eq('mid groups can go both ways', groupArrowColor(-1) === WHITE_DIM && groupArrowColor(1) === WHITE_DIM, true);
+  eq('mid groups can go both ways', groupArrowColor(GROUP_DIR_UP) === WHITE_DIM && groupArrowColor(GROUP_DIR_DOWN) === WHITE_DIM, true);
   selectTrack(0);
 }
 

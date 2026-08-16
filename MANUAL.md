@@ -707,14 +707,15 @@ the **focused** group.
 selector**: each step is one track, lit in that track's own colour. Two things
 pulse on top of that:
 
-- the **focused group's** four pulse between **black** and their colour, so you
-  can see at a glance which quarter of the song you are in. It is the *position*
-  of the pulsing block that tells you the group, not just its colour;
-- the **track you are on** pulses the same way but troughs to **white** instead
-  of black.
+the **focused group's** four pulse between **black** and their colour, so you can
+see at a glance which quarter of the song you are in. It is the *position* of the
+pulsing block that tells you the group, not just its colour.
 
-All four of the group light their colours on the same beat — the selected one
-differs only in what it fades *to*, so the quad still reads as one block.
+**While you hold Note/Session**, the track you are currently on also lights
+**solid white** — a read-out you ask for by holding the button, rather than a
+permanent marker competing with the group pulse. It stays visible even after the
+**+ / −** buttons scroll the group away from it. Let go, or latch Session view
+with a tap, and the white goes away.
 
 Both show at once, which matters because the two come apart — the **+ / −**
 buttons move the group without changing which track is open.

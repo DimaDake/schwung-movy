@@ -1564,6 +1564,25 @@ _log('\napp-loop: session view selects tracks from the step row');
     advance(1);
     eq('session view latched', seqState.sessionMode, true);
 
+    /* Latched Session view shows the group pulse and nothing else. The
+     * selected-track read-out belongs to the HELD button — holding it is a
+     * question ("where am I?"), while a latched row is somewhere you sit and
+     * work, and a permanent white step there just competes with the group. */
+    {
+        const { C_WHITE } = await import('../dist/esm/seq/colors.js');
+        const { seqLedsInvalidate } = await import('../dist/esm/seq/leds.js');
+        const msgs = [];
+        const real = globalThis.move_midi_internal_send;
+        globalThis.move_midi_internal_send = (m) => msgs.push(m);
+        seqLedsInvalidate();
+        advance(6);
+        globalThis.move_midi_internal_send = real;
+        // Notes 16-31 only — the clip-grid pads (68-99) pulse white legitimately.
+        const white = msgs.filter((m) => m[2] >= STEP_NOTE_BASE
+            && m[2] < STEP_NOTE_BASE + 16 && m[3] === C_WHITE);
+        eq('latched session shows no white selection on the step row', white.length, 0);
+    }
+
     /* A step press in latched Session view IS the track-button gesture: it
      * drops straight onto that track — pads, screen and knobs. */
     engine.ops.length = 0;
@@ -1681,24 +1700,23 @@ _log('\napp-loop: holding Session keeps the step row a track selector');
             return hit.length ? hit[hit.length - 1][3] : undefined;
         };
 
-        /* Track 5 is selected, so the focused quad is 4-7. Every one of the four
-         * pulses to its OWN track colour, selected included: both layers carry
-         * the colour in anim and share one animation channel, so the quad lights
-         * together instead of the selected step flashing white in antiphase with
-         * its neighbours. */
-        const quad = [4, 5, 6, 7];
-        const wrongPulse = quad.filter((i) => pulseOf(STEP_NOTE_BASE + i) !== TRACK_COLOR[i]);
-        eq('the whole focused quad pulses to its own track colours', wrongPulse.length, 0);
+        /* Track 5 is selected and the Session button is still down, so the quad
+         * is 4-7 with track 5 as the held read-out: SOLID WHITE, no animation,
+         * while its three neighbours pulse black->their own colour. Stillness is
+         * what separates it — a pulse would share the group's one channel. */
+        eq('the selected track is solid white', sentOn(STEP_NOTE_BASE + 5, 0), C_WHITE);
+        eq('and does not animate at all', pulseOf(STEP_NOTE_BASE + 5), undefined);
 
-        /* The bases are what tell them apart, at the trough. */
-        eq('the selected track troughs to white', sentOn(STEP_NOTE_BASE + 5, 0), C_WHITE);
-        const neighbours = [4, 6, 7].map((i) => sentOn(STEP_NOTE_BASE + i, 0));
-        eq('its group neighbours trough to black', neighbours.every((c) => c === C_BLACK), true);
+        const neighbours = [4, 6, 7];
+        const wrongPulse = neighbours.filter((i) => pulseOf(STEP_NOTE_BASE + i) !== TRACK_COLOR[i]);
+        eq('its group neighbours pulse to their own colours', wrongPulse.length, 0);
+        eq('its group neighbours trough to black',
+            neighbours.every((i) => sentOn(STEP_NOTE_BASE + i, 0) === C_BLACK), true);
 
         /* The other twelve do not animate at all — they sit solid in their own
          * colour on channel 0, which is what makes the pulsing quad's POSITION
          * the cue that identifies the group. */
-        const outside = [...Array(16).keys()].filter((i) => !quad.includes(i));
+        const outside = [...Array(16).keys()].filter((i) => i < 4 || i > 7);
         const wrongSolid = outside.filter((i) => sentOn(STEP_NOTE_BASE + i, 0) !== TRACK_COLOR[i]);
         eq('every track outside the quad sits solid in its colour', wrongSolid.length, 0);
         eq('and none of them pulse',

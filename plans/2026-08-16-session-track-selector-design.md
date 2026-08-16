@@ -97,17 +97,21 @@ lines to it.
 `sessionStepLed` gains a third case, ordered selected -> group -> rest:
 
 ```
-step === activeTrack   -> { base: WHITE, anim: trackColor, ANIM_PULSE }
+step === activeTrack   -> solid WHITE                                     // held only
 trackGroup === focus   -> { base: BLACK, anim: trackColor, ANIM_PULSE }   // today
 else                   -> solid trackColor                                // today
 ```
 
-Both layers carry the track colour in `anim` and share one animation channel,
-so the whole focused quad lights its colours on the same beat and reads as one
-block; only the trough differs (white under the selected step, black under its
-neighbours). Colour in the selected step's `base` instead — the obvious way
-round — put it in antiphase, flashing white exactly when its three neighbours
-lit, and the group stopped reading as a group.
+The selected step is SOLID, not a pulse. Stillness is the cue — everything
+around it in the quad is already pulsing — and a pulse there would have to share
+the single animation channel with the group's, which left the two either in
+antiphase (the selected step flashing white exactly when its neighbours lit) or
+indistinguishable.
+
+It shows only while the Session button is **held**: `paintTrackSelector` passes
+`selectedTrack = -1` otherwise, so latched Session view carries the group pulse
+alone. Holding is a question ("where am I?") and the answer belongs to the hold;
+a latched row is somewhere you sit and work.
 
 Both cues survive, which matters because the octave buttons move `focusGroup`
 without moving `activeTrack` — the selected track stays visible after the group

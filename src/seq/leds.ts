@@ -13,7 +13,7 @@ import { appState } from '../app/state.js';
 import { focusedTrack, GROUP_DIR_DOWN, GROUP_DIR_UP } from '../track/focus.js';
 import { GROUP_SIZE } from '../track/ref.js';
 import { sessionPaintGrid } from './session.js';
-import { sessionStepLed, trackSelectActive } from './track-select.js';
+import { sessionButtonHeld, sessionStepLed, trackSelectActive } from './track-select.js';
 import { loopEndBar, loopStartBar, occHasStep, seqState, stepInLoop } from './state.js';
 import { stepRecActive, stepRecCanGoLeft, stepRecHead } from './step-rec.js';
 import { cachedSetLED, cachedSetButtonLED, cachedSetAnimLED, ledFrameReset, seqLedsInvalidate } from './led-cache.js';
@@ -210,8 +210,11 @@ export function metronomeStep(stepInBar: number, engineTick: number): boolean {
 /* The 16 step buttons as the track selector. Shared by Session view and the
  * held-Session selector, which differ only in what the PADS show. */
 function paintTrackSelector(): void {
+    /* The selected-track read-out belongs to the HOLD: -1 while Session is
+     * latched, so a row you sit and work in shows only the group pulse. */
+    const selected = sessionButtonHeld() ? appState.activeTrack.index : -1;
     for (let i = 0; i < NUM_STEP_BUTTONS; i++) {
-        const led = sessionStepLed(i, appState.focusGroup, appState.activeTrack.index);
+        const led = sessionStepLed(i, appState.focusGroup, selected);
         cachedSetAnimLED(STEP_NOTE_BASE + i, led.base, led.anim, led.channel);
     }
 }

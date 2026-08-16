@@ -10,6 +10,11 @@ export const LONG_PRESS_TICKS       = 172;  /* ~0.5 s */
  * cost to well under a tenth of a call per tick. */
 export const VISIBILITY_POLL_TICKS  = 16;
 export const REFRESH_SUPPRESS_TICKS = 100;  /* ticks of knob-idle before refresh resumes (~200 ms) */
+/* Ticks between batched value refreshes on a port whose reads cost a round trip
+ * (a movy-hosted chain). One trip per 8 ticks is ~70 ms at the measured tick
+ * rate — invisible on screen, and an eighth of the IPC that reading one param
+ * per tick cost. */
+export const REFRESH_BULK_TICKS = 8;
 /* Hold-without-moving before a "you can also do X here" gesture fires: knob
  * hold → LFO assign mode, jog touch → the bottom CLICK JOG hint. One constant
  * so both feel like the same gesture. */

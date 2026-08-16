@@ -51,27 +51,67 @@ function record(name: string, ms: number): void {
     }
 }
 
+type HostFn = (...a: unknown[]) => unknown;
+type Wrapper = HostFn & { _movyProbe?: boolean; _movyOrig?: HostFn };
+
+/* Where a wrapper sends what it measured.
+ *
+ * It has to be looked up on the GLOBAL at call time, not captured in the
+ * wrapper's closure. A tool open re-evaluates ui.js — fresh module state, same
+ * host globals — so a closure-captured `record` keeps filling the counters of an
+ * evaluation that will never report again, and `shadow_ui` outlives even a Move
+ * stack restart, so nothing clears it. That is not hypothetical: the batched
+ * chain refresh ran 122 times in eight seconds on device and perf_ipc showed no
+ * bulk reads at all. Every evaluation claims the sink; the newest one wins. */
+const SINK = '__movyPerfSink';
+function sink(name: string, ms: number): void {
+    const f = (globalThis as Record<string, unknown>)[SINK];
+    if (typeof f === 'function') (f as (n: string, m: number) => void)(name, ms);
+}
+
 function wrap(fnName: string, kind: string, keyArg: number): void {
     const g = globalThis as Record<string, unknown>;
-    const orig = g[fnName];
-    if (typeof orig !== 'function') return;
+    const cur = g[fnName] as Wrapper | undefined;
+    if (typeof cur !== 'function') return;
     /* Re-opening the tool re-evaluates ui.js — module state resets, but the host
-     * globals persist and are already wrapped. Marking the wrapper (rather than
-     * trusting a module-level flag) is what stops a second open from wrapping
-     * the wrapper and double-counting every call. */
-    if ((orig as { _movyProbe?: boolean })._movyProbe) return;
-    const fn = orig as (...a: unknown[]) => unknown;
+     * globals persist and still hold the PREVIOUS evaluation's wrapper, whose
+     * closure records into counters nothing reports any more. Skipping there (as
+     * this did) leaves the call permanently unaccounted: the batched chain
+     * refresh ran ~117 times in six seconds on device and `perf_ipc` showed no
+     * bulk reads at all. Re-wrap the original instead — keeping `_movyOrig` is
+     * what makes that possible without nesting wrapper inside wrapper and
+     * counting every call twice. */
+    /* `_movyOrig` is missing only on a wrapper left by a build that predates it.
+     * There is no way back to the original then, so wrap the stale wrapper —
+     * once. It still records, but into the counters of an evaluation that never
+     * reports again, so nothing is double-counted; without this the call stays
+     * invisible until shadow_ui itself dies, and it survives a Move stack
+     * restart. Every wrapper written since carries `_movyOrig`, so this can
+     * happen at most once in a process. */
+    const fn = (cur._movyProbe ? cur._movyOrig ?? cur : cur) as HostFn;
     const wrapped = function (...args: unknown[]): unknown {
         const t0 = Date.now();
         const r  = fn.apply(null, args);
-        record(label(kind, args[keyArg]), Date.now() - t0);
+        sink(label(kind, args[keyArg]), Date.now() - t0);
         return r;
-    };
-    (wrapped as { _movyProbe?: boolean })._movyProbe = true;
+    } as Wrapper;
+    wrapped._movyProbe = true;
+    wrapped._movyOrig  = fn;
     g[fnName] = wrapped;
 }
 
+/* A tool open re-evaluates ui.js, so `installed` starts false again there. Tests
+ * run in one module instance (the browser build shares a chunk, so re-importing
+ * does not re-evaluate), and this is how they reach the same starting state. */
+export function resetPerfProbeInstall(): void {
+    installed = false;
+}
+
 export function installPerfProbe(): void {
+    /* Claimed unconditionally, before the `installed` guard: taking over the
+     * sink is how THIS evaluation starts owning the counts of wrappers a
+     * previous one installed. */
+    (globalThis as Record<string, unknown>)[SINK] = record;
     if (installed) return;
     installed = true;
     wrap('shadow_get_param',      'get',  1);
@@ -85,6 +125,11 @@ export function installPerfProbe(): void {
      * nothing: the "2.12 ms pad cost" it seemed to show was the chain page's
      * param refresh standing next to it. */
     wrap('host_module_set_param_blocking', 'msetb', 0);
+    /* The bulk channel is one round trip for many keys, which is exactly why a
+     * page refresh uses it — and exactly why leaving it out would understate the
+     * tick again, this time by hiding the call that replaced eight. */
+    wrap('shadow_get_params', 'bget', 1);
+    wrap('shadow_set_params', 'bset', 1);
 }
 
 /* Coarse in-tick phase timing. tick_ms says the tick is slow; this says which

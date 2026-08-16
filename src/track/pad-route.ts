@@ -20,6 +20,7 @@
 
 import { appState } from '../app/state.js';
 import { padPitch } from '../seq/pads.js';
+import { padsPlayNotes } from '../seq/router-pads.js';
 import { chainInstance, trackKind } from './ref.js';
 
 const PAD_MIN = 68;
@@ -29,10 +30,12 @@ const PAD_COUNT = 32;
 let pushed = '';
 
 /** Rebuild the map string for the active track. `-1` chain = the UI keeps pads
- *  (host track, or no movy chain selected). */
+ *  (host track, no movy chain selected, or the pads are not playing notes at
+ *  all — in Session view they are the clip grid, and the engine cannot see a UI
+ *  mode, so launching a clip sounded the synth underneath it). */
 function buildMap(): string {
     const t = appState.activeTrack.index;
-    const chain = trackKind(t) === 'movy' ? chainInstance(t) : -1;
+    const chain = padsPlayNotes() && trackKind(t) === 'movy' ? chainInstance(t) : -1;
     const parts: (string | number)[] = [chain];
     for (let i = 0; i < PAD_COUNT; i++) {
         parts.push(chain < 0 ? -1 : padPitch(t, PAD_MIN + i, PAD_MIN));

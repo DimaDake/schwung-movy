@@ -26,13 +26,14 @@ import { sessionPad } from './session.js';
 import { requestLoopWindowAdopt, seqState } from './state.js';
 import { anyStepHeld, editNudge, editTranspose, editVelocity } from './step-edit.js';
 import { stepRecArrow, stepRecDown, stepRecEnd, stepRecUp } from './step-rec.js';
+import { padsPlayNotes } from './router-pads.js';
 import { handleStepButton, navigateBar } from './router-steps.js';
 import { muteHeld, seqHandleButtonCc } from './router-buttons.js';
 
 /* The sequencer's public input surface stays on this module: these are its
  * other halves, re-exported so callers keep one import site. */
 export { muteHeld, muteShiftHeld, muteTrack, setMuteHeld } from './router-buttons.js';
-export { resetSeqChord, seqNotePadPlayed, seqNotePadReleased } from './router-pads.js';
+export { padsPlayNotes, resetSeqChord, seqNotePadPlayed, seqNotePadReleased } from './router-pads.js';
 
 const CC_LEFT = 62;
 const CC_RIGHT = 63;
@@ -47,7 +48,7 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     const d2 = data[2];
 
     /* Session mode owns the 32 pads as the clip grid. */
-    if (seqState.sessionMode
+    if (!padsPlayNotes()
         && (statusType === 0x90 || statusType === 0x80)
         && d1 >= PAD_MIN && d1 <= PAD_MAX) {
         if (statusType === 0x90 && d2 > 0) {

@@ -909,15 +909,64 @@ _origLog('\nTest: status parse cost, 4 vs 16 tracks');
         'host_module_get_param',
         'host_module_set_param',
         'host_module_set_param_blocking',
+        'shadow_get_params',
+        'shadow_set_params',
     ];
     const saved = {};
     for (const g of IPC_GLOBALS) { saved[g] = globalThis[g]; globalThis[g] = () => true; }
 
-    const { installPerfProbe } = await import('../dist/esm/app/perf-probe.js');
+    const originals = IPC_GLOBALS.map(g => globalThis[g]);
+
+    const { installPerfProbe, resetPerfProbeInstall } = await import('../dist/esm/app/perf-probe.js');
     installPerfProbe();
     const unwrapped = IPC_GLOBALS.filter(g => globalThis[g]._movyProbe !== true);
     if (unwrapped.length) _origLog('    (unmeasured: ' + unwrapped.join(', ') + ')');
     check('host IPC calls left unmeasured', unwrapped.length, 0);
+
+    /* Re-opening the tool re-evaluates ui.js: fresh module state, same host
+     * globals. A second install must hand the counting to the NEW evaluation —
+     * skipping because the global is already wrapped leaves every call recorded
+     * into counters nobody reports, which is how a whole call site went missing
+     * from perf_ipc on device while it was demonstrably running. */
+    /* A wrapper must report through a sink looked up at CALL time, not one
+     * captured in its closure: on device the wrappers outlive every reopen and
+     * even a stack restart, so a closure keeps filling counters that nothing
+     * reports — which is how the batched chain refresh ran 122 times in eight
+     * seconds and showed up in perf_ipc as nothing at all. */
+    const realSink = globalThis.__movyPerfSink;
+    let sunk = null;
+    globalThis.__movyPerfSink = (name) => { sunk = name; };
+    globalThis.host_module_get_param('probe:sink');
+    globalThis.__movyPerfSink = realSink;
+    check('a wrapper reports through the swappable sink', sunk === null ? 1 : 0, 0);
+
+    /* A wrapper from a build with no `_movyOrig` must still be taken over, or
+     * the call stays unmeasured for the life of the shadow_ui process — which
+     * outlives reopens AND a Move stack restart. */
+    const foreign = (...a) => globalThis.host_module_get_param._movyOrig?.(...a);
+    foreign._movyProbe = true;                 // marked, but no _movyOrig
+    const realGet = globalThis.host_module_get_param;
+    globalThis.host_module_get_param = foreign;
+    resetPerfProbeInstall();
+    installPerfProbe();
+    check('a wrapper with no recoverable original is taken over',
+          globalThis.host_module_get_param === foreign ? 1 : 0, 0);
+    globalThis.host_module_get_param = realGet;
+
+    const firstWrappers = IPC_GLOBALS.map(g => globalThis[g]);
+    resetPerfProbeInstall();
+    installPerfProbe();
+    /* The NEW evaluation must own the wrapper — same wrapper means the calls are
+     * still being recorded into the previous evaluation's counters, which is the
+     * failure that hid the batched chain refresh from perf_ipc entirely. */
+    const stale = IPC_GLOBALS.filter((g, i) => globalThis[g] === firstWrappers[i]);
+    if (stale.length) _origLog('    (still counted by the previous evaluation: ' + stale.join(', ') + ')');
+    check('host IPC calls orphaned by a reopen', stale.length, 0);
+    /* ...and it must wrap the ORIGINAL, not the previous wrapper: nesting would
+     * count every call twice and add a layer per reopen. */
+    const nested = IPC_GLOBALS.filter((g, i) => globalThis[g]._movyOrig !== originals[i]);
+    if (nested.length) _origLog('    (wrapper nested on reopen: ' + nested.join(', ') + ')');
+    check('host IPC wrappers nested by a reopen', nested.length, 0);
 
     for (const g of IPC_GLOBALS) {
         if (saved[g] === undefined) delete globalThis[g]; else globalThis[g] = saved[g];

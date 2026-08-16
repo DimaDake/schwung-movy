@@ -9,6 +9,11 @@ import { trackRef, type TrackRef } from './ref.js';
 
 export class HostSlotPort implements TrackPort {
     readonly track: TrackRef;
+    /* A slot read is served from schwung's own param cache and measured at
+     * ~0.3 ms per tick for the whole UI. Nothing to batch, and the shim's bulk
+     * channel could not carry it anyway: shim_handle_param_bulk routes only to
+     * the overtake DSP, never to a chain slot. */
+    readonly bulkReads = false;
 
     constructor(index: number) {
         this.track = trackRef(index);

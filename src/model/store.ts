@@ -1,6 +1,6 @@
 import type { KnobParam } from '../types/param.js';
 import type { ModelState } from './state.js';
-import { KNOBS_PER_PAGE, ENUM_DELTA_DIV, REFRESH_SUPPRESS_TICKS } from './constants.js';
+import { KNOBS_PER_PAGE, ENUM_DELTA_DIV, REFRESH_BULK_TICKS, REFRESH_SUPPRESS_TICKS } from './constants.js';
 import { detentsPerStep, perDetentStep } from './knob-step.js';
 import { countDetents } from '../seq/detent.js';
 import { moduleReadKey } from '../chain/config.js';
@@ -234,15 +234,48 @@ export function reseedPadParams(s: ModelState): void {
     s.dirty = true;
 }
 
-/* Alternates between the current page and the whole-array sweep — ONE
- * shadow_get_param per tick either way (perf.mjs holds the budget at 2 for the
- * tick that also polls the module name). Without the page cursor a param's
- * displayed value lags by knobParams.length ticks, which on a 25-page module is
- * seconds; with it, what the user is looking at converges in ~16 ticks while
- * off-page values still creep forward for the next page switch. */
+/* Keep the displayed values converging on the engine's, at a cost the tick
+ * period can afford — the period IS movy's MIDI sampling interval, so every
+ * millisecond spent here is pad latency (docs/pad-to-sound-latency.md §1).
+ *
+ * Two shapes, because the two ports cost completely different things:
+ *
+ * - A **host slot** read is cheap and served from schwung's own cache, so it
+ *   stays one read per tick, alternating between the visible page and a sweep
+ *   of the whole array. Without the page cursor a param's displayed value lags
+ *   by knobParams.length ticks, which on a 25-page module is seconds; with it,
+ *   what the user is looking at converges in ~16 ticks while off-page values
+ *   still creep forward for the next page switch.
+ *
+ * - A **movy chain** read is a blocking engine round trip, ~2.3 ms — measured
+ *   at 2.4 ms of every ~9 ms tick, an 8× tax on the same information
+ *   (docs/track-performance.md §6). So it takes the whole page plus a sweep
+ *   window in ONE bulk round trip, once every REFRESH_BULK_TICKS. Same round
+ *   trip whatever the batch, so the page now converges in 8 ticks rather than
+ *   16 while costing an eighth of the IPC.
+ */
 export function refreshOneParam(s: ModelState, tickCount: number): void {
     if (s.knobParams.length === 0) return;
     if (tickCount - s.lastDeltaTick < REFRESH_SUPPRESS_TICKS) return;
+
+    if (s.port.bulkReads) {
+        if (--s.bulkCountdown > 0) return;
+        s.bulkCountdown = REFRESH_BULK_TICKS;
+        const batch: number[] = [];
+        const base = s.knobPage * KNOBS_PER_PAGE;
+        for (let k = 0; k < KNOBS_PER_PAGE; k++) batch.push(base + k);
+        /* The sweep continues past the page so a page switch does not land on
+         * stale values. Bounded to one page's worth per trip: the shim's bulk
+         * handler calls get_param for every key ON THE AUDIO THREAD, so the
+         * batch is kept far below its 64-item cap. */
+        for (let k = 0; k < KNOBS_PER_PAGE; k++) {
+            const i = s.refreshParamCursor % s.knobParams.length;
+            s.refreshParamCursor = (i + 1) % s.knobParams.length;
+            batch.push(i);
+        }
+        refreshBatch(s, batch);
+        return;
+    }
 
     if (tickCount % 2 === 0) {
         const local = s.refreshPageCursor % KNOBS_PER_PAGE;
@@ -267,38 +300,41 @@ export function refreshParamKey(s: ModelState, ioKey: string): boolean {
     return false;
 }
 
-function refreshAt(s: ModelState, i: number): void {
+/* Is this index worth a read at all?
+ *
+ * Automation lanes / LFO-modulated params are engine-driven; reading them back
+ * would overwrite the UI-owned base and repaint every tick. Show base.
+ *
+ * The base has to EXIST first, though. It starts null and only a knob turn ever
+ * filled it, so a param automated (or LFO-targeted) before it was first touched
+ * had no value at all: its cell read "...", its arc sat pinned at minimum — on
+ * an octave -3..3 that looks like a real -3 — and knobParamInfo handed
+ * automation p.min as the base. So seed it once, then stop reading. A lane
+ * already playing means that one read lands on whatever the engine is driving
+ * rather than a pristine base, which is still far closer than the bottom of the
+ * range. */
+function wantsRefresh(s: ModelState, i: number, ioKey: string): boolean {
+    const p = s.knobParams[i];
+    if (!p) return false;
+    if (!s.noRefreshKeys.has(ioKey) && !s.modulatedKeys.has(ioKey)) return true;
+    return p.type !== 'file'
+        && (s.knobValues[i] === null || s.knobValues[i] === undefined);
+}
+
+/* Fold one raw read into the model. Split from the read itself so a batched
+ * read applies through exactly the same rules as a single one. */
+function applyRefreshed(s: ModelState, i: number, raw: string | null): void {
     const p = s.knobParams[i];
     if (!p) return;
-    const ioKey = paramIoKey(s, p);
-
-    // Automation lanes / LFO-modulated params are engine-driven; reading them
-    // back would overwrite the UI-owned base and repaint every tick. Show base.
-    //
-    // The base has to EXIST first, though. It starts null and only a knob turn
-    // ever filled it, so a param automated (or LFO-targeted) before it was first
-    // touched had no value at all: its cell read "...", its arc sat pinned at
-    // minimum — on an octave -3..3 that looks like a real -3 — and
-    // knobParamInfo handed automation p.min as the base. So seed it once, then
-    // stop reading. A lane already playing means that one read lands on whatever
-    // the engine is driving rather than a pristine base, which is still far
-    // closer than the bottom of the range.
-    if (s.noRefreshKeys.has(ioKey) || s.modulatedKeys.has(ioKey)) {
-        const unseeded = p.type !== 'file'
-            && (s.knobValues[i] === null || s.knobValues[i] === undefined);
-        if (!unseeded) return;
-    }
 
     if (p.type === 'file') {
-        const path = s.port.getParam(s.componentKey + ':' + ioKey);
-        if (path !== s.fileValues[i]) {
-            s.fileValues[i] = path;
+        if (raw !== s.fileValues[i]) {
+            s.fileValues[i] = raw;
             s.dirty = true;
         }
         return;
     }
 
-    const raw = s.port.getParam(s.componentKey + ':' + ioKey);
     if (raw === null) return;
     maybeInferMeta(p, raw);
     if (p.type === 'enum') {
@@ -317,6 +353,34 @@ function refreshAt(s: ModelState, i: number): void {
         s.knobValues[i] = newVal;
         s.dirty = true;
     }
+}
+
+function refreshAt(s: ModelState, i: number): void {
+    const p = s.knobParams[i];
+    if (!p) return;
+    const ioKey = paramIoKey(s, p);
+    if (!wantsRefresh(s, i, ioKey)) return;
+    applyRefreshed(s, i, s.port.getParam(s.componentKey + ':' + ioKey));
+}
+
+/* Read a set of indices in ONE port round trip. Only worth it where a read is
+ * expensive — see refreshValues(). Duplicates are dropped rather than asked
+ * twice: the page window and the sweep window overlap whenever the sweep passes
+ * the current page. */
+function refreshBatch(s: ModelState, indices: number[]): void {
+    const want: number[] = [];
+    const keys: string[] = [];
+    for (const i of indices) {
+        const p = s.knobParams[i];
+        if (!p || want.indexOf(i) >= 0) continue;
+        const ioKey = paramIoKey(s, p);
+        if (!wantsRefresh(s, i, ioKey)) continue;
+        want.push(i);
+        keys.push(s.componentKey + ':' + ioKey);
+    }
+    if (keys.length === 0) return;
+    const raw = s.port.getMany(keys);
+    for (let n = 0; n < want.length; n++) applyRefreshed(s, want[n], raw[n] ?? null);
 }
 
 export function pollModuleName(s: ModelState): void {

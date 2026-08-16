@@ -20,6 +20,7 @@ const BULK_MARKER = 'overtake_dsp:';
 
 export class MovyChainPort implements TrackPort {
     readonly track: TrackRef;
+    readonly bulkReads = true;
     private readonly chain: number;
 
     constructor(index: number) {

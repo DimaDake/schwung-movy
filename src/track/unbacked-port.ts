@@ -10,6 +10,7 @@ import { trackRef, type TrackRef } from './ref.js';
 
 export class UnbackedPort implements TrackPort {
     readonly track: TrackRef;
+    readonly bulkReads = false;
 
     constructor(index: number) {
         this.track = trackRef(index);

@@ -10,6 +10,11 @@ import type { TrackRef } from './ref.js';
 export interface TrackPort {
     readonly track: TrackRef;
 
+    /** True when a single read costs a full round trip and batching is the only
+     *  way to keep the tick affordable. Callers that can choose a batch shape
+     *  read this rather than asking which KIND of track they are holding. */
+    readonly bulkReads: boolean;
+
     getParam(key: string): string | null;
     setParam(key: string, value: string): boolean;
     setParamTimeout(key: string, value: string, timeoutMs: number): boolean;

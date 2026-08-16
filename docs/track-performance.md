@@ -196,20 +196,45 @@ serialised across a chord.
 > the row below, standing next to them. The probe now wraps it (`msetb`), which
 > is what made the before/after above measurable.
 
-### What a movy track still costs: the chain page, not the pads
+### What a movy track cost next: the chain page, not the pads
 
-The 2.4 ms/tick a movy track reads at **idle** is one label: `mget ch0:*` — the
-knob page refreshing the chain's params, one blocking round-trip per tick,
-against 0.3 ms for a host track (whose params come through schwung's own cache).
+The 2.4 ms/tick a movy track read at **idle** was one label: `mget ch<N>:*` —
+the knob page refreshing the chain's params, **one blocking round trip per
+tick**, against 0.3 ms for a host track (whose params come through schwung's own
+cache). That mattered more than the pad fix did: the UI loop polls MIDI once per
+iteration, so **the tick period _is_ the pad input sampling interval**
+(`pad-to-sound-latency.md` §1), and this was ~27% of it, paid whether or not
+anything was playing.
 
-That is now the whole gap, and it is worth more than the pad fix was: the UI loop
-polls MIDI once per iteration, so **the tick period _is_ the pad input sampling
-interval** (`pad-to-sound-latency.md` §1). At the measured ~9 ms period (~110 Hz)
-those 2.4 ms are ~27% of it, i.e. ~1.2 ms of mean added pad latency and twice
-that in jitter — paid on every movy track whether or not anything is playing.
-Not addressed here; the lever is the refresh, not the note path.
+**Fixed by batching it.** A movy chain's reads go through the bulk channel — one
+round trip for the whole visible page plus a sweep window, once every 8 ticks
+(`REFRESH_BULK_TICKS`), instead of one param per tick. Same round trip whatever
+the batch, so the page now converges in 8 ticks rather than 16 *and* costs an
+eighth of the IPC. Host slots deliberately keep the per-tick read: their reads
+are cheap, and the shim's bulk handler routes only to the overtake DSP, so a
+chain slot could not batch even if it wanted to.
 
----
+Measured on a movy track with plaits loaded, idle:
+
+| | before | after |
+|---|---|---|
+| movy's own IPC / tick | 2.4 ms (`mget ch0:*`) | **0.5 ms** (`bget` 0.2 + `mget status` 0.3) |
+| time inside `tick()` | 3.6 ms | **1.7 ms** |
+| tick period | 8.9 ms | **6.9 ms** |
+| tick rate | 110 Hz | **144-147 Hz** |
+
+The tick period is the pad sampling interval, so that is ~1 ms off the mean pad
+latency and ~2 ms off its worst case, on every movy track.
+
+### What is left is not movy's
+
+With the probe finally covering every entry point, the biggest label on the tick
+is **schwung's own**: `get synth_module` at 0.6 calls/tick and ~1.6 ms/tick, from
+`reconcileFeedbackHolds()` (`schwung/src/shadow/shadow_ui.js:2693`), which reads
+`synth_module` for every slot on every host-loop iteration for any overtake tool.
+It shows up in the window but not in `tick_ms`, because it runs in the host loop
+rather than inside movy's tick. Filed upstream — see
+`schwung-feedback-hold-poll-cost.md`.
 
 ## 7. Caveats
 
@@ -232,3 +257,13 @@ scripts/bench-all-tracks.sh        # host slots vs movy chains
 scripts/measure-load-blocking.sh   # what a module load costs
 scripts/measure-pad-latency.sh     # live pad cost, host track vs movy track
 ```
+
+> **Trust the instrument only as far as it reaches.** `perf_ipc` has twice
+> reported a clean number for a call it was not wrapping — first
+> `host_module_set_param_blocking` (every engine write movy makes), then
+> `shadow_get_params` (the bulk channel). Worse, a wrapper survives a tool
+> reopen while the module state behind it does not, so calls were recorded into
+> counters nothing reported — `shadow_ui` outlives even a Move stack restart, so
+> that state persisted for hours. Both are now asserted in `browser-test/perf.mjs`:
+> every host entry point is wrapped, wrappers report through a swappable global
+> sink, and a reopen takes the counting over without nesting.

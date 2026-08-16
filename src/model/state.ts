@@ -104,6 +104,12 @@ export interface ModelState {
      * bank_index 0..0 → 0..1 once its ROM lists the banks. */
     degenerateKeys:      string[];
     refreshParamCursor:  number;
+    /* Ticks until the next batched read on a bulk port. Per MODEL, not derived
+     * from the shared tick counter: the counter advances once per model ticked,
+     * so a model that is not the only one ticking (Session view ticks the master
+     * FX model too) sees it move in strides — with a stride of 2 a modulo-8
+     * schedule can land on the same residue forever and never refresh at all. */
+    bulkCountdown:       number;
     /* Cursor over the CURRENT page's 8 slots, interleaved with
      * refreshParamCursor (one read per tick, alternating) so on-screen values
      * converge in ~16 ticks no matter how many pages the module has. */
@@ -164,6 +170,7 @@ export function createModelState(port: TrackPort, componentKey: string): ModelSt
         presetDeclared:      false,
         degenerateKeys:      [],
         refreshParamCursor:  0,
+        bulkCountdown:       0,
         refreshPageCursor:   0,
         lastDeltaTick:       -(REFRESH_SUPPRESS_TICKS + 1),
         dirty:               false,

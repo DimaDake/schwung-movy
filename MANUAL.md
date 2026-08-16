@@ -739,9 +739,12 @@ dark at either end, the same way the arrows behave elsewhere. Moving the group
 does not change which track is open — it re-aims the four track buttons and the
 clip grid so you can reach the next four.
 
-**Track colours.** All 16 tracks have their own colour, chosen so the four
-within a group are easy to tell apart *and* so the same position in different
-groups never looks alike. Tracks 1-4 keep Move's own colours.
+**Track colours.** Colours are chosen so the four tracks within a group are easy
+to tell apart *and* so the same position in different groups never looks alike.
+That takes eight colours, not sixteen: a colour reappears in another group, but
+never in the same row or the same column, so two tracks you can see at the same
+time never share one. Eight well-separated colours is also all this hardware
+offers — the pale and cool ones wash out to white next to the lit in-scale pads.
 
 **Tracks 5-16 host their own instruments.** Tracks 1-4 are the four Schwung
 tracks and behave as they always have — they are Move's, and Move's mixer sees

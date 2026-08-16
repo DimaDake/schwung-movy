@@ -96,16 +96,18 @@ branch becomes the track selector.
 
 ## 4. Track colours
 
+*Shipped table — see §4.3 for why it has 8 colours and not 16.*
+
 | | track 1 | track 2 | track 3 | track 4 |
 |---|---|---|---|---|
-| **G1** | Bright Orange `3` | Rust Red `27` | Neon Pink `23` | Electric Violet `20` |
-| **G2** | Light Magenta `26` | Royal Blue `16` | Light Yellow `5` | Dull Green `10` |
-| **G3** | Pure Blue `125` | Vivid Yellow `7` | Burnt Orange `28` | Hot Magenta `21` |
-| **G4** | Dark Grass Green `85` | Bright Pink `25` | Blue-Violet `18` | Ochre `6` |
+| **G1** | Bright Orange `3` | Dark Grass Green `85` | Neon Pink `23` | Royal Blue `16` |
+| **G2** | Blue `33` | Bright Orange `3` | Dull Green `10` | Neon Pink `23` |
+| **G3** | Deep Green `32` | Neon Pink `23` | Navy `17` | Bright Orange `3` |
+| **G4** | Neon Pink `23` | Navy `17` | Bright Orange `3` | Dull Green `10` |
 
 ```
-TRACK_COLOR     = [3,27,23,20, 26,16,5,10, 125,7,28,21, 85,25,18,6]
-TRACK_COLOR_DIM = [65,111,105,99, 19,95,78,77, 107,83,75,22, 87,35,17,73]
+TRACK_COLOR     = [3,85,23,16, 33,3,10,23, 32,23,17,3, 23,17,3,10]
+TRACK_COLOR_DIM = [75,78,109,95, 95,75,83,109, 83,109,93,75, 109,93,75,83]
 ```
 
 The requirement is not that all 16 brights are mutually distinct — it is that
@@ -154,14 +156,14 @@ Move parity for G1 was dropped deliberately. Pinning G1 to Move's colours was
 measured and still reaches 20.7, so parity remains available at that cost if it
 is ever wanted back; the free search reaches 33.8.
 
-Dim variants were re-searched too, and the earlier "dim variants collide"
-limitation is **resolved**: all 16 are now distinct, each sharing its bright
+Dim variants were re-searched too *(superseded by §4.3, which returns to
+repeats)*: all 16 were made distinct, each sharing its bright
 partner's hue family, separated by at least 9.8 within any row or column. The
 Session step row shows all 16 tracks at once with unfocused groups dimmed, so
 they are compared against each other on screen and duplicates were never as
 harmless as the original note claimed.
 
-### 4.2 A third tier for the Session selector (2026-08-16)
+### 4.2 A third tier for the Session selector (2026-08-16) — superseded by §4.3
 
 `sessionStepColor` is the only place that puts twelve dim colours on screen at
 once, and the bright quad has to win against them. Everywhere else `dim` is
@@ -193,6 +195,37 @@ playhead green and the achromatic pads are reserved and the two hardware rules
 above are applied, the pool is 31 usable colours, and the search is forced into
 pairs like tan-vs-rust at ΔE 8. Row-and-column distinctness is what the UI
 actually needs, and it is what is asserted.
+
+### 4.3 Eight colours, repeated (revision, 2026-08-16)
+
+The 16-distinct table of §4.1 was rejected **on device**. It cleared a worst
+required pair of ΔE 33.8 and still shipped pairs that read as the same colour
+on the hardware: Neon Pink vs Electric Violet, Light Yellow vs Burnt Orange.
+The reason is visible once hue is measured instead of ΔE — those pairs sit 41°
+and 50° apart, and the table's worst row/column **hue** gap was 16°. Nothing
+asserted hue at all; CIELAB rated both pairs as perfectly safe.
+
+So the search was re-run against hue separation, and the honest answer is that
+16 well-separated hues do not exist here. The two hardware bans from §4.1 (no
+cool hue above L 45, no pastels) remove 145° of the wheel, from 139° to 284°.
+
+The rule never required 16 distinct colours — it requires distinctness within a
+row and within a column, which **repeats placed off each other's row and column
+satisfy**. That is the shipped table: a Latin-square arrangement of 8 colours,
+every row/column pair ≥ 58° apart in hue, CIELAB floor 25.0. The floor is lower
+than 33.8 deliberately — the higher number was bought with pairs the eye could
+not tell apart, so hue is the constraint that now decides and CIELAB is kept
+only as a floor. `browser-test/track-colors.mjs` asserts both, plus the
+row/column-uniqueness rule that makes the repeats legitimate.
+
+`TRACK_COLOR_DIMMER` is **removed**. It existed for one caller,
+`sessionStepColor`, and the Session step row is now the track selector
+(`plans/2026-08-16-session-track-selector-design.md`), which paints the row
+differently. The two remaining `dim`
+users — muted track buttons and the watched track's empty in-loop steps, where
+the dim colour marks the loop window — never show twelve dims at once, so the
+tier the extra level was built for no longer exists. Dims repeat exactly where
+the brights repeat, since each is derived from its bright partner's hue.
 
 ---
 

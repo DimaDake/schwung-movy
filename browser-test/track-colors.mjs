@@ -17,7 +17,7 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { TRACK_COLOR, TRACK_COLOR_DIM, TRACK_COLOR_DIMMER } from '../dist/esm/seq/colors.js';
+import { TRACK_COLOR, TRACK_COLOR_DIM } from '../dist/esm/seq/colors.js';
 
 let failures = 0;
 const _log = (s) => process.stdout.write(s + '\n');
@@ -93,10 +93,8 @@ const Lof = (i) => lab.get(i).normal[0];
 /* ── 1. the copy has not drifted ────────────────────────────────────────── */
 _log('\npalette indices still mean what movy thinks they mean:');
 const EXPECTED = {
-    3: 'FF9900', 27: 'A63421', 23: 'FF0099', 20: '8700FF',
-    26: 'EB8BE1', 16: '274FCC', 5: 'EDF95A', 10: '246B24',
-    125: '0000FF', 7: 'FFFF00', 28: '995628', 21: 'E657E3',
-    85: '0A4D0A', 25: 'FF4DC4', 18: '644AD9', 6: 'C19D08',
+    3: 'FF9900', 85: '0A4D0A', 23: 'FF0099', 16: '274FCC',
+    33: '1853B2', 10: '246B24', 32: '007F12', 17: '00448C',
 };
 for (const [idx, hex] of Object.entries(EXPECTED)) {
     eq(`index ${idx} is #${hex} (${name(+idx)})`, PAL.get(+idx)?.hex, hex);
@@ -107,25 +105,35 @@ const M = [0, 1, 2, 3].map((g) => TRACK_COLOR.slice(g * 4, g * 4 + 4));
 eq('16 track colours defined', TRACK_COLOR.length, 16);
 eq('16 dim variants defined', TRACK_COLOR_DIM.length, 16);
 
-/* 33 is the measured floor of the chosen matrix. It is an assertion about THIS
- * palette, not a general threshold — if a future edit cannot clear it, the edit
- * is what is wrong. */
-const MIN = 33;
+/* 25 is the measured CIELAB floor of the chosen matrix. It is lower than the
+ * 33.8 of the previous 16-distinct table ON PURPOSE: that table cleared 33.8
+ * while containing pairs that read as the same colour on the hardware (Neon
+ * Pink vs Electric Violet, Light Yellow vs Burnt Orange). Hue separation,
+ * asserted below, is the constraint that actually tracks what the eye does —
+ * CIELAB is kept as a floor, not as the goal. */
+const MIN = 24;   // measured floor is 25.0 before rounding
+/* 55 clears both pairs that were reported as look-alikes, which sat at 41 and
+ * 50 degrees. Nothing in the previous table enforced this at all: its worst
+ * row/column hue gap was 16 degrees. */
+const HUE_MIN = 55;
+const hgap = (a, b) => { const d = Math.abs(hue(a) - hue(b)); return d > 180 ? 360 - d : d; };
 
 _log('\nwithin a group, the 4 tracks are distinguishable:');
 for (let r = 0; r < 4; r++)
     for (let a = 0; a < 4; a++)
         for (let b = a + 1; b < 4; b++) {
-            const d = dist(M[r][a], M[r][b]);
-            ok(`G${r + 1}: ${name(M[r][a])} vs ${name(M[r][b])} (${d.toFixed(1)})`, d >= MIN);
+            const d = dist(M[r][a], M[r][b]), h = hgap(M[r][a], M[r][b]);
+            ok(`G${r + 1}: ${name(M[r][a])} vs ${name(M[r][b])} (dE ${d.toFixed(1)}, hue ${h.toFixed(0)}deg)`,
+                d >= MIN && h >= HUE_MIN);
         }
 
 _log('\nacross groups, the same track index is distinguishable:');
 for (let c = 0; c < 4; c++)
     for (let a = 0; a < 4; a++)
         for (let b = a + 1; b < 4; b++) {
-            const d = dist(M[a][c], M[b][c]);
-            ok(`track ${c + 1}: ${name(M[a][c])} vs ${name(M[b][c])} (${d.toFixed(1)})`, d >= MIN);
+            const d = dist(M[a][c], M[b][c]), h = hgap(M[a][c], M[b][c]);
+            ok(`track ${c + 1}: ${name(M[a][c])} vs ${name(M[b][c])} (dE ${d.toFixed(1)}, hue ${h.toFixed(0)}deg)`,
+                d >= MIN && h >= HUE_MIN);
         }
 
 /* ── 3. clear of the colours the step row already uses ──────────────────── */
@@ -173,6 +181,15 @@ for (const t of TRACK_COLOR) {
         !(Lof(t) > 65 && chroma(t) < 0.7 * Lof(t)));
 }
 
+/* Duplicates are deliberate: the rule is distinctness within a row and within a
+ * column, and repeats placed off each other's row and column satisfy it. Buying
+ * separation with repeats beat scraping up a 16th colour, because the bans
+ * leave a 145-degree hole in the hue wheel. */
+_log('\nrepeats never share a row or a column:');
+for (let r = 0; r < 4; r++) eq(`G${r + 1} has 4 distinct colours`, new Set(M[r]).size, 4);
+for (let c = 0; c < 4; c++) eq(`column ${c + 1} has 4 distinct colours`, new Set([0,1,2,3].map((r) => M[r][c])).size, 4);
+_log(`  (${new Set(TRACK_COLOR).size} distinct colours across the 16 cells)`);
+
 /* A dim variant must still read as ITS track's colour, not as another's. */
 _log('\ndim variants stay closer to their own track than to a reserved colour:');
 for (let t = 0; t < 16; t++) {
@@ -180,70 +197,14 @@ for (let t = 0; t < 16; t++) {
     ok(`${name(TRACK_COLOR[t])} dim is not grey (${d.toFixed(1)})`, d >= 8);
 }
 
-/* The Session step row shows all 16 tracks at once with the unfocused groups
- * dimmed, so the dims are compared against each other on screen — they cannot
- * repeat, and they need their own separation floor. */
-_log('\ndim variants are 16 distinct colours, separated within row and column:');
-eq('all 16 dims distinct', new Set(TRACK_COLOR_DIM).size, 16);
-const DIM_MIN = 9;
-const D = [0, 1, 2, 3].map((g) => TRACK_COLOR_DIM.slice(g * 4, g * 4 + 4));
-for (let r = 0; r < 4; r++)
-    for (let a = 0; a < 4; a++)
-        for (let b = a + 1; b < 4; b++) {
-            const d = dist(D[r][a], D[r][b]);
-            ok(`G${r + 1} dim: ${name(D[r][a])} vs ${name(D[r][b])} (${d.toFixed(1)})`, d >= DIM_MIN);
-        }
-for (let c = 0; c < 4; c++)
-    for (let a = 0; a < 4; a++)
-        for (let b = a + 1; b < 4; b++) {
-            const d = dist(D[a][c], D[b][c]);
-            ok(`track ${c + 1} dim: ${name(D[a][c])} vs ${name(D[b][c])} (${d.toFixed(1)})`, d >= DIM_MIN);
-        }
-
-/* ── 5. the Session selector's darker tier ──────────────────────────────── */
-/* Only sessionStepColor uses this one, and only it puts twelve dim colours on
- * screen at once. Two things must hold: no entry may be BRIGHTER than its dim
- * partner (the tier exists to flatten that row's outliers), and the tier must
- * still read as sixteen colours rather than sixteen dark smudges. */
-_log('\ndimmer tier is never brighter than the dim tier it replaces:');
-eq('16 dimmer variants defined', TRACK_COLOR_DIMMER.length, 16);
-eq('all 16 dimmer distinct', new Set(TRACK_COLOR_DIMMER).size, 16);
-for (let t = 0; t < 16; t++) {
-    const a = Lof(TRACK_COLOR_DIMMER[t]), b = Lof(TRACK_COLOR_DIM[t]);
-    ok(`${name(TRACK_COLOR[t])}: ${name(TRACK_COLOR_DIMMER[t])} L${a.toFixed(0)} <= ${name(TRACK_COLOR_DIM[t])} L${b.toFixed(0)}`,
-        a <= b + 0.5);
-}
-/* The whole point of the change: mean lightness clearly below the dim tier's,
- * and a tighter spread — a row reads as bright as its brightest members. */
+/* Dim variants repeat exactly where the bright table repeats — they are derived
+ * per bright colour, so asserting 16 distinct dims would contradict the design.
+ * What must hold is the same row/column rule. */
+_log('\ndim variants follow the same row/column rule:');
 {
-    const mean = (a) => a.reduce((s, i) => s + Lof(i), 0) / 16;
-    const sd = (a) => { const m = mean(a); return Math.sqrt(a.reduce((s, i) => s + (Lof(i) - m) ** 2, 0) / 16); };
-    const mDim = mean(TRACK_COLOR_DIM), mDimmer = mean(TRACK_COLOR_DIMMER);
-    ok(`mean lightness ${mDim.toFixed(1)} -> ${mDimmer.toFixed(1)} (>= 20% darker)`, mDimmer <= mDim * 0.8);
-    ok(`spread ${sd(TRACK_COLOR_DIM).toFixed(1)} -> ${sd(TRACK_COLOR_DIMMER).toFixed(1)} (tighter)`,
-        sd(TRACK_COLOR_DIMMER) < sd(TRACK_COLOR_DIM));
-}
-_log('\ndimmer tier is still not black, not grey, and still separated:');
-for (const d of TRACK_COLOR_DIMMER) {
-    let worst = Infinity, who = -1;
-    for (const g of [0, 118, 120, 124]) { const x = dEn(d, g, 'normal'); if (x < worst) { worst = x; who = g; } }
-    ok(`${name(d)} vs ${name(who)} (${worst.toFixed(1)})`, worst >= 12);
-}
-{
-    const DR = [0, 1, 2, 3].map((g) => TRACK_COLOR_DIMMER.slice(g * 4, g * 4 + 4));
-    const DIMMER_MIN = 7;
-    for (let r = 0; r < 4; r++)
-        for (let a = 0; a < 4; a++)
-            for (let b = a + 1; b < 4; b++) {
-                const d = dist(DR[r][a], DR[r][b]);
-                ok(`G${r + 1} dimmer: ${name(DR[r][a])} vs ${name(DR[r][b])} (${d.toFixed(1)})`, d >= DIMMER_MIN);
-            }
-    for (let c = 0; c < 4; c++)
-        for (let a = 0; a < 4; a++)
-            for (let b = a + 1; b < 4; b++) {
-                const d = dist(DR[a][c], DR[b][c]);
-                ok(`track ${c + 1} dimmer: ${name(DR[a][c])} vs ${name(DR[b][c])} (${d.toFixed(1)})`, d >= DIMMER_MIN);
-            }
+    const D = [0, 1, 2, 3].map((g) => TRACK_COLOR_DIM.slice(g * 4, g * 4 + 4));
+    for (let r = 0; r < 4; r++) eq(`G${r + 1} dims distinct`, new Set(D[r]).size, 4);
+    for (let c = 0; c < 4; c++) eq(`column ${c + 1} dims distinct`, new Set([0,1,2,3].map((r) => D[r][c])).size, 4);
 }
 
 _log('');

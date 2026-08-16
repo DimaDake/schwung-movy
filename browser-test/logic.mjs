@@ -1820,7 +1820,7 @@ _log('\nTest: overlay commit rejects a non-drum preset (param unchanged)');
   eq('drum preset → param set', env.params['synth:ui_preset_path'], TRACK_PRESETS + '/drum.ablpreset');
 }
 
-_log('\nTest: track colors — track 3 neon pink, track 4 electric violet');
+_log('\nTest: track colors — track 3 neon pink, track 4 royal blue');
 
 {
   const { TRACK_COLOR, TRACK_COLOR_DIM } = await import('../dist/esm/seq/colors.js');
@@ -1828,9 +1828,9 @@ _log('\nTest: track colors — track 3 neon pink, track 4 electric violet');
    * the schwung sibling repo — track-colors.mjs skips wholesale when it is
    * missing, and that is where the real palette reasoning lives. */
   eq('track 3 = NeonPink(23)',       TRACK_COLOR[2], 23);
-  eq('track 4 = ElectricViolet(20)', TRACK_COLOR[3], 20);
-  eq('track 3 dim = MutedViolet(105)', TRACK_COLOR_DIM[2], 105);
-  eq('track 4 dim = Indigo(99)',       TRACK_COLOR_DIM[3], 99);
+  eq('track 4 = RoyalBlue(16)',       TRACK_COLOR[3], 16);
+  eq('track 3 dim = DeepMagenta(109)', TRACK_COLOR_DIM[2], 109);
+  eq('track 4 dim = DarkBlue(95)',     TRACK_COLOR_DIM[3], 95);
 }
 
 // ── ViewModel drum fields: isPadSpecific, drumCurrentPad, drumPadCount ───
@@ -2636,9 +2636,7 @@ _log('\nTest: drumPadOn');
 
     // Recording: playhead step is red instead of green.
     resetSeqState(); seqLedsInvalidate();
-    const { C_REC_RED: C_REC_RED_LED,
-            TRACK_COLOR: TRACK_COLOR_LED,
-            TRACK_COLOR_DIMMER: TRACK_COLOR_DIMMER_LED } = await import('../dist/esm/seq/colors.js');
+    const { C_REC_RED: C_REC_RED_LED } = await import('../dist/esm/seq/colors.js');
     seqState.watchTrack = 0; seqState.lenSteps = 16; seqState.playing = true;
     seqState.recording = true; seqState.curStep = 0;
     ledCalls.length = 0;
@@ -2652,12 +2650,17 @@ _log('\nTest: drumPadOn');
     resetSeqState(); seqLedsInvalidate();
     seqState.sessionMode = true;
     seqState.lenSteps = 16; occToggleStep(0); occToggleStep(4);
+    /* The step row's colours in Session mode are pinned by the sessionStepLed
+     * unit assertions further down — deterministic, and independent of the LED
+     * cache's frame budget. What is checked HERE is only that Session mode does
+     * not fall through to the normal step painter: occupancy is set on steps 0
+     * and 4 above, and neither may show the occupied-white. */
+    seqLedsInvalidate();
     ledCalls.length = 0;
-    for (let i = 0; i < 3; i++) seqLedsTick();   // drain progressive cold frame
+    for (let i = 0; i < 8; i++) seqLedsTick();
     byNote = Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
-    eq('session step 0 shows track 0 bright (group 0 focused)', byNote[16], TRACK_COLOR_LED[0]);
-    eq('session step 4 shows track 4 dimmer (group 1 unfocused)', byNote[20], TRACK_COLOR_DIMMER_LED[4]);
     eq('session step row ignores clip occupancy', byNote[16] === 120, false);
+    eq('session step row ignores occupancy on step 4', byNote[20] === 120, false);
 
     globalThis.setLED = origSetLED;
     globalThis.setButtonLED = origSetButtonLED;
@@ -4153,31 +4156,39 @@ _log('\nautomation: restore re-requests label sync:');
     eq('ungated other-button none', momentaryUpUngated(58), 'none');
 }
 
-/* ── seqRestoreWatch: restores watchTrack + barOffset ───────────────────── */
+/* ── restoreTrackState: puts back watchTrack + barOffset on a peek revert ── */
 {
-    _log('\nseqRestoreWatch:');
+    _log('\nrestoreTrackState:');
     const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
     const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
-    const { seqRestoreWatch } = await import('../dist/esm/seq/router.js');
+    const { restoreTrackState } = await import('../dist/esm/track/switch.js');
 
     installMockEngine();
     resetSeqEngine(); resetSeqState();
     seqState.watchTrack = 2;
     seqState.barOffset  = 3;
 
-    seqRestoreWatch(0);
+    restoreTrackState({ track: 0, view: 0, session: false, loop: false });
     eq('watchTrack restored to 0', seqState.watchTrack, 0);
     eq('barOffset reset to 0',     seqState.barOffset,  0);
-    const cmds = peekSeqCmdQueue();
-    eq('watch cmd emitted', cmds.some(c => c === 'watch 0'), true);
+    eq('watch cmd emitted', peekSeqCmdQueue().some(c => c === 'watch 0'), true);
 
-    // Calling with same track still resets barOffset and emits watch.
+    /* Restoring to the track already being watched is a no-op on the watch
+     * target: the switch it reverts never moved it, so it never wiped the bar
+     * offset either, and re-sending `watch` would be a wasted blocking IPC. */
     resetSeqEngine();
     seqState.watchTrack = 1; seqState.barOffset = 2;
-    seqRestoreWatch(1);
-    eq('same track: barOffset reset', seqState.barOffset, 0);
-    eq('same track: watch emitted',   peekSeqCmdQueue().some(c => c === 'watch 1'), true);
+    restoreTrackState({ track: 1, view: 0, session: false, loop: false });
+    eq('same track: barOffset untouched', seqState.barOffset, 2);
+    eq('same track: no watch cmd',        peekSeqCmdQueue().some(c => c === 'watch 1'), false);
+
+    // The session/loop modes it carries are restored verbatim.
+    resetSeqEngine();
+    seqState.sessionMode = false; seqState.loopMode = false;
+    restoreTrackState({ track: 3, view: 0, session: true, loop: true });
+    eq('session restored', seqState.sessionMode, true);
+    eq('loop restored',    seqState.loopMode,    true);
 
     uninstallMockEngine(); resetSeqEngine(); resetSeqState();
 }
@@ -11803,18 +11814,43 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 
 {
   _log('\nsession track selector:');
-  const { sessionStepColor } = await import('../dist/esm/seq/track-select.js');
-  const { TRACK_COLOR, TRACK_COLOR_DIMMER } = await import('../dist/esm/seq/colors.js');
+  const { sessionStepLed } = await import('../dist/esm/seq/track-select.js');
+  const { TRACK_COLOR, C_BLACK, C_WHITE, ANIM_NONE, ANIM_PULSE } = await import('../dist/esm/seq/colors.js');
 
-  /* The focused quad is full brightness; everything else is that track's own
-   * DIMMER colour — a darker tier than `dim`, since this is the only view that
-   * shows twelve of them at once. The BRIGHT QUAD'S POSITION is what identifies
-   * the group — colour is the backup cue, not the only one. */
-  eq('focused group step is bright', sessionStepColor(4, 1), TRACK_COLOR[4]);
-  eq('focused group last step is bright', sessionStepColor(7, 1), TRACK_COLOR[7]);
-  eq('unfocused step is dimmer', sessionStepColor(0, 1), TRACK_COLOR_DIMMER[0]);
-  eq('unfocused far step is dimmer', sessionStepColor(15, 1), TRACK_COLOR_DIMMER[15]);
-  eq('group 0 focused lights the first quad', sessionStepColor(0, 0), TRACK_COLOR[0]);
+  /* Every step shows its track colour; the focused group's four PULSE between
+   * black and that colour. Motion carries the focus, so it does not depend on
+   * one track's accent being lighter than another's. The PULSING QUAD'S
+   * POSITION is what identifies the group — colour is the backup cue.
+   * Third argument = the selected track; put it out of the way (12) so these
+   * cases see only the group layer. */
+  eq('focused step pulses from black',  sessionStepLed(4, 1, 12).base,    C_BLACK);
+  eq('focused step pulses to its colour', sessionStepLed(4, 1, 12).anim,  TRACK_COLOR[4]);
+  eq('focused step uses the pulse channel', sessionStepLed(4, 1, 12).channel, ANIM_PULSE);
+  eq('focused group last step pulses', sessionStepLed(7, 1, 12).channel,  ANIM_PULSE);
+  eq('unfocused step is solid colour', sessionStepLed(0, 1, 12).base,     TRACK_COLOR[0]);
+  eq('unfocused step does not animate', sessionStepLed(0, 1, 12).channel, ANIM_NONE);
+  eq('unfocused far step is solid',    sessionStepLed(15, 1, 12).base,    TRACK_COLOR[15]);
+  eq('group 0 focused pulses the first quad', sessionStepLed(0, 0, 12).channel, ANIM_PULSE);
+
+  /* The SELECTED track pulses its colour against white — a second layer over
+   * the group pulse, and the finer answer, so it wins where both apply. */
+  eq('selected step pulses from its colour', sessionStepLed(6, 1, 6).base, TRACK_COLOR[6]);
+  eq('selected step pulses to white',        sessionStepLed(6, 1, 6).anim, C_WHITE);
+  eq('selected step animates',               sessionStepLed(6, 1, 6).channel, ANIM_PULSE);
+  /* Its neighbours in the same group keep the group pulse, so both cues read at
+   * once — which is the whole point of two layers. */
+  eq('a group neighbour keeps the group pulse', sessionStepLed(5, 1, 6).base, C_BLACK);
+
+  /* Focus and selection genuinely come apart: the octave buttons scroll the
+   * group without moving the selected track, and the selection must stay
+   * visible when it does. */
+  eq('selected outside the focused group still pulses white',
+     sessionStepLed(6, 3, 6).anim, C_WHITE);
+  eq('and is not mistaken for a solid unfocused step',
+     sessionStepLed(6, 3, 6).channel, ANIM_PULSE);
+
+  eq('out-of-range step is black', sessionStepLed(16, 1, 6).base, C_BLACK);
+  eq('a negative step is black',   sessionStepLed(-1, 1, 6).base, C_BLACK);
 }
 
 {

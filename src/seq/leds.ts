@@ -5,7 +5,7 @@ import { backLedColor, arrowLedColor, groupArrowColor, stepRecArrowColor, sample
 import { canRedo, canUndo } from '../undo/state.js';
 import { ANIM_NONE, ANIM_PULSE, C_BLACK, C_DARKGREY, C_GREEN, C_LIGHTGREY, C_REC_RED, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
 import {
-    CC_PLAY, CC_REC, CC_TRACK_END, NUM_STEP_BUTTONS, PAD_MIN, STEP_NOTE_BASE,
+    CC_NOTE_SESSION, CC_PLAY, CC_REC, CC_TRACK_END, NUM_STEP_BUTTONS, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
 import { mainPageActive } from './main-page.js';
 import { clipPageActive } from './clip-page.js';
@@ -13,7 +13,7 @@ import { appState } from '../app/state.js';
 import { focusedTrack, GROUP_DIR_DOWN, GROUP_DIR_UP } from '../track/focus.js';
 import { GROUP_SIZE } from '../track/ref.js';
 import { sessionPaintGrid } from './session.js';
-import { sessionStepColor } from './track-select.js';
+import { sessionStepLed, trackSelectActive } from './track-select.js';
 import { loopEndBar, loopStartBar, occHasStep, seqState, stepInLoop } from './state.js';
 import { stepRecActive, stepRecCanGoLeft, stepRecHead } from './step-rec.js';
 import { cachedSetLED, cachedSetButtonLED, cachedSetAnimLED, ledFrameReset, seqLedsInvalidate } from './led-cache.js';
@@ -36,6 +36,7 @@ const ICON_MAIN: readonly number[] = [4, 6, 8];
 const ICON_CLIP = 2; // Shift+Step 3 opens Clip Params (Track view only)
 
 let lastLoopMode = false;
+let lastSelector = false;
 
 const BLINK_MS = 250;
 /* Affordance blinks run on wall time, never on the engine's master tick.
@@ -167,6 +168,9 @@ function paintAffordances(view: number, barOffset: number, maxOff: number, shift
     }
     cachedSetButtonLED(CC_SAMPLE, sampleLedColor()); cachedSetButtonLED(CC_CAPTURE, captureLedColor(seqState.capPending)); cachedSetButtonLED(CC_UNDO, undoLedColor(canUndo(), canRedo(), shiftHeld));
     cachedSetButtonLED(CC_LOOP, seqState.loopMode ? WHITE_BRIGHT : WHITE_DIM);
+    /* Note/Session was painted by nobody, so the button read as dead rather
+     * than available. Same dim-idle / bright-active shape as Loop. */
+    cachedSetButtonLED(CC_NOTE_SESSION, seqState.sessionMode ? WHITE_BRIGHT : WHITE_DIM);
     cachedSetButtonLED(CC_COPY, WHITE_DIM); cachedSetButtonLED(CC_DELETE_BTN, WHITE_DIM); cachedSetButtonLED(CC_MUTE, WHITE_DIM);
     /* Octave buttons move the focused track group in Session view. Outside it
      * they are the pad octave and app/tick.ts owns them (it knows whether the
@@ -203,6 +207,15 @@ export function metronomeStep(stepInBar: number, engineTick: number): boolean {
  * FRAME_BUDGET cap in cachedSet* spreads that over a few ticks so the ~60-packet
  * MIDI buffer never overflows. Paint Session pads first so the user-visible clip
  * grid gets priority within the budget; lower-priority buttons fill in next tick. */
+/* The 16 step buttons as the track selector. Shared by Session view and the
+ * held-Session selector, which differ only in what the PADS show. */
+function paintTrackSelector(): void {
+    for (let i = 0; i < NUM_STEP_BUTTONS; i++) {
+        const led = sessionStepLed(i, appState.focusGroup, appState.activeTrack.index);
+        cachedSetAnimLED(STEP_NOTE_BASE + i, led.base, led.anim, led.channel);
+    }
+}
+
 export function seqLedsTick(
     shiftHeld: boolean = false,
     currentView: number = 0,
@@ -210,12 +223,24 @@ export function seqLedsTick(
     maxOff: number = 0,
 ): void {
     ledFrameReset();
-    /* The step row is painted through cachedSetLED outside Loop mode and
-     * cachedSetAnimLED inside it — two independent caches over the same notes.
-     * Whichever map is idle goes stale, so a toggle has to forget both or the
-     * first frame after it silently keeps the old colours. */
-    if (seqState.loopMode !== lastLoopMode) {
+    /* The step row has THREE painters over the same notes: cachedSetLED in the
+     * normal view, and cachedSetAnimLED in both Loop mode and Session mode.
+     * Those are two independent caches, so whichever map is idle goes stale and
+     * a mode toggle has to forget both — otherwise the first frame after the
+     * toggle silently keeps the old colours, or (worse) the anim cache still
+     * matches and the row is never repainted at all. The track selector counts
+     * here for the same reason Loop mode does.
+     *
+     * Watch the SELECTOR, not sessionMode: trackSelectHold flips the row
+     * between those same two painters with sessionMode false on both sides, so
+     * a sessionMode edge does not exist to catch it. app/tick.ts happens to
+     * invalidate on the sessionMode edge that always precedes the hold, which
+     * leaves lastNoteLed empty and covers today's exit by luck — this keeps the
+     * row correct on its own terms rather than on that coincidence. */
+    const selector = trackSelectActive();
+    if (seqState.loopMode !== lastLoopMode || selector !== lastSelector) {
         lastLoopMode = seqState.loopMode;
+        lastSelector = selector;
         seqLedsInvalidate();
     }
     // Session mode owns the 32-pad clip grid (the focused group's 4 tracks),
@@ -223,8 +248,7 @@ export function seqLedsTick(
     // priority within the frame budget.
     if (seqState.sessionMode) {
         sessionPaintGrid(cachedSetAnimLED, PAD_MIN);
-        for (let i = 0; i < NUM_STEP_BUTTONS; i++)
-            cachedSetLED(STEP_NOTE_BASE + i, sessionStepColor(i, appState.focusGroup));
+        paintTrackSelector();
         paintTrackButtons();
         paintStepIcons(shiftHeld);
         paintAffordances(currentView, barOffset, maxOff, shiftHeld);
@@ -234,6 +258,14 @@ export function seqLedsTick(
     paintTrackButtons();
     paintStepIcons(shiftHeld);
     paintAffordances(currentView, barOffset, maxOff, shiftHeld);
+    /* Session still held after a selection dropped us onto the track: the pads
+     * are the note layout again (app/tick.ts owns them), and only the step row
+     * stays the selector so the next press switches again. */
+    if (seqState.trackSelectHold) {
+        paintTrackSelector();
+        paintTransport();
+        return;
+    }
     if (seqState.loopMode) {
         paintLoopBars();
         paintTransport();

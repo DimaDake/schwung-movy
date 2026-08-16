@@ -1564,12 +1564,44 @@ _log('\napp-loop: session view selects tracks from the step row');
     advance(1);
     eq('session view latched', seqState.sessionMode, true);
 
-    /* Step 9 selects track 9 and refocuses its group. */
+    /* A step press in latched Session view IS the track-button gesture: it
+     * drops straight onto that track — pads, screen and knobs. */
+    engine.ops.length = 0;
     sendMidi([0x90, 16 + 9, 127]);
     advance(1);
     eq('step press selected track 9', appState.activeTrack.index, 9);
     eq('step press refocused group 2', appState.focusGroup, 2);
-    eq('still in session view after a latched selection', seqState.sessionMode, true);
+    eq('step press left session view for the track', seqState.sessionMode, false);
+    /* The bug this fixes: the selector moved the screen and the pads but not the
+     * sequencer, and the engine re-pinned watchTrack from `trk=` on every status
+     * poll — so every step edit kept landing on the track you came from. */
+    eq('step press retargeted the watched track', seqState.watchTrack, 9);
+    eq('step press emitted the engine watch', engine.ops.some((o) => o === 'watch 9'), true);
+
+    /* Quick release = tap = latch: you stay on track 9, and the release must not
+     * toggle a note under the finger that was only ever selecting a track. */
+    sendMidi([0x90, 16 + 9, 0]);
+    advance(1);
+    eq('a tap keeps the new track', appState.activeTrack.index, 9);
+    eq('a tap stays out of session view', seqState.sessionMode, false);
+    eq('the selecting press entered no note', occHasStep(9), false);
+
+    /* Hold the step instead and the release reverts — the track-button peek. */
+    sendMidi([0xB0, 50, 127]); sendMidi([0xB0, 50, 0]); advance(1);   // back to Session
+    eq('re-latched session view', seqState.sessionMode, true);
+    {
+        const realNow = Date.now; let t = 50000; Date.now = () => t;
+        sendMidi([0x90, 16 + 2, 127]);
+        advance(1);
+        eq('peek switched to track 2', appState.activeTrack.index, 2);
+        t += 600;                                    // past the 500 ms hold threshold
+        sendMidi([0x90, 16 + 2, 0]);
+        advance(1);
+        Date.now = realNow;
+        eq('a held step reverts to the track it came from', appState.activeTrack.index, 9);
+        eq('a held step reverts to session view', seqState.sessionMode, true);
+        eq('the revert put the watched track back', seqState.watchTrack, 9);
+    }
 
     /* Octave up moves the focused group without changing the active track, and
      * scrolls the way the grid reads: up walks towards track 1, down away. */
@@ -1589,6 +1621,94 @@ _log('\napp-loop: session view selects tracks from the step row');
     while (appState.focusGroup > 0) { sendMidi([0xB0, 55, 127]); sendMidi([0xB0, 55, 0]); advance(1); }
     eq('at the first group, up is off', buttonLeds[55], 0);
     eq('at the first group, down is dim', buttonLeds[54], 16);
+
+    selectTrack(0);
+    resetSeqState();
+}
+
+_log('\napp-loop: holding Session keeps the step row a track selector');
+{
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.file_param);
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    advance(6);
+    selectTrack(0);
+
+    /* Session held (no release yet): the pads are the clip grid, as before. */
+    sendMidi([0xB0, 50, 127]);
+    advance(2);
+    eq('session view while the button is held', seqState.sessionMode, true);
+    eq('the session button lights bright while active', buttonLeds[50], 124);
+
+    /* A step press lands on the track — pads, screen, knobs — but the row stays
+     * a selector, because the button is still down. */
+    sendMidi([0x90, 16 + 5, 127]);
+    sendMidi([0x90, 16 + 5, 0]);
+    advance(2);
+    eq('held-session step selected track 5', appState.activeTrack.index, 5);
+    eq('held-session step left the clip grid', seqState.sessionMode, false);
+    eq('the step row is still the selector', seqState.trackSelectHold, true);
+    eq('held-session step retargeted the sequencer', seqState.watchTrack, 5);
+    eq('held-session step emitted the engine watch',
+        engine.ops.some((o) => o === 'watch 5'), true);
+    eq('the selecting press entered no note',
+        engine.ops.some((o) => o.startsWith('tog ') || o.startsWith('ltog ')), false);
+
+    /* The row is visibly the SELECTOR, not steps: every one of the 16 buttons
+     * carries its own track's colour, painted through the animation channel.
+     * This is the assertion that fails if the hold ever falls back to the
+     * ordinary step painter. */
+    {
+        const { TRACK_COLOR, C_BLACK, C_WHITE } = await import('../dist/esm/seq/colors.js');
+        const { seqLedsInvalidate } = await import('../dist/esm/seq/leds.js');
+        const msgs = [];
+        const realSend = globalThis.move_midi_internal_send;
+        globalThis.move_midi_internal_send = (m) => msgs.push(m);
+        seqLedsInvalidate();
+        advance(6);
+        globalThis.move_midi_internal_send = realSend;
+        const colorOf = (note) => {
+            const hit = msgs.filter((m) => m[2] === note);
+            return hit.length ? hit[hit.length - 1][3] : undefined;
+        };
+        const wrong = [...Array(16).keys()]
+            .filter((i) => ![TRACK_COLOR[i], C_BLACK, C_WHITE].includes(colorOf(STEP_NOTE_BASE + i)));
+        eq('every step wears its own track colour while Session is held', wrong.length, 0);
+        eq('the selected track pulses white', colorOf(STEP_NOTE_BASE + 5), C_WHITE);
+    }
+
+    /* …so the next step press switches again, without re-entering Session. */
+    sendMidi([0x90, 16 + 12, 127]);
+    sendMidi([0x90, 16 + 12, 0]);
+    advance(2);
+    eq('a second press switched again', appState.activeTrack.index, 12);
+    eq('the second press refocused group 3', appState.focusGroup, 3);
+    eq('still not the clip grid', seqState.sessionMode, false);
+
+    /* Releasing Session COMMITS — you stay where you landed, and it must not
+     * latch Session view on the way out.
+     *
+     * It also hands the row back from the selector's cachedSetAnimLED to the
+     * ordinary step painter's cachedSetLED — two caches over the same 16 notes
+     * — so the whole row has to come back through setLED. */
+    for (const k of Object.keys(ledByPad)) delete ledByPad[k];
+    sendMidi([0xB0, 50, 0]);
+    advance(4);
+    const stepRowRepainted = [...Array(16).keys()]
+        .filter((i) => ledByPad[STEP_NOTE_BASE + i] !== undefined).length;
+    eq('the whole step row is repainted on the way out', stepRowRepainted, 16);
+    eq('release commits the last track', appState.activeTrack.index, 12);
+    eq('release ends the selector row', seqState.trackSelectHold, false);
+    eq('release leaves you in track view', seqState.sessionMode, false);
+    eq('the session button falls back to dim', buttonLeds[50], 16);
+
+    /* And the row is real steps again: a press now enters a note. */
+    engine.ops.length = 0;
+    sendMidi([0x90, 16 + 3, 127]);
+    sendMidi([0x90, 16 + 3, 0]);
+    advance(2);
+    eq('the row is steps again', engine.ops.some((o) => o.startsWith('tog ')), true);
 
     selectTrack(0);
     resetSeqState();

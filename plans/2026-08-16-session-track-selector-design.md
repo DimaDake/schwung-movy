@@ -111,9 +111,18 @@ Session button: `cachedSetButtonLED(CC_NOTE_SESSION, sessionMode ? WHITE_BRIGHT
 
 **Cache invalidation.** `seqLedsTick` force-invalidates when `sessionMode`
 flips, because the step row has three painters over the same notes and whichever
-cache is idle goes stale. `trackSelectHold` flips the row between the same two
-painters and must join that condition, or the first frame after each flip keeps
-the old colours (or never repaints at all).
+cache is idle goes stale. The condition has to watch the SELECTOR, not
+`sessionMode`: `trackSelectHold` flips the row between the same two painters
+with `sessionMode` false on both sides, so no `sessionMode` edge exists to catch
+it.
+
+Verified caveat: this arm is a guard, not today's load-bearing fix.
+`app/tick.ts` separately invalidates on the `sessionMode` edge that always
+precedes the hold, which leaves `lastNoteLed` empty and covers the exit by
+coincidence — breaking the `leds.ts` arm alone fails no test. It is kept because
+relying on that coincidence is how the Loop-mode version of this bug happened.
+The tests that DO have teeth here are the ones asserting the row's actual
+colours (see below).
 
 **Octave buttons** hijack to group-scroll under `sessionMode` only, not
 `trackSelectHold`: during the hold you are in Track view and all 16 tracks are
@@ -142,9 +151,14 @@ directly reachable on the row, so the pad octave stays with the pads.
   `watch N` (the regression with teeth: revert the fix and it fails); the
   three-way `sessionStepLed`; the `trackSelectHold` transition table.
 - **`browser-test/app-loop.mjs`** — real MIDI -> setLED: CC50 down gives the
-  selector on notes 16-31 plus the clip grid on the pads; a step press flips the
-  pads to the note layout while the row stays the selector; CC50 up leaves the
-  row as steps. Asserts the CC50 dim/bright LED.
+  selector plus the clip grid on the pads; a step press flips the pads to the
+  note layout while the row stays the selector, wearing all 16 track colours
+  with the selected one pulsing white; CC50 up commits and leaves the row as
+  steps. Asserts the CC50 dim/bright LED.
+
+Teeth confirmed by reverting each fix in turn: dropping the `watchTrack`
+retarget fails four assertions; not painting the selector during the hold fails
+two; not painting CC50 fails two.
 - **`browser-test/perf.mjs`** — no new per-tick cost; the selector row is
   already a per-tick paint in Session and only joins Track view while held.
 - Device: `./scripts/test.sh`, `./scripts/test-seq.sh`.

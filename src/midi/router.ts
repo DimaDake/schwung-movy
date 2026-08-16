@@ -1,5 +1,6 @@
 import { trackRef } from '../track/ref.js';
-import { focusedTrack, focusGroupStep, selectTrack, GROUP_DIR_UP, GROUP_DIR_DOWN } from '../track/focus.js';
+import { focusedTrack, focusGroupStep, GROUP_DIR_UP, GROUP_DIR_DOWN } from '../track/focus.js';
+import { beginTrackSwitch, restoreTrackState, switchToTrack } from '../track/switch.js';
 import { portFor } from '../track/registry.js';
 import { setButtonHeld } from '../seq/button-held.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } from '../app/state.js';
@@ -14,7 +15,7 @@ import { releaseAllLive } from '../keyboard/release.js';
 import { drumPadOn, drumPadOff } from '../keyboard/drum-handler.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
-import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteShiftHeld, muteTrack, seqRestoreWatch } from '../seq/router.js';
+import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteShiftHeld, muteTrack } from '../seq/router.js';
 import { anyStepHeld, editStepPageKnob } from '../seq/step-edit.js';
 import { stepPageState, setStepPageSelected, setStepTouchedKnob, stepPageAvailable } from '../seq/step-page.js';
 import { seqState } from '../seq/state.js';
@@ -347,40 +348,12 @@ export function onMidiMessageInternal(data: number[]): void {
                 else muteTrack(track);
                 momentaryGesture(); appState.dirty = true; return;
             }
-            // A track button always exits the Set Parameters page first (it is a
-            // global page, not a per-track view), so it can't be saved into the
-            // per-track view memory below and re-shown on return to this track.
-            if (mainPageActive()) appState.currentView = closeMainPage();
-            if (clipPageActive()) appState.currentView = closeClipPage();
-            // Snapshot prior state so the restore closure can return exactly here.
-            // Note: seqHandleMidi already ran above and updated watchTrack/barOffset,
-            // so we capture the pre-switch slot to restore on hold release.
-            const prevSlot      = appState.activeTrack.index;
-            const prevView      = appState.currentView === VIEW_BROWSE ? appState.browseOrigin : appState.currentView;
-            const prevSession   = seqState.sessionMode;
-            const prevLoop      = seqState.loopMode;
-            const prevWatchTrack = prevSlot; // watchTrack should match active slot
-            momentaryDown(d1, () => {
-                releaseAllLive();   // the peeked track's notes must not survive the revert
-                seqState.sessionMode = prevSession;
-                seqState.loopMode = prevLoop;
-                selectTrack(prevSlot);
-                appState.currentView = prevView;
-                seqRestoreWatch(prevWatchTrack);
-                appState.initLedsDone = false; appState.initLedIndex = 0;
-                appState.dirty = true;
-            });
-            appState.trackView[appState.activeTrack.index] = prevView;
-            seqState.sessionMode = false;
-            seqState.loopMode = false;
-            appState.masterDetail = false;
-            // Cut on switch: no live note outlives the track it was played on.
-            releaseAllLive();
-            selectTrack(track);
-            appState.currentView = appState.trackView[track];
-            jogHintTouch(false);
-            appState.initLedsDone = false; appState.initLedIndex = 0;
-            appState.dirty = true;
+            /* Snapshot before switching so the hold-release closure returns
+             * exactly here. beginTrackSwitch also closes the global Main/Clip
+             * Params pages, which a track button always leaves. */
+            const prev = beginTrackSwitch();
+            momentaryDown(d1, () => restoreTrackState(prev));
+            switchToTrack(track, prev);
         } else {
             volumeTrackUp(track);
             momentaryUp(d1);

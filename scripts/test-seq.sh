@@ -154,6 +154,36 @@ fi
 ts_tap_cc 43                             # back to track 0 for the rest of the run
 sleep 0.5
 
+info "Hold Session + step selects a track the SEQUENCER follows, not just the screen..."
+# The regression: the Session step row moved appState.activeTrack (screen, pads,
+# knobs) but never seqState.watchTrack, and the engine re-pinned watchTrack from
+# `trk=` on every status poll — so the step row and every step edit stayed on the
+# track you came from. Only a real device shows it end to end: the mirror is
+# what the engine argues with.
+#
+# Track 9 because nothing else in this suite writes there, and because the bug
+# is specifically about tracks past the first group. Step buttons are notes
+# 16..31, so step 10 (index 9) is note 25. One round trip for the whole gesture:
+# separate injects are ~0.5 s apart, which movy reads as a hold, not a tap.
+ts_send "0x0B:0xB0:50:127:0.20" \
+        "0x09:0x90:25:127:0.10" "0x08:0x80:25:0:0.20" \
+        "0x0B:0xB0:50:0:0.40" \
+        "0x09:0x90:16:110:0.10" "0x08:0x80:16:0:0"
+sleep 1
+if ts_wait_seq_state '^cl 9 0 16 '; then
+    pass "Held Session + step retargeted the sequencer — the note landed on track 9"
+else
+    fail "Step edit did not follow the Session selector to track 9"
+    ts_ssh "grep '^cl ' '$(ts_seq_path)' 2>/dev/null || true"
+fi
+
+# Back to track 0 via the same gesture — the track buttons address the FOCUSED
+# group, which selecting track 9 moved to group 2, so CC 43 would now be track 8.
+ts_send "0x0B:0xB0:50:127:0.20" \
+        "0x09:0x90:16:127:0.10" "0x08:0x80:16:0:0.20" \
+        "0x0B:0xB0:50:0:0"
+sleep 0.8
+
 info "Session mode: toggle (CC 50), launch a clip pad, toggle back..."
 python3 "$INJECT" "$HOST" cc 50 127      # Note/Session toggle → session
 python3 "$INJECT" "$HOST" cc 50 0

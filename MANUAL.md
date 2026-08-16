@@ -704,15 +704,27 @@ track buttons and the Session clip grid always address one group at a time —
 the **focused** group.
 
 **Picking a track.** In Session view the 16 step buttons become a **track
-selector**: each step is one track, lit in that track's own colour. The focused
-group's four burn at full brightness and the other twelve sit dim, so you can
-see at a glance which quarter of the song you are in — it is the *position* of
-the bright block that tells you the group, not just its colour. Press any step
-to open that track; the track buttons and the clip grid follow it.
+selector**: each step is one track, lit in that track's own colour. Two things
+pulse on top of that:
 
-You can also **hold Note/Session and tap a step** to jump to a track without
-staying in Session view — Movy returns to whatever you were doing, on the new
-track.
+- the **track you are on** pulses its colour against **white**;
+- the **focused group's** four pulse between **black** and their colour, so you
+  can see at a glance which quarter of the song you are in. It is the *position*
+  of the pulsing block that tells you the group, not just its colour.
+
+Both show at once, which matters because the two come apart — the **+ / −**
+buttons move the group without changing which track is open.
+
+Press any step to **open that track**: the pads, the screen and the knobs all
+switch to it immediately, exactly as if you had pressed its track button. It
+behaves like a track button too — a quick **tap** stays there, while **holding**
+the step is a peek that returns to Session view when you let go.
+
+**Switching without leaving what you were doing.** **Hold Note/Session** and tap
+a step. Movy drops straight onto that track — pads, screen, knobs — but the step
+row *stays* a track selector for as long as you hold the button, so you can keep
+tapping through tracks and auditioning them. Let go and you stay on the last one
+you picked.
 
 **Moving between groups.** In Session view the **+ / −** buttons step the
 focused group through the track list: **+** moves towards tracks 1-4, **−**
@@ -1255,7 +1267,7 @@ behaviour you'd like — or, better, a PR.
 
 | Control | Action |
 | --- | --- |
-| **Step buttons 1–16** | Toggle a note on/off at that step. In **Session** view they select one of the 16 tracks. |
+| **Step buttons 1–16** | Toggle a note on/off at that step. In **Session** view they select one of the 16 tracks and open it — tap to stay, hold to peek. |
 | **Hold a step** | Edit that step; opens its **Step parameters** (page 0). |
 | **Hold step A + press step B** | Set step A's note length up to B. |
 | **Hold a step + pad** | Edit that step's notes from the keyboard. An added note takes the step's existing start and length (melodic only). |
@@ -1268,7 +1280,8 @@ behaviour you'd like — or, better, a PR.
 | **Capture** | Keep the notes you just played as clip data. Stopped → also reads a tempo and starts the transport. |
 | **Clear + Capture** | Throw the buffered input away. (Not Shift + Capture — that belongs to schwung's skip-back and never reaches Movy.) |
 | **Jog** (capture overlay) | Take another tempo — applied as you pass it. Any other press closes the overlay. |
-| **Note / Session** | Show the Session clip grid (momentary hold = peek, tap = latch). Pads launch clips; step buttons select a track. |
+| **Note / Session** | Show the Session clip grid (momentary hold = peek, tap = latch). Pads launch clips; step buttons select a track. Dim when idle, bright while Session view is up. |
+| **Hold Note/Session + step** | Jump to that track (pads, screen, knobs) while the step row stays a track selector — keep tapping to keep switching. Releasing keeps the last track you picked. |
 | **Loop** | Toggle the bar selector; hold + jog resizes the loop. See [The Loop view](#the-loop-view). |
 | **Loop + bar** | Press one bar to view it, two to loop that range, double-tap for a 1-bar loop. |
 | **Left / Right** | Navigate bars — the loop's own bars plus one empty bar past its end (or nudge held steps). |

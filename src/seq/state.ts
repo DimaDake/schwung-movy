@@ -31,6 +31,13 @@ export interface SeqUiState {
     /* loop mode */
     loopMode: boolean;       // step buttons show bars instead of steps
 
+    /* Session button held, and a step has already committed a track switch:
+     * the pads/screen/knobs are back on the Track view but the step row stays
+     * the 16-track selector, so you can keep switching until you let go.
+     * sessionMode owns "the pads are the clip grid"; this owns "the step row is
+     * the selector" — the two used to be the same flag. */
+    trackSelectHold: boolean;
+
     /* recording (engine-driven, mirrored from status) */
     recording: boolean;
     countingIn: boolean;
@@ -112,6 +119,7 @@ function defaults(): SeqUiState {
         defaultQuant: 0,
         occ: new Uint8Array(32),
         loopMode: false,
+        trackSelectHold: false,
         recording: false,
         countingIn: false,
         capPending: 0,

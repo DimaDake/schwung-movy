@@ -140,15 +140,6 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     return false;
 }
 
-/* Restore the watch target after a momentary track-button hold reverts.
- * Resets barOffset to 0 since the saved offset was wiped when switching away. */
-export function seqRestoreWatch(track: number): void {
-    seqState.watchTrack = track;
-    seqState.barOffset = 0;
-    requestLoopWindowAdopt();
-    seqCmd('watch ' + track);
-}
-
 /* Active module changed: set the watched step-LED lane. lane < 0 = melodic
  * (all notes); lane >= 0 = a drum pad's MIDI note. Emits wlane only on a
  * real change. */

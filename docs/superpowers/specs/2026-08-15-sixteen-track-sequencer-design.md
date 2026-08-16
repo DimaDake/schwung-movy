@@ -98,42 +98,80 @@ branch becomes the track selector.
 
 | | track 1 | track 2 | track 3 | track 4 |
 |---|---|---|---|---|
-| **G1** host | Red `127` | Vivid Yellow `7` | Bright Pink `25` | Pure Blue `125` |
-| **G2** movy | Azure Blue `15` | Bright Orange `3` | Mint Green `44` | Hot Magenta `21` |
-| **G3** movy | Cyan `14` | Neon Pink `23` | Ochre `6` | Forest Green `9` |
-| **G4** movy | Teal Green `12` | Sky Blue `47` | Rust Red `27` | Light Yellow `5` |
+| **G1** | Bright Orange `3` | Rust Red `27` | Neon Pink `23` | Electric Violet `20` |
+| **G2** | Light Magenta `26` | Royal Blue `16` | Light Yellow `5` | Dull Green `10` |
+| **G3** | Pure Blue `125` | Vivid Yellow `7` | Burnt Orange `28` | Hot Magenta `21` |
+| **G4** | Dark Grass Green `85` | Bright Pink `25` | Blue-Violet `18` | Ochre `6` |
 
 ```
-TRACK_COLOR     = [127,7,25,125, 15,3,44,21, 14,23,6,9, 12,47,27,5]
-TRACK_COLOR_DIM = [ 67,77,113,99, 93,75,89,105, 89,109,75,81, 87,17,67,77]
+TRACK_COLOR     = [3,27,23,20, 26,16,5,10, 125,7,28,21, 85,25,18,6]
+TRACK_COLOR_DIM = [65,111,105,99, 19,95,78,77, 107,83,75,22, 87,35,17,73]
 ```
 
-G1 keeps Move parity. The requirement is not that all 16 are mutually distinct —
-it is that **every row and every column is pairwise distinct**: four tracks
-within a group, and the same track index across groups.
+The requirement is not that all 16 brights are mutually distinct — it is that
+**every row and every column is pairwise distinct**: four tracks within a group,
+and the same track index across groups.
 
 Chosen by search and verified numerically (`browser-test/track-colors.mjs`,
-§7): worst required pair 13.9, under normal vision **and** protanopia **and**
+§7): worst required pair **33.8**, under normal vision **and** protanopia **and**
 deuteranopia, with lightness de-weighted (×0.35) so a pale blue and a royal blue
 do not count as "far apart" — on a 3 mm LED they read the same. No two members
 of one hue family share a row or column, with blue and violet counted as **one**
 family; CIELAB puts pure blue at 306° and electric violet at 311°, which is
 exactly why they look alike on this hardware.
 
-Two honest limitations, both recorded so they are not rediscovered:
+### 4.1 The root-pad constraint (revision, 2026-08-16)
 
-- **Under deuteranopia, yellows collapse onto the playhead's neon green.** This
-  is unavoidable while keeping Move's parity colours — Move's own scheme has the
-  same property. The playhead is disambiguated by *motion*: it moves, track
-  colour does not.
-- **Dim variants collide** across distant cells (Red and Rust Red both dim to
-  Brick). Harmless: only the watched track's dim colour is ever on screen at
-  once.
+The first matrix kept Move's own colours in G1 and scored 13.9. It was wrong in
+a way the numbers could not show. A track colour does not only paint step and
+clip LEDs — it paints the **chromatic root pad**, whose neighbours are grey
+in-scale pads (`C_LIGHTGREY`) and white held pads. On device, the accents for
+tracks 5, 7 and 9 (Azure Blue, Mint Green, Cyan) were indistinguishable from a
+lit in-scale pad.
 
-An earlier attempt at 16 mutually-distinct hues was abandoned with evidence:
-once the playhead green and note white/grey are reserved, this palette holds
-~12 genuinely distinct bright colours, and the search was forced into pairs like
-tan-vs-rust at ΔE 8.
+Two causes, and only one of them was numeric:
+
+- The reserved-colour check reused the **lightness-de-weighted** metric from the
+  track-vs-track checks. Against an achromatic reference that is simply the
+  wrong metric — lightness is one of only two cues left there, not a weak one.
+  At full weight Cyan sits 12 from white and Teal Green 15. Sky Blue `47` and
+  Teal Green `12` were equally bad and had not been reached in use yet.
+- **Azure Blue passes every numeric test** — 80 from white — and still failed on
+  hardware. The reference hex table is derived from the rnbo.move.control docs
+  and describes the palette approximately; Move's LEDs wash out cool hues at
+  brightness in a way no CIELAB figure predicts.
+
+So the guard now carries two rules that are *empirical, not derived*, and the
+comment in `colors.ts` says so:
+
+1. no cool hue (LAB 145°–310°) above L 45;
+2. no pastel (L > 65 with chroma below 0.7·L) at any hue.
+
+Rule 2 was added after the search's first answer put Pale Green `#AEFF99` at
+track 10 — the same washed-out failure on the warm side of rule 1's cutoff.
+
+Move parity for G1 was dropped deliberately. Pinning G1 to Move's colours was
+measured and still reaches 20.7, so parity remains available at that cost if it
+is ever wanted back; the free search reaches 33.8.
+
+Dim variants were re-searched too, and the earlier "dim variants collide"
+limitation is **resolved**: all 16 are now distinct, each sharing its bright
+partner's hue family, separated by at least 9.8 within any row or column. The
+Session step row shows all 16 tracks at once with unfocused groups dimmed, so
+they are compared against each other on screen and duplicates were never as
+harmless as the original note claimed.
+
+One honest limitation remains:
+
+- **Under deuteranopia, yellows collapse onto the playhead's neon green.** The
+  playhead is disambiguated by *motion*: it moves, track colour does not.
+
+An attempt at 16 *mutually*-distinct hues — every cell far from every other,
+not just within its row and column — was abandoned with evidence: once the
+playhead green and the achromatic pads are reserved and the two hardware rules
+above are applied, the pool is 31 usable colours, and the search is forced into
+pairs like tan-vs-rust at ΔE 8. Row-and-column distinctness is what the UI
+actually needs, and it is what is asserted.
 
 ---
 

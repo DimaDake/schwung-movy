@@ -80,14 +80,23 @@ const dE = (a, b, v) => {
 };
 const dist = (a, b) => Math.min(...VIEWS.map((v) => dE(a, b, v)));
 const name = (i) => PAL.get(i)?.name ?? `#${i}`;
+/* Against an ACHROMATIC reference lightness is not the weak cue — it is one of
+ * only two cues left — so that comparison uses full weight. */
+const dEn = (a, b, v) => {
+    const A = lab.get(a)[v], B = lab.get(b)[v];
+    return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]);
+};
+const hue = (i) => { const l = lab.get(i).normal; const h = Math.atan2(l[2], l[1]) * 180 / Math.PI; return h < 0 ? h + 360 : h; };
+const chroma = (i) => { const l = lab.get(i).normal; return Math.hypot(l[1], l[2]); };
+const Lof = (i) => lab.get(i).normal[0];
 
 /* ── 1. the copy has not drifted ────────────────────────────────────────── */
 _log('\npalette indices still mean what movy thinks they mean:');
 const EXPECTED = {
-    127: 'FF0000', 7: 'FFFF00', 25: 'FF4DC4', 125: '0000FF',
-    15: '0074FC', 3: 'FF9900', 44: '7CDD9F', 21: 'E657E3',
-    14: '00FFFF', 23: 'FF0099', 6: 'C19D08', 9: '2C8403',
-    12: '159573', 47: '7ACEFC', 27: 'A63421', 5: 'EDF95A',
+    3: 'FF9900', 27: 'A63421', 23: 'FF0099', 20: '8700FF',
+    26: 'EB8BE1', 16: '274FCC', 5: 'EDF95A', 10: '246B24',
+    125: '0000FF', 7: 'FFFF00', 28: '995628', 21: 'E657E3',
+    85: '0A4D0A', 25: 'FF4DC4', 18: '644AD9', 6: 'C19D08',
 };
 for (const [idx, hex] of Object.entries(EXPECTED)) {
     eq(`index ${idx} is #${hex} (${name(+idx)})`, PAL.get(+idx)?.hex, hex);
@@ -98,10 +107,10 @@ const M = [0, 1, 2, 3].map((g) => TRACK_COLOR.slice(g * 4, g * 4 + 4));
 eq('16 track colours defined', TRACK_COLOR.length, 16);
 eq('16 dim variants defined', TRACK_COLOR_DIM.length, 16);
 
-/* 13 is the measured floor of the chosen matrix. It is an assertion about THIS
+/* 33 is the measured floor of the chosen matrix. It is an assertion about THIS
  * palette, not a general threshold — if a future edit cannot clear it, the edit
  * is what is wrong. */
-const MIN = 13;
+const MIN = 33;
 
 _log('\nwithin a group, the 4 tracks are distinguishable:');
 for (let r = 0; r < 4; r++)
@@ -121,16 +130,47 @@ for (let c = 0; c < 4; c++)
 
 /* ── 3. clear of the colours the step row already uses ──────────────────── */
 /* Normal vision only. Under deuteranopia every yellow collapses onto the
- * playhead's neon green — unavoidable while keeping Move's parity colours, and
- * the playhead is told apart by the fact that it MOVES. */
-_log('\nclear of the reserved step-row colours (normal vision):');
-for (const [res, label] of [[11, 'playhead green'], [120, 'note white'], [118, 'light grey']]) {
+ * playhead's neon green — unavoidable in this palette, and the playhead is told
+ * apart by the fact that it MOVES. */
+_log('\nclear of the playhead (normal vision):');
+{
     let worst = Infinity, who = -1;
     for (const t of TRACK_COLOR) {
-        const d = dE(t, res, 'normal');
+        const d = dE(t, 11, 'normal');
         if (d < worst) { worst = d; who = t; }
     }
-    ok(`${label}: nearest is ${name(who)} (${worst.toFixed(1)})`, worst >= 18);
+    ok(`playhead green: nearest is ${name(who)} (${worst.toFixed(1)})`, worst >= 18);
+}
+
+/* ── 4. clear of the ACHROMATIC pads ────────────────────────────────────── */
+/* A track colour also paints the chromatic root pad, and its neighbours there
+ * are grey in-scale pads and white held pads. The original guard measured this
+ * with lightness de-weighted like the track-vs-track checks, which is what let
+ * Cyan (12 from white) and Teal Green (15) ship. Full weight, all three vision
+ * models, and black included — a near-black accent is as unreadable as a
+ * near-white one. */
+_log('\nclear of black / dark grey / light grey / white (full lightness weight):');
+for (const t of TRACK_COLOR) {
+    let worst = Infinity, who = -1;
+    for (const g of [0, 118, 120, 124])
+        for (const v of VIEWS) {
+            const d = dEn(t, g, v);
+            if (d < worst) { worst = d; who = g; }
+        }
+    ok(`${name(t)} vs ${name(who)} (${worst.toFixed(1)})`, worst >= 20);
+}
+
+/* The two hardware rules. These are NOT derivable from CIELAB — Azure Blue
+ * measures 80 from white and still read as a lit in-scale pad on the device.
+ * They exist so a future edit cannot reintroduce that class of colour by
+ * picking something whose numbers happen to look fine. */
+_log('\nno accent is a washed-out cool hue or a pastel (measured on device):');
+for (const t of TRACK_COLOR) {
+    const cool = hue(t) >= 145 && hue(t) <= 310;
+    ok(`${name(t)} is not a light cool hue (h${hue(t).toFixed(0)} L${Lof(t).toFixed(0)})`,
+        !(cool && Lof(t) > 45));
+    ok(`${name(t)} is not a pastel (L${Lof(t).toFixed(0)} C${chroma(t).toFixed(0)})`,
+        !(Lof(t) > 65 && chroma(t) < 0.7 * Lof(t)));
 }
 
 /* A dim variant must still read as ITS track's colour, not as another's. */
@@ -139,6 +179,26 @@ for (let t = 0; t < 16; t++) {
     const d = dE(TRACK_COLOR_DIM[t], 124, 'normal');   // 124 = the empty/dark grey
     ok(`${name(TRACK_COLOR[t])} dim is not grey (${d.toFixed(1)})`, d >= 8);
 }
+
+/* The Session step row shows all 16 tracks at once with the unfocused groups
+ * dimmed, so the dims are compared against each other on screen — they cannot
+ * repeat, and they need their own separation floor. */
+_log('\ndim variants are 16 distinct colours, separated within row and column:');
+eq('all 16 dims distinct', new Set(TRACK_COLOR_DIM).size, 16);
+const DIM_MIN = 9;
+const D = [0, 1, 2, 3].map((g) => TRACK_COLOR_DIM.slice(g * 4, g * 4 + 4));
+for (let r = 0; r < 4; r++)
+    for (let a = 0; a < 4; a++)
+        for (let b = a + 1; b < 4; b++) {
+            const d = dist(D[r][a], D[r][b]);
+            ok(`G${r + 1} dim: ${name(D[r][a])} vs ${name(D[r][b])} (${d.toFixed(1)})`, d >= DIM_MIN);
+        }
+for (let c = 0; c < 4; c++)
+    for (let a = 0; a < 4; a++)
+        for (let b = a + 1; b < 4; b++) {
+            const d = dist(D[a][c], D[b][c]);
+            ok(`track ${c + 1} dim: ${name(D[a][c])} vs ${name(D[b][c])} (${d.toFixed(1)})`, d >= DIM_MIN);
+        }
 
 _log('');
 if (failures === 0) {

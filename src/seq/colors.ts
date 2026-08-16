@@ -11,7 +11,7 @@ export const C_WHITE = 120;
 export const C_DARKGREY = 124; // "dim gray" — empty clip / bar outside loop
 export const C_LIGHTGREY = 118; // schwung LightGrey ("dim white"): note-length tail — brighter than C_DARKGREY, distinct from colored track-dim
 export const C_GREEN = 11;     // NeonGreen — playhead
-export const C_REC_RED = 127;  // Red — recording indicator (same as track 0 color; index 1 renders pink)
+export const C_REC_RED = 127;  // Red — recording indicator (index 1 renders pink)
 
 /* Track colours: 4 groups of 4. Bright = playing/selected clip & chromatic
  * root; dim = empty in-loop step, and the unfocused tracks in the Session
@@ -25,22 +25,32 @@ export const C_REC_RED = 127;  // Red — recording indicator (same as track 0 c
  * counted as ONE family (CIELAB puts pure blue at 306° and electric violet at
  * 311°, which is exactly why they look the same on this hardware).
  *
+ * A track colour ALSO paints the chromatic root pad, whose neighbours are the
+ * grey in-scale pads (C_LIGHTGREY) and white held pads. Two classes of colour
+ * are barred outright because on this hardware they read as white there no
+ * matter what CIELAB says — measured on device, not derived:
+ *   - cool hues (LAB 145°–310°) above L 45. Azure Blue sits 80 from white by
+ *     the numbers and was still indistinguishable from a lit in-scale pad.
+ *   - pastels (L > 65 with chroma under 0.7·L), whatever their hue.
+ * That is why no cyan / mint / teal / sky / azure appears below.
+ *
  * `browser-test/track-colors.mjs` holds all of that, and also checks these
  * indices still mean what they mean in schwung's own palette — the table here
- * is a copy, and a copy can drift.
- *
- * Group 1 keeps Move's native track colours. */
+ * is a copy, and a copy can drift. */
 export const TRACK_COLOR = [
-    127, 7, 25, 125,      // G1 host: Red, Vivid Yellow, Bright Pink, Pure Blue
-    15, 3, 44, 21,        // G2: Azure Blue, Bright Orange, Mint Green, Hot Magenta
-    14, 23, 6, 9,         // G3: Cyan, Neon Pink, Ochre, Forest Green
-    12, 47, 27, 5,        // G4: Teal Green, Sky Blue, Rust Red, Light Yellow
+    3, 27, 23, 20,        // G1: Bright Orange, Rust Red, Neon Pink, Electric Violet
+    26, 16, 5, 10,        // G2: Light Magenta, Royal Blue, Light Yellow, Dull Green
+    125, 7, 28, 21,       // G3: Pure Blue, Vivid Yellow, Burnt Orange, Hot Magenta
+    85, 25, 18, 6,        // G4: Dark Grass Green, Bright Pink, Blue-Violet, Ochre
 ];
+/* Each dim shares its bright partner's hue family and is clearly darker, so a
+ * dim step still says which track it belongs to. All 16 are distinct: the
+ * Session step row shows every track at once, the unfocused ones dimmed. */
 export const TRACK_COLOR_DIM = [
-    67, 77, 113, 99,      // Brick, Olive, Mauve, Indigo
-    93, 75, 89, 105,      // Deep Blue, Brown-Yellow, Muted Sea Green, Muted Violet
-    89, 109, 75, 81,      // Muted Sea Green, Deep Magenta, Brown-Yellow, Dull Olive
-    87, 17, 67, 77,       // Dark Teal, Navy, Brick, Olive
+    65, 111, 105, 99,     // Deep Red, Dusty Rose, Muted Violet, Indigo
+    19, 95, 78, 77,       // Violet, Dark Blue, Dark Olive, Olive
+    107, 83, 75, 22,      // Dark Purple, Dark Olive Green, Brown-Yellow, Purple
+    87, 35, 17, 73,       // Dark Teal, Mauve, Navy, Dull Yellow
 ];
 
 export function trackColor(track: number): number {

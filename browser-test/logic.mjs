@@ -1820,17 +1820,17 @@ _log('\nTest: overlay commit rejects a non-drum preset (param unchanged)');
   eq('drum preset → param set', env.params['synth:ui_preset_path'], TRACK_PRESETS + '/drum.ablpreset');
 }
 
-_log('\nTest: track colors — track 3 pink, track 4 blue');
+_log('\nTest: track colors — track 3 neon pink, track 4 electric violet');
 
 {
   const { TRACK_COLOR, TRACK_COLOR_DIM } = await import('../dist/esm/seq/colors.js');
-  eq('track 3 = BrightPink(25)', TRACK_COLOR[2], 25);
-  eq('track 4 = Blue(125)',      TRACK_COLOR[3], 125);
-  /* Dims were re-picked when the table went to 16 entries: each is now the
-   * nearest-hue dark entry at ~35% lightness, chosen by the same search that
-   * produced the bright colours (browser-test/track-colors.mjs). */
-  eq('track 3 dim = Mauve(113)',  TRACK_COLOR_DIM[2], 113);
-  eq('track 4 dim = Indigo(99)',  TRACK_COLOR_DIM[3], 99);
+  /* A cheap pin so the table is not completely unguarded on a checkout without
+   * the schwung sibling repo — track-colors.mjs skips wholesale when it is
+   * missing, and that is where the real palette reasoning lives. */
+  eq('track 3 = NeonPink(23)',       TRACK_COLOR[2], 23);
+  eq('track 4 = ElectricViolet(20)', TRACK_COLOR[3], 20);
+  eq('track 3 dim = MutedViolet(105)', TRACK_COLOR_DIM[2], 105);
+  eq('track 4 dim = Indigo(99)',       TRACK_COLOR_DIM[3], 99);
 }
 
 // ── ViewModel drum fields: isPadSpecific, drumCurrentPad, drumPadCount ───
@@ -5239,7 +5239,7 @@ _log('\nautomation label sync:');
     const { keyboardState, resetPadMapCache } = await import('../dist/esm/keyboard/state.js');
 
     const C_BLACK = 0, C_WHITE = 120, C_DARKGREY = 124, C_LIGHTGREY = 118, C_GREEN = 11;
-    const TRACK0 = 127;
+    const TRACK0 = 3;   // track 1 = Bright Orange
     const PAD_MIN = 68;
 
     keyboardState.rootPc = 0; keyboardState.scale = 0;

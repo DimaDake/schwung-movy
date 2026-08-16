@@ -3202,7 +3202,96 @@ _log('\nTest: drumPadOn');
     eq('track3 unselected-empty dark', cells[69].base, C_BLACK);   // slot 1, not selected
     eq('track3 unselected-empty solid', cells[69].channel, ANIM_NONE);
 
+    /* The grid follows the FOCUSED GROUP, like the four track buttons beside it.
+     * It used to derive the track from the pad row alone, so all four rows were
+     * pinned to tracks 1-4 whatever the octave buttons had scrolled to: moving
+     * the group repainted the step row and the track buttons and left the clip
+     * grid showing the wrong quartet's clips entirely. */
+    const { selectTrack } = await import('../dist/esm/track/focus.js');
+    const { appState } = await import('../dist/esm/app/state.js');
     resetSeqState(); resetSession();
+    // Give every track a clip in slot 0 so each row's colour identifies its track.
+    sessionFromStr(Array.from({ length: 16 }, () => '01.-.-.0').join(','));
+
+    selectTrack(9);                       // focus group 2 → tracks 8-11
+    eq('selecting track 9 focused group 2', appState.focusGroup, 2);
+    const g2 = {};
+    sessionPaintGrid((note, base, anim, channel) => { g2[note] = { base, anim, channel }; }, 68);
+    eq('top row is the group\'s first track (8)',  g2[92].base, trackColor(8));
+    eq('second row is track 9',                    g2[84].base, trackColor(9));
+    eq('third row is track 10',                    g2[76].base, trackColor(10));
+    eq('bottom row is the group\'s last track (11)', g2[68].base, trackColor(11));
+
+    selectTrack(15);                      // focus group 3 → tracks 12-15
+    const g3 = {};
+    sessionPaintGrid((note, base, anim, channel) => { g3[note] = { base, anim, channel }; }, 68);
+    eq('the last group\'s top row is track 12',  g3[92].base, trackColor(12));
+    eq('the last group\'s bottom row is track 15', g3[68].base, trackColor(15));
+
+    selectTrack(0);
+    resetSeqState(); resetSession();
+}
+
+/* ── seq session grid INPUT follows the focused group ────────────────────── */
+{
+    _log('\nseq session grid input:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { seqHandleMidi } = await import('../dist/esm/seq/router.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { resetSession } = await import('../dist/esm/seq/session.js');
+    const { resetDuplicate } = await import('../dist/esm/seq/duplicate.js');
+    const { resetSeqToast } = await import('../dist/esm/seq/render.js');
+    const { selectTrack } = await import('../dist/esm/track/focus.js');
+
+    const engine = installMockEngine();
+    const reset = () => { resetSeqEngine(); resetSeqState(); resetSession(); resetDuplicate(); resetSeqToast(); engine.reset(); };
+    const lastOp = () => lastMusicalOp(engine.ops);
+
+    /* Reading the grid wrong is cosmetic; PRESSING it wrong is not. Launch,
+     * Delete and Copy all resolved the pad to tracks 0-3 regardless of the
+     * focused group, so a Delete on the bottom row while looking at tracks
+     * 13-16 destroyed track 4's clip instead. */
+    reset(); seqEngineTick();
+    seqState.sessionMode = true;
+    selectTrack(9);                              // group 2 → tracks 8-11
+
+    seqHandleMidi([0x90, 92, 127], false);       // top-left pad
+    seqEngineTick();
+    eq('top-left pad launches the group\'s first track', lastOp(), 'launch 8 0');
+    eq('and retargets the watched track with it', seqState.watchTrack, 8);
+
+    seqHandleMidi([0x90, 68, 127], false);       // bottom-left pad
+    seqEngineTick();
+    eq('bottom-left pad launches the group\'s last track', lastOp(), 'launch 11 0');
+
+    seqHandleMidi([0x90, 69, 127], false);       // bottom row, one column right
+    seqEngineTick();
+    eq('columns are still slots', lastOp(), 'launch 11 1');
+
+    // Delete + pad must reach the same track the pad displays.
+    reset(); seqEngineTick(); seqState.sessionMode = true;
+    selectTrack(15);                             // group 3 → tracks 12-15
+    seqHandleMidi([0xB0, 119, 127], false);      // Delete down
+    seqHandleMidi([0x90, 68, 127], false);       // bottom-left = track 15
+    seqEngineTick();
+    eq('Delete+pad deletes the clip the pad shows', lastOp(), 'clipdelat 15 0');
+    seqHandleMidi([0xB0, 119, 0], false);
+
+    // Copy/paste too.
+    reset(); seqEngineTick(); seqState.sessionMode = true;
+    selectTrack(4);                              // group 1 → tracks 4-7
+    seqHandleMidi([0xB0, 60, 127], false);       // Copy down
+    seqHandleMidi([0x90, 92, 127], false);       // src = track 4 slot 0
+    seqEngineTick();
+    eq('clip copy uses the focused group', lastOp(), 'clipcopy 4 0');
+    seqHandleMidi([0x90, 93, 127], false);       // dest = track 4 slot 1
+    seqEngineTick();
+    eq('clip paste uses the focused group', lastOp(), 'clippaste 4 1');
+    seqHandleMidi([0xB0, 60, 0], false);
+
+    selectTrack(0);
+    uninstallMockEngine(); reset();
 }
 
 /* ── seq LED animation channel constants ─────────────────────────────────── */

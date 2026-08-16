@@ -15,12 +15,14 @@
 
 import { appState, VIEW_BROWSE } from '../app/state.js';
 import { jogHintTouch } from '../app/jog-hint.js';
+import { mlog } from '../log.js';
 import { releaseAllLive } from '../keyboard/release.js';
 import { closeMainPage, mainPageActive } from '../seq/main-page.js';
 import { closeClipPage, clipPageActive } from '../seq/clip-page.js';
 import { seqCmd } from '../seq/engine.js';
 import { requestLoopWindowAdopt, seqState } from '../seq/state.js';
 import { selectTrack } from './focus.js';
+import { chainInstance, trackKind } from './ref.js';
 
 /** Everything a momentary track peek has to put back on release. */
 export interface TrackSnapshot {
@@ -56,6 +58,15 @@ function watchTrack(track: number): void {
     seqCmd('watch ' + track);
 }
 
+/* Logged because a device measurement has no other way to prove WHICH track it
+ * measured. The pad-latency run silently compared a host track against itself:
+ * the gesture that was meant to select a movy track left the UI in Session mode
+ * instead, both rows read identical, and nothing in the log contradicted them. */
+function logSwitch(track: number): void {
+    mlog('track: active=' + track + ' kind=' + trackKind(track)
+        + (trackKind(track) === 'movy' ? ' chain=' + chainInstance(track) : ''));
+}
+
 function repaint(): void {
     appState.initLedsDone = false;
     appState.initLedIndex = 0;
@@ -73,6 +84,7 @@ export function switchToTrack(track: number, prev: TrackSnapshot): void {
     appState.currentView = appState.trackView[track];
     watchTrack(track);
     jogHintTouch(false);
+    logSwitch(track);
     repaint();
 }
 
@@ -84,5 +96,6 @@ export function restoreTrackState(prev: TrackSnapshot): void {
     selectTrack(prev.track);
     appState.currentView = prev.view;
     watchTrack(prev.track);
+    logSwitch(prev.track);
     repaint();
 }

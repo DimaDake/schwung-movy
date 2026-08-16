@@ -78,6 +78,13 @@ export function installPerfProbe(): void {
     wrap('shadow_set_param',      'set',  1);
     wrap('host_module_get_param', 'mget', 0);
     wrap('host_module_set_param', 'mset', 0);
+    /* The engine's writes are all BLOCKING (the overtake param SHM is a single
+     * slot, so non-blocking writes are lost) — which is exactly why leaving this
+     * one unwrapped hid the most expensive calls movy makes. A live pad note on
+     * a movy track used to be one of these per note, and `ipc_ms` reported
+     * nothing: the "2.12 ms pad cost" it seemed to show was the chain page's
+     * param refresh standing next to it. */
+    wrap('host_module_set_param_blocking', 'msetb', 0);
 }
 
 /* Coarse in-tick phase timing. tick_ms says the tick is slow; this says which

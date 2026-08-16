@@ -893,6 +893,37 @@ _origLog('\nTest: status parse cost, 4 vs 16 tracks');
     check('16-track parse vs 4-track', Number((t16 / t4).toFixed(2)), 4.5, 'x');
 }
 
+/* ── Test: every host IPC call is on the instrument ──────────────────────── */
+
+/* The probe is how every claim in docs/track-performance.md is made, so a host
+ * call it does not wrap is a hole in the evidence, not just a missing number.
+ * host_module_set_param_blocking was exactly that: every engine write movy makes
+ * is blocking, including the one a live pad note used to cost, so `ipc_ms`
+ * reported none of them and a neighbouring cost got the blame. */
+{
+    _origLog('\nTest: perf probe wraps every host IPC entry point');
+
+    const IPC_GLOBALS = [
+        'shadow_get_param',
+        'shadow_set_param',
+        'host_module_get_param',
+        'host_module_set_param',
+        'host_module_set_param_blocking',
+    ];
+    const saved = {};
+    for (const g of IPC_GLOBALS) { saved[g] = globalThis[g]; globalThis[g] = () => true; }
+
+    const { installPerfProbe } = await import('../dist/esm/app/perf-probe.js');
+    installPerfProbe();
+    const unwrapped = IPC_GLOBALS.filter(g => globalThis[g]._movyProbe !== true);
+    if (unwrapped.length) _origLog('    (unmeasured: ' + unwrapped.join(', ') + ')');
+    check('host IPC calls left unmeasured', unwrapped.length, 0);
+
+    for (const g of IPC_GLOBALS) {
+        if (saved[g] === undefined) delete globalThis[g]; else globalThis[g] = saved[g];
+    }
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _origLog('');

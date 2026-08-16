@@ -159,14 +159,7 @@ in the same audio block, with zero IPC. Movy tracks are equal or better here.
 
 **Live pad notes** were the problem. A host track's pad note is one non-blocking
 shm write; a movy track had no shadow slot, so each note was a *blocking* engine
-param write:
-
-| pad path | IPC per tick |
-|---|---|
-| host track | **0.30 ms** |
-| movy track (before) | **2.12 ms** |
-
-~1.8 ms added per note, multiplied by chord size because it blocks.
+param write.
 
 **Fixed** by having the engine answer pads itself on the audio thread. The shim
 already delivers pad notes to the overtake DSP's `on_midi`
@@ -180,9 +173,41 @@ way applies here too: **a note-off is answered from what the note-ON recorded,
 never the current map** — otherwise an octave change while a pad is held strands
 the note forever.
 
-> Re-measurement after the fix is pending — the device dropped off the network
-> before it could be run. Command: the `--- host/movy` comparison in
-> `scripts/bench-all-tracks.sh`, or the ad-hoc `perf_ipc` read used above.
+### Measured, after the fix
+
+`scripts/measure-pad-latency.sh`, plaits on movy chain 0, 4-note chords injected
+into a settled device:
+
+| track | idle IPC/tick | playing IPC/tick | blocking chain writes |
+|---|---|---|---|
+| host track 1 | 0.27 ms | 0.30 ms | — |
+| movy track 5 | 2.43 ms | 2.47 ms | **0.00 / tick** |
+
+Playing costs a movy track nothing over idle, and the blocking write per note is
+gone. Proved to have teeth by putting it back: with `engineOwnsPads()` forced to
+`false` and the same gesture, `msetb ch0:*` reappears in every chord window at
+~0.1 calls/tick and ~0.2 ms/tick — **≈2 ms of parked UI loop per note**,
+serialised across a chord.
+
+> **The earlier "host 0.30 ms vs movy 2.12 ms" pair was not the pad path.**
+> `perf_ipc` wrapped `host_module_set_param` but not
+> `host_module_set_param_blocking` — and every engine write movy makes is
+> blocking, so the pad writes were never in the number at all. The 2.12 ms was
+> the row below, standing next to them. The probe now wraps it (`msetb`), which
+> is what made the before/after above measurable.
+
+### What a movy track still costs: the chain page, not the pads
+
+The 2.4 ms/tick a movy track reads at **idle** is one label: `mget ch0:*` — the
+knob page refreshing the chain's params, one blocking round-trip per tick,
+against 0.3 ms for a host track (whose params come through schwung's own cache).
+
+That is now the whole gap, and it is worth more than the pad fix was: the UI loop
+polls MIDI once per iteration, so **the tick period _is_ the pad input sampling
+interval** (`pad-to-sound-latency.md` §1). At the measured ~9 ms period (~110 Hz)
+those 2.4 ms are ~27% of it, i.e. ~1.2 ms of mean added pad latency and twice
+that in jitter — paid on every movy track whether or not anything is playing.
+Not addressed here; the lever is the refresh, not the note path.
 
 ---
 
@@ -205,4 +230,5 @@ scripts/stress-16-tracks.sh        # all 12 chains, with sounding verification
 scripts/bench-chain-cpu.sh         # per-synth slope from 4 chains
 scripts/bench-all-tracks.sh        # host slots vs movy chains
 scripts/measure-load-blocking.sh   # what a module load costs
+scripts/measure-pad-latency.sh     # live pad cost, host track vs movy track
 ```

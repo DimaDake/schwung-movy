@@ -11,6 +11,11 @@ not a stopwatch reading. See [Verifying on device](#verifying-on-device).
 Sources: `schwung` @ `b7015e10` (2026-08-01), `movy` @ main, `perf.mjs` run
 locally 2026-08-01.
 
+**Since measured on device:** `track-performance.md` §6 has real numbers for the
+movy-track pad path, and finds option **#3** below to be the live one — a movy
+track spends 2.4 ms of every ~9 ms tick in the chain page's blocking param
+refresh, which is added pad latency by the argument in §1.
+
 ---
 
 ## 1. The path a pad press takes

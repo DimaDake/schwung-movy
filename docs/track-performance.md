@@ -236,7 +236,97 @@ It shows up in the window but not in `tick_ms`, because it runs in the host loop
 rather than inside movy's tick. Filed upstream — see
 `schwung-feedback-hold-poll-cost.md`.
 
-## 7. Caveats
+## 7. The frame itself — what MoveOriginal costs, and what standalone would buy
+
+Asked directly: if movy ran standalone like `dronage-tool` — owning
+`/dev/ablspi0.0`, no MoveOriginal underneath — how much would it gain, given that
+Move's transport is stopped anyway?
+
+**~15%.** Not the 66% MoveOriginal shows in `top`. Measured 2026-08-16 with movy
+closed and Move's transport stopped (`scripts/measure-core-contention.sh` for the
+last two tables).
+
+### The frame, accounted for
+
+The audio thread runs at 344.5 frames/s — 128 frames at 44.1 kHz, a **2902 µs**
+period. That is confirmed independently by the shim's `overruns=` counter, which
+increments 1722 times per 5 s window: 344/s, exactly once per frame.
+
+schwung's DSP runs *inside* MoveOriginal's audio thread, wrapped around the SPI
+ioctl, so `Frame(us)` accounts for everything except Move's own work:
+
+| | µs | where it comes from |
+|---|---|---|
+| frame period | 2902 | 128 / 44100 |
+| − irreducible ioctl | 470 | the ioctl floor once the wait is gone: §1's 8-chain row (2710 − 2236) and 12-chain row (3684 − 3213) both give ~472 |
+| = **work ceiling** | **2432** | everything anyone computes in one frame |
+| − MoveOriginal's own render | **239** | 2902 − `total avg` 2663, idle |
+| − schwung pre/post baseline | 111 | `pre` 88 + `post` 23, no overtake tool |
+| = available to movy | **~2082** | which is why §1's ramp measured a ~2000 µs ceiling |
+
+So **MoveOriginal costs the audio frame 239 µs — 8% of the period.** The rest of
+its CPU is not in the frame at all.
+
+### Where the other 66% lives
+
+Per-thread, sampled from `/proc/<tid>/stat` (busybox `top` has no `-H`):
+
+| thread | % of one core |
+|---|---|
+| MoveOriginal (UI) | 18.4 + 2.6 |
+| **Audio Main/SPI** | **15.8** — the only one inside the frame |
+| Link Main / Dispatcher | 11.0 + 1.8 |
+| Audio Worker ×3 | 7.8 + 7.4 + 7.4 |
+| **off-thread total** | **56.4%** |
+
+Move renders its own audio on **three worker threads**, even stopped. They are on
+other cores, so they do not spend the frame — but the four A72s share L2 and one
+memory controller, so they are not free either.
+
+### What the other cores cost the audio thread
+
+Ramping 0-3 aggressor cores (`dd` through 1 MiB buffers — deliberately harsher
+per core than Move's idle threads) and watching schwung's own per-frame work:
+
+| busy cores | work | vs idle |
+|---|---|---|
+| 0 | 111 µs | — |
+| 1 | 124 µs | +12% |
+| 2 | 138 µs | +24% |
+| 3 | 138 µs | saturated |
+
+Move's off-thread load is 0.56 core, so interpolating the first segment puts
+contention at **~7%** — about 135 µs at a 2000 µs budget, and an over-estimate,
+because `dd` is a bandwidth hog and Move's stopped workers are not.
+
+### The verdict
+
+| | µs |
+|---|---|
+| Move's in-frame render | 239 |
+| contention relief (upper bound) | ~135 |
+| **total** | **~374 on a ~2000 µs budget** |
+
+**+12% (frame only) to +19% (frame + all contention), centre ~15%.** Against §2's
+table that is one to two extra medium-weight tracks: obxd at 2 notes across 12
+chains already fits at 1835 µs, and obxd at 3 (2406 µs) still would not. It does
+not unlock surge or helm, which are 2-4× over budget.
+
+The price is the whole 768-byte mailbox (audio + 6-pass display + USB-MIDI in and
+out), Move's instruments, sampler, sets and Link, and a rewrite of the ~9k-line
+TypeScript UI, because `shadow_ui` dies with MoveOriginal. The one expensive part
+already built is module hosting — `chain_host.rs` and `load_queue.rs` dlopen and
+drive modules without schwung's help today.
+
+### The bigger number is not standalone
+
+`chain_slots.rs:render()` walks all twelve chains **serially, on one thread**,
+while ~3.4 cores idle — next to a Move that uses three workers for exactly this.
+Fanning the chain render out is worth multiples, not percent, and needs no
+standalone rewrite. Design and risks:
+`plans/2026-08-16-parallel-chain-render.md`.
+
+## 8. Caveats
 
 - **Preset and kit choice dominate.** Every figure is "this synth, this preset",
   not "this synth". noisemaker moves 2.4× between presets.
@@ -256,6 +346,7 @@ scripts/bench-chain-cpu.sh         # per-synth slope from 4 chains
 scripts/bench-all-tracks.sh        # host slots vs movy chains
 scripts/measure-load-blocking.sh   # what a module load costs
 scripts/measure-pad-latency.sh     # live pad cost, host track vs movy track
+scripts/measure-core-contention.sh # MoveOriginal's threads + the contention ramp
 ```
 
 > **Trust the instrument only as far as it reaches.** `perf_ipc` has twice

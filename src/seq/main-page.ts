@@ -3,6 +3,7 @@
  * the four musical params ROOT / KEY / MODE / LAYOUT.
  * Mirrors the step-parameter page's structure; rendering reads main-page-vm. */
 
+import { appState, VIEW_MAIN_PARAMS } from '../app/state.js';
 import { seqState } from './state.js';
 import { beginGesture } from '../undo/edit.js';
 import { recordUiOp } from '../undo/record.js';
@@ -33,8 +34,14 @@ const KNOB_VERBS: Record<number, string> = {
 
 const OVERLAY_KNOBS = [K_KEY, K_MODE, K_LAYOUT];
 
+/* No `active` flag lives here. Whether this page is up IS
+ * `appState.currentView === VIEW_MAIN_PARAMS` — the same thing app/tick.ts
+ * renders from. They used to be two fields synced by hand at the open site, and
+ * any path that moved currentView without closing the page left this one
+ * latched "active". The knob dispatch asks this page first, so a latched flag
+ * silently ate every knob turn on every other page — clip length, module params
+ * — until movy was reopened. That is the input lock-up users kept reporting. */
 export const mainPageState = {
-    active: false,
     origin: 0,                          // view to restore on Back
     touchedKnob: -1,                    // 0..7 drives the top toast; -1 none
     overlayKnob: -1,                    // knob whose enum list is open; -1 closed
@@ -67,21 +74,25 @@ function overlayCommit(k: number, sel: number): void {
     markUiStateDirty();
 }
 
-export function mainPageActive(): boolean { return mainPageState.active; }
+export function mainPageActive(): boolean {
+    return appState.currentView === VIEW_MAIN_PARAMS;
+}
 
+/** Open the page. Owns the view switch, so being open and being on screen
+ *  cannot come apart. */
 export function openMainPage(origin: number): void {
-    mainPageState.active = true;
     mainPageState.origin = origin;
     mainPageState.touchedKnob = -1;
     mainPageState.overlayKnob = -1;
     accum.fill(0);
+    appState.currentView = VIEW_MAIN_PARAMS;
 }
 
-/** Close the page; returns the origin view the caller should restore. */
+/** Close the page; returns the origin view, which it has already restored. */
 export function closeMainPage(): number {
-    mainPageState.active = false;
     mainPageState.touchedKnob = -1;
     mainPageState.overlayKnob = -1;
+    appState.currentView = mainPageState.origin;
     return mainPageState.origin;
 }
 
@@ -159,7 +170,6 @@ export function mainPageKnob(k: number, delta: number): void {
 }
 
 export function resetMainPage(): void {
-    mainPageState.active = false;
     mainPageState.origin = 0;
     mainPageState.touchedKnob = -1;
     mainPageState.overlayKnob = -1;

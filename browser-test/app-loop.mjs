@@ -1194,6 +1194,30 @@ _log('\napp-loop: a dropped step release never strands the hold');
     eq('page priority: tempo knob reaches the page', tempoTurns() > 0, true);
     sendMidi([0x80, STEP_NOTE_BASE, 0]);
     advance(2);
+
+    /* (4) The input lock-up, in two button presses. "Open" used to be a flag of
+     * its own, synced by hand at the open site, so any path that moved
+     * currentView without closing the page left it latched — and Note/Session
+     * closes Clip Params but never closed Main Params. The knob dispatch asks
+     * Main Params first, so from then on every knob turn anywhere fed the tempo
+     * invisibly, and clip length and module params were dead until movy was
+     * reopened. That is the lock-up users reported for months. */
+    resetApp();
+    openMainParams();
+    eq('lock-up: the page is up', mainPageActive(), true);
+    /* Three ordinary presses, all reachable: Note/Session latches Session (Main
+     * Params keeps the screen, so only the pads change), and the jog click then
+     * lands in masterChainActive(), which never excluded the params views — it
+     * opens the master browser and takes the screen. */
+    sendMidi([0xB0, CC_NOTE_SESSION, 127]);
+    sendMidi([0xB0, CC_NOTE_SESSION, 0]);
+    advance(2);
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);
+    sendMidi([0xB0, globalThis.MoveMainButton, 0]);
+    advance(2);
+    eq('lock-up: the browser took the screen', appState.currentView, VIEW_BROWSE);
+    eq('lock-up: the page stopped being open', mainPageActive(), false);
+    eq('lock-up: and stopped eating the knobs', tempoTurns(), 0);
 }
 
 _log('\napp-loop: step recording paints a blinking red head');

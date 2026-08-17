@@ -9,7 +9,7 @@ import { beginGesture } from '../undo/edit.js';
 import { endEdit } from '../undo/group.js';
 import { trackLabel } from '../undo/label.js';
 import { seqCmd } from './engine.js';
-import { trackIsDrum } from '../app/state.js';
+import { appState, trackIsDrum, VIEW_CLIP_PARAMS } from '../app/state.js';
 import { countDetents } from './detent.js';
 import { MAX_STEPS } from './constants.js';
 import { SCALE_RATIONALS, SCALE_DEFAULT_IDX } from './clip-scale.js';
@@ -25,8 +25,10 @@ const KNOB_VERBS: Record<number, string> = {
 };
 const gestureKey = (k: number, track: number) => 'clip:' + track + ':' + k;
 
+/* No `active` flag: being open IS `currentView === VIEW_CLIP_PARAMS`. See the
+ * note in main-page.ts — two hand-synced fields are what let a page stay
+ * "active" off screen and swallow every later knob turn. */
 export const clipPageState = {
-    active: false,
     origin: 0,                          // view to restore on Back
     touchedKnob: -1,                    // 0..3 drives the top toast; -1 none
     scaleOverlay: false,                // SCALE list open (knob 0 held)
@@ -35,21 +37,25 @@ export const clipPageState = {
 
 const accum = [0, 0, 0, 0];
 
-export function clipPageActive(): boolean { return clipPageState.active; }
+export function clipPageActive(): boolean {
+    return appState.currentView === VIEW_CLIP_PARAMS;
+}
 
+/** Open the page. Owns the view switch, so being open and being on screen
+ *  cannot come apart. */
 export function openClipPage(origin: number, _track: number): void {
-    clipPageState.active = true;
     clipPageState.origin = origin;
     clipPageState.touchedKnob = -1;
     clipPageState.scaleOverlay = false;
     accum.fill(0);
+    appState.currentView = VIEW_CLIP_PARAMS;
 }
 
-/** Close the page; returns the origin view the caller should restore. */
+/** Close the page; returns the origin view, which it has already restored. */
 export function closeClipPage(): number {
-    clipPageState.active = false;
     clipPageState.touchedKnob = -1;
     clipPageState.scaleOverlay = false;
+    appState.currentView = clipPageState.origin;
     return clipPageState.origin;
 }
 
@@ -111,7 +117,6 @@ export function clipPageKnob(k: number, delta: number, track: number): void {
 }
 
 export function resetClipPage(): void {
-    clipPageState.active = false;
     clipPageState.origin = 0;
     clipPageState.touchedKnob = -1;
     clipPageState.scaleOverlay = false;

@@ -2,7 +2,7 @@ import { portFor } from '../track/registry.js';
 import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from './state.js';
 import { mainPageActive, mainPageState } from '../seq/main-page.js';
 import { buildMainPageVM } from '../seq/main-page-vm.js';
-import { clipPageState } from '../seq/clip-page.js';
+import { clipPageActive, clipPageState } from '../seq/clip-page.js';
 import { buildClipPageVM } from '../seq/clip-page-vm.js';
 import { keyboardState, baseNoteFor, padMapFor } from '../keyboard/state.js';
 import { isSounding } from '../keyboard/held-notes.js';
@@ -151,7 +151,7 @@ function stepTrigSig(): string {
 
 let lastMainSig = '';
 function mainSig(): string {
-    return [mainPageState.active, mainPageState.touchedKnob, mainPageState.overlayKnob,
+    return [mainPageActive(), mainPageState.touchedKnob, mainPageState.overlayKnob,
         mainPageState.overlaySel, seqState.bpmX100, seqState.swingPct,
         keyboardState.rootPc, keyboardState.scale,
         keyboardState.mode, keyboardState.layout,
@@ -160,7 +160,7 @@ function mainSig(): string {
 
 let lastClipSig = '';
 function clipSig(): string {
-    return [clipPageState.active, clipPageState.touchedKnob, clipPageState.scaleOverlay,
+    return [clipPageActive(), clipPageState.touchedKnob, clipPageState.scaleOverlay,
         clipPageState.scaleSel, seqState.clipScaleIdx, seqState.lenSteps,
         seqState.clipTranspose].join(',');
 }

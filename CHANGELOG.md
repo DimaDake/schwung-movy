@@ -15,6 +15,15 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **The knob lock-up.** Three ordinary presses — Shift+Step 5 for Main Params,
+  Note/Session, then a jog click — used to leave the Main Params page latched
+  "open" behind whatever took the screen. It is asked first when a knob turns,
+  so from then on every knob anywhere fed the tempo invisibly: step length,
+  tempo, module params all dead until Movy was closed and reopened. A page being
+  open is now the same fact as being on screen rather than a second flag synced
+  by hand, so it cannot come apart.
+  ([#7](https://github.com/DimaDake/schwung-movy/issues/7))
+
 - **A pattern started on a brand-new set is no longer thrown away.** Move calls
   a set `__pending-…` until it saves it, and Movy correctly refuses to treat
   that as a set — but the pads, steps and transport work meanwhile, so a whole

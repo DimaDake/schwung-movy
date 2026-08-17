@@ -3668,6 +3668,46 @@ _log('\nTest: drumPadOn');
         teardown();
     }
 
+    /* F6 — the set is resolved AFTER the user has already played into the
+     * engine. This is what a NEW set does: Move calls it `__pending-0-1` until
+     * it saves it, which readActiveSet reports as "we don't know" — while the
+     * pads, steps and transport all work. Reported from the field: load a drum
+     * module onto a fresh set, enter a pattern, press Play, and nothing runs.
+     * The real uuid had arrived meanwhile, and pushing its (nonexistent) state
+     * landed straight on top of the pattern — clip back to zero steps, so Play
+     * had an empty clip to run and a reopen showed nothing at all. */
+    {
+        const { fs, eng } = boot({ [ACTIVE]: '__pending-0-1\nNew Set\n' });
+        eq('a pending set is not a set', currentSetUuid(), '');
+        eng.stateBlob = EDITED;                           // the user enters steps
+        seqState.dirty = true;
+
+        fs.files[ACTIVE] = 'NEW1\nUntitled\n';            // Move saves it; the real uuid appears
+        for (let i = 0; i < 200; i++) { seqEngineTick(); seqPersistTick(); }
+
+        eq('adopted the new set', currentSetUuid(), 'NEW1');
+        eq('the pattern survived', eng.stateBlob, EDITED);
+        for (let i = 0; i < 700; i++) seqPersistTick();
+        eq('and was saved under it', readBestState('NEW1').payload, EDITED);
+        teardown();
+    }
+
+    /* F6b — the counterpart: a set that DOES have state still wins. Whatever is
+     * in the engine at that point was not authored under this set, so restoring
+     * must not be talked out of it. */
+    {
+        const { fs, eng } = boot({});
+        eng.stateBlob = EDITED;
+        seqState.dirty = true;
+
+        fs.files[ACTIVE] = 'S1\nSong One\n';
+        fs.files[uuidToStatePath('S1')] = SAVED;
+        for (let i = 0; i < 200; i++) { seqEngineTick(); seqPersistTick(); }
+
+        eq('the saved set was restored', eng.stateBlob, SAVED);
+        teardown();
+    }
+
     /* F3 — closing movy flushes instead of dropping the last edits. */
     {
         const { eng } = boot({ [ACTIVE]: 'S1\nSong One\n', [uuidToStatePath('S1')]: SAVED });

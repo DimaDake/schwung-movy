@@ -24,7 +24,7 @@ import { engineReady, engineGeneration, requestLabelSync } from './engine.js';
 import { seqState } from './state.js';
 import { markUiStateDirty, takeUiDirty, clearUiDirty } from './ui-dirty.js';
 import { serializeUiState, applyUiState, resetUiState } from './ui-state.js';
-import { readActiveSet, rememberSet } from './set-context.js';
+import { BLANK_STATE, readActiveSet, rememberSet } from './set-context.js';
 import { readUiBlob, writeStateBlob, writeUiBlob } from './persist-store.js';
 import { resolveState } from './set-inherit.js';
 
@@ -61,6 +61,28 @@ function pushToEngine(payload: string): void {
     restoredGen = engineGeneration();
     seqState.dirty = false;
     saveRetry = false;
+}
+
+/* Keep what the engine is already holding and claim it for the current set —
+ * the counterpart to pushToEngine, for the case where the engine, not the disk,
+ * holds the newer truth. lastGoodPayload stays empty on purpose: it means
+ * "already durable", and these bytes are not durable anywhere yet. */
+function adoptEngineState(): void {
+    requestLabelSync();
+    lastGoodPayload = '';
+    restoredGen = engineGeneration();
+    seqState.dirty = true;
+    saveRetry = false;
+}
+
+/* Does the live engine hold a pattern? A `cl` line is a clip; an engine with
+ * none has nothing that pushing a blank state could destroy. Asked only when a
+ * set resolves to no state at all, so this round trip is paid at most once per
+ * open — and never for a set that has been saved before. */
+function engineHoldsClips(): boolean {
+    if (typeof host_module_get_param !== 'function') return false;
+    const payload = host_module_get_param('state');
+    return payload !== null && /(^|\n)cl /.test(payload);
 }
 
 /* Read the engine's state and persist it under `uuid`. `wrote` distinguishes
@@ -114,16 +136,31 @@ export function switchToSet(uuid: string, name: string, saveOld: boolean): void 
     if (saveOld && curUuid !== null && curUuid !== uuid) seqPersistFlush(true);
 
     const st = resolveState(uuid, name);
+    /* Which set we are is DISCOVERED, not known at open: Move writes a brand-new
+     * set's active_set.txt only once it saves it, and movy's pads, steps and
+     * transport all work in the meantime. So the engine can already hold a whole
+     * pattern by the time the answer arrives, and that pattern belongs to the
+     * set we just learned about — pushing its (nonexistent) state over it was
+     * silent data loss: the sequence vanished mid-session, the clip went back to
+     * zero steps, and Play then ran an empty clip. Restricted to a set with no
+     * state of its own; one that HAS state restores it, because then the disk
+     * holds something authored under this set and the engine does not. */
+    const first = curUuid === null;
+    const adopt = first && st.payload === BLANK_STATE && engineHoldsClips();
     curUuid = uuid;
     savedGen = st.gen;
-    pushToEngine(st.payload);
+    if (adopt) adoptEngineState();
+    else pushToEngine(st.payload);
 
     const ui = readUiBlob(uuid);
     if (ui && ui.length > 0) applyUiState(ui);
-    else resetUiState();
+    else if (!adopt) resetUiState();   // adopting keeps the live scale/layout too
 
     rememberSet(name, uuid);
     clearUiDirty();
+    /* Ordered after clearUiDirty, which is there to drop the OUTGOING set's
+     * pending write — the adopted UI state is the incoming set's, and unsaved. */
+    if (adopt) markUiStateDirty();
 }
 
 /* Returns true when the set changed, so the caller skips the save this tick. */

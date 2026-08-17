@@ -11,6 +11,23 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
+## [Unreleased]
+
+### Fixed
+
+- **A pattern started on a brand-new set is no longer thrown away.** Move calls
+  a set `__pending-…` until it saves it, and Movy correctly refuses to treat
+  that as a set — but the pads, steps and transport work meanwhile, so a whole
+  pattern could exist before Movy learned which set it was in. Resolving the set
+  then pushed that set's (nonexistent) state into the engine, on top of the
+  pattern: the sequence vanished mid-session, the clip went back to zero steps,
+  Play ran an empty clip, and reopening Movy showed nothing at all. Movy now
+  adopts what the engine is already holding — the pattern belongs to the set it
+  just learned about. A set that has state of its own still restores it.
+  (Reported on Discord: new set, drum module, pattern entered, Play does
+  nothing — [#4](https://github.com/DimaDake/schwung-movy/issues/4),
+  [#5](https://github.com/DimaDake/schwung-movy/issues/5).)
+
 ## [0.28.0] — 2026-08-16
 
 ### Added — sixteen tracks

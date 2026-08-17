@@ -15,6 +15,16 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **A 15-step pattern stays 15.** Pressing a step in the invisible remainder of
+  the bar — the part a sub-bar clip length hides — placed a note there, and the
+  clip was rounded up to the bar end. Movy has always refused those presses, but
+  it decided from a mirror of the clip length that reads 0 before the first
+  status poll of a session and carries the previous track's length for a moment
+  after a track switch; in both windows the press went through. The clip itself
+  now refuses, so the mirror can be as stale as it likes. Tapping a *later* bar
+  still grows the clip, an empty slot still takes its first note anywhere, and a
+  note already past the length can still be cleared.
+  ([#5](https://github.com/DimaDake/schwung-movy/issues/5))
 - **The knob lock-up.** Three ordinary presses — Shift+Step 5 for Main Params,
   Note/Session, then a jog click — used to leave the Main Params page latched
   "open" behind whatever took the screen. It is asked first when a knob turns,

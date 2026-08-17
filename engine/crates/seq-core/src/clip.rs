@@ -417,6 +417,30 @@ impl Clip {
         }
     }
 
+    /// Is `step` in the hidden tail of a sub-bar loop — past the window end but
+    /// inside the same bar, where the step row shows nothing?
+    ///
+    /// A press there must not place a note, because `extend_to_step` would then
+    /// round the clip up to the bar end and a deliberate 15-step pattern would
+    /// silently become 16. The UI refuses these presses too, but it decides from
+    /// a mirror of `len` that is refreshed by a status poll: it reads 0 before
+    /// the first poll of a session and carries the previous track's length for a
+    /// poll or two after a track switch, and in both windows the guard let the
+    /// press through. The clip itself always knows, so the rule lives here.
+    ///
+    /// A clip that does not exist yet (length 0) has no tail — every step is
+    /// fair game and creates it. Tapping a LATER bar is the native way to grow a
+    /// clip and stays allowed; only the invisible remainder of the current bar
+    /// is refused.
+    fn in_hidden_tail(&self, step: u16) -> bool {
+        if self.length_steps == 0 {
+            return false;
+        }
+        let bar = STEPS_PER_BAR as u16;
+        let end = self.loop_start_steps + self.length_steps;
+        step >= end && step < end.div_ceil(bar) * bar
+    }
+
     /// Melodic step toggle: a step containing any notes is cleared; an empty
     /// step gets the given pitches (a chord) placed with a one-step gate.
     /// Returns true if notes were added (relevant for transport auto-start).
@@ -426,6 +450,11 @@ impl Clip {
         }
         if self.step_has_notes(step) {
             self.notes.retain(|n| n.step != step);
+            return false;
+        }
+        // Checked after the clear: a note already sitting past the length can
+        // still be removed, it just cannot be created.
+        if self.in_hidden_tail(step) {
             return false;
         }
         if pitches.is_empty() {
@@ -448,6 +477,9 @@ impl Clip {
         }
         if let Some(i) = self.notes.iter().position(|n| n.step == step && n.pitch == pitch) {
             self.notes.remove(i);
+            return false;
+        }
+        if self.in_hidden_tail(step) {
             return false;
         }
         self.push_note(step, pitch, vel, inherit);
@@ -775,6 +807,52 @@ mod tests {
         // step 0 = bit 7 of byte 0, step 7 = bit 0 → byte 0 = 0x81
         assert_eq!(&hex[0..2], "81");
         assert_eq!(&hex[2..4], "00");
+    }
+
+    /* Reported from the field: "pattern length resets to 16 when I have it at
+     * 15". A press in the invisible remainder of the bar used to place a note,
+     * and extend_to_step then rounded the clip up to the bar end. The UI has a
+     * guard, but it reads a `len` mirror that is 0 before the session's first
+     * status poll and stale for a poll or two after a track switch. */
+    #[test]
+    fn a_press_in_the_hidden_tail_cannot_round_the_clip_up() {
+        let mut c = Clip::new();
+        c.set_clip_length(15);
+        assert!(!c.toggle_step(15, &[(60, 100)]), "the tail press placed a note");
+        assert_eq!(c.length_steps, 15, "a 15-step clip was rounded to the bar");
+        assert!(c.notes.is_empty());
+
+        // Drum lanes take the other door into the same rounding.
+        assert!(!c.toggle_step_pitch(15, 36, 100, false));
+        assert_eq!(c.length_steps, 15);
+        assert!(c.notes.is_empty());
+    }
+
+    #[test]
+    fn the_hidden_tail_rule_does_not_block_what_it_should_not() {
+        // An empty slot has no tail: the first press creates the clip.
+        let mut fresh = Clip::new();
+        assert!(fresh.toggle_step(15, &[(60, 100)]), "a new clip refused its first note");
+        assert_eq!(fresh.length_steps, 16);
+
+        // Tapping a LATER bar is how you grow a clip, and still is.
+        let mut grow = Clip::new();
+        grow.set_clip_length(15);
+        assert!(grow.toggle_step(16, &[(60, 100)]), "growing into the next bar was refused");
+        assert_eq!(grow.length_steps, 32);
+
+        // A note already past the length can still be cleared.
+        let mut stale = Clip::new();
+        stale.set_clip_length(32);
+        stale.toggle_step(20, &[(60, 100)]);
+        stale.set_clip_length(15);
+        assert!(!stale.toggle_step(20, &[(60, 100)]));
+        assert!(stale.notes.is_empty(), "a note past the length could not be cleared");
+
+        // A full-bar clip has no tail at all.
+        let mut full = Clip::new();
+        full.set_clip_length(16);
+        assert!(full.toggle_step(15, &[(60, 100)]), "the last step of a full bar was refused");
     }
 
     #[test]

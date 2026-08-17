@@ -153,14 +153,20 @@ export function switchToSet(uuid: string, name: string, saveOld: boolean): void 
     else pushToEngine(st.payload);
 
     const ui = readUiBlob(uuid);
-    if (ui && ui.length > 0) applyUiState(ui);
-    else if (!adopt) resetUiState();   // adopting keeps the live scale/layout too
+    const haveUi = !!(ui && ui.length > 0);
+    if (haveUi) applyUiState(ui);
+    /* The keyboard half of the same rule, and it does NOT wait for the engine to
+     * hold anything: picking In Key + Inline is exactly the kind of thing done
+     * before the first note, and resetting it the moment the set resolved put
+     * the pads back on chromatic/4th under the user's hands. A switch between
+     * two known sets still resets — that is a different set's state. */
+    else if (!first) resetUiState();
 
     rememberSet(name, uuid);
     clearUiDirty();
     /* Ordered after clearUiDirty, which is there to drop the OUTGOING set's
-     * pending write — the adopted UI state is the incoming set's, and unsaved. */
-    if (adopt) markUiStateDirty();
+     * pending write — what we kept above is the incoming set's, and unsaved. */
+    if (adopt || (first && !haveUi)) markUiStateDirty();
 }
 
 /* Returns true when the set changed, so the caller skips the save this tick. */

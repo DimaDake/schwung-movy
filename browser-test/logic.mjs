@@ -3692,6 +3692,26 @@ _log('\nTest: drumPadOn');
         teardown();
     }
 
+    /* F6a — the keyboard half, which needs no notes at all: picking In Key +
+     * Inline is what you do BEFORE the first note, and resolving the set reset
+     * the pads back to chromatic/4th under the user's hands. */
+    {
+        const { fs } = boot({ [ACTIVE]: '__pending-0-1\nNew Set\n' });
+        keyboardState.mode = 1; keyboardState.layout = 1; keyboardState.scale = 3;
+
+        fs.files[ACTIVE] = 'NEW2\nUntitled\n';
+        for (let i = 0; i < 200; i++) { seqEngineTick(); seqPersistTick(); }
+
+        eq('still In Key', keyboardState.mode, 1);
+        eq('still Inline', keyboardState.layout, 1);
+        eq('still the chosen scale', keyboardState.scale, 3);
+        for (let i = 0; i < 700; i++) seqPersistTick();
+        eq('and written under the new set',
+            JSON.parse(fs.files[uuidToUiStatePath('NEW2')]).layout, 1);
+        keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
+        teardown();
+    }
+
     /* F6b — the counterpart: a set that DOES have state still wins. Whatever is
      * in the engine at that point was not authored under this set, so restoring
      * must not be talked out of it. */

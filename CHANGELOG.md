@@ -27,6 +27,11 @@ far. Earlier work is summarised in the timeline below for context.
   (Reported on Discord: new set, drum module, pattern entered, Play does
   nothing — [#4](https://github.com/DimaDake/schwung-movy/issues/4),
   [#5](https://github.com/DimaDake/schwung-movy/issues/5).)
+- **The keyboard settings chosen before that survive too.** The same window
+  reset scale, mode, layout and octaves back to chromatic/4th the moment the set
+  resolved — picking In Key + Inline is exactly what you do before the first
+  note. They are now kept and saved under the set just learned about.
+  ([#6](https://github.com/DimaDake/schwung-movy/issues/6))
 
 ## [0.28.0] — 2026-08-16
 

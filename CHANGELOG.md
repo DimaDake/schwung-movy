@@ -11,46 +11,53 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
-## [Unreleased]
+## [0.28.1] — 2026-08-17
+
+A bug-fix release. Everything here is a fault that predates the 16-track
+release — the reports simply landed together after it.
 
 ### Fixed
 
+- **A pattern started on a brand-new Set is no longer thrown away.** Move calls
+  a Set `__pending-…` until it saves it, and Movy correctly refuses to treat
+  that as a Set — but the pads, steps and transport all work meanwhile, so a
+  whole pattern could exist before Movy learned which Set it was in. Resolving
+  the Set then pushed that Set's state — nonexistent, so blank — straight on top
+  of the pattern: the sequence vanished mid-session, the clip went back to zero
+  steps, **Play ran an empty clip and nothing moved**, and reopening Movy showed
+  nothing at all. Movy now adopts what the engine is already holding, because
+  that pattern belongs to the Set it just learned about. A Set that has state of
+  its own still restores it.
+  ([#4](https://github.com/DimaDake/schwung-movy/issues/4),
+  [#5](https://github.com/DimaDake/schwung-movy/issues/5))
+- **The keyboard settings chosen before that survive too.** The same window
+  reset scale, mode, layout and per-track octaves back to chromatic/4th the
+  moment the Set resolved — picking In Key + Inline is exactly what you do
+  before the first note. They are kept now, and saved under the Set just learned
+  about. ([#6](https://github.com/DimaDake/schwung-movy/issues/6))
+- **The knob lock-up.** Three ordinary presses — Shift+Step 5 for Main Params,
+  Note/Session, then a jog click — left the Main Params page latched "open"
+  behind whatever took the screen. That page is asked first when a knob turns,
+  so from then on every knob anywhere fed the tempo invisibly, and step length,
+  tempo and module params were all dead until Movy was closed and reopened. A
+  page being open is now the same fact as being on screen rather than a second
+  flag synced by hand, so the two cannot come apart.
+  ([#7](https://github.com/DimaDake/schwung-movy/issues/7))
 - **A 15-step pattern stays 15.** Pressing a step in the invisible remainder of
   the bar — the part a sub-bar clip length hides — placed a note there, and the
   clip was rounded up to the bar end. Movy has always refused those presses, but
   it decided from a mirror of the clip length that reads 0 before the first
   status poll of a session and carries the previous track's length for a moment
   after a track switch; in both windows the press went through. The clip itself
-  now refuses, so the mirror can be as stale as it likes. Tapping a *later* bar
-  still grows the clip, an empty slot still takes its first note anywhere, and a
+  refuses now, so the mirror can be as stale as it likes. Tapping a *later* bar
+  still grows a clip, an empty slot still takes its first note anywhere, and a
   note already past the length can still be cleared.
   ([#5](https://github.com/DimaDake/schwung-movy/issues/5))
-- **The knob lock-up.** Three ordinary presses — Shift+Step 5 for Main Params,
-  Note/Session, then a jog click — used to leave the Main Params page latched
-  "open" behind whatever took the screen. It is asked first when a knob turns,
-  so from then on every knob anywhere fed the tempo invisibly: step length,
-  tempo, module params all dead until Movy was closed and reopened. A page being
-  open is now the same fact as being on screen rather than a second flag synced
-  by hand, so it cannot come apart.
-  ([#7](https://github.com/DimaDake/schwung-movy/issues/7))
 
-- **A pattern started on a brand-new set is no longer thrown away.** Move calls
-  a set `__pending-…` until it saves it, and Movy correctly refuses to treat
-  that as a set — but the pads, steps and transport work meanwhile, so a whole
-  pattern could exist before Movy learned which set it was in. Resolving the set
-  then pushed that set's (nonexistent) state into the engine, on top of the
-  pattern: the sequence vanished mid-session, the clip went back to zero steps,
-  Play ran an empty clip, and reopening Movy showed nothing at all. Movy now
-  adopts what the engine is already holding — the pattern belongs to the set it
-  just learned about. A set that has state of its own still restores it.
-  (Reported on Discord: new set, drum module, pattern entered, Play does
-  nothing — [#4](https://github.com/DimaDake/schwung-movy/issues/4),
-  [#5](https://github.com/DimaDake/schwung-movy/issues/5).)
-- **The keyboard settings chosen before that survive too.** The same window
-  reset scale, mode, layout and octaves back to chromatic/4th the moment the set
-  resolved — picking In Key + Inline is exactly what you do before the first
-  note. They are now kept and saved under the set just learned about.
-  ([#6](https://github.com/DimaDake/schwung-movy/issues/6))
+### Engine
+
+`ENGINE_VERSION` 0.33.0 → 0.34.0 (the clip-length rule above lives in
+`seq-core`), so the DSP reloads on update.
 
 ## [0.28.0] — 2026-08-16
 

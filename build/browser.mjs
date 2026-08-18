@@ -131,6 +131,8 @@ await esbuild.build({
         resolve(root, 'src/seq/set-load.ts'),
         resolve(root, 'src/seq/set-save.ts'),
         resolve(root, 'src/seq/set-session.ts'),
+        resolve(root, 'src/seq/set-fail.ts'),
+        resolve(root, 'src/renderer/loading-view.ts'),
         resolve(root, 'src/seq/set-inherit.ts'),
         resolve(root, 'src/seq/ui-state.ts'),
         resolve(root, 'src/seq/set-context.ts'),

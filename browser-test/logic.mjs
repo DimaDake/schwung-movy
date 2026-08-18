@@ -3680,6 +3680,48 @@ _log('\nTest: drumPadOn');
         teardown();
     }
 
+    /* R9 — a Set whose state file will not parse is NAMED, not silently blanked.
+     * The loader falls back to blank on unreadable state, and a silent blank is
+     * exactly how a set "disappears" from the user's point of view. Recovery is
+     * offered rather than taken: the file may still be salvageable off-device,
+     * and movy overwriting it destroys the only copy. */
+    {
+        const { sessionError } = await import('../dist/esm/seq/set-session.js');
+        const { sessionStartFromScratch } = await import('../dist/esm/seq/set-fail.js');
+        const fs = installMockFs({ [ACTIVE]: 'BAD\nBroken Set\n' });
+        const eng = installMockEngine();
+        resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
+        fs.files[uuidToStatePath('BAD')] = 'not a movy blob at all';
+        run();
+
+        eq('R9 the failure is reported', sessionPhase(), 'failed');
+        eq('R9 and named', sessionError(), 'SET FILE UNREADABLE');
+        eq('R9 movy is not live', sessionReady(), false);
+        eq('R9 the bad file was not overwritten',
+            fs.files[uuidToStatePath('BAD')], 'not a movy blob at all');
+
+        sessionStartFromScratch();      // the user takes the offer
+        run();
+        eq('R9 starting from scratch recovers', sessionPhase(), 'ready');
+        eq('R9 on the same set', currentSetUuid(), 'BAD');
+        eq('R9 with a readable file now', readBestState('BAD') !== null, true);
+        teardown();
+    }
+
+    /* R10 — an engine that never answers is a failure, not an endless spinner. */
+    {
+        const { sessionError } = await import('../dist/esm/seq/set-session.js');
+        const eng = installMockEngine();
+        installMockFs({ [ACTIVE]: 'S1\nSong One\n' });
+        resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
+        eng.statusUnavailable = true;
+        eng.pingUnavailable = true;
+        run(4000);                      // past every probe and load retry
+        eq('R10 gave up visibly', sessionPhase(), 'failed');
+        eq('R10 and said why', sessionError(), 'ENGINE DID NOT START');
+        teardown();
+    }
+
     /* R7 — teardown flushes rather than dropping the last edits. */
     {
         const { eng } = boot({ [ACTIVE]: 'S1\nSong One\n', [uuidToStatePath('S1')]: SAVED });

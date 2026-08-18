@@ -25,7 +25,8 @@ import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
 import { concreteKey } from '../model/pad-scope.js';
 import { mlog } from '../log.js';
-import { sessionTick } from '../seq/set-session.js';
+import { sessionError, sessionPhase, sessionReady, sessionTick } from '../seq/set-session.js';
+import { renderLoadingView } from '../renderer/loading-view.js';
 import { tempoOverrideTick } from '../seq/tempo-override.js';
 import { captureTick } from '../seq/capture.js';
 import { seqLedsTick, seqLedsInvalidate, displayHoldNotes } from '../seq/leds.js';
@@ -439,6 +440,10 @@ function tickBody(): void {
             renderBrowseView(browserState.modules, browserState.browseIndex, browseTitle);
         } else if (appState.currentView === VIEW_FILE_BROWSE) {
             if (appState.fileBrowserState) renderFileBrowseView(appState.fileBrowserState);
+        } else if (!sessionReady()) {
+            /* Ahead of every view: until the Set is in the engine there is
+             * nothing truthful to draw, and input is refused anyway. */
+            renderLoadingView(sessionPhase(), sessionError());
         } else if (appState.currentView === VIEW_MAIN_PARAMS) {
             const vm = buildMainPageVM();
             renderKnobsView(vm, false, appState.activeTrack.index);

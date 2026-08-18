@@ -14,15 +14,15 @@
  * state? — and nothing ever waits on identity. */
 
 import { mlog } from '../log.js';
-import { engineGeneration, engineReady } from './engine.js';
-import { readActiveSetAny, rememberSet } from './set-context.js';
+import { engineAbsent, engineGeneration, engineReady } from './engine.js';
+import { BLANK_STATE, fileExists, readActiveSetAny, rememberSet, uuidToStatePath } from './set-context.js';
 import { readBestState, readUiBlob, writeStateBlob, writeUiBlob } from './persist-store.js';
 import { clearUiDirty, markUiStateDirty } from './ui-dirty.js';
 import { resetUiState } from './ui-state.js';
 import { loadSet, setHasState } from './set-load.js';
 import { adoptSaved, resetSetSave, saveNeeded, saveSet, savedPayload } from './set-save.js';
 
-export type Phase = 'booting' | 'loading' | 'ready' | 'switching';
+export type Phase = 'booting' | 'loading' | 'ready' | 'switching' | 'failed';
 
 const SAVE_TICKS = 600;      // ~3-8 s: the device tick is 63-205 Hz and varies with load
 const SET_POLL_TICKS = 96;   // ~0.5 s: catch a set switch, including on resume
@@ -36,8 +36,17 @@ let gen = 0;
 let loadedGen = -1;
 let saveCountdown = SAVE_TICKS;
 let pollCountdown = 1;
+let failReason = '';
 
 export function sessionPhase(): Phase { return phase; }
+export function sessionError(): string { return failReason; }
+/* set-fail.ts drives these: the failure states and their one recovery live
+ * there so this file stays the lifecycle and nothing else. */
+export function setPhase(p: Phase): void { phase = p; }
+export function setFailure(reason: string): void { failReason = reason; phase = 'failed'; }
+export function clearFailure(): void { failReason = ''; phase = 'booting'; pollCountdown = 1; }
+export function currentGen(): number { return gen; }
+export function bumpGen(): void { gen++; }
 export function sessionReady(): boolean { return phase === 'ready'; }
 export function currentSetUuid(): string { return setId; }
 
@@ -45,6 +54,7 @@ export function resetSetSession(): void {
     phase = 'booting';
     setId = ''; setName = ''; gen = 0; loadedGen = -1;
     saveCountdown = SAVE_TICKS; pollCountdown = 1;
+    failReason = '';
     resetSetSave();
     clearUiDirty();
 }
@@ -86,6 +96,17 @@ function rename(toId: string, toName: string): void {
 
 function enterLoading(id: string, name: string): void {
     phase = 'loading';
+    /* A Set whose blob is on disk but unreadable is the case worth naming: the
+     * loader falls back to blank, and a silent blank is exactly how a set
+     * "disappears" from the user's point of view. */
+    const stored = readBestState(id);
+    if (stored === null && fileExists(uuidToStatePath(id))) {
+        failReason = 'SET FILE UNREADABLE';
+        mlog('seq: FAILED — ' + id + ' has a state file that will not parse');
+        setId = id; setName = name;
+        phase = 'failed';
+        return;
+    }
     const st = loadSet(id, name);
     setId = id; setName = name; gen = st.gen;
     adoptSaved(st.payload);
@@ -118,8 +139,31 @@ export function sessionFlush(force = false): void {
 }
 
 export function sessionTick(): void {
-    if (!engineReady() || !filesAvailable()) {
+    /* The engine stopped being probed: say so, rather than showing a loading
+     * screen that will never finish. */
+    if (engineAbsent()) {
+        if (phase !== 'failed') {
+            failReason = 'ENGINE DID NOT START';
+            mlog('seq: FAILED — the engine never answered');
+            phase = 'failed';
+        }
+        return;
+    }
+    if (phase === 'failed') return;   // waiting on the user
+    if (!engineReady()) {
         if (phase === 'ready') phase = 'booting';   // the engine went away
+        return;
+    }
+    /* No file APIs: movy cannot persist anything, but it must still play. Going
+     * ready with no Set keeps the instrument usable instead of gating it
+     * forever behind a load that can never happen — the autosave and the
+     * identity poll below both no-op without a Set. */
+    if (!filesAvailable()) {
+        if (phase !== 'ready') {
+            phase = 'ready';
+            loadedGen = engineGeneration();
+            mlog('seq: no file API — running without per-set persistence');
+        }
         return;
     }
     /* A generation we did not load into is an EMPTY engine: push the Set back

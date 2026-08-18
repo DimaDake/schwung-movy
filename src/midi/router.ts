@@ -3,6 +3,8 @@ import { focusedTrack, focusGroupStep, GROUP_DIR_UP, GROUP_DIR_DOWN } from '../t
 import { beginTrackSwitch, restoreTrackState, switchToTrack } from '../track/switch.js';
 import { portFor } from '../track/registry.js';
 import { setButtonHeld } from '../seq/button-held.js';
+import { sessionPhase, sessionReady } from '../seq/set-session.js';
+import { sessionStartFromScratch } from '../seq/set-fail.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } from '../app/state.js';
 import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease, closeMainPage } from '../seq/main-page.js';
 import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease, closeClipPage } from '../seq/clip-page.js';
@@ -115,6 +117,22 @@ export function onMidiMessageInternal(data: number[]): void {
      * whose press is swallowed by a modal is still physically down, and its LED
      * must not stay dim under the finger. */
     trackButtonPress(data);
+
+    /* Nothing is live until the engine holds this Set. A press accepted before
+     * then used to queue into an engine that did not exist yet and flush on the
+     * very tick a blank state landed on top of it — the whole reason the set
+     * lifecycle was rewritten. Two exceptions, both about not trapping the
+     * user: Back always exits, and on the failure screen the jog click is the
+     * one offered recovery. */
+    if (!sessionReady()) {
+        const isCc = (data[0] & 0xF0) === 0xB0 && data[2] > 0;
+        if (isCc && data[1] === MoveBack) { /* fall through to the Back handler */ }
+        else if (isCc && data[1] === MoveMainButton && sessionPhase() === 'failed') {
+            sessionStartFromScratch();
+            appState.dirty = true;
+            return;
+        } else return;
+    }
 
     // The Leave-Movy modal owns all input while it is up: jog turn moves the
     // highlight, jog click confirms (Background parks / Close exits), Back

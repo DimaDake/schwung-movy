@@ -74,6 +74,13 @@ export function engineReady(): boolean {
     return bootState === 'ok';
 }
 
+/** The engine has stopped being probed for now — it never answered, or it
+ *  stopped answering and gave up. The session turns this into a visible
+ *  failure rather than an indefinite loading screen. */
+export function engineAbsent(): boolean {
+    return bootState === 'absent';
+}
+
 /* Monotonic UI-tick counter, for short interaction timers (e.g. double-tap
  * detection) that need a coarse clock without wall-time access. */
 let uiTickCount = 0;

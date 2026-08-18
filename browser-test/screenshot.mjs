@@ -34,6 +34,7 @@ const UPDATE     = process.argv.includes('--update');
 const PRESETS = [
     'test8', 'test16', 'test_enum', 'test_steps', 'plaits', 'wurl',
     'enum_overlay', 'knob_toast', 'no_params', 'keys_view', 'browse_view',
+    'session_booting', 'session_loading', 'session_failed',
     'obxd_preset_page', 'obxd_main_page', 'obxd_filter_page',
     'lfo_prefix', 'collide_osc',
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
@@ -168,6 +169,7 @@ const { drawVolumeOverlay } = await import('../dist/esm/renderer/volume-overlay.
 const { volumeFrac }       = await import('../dist/esm/mixer/track-volume.js');
 const { renderKnobsView }  = await import('../dist/esm/renderer/knob-view.js');
 const { renderKeysView }   = await import('../dist/esm/renderer/keys-view.js');
+const { renderLoadingView } = await import('../dist/esm/renderer/loading-view.js');
 const { renderBrowseView } = await import('../dist/esm/renderer/browse-view.js');
 const { renderChainView }  = await import('../dist/esm/renderer/chain-view.js');
 const { buildStepPageVM }  = await import('../dist/esm/seq/step-page-vm.js');
@@ -322,6 +324,13 @@ function applyView(preset) {
         case 'enum_overlay':     model.handleKnobTouch(0); forceRender(); break;
         case 'knob_toast':       model.handleKnobTouch(2); forceRender(); break;
         case 'keys_view':        showKeys(); break;
+        /* The three states movy shows before it is live. The failed one names
+         * what broke and what the jog click will do, because that click wipes
+         * the Set's sequencer state. */
+        case 'session_booting':  lastRender = () => renderLoadingView('booting', ''); lastRender(); break;
+        case 'session_loading':  lastRender = () => renderLoadingView('loading', ''); lastRender(); break;
+        case 'session_failed':
+            lastRender = () => renderLoadingView('failed', 'ENGINE DID NOT START'); lastRender(); break;
         case 'browse_view':      showBrowse([{ name: 'Plaits' }, { name: 'Wurl' }, { name: 'Bass' }], 1); break;
         /* Trigger badge phases. Time is frozen so the fired flash and two drain
          * positions are deterministic; the drain is what makes the re-arm

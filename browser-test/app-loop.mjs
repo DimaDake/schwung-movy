@@ -817,6 +817,50 @@ _log('\napp-loop: active-set switch reloads the engine');
     eq('the work followed it', (fs[stPath('s3-uuid')] || '').includes('bpm 14900'), true);
 }
 
+_log('\napp-loop: nothing is live until the Set is loaded');
+{
+    resetApp();
+    const { sessionReady, sessionPhase, resetSetSession: resetSess } =
+        await import('../dist/esm/seq/set-session.js');
+    resetSess();                       // back to 'booting', before any load
+
+    /* A press before the engine holds the Set used to queue into a
+     * not-yet-existing engine and flush on the very tick a blank state landed
+     * on top of it. Now it is simply refused. */
+    eq('gate: not ready at open', sessionReady(), false);
+    eq('gate: phase is booting', sessionPhase(), 'booting');
+    engine.ops.length = 0;
+    sendMidi([0x90, STEP_NOTE_BASE, 127]);
+    sendMidi([0x80, STEP_NOTE_BASE, 0]);
+    advance(2);
+    eq('gate: the press queued nothing',
+        engine.ops.filter((o) => o.startsWith('tog') || o.startsWith('ltog')).length, 0);
+
+    /* Back must always work, or an engine that never boots traps the user
+     * inside movy with no way out. */
+    let exited = false;
+    const origExit = globalThis.host_exit_module;
+    globalThis.host_exit_module = () => { exited = true; };
+    sendMidi([0xB0, globalThis.MoveBack, 127]);
+    advance(1);
+    sendMidi([0xB0, globalThis.MoveBack, 0]);
+    advance(1);
+    globalThis.host_exit_module = origExit;
+    /* Back at the root view opens the Leave-Movy modal rather than exiting, and
+     * that IS the handler being reached: the press was not swallowed by the
+     * gate. Either outcome proves the point. */
+    eq('gate: Back still reaches its handler', exited || leaveModalActive(), true);
+
+    /* Leave nothing behind: the modal swallows input while it is up, and the
+     * session outlives init(), so without both of these every later test in
+     * this file runs against a movy that is ignoring it. */
+    if (leaveModalActive()) { sendMidi([0xB0, globalThis.MoveBack, 127]); advance(1); }
+    eq('gate: the modal is closed again', leaveModalActive(), false);
+    resetApp();
+    advance(30);
+    eq('gate: ready again for the tests below', sessionReady(), true);
+}
+
 _log('\napp-loop: LFO chain slot reachable + drill');
 {
     resetApp();
@@ -1100,6 +1144,13 @@ _log('\napp-loop: teardown flushes pending state');
     globalThis.onUnload();
     eq('teardown wrote the set', typeof fs[stPath('u1-uuid')], 'string');
     eq('teardown kept the edit', fs[stPath('u1-uuid')].includes('bpm 15500'), true);
+
+    /* onUnload() is a teardown: the session it left behind is not live, and the
+     * gate means every later test would be talking to a movy that ignores it.
+     * Bring it back up on the same mock fs. */
+    resetSetSession();
+    resetApp();
+    advance(30);
 }
 
 /* ── shift+jog skips a whole level through the real router ───────────────── */
@@ -1878,11 +1929,15 @@ _log('\napp-loop: the module browser loads onto a movy-hosted track');
 
 _log('\napp-loop: the step view follows the FOCUSED track, not the button index');
 {
+    /* The block above uninstalls the mock engine, and movy refuses input until
+     * the engine holds the Set — so this needs one back before it can press a
+     * track button. */
+    installMockEngine();
     engine.reset();
     env.setParams(MOCK_SYNTHS.file_param);
-    resetSeqState(); resetSeqEngine();
+    resetSeqState(); resetSeqEngine(); resetSetSession();
     globalThis.init();
-    advance(6);
+    advance(30);
     selectTrack(0);
 
     /* Device report: entering steps on track 1 also set them on 5, 9 and 13.

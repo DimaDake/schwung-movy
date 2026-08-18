@@ -15,6 +15,9 @@ export function installMockEngine() {
         status: { play: 0, tick: 0, bpm: 12000 },
         /* set true to simulate an engine that lacks the protocol */
         statusUnavailable: false,
+        /* Set true to simulate a DSP that never loads: the UI probes `ping`
+         * until it gives up and declares the engine absent. */
+        pingUnavailable: false,
         setParamCalls: 0,
         getParamCalls: 0,
         /* DSP (re)load requests ("load" key, shim-handled on device) */
@@ -38,6 +41,7 @@ export function installMockEngine() {
             this.ops = [];
             this.status = { play: 0, tick: 0, bpm: 12000 };
             this.statusUnavailable = false;
+            this.pingUnavailable = false;
             this.setParamCalls = 0;
             this.getParamCalls = 0;
             this.loadRequests = [];
@@ -111,7 +115,7 @@ export function installMockEngine() {
                 .map(([k, v]) => `${k}=${v}`)
                 .join(' ');
         }
-        if (key === 'ping') return 'pong ' + ENGINE_VERSION;
+        if (key === 'ping') return engine.pingUnavailable ? null : 'pong ' + ENGINE_VERSION;
         if (key === 'alabels') return engine.alabels;
         if (key === 'state') return engine.stateBlob;
         return null;

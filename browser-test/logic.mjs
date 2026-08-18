@@ -3764,6 +3764,8 @@ _log('\nTest: drumPadOn');
     _log('\nset-load:');
     const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
     const { setHasState, loadSet, pushState } = await import('../dist/esm/seq/set-load.js');
+    const { seqState } = await import('../dist/esm/seq/state.js');
+    const { readBestState } = await import('../dist/esm/seq/persist-store.js');
 
     const SAVED = 'movy1\nbpm 14000\ncl 0 0 16 0 0:24:60:100\n';
 
@@ -3789,6 +3791,41 @@ _log('\nTest: drumPadOn');
         const eng = installMockEngine();
         pushState('movy1\nbpm 12000\n');
         eq('pushState reaches the engine', eng.stateBlob, 'movy1\nbpm 12000\n');
+        uninstallMockEngine(); uninstallMockFs();
+    }
+
+    /* set-save: the engine's payload reaches disk, and an unchanged payload is
+     * not rewritten — flash on this device is not free. */
+    {
+        installMockFs({});
+        const eng = installMockEngine();
+        const { saveSet, resetSetSave } = await import('../dist/esm/seq/set-save.js');
+        resetSetSave();
+
+        eng.stateBlob = 'movy1\nbpm 13000\n';
+        seqState.dirty = true;
+        const first = saveSet('S9', 0, true);
+        eq('saveSet wrote', first.wrote, true);
+        eq('and it is readable back', readBestState('S9').payload, 'movy1\nbpm 13000\n');
+
+        const second = saveSet('S9', first.gen, true);
+        eq('an unchanged payload is not rewritten', second.wrote, false);
+        uninstallMockEngine(); uninstallMockFs();
+    }
+
+    /* A failed write must stay pending: reading `state` clears the engine's own
+     * dirty flag, so a write we drop is one nothing will ask us for again. */
+    {
+        const fs = installMockFs({});
+        const eng = installMockEngine();
+        const { saveSet, saveNeeded, resetSetSave } = await import('../dist/esm/seq/set-save.js');
+        resetSetSave();
+        fs.failWrites = true;
+        eng.stateBlob = 'movy1\nbpm 14500\n';
+        seqState.dirty = true;
+        const r = saveSet('S8', 0, true);
+        eq('a failed write reports failure', r.ok, false);
+        eq('and stays pending past the engine mirror', saveNeeded(), true);
         uninstallMockEngine(); uninstallMockFs();
     }
 }

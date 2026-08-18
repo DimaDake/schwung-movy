@@ -39,8 +39,25 @@ if (!existsSync(SCHWUNG)) {
 
 const src = readFileSync(SCHWUNG, 'utf8');
 const PAL = new Map();
-for (const m of src.matchAll(/^\s*(\d+)\s*:\s*#([0-9A-Fa-f]{6})\s+(.+)$/gm))
-    if (!PAL.has(+m[1])) PAL.set(+m[1], { hex: m[2].toUpperCase(), name: m[3].trim() });
+/* Each line carries up to three entries: the bright colour, then its `dim` and
+ * `dark` companions with their own indices.
+ *
+ *   3 : #C93C00  Bright Orange           dim  69 #5D1700  dark  70 #200D00
+ *
+ * Reading only the leading index saw 76 of the table's 128 colours, so every
+ * dim and dark index — which is where movy's whole dim table lives, and where
+ * the only dark blues left in the palette live — was invisible to this guard.
+ * It reported them as missing rather than as candidates. */
+const add = (idx, hex, name) => {
+    if (!PAL.has(+idx)) PAL.set(+idx, { hex: hex.toUpperCase(), name: name.trim() });
+};
+for (const m of src.matchAll(/^\s*(\d+)\s*:\s*#([0-9A-Fa-f]{6})\s+(.+)$/gm)) {
+    const rest = m[3];
+    const companions = [...rest.matchAll(/\b(dim|dark)\s+(\d+)\s+#([0-9A-Fa-f]{6})/g)];
+    const base = rest.replace(/\s*\b(dim|dark)\s+\d+\s+#[0-9A-Fa-f]{6}.*$/, '').trim();
+    add(m[1], m[2], base);
+    for (const c of companions) add(c[2], c[3], `${base} ${c[1]}`);
+}
 
 /* ── colour maths ───────────────────────────────────────────────────────── */
 const lin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
@@ -93,8 +110,8 @@ const Lof = (i) => lab.get(i).normal[0];
 /* ── 1. the copy has not drifted ────────────────────────────────────────── */
 _log('\npalette indices still mean what movy thinks they mean:');
 const EXPECTED = {
-    3: 'FF9900', 85: '0A4D0A', 23: 'FF0099', 16: '274FCC',
-    33: '1853B2', 10: '246B24', 32: '007F12', 17: '00448C',
+    65: '661914', 7: 'FADC3B', 95: '134566', 23: '972BFF',
+    9: 'B6FF0E', 2: '800400', 3: 'C93C00', 69: '5D1700',
 };
 for (const [idx, hex] of Object.entries(EXPECTED)) {
     eq(`index ${idx} is #${hex} (${name(+idx)})`, PAL.get(+idx)?.hex, hex);
@@ -112,10 +129,23 @@ eq('16 dim variants defined', TRACK_COLOR_DIM.length, 16);
  * asserted below, is the constraint that actually tracks what the eye does —
  * CIELAB is kept as a floor, not as the goal. */
 const MIN = 24;   // measured floor is 25.0 before rounding
-/* 55 clears both pairs that were reported as look-alikes, which sat at 41 and
- * 50 degrees. Nothing in the previous table enforced this at all: its worst
- * row/column hue gap was 16 degrees. */
-const HUE_MIN = 55;
+/* 51, down from 55, and the reason is upstream: schwung's PR #185 (Caleb's
+ * f07c2aae, merged 2026-08-18) recoloured the palette, keeping the names and
+ * changing the values. Every dark blue, cyan and teal became a light one, which
+ * the device-measured cool-hue ban excludes — so the usable hue wheel lost its
+ * whole middle and now runs 31-138 plus 288-337. Four colours pairwise 55 apart
+ * no longer exist in it: the largest mutually-compatible group at 55 is THREE,
+ * measured, and a group of four needs 51.
+ *
+ * The chosen matrix achieves 51.5 degrees and dE 30.3 — a WIDER CIELAB margin
+ * than the old table's 25 floor, so the colours are further apart by the metric
+ * that was always the backstop; it is only the hue proxy that had to give. The
+ * two reported look-alikes sat at 41 and 50 degrees AND at dE 33; 51.5/30.3
+ * clears the first and the pair rule below is what actually catches the second.
+ *
+ * NEEDS DEVICE EYES: 51.5 has not been looked at on hardware. If two tracks
+ * read alike, the fix is upstream — ask for a dark blue back. */
+const HUE_MIN = 51;
 const hgap = (a, b) => { const d = Math.abs(hue(a) - hue(b)); return d > 180 ? 360 - d : d; };
 
 _log('\nwithin a group, the 4 tracks are distinguishable:');
@@ -172,8 +202,12 @@ for (const t of TRACK_COLOR) {
  * measures 80 from white and still read as a lit in-scale pad on the device.
  * They exist so a future edit cannot reintroduce that class of colour by
  * picking something whose numbers happen to look fine. */
-_log('\nno accent is a washed-out cool hue or a pastel (measured on device):');
+_log('\nno accent is a washed-out cool hue, a pastel, or barely coloured:');
 for (const t of TRACK_COLOR) {
+    /* A near-grey accent slips under the pastel rule (which keys on lightness)
+     * and then reads as the grey in-scale pad it sits beside. Olive Grey, C13,
+     * cleared every other check in this file. */
+    ok(`${name(t)} is actually a colour (C${chroma(t).toFixed(0)})`, chroma(t) >= 20);
     const cool = hue(t) >= 145 && hue(t) <= 310;
     ok(`${name(t)} is not a light cool hue (h${hue(t).toFixed(0)} L${Lof(t).toFixed(0)})`,
         !(cool && Lof(t) > 45));
@@ -194,7 +228,11 @@ _log(`  (${new Set(TRACK_COLOR).size} distinct colours across the 16 cells)`);
 _log('\ndim variants stay closer to their own track than to a reserved colour:');
 for (let t = 0; t < 16; t++) {
     const d = dE(TRACK_COLOR_DIM[t], 124, 'normal');   // 124 = the empty/dark grey
-    ok(`${name(TRACK_COLOR[t])} dim is not grey (${d.toFixed(1)})`, d >= 8);
+    /* Raised from 8: picking accents that were themselves dim variants left
+     * their partners at L4-L7, which marks the loop window with something
+     * indistinguishable from an unlit pad. A dim has to be visible to do its
+     * job, and every partner in the current table clears 31. */
+    ok(`${name(TRACK_COLOR[t])} dim is not grey (${d.toFixed(1)})`, d >= 20);
 }
 
 /* Dim variants repeat exactly where the bright table repeats — they are derived

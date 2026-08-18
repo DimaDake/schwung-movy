@@ -43,10 +43,10 @@ export const C_REC_RED = 127;  // Red — recording indicator (index 1 renders p
  * indices still mean what they mean in schwung's own palette — the table here
  * is a copy, and a copy can drift. */
 export const TRACK_COLOR = [
-    3, 85, 23, 16,        // G1: Bright Orange, Dark Grass Green, Neon Pink, Royal Blue
-    33, 3, 10, 23,        // G2: Blue, Bright Orange, Dull Green, Neon Pink
-    32, 23, 17, 3,        // G3: Deep Green, Neon Pink, Navy, Bright Orange
-    23, 17, 3, 10,        // G4: Neon Pink, Navy, Bright Orange, Dull Green
+    65, 7, 95, 23,        // G1: Bright Red dim, Vivid Yellow, Azure Blue dim, Neon Pink
+    9, 2, 23, 95,         // G2: Bright Lime, Orange Red, Neon Pink, Azure Blue dim
+    95, 23, 3, 9,         // G3: Azure Blue dim, Neon Pink, Bright Orange, Bright Lime
+    23, 95, 9, 69,        // G4: Neon Pink, Azure Blue dim, Bright Lime, Bright Orange dim
 ];
 
 
@@ -55,10 +55,10 @@ export const TRACK_COLOR = [
  * dim colour marks the LOOP WINDOW. Each shares its bright partner's hue and is
  * clearly darker. They repeat wherever the bright table repeats. */
 export const TRACK_COLOR_DIM = [
-    75, 78, 109, 95,      // Brown-Yellow, Dark Olive, Deep Magenta, Dark Blue
-    95, 75, 83, 109,      // Dark Blue, Brown-Yellow, Dark Olive Green, Deep Magenta
-    83, 109, 93, 75,      // Dark Olive Green, Deep Magenta, Deep Blue, Brown-Yellow
-    109, 93, 75, 83,      // Deep Magenta, Deep Blue, Brown-Yellow, Dark Olive Green
+    71, 77, 103, 109,     // Tan dim, Vivid Yellow dim, Electric Violet dim, Neon Pink dim
+    81, 71, 109, 103,     // Bright Lime dim, Tan dim, Neon Pink dim, Electric Violet dim
+    103, 109, 6, 81,      // Electric Violet dim, Neon Pink dim, Ochre, Bright Lime dim
+    109, 103, 81, 71,     // Neon Pink dim, Electric Violet dim, Bright Lime dim, Tan dim
 ];
 
 export function trackColor(track: number): number {

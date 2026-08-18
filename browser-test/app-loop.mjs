@@ -33,7 +33,7 @@ await import('../dist/esm/app/globals.js');
 const { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_BROWSE, VIEW_FILE_BROWSE } = await import('../dist/esm/app/state.js');
 const { seqState, resetSeqState, occHasStep } = await import('../dist/esm/seq/state.js');
 const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
-const { resetSeqPersist } = await import('../dist/esm/seq/persist.js');
+const { resetSetSession } = await import('../dist/esm/seq/set-session.js');
 const { CC_NOTE_SESSION, STEP_NOTE_BASE } = await import('../dist/esm/seq/constants.js');
 const { anyStepHeld, STEP_AUTO_MS } = await import('../dist/esm/seq/step-edit.js');
 const { stepPageState } = await import('../dist/esm/seq/step-page.js');
@@ -787,22 +787,34 @@ _log('\napp-loop: active-set switch reloads the engine');
     const stPath = (u) => '/data/UserData/schwung/modules/tools/movy/sets/' + u + '/seq-state.json';
 
     fs[ACTIVE] = 's1-uuid\nSet One\n';
-    resetSeqPersist();                       // force a fresh boot-load
+    resetSetSession();                       // force a fresh boot-load
     resetApp();                              // init() + settle; boot-load reads S1
     advance(4);
     const loadsAfterBoot = engine.stateLoads.length;
     eq('boot loaded a set blob', loadsAfterBoot >= 1, true);
 
-    // Switch the active set; the poll (~96 ticks) must reload for the new UUID.
-    // The engine reports edited state, so switching out must persist it — the
-    // flush is forced there rather than trusting the 24 Hz dirty mirror, which
-    // can still read clean for an edit made moments before the switch.
+    /* Switch to a set that ALREADY HAS state: the poll (~96 ticks) must save the
+     * outgoing set and load the incoming one. The engine reports edited state,
+     * so the switch-out flush is forced rather than trusting the 24 Hz dirty
+     * mirror, which can still read clean for an edit made moments before. */
     engine.stateBlob = 'movy1\nbpm 13700\ncl 0 0 16 0 0:24:60:100\n';
+    fs[stPath('s2-uuid')] = 'movy1\nbpm 10000\n';
     fs[ACTIVE] = 's2-uuid\nSet Two\n';
     advance(120);
     eq('set switch triggered a fresh engine load', engine.stateLoads.length > loadsAfterBoot, true);
     eq('S1 saved on switch-out', typeof fs[stPath('s1-uuid')], 'string');
     eq('S1 kept its edits', fs[stPath('s1-uuid')].includes('bpm 13700'), true);
+
+    /* And the counterpart, which is the whole point of the rewrite: moving to a
+     * set with NO state is a rename, not a load. Nothing is pushed into the
+     * engine, so the work in hand survives and lands under the new id. */
+    const loadsBeforeRename = engine.stateLoads.length;
+    engine.stateBlob = 'movy1\nbpm 14900\ncl 0 0 16 0 0:24:64:100\n';
+    seqState.dirty = true;
+    fs[ACTIVE] = 's3-uuid\nSet Three\n';
+    advance(120);
+    eq('a set with no state is not loaded over', engine.stateLoads.length, loadsBeforeRename);
+    eq('the work followed it', (fs[stPath('s3-uuid')] || '').includes('bpm 14900'), true);
 }
 
 _log('\napp-loop: LFO chain slot reachable + drill');
@@ -1079,7 +1091,7 @@ _log('\napp-loop: teardown flushes pending state');
     const stPath = (u) => '/data/UserData/schwung/modules/tools/movy/sets/' + u + '/seq-state.json';
 
     fs[ACTIVE] = 'u1-uuid\nUnload Set\n';
-    resetSeqPersist();
+    resetSetSession();
     resetApp();
     advance(4);                                   // boot-load resolves the set
 

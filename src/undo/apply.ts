@@ -17,7 +17,7 @@
 import { portFor } from '../track/registry.js';
 import { mlog } from '../log.js';
 import { seqCmd, engineGeneration, requestLabelSync } from '../seq/engine.js';
-import { currentSetUuid } from '../seq/persist.js';
+import { currentSetUuid } from '../seq/set-session.js';
 import {
     canRedo, canUndo, invalidateUndo, popRedo, popUndo, pushRedo, pushUndoBack,
     retractEntry, takeOrphanedSnaps,

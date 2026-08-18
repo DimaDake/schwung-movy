@@ -13,7 +13,7 @@
 
 import { keyboardState } from '../keyboard/state.js';
 import { mutesSnapshot, restoreMutes } from '../mixer/track-mutes.js';
-import { markUiStateDirty } from '../seq/persist.js';
+import { markUiStateDirty } from '../seq/ui-dirty.js';
 import { seqState } from '../seq/state.js';
 import { seqCmd } from '../seq/engine.js';
 import { writePrefDefaultQuant } from '../seq/prefs.js';

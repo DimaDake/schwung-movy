@@ -3,7 +3,7 @@ import { releaseAllLive, emitNoteOff } from '../keyboard/release.js';
 import { seqCmdFlush } from '../seq/engine.js';
 import { resetSeqChord } from '../seq/router.js';
 import { seqState } from '../seq/state.js';
-import { seqPersistFlush } from '../seq/persist.js';
+import { sessionFlush } from '../seq/set-session.js';
 import { mlog } from '../log.js';
 
 /* Called by the host on every teardown path — Close Movy, Shift+Back instant
@@ -45,5 +45,5 @@ export function onUnload(): void {
      * released first — a stuck note outlives the tool, so it must not wait
      * behind file I/O. The engine is still loaded here (schwung unloads the DSP
      * immediately after this returns), so it can still serialize its state. */
-    seqPersistFlush(true);
+    sessionFlush(true);
 }

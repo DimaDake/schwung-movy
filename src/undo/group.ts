@@ -18,7 +18,7 @@
 
 import { mlog } from '../log.js';
 import { seqCmd } from '../seq/engine.js';
-import { currentSetUuid } from '../seq/persist.js';
+import { currentSetUuid } from '../seq/set-session.js';
 import { engineGeneration } from '../seq/engine.js';
 import type { ParamOp, ModuleOp, StateOp, UiOp, UndoEntry } from './types.js';
 import { pushEntry } from './state.js';

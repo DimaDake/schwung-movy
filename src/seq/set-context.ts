@@ -68,6 +68,22 @@ export function readActiveSet(): SetId | null {
     return { uuid, name: (lines[1] || '').trim() };
 }
 
+/* The active set INCLUDING a placeholder id, and whether it is one.
+ *
+ * `readActiveSet` reports a placeholder as "we don't know", which is right for
+ * anything that must not treat it as a set of its own. The set session wants
+ * the opposite: schwung works under `__pending-<index>-<seq>` for a measured
+ * 12-60 s while Move materialises the real Set, and movy adopts that same id so
+ * both sides make the same transition at the same moment. */
+export function readActiveSetAny(): { id: SetId; provisional: boolean } | null {
+    const raw = readFile(ACTIVE_SET);
+    if (!raw) return null;
+    const lines = raw.split('\n');
+    const uuid = (lines[0] || '').trim();
+    if (!uuid) return null;
+    return { id: { uuid, name: (lines[1] || '').trim() }, provisional: uuid.startsWith('__') };
+}
+
 export function loadNameIndex(): Record<string, string> {
     const raw = readFile(NAME_INDEX);
     if (!raw) return {};

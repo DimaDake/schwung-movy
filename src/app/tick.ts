@@ -25,7 +25,7 @@ import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
 import { concreteKey } from '../model/pad-scope.js';
 import { mlog } from '../log.js';
-import { seqPersistTick } from '../seq/persist.js';
+import { sessionTick } from '../seq/set-session.js';
 import { tempoOverrideTick } from '../seq/tempo-override.js';
 import { captureTick } from '../seq/capture.js';
 import { seqLedsTick, seqLedsInvalidate, displayHoldNotes } from '../seq/leds.js';
@@ -241,7 +241,7 @@ function tickBody(): void {
     // per-frame ViewModel build and LED diffs. onResume() forces a full repaint
     // when we return, so nothing on screen is stale.
     if (globalThis.overtakeParked === true) {
-        seqPersistTick();
+        sessionTick();
         return;
     }
     stepAutoTick(); // promote a long single-step hold to step-automation mode
@@ -310,7 +310,7 @@ function tickBody(): void {
             + ' cache=' + portFor(t).getParam( 'knob_' + (l + 1) + '_max')
             + ' type=' + portFor(t).getParam( 'knob_' + (l + 1) + '_type'));
     });
-    seqPersistTick();
+    sessionTick();
     /* Undo housekeeping, after seqPersistTick so the set uuid it watches is the
      * one this tick resolved. Order within: close timed-out groups, notice a
      * set/engine change, drop snapshots the stacks have released, retract a

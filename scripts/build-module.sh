@@ -33,7 +33,10 @@ rm -rf "dist/${MODULE_ID}"
 mkdir -p "dist/${MODULE_ID}"
 cp module.json ui.js "dist/dsp.so" "dist/${MODULE_ID}/"
 
-tar -czf "dist/${MODULE_ID}-module.tar.gz" -C dist "${MODULE_ID}/"
+# Build ustar tarball without mac metadata/sparse headers so busybox tar on
+# the device does not unpack dsp.so as GNUSparseFile.0/dsp.so.
+COPYFILE_DISABLE=1 tar --format ustar --no-xattrs --no-mac-metadata \
+    -czf "dist/${MODULE_ID}-module.tar.gz" -C dist "${MODULE_ID}/"
 echo
 echo "=== Release tarball ==="
 tar -tzf "dist/${MODULE_ID}-module.tar.gz"

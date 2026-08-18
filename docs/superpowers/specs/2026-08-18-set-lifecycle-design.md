@@ -43,6 +43,31 @@ of real module state. These are not momentary.
 directory with its `user.song-index` xattr — outside schwung's control and
 outside ours. No part of this design may depend on a duration.
 
+**Measured on the device**, from `SET_CHANGED` lines in `debug.log`:
+
+```
+11:13:13  real  →  __pending-13-3
+11:13:25  __pending-13-3  →  real                     12 s
+
+11:07:32  real  →  __pending-11-3
+11:08:18  __pending-11-3  →  __pending-11-1
+11:08:23  __pending-11-1  →  __pending-10-2
+11:08:31  __pending-10-2  →  real                     59 s
+```
+
+Twelve seconds in the simple case; about a minute when the user browses between
+Sets first — long enough to load a synth and enter a pattern, which is what
+happened in the field. Movy was opened *inside* the second window.
+
+The second cycle also shows that **the provisional identity itself changes while
+still provisional**, as the sequence counter bumps and the song index moves. So
+"provisional → real" is not the only transition to handle.
+
+Move's side, as far as it can be observed from outside: `currentSongIndex`
+changes the instant a Set pad is tapped, but the `Sets/<uuid>/` folder appears
+only when Move settles on that Set. The trigger inside Move's firmware is not
+observable from here; the timing above is.
+
 ## Decisions
 
 | Decision | Choice |
@@ -83,17 +108,45 @@ already carries `__pending-N-M`. Movy's provisional identity is therefore
 "whatever schwung published", and Movy's transition is the same transition
 schwung is making.
 
-Two transitions exist, and only two:
+Identity can move three ways — provisional → real, provisional → a *different*
+provisional (the browsing case above), and real → different real — but all three
+are decided by **one question**:
 
-- **provisional → real is a RENAME.** The work in hand already belongs to this
-  Set. Its files are rewritten under the real UUID and **nothing is loaded**.
-  Write the new location first, delete the provisional directory only after that
-  write is confirmed, so a half-done rename leaves garbage rather than a hole.
-- **real → different real is a SWITCH.** Flush the old, load the new.
+> **Does the incoming Set already have state of its own?**
+>
+> - **No → RENAME.** Whatever is in hand belongs to the Set now being named.
+>   Its files are rewritten under the new id and **nothing is loaded**.
+> - **Yes → SWITCH.** Flush the outgoing Set, load the incoming one.
 
-There is no third case. The "adopt" special case in `switchToSet` and
-`engineHoldsClips()` disappear: a rename cannot overwrite anything, so the bug
-becomes unrepresentable rather than guarded against.
+That single test covers every case correctly:
+
+| From | To | Incoming has state? | Result |
+|---|---|---|---|
+| provisional | real, brand-new Set | no | rename — the fix for #4/#5/#6 |
+| provisional | real, existing Set | yes | switch — correct, you opened another Set |
+| provisional | provisional, same index | no | rename — still the same unresolved Set |
+| provisional | provisional, browsing | no | rename — the work follows you |
+| real | real | yes | switch |
+
+The browsing row is the only judgment call: work made under one unresolved index
+follows the user to the Set they settle on. That is deliberate. The alternative
+is orphaning it in a namespace nothing ever reads again — which is precisely how
+schwung accumulated 25 abandoned `__pending-*` directories, one holding 7 KB of
+real module state. Carrying the work forward can be undone by the user; losing
+it cannot.
+
+Note what this rule does **not** need: it never parses `__pending-<index>-<seq>`,
+so Movy takes no dependency on schwung's id format. Provisional means only "the
+id starts with `__`".
+
+**Ordering:** write the new location first and delete the provisional directory
+only after that write is confirmed, so a half-done rename leaves garbage rather
+than a hole. Deleting on success is also what keeps Movy from growing schwung's
+orphan collection.
+
+The "adopt" special case in `switchToSet` and `engineHoldsClips()` disappear
+into this rule: a rename cannot overwrite anything, so the bug becomes
+unrepresentable rather than guarded against.
 
 ### The gate
 

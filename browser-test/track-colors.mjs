@@ -17,10 +17,7 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import {
-    TRACK_COLOR_RELEASED, TRACK_COLOR_DIM_RELEASED,
-    TRACK_COLOR_RECOLOURED, TRACK_COLOR_DIM_RECOLOURED,
-} from '../dist/esm/seq/colors.js';
+import { TRACK_COLOR, TRACK_COLOR_DIM } from '../dist/esm/seq/colors.js';
 
 let failures = 0;
 const _log = (s) => process.stdout.write(s + '\n');
@@ -110,37 +107,14 @@ const hue = (i) => { const l = lab.get(i).normal; const h = Math.atan2(l[2], l[1
 const chroma = (i) => { const l = lab.get(i).normal; return Math.hypot(l[1], l[2]); };
 const Lof = (i) => lab.get(i).normal[0];
 
-/* ── 1. which palette is this checkout, and does movy have a table for it? ──
- *
- * schwung PR #185 recoloured the table (same names, new values) and is not yet
- * released, so movy carries BOTH tables and picks at runtime — see
- * src/app/palette-detect.ts. This guard checks whichever one matches the
- * sibling checkout, because that is the palette a developer here is looking at.
- * The other table is checked structurally; its colour maths cannot be redone
- * from a checkout that no longer contains its values. */
-const RECOLOURED = PAL.get(3)?.hex === 'C93C00';
-_log(`\nschwung checkout is the ${RECOLOURED ? 'RECOLOURED (PR #185)' : 'RELEASED'} palette`);
-const TRACK_COLOR = RECOLOURED ? TRACK_COLOR_RECOLOURED : TRACK_COLOR_RELEASED;
-const TRACK_COLOR_DIM = RECOLOURED ? TRACK_COLOR_DIM_RECOLOURED : TRACK_COLOR_DIM_RELEASED;
-const OTHER = RECOLOURED ? TRACK_COLOR_RELEASED : TRACK_COLOR_RECOLOURED;
-const OTHER_DIM = RECOLOURED ? TRACK_COLOR_DIM_RELEASED : TRACK_COLOR_DIM_RECOLOURED;
-
-_log('\nevery index this table uses exists in this palette:');
-{
-    const missing = [...new Set([...TRACK_COLOR, ...TRACK_COLOR_DIM])].filter((i) => !PAL.has(i));
-    ok(`all ${new Set([...TRACK_COLOR, ...TRACK_COLOR_DIM]).size} indices resolve`
-        + (missing.length ? ` — missing ${missing.join(', ')}` : ''), missing.length === 0);
-}
-_log('\nthe other table is structurally sound (its colours live in the other palette):');
-{
-    eq('16 entries', OTHER.length, 16);
-    eq('16 dim entries', OTHER_DIM.length, 16);
-    const O = [0, 1, 2, 3].map((g) => OTHER.slice(g * 4, g * 4 + 4));
-    const OD = [0, 1, 2, 3].map((g) => OTHER_DIM.slice(g * 4, g * 4 + 4));
-    for (let r = 0; r < 4; r++) eq(`other G${r + 1} distinct`, new Set(O[r]).size, 4);
-    for (let c = 0; c < 4; c++) eq(`other column ${c + 1} distinct`, new Set([0,1,2,3].map((r) => O[r][c])).size, 4);
-    for (let r = 0; r < 4; r++) eq(`other G${r + 1} dims distinct`, new Set(OD[r]).size, 4);
-    for (let c = 0; c < 4; c++) eq(`other column ${c + 1} dims distinct`, new Set([0,1,2,3].map((r) => OD[r][c])).size, 4);
+/* ── 1. the copy has not drifted ────────────────────────────────────────── */
+_log('\npalette indices still mean what movy thinks they mean:');
+const EXPECTED = {
+    65: '661914', 7: 'FADC3B', 95: '134566', 23: '972BFF',
+    9: 'B6FF0E', 2: '800400', 3: 'C93C00', 69: '5D1700',
+};
+for (const [idx, hex] of Object.entries(EXPECTED)) {
+    eq(`index ${idx} is #${hex} (${name(+idx)})`, PAL.get(+idx)?.hex, hex);
 }
 
 /* ── 2. the matrix is readable ──────────────────────────────────────────── */

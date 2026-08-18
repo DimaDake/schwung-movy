@@ -42,11 +42,11 @@ export const C_REC_RED = 127;  // Red — recording indicator (index 1 renders p
  * `browser-test/track-colors.mjs` holds all of that, and also checks these
  * indices still mean what they mean in schwung's own palette — the table here
  * is a copy, and a copy can drift. */
-export const TRACK_COLOR_RELEASED = [
-    3, 85, 23, 16,        // G1: Bright Orange, Dark Grass Green, Neon Pink, Royal Blue
-    33, 3, 10, 23,        // G2: Blue, Bright Orange, Dull Green, Neon Pink
-    32, 23, 17, 3,        // G3: Deep Green, Neon Pink, Navy, Bright Orange
-    23, 17, 3, 10,        // G4: Neon Pink, Navy, Bright Orange, Dull Green
+export const TRACK_COLOR = [
+    65, 7, 95, 23,        // G1: Bright Red dim, Vivid Yellow, Azure Blue dim, Neon Pink
+    9, 2, 23, 95,         // G2: Bright Lime, Orange Red, Neon Pink, Azure Blue dim
+    95, 23, 3, 9,         // G3: Azure Blue dim, Neon Pink, Bright Orange, Bright Lime
+    23, 95, 9, 69,        // G4: Neon Pink, Azure Blue dim, Bright Lime, Bright Orange dim
 ];
 
 
@@ -54,61 +54,19 @@ export const TRACK_COLOR_RELEASED = [
  * muted track buttons and the watched track's empty in-loop steps, where the
  * dim colour marks the LOOP WINDOW. Each shares its bright partner's hue and is
  * clearly darker. They repeat wherever the bright table repeats. */
-export const TRACK_COLOR_DIM_RELEASED = [
-    75, 78, 109, 95,      // Brown-Yellow, Dark Olive, Deep Magenta, Dark Blue
-    95, 75, 83, 109,      // Dark Blue, Brown-Yellow, Dark Olive Green, Deep Magenta
-    83, 109, 93, 75,      // Dark Olive Green, Deep Magenta, Deep Blue, Brown-Yellow
-    109, 93, 75, 83,      // Deep Magenta, Deep Blue, Brown-Yellow, Dark Olive Green
-];
-
-/* schwung PR #185 (merged 2026-08-18, NOT yet in a release) recoloured the
- * palette: same names, different values. Index 3 went #FF9900 -> #C93C00 and
- * index 85 stopped existing, so the table above paints the wrong colours there.
- * Its replacement was derived under the same rules against the new values —
- * see browser-test/track-colors.mjs, which checks whichever one applies.
- *
- * Two tables rather than one compromise table: the colours that survive the
- * recolour unchanged are too few and too close (largest usable group of 3, and
- * dE is what runs out, not hue), so a single table that renders well on both
- * does not exist. Movy targets whichever palette it is actually running on. */
-export const TRACK_COLOR_RECOLOURED = [
-    65, 7, 95, 23,        // G1: Bright Red dim, Vivid Yellow, Azure Blue dim, Neon Pink
-    9, 2, 23, 95,         // G2: Bright Lime, Orange Red, Neon Pink, Azure Blue dim
-    95, 23, 3, 9,         // G3: Azure Blue dim, Neon Pink, Bright Orange, Bright Lime
-    23, 95, 9, 69,        // G4: Neon Pink, Azure Blue dim, Bright Lime, Bright Orange dim
-];
-
-export const TRACK_COLOR_DIM_RECOLOURED = [
+export const TRACK_COLOR_DIM = [
     71, 77, 103, 109,     // Tan dim, Vivid Yellow dim, Electric Violet dim, Neon Pink dim
     81, 71, 109, 103,     // Bright Lime dim, Tan dim, Neon Pink dim, Electric Violet dim
     103, 109, 6, 81,      // Electric Violet dim, Neon Pink dim, Ochre, Bright Lime dim
     109, 103, 81, 71,     // Neon Pink dim, Electric Violet dim, Bright Lime dim, Tan dim
 ];
 
-/* Released until told otherwise: an old host must keep the colours its users
- * already know, and a movy running where detection failed is better off with
- * the palette that has shipped for months. */
-let bright = TRACK_COLOR_RELEASED;
-let dim = TRACK_COLOR_DIM_RELEASED;
-let recoloured = false;
-
-/** Point the track colours at the recoloured palette. Called once at init from
- *  app/init.ts, which is where host detection belongs — this module stays free
- *  of host globals so it runs unchanged in the browser tests. */
-export function setPaletteRecoloured(on: boolean): void {
-    recoloured = on;
-    bright = on ? TRACK_COLOR_RECOLOURED : TRACK_COLOR_RELEASED;
-    dim = on ? TRACK_COLOR_DIM_RECOLOURED : TRACK_COLOR_DIM_RELEASED;
-}
-
-export function paletteIsRecoloured(): boolean { return recoloured; }
-
 export function trackColor(track: number): number {
-    return bright[track & 15];
+    return TRACK_COLOR[track & 15];
 }
 
 export function trackColorDim(track: number): number {
-    return dim[track & 15];
+    return TRACK_COLOR_DIM[track & 15];
 }
 
 

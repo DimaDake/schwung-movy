@@ -1703,7 +1703,8 @@ _log('\napp-loop: holding Session keeps the step row a track selector');
      * This is the assertion that fails if the hold ever falls back to the
      * ordinary step painter. */
     {
-        const { TRACK_COLOR, C_BLACK, C_WHITE } = await import('../dist/esm/seq/colors.js');
+        const { TRACK_COLOR_RELEASED: TRACK_COLOR, C_BLACK, C_WHITE } =
+            await import('../dist/esm/seq/colors.js');
         const { seqLedsInvalidate } = await import('../dist/esm/seq/leds.js');
         const msgs = [];
         const realSend = globalThis.move_midi_internal_send;

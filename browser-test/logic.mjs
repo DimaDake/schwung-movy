@@ -1900,14 +1900,15 @@ _log('\nTest: overlay commit rejects a non-drum preset (param unchanged)');
 _log('\nTest: track colors — track 3 neon pink, track 4 royal blue');
 
 {
-  const { TRACK_COLOR, TRACK_COLOR_DIM } = await import('../dist/esm/seq/colors.js');
+  const { TRACK_COLOR_RELEASED: TRACK_COLOR, TRACK_COLOR_DIM_RELEASED: TRACK_COLOR_DIM } =
+    await import('../dist/esm/seq/colors.js');
   /* A cheap pin so the table is not completely unguarded on a checkout without
    * the schwung sibling repo — track-colors.mjs skips wholesale when it is
    * missing, and that is where the real palette reasoning lives. */
-  eq('track 3 = AzureBlue dim(95)',    TRACK_COLOR[2], 95);
-  eq('track 4 = NeonPink(23)',         TRACK_COLOR[3], 23);
-  eq('track 3 dim = ElectricViolet dim(103)', TRACK_COLOR_DIM[2], 103);
-  eq('track 4 dim = NeonPink dim(109)',       TRACK_COLOR_DIM[3], 109);
+  eq('track 3 = NeonPink(23)',       TRACK_COLOR[2], 23);
+  eq('track 4 = RoyalBlue(16)',       TRACK_COLOR[3], 16);
+  eq('track 3 dim = DeepMagenta(109)', TRACK_COLOR_DIM[2], 109);
+  eq('track 4 dim = DarkBlue(95)',     TRACK_COLOR_DIM[3], 95);
 }
 
 // ── ViewModel drum fields: isPadSpecific, drumCurrentPad, drumPadCount ───
@@ -5556,7 +5557,7 @@ _log('\nautomation label sync:');
     const { keyboardState, resetPadMapCache } = await import('../dist/esm/keyboard/state.js');
 
     const C_BLACK = 0, C_WHITE = 120, C_DARKGREY = 124, C_LIGHTGREY = 118, C_GREEN = 11;
-    const TRACK0 = 65;  // track 1 = Bright Red dim
+    const TRACK0 = 3;   // track 1 = Bright Orange
     const PAD_MIN = 68;
 
     keyboardState.rootPc = 0; keyboardState.scale = 0;
@@ -12121,7 +12122,8 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 {
   _log('\nsession track selector:');
   const { sessionStepLed } = await import('../dist/esm/seq/track-select.js');
-  const { TRACK_COLOR, C_BLACK, C_WHITE, ANIM_NONE, ANIM_PULSE } = await import('../dist/esm/seq/colors.js');
+  const { TRACK_COLOR_RELEASED: TRACK_COLOR, C_BLACK, C_WHITE, ANIM_NONE, ANIM_PULSE } =
+    await import('../dist/esm/seq/colors.js');
 
   /* Every step shows its track colour; the focused group's four PULSE between
    * black and that colour. Motion carries the focus, so it does not depend on

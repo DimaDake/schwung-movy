@@ -18,9 +18,11 @@ import { resetUndoGroups } from '../undo/group.js';
 import { resetUndoToast } from '../undo/toast.js';
 import { mlog } from '../log.js';
 import { installPerfProbe } from './perf-probe.js';
+import { detectPalette } from './palette-detect.js';
 
 export function init(): void {
     installPerfProbe();   // wrap the host globals before anything calls them
+    detectPalette();      // before the first LED is painted
     appState.activeTrack = trackRef((typeof shadow_get_ui_slot === 'function') ? shadow_get_ui_slot() : 0);
     mlog('init: activeTrack=' + appState.activeTrack.index);
 

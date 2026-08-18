@@ -11,7 +11,9 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
-## [Unreleased]
+## [0.28.2] — 2026-08-18
+
+A bug-fix release addressing track octave setup on tracks 5-16, set lifecycle durability, and input gating during boot.
 
 ### Fixed
 
@@ -27,6 +29,14 @@ far. Earlier work is summarised in the timeline below for context.
   fault only appeared once a track in the second group was selected. The octave
   table is now sized from the track count in the one place that owns it, and a
   pad whose pitch cannot be computed is dead rather than silently note 0.
+- **Set Lifecycle & Input Gate.** Movy now manages the Set lifecycle via a single
+  owner (`set-session.ts`). Surface inputs are guarded while the engine is booting
+  or loading the active Set, preventing presses from queuing into uninitialized state.
+  Work in progress follows provisional Set renames cleanly.
+- **Loading & Corrupted State Recovery.** Clear visual status during startup
+  (`STARTING ENGINE` / `LOADING SET`) and an explicit recovery screen
+  (`CANNOT LOAD THIS SET` / `JOG CLICK = START EMPTY`) if a state file is unreadable.
+- **Track Color Palette.** Rebuilt track colors against Schwung's recolored palette.
 
 ## [0.28.1] — 2026-08-17
 

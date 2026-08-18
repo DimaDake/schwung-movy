@@ -3759,6 +3759,40 @@ _log('\nTest: drumPadOn');
     }
 }
 
+/* ── set-load ────────────────────────────────────────────────────────────── */
+{
+    _log('\nset-load:');
+    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { setHasState, loadSet, pushState } = await import('../dist/esm/seq/set-load.js');
+
+    const SAVED = 'movy1\nbpm 14000\ncl 0 0 16 0 0:24:60:100\n';
+
+    /* "Does this Set already have state?" is the question the whole
+     * rename-vs-switch rule turns on, so it gets its own assertion. */
+    {
+        installMockFs({});
+        installMockEngine();
+        eq('an unknown set has no state', setHasState('NEW'), false);
+        uninstallMockEngine(); uninstallMockFs();
+    }
+    {
+        installMockFs({ [uuidToStatePath('S1')]: SAVED });
+        const eng = installMockEngine();
+        eq('a saved set has state', setHasState('S1'), true);
+        const got = loadSet('S1', 'Song One');
+        eq('loadSet returns the payload', got.payload, SAVED);
+        eq('loadSet pushed it into the engine', eng.stateBlob, SAVED);
+        uninstallMockEngine(); uninstallMockFs();
+    }
+    {
+        installMockFs({});
+        const eng = installMockEngine();
+        pushState('movy1\nbpm 12000\n');
+        eq('pushState reaches the engine', eng.stateBlob, 'movy1\nbpm 12000\n');
+        uninstallMockEngine(); uninstallMockFs();
+    }
+}
+
 /* ── automation: restore re-requests label sync ──────────────────────────────
  * The boot label-sync runs before the persist restore, so it reads the engine
  * before its lanes exist (empty registry → no dot, no held value, no read-back

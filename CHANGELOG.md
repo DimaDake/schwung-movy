@@ -11,6 +11,23 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
+## [Unreleased]
+
+### Fixed
+
+- **Tracks 5-16 played one dead note instead of a keyboard.** Startup handed the
+  keyboard a four-entry octave table while Movy had sixteen tracks, so every
+  track past the host four had no octave at all. That made its base note `NaN`,
+  and because `NaN` compares false against every bound, the out-of-range check
+  waved it through and the pad map stored it as **0** — so all thirty-two pads
+  played MIDI note 0. On a melodic module that is a sub-audio pulse train rather
+  than a pitch, and since note 0 is also the root pitch class, every pad wore the
+  track accent, went white when pressed and lit green while sounding: the grid
+  looked deliberate while sounding broken. Tracks 1-4 were unaffected, so the
+  fault only appeared once a track in the second group was selected. The octave
+  table is now sized from the track count in the one place that owns it, and a
+  pad whose pitch cannot be computed is dead rather than silently note 0.
+
 ## [0.28.1] — 2026-08-17
 
 A bug-fix release. Everything here is a fault that predates the 16-track

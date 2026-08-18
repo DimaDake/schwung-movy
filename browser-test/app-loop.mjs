@@ -1894,6 +1894,30 @@ _log('\napp-loop: the step view follows the FOCUSED track, not the button index'
     resetSeqState();
 }
 
+_log('\napp-loop: every track gets a playable keyboard, not just the host four');
+{
+    /* init() used to hand keyboardState a four-entry octave array while
+     * TRACK_COUNT was 16, so `baseNoteFor` read `undefined` on tracks 5-16 and
+     * every pitch came out NaN. NaN fails both of buildPadMap's range tests, so
+     * Int16Array stored 0 — every pad played MIDI note 0 into the synth (a
+     * sub-audio pulse train, not a note) and every pad rendered the track accent
+     * because pitch 0 IS the root pitch class. Assert the map, since that is
+     * what both the sound and the colour are derived from. */
+    const { keyboardState, padMapFor, baseNoteFor, resetPadMapCache } =
+        await import('../dist/esm/keyboard/state.js');
+    resetApp();
+    for (const t of [0, 3, 4, 15]) {
+        resetPadMapCache();
+        const base = baseNoteFor(t);
+        const map  = Array.from(padMapFor(t));
+        eq(`track ${t + 1} has a real base note`, Number.isFinite(base), true);
+        eq(`track ${t + 1} pads are not all one pitch`,
+            new Set(map).size > 1, true);
+    }
+    selectTrack(0);
+    resetSeqState();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

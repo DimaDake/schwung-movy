@@ -4,7 +4,7 @@ import { trackRef, TRACK_COUNT } from '../track/ref.js';
 import { createLfoModel } from '../lfo/model.js';
 import { appState, VIEW_CHAIN } from './state.js';
 import { jogHintTouch } from './jog-hint.js';
-import { keyboardState } from '../keyboard/state.js';
+import { keyboardState, resetOctaves } from '../keyboard/state.js';
 import { drainAll } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
 import { CHAIN_SLOTS, MASTER_FX_SLOTS, isLfoSlot } from '../chain/config.js';
@@ -75,7 +75,7 @@ export function init(): void {
     keyboardState.rootPc = 0;
     keyboardState.mode   = 0;
     keyboardState.layout = 0;
-    keyboardState.octave = [4, 4, 4, 4];
+    resetOctaves();
     drainAll();   // fresh process: discard, do not emit — nothing sounding is ours yet
 
     browserState.modules      = [];

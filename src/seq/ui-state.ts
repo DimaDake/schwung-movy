@@ -6,7 +6,7 @@
 import { TRACK_COUNT } from '../track/ref.js';
 import { captureChains, restoreChains } from '../track/chain-persist.js';
 import { mlog } from '../log.js';
-import { keyboardState, OCT_MIN, OCT_MAX } from '../keyboard/state.js';
+import { keyboardState, resetOctaves, OCT_MIN, OCT_MAX } from '../keyboard/state.js';
 import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
 import { SCALES } from './scales.js';
 import { mutesSnapshot, restoreMutes, resetTrackMutes } from '../mixer/track-mutes.js';
@@ -84,7 +84,7 @@ export function resetUiState(): void {
     keyboardState.scale = 0;
     keyboardState.mode = 0;
     keyboardState.layout = 0;
-    for (let t = 0; t < TRACK_COUNT; t++) keyboardState.octave[t] = 4;
+    resetOctaves();
     resetTrackMutes();
     applyDefaultQuant(readPrefDefaultQuant());
 }

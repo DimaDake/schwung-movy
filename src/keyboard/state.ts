@@ -19,6 +19,16 @@ export const keyboardState = {
     lastPlayedNote: 60,
 };
 
+/* Every track back to the C3 default. It exists so no caller writes the array
+ * out by hand: `baseNoteFor` indexes it directly, so one that is shorter than
+ * TRACK_COUNT yields `undefined` -> a NaN base -> a NaN pitch, and NaN fails
+ * both of buildPadMap's range tests, so Int16Array stores 0. That is silent:
+ * the tracks past the end play MIDI note 0 and paint every pad the root colour
+ * instead of failing. */
+export function resetOctaves(): void {
+    keyboardState.octave = new Array(TRACK_COUNT).fill(4) as number[];
+}
+
 export function baseNoteFor(track: number): number {
     return keyboardState.octave[track & (TRACK_COUNT - 1)] * 12 + keyboardState.rootPc;
 }

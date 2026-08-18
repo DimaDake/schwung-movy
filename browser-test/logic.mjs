@@ -5348,6 +5348,15 @@ _log('\nautomation label sync:');
         eq('chrom 4ths top-left', m[24], 72);
     }
 
+    /* A base that is not a number must produce dead pads. NaN compares false
+     * against every bound, so the old range test let it through and the
+     * Int16Array stored it as 0 — a whole grid silently playing MIDI note 0. */
+    {
+        const m = buildPadMap(MODE_CHROMATIC, LAYOUT_FOURTHS, 0, NaN);
+        eq('NaN base yields dead pads, not note 0',
+            Array.from(m).every((p) => p === -1), true);
+    }
+
     // ── Chromatic / Piano: whites on rows 0/2, blacks on rows 1/3 shifted right
     // (C# above D). Cols 0, 3 and 7 of a black row are dead. Rows 2-3 are +12.
     {

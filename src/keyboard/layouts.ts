@@ -63,7 +63,12 @@ export function buildPadMap(mode: number, layout: number, scaleIdx: number, base
         } else {
             pitch = base + row * CHROM_ROW_STEP + col - CHROM_ROOT_COL;
         }
-        map[i] = (pitch < 0 || pitch > 127) ? -1 : pitch;
+        /* Finite check included on purpose: every comparison against NaN is
+         * false, so a NaN base used to pass the range test and land in the
+         * Int16Array as 0 — a silent "every pad plays MIDI note 0". A pad whose
+         * pitch cannot be computed is dead, which is audible as nothing rather
+         * than as a sub-audio pulse train. */
+        map[i] = Number.isFinite(pitch) && pitch >= 0 && pitch <= 127 ? pitch : -1;
     }
     return map;
 }

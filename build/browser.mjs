@@ -170,6 +170,20 @@ await esbuild.build({
     ],
     bundle:    true,
     splitting: true,
+    /* chain/master-mirror.ts imports shadow_ui.js's context by its absolute
+     * device path, which the device build leaves external. Off device there is
+     * no such file, so point it at a recording stub instead — that is what makes
+     * the master-FX mirror resync assertable in logic.mjs. An onResolve plugin
+     * rather than `alias`, which rejects absolute paths as alias names. Remove
+     * with master-mirror.ts. */
+    plugins: [{
+        name: 'shadow-ctx-stub',
+        setup(build) {
+            build.onResolve({ filter: /shadow_ui_ctx\.mjs$/ }, () => ({
+                path: resolve(root, 'browser-test/stubs/shadow_ui_ctx.mjs'),
+            }));
+        },
+    }],
     outdir:    resolve(root, 'dist/esm'),
     outbase:   resolve(root, 'src'),
     format:    'esm',

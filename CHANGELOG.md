@@ -11,6 +11,34 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
+## [Unreleased]
+
+### Fixed
+
+- **Master FX loaded from Movy vanished after a power cycle.** Schwung persists
+  the master chain from a JavaScript mirror inside `shadow_ui.js`, not from the
+  shim that actually holds the modules, and `saveMasterFxChainConfig()` is the
+  only thing that ever writes a `module_id` into a set's `master_fx_<N>.json`.
+  Movy loads a master slot by writing `master_fx:fxN:module` straight to the
+  shim, which that mirror never observes — nothing notifies the QuickJS context
+  of a shim-side load. So the mirror still read empty, and the next save took its
+  unguarded empty-slot branch and wrote `{}` over a slot the shim genuinely had
+  loaded. The chain was then gone on the next boot. The same staleness ran the
+  other way too: clearing a master slot from Movy left the mirror holding the old
+  module, which the save wrote back, silently reverting the change.
+
+  Movy now resyncs that mirror from the shim after any master-slot write, using
+  `shadow_ui.js`'s own published `ctx`. The write itself became blocking, because
+  the resync reads back what the shim loaded and a plain set is fire-and-forget
+  under overtake — the read would otherwise find the slot still empty and write
+  the emptiness back.
+
+  This is a **temporary workaround for a Schwung bug** (`chain/master-mirror.ts`
+  and `scripts/test-master-fx.sh` are marked for removal). The upstream fix is to
+  have `saveMasterFxChainConfig` read the shim rather than its mirror; once that
+  lands, Movy's call becomes a no-op and both files can be deleted.
+  (schwung-movy#9)
+
 ## [0.28.2] — 2026-08-18
 
 A bug-fix release addressing track octave setup on tracks 5-16, set lifecycle durability, and input gating during boot.

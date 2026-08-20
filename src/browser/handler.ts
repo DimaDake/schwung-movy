@@ -7,8 +7,14 @@ import { releaseAllLive } from '../keyboard/release.js';
 import { captureLfoAssignments, captureModuleState, dumpModuleParams } from '../undo/module-dump.js';
 import { mlog } from '../log.js';
 import { addModuleOp, beginEdit, endEdit, CLOSE } from '../undo/group.js';
+import { syncMasterFxMirror } from '../chain/master-mirror.js';
 
 const MODULES_BASE = '/data/UserData/schwung/modules';
+
+/* How long to wait for the shim to finish loading a master FX module before
+ * reading it back. dlopen + init + create_instance, measured worst case on a
+ * CLAP host; the shim's own default is 100 ms, which a module load overruns. */
+const MASTER_LOAD_TIMEOUT_MS = 3000;
 
 function scanModules(slot: ChainSlot): { id: string; name: string; path: string }[] {
     const dir    = `${MODULES_BASE}/${slot.scanDir}`;
@@ -125,7 +131,22 @@ export function loadSelectedModule(): void {
             leadCount: dump.leadCount,
         });
     }
-    portFor(browserState.paramSlot).setParam(browserState.componentKey + ':module', value);
+    const port = portFor(browserState.paramSlot);
+    if (isMaster) {
+        /* Blocking, unlike the track path: the mirror resync below immediately
+         * reads back what the shim loaded, and a plain set is fire-and-forget
+         * under overtake — the read then finds the slot still empty and the
+         * resync writes emptiness back, which is the very bug it exists to fix.
+         * The wait covers a dlopen plus module init (a CLAP host is the slow
+         * case), so it is far longer than the 100 ms default. */
+        port.setParamTimeout(browserState.componentKey + ':module', value, MASTER_LOAD_TIMEOUT_MS);
+        /* The shim now holds the module, but schwung persists the master chain
+         * from a mirror that did not see this write and would erase the slot on
+         * save. Temporary — see chain/master-mirror.ts for the removal condition. */
+        syncMasterFxMirror();
+    } else {
+        port.setParam(browserState.componentKey + ':module', value);
+    }
     if (changed) endEdit();
     // The reload empties the host's static param cache; a same-id reselect won't
     // trip the module-name watcher, so schedule the warm here too (see

@@ -1927,6 +1927,51 @@ _log('\napp-loop: the module browser loads onto a movy-hosted track');
     resetSeqState();
 }
 
+_log('\napp-loop: a master FX load resyncs schwung\'s persistence mirror');
+{
+    const { openBrowser, loadSelectedModule } = await import('../dist/esm/browser/handler.js');
+    const { browserState } = await import('../dist/esm/browser/state.js');
+    const { CHAIN_SLOTS, MASTER_FX_SLOTS } = await import('../dist/esm/chain/config.js');
+
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.file_param);
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    advance(6);
+
+    /* Schwung saves the master chain from a mirror in shadow_ui.js that never
+     * sees movy's direct `master_fx:fxN:module` write, and its save path
+     * overwrites the slot with "{}" when that mirror reads empty — so without
+     * the resync the whole master chain is gone after a power cycle
+     * (schwung-movy#9). The stub records the resync the device gets for free.
+     * Delete this case with chain/master-mirror.ts. */
+    /* Fall back to a dead counter rather than dereferencing undefined: if the
+     * resync call site is gone, nothing imports the stub and the global is
+     * never set. That must read as three clean failures, not a TypeError that
+     * aborts every case after this one. */
+    const stub = globalThis.__mfxCtxStub || { resyncs: 0, scans: 0 };
+    eq('the shadow-ctx stub is wired into the browser build',
+       !!globalThis.__mfxCtxStub, true);
+
+    const beforeTrack = stub.resyncs;
+    openBrowser(CHAIN_SLOTS[1], 0, () => {});
+    loadSelectedModule();
+    eq('a TRACK slot load leaves the master mirror alone', stub.resyncs, beforeTrack);
+
+    const beforeMaster = stub.resyncs;
+    openBrowser(MASTER_FX_SLOTS[0], 0, () => {});
+    loadSelectedModule();
+    eq('a MASTER slot load resyncs the mirror', stub.resyncs, beforeMaster + 1);
+
+    /* The id the resync stores is mapped back to a DSP path through
+     * MASTER_FX_OPTIONS, which schwung scans once at boot. Without a rescan a
+     * module installed since then persists with an empty path — a file that
+     * looks saved and restores nothing. */
+    eq('the resync rescans the FX options first', stub.scans > 0, true);
+
+    resetSeqState();
+}
+
 _log('\napp-loop: the step view follows the FOCUSED track, not the button index');
 {
     /* The block above uninstalls the mock engine, and movy refuses input until

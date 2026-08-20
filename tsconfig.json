@@ -6,7 +6,11 @@
     "resolveJsonModule": true,
     "strict": true,
     "noEmit": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "/data/UserData/schwung/shadow/shadow_ui_ctx.mjs": ["./src/types/shadow-ctx.d.ts"]
+    }
   },
   "include": ["src/**/*", "browser-test/**/*", "build/**/*"]
 }

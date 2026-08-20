@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 GRN='\033[0;32m'; RED='\033[0;31m'; BLD='\033[1m'; RST='\033[0m'
 
 SCRIPTS=(test.sh test-seq.sh test-auto.sh test-reselect.sh test-unload.sh
-         test-mutes.sh test-volume.sh test-module-contract.sh)
+         test-mutes.sh test-volume.sh test-module-contract.sh test-master-fx.sh)
 declare -a FAILED=()
 
 # Each suite normally restarts the Move stack on the way out to hand the LEDs

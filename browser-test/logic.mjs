@@ -5629,19 +5629,24 @@ _log('\nautomation label sync:');
 {
     _log('\nmain params page:');
     const {
-        mainPageState, openMainPage, closeMainPage, mainPageActive,
+        mainPageState, mainPageActive,
         mainPageKnob, mainPageTouch, mainPageRelease, resetMainPage,
     } = await import('../dist/esm/seq/main-page.js');
+    // The view switch belongs to the shared param-page layer, not to the page.
+    const { openParamPage, closeParamPage, resetParamPage } =
+        await import('../dist/esm/seq/param-page.js');
+    const { appState, VIEW_MAIN_PARAMS } = await import('../dist/esm/app/state.js');
     const { peekSeqCmdQueue, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
     const { keyboardState } = await import('../dist/esm/keyboard/state.js');
     const { resetSeqState } = await import('../dist/esm/seq/state.js');
 
     // resetSeqState restores bpmX100=12000 and swingPct=50 so the tempo/swing
     // assertions below don't depend on test ordering.
-    resetMainPage(); resetSeqEngine(); resetSeqState();
+    resetMainPage(); resetParamPage(); resetSeqEngine(); resetSeqState();
     keyboardState.rootPc = 0; keyboardState.scale = 0;
     keyboardState.mode = 0; keyboardState.layout = 0;
-    openMainPage(3);
+    appState.currentView = 3;                  // origin the page must restore
+    openParamPage(VIEW_MAIN_PARAMS);
     eq('page active after open', mainPageActive(), true);
 
     // Knob 0 tempo: 8 raw delta units = 1 detent = +1 BPM (bpmX100 starts 12000).
@@ -5693,7 +5698,7 @@ _log('\nautomation label sync:');
     eq('mode back to chromatic', keyboardState.mode, 0);
     eq('layout index survives the mode flip', keyboardState.layout, 1);
 
-    eq('close returns origin view', closeMainPage(), 3);
+    eq('close returns origin view', closeParamPage(), 3);
     eq('page inactive after close', mainPageActive(), false);
     keyboardState.scale = 0; keyboardState.mode = 0; keyboardState.layout = 0;
 }
@@ -5717,14 +5722,18 @@ _log('\nautomation label sync:');
 {
     _log('\nclip params page:');
     const {
-        clipPageState, openClipPage, closeClipPage, clipPageActive,
+        clipPageState, clipPageActive,
         clipPageKnob, clipPageTouch, clipPageRelease, resetClipPage,
     } = await import('../dist/esm/seq/clip-page.js');
+    const { openParamPage, closeParamPage, resetParamPage } =
+        await import('../dist/esm/seq/param-page.js');
+    const { appState, VIEW_CLIP_PARAMS } = await import('../dist/esm/app/state.js');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
     const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
 
-    resetClipPage(); resetSeqEngine(); resetSeqState();
-    openClipPage(2, 0);
+    resetClipPage(); resetParamPage(); resetSeqEngine(); resetSeqState();
+    appState.currentView = 2;                  // origin the page must restore
+    openParamPage(VIEW_CLIP_PARAMS);
     eq('clip page active after open', clipPageActive(), true);
     // Transpose: knob 2, +1 detent (8 raw units) → +1 semitone + ctr command.
     seqState.clipTranspose = 0;
@@ -5749,7 +5758,7 @@ _log('\nautomation label sync:');
     eq('emits cscl 0 3 2', peekSeqCmdQueue().some((c) => c === 'cscl 0 3 2'), true);
     eq('overlay closed on release', clipPageState.scaleOverlay, false);
     // Close returns the origin view.
-    eq('close returns origin view', closeClipPage(), 2);
+    eq('close returns origin view', closeParamPage(), 2);
     eq('clip page inactive after close', clipPageActive(), false);
 }
 
@@ -5757,12 +5766,14 @@ _log('\nautomation label sync:');
 {
     _log('\nclip params page VM:');
     const { buildClipPageVM } = await import('../dist/esm/seq/clip-page-vm.js');
-    const { openClipPage, clipPageTouch, resetClipPage } = await import('../dist/esm/seq/clip-page.js');
+    const { clipPageTouch, resetClipPage } = await import('../dist/esm/seq/clip-page.js');
+    const { openParamPage } = await import('../dist/esm/seq/param-page.js');
+    const { VIEW_CLIP_PARAMS } = await import('../dist/esm/app/state.js');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
 
     resetClipPage(); resetSeqState();
     seqState.clipScaleIdx = 2; seqState.lenSteps = 16; seqState.clipTranspose = 12;
-    openClipPage(0, 0);
+    openParamPage(VIEW_CLIP_PARAMS);
     let vm = buildClipPageVM();
     eq('header is CLIP PARAMETERS', vm.headerOverride, 'CLIP PARAMETERS');
     eq('scale cell stacked text 1/2', vm.rows[0][0].displayValue, '1/2');
@@ -5787,10 +5798,11 @@ _log('\nautomation label sync:');
 {
     _log('\nclip transpose on drum tracks:');
     const { buildClipPageVM } = await import('../dist/esm/seq/clip-page-vm.js');
-    const { openClipPage, clipPageKnob, clipPageTouch, resetClipPage } = await import('../dist/esm/seq/clip-page.js');
+    const { clipPageKnob, clipPageTouch, resetClipPage } = await import('../dist/esm/seq/clip-page.js');
+    const { openParamPage } = await import('../dist/esm/seq/param-page.js');
     const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
     const { resetSeqEngine, peekSeqCmdQueue } = await import('../dist/esm/seq/engine.js');
-    const { appState } = await import('../dist/esm/app/state.js');
+    const { appState, VIEW_CLIP_PARAMS } = await import('../dist/esm/app/state.js');
     const { drumSyncTick, resetDrumSync } = await import('../dist/esm/seq/drum-sync.js');
 
     const fakeModel = (drum, loaded = true) => ({
@@ -5804,7 +5816,7 @@ _log('\nautomation label sync:');
     ];
 
     resetClipPage(); resetSeqEngine(); resetSeqState(); resetDrumSync();
-    openClipPage(2, 0);
+    openParamPage(VIEW_CLIP_PARAMS);
     seqState.clipTranspose = 0;
     clipPageKnob(2, 8, 0);                  // knob 2, +1 detent on the drum track
     eq('drum track: transpose knob inert', seqState.clipTranspose, 0);

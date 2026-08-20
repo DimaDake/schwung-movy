@@ -1175,8 +1175,12 @@ device-wide tempo through Ableton Link, so a following Move tracks the knob;
 the cell shows **EXT** while Movy is locked to Move's transport (see
 [Syncing with Move's sequencer](#syncing-with-moves-sequencer)).
 
-Press **Back** (or a track button) to close any of these pages and return to
-where you were.
+Press **Back** to close any of these pages and return to where you were.
+
+The Clip and Set pages sit **side by side, not stacked**: opening one while the
+other is up *replaces* it, so a single **Back** always leaves for the view you
+started from — never for the other page. Switching tracks or going to Session
+view closes them as well, so neither page follows you around.
 
 ---
 

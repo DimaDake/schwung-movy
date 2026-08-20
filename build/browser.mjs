@@ -153,6 +153,7 @@ await esbuild.build({
         resolve(root, 'src/seq/track-select.ts'),
         resolve(root, 'src/seq/momentary.ts'),
         resolve(root, 'src/seq/detent.ts'),
+        resolve(root, 'src/seq/param-page.ts'),
         resolve(root, 'src/seq/main-page.ts'),
         resolve(root, 'src/seq/main-page-vm.ts'),
         resolve(root, 'src/seq/tempo-override.ts'),

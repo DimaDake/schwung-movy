@@ -29,7 +29,6 @@ const gestureKey = (k: number, track: number) => 'clip:' + track + ':' + k;
  * note in main-page.ts — two hand-synced fields are what let a page stay
  * "active" off screen and swallow every later knob turn. */
 export const clipPageState = {
-    origin: 0,                          // view to restore on Back
     touchedKnob: -1,                    // 0..3 drives the top toast; -1 none
     scaleOverlay: false,                // SCALE list open (knob 0 held)
     scaleSel: SCALE_DEFAULT_IDX,        // highlighted scale while the list is open
@@ -41,22 +40,12 @@ export function clipPageActive(): boolean {
     return appState.currentView === VIEW_CLIP_PARAMS;
 }
 
-/** Open the page. Owns the view switch, so being open and being on screen
- *  cannot come apart. */
-export function openClipPage(origin: number, _track: number): void {
-    clipPageState.origin = origin;
+/** Drop the transient gesture state. The view switch itself belongs to
+ *  param-page.ts — see clearMainPage. */
+export function clearClipPage(): void {
     clipPageState.touchedKnob = -1;
     clipPageState.scaleOverlay = false;
     accum.fill(0);
-    appState.currentView = VIEW_CLIP_PARAMS;
-}
-
-/** Close the page; returns the origin view, which it has already restored. */
-export function closeClipPage(): number {
-    clipPageState.touchedKnob = -1;
-    clipPageState.scaleOverlay = false;
-    appState.currentView = clipPageState.origin;
-    return clipPageState.origin;
 }
 
 export function clipPageTouch(k: number, down: boolean): void {
@@ -117,9 +106,6 @@ export function clipPageKnob(k: number, delta: number, track: number): void {
 }
 
 export function resetClipPage(): void {
-    clipPageState.origin = 0;
-    clipPageState.touchedKnob = -1;
-    clipPageState.scaleOverlay = false;
+    clearClipPage();
     clipPageState.scaleSel = SCALE_DEFAULT_IDX;
-    accum.fill(0);
 }

@@ -15,6 +15,24 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Back cycled forever between the Set and Clip parameter pages.** Opening the
+  two in turn left Back bouncing between them with no way out. Each page
+  captured `appState.currentView` as its own origin — and `currentView` can be
+  the *other* page, so after one round trip the two origins pointed at each
+  other. The same crossed origins made every other exit land on the sibling page
+  instead of a real view: a track switch then stored a global page in the
+  per-track view memory (`appState.trackView[]`), which re-showed it whenever you
+  came back to that track.
+
+  The two pages are siblings at one level of hierarchy, not a stack, so the
+  origin now lives once in `seq/param-page.ts` and is recorded only on the first
+  entry to the layer. Opening either page from the other replaces it, and one
+  Back always leaves for the view the layer was entered from. Going to Session
+  view now closes both pages as well — it closed only Clip Params before, and
+  `app/tick.ts` renders the param views ahead of `sessionMode`, so a Set page
+  left open sat over the master chain while the pads had already become the clip
+  grid.
+
 - **Master FX loaded from Movy vanished after a power cycle.** Schwung persists
   the master chain from a JavaScript mirror inside `shadow_ui.js`, not from the
   shim that actually holds the modules, and `saveMasterFxChainConfig()` is the

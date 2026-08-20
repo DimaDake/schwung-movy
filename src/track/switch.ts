@@ -17,8 +17,7 @@ import { appState, VIEW_BROWSE } from '../app/state.js';
 import { jogHintTouch } from '../app/jog-hint.js';
 import { mlog } from '../log.js';
 import { releaseAllLive } from '../keyboard/release.js';
-import { closeMainPage, mainPageActive } from '../seq/main-page.js';
-import { closeClipPage, clipPageActive } from '../seq/clip-page.js';
+import { closeParamPage, paramPageActive } from '../seq/param-page.js';
 import { seqCmd } from '../seq/engine.js';
 import { requestLoopWindowAdopt, seqState } from '../seq/state.js';
 import { selectTrack } from './focus.js';
@@ -37,8 +36,7 @@ export interface TrackSnapshot {
  * before closing them would save one into `trackView[]` and re-show it when the
  * track comes back. */
 export function beginTrackSwitch(): TrackSnapshot {
-    if (mainPageActive()) appState.currentView = closeMainPage();
-    if (clipPageActive()) appState.currentView = closeClipPage();
+    if (paramPageActive()) appState.currentView = closeParamPage();
     return {
         track: appState.activeTrack.index,
         view: appState.currentView === VIEW_BROWSE ? appState.browseOrigin : appState.currentView,

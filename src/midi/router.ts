@@ -6,8 +6,9 @@ import { setButtonHeld } from '../seq/button-held.js';
 import { sessionPhase, sessionReady } from '../seq/set-session.js';
 import { sessionStartFromScratch } from '../seq/set-fail.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } from '../app/state.js';
-import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease, closeMainPage } from '../seq/main-page.js';
-import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease, closeClipPage } from '../seq/clip-page.js';
+import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease } from '../seq/main-page.js';
+import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease } from '../seq/clip-page.js';
+import { closeParamPage, paramPageActive } from '../seq/param-page.js';
 import { CHAIN_SLOTS, MASTER_FX_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../chain/config.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
@@ -405,13 +406,8 @@ export function onMidiMessageInternal(data: number[]): void {
             appState.dirty = true;
             return;
         }
-        if (mainPageActive()) {
-            appState.currentView = closeMainPage();
-            appState.dirty = true;
-            return;
-        }
-        if (clipPageActive()) {
-            appState.currentView = closeClipPage();
+        if (paramPageActive()) {         // Set/Clip Params: one Back leaves both
+            appState.currentView = closeParamPage();
             appState.dirty = true;
             return;
         }

@@ -12,8 +12,7 @@ import {
     NUM_STEP_BUTTONS, MAIN_PAGE_STEPS, STEP_CLIP_PARAMS, STEP_METRO,
     STEP_FULL_VEL, STEP_DOUBLE_LOOP, STEP_QUANTIZE,
 } from './constants.js';
-import { openMainPage } from './main-page.js';
-import { openClipPage } from './clip-page.js';
+import { openParamPage } from './param-page.js';
 import { deleteActive, deleteStep } from './edit-ops.js';
 import { dupActive, onUnit as dupOnUnit } from './duplicate.js';
 import { seqCmd } from './engine.js';
@@ -112,20 +111,14 @@ export function handleStepButton(button: number, on: boolean, shiftHeld: boolean
  * in later steps. Steps 5/7/9 (0-indexed 4/6/8) open the Main Params page. */
 function shiftStepFunction(step: number): void {
     if (step in MAIN_PAGE_STEPS) {
-        if (appState.currentView !== VIEW_MAIN_PARAMS) {
-            openMainPage(appState.currentView);
-            appState.currentView = VIEW_MAIN_PARAMS;
-        }
+        openParamPage(VIEW_MAIN_PARAMS);
         appState.dirty = true;
         return;
     }
     // Clip Params edits the active/playing clip, so it only opens in Track view
     // (Session view shows the clip grid, not a single clip's params).
     if (step === STEP_CLIP_PARAMS) {
-        if (!seqState.sessionMode && appState.currentView !== VIEW_CLIP_PARAMS) {
-            openClipPage(appState.currentView, appState.activeTrack.index);
-            appState.currentView = VIEW_CLIP_PARAMS;
-        }
+        if (!seqState.sessionMode) openParamPage(VIEW_CLIP_PARAMS);
         appState.dirty = true;
         return;
     }

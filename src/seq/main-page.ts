@@ -42,7 +42,6 @@ const OVERLAY_KNOBS = [K_KEY, K_MODE, K_LAYOUT];
  * silently ate every knob turn on every other page — clip length, module params
  * — until movy was reopened. That is the input lock-up users kept reporting. */
 export const mainPageState = {
-    origin: 0,                          // view to restore on Back
     touchedKnob: -1,                    // 0..7 drives the top toast; -1 none
     overlayKnob: -1,                    // knob whose enum list is open; -1 closed
     overlaySel: 0,                      // highlighted entry while the list is open
@@ -78,22 +77,13 @@ export function mainPageActive(): boolean {
     return appState.currentView === VIEW_MAIN_PARAMS;
 }
 
-/** Open the page. Owns the view switch, so being open and being on screen
- *  cannot come apart. */
-export function openMainPage(origin: number): void {
-    mainPageState.origin = origin;
+/** Drop the transient gesture state. The view switch itself belongs to
+ *  param-page.ts, which owns the one-level hierarchy the two param pages share
+ *  and calls this on every entry to and exit from the layer. */
+export function clearMainPage(): void {
     mainPageState.touchedKnob = -1;
     mainPageState.overlayKnob = -1;
     accum.fill(0);
-    appState.currentView = VIEW_MAIN_PARAMS;
-}
-
-/** Close the page; returns the origin view, which it has already restored. */
-export function closeMainPage(): number {
-    mainPageState.touchedKnob = -1;
-    mainPageState.overlayKnob = -1;
-    appState.currentView = mainPageState.origin;
-    return mainPageState.origin;
 }
 
 export function mainPageTouch(k: number, down: boolean): void {
@@ -170,9 +160,6 @@ export function mainPageKnob(k: number, delta: number): void {
 }
 
 export function resetMainPage(): void {
-    mainPageState.origin = 0;
-    mainPageState.touchedKnob = -1;
-    mainPageState.overlayKnob = -1;
+    clearMainPage();
     mainPageState.overlaySel = 0;
-    accum.fill(0);
 }

@@ -12,7 +12,7 @@ import { redoOnce, undoOnce } from '../undo/apply.js';
 import { showUndoToast } from '../undo/toast.js';
 import { CC_MUTE, CC_NOTE_SESSION } from './constants.js';
 import { captureButton, captureClear } from './capture.js';
-import { closeClipPage, clipPageActive } from './clip-page.js';
+import { closeParamPage, paramPageActive } from './param-page.js';
 import { deleteActive, deleteButton } from './edit-ops.js';
 import { copyButton as dupCopyButton } from './duplicate.js';
 import { loopButton } from './loop-mode.js';
@@ -89,8 +89,11 @@ export function seqHandleButtonCc(d1: number, d2: number, shiftHeld: boolean): b
         if (d2 > 0) {
             sessionPrev = seqState.sessionMode;
             momentaryDown(d1, () => { seqState.sessionMode = sessionPrev; });
-            // Clip Params is Track-view only: leaving for Session closes it.
-            if (clipPageActive()) appState.currentView = closeClipPage();
+            /* Both param pages are Track-view pages: leaving for Session closes
+             * the layer. tick.ts renders VIEW_MAIN/CLIP_PARAMS ahead of
+             * sessionMode, so one left open would sit over the master chain
+             * while the pads had already become the clip grid. */
+            if (paramPageActive()) appState.currentView = closeParamPage();
             // Session mode swallows pad note-offs (the pad branch in router.ts
             // returns true for 0x80 too), so a pad held across the switch would
             // strand.

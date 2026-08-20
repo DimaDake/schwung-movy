@@ -695,6 +695,61 @@ _log('\napp-loop: track button closes set parameters page');
     eq('track button clears set params state', mainPageActive(), false);
 }
 
+/* ── Set Params and Clip Params are ONE level deep ────────────────────────── */
+_log('\napp-loop: set/clip params replace each other, one level deep');
+{
+    /* Field report: alternating the two pages made Back cycle between them
+     * forever. Each page captured appState.currentView as its own origin, so
+     * after one round trip the two origins pointed AT EACH OTHER — and every
+     * "close the param page" site (Back, a track button, Session) then landed
+     * on the sibling page instead of on a real view. */
+    const { VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } = await import('../dist/esm/app/state.js');
+    const { mainPageActive } = await import('../dist/esm/seq/main-page.js');
+    const { clipPageActive } = await import('../dist/esm/seq/clip-page.js');
+    const STEP_SET = 4, STEP_CLIP = 2;          // Shift+Step 5 / Shift+Step 3
+    const shiftStep = (btn) => {
+        sendMidi([0xB0, MoveShift, 127]);
+        sendMidi([0x90, 16 + btn, 127]); sendMidi([0x80, 16 + btn, 0]);
+        sendMidi([0xB0, MoveShift, 0]);
+    };
+    const paramLayer = () => mainPageActive() || clipPageActive();
+
+    resetApp();
+    engine.reset();
+    const origin = appState.currentView;        // VIEW_CHAIN
+
+    shiftStep(STEP_SET);
+    eq('set params opens', appState.currentView, VIEW_MAIN_PARAMS);
+    shiftStep(STEP_CLIP);
+    eq('clip params replaces set params', appState.currentView, VIEW_CLIP_PARAMS);
+    shiftStep(STEP_SET);
+    eq('set params replaces clip params', appState.currentView, VIEW_MAIN_PARAMS);
+    shiftStep(STEP_CLIP);
+    eq('clip params replaces it again', appState.currentView, VIEW_CLIP_PARAMS);
+
+    // One Back leaves the whole param layer — for the view it was entered from.
+    sendMidi([0xB0, MoveBack, 127]);
+    eq('Back leaves the param layer in one press', appState.currentView, origin);
+
+    /* A track button must not write a param page into the per-track view
+     * memory: pressing the ACTIVE track's button round-trips prev.view through
+     * trackView[], so what lands in currentView is exactly what was stored. */
+    shiftStep(STEP_SET); shiftStep(STEP_CLIP);
+    sendMidi([0xB0, 43, 127]); sendMidi([0xB0, 43, 0]);
+    eq('a track switch clears the param layer', paramLayer(), false);
+    eq('a track switch restores the origin view', appState.currentView, origin);
+
+    // Session view is the master chain's screen; no param page may sit over it.
+    resetApp();
+    engine.reset();
+    shiftStep(STEP_SET);
+    eq('set params open before Session', mainPageActive(), true);
+    sendMidi([0xB0, CC_NOTE_SESSION, 127]); sendMidi([0xB0, CC_NOTE_SESSION, 0]);
+    advance(2);
+    eq('Session view latched', seqState.sessionMode, true);
+    eq('Session clears the param layer', paramLayer(), false);
+}
+
 /* ── Master FX: jog-click adds a module by DSP path (not id) ──────────────── */
 _log('\napp-loop: master FX slot adds a module by DSP path');
 {
@@ -1261,10 +1316,11 @@ _log('\napp-loop: a dropped step release never strands the hold');
     /* (4) The input lock-up, in two button presses. "Open" used to be a flag of
      * its own, synced by hand at the open site, so any path that moved
      * currentView without closing the page left it latched — and Note/Session
-     * closes Clip Params but never closed Main Params. The knob dispatch asks
-     * Main Params first, so from then on every knob turn anywhere fed the tempo
-     * invisibly, and clip length and module params were dead until movy was
-     * reopened. That is the lock-up users reported for months. */
+     * did not close Main Params. The knob dispatch asks Main Params first, so
+     * from then on every knob turn anywhere fed the tempo invisibly, and clip
+     * length and module params were dead until movy was reopened. That is the
+     * lock-up users reported for months. Note/Session now closes the param
+     * layer outright, so this is a second line of defence, not the only one. */
     resetApp();
     openMainParams();
     eq('lock-up: the page is up', mainPageActive(), true);

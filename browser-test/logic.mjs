@@ -64,7 +64,7 @@ import {
     undoToastVM, noteCount, clipTarget, valueChange,
 } from '../dist/esm/undo/label.js';
 import { seqCmd, takeLabelSync, seqEngineTick, resetSeqEngine } from '../dist/esm/seq/engine.js';
-import { installEnv } from './env.mjs';
+import { installEnv, SHADOW_UI_SLOTS } from './env.mjs';
 import {
     buildTargetOptions, shortenTarget, targetIndex, formatDepth, formatPhase,
     LFO_SHAPES, LFO_DIVISIONS, compLabel,
@@ -93,6 +93,7 @@ import { triggerIndices } from '../dist/esm/model/trigger.js';
 import { renderKnobsView } from '../dist/esm/renderer/knob-view.js';
 import { renderChainView } from '../dist/esm/renderer/chain-view.js';
 import { lfoTargetsParam, assignLfoTarget, clearLfoTarget } from '../dist/esm/lfo/assign.js';
+import { trackScope, masterScope } from '../dist/esm/lfo/scope.js';
 import { holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle, assignCommit, assignToastText, resetAssignMode } from '../dist/esm/lfo/assign-mode.js';
 import { jogHintTouch, jogHintTick, jogHintVisible } from '../dist/esm/app/jog-hint.js';
 import { shapeSample, drawWave } from '../dist/esm/renderer/lfo-wave.js';
@@ -6536,7 +6537,7 @@ _log('\nTest: LFO param helpers');
             { key: 'mix', name: 'Mix', type: 'float' },
         ]),
     });
-    const opts = buildTargetOptions(0, 0);
+    const opts = buildTargetOptions(trackScope(0), 0);
     eq('target[0] is None', opts[0].label, 'None');
     eq('target[0] target null', opts[0].target, null);
     // Synth: Cutoff/Resonance/Wave (3) + FX1 Mix (1) + other-LFO params (3) = 7, +None = 8
@@ -6671,7 +6672,10 @@ _log('\nTest: LFO target commit uses blocking writes (device SHM race)');
     // Capture blocking writes; the target commit must go through this path so
     // target+target_param+enabled all land (non-blocking would clobber on device).
     const blocking = [];
-    globalThis.shadow_set_param_timeout = (_s, key, val) => { blocking.push([key, val]); env.params[key] = val; return true; };
+    globalThis.shadow_set_param_timeout = (slot, key, val) => {
+        if (!(slot >= 0 && slot < SHADOW_UI_SLOTS)) return false;
+        blocking.push([key, val]); env.params[key] = val; return true;
+    };
     const m2 = createLfoModel(0);
     m2.tick();
     m2.handleKnobTouch(3);
@@ -6683,7 +6687,115 @@ _log('\nTest: LFO target commit uses blocking writes (device SHM race)');
     // No periodic re-read clobber: many ticks later the target is still set.
     for (let i = 0; i < 400; i++) m2.tick();
     eq('target persists across ticks (no poll clobber)', m2.getViewModel().rows[0][3].displayValue !== 'None', true);
-    delete globalThis.shadow_set_param_timeout;
+    env.restoreSetParamTimeout();
+}
+
+_log('\nTest: LFO target commit reaches a movy-hosted track');
+{
+    /* A movy track is a chain in movy's own engine, not a schwung slot: its
+     * params are `ch<N>:…` over the engine's param channel. The slot-addressed
+     * API refuses the write outright (env.mjs models the real guard), so a
+     * commit that goes anywhere near it assigns nothing and the LFO never runs
+     * — which is precisely how it failed on device. */
+    const { resetPorts } = await import('../dist/esm/track/registry.js');
+    const DETENT = 8;
+    const chain = {};
+    const oG = globalThis.host_module_get_param;
+    const oS = globalThis.host_module_set_param;
+    const oB = globalThis.host_module_set_param_blocking;
+    globalThis.host_module_get_param = (k) => chain[k] ?? null;
+    globalThis.host_module_set_param = (k, v) => { chain[k] = v; return true; };
+    globalThis.host_module_set_param_blocking = (k, v) => { chain[k] = v; return true; };
+    chain['ch0:synth:chain_params'] = JSON.stringify([{ key: 'cutoff', name: 'Cutoff', type: 'float' }]);
+    resetPorts();
+
+    const m3 = createLfoModel(4);          // track 5 = movy chain 0
+    m3.tick();
+    m3.handleKnobTouch(3);
+    m3.handleKnobDelta(3, DETENT);         // first real target
+    m3.handleKnobRelease(3);
+
+    eq('movy track: target reached the chain',       chain['ch0:lfo1:target'], 'synth');
+    eq('movy track: target_param reached the chain', chain['ch0:lfo1:target_param'], 'cutoff');
+    eq('movy track: enabled reached the chain',      chain['ch0:lfo1:enabled'], '1');
+
+    /* Clearing has to travel the same road, or a target can be set and never
+     * removed. */
+    m3.handleKnobTouch(3);
+    m3.handleKnobDelta(3, -DETENT * 4);    // back up to None
+    m3.handleKnobRelease(3);
+    eq('movy track: clear reached the chain',   chain['ch0:lfo1:target'], '');
+    eq('movy track: disabled reached the chain', chain['ch0:lfo1:enabled'], '0');
+
+    globalThis.host_module_get_param = oG;
+    globalThis.host_module_set_param = oS;
+    globalThis.host_module_set_param_blocking = oB;
+    resetPorts();
+}
+
+_log('\nTest: master chain LFO page');
+{
+    const { MASTER_FX_SLOTS, MASTER_LFO_INDEX, isMasterLfoSlot, isVirtualSlot } = await import('../dist/esm/chain/config.js');
+    const { createScopedLfoModel } = await import('../dist/esm/lfo/model.js');
+    const { resetPorts } = await import('../dist/esm/track/registry.js');
+    const DETENT = 8;
+
+    eq('master chain has an LFO slot', MASTER_FX_SLOTS.length, 5);
+    eq('it is last', MASTER_LFO_INDEX, 4);
+    eq('isMasterLfoSlot(4)', isMasterLfoSlot(4), true);
+    eq('isMasterLfoSlot(0)', isMasterLfoSlot(0), false);
+    eq('the LFO slot is virtual', isVirtualSlot(MASTER_FX_SLOTS[4]), true);
+    eq('an FX slot is not', isVirtualSlot(MASTER_FX_SLOTS[0]), false);
+
+    /* The master LFOs live in the shim under `master_fx:`, reachable through any
+     * slot — so they are read and written on slot 0 with a namespaced key. */
+    env.setParams({
+        'master_fx:fx2:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float' }]),
+        'master_fx:lfo1:target': '', 'master_fx:lfo1:target_param': '',
+    });
+    resetPorts();
+    const mm = createScopedLfoModel(masterScope());
+    mm.tick();
+
+    const mvm = mm.getViewModel();
+    eq('master LFO page names itself', mvm.moduleName, 'LFO 1');
+    eq('master LFO has two banks', mvm.bankCount, 2);
+    eq('master component key is namespaced', mm.getComponentKey(), 'master_fx:lfo');
+    /* No notes on the master bus, so no retrigger — and the shim has no key for
+     * it. A blank cell, not a dead knob. */
+    eq('knob 7 (RETRIG) is blank on master', mvm.rows[1][2], null);
+    eq('knob 8 is still DEPTH', mvm.rows[1][3].shortName, 'DEPTH');
+    eq('the waveform still spans shape+phase', mvm.lfoViz[0].startCol, 0);
+
+    /* Turning the blank knob must write nothing: the shim would drop it anyway,
+     * and a value the hardware never took is worse than no value. */
+    mm.handleKnobDelta(6, DETENT * 4);
+    eq('a turn of the blank knob writes nothing', env.params['master_fx:lfo1:retrigger'], undefined);
+
+    /* Targets are the four master FX slots, named as the shim parses them —
+     * bare `fx2`, never `master_fx:fx2`, which would match no slot. */
+    const mopts = buildTargetOptions(masterScope(), 0);
+    eq('master targets exclude synth', mopts.some(o => o.target === 'synth'), false);
+    const mixOpt = mopts.find(o => o.param === 'mix');
+    eq('a loaded master FX param is offered', !!mixOpt, true);
+    eq('the target is the bare slot key', mixOpt.target, 'fx2');
+    eq('the other master LFO is offered', mopts.some(o => o.target === 'lfo2'), true);
+
+    /* And the commit reaches the shim's namespaced keys. */
+    mm.handleKnobTouch(3);
+    mm.handleKnobDelta(3, DETENT);
+    mm.handleKnobRelease(3);
+    eq('master target committed',       env.params['master_fx:lfo1:target'], 'fx2');
+    eq('master target_param committed', env.params['master_fx:lfo1:target_param'], 'mix');
+    eq('master LFO auto-enabled',       env.params['master_fx:lfo1:enabled'], '1');
+    /* Never the track form: an un-namespaced key would edit track 1's LFO. */
+    eq('nothing written to a track LFO key', env.params['lfo1:target'], undefined);
+
+    /* A depth turn goes to the same namespace. */
+    mm.handleKnobDelta(7, DETENT);
+    eq('master depth written namespaced', typeof env.params['master_fx:lfo1:depth'], 'string');
+
+    resetPorts();
 }
 
 _log('\nTest: LFO chain slot wiring');
@@ -7240,17 +7352,17 @@ _log('\nTest: buildViewModel emits filterViz + claim priority (A1)');
 _log('\nTest: lfo assign helpers');
 {
     env.setParams({});
-    assignLfoTarget(0, 0, 'synth', 'cutoff');
+    assignLfoTarget(trackScope(0), 0, 'synth', 'cutoff');
     eq('target written', env.params['lfo1:target'], 'synth');
     eq('target_param written', env.params['lfo1:target_param'], 'cutoff');
     eq('enabled written', env.params['lfo1:enabled'], '1');
-    eq('targets param true', lfoTargetsParam(0, 0, 'synth', 'cutoff'), true);
-    eq('targets other false', lfoTargetsParam(0, 0, 'synth', 'reso'), false);
-    eq('lfo2 not targeting', lfoTargetsParam(0, 1, 'synth', 'cutoff'), false);
-    clearLfoTarget(0, 0);
+    eq('targets param true', lfoTargetsParam(trackScope(0), 0, 'synth', 'cutoff'), true);
+    eq('targets other false', lfoTargetsParam(trackScope(0), 0, 'synth', 'reso'), false);
+    eq('lfo2 not targeting', lfoTargetsParam(trackScope(0), 1, 'synth', 'cutoff'), false);
+    clearLfoTarget(trackScope(0), 0);
     eq('target cleared', env.params['lfo1:target'], '');
     eq('enabled cleared', env.params['lfo1:enabled'], '0');
-    eq('targets false after clear', lfoTargetsParam(0, 0, 'synth', 'cutoff'), false);
+    eq('targets false after clear', lfoTargetsParam(trackScope(0), 0, 'synth', 'cutoff'), false);
 }
 
 _log('\nTest: buildViewModel marks modulated params (from cache)');
@@ -7288,18 +7400,18 @@ _log('\nTest: LFO assign-mode gesture');
     env.setParams({});
     resetAssignMode();
 
-    holdTouch(0, 0, info({ automatable: false }));
+    holdTouch(trackScope(0), 0, info({ automatable: false }));
     eq('non-automatable does not arm', holdTick(), false);
 
     resetAssignMode();
-    holdTouch(0, 0, info());
+    holdTouch(trackScope(0), 0, info());
     eq('not active before 500ms', assignActive(), false);
     holdTurnCancel();
     eq('turn cancels arm', holdTick(), false);
 
     const realNow = Date.now;
     let t = 1000; Date.now = () => t;
-    holdTouch(0, 0, info());
+    holdTouch(trackScope(0), 0, info());
     t = 1600; eq('not active before hold time', holdTick(), false);
     t = 2100; eq('activates after hold time', holdTick(), true);
     eq('active flag set', assignActive(), true);
@@ -7313,14 +7425,14 @@ _log('\nTest: LFO assign-mode gesture');
     eq('lfo2 target written', env.params['lfo2:target'], 'synth');
     eq('mode exited after commit', assignActive(), false);
 
-    t = 3000; holdTouch(0, 0, info()); t = 4200;
+    t = 3000; holdTouch(trackScope(0), 0, info()); t = 4200;
     eq('re-activates', holdTick(), true);
     eq('starts on assigned LFO2', assignToastText(), 'CLICK: REMOVE <LFO2> MOD');
     const r2 = assignCommit();
     eq('commit removed', JSON.stringify(r2), JSON.stringify({ assigned: false, lfoIdx: 1 }));
     eq('lfo2 target cleared', env.params['lfo2:target'], '');
 
-    t = 5000; holdTouch(0, 0, info()); t = 6200; holdTick();
+    t = 5000; holdTouch(trackScope(0), 0, info()); t = 6200; holdTick();
     eq('active before release', assignActive(), true);
     holdRelease(0);
     eq('release cancels', assignActive(), false);
@@ -11188,7 +11300,10 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     const writes = [];
     globalThis.shadow_get_param = (slot, key) => store[key] ?? null;
     globalThis.shadow_set_param = (slot, key, v) => { writes.push(key + '=' + v); store[key] = v; return true; };
-    globalThis.shadow_set_param_timeout = (slot, key, v) => { writes.push(key + '=' + v); store[key] = v; return true; };
+    globalThis.shadow_set_param_timeout = (slot, key, v) => {
+        if (!(slot >= 0 && slot < SHADOW_UI_SLOTS)) return false;
+        writes.push(key + '=' + v); store[key] = v; return true;
+    };
 
     /* Reading a modulated param yields a phase sample, not a setting — and it
      * could never hold anyway, since the LFO overwrites it every DSP tick. */
@@ -11247,7 +11362,7 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 
     delete globalThis.shadow_get_param;
     delete globalThis.shadow_set_param;
-    delete globalThis.shadow_set_param_timeout;
+    env.restoreSetParamTimeout();
     resetModuleRestore();
 }
 
@@ -12298,6 +12413,7 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
 {
   _log('\nmovy chain persistence:');
   const { captureChains, restoreChains } = await import('../dist/esm/track/chain-persist.js');
+  const { lfoStateKeys, restoreLfoState } = await import('../dist/esm/track/lfo-persist.js');
   const { resetPorts } = await import('../dist/esm/track/registry.js');
 
   const reads = [], writes = [];
@@ -12337,6 +12453,49 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
   eq('out-of-range track skipped', restoreChains([{ t: 99, comp: [{ c: 'synth', m: 'x' }] }]), 0);
   eq('host track index skipped', restoreChains([{ t: 0, comp: [{ c: 'synth', m: 'x' }] }]), 0);
   eq('unknown component skipped', restoreChains([{ t: 4, comp: [{ c: 'bogus', m: 'x' }] }]), 0);
+
+  /* ── the chain's LFOs ride the same snapshot ──────────────────────────────
+   * They live in the chain instance, not in any component's :state blob, so
+   * without this a movy-track LFO assignment survived exactly until the tool
+   * closed. */
+  const lfoAssigned = { 'ch0:synth_module': 'plaits', 'ch0:lfo1:target': 'synth',
+    'ch0:lfo1:target_param': 'cutoff', 'ch0:lfo1:enabled': '1', 'ch0:lfo1:depth': '0.5000' };
+  reads.length = 0;
+  globalThis.host_module_get_param = (k) => { reads.push(k); return lfoAssigned[k] ?? null; };
+  resetPorts();
+  const withLfo = captureChains();
+  eq('LFO state captured', Array.isArray(withLfo[0].lfo), true);
+  eq('LFO capture costs no extra round trip',
+     reads.filter((k) => k.includes(':lfo')).length, lfoStateKeys().length);
+
+  writes.length = 0;
+  restoreChains(withLfo);
+  const wroteLfo = Object.fromEntries(writes.filter(([k]) => k.includes('lfo')));
+  eq('LFO target restored',       wroteLfo['ch0:lfo1:target'], 'synth');
+  eq('LFO target_param restored', wroteLfo['ch0:lfo1:target_param'], 'cutoff');
+  eq('LFO enabled restored',      wroteLfo['ch0:lfo1:enabled'], '1');
+  eq('LFO depth restored',        wroteLfo['ch0:lfo1:depth'], '0.5000');
+  /* A target binds to a param on a module, so the module must be requested
+   * first — otherwise the restore lands on an empty chain and is dropped. */
+  const firstLfoWrite = writes.findIndex(([k]) => k.includes(':lfo'));
+  const moduleWrite   = writes.findIndex(([k]) => k === 'ch0:synth:module');
+  eq('modules are written before the LFO', moduleWrite < firstLfoWrite, true);
+
+  /* A track that never touched an LFO writes nothing into the set file. */
+  globalThis.host_module_get_param = (k) => (k === 'ch0:synth_module' ? 'plaits' : null);
+  resetPorts();
+  eq('idle LFOs are not persisted', captureChains()[0].lfo, undefined);
+
+  eq('a malformed LFO snapshot is refused whole',
+     restoreLfoState(portFor(4), ['too', 'short']), false);
+
+  /* A set with no movy instruments must not pay for the LFO keys at all — the
+   * whole reason they ride the loaded-tracks batch rather than the first one. */
+  reads.length = 0;
+  globalThis.host_module_get_param = (k) => { reads.push(k); return null; };
+  resetPorts();
+  captureChains();
+  eq('an empty set reads no LFO keys', reads.filter((k) => k.includes(':lfo')).length, 0);
 
   globalThis.host_module_get_param = oG; globalThis.host_module_set_param_blocking = oS;
   globalThis.shadow_get_params = oBG;

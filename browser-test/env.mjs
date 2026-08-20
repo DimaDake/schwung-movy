@@ -11,6 +11,10 @@ import { dirname, join } from 'node:path';
 
 const FIXTURE_DIR = join(dirname(fileURLToPath(import.meta.url)), 'fixtures');
 
+/* schwung src/host/shadow_constants.h — the number of real shadow slots, and so
+ * the highest track index the slot-addressed param API will accept. */
+export const SHADOW_UI_SLOTS = 4;
+
 /* Simulate a module shipping its own layout: on the device Forge carries
  * `sound_generators/forge/movy_config.json` (canonical: forge-move repo,
  * src/movy_config.json); here we serve the fixture snapshot so the loader's
@@ -66,6 +70,21 @@ export function installEnv() {
     globalThis.clear_screen       = () => {};
     globalThis.shadow_get_param   = (_s, key) => params[key] ?? null;
     globalThis.shadow_set_param   = (_s, key, val) => { params[key] = val; return true; };
+    /* The slot guard is the point, not the write. `js_shadow_set_param_timeout`
+     * (schwung shadow_ui.c) refuses `slot >= SHADOW_UI_SLOTS` and returns false
+     * having written nothing — a movy track (5-16) is not a schwung slot. A stub
+     * that ignored the slot is what let two slot-addressed writes to movy tracks
+     * pass every test while doing nothing at all on device. */
+    const setParamTimeout = (slot, key, val) => {
+        if (!(slot >= 0 && slot < SHADOW_UI_SLOTS)) return false;
+        params[key] = val;
+        return true;
+    };
+    globalThis.shadow_set_param_timeout = setParamTimeout;
+    /* Tests that swap in their own capturing stub put this one back rather than
+     * deleting it — dropping it entirely would quietly send every later blocking
+     * write down the non-blocking fallback. */
+    env.restoreSetParamTimeout = () => { globalThis.shadow_set_param_timeout = setParamTimeout; };
     globalThis.shadow_get_ui_slot = () => 0;
     globalThis.shadow_send_midi_to_dsp = () => {};
     globalThis.host_read_file     = (path) => serveModuleLayout(path);

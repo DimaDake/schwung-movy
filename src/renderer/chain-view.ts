@@ -3,22 +3,27 @@ import { fontPrint, fontWidth } from '../font/index.js';
 import { drawHeader, drawBankBar } from './header.js';
 import { drawKnobParams } from './label.js';
 import { drawEnumOverlay, drawJogToast } from './overlay.js';
-import { W, ROW0_Y } from './layout.js';
-import { CHAIN_SLOTS, isLfoSlot } from '../chain/config.js';
+import { W } from './layout.js';
+import { CHAIN_SLOTS, isVirtualSlot, type ChainSlot } from '../chain/config.js';
 
-export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: boolean, trackLabel: string, slotLabel?: string): void {
+/* `slots` is the chain being drawn — a track's or the master's. It used to be
+ * CHAIN_SLOTS unconditionally, which drew the track chain's five dots over the
+ * master's four slots. */
+export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: boolean, trackLabel: string,
+                                slotLabel?: string, slots: ChainSlot[] = CHAIN_SLOTS): void {
     clear_screen();
 
-    const slot = CHAIN_SLOTS[chainIndex] ?? CHAIN_SLOTS[1];
+    const slot = slots[chainIndex] ?? slots[1];
     const effectiveSlotLabel = slotLabel ?? slot.label;
+    const virtual = isVirtualSlot(slots[chainIndex]);
 
     if (vm.isEmpty) {
         drawHeader(trackLabel, effectiveSlotLabel, false);
         if (vm.stepPagePresent) {
             const sel = vm.stepPageSelected ? 0 : chainIndex + 1;
-            drawBankBar(sel, CHAIN_SLOTS.length + 1, true);
+            drawBankBar(sel, slots.length + 1, true);
         } else {
-            drawBankBar(chainIndex, CHAIN_SLOTS.length);
+            drawBankBar(chainIndex, slots.length);
         }
         const msg = 'CLICK JOG: ADD MODULE';
         fontPrint(Math.max(0, Math.floor((W - fontWidth(msg)) / 2)), 28, msg, 1);
@@ -38,9 +43,9 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
 
     if (vm.stepPagePresent) {
         const sel = vm.stepPageSelected ? 0 : chainIndex + 1;
-        drawBankBar(sel, CHAIN_SLOTS.length + 1, true);
+        drawBankBar(sel, slots.length + 1, true);
     } else {
-        drawBankBar(chainIndex, CHAIN_SLOTS.length);
+        drawBankBar(chainIndex, slots.length);
     }
     drawKnobParams(vm);
 
@@ -51,5 +56,5 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
      * chain page but not how to open the full browser, which reads as the toast
      * appearing only sometimes. */
     if (vm.toast?.browseHint) drawJogToast('JOG: BROWSE');
-    else if (jogTouched) drawJogToast(isLfoSlot(chainIndex) ? 'CLICK JOG: EDIT LFOS' : 'SHIFT+CLICK SWAP  CLICK OPEN');
+    else if (jogTouched) drawJogToast(virtual ? 'CLICK JOG: EDIT LFOS' : 'SHIFT+CLICK SWAP  CLICK OPEN');
 }

@@ -9,7 +9,7 @@ import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, 
 import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease } from '../seq/main-page.js';
 import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease } from '../seq/clip-page.js';
 import { closeParamPage, paramPageActive } from '../seq/param-page.js';
-import { CHAIN_SLOTS, MASTER_FX_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../chain/config.js';
+import { CHAIN_SLOTS, MASTER_FX_SLOTS, LFO_CHAIN_INDEX, MASTER_LFO_INDEX, isLfoSlot, isMasterLfoSlot } from '../chain/config.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
 import { noteOn, noteOff, changeOctave } from '../keyboard/handler.js';
@@ -26,6 +26,7 @@ import { WHITE_BRIGHT, WHITE_DIM } from '../seq/colors.js';
 import { momentaryDown, momentaryGesture, momentaryUp } from '../seq/momentary.js';
 import { handleAutomationKnob, clearLaneForKnob, automationKnobReleased, automationKnobTouched } from '../seq/automation.js';
 import { holdTouch, holdRelease, holdTurnCancel, assignActive, assignCycle, assignCommit } from '../lfo/assign-mode.js';
+import { masterScope, trackScope } from '../lfo/scope.js';
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
 import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm } from '../app/leave-modal.js';
@@ -96,6 +97,11 @@ function masterModel() { return appState.masterFxModels[appState.masterChainInde
 /* The model the 8 knobs edit and the screen shows: the master FX slot while the
  * master chain is on screen (Session mode), otherwise the active track slot. */
 function knobModel() { return masterChainActive() ? masterModel() : activeModel(); }
+
+/* Which pair of LFOs a knob on that model can be assigned to. */
+function knobLfoScope() {
+    return masterChainActive() ? masterScope() : trackScope(appState.activeTrack.index);
+}
 
 /* Session mode shows the master FX chain, but a browse/file-browse view (opened
  * from it) takes over the screen and the jog wheel — so master-chain navigation
@@ -246,7 +252,10 @@ export function onMidiMessageInternal(data: number[]): void {
             }
             knobModel()?.handleKnobTouch(d1);
             automationKnobTouched(d1);    // arm tap-to-clear in step-auto mode
-            holdTouch(appState.activeTrack.index, d1, info);   // arm hold-to-modulate
+            /* Scoped to whichever chain the knobs are editing: hold-to-modulate
+             * works on the master FX pages too, and a master knob's target
+             * belongs to the master LFOs, not the active track's. */
+            holdTouch(knobLfoScope(), d1, info);   // arm hold-to-modulate
         } else {
             const info = knobModel()?.getKnobParamInfo(d1) ?? null;
             if (knobModel()?.handleKnobRelease(d1)) seqToast('Wrong preset type');
@@ -445,11 +454,22 @@ export function onMidiMessageInternal(data: number[]): void {
         if (assignActive()) {
             const r = assignCommit();
             if (r) {
-                activeModel()?.refreshModulation();   // update the ~ mark immediately
+                knobModel()?.refreshModulation();   // update the ~ mark immediately
                 if (r.assigned) {
-                    appState.trackChainIndex[appState.activeTrack.index] = LFO_CHAIN_INDEX;
-                    appState.currentView = VIEW_CHAIN;
-                    const lm = appState.trackModels[appState.activeTrack.index]?.[LFO_CHAIN_INDEX];
+                    /* Land on the LFO page that now owns the param — the master
+                     * chain's when the gesture happened there, the track's
+                     * otherwise. */
+                    const onMaster = masterChainActive();
+                    let lm;
+                    if (onMaster) {
+                        appState.masterChainIndex = MASTER_LFO_INDEX;
+                        appState.masterDetail = false;
+                        lm = appState.masterFxModels[MASTER_LFO_INDEX];
+                    } else {
+                        appState.trackChainIndex[appState.activeTrack.index] = LFO_CHAIN_INDEX;
+                        appState.currentView = VIEW_CHAIN;
+                        lm = appState.trackModels[appState.activeTrack.index]?.[LFO_CHAIN_INDEX];
+                    }
                     if (lm) {
                         lm.changePage(r.lfoIdx - lm.getKnobPage());
                         lm.reload();   // re-read the freshly-written target (cache was stale)
@@ -483,7 +503,12 @@ export function onMidiMessageInternal(data: number[]): void {
             //    and a loaded slot drills into its detail page.
             const mi = appState.masterChainIndex;
             const isEmpty = masterModel()?.getViewModel().isEmpty ?? false;
-            if (appState.masterDetail || appState.shiftHeld || isEmpty) {
+            /* The LFO slot has no module to browse for — a click only ever
+             * drills into it, exactly as the track chain's LFO slot does. */
+            if (isMasterLfoSlot(mi)) {
+                appState.masterDetail = true;
+                appState.dirty = true;
+            } else if (appState.masterDetail || appState.shiftHeld || isEmpty) {
                 openBrowser(MASTER_FX_SLOTS[mi], 0, () => masterModel()?.reload());
                 appState.browseOrigin = VIEW_CHAIN;
             } else {
@@ -545,7 +570,7 @@ export function onMidiMessageInternal(data: number[]): void {
             if (masterDetailActive()) {
                 masterModel()?.changePage(delta > 0 ? 1 : -1);
             } else if (masterGridActive()) {
-                appState.masterChainIndex = Math.max(0, Math.min(3, appState.masterChainIndex + (delta > 0 ? 1 : -1)));
+                appState.masterChainIndex = Math.max(0, Math.min(MASTER_LFO_INDEX, appState.masterChainIndex + (delta > 0 ? 1 : -1)));
             } else if (appState.currentView === VIEW_CHAIN) {
                 const dir = delta > 0 ? 1 : -1;
                 if (stepPageAvailable()) {
@@ -612,7 +637,7 @@ export function onMidiMessageInternal(data: number[]): void {
         if (masterDetailActive()) {
             masterModel()?.changePage(1);
         } else if (masterGridActive()) {
-            appState.masterChainIndex = Math.min(3, appState.masterChainIndex + 1);
+            appState.masterChainIndex = Math.min(MASTER_LFO_INDEX, appState.masterChainIndex + 1);
         } else if (appState.currentView === VIEW_CHAIN) {
             if (stepPageAvailable() && stepPageState.selected) setStepPageSelected(false);
             else setChainIndex(Math.min(LFO_CHAIN_INDEX, chainIndex() + 1));

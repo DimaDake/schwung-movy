@@ -459,7 +459,7 @@ function tickBody(): void {
                 // detail page (param banks scroll via jog), same as a track slot.
                 renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index);
             } else {
-                renderChainView(vm, mIdx, jogHintVisible(), 'MASTER', MASTER_FX_SLOTS[mIdx]?.label);
+                renderChainView(vm, mIdx, jogHintVisible(), 'MASTER', MASTER_FX_SLOTS[mIdx]?.label, MASTER_FX_SLOTS);
             }
             jogToastShown = jogHintVisible();
             updateKnobLEDs(vm);

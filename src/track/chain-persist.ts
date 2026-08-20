@@ -16,6 +16,7 @@
 import { CHAIN_SLOTS, isLfoSlot, moduleReadKey } from '../chain/config.js';
 import { HOST_TRACKS, TRACK_COUNT, chainInstance, trackKind } from './ref.js';
 import { portFor } from './registry.js';
+import { lfoStateKeys, packLfoState, restoreLfoState } from './lfo-persist.js';
 
 export interface ChainComponentState {
     /** Component key: "synth", "fx1", … */
@@ -31,6 +32,9 @@ export interface ChainTrackState {
      *  save stays readable and a future TRACK_COUNT change cannot shift it. */
     t: number;
     comp: ChainComponentState[];
+    /** The chain's two LFOs, positional per `lfoStateKeys()`. Absent when both
+     *  are idle. */
+    lfo?: string[];
 }
 
 /* The chain components worth persisting: every real slot, minus the virtual LFO
@@ -57,12 +61,20 @@ export function captureChains(): ChainTrackState[] {
         });
         if (loaded.length === 0) continue;
 
-        /* Only now, for components that actually hold a module, ask for blobs. */
-        const blobs = port.getMany(loaded.map((l) => l.c + ':state'));
-        out.push({
+        /* Only now, for components that actually hold a module, ask for blobs —
+         * and let the LFO keys ride that same batch. An LFO can only target a
+         * loaded module, so a track with nothing loaded has no LFO worth reading
+         * and keeps costing exactly one round trip. */
+        const lfoKeys = lfoStateKeys();
+        const tail = port.getMany([...loaded.map((l) => l.c + ':state'), ...lfoKeys]);
+        const blobs = tail.slice(0, loaded.length);
+        const lfo = packLfoState(tail.slice(loaded.length));
+        const track: ChainTrackState = {
             t,
             comp: loaded.map((l, i) => (blobs[i] ? { ...l, s: blobs[i]! } : l)),
-        });
+        };
+        if (lfo) track.lfo = lfo;
+        out.push(track);
     }
     return out;
 }
@@ -94,6 +106,10 @@ export function restoreChains(saved: ChainTrackState[] | undefined | null): numb
             }
             restored++;
         }
+
+        /* Last: an LFO target names a param on a module, so the module has to be
+         * on its way in before the target can bind to anything. */
+        restoreLfoState(port, track.lfo);
     }
     return restored;
 }

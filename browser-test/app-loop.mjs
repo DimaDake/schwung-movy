@@ -768,7 +768,11 @@ _log('\napp-loop: master FX slot adds a module by DSP path');
 
     const sets = [];
     const realSet = globalThis.shadow_set_param;
+    const realSetT = globalThis.shadow_set_param_timeout;
     globalThis.shadow_set_param = (s, k, v) => { sets.push(`${s}|${k}=${v}`); return realSet(s, k, v); };
+    /* A master load is a BLOCKING write (browser/handler.ts) — capture that
+     * variant too, or the load looks like it never happened. */
+    globalThis.shadow_set_param_timeout = (s, k, v, t) => { sets.push(`${s}|${k}=${v}`); return realSetT(s, k, v, t); };
 
     resetApp();
     seqState.sessionMode = true;          // master FX chain is shown in Session mode
@@ -789,6 +793,7 @@ _log('\napp-loop: master FX slot adds a module by DSP path');
         moduleSet?.endsWith('/audio_fx/reverb/dsp.so'), true);
 
     globalThis.shadow_set_param = realSet;
+    globalThis.shadow_set_param_timeout = realSetT;
     globalThis.os = prevOs;
     globalThis.host_read_file = prevRead;
 }
@@ -828,6 +833,46 @@ _log('\napp-loop: master FX slot drills into detail params on jog-click');
     sendMidi([0xB0, globalThis.MoveBack, 127]);
     eq('Back returns to the master chain grid', appState.masterDetail, false);
     eq('Back stays in session mode', seqState.sessionMode, true);
+}
+
+_log('\napp-loop: the master chain reaches its LFO page');
+{
+    const { MASTER_LFO_INDEX } = await import('../dist/esm/chain/config.js');
+    resetApp();
+    env.setParams({
+        'master_fx:fx1:name': 'Reverb',
+        'master_fx:fx1:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float' }]),
+    });
+    seqState.sessionMode = true;
+    appState.masterChainIndex = 0;
+    appState.currentView = VIEW_CHAIN;
+    appState.masterDetail = false;
+    advance(2);
+
+    /* Jog right past the four FX slots: the grid used to clamp at 3, so the LFO
+     * page was unreachable even once it existed. */
+    for (let i = 0; i < 6; i++) sendMidi([0xB0, globalThis.MoveMainKnob, 1]);
+    eq('jog reaches the LFO slot', appState.masterChainIndex, MASTER_LFO_INDEX);
+    eq('and stops there', appState.masterChainIndex, MASTER_LFO_INDEX);
+
+    /* It has no module, so a click drills rather than opening a browser — there
+     * is nothing to browse for. */
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);
+    eq('jog-click drills into the LFO page', appState.masterDetail, true);
+    eq('and does not open a module browser', appState.currentView === VIEW_BROWSE, false);
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);
+    eq('a second click still opens no browser', appState.currentView === VIEW_BROWSE, false);
+
+    /* The knobs now edit the shim's master LFOs. */
+    const lfoModel = appState.masterFxModels[MASTER_LFO_INDEX];
+    eq('the LFO slot holds the LFO model', lfoModel.getComponentKey(), 'master_fx:lfo');
+    sendMidi([0xB0, globalThis.MoveKnob1 + 2, 8]);   // knob 3 = MODE → bipolar
+    advance(1);
+    eq('a master LFO knob writes the namespaced key', env.params['master_fx:lfo1:polarity'], '1');
+    eq('and not the track form', env.params['lfo1:polarity'], undefined);
+
+    sendMidi([0xB0, globalThis.MoveBack, 127]);
+    eq('Back returns to the master grid', appState.masterDetail, false);
 }
 
 _log('\napp-loop: active-set switch reloads the engine');

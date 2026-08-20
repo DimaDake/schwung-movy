@@ -1,13 +1,14 @@
 import { createModel }  from '../model/index.js';
 import { portFor }      from '../track/registry.js';
 import { trackRef, TRACK_COUNT } from '../track/ref.js';
-import { createLfoModel } from '../lfo/model.js';
+import { createLfoModel, createScopedLfoModel } from '../lfo/model.js';
+import { masterScope } from '../lfo/scope.js';
 import { appState, VIEW_CHAIN } from './state.js';
 import { jogHintTouch } from './jog-hint.js';
 import { keyboardState, resetOctaves } from '../keyboard/state.js';
 import { drainAll } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
-import { CHAIN_SLOTS, MASTER_FX_SLOTS, isLfoSlot } from '../chain/config.js';
+import { CHAIN_SLOTS, MASTER_FX_SLOTS, isLfoSlot, isMasterLfoSlot } from '../chain/config.js';
 import { resetTrackMutes } from '../mixer/track-mutes.js';
 import { resetDrumSync } from '../seq/drum-sync.js';
 import { claimLedOwnership } from './led-ownership.js';
@@ -45,7 +46,9 @@ export function init(): void {
             ? createLfoModel(slot)
             : createModel(portFor(slot), s.componentKey))
     );
-    appState.masterFxModels  = MASTER_FX_SLOTS.map(s => createModel(portFor(0), s.componentKey));
+    appState.masterFxModels  = MASTER_FX_SLOTS.map((s, i) => isMasterLfoSlot(i)
+        ? createScopedLfoModel(masterScope())
+        : createModel(portFor(0), s.componentKey));
     appState.masterChainIndex = 0;
     appState.masterDetail     = false;
     appState.trackChainIndex = new Array(TRACK_COUNT).fill(1) as number[];

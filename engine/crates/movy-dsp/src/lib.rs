@@ -124,6 +124,15 @@ impl Instance {
             "chpeaklog" => {
                 host::log(&format!("chain peaks: {}", self.chains.peaks_csv()));
             }
+            /* `chlfolog <chain>` — log that chain's LFO assignments and the live
+             * value of each driven param. The remote-UI socket a device test
+             * drives can write but not read (see scripts/engine-param.mjs), so a
+             * write that makes the engine log is the only way to observe a movy
+             * chain's internals from outside. Mirrors `chpeaklog`. */
+            "chlfolog" => {
+                let slot: usize = val.parse().unwrap_or(0);
+                host::log(&format!("chain {} lfos: {}", slot, self.chains.lfo_report(slot)));
+            }
             /* Bring chain hosting up: `<schwung chain module dir>|<movy dir>`.
              * The UI sends it once at boot because only the UI knows the
              * install paths. Refreshing movy's private copy and dlopening it

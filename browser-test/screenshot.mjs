@@ -40,6 +40,7 @@ const PRESETS = [
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
     'chain_t2', 'chain_t4',
     'lfo_chain', 'lfo_lfo1', 'lfo_lfo2', 'lfo_target_overlay', 'lfo_viz_unipolar', 'lfo_viz_retrig',
+    'lfo_master', 'lfo_master_chain',
     'lfo_mod_mark', 'lfo_mod_and_auto', 'lfo_assign_toast',
     'drum-mrdrums-pad5', 'drum-mrdrums-global',
     'chordism-chordb', 'sfz-amp',
@@ -152,8 +153,12 @@ globalThis.clear_screen = () => paint(0, 0, W, H, OFF);
 /* ── Model + renderers (imported after env so bundled globals resolve) ───── */
 
 const { createModel }      = await import('../dist/esm/model/index.js');
-const { createLfoModel }   = await import('../dist/esm/lfo/model.js');
+const { createLfoModel, createScopedLfoModel } = await import('../dist/esm/lfo/model.js');
+const { masterScope }      = await import('../dist/esm/lfo/scope.js');
+const { resetPorts }       = await import('../dist/esm/track/registry.js');
+const { MASTER_FX_SLOTS, MASTER_LFO_INDEX } = await import('../dist/esm/chain/config.js');
 const { holdTouch, holdTick, assignToastText, resetAssignMode } = await import('../dist/esm/lfo/assign-mode.js');
+const { trackScope } = await import('../dist/esm/lfo/scope.js');
 const { drawJogToast }     = await import('../dist/esm/renderer/overlay.js');
 const { LONG_PRESS_TICKS } = await import('../dist/esm/model/constants.js');
 const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view.js');
@@ -846,6 +851,28 @@ function applyView(preset) {
             lastRender();
             break;
         }
+        /* The master chain's own LFO page: same eight positions, but knob 7 is
+         * blank — the master bus has no notes to retrigger on. */
+        case 'lfo_master':
+        case 'lfo_master_chain': {
+            env.setParams({
+                'master_fx:fx1:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float' }]),
+                'master_fx:lfo1:sync': '0', 'master_fx:lfo1:rate_hz': '2.0',
+                'master_fx:lfo1:depth': '0.65', 'master_fx:lfo1:shape': '0',
+                'master_fx:lfo1:polarity': '1', 'master_fx:lfo1:phase_offset': '0',
+                'master_fx:lfo1:target': 'fx1', 'master_fx:lfo1:target_param': 'mix',
+            });
+            resetPorts();
+            const mlm = createScopedLfoModel(masterScope());
+            mlm.tick();
+            if (preset === 'lfo_master_chain') {
+                lastRender = () => renderChainView(mlm.getViewModel(), MASTER_LFO_INDEX, false, 'MASTER', 'LFO', MASTER_FX_SLOTS);
+            } else {
+                lastRender = () => renderKnobsView(mlm.getViewModel(), false, 0);
+            }
+            lastRender();
+            break;
+        }
         case 'lfo_mod_mark':
         case 'lfo_mod_and_auto': {
             loadPreset('test8');
@@ -862,7 +889,7 @@ function applyView(preset) {
             for (let i = 0; i < 6; i++) chainModels[1].tick();
             const realNow = Date.now; let t = 1000; Date.now = () => t;
             resetAssignMode();
-            holdTouch(0, 0, chainModels[1].getKnobParamInfo(0)); t = 2100; holdTick();
+            holdTouch(trackScope(0), 0, chainModels[1].getKnobParamInfo(0)); t = 2100; holdTick();
             Date.now = realNow;
             lastRender = () => { renderKnobsView(chainModels[1].getViewModel(), false, 0); drawJogToast(assignToastText()); };
             lastRender();

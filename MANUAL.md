@@ -100,7 +100,7 @@ pressed; and a button goes to full brightness while it's actively doing its job
 | **Knobs** | One module's parameter page; jog scrolls that module's pages. |
 | **Keys** | The melodic keyboard (or a drum rack on drum tracks). |
 | **Browse** | The module browser (pick a module to load into a slot). |
-| **Session** | The clip grid for launching clips; also exposes the master FX chain. |
+| **Session** | The clip grid for launching clips; also exposes the master FX chain (MFX 1-4 plus an LFO page). |
 
 You move between Chain → Knobs by **clicking the jog wheel** to drill in, and
 **Back** to step back out (and eventually out of Movy).
@@ -455,7 +455,8 @@ In **Chain** view you see the slots of the current track:
   exits Movy.
 
 In **Session** view, the same navigation applies to a **master FX chain**
-(MFX 1–4) that processes the whole mix.
+(MFX 1–4) that processes the whole mix, followed by a fifth **LFO** page — see
+[The master chain's LFOs](#the-master-chains-lfos).
 
 ### Track volume
 
@@ -546,6 +547,28 @@ add a second one to the same parameter). A modulated parameter shows a small
 
 While a parameter is modulated its on-screen knob stays at your **base value** —
 the LFO moves the sound, not the displayed knob.
+
+Both work on **every track**, Schwung-backed (1–4) and Movy-hosted (5–16) alike.
+
+### The master chain's LFOs
+
+The master FX chain has an LFO page of its own, in the same place: the **fifth
+slot**, after MFX 4. Jog to it in Session view and click to drill in.
+
+![Master LFO page](docs/assets/lfo_master.png)
+
+It works exactly like a track's, with two differences:
+
+- **Targets are the four master FX slots** (and the other master LFO) rather
+  than a track's chain — so an LFO here sweeps the whole mix's reverb or filter.
+- **There is no Retrigger.** Nothing plays notes on the master bus, so the
+  seventh knob is blank.
+
+Hold-to-assign works here too: hold any automatable knob on an MFX slot's page
+and click to modulate it.
+
+These settings are saved with the Set by Schwung itself, so they survive a power
+cycle.
 
 ---
 
@@ -1303,7 +1326,7 @@ behaviour you'd like — or, better, a PR.
 | **Turn an action knob clockwise** | Fire a one-shot action (Capture, Reroll, …) once per turn, however far you keep turning. The circle blinks and the knob LED flashes. |
 | **Turn an action knob counter-clockwise** | Re-arm it immediately instead of waiting for the drain bar to run out. |
 | **Hold a knob (~1 s)** | Assign that parameter as an **LFO target**: jog picks LFO 1/2, jog-click assigns (hold again to remove). Automatable parameters only. |
-| **Jog wheel — turn** | Scroll chain slots (Chain view) or module pages (Knobs view) / browser list. On the LFO page, scroll between LFO 1 and LFO 2. |
+| **Jog wheel — turn** | Scroll chain slots (Chain view) or module pages (Knobs view) / browser list. On either LFO page — a track's or the master chain's — scroll between LFO 1 and LFO 2. |
 | **Jog wheel — click** | Drill Chain → module pages; on Knobs (or an empty slot) open the module browser; in a browser, load the selection. |
 | **Shift + jog wheel — turn** | Knobs view: jump to the previous/next **section**, skipping that section's overflow pages. |
 | **Hold the jog (~1 s)** | Touch without turning: a bottom prompt spells out what a click does on this page. A turn or release clears it. |

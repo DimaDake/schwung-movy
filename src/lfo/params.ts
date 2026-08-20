@@ -3,7 +3,7 @@
  * (reads only through the track's port) so it is unit-testable and shared by the
  * model and the render/scene code. */
 
-import { portFor } from '../track/registry.js';
+import { componentKey, type LfoScope } from './scope.js';
 
 export const LFO_SHAPES = ['Sine', 'Tri', 'Saw', 'Square', 'S&H', 'Swishy'];
 
@@ -34,14 +34,13 @@ export function compLabel(target: string): string {
         case 'fx2':      return 'FX2';
         case 'midi_fx1': return 'MF1';
         case 'midi_fx2': return 'MF2';
+        case 'fx3':      return 'FX3';
+        case 'fx4':      return 'FX4';
         case 'lfo1':     return 'LFO1';
         case 'lfo2':     return 'LFO2';
         default:         return target.slice(0, 4);
     }
 }
-
-/* Components whose params an LFO can target, in display order. */
-const TARGET_COMPONENTS = ['synth', 'fx1', 'fx2', 'midi_fx1', 'midi_fx2'];
 
 export interface TargetOption {
     label:  string;          // shortened "Syn:Cutoff" (or "None")
@@ -59,14 +58,14 @@ export function shortenTarget(compTag: string, paramName: string): string {
     return compTag + ':' + p;
 }
 
-/* Flat target list for `lfoIdx` on `track`: None, then each loaded component's
+/* Flat target list for `lfoIdx` in `scope`: None, then each loaded component's
  * float/int/enum chain_params (schwung's own modulatable filter), then the
  * other LFO's modulatable params. Rebuilt each time the overlay opens so it
  * always reflects currently-loaded modules. */
-export function buildTargetOptions(track: number, lfoIdx: number): TargetOption[] {
+export function buildTargetOptions(scope: LfoScope, lfoIdx: number): TargetOption[] {
     const opts: TargetOption[] = [{ label: 'None', target: null, param: null }];
-    for (const comp of TARGET_COMPONENTS) {
-        const raw = portFor(track).getParam( comp + ':chain_params');
+    for (const comp of scope.components) {
+        const raw = scope.port.getParam(componentKey(scope, comp) + ':chain_params');
         if (!raw) continue;
         let arr: Array<{ key?: string; name?: string; label?: string; type?: string }>;
         try { arr = JSON.parse(raw); } catch { continue; }

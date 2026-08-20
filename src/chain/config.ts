@@ -23,7 +23,20 @@ export const MASTER_FX_SLOTS: ChainSlot[] = [
     { componentKey: 'master_fx:fx2', label: 'MFX 2', scanDir: 'audio_fx', expectedType: 'audio_fx' },
     { componentKey: 'master_fx:fx3', label: 'MFX 3', scanDir: 'audio_fx', expectedType: 'audio_fx' },
     { componentKey: 'master_fx:fx4', label: 'MFX 4', scanDir: 'audio_fx', expectedType: 'audio_fx' },
+    /* Virtual, exactly as the track chain's is: the shim's two master LFOs
+     * (`master_fx:lfoN:*`), which can modulate any of the four FX above. */
+    { componentKey: 'master_fx:lfo', label: 'LFO',   scanDir: '',         expectedType: ''         },
 ];
+
+export const MASTER_LFO_INDEX = MASTER_FX_SLOTS.length - 1;
+export function isMasterLfoSlot(i: number): boolean { return i === MASTER_LFO_INDEX; }
+
+/* A slot with nothing to scan holds no module of its own — today that means the
+ * LFO page, on either chain. Renderers ask this rather than comparing indices,
+ * so one rule covers both chains. */
+export function isVirtualSlot(slot: ChainSlot | undefined): boolean {
+    return !!slot && slot.scanDir === '';
+}
 
 /* Read-back param key for a component's loaded module id. The device sets a
  * module with the colon key (`fx1:module`) but track-chain components expose

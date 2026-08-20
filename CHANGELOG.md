@@ -13,7 +13,51 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Added
+
+- **The master chain has its own LFO page.** Schwung's shim has had two master
+  LFOs all along — Movy simply had no page for them. There is now a fifth slot
+  in the master chain, after MFX 4, working exactly like a track's LFO page:
+  waveform preview, tempo sync, hold-a-knob to assign. Its targets are the four
+  master FX slots (and the other master LFO), and there is no Retrigger — the
+  master bus has no notes to retrigger on, so the seventh knob is blank. Schwung
+  saves these with the Set, so they survive a power cycle.
+
+- **`chlfolog <chain>`** — an engine diagnostic that logs a Movy chain's LFO
+  assignments together with the live value of each driven param. The remote-UI
+  socket a device test drives can write but not read, so a write that makes the
+  engine log is the only way to observe a chain's internals from outside. It is
+  what lets `scripts/test-lfo.sh` prove modulation is actually moving.
+
 ### Fixed
+
+- **An LFO assigned on a Movy-hosted track (5-16) did nothing.** Neither the
+  hold-a-knob gesture nor the LFO page's Target overlay changed anything: the
+  target stayed unset and no modulation followed. The commit wrote through
+  `shadow_set_param_timeout(track, …)`, Schwung's **slot**-addressed param API,
+  which refuses any index past slot 3 (`slot >= SHADOW_UI_SLOTS`, shadow_ui.c)
+  and returns false having written nothing. A Movy track is not a Schwung slot —
+  it is a chain inside Movy's own engine, addressed `ch<N>:` — so all three
+  fields were dropped on the floor while the page optimistically showed the new
+  target. Every other LFO knob already went through the track's port and did
+  reach the chain, which is why the failure looked partial.
+
+  Both remaining callers now go through the port (`lfo/assign.ts`,
+  `undo/module-apply.ts` — the latter silently dropped an LFO restore on undo for
+  the same reason). Host tracks are unchanged bit for bit.
+
+  The test harness's stub ignored its slot argument, which is why 129 passing
+  tests never saw this; it now models the device's guard.
+
+- **A Movy track's LFO settings were not saved.** They live in the chain
+  instance rather than in any component's preset blob, so `chain-persist` never
+  wrote them down and an assignment survived only until the tool closed. They
+  now ride the batch that already reads each loaded track — no extra round trip —
+  and are restored after the modules, since a target can only bind to a param
+  whose module has arrived. A set that uses no LFOs still writes nothing.
+
+- **The master chain drew five slot dots for four slots**, having hardcoded the
+  track chain's slot count. The renderer takes the chain it is drawing.
 
 - **Back cycled forever between the Set and Clip parameter pages.** Opening the
   two in turn left Back bouncing between them with no way out. Each page

@@ -123,6 +123,30 @@ impl ChainSlots {
         out
     }
 
+    /// One chain's LFO assignments, and the LIVE value of each driven param.
+    ///
+    /// The value is the point. Target fields prove only that a write landed;
+    /// sampling the driven param twice is the one external way to see that the
+    /// LFO is actually moving the sound — which is what "the mapping does
+    /// nothing" was really about. Diagnostic only, never on the render path.
+    pub fn lfo_report(&mut self, slot: usize) -> String {
+        let mut out = String::new();
+        for i in 1..=2 {
+            let g = |s: &mut Self, k: &str| s.get_param(slot, k).unwrap_or_default();
+            let target = g(self, &format!("lfo{i}:target"));
+            let param = g(self, &format!("lfo{i}:target_param"));
+            let active = g(self, &format!("lfo{i}:active"));
+            let value = if target.is_empty() || param.is_empty() {
+                "-".to_string()
+            } else {
+                g(self, &format!("{target}:{param}"))
+            };
+            if i > 1 { out.push(' '); }
+            out.push_str(&format!("lfo{i}=[{target}:{param} active={active} value={value}]"));
+        }
+        out
+    }
+
     /// Monotonic count of serviced chain-module changes.
     pub fn generation(&self) -> u32 {
         self.generation

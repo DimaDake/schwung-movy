@@ -206,8 +206,9 @@ function finish(op: ModuleOp): void {
      * — the three fields are one commit and non-blocking writes to the single
      * param slot clobber each other (see lfo/assign.ts). */
     for (const [key, val] of op.oldLfo ?? []) {
-        if (typeof shadow_set_param_timeout === 'function') shadow_set_param_timeout(op.slot, key, val, 100);
-        else setChainParamUntracked(portFor(op.slot), key, val);
+        /* Through the port: the slot-addressed API refuses a movy track's index
+         * and would drop the restore silently (see lfo/assign.ts). */
+        portFor(op.slot).setParamTimeout(key, val, 100);
     }
     if ((op.oldLfo?.length ?? 0) > 0) mlog('undo: restored ' + op.oldLfo!.length + ' LFO assignment fields');
     /* The reload emptied the host's static param cache; without the warm,

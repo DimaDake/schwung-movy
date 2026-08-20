@@ -111,6 +111,9 @@ function masterGridActive(): boolean { return masterChainActive() && !appState.m
 /* A master slot's module detail page is on screen (jog scrolls param banks). */
 function masterDetailActive(): boolean { return masterChainActive() && appState.masterDetail; }
 
+/* Reset whenever the session is live, so each boot logs its own refusal. */
+let refusedThisBoot = false;
+
 export function onMidiMessageInternal(data: number[]): void {
     if (!data || data.length < 3) return;
     /* Before any dispatch, including the paths that swallow input: a button
@@ -131,8 +134,18 @@ export function onMidiMessageInternal(data: number[]): void {
             sessionStartFromScratch();
             appState.dirty = true;
             return;
-        } else return;
-    }
+        } else {
+            /* Once per boot, not per press: a refusal is the gate doing its job,
+             * and the device suite needs a positive signal for it — "no note was
+             * entered" also holds when the press never arrived, which is how the
+             * first version of that test passed with the gate removed. */
+            if (!refusedThisBoot) {
+                refusedThisBoot = true;
+                mlog('seq: input refused during ' + sessionPhase());
+            }
+            return;
+        }
+    } else refusedThisBoot = false;
 
     // The Leave-Movy modal owns all input while it is up: jog turn moves the
     // highlight, jog click confirms (Background parks / Close exits), Back

@@ -28,6 +28,7 @@ official docs first:
 ## Contents
 
 1. [Concepts & screen layout](#1-concepts--screen-layout)
+   - [Opening Movy](#opening-movy)
 2. [Parameter pages](#2-parameter-pages)
 3. [The module chain](#3-the-module-chain)
 4. [Keyboard & drums](#4-keyboard--drums)
@@ -54,6 +55,27 @@ track is a chain of up to four module slots, plus a per-track **LFO** page:
 ```
 MIDI FX  →  SYNTH  →  FX 1  →  FX 2  →  LFO
 ```
+
+### Opening Movy
+
+For the first few seconds Movy shows **STARTING ENGINE**, then **LOADING SET**:
+
+![Starting up](docs/assets/session_booting.png)
+
+The pads, knobs and buttons are inert until it is done, and that is deliberate.
+Everything you play or enter after that point belongs to the Set; nothing you do
+before it can be lost. (**Back** always works, so a Movy that cannot start is
+never a trap.)
+
+If a Set's saved sequence cannot be read, Movy says so instead of starting
+empty and letting you discover it later:
+
+![Cannot load this Set](docs/assets/session_failed.png)
+
+**Jog click** then starts that Set with an empty sequence. Movy does not do this
+on its own — the unreadable file is left untouched, so it can still be recovered
+from the device by hand. Your modules and their settings are Schwung's and are
+not affected either way.
 
 The **screen** is the 128×64 OLED. A typical parameter page looks like this:
 

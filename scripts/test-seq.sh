@@ -39,6 +39,16 @@ with open(\"/dev/shm/schwung-control\", \"r+b\") as f:
     mm[56] = 1
     mm.close()
 "'
+
+# The boot gate, on the real thing. A step pressed while movy is still starting
+# the engine or loading the set must be REFUSED, not queued: before the gate it
+# was buffered and flushed on the very tick a blank state landed on top of it,
+# which is how a new set lost its first pattern (#4/#5). Sent immediately, with
+# no settle, so it lands inside the boot window.
+info "Pressing step 3 during boot — must be refused..."
+python3 "$INJECT" "$HOST" note_on 18 127 2>/dev/null || true
+python3 "$INJECT" "$HOST" note_off 18 2>/dev/null || true
+BOOT_PRESS_SENT=yes
 sleep 2
 
 info "Playing a pad (note 80 → sets step-entry pitch)..."
@@ -327,6 +337,15 @@ echo "$LOG" | qgrep "seq: play=1" \
     && pass "Autosave wrote a non-empty per-set state file" || fail "No autosave file under $SETS_DIR"
 # Capture: the button committed, and the engine answered with an overlay — which
 # only happens when a take was actually written and the transport rolled.
+# The boot press must have entered nothing. Step 3 is not touched by any later
+# gesture in this suite, so an occupied step 3 can only have come from that
+# press slipping through the gate.
+if [[ "${BOOT_PRESS_SENT:-}" == "yes" ]]; then
+    ts_ssh "cat '$(ts_seq_path)'" | qgrep -E '^cl 0 .*(^|;)(32|33):' \
+        && fail "a step pressed during boot entered a note (the gate let it through)" \
+        || pass "a step pressed during boot was refused"
+fi
+
 echo "$LOG" | qgrep "seq: capture commit" \
     && pass "Capture committed the buffered phrase" \
     || fail "Capture did not commit (seq: capture commit missing — was anything buffered?)"

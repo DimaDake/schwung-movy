@@ -179,6 +179,19 @@ path (`chain_midi.c:602-622`, `:832`). The spike doc independently notes tb3po's
 ## 5. There is no safe priority for the workers, and the contention number
 doesn't answer the question that decides it
 
+> **RESOLVED 2026-08-21 by measurement — see
+> `2026-08-21-frame-phase-measurement.md`.** The question below ("are Move's
+> FIFO-70 threads live in the same sub-window as our workers?") was measured
+> with ftrace `sched_switch`. They are **not**: movy's `render_block` and Move's
+> audio engine run in the same callback, movy first, so Move's worker pool
+> cannot start until movy hands back. Its start time tracks movy's render
+> duration to within a few µs across 0/6/12 chains. ~2.2 of the 3 non-SPI cores
+> are idle for the whole render window, and the window grows with movy's own
+> load. The sandwich argument in (a) below therefore does not bite: a worker at
+> FIFO 69 is preempted only by `spi0` (FIFO 90) and by Move's audio threads,
+> which are asleep throughout. The rest of this section is kept for the
+> reasoning; treat (a) as answered and (b) as still open.
+
 The proposal's §3 puts workers at the audio thread's RT priority, and prices
 contention from `measure-core-contention.sh` (§7 of `docs/track-performance.md`):
 1 busy core costs +12%, 2 cost +24%, saturating at 3; interpolated to Move's 0.56

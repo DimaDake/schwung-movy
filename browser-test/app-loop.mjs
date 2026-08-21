@@ -1106,6 +1106,71 @@ _log('\napp-loop: Leave modal — Back cancels; old host offers only Close Movy'
     globalThis.host_exit_module = realExit;
 }
 
+_log('\napp-loop: Leave modal — Track/Session dismiss and act, transport passes through');
+{
+    const { leaveModalActive } = await import('../dist/esm/app/leave-modal.js');
+    const { stepRecActive } = await import('../dist/esm/seq/step-rec.js');
+    const CC_TRACK_1 = 42;   // CC 43 = track 0, so CC 42 = track 1
+    const CC_PLAY = 85, CC_REC = 86;
+    /* Back toggles: with the modal already up it cancels instead of opening, and
+     * resetApp() does not clear modal state. Close first so each case starts
+     * from the same place. */
+    const openModal = () => {
+        if (leaveModalActive()) sendMidi([0xB0, globalThis.MoveBack, 127]);
+        appState.currentView = VIEW_CHAIN;             // root view — Back opens the modal
+        sendMidi([0xB0, globalThis.MoveBack, 127]);
+        sendMidi([0xB0, globalThis.MoveBack, 0]);
+        eq('modal opened', leaveModalActive(), true);
+    };
+    globalThis.host_suspend_overtake = () => {};
+
+    resetApp();
+    selectTrack(0);
+    openModal();
+    sendMidi([0xB0, CC_TRACK_1, 127]);
+    eq('track press dismissed the modal', leaveModalActive(), false);
+    sendMidi([0xB0, CC_TRACK_1, 0]);                   // quick tap → latches the switch
+    eq('the same press also switched track', appState.activeTrack.index, 1);
+
+    resetApp();
+    openModal();
+    const wasSession = seqState.sessionMode;
+    sendMidi([0xB0, CC_NOTE_SESSION, 127]);
+    eq('Session press dismissed the modal', leaveModalActive(), false);
+    eq('the same press also opened Session', seqState.sessionMode, !wasSession);
+    sendMidi([0xB0, CC_NOTE_SESSION, 0]);
+
+    /* Transport is the other half of the policy: it runs UNDER the modal, so
+     * the dialog must survive it. */
+    resetApp();
+    openModal();
+    const playing = seqState.playing;
+    sendMidi([0xB0, CC_PLAY, 127]);
+    eq('Play ran under the modal', seqState.playing, !playing);
+    eq('Play did NOT dismiss the modal', leaveModalActive(), true);
+
+    /* A knob turn stays swallowed: the modal covers the screen, so the edit
+     * would be invisible. Counting param writes, not modal state — "the modal
+     * is still up" would also hold if the turn had edited a param behind it. */
+    const realSet = globalThis.shadow_set_param;
+    let writes = 0;
+    globalThis.shadow_set_param = (...a) => { writes++; return realSet(...a); };
+    sendMidi([0xB0, globalThis.MoveKnob1, 4]);
+    globalThis.shadow_set_param = realSet;
+    eq('knob turn wrote no param behind the modal', writes, 0);
+    eq('knob turn still swallowed', leaveModalActive(), true);
+
+    /* Confirming hands the foreground away, so a hold armed while the modal was
+     * up can never see its release. Rec latches step-record — it must be gone. */
+    resetApp();
+    openModal();
+    sendMidi([0xB0, CC_REC, 127]);                     // held Rec while stopped
+    eq('Rec armed step-record under the modal', stepRecActive(), true);
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);  // jog-click → Background
+    eq('confirming forgot the hold armed under the modal', stepRecActive(), false);
+    delete globalThis.host_suspend_overtake;
+}
+
 _log('\napp-loop: parked tick does no LED work, keeps engine synced');
 {
     const { uiTick } = await import('../dist/esm/seq/engine.js');

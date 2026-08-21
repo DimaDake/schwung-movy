@@ -29,7 +29,7 @@ import { holdTouch, holdRelease, holdTurnCancel, assignActive, assignCycle, assi
 import { masterScope, trackScope } from '../lfo/scope.js';
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
-import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm } from '../app/leave-modal.js';
+import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm, leaveModalPass } from '../app/leave-modal.js';
 import {
     quantOverlayActive, quantOverlayAction, quantOverlayJog, quantOverlayHold,
     dismissQuantOverlay,
@@ -154,9 +154,11 @@ export function onMidiMessageInternal(data: number[]): void {
         }
     } else refusedThisBoot = false;
 
-    // The Leave-Movy modal owns all input while it is up: jog turn moves the
-    // highlight, jog click confirms (Background parks / Close exits), Back
-    // cancels. Every other PRESS is swallowed so nothing fires behind it.
+    // The Leave-Movy modal owns the jog assembly while it is up: jog turn moves
+    // the highlight, jog click confirms (Background parks / Close exits), Back
+    // cancels. Track/Session dismiss it and still act; transport runs
+    // underneath; every other PRESS is swallowed so nothing fires behind it.
+    // The policy lives in leave-modal.ts:leaveModalPass.
     //
     // Releases are not swallowed. The handler that armed a hold has no other way
     // to learn the button came up, so a dropped release strands it for the rest
@@ -189,6 +191,7 @@ export function onMidiMessageInternal(data: number[]): void {
     }
 
     if (leaveModalActive()) {
+        let passes = false;
         if ((data[0] & 0xF0) === 0xB0) {
             const k = data[1], v = data[2];
             if (k === MoveBack && v > 0) { closeLeaveModal(); appState.dirty = true; return; }
@@ -200,12 +203,20 @@ export function onMidiMessageInternal(data: number[]): void {
             if (k === MoveMainButton && v > 0) {
                 const action = leaveModalConfirm();
                 appState.dirty = true;
+                /* Confirming hands the foreground to Move, so every release
+                 * still owed to us goes there instead. Anything armed while the
+                 * modal was up (a Rec hold, a track momentary) would strand —
+                 * the open path's reset cannot cover presses that came later. */
+                resetHeldInput(true);
                 if (action === 'background') host_suspend_overtake();
                 else if (action === 'close') host_exit_module();
                 return;
             }
+            const pass = leaveModalPass(k);
+            if (pass === 'dismiss' && v > 0) { closeLeaveModal(); appState.dirty = true; }
+            passes = pass !== 'swallow';
         }
-        if (!isRelease(data)) return;
+        if (!passes && !isRelease(data)) return;
     }
 
     if (seqHandleMidi(data, appState.shiftHeld)) return;

@@ -1046,6 +1046,13 @@ accident:
   jog-click**. Held pad notes are released when the menu opens so nothing hangs.
 - **Close Movy** — jog-**turn** to it, then jog-click, to fully unload Movy.
 - **Back** again **cancels** and returns you to Movy.
+- **Track** or **Note/Session** also cancels it — and the press still does its
+  normal job, so reaching for a track both dismisses the menu and switches to
+  that track. Changing your mind costs one press, not two.
+- **Play** and **Rec** keep working *with the menu still up*: the sequencer is
+  running either way, so transport is never held hostage by the dialog.
+- The eight parameter knobs stay inert while the menu is up — it covers the
+  screen, so an edit made behind it would be one you couldn't see.
 
 (Back still steps *backwards* through Movy's own sub-views — the browser,
 keyboard/knob pages, the master-FX detail, and the Step/Clip/Set pages — as
@@ -1334,6 +1341,8 @@ behaviour you'd like — or, better, a PR.
 | **Back** | Module pages → Chain; browser → cancel; **at the root (Chain) → open the Leave Movy menu** (Background / Close Movy). |
 | **Back then jog-click** | From the root: background Movy (keeps playing under Move's UI). |
 | **Shift + Back** | Fully exit Movy (unload), instantly, from anywhere. |
+| **Track / Note-Session** (Leave menu up) | Dismiss the menu *and* switch track / open Session — one press. |
+| **Play / Rec** (Leave menu up) | Run normally with the menu still up; the transport is never blocked. |
 | **Hold track + volume encoder** | Set that track's volume (0–400%, 100% = unity, 1 dB per detent). Add **Shift** to see Movy's slider instead of Move's native overlay. |
 | **+ / −** (Up/Down) | Shift the **active track's** octave (melodic tracks only). Each track remembers its own, saved with the set. In **Session** view they step the focused **track group** instead (**+** towards tracks 1-4, **−** towards 13-16). |
 

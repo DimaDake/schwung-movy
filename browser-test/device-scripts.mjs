@@ -118,6 +118,60 @@ for (const f of shFiles) {
 ok('no script calls qgrep without sourcing test-set.sh', missingSource.length === 0,
    missingSource.length ? missingSource.join(', ') : 'all sourced');
 
+/* ── Test 5: "the stack is back" must mean a NEW stack ────────────────────────
+ * restart-move.sh detaches and sleeps ~1 s before it kills anything, so for the
+ * first seconds `pidof MoveOriginal` still answers with the doomed process. A
+ * suite that waits that way proceeds against a stack that is about to die, and
+ * a fixed sleep before it is worse: test-master-fx.sh assumed the boot was ~20 s
+ * out, wrote its empty-slot seed at t+6 s — after the fresh shim had already
+ * restored the old module — and cleared the log over the boot line its own guard
+ * reads. Every check it made then ran on a slot that was never empty.
+ */
+log('\nTest 5: a restart is waited for by pid change, not by pidof');
+
+/* Its own runner, not bashStatus: the simulation backgrounds processes, and
+ * they would hold the captured stdout open (and leave the 2 MB stdin fixture
+ * unread) for as long as they live. */
+function bashRun(body) {
+    try {
+        return execFileSync('bash', ['-c', body], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    } catch (e) { return `threw rc=${e.status}`; }
+}
+
+const timing = bashRun(`
+tmp=$(mktemp -d)
+sleep 5 >/dev/null 2>&1 & old=$!
+# restart-move.sh's shape: detach, sleep, THEN kill and start the replacement.
+( sleep 0.4; kill $old 2>/dev/null; sleep 5 >/dev/null 2>&1 & echo $! > "$tmp/new" ) >/dev/null 2>&1 &
+# The old wait, asked the instant the restart is triggered.
+kill -0 $old 2>/dev/null && echo BARE-WAIT-SAW-THE-DOOMED-PROCESS
+# The fixed wait: block until the pid actually changes.
+for _ in $(seq 1 100); do [ -s "$tmp/new" ] && break; sleep 0.05; done
+new=$(cat "$tmp/new" 2>/dev/null || true)
+[ -n "$new" ] && [ "$new" != "$old" ] && echo PID-CHANGE-WAIT-SAW-A-NEW-STACK
+kill $new 2>/dev/null; rm -rf "$tmp"
+exit 0
+`);
+ok('the bare wait really does return on the old process',
+   /BARE-WAIT-SAW-THE-DOOMED-PROCESS/.test(timing), timing.replace(/\n/g, ' | '));
+ok('waiting for the pid to change waits for the real thing',
+   /PID-CHANGE-WAIT-SAW-A-NEW-STACK/.test(timing), timing.replace(/\n/g, ' | '));
+
+const rawRestart = [];
+for (const f of shFiles) {
+    const src = readFileSync(f, 'utf8');
+    if (f.endsWith('lib/test-set.sh')) continue;          // ts_restart_stack lives here
+    src.split('\n').forEach((line, i) => {
+        if (/^\s*#/.test(line)) return;                   // a comment may name it
+        if (/restart-move\.sh/.test(line)) rawRestart.push(`${f}:${i + 1}`);
+        if (/pidof\s+(shadow_ui|MoveOriginal)/.test(line)) rawRestart.push(`${f}:${i + 1}`);
+    });
+}
+ok('no suite restarts the stack by hand', rawRestart.length === 0,
+   rawRestart.length ? rawRestart.join(', ') : 'all go through ts_restart_stack');
+
+ok('the shared lib defines ts_restart_stack', /^ts_restart_stack\(\)/m.test(libSrc));
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 log('');

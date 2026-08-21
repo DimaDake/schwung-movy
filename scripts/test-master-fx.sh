@@ -51,25 +51,22 @@ echo "active set: $UUID"
 # Emptying the state file is not enough: the SHIM keeps whatever it loaded until
 # the process dies, so a slot left loaded by an earlier run would let a resync
 # that never works read the right answer anyway — a false pass. Only a restart
-# with an empty state file guarantees the shim starts with nothing. It costs
-# ~20 s, and it is the difference between this suite proving something and not.
+# with an empty state file guarantees the shim starts with nothing, and that is
+# the difference between this suite proving something and not.
 echo -e "${BLD}=== Restarting the stack so the shim starts with no master FX ===${RST}"
-ts_ssh "/data/UserData/schwung/restart-move.sh" >/dev/null 2>&1 || true
-# Seed the empty file only once the stack is DOWN. Seeding it first does not
-# work: the controlled exit runs shadow_save_state_now on the way out, which
-# rewrites this file from the still-populated mirror and undoes the seed. The
-# kill happens in the first seconds; the boot that reads this file is ~20 s away.
-sleep 6
-ts_ssh "echo '{}' > $STATE"
-# Clear the log in the same breath, so the boot check below can only see THIS
-# boot. Reading a log that still holds the previous run's reboot made the guard
-# fire on history rather than on what just happened.
+# Enable and clear the log BEFORE the restart. The shim logs its master-FX
+# restore about four seconds into the boot, so a clear that lands afterwards
+# erases the one line the guard below reads — and the guard then passes on an
+# empty log no matter what the shim actually loaded.
 ts_ssh "touch /data/UserData/schwung/debug_log_on; > $LOG"
-waited=0
-while [ "$waited" -lt 90 ]; do
-    ts_ssh "pidof shadow_ui >/dev/null 2>&1 && pidof MoveOriginal >/dev/null 2>&1" 2>/dev/null && break
-    sleep 5; waited=$((waited + 5))
-done
+# The empty seed has to be written while the stack is DOWN, which ts_restart_stack
+# polls for on the device. Writing it before the restart is undone by the
+# controlled exit (shadow_save_state_now rewrites this file from schwung's
+# still-populated mirror); writing it a fixed few seconds after is too late,
+# because on this device the whole kill-and-boot cycle takes ~5 s, not the ~20 s
+# this script used to assume — the shim had already restored the old module, and
+# every check below then ran against a slot that was never empty.
+ts_restart_stack "echo '{}' > $STATE"
 sleep 3
 
 if ts_ssh "cat $LOG" | qgrep "MFX boot: slot 0 loaded"; then
@@ -197,13 +194,7 @@ fi
 if [ -n "$FOUND" ]; then
     echo -e "${BLD}=== Rebooting the stack to prove it restores ===${RST}"
     ts_ssh "> $LOG"
-    ts_ssh "/data/UserData/schwung/restart-move.sh" >/dev/null 2>&1 || true
-    sleep 5
-    waited=0
-    while [ "$waited" -lt 90 ]; do
-        ts_ssh "pidof shadow_ui >/dev/null 2>&1 && pidof MoveOriginal >/dev/null 2>&1" 2>/dev/null && break
-        sleep 5; waited=$((waited + 5))
-    done
+    ts_restart_stack
     sleep 5
     if ts_ssh "cat $LOG" | qgrep "MFX boot: slot 0 loaded"; then
         pass "the master chain came back after a reboot: $(ts_ssh "grep -ao 'MFX boot: slot 0 loaded.*' $LOG" | head -n 1)"

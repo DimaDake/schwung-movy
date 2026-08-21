@@ -37,6 +37,46 @@ ts_phase_end() {
     printf '\033[2m  [%s] %ss\033[0m\n' "${TS_PHASE_NAME:-phase}" "$dt" >&2
 }
 
+# Restart the Move stack and block until a genuinely NEW one is up.
+#
+# `pidof shadow_ui && pidof MoveOriginal` is not a test that the restart
+# happened: restart-move.sh detaches and sleeps a second before it kills
+# anything, so for the first seconds those pids are the OLD stack's and the wait
+# returns immediately. Everything downstream then runs against a process that is
+# about to die — or, worse, reads a log the boot has not written yet and calls
+# the missing line a device fault. Comparing pids is what makes it a restart.
+#
+# $1 (optional): a shell command run ON THE DEVICE in the window where the old
+# stack is gone and the new one has not started. That window is the only place a
+# per-set state file can be seeded: the controlled exit rewrites those files from
+# schwung's mirror on the way out, and the fresh shim reads them back about four
+# seconds later (master FX, chain slots). The window is a fraction of a second
+# wide, so the poll and the write have to happen in one device-side script —
+# over ssh the round trip alone outlasts it.
+ts_restart_stack() {
+    local while_down="${1:-}"
+    ts_ssh "python3 -c \"
+import os, subprocess, time
+def pids(name):
+    try: return subprocess.check_output(['pidof', name]).decode().split()
+    except Exception: return []
+old = pids('MoveOriginal')
+subprocess.call(['/data/UserData/schwung/restart-move.sh'])
+t0 = time.time()
+while time.time() - t0 < 60:
+    if not pids('MoveOriginal'): break
+    time.sleep(0.02)
+down = time.time() - t0
+cmd = '''$while_down'''
+if cmd.strip(): os.system(cmd)
+while time.time() - t0 < 120:
+    new = pids('MoveOriginal')
+    if new and new != old and pids('shadow_ui'): break
+    time.sleep(0.1)
+print('restart: down at %.1fs, new stack at %.1fs' % (down, time.time() - t0))
+\""
+}
+
 # Line 1 of active_set.txt is the set UUID; line 2 is its display name.
 ts_active_uuid() {
     ts_ssh "head -n 1 /data/UserData/schwung/active_set.txt 2>/dev/null || true" | tr -d '\r\n'
@@ -350,16 +390,12 @@ test_set_end() {
     # (fresh pids, /dev/shm left as-is), so it is reserved for TS_FULL_RESTART=1
     # when something is genuinely wedged.
     if [ "${TS_FULL_RESTART:-0}" = "1" ]; then
-        ts_ssh "/data/UserData/schwung/restart-move.sh" >/dev/null 2>&1 || true
-        local waited=0
-        sleep 5
-        while [ $waited -lt 90 ]; do
-            ts_ssh "pidof shadow_ui >/dev/null 2>&1 && pidof MoveOriginal >/dev/null 2>&1" 2>/dev/null \
-                && { sleep 3; return 0; }
-            sleep 5; waited=$((waited + 5))
-        done
-        echo "test-set: WARNING — Move stack did not come back within ${waited}s" >&2
-        return 1
+        ts_restart_stack >/dev/null 2>&1 || {
+            echo "test-set: WARNING — Move stack did not come back" >&2
+            return 1
+        }
+        sleep 3
+        return 0
     fi
     ts_close_movy
 }

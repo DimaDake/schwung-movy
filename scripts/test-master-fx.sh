@@ -138,11 +138,15 @@ echo -e "${BLD}=== Closing Movy so schwung's autosave resumes ===${RST}"
 # The periodic autosave only ARMS when overtake is inactive, so the save under
 # test cannot happen until movy has genuinely exited.
 #
-# Not ts_close_movy: tapping Back PARKS movy under Move's UI (background mode)
-# rather than closing it, so overtake stays active and no save ever runs — which
-# looked exactly like the bug being unfixed. This is the real Leave-Movy flow
-# (Back at root → jog to "Close Movy" → confirm), the same one test-unload.sh
-# drives.
+# The real Leave-Movy flow (Back at root → jog to "Close Movy" → confirm), the
+# same one test-unload.sh drives — deliberately, not ts_close_movy: what is being
+# tested here is that a user leaving Movy the way a user leaves it gets their
+# master chain saved. (ts_close_movy takes schwung's host-level Shift+Back
+# escape, which exits just as completely but is not the path a user walks.)
+#
+# Plain Back is not a close at all: at the root it PARKS movy under Move's UI
+# (background mode), overtake stays active, and no save ever runs — which looked
+# exactly like the bug being unfixed.
 ts_tap_cc 51                        # Back at root → Leave modal
 sleep 0.6
 ts_send "0x0B:0xB0:$CC_JOG_TURN:1:0.30"   # jog CW → highlight "Close Movy"

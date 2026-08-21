@@ -175,18 +175,77 @@ ts_verify() {
     fi
 }
 
-# movy reads seq-state.json when it opens and autosaves over it every ~3 s, so
-# the fixture can only be written with movy closed. Back x3 walks
-# knobs -> chain -> exit.
+# Open movy (or resume it if it is parked in the background). The only
+# programmatic way in: write the request file, then raise offOpenToolCmd = 56 in
+# /dev/shm/schwung-control. mmap length must be 0 — the file is 64 bytes and an
+# explicit size raises ValueError.
+#
+# The suites each carry their own copy of this snippet, from before there was a
+# shared lib to put it in; new callers should use this one.
+ts_open_movy() {
+    ts_ssh "python3 -c \"
+import mmap, json
+open('/data/UserData/schwung/open_tool_cmd.json', 'w').write(
+    json.dumps({'file_path': '/', 'tool_id': 'movy'}))
+f = open('/dev/shm/schwung-control', 'r+b'); mm = mmap.mmap(f.fileno(), 0)
+mm[56] = 1; mm.close()
+\"" >/dev/null 2>&1
+}
+
+# True while an overtake tool owns the surface; false is Move's own UI.
+# offOvertakeMode = 22 in /dev/shm/schwung-control (schwung-manager/shmconfig.go);
+# movy reads 2 there. A parked module reads 0 like a closed one — this says who
+# owns the foreground, not whether anything is still ticking.
+#
+# A device that does not answer counts as ACTIVE. Reading silence as "closed" is
+# the same mistake as reading it as "slot empty" (see ts_read_slot): it turns an
+# unreachable device into a clean bill of health for the one thing the caller
+# needs to be sure of.
+ts_overtake_active() {
+    local v
+    v=$(ts_ssh "python3 -c \"
+import mmap
+f = open('/dev/shm/schwung-control', 'r+b'); mm = mmap.mmap(f.fileno(), 0)
+print(mm[22]); mm.close()
+\"" 2>/dev/null | tr -d '\r\n')
+    if [ -z "$v" ]; then
+        echo "test-set: no answer reading overtake mode — assuming a tool still owns the surface" >&2
+        return 0
+    fi
+    [ "$v" != "0" ]
+}
+
+# movy reads seq-state.json when it opens and autosaves over it every ~8 s, so
+# the fixture can only be written with movy closed.
+#
+# Shift+Back, not Back x3. Back x3 used to walk knobs -> chain -> exit, and
+# stopped exiting anything the moment movy grew the Leave-Movy modal: the second
+# Back opens the menu and the third only cancels it, leaving movy running with
+# the fixture write landing under a live autosave. Any fixed number of Backs has
+# that parity problem, because how deep movy is when this is called is not
+# something the caller knows.
+#
+# Shift+Back has no depth at all: schwung handles it in the host, above the
+# module, for anything declaring suspend_self_managed (shadow_ui.js, "HOST:
+# Shift+Back -> full exit"). It exits from the knobs page, a browser, a param
+# page or the modal alike, runs the module's onUnload, and evicts anything
+# parked in the background. One round trip, so Shift is genuinely still held
+# when Back arrives.
+#
+# Then read the exit back. This function silently doing nothing for weeks is the
+# reason it now proves its work: the caller's whole purpose is that movy is not
+# running, and no other check downstream would notice that it still is.
 ts_close_movy() {
-    local i
-    for i in 1 2 3; do
-        python3 "$MOVY_DIR/../schwung-midi-inject-ui.py" "$HOST" cc 51 127 >/dev/null 2>&1
-        sleep 0.12
-        python3 "$MOVY_DIR/../schwung-midi-inject-ui.py" "$HOST" cc 51 0 >/dev/null 2>&1
-        sleep 0.15
+    local try
+    for try in 1 2 3; do
+        ts_overtake_active || return 0
+        ts_send "0x0B:0xB0:49:127:0.08" "0x0B:0xB0:51:127:0.08" \
+                "0x0B:0xB0:51:0:0.08"   "0x0B:0xB0:49:0:0"
+        sleep 1.2
     done
-    sleep 0.8
+    ts_overtake_active || return 0
+    echo "test-set: movy would not close — overtake still owns the surface" >&2
+    return 1
 }
 
 # Press and release in ONE ssh round trip.
@@ -330,7 +389,7 @@ test_set_begin() {
     if ts_verify 2>/dev/null; then
         ts_phase_end
         ts_phase_start "fixture: refresh movy state"
-        ts_close_movy
+        ts_close_movy || return 1
         ts_seq_apply || { echo "test-set: could not install the fixture sequencer state" >&2; return 1; }
         ts_phase_end
         printf '\033[2m  [fixture ready] %ss total (chain already correct)\033[0m\n' "$(( $(date +%s) - ts_t0 ))" >&2
@@ -344,7 +403,7 @@ test_set_begin() {
     # movy must be shut before the sequencer state is written, or it autosaves
     # its in-memory copy straight back over the fixture within a few seconds.
     ts_phase_start "fixture: close movy + write seq/ui state"
-    ts_close_movy
+    ts_close_movy || return 1
     ts_seq_apply || { echo "test-set: could not install the fixture sequencer state" >&2; return 1; }
     ts_phase_end
     # Six attempts, not three. A module load is a set_param into the chain
@@ -397,5 +456,8 @@ test_set_end() {
         sleep 3
         return 0
     fi
-    ts_close_movy
+    # Cleanup runs from an EXIT trap, so its status becomes the suite's under
+    # `set -e`. A hardware handoff that did not take is worth saying (the
+    # function says it on stderr) but never worth turning a passing run red.
+    ts_close_movy || true
 }

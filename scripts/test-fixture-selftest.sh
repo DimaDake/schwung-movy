@@ -47,6 +47,32 @@ else
 fi
 rm -rf "$TS_FIXTURE_DIR"; TS_FIXTURE_DIR="$TS_FIXTURE_REAL"
 
+echo -e "${BLD}=== 5. closing movy actually closes it ===${RST}"
+# ts_close_movy is the load-bearing step of every apply above: the fixture is
+# written to a file a running movy autosaves over, so a close that quietly does
+# nothing leaves suites running on movy's own state instead. It did exactly that
+# for weeks — Back x3 walked knobs → chain → *open the Leave-Movy modal* → cancel
+# it, which exits nothing.
+#
+# Asserted on the overtake byte rather than on the fixture surviving afterwards:
+# movy only writes when its state actually changed (set-session.ts, saveNeeded),
+# so an idle movy leaves the file alone whether it is running or not, and that
+# check passes just as happily with the broken close. This one does not.
+ts_open_movy
+sleep 4
+if ts_overtake_active; then
+    pass "movy is open (so the close below is a real test)"
+else
+    fail "could not open movy — the checks below would pass without proving anything"
+fi
+if ts_close_movy; then pass "ts_close_movy reported the surface handed back"
+else fail "ts_close_movy could not close movy"; fi
+if ts_overtake_active; then
+    fail "overtake still owns the surface — movy did not exit"
+else
+    pass "overtake is off, so movy genuinely exited"
+fi
+
 echo
 if [ $fails -eq 0 ]; then echo -e "${GRN}${BLD}FIXTURE SELFTEST PASSED${RST}"; else
     echo -e "${RED}${BLD}$fails SELFTEST CHECK(S) FAILED${RST}"; exit 1; fi

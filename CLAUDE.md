@@ -12,6 +12,28 @@ Device: `ableton@move.local`
 
 ---
 
+## Context discipline
+
+A tool call is a full model turn — the whole conversation gets re-sent on
+every one — so round-trip *count* is the cost, not output size. Optimize for
+fewer calls, not smaller ones.
+
+- **Batch independent shell calls into one message.** Firing them one at a
+  time pays a full round trip each even when none depends on another's
+  result.
+- **Device work: one `ssh` round trip, not three.** The clear-log → act →
+  check-log cycle run as three separate `ssh ableton@move.local` calls is the
+  single most common device pattern in this repo's session history. Use
+  `scripts/dev-probe.sh log` instead — it clears the log, optionally injects a
+  MIDI event, polls for the pattern, and dumps matching lines inside one ssh
+  call. `scripts/dev-probe.sh status` does the same for reachability + deployed
+  `ui.js` md5 + log-enabled state.
+- **Grep or read a line range before reading a whole file.** `Read` on an
+  entire file is the most expensive call type per-invocation in this repo. If
+  you're hunting one symbol, `grep -n` it first and read just that range.
+
+---
+
 ## Sequencer (engine + UI)
 
 The sequencer spans two layers; keep musical truth in the engine and only a
@@ -89,10 +111,17 @@ the user must run it): stop `move-launcher`, pkill the schwung stack, start
 Run tests in this order at the end of every task:
 
 Run `npm run build:browser` first (refreshes `dist/esm`), then in order
-(or just `npm test`, which builds + runs all six):
+(or just `npm test`, which builds + runs all eight local suites — the six below
+plus `track-colors.mjs` and `abi-parity.mjs`):
 
 ```bash
 # 1. Local (always) — viewmodel/business logic assertions
+# logic.mjs is only a RUNNER. The suites live in browser-test/logic/<subsystem>.mjs
+# — add a test by editing the matching subsystem module, never the runner. A new
+# subsystem needs a new module plus one line in each of the runner's two lists.
+# browser-test/logic/harness.mjs is the shared kit and must stay the runner's
+# first import: it installs the mock globals and owns the single failure counter,
+# so new shared imports go in its preamble + export list, not per-suite.
 node browser-test/logic.mjs
 
 # 1a. Local (always) — replays all 76 dumped modules; asserts layout invariants
@@ -258,67 +287,14 @@ code splitting). Never edit `ui.js` directly — it is a build artifact.
 - **Hard limit: 200 lines.** If a file exceeds this, split it.
 - **Target: 50–100 lines.** One clear responsibility per file.
 - The limit exists so the relevant context for any change fits in one read.
+- **`browser-test/` is covered too, at a looser ~600-line ceiling** (a suite is
+  one coherent subsystem, so 200 would shred it). It was exempt by omission,
+  and `logic.mjs` quietly reached 12,620 lines — 63× the src limit — becoming
+  the most-edited and most-expensive-to-read file in the repo.
 
 ### Directory responsibilities
 
-```
-src/
-  types/         Shared interfaces only — no logic, no imports from src/
-    param.ts       KnobParam, ModuleConfig, KnobSlot, BankConfig
-    viewmodel.ts   ViewModel, ParamVM, ToastState, OverlayState
-    schwung.d.ts   Ambient globals: fill_rect, shadow_*, setLED, decodeDelta,
-                   constants (Black, MovePads, …) — device globals and QuickJS os
-
-  model/         Knob/param state machine — no display calls
-    constants.ts   Tick rates, grid sizes (NAME_POLL_TICKS, KNOBS_PER_PAGE, …)
-    state.ts       ModelState interface + createModelState() factory
-    hierarchy.ts   loadHierarchy() — fetches ui_hierarchy + chain_params → KnobParam[]
-    store.ts       applyKnobDelta(), refreshKnobValues(), pollModuleName(), formatValue()
-    tick.ts        processTick() — long-press timer, delta flush, poll/refresh scheduling
-    viewmodel.ts   buildViewModel() — assembles ViewModel from ModelState
-    index.ts       createModel(slot) public factory — composes all model pieces
-
-  renderer/      Pure display functions — no state, no model imports
-    layout.ts      Display constants (W=128, ROW0_Y, CELL_W, …)
-    header.ts      drawInvertedHeader(), drawBankBar()
-    knob.ts        drawKnobWidget(), drawArcKnob(), drawEnumKnob()
-    label.ts       drawLabelCell(), drawKnobRow()
-    overlay.ts     drawEnumOverlay() — full-screen scrollable enum list
-    knob-view.ts   renderKnobsView(vm)
-    keys-view.ts   renderKeysView(moduleName, rootNote, midiNoteName)
-    browse-view.ts renderBrowseView(modules, browseIndex)
-
-  modules/       Per-synth knob layout configs
-    loader.ts      loadModuleConfig(id) — tryFile override → bundled CONFIGS → null
-    plaits.json    Plaits OSC/MOD bank layout
-    wurl.json      Wurl WURL/FX bank layout
-    *.json         Add new synth configs here as JSON files
-
-  keyboard/      Pad note-on/off, LED colours, root-note shifting
-    notes.ts       midiNoteName(), PAD_MAP[]
-    state.ts       keyboardState: { rootNote, scale, lastPlayedNote }
-    held-notes.ts  live-note ledger: padNote → { track, pitch } (see below)
-    release.ts     emitNoteOff(), releaseAllLive(), releaseLiveOnTrack()
-    leds.ts        padLedColor()
-    handler.ts     noteOn(), noteOff(), setRoot(), changeRoot()
-
-  browser/       Module browser (scan → select → load)
-    state.ts       browserState: { modules[], browseIndex }
-    handler.ts     openBrowser(), loadSelectedModule()
-
-  midi/
-    router.ts      onMidiMessageInternal() — routes by status byte to all handlers
-
-  app/           Lifecycle and global wiring
-    state.ts       appState: { model, activeSlot, currentView, shiftHeld, dirty, … }
-    init.ts        init() — slot detection, model creation, reset
-    tick.ts        tick() — LED init batch, model.tick(), render dispatch
-    globals.ts     Assigns init/tick/onMidiMessageInternal to globalThis
-
-  font/
-    glyphs.ts      G[] glyph table (pixel font rasterised at 8pt)
-    index.ts       FONT_HEIGHT, fontPrint(), fontWidth()
-```
+Run `ls src/` for the current layout — the boundaries below are what matters.
 
 ### Key boundaries
 
@@ -337,15 +313,6 @@ src/
 1. Create `src/modules/<id>.json` following the `ModuleConfig` shape.
 2. In `src/modules/loader.ts`, add an import and register in `CONFIGS`.
 3. Run `npm run build:device` — the JSON is bundled in automatically.
-
-### Build commands
-
-```bash
-npm run build          # device bundle + browser modules
-npm run build:device   # src/ → ui.js (esbuild, single ESM, external: schwung shared)
-npm run build:browser  # src/ → dist/esm/ (bundled entry points, code splitting)
-npm run typecheck      # tsc --noEmit, zero errors required
-```
 
 ---
 

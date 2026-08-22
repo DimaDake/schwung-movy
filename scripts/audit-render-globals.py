@@ -10,8 +10,13 @@ Run from the directory holding the module repos.
 """
 import re, os, glob, sys
 
-roots = [d for d in sorted(glob.glob('schwung-*') + glob.glob('move-anything-*') + ['forge-move', 'drums'])
-         if os.path.isdir(d + '/.git')]
+# Every checked-out repo, not a list of name patterns. The fleet is named by
+# ~six unrelated conventions (`schwung-*`, `move-anything-*`, `move-everything-*`,
+# `*-move`, and several bare names), so a pattern list silently audits a subset
+# and reports a fleet verdict — it missed 28 of 93 repos, drums and FX included.
+SELF = {'movy', 'movy-pr2', 'schwung', 'schwung-catalog-site', 'docs'}
+roots = sorted(d for d in os.listdir('.')
+               if d not in SELF and os.path.isdir(os.path.join(d, '.git')))
 
 HOSTCALL = re.compile(r'->\s*(log|midi_send_internal|midi_send_external|midi_inject_to_move|'
                       r'mod_emit_value|mod_clear_source|get_clock_status|get_bpm|get_beat_position|'
@@ -20,7 +25,11 @@ RISK = re.compile(r'\b(pthread_create|pthread_mutex_lock|dlopen|fopen|malloc|cal
                   r'rand|srand|localtime|strtok|system)\s*\(')
 
 # file-scope mutable statics: `static <type> name` at column 0, not const, not a function
-STATIC_DEF = re.compile(r'^static\s+(?!const\b)([A-Za-z_][\w\s\*]*?)\s*([A-Za-z_]\w*)\s*(\[[^;]*\])?\s*(=[^;]*)?;',
+# `const\b` alone does NOT exclude `constexpr` — the \b fails against the 'e',
+# so the lookahead passes and every C++ compile-time constant is reported as
+# shared mutable state. That produced three of eight fleet hits (plaits'
+# kGainTable, virus' VIRUS_MAX_*), which is enough noise to discredit the list.
+STATIC_DEF = re.compile(r'^static\s+(?!const\b|constexpr\b)([A-Za-z_][\w\s\*]*?)\s*([A-Za-z_]\w*)\s*(\[[^;]*\])?\s*(=[^;]*)?;',
                         re.M)
 
 
@@ -62,6 +71,11 @@ KW = set('if for while switch return sizeof snprintf memset memcpy strcmp strncm
          'sin cos tan exp log pow floor ceil round abs min max expf logf powf sinf cosf tanf '
          'sqrtf fabsf floorf ceilf roundf tanhf assert'.split())
 
+# A repo that prints nothing is either CLEAN or INVISIBLE, and the difference
+# decides whether "6 of 65 touch shared statics" is a verdict or a floor. Track
+# the three outcomes separately rather than inferring them from silence.
+flagged, clean, blind = set(), set(), set()
+
 any_hit = False
 for r in roots:
     files = [f for f in glob.glob(r + '/src/**/*', recursive=True) if f.endswith(('.c', '.cpp', '.cc'))]
@@ -72,9 +86,18 @@ for r in roots:
         except Exception:
             continue
         m = re.search(r'\.render_block\s*=\s*([A-Za-z_]\w*)', s)
-        if not m:
+        entry = m.group(1) if m else None
+        if entry is None:
+            # A POSITIONAL initializer names the field only in a comment —
+            # plaits writes `/* render_block = */ render_block,`. Fall back to
+            # the v2 signature, which is unambiguous in these sources.
+            m = re.search(r'\bvoid\s+([A-Za-z_]\w*)\s*\(\s*void\s*\*\s*\w+\s*,\s*'
+                          r'(?:const\s+)?int16_t\s*\*\s*\w+\s*,\s*int\s+\w+\s*\)\s*\{', s)
+            entry = m.group(1) if m else None
+        if entry is None:
+            if re.search(r'\brender_block\b', s):
+                blind.add(r)
             continue
-        entry = m.group(1)
         statics = {}
         for sm in STATIC_DEF.finditer(s):
             nm = sm.group(2)
@@ -98,6 +121,8 @@ for r in roots:
             for c in CALL.findall(b):
                 if c not in KW and c not in seen:
                     stack.append(c)
+        blind.discard(r)
+        (flagged if touched else clean).add(r)
         if touched or host or risk:
             any_hit = True
             print(f"\n{r}  [{os.path.relpath(f, r)}]  entry={entry}  fns={len(seen)}")
@@ -112,3 +137,15 @@ for r in roots:
 
 if not any_hit:
     print("no render_block entry points resolved", file=sys.stderr)
+
+clean -= flagged
+blind -= flagged | clean
+print(f"\n{'=' * 62}\nSUMMARY over {len(roots)} checked-out repos")
+print(f"  render_block resolved, TOUCHES shared statics : {len(flagged):3d}  {' '.join(sorted(flagged))}")
+print(f"  render_block resolved, clean                  : {len(clean):3d}")
+print(f"  mentions render_block, NOT resolved (blind)   : {len(blind):3d}  {' '.join(sorted(blind))}")
+print(f"  no render_block at all                        : "
+      f"{len(roots) - len(flagged) - len(clean) - len(blind):3d}")
+if blind:
+    print("\n  The blind set is not evidence of safety. Read those by hand before\n"
+          "  treating the flagged count as a fleet verdict.")

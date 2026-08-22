@@ -134,22 +134,10 @@ for p in "${PARR[@]}"; do
     i=$((i+1))
 done
 
-# LPT: sort descending, drop each chain onto the least-loaded worker. Optimal
-# within 4/3 of the true best partition, and the true best needs an exponential
-# search that would not change the verdict.
+# LPT, shared with analyze-isolation-cost.mjs and covered by
+# browser-test/logic/partition.mjs — this used to be a second copy in awk.
 partition() {  # partition <workers>  <- costs on stdin (ns, one per line)
-    sort -rn | awk -v W="$1" '
-        { c[NR]=$1; n=NR; tot+=$1 }
-        END {
-            for (w=0; w<W; w++) load[w]=0
-            for (i=1; i<=n; i++) {
-                best=0
-                for (w=1; w<W; w++) if (load[w] < load[best]) best=w
-                load[best] += c[i]
-            }
-            mk=0; for (w=0; w<W; w++) if (load[w] > mk) mk=load[w]
-            printf "%d %d\n", tot, mk
-        }'
+    node scripts/lib/partition.mjs "$1" "$(tr '\n' ',' | sed 's/,$//')"
 }
 
 COSTS=$(printf '%s\n' "${MEANS[@]}")

@@ -3,7 +3,9 @@ node_modules/
 # only, so a symlink slipped past it and got committed once.
 node_modules
 dist/
-ui.js
+# Root only. A bare `ui.js` also swallowed scripts/dump-tool/ui.js — the module
+# collector's SOURCE, not a build artifact — so that tool was never committed.
+/ui.js
 browser-test/screenshots/actual/
 *.js.map
 .DS_Store

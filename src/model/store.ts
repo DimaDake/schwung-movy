@@ -6,6 +6,7 @@ import { countDetents } from '../seq/detent.js';
 import { moduleReadKey } from '../chain/config.js';
 import { concreteKey } from './pad-scope.js';
 import { enumRawToIndex, enumUsesIndex, enumSetValue } from './enum-value.js';
+import { isToggleParam } from './toggle.js';
 import { pageSlotMap } from './page-layout.js';
 import { inferGuessedMeta } from './meta-infer.js';
 import { applyTriggerDelta, seedTriggerState } from './trigger.js';
@@ -173,7 +174,18 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
     /* Snapshot the outgoing value in the same encoding the write uses, so the
      * inverse is byte-identical to what the DSP last received. */
     const prevNum = s.knobValues[gi] as number;
-    let newVal = prevNum + scaled;
+    /* A 2-state switch flips on ONE detent, in the direction turned.
+     *
+     * Without this it inherits the enum's fractional accumulator (delta/4 into
+     * a value clamped to [min,max], read back with Math.round), which on a
+     * boolean costs 2 detents to turn on and 3 to turn back off: from 0 the
+     * steps are .25 (rounds off) then .5 (rounds ON), while from 1 they are
+     * .75 and .5 (both still ON) before .25 finally reads off. That asymmetry
+     * contradicts the picture — we draw these as a switch precisely because
+     * the control has two states and no travel, so the knob should seat at the
+     * end you turned toward, immediately and idempotently. */
+    let newVal = isToggleParam(p) ? (delta > 0 ? p.max : p.min)
+                                  : prevNum + scaled;
     newVal = Math.max(p.min, Math.min(p.max, newVal));
     if (p.type === 'int') newVal = Math.round(newVal);
     // enum: store as float for fractional accumulation; read sites use Math.round

@@ -27,27 +27,18 @@ MODULES=("$@")
 MOVY_DIR="$(pwd)"
 # shellcheck source=lib/test-set.sh
 source "$MOVY_DIR/scripts/lib/test-set.sh"
+# shellcheck source=lib/chain-bench.sh
+source "$MOVY_DIR/scripts/lib/chain-bench.sh"
 LOG=/data/UserData/schwung/debug.log
 CHAINS=12                  # every movy track
 SETTLE=11
 WORK_CEILING=2000          # measured; see docs/chain-cpu-benchmarks.md
-MELODIC=(60 64 67 71)
-DRUMS=(36 37 38 39)
 BLD=$'\033[1m'; RST=$'\033[0m'; GRN=$'\033[0;32m'; RED=$'\033[0;31m'; YEL=$'\033[1;33m'
 
 ssh -o ConnectTimeout=5 "ableton@$HOST" true 2>/dev/null || { echo "DEVICE OFFLINE"; exit 1; }
 ssh "ableton@$HOST" 'touch /data/UserData/schwung/debug_log_on'
 
-# Real sample files for the sampler modules, discovered on the device rather
-# than hardcoded — a path that does not exist loads nothing and measures silence.
-SAMPLES=()
-while IFS= read -r line; do [ -n "$line" ] && SAMPLES+=("$line"); done < <(
-    ssh "ableton@$HOST" 'find /data/UserData -iname "*.wav" 2>/dev/null | head -n 4' 2>/dev/null
-)
-[ ${#SAMPLES[@]} -gt 0 ] && echo "samples: ${#SAMPLES[@]} found (${SAMPLES[0]##*/} ...)" \
-                         || echo "samples: NONE FOUND — mrdrums will be silent"
-
-ep() { node scripts/engine-param.mjs set "$1" "$2" "$HOST" >/dev/null 2>&1; }
+cb_discover_samples
 
 frame() {  # prints "work total"
     ssh "ableton@$HOST" "grep -o 'Frame(us):.*' $LOG | tail -n 3" \
@@ -59,37 +50,6 @@ frame() {  # prints "work total"
                  }
                  w += pre+post; t += tot; n++ }
              END { if (n) printf "%d %d\n", w/n, t/n; else print "0 0" }'
-}
-
-set_pitches() {
-    case "$1" in
-        mrdrums|weird-dreams|forge|krautdrums) P=("${DRUMS[@]}") ;;
-        *) P=("${MELODIC[@]}") ;;
-    esac
-}
-
-# Presets and polyphony that make a chord actually cost four voices.
-prepare() {  # prepare <module>
-    case "$1" in
-        # Preset 1 is monophonic; 9 is the polyphonic one.
-        noisemaker) for c in $(seq 0 $((CHAINS-1))); do ep "ch$c:synth:preset" "9"; done ;;
-        helm)       for c in $(seq 0 $((CHAINS-1))); do ep "ch$c:synth:polyphony" "16"; done ;;
-        freak)      for c in $(seq 0 $((CHAINS-1))); do ep "ch$c:synth:polyphony" "16"; done ;;
-        obxd)       for c in $(seq 0 $((CHAINS-1))); do ep "ch$c:synth:voice_count" "16"; done ;;
-        mrdrums)
-            for c in $(seq 0 $((CHAINS-1))); do
-                ep "ch$c:synth:g_polyphony" "4"
-                # Four pads, four samples — "mrdrums with samples in 4 voices".
-                for i in 1 2 3 4; do
-                    [ -n "${SAMPLES[$((i-1))]:-}" ] && \
-                        ep "ch$c:synth:p0${i}_sample_path" "${SAMPLES[$((i-1))]}"
-                done
-            done ;;
-        # Kit 0 is the init kit and is silent; any loaded kit has real voices.
-        weird-dreams) for c in $(seq 0 $((CHAINS-1))); do ep "ch$c:synth:kit" "3"; done ;;
-        forge)        for c in $(seq 0 $((CHAINS-1))); do ep "ch$c:synth:kit" "5"; done ;;
-        *) : ;;
-    esac
 }
 
 echo "${BLD}=== 16-track stress: all $CHAINS movy chains at once ===${RST}"
@@ -105,11 +65,11 @@ echo "baseline (movy open, no chains): work=${BASE_W}us total=${BASE_T}us"
 for MOD in "${MODULES[@]}"; do
     echo
     echo "${BLD}--- $MOD on all $CHAINS movy tracks ---${RST}"
-    set_pitches "$MOD"
+    cb_pitches "$MOD"; P=("${CB_P[@]}")
     for c in $(seq 0 $((CHAINS-1))); do ep "ch$c:synth:module" "$MOD"; done
     # One load per audio callback, so a twelve-chain load takes a moment.
     sleep $((CHAINS + 6))
-    prepare "$MOD"
+    for c in $(seq 0 $((CHAINS-1))); do cb_prepare "$MOD" "$c"; done
     sleep 2
 
     LOADED=$(ssh "ableton@$HOST" "grep -c 'chain [0-9]*: synth = $MOD' $LOG" 2>/dev/null || echo 0)

@@ -9,6 +9,7 @@
 //! not a silent chain render. This is enforced by `renders_nothing_when_empty`
 //! rather than by inspection.
 
+use crate::chain_cost::CostMeter;
 use crate::chain_host::{ChainHost, ChainInstance};
 use crate::host;
 use crate::load_queue::{LoadQueue, LoadRequest};
@@ -55,6 +56,10 @@ pub struct ChainSlots {
     /// param write that the UI never saw. Tying the save to the UI gesture
     /// instead meant anything else changed the chains without ever being saved.
     generation: u32,
+    /// What each chain costs per block. The parallel-render design is bounded by
+    /// the largest single chain, and nothing else here can see a distribution —
+    /// `peaks` says a chain is audible, not what it cost.
+    cost: CostMeter,
 }
 
 impl ChainSlots {
@@ -75,6 +80,7 @@ impl ChainSlots {
             peaks: vec![0; MOVY_CHAINS],
             generation: 0,
             active_last_block: 0,
+            cost: CostMeter::new(MOVY_CHAINS),
         }
     }
 
@@ -252,7 +258,9 @@ impl ChainSlots {
             let Some(inst) = self.slots[i].as_mut() else { continue };
             active += 1;
             let scratch = &mut self.scratch[..frames];
+            let t0 = self.cost.start();
             inst.render_block(scratch);
+            self.cost.stop(t0, i);
 
             let peak = scratch.iter().fold(0i32, |m, &s| m.max((s as i32).abs()));
             self.peaks[i] = peak;
@@ -262,7 +270,16 @@ impl ChainSlots {
             }
             mix_into(&mut out[..frames], scratch, &self.mixes[i]);
         }
+        if active > 0 {
+            self.cost.end_block();
+        }
         self.active_last_block = active;
+    }
+
+    /// Per-chain render cost since the last call — see `CostMeter::report`.
+    /// Reading closes the window.
+    pub fn cost_report(&mut self) -> String {
+        self.cost.report()
     }
 
     /// How many chains rendered in the last block. Zero for a set with no movy
@@ -282,6 +299,8 @@ impl ChainSlots {
         for a in self.audible.iter_mut() {
             *a = false;
         }
+        // Costs belong to instances that no longer exist.
+        self.cost.reset();
     }
 }
 

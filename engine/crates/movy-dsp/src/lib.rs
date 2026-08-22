@@ -7,6 +7,7 @@ mod click;
 mod ffi;
 mod host;
 mod chain_copy;
+mod chain_cost;
 mod chain_host;
 mod chain_slots;
 mod load_queue;
@@ -61,7 +62,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.35.0";
+const ENGINE_VERSION: &str = "0.36.0";
 
 /// Tracks backed by schwung's own shadow slots. Their notes go out as MIDI on
 /// the matching channel, exactly as before; everything above this index is a
@@ -123,6 +124,13 @@ impl Instance {
             }
             "chpeaklog" => {
                 host::log(&format!("chain peaks: {}", self.chains.peaks_csv()));
+            }
+            /* `chcostlog` — log what each chain cost per block, then start a
+             * fresh window. Same write-to-read trick as `chpeaklog`; the reset
+             * is what lets a benchmark discard the load phase and measure only
+             * the settled set. Read by scripts/measure-chain-balance.sh. */
+            "chcostlog" => {
+                host::log(&format!("chain cost: {}", self.chains.cost_report()));
             }
             /* `chlfolog <chain>` — log that chain's LFO assignments and the live
              * value of each driven param. The remote-UI socket a device test

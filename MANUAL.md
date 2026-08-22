@@ -1046,13 +1046,19 @@ accident:
   jog-click**. Held pad notes are released when the menu opens so nothing hangs.
 - **Close Movy** — jog-**turn** to it, then jog-click, to fully unload Movy.
 - **Back** again **cancels** and returns you to Movy.
-- **Track** or **Note/Session** also cancels it — and the press still does its
-  normal job, so reaching for a track both dismisses the menu and switches to
-  that track. Changing your mind costs one press, not two.
-- **Play** and **Rec** keep working *with the menu still up*: the sequencer is
-  running either way, so transport is never held hostage by the dialog.
-- The eight parameter knobs stay inert while the menu is up — it covers the
-  screen, so an edit made behind it would be one you couldn't see.
+
+**The rest of the instrument keeps working while the menu is up.** Playing a
+pad, hitting a step, changing track, Clear, Capture, octave up/down, Copy,
+Delete, Mute, Loop, the arrows — all of them **dismiss the menu and still do
+their job**, so a menu you opened by mistake never costs you a press. Two
+deliberate exceptions:
+
+- **Shift**, **Play** and **Rec** work *without* closing the menu. Shift is a
+  modifier, so it has to stay one; and stopping the music before you park isn't
+  a change of mind.
+- The eight **parameter knobs** stay inert. The menu covers the screen, so a
+  knob edit behind it would be one you couldn't see happen — and unlike a pad
+  or a step, a knob gives you nothing else to notice it by.
 
 (Back still steps *backwards* through Movy's own sub-views — the browser,
 keyboard/knob pages, the master-FX detail, and the Step/Clip/Set pages — as
@@ -1341,8 +1347,9 @@ behaviour you'd like — or, better, a PR.
 | **Back** | Module pages → Chain; browser → cancel; **at the root (Chain) → open the Leave Movy menu** (Background / Close Movy). |
 | **Back then jog-click** | From the root: background Movy (keeps playing under Move's UI). |
 | **Shift + Back** | Fully exit Movy (unload), instantly, from anywhere. |
-| **Track / Note-Session** (Leave menu up) | Dismiss the menu *and* switch track / open Session — one press. |
-| **Play / Rec** (Leave menu up) | Run normally with the menu still up; the transport is never blocked. |
+| **Anything** (Leave menu up) | Dismisses the menu *and* does its normal job — pads, steps, Track, Clear, Capture, octave, Copy/Delete/Mute/Loop, arrows. |
+| **Shift / Play / Rec** (Leave menu up) | Run normally *without* closing the menu. |
+| **Parameter knobs** (Leave menu up) | Inert — the menu covers the screen, so the edit would be invisible. |
 | **Hold track + volume encoder** | Set that track's volume (0–400%, 100% = unity, 1 dB per detent). Add **Shift** to see Movy's slider instead of Move's native overlay. |
 | **+ / −** (Up/Down) | Shift the **active track's** octave (melodic tracks only). Each track remembers its own, saved with the set. In **Session** view they step the focused **track group** instead (**+** towards tracks 1-4, **−** towards 13-16). |
 

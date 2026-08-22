@@ -156,16 +156,17 @@ export function onMidiMessageInternal(data: number[]): void {
 
     // The Leave-Movy modal owns the jog assembly while it is up: jog turn moves
     // the highlight, jog click confirms (Background parks / Close exits), Back
-    // cancels. Track/Session dismiss it and still act; transport runs
-    // underneath; every other PRESS is swallowed so nothing fires behind it.
+    // cancels. Everything else keeps working — using the instrument answers the
+    // question by walking away, so it dismisses the menu and still acts. Only
+    // the param knobs are swallowed (an edit behind a full-screen menu is one
+    // you cannot see), and only Shift and the transport run without dismissing.
     // The policy lives in leave-modal.ts:leaveModalPass.
     //
-    // Releases are not swallowed. The handler that armed a hold has no other way
-    // to learn the button came up, so a dropped release strands it for the rest
-    // of the session — a stranded step hold keeps stepAutoMode latched and eats
-    // every subsequent knob turn (tempo, clip length, module params), curable
-    // only by reopening movy. openLeaveModal() already forgot what was held, so
-    // these releases land on empty state and do nothing but stay honest.
+    // Releases are never swallowed or treated as a dismissal. The handler that
+    // armed a hold has no other way to learn the button came up, so a dropped
+    // release strands it for the rest of the session — a stranded step hold
+    // keeps stepAutoMode latched and eats every subsequent knob turn (tempo,
+    // clip length, module params), curable only by reopening movy.
     // The post-capture overlay stays up until something is pressed. The jog
     // picks a tempo (applied as you turn); every other PRESS just dismisses it
     // and is swallowed. Swallowed rather than passed through because movy has
@@ -191,7 +192,6 @@ export function onMidiMessageInternal(data: number[]): void {
     }
 
     if (leaveModalActive()) {
-        let passes = false;
         if ((data[0] & 0xF0) === 0xB0) {
             const k = data[1], v = data[2];
             if (k === MoveBack && v > 0) { closeLeaveModal(); appState.dirty = true; return; }
@@ -204,19 +204,21 @@ export function onMidiMessageInternal(data: number[]): void {
                 const action = leaveModalConfirm();
                 appState.dirty = true;
                 /* Confirming hands the foreground to Move, so every release
-                 * still owed to us goes there instead. Anything armed while the
-                 * modal was up (a Rec hold, a track momentary) would strand —
-                 * the open path's reset cannot cover presses that came later. */
+                 * still owed to us goes there instead and anything armed under
+                 * the menu would strand — Rec latches step-record, Shift latches
+                 * shiftHeld, and both pass without dismissing. The open path's
+                 * reset cannot cover presses that arrived after it. Live notes
+                 * need no equivalent only because everything that sounds one
+                 * dismisses first; move a pad to `through` and that changes. */
                 resetHeldInput(true);
                 if (action === 'background') host_suspend_overtake();
                 else if (action === 'close') host_exit_module();
                 return;
             }
-            const pass = leaveModalPass(k);
-            if (pass === 'dismiss' && v > 0) { closeLeaveModal(); appState.dirty = true; }
-            passes = pass !== 'swallow';
         }
-        if (!passes && !isRelease(data)) return;
+        const pass = leaveModalPass(data);
+        if (pass === 'swallow' && !isRelease(data)) return;
+        if (pass === 'dismiss' && !isRelease(data)) { closeLeaveModal(); appState.dirty = true; }
     }
 
     if (seqHandleMidi(data, appState.shiftHeld)) return;

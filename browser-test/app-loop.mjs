@@ -1106,10 +1106,11 @@ _log('\napp-loop: Leave modal — Back cancels; old host offers only Close Movy'
     globalThis.host_exit_module = realExit;
 }
 
-_log('\napp-loop: Leave modal — Track/Session dismiss and act, transport passes through');
+_log('\napp-loop: Leave modal — the hardware keeps working; using it dismisses the menu');
 {
     const { leaveModalActive } = await import('../dist/esm/app/leave-modal.js');
     const { stepRecActive } = await import('../dist/esm/seq/step-rec.js');
+    const { soundingCount } = await import('../dist/esm/keyboard/held-notes.js');
     const CC_TRACK_1 = 42;   // CC 43 = track 0, so CC 42 = track 1
     const CC_PLAY = 85, CC_REC = 86;
     /* Back toggles: with the modal already up it cancels instead of opening, and
@@ -1168,6 +1169,46 @@ _log('\napp-loop: Leave modal — Track/Session dismiss and act, transport passe
     eq('Rec armed step-record under the modal', stepRecActive(), true);
     sendMidi([0xB0, globalThis.MoveMainButton, 127]);  // jog-click → Background
     eq('confirming forgot the hold armed under the modal', stepRecActive(), false);
+
+    /* The rest of the hardware is the same policy, not a special case: playing
+     * the instrument answers the menu by walking away. */
+    resetApp();
+    openModal();
+    sendMidi([0x90, PAD_KICK, 100]);
+    eq('a pad dismissed the modal', leaveModalActive(), false);
+    eq('and the pad still sounded', soundingCount(), 1);
+    sendMidi([0x80, PAD_KICK, 0]);
+    eq('the pad release landed normally', soundingCount(), 0);
+
+    resetApp();
+    openModal();
+    const step = STEP_NOTE_BASE + 4;
+    sendMidi([0x90, step, 100]); sendMidi([0x80, step, 0]);
+    eq('a step button dismissed the modal', leaveModalActive(), false);
+    eq('and the step still toggled a note', occHasStep(4), true);
+
+    /* The host trickles [0,0,0] into the overtake callback whether or not
+     * anyone touched anything. Dismissing on undecodable traffic killed the
+     * menu in the same millisecond Back opened it, on device — no press
+     * involved, and Close Movy became unreachable. */
+    resetApp();
+    openModal();
+    sendMidi([0, 0, 0]);
+    advance(1);
+    eq('host junk did NOT dismiss the modal', leaveModalActive(), true);
+    sendMidi([0xF8, 0, 0]);                            // MIDI clock
+    eq('a clock byte did NOT dismiss it either', leaveModalActive(), true);
+    sendMidi([0xB0, globalThis.MoveBack, 127]);        // cancel for the next case
+
+    /* Shift is a modifier, not an answer: dismissing on it would break the
+     * combo the press was reaching for. */
+    resetApp();
+    openModal();
+    sendMidi([0xB0, globalThis.MoveShift, 127]);
+    eq('Shift did NOT dismiss the modal', leaveModalActive(), true);
+    eq('Shift still registered', appState.shiftHeld, true);
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);  // confirm → Background
+    eq('confirming forgot the Shift latch too', appState.shiftHeld, false);
     delete globalThis.host_suspend_overtake;
 }
 
@@ -1454,6 +1495,7 @@ _log('\napp-loop: step recording paints a blinking red head');
     resetApp();
     const { C_REC_RED } = await import('../dist/esm/seq/colors.js');
     const { stepRecActive } = await import('../dist/esm/seq/step-rec.js');
+    const { soundingCount } = await import('../dist/esm/keyboard/held-notes.js');
 
     seqState.playing = false;
     seqState.lenSteps = 16;

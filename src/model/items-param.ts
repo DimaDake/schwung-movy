@@ -1,5 +1,6 @@
 import type { KnobParam } from '../types/param.js';
 import type { ModelState } from './state.js';
+import { mlog } from '../log.js';
 
 /* Item-selector levels: a ui_hierarchy level that carries `items_param` +
  * `select_param` instead of knobs (dexed's .syx banks, obxd's .fxb banks,
@@ -76,6 +77,13 @@ export function buildItemSelectParam(
     if (raw === null) return null;
     const cur = parseInt(raw, 10);
     if (isNaN(cur) || items.indices.indexOf(cur) < 0) return null;
+
+    /* The device signal for scripts/test-items.sh. Neither key appears in
+     * chain_params, so this line is the only proof the real module served a
+     * list movy could build a cell from — and `cur` is the only proof a chosen
+     * item STUCK. Logged from here because `raw` is already in hand; reading it
+     * again at the call site would cost an extra ~2.8ms IPC round trip. */
+    mlog('items selector ' + selectKey + ' n=' + items.labels.length + ' cur=' + cur);
 
     return {
         key: selectKey,

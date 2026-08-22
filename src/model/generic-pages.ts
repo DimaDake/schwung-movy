@@ -76,13 +76,7 @@ export function buildGenericPages(
      * chain_params (a selector has no chain_params entry). */
     const selectors = buildItemSelectors(s, allLevels);
     const selMap: Record<string, KnobParam> = {};
-    for (const p of selectors) {
-        selMap[p.key] = p;
-        // The device signal for scripts/test-items.sh: neither key appears in
-        // chain_params, so this line is the only proof the real module served a
-        // list movy could build a cell from.
-        mlog('items selector ' + p.key + ' n=' + (p.options?.length ?? 0));
-    }
+    for (const p of selectors) selMap[p.key] = p;
 
     if (!rootLevel) {
         /* B1: modules that publish chain_params but no ui_hierarchy would show an

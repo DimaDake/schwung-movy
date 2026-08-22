@@ -145,6 +145,25 @@ AFTER=$(movylog | awk "/key=synth:$SELECT_KEY/{seen=1; next} seen && /loadHierar
 [ -n "$AFTER" ] && pass "Module re-read after the commit: ${AFTER##*movy] }" \
                 || fail "No loadHierarchy after the commit — preset list stays stale"
 
+# ── 4. The chosen item STUCK ─────────────────────────────────────────────────
+# Writing the index is not the same as the module accepting it. obxd refused
+# every bank whose .fxb carried no <?xml prolog: v2_load_bank returned -1,
+# v2_switch_bank left current_bank alone, and the cell snapped back to the
+# first item — which reads exactly like "movy reset my bank". Steps 2 and 3
+# passed throughout, because both only ever asked whether movy WROTE.
+# `cur=` is the module's own read-back, taken on the re-read after the commit.
+WROTE=$(movylog | grep -oE "key=synth:$SELECT_KEY val=[0-9]+" | tail -1 | grep -oE "[0-9]+$" || echo "")
+BACK=$(movylog | awk "/key=synth:$SELECT_KEY/{seen=1} seen" \
+       | grep -oE "items selector $SELECT_KEY n=[0-9]+ cur=[0-9]+" | tail -1 \
+       | grep -oE "cur=[0-9]+" | cut -d= -f2 || echo "")
+if [ -z "$WROTE" ] || [ -z "$BACK" ]; then
+    fail "Could not read back the selection (wrote='$WROTE' cur='$BACK')"
+elif [ "$WROTE" = "$BACK" ]; then
+    pass "Selection stuck — module reports the chosen item ($SELECT_KEY=$BACK)"
+else
+    fail "Selection reverted: wrote $WROTE, module reports $BACK (item refused to load?)"
+fi
+
 echo
 if [ "$FAILURES" -eq 0 ]; then
     echo -e "${GRN}ALL ITEM-SELECTOR CHECKS PASSED${RST}"

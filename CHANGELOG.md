@@ -11,7 +11,7 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
-## [Unreleased]
+## [0.29.0] — 2026-08-22
 
 ### Added
 
@@ -67,7 +67,40 @@ far. Earlier work is summarised in the timeline below for context.
 - Overlay file names drop the extension they were filtered by — `808 Kit`, not
   `808 Kit.jso`. The labels are only 12 characters wide.
 
+- **The Leave-Movy menu no longer holds the instrument hostage.** It swallowed
+  every press but Back and the jog, so a menu opened by accident had to be
+  closed the way it was opened. Now pads, steps, Track, Session, Clear, Capture,
+  octave, Copy/Delete/Mute/Loop and the arrows all dismiss it *and* do their job
+  — using the instrument answers the question by walking away, at no extra
+  press. Two deliberate exceptions: Shift and the transport act **without**
+  dismissing (Shift is a modifier, and stopping the music is not a change of
+  mind), and the eight param knobs stay swallowed, because the menu covers the
+  screen and a knob edit made behind it is one you cannot see happen.
+
+  Confirming forgets held input. Rec latches step-record and Shift latches
+  `shiftHeld`, both now pass without dismissing, and Background hands the
+  foreground to Move — so neither release would ever arrive.
+
+  Only input Movy can decode counts as an answer: the host trickles `[0,0,0]`
+  into the overtake callback unprompted, and reading that as a press closed the
+  menu in the same millisecond Back opened it, making **Close Movy**
+  unreachable.
+
 ### Fixed
+
+- **A two-state switch took two detents to turn on and three to turn off.**
+  A boolean drawn as a switch still went through the enum's fractional
+  accumulator, so the knob rounded its way to the other end instead of getting
+  there. A switch has two states and no travel — which is why we draw it as one
+  — so it now seats at the end you turned toward, on the first detent, in either
+  direction. Multi-option enums keep the click gate.
+  (Thanks [@athousanddetails](https://github.com/athousanddetails), #14.)
+
+- **Store installs unpacked `dsp.so` into a `GNUSparseFile.0/` folder.** The
+  release tarball was built by macOS `bsdtar`, which uses GNU sparse headers for
+  `dsp.so` on APFS; BusyBox `tar` on Move cannot read them, so the sequencer
+  engine landed in the wrong place and never loaded. The tarball is now plain
+  `ustar` with no mac metadata.
 
 - **An LFO assigned on a Movy-hosted track (5-16) did nothing.** Neither the
   hold-a-knob gesture nor the LFO page's Target overlay changed anything: the
@@ -138,6 +171,16 @@ far. Earlier work is summarised in the timeline below for context.
   have `saveMasterFxChainConfig` read the shim rather than its mirror; once that
   lands, Movy's call becomes a no-op and both files can be deleted.
   (schwung-movy#9)
+
+### Engine
+
+`0.34.0` → `0.35.0`. Adds `chlfolog <chain>`, which logs a chain's LFO
+assignments together with the live value of each driven param — the remote-UI
+socket a device test drives can write but not read, so a write that makes the
+engine log is the only way to observe a chain's internals from outside, and it
+is what lets `scripts/test-lfo.sh` prove modulation is actually moving. The
+audio and render paths are untouched; the version bump is what stops a stale
+`dsp.so` from passing the ping handshake as current.
 
 ## [0.28.2] — 2026-08-18
 

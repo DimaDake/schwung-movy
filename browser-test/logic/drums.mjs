@@ -119,7 +119,12 @@ const MRDRUMS_PRESET = {
   'synth:name': 'MrDrums',
   'synth_module': 'mrdrums',
 };
-const TRACK_PRESETS = '/data/UserData/UserLibrary/Track Presets';
+/* Factory drum kits ship as .json under /data/CoreLibrary (Move's own library);
+ * user presets are .ablpreset under /data/UserData. Both are reachable only
+ * because fileRoot is their common ancestor — see the root-span test. */
+const FACTORY_KITS  = '/data/CoreLibrary/Track Presets/Drums/Electronic';
+const FACTORY_DRUMS = '/data/CoreLibrary/Samples/Drums';
+const USER_PRESETS  = '/data/UserData/UserLibrary/Track Presets';
 
 /* Navigate to the preset knob. Each config bank owns one full page, so
  * ui_preset_path sits at physical slot 0 of the last bank (Preset). */
@@ -135,21 +140,76 @@ _log('\nTest: mrdrums preset param keeps fileFilter/fileStartPath/requireContain
   touchMrdrumsPreset(m);
   const t = m.getFileBrowseTarget();
   eq('preset target key', t?.key, 'ui_preset_path');
-  eq('preset filter = .ablpreset', JSON.stringify(t?.filter), JSON.stringify(['.ablpreset']));
-  eq('preset start path = Track Presets', t?.startPath, TRACK_PRESETS);
+  eq('preset filter = .ablpreset + .json',
+     JSON.stringify(t?.filter), JSON.stringify(['.ablpreset', '.json']));
+  eq('preset start path = factory drum kits', t?.startPath, FACTORY_KITS);
   eq('preset requireContains = drumRack', t?.requireContains, 'drumRack');
 }
 
-_log('\nTest: preset overlay starts in Track Presets and hides folders + wrong files');
+_log('\nTest: preset/sample roots span the factory AND user libraries');
+
+/* The browser cannot walk above fileRoot, so a root that covers only one
+ * library strands the other: defaulting into /data/CoreLibrary with the old
+ * /data/UserData/UserLibrary root left the user's own presets unreachable. */
+{
+  const m = bootModel(MRDRUMS_PRESET);
+  touchMrdrumsPreset(m);
+  const presetRoot = m.getFileBrowseTarget()?.root ?? '';
+  eq('preset root reaches factory kits', FACTORY_KITS.startsWith(presetRoot + '/'), true);
+  eq('preset root reaches user presets', USER_PRESETS.startsWith(presetRoot + '/'), true);
+
+  const s = bootModel(MRDRUMS_PRESET);
+  s.handleKnobTouch(0);              // Main bank slot 0 = SAMPL
+  const sample = s.getFileBrowseTarget();
+  eq('sample filter = wav + aiff',
+     JSON.stringify(sample?.filter), JSON.stringify(['.wav', '.aif', '.aiff']));
+  eq('sample start path = factory drum samples', sample?.startPath, FACTORY_DRUMS);
+  eq('sample root reaches factory samples',
+     FACTORY_DRUMS.startsWith((sample?.root ?? '') + '/'), true);
+  eq('sample root reaches user samples',
+     '/data/UserData/UserLibrary/Samples'.startsWith((sample?.root ?? '') + '/'), true);
+}
+
+_log('\nTest: preset overlay lists factory .json kits, hides folders + wrong files');
 
 {
-  mockFsEntries[TRACK_PRESETS] = ['Kits', 'drum.ablpreset', 'loop.wav', 'synth.ablpreset'];
+  mockFsEntries[FACTORY_KITS] = ['Kits', '808 Kit.json', 'loop.wav', 'drum.ablpreset'];
   const m = bootModel(MRDRUMS_PRESET);
   touchMrdrumsPreset(m);
   const opts = m.getViewModel().overlay?.options ?? [];
-  eq('overlay only shows .ablpreset files', opts.length, 2);
-  eq('overlay excludes folder Kits', opts.some(p => p.endsWith('/Kits')), false);
+  eq('overlay shows both preset extensions', opts.length, 2);
+  eq('overlay excludes folder Kits', opts.includes('Kits'), false);
   eq('overlay excludes loop.wav', opts.some(p => p.endsWith('.wav')), false);
+}
+
+_log('\nTest: overlay labels drop the preset extension');
+
+{
+  mockFsEntries[FACTORY_KITS] = ['808 Kit.json', 'drum.ablpreset'];
+  const m = bootModel(MRDRUMS_PRESET);
+  touchMrdrumsPreset(m);
+  const opts = m.getViewModel().overlay?.options ?? [];
+  eq('.json stripped from label', opts.includes('808 Kit'), true);
+  eq('.ablpreset stripped from label', opts.includes('drum'), true);
+}
+
+_log('\nTest: overlay follows the loaded preset out of the factory library');
+
+/* How "go back to my own presets" works: the browser moves the param to a user
+ * path, and every later knob touch scans that path's folder instead of the
+ * factory default. No extra state — the loaded value IS the location. */
+{
+  mockFsEntries[USER_PRESETS] = ['My Kit.ablpreset', 'Other Kit.ablpreset'];
+  const m = bootModel({ ...MRDRUMS_PRESET,
+                        'synth:ui_preset_path': USER_PRESETS + '/My Kit.ablpreset' });
+  // Page first: the store only reads back params for the visible page, so
+  // ticking on the Main bank never populates the preset knob's file value.
+  m.changePage(m.getBankCount());
+  for (let i = 0; i < 20; i++) m.tick();
+  m.handleKnobTouch(0);
+  const opts = m.getViewModel().overlay?.options ?? [];
+  eq('overlay scans the loaded preset\'s folder', JSON.stringify(opts),
+     JSON.stringify(['My Kit', 'Other Kit']));
 }
 
 _log('\nTest: fileContentAllows accepts drumRack, rejects others');
@@ -171,17 +231,20 @@ _log('\nTest: fileContentAllows accepts drumRack, rejects others');
 _log('\nTest: overlay commit rejects a non-drum preset (param unchanged)');
 
 {
-  mockFsEntries[TRACK_PRESETS] = ['drum.ablpreset', 'synth.ablpreset'];
+  /* Both are .json now: widening the filter to reach factory kits also admits
+   * every other .json Move keeps in those trees (instrument racks, schwung
+   * sets), so the content check is the only thing keeping them out. */
+  mockFsEntries[FACTORY_KITS] = ['808 Kit.json', 'synth.json'];
   const saved = globalThis.host_read_file;
   // Override only across the release/validation — loadModuleConfig also reads
   // via host_read_file, so the model must boot with the real (null) impl first.
-  const presetContent = (p) => p.endsWith('drum.ablpreset')
+  const presetContent = (p) => p.endsWith('808 Kit.json')
     ? '{ "kind": "drumRack" }' : '{ "kind": "instrumentRack" }';
 
-  // sorted: drum.ablpreset[0], synth.ablpreset[1]
+  // sorted: 808 Kit.json[0], synth.json[1]
   const m = bootModel(MRDRUMS_PRESET);
   touchMrdrumsPreset(m);
-  m.handleKnobDelta(0, 4);  // → synth.ablpreset (wrong type)
+  m.handleKnobDelta(0, 4);  // → synth.json (wrong type)
   globalThis.host_read_file = presetContent;
   const rejected = m.handleKnobRelease(0);
   globalThis.host_read_file = saved;
@@ -189,12 +252,13 @@ _log('\nTest: overlay commit rejects a non-drum preset (param unchanged)');
   eq('wrong preset → param not set', env.params['synth:ui_preset_path'], undefined);
 
   const m2 = bootModel(MRDRUMS_PRESET);
-  touchMrdrumsPreset(m2);  // selected idx 0 = drum.ablpreset
+  touchMrdrumsPreset(m2);  // selected idx 0 = 808 Kit.json
   globalThis.host_read_file = presetContent;
   const ok2 = m2.handleKnobRelease(0);
   globalThis.host_read_file = saved;
   eq('drum preset → not rejected', ok2, false);
-  eq('drum preset → param set', env.params['synth:ui_preset_path'], TRACK_PRESETS + '/drum.ablpreset');
+  eq('factory kit → param set', env.params['synth:ui_preset_path'],
+     FACTORY_KITS + '/808 Kit.json');
 }
 
 _log('\nTest: track colors — track 3 neon pink, track 4 royal blue');

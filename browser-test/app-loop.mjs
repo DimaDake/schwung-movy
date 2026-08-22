@@ -606,10 +606,11 @@ _log('\napp-loop: pool-full toast wins the bottom rows over the loop strip');
  * and select send the user "back" to the browser itself — a frozen screen. */
 _log('\napp-loop: full-screen file browser exits cleanly');
 {
-    const TP = '/data/UserData/UserLibrary/Track Presets';
+    // mrdrums opens the browser in Move's factory kit folder — see its config.
+    const TP = '/data/CoreLibrary/Track Presets/Drums/Electronic';
     const savedOs   = globalThis.os;
     const savedRead = globalThis.host_read_file;
-    const mockFs = { [TP]: ['drum.ablpreset', 'other.ablpreset'] };
+    const mockFs = { [TP]: ['808 Kit.json', '909 Kit.json'] };
     // os is needed by the browser scan; install AFTER resetApp so module-config
     // loading (which also reads via host_read_file) uses the bundled config.
     resetApp();
@@ -633,15 +634,15 @@ _log('\napp-loop: full-screen file browser exits cleanly');
     eq('Back leaves the file browser', appState.currentView, VIEW_KNOBS);
     eq('Back clears fileBrowserState', appState.fileBrowserState, null);
 
-    // Reopen, move to drum.ablpreset, select → loads + closes the browser.
+    // Reopen, move to 808 Kit.json, select → loads + closes the browser.
     sendMidi([0x90, 0, 127]); sendMidi([0xB0, 3, 127]); advance(1);
-    sendMidi([0xB0, 14, 1]);                          // skip '..' → drum.ablpreset
-    globalThis.host_read_file = (p) => p.endsWith('.ablpreset') ? '{ "kind": "drumRack" }' : null;
+    sendMidi([0xB0, 14, 1]);                          // skip '..' → 808 Kit.json
+    globalThis.host_read_file = (p) => p.endsWith('.json') ? '{ "kind": "drumRack" }' : null;
     sendMidi([0xB0, 3, 127]);                         // jog-click = select
     globalThis.host_read_file = savedRead;
     eq('select leaves the file browser', appState.currentView, VIEW_KNOBS);
     eq('select clears fileBrowserState', appState.fileBrowserState, null);
-    eq('select committed the preset path', env.params['synth:ui_preset_path'], TP + '/drum.ablpreset');
+    eq('select committed the preset path', env.params['synth:ui_preset_path'], TP + '/808 Kit.json');
 
     globalThis.os = savedOs;
 }

@@ -11,7 +11,7 @@ import { buildViewModel }   from './viewmodel.js';
 import { processTick }      from './tick.js';
 import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV, ITEMS_RELOAD_TICKS } from './constants.js';
 import { enumUsesIndex, enumSetValue } from './enum-value.js';
-import { basename, dirname } from './path.js';
+import { basename, dirname, stripKnownExt } from './path.js';
 import { fileContentAllows } from './file-validate.js';
 import { mlog } from '../log.js';
 import { isItemSelector, itemValueAt, refreshItems } from './items-param.js';
@@ -160,7 +160,8 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
                     const selIdx = currentPath ? items.indexOf(currentPath) : 0;
                     s.fileOverlay = {
                         slot: k, gi, items,
-                        labels: items.map((f) => basename(f).slice(0, 12)),
+                        labels: items.map((f) =>
+                            stripKnownExt(basename(f), p.fileFilter ?? []).slice(0, 12)),
                         selected: selIdx >= 0 ? selIdx : 0,
                         original: currentPath, accum: 0,
                     };

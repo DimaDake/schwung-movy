@@ -43,6 +43,23 @@ far. Earlier work is summarised in the timeline below for context.
   engine log is the only way to observe a chain's internals from outside. It is
   what lets `scripts/test-lfo.sh` prove modulation is actually moving.
 
+### Changed
+
+- **MrDrums browses Move's factory drum kits.** Its preset knob now opens in
+  `/data/CoreLibrary/Track Presets/Drums/Electronic` and accepts `.json`
+  alongside `.ablpreset`, so Move's own kits — which ship as `.json` and were
+  previously invisible to Movy — load straight from the knob overlay without
+  entering the full-screen browser. The per-pad sample knob likewise starts in
+  the factory drum samples and accepts `.aif`/`.aiff`, matching what the module
+  itself loads. Both roots widen to `/data` so the browser can still walk to
+  your own presets and samples under `UserLibrary`; loading one from there
+  points the knob overlay at that folder from then on. The kit check
+  (`drumRack`) is unchanged and is what keeps the other `.json` files in those
+  trees out.
+
+- Overlay file names drop the extension they were filtered by — `808 Kit`, not
+  `808 Kit.jso`. The labels are only 12 characters wide.
+
 ### Fixed
 
 - **An LFO assigned on a Movy-hosted track (5-16) did nothing.** Neither the

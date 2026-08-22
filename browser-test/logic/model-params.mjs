@@ -202,7 +202,8 @@ _log('\nTest: file overlay opens on touch with dir scan');
     const vm = m.getViewModel();
     eq('file overlay: 3 items',         vm.overlay?.options.length, 3);
     eq('file overlay: slot = 0',        vm.overlay?.slot, 0);
-    eq('file overlay: selected = kick', vm.overlay?.options[vm.overlay.selected], 'kick.wav');
+    // Labels drop a declared extension — see stripKnownExt in model/path.ts.
+    eq('file overlay: selected = kick', vm.overlay?.options[vm.overlay.selected], 'kick');
 }
 
 _log('\nTest: file overlay scrolls with knob delta');

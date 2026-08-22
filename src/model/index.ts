@@ -4,15 +4,17 @@ import { undoableEdit } from '../undo/edit.js';
 import { recordPresetState } from '../undo/record.js';
 import { createModelState } from './state.js';
 import type { TrackPort } from '../track/port.js';
+import type { KnobParam } from '../types/param.js';
 import { loadHierarchy }    from './hierarchy.js';
 import { applyKnobDelta, knobParamInfo, reseedPadParams, refreshModulatedKeys, slotToLocal }   from './store.js';
 import { buildViewModel }   from './viewmodel.js';
 import { processTick }      from './tick.js';
-import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV } from './constants.js';
+import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV, ITEMS_RELOAD_TICKS } from './constants.js';
 import { enumUsesIndex, enumSetValue } from './enum-value.js';
 import { basename, dirname } from './path.js';
 import { fileContentAllows } from './file-validate.js';
 import { mlog } from '../log.js';
+import { isItemSelector, itemValueAt, refreshItems } from './items-param.js';
 
 // Fractional accumulator: returns whole steps consumed and the leftover fraction
 function accumStep(accum: number, delta: number): [newAccum: number, step: number] {
@@ -76,6 +78,12 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
         return s.touchedSlots.length > 0 ? s.touchedSlots[s.touchedSlots.length - 1] : -1;
     }
 
+    function paramAtSlot(k: number): KnobParam | null {
+        const local = slotToLocal(s, k);
+        if (local < 0) return null;
+        return s.knobParams[s.knobPage * KNOBS_PER_PAGE + local] ?? null;
+    }
+
     return {
         handleKnobDelta(k: number, delta: number): void {
             if (s.enumOverlay && k === s.enumOverlay.slot) {
@@ -106,7 +114,10 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
                 return;
             }
             s.longPressCountdown = -1;
-            s.pendingDeltas[k] += delta;
+            /* An item selector only ever commits from its overlay (opened on
+             * touch). A raw delta reaching pendingDeltas would load a bank per
+             * detent — and a turn can arrive with no touch at all. */
+            if (!isItemSelector(paramAtSlot(k))) s.pendingDeltas[k] += delta;
             // Make this knob the primary touched slot without disturbing other held knobs
             const idx = s.touchedSlots.indexOf(k);
             if (idx < 0) { s.touchedSlots.push(k); s.dirty = true; }
@@ -127,8 +138,18 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
             const local = slotToLocal(s, k);
             const gi = local < 0 ? -1 : s.knobPage * KNOBS_PER_PAGE + local;
             const p  = gi < 0 ? undefined : s.knobParams[gi];
-            if (p && p.type === 'enum' && p.options && p.options.length > 6) {
-                s.enumOverlay = { slot: k, gi, options: p.options, selected: Math.round((s.knobValues[gi] ?? 0) as number) };
+            if (p && p.options && (isItemSelector(p) || (p.type === 'enum' && p.options.length > 6))) {
+                /* Re-scan on touch: the list is the module's live directory and
+                 * this is the one moment it is cheap to ask (see items-param). */
+                const live = isItemSelector(p) ? refreshItems(s, p) : null;
+                if (live !== null) s.knobValues[gi] = live;
+                /* Clamped because the re-scan can SHRINK the list: a bank
+                 * deleted while movy was open leaves the cached position past
+                 * the end, and committing that would write an index the module
+                 * never offered. */
+                const sel = Math.min(p.options.length - 1,
+                                     Math.max(0, Math.round((s.knobValues[gi] ?? 0) as number)));
+                s.enumOverlay = { slot: k, gi, options: p.options, selected: sel };
                 s.enumAccums[k] = 0;
             }
             if (p && p.type === 'file') {
@@ -166,15 +187,29 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
                     const usesIndex = s.moduleConfig?.enumSetIndex ? true : (s.enumFmt[gi] as boolean);
                     const key = s.componentKey + ':' + p.key;
                     const old = s.port.getParam(key);
+                    /* A selector's on-screen position is not its wire value —
+                     * the module's own index is, and a sparse list makes the
+                     * two differ (see items-param.ts). */
+                    const val = isItemSelector(p)
+                        ? itemValueAt(p, idx) : enumSetValue(p.options, idx, usesIndex);
+                    /* Same shape as store.ts's turn-path line: an overlay commit
+                     * used to write nothing to the log at all, so on device an
+                     * enum chosen from the list was indistinguishable from one
+                     * never chosen. */
+                    mlog('set slot=' + s.port.track.index + ' gi=' + gi + ' key=' + key + ' val=' + val);
                     undoableEdit((p.label || p.key).toUpperCase(), 'T' + (s.port.track.index + 1), () => {
                         /* Committing from the overlay is the same lossy inverse
                          * as turning the knob — snapshot the module. */
                         if (p.capturesModuleState) {
                             recordPresetState(s.port.track.index, s.componentKey);
                         }
-                        setChainParam(s.port, key,
-                            enumSetValue(p.options, idx, usesIndex), old);
+                        setChainParam(s.port, key, val, old);
                     });
+                    /* Choosing an item loads a whole bank: the preset list, and
+                     * for sfz/minijv the hierarchy itself, are now stale. Let
+                     * the DSP settle, then re-read the module — the same
+                     * settle-then-re-read the schwung host does. */
+                    if (isItemSelector(p)) s.itemsReloadCountdown = ITEMS_RELOAD_TICKS;
                 }
                 s.enumOverlay = null;
             }

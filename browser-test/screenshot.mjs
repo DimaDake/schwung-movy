@@ -36,6 +36,7 @@ const PRESETS = [
     'enum_overlay', 'knob_toast', 'no_params', 'keys_view', 'browse_view',
     'session_booting', 'session_loading', 'session_failed',
     'obxd_preset_page', 'obxd_main_page', 'obxd_filter_page',
+    'items_cell', 'items_overlay',
     'lfo_prefix', 'collide_osc',
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
     'chain_t2', 'chain_t4',
@@ -75,6 +76,7 @@ const BASE = {
     enum_overlay: 'plaits', knob_toast: 'test8', no_params: 'no_params',
     keys_view: 'test8', browse_view: 'test8',
     obxd_preset_page: 'obxd_like', obxd_main_page: 'obxd_like', obxd_filter_page: 'obxd_like',
+    items_cell: 'dexed_like', items_overlay: 'dexed_like',
     chain_synth: 'test8', chain_empty: 'test8', chain_jog_toast: 'test8',
     knobs_jog_toast: 'test8', chain_t2: 'test8', chain_t4: 'test8',
     'drum-mrdrums-pad5': 'mrdrums', 'drum-mrdrums-global': 'mrdrums',
@@ -327,6 +329,12 @@ function settle() {
 function applyView(preset) {
     switch (preset) {
         case 'enum_overlay':     model.handleKnobTouch(0); forceRender(); break;
+        /* The bank selector at rest: a framed item name in the leftmost cell,
+         * with the preset cell beside it. The two must not read alike. */
+        case 'items_cell':       settle(); forceRender(); break;
+        /* Touching it opens the picker even though the list is short — a plain
+         * enum would need more than six options to get one. */
+        case 'items_overlay':    settle(); model.handleKnobTouch(0); forceRender(); break;
         case 'knob_toast':       model.handleKnobTouch(2); forceRender(); break;
         case 'keys_view':        showKeys(); break;
         /* The three states movy shows before it is live. The failed one names

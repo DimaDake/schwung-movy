@@ -14,6 +14,7 @@ import { mlog } from '../log.js';
 import { setChainParam } from '../chain/set-param.js';
 import { beginGesture } from '../undo/edit.js';
 import { recordPresetState } from '../undo/record.js';
+import { isItemSelector, itemPositionOf } from './items-param.js';
 
 function gestureFor(s: ModelState, key: string) {
     return s.paramGestures[key] ??= { lastTurnMs: 0, direction: 0 };
@@ -348,6 +349,13 @@ function applyRefreshed(s: ModelState, i: number, raw: string | null): void {
     }
 
     if (raw === null) return;
+    /* A selector reports the module's own index, which a sparse list makes
+     * different from the on-screen position (items-param.ts). */
+    if (isItemSelector(p)) {
+        const pos = itemPositionOf(p, raw);
+        if (pos !== null && pos !== s.knobValues[i]) { s.knobValues[i] = pos; s.dirty = true; }
+        return;
+    }
     maybeInferMeta(p, raw);
     if (p.type === 'enum') {
         s.enumFmt[i] = enumUsesIndex(p.options, raw);

@@ -362,6 +362,27 @@ and option names a moment *after* they load (Osirus scans its ROM); Movy keeps
 looking for a few seconds and redraws the pages as soon as the real names
 arrive.
 
+**Bank, soundfont and model selectors.** Some modules keep their sounds in
+*collections* rather than one flat preset list — Dexed loads DX7 `.syx` banks,
+OB-Xd loads `.fxb` banks, the SF2 player loads soundfonts, NAM loads amp models
+and cabinets. Movy shows the current collection as its own cell **immediately
+left of the preset knob**, so you can see which bank you are in without leaving
+the page:
+
+  ![The bank selector beside the preset knob](docs/assets/items_cell.png)
+
+**Touch that knob** and the full list opens, exactly like the enum overlay —
+turn to scroll, release to load:
+
+  ![Choosing a bank](docs/assets/items_overlay.png)
+
+Nothing is loaded while you scroll; only the release commits, because switching
+a bank reloads a whole set of patches and resets the preset to the first one. It
+counts as one undo step, and undoing it brings the module back as it was.
+
+The list is re-read each time you touch the knob, so a bank you upload from
+Schwung's web interface while Movy is open shows up straight away.
+
 **Jumping between sections.** With many pages, stepping one at a time is slow:
 hold **Shift** and turn the jog wheel to jump straight to the previous/next
 *section*, skipping its overflow pages. Turning the jog wheel without Shift
@@ -1338,6 +1359,7 @@ behaviour you'd like — or, better, a PR.
 | **Knobs 1–8** | Edit the current page's parameters. Touch (no turn) shows the exact value. |
 | **Turn an action knob clockwise** | Fire a one-shot action (Capture, Reroll, …) once per turn, however far you keep turning. The circle blinks and the knob LED flashes. |
 | **Turn an action knob counter-clockwise** | Re-arm it immediately instead of waiting for the drain bar to run out. |
+| **Touch a bank / soundfont / model knob** | Open the collection list. Turn to scroll, release to load — scrolling on its own loads nothing. |
 | **Hold a knob (~1 s)** | Assign that parameter as an **LFO target**: jog picks LFO 1/2, jog-click assigns (hold again to remove). Automatable parameters only. |
 | **Jog wheel — turn** | Scroll chain slots (Chain view) or module pages (Knobs view) / browser list. On either LFO page — a track's or the master chain's — scroll between LFO 1 and LFO 2. |
 | **Jog wheel — click** | Drill Chain → module pages; on Knobs (or an empty slot) open the module browser; in a browser, load the selection. |

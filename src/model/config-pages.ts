@@ -6,11 +6,14 @@ import type { ModelState } from './state.js';
 import { mlog } from '../log.js';
 import { KNOBS_PER_PAGE } from './constants.js';
 import { buildPresetParam } from './preset-param.js';
+import { buildItemSelectParam } from './items-param.js';
 import type { RawMeta } from './param-build.js';
 import { inferBehavior, inferAcceleration, parseFilter, applyAutoStyle } from './param-build.js';
 import { cellStyleFor } from './step-labels.js';
 
-interface CfgLevel { count_param?: string; name_param?: string }
+interface CfgLevel { count_param?: string; name_param?: string;
+                     label?: string; name?: string;
+                     items_param?: string; select_param?: string }
 
 export function buildConfigPages(
     s: ModelState,
@@ -41,6 +44,21 @@ export function buildConfigPages(
                         if (slot.short) pp.shortLabel = slot.short;
                         if (slot.full)  pp.label      = slot.full;
                         s.knobParams.push(pp);
+                        continue;
+                    }
+                }
+                /* Item selector (bank/soundfont/cabinet). The generic path
+                 * inserts these automatically; a config grid has no free cell to
+                 * insert into, so it names the level explicitly. Falls through to
+                 * a plain knob when the level is not a selector movy can drive. */
+                if (slot.render === 'items' && slot.itemsLevel) {
+                    const ip = buildItemSelectParam(
+                        s, slot.itemsLevel, allLevels[slot.itemsLevel] ?? {},
+                    );
+                    if (ip) {
+                        if (slot.short) ip.shortLabel = slot.short;
+                        if (slot.full)  ip.label      = slot.full;
+                        s.knobParams.push(ip);
                         continue;
                     }
                 }

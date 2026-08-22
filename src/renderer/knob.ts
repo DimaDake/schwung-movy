@@ -303,7 +303,10 @@ export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
         drawPresetValue(col * CELL_W, ky, pvm);
     } else if (pvm.type === 'len') {
         drawLengthSquare(kx, ky, pvm.displayValue);
-    } else if (pvm.type === 'file') {
+    } else if (pvm.type === 'file' || pvm.renderStyle === 'items') {
+        /* A framed name, like the file cell — deliberately NOT the preset look,
+         * since a selector sits right beside the preset and two identical cells
+         * would be unreadable. */
         drawEnumSquare(kx, ky, [pvm.displayValue], 0);
     } else if (pvm.renderStyle === 'switch' || pvm.renderStyle === 'hbar') {
         /* Ahead of the enum branch below: a two-item off/on list is a boolean,

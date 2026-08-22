@@ -37,6 +37,7 @@ import { run as run_eq_cut_wav } from './logic/eq-cut-wav.mjs';
 import { run as run_graphics } from './logic/graphics.mjs';
 import { run as run_wav_peaks } from './logic/wav-peaks.mjs';
 import { run as run_module_configs } from './logic/module-configs.mjs';
+import { run as run_items_select } from './logic/items-select.mjs';
 import { run as run_track_volume } from './logic/track-volume.mjs';
 import { run as run_notes_release } from './logic/notes-release.mjs';
 import { run as run_step_record } from './logic/step-record.mjs';
@@ -78,6 +79,7 @@ const SUITES = [
     run_graphics,
     run_wav_peaks,
     run_module_configs,
+    run_items_select,
     run_track_volume,
     run_notes_release,
     run_step_record,

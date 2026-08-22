@@ -9,6 +9,7 @@ import { buildLevelPages, knobKeys } from './hierarchy-walk.js';
 import type { WalkLevel } from './hierarchy-walk.js';
 import { makeExtrasPicker } from './level-extras.js';
 import { buildPresetParam } from './preset-param.js';
+import { buildItemSelectors } from './items-param.js';
 import type { RawMeta } from './param-build.js';
 import { applyAutoStyle, buildGenericParam } from './param-build.js';
 
@@ -17,6 +18,7 @@ export interface GenericLevel {
     knobs?: (string | RawMeta)[];
     params?: (string | RawMeta)[];
     list_param?: string; count_param?: string; name_param?: string;
+    items_param?: string; select_param?: string;
     children?: string;
 }
 
@@ -69,6 +71,19 @@ export function buildGenericPages(
     let presetParam: KnobParam | null = null;
     let listParam: string | undefined;
 
+    /* Synthesized like presetParam: the key names select_param, and the final
+     * build loop swaps in this object rather than deriving one from
+     * chain_params (a selector has no chain_params entry). */
+    const selectors = buildItemSelectors(s, allLevels);
+    const selMap: Record<string, KnobParam> = {};
+    for (const p of selectors) {
+        selMap[p.key] = p;
+        // The device signal for scripts/test-items.sh: neither key appears in
+        // chain_params, so this line is the only proof the real module served a
+        // list movy could build a cell from.
+        mlog('items selector ' + p.key + ' n=' + (p.options?.length ?? 0));
+    }
+
     if (!rootLevel) {
         /* B1: modules that publish chain_params but no ui_hierarchy would show an
          * empty page. Build pages straight from the chain_params publish order.
@@ -86,7 +101,9 @@ export function buildGenericPages(
     const presetSeparate = presetParam != null && (rootLevel.knobs ?? []).length >= KNOBS_PER_PAGE;
 
     /* Dedicated Preset page before Main when Main is full */
-    if (presetParam && presetSeparate) addPage('Preset', [listParam!], nextGroup++);
+    if (presetParam && presetSeparate) {
+        addPage('Preset', [...selectors.map(p => p.key), listParam!], nextGroup++);
+    }
 
     /* Main page from root.knobs (with preset prepended if there's room) */
     let rootKeys = knobKeys(rootLevel);
@@ -107,6 +124,16 @@ export function buildGenericPages(
         .filter(([key, cp]) => (cp as { type?: string }).type === 'filepath' && !allKnobKeys.has(key))
         .map(([key]) => key);
     if (orphanFilePaths.length > 0) rootKeys = [...orphanFilePaths, ...rootKeys];
+
+    /* Item selectors (dexed banks, sf2 soundfonts, nam models/cabs) sit
+     * immediately left of the preset cell: a level with items_param declares no
+     * knobs, so without this it renders nothing at all. */
+    if (!presetSeparate && selectors.length > 0) {
+        // Spliced as one block, not one at a time: repeated inserts at the same
+        // index would reverse a module's declaration order (nam: models, cabs).
+        const at = listParam ? rootKeys.indexOf(listParam) : -1;
+        rootKeys.splice(at < 0 ? 0 : at, 0, ...selectors.map(p => p.key));
+    }
 
     /* The picker is stateful — ask each level exactly once, root included. */
     const extras = makeExtrasPicker(cpMap, allKnobKeys, listParam, s.degenerateKeys);
@@ -129,6 +156,7 @@ export function buildGenericPages(
         for (const key of entry.keys) {
             if (!key) { s.knobParams.push(null); continue; }
             if (key === listParam && presetParam) { s.knobParams.push(presetParam); continue; }
+            if (selMap[key]) { s.knobParams.push(selMap[key]); continue; }
 
             s.knobParams.push(applyAutoStyle(buildGenericParam(
                 key, cpMap[key] ?? {}, paramDefs[key] ?? knobInline[key] ?? {},

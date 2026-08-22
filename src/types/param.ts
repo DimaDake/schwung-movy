@@ -3,7 +3,10 @@ export interface KnobSlot {
     short:          string;
     full:           string;
     type:           'float' | 'int' | 'enum' | 'file';
-    render?:        'arc' | 'hbar' | 'vbar' | 'preset';
+    render?:        'arc' | 'hbar' | 'vbar' | 'preset' | 'items';
+    /* `render: 'items'` only: the ui_hierarchy level key whose
+     * items_param/select_param pair this slot selects from. */
+    itemsLevel?:    string;
     env?:           'a' | 'd' | 's' | 'r';
     lfo?:           'shape' | 'phase' | 'mode' | 'retrig' | 'rate' | 'depth' | 'deform';
     filter?:        'cutoff' | 'resonance' | 'mode' | 'slope';
@@ -135,7 +138,14 @@ export interface KnobParam {
     step:           number;
     options:        string[] | null;
     nameKey?:       string;
-    renderStyle:    'arc' | 'hbar' | 'vbar' | 'switch' | 'preset' | 'xbox' | 'steps';
+    renderStyle:    'arc' | 'hbar' | 'vbar' | 'switch' | 'preset' | 'xbox' | 'steps' | 'items';
+    /* Item selector only (see model/items-param.ts): the module's own index for
+     * each option. knobValues holds the screen POSITION; this maps it back to
+     * the value written to select_param, which a sparse list makes different. */
+    itemIndices?:   number[];
+    /* The level's items_param key, kept so a knob touch can re-read the list —
+     * that is what makes a bank uploaded while movy is open show up. */
+    itemsKey?:      string;
     /** Step cell whose value reads as an offset: show a leading + above zero. */
     signed?:        boolean;
     env?:           'a' | 'd' | 's' | 'r';

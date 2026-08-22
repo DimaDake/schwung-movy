@@ -39,3 +39,10 @@ export const ARC_DELTA_SCALE        = 0.5;  /* sensitivity multiplier for contin
  * wide-range knobs (reso 0.5..20) and hair-trigger narrow ones. Ints keep their
  * natural step as a floor so discrete values still move; enums are exempt. */
 export const MIN_STEP_RANGE_FRAC    = 0.01;
+
+/* Settle window after committing an item selection before the module is
+ * re-read. The DSP is loading a bank of patches and its answers change
+ * asynchronously; the schwung host arms an equivalent deadline
+ * (shadow_ui.js:14760). Ticks, not milliseconds — movy's tick rate swings
+ * 63-205 Hz with load, so a wall-clock sleep would be a race. */
+export const ITEMS_RELOAD_TICKS     = 24;

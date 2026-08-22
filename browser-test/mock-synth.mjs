@@ -1268,6 +1268,46 @@ export const MOCK_SYNTHS = {
         "synth:osc_pan":    "0.50",
     },
 
+    /* dexed's real shape: a preset triple, six knobs, and a knobless `banks`
+     * level carrying items_param/select_param. The bank cell is the whole point
+     * of this fixture — it lands left of the preset cell. */
+    dexed_like: {
+        "synth:name": "Dexed",
+        "synth:ui_hierarchy": JSON.stringify({ levels: {
+            root: {
+                list_param: "preset", count_param: "preset_count", name_param: "preset_name",
+                knobs: ["output_level", "octave_transpose", "feedback",
+                        "lfo_speed", "lfo_pmd", "lfo_amd"],
+                params: [{ level: "banks", label: "Choose Bank" }],
+            },
+            banks: {
+                label: "SYX Banks", items_param: "syx_bank_list",
+                select_param: "syx_bank_index", children: null, knobs: [], params: [],
+            },
+        } }),
+        "synth:chain_params": JSON.stringify([
+            { key: "output_level",     name: "Output",  type: "int", min: 0,  max: 100 },
+            { key: "octave_transpose", name: "Octave",  type: "int", min: -3, max: 3 },
+            { key: "feedback",         name: "Feedback",type: "int", min: 0,  max: 7 },
+            { key: "lfo_speed",        name: "LFO Spd", type: "int", min: 0,  max: 99 },
+            { key: "lfo_pmd",          name: "LFO PMD", type: "int", min: 0,  max: 99 },
+            { key: "lfo_amd",          name: "LFO AMD", type: "int", min: 0,  max: 99 },
+        ]),
+        "synth:preset_count":     "32",
+        "synth:preset_name":      "E.PIANO 1",
+        "synth:preset":           "0",
+        "synth:syx_bank_list":    JSON.stringify([
+            { label: "ROM1A.syx", index: 0 }, { label: "ROM2A.syx", index: 1 },
+            { label: "ROM3A.syx", index: 2 }, { label: "MASTER.syx", index: 3 },
+        ]),
+        "synth:syx_bank_index":   "1",
+        "synth:output_level":     "50",
+        "synth:octave_transpose": "0",
+        "synth:feedback":         "4",
+        "synth:lfo_speed":        "35",
+        "synth:lfo_pmd":          "12",
+        "synth:lfo_amd":          "0",
+    },
     obxd_like: {
         "synth:name":   "OB-Xd",
         "synth:ui_hierarchy": JSON.stringify({

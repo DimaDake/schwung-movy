@@ -81,6 +81,13 @@ Movy stands on the shoulders of several projects:
   ![Loudness knobs drawn as faders](docs/assets/faders.png)
   ![Boolean knobs drawn as switches](docs/assets/switches.png)
 
+- **Bank & collection selectors** — modules that keep their sounds in
+  collections (Dexed's `.syx` banks, OB-Xd's `.fxb` banks, SF2 soundfonts, NAM
+  models and cabinets) get a cell beside the preset knob. Touch it to pick;
+  nothing loads until you let go.
+
+  ![Choosing a bank](docs/assets/items_overlay.png)
+
 - **Full chain navigation** — MIDI FX, Synth, FX 1, FX 2 per track, plus a
   master FX chain in Session view.
 

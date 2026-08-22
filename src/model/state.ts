@@ -83,6 +83,9 @@ export interface ModelState {
      * from CACHED values — the round-robin refresh already reads every param,
      * so watching for a change costs no host call at all. */
     visibilityRules:     { key: string; param: string; equals: string }[];
+    /* Ticks until the module is re-read after an item selection (bank load).
+     * -1 = idle. See model/items-param.ts. */
+    itemsReloadCountdown: number;
     enumOverlay:         EnumOverlay | null;
     fileOverlay:         FileOverlay | null;
     activeModuleName:    string;
@@ -157,6 +160,7 @@ export function createModelState(port: TrackPort, componentKey: string): ModelSt
         wavRequest:          null,
         hiddenKeys:          new Set<string>(),
         visibilityRules:     [],
+        itemsReloadCountdown: -1,
         enumOverlay:         null,
         fileOverlay:         null,
         activeModuleName:    '—',

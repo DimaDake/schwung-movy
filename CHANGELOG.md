@@ -15,6 +15,20 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Bank / soundfont / model selectors.** A module can declare a collection
+  chooser as a hierarchy level carrying `items_param` + `select_param` — Dexed's
+  `.syx` banks, OB-Xd's `.fxb` banks, SF2's soundfonts, NAM's models and
+  cabinets, Midiverb's units. Those levels declare no knobs, so Movy rendered
+  nothing at all for them and the collections were unreachable. They now get one
+  cell immediately left of the preset knob; touching it opens the list, and only
+  the release loads (scrolling through banks would otherwise load one per
+  detent). Undo restores the module as it was.
+
+  Generic, not per-module: a level qualifies when its selection reads back as
+  one of the listed indices. That rules out the write-only *commands* sharing
+  the same declaration — Surge and CLAP's category jump, MiniJV's save-to-slot —
+  which have no state to show and must not be re-asserted by the value refresh.
+
 - **The master chain has its own LFO page.** Schwung's shim has had two master
   LFOs all along — Movy simply had no page for them. There is now a fifth slot
   in the master chain, after MFX 4, working exactly like a track's LFO page:

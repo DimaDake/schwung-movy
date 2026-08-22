@@ -47,6 +47,14 @@ export function processTick(s: ModelState): boolean {
      * set is different now, so rebuild it. Cheap to check, rare to fire. */
     if (s.visibilityRules.length > 0 && visibilityChanged(s)) s.hierarchyKey = '';
 
+    /* An item selection has settled — re-read the module. tick's rebuild below
+     * already preserves knobPage for the same moduleId and clamps it to the new
+     * page count, so a bank switch never dumps the user on page 1. */
+    if (s.itemsReloadCountdown > 0 && --s.itemsReloadCountdown === 0) {
+        s.itemsReloadCountdown = -1;
+        s.hierarchyKey = '';
+    }
+
     if (s.hierarchyKey !== s.activeModuleName) {
         const prevModuleId = s.moduleId;
         loadHierarchy(s);

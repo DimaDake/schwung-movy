@@ -197,6 +197,9 @@ see [CONTRIBUTING.md](CONTRIBUTING.md).
 - An **Ableton Move** with the **[Schwung](https://github.com/charlesvestal/schwung)**
   framework installed.
 - At least one Schwung sound-generator module to play.
+- On your build machine: **Node.js** and **Rust**, plus a cross-compiler —
+  `deploy.sh` builds two things, a JS UI bundle and a Rust sequencer engine
+  (`dsp.so`) cross-compiled for the Move's aarch64 Linux.
 
 ## Install
 
@@ -204,10 +207,23 @@ Movy is a Schwung **tool module**. Build and deploy it to a Move reachable at
 `move.local`:
 
 ```bash
+# Rust toolchain (skip if you already have cargo)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
+rustup target add aarch64-unknown-linux-gnu
+
+# aarch64 cross-compiler (macOS, via Homebrew)
+brew tap messense/macos-cross-toolchains
+brew install aarch64-unknown-linux-gnu
+
 cd movy
 npm install
 ./scripts/deploy.sh            # builds ui.js + the Rust engine (dsp.so), deploys both
 ```
+
+Building on Linux? Install a `aarch64-linux-gnu-gcc` cross-compiler from your
+package manager instead (e.g. `apt install gcc-aarch64-linux-gnu`) and point
+`engine/.cargo/config.toml`'s linker at it.
 
 Then open **Movy** from Schwung's Tools menu on the device. See
 [CONTRIBUTING.md](CONTRIBUTING.md) for the full build/test workflow.

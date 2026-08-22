@@ -6,7 +6,7 @@
 
 import {
     dedupShortNames, MOCK_SYNTHS, eq, bootModel, _log, env,
-    mockFsEntries,
+    mockFsEntries, installMockFs, uninstallMockFs, readPrefFileDir, PREFS_PATH,
 } from './harness.mjs';
 
 export async function run() {
@@ -204,6 +204,69 @@ _log('\nTest: file overlay opens on touch with dir scan');
     eq('file overlay: slot = 0',        vm.overlay?.slot, 0);
     // Labels drop a declared extension — see stripKnownExt in model/path.ts.
     eq('file overlay: selected = kick', vm.overlay?.options[vm.overlay.selected], 'kick');
+}
+
+/* ── sticky browse folder ─────────────────────────────────────────────────
+ * fileStartPath is a factory default; the folder the user last loaded from
+ * outranks it, machine-wide (prefs.json), per param. */
+
+_log('\nTest: an empty file param opens in the folder last loaded from');
+
+{
+    mockFsEntries['/data/UserData/Other'] = ['clap.wav', 'rim.wav'];
+    // Boot before the mock fs: module-config loading reads through host_read_file.
+    const m = bootModel({ ...MOCK_SYNTHS.file_param, 'synth:sample': '' });
+    for (let i = 0; i < 20; i++) m.tick();
+    installMockFs({ [PREFS_PATH]: JSON.stringify({
+        fileDirs: { '?:sample': '/data/UserData/Other' } }) });
+    m.handleKnobTouch(0);
+    const opts = m.getViewModel().overlay?.options ?? [];
+    eq('overlay opens in the remembered folder',
+       JSON.stringify(opts), JSON.stringify(['clap', 'rim']));
+    eq('browse target starts there too',
+       m.getFileBrowseTarget()?.startPath, '/data/UserData/Other');
+    uninstallMockFs();
+}
+
+_log('\nTest: a loaded file still opens in its own folder');
+
+{
+    mockFsEntries['/data/UserData/Samples'] = ['hat.wav', 'kick.wav'];
+    mockFsEntries['/data/UserData/Other']   = ['clap.wav', 'rim.wav'];
+    const m = bootModel(MOCK_SYNTHS.file_param);   // sample = Samples/kick.wav
+    for (let i = 0; i < 20; i++) m.tick();
+    installMockFs({ [PREFS_PATH]: JSON.stringify({
+        fileDirs: { '?:sample': '/data/UserData/Other' } }) });
+    m.handleKnobTouch(0);
+    const opts = m.getViewModel().overlay?.options ?? [];
+    eq('the loaded file\'s folder outranks the remembered one',
+       JSON.stringify(opts), JSON.stringify(['hat', 'kick']));
+    uninstallMockFs();
+}
+
+_log('\nTest: both commit paths record the folder');
+
+{
+    mockFsEntries['/data/UserData/Samples'] = ['hat.wav', 'kick.wav'];
+    const m = bootModel(MOCK_SYNTHS.file_param);
+    for (let i = 0; i < 20; i++) m.tick();
+    installMockFs();
+    // The full-screen browser commits through setFileValue.
+    m.setFileValue(0, '/data/UserData/Other/clap.wav');
+    eq('browser select records its folder',
+       readPrefFileDir('?:sample'), '/data/UserData/Other');
+    uninstallMockFs();
+
+    // The knob overlay commits on release. A fresh model, because the select
+    // above left the first one holding a file from the other folder.
+    const m2 = bootModel(MOCK_SYNTHS.file_param);   // sample = Samples/kick.wav
+    for (let i = 0; i < 20; i++) m2.tick();
+    installMockFs();
+    m2.handleKnobTouch(0);
+    m2.handleKnobRelease(0);
+    eq('overlay release records its folder',
+       readPrefFileDir('?:sample'), '/data/UserData/Samples');
+    uninstallMockFs();
 }
 
 _log('\nTest: file overlay scrolls with knob delta');

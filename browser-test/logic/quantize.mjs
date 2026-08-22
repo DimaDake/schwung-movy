@@ -6,7 +6,8 @@
 
 import {
     installMockFs, uninstallMockFs, quantCandidates, nextQuantCandidate, quantIndexForPct, candidateIndex,
-    readPrefDefaultQuant, writePrefDefaultQuant, PREFS_PATH, FACTORY_DEFAULT_QUANT, armQuantOverlay, quantOverlayActive,
+    readPrefDefaultQuant, writePrefDefaultQuant, readPrefFileDir, writePrefFileDir,
+    PREFS_PATH, FACTORY_DEFAULT_QUANT, armQuantOverlay, quantOverlayActive,
     quantOverlayTickAt, quantOverlayJog, quantOverlayAction, buildQuantOverlayVM, dismissQuantOverlay, resetQuantOverlay,
     installMockEngine, uninstallMockEngine, peekUndo, resetUndoState, beginEdit, endEdit,
     CLOSE, resetUndoGroups, recordParamOp, undoOnce, resetUndoApply, seqCmd,
@@ -40,6 +41,39 @@ export async function run() {
     fs.failWrites = true;
     writePrefDefaultQuant(40);   // must not throw; the value is simply not durable
     ok('a failed prefs write is survivable');
+    uninstallMockFs();
+}
+
+/* ── Machine-level prefs: per-param browse folders ────────────────────────── */
+{
+    _log('\nFile-browse folder memory');
+
+    const fs = installMockFs();
+    const KIT = '/data/CoreLibrary/Track Presets/Drums/Hybrid';
+    const SMP = '/data/CoreLibrary/Samples/Drums/Kick';
+
+    eq('a param with no memory reads null', readPrefFileDir('mrdrums:ui_preset_path'), null);
+
+    writePrefDefaultQuant(70);
+    writePrefFileDir('mrdrums:ui_preset_path', KIT);
+    writePrefFileDir('mrdrums:pad_sample_path', SMP);
+
+    /* prefs.json was written whole when it held a single setting, so these two
+     * kinds of preference used to erase each other. */
+    eq('a folder write keeps the quantize default', readPrefDefaultQuant(), 70);
+    eq('each param keeps its own folder', readPrefFileDir('mrdrums:ui_preset_path'), KIT);
+    eq('a second param does not overwrite the first', readPrefFileDir('mrdrums:pad_sample_path'), SMP);
+
+    writePrefDefaultQuant(30);
+    eq('a quantize write keeps the folders', readPrefFileDir('mrdrums:ui_preset_path'), KIT);
+
+    // Bounded, oldest-first: browsing many modules cannot grow the file forever.
+    for (let i = 0; i < 70; i++) writePrefFileDir('m' + i + ':k', '/d/' + i);
+    const kept = Object.keys(JSON.parse(fs.files[PREFS_PATH]).fileDirs).length;
+    eq('stored folders are capped at 64', kept, 64);
+    eq('the newest folder survives', readPrefFileDir('m69:k'), '/d/69');
+    eq('the oldest folder is evicted', readPrefFileDir('mrdrums:ui_preset_path'), null);
+    eq('eviction leaves the quantize default alone', readPrefDefaultQuant(), 30);
     uninstallMockFs();
 }
 

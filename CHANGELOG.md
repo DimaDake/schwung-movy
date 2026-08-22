@@ -57,6 +57,13 @@ far. Earlier work is summarised in the timeline below for context.
   (`drumRack`) is unchanged and is what keeps the other `.json` files in those
   trees out.
 
+- **Every file knob reopens where you left it.** The folder you last loaded a
+  file from is remembered per parameter, machine-wide (`prefs.json`), and now
+  outranks the module's configured start folder — so browsing to your own kits
+  once makes that the default from then on, in any set, including one where the
+  module has never been loaded. A knob that already holds a file still opens in
+  that file's own folder. Bounded to the 64 most recent parameters.
+
 - Overlay file names drop the extension they were filtered by — `808 Kit`, not
   `808 Kit.jso`. The labels are only 12 characters wide.
 

@@ -40,7 +40,8 @@ import {
     quantCandidates, nextQuantCandidate, quantIndexForPct, candidateIndex,
 } from '../../dist/esm/seq/quant.js';
 import {
-    readPrefDefaultQuant, writePrefDefaultQuant, PREFS_PATH, FACTORY_DEFAULT_QUANT,
+    readPrefDefaultQuant, writePrefDefaultQuant, readPrefFileDir, writePrefFileDir,
+    PREFS_PATH, FACTORY_DEFAULT_QUANT,
 } from '../../dist/esm/seq/prefs.js';
 import {
     armQuantOverlay, quantOverlayActive, quantOverlayTickAt, quantOverlayJog,
@@ -184,7 +185,8 @@ export {
     stripCopySuffix, findInheritCandidates, resolveState, sessionTick, resetSetSession, wrapState,
     parseState, adler32, installMockFs, uninstallMockFs, safeWrite, readBestState,
     readUiBlob, writeStateBlob, resetStoreRotation, shadowPath, keyboardState, quantCandidates,
-    nextQuantCandidate, quantIndexForPct, candidateIndex, readPrefDefaultQuant, writePrefDefaultQuant, PREFS_PATH,
+    nextQuantCandidate, quantIndexForPct, candidateIndex, readPrefDefaultQuant, writePrefDefaultQuant,
+    readPrefFileDir, writePrefFileDir, PREFS_PATH,
     FACTORY_DEFAULT_QUANT, armQuantOverlay, quantOverlayActive, quantOverlayTickAt, quantOverlayJog, quantOverlayAction,
     buildQuantOverlayVM, dismissQuantOverlay, resetQuantOverlay, installMockEngine, uninstallMockEngine, pushEntry,
     popUndo, pushRedo, canUndo, canRedo, undoDepth, retractEntry,

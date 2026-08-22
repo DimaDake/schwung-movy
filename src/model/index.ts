@@ -11,7 +11,8 @@ import { buildViewModel }   from './viewmodel.js';
 import { processTick }      from './tick.js';
 import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV, ITEMS_RELOAD_TICKS } from './constants.js';
 import { enumUsesIndex, enumSetValue } from './enum-value.js';
-import { basename, dirname, stripKnownExt } from './path.js';
+import { basename, stripKnownExt } from './path.js';
+import { rememberFileDir, startDirFor, defaultDirFor } from './file-dirs.js';
 import { fileContentAllows } from './file-validate.js';
 import { mlog } from '../log.js';
 import { isItemSelector, itemValueAt, refreshItems } from './items-param.js';
@@ -154,7 +155,7 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
             }
             if (p && p.type === 'file') {
                 const currentPath = s.fileValues[gi] ?? '';
-                const scanDir     = currentPath ? dirname(currentPath) : (p.fileStartPath ?? '/data/UserData');
+                const scanDir     = startDirFor(s.moduleId, p, currentPath);
                 const items       = scanFiles(scanDir, p.fileFilter ?? []);
                 if (items.length > 0) {
                     const selIdx = currentPath ? items.indexOf(currentPath) : 0;
@@ -220,6 +221,7 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
                     const path = s.fileOverlay.items[s.fileOverlay.selected];
                     if (fileContentAllows(path, p.fileRequireContains)) {
                         s.fileValues[s.fileOverlay.gi] = path;
+                        rememberFileDir(s.moduleId, p.key, path);
                         const key = s.componentKey + ':' + p.key;
                         const old = s.port.getParam(key);
                         undoableEdit('LOAD FILE', 'T' + (s.port.track.index + 1),
@@ -333,7 +335,7 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
                 gi,
                 root:        p.fileRoot      ?? '/data/UserData',
                 filter:      p.fileFilter    ?? [],
-                startPath:   p.fileStartPath ?? '/data/UserData',
+                startPath:   defaultDirFor(s.moduleId, p),
                 currentPath: s.fileValues[gi] ?? null,
                 requireContains: p.fileRequireContains,
             };
@@ -341,9 +343,12 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
 
         clearFileOverlay(): void { s.fileOverlay = null; s.dirty = true; },
 
+        /* The full-screen browser's commit path (the overlay commits in
+         * handleKnobRelease); both record where the file came from. */
         setFileValue(gi: number, path: string): void {
             if (gi >= 0 && gi < s.fileValues.length) {
                 s.fileValues[gi] = path;
+                rememberFileDir(s.moduleId, s.knobParams[gi]?.key ?? '', path);
                 s.dirty = true;
             }
         },

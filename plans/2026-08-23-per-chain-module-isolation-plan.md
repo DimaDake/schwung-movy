@@ -140,6 +140,31 @@ it is helm specifically, and only when mapped twice. `PT_TLS` is 48 bytes and
 surge has one too, so static-TLS exhaustion is not it either. The cause is
 unknown and did not need to be known.
 
+**It does not reproduce outside MoveOriginal.** A standalone process running the
+chain host's whole load sequence — `dlopen`, `move_plugin_init_v2`,
+`create_instance` — twice over two byte copies, against a mirror built the way
+`module_iso` builds one, loads two full helm instances and survives:
+
+| arm | load 0 | load 1 | result |
+| --- | --- | --- | --- |
+| helm shared | 154 ms | dlopen 0.2 ms + create 110 ms | survives |
+| helm copies | 155 ms | dlopen 49.5 ms + create 120 ms | survives |
+
+So "a second independent mapping of helm is unsafe" is **not** what was
+measured; what was measured is that it is unsafe *in MoveOriginal*. Two
+follow-ons are ruled out with it: load cost (obxd spends 152-157 ms in
+`create_instance` in both arms and isolates fine) and a memory ceiling
+(MoveOriginal is 444 MB against a 1.66 GB `RLIMIT_AS`; helm's isolated second
+load adds 27 MB). What is left is process state the repro does not have —
+static-TLS surplus already consumed by everything MoveOriginal has dlopened, the
+SPI-callback deadline, or the RT thread's stack. Reading `/proc/<pid>/maps` to
+narrow it needs root.
+
+This does not change the response. The canary is still the right shape — it
+keys on "this load did not come back", which is true whatever the mechanism —
+but it is a guard against an *unexplained* crash, not evidence that helm cannot
+hold two mappings. `chcanary 0` exists so the verdict can be re-tested.
+
 > A first "control" reported that *shared* helm ×2 also dies, which would have
 > made this pre-existing. It was contaminated: `chiso 0` with a copy already on
 > disk still loaded the copy. That is now fixed — `chiso 0` reverts the entry to

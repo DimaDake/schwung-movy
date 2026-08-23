@@ -68,7 +68,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.42.0";
+const ENGINE_VERSION: &str = "0.43.0";
 
 /// Tracks backed by schwung's own shadow slots. Their notes go out as MIDI on
 /// the matching channel, exactly as before; everything above this index is a
@@ -183,6 +183,18 @@ impl Instance {
              * one lane rather than letting it race. */
             "chiso" => {
                 self.chains.set_iso(val != "0" && !val.is_empty());
+            }
+            /* `chcanary <0|1>` — whether a module that crashed a previous
+             * isolated load is refused isolation. ON by default, and `0` is
+             * deliberately unsafe: the verdict is written by a single crash and
+             * there is no other way to ask whether it still holds, so testing
+             * one means re-arming it. The RECORD is untouched either way — a
+             * crash under the override still condemns the module, and since
+             * this is never persisted, a device that went down comes back with
+             * the canary on and a marker to obey. Like `chiso`, it decides what
+             * the next load does, so it must be set BEFORE the chains load. */
+            "chcanary" => {
+                self.chains.set_canary(val != "0" && !val.is_empty());
             }
             /* `chdigest [blocks]` — run the equivalence oracle: strike a fixed
              * chord on every loaded chain, checksum exactly `blocks` blocks of

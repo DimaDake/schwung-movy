@@ -245,6 +245,17 @@ impl ChainSlots {
         host::log(&format!("chain mode: iso={}", on as u8));
     }
 
+    /// No replan: the canary decides what the NEXT load does, and a chain
+    /// already running keeps the mapping it loaded with, so the current plan is
+    /// still the true one.
+    pub fn set_canary(&mut self, on: bool) {
+        if on == self.iso.canary() {
+            return;
+        }
+        self.iso.set_canary(on);
+        host::log(&format!("chain mode: canary={}", on as u8));
+    }
+
     /// `parallel=<0|1> lanes=<n> late=<blocks> plan=<lane0>|<lane1>|...`
     pub fn render_report(&self) -> String {
         let plan = self
@@ -261,11 +272,12 @@ impl ChainSlots {
         // is the count that separates "isolation was on" from "isolation had
         // nothing to do".
         format!(
-            "parallel={} lanes={} pin={} iso={} copies={} yielded={} plan={}",
+            "parallel={} lanes={} pin={} iso={} canary={} copies={} yielded={} plan={}",
             self.parallel as u8,
             self.lanes.len(),
             self.pin_duplicates as u8,
             self.iso.enabled() as u8,
+            self.iso.canary() as u8,
             self.iso.copies(),
             self.pool.as_ref().map_or(0, |p| p.joins_yielded_blocks()),
             plan

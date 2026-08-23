@@ -49,6 +49,11 @@ pub struct IsoPolicy {
     /// before isolation existed. That is the control arm for "does isolation
     /// buy anything on a set of twelve identical modules".
     enabled: bool,
+    /// Whether a module condemned by a previous crash is REFUSED isolation.
+    /// On by default; `chcanary 0` turns the refusal off without touching the
+    /// record, so the verdict can be re-tested — a marker is written by one
+    /// crash and there is no other way to ask whether it still holds.
+    canary: bool,
     comps: Vec<Vec<Comp>>,
     /// What the planner groups by. Empty means the chain shares nothing with
     /// anyone and may render on any lane.
@@ -72,6 +77,7 @@ impl IsoPolicy {
         Self {
             tree: None,
             enabled: false,
+            canary: true,
             comps: (0..chains).map(|_| Vec::new()).collect(),
             pin_keys: vec![String::new(); chains],
             private: vec![false; chains],
@@ -102,6 +108,17 @@ impl IsoPolicy {
 
     pub fn enabled(&self) -> bool {
         self.enabled
+    }
+
+    /// Only the refusal moves; nothing on disk does. A module already condemned
+    /// stays condemned, and a chain already running keeps whatever mapping it
+    /// loaded with — like `chiso`, this is decided at load time.
+    pub fn set_canary(&mut self, on: bool) {
+        self.canary = on;
+    }
+
+    pub fn canary(&self) -> bool {
+        self.canary
     }
 
     /// The `module_dir` to hand `create_instance` for this chain, and `shared`
@@ -162,11 +179,25 @@ impl IsoPolicy {
             .tree
             .as_ref()
             .is_some_and(|t| t.is_unsafe(kind, module));
+        // `chcanary 0` ignores the verdict but NOT the record: the marker is
+        // still armed below, so a crash under the override still costs exactly
+        // one more. Both outcomes are logged — a run that meant to override and
+        // did not looks identical to one that was never condemned.
+        let refuse = condemned && self.canary;
         if condemned && self.enabled {
-            host::log(&format!("chain {}: {} cannot be isolated — pinning", chain, module));
+            host::log(&format!(
+                "chain {}: {} {}",
+                chain,
+                module,
+                if refuse {
+                    "cannot be isolated — pinning"
+                } else {
+                    "was condemned by an earlier crash — isolating anyway (chcanary 0)"
+                }
+            ));
         }
         let want = self.enabled
-            && !condemned
+            && !refuse
             && self.private[chain]
             && self.holds_shared(chain, kind, module);
         let isolated = self.apply(chain, kind, module, want);
@@ -487,6 +518,38 @@ mod tests {
         load(&mut q, 1, "synth", "helm");
         assert_eq!(q.copies(), 0, "never isolated a second time");
         assert_eq!(q.pin_keys()[1], "sound_generators/helm", "pinned instead");
+    }
+
+    /// `chcanary 0` overrides the VERDICT, not the RECORD. A condemned module
+    /// is isolated anyway — which is the point, since the verdict is written by
+    /// one crash and cannot be re-tested any other way — but a crash under the
+    /// override still condemns, so the next engine load pins instead of
+    /// crashing a third time. Keeping the write is what bounds the cost of
+    /// turning the guard off: the flag is never persisted, so a device that
+    /// went down under it comes back with the canary on and a marker to obey.
+    #[test]
+    fn the_canary_verdict_can_be_overridden_but_the_marker_is_still_recorded() {
+        let (root, mut p) = fixture("canary-off");
+        load(&mut p, 0, "synth", "helm");
+        p.on_load(1, "synth", "helm"); // ... and the load never returns
+        drop(p);
+
+        let mut q = reopen(&root);
+        q.set_canary(false);
+        load(&mut q, 0, "synth", "helm");
+        load(&mut q, 1, "synth", "helm");
+        assert_eq!(q.copies(), 1, "condemned, and isolated anyway");
+        assert!(q.pin_keys()[1].is_empty(), "so it is not pinned either");
+
+        // Crash again under the override, then come back the way the device
+        // does: a fresh engine, canary back on by default.
+        q.on_load(2, "synth", "helm");
+        drop(q);
+        let mut r = reopen(&root);
+        load(&mut r, 0, "synth", "helm");
+        load(&mut r, 1, "synth", "helm");
+        assert_eq!(r.copies(), 0, "the override did not erase the hazard list");
+        assert_eq!(r.pin_keys()[1], "sound_generators/helm", "pinned instead");
     }
 
     /// The ordinary case: the load returns, the marker is cleared, and the

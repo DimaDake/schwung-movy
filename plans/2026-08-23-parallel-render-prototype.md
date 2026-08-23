@@ -412,16 +412,22 @@ and the design point of three lanes survives.
    oracle no longer has to certify individual modules as safe to duplicate. It
    goes back to being what it was built for — a check that parallel render does
    not change the audio at all.
-3. **Per-chain `module_dir` — give duplicates their own `dsp.so` copy.** Now
-   the top item, and the one the whole feature is bounded by: twelve tracks of
-   one module return exactly 1.00× today, and twelve drum tracks is a set people
-   build. **No longer blocked on an allow-list** — §5's decision replaced the
-   audit with copying, so there is no per-module policy to write and no evidence
-   to gather first. The mechanism is proven and needs no schwung change
-   (`2026-08-22-module-isolation.md` §2); `chain_copy.rs` already implements the
-   cache-with-sidecar pattern it needs; `chpin` (§12) is the switch that lets a
-   copied set actually spread. What is left is plumbing: `chain_slots.rs` still
-   passes one shared `module_dir` string to every chain.
+3. ~~**Per-chain `module_dir` — give duplicates their own `dsp.so` copy.**~~
+   **BUILT and device-verified — see `2026-08-23-per-chain-module-isolation-plan.md`.**
+   Twelve chains of one module now plan as `8,9,7,3|0,4,10,5|6,1,11,2` with
+   `copies=11`, against `0,1,…,11||` when `chiso 0` re-pins them. The set that
+   returned exactly 1.00× divides.
+
+   Two things this section did not expect. **A second independent mapping is not
+   universally safe**: `helm` takes MoveOriginal down inside the chain host's
+   `dlopen` of the copy, while the same two chains sharing one mapping are fine
+   and while surge, obxd, dexed, forge, weird-dreams, plaits and noisemaker all
+   isolate without complaint. §5's argument — that no static audit can be trusted
+   to say which modules are safe — survives, and now cuts both ways, so the
+   answer is still not an audit: a marker armed before the load and cleared after
+   it returns means a module that never comes back is pinned forever after. One
+   crash per module, ever. And isolation therefore ships **off by default**
+   (`chiso 1`), like `chparallel`, and must be set before the chains load.
 4. ~~**§4 of the review, the MIDI-out rings.**~~ **Done — see §10.**
 5. **T1 and T2**, together worth about 0.1×, and only if something above them
    has not already changed the design.

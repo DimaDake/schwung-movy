@@ -4,26 +4,32 @@
 //! — not the worker count — is what parallel render actually costs. Lane 0 is
 //! the audio thread itself; lanes 1.. are helper threads.
 //!
-//! **Same-module chains share a lane.** Two chains holding one module share its
-//! `dlopen` mapping and therefore its whole `.data`/`.bss`
+//! **Chains that share a mapping share a lane.** Two chains holding one module
+//! through one file share its whole `.data`/`.bss`
 //! (`plans/2026-08-22-module-isolation.md`): six fleet modules mutate that state
 //! from `render_block`, and twelve more reach the chain host's clock globals
 //! through `get_clock_status`. Pinned to one lane they stay serial, exactly as
-//! today, and none of it can race. It costs makespan — 6.7% on a varied set,
-//! 27.6% on four distinct modules across twelve chains — and that is the price
-//! of not auditing 93 module repos before the first prototype runs.
+//! serial render was, and none of it can race.
 //!
-//! **This is the floor, not the design.** Pinning is applied to every duplicate,
-//! and only ~18 of 78 audio modules need it: all four duplicated modules in the
-//! 2.23x measurement were on neither hazard list, so every pin there protected
-//! against nothing. The tiering that replaces it — run clean duplicates free,
-//! pin flagged ones, copy only a flagged module that dominates the set — is
-//! §5 of `plans/2026-08-23-parallel-render-prototype.md`. It matters most on the
-//! set this cannot help at all: twelve chains of one module return exactly 1.00x,
-//! which `twelve_of_one_module_cannot_be_split` pins as a fact rather than a
-//! target.
+//! **Pinning is now the fallback, not the policy.** `chain_iso` gives every
+//! duplicate its own copy of the module's `.so` first — `dlopen` keys on the
+//! inode, so a copy is a separate mapping and a separate `.data` — and only the
+//! duplicates it could NOT isolate arrive here still needing a lane to
+//! themselves. That is what `pin_key` is: empty for a chain that shares nothing
+//! with anyone, and the shared `<namespace>/<module>` otherwise. Grouping on it
+//! rather than on the synth id also closes a hole, since two chains can share an
+//! audio FX while running different synths — airwindows is an FX pack and the
+//! module in the fleet most likely to appear twice in one set.
+//!
+//! The set this decides is twelve chains of ONE module. Pinned, they collapse
+//! onto a single lane and return exactly 1.00x
+//! (`twelve_shared_chains_cannot_be_split`); isolated, they spread across all of
+//! them (`isolated_duplicates_spread_across_lanes`). Twelve drum tracks is a set
+//! people build.
 //!
 //! **`pin_duplicates` can be turned off, and doing so is deliberately unsafe.**
+//! (`chiso 0` is the safe way to put duplicates back on one lane: it re-pins
+//! them rather than removing the pin.)
 //! It exists because the equivalence oracle cannot otherwise see the hazard the
 //! pinning exists to prevent: with duplicates pinned, two instances of one
 //! module never render concurrently, so the oracle passes on that axis without
@@ -69,9 +75,12 @@ impl Planner {
 
     /// Assign every chain with `loaded[c]` to a lane.
     ///
-    /// `modules[c]` is the chain's module id and `cost_ns[c]` its recent mean
-    /// render cost — zero before it has rendered, which degrades to an even
-    /// split rather than a bad one.
+    /// `pin_key[c]` names the mapping chain `c` shares with another chain, and
+    /// is EMPTY when it shares none — an empty key is its own group, never
+    /// matched against another empty one. Matching them would put every isolated
+    /// chain back on one lane, which is the exact outcome this change exists to
+    /// undo. `cost_ns[c]` is the chain's recent mean render cost — zero before
+    /// it has rendered, which degrades to an even split rather than a bad one.
     ///
     /// `pin_duplicates` is passed in rather than held as state so that rebuilding
     /// the planner — which `set_lanes` does on every lane change — cannot
@@ -79,7 +88,7 @@ impl Planner {
     /// pinned one that still reports itself as split.
     pub fn plan(
         &mut self,
-        modules: &[String],
+        pin_key: &[String],
         cost_ns: &[u64],
         loaded: &[bool],
         pin_duplicates: bool,
@@ -100,8 +109,8 @@ impl Planner {
             if !loaded[c] {
                 continue;
             }
-            let existing = if pin_duplicates {
-                self.heads.iter().position(|&h| modules[h] == modules[c])
+            let existing = if pin_duplicates && !pin_key[c].is_empty() {
+                self.heads.iter().position(|&h| pin_key[h] == pin_key[c])
             } else {
                 None
             };
@@ -142,8 +151,11 @@ impl Planner {
                 // Unpinned, a group is exactly its head, so the membership test
                 // has to be identity rather than module equality — otherwise
                 // every duplicate is scheduled once per sibling.
-                let member =
-                    if pin_duplicates { modules[c] == modules[head] } else { c == head };
+                let member = if pin_duplicates && !pin_key[head].is_empty() {
+                    pin_key[c] == pin_key[head]
+                } else {
+                    c == head
+                };
                 if loaded[c] && member {
                     self.lanes[pick].push(c);
                 }
@@ -161,10 +173,10 @@ impl Planner {
 mod tests {
     use super::*;
 
-    fn run_with(mods: &[&str], costs: &[u64], lanes: usize, pin: bool) -> Planner {
-        let m: Vec<String> = mods.iter().map(|s| s.to_string()).collect();
-        let loaded = vec![true; mods.len()];
-        let mut p = Planner::new(mods.len(), lanes);
+    fn run_with(keys: &[&str], costs: &[u64], lanes: usize, pin: bool) -> Planner {
+        let m: Vec<String> = keys.iter().map(|s| s.to_string()).collect();
+        let loaded = vec![true; keys.len()];
+        let mut p = Planner::new(keys.len(), lanes);
         p.plan(&m, costs, &loaded, pin);
         p
     }
@@ -177,7 +189,7 @@ mod tests {
     /// render concurrently and share its file-scope state — the exact bug the
     /// grouping exists to make impossible.
     #[test]
-    fn same_module_chains_never_split() {
+    fn chains_sharing_a_mapping_never_split() {
         let p = run(&["obxd", "obxd", "helm"], &[100, 100, 100], 3);
         let with_obxd: Vec<_> =
             p.lanes.iter().filter(|l| l.contains(&0) || l.contains(&1)).collect();
@@ -185,18 +197,18 @@ mod tests {
         assert_eq!(with_obxd[0], &vec![0, 1]);
     }
 
-    /// The degenerate set that decides whether pinning could be the whole
-    /// answer: twelve of one module collapse onto one lane and buy nothing.
+    /// The degenerate set, in the state isolation could not rescue: twelve
+    /// chains all holding ONE file collapse onto one lane and buy nothing. This
+    /// is what `chiso 0` measures, and what a failed copy falls back to.
     #[test]
-    fn twelve_of_one_module_cannot_be_split() {
+    fn twelve_shared_chains_cannot_be_split() {
         let p = run(&["helm"; 12], &[100; 12], 3);
         assert_eq!(p.makespan(), 1200);
         assert_eq!(p.lanes.iter().filter(|l| !l.is_empty()).count(), 1);
     }
 
-    /// Unpinned, the same set is what parallel render would look like if the
-    /// audit in §5 is right about every module in it — and it is the stimulus
-    /// the oracle needs, since a pinned duplicate never races anything.
+    /// Unpinned — `chpin 0`, the oracle's deliberately-unsafe stimulus, which
+    /// splits duplicates WITHOUT copying them.
     #[test]
     fn unpinned_duplicates_land_on_different_lanes() {
         let p = run_with(&["helm"; 12], &[100; 12], 3, false);
@@ -205,7 +217,7 @@ mod tests {
     }
 
     /// Unpinned scheduling must still schedule each chain exactly once. The
-    /// membership test changes with the flag, and a group that kept matching by
+    /// membership test changes with the flag and with the key, and a group that kept matching by
     /// module id would place every duplicate once per sibling — three chains of
     /// one module would render nine times, which sounds like distortion rather
     /// than like a planner bug.
@@ -215,6 +227,32 @@ mod tests {
         let mut seen: Vec<usize> = p.lanes.iter().flatten().copied().collect();
         seen.sort_unstable();
         assert_eq!(seen, vec![0, 1, 2, 3], "{:?}", p.lanes);
+    }
+
+    /// The point of module isolation, at the planner. Twelve chains of one
+    /// module, each given its own copy of it, have nothing left to share — so
+    /// every key is empty and all three lanes fill. Empty keys must NOT match
+    /// each other; if they did this would read exactly like the pinned case and
+    /// the copies would buy nothing.
+    #[test]
+    fn isolated_duplicates_spread_across_lanes() {
+        let p = run(&[""; 12], &[100; 12], 3);
+        assert_eq!(p.makespan(), 400, "{:?}", p.lanes);
+        assert!(p.lanes.iter().all(|l| l.len() == 4), "{:?}", p.lanes);
+    }
+
+    /// A copy that failed leaves its chain sharing the installed file, and it
+    /// has to be pinned to whatever else holds it while the isolated chains stay
+    /// free. Mixed is the realistic state, not an edge case: it is what a full
+    /// disk or a read-only module directory produces.
+    #[test]
+    fn a_chain_that_could_not_be_isolated_is_still_pinned() {
+        let keys = ["sound_generators/helm", "", "", "sound_generators/helm"];
+        let p = run(&keys, &[100; 4], 3);
+        let together = p.lanes.iter().find(|l| l.contains(&0)).unwrap();
+        assert!(together.contains(&3), "the two shared chains share a lane: {:?}", p.lanes);
+        assert!(!together.contains(&1) && !together.contains(&2),
+            "and the isolated ones are not dragged along: {:?}", p.lanes);
     }
 
     /// Sorting descending is what makes this LPT and not plain greedy. Fed

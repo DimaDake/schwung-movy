@@ -12,6 +12,8 @@ mod chain_digest;
 mod midi_out;
 mod chain_host;
 mod chain_slots;
+mod module_iso;
+mod chain_iso;
 mod render_plan;
 mod render_pool;
 mod load_queue;
@@ -66,7 +68,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.41.0";
+const ENGINE_VERSION: &str = "0.42.0";
 
 /// Tracks backed by schwung's own shadow slots. Their notes go out as MIDI on
 /// the matching channel, exactly as before; everything above this index is a
@@ -167,6 +169,20 @@ impl Instance {
              * is on, since serial render has one thread either way. */
             "chpin" => {
                 self.chains.set_pin_duplicates(val != "0" && !val.is_empty());
+            }
+            /* `chiso <0|1>` — whether a duplicated module gets a private copy of
+             * its `.so`, so two chains holding it stop sharing its statics.
+             *
+             * OFF by default, like `chparallel`, and it must be set BEFORE the
+             * chains load: the copy happens at load time, because that is where
+             * the chain host dlopens. Serial render has no race for it to fix,
+             * and a second independent mapping is not universally safe — `helm`
+             * takes MoveOriginal down inside the second dlopen while the same
+             * two chains sharing one mapping are fine (chain_iso). `0` is also
+             * the CONTROL arm, and a safe one: it re-pins every duplicate onto
+             * one lane rather than letting it race. */
+            "chiso" => {
+                self.chains.set_iso(val != "0" && !val.is_empty());
             }
             /* `chdigest [blocks]` — run the equivalence oracle: strike a fixed
              * chord on every loaded chain, checksum exactly `blocks` blocks of

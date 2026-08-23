@@ -597,12 +597,33 @@ every lane, the audio thread's included, goes through it.
 
 ## 11. What schwung could change once movy's parallel render is real
 
-Every item below is **blocked on us, not on Charles.** The standing rule from
-`2026-08-21-parallel-chain-render-schwung-review.md` is that upstream stays
-off-limits until there is an in-situ measurement inside the real `render_block`
-— §6 and §9 are now most of that measurement, but `chparallel` is still off by
-default and a prototype is not an argument. This section exists so the list is
-written down while the reasons are fresh, not so it can be acted on today.
+Every item below is **blocked on us, not on Charles** — but the reason has
+moved, and the old wording no longer describes it.
+
+The standing rule was "no upstream conversation until there is an in-situ
+measurement inside the real `render_block`", because every earlier number came
+off a bench rather than off the thing: `dd` aggressors standing in for chains,
+the join mechanism timed standalone, lanes priced with per-module means borrowed
+from a *different* run, and figures taken with movy closed and the transport
+stopped. That caution was earned. The bench predicted ~7% contention where the
+real render measured **27%**, and 2.98x where the device gave **2.23x** — being
+wrong by that margin in front of upstream costs credibility that is not cheap to
+rebuild.
+
+**That condition is now met.** Review §5's two deciding questions are both
+answered from the device: (b) *when* inside the frame Move's FIFO-70 workers run
+was settled by `2026-08-21-frame-phase-measurement.md` with a scheduler trace —
+they run *after* movy's render, in the same callback, leaving ~2.2 cores idle
+through our window — and (a) follows from it. §6 measured concurrent-render
+inflation inside the real render, §9 hashes real chain output inside it, §10
+counts real render-path MIDI inside it.
+
+What blocks the list now is **maturity, not evidence**: `chparallel` is still off
+by default, the fourth lane is unmeasured, and the oracle compares 3 of the 8
+modules in the set. Walking into upstream with a prototype nobody has turned on
+is a weak position however good the numbers are. So this section is a list to
+hold, not a list to act on — and the thing that unblocks it is shipping
+`chparallel`, not measuring more.
 
 The framing matters, and it is the opposite of the obvious one. The tempting ask
 is *"document a rule that new modules must not send MIDI from render"*. That is

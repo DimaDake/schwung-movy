@@ -143,17 +143,62 @@ The measured set makes the cost of ignoring that concrete. Its four duplicated
 modules are **plaits, obxd, dexed and noisemaker**, and none of them is on either
 hazard list. *Every pin in the 2.23× measurement protected against nothing.*
 
-The design that follows is three tiers, not one rule:
+### DECIDED 2026-08-23: copy, do not audit
+
+The three-tier design below was the plan until this was settled. **It is
+superseded.** Copying is the mechanism and there is no allow-list:
 
 | the set contains | do | cost |
 | --- | --- | --- |
-| a duplicated **clean** module (~60 of 78) | nothing — let it run free on separate lanes | none |
-| a duplicated **flagged** module | pin it to one lane | makespan |
-| a duplicated flagged module that **dominates** the set | give it a private byte copy | a warmed cache |
+| a duplicated module — any module | give the second and later instances a private `dsp.so` copy | one dropout, once ever |
+| a duplicate whose copy is absent or failed | pin it to one lane | makespan |
 
-Copying stops being the mechanism and becomes the escape hatch for one narrow
-case — which is what makes the unsolved part of `2026-08-22-module-isolation.md`
-(there is no non-audio thread to warm a copy cache on) affordable to leave open.
+Two rules, and the second is a fallback that costs nothing when it is not
+needed. What used to be tiers 1 and 3 collapse into the first row; tier 2
+survives only as the safety net.
+
+**Why this is better than tiering, and not merely cheaper: it needs no audit at
+all.** Tier 1 made correctness depend on `audit-render-globals.py` being right,
+and that audit is *static* — it cannot see through function pointers or C++
+virtual dispatch, which is how `airwindows` reaches CLAP plugins and how
+`plaits`, `obxd` and `surge` are built. "71 clean" only ever meant 71 with no
+*statically reachable* mutable statics. A design that has to be told which
+modules are safe is a design that is wrong the first time someone installs a
+module nobody checked. Copying does not ask.
+
+**What it costs, stated plainly.** The copy is a blocking file write on the
+audio thread, so it is a dropout: measured 44–74 ms warm and 81–260 ms cold,
+against a 2902 µs frame — 15 to 90 dropped frames
+(`2026-08-22-module-isolation.md` §3). That was judged unacceptable there, on
+the assumption it had to be hidden. It is accepted here, for three reasons:
+
+- It lands at **module load**, which already blocks the audio thread on a
+  `dlopen` and already hiccups. It is not a new class of event, it is a longer
+  one.
+- It fires **only for the second and later instance of one module in a set** —
+  never for the ordinary case of twelve different instruments.
+- It is a **cache, not a copy per load.** `chain_copy.rs` already implements the
+  pattern — a sidecar recording the source's size and mtime, refreshed only when
+  the source changes. So the cost is paid once for the life of a (module, chain)
+  pair and never again, not once per load.
+
+This is what makes the open question in `2026-08-22-module-isolation.md` §6
+("a copy must not be on the audio thread, and movy has no non-audio thread")
+stop being a blocker: nothing has to be warmed off-thread if a load-time dropout
+is acceptable. Schwung's off-thread loader would turn the remaining hiccup into
+nothing, which is why it stays on the §11 list — but it is now an improvement,
+not a prerequisite.
+
+Only `dsp.so` is copied. `module.json`, presets, ROMs, wavetables and soundfonts
+are read with `fopen`, which does not care about inodes, so they symlink — and
+they are the bulk of the bytes. Disk and RAM were never the constraint: every
+installed `dsp.so` totals 41 MB against 26.9 GB free, and a duplicate `plaits`
+mapping is 324 KB resident.
+
+### The three-tier design this replaced
+
+Kept because §9's coverage numbers and §12's unpinned run were both scored
+against it, and because the fallback row is what survives.
 
 **What tier 1 is worth** is very unevenly distributed. On this set: little. The
 offline packer puts free-running at 2.92× against 2.72× pinned — about 7%, and
@@ -163,14 +208,11 @@ answer: **twelve tracks of one module pin to a single lane and return exactly
 nothing at all. Tier 1 is what makes the worst case stop being catastrophic;
 tier 3 only matters if those twelve tracks are specifically one of the six.
 
-**The tradeoff, stated plainly.** Uniform pinning has to trust nothing. Tiering
-makes correctness depend on the audit being right, and that audit is *static*: it
-cannot see through function pointers or C++ virtual dispatch, which is exactly
-how `airwindows` dispatches into CLAP plugins. "71 clean" means 71 with no
-*statically reachable* mutable statics. Tier 1 should therefore be an allow-list
-of modules confirmed clean, not a deny-list of the ones flagged — a module nobody
-has checked must land in tier 2, where being wrong costs speed instead of
-correctness.
+**The tradeoff that killed it.** Uniform pinning has to trust nothing; tiering
+makes correctness depend on a static audit. That is the whole argument for
+copying instead, and it is made above — the allow-list this paragraph used to
+call for is no longer wanted, because a module nobody has checked should not need
+checking.
 
 ## 6. The ~100 µs was the wrong number *and* the wrong suspect
 
@@ -366,12 +408,20 @@ and the design point of three lanes survives.
    duplicate-race evidence. See §12.** What is left of this item is not another
    oracle run: it is the eight chains that are *not reproducible serially*, which
    is now the binding constraint on every question the oracle can be asked.
-3. **Tier 1 of §5 — stop pinning clean duplicates.** Modest on a varied set
-   (imbalance measured 20–38 µs at 2–3 lanes), decisive on twelve tracks of one
-   module, where the current design returns 1.00×. Needs the confirmed-clean
-   allow-list first. **The mechanism is now built and measured** (§12); what is
-   missing is only the policy that decides which modules may use it, and the
-   evidence for that policy is what item 2's remaining half would supply.
+   §5's decision lowers the stakes here: with copying rather than an audit, the
+   oracle no longer has to certify individual modules as safe to duplicate. It
+   goes back to being what it was built for — a check that parallel render does
+   not change the audio at all.
+3. **Per-chain `module_dir` — give duplicates their own `dsp.so` copy.** Now
+   the top item, and the one the whole feature is bounded by: twelve tracks of
+   one module return exactly 1.00× today, and twelve drum tracks is a set people
+   build. **No longer blocked on an allow-list** — §5's decision replaced the
+   audit with copying, so there is no per-module policy to write and no evidence
+   to gather first. The mechanism is proven and needs no schwung change
+   (`2026-08-22-module-isolation.md` §2); `chain_copy.rs` already implements the
+   cache-with-sidecar pattern it needs; `chpin` (§12) is the switch that lets a
+   copied set actually spread. What is left is plumbing: `chain_slots.rs` still
+   passes one shared `module_dir` string to every chain.
 4. ~~**§4 of the review, the MIDI-out rings.**~~ **Done — see §10.**
 5. **T1 and T2**, together worth about 0.1×, and only if something above them
    has not already changed the design.

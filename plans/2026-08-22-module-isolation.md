@@ -163,12 +163,16 @@ nothing when the copy cache is cold or absent.
 
 - **Nothing has been implemented.** Per-chain `module_dir` is designed and its
   mechanism proven; `chain_slots.rs` still passes one shared string.
-- **Where the warm happens.** A copy must not be on the audio thread, and movy
-  has no non-audio thread of its own. The UI (`shadow_ui`, SCHED_OTHER) knows
-  the set's modules but has no file-copy host call. Schwung's residual 2.6 is
-  building an off-thread loader (review §8) which is the natural home — but
-  that is upstream, and upstream stays off-limits pending an in-situ
-  measurement.
+- ~~**Where the warm happens.**~~ **RESOLVED 2026-08-23 by deciding the copy
+  does not have to be warm** — see `2026-08-23-parallel-render-prototype.md` §5.
+  A load-time dropout is accepted: it lands where a blocking `dlopen` already
+  hiccups, it fires only for the second and later instance of one module in a
+  set, and `chain_copy.rs`'s sidecar makes it once-ever per (module, chain) pair
+  rather than once per load. The original objection stands as written — a copy
+  on the audio thread IS 15–90 dropped frames — it is simply no longer
+  disqualifying. Schwung's off-thread loader (review §8) would remove the
+  remaining hiccup and stays on the upstream wish-list, but it is now an
+  improvement rather than a prerequisite, so nothing here waits on upstream.
 - **Isolation does not fix the other hazards.** §2's `chain_get_clock_status`
   lives in the *chain host* copy, shared across movy's twelve chains, so it
   needs the same trick one level up (12 chain-host copies) or an atomic gate.
@@ -178,14 +182,24 @@ nothing when the copy cache is cold or absent.
 - **The audit is static.** It resolves calls by name within one translation
   unit; it cannot see through function pointers or C++ virtual dispatch, which
   is how `airwindows` dispatches into CLAP plugins. 71 "clean" means 71 with no
-  *statically reachable* mutable statics.
+  *statically reachable* mutable statics. **This is now the argument FOR copying
+  rather than a caveat on it**: the alternative design needed the audit to be
+  right about every module, including ones nobody has installed yet. Copying
+  needs it to be right about nothing. The audit stays useful for explaining a
+  result, never for deciding what is safe to run.
 
 ## 7. Recommendation
 
-Isolation is the right mechanism and it is cheaper than feared: 6 modules need
-it, the fix needs no schwung change, and disk and RAM are irrelevant at this
-scale. The one hard constraint is that the copy is a *cache to be warmed*, never
-a load-path operation.
+Isolation is the right mechanism and it is cheaper than feared: the fix needs no
+schwung change, and disk and RAM are irrelevant at this scale.
+
+**Amended 2026-08-23.** Two claims here have since been overtaken. "6 modules
+need it" was the tiering premise — copying is now applied to every duplicate,
+because deciding *which* modules need it means trusting a static audit that
+cannot see through C++ virtual dispatch. And "the copy is a cache to be warmed,
+never a load-path operation" was too strong: it is a cache (the sidecar makes it
+once-ever per pair), but it may sit on the load path, where a dropout is
+tolerable. See `2026-08-23-parallel-render-prototype.md` §5.
 
 Order of work from here, unchanged in priority by this result:
 
@@ -193,7 +207,10 @@ Order of work from here, unchanged in priority by this result:
    oracle is meaningless until it lands.
 2. **§2, `chain_get_clock_status`.** File I/O behind a non-atomic gate, on the
    render path, in movy's own private chain-host copy — movy's race to hit.
-3. **Per-chain `module_dir`,** with the warm-cache question answered first.
+3. **Per-chain `module_dir`.** No longer gated on the warm-cache question —
+   that was settled by accepting a load-time dropout (§6). This is now the top
+   remaining item of the parallel-render work, and the only thing standing
+   between a twelve-drum-track set and more than 1.00×.
 
 Upstream stays off-limits until there is an in-situ measurement inside the real
 `render_block`.

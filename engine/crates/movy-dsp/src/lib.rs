@@ -8,6 +8,7 @@ mod ffi;
 mod host;
 mod chain_copy;
 mod chain_cost;
+mod chain_digest;
 mod chain_host;
 mod chain_slots;
 mod render_plan;
@@ -64,7 +65,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.38.0";
+const ENGINE_VERSION: &str = "0.39.0";
 
 /// Tracks backed by schwung's own shadow slots. Their notes go out as MIDI on
 /// the matching channel, exactly as before; everything above this index is a
@@ -156,6 +157,24 @@ impl Instance {
                 Ok(n) if n >= 1 => self.chains.set_lanes(n),
                 _ => host::log(&format!("chain mode: ignoring chlanes '{val}'")),
             },
+            /* `chdigest [blocks]` — run the equivalence oracle: strike a fixed
+             * chord on every loaded chain, checksum exactly `blocks` blocks of
+             * each chain's output, release. The stimulus is generated in the
+             * render rather than sent over the wire because a socket write
+             * lands on whatever block it lands on, and two arms that struck at
+             * different points in the attack would differ for a reason that has
+             * nothing to do with threading. Result is logged when the window
+             * closes, and `chdigestlog` re-reads it. */
+            "chdigest" => {
+                let n = val.parse::<u32>().unwrap_or(chain_digest::DEFAULT_BLOCKS);
+                self.chains.digest_arm(n);
+            }
+            /* Re-read the last digest. Separate from `chdigest` because the read
+             * is an ssh round trip behind the device and may be retried; unlike
+             * `chcostlog` this does NOT close a window. */
+            "chdigestlog" => {
+                host::log(&format!("chain digest: {}", self.chains.digest_report()));
+            }
             /* `chrenderlog` — the lane assignment and how often the join had to
              * yield. Reading the plan is how a measurement tells an unbalanced
              * partition apart from fan-out latency. */

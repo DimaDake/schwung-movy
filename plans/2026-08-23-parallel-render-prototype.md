@@ -327,11 +327,9 @@ prints rather than something a reader has to notice.
 
 ## 7. What this does NOT settle
 
-- **There is no equivalence oracle yet.** Nothing has verified that parallel
-  render produces the *same audio* as serial — only that every chain is
-  measurably sounding in both arms. FPCR per worker was the prerequisite for
-  that test and it has landed, so the oracle is now the next thing worth
-  building, and it should be built before this flag defaults to on.
+- **The equivalence oracle exists and passes, on 2 modules of 8.** See §9. No
+  difference has been found, but coverage is the finding: two thirds of the
+  fleet cannot be compared this way at all.
 - **§4 is untouched.** `midi_send_external` and `midi_send_internal` are
   single-producer, and modules *do* emit MIDI from render (`v2_tick_midi_fx`).
   The pinning does not help: two *different* modules emitting concurrently is
@@ -364,9 +362,11 @@ and the design point of three lanes survives.
    third lane cost 594 µs of extra work for 212 µs of wall; if the fourth turns
    the curve over, the answer is to *cap* lanes, which is a one-line default and
    the cheapest remaining win. Nothing below this changes what the feature is.
-2. **The serial/parallel equivalence oracle.** Unchanged: the one thing standing
-   between a measurement and a feature, and the gate on `chparallel` ever
-   defaulting on.
+2. ~~**The serial/parallel equivalence oracle.**~~ **Built and passing — see §9.**
+   What replaces it is **widening its coverage**: 8 of 12 chains are not
+   reproducible even serially from a fresh load, and nobody has looked at why.
+   A time-seeded noise source is benign; a static that survives re-instantiation
+   is §5's hazard class showing up in a second measurement.
 3. **Tier 1 of §5 — stop pinning clean duplicates.** Modest on a varied set
    (imbalance measured 20–38 µs at 2–3 lanes), decisive on twelve tracks of one
    module, where the current design returns 1.00×. Needs the confirmed-clean
@@ -398,3 +398,82 @@ Also unchanged from D1: a deploy alone does not reload the engine. Even with the
 version bumped, the device kept re-opening the old library while the UI looped on
 `stale pong 0.37.0`; only a stack restart brought 0.38.0 up. Confirm by poking a
 command the old build does not have.
+
+## 9. The equivalence oracle: does parallel render sound the same?
+
+Every measurement above asks whether parallel render is *faster*. None asked
+whether it is *correct* — `chain peaks` says a chain made a sound, which a race
+that drops, doubles or reorders samples passes trivially.
+
+**The bar is bit-identical, and that is a choice the design earned.** Each chain
+renders into its own buffer, every worker sets the same FPCR flush-to-zero flag,
+and the mix stays serial in slot order after the join — so the parallel arm does
+the same arithmetic in the same order. There is no tolerance to argue about and
+no threshold to tune: one differing sample is a defect.
+
+**How it is measured.** `chdigest <blocks>` (engine 0.39.0) runs a self-contained
+experiment: strike a fixed chord on every loaded chain, FNV-1a exactly N blocks
+of each chain's output, release. The digest is folded on the audio thread after
+the join and before the mix, so it reads precisely what the lane that rendered
+the chain wrote. `scripts/measure-render-equivalence.sh` scores three arms.
+
+**Why the stimulus is generated inside the render.** The obvious harness — hold a
+chord over the wire, digest both arms — cannot work. `measure-parallel-render.sh`
+strikes its chord with 48 separate socket writes, so the notes land seconds apart
+and never on the same block twice. Any difference that produced would be
+indistinguishable from a threading bug.
+
+### Three arms, not two, and why the third is not optional
+
+The run is **A, B, A'**: the serial control brackets the parallel arm in time,
+and a chain is evidence only if `A == A'`. Without that, the first run would have
+read as a catastrophe — **all twelve chains "differed"**, and none of it was
+threading.
+
+Two facts separated the causes. Two `dexed` instances hashed *identically* to
+each other inside every arm, so the modules are deterministic; and reloading the
+chains before each arm fixed four of them. What the first run measured was
+**state surviving from one arm into the next** — voice-allocator position,
+free-running LFO phase — which no settling gap can wait out. Every arm now gets
+freshly instantiated chains.
+
+### The result, and its coverage
+
+Three lanes, 512-block window, fleet `plaits obxd dexed noisemaker helm forge
+weird-dreams surge`:
+
+| verdict | chains | modules |
+| --- | ---: | --- |
+| bit-identical | 4 | dexed ×2 (L0), forge (L2), weird-dreams (L1) |
+| not reproducible serially | 8 | plaits ×2, obxd ×2, noisemaker ×2, helm, surge |
+| silent | 0 | — |
+
+**No difference was found. The honest headline is the coverage, not the pass.**
+Two thirds of the fleet cannot be compared this way, because they do not repeat
+themselves even single-threaded from a fresh load.
+
+### Lane 0 passes are nearly tautological, and the run says so
+
+Lane 0 *is* the audio thread: a chain the planner put there renders on the same
+thread in both arms, so it matches for the same reason serial matches serial.
+Only a chain that ran on a **helper** was exposed to the concurrency under test —
+so of the four passes above, the evidence is **forge and weird-dreams**, and the
+two `dexed` chains are close to free.
+
+This is not a hypothetical. The same run at **`chlanes 2`** put all four
+reproducible chains on lane 0, and reports `INCONCLUSIVE` rather than a green
+pass over a run that tested nothing. The scorer's five cases — pass, fail, silent,
+not-reproducible, and lane-0-only — are pinned by `browser-test/device-scripts.mjs`
+against synthetic arms, each proven to fail when its guard is removed.
+
+### What this does and does not license
+
+- It does **not** license `chparallel` defaulting on. §4's MIDI-out rings are a
+  *known* single-producer violation that no amount of audio comparison reaches:
+  a corrupted ring index need never perturb a sample.
+- An audio diff is a **probabilistic** race detector. It catches a bug only if it
+  fires inside the window and moves the output. That is why it is a gate and not
+  a proof.
+- Coverage is the thing to improve next. The eight unstable modules are unstable
+  for a reason nobody has looked at yet — a time-seeded noise source is benign,
+  a static that survives re-instantiation is the same hazard class as §5.

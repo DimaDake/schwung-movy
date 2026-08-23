@@ -10,7 +10,9 @@
 //! rather than by inspection.
 
 use crate::chain_cost::CostMeter;
+use crate::chain_digest::{ChainDigest, STIMULUS};
 use crate::chain_host::{ChainHost, ChainInstance};
+use crate::ffi::MOVE_MIDI_SOURCE_INTERNAL;
 use crate::host;
 use crate::load_queue::{LoadQueue, LoadRequest};
 use crate::mixer::{mix_into, TrackMix};
@@ -109,6 +111,9 @@ pub struct ChainSlots {
     /// Which slots are loaded, as the planner wants it. A field rather than a
     /// local because replanning happens on the audio thread.
     loaded: Vec<bool>,
+    /// The equivalence oracle: what each chain rendered, not what it cost.
+    /// Idle until `chdigest` arms it.
+    digest: ChainDigest,
 }
 
 impl ChainSlots {
@@ -139,6 +144,7 @@ impl ChainSlots {
             blocks_since_plan: 0,
             plan_generation: u32::MAX,
             loaded: vec![false; MOVY_CHAINS],
+            digest: ChainDigest::new(MOVY_CHAINS),
         }
     }
 
@@ -383,6 +389,13 @@ impl ChainSlots {
         }
         let frames = out.len().min(SCRATCH_SAMPLES);
 
+        // Struck BEFORE the render, so the window's first block is the note-on's
+        // own block in both arms. Doing it from a socket write instead would put
+        // the note wherever the network happened to deliver it.
+        if self.digest.open_block() {
+            self.digest_stimulus(true);
+        }
+
         // Render every chain into its own buffer, in parallel or not. The mix is
         // deliberately NOT part of this: summing after the join keeps the output
         // in slot order, so parallel and serial produce the same samples rather
@@ -396,6 +409,7 @@ impl ChainSlots {
         if active > 0 {
             self.cost.add_wall(t0.elapsed().as_nanos() as u64);
         }
+        let digesting = self.digest.running();
 
         for i in 0..MOVY_CHAINS {
             if self.slots[i].is_none() {
@@ -404,6 +418,11 @@ impl ChainSlots {
             let scratch = &self.scratch[i][..frames];
             let peak = scratch.iter().fold(0i32, |m, &s| m.max((s as i32).abs()));
             self.peaks[i] = peak;
+            // After the join and before the mix: this reads exactly what the
+            // lane that rendered the chain wrote, which is the thing under test.
+            if digesting {
+                self.digest.fold(i, scratch, peak);
+            }
             if !self.audible[i] && peak > 0 {
                 self.audible[i] = true;
                 host::log(&format!("chain {}: audio active (peak {})", i, peak));
@@ -414,6 +433,37 @@ impl ChainSlots {
             self.cost.end_block();
         }
         self.active_last_block = active;
+        // The run releases what it struck: a device must never be left holding
+        // 48 notes because a benchmark was interrupted between arms.
+        if self.digest.close_block() {
+            self.digest_stimulus(false);
+            host::log(&format!("chain digest: {}", self.digest.report()));
+        }
+    }
+
+    /// Strike or release the digest's fixed chord on every loaded chain.
+    ///
+    /// Straight into the instances rather than through `on_midi`: the pad
+    /// routing and held-note ledger belong to what the player is doing, and a
+    /// measurement must not leave entries in them.
+    fn digest_stimulus(&mut self, on: bool) {
+        for slot in self.slots.iter_mut().flatten() {
+            for &p in STIMULUS.iter() {
+                let m = if on { [0x90, p, 100] } else { [0x80, p, 0] };
+                slot.on_midi(&m, MOVE_MIDI_SOURCE_INTERNAL);
+            }
+        }
+    }
+
+    /// Arm an equivalence run: strike a fixed chord, digest `blocks` blocks of
+    /// every chain's output, release. See `chain_digest`.
+    pub fn digest_arm(&mut self, blocks: u32) {
+        self.digest.arm(blocks);
+        host::log(&format!("chain digest: armed window={blocks}"));
+    }
+
+    pub fn digest_report(&self) -> String {
+        self.digest.report()
     }
 
     fn parallel_ready(&self) -> bool {
@@ -531,6 +581,18 @@ mod tests {
     /* These run on the host, where no chain host exists — so they verify the
      * DEGRADED path, which is the one that must never crash: movy has to keep
      * sequencing its four schwung tracks when chain hosting is unavailable. */
+
+    /* The digest is compiled in permanently but must cost a set that never asks
+     * for it exactly one bool check per block — so "off until armed" is a
+     * property worth pinning, not an implementation detail. */
+    #[test]
+    fn the_digest_is_off_until_it_is_armed() {
+        let mut slots = ChainSlots::new();
+        assert!(slots.digest_report().starts_with("state=off "), "{}", slots.digest_report());
+        slots.digest_arm(64);
+        assert!(slots.digest_report().starts_with("state=armed window=64 "),
+            "{}", slots.digest_report());
+    }
 
     #[test]
     fn renders_nothing_when_empty() {

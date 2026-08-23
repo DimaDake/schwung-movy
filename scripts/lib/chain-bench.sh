@@ -13,6 +13,13 @@ CB_MELODIC=(60 64 67 71)
 CB_DRUMS=(36 37 38 39)
 CB_SAMPLES=()
 
+# The benchmark fleet: eight modules spanning the cost range, which every chain
+# measurement in this repo is scored on. Shared because the measurements are
+# compared against EACH OTHER — the balance run prices the lanes the parallel
+# run packs, and the equivalence run has to cover the same modules for either to
+# mean anything. Three scripts kept their own copy of this line.
+CB_DEFAULT_MODULES=(plaits obxd dexed noisemaker helm forge weird-dreams surge)
+
 # Write one movy ENGINE param. The remote-UI socket is write-only, so this is
 # also how a test asks the engine to LOG something it wants to read back.
 #

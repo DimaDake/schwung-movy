@@ -28,13 +28,14 @@ cd "$(dirname "$0")/.."
 
 HOST="${1:-move.local}"; shift || true
 MODULES=("$@")
-[ ${#MODULES[@]} -eq 0 ] && MODULES=(plaits obxd dexed noisemaker helm forge weird-dreams surge)
 
 MOVY_DIR="$(pwd)"
 # shellcheck source=lib/test-set.sh
 source "$MOVY_DIR/scripts/lib/test-set.sh"
 # shellcheck source=lib/chain-bench.sh
 source "$MOVY_DIR/scripts/lib/chain-bench.sh"
+# Filled after the source, which is what provides the shared fleet list.
+[ ${#MODULES[@]} -eq 0 ] && MODULES=("${CB_DEFAULT_MODULES[@]}")
 LOG=/data/UserData/schwung/debug.log
 CHAINS=12
 # Short on purpose. Several synths (plaits, dexed) decay to silence under a HELD

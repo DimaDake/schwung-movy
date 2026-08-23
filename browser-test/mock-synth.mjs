@@ -1054,6 +1054,33 @@ export const MOCK_SYNTHS = {
         "synth:vol":    "0.8",
     },
 
+    /* 9W9 (TR-909 style): one circuit per voice, so params are named after the
+     * VOICE (bd_c_tune, ohh_pitch) and the sampled cymbals have no Drive or
+     * Distortion at all. Nothing a {pad}-number template can address — this is
+     * the module the padKeys form exists for. Values differ per voice so a test
+     * can prove which key a knob actually reached. */
+    nw9: {
+        "synth:name":           "9W9",
+        "synth_module":         "9w9",
+        "synth:chain_params": JSON.stringify([
+            { key: "bd_c_dist_type", name: "Distortion", type: "enum",
+              options: ["Diode (909)", "Hard Clip", "Wavefolder", "Bitcrush"] },
+        ]),
+        "synth:bd_c_tune":      "10",
+        "synth:bd_c_decay":     "11",
+        "synth:bd_c_drive":     "12",
+        "synth:bd_c_dist_type": "Hard Clip",
+        "synth:bd_c_level":     "13",
+        "synth:sd_c_tune":      "20",
+        "synth:sd_c_decay":     "21",
+        /* Pads 8 and 9 are the same hi-hat circuit with two decay knobs — the
+         * case a per-pad template cannot express at all. */
+        "synth:ohh_pitch":         "80",
+        "synth:ohh_decay_closed":  "81",
+        "synth:ohh_decay":         "91",
+        "synth:ohh_volume":        "82",
+    },
+
     mrdrums: {
         "synth:name":             "MrDrums",
         "synth_module":           "mrdrums",

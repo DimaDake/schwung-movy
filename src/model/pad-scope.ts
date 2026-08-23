@@ -6,7 +6,8 @@ const escRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /* Anchored matcher for a concrete-key template; `suffixPat` is a regex fragment
  * for the {suffix} position ("(.+)" to capture any, or an escaped literal). */
-function templateRegex(tpl: string, padDigits: number, suffixPat: string): RegExp | null {
+function templateRegex(tpl: string | undefined, padDigits: number | undefined, suffixPat: string): RegExp | null {
+    if (!tpl || padDigits === undefined) return null;   // padKeys-only config
     const padIdx = tpl.indexOf('{pad}');
     const sufIdx = tpl.indexOf('{suffix}');
     if (padIdx < 0 || sufIdx < 0) return null;
@@ -25,10 +26,24 @@ function templateRegex(tpl: string, padDigits: number, suffixPat: string): RegEx
 export function concreteKey(ps: PadScoping | undefined, pad: number, key: string): string {
     if (!ps || !key.startsWith(ps.aliasPrefix)) return key;
     const suffix = key.slice(ps.aliasPrefix.length);
+    /* An explicit per-pad key wins over any template: a module whose voices are
+     * separate circuits names its params after the VOICE (bd_c_tune, ohh_pitch),
+     * which no pad-number template can produce. See DrumConfig.padScoping. */
+    const table = ps.padKeys?.[suffix];
+    if (table && pad - 1 < table.length) {
+        /* A listed null is a decision, not a gap: this voice has no such knob,
+         * so the alias stays unresolved and the caller renders it unavailable.
+         * Falling back to the template here would address a key the module
+         * never had. */
+        return table[pad - 1] ?? key;
+    }
     const o = ps.suffixOverrides?.[suffix];
     const tpl = (o && (o.maxPad === undefined || pad <= o.maxPad))
         ? o.template : ps.concreteKeyTemplate;
-    const padStr = String(pad).padStart(ps.padDigits, '0');
+    /* No template configured (a padKeys-only module, pad past the list): leave
+     * the alias as-is — unavailable beats addressing another pad's param. */
+    if (!tpl) return key;
+    const padStr = String(pad).padStart(ps.padDigits ?? 0, '0');
     return tpl.replace('{pad}', padStr).replace('{suffix}', suffix);
 }
 
@@ -39,7 +54,14 @@ export function concreteKey(ps: PadScoping | undefined, pad: number, key: string
  * THAT exists — the concrete key itself is never listed. Assumes the template
  * places {pad} before {suffix} (true for every config). An override template is
  * matched only against its own literal suffix, so foreign keys sharing the
- * shape (v3_lvl vs the fx1 override) can't false-match. */
+ * shape (v3_lvl vs the fx1 override) can't false-match.
+ *
+ * padKeys entries are deliberately NOT reversed here. A template invents keys
+ * the module never declares, so a lane on one can only be validated through its
+ * alias; a padKeys entry IS a declared param (bd_c_tune is in chain_params), so
+ * its lane validates by its own key. Mapping it back to `pad_pitch` — which the
+ * module does not declare — would make every per-voice lane look stale and get
+ * purged. */
 export function aliasFromConcrete(ps: PadScoping | undefined, key: string): string | null {
     if (!ps) return null;
     const m = templateRegex(ps.concreteKeyTemplate, ps.padDigits, '(.+)')?.exec(key);

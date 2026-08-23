@@ -405,6 +405,12 @@ _log('\npad-scope aliasFromConcrete:');
     eq('override concrete → alias', aliasFromConcrete(ov, 'v3_fx1'), 'cv_fx1');
     eq('foreign key sharing shape → null', aliasFromConcrete(ov, 'v3_lvl'), null);
     eq('main template still maps', aliasFromConcrete(ov, 'pv3_pwm'), 'cv_pwm');
+    /* padKeys entries are the module's OWN declared params, so they are NOT
+     * reverse-mapped: bd_c_tune validates as itself. Aliasing it to pad_pitch —
+     * a key 9W9 never declares — would purge every per-voice lane as stale. */
+    const tbl = { aliasPrefix: 'pad_', padKeys: { pitch: ['bd_c_tune', 'sd_c_tune'] } };
+    eq('padKeys key not reverse-mapped', aliasFromConcrete(tbl, 'bd_c_tune'), null);
+    eq('padKeys-only config, foreign key → null', aliasFromConcrete(tbl, 'p07_pan'), null);
 }
 
 /* ── automation: lane validation (purge stale / obsolete-alias lanes) ─────── */
@@ -438,6 +444,14 @@ _log('\nautomation validateLane:');
     eq('override send lane kept', validateLane('synth:v3_fx1', ovPs, ovLookup).max, 1);
     eq('direct concrete param kept', validateLane('synth:v3_lvl', ovPs, ovLookup).max, 1);
     eq('stale override-shaped lane dropped', validateLane('synth:v3_zzz', ovPs, ovLookup), 'drop');
+    // padKeys: the per-voice key is declared by the module, so its lane keeps
+    // its own range; the alias itself is still an obsolete lane target.
+    const tblPs = { aliasPrefix: 'pad_', padKeys: { pitch: ['bd_c_tune', 'sd_c_tune'] } };
+    const tblMeta = { bd_c_tune: { min: 0, max: 127, type: 'int' } };
+    const tblLookup = (k) => tblMeta[k] ?? null;
+    eq('per-voice lane kept', validateLane('synth:bd_c_tune', tblPs, tblLookup).max, 127);
+    eq('alias lane dropped', validateLane('synth:pad_pitch', tblPs, tblLookup), 'drop');
+    eq('undeclared voice key dropped', validateLane('synth:zz_c_tune', tblPs, tblLookup), 'drop');
 }
 
 /* ── automation: chain-mapping verify/re-apply after a module reload ──────── */

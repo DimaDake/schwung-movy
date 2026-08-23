@@ -116,8 +116,10 @@ export interface DrumConfig {
      * literal in code. */
     padScoping?: {
         aliasPrefix:         string;   // "pad_"
-        concreteKeyTemplate: string;   // "p{pad}_{suffix}"
-        padDigits:           number;   // 2
+        /* Template addressing: the pad NUMBER builds the key. Optional, because
+         * a padKeys-only config has no key shape to describe. */
+        concreteKeyTemplate?: string;  // "p{pad}_{suffix}"
+        padDigits?:          number;   // 2
         /* Per-suffix template overrides for params whose concrete keys follow a
          * different shape than the module's main template (Forge: sends/pan are
          * v{pad}_fx1, not pv{pad}_fx1 — only the v-form is host-automatable).
@@ -125,6 +127,20 @@ export interface DrumConfig {
          * (Forge: Kit A, 1-8); beyond it the main template applies, keeping the
          * param editable (not automatable) on the remaining pads. */
         suffixOverrides?: Record<string, { template: string; maxPad?: number }>;
+        /* TABLE addressing — the alternative to the template: each alias suffix
+         * lists its concrete key per pad, index 0 = pad 1.
+         *   padKeys: { pitch: ["bd_c_tune", "sd_c_tune", "ohh_pitch", ...] }
+         * Analog-drum modules (TR-909/606 clones) are one circuit per voice, so
+         * params are named after the VOICE and every voice has a different set —
+         * no template derives `ohh_pitch` from pad 8. Unlike the synthetic keys a
+         * template invents, these are the module's OWN declared params, so they
+         * need no alias in chain_params and automate by their own key (see
+         * aliasFromConcrete). One entry per pad; `null` means the voice has no
+         * such knob (a sampled cymbal has no Pitch Depth) — the knob then reads
+         * as unavailable and is inert, instead of showing the last pad's value.
+         * A pad past the end of the list falls back to the template, or stays
+         * unresolved when there is none. */
+        padKeys?: Record<string, (string | null)[]>;
     };
 }
 

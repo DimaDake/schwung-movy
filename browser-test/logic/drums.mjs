@@ -6,7 +6,7 @@
 
 import {
     MOCK_SYNTHS, drumPadOn, drumPadOff, fail, eq, bootModel,
-    _log, env, mockFsEntries,
+    _log, env, mockFsEntries, readFileSync,
 } from './harness.mjs';
 
 export async function run() {
@@ -337,6 +337,26 @@ _log('\nTest: pad-scope concreteKey');
   eq('override within maxPad', concreteKey(ov, 3, 'cv_fx1'), 'v3_fx1');
   eq('override past maxPad → main', concreteKey(ov, 9, 'cv_fx1'), 'pv9_fx1');
   eq('non-override suffix → main', concreteKey(ov, 3, 'cv_wave'), 'pv3_wave');
+
+  /* padKeys: voices named after the circuit, not the pad number. */
+  const tbl = { aliasPrefix: 'pad_', padKeys: { pitch: ['bd_c_tune', 'sd_c_tune', null] } };
+  eq('table pad 1', concreteKey(tbl, 1, 'pad_pitch'), 'bd_c_tune');
+  eq('table pad 2', concreteKey(tbl, 2, 'pad_pitch'), 'sd_c_tune');
+  // A listed null means "this voice has no such knob" → alias stays unresolved.
+  eq('listed null → unresolved', concreteKey(tbl, 3, 'pad_pitch'), 'pad_pitch');
+  eq('pad past list, no template → unresolved', concreteKey(tbl, 9, 'pad_pitch'), 'pad_pitch');
+  eq('unlisted suffix, no template → unresolved', concreteKey(tbl, 1, 'pad_decay'), 'pad_decay');
+  eq('non-alias passthrough', concreteKey(tbl, 1, 'master_drive'), 'master_drive');
+
+  // Both forms in one config: the table wins where it speaks, the template
+  // covers the rest — so a module can list its odd voices and template the rest.
+  const both = {
+    aliasPrefix: 'pad_', concreteKeyTemplate: 'p{pad}_{suffix}', padDigits: 2,
+    padKeys: { pitch: ['bd_c_tune'] },
+  };
+  eq('table wins over template', concreteKey(both, 1, 'pad_pitch'), 'bd_c_tune');
+  eq('past table end → template', concreteKey(both, 3, 'pad_pitch'), 'p03_pitch');
+  eq('unlisted suffix → template', concreteKey(both, 3, 'pad_vol'), 'p03_vol');
 }
 
 /* ── Mr Drums: focused-pad scoping ───────────────────────────────────────── */
@@ -398,6 +418,77 @@ _log('\nTest: weird-dreams per-voice scoping');
   eq('focus moved to voice 3', wd.getViewModel().drumCurrentPad, 3);
   eq('VOL re-read for v3 (0.33)', wd.getKnobParamInfo(0).value, 0.33);
   eq('ioKey follows focus to v3_vol', wd.getKnobParamInfo(0).ioKey, 'v3_vol');
+}
+
+/* ── 9W9: per-voice keys via padKeys ─────────────────────────────────────── */
+
+_log('\nTest: 9w9 padKeys per-pad addressing');
+{
+  /* 9W9 ships its own movy_config.json (canonical: athousanddetails/schwung-9W9,
+   * src/movy_config.json); serve the fixture snapshot the way module-configs
+   * does, since the logic harness stubs host_read_file to null. */
+  const savedRead = globalThis.host_read_file;
+  const layout = readFileSync(new URL('../fixtures/9w9-movy-config.json', import.meta.url), 'utf8');
+  globalThis.host_read_file = (p) => p.endsWith('/9w9/movy_config.json') ? layout : null;
+  const nw = bootModel(MOCK_SYNTHS.nw9, 0, 'synth');
+  globalThis.host_read_file = savedRead;
+  const vm = nw.getViewModel();
+  eq('9w9 is a drum module', vm.drumPadCount, 11);
+  eq('Voice bank is pad-specific', vm.isPadSpecific, true);
+
+  const at = (key) => [0, 1, 2, 3, 4, 5, 6, 7]
+      .find((k) => nw.getKnobParamInfo(k)?.key === key);
+  const pitch = at('pad_pitch'), decay = at('pad_decay'), drive = at('pad_drive');
+  eq('Voice bank knobs are on page 0', pitch !== undefined && decay !== undefined, true);
+
+  // Pad 1 = kick: the alias resolves to the kick circuit's own param.
+  eq('pad 1 pitch → bd_c_tune', nw.getKnobParamInfo(pitch).ioKey, 'bd_c_tune');
+  eq('pad 1 pitch value', nw.getKnobParamInfo(pitch).value, 10);
+  eq('pad 1 drive → bd_c_drive', nw.getKnobParamInfo(drive).ioKey, 'bd_c_drive');
+  eq('pad 1 drive automatable', nw.getKnobParamInfo(drive).automatable, true);
+
+  // A turn writes the voice's key — never the alias, which no DSP would accept.
+  const seen = [];
+  const origSet = globalThis.shadow_set_param;
+  globalThis.shadow_set_param = (sl, k, v) => { seen.push(k); return origSet(sl, k, v); };
+  nw.handleKnobDelta(pitch, 4);
+  nw.tick();
+  globalThis.shadow_set_param = origSet;
+  eq('edit writes bd_c_tune', seen.includes('synth:bd_c_tune'), true);
+  eq('edit never writes the alias', seen.includes('synth:pad_pitch'), false);
+
+  // Pad 2 = snare: same knob, a different circuit's key and value.
+  nw.updateDrumPad(2, 69);
+  eq('pad 2 pitch → sd_c_tune', nw.getKnobParamInfo(pitch).ioKey, 'sd_c_tune');
+  eq('pad 2 pitch value re-read', nw.getKnobParamInfo(pitch).value, 20);
+
+  // Pads 8 and 9 are ONE circuit with two decay knobs (closed / open hat) —
+  // the mapping a pad-number template cannot express in any form.
+  nw.updateDrumPad(8, 79);
+  eq('pad 8 decay → ohh_decay_closed', nw.getKnobParamInfo(decay).ioKey, 'ohh_decay_closed');
+  eq('pad 8 decay value', nw.getKnobParamInfo(decay).value, 81);
+  nw.updateDrumPad(9, 84);
+  eq('pad 9 decay → ohh_decay (same voice)', nw.getKnobParamInfo(decay).ioKey, 'ohh_decay');
+  eq('pad 9 decay value', nw.getKnobParamInfo(decay).value, 91);
+  eq('pad 9 pitch shares the voice key', nw.getKnobParamInfo(pitch).ioKey, 'ohh_pitch');
+
+  // The sampled hat has no Drive: unavailable, inert, and no automation dot —
+  // rather than showing the kick's value and writing to a key that isn't there.
+  const cell = (k) => { const vm2 = nw.getViewModel();
+      return vm2.rows[Math.floor(k / 4)]?.[k % 4]; };
+  eq('absent drive reads as unavailable', cell(drive)?.displayValue, '...');
+  eq('absent drive not automatable', nw.getKnobParamInfo(drive).automatable, false);
+  const seen2 = [];
+  globalThis.shadow_set_param = (sl, k, v) => { seen2.push(k); return origSet(sl, k, v); };
+  nw.handleKnobDelta(drive, 6);
+  nw.tick();
+  globalThis.shadow_set_param = origSet;
+  eq('absent drive writes nothing', seen2.length, 0);
+
+  // Back to a voice that has it: the knob comes alive again.
+  nw.updateDrumPad(1, 68);
+  eq('drive live again on pad 1', nw.getKnobParamInfo(drive).value, 12);
+  eq('drive displays again on pad 1', cell(drive)?.displayValue, '12');
 }
 
 /* ── drumPadOn / drumPadOff ──────────────────────────────────────────────── */

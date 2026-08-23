@@ -172,7 +172,13 @@ export function expandLayoutKeys(layout) {
         if (sc && p.key.startsWith(sc.aliasPrefix)) {
             const suffix = p.key.slice(sc.aliasPrefix.length);
             for (let pad = 1; pad <= (layout.drum.padCount || 0); pad++) {
-                const padStr = String(pad).padStart(sc.padDigits, '0');
+                /* Both addressing forms: a listed per-pad key, else the
+                 * template. An unresolved alias (no key on this pad) adds
+                 * nothing — it reaches no native param by design. */
+                const listed = sc.padKeys?.[suffix]?.[pad - 1];
+                if (listed) { keys.add(listed); continue; }
+                if (listed === null || !sc.concreteKeyTemplate) continue;
+                const padStr = String(pad).padStart(sc.padDigits ?? 0, '0');
                 keys.add(sc.concreteKeyTemplate.replace('{pad}', padStr).replace('{suffix}', suffix));
             }
         }

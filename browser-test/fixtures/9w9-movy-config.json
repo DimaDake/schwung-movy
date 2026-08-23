@@ -1,0 +1,581 @@
+{
+  "id": "9w9",
+  "name": "9W9",
+  "drum": {
+    "padCount": 11,
+    "padNoteStart": 36,
+    "rawMidi": false,
+    "padScoping": {
+      "aliasPrefix": "pad_",
+      "padKeys": {
+        "pitch": [
+          "bd_c_tune",
+          "sd_c_tune",
+          "lt_c_tune",
+          "mt_c_tune",
+          "ht_c_tune",
+          "rs_tune",
+          "hc_tune",
+          "ohh_pitch",
+          "ohh_pitch",
+          "cr_pitch",
+          "rc_pitch"
+        ],
+        "decay": [
+          "bd_c_decay",
+          "sd_c_decay",
+          "lt_c_decay",
+          "mt_c_decay",
+          "ht_c_decay",
+          "rs_decay",
+          "hc_decay",
+          "ohh_decay_closed",
+          "ohh_decay",
+          "cr_decay",
+          "rc_decay"
+        ],
+        "drive": [
+          "bd_c_drive",
+          "sd_c_drive",
+          "lt_c_drive",
+          "mt_c_drive",
+          "ht_c_drive",
+          "rs_saturation",
+          "hc_drive",
+          null,
+          null,
+          null,
+          null
+        ],
+        "dist": [
+          "bd_c_dist_type",
+          "sd_c_dist_type",
+          "lt_c_dist_type",
+          "mt_c_dist_type",
+          "ht_c_dist_type",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "level": [
+          "bd_c_level",
+          "sd_c_level",
+          "lt_c_level",
+          "mt_c_level",
+          "ht_c_level",
+          "rs_volume",
+          "hc_volume",
+          "ohh_volume",
+          "ohh_volume",
+          "cr_volume",
+          "rc_volume"
+        ]
+      }
+    }
+  },
+  "banks": [
+    {
+      "name": "Voice",
+      "padSpecific": true,
+      "rows": [
+        [
+          {
+            "key": "pad_pitch",
+            "short": "PITCH",
+            "full": "Pitch",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "pad_decay",
+            "short": "DECAY",
+            "full": "Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "pad_drive",
+            "short": "DRIVE",
+            "full": "Drive",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "pad_dist",
+            "short": "DIST",
+            "full": "Distortion",
+            "type": "enum",
+            "options": [
+              "Diode",
+              "Clip",
+              "Fold",
+              "Crush"
+            ]
+          },
+          {
+            "key": "pad_level",
+            "short": "LEVEL",
+            "full": "Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          null,
+          null,
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Kick",
+      "rows": [
+        [
+          {
+            "key": "bd_c_tune",
+            "short": "PITCH",
+            "full": "Pitch",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "bd_c_sweep_depth",
+            "short": "PDEP",
+            "full": "P. Depth",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "bd_c_sweep_time",
+            "short": "TUNE",
+            "full": "Tune",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "bd_c_attack",
+            "short": "ATTK",
+            "full": "Attack",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "bd_c_decay",
+            "short": "DECAY",
+            "full": "Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "bd_c_drive",
+            "short": "DRIVE",
+            "full": "Drive",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "bd_c_sub",
+            "short": "SUB",
+            "full": "Sub",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "bd_c_level",
+            "short": "LEVEL",
+            "full": "Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          }
+        ],
+        [
+          {
+            "key": "bd_c_tube",
+            "short": "TUBE",
+            "full": "Tube",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "bd_c_drift",
+            "short": "DRIFT",
+            "full": "Drift",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "bd_c_click_tone",
+            "short": "CLICK",
+            "full": "Click Tone",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "bd_c_dist_type",
+            "short": "DIST",
+            "full": "Distortion",
+            "type": "enum",
+            "options": [
+              "Diode",
+              "Clip",
+              "Fold",
+              "Crush"
+            ]
+          },
+          null,
+          null,
+          null,
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Snare",
+      "rows": [
+        [
+          {
+            "key": "sd_c_tune",
+            "short": "PITCH",
+            "full": "Pitch",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "sd_c_sweep_depth",
+            "short": "PDEP",
+            "full": "P. Depth",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "sd_c_snappy",
+            "short": "SNAPY",
+            "full": "Snappy",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "sd_c_noise_decay",
+            "short": "SNDCY",
+            "full": "Sn Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "sd_c_decay",
+            "short": "DECAY",
+            "full": "Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "sd_c_drive",
+            "short": "DRIVE",
+            "full": "Drive",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "sd_c_tune2",
+            "short": "SHEL2",
+            "full": "Shell 2",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "sd_c_level",
+            "short": "LEVEL",
+            "full": "Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Toms",
+      "rows": [
+        [
+          {
+            "key": "lt_c_tune",
+            "short": "LTPCH",
+            "full": "Low Pitch",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "lt_c_decay",
+            "short": "LTDCY",
+            "full": "Low Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "mt_c_tune",
+            "short": "MTPCH",
+            "full": "Mid Pitch",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "mt_c_decay",
+            "short": "MTDCY",
+            "full": "Mid Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "ht_c_tune",
+            "short": "HTPCH",
+            "full": "Hi Pitch",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "ht_c_decay",
+            "short": "HTDCY",
+            "full": "Hi Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "lt_c_level",
+            "short": "LTLVL",
+            "full": "Low Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "ht_c_level",
+            "short": "HTLVL",
+            "full": "Hi Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Perc",
+      "rows": [
+        [
+          {
+            "key": "rs_tune",
+            "short": "RMPCH",
+            "full": "Rim Pitch",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "rs_decay",
+            "short": "RMDCY",
+            "full": "Rim Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "rs_volume",
+            "short": "RMLVL",
+            "full": "Rim Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "hc_tune",
+            "short": "CPPCH",
+            "full": "Clap Pitch",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "hc_spread",
+            "short": "CPSPR",
+            "full": "Clap Sprd",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "hc_decay",
+            "short": "CPTL",
+            "full": "Clap Tail",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "hc_drive",
+            "short": "CPDRV",
+            "full": "Clap Drive",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "hc_volume",
+            "short": "CPLVL",
+            "full": "Clap Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Hats",
+      "rows": [
+        [
+          {
+            "key": "ohh_decay",
+            "short": "OPDCY",
+            "full": "Open Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "ohh_decay_closed",
+            "short": "CLDCY",
+            "full": "Closed Dcy",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "ohh_pitch",
+            "short": "HHPCH",
+            "full": "Hat Pitch",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "ohh_volume",
+            "short": "HHLVL",
+            "full": "Hat Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "rc_decay",
+            "short": "RDDCY",
+            "full": "Ride Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "rc_volume",
+            "short": "RDLVL",
+            "full": "Ride Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "cr_decay",
+            "short": "CRDCY",
+            "full": "Crash Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "cr_volume",
+            "short": "CRLVL",
+            "full": "Crash Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Master",
+      "rows": [
+        [
+          {
+            "key": "master_dist",
+            "short": "MDIST",
+            "full": "Master Dist",
+            "type": "enum",
+            "options": [
+              "Off",
+              "Diode",
+              "Clip",
+              "Fold",
+              "Crush"
+            ]
+          },
+          {
+            "key": "master_drive",
+            "short": "MDRV",
+            "full": "Master Drive",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "volume",
+            "short": "VOL",
+            "full": "Volume",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "accent",
+            "short": "ACNT",
+            "full": "Accent",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          null,
+          null,
+          null,
+          null
+        ]
+      ]
+    }
+  ]
+}

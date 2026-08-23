@@ -119,12 +119,16 @@ means from the balance measurement:
 
 Makespan 990 µs against a 2437 µs serial total — the partition alone predicts
 **2.46×**, and this set is unusually pinning-heavy: four of its eight modules
-appear twice. Measured 1091 µs, so **fan-out and preemption cost ~100 µs per
-block**.
+appear twice. Measured 1091 µs, so ~100 µs went somewhere this pricing does not
+see.
 
-That is ~5× the 21 µs the join-cost prototype measured for the mechanism in
-isolation. §6 takes that number apart; it is not yet known how much of it is
-overhead at all.
+**Every number in this section is priced with per-module means from a *different*
+run, and §6 shows that is exactly what makes it wrong.** Repacked against this
+run's own costs, the makespan is ~1090 µs rather than 990, the residue is ~47 µs
+rather than ~100, and the reason the lanes cost more than the balance
+measurement predicted is that *the chains themselves get 27% more expensive when
+rendered concurrently*. The table above is kept because it is what motivated D1;
+§6 is the measurement that replaces it.
 
 ## 5. Pinning is the floor, not the design
 
@@ -168,77 +172,119 @@ of modules confirmed clean, not a deny-list of the ones flagged — a module nob
 has checked must land in tier 2, where being wrong costs speed instead of
 correctness.
 
-## 6. The ~100 µs: what it might be, and what to do about it
+## 6. The ~100 µs was the wrong number *and* the wrong suspect
 
-**None of it is attributed yet, and two of the four candidates are not overhead
-at all.** `yielded=2106` says only that the audio thread reached the join first;
-it cannot say why.
+D1 has been run. **It refutes this section's original premise.** The gap is not
+~100 µs, and fan-out is not what it is made of. What was actually happening is
+that **the parallel arm does 27% more total work than the serial arm** — a loss
+six times larger than fan-out and imbalance put together, and one that was not on
+the candidate list at all.
 
-Four candidates:
+### How it is now measured
 
-1. **Partition error.** The 990 µs makespan above is computed from per-module
-   means taken in a *different run*, and the live planner packs a 1/16
-   exponential mean that lags. If the plan was simply worse than the one priced
-   here, that is not overhead and no amount of tuning the rendezvous touches it.
-2. **Fan-out latency** — the gap between `unpark` and a helper actually running.
-   The join-cost prototype put this at ~19 µs per helper at p50 and 240 µs at
-   max, and it is pure dead time: the audio thread has published work that nobody
-   is doing yet.
-3. **Preemption** by Move's FIFO 70 threads, which sit above the helpers' 68.
-   The frame-phase measurement found ~2.2 of 3 non-SPI cores idle *during* movy's
-   render window — Move's own workers run after it in the same callback — so this
-   should be small. That prediction has never been checked with helpers actually
-   running.
-4. **Lane 0 finishing early.** Lane 0 is 904 µs against lane 2's 990 µs, so the
-   audio thread waits ~86 µs. That is most of the gap on its own.
+`scripts/lib/render-accounting.mjs` turns the two log lines the benchmark already
+collects into an identity, so every loss is charged to exactly one line and the
+remainder is what is genuinely unexplained:
 
-**The 21 µs was never a prediction for this configuration.** In the standalone
-prototype, "main" was a pool thread among the others on cores 0-2, and the
-scheduler co-located a helper with it on 92% of frames. Here main is Move's SPI
-thread — **FIFO 90, pinned to core 3** — and the helpers are masked to 0-2. Every
-wake is now cross-core and the cache sharing is different. The number should be
-re-measured in situ before it is treated as a baseline.
+```
+serial_wall   = Σ cost_serial + residual        residual is the instrumentation error
+Σ cost_par    = Σ cost_serial + contention      same chains, more threads
+makespan      = max over lanes of Σ cost_par    what the packing delivers
+par_wall      = makespan + overhead             fan-out + join + preemption-at-the-edges
+```
 
-### Diagnosis, before any treatment
+The identity kills candidate 4 on sight. **A lane finishing early cannot be part
+of the rendezvous residue**, because the wall is set by the *last* lane to
+finish; lane 0 idling is already inside the makespan. It was misfiled, and the
+accounting is what caught it — `an early lane costs makespan, not overhead` in
+`browser-test/logic/partition.mjs` pins it so it cannot be refiled.
 
-- **D1 — separate partition error from overhead, for free.** The cost report
-  already carries this run's own per-chain costs. Repacking *those* and comparing
-  the resulting makespan against the measured `wall` splits candidate 1 from 2-4
-  using data already collected. This should be done first; it is arithmetic on an
-  existing log line.
-- **D2 — instrument the rendezvous in situ.** Timestamps at publish, at each
-  helper's first instruction, at each helper's last, and at join return. p50 and
-  p99. That splits fan-out (2) from preemption (3). Two clock reads per helper
-  per block, ~30 ns each.
+### What three runs say
 
-### Treatments, cheapest first
+| | run 1 | run 2 | run 3 |
+| --- | ---: | ---: | ---: |
+| serial wall | 2457.5 | 2511.4 | 2510.7 µs |
+| **contention** | **687.9** | **695.8** | **664.3 µs** |
+| imbalance (the plan) | 53.7 | 36.0 | 31.4 µs |
+| overhead (the rendezvous) | 44.6 | 48.0 | 50.2 µs |
+| timer residual | 4.6 | 4.7 | 4.8 µs |
+| speedup | 2.15× | 2.18× | 2.21× |
+| ceiling if the rendezvous were free | 2.23× | 2.28× | 2.31× |
 
-- **T1 — bias lane 0.** The planner treats all lanes as equal, but lane 0 is not:
-  it is already running and pays no wake cost, so it should be handed *more* work
-  than the helpers by roughly the fan-out latency. One line — start `lane_load[0]`
-  below zero instead of at zero. It targets candidate 4 directly, and candidate 4
-  looks like most of the gap.
-- **T2 — hoist the wake out of the critical path.** The helpers are unparked at
-  the start of the chain render, so their wake latency is dead time. movy does
-  sequencer work *before* chain render in the same callback. Publishing and
-  unparking at the top of `render_block`, with the helpers spinning briefly on a
-  "go" flag set when the chain render begins, overlaps the wake with work movy
-  has to do anyway. The plan is stable block to block, so most of the task list
-  is already known that early.
-- **T3 — spin instead of park.** The prototype measured 0.6 µs for a pure spin
-  against 21 µs for a futex wake, which is the single largest known lever — and
-  it is the wrong trade here. Blocks arrive every 2902 µs and the render takes
-  ~1091 µs, so a spinning helper burns a core for ~1800 µs of every frame,
-  starving the Move workers that run right after us. A *bounded* spin after
-  finishing a round does not help either: the next block is 1.8 ms away, far
-  past any sane spin budget. Recorded so it is not rediscovered as an idea.
-- **T4 — pin helpers to fixed cores** rather than the 0-2 mask. Already measured
-  in the join-cost prototype: it fixes p50 and wrecks p99. Don't.
-- **T5 — raise helper priority above Move's 70.** Would address candidate 3
-  directly and is the one thing `docs/REALTIME_SAFETY.md` forbids outright, with
-  commits (`8592be5c`, `25b72907`) removing exactly this mistake. Not available
-  without an upstream conversation, and that conversation needs D2's numbers
-  first.
+The residual is 0.2% of the serial wall, which is what makes the rest of the
+table worth reading: the per-chain timers really do add up to the wall.
+
+**Fan-out and the join cost ~47 µs, not ~100.** That is about 2× the standalone
+prototype's 21 µs, which is the expected direction — there "main" was a pool
+thread on cores 0-2 that the scheduler co-located with a helper on 92% of frames,
+and here main is the SPI thread at FIFO 90 on core 3, so every wake is
+cross-core. The mechanism is behaving as designed.
+
+**And it barely matters.** A *free* rendezvous would take this set from 2.21× to
+2.31×. T1 and T2 below are chasing, between them, about 0.1×.
+
+### Contention is the finding
+
+Per-chain render calls get 27% slower when two other cores are rendering. The
+timer brackets **only** the `render_block` call — `Instant::now()` immediately
+before, `elapsed()` immediately after, no park, no wake, no rendezvous
+(`render_pool.rs:226`) — so this is inside the module's own render, not around
+it.
+
+Two things inflate that timer and they are not the same problem: cache/memory
+contention, and being *descheduled mid-render* by one of Move's FIFO 70 workers.
+Per-lane inflation separates them for free, because **lane 0 is the audio thread
+— FIFO 90 on core 3 — and Move's workers cannot preempt it**, while the FIFO 68
+helpers can.
+
+Run 3 measured `1.28, 1.48, 1.10`, and lane 0 held **only helm in both halves of
+the window**, so its figure is the one the mid-window replan did not disturb:
+
+> **The unpreemptable lane still ran 28% slower.**
+
+So the bulk of it is memory, not scheduling. Three cores rendering big synths at
+once evict each other; helm, surge and obxd do not fit beside one another. The
+spread across lanes (1.10–1.48) may be preemption on top, or just different cache
+footprints per module — run 3's replan moved chains between lanes 1 and 2
+mid-window, so that spread is not yet attributable and should not be quoted.
+
+This is the one loss on the list that **no scheduling change can recover**. It is
+also, at ~0.6× of speedup, by far the largest.
+
+### Treatments, re-priced against the measurement
+
+- **T0 — measure 2 lanes against 3.** New, and now the obvious first move: if
+  contention is the dominant term, the third lane may be buying less than it
+  costs the other two. The balance measurement priced the 4th worker at 0.13×
+  assuming *no* contention; that assumption is now known to be wrong. One flag,
+  no new code.
+- **T1 — bias lane 0.** Targets imbalance, measured at **31–54 µs**. Still one
+  line (start `lane_load[0]` below zero, since lane 0 pays no wake cost), still
+  correct, but worth ~0.05× rather than "most of the gap". Demoted.
+- **T2 — hoist the wake out of the critical path**, overlapping it with the
+  sequencer tick movy does earlier in the same callback. Targets overhead,
+  measured at **~47 µs**. Bounded above by 0.10×. Demoted.
+- **T3 — spin instead of park.** Still a trap, and now visibly not worth it: it
+  chases the same ~47 µs while burning a core for ~1800 µs of every frame,
+  starving the Move workers that run right after us — *and* a spinning core is
+  itself a contention source, which is the term that actually dominates.
+- **T4 — pin helpers to fixed cores.** Already measured in the join-cost
+  prototype: fixes p50, wrecks p99. Don't.
+- **T5 — raise helper priority above Move's 70.** Aimed at preemption, which the
+  lane 0 result says is at most a minority of the inflation. `REALTIME_SAFETY.md`
+  forbids it outright, with commits (`8592be5c`, `25b72907`) removing exactly this
+  mistake. It was already off-limits; it is now also not the problem.
+
+### Still open
+
+- **D2 — instrument the rendezvous in situ** (timestamps at publish, each
+  helper's first and last instruction, and join return). Now much less
+  interesting: it would explain ~47 µs. Do it only if T0 says the rendezvous is
+  worth optimising after all.
+- **Attributing the inflation spread.** Needs a window shorter than the 1024-block
+  replan interval, or a pinned plan, so lane composition is fixed for the whole
+  measurement. The benchmark now warns when the plan moves under it and prints
+  both plans.
 
 ## 7. What this does NOT settle
 
@@ -253,8 +299,13 @@ re-measured in situ before it is treated as a baseline.
   enough. The 8 sounding chains here are plain synths, so the measurement did
   not exercise it.
 - **The lane count is fixed at 2 helpers** and the fourth worker was worth 0.13×
-  in the balance measurement, so this is the design point rather than a limit
-  that was tested here.
+  in the balance measurement — a pricing that assumed no contention, which §6
+  now shows is wrong. Whether 3 lanes even beats 2 is open (T0).
+- **The measured speedup moves with how much of the set is sounding.** The
+  headline 2.23× and the §6 runs (2.15–2.21×) are the same script on the same
+  modules; the §6 runs had 8–9 of 12 chains audible at sampling time. Both arms
+  see the same set, so the accounting holds, but the absolute figure is not
+  stable to a hundredth.
 - **`chparallel` is not persisted and defaults off.** It changes the "one
   thread, one at a time, in slot order" contract 93 module repos were written
   against.
@@ -264,16 +315,22 @@ re-measured in situ before it is treated as a baseline.
 
 ## 8. Next
 
-1. **D1 — repack this run's own per-chain costs.** Arithmetic on a log line
-   already collected, and it decides whether §6 is an overhead problem at all.
-   Nothing else in §6 is worth doing before it.
-2. **The serial/parallel equivalence oracle.** The one thing standing between a
-   measurement and a feature, and the gate on `chparallel` ever defaulting on.
-3. **T1 — bias lane 0**, if D1 says the gap is real overhead. One line, targets
-   the largest identified candidate.
-4. **Tier 1 of §5 — stop pinning clean duplicates.** Modest on a varied set,
-   decisive on twelve tracks of one module, where the current design returns
-   1.00×. Needs the confirmed-clean allow-list first.
-5. **§4 of the review, the MIDI-out rings** — the first hazard neither the
+D1 is done and it reordered this list. The rendezvous work it was gating (T1, T2)
+turns out to be worth ~0.1× between them, so it drops below everything else.
+
+1. **T0 — measure 2 lanes against 3.** Contention is the dominant loss and the
+   third lane is a contention source, so the design point itself is now in
+   question. One flag, no new code, and it re-prices the whole shape of the
+   feature.
+2. **The serial/parallel equivalence oracle.** Unchanged: the one thing standing
+   between a measurement and a feature, and the gate on `chparallel` ever
+   defaulting on.
+3. **Tier 1 of §5 — stop pinning clean duplicates.** Modest on a varied set
+   (imbalance is only 31–54 µs here), decisive on twelve tracks of one module,
+   where the current design returns 1.00×. Needs the confirmed-clean allow-list
+   first.
+4. **§4 of the review, the MIDI-out rings** — the first hazard neither the
    pinning nor the tiering covers, since two *different* modules emitting from
    render is enough.
+5. **T1 and T2**, together worth about 0.1×, and only if something above them
+   has not already changed the design.

@@ -92,4 +92,97 @@ export async function run() {
     eq('a zero makespan reports no speedup rather than Infinity', speedup(2400, 0), 0);
 }
 
+/* ── where a measured parallel block's time went ─────────────────────────── */
+{
+    _log('\npartition (render accounting):');
+    const { account, parseCostReport, parsePlan } =
+        await import('../../scripts/lib/render-accounting.mjs');
+
+    // A clean run: three lanes of 300/300/300, no contention, no overhead.
+    const clean = account({
+        serialWall: 900, serialCosts: [300, 300, 300],
+        parallelWall: 300, parallelCosts: [300, 300, 300],
+        plan: [[0], [1], [2]],
+    });
+    eq('the per-chain timers add up to the serial wall', clean.serialResidual, 0);
+    eq('perfect balance leaves no imbalance', clean.imbalance, 0);
+    eq('and no unexplained overhead', clean.overhead, 0);
+    eq('speedup is the wall ratio', clean.speedup, 3);
+
+    // THE CORRECTION. A lane finishing early cannot be part of the
+    // fan-out/preemption residue: the wall is set by the LAST lane, so lane 0
+    // idling is already inside the makespan. Plan §6 filed it as a candidate
+    // for the unattributed ~100us, which the identity here rules out.
+    const lopsided = account({
+        serialWall: 900, serialCosts: [200, 300, 400],
+        parallelWall: 400, parallelCosts: [200, 300, 400],
+        plan: [[0], [1], [2]],
+    });
+    eq('an early lane costs makespan, not overhead', lopsided.overhead, 0);
+    eq('it is charged to imbalance instead', lopsided.imbalance, 100);
+    eq('the makespan is the busiest lane', lopsided.makespan, 400);
+
+    // Real overhead is the residue AFTER the busiest lane is paid for.
+    const slow = account({
+        serialWall: 900, serialCosts: [300, 300, 300],
+        parallelWall: 400, parallelCosts: [300, 300, 300],
+        plan: [[0], [1], [2]],
+    });
+    eq('wall above the makespan is overhead', slow.overhead, 100);
+    eq('a free rendezvous would have reached the ceiling', slow.ceiling, 3);
+
+    // Work that got more expensive under threads is charged to contention, and
+    // is the one loss no scheduling change can recover.
+    const hot = account({
+        serialWall: 900, serialCosts: [300, 300, 300],
+        parallelWall: 360, parallelCosts: [360, 360, 360],
+        plan: [[0], [1], [2]],
+    });
+    eq('extra per-chain cost is contention', hot.contention, 180);
+    eq('and does not leak into overhead', hot.overhead, 0);
+    eq('even inflation across lanes reads as cache, not preemption',
+        hot.inflation.join(','), '1.2,1.2,1.2');
+
+    // The discriminator. Lane 0 is the audio thread at FIFO 90 on core 3, which
+    // Move's FIFO 70 workers cannot preempt; the FIFO 68 helpers can. A lane 0
+    // that stays flat while the helpers inflate is preemption, not bandwidth —
+    // and only one of those two is worth trying to schedule around.
+    const preempted = account({
+        serialWall: 900, serialCosts: [300, 300, 300],
+        parallelWall: 450, parallelCosts: [300, 450, 450],
+        plan: [[0], [1], [2]],
+    });
+    eq('an unpreemptable lane 0 stays at 1.0', preempted.inflation[0], 1);
+    eq('while the helpers show the hit', preempted.inflation.slice(1).join(','), '1.5,1.5');
+
+    // A lane with no serial cost must not divide by zero.
+    const idle = account({
+        serialWall: 300, serialCosts: [300, 0],
+        parallelWall: 300, parallelCosts: [300, 0],
+        plan: [[0], [1]],
+    });
+    eq('an empty lane reports 0 inflation, not NaN', idle.inflation[1], 0);
+
+    // Pinning shows up as one lane carrying a group. The ceiling must be
+    // computed from the lanes the PLAN has, not a fixed worker count — a lane
+    // the pool could not staff runs inline and never existed.
+    const pinned = account({
+        serialWall: 1200, serialCosts: [300, 300, 300, 300],
+        parallelWall: 600, parallelCosts: [300, 300, 300, 300],
+        plan: [[0, 1], [2], [3]],
+    });
+    eq('a pinned pair sets the makespan', pinned.makespan, 600);
+    eq('ideal is over the plan’s own lanes', pinned.ideal, 400);
+    eq('so pinning reads as imbalance', pinned.imbalance, 200);
+
+    // Parsing the real log lines. A trailing field appended after `cost=` would
+    // be read as a chain, so the shape is pinned here too.
+    const r = parseCostReport('chain cost: blocks=9 worst=5 wall=1091/1349 cost=10/20,30/40');
+    eq('wall mean parses', r.wallMean, 1091);
+    eq('per-chain means parse', r.costs.join(','), '10,30');
+    eq('lane plan parses', JSON.stringify(parsePlan('parallel=1 lanes=3 plan=4,2|7|1,9')),
+        '[[4,2],[7],[1,9]]');
+    eq('an empty plan is empty, not [NaN]', JSON.stringify(parsePlan('plan=')), '[]');
+}
+
 }

@@ -86,6 +86,32 @@ unsafe impl Sync for MidiOut {}
 
 pub static QUEUE: MidiOut = MidiOut::new();
 
+/// Serialises every test that touches `QUEUE`.
+///
+/// `QUEUE` is process-global by design — it is the one place a module's
+/// render-time MIDI is parked — and `cargo test` runs tests on concurrent
+/// threads, so two of them sharing it is a race between the tests, not in the
+/// code. It was a real intermittent: `render_pool`'s attribution test parks two
+/// messages and drains, while its neighbour drains the queue to clear it, so
+/// whichever ran second saw the other's messages already taken (`left: [69],
+/// right: [66, 69]`), roughly one run in eight.
+///
+/// Take it FIRST in any test that parks or drains, and drain once while holding
+/// it — a test that starts on someone else's leftovers is the same bug wearing
+/// the other hat.
+#[cfg(test)]
+pub static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// The lock, plus an emptied queue. Poisoning is deliberately ignored: a test
+/// that fails while holding it has already reported, and cascading every later
+/// test into a panic would bury which one actually broke.
+#[cfg(test)]
+pub fn test_guard() -> std::sync::MutexGuard<'static, ()> {
+    let g = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    QUEUE.drain(|_, _| {});
+    g
+}
+
 impl MidiOut {
     const fn new() -> Self {
         Self {
@@ -278,6 +304,7 @@ mod tests {
      * so rather than the `thread_local!` keyword. */
     #[test]
     fn the_scope_does_not_leak_across_threads() {
+        let _lock = test_guard();
         let _s = Scope::enter(5);
         std::thread::spawn(|| {
             assert!(QUEUE.park(&[0x09, 0x90, 60, 100], false).is_none());

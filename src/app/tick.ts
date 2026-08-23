@@ -1,9 +1,13 @@
 import { portFor } from '../track/registry.js';
-import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from './state.js';
+import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS } from './state.js';
 import { mainPageActive, mainPageState } from '../seq/main-page.js';
 import { buildMainPageVM } from '../seq/main-page-vm.js';
 import { clipPageActive, clipPageState } from '../seq/clip-page.js';
 import { buildClipPageVM } from '../seq/clip-page-vm.js';
+import { buildFlagsPageVM } from '../seq/flags-page-vm.js';
+import { FLAG_KNOB } from '../seq/flags-page.js';
+import { renderFlagsView } from '../renderer/flags-view.js';
+import { DEBUG_BUILD } from './debug.js';
 import { keyboardState, baseNoteFor, padMapFor } from '../keyboard/state.js';
 import { isSounding } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
@@ -17,7 +21,7 @@ import { renderKeysView }  from '../renderer/keys-view.js';
 import { renderBrowseView } from '../renderer/browse-view.js';
 import { renderChainView }    from '../renderer/chain-view.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
-import { updateKnobLEDs, resetKnobLedCache } from '../renderer/knob-leds.js';
+import { updateKnobLEDs, updateSingleKnobLED, resetKnobLedCache } from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
 import { drumSyncTick, resetDrumSync } from '../seq/drum-sync.js';
 import { syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull, verifyLaneMappings, requestLaneWarm, laneWarmTick } from '../seq/automation.js';
@@ -452,6 +456,12 @@ function tickBody(): void {
             const vm = buildClipPageVM();
             renderKnobsView(vm, false, appState.activeTrack.index);
             updateKnobLEDs(vm); // knobs 0-2 reflect value; 3-7 (null cells) off
+        } else if (DEBUG_BUILD && appState.currentView === VIEW_FLAGS) {
+            const vm = buildFlagsPageVM();
+            renderFlagsView(vm);
+            // Only knob 1 lights, and its brightness is the value — the page is
+            // a list, so the LED is the only thing saying which knob edits it.
+            updateSingleKnobLED(FLAG_KNOB, vm.knobNormalized);
         } else if (seqState.sessionMode) {
             const vm = masterModel!.getViewModel();
             if (appState.masterDetail) {

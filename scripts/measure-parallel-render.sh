@@ -65,11 +65,6 @@ for c in $(seq 0 $((CHAINS-1))); do
     ASSIGN+=("${MODULES[$((c % ${#MODULES[@]}))]}")
 done
 
-# Isolation is off by default and is decided AT LOAD TIME (the copy happens where
-# the chain host dlopens), so it has to be on before the chains exist. Arm D
-# below turns it off again to price what the copies bought.
-ep "chiso" "1"
-
 echo
 echo "loading ${CHAINS} chains:"
 for c in $(seq 0 $((CHAINS-1))); do
@@ -198,44 +193,43 @@ for N in $LANES; do
     account_arm "$N"
 done
 
-# D. What the copies bought.
+# D. What letting duplicates spread bought.
 #
-# `chiso 0` puts every duplicate back on one lane — it re-PINS them rather than
-# removing the pin, so the control arm is safe to run: two instances of one
-# module still never render at the same time. Existing copies stay on disk, so
-# flipping back costs nothing and the two arms differ only in the plan.
+# `chpin 1` puts every duplicate back on one lane, which is what movy did to all
+# of them before modules were assumed thread-safe (chain_pin). It is the safe
+# arm — pinned, two instances of one module never render at the same time — so
+# the pair prices exactly the assumption, and nothing else changes.
 #
 # On a set of twelve DIFFERENT modules this arm is a no-op and says so. It is
 # the degenerate set it exists for:
 #     ./scripts/measure-parallel-render.sh move.local helm
-# which pinned returns exactly 1.00x, because twelve chains of one module
-# collapse onto a single lane (render_plan::twelve_shared_chains_cannot_be_split).
+# which pinned returns exactly 1.00x, because twelve chains keyed alike collapse
+# onto a single lane (render_plan::twelve_chains_with_one_key_cannot_be_split).
 DUPS=$(printf '%s\n' "${ASSIGN[@]}" | sort | uniq -d | wc -l | tr -d ' ')
 if [ "$DUPS" -gt 0 ]; then
     LAST_N=${LANES##* }
     echo
-    echo "${BLD}D: isolation OFF — the same set with duplicates pinned ($LAST_N lanes)${RST}"
+    echo "${BLD}D: duplicates PINNED — the same set on one lane per module ($LAST_N lanes)${RST}"
     restrike_chord
-    ep "chiso" "0"
+    ep "chpin" "1"
     sleep 2
     read -r I_BLOCKS I_MEAN I_MAX I_SND I_COSTS <<<"$(sample)"
     IPLAN=$(read_plan)
     show_arm "$I_BLOCKS" "$I_SND" "$I_MEAN" "$I_MAX"
     echo "  $IPLAN"
-    ep "chiso" "1"
+    ep "chpin" "0"
     sleep 2
-    ONPLAN=$(read_plan)
-    # A copy that never happened reads as "isolation buys nothing" — a clean,
+    # A pin that never took reads as "spreading buys nothing" — a clean,
     # plausible, wrong answer, and the same failure family as the dropped engine
-    # writes this script already gates on. `copies=` is the engine saying it did
-    # the work, so the comparison is only meaningful when it is non-zero.
-    COPIES=$(printf '%s' "$ONPLAN" | sed -n 's/.*copies=\([0-9]*\).*/\1/p')
-    [ "${COPIES:-0}" = "0" ] && {
-        echo "${RED}WARNING: copies=0 with $DUPS duplicated module(s) — nothing was isolated,"
-        echo "  so the arms below differ only by noise. Check the log for 'iso ... failed'.${RST}"
+    # writes this script already gates on. `pinned=` is the engine saying the
+    # keys actually changed, so the comparison only means something above zero.
+    PINNED=$(printf '%s' "$IPLAN" | sed -n 's/.*pinned=\([0-9]*\).*/\1/p')
+    [ "${PINNED:-0}" = "0" ] && {
+        echo "${RED}WARNING: pinned=0 with $DUPS duplicated module(s) — nothing was pinned,"
+        echo "  so the arms below differ only by noise.${RST}"
     }
     awk -v off="$I_MEAN" -v on="$P_MEAN" -v b="$BLD" -v r="$RST" 'BEGIN{
-        printf "  %sisolation off %.1f us  ->  on %.1f us   %.2fx%s\n", b, off/1000, on/1000, (on? off/on : 0), r
+        printf "  %spinned %.1f us  ->  free %.1f us   %.2fx%s\n", b, off/1000, on/1000, (on? off/on : 0), r
     }'
 fi
 

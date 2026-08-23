@@ -12,8 +12,7 @@ mod chain_digest;
 mod midi_out;
 mod chain_host;
 mod chain_slots;
-mod module_iso;
-mod chain_iso;
+mod chain_pin;
 mod render_plan;
 mod render_pool;
 mod load_queue;
@@ -68,7 +67,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.43.0";
+const ENGINE_VERSION: &str = "0.44.0";
 
 /// Tracks backed by schwung's own shadow slots. Their notes go out as MIDI on
 /// the matching channel, exactly as before; everything above this index is a
@@ -160,41 +159,23 @@ impl Instance {
                 Ok(n) if n >= 1 => self.chains.set_lanes(n),
                 _ => host::log(&format!("chain mode: ignoring chlanes '{val}'")),
             },
-            /* `chpin <0|1>` — whether same-module chains share a lane. On by
-             * default, and `0` is deliberately unsafe: it is what lets two
-             * instances of one module render at once, which is both the thing
-             * §5's tiering wants to allow and the thing the oracle has never
-             * actually tested. Pinned, the race cannot happen, so a pass says
-             * nothing about it. Never persisted; pointless unless `chparallel`
-             * is on, since serial render has one thread either way. */
+            /* `chpin <0|1>` — pin EVERY duplicated module to one lane, not just
+             * the blacklisted ones. Off by default, because modules are assumed
+             * thread-safe (chain_pin). It is the blunt containment for a set
+             * that misbehaves before anyone knows which module is at fault, and
+             * the conservative arm of a measurement. Pointless unless
+             * `chparallel` is on, since serial render has one thread either
+             * way. */
             "chpin" => {
                 self.chains.set_pin_duplicates(val != "0" && !val.is_empty());
             }
-            /* `chiso <0|1>` — whether a duplicated module gets a private copy of
-             * its `.so`, so two chains holding it stop sharing its statics.
-             *
-             * OFF by default, like `chparallel`, and it must be set BEFORE the
-             * chains load: the copy happens at load time, because that is where
-             * the chain host dlopens. Serial render has no race for it to fix,
-             * and a second independent mapping is not universally safe — `helm`
-             * takes MoveOriginal down inside the second dlopen while the same
-             * two chains sharing one mapping are fine (chain_iso). `0` is also
-             * the CONTROL arm, and a safe one: it re-pins every duplicate onto
-             * one lane rather than letting it race. */
-            "chiso" => {
-                self.chains.set_iso(val != "0" && !val.is_empty());
-            }
-            /* `chcanary <0|1>` — whether a module that crashed a previous
-             * isolated load is refused isolation. ON by default, and `0` is
-             * deliberately unsafe: the verdict is written by a single crash and
-             * there is no other way to ask whether it still holds, so testing
-             * one means re-arming it. The RECORD is untouched either way — a
-             * crash under the override still condemns the module, and since
-             * this is never persisted, a device that went down comes back with
-             * the canary on and a marker to obey. Like `chiso`, it decides what
-             * the next load does, so it must be set BEFORE the chains load. */
-            "chcanary" => {
-                self.chains.set_canary(val != "0" && !val.is_empty());
+            /* `chblock <csv>` — modules proven to race, whose instances all go
+             * back on one lane. Replaces the list wholesale, so an empty value
+             * clears it. The UI sends it from prefs.json on every engine boot;
+             * unlike the flags this is a hazard list, so it is policy the user
+             * adds to when a module misbehaves rather than a tuning knob. */
+            "chblock" => {
+                self.chains.set_blacklist(val);
             }
             /* `chdigest [blocks]` — run the equivalence oracle: strike a fixed
              * chord on every loaded chain, checksum exactly `blocks` blocks of

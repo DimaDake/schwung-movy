@@ -49,6 +49,7 @@ import { run as run_loop_window } from './logic/loop-window.mjs';
 import { run as run_tracks_refs } from './logic/tracks-refs.mjs';
 import { run as run_tracks_chain } from './logic/tracks-chain.mjs';
 import { run as run_partition } from './logic/partition.mjs';
+import { run as run_flags } from './logic/flags.mjs';
 
 /* Awaited one at a time: the suites share the mock device globals, and the
  * expected output is a fixed transcript, so they must not interleave. */
@@ -92,6 +93,7 @@ const SUITES = [
     run_tracks_refs,
     run_tracks_chain,
     run_partition,
+    run_flags,
 ];
 
 for (const suite of SUITES) await suite();

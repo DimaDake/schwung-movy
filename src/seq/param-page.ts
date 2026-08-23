@@ -16,29 +16,34 @@
  * on screen" the same fact: being open IS `currentView`, so no path can move
  * the view and leave a page latched (see the note in main-page.ts). */
 
-import { appState, VIEW_CHAIN, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from '../app/state.js';
+import { appState, VIEW_CHAIN, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS } from '../app/state.js';
 import { clearMainPage } from './main-page.js';
 import { clearClipPage } from './clip-page.js';
+import { clearFlagsPage } from './flags-page.js';
+import { DEBUG_BUILD } from '../app/debug.js';
 
 export const paramPageState = {
     origin: VIEW_CHAIN as number,   // view to restore when the layer is left
 };
 
-/** True while either param page is on screen. */
+/** True while any of the three param pages is on screen. */
 export function paramPageActive(): boolean {
     return appState.currentView === VIEW_MAIN_PARAMS
-        || appState.currentView === VIEW_CLIP_PARAMS;
+        || appState.currentView === VIEW_CLIP_PARAMS
+        || appState.currentView === VIEW_FLAGS;
 }
 
-/** Show `view` (VIEW_MAIN_PARAMS or VIEW_CLIP_PARAMS). Re-pressing the gesture
- *  for the page already up is a no-op, so it cannot reset a knob mid-turn. */
+/** Show `view` (VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS or VIEW_FLAGS). Re-pressing
+ *  the gesture for the page already up is a no-op, so it cannot reset a knob
+ *  mid-turn. */
 export function openParamPage(view: number): void {
     if (appState.currentView === view) return;
-    // Only the FIRST entry records an origin; opening the sibling replaces the
+    // Only the FIRST entry records an origin; opening a sibling replaces the
     // page without deepening the hierarchy.
     if (!paramPageActive()) paramPageState.origin = appState.currentView;
     clearMainPage();
     clearClipPage();
+    if (DEBUG_BUILD) clearFlagsPage();
     appState.currentView = view;
 }
 
@@ -46,6 +51,7 @@ export function openParamPage(view: number): void {
 export function closeParamPage(): number {
     clearMainPage();
     clearClipPage();
+    if (DEBUG_BUILD) clearFlagsPage();
     appState.currentView = paramPageState.origin;
     return paramPageState.origin;
 }

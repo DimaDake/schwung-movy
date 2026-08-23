@@ -9,6 +9,7 @@ export const VIEW_CHAIN       = 3;
 export const VIEW_FILE_BROWSE = 4;
 export const VIEW_MAIN_PARAMS = 6;
 export const VIEW_CLIP_PARAMS = 7;
+export const VIEW_FLAGS       = 8;   // Global Params (debug builds only)
 
 export interface FileBrowserItem {
     name:  string;

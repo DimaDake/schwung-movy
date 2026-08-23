@@ -12,7 +12,7 @@
 use crate::chain_cost::CostMeter;
 use crate::chain_digest::{ChainDigest, STIMULUS};
 use crate::chain_host::{ChainHost, ChainInstance};
-use crate::chain_iso::IsoPolicy;
+use crate::chain_pin::PinPolicy;
 use crate::ffi::MOVE_MIDI_SOURCE_INTERNAL;
 use crate::host;
 use crate::load_queue::{LoadQueue, LoadRequest};
@@ -59,11 +59,10 @@ pub struct ChainSlots {
     /// concurrently need somewhere disjoint to write, and the mix has to happen
     /// after the join anyway. 12 x 512 bytes.
     scratch: Vec<Vec<i16>>,
-    /// Which chains hold a module through the file another chain is also using,
-    /// and therefore must not render beside it. Owned by `IsoPolicy`, which
-    /// gives every duplicate a private copy first and only reports what it could
-    /// not isolate — see `chain_iso`.
-    iso: IsoPolicy,
+    /// Which chains must share a lane. Modules are assumed thread-safe, so this
+    /// is empty unless a module is blacklisted or `chpin` is on — see
+    /// `chain_pin`.
+    pin: PinPolicy,
     /// Set once the host has been tried and failed, so a broken install is not
     /// retried on every block.
     host_failed: bool,
@@ -114,8 +113,8 @@ pub struct ChainSlots {
     /// Which slots are loaded, as the planner wants it. A field rather than a
     /// local because replanning happens on the audio thread.
     loaded: Vec<bool>,
-    /// Keep same-module chains on one lane. On by default; turning it off is a
-    /// measurement instrument, not a tuning knob — see `render_plan`.
+    /// Keep same-module chains on one lane. OFF by default: modules are assumed
+    /// thread-safe and the ones proven otherwise go on `chain_pin`'s blacklist.
     pin_duplicates: bool,
     /// The equivalence oracle: what each chain rendered, not what it cost.
     /// Idle until `chdigest` arms it.
@@ -134,7 +133,7 @@ impl ChainSlots {
             mixes: vec![TrackMix::default(); MOVY_CHAINS],
             queue: LoadQueue::new(),
             scratch: vec![vec![0i16; SCRATCH_SAMPLES]; MOVY_CHAINS],
-            iso: IsoPolicy::new(MOVY_CHAINS),
+            pin: PinPolicy::new(MOVY_CHAINS),
             host_failed: false,
             module_dir: String::new(),
             audible: vec![false; MOVY_CHAINS],
@@ -150,7 +149,7 @@ impl ChainSlots {
             blocks_since_plan: 0,
             plan_generation: u32::MAX,
             loaded: vec![false; MOVY_CHAINS],
-            pin_duplicates: true,
+            pin_duplicates: false,
             digest: ChainDigest::new(MOVY_CHAINS),
         }
     }
@@ -201,59 +200,28 @@ impl ChainSlots {
         host::log(&format!("chain mode: lanes={lanes}"));
     }
 
-    /// Whether same-module chains still share a lane.
-    ///
-    /// Turning this off removes the only thing standing between two instances
-    /// of one module and a genuine data race on its file-scope state, so it is
-    /// never persisted and never on by default. It is here because the oracle
-    /// cannot otherwise produce evidence about that race: with duplicates
-    /// pinned, the case it is meant to test never occurs.
+    /// Pin EVERY duplicate to one lane, not just the blacklisted ones.
     ///
     /// Unlike `set_lanes` this does not touch the pool, so it is cheap — but it
     /// must still force a replan, or the flag flips while the assignment it
     /// changes stays exactly as it was for up to `REPLAN_BLOCKS`, and an arm
-    /// that believes it split the duplicates measures the pinned plan instead.
+    /// that believes it pinned the duplicates measures the split plan instead.
     pub fn set_pin_duplicates(&mut self, pin: bool) {
         if pin == self.pin_duplicates {
             return;
         }
         self.pin_duplicates = pin;
+        self.pin.set_pin_all(pin);
         self.plan_generation = u32::MAX;
         host::log(&format!("chain mode: pin_duplicates={}", pin as u8));
     }
 
-    /// Whether a duplicated module gets a private copy of its `.so`.
-    ///
-    /// Off by default and set before the chains load, since the copy happens at
-    /// load time. Off is also the control arm for the measurement this exists
-    /// for: it makes every position report itself shared, so the planner pins
-    /// duplicates onto one lane exactly as it did before isolation existed.
-    /// Copies already on disk are left alone — a pinned chain cannot race
-    /// whatever it is holding, so turning this off is always safe, and turning
-    /// it back on does not re-copy.
-    ///
-    /// Like `set_pin_duplicates` it must force a replan: the flag it changes is
-    /// only read when the plan is rebuilt, and an arm that believed it had
-    /// re-pinned would otherwise measure the isolated plan for up to
-    /// `REPLAN_BLOCKS`.
-    pub fn set_iso(&mut self, on: bool) {
-        if on == self.iso.enabled() {
-            return;
-        }
-        self.iso.set_enabled(on);
+    /// Modules proven to race, whose instances all go back on one lane. Forces
+    /// a replan for the same reason `set_pin_duplicates` does — the keys it
+    /// rewrites are only read when the plan is rebuilt.
+    pub fn set_blacklist(&mut self, csv: &str) {
+        self.pin.set_blacklist(csv);
         self.plan_generation = u32::MAX;
-        host::log(&format!("chain mode: iso={}", on as u8));
-    }
-
-    /// No replan: the canary decides what the NEXT load does, and a chain
-    /// already running keeps the mapping it loaded with, so the current plan is
-    /// still the true one.
-    pub fn set_canary(&mut self, on: bool) {
-        if on == self.iso.canary() {
-            return;
-        }
-        self.iso.set_canary(on);
-        host::log(&format!("chain mode: canary={}", on as u8));
     }
 
     /// `parallel=<0|1> lanes=<n> late=<blocks> plan=<lane0>|<lane1>|...`
@@ -265,20 +233,18 @@ impl ChainSlots {
             .map(|l| l.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(","))
             .collect::<Vec<_>>()
             .join("|");
-        // `pin`, `iso` and `copies` are reported because the harness cannot
+        // `pin`, `blocked` and `pinned` are reported because the harness cannot
         // infer any of them: a set with no duplicated module plans identically
-        // however they are set, so an arm that meant to split duplicates — or to
-        // isolate them — and did not looks exactly like one that did. `copies`
-        // is the count that separates "isolation was on" from "isolation had
-        // nothing to do".
+        // however they are set, so an arm that meant to pin duplicates and did
+        // not looks exactly like one that did. `pinned` is the count that
+        // separates "pinning was on" from "pinning had nothing to do".
         format!(
-            "parallel={} lanes={} pin={} iso={} canary={} copies={} yielded={} plan={}",
+            "parallel={} lanes={} pin={} blocked={} pinned={} yielded={} plan={}",
             self.parallel as u8,
             self.lanes.len(),
             self.pin_duplicates as u8,
-            self.iso.enabled() as u8,
-            self.iso.canary() as u8,
-            self.iso.copies(),
+            self.pin.blacklist_len(),
+            self.pin.pinned(),
             self.pool.as_ref().map_or(0, |p| p.joins_yielded_blocks()),
             plan
         )
@@ -288,7 +254,6 @@ impl ChainSlots {
     /// copy of its `dsp.so`. Called once, from a param set — never from render.
     pub fn configure(&mut self, module_dir: &str, so_path: &str) {
         self.module_dir = module_dir.to_string();
-        self.iso.configure(module_dir);
         if self.host.is_some() || self.host_failed {
             return;
         }
@@ -373,22 +338,12 @@ impl ChainSlots {
         if self.slots[req.slot].is_none() {
             // First load into this slot materialises the chain. An empty slot
             // never gets here, which is what keeps empty chains free.
-            /* Its OWN module tree, so two chains on one module stop sharing
-             * that module's statics — the chain host resolves every sub-module
-             * relative to this string (chain_iso / module_iso). Falls back to
-             * schwung's own directory if the tree cannot be built. */
-            let dir = self.iso.module_dir_for(req.slot, &self.module_dir);
-            match hostref.create_instance(&dir) {
+            match hostref.create_instance(&self.module_dir) {
                 Some(inst) => self.slots[req.slot] = Some(inst),
                 None => return,
             }
         }
-        /* BEFORE the module param, which is where the chain host dlopens: the
-         * private copy has to exist by then or the load resolves to the shared
-         * file and the isolation is a no-op that reports success. */
-        let t_iso = std::time::Instant::now();
-        self.iso.on_load(req.slot, &req.component, &req.module);
-        let iso_ms = t_iso.elapsed().as_millis();
+        self.pin.on_load(req.slot, &req.component, &req.module);
         let t_set = std::time::Instant::now();
         if let Some(inst) = self.slots[req.slot].as_mut() {
             inst.set_param(&format!("{}:module", req.component), &req.module);
@@ -404,20 +359,13 @@ impl ChainSlots {
          * device test has nothing else to assert on. */
         self.generation = self.generation.wrapping_add(1);
         /* The load path IS the audio thread, so every millisecond here is a
-         * dropped frame. Split three ways because they fail differently: the
-         * isolation copy is a WRITE, the module set is a blocking dlopen (a
-         * read), and the instance creation is neither. A number that only ever
-         * appears as a total cannot say which one to fix. */
-        /* The chain host's dlopen returned, so an isolated module survived being
-         * mapped a second time. Anything that does NOT reach this line has taken
-         * the process with it, which is exactly what the armed marker records. */
-        self.iso.load_survived();
+         * dropped frame — and this one is a blocking dlopen, which is the
+         * expensive half of opening a set. Logged rather than assumed, because
+         * a dropout nobody recorded is indistinguishable from a threading bug
+         * in whatever measurement follows it. */
         let set_ms = t_set.elapsed().as_millis();
-        if iso_ms + set_ms >= 20 {
-            host::log(&format!(
-                "chain {}: load blocked {} ms (iso {} + module {})",
-                req.slot, iso_ms + set_ms, iso_ms, set_ms
-            ));
+        if set_ms >= 20 {
+            host::log(&format!("chain {}: load blocked {} ms", req.slot, set_ms));
         }
         host::log(&format!(
             "chain {}: {} = {}",
@@ -637,7 +585,7 @@ impl ChainSlots {
         for (i, s) in self.slots.iter().enumerate() {
             self.loaded[i] = s.is_some();
         }
-        self.planner.plan(self.iso.pin_keys(), self.cost.plan_ns(), &self.loaded, self.pin_duplicates);
+        self.planner.plan(self.pin.pin_keys(), self.cost.plan_ns(), &self.loaded);
     }
 
     /// Per-chain render cost since the last call — see `CostMeter::report`.
@@ -663,7 +611,7 @@ impl ChainSlots {
         for a in self.audible.iter_mut() {
             *a = false;
         }
-        self.iso.clear();
+        self.pin.clear();
         // Costs belong to instances that no longer exist — including the ones
         // the planner would otherwise reuse to assign lanes to a different set.
         self.cost.reset_all();
@@ -770,26 +718,41 @@ mod tests {
         assert!(slots.parallel, "one lane is still the parallel path");
     }
 
-    /* Splitting duplicates is the oracle's stimulus, so the ways it can fail
-     * quietly matter more than the ways it can fail loudly: an arm that thinks
-     * it split them and did not reports a pass for a race it never ran. */
+    /* Pinning is containment, so the ways it can fail quietly matter more than
+     * the ways it can fail loudly: a set that thinks it pinned a racing module
+     * and did not sounds exactly like one that had nothing to pin. */
 
     #[test]
-    fn unpinning_forces_a_replan_rather_than_waiting_for_one() {
+    fn pinning_forces_a_replan_rather_than_waiting_for_one() {
         let mut slots = ChainSlots::new();
         slots.plan_generation = slots.generation;
         slots.blocks_since_plan = 0;
-        slots.set_pin_duplicates(false);
+        slots.set_pin_duplicates(true);
         assert_eq!(slots.plan_generation, u32::MAX,
             "the plan the flag changes must be rebuilt before the next block, not in 512");
+    }
+
+    /// The blacklist rewrites the same keys `chpin` does, so it needs the same
+    /// replan — a module blacklisted mid-set must stop racing THIS block, not in
+    /// `REPLAN_BLOCKS`.
+    #[test]
+    fn blacklisting_forces_a_replan_too() {
+        let mut slots = ChainSlots::new();
+        slots.plan_generation = slots.generation;
+        slots.set_blacklist("helm");
+        assert_eq!(slots.plan_generation, u32::MAX);
     }
 
     #[test]
     fn the_report_says_which_pinning_an_arm_ran_under() {
         let mut slots = ChainSlots::new();
-        assert!(slots.render_report().contains("pin=1"), "pinned is the default");
-        slots.set_pin_duplicates(false);
-        assert!(slots.render_report().contains("pin=0"));
+        assert!(slots.render_report().contains("pin=0"), "free is the default now");
+        assert!(slots.render_report().contains("blocked=0"));
+        slots.set_pin_duplicates(true);
+        slots.set_blacklist("helm,obxd");
+        let r = slots.render_report();
+        assert!(r.contains("pin=1"), "{r}");
+        assert!(r.contains("blocked=2"), "the blacklist is reported too: {r}");
     }
 
     #[test]

@@ -44,6 +44,21 @@ import {
     PREFS_PATH, FACTORY_DEFAULT_QUANT,
 } from '../../dist/esm/seq/prefs.js';
 import {
+    FLAGS, flagDef, clampFlag, flagValueLabel, flagNormalized,
+} from '../../dist/esm/seq/flags-def.js';
+import {
+    flagValue, setFlag, applyFlagsToEngine, resetFlags,
+} from '../../dist/esm/seq/flags.js';
+import {
+    flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
+} from '../../dist/esm/seq/flags-page.js';
+import { buildFlagsPageVM } from '../../dist/esm/seq/flags-page-vm.js';
+import { VISIBLE_ROWS, firstVisibleRow } from '../../dist/esm/renderer/flags-view.js';
+import { readPrefFlags, writePrefFlag, readPrefModuleBlacklist } from '../../dist/esm/seq/prefs.js';
+import { DEBUG_BUILD } from '../../dist/esm/app/debug.js';
+import { openParamPage, closeParamPage, paramPageActive } from '../../dist/esm/seq/param-page.js';
+import { VIEW_FLAGS, VIEW_CHAIN, VIEW_MAIN_PARAMS } from '../../dist/esm/app/state.js';
+import {
     armQuantOverlay, quantOverlayActive, quantOverlayTickAt, quantOverlayJog,
     quantOverlayAction, buildQuantOverlayVM, dismissQuantOverlay, resetQuantOverlay,
 } from '../../dist/esm/seq/quant-overlay.js';
@@ -187,6 +202,13 @@ export {
     readUiBlob, writeStateBlob, resetStoreRotation, shadowPath, keyboardState, quantCandidates,
     nextQuantCandidate, quantIndexForPct, candidateIndex, readPrefDefaultQuant, writePrefDefaultQuant,
     readPrefFileDir, writePrefFileDir, PREFS_PATH,
+    FLAGS, flagDef, clampFlag, flagValueLabel, flagNormalized,
+    flagValue, setFlag, applyFlagsToEngine, resetFlags,
+    flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
+    buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
+    readPrefModuleBlacklist,
+    DEBUG_BUILD, openParamPage, closeParamPage, paramPageActive,
+    VIEW_FLAGS, VIEW_CHAIN, VIEW_MAIN_PARAMS,
     FACTORY_DEFAULT_QUANT, armQuantOverlay, quantOverlayActive, quantOverlayTickAt, quantOverlayJog, quantOverlayAction,
     buildQuantOverlayVM, dismissQuantOverlay, resetQuantOverlay, installMockEngine, uninstallMockEngine, pushEntry,
     popUndo, pushRedo, canUndo, canRedo, undoDepth, retractEntry,

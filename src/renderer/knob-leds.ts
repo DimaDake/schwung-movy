@@ -66,3 +66,21 @@ export function updateKnobLEDs(vm: ViewModel): void {
         }
     }
 }
+
+/** Light exactly one knob at `nv` (0..1) and darken the other seven.
+ *
+ *  For pages whose controls are not a 2x4 grid of params — the Global Params
+ *  flags list drives one knob and scrolls with the jog. Two things at once:
+ *  the brightness carries the value, and being the ONLY lit knob is what says
+ *  which knob the page is on. Goes through the same `lastKnobColor` diff as the
+ *  grid above, so leaving this page relights the grid rather than inheriting a
+ *  stale cache. */
+export function updateSingleKnobLED(knob: number, nv: number): void {
+    for (let k = 0; k < 8; k++) {
+        const color = k === knob ? whiteLevel(nv) : 0;
+        if (lastKnobColor[k] === color) continue;
+        lastKnobColor[k] = color;
+        setLED(k, color, true);
+        setButtonLED(MoveKnob1 + k, color, true);
+    }
+}

@@ -20,6 +20,7 @@ export const CC_MUTE = 88;
 /* Shifted step functions, 0-indexed. Here rather than in router.ts because the
  * quantize overlay's input classifier needs the same list, and router.ts
  * imports that overlay — reading them from router would be a module cycle. */
+export const STEP_FLAGS = 1;         // Shift+Step 2  — Global Params (debug only)
 export const STEP_CLIP_PARAMS = 2;   // Shift+Step 3  — Clip Params page
 export const STEP_METRO = 5;         // Shift+Step 6  — Metronome
 export const STEP_FULL_VEL = 9;      // Shift+Step 10 — Full Velocity
@@ -34,7 +35,7 @@ export const MAIN_PAGE_STEPS: Record<number, number> = { 4: 0, 6: 0, 8: 0 };
  * build-dsp.sh fails the build when they diverge. The UI re-issues the DSP
  * load until ping returns this exact version (fixes the fire-and-forget
  * load race and stale engines after redeploy). */
-export const ENGINE_VERSION = '0.43.0';
+export const ENGINE_VERSION = '0.44.0';
 export const ENGINE_DSP_PATH = '/data/UserData/schwung/modules/tools/movy/dsp.so';
 
 /* Where the engine finds schwung's chain host, and where it may keep its own

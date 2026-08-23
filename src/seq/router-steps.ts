@@ -4,12 +4,13 @@
  * what it dispatches to. */
 
 import { mlog } from '../log.js';
-import { appState, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from '../app/state.js';
+import { appState, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS } from '../app/state.js';
+import { DEBUG_BUILD } from '../app/debug.js';
 import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
 import { beginGesture } from '../undo/edit.js';
 import { trackLabel } from '../undo/label.js';
 import {
-    NUM_STEP_BUTTONS, MAIN_PAGE_STEPS, STEP_CLIP_PARAMS, STEP_METRO,
+    NUM_STEP_BUTTONS, MAIN_PAGE_STEPS, STEP_CLIP_PARAMS, STEP_FLAGS, STEP_METRO,
     STEP_FULL_VEL, STEP_DOUBLE_LOOP, STEP_QUANTIZE,
 } from './constants.js';
 import { openParamPage } from './param-page.js';
@@ -112,6 +113,15 @@ export function handleStepButton(button: number, on: boolean, shiftHeld: boolean
 function shiftStepFunction(step: number): void {
     if (step in MAIN_PAGE_STEPS) {
         openParamPage(VIEW_MAIN_PARAMS);
+        appState.dirty = true;
+        return;
+    }
+    /* Global Params. Gated HERE rather than in the renderer: a release build
+     * must have no way to reach the view at all, or the gate merely turns the
+     * page into a blank screen with no way out. `DEBUG_BUILD` is a build-time
+     * literal, so this whole branch leaves the release bundle. */
+    if (DEBUG_BUILD && step === STEP_FLAGS) {
+        openParamPage(VIEW_FLAGS);
         appState.dirty = true;
         return;
     }

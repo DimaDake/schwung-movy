@@ -40,12 +40,13 @@ CHAINS=12
 # Blocks per window. ~344 blocks/s, so 512 is ~1.5 s of audio: long enough for a
 # rare race to land inside it, short enough that most of it is not decay.
 BLOCKS="${BLOCKS:-512}"
-# PIN=0 stops the planner keeping same-module chains on one lane, which is the
-# ONLY way this run says anything about duplicates. Pinned, two instances of a
-# module never render at once, so the hazard the pinning exists to prevent is
-# not in the experiment — and the run still prints green. Default stays 1 so the
-# normal run keeps measuring the configuration movy would actually ship.
-PIN="${PIN:-1}"
+# PIN=0 lets same-module chains land on different lanes, which is the ONLY way
+# this run says anything about duplicates: pinned, two instances of a module
+# never render at once, so the hazard is not in the experiment — and the run
+# still prints green. It is now the DEFAULT, because it is also what movy ships
+# (chain_pin: modules are assumed thread-safe). PIN=1 re-pins everything, which
+# is the arm that prices what the assumption bought.
+PIN="${PIN:-0}"
 # Generous: the window itself is ~1.5 s and the log read is a round trip behind.
 WINDOW_WAIT=6
 # Between arms, so the previous arm's release tails do not bleed into the next
@@ -68,6 +69,9 @@ ASSIGN=()
 for c in $(seq 0 $((CHAINS-1))); do
     ASSIGN+=("${MODULES[$((c % ${#MODULES[@]}))]}")
 done
+# Whether the set contains a module twice at all — the verdict's duplicate guard
+# asks about siblings and must not fire on a set that has none.
+DUPS=$(printf '%s\n' "${ASSIGN[@]}" | sort | uniq -d | wc -l | tr -d ' ')
 
 echo
 echo "chain assignment:"
@@ -139,7 +143,7 @@ A2=$(arm "A': serial again — the control, second half" 0)
 # Leave the device as it was found: the engine releases its own chord, but the
 # mode is a session setting and a later benchmark must not inherit it.
 ep "chparallel" "0"
-ep "chpin" "1"
+ep "chpin" "0"
 
 # Shape check, not just emptiness. The scorer splits on "," and "/" and will
 # happily score whatever it is handed, so a digest with anything else in it
@@ -186,12 +190,14 @@ elif [ "$PASS" -eq 0 ]; then
     echo "${YEL}${BLD}INCONCLUSIVE: no chain was reproducible enough to compare.${RST}"
     echo "  The oracle proved nothing. Do not read this as equivalence."
     exit 1
-elif [ "$PIN" = "0" ] && [ "$RACED" -eq 0 ]; then
-    # PIN=0 was asked for, so the question was specifically about duplicates —
-    # and no passing chain actually had a sibling on another lane. Whatever this
-    # run proved, it did not prove that. Failing here rather than printing the
-    # generic PASS is the difference between the unpinned experiment and the
-    # pinned one it would otherwise be indistinguishable from.
+elif [ "$PIN" = "0" ] && [ "$DUPS" -gt 0 ] && [ "$RACED" -eq 0 ]; then
+    # The set HAS duplicates and they were free to spread, so the question was
+    # specifically about them — and no passing chain actually had a sibling on
+    # another lane. Whatever this run proved, it did not prove that. Failing
+    # here rather than printing the generic PASS is the difference between the
+    # unpinned experiment and the pinned one it would otherwise be
+    # indistinguishable from. Gated on DUPS because a set of twelve DIFFERENT
+    # modules has no sibling to race and is not trying to answer this.
     echo "${YEL}${BLD}INCONCLUSIVE: unpinned, but no passing chain raced a sibling.${RST}"
     echo "  No two instances of one module landed on different lanes, so the"
     echo "  duplicate hazard was never exercised. Check the plan line above."

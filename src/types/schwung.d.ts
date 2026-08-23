@@ -109,3 +109,8 @@ declare global {
     var tick:                  (() => void)            | undefined;
     var onMidiMessageInternal: ((data: number[]) => void) | undefined;
 }
+
+/** Substituted by esbuild (`define`), never by the runtime — so a `false` here
+ *  removes the debug-only branches from the bundle rather than skipping them.
+ *  See build/device.mjs and src/app/debug.ts. */
+declare const __MOVY_DEBUG__: boolean;

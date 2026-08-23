@@ -91,6 +91,7 @@ await esbuild.build({
         resolve(root, 'src/app/leave-modal.ts'),
         resolve(root, 'src/app/jog-hint.ts'),
         resolve(root, 'src/app/perf-probe.ts'),
+        resolve(root, 'src/app/debug.ts'),
         resolve(root, 'src/chain/config.ts'),
         resolve(root, 'src/lfo/params.ts'),
         resolve(root, 'src/lfo/model.ts'),
@@ -171,6 +172,11 @@ await esbuild.build({
         resolve(root, 'src/seq/quant.ts'),
         resolve(root, 'src/seq/prefs.ts'),
         resolve(root, 'src/seq/quant-overlay.ts'),
+        resolve(root, 'src/seq/flags-def.ts'),
+        resolve(root, 'src/seq/flags.ts'),
+        resolve(root, 'src/seq/flags-page.ts'),
+        resolve(root, 'src/seq/flags-page-vm.ts'),
+        resolve(root, 'src/renderer/flags-view.ts'),
         resolve(root, 'src/renderer/value-row.ts'),
         resolve(root, 'src/renderer/quant-overlay.ts'),
     ],
@@ -190,6 +196,9 @@ await esbuild.build({
             }));
         },
     }],
+    /* Tests exercise the debug-only surfaces, so they build with the gate ON —
+     * a suite that compiled them out would assert nothing about them. */
+    define:    { __MOVY_DEBUG__: 'true' },
     outdir:    resolve(root, 'dist/esm'),
     outbase:   resolve(root, 'src'),
     format:    'esm',

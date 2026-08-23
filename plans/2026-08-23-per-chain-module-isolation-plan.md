@@ -1,5 +1,15 @@
 # Per-chain module isolation: give every duplicate its own `dsp.so`
 
+> **REVERTED 2026-08-23.** Isolation crashed on device with `helm` for a reason
+> nobody established (§5), so the copying is gone: `module_iso.rs`,
+> `chain_iso.rs`, `chiso` and `chcanary` are all deleted. Modules are assumed
+> thread-safe, and the ones proven otherwise go on a blacklist that puts every
+> instance back on one lane — the fallback this plan already had. See
+> `2026-08-23-flags-page-and-iso-revert.md` §1.
+>
+> The document is kept because §5's findings are the evidence for that decision
+> and cost a working day to get. What did NOT survive is the mechanism.
+
 Implements decision **DECIDED 2026-08-23** in
 `2026-08-23-parallel-render-prototype.md` §5, using the mechanism proven in
 `2026-08-22-module-isolation.md` §2. This is item 3 of that plan's §8 list and

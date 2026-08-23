@@ -11,6 +11,44 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
+## [Unreleased]
+
+### Added
+
+- **Global Params page** (Shift+Step 2, **debug builds only**). The runtime
+  chain-render flags as a scrolling list with their values: jog scrolls, knob 1
+  edits, and knob 1's LED brightness carries the value. Unlike the other two
+  param pages this is a list rather than one knob per parameter, so it can grow
+  past eight entries — public parameters are the intended destination.
+
+  The flags are now **persistent** (`prefs.json`, machine-level like the
+  quantize default) and have readable names. They used to reset on every engine
+  load, which is right for a measurement instrument and wrong for a setting.
+  They are re-applied on every engine boot, since a re-dlopened engine is a
+  brand new one that has never heard of them.
+
+  `scripts/build-module.sh` builds the store tarball with the gate off and
+  asserts the substituted constant, so the page cannot reach a release by
+  accident.
+
+### Changed
+
+- **Modules are assumed thread-safe under parallel chain render.** Duplicated
+  modules are no longer pinned to a single lane by default, so twelve tracks of
+  one instrument can actually divide across lanes. Containment for a module that
+  turns out to race is a **blacklist** (`moduleBlacklist` in `prefs.json`) that
+  puts all its instances back together; `chpin 1` still pins every duplicate as
+  the blunt fallback. This is deliberately optimistic — nothing has been measured
+  racing, but nothing has been proven safe either, and `chparallel` remains off
+  by default.
+
+### Removed
+
+- **Per-chain module isolation** (`chiso`, `chcanary`, the `.movy-iso` trees).
+  Giving each duplicate a private copy of its `.so` took MoveOriginal down with
+  `helm`, inside the second `dlopen`, for a reason that was never established —
+  and it did not reproduce outside MoveOriginal. The blacklist above replaces it.
+
 ## [0.29.0] — 2026-08-22
 
 ### Added

@@ -352,6 +352,7 @@ mod tests {
      * audio would show it. */
     #[test]
     fn a_send_from_inside_a_task_is_attributed_to_that_task_s_chain() {
+        let _lock = crate::midi_out::test_guard();
         let pool = RenderPool::new(1, CHAINS);
         let mk = |chain: usize| Task {
             render: sends_midi,
@@ -372,6 +373,7 @@ mod tests {
      * goes straight on to the mix and then to movy's own engine sends. */
     #[test]
     fn the_attribution_does_not_outlive_the_task() {
+        let _lock = crate::midi_out::test_guard();
         let pool = RenderPool::new(0, CHAINS);
         pool.render_block(&[vec![Task {
             render: sends_midi,

@@ -18,6 +18,7 @@ import { CHAIN_MODULE_DIR, ENGINE_DSP_PATH, ENGINE_VERSION, MOVY_MODULE_DIR } fr
 import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, seqState, sessionFromStr } from './state.js';
 import { rationalToIdx } from './clip-scale.js';
 import { markUiStateDirty } from './ui-dirty.js';
+import { applyFlagsToEngine } from './flags.js';
 import { resetPadRoute, syncPadRoute } from '../track/pad-route.js';
 
 /* -1 until the first poll: the opening value is not a change, and treating it
@@ -194,6 +195,12 @@ function probeTick(): void {
          * is a brand new one that has never been told. Refreshing the private
          * copy and dlopening the chain host both happen inside this set, off
          * the render path. */
+        /* Before `chain_host`, which is where the chains start existing: the
+         * flags decide how they render, and a lane count that arrives after the
+         * pool has been built for the old one costs a rebuild. Every boot, not
+         * once — a re-dlopened engine has default flags and has never heard of
+         * prefs.json. */
+        applyFlagsToEngine(engineSet);
         engineSet('chain_host', CHAIN_MODULE_DIR + '|' + MOVY_MODULE_DIR);
         /* A re-dlopened engine has no pad map; believing otherwise would leave
          * the pads dead until something happened to change the mapping. */

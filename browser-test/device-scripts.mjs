@@ -275,8 +275,16 @@ ok('a run where nothing was comparable exits non-zero',
    /INCONCLUSIVE/.test(eqSrc) && /PASS" -eq 0/.test(eqSrc),
    'zero differences out of zero comparisons is not equivalence');
 ok('an unpinned run that raced nothing exits non-zero too',
-   /PIN" = "0" \] && \[ "\$RACED" -eq 0/.test(eqSrc),
+   /PIN" = "0" \] && \[ "\$DUPS" -gt 0 \] && \[ "\$RACED" -eq 0/.test(eqSrc),
    'PIN=0 asks about duplicates; zero races cannot answer it');
+/* ...but only when the set HAS duplicates. Unpinned is the default now (movy
+ * assumes modules are thread-safe), and the default module list is twelve
+ * DIFFERENT modules — nothing to race. Without the DUPS gate the ordinary run
+ * would exit INCONCLUSIVE every time, which reads as a broken oracle rather
+ * than as a set that was never asking the duplicate question. */
+ok('DUPS is computed from the assignment, not assumed',
+   /DUPS=\$\(printf .*uniq -d/.test(eqSrc),
+   'the gate needs a real count or it never fires');
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 

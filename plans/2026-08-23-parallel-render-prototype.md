@@ -591,3 +591,100 @@ The serial path takes the same `Scope`, but note what it is for: serial has one
 thread by definition, so its scope buys **ordering parity**, not safety. The
 safety-critical site is `run`, and that is the one under test — under parallel
 every lane, the audio thread's included, goes through it.
+
+
+---
+
+## 11. What schwung could change once movy's parallel render is real
+
+Every item below is **blocked on us, not on Charles.** The standing rule from
+`2026-08-21-parallel-chain-render-schwung-review.md` is that upstream stays
+off-limits until there is an in-situ measurement inside the real `render_block`
+— §6 and §9 are now most of that measurement, but `chparallel` is still off by
+default and a prototype is not an argument. This section exists so the list is
+written down while the reasons are fresh, not so it can be acted on today.
+
+The framing matters, and it is the opposite of the obvious one. The tempting ask
+is *"document a rule that new modules must not send MIDI from render"*. That is
+the weakest option available: it is unenforceable, its failure mode is invisible,
+and it would make 93 repos give up an ability that is perfectly legal in
+schwung's own single-threaded host — to pay for a movy-only feature. Everything
+below is instead a small change that **removes** a workaround movy is carrying,
+and costs module authors nothing.
+
+Ordered by how much movy code each one deletes.
+
+### 1. Make the two MIDI-out senders multi-producer
+
+`midi_send_internal` and `midi_send_external` are single-producer;
+`midi_inject_to_move` beside them is a proper bounded MPSC (Vyukov
+per-slot-sequence, `shadow_constants.h:520`). **schwung has already solved this
+exact problem once** — the other two simply never got the same treatment.
+
+If they did, movy deletes `midi_out.rs` outright, *and* the vtable copy in
+`chain_host.rs` that exists only to host the wrappers, *and* the exact-mirror
+requirement §10 had to impose on `ffi.rs`. This is by far the largest deletion
+on the list, and the change upstream is small and self-contained.
+
+### 2. Put a size field in `host_api_v1_t`
+
+The chain host already forwards a copy of the host vtable — `chain_host.c:82`
+is `memcpy(&inst->subplugin_host_api, g_host, sizeof(host_api_v1_t))` plus four
+overridden members. Movy now does the same thing one level up, and §10 is
+literally the same pattern.
+
+The difference is that the chain host compiles against the header it is copying,
+so it cannot truncate. Movy mirrors the struct by hand and can. A `struct_size`
+member (or a `host_api_v1_copy()` helper) would let any forwarding host copy
+**by size** and patch the two early, stable pointers — which retires the
+exact-mirror coupling and the test that guards it, even if item 1 never lands.
+
+### 3. Make `chain_get_clock_status`'s refresh gate atomic
+
+Review §2, still the sharpest single finding. `chain_refresh_clock_output_enabled`
+does `fopen` + `malloc` behind a **non-atomic** one-second gate
+(`chain_midi.c:85`), on the render path, in a `dsp.so` all twelve movy chains
+share. 12 fleet modules reach it, and it is part of why the planner has to pin
+same-module chains to one lane.
+
+An atomic gate — or hoisting the read off the render path — shrinks movy's
+pinning list, which is exactly what §8 item 3 (twelve tracks of one module
+returning 1.00×) is blocked on.
+
+### 4. Give the chain host a per-instance `g_host`
+
+`move_plugin_init_v2` assigns a **file-global** `g_host` (`chain_host.c:2082`).
+Since dlopen dedups by realpath, movy initialising it would overwrite the pointer
+schwung's own four slots share — which is the entire reason `chain_copy.rs`
+exists and byte-copies the chain host's `dsp.so`.
+
+Per-instance storage would retire the chain-host copy. Note it does **not**
+retire module-level isolation: `2026-08-22-module-isolation.md` found 6 modules
+whose own file-scope statics need separating regardless, and that copy stays.
+
+### 5. Fix the stale comment at `shadow_midi.c:740`
+
+It still claims the inject ring is "Same-thread as the drain … so no extra
+synchronization is needed". That has not been true since the ring became MPSC,
+and it is precisely the sentence someone auditing this path would read and
+believe. Documentation only, zero risk, and it cost this project real time.
+
+### 6. Sanction a helper-thread priority band
+
+Movy's workers sit at FIFO 68 by inference: `docs/REALTIME_SAFETY.md` forbids
+being at or above Move's FIFO 70 and cites two commits that removed exactly that
+mistake, but it does not sanction anything below. A stated band would turn
+movy's guess into a contract.
+
+**This is the one item that is gated hardest**, because arguing for it means
+arguing that movy runs modules on several threads — which is the whole thing the
+in-situ-measurement rule is holding back. It is also the item T5 sits behind.
+
+### 7. An off-thread loader
+
+Schwung's residual 2.6 (review §8) is already building one. It is the natural
+home for warming movy's copy cache, which `2026-08-22-module-isolation.md` §6
+flags as the one unanswered question in per-chain `module_dir`: a copy must never
+happen on the audio thread, and movy has no non-audio thread of its own.
+
+Nothing to ask for here beyond making sure movy's need is visible when it lands.

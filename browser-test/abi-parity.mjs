@@ -26,13 +26,19 @@ function ok(label, cond) {
     else { _log(`  \x1b[31m✗\x1b[0m ${label}`); failures++; }
 }
 
-/* The reference repo is a sibling checkout, not a dependency. A guard that
- * silently passes when it cannot run is worse than no guard, so say so loudly. */
+/* The reference repo is a sibling checkout, not a dependency — so this used to
+ * print a loud SKIPPED and exit 0, which made `npm test` green while the check
+ * had not run. That was survivable while the mirror was only READ from. It is
+ * not any more: `chain_host.rs` hands the chain host a copy of the mirrored
+ * struct, so a mirror that has silently fallen behind the header is a wild
+ * function pointer called on the audio thread. A guard that can switch itself
+ * off protects exactly nothing, so a missing checkout is now a failure. */
 const HEADER = '/Users/dake/git/cld/schwung/src/host/plugin_api_v1.h';
 if (!existsSync(HEADER)) {
-    _log('\x1b[33m\x1b[1mSKIPPED — schwung checkout not found at ' + HEADER + '\x1b[0m');
-    _log('\x1b[33mThe ABI drift check did NOT run.\x1b[0m');
-    process.exit(0);
+    _log('\x1b[31m\x1b[1mCANNOT RUN — schwung checkout not found at ' + HEADER + '\x1b[0m');
+    _log('\x1b[31mThe Rust mirror in ffi.rs is COPIED into the chain host, so it must be');
+    _log('checked against the real header. Clone schwung there, then re-run.\x1b[0m');
+    process.exit(1);
 }
 
 /* Commit the mirror was last verified against, so a failure says what to diff. */

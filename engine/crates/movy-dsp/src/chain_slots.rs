@@ -14,6 +14,8 @@ use crate::chain_host::{ChainHost, ChainInstance};
 use crate::host;
 use crate::load_queue::{LoadQueue, LoadRequest};
 use crate::mixer::{mix_into, TrackMix};
+use crate::render_plan::Planner;
+use crate::render_pool::{RenderPool, Task};
 
 /// Chains movy hosts itself: tracks 4..15 (design §1).
 pub const MOVY_CHAINS: usize = 12;
@@ -22,13 +24,29 @@ pub const MOVY_CHAINS: usize = 12;
 /// happen on the audio thread.
 const SCRATCH_SAMPLES: usize = 128 * 2;
 
+/// Helper threads beside the audio thread. Three lanes total is the design
+/// point: `plans/2026-08-22-chain-balance-measurement.md` measured 2.98x there
+/// against a 3.11x ceiling, and a fourth worker was worth 0.13x.
+const HELPERS: usize = 2;
+
+/// Blocks between replans. The plan follows measured cost, which only exists
+/// after chains have rendered, so it cannot be fixed at load time — but
+/// repartitioning every block would move chains between lanes on noise. ~3 s.
+const REPLAN_BLOCKS: u32 = 1024;
+
 pub struct ChainSlots {
     host: Option<ChainHost>,
     /// `None` until something is loaded — this is the "empty costs nothing" rule.
     slots: Vec<Option<ChainInstance>>,
     mixes: Vec<TrackMix>,
     queue: LoadQueue,
-    scratch: Vec<i16>,
+    /// One output buffer per chain, not one shared buffer: two chains rendering
+    /// concurrently need somewhere disjoint to write, and the mix has to happen
+    /// after the join anyway. 12 x 512 bytes.
+    scratch: Vec<Vec<i16>>,
+    /// Synth module id per chain. The planner keeps same-module chains on one
+    /// lane, so it needs to know which chains those are.
+    modules: Vec<String>,
     /// Set once the host has been tried and failed, so a broken install is not
     /// retried on every block.
     host_failed: bool,
@@ -60,6 +78,22 @@ pub struct ChainSlots {
     /// the largest single chain, and nothing else here can see a distribution —
     /// `peaks` says a chain is audible, not what it cost.
     cost: CostMeter,
+    /// Off by default. Parallel chain render is a prototype: it changes the
+    /// implicit "one thread, one at a time, in slot order" contract that 93
+    /// module repos were written against, so it is opted into per session and
+    /// measured, never assumed.
+    parallel: bool,
+    pool: Option<RenderPool>,
+    planner: Planner,
+    /// Per-lane task lists, refilled in place each block — pushing into a `Vec`
+    /// within its capacity does not allocate, and nothing may allocate here.
+    lanes: Vec<Vec<Task>>,
+    blocks_since_plan: u32,
+    /// Chain-set generation the current plan was built for.
+    plan_generation: u32,
+    /// Which slots are loaded, as the planner wants it. A field rather than a
+    /// local because replanning happens on the audio thread.
+    loaded: Vec<bool>,
 }
 
 impl ChainSlots {
@@ -73,7 +107,8 @@ impl ChainSlots {
             slots,
             mixes: vec![TrackMix::default(); MOVY_CHAINS],
             queue: LoadQueue::new(),
-            scratch: vec![0i16; SCRATCH_SAMPLES],
+            scratch: vec![vec![0i16; SCRATCH_SAMPLES]; MOVY_CHAINS],
+            modules: vec![String::new(); MOVY_CHAINS],
             host_failed: false,
             module_dir: String::new(),
             audible: vec![false; MOVY_CHAINS],
@@ -81,7 +116,45 @@ impl ChainSlots {
             generation: 0,
             active_last_block: 0,
             cost: CostMeter::new(MOVY_CHAINS),
+            parallel: false,
+            pool: None,
+            planner: Planner::new(MOVY_CHAINS, HELPERS + 1),
+            lanes: (0..HELPERS + 1).map(|_| Vec::with_capacity(MOVY_CHAINS)).collect(),
+            blocks_since_plan: 0,
+            plan_generation: u32::MAX,
+            loaded: vec![false; MOVY_CHAINS],
         }
+    }
+
+    /// Turn parallel chain render on or off. Spawning the helpers is deferred to
+    /// the first enable so a session that never asks for it never pays for the
+    /// threads — and so a device measurement can A/B the same running set.
+    pub fn set_parallel(&mut self, on: bool) {
+        if on && self.pool.is_none() {
+            self.pool = Some(RenderPool::new(HELPERS, MOVY_CHAINS));
+        }
+        self.parallel = on;
+        // The next block replans: a plan built for one lane is wrong for three.
+        self.plan_generation = u32::MAX;
+        host::log(&format!("chain render: {}", if on { "parallel" } else { "serial" }));
+    }
+
+    /// `parallel=<0|1> lanes=<n> late=<blocks> plan=<lane0>|<lane1>|...`
+    pub fn render_report(&self) -> String {
+        let plan = self
+            .planner
+            .lanes
+            .iter()
+            .map(|l| l.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(","))
+            .collect::<Vec<_>>()
+            .join("|");
+        format!(
+            "parallel={} lanes={} yielded={} plan={}",
+            self.parallel as u8,
+            self.lanes.len(),
+            self.pool.as_ref().map_or(0, |p| p.joins_yielded_blocks()),
+            plan
+        )
     }
 
     /// Point the slots at schwung's chain module directory and movy's private
@@ -177,6 +250,13 @@ impl ChainSlots {
                 None => return,
             }
         }
+        if req.component == "synth" {
+            /* The planner groups chains by module, and the module id is not
+             * readable back from the chain host cheaply enough to ask for it on
+             * the render path. Recorded here, where loads already overrun. */
+            self.modules[req.slot].clear();
+            self.modules[req.slot].push_str(&req.module);
+        }
         if let Some(inst) = self.slots[req.slot].as_mut() {
             inst.set_param(&format!("{}:module", req.component), &req.module);
             /* Immediately after the module exists, and before anything else can
@@ -252,16 +332,27 @@ impl ChainSlots {
         if self.host.is_none() {
             return;
         }
-        let frames = out.len().min(self.scratch.len());
-        let mut active = 0usize;
-        for i in 0..MOVY_CHAINS {
-            let Some(inst) = self.slots[i].as_mut() else { continue };
-            active += 1;
-            let scratch = &mut self.scratch[..frames];
-            let t0 = self.cost.start();
-            inst.render_block(scratch);
-            self.cost.stop(t0, i);
+        let frames = out.len().min(SCRATCH_SAMPLES);
 
+        // Render every chain into its own buffer, in parallel or not. The mix is
+        // deliberately NOT part of this: summing after the join keeps the output
+        // in slot order, so parallel and serial produce the same samples rather
+        // than the same samples in whatever order the lanes finished.
+        let t0 = self.cost.start();
+        let active = if self.parallel_ready() {
+            self.render_parallel(frames)
+        } else {
+            self.render_serial(frames)
+        };
+        if active > 0 {
+            self.cost.add_wall(t0.elapsed().as_nanos() as u64);
+        }
+
+        for i in 0..MOVY_CHAINS {
+            if self.slots[i].is_none() {
+                continue;
+            }
+            let scratch = &self.scratch[i][..frames];
             let peak = scratch.iter().fold(0i32, |m, &s| m.max((s as i32).abs()));
             self.peaks[i] = peak;
             if !self.audible[i] && peak > 0 {
@@ -274,6 +365,75 @@ impl ChainSlots {
             self.cost.end_block();
         }
         self.active_last_block = active;
+    }
+
+    fn parallel_ready(&self) -> bool {
+        self.parallel && self.pool.as_ref().is_some_and(|p| !p.is_poisoned())
+    }
+
+    fn render_serial(&mut self, frames: usize) -> usize {
+        let mut active = 0usize;
+        for i in 0..MOVY_CHAINS {
+            let Some(inst) = self.slots[i].as_mut() else { continue };
+            active += 1;
+            let t0 = self.cost.start();
+            inst.render_block(&mut self.scratch[i][..frames]);
+            self.cost.stop(t0, i);
+        }
+        active
+    }
+
+    fn render_parallel(&mut self, frames: usize) -> usize {
+        self.maybe_replan();
+
+        for l in self.lanes.iter_mut() {
+            l.clear();
+        }
+        let mut active = 0usize;
+        for lane in 0..self.planner.lanes.len() {
+            for idx in 0..self.planner.lanes[lane].len() {
+                let c = self.planner.lanes[lane][idx];
+                let Some((render, inst)) = self.slots[c].as_mut().and_then(|s| s.raw_render())
+                else {
+                    continue;
+                };
+                active += 1;
+                self.lanes[lane].push(Task {
+                    render,
+                    inst,
+                    buf: self.scratch[c].as_mut_ptr(),
+                    frames: (frames / 2) as i32,
+                    chain: c,
+                });
+            }
+        }
+
+        if let Some(pool) = self.pool.as_ref() {
+            pool.render_block(&self.lanes);
+            // Costs are timed on whichever lane ran the chain — the audio thread
+            // cannot bracket a call it did not make.
+            for c in 0..MOVY_CHAINS {
+                if self.slots[c].is_some() {
+                    self.cost.add_ns(c, pool.cost_ns(c));
+                }
+            }
+        }
+        active
+    }
+
+    /// Rebuild the lane assignment when the chain set changes, and periodically
+    /// as measured costs settle. Allocation-free — see `render_plan::Planner`.
+    fn maybe_replan(&mut self) {
+        self.blocks_since_plan += 1;
+        if self.plan_generation == self.generation && self.blocks_since_plan < REPLAN_BLOCKS {
+            return;
+        }
+        self.plan_generation = self.generation;
+        self.blocks_since_plan = 0;
+        for (i, s) in self.slots.iter().enumerate() {
+            self.loaded[i] = s.is_some();
+        }
+        self.planner.plan(&self.modules, self.cost.plan_ns(), &self.loaded);
     }
 
     /// Per-chain render cost since the last call — see `CostMeter::report`.
@@ -299,8 +459,13 @@ impl ChainSlots {
         for a in self.audible.iter_mut() {
             *a = false;
         }
-        // Costs belong to instances that no longer exist.
-        self.cost.reset();
+        for m in self.modules.iter_mut() {
+            m.clear();
+        }
+        // Costs belong to instances that no longer exist — including the ones
+        // the planner would otherwise reuse to assign lanes to a different set.
+        self.cost.reset_all();
+        self.plan_generation = u32::MAX;
     }
 }
 

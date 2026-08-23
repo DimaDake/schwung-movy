@@ -192,7 +192,20 @@ impl ChainInstance {
             unsafe { f(self.inst, out.as_mut_ptr(), (out.len() / 2) as c_int) };
         }
     }
+
+    /// The raw entry point, for the render pool to call from a helper thread.
+    ///
+    /// Handing out the function pointer and instance rather than a `&mut self`
+    /// keeps the pool free of any view into chain state, so its safety argument
+    /// is about a partition of pointers and nothing else. `&mut self` because
+    /// this is still an exclusive claim on the instance for the round.
+    pub fn raw_render(&mut self) -> Option<(RenderFn, *mut c_void)> {
+        self.api.render_block.map(|f| (f, self.inst))
+    }
 }
+
+/// `plugin_api_v2_t::render_block`, unwrapped from its `Option`.
+pub type RenderFn = unsafe extern "C" fn(*mut c_void, *mut i16, c_int);
 
 impl Drop for ChainInstance {
     fn drop(&mut self) {

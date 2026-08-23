@@ -25,6 +25,19 @@ pub struct CostMeter {
     /// that difference.
     worst_block_ns: u64,
     this_block_ns: u64,
+    /// WALL time of the whole chain render, including fan-out and join.
+    ///
+    /// The per-chain sums above cannot show a speedup: parallel render does the
+    /// same total work, just at the same time. Wall time is the only number that
+    /// says whether splitting the block actually made the block shorter.
+    wall_ns: u64,
+    wall_max_ns: u64,
+    /// Exponential mean per chain, for the render planner.
+    ///
+    /// Separate from `ns` because `report()` deliberately resets its window so a
+    /// benchmark can discard the load phase — planning must not lose its history
+    /// every time a device script reads the log.
+    plan_ns: Vec<u64>,
 }
 
 impl CostMeter {
@@ -35,6 +48,9 @@ impl CostMeter {
             blocks: 0,
             worst_block_ns: 0,
             this_block_ns: 0,
+            wall_ns: 0,
+            wall_max_ns: 0,
+            plan_ns: vec![0; chains],
         }
     }
 
@@ -46,15 +62,34 @@ impl CostMeter {
     }
 
     pub fn stop(&mut self, t0: Instant, chain: usize) {
-        let dt = t0.elapsed().as_nanos() as u64;
+        self.add_ns(chain, t0.elapsed().as_nanos() as u64);
+    }
+
+    /// Record a render that was timed elsewhere — the render pool times each
+    /// chain on the helper that ran it, since the audio thread cannot bracket a
+    /// call it did not make.
+    pub fn add_ns(&mut self, chain: usize, dt: u64) {
         self.this_block_ns += dt;
         let Some(slot) = self.ns.get_mut(chain) else { return };
         *slot += dt;
+        // 1/16 exponential mean: settles in a couple of hundred blocks (well
+        // under a second) yet ignores the single expensive block a note-on
+        // causes, which would otherwise flip the plan on every keypress.
+        let p = &mut self.plan_ns[chain];
+        *p = if *p == 0 { dt } else { *p - *p / 16 + dt / 16 };
         // Saturate rather than wrap: a 4.2 s single block is not a real reading,
         // but a wrapped one would read as ~0 and look like the cheapest chain.
         let capped = dt.min(u32::MAX as u64) as u32;
         if capped > self.max_ns[chain] {
             self.max_ns[chain] = capped;
+        }
+    }
+
+    /// Wall time of one block's whole chain render.
+    pub fn add_wall(&mut self, dt: u64) {
+        self.wall_ns += dt;
+        if dt > self.wall_max_ns {
+            self.wall_max_ns = dt;
         }
     }
 
@@ -68,15 +103,24 @@ impl CostMeter {
         self.this_block_ns = 0;
     }
 
-    /// `blocks=<n> worst=<ns> cost=<mean>/<max>,...` — one pair per chain,
-    /// nanoseconds.
+    /// `blocks=<n> worst=<ns> wall=<mean>/<max> cost=<mean>/<max>,...` —
+    /// nanoseconds, one `cost` pair per chain.
+    ///
+    /// `wall` stays ahead of `cost=` because `measure-chain-balance.sh` reads
+    /// the chain pairs as everything after `cost=`.
     ///
     /// **Reading resets the window.** Successive reads are disjoint, so a
     /// benchmark can throw away the load-and-warm-up phase instead of letting it
     /// dominate the mean for the rest of the run.
     pub fn report(&mut self) -> String {
         let div = self.blocks.max(1);
-        let mut out = format!("blocks={} worst={} cost=", self.blocks, self.worst_block_ns);
+        let mut out = format!(
+            "blocks={} worst={} wall={}/{} cost=",
+            self.blocks,
+            self.worst_block_ns,
+            self.wall_ns / div,
+            self.wall_max_ns
+        );
         for i in 0..self.ns.len() {
             if i > 0 {
                 out.push(',');
@@ -85,6 +129,21 @@ impl CostMeter {
         }
         self.reset();
         out
+    }
+
+    /// Per-chain cost the render planner should assume. Survives `report()`.
+    pub fn plan_ns(&self) -> &[u64] {
+        &self.plan_ns
+    }
+
+    /// Forget the planning history too. Only for teardown: the costs belong to
+    /// chain instances that no longer exist, and a plan built from a dead set
+    /// would put the wrong chains on the wrong lanes.
+    pub fn reset_all(&mut self) {
+        self.reset();
+        for v in self.plan_ns.iter_mut() {
+            *v = 0;
+        }
     }
 
     pub fn reset(&mut self) {
@@ -97,6 +156,8 @@ impl CostMeter {
         self.blocks = 0;
         self.worst_block_ns = 0;
         self.this_block_ns = 0;
+        self.wall_ns = 0;
+        self.wall_max_ns = 0;
     }
 }
 
@@ -108,7 +169,7 @@ mod tests {
     fn report_has_one_pair_per_chain_and_survives_zero_blocks() {
         let mut m = CostMeter::new(12);
         let r = m.report();
-        assert!(r.starts_with("blocks=0 worst=0 cost="), "{r}");
+        assert!(r.starts_with("blocks=0 worst=0 wall=0/0 cost="), "{r}");
         let pairs = r.split("cost=").nth(1).unwrap();
         assert_eq!(pairs.split(',').count(), 12, "{r}");
         // Dividing by a zero block count must not panic — a report can be taken
@@ -127,6 +188,66 @@ mod tests {
             m.report().starts_with("blocks=0 "),
             "a second read must see a fresh window, not the same one again"
         );
+    }
+
+    /// `measure-chain-balance.sh` takes the per-chain pairs as everything after
+    /// `cost=`, so a field appended after it would be parsed as chain 0's cost
+    /// and silently corrupt every balance measurement.
+    #[test]
+    fn wall_is_reported_before_the_chain_pairs() {
+        let mut m = CostMeter::new(2);
+        m.add_ns(0, 700);
+        m.add_wall(1000);
+        m.end_block();
+        let r = m.report();
+        assert!(r.contains("wall=1000/1000"), "{r}");
+        assert_eq!(r.split("cost=").nth(1).unwrap(), "700/700,0/0", "{r}");
+    }
+
+    /// The planner reads costs on the audio thread; device benchmarks read
+    /// `report()` whenever they like. If a read wiped the planning history the
+    /// plan would collapse to "all costs zero" — an even split — every time
+    /// someone looked at the log, which is invisible unless asserted.
+    #[test]
+    fn reading_the_report_does_not_wipe_the_planning_costs() {
+        let mut m = CostMeter::new(2);
+        for _ in 0..64 {
+            m.add_ns(0, 1000);
+        }
+        m.end_block();
+        let before = m.plan_ns()[0];
+        assert!(before > 0);
+        m.report();
+        assert_eq!(m.plan_ns()[0], before, "report() must not touch the plan costs");
+        m.reset_all();
+        assert_eq!(m.plan_ns()[0], 0, "teardown must");
+    }
+
+    /// One expensive block must not carry the plan. A note-on costs several
+    /// times a steady block, and a plan that followed the last block would move
+    /// chains between lanes on every keypress.
+    ///
+    /// A 1/16 mean cannot *ignore* a spike — it takes 1/16 of it, so a 100x
+    /// block does move it. What it guarantees, and what the plan needs, is that
+    /// no single block dominates and that the mean returns to the steady value.
+    #[test]
+    fn the_planning_mean_is_not_carried_by_one_block() {
+        let mut m = CostMeter::new(1);
+        for _ in 0..200 {
+            m.add_ns(0, 1000);
+        }
+        let steady = m.plan_ns()[0];
+        assert!((900..=1100).contains(&steady), "settled at {steady}, expected ~1000");
+
+        m.add_ns(0, 100_000);
+        let peak = m.plan_ns()[0];
+        assert!(peak < 100_000 / 10, "one block took the mean to {peak} of a 100000 spike");
+
+        for _ in 0..200 {
+            m.add_ns(0, 1000);
+        }
+        let after = m.plan_ns()[0];
+        assert!((900..=1100).contains(&after), "did not decay back: {after}");
     }
 
     #[test]

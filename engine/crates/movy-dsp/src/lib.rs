@@ -10,6 +10,8 @@ mod chain_copy;
 mod chain_cost;
 mod chain_host;
 mod chain_slots;
+mod render_plan;
+mod render_pool;
 mod load_queue;
 mod mixer;
 mod pad_route;
@@ -62,7 +64,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.36.0";
+const ENGINE_VERSION: &str = "0.37.0";
 
 /// Tracks backed by schwung's own shadow slots. Their notes go out as MIDI on
 /// the matching channel, exactly as before; everything above this index is a
@@ -131,6 +133,21 @@ impl Instance {
              * the settled set. Read by scripts/measure-chain-balance.sh. */
             "chcostlog" => {
                 host::log(&format!("chain cost: {}", self.chains.cost_report()));
+            }
+            /* `chparallel <0|1>` — render the movy chains across helper threads.
+             * Off by default and never persisted: this changes the "one thread,
+             * one at a time, in slot order" contract 93 module repos were
+             * written against, so it is opted into for a measurement and dropped
+             * again. Toggling it mid-set is the point — A/B on one running set
+             * is the only comparison that holds the chains constant. */
+            "chparallel" => {
+                self.chains.set_parallel(val != "0" && !val.is_empty());
+            }
+            /* `chrenderlog` — the lane assignment and how often the join had to
+             * yield. Reading the plan is how a measurement tells an unbalanced
+             * partition apart from fan-out latency. */
+            "chrenderlog" => {
+                host::log(&format!("chain render: {}", self.chains.render_report()));
             }
             /* `chlfolog <chain>` — log that chain's LFO assignments and the live
              * value of each driven param. The remote-UI socket a device test

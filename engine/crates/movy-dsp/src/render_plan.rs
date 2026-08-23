@@ -13,6 +13,16 @@
 //! 27.6% on four distinct modules across twelve chains — and that is the price
 //! of not auditing 93 module repos before the first prototype runs.
 //!
+//! **This is the floor, not the design.** Pinning is applied to every duplicate,
+//! and only ~18 of 78 audio modules need it: all four duplicated modules in the
+//! 2.23x measurement were on neither hazard list, so every pin there protected
+//! against nothing. The tiering that replaces it — run clean duplicates free,
+//! pin flagged ones, copy only a flagged module that dominates the set — is
+//! §5 of `plans/2026-08-23-parallel-render-prototype.md`. It matters most on the
+//! set this cannot help at all: twelve chains of one module return exactly 1.00x,
+//! which `twelve_of_one_module_cannot_be_split` pins as a fact rather than a
+//! target.
+//!
 //! Everything here is preallocated and reused: planning happens on the audio
 //! thread, where an allocation is a realtime hazard.
 //!

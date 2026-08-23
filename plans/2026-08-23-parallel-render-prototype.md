@@ -123,12 +123,124 @@ appear twice. Measured 1091 µs, so **fan-out and preemption cost ~100 µs per
 block**.
 
 That is ~5× the 21 µs the join-cost prototype measured for the mechanism in
-isolation, and the difference is what FIFO 68 buys: helpers *can* be preempted by
-Move's FIFO 70 threads, and `yielded=2106` says the audio thread reached the join
-first on essentially every block. The mechanism is not the problem; waiting for a
-preempted helper is.
+isolation. §6 takes that number apart; it is not yet known how much of it is
+overhead at all.
 
-## 5. What this does NOT settle
+## 5. Pinning is the floor, not the design
+
+Same-module chains are pinned **uniformly**, and that is more conservative than
+the evidence requires. Two instances of one module only conflict if the module
+has state to conflict over. Most do not: of 78 audio-rendering modules, 6 mutate
+their own statics from render and 12 more reach the chain host's clock globals —
+**~60 are provably free to run duplicated, concurrently, with no copy and no
+pin.**
+
+The measured set makes the cost of ignoring that concrete. Its four duplicated
+modules are **plaits, obxd, dexed and noisemaker**, and none of them is on either
+hazard list. *Every pin in the 2.23× measurement protected against nothing.*
+
+The design that follows is three tiers, not one rule:
+
+| the set contains | do | cost |
+| --- | --- | --- |
+| a duplicated **clean** module (~60 of 78) | nothing — let it run free on separate lanes | none |
+| a duplicated **flagged** module | pin it to one lane | makespan |
+| a duplicated flagged module that **dominates** the set | give it a private byte copy | a warmed cache |
+
+Copying stops being the mechanism and becomes the escape hatch for one narrow
+case — which is what makes the unsolved part of `2026-08-22-module-isolation.md`
+(there is no non-audio thread to warm a copy cache on) affordable to leave open.
+
+**What tier 1 is worth** is very unevenly distributed. On this set: little. The
+offline packer puts free-running at 2.92× against 2.72× pinned — about 7%, and
+the fan-out in §6 costs more than that. On the degenerate set it is the whole
+answer: **twelve tracks of one module pin to a single lane and return exactly
+1.00×**. Twelve drum tracks is a set people build, and there three cores buy
+nothing at all. Tier 1 is what makes the worst case stop being catastrophic;
+tier 3 only matters if those twelve tracks are specifically one of the six.
+
+**The tradeoff, stated plainly.** Uniform pinning has to trust nothing. Tiering
+makes correctness depend on the audit being right, and that audit is *static*: it
+cannot see through function pointers or C++ virtual dispatch, which is exactly
+how `airwindows` dispatches into CLAP plugins. "71 clean" means 71 with no
+*statically reachable* mutable statics. Tier 1 should therefore be an allow-list
+of modules confirmed clean, not a deny-list of the ones flagged — a module nobody
+has checked must land in tier 2, where being wrong costs speed instead of
+correctness.
+
+## 6. The ~100 µs: what it might be, and what to do about it
+
+**None of it is attributed yet, and two of the four candidates are not overhead
+at all.** `yielded=2106` says only that the audio thread reached the join first;
+it cannot say why.
+
+Four candidates:
+
+1. **Partition error.** The 990 µs makespan above is computed from per-module
+   means taken in a *different run*, and the live planner packs a 1/16
+   exponential mean that lags. If the plan was simply worse than the one priced
+   here, that is not overhead and no amount of tuning the rendezvous touches it.
+2. **Fan-out latency** — the gap between `unpark` and a helper actually running.
+   The join-cost prototype put this at ~19 µs per helper at p50 and 240 µs at
+   max, and it is pure dead time: the audio thread has published work that nobody
+   is doing yet.
+3. **Preemption** by Move's FIFO 70 threads, which sit above the helpers' 68.
+   The frame-phase measurement found ~2.2 of 3 non-SPI cores idle *during* movy's
+   render window — Move's own workers run after it in the same callback — so this
+   should be small. That prediction has never been checked with helpers actually
+   running.
+4. **Lane 0 finishing early.** Lane 0 is 904 µs against lane 2's 990 µs, so the
+   audio thread waits ~86 µs. That is most of the gap on its own.
+
+**The 21 µs was never a prediction for this configuration.** In the standalone
+prototype, "main" was a pool thread among the others on cores 0-2, and the
+scheduler co-located a helper with it on 92% of frames. Here main is Move's SPI
+thread — **FIFO 90, pinned to core 3** — and the helpers are masked to 0-2. Every
+wake is now cross-core and the cache sharing is different. The number should be
+re-measured in situ before it is treated as a baseline.
+
+### Diagnosis, before any treatment
+
+- **D1 — separate partition error from overhead, for free.** The cost report
+  already carries this run's own per-chain costs. Repacking *those* and comparing
+  the resulting makespan against the measured `wall` splits candidate 1 from 2-4
+  using data already collected. This should be done first; it is arithmetic on an
+  existing log line.
+- **D2 — instrument the rendezvous in situ.** Timestamps at publish, at each
+  helper's first instruction, at each helper's last, and at join return. p50 and
+  p99. That splits fan-out (2) from preemption (3). Two clock reads per helper
+  per block, ~30 ns each.
+
+### Treatments, cheapest first
+
+- **T1 — bias lane 0.** The planner treats all lanes as equal, but lane 0 is not:
+  it is already running and pays no wake cost, so it should be handed *more* work
+  than the helpers by roughly the fan-out latency. One line — start `lane_load[0]`
+  below zero instead of at zero. It targets candidate 4 directly, and candidate 4
+  looks like most of the gap.
+- **T2 — hoist the wake out of the critical path.** The helpers are unparked at
+  the start of the chain render, so their wake latency is dead time. movy does
+  sequencer work *before* chain render in the same callback. Publishing and
+  unparking at the top of `render_block`, with the helpers spinning briefly on a
+  "go" flag set when the chain render begins, overlaps the wake with work movy
+  has to do anyway. The plan is stable block to block, so most of the task list
+  is already known that early.
+- **T3 — spin instead of park.** The prototype measured 0.6 µs for a pure spin
+  against 21 µs for a futex wake, which is the single largest known lever — and
+  it is the wrong trade here. Blocks arrive every 2902 µs and the render takes
+  ~1091 µs, so a spinning helper burns a core for ~1800 µs of every frame,
+  starving the Move workers that run right after us. A *bounded* spin after
+  finishing a round does not help either: the next block is 1.8 ms away, far
+  past any sane spin budget. Recorded so it is not rediscovered as an idea.
+- **T4 — pin helpers to fixed cores** rather than the 0-2 mask. Already measured
+  in the join-cost prototype: it fixes p50 and wrecks p99. Don't.
+- **T5 — raise helper priority above Move's 70.** Would address candidate 3
+  directly and is the one thing `docs/REALTIME_SAFETY.md` forbids outright, with
+  commits (`8592be5c`, `25b72907`) removing exactly this mistake. Not available
+  without an upstream conversation, and that conversation needs D2's numbers
+  first.
+
+## 7. What this does NOT settle
 
 - **There is no equivalence oracle yet.** Nothing has verified that parallel
   render produces the *same audio* as serial — only that every chain is
@@ -146,14 +258,22 @@ preempted helper is.
 - **`chparallel` is not persisted and defaults off.** It changes the "one
   thread, one at a time, in slot order" contract 93 module repos were written
   against.
+- **The tiering in §5 is designed, not built.** The planner pins every duplicate.
 - **Upstream stays off-limits** pending an in-situ measurement, per
   `2026-08-21-parallel-chain-render-schwung-review.md`.
 
-## 6. Next
+## 8. Next
 
-1. **The serial/parallel equivalence oracle.** The one thing standing between a
-   measurement and a feature.
-2. **Bound the join.** ~100 µs of the ~1091 is waiting on preempted helpers.
-   Worth knowing whether that is fan-out latency or genuine preemption before
-   reaching for a priority change, which schwung's realtime doc forbids.
-3. **§4, the MIDI-out rings** — the first hazard the pinning does not cover.
+1. **D1 — repack this run's own per-chain costs.** Arithmetic on a log line
+   already collected, and it decides whether §6 is an overhead problem at all.
+   Nothing else in §6 is worth doing before it.
+2. **The serial/parallel equivalence oracle.** The one thing standing between a
+   measurement and a feature, and the gate on `chparallel` ever defaulting on.
+3. **T1 — bias lane 0**, if D1 says the gap is real overhead. One line, targets
+   the largest identified candidate.
+4. **Tier 1 of §5 — stop pinning clean duplicates.** Modest on a varied set,
+   decisive on twelve tracks of one module, where the current design returns
+   1.00×. Needs the confirmed-clean allow-list first.
+5. **§4 of the review, the MIDI-out rings** — the first hazard neither the
+   pinning nor the tiering covers, since two *different* modules emitting from
+   render is enough.

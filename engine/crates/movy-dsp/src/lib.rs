@@ -64,7 +64,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.37.0";
+const ENGINE_VERSION: &str = "0.38.0";
 
 /// Tracks backed by schwung's own shadow slots. Their notes go out as MIDI on
 /// the matching channel, exactly as before; everything above this index is a
@@ -143,6 +143,19 @@ impl Instance {
             "chparallel" => {
                 self.chains.set_parallel(val != "0" && !val.is_empty());
             }
+            /* `chlanes <n>` — how many lanes parallel render plans for, lane 0
+             * being the audio thread. The design point was 3, priced by a
+             * balance measurement that assumed chains cost the same however
+             * many render at once; D1 measured them costing 27% more, so a lane
+             * is also a cost to its neighbours and the count has to be swept on
+             * the device instead of assumed (T0). `1` is the control arm: the
+             * parallel path with no helpers at all. */
+            "chlanes" => match val.parse::<usize>() {
+                // A typo must not quietly become a one-lane run: that reads as
+                // 1.00x and looks like a finding rather than a mistake.
+                Ok(n) if n >= 1 => self.chains.set_lanes(n),
+                _ => host::log(&format!("chain mode: ignoring chlanes '{val}'")),
+            },
             /* `chrenderlog` — the lane assignment and how often the join had to
              * yield. Reading the plan is how a measurement tells an unbalanced
              * partition apart from fan-out latency. */

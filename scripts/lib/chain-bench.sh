@@ -15,7 +15,29 @@ CB_SAMPLES=()
 
 # Write one movy ENGINE param. The remote-UI socket is write-only, so this is
 # also how a test asks the engine to LOG something it wants to read back.
-ep() { node scripts/engine-param.mjs set "$1" "$2" "$HOST" >/dev/null 2>&1; }
+#
+# Failures are COUNTED, not swallowed. `engine-param.mjs` exits non-zero when it
+# cannot reach the socket at all, and a lost write looks exactly like a write
+# that changed nothing: a whole sweep once ran to a conclusion — chains loaded,
+# notes held, arms sampled — with every single write dropped, because $HOST was
+# an ssh alias the WebSocket could not resolve.
+EP_FAILS=0
+ep() {
+    node scripts/engine-param.mjs set "$1" "$2" "$HOST" >/dev/null 2>&1 \
+        || { EP_FAILS=$((EP_FAILS + 1)); return 1; }
+}
+
+# Refuse to start a benchmark whose device writes are going nowhere. `chcostlog`
+# is the probe because it is idempotent and the engine answers it in the log, so
+# this checks the whole path — socket, engine, logging — not just the socket.
+cb_require_engine_link() {
+    ep "chcostlog" "1" || {
+        echo "ENGINE UNREACHABLE at $HOST — engine-param.mjs could not open the socket."
+        echo "  The host must resolve for BOTH ssh and the WebSocket on port 7700;"
+        echo "  an ssh-config alias resolves for one and not the other. Use the IP."
+        exit 1
+    }
+}
 
 # Real sample files, discovered on the device rather than hardcoded — a path
 # that does not exist loads nothing, and the sampler modules then measure

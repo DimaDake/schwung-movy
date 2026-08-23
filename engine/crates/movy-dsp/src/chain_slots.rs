@@ -24,10 +24,22 @@ pub const MOVY_CHAINS: usize = 12;
 /// happen on the audio thread.
 const SCRATCH_SAMPLES: usize = 128 * 2;
 
-/// Helper threads beside the audio thread. Three lanes total is the design
-/// point: `plans/2026-08-22-chain-balance-measurement.md` measured 2.98x there
-/// against a 3.11x ceiling, and a fourth worker was worth 0.13x.
-const HELPERS: usize = 2;
+/// Lanes including the audio thread's own, so `DEFAULT_LANES - 1` helpers.
+/// Three was the design point from `plans/2026-08-22-chain-balance-measurement.md`
+/// — 2.98x against a 3.11x ceiling, with a fourth worker worth 0.13x.
+///
+/// That pricing assumed the chains cost the same however many render at once,
+/// and D1 has since measured them costing **27% more** with three lanes running
+/// (`plans/2026-08-23-parallel-render-prototype.md` §6). A lane is therefore
+/// also a *cost* to the other lanes, which is why the count is now runtime
+/// settable (`chlanes`) rather than a constant: whether 3 beats 2 has to be
+/// measured on the device, not assumed here.
+const DEFAULT_LANES: usize = 3;
+
+/// Move's four cores, minus none: lane 0 is the audio thread, which is already
+/// running. Beyond this the helpers are competing for cores Move's own FIFO 70
+/// workers need immediately after us.
+const MAX_LANES: usize = 4;
 
 /// Blocks between replans. The plan follows measured cost, which only exists
 /// after chains have rendered, so it cannot be fixed at load time — but
@@ -83,6 +95,9 @@ pub struct ChainSlots {
     /// module repos were written against, so it is opted into per session and
     /// measured, never assumed.
     parallel: bool,
+    /// Lanes to plan for, including lane 0 (the audio thread). Changing it is a
+    /// measurement control, not a live tuning knob — it rebuilds the pool.
+    lane_count: usize,
     pool: Option<RenderPool>,
     planner: Planner,
     /// Per-lane task lists, refilled in place each block — pushing into a `Vec`
@@ -117,9 +132,10 @@ impl ChainSlots {
             active_last_block: 0,
             cost: CostMeter::new(MOVY_CHAINS),
             parallel: false,
+            lane_count: DEFAULT_LANES,
             pool: None,
-            planner: Planner::new(MOVY_CHAINS, HELPERS + 1),
-            lanes: (0..HELPERS + 1).map(|_| Vec::with_capacity(MOVY_CHAINS)).collect(),
+            planner: Planner::new(MOVY_CHAINS, DEFAULT_LANES),
+            lanes: (0..DEFAULT_LANES).map(|_| Vec::with_capacity(MOVY_CHAINS)).collect(),
             blocks_since_plan: 0,
             plan_generation: u32::MAX,
             loaded: vec![false; MOVY_CHAINS],
@@ -131,12 +147,45 @@ impl ChainSlots {
     /// threads — and so a device measurement can A/B the same running set.
     pub fn set_parallel(&mut self, on: bool) {
         if on && self.pool.is_none() {
-            self.pool = Some(RenderPool::new(HELPERS, MOVY_CHAINS));
+            self.pool = Some(RenderPool::new(self.lane_count - 1, MOVY_CHAINS));
         }
         self.parallel = on;
         // The next block replans: a plan built for one lane is wrong for three.
         self.plan_generation = u32::MAX;
-        host::log(&format!("chain render: {}", if on { "parallel" } else { "serial" }));
+        host::log(&format!(
+            "chain mode: {} lanes={}",
+            if on { "parallel" } else { "serial" },
+            self.lane_count
+        ));
+    }
+
+    /// How many lanes to render across, lane 0 being the audio thread itself.
+    ///
+    /// `1` is a real setting, not a no-op alias for serial: it runs the parallel
+    /// path with no helpers, which is the control arm that separates what the
+    /// planner and rendezvous cost from what the extra threads buy.
+    ///
+    /// Rebuilding the pool rather than resizing it keeps the "written only while
+    /// every helper is idle" invariant that `render_block` relies on: the old
+    /// pool's helpers are stopped and joined by its `Drop` before the new ones
+    /// exist. Both that and the spawn are why this is a between-measurements
+    /// control — it blocks, so it must never be called from a render.
+    pub fn set_lanes(&mut self, lanes: usize) {
+        let lanes = lanes.clamp(1, MAX_LANES);
+        if lanes == self.lane_count {
+            return;
+        }
+        self.lane_count = lanes;
+        self.planner = Planner::new(MOVY_CHAINS, lanes);
+        self.lanes = (0..lanes).map(|_| Vec::with_capacity(MOVY_CHAINS)).collect();
+        self.plan_generation = u32::MAX;
+        // Drop first: two pools' helpers must never be alive at once, or the
+        // measurement is against more threads than it thinks it has.
+        self.pool = None;
+        if self.parallel {
+            self.pool = Some(RenderPool::new(lanes - 1, MOVY_CHAINS));
+        }
+        host::log(&format!("chain mode: lanes={lanes}"));
     }
 
     /// `parallel=<0|1> lanes=<n> late=<blocks> plan=<lane0>|<lane1>|...`
@@ -513,6 +562,57 @@ mod tests {
         assert_eq!(slots.pending_loads(), 0, "a slot that cannot exist is not queued");
         slots.set_param(999, "synth:cutoff", "1");
         slots.on_midi(999, &[0x90, 60, 100], 0);
+    }
+
+    /* The lane count is a measurement control (T0: does 3 lanes beat 2 at all?),
+     * so what has to hold is that everything sized by it moves together. Three
+     * things are: the planner, the per-lane task lists, and the pool's helper
+     * count. A plan with more lanes than the task-list vector indexes out of
+     * range on the audio thread; a pool that kept its old helper count would
+     * measure a lane count nobody asked for. */
+
+    #[test]
+    fn set_lanes_resizes_the_plan_and_the_task_lists_together() {
+        let mut slots = ChainSlots::new();
+        assert_eq!(slots.planner.lane_count(), DEFAULT_LANES);
+        slots.set_lanes(2);
+        assert_eq!(slots.planner.lane_count(), 2, "the plan follows the lane count");
+        assert_eq!(slots.lanes.len(), 2, "and so do the task lists it is copied into");
+        assert!(slots.render_report().contains("lanes=2"), "and the report says so");
+    }
+
+    #[test]
+    fn a_lane_count_the_hardware_cannot_staff_is_clamped() {
+        let mut slots = ChainSlots::new();
+        slots.set_lanes(99);
+        assert_eq!(slots.lanes.len(), MAX_LANES, "four cores is the ceiling");
+        slots.set_lanes(0);
+        assert_eq!(slots.lanes.len(), 1, "and one lane — the audio thread — the floor");
+    }
+
+    #[test]
+    fn the_pool_is_rebuilt_to_match() {
+        let mut slots = ChainSlots::new();
+        slots.set_parallel(true);
+        assert_eq!(slots.pool.as_ref().map(|p| p.helpers()), Some(DEFAULT_LANES - 1));
+        slots.set_lanes(2);
+        assert_eq!(slots.pool.as_ref().map(|p| p.helpers()), Some(1),
+            "a two-lane measurement must actually run one helper");
+        // One lane is the control arm, not an alias for serial: the parallel
+        // path still runs, with nothing to fan out to.
+        slots.set_lanes(1);
+        assert_eq!(slots.pool.as_ref().map(|p| p.helpers()), Some(0));
+        assert!(slots.parallel, "one lane is still the parallel path");
+    }
+
+    #[test]
+    fn lanes_can_be_chosen_before_the_pool_exists() {
+        let mut slots = ChainSlots::new();
+        slots.set_lanes(2);
+        assert!(slots.pool.is_none(), "asking for lanes does not spawn threads");
+        slots.set_parallel(true);
+        assert_eq!(slots.pool.as_ref().map(|p| p.helpers()), Some(1),
+            "the deferred spawn uses the count that was asked for");
     }
 
     #[test]

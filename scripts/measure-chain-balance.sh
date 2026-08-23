@@ -55,6 +55,7 @@ echo "host=$HOST  modules: ${MODULES[*]}"
 # rather than requiring a device gesture.
 ts_open_movy
 sleep 8
+cb_require_engine_link
 cb_discover_samples
 
 # One module per chain, cycled — a real Move set is heterogeneous, and the whole

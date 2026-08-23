@@ -172,6 +172,34 @@ ok('no suite restarts the stack by hand', rawRestart.length === 0,
 
 ok('the shared lib defines ts_restart_stack', /^ts_restart_stack\(\)/m.test(libSrc));
 
+/* ── Test 6: a benchmark whose engine writes go nowhere must not report ───────
+ * `ep` writes a movy engine param over the WebSocket on port 7700 and discards
+ * both streams, so a lost write is indistinguishable from one that changed
+ * nothing. A whole parallel-render sweep once ran to a printed conclusion —
+ * chains "loaded", a chord "held", every arm sampled — with all 200 writes
+ * dropped, because the host argument was an ssh-config alias that resolves for
+ * ssh and not for the socket. It read as "the build is not deployed".
+ */
+log('\nTest 6: a benchmark checks that its engine writes arrive');
+
+const benchSrc = readFileSync('scripts/lib/chain-bench.sh', 'utf8');
+ok('ep counts its failures instead of discarding them',
+   /EP_FAILS=\$\(\(EP_FAILS \+ 1\)\)/.test(benchSrc),
+   'a write that never arrived is not a write that changed nothing');
+ok('the shared lib defines cb_require_engine_link',
+   /^cb_require_engine_link\(\)/m.test(benchSrc));
+
+const unchecked = [];
+for (const f of shFiles) {
+    const src = readFileSync(f, 'utf8');
+    if (f.endsWith('lib/chain-bench.sh')) continue;        // defines it
+    if (!/source .*lib\/chain-bench\.sh/.test(src)) continue;
+    if (!/cb_require_engine_link/.test(src)) unchecked.push(f);
+}
+ok('every benchmark that drives the engine proves the link first',
+   unchecked.length === 0,
+   unchecked.length ? unchecked.join(', ') : 'all probe before they measure');
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 log('');

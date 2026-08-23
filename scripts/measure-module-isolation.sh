@@ -52,6 +52,7 @@ echo "host=$HOST  module=$MOD"
 
 ts_open_movy
 sleep 8
+cb_require_engine_link
 
 # ── 1. the premise: same module, two chains ──────────────────────────────────
 ep "ch0:synth:module" "$MOD"; sleep 2

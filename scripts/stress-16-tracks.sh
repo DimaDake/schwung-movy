@@ -38,6 +38,7 @@ BLD=$'\033[1m'; RST=$'\033[0m'; GRN=$'\033[0;32m'; RED=$'\033[0;31m'; YEL=$'\033
 ssh -o ConnectTimeout=5 "ableton@$HOST" true 2>/dev/null || { echo "DEVICE OFFLINE"; exit 1; }
 ssh "ableton@$HOST" 'touch /data/UserData/schwung/debug_log_on'
 
+cb_require_engine_link
 cb_discover_samples
 
 frame() {  # prints "work total"

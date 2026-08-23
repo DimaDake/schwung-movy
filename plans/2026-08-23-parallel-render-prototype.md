@@ -251,13 +251,52 @@ mid-window, so that spread is not yet attributable and should not be quoted.
 This is the one loss on the list that **no scheduling change can recover**. It is
 also, at ~0.6× of speedup, by far the largest.
 
+### T0 has been run: the contention is the THIRD LANE, not parallelism
+
+`chlanes <n>` (ENGINE 0.38.0) makes the lane count a runtime control instead of
+a constant, and `measure-parallel-render.sh` now sweeps it on one held set.
+Measured 2026-08-23, drift across the whole sweep **−0.0%**:
+
+| lanes | wall | speedup | contention | imbalance | overhead | ceiling | joins yielded |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| serial | 2505.3 µs | 1.00× | — | — | — | — | — |
+| 1 | 2487.5 µs | 1.01× | −22.5 µs | 0.0 µs | 9.4 µs | 1.01× | 0 / 1450 |
+| 2 | 1353.7 µs | 1.85× | 82.7 µs | 37.5 µs | 24.5 µs | 1.88× | 4 / 1801 |
+| 3 | 1141.4 µs | **2.20×** | 676.5 µs | 20.3 µs | 62.0 µs | 2.32× | 1176 / 1797 |
+
+**Three lanes does beat two — the design point stands.** The marginal ledger
+underneath it is the finding:
+
+- the **2nd** lane buys 1134 µs of wall and costs 83 µs of extra work
+- the **3rd** lane buys 212 µs of wall and costs 594 µs of extra work
+
+Per-lane efficiency falls from 92% to 73%: the third lane runs at about a third
+of the second one's marginal efficiency. **So §6's "the parallel arm does 27%
+more work" is not a property of parallel render — at two lanes it is 3%.** All
+of D1's contention term is the third lane, and the join agrees: the audio thread
+waits on a helper on 65% of blocks at three lanes and essentially never at two.
+
+**The one-lane arm is the sweep's own falsifier**, which is why `chlanes 1` is a
+real setting rather than an alias for serial. It runs the parallel path with
+nothing to hand out, so it can differ from serial only by the planner and the
+rendezvous; it read 1.01×, contention within noise, inflation 0.99. A sweep
+where it does not is measuring something other than the lane count.
+
+That is not hypothetical. **The first sweep was invalid and both guards caught
+it.** Re-striking the chord between arms *without releasing first* stacked
+voices on every polyphonic synth, so the set grew monotonically more expensive:
+the closing serial baseline came back **+82%**, and the one-lane arm reported
+0.72× with 1.39× "contention" against no helper threads at all. Read naively the
+table said parallel render was a loss and that fewer lanes were better —
+plausible, clean, and entirely an artifact. `restrike_chord` releases before it
+holds, and the drift check and the one-lane check are now gates the script
+prints rather than something a reader has to notice.
+
 ### Treatments, re-priced against the measurement
 
-- **T0 — measure 2 lanes against 3.** New, and now the obvious first move: if
-  contention is the dominant term, the third lane may be buying less than it
-  costs the other two. The balance measurement priced the 4th worker at 0.13×
-  assuming *no* contention; that assumption is now known to be wrong. One flag,
-  no new code.
+- **T0 — DONE, see above.** Three lanes beats two by 0.35×, so the design point
+  stands; but the third lane is where all the contention is, which makes the
+  *fourth* the open question rather than a settled 0.13×.
 - **T1 — bias lane 0.** Targets imbalance, measured at **31–54 µs**. Still one
   line (start `lane_load[0]` below zero, since lane 0 pays no wake cost), still
   correct, but worth ~0.05× rather than "most of the gap". Demoted.
@@ -298,9 +337,11 @@ also, at ~0.6× of speedup, by far the largest.
   The pinning does not help: two *different* modules emitting concurrently is
   enough. The 8 sounding chains here are plain synths, so the measurement did
   not exercise it.
-- **The lane count is fixed at 2 helpers** and the fourth worker was worth 0.13×
-  in the balance measurement — a pricing that assumed no contention, which §6
-  now shows is wrong. Whether 3 lanes even beats 2 is open (T0).
+- **The fourth lane is unmeasured.** `MAX_LANES` is 4 and `chlanes 4` works, but
+  the sweep that would have priced it was interrupted. The balance measurement's
+  0.13× assumed no contention, and the third lane's ledger (594 µs of extra work
+  for 212 µs of wall) says the fourth is where the curve most plausibly turns
+  over. One flag, and the sweep already has the arm.
 - **The measured speedup moves with how much of the set is sounding.** The
   headline 2.23× and the §6 runs (2.15–2.21×) are the same script on the same
   modules; the §6 runs had 8–9 of 12 chains audible at sampling time. Both arms
@@ -315,22 +356,45 @@ also, at ~0.6× of speedup, by far the largest.
 
 ## 8. Next
 
-D1 is done and it reordered this list. The rendezvous work it was gating (T1, T2)
-turns out to be worth ~0.1× between them, so it drops below everything else.
+D1 reordered this list and T0 has now confirmed the shape it implied: the
+rendezvous work (T1, T2) is worth ~0.1× between them and stays at the bottom,
+and the design point of three lanes survives.
 
-1. **T0 — measure 2 lanes against 3.** Contention is the dominant loss and the
-   third lane is a contention source, so the design point itself is now in
-   question. One flag, no new code, and it re-prices the whole shape of the
-   feature.
+1. **Finish the lane curve — the fourth arm.** `LANES="1 2 3 4"`, one run. The
+   third lane cost 594 µs of extra work for 212 µs of wall; if the fourth turns
+   the curve over, the answer is to *cap* lanes, which is a one-line default and
+   the cheapest remaining win. Nothing below this changes what the feature is.
 2. **The serial/parallel equivalence oracle.** Unchanged: the one thing standing
    between a measurement and a feature, and the gate on `chparallel` ever
    defaulting on.
 3. **Tier 1 of §5 — stop pinning clean duplicates.** Modest on a varied set
-   (imbalance is only 31–54 µs here), decisive on twelve tracks of one module,
-   where the current design returns 1.00×. Needs the confirmed-clean allow-list
-   first.
+   (imbalance measured 20–38 µs at 2–3 lanes), decisive on twelve tracks of one
+   module, where the current design returns 1.00×. Needs the confirmed-clean
+   allow-list first.
 4. **§4 of the review, the MIDI-out rings** — the first hazard neither the
    pinning nor the tiering covers, since two *different* modules emitting from
    render is enough.
 5. **T1 and T2**, together worth about 0.1×, and only if something above them
    has not already changed the design.
+
+### What the benchmark now guarantees about itself
+
+Three harness faults in this session each produced a *confident wrong answer*
+rather than an error, so each is now a gate rather than a habit:
+
+- **Writes that never arrive.** `ep` discarded both streams, so a sweep in which
+  all ~200 engine writes were dropped — the host argument was an ssh-config
+  alias, which resolves for ssh but not for the WebSocket on port 7700 — still
+  loaded chains, held a chord and sampled every arm. `ep` now counts failures,
+  `cb_require_engine_link` refuses to start without a proven path, and
+  `browser-test/device-scripts.mjs` asserts every benchmark probes first. That
+  invariant immediately found the same hole in `measure-chain-balance.sh`,
+  `measure-module-isolation.sh` and `stress-16-tracks.sh`.
+- **A set that changes under the sweep.** The closing serial re-measure bounds
+  it, and >10% drift is now printed as a warning.
+- **A control arm that must return 1.00×.** `chlanes 1` has no other job.
+
+Also unchanged from D1: a deploy alone does not reload the engine. Even with the
+version bumped, the device kept re-opening the old library while the UI looped on
+`stale pong 0.37.0`; only a stack restart brought 0.38.0 up. Confirm by poking a
+command the old build does not have.

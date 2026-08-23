@@ -9,6 +9,7 @@ mod host;
 mod chain_copy;
 mod chain_cost;
 mod chain_digest;
+mod midi_out;
 mod chain_host;
 mod chain_slots;
 mod render_plan;
@@ -65,7 +66,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.39.0";
+const ENGINE_VERSION: &str = "0.40.0";
 
 /// Tracks backed by schwung's own shadow slots. Their notes go out as MIDI on
 /// the matching channel, exactly as before; everything above this index is a
@@ -174,6 +175,13 @@ impl Instance {
              * `chcostlog` this does NOT close a window. */
             "chdigestlog" => {
                 host::log(&format!("chain digest: {}", self.chains.digest_report()));
+            }
+            /* `chmidilog` — how much render-emitted MIDI the queue had to
+             * refuse. Non-zero means a module burst past `midi_out::CAP` in one
+             * block and lost messages; zero is the expected reading, since no
+             * fleet module sends from render at all today. */
+            "chmidilog" => {
+                host::log(&format!("chain midi: {}", midi_out::QUEUE.report()));
             }
             /* `chrenderlog` — the lane assignment and how often the join had to
              * yield. Reading the plan is how a measurement tells an unbalanced

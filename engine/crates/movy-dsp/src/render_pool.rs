@@ -226,6 +226,10 @@ impl Drop for RenderPool {
 fn run(tasks: &[Task], shared: &Shared) {
     for t in tasks {
         let t0 = Instant::now();
+        // Anything the module sends from inside this call is parked against
+        // `t.chain` and replayed on the audio thread after the join — schwung's
+        // MIDI-out senders are single-producer. See `midi_out`.
+        let _scope = crate::midi_out::Scope::enter(t.chain);
         // Safe by the partition argument on `Shared`: this lane owns `inst` and
         // `buf` for the duration of the round.
         unsafe { (t.render)(t.inst, t.buf, t.frames) };
@@ -331,6 +335,53 @@ mod tests {
         for i in 0..frames as usize * 2 {
             *out.add(i) = tag + i as i16;
         }
+    }
+
+    /// Stands in for a module that sends MIDI from its render — the case
+    /// `midi_out` exists for. The chain it is attributed to is whatever the
+    /// pool set, so the parked note NAMES the attribution and a wrong one is
+    /// visible rather than merely possible.
+    unsafe extern "C" fn sends_midi(inst: *mut c_void, _out: *mut i16, _frames: i32) {
+        crate::midi_out::QUEUE.park(&[0x09, 0x90, inst as u8, 100], false);
+    }
+
+    /* The safety claim of the whole `midi_out` unit rests on `run` scoping every
+     * module call, since under parallel EVERY lane — the audio thread's included
+     * — goes through it. Without the scope a helper's send reaches schwung's
+     * single-producer ring directly, which is the race, and nothing about the
+     * audio would show it. */
+    #[test]
+    fn a_send_from_inside_a_task_is_attributed_to_that_task_s_chain() {
+        let pool = RenderPool::new(1, CHAINS);
+        let mk = |chain: usize| Task {
+            render: sends_midi,
+            inst: (0x40 + chain) as *mut c_void,
+            buf: core::ptr::null_mut(),
+            frames: 0,
+            chain,
+        };
+        pool.render_block(&[vec![mk(2)], vec![mk(5)]]);
+
+        let mut got = Vec::new();
+        crate::midi_out::QUEUE.drain(|m, _| got.push(m[2]));
+        // Slot order, though chain 5 ran on the helper and 2 on this thread.
+        assert_eq!(got, vec![0x42, 0x45]);
+    }
+
+    /* And nothing may stay attributed once the call returns: the audio thread
+     * goes straight on to the mix and then to movy's own engine sends. */
+    #[test]
+    fn the_attribution_does_not_outlive_the_task() {
+        let pool = RenderPool::new(0, CHAINS);
+        pool.render_block(&[vec![Task {
+            render: sends_midi,
+            inst: 0x41 as *mut c_void,
+            buf: core::ptr::null_mut(),
+            frames: 0,
+            chain: 1,
+        }]]);
+        crate::midi_out::QUEUE.drain(|_, _| {});
+        assert!(crate::midi_out::QUEUE.park(&[0x09, 0x90, 60, 100], false).is_none());
     }
 
     /// Buffers are per-test, not a shared `static mut`: cargo runs tests

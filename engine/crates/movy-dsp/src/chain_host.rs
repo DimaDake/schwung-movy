@@ -21,10 +21,13 @@
 //! passing schwung's gives movy every audio FX the user installed, with no
 //! movy-side registry.
 
-use crate::ffi::plugin_api_v2_t;
+use crate::ffi::{host_api_v1_t, plugin_api_v2_t};
 use crate::host;
+use crate::midi_out::QUEUE;
 use core::ffi::{c_char, c_int, c_void};
 use std::ffi::{CStr, CString};
+use std::sync::atomic::{AtomicPtr, Ordering};
+use std::sync::OnceLock;
 
 extern "C" {
     fn dlopen(filename: *const c_char, flag: c_int) -> *mut c_void;
@@ -42,7 +45,88 @@ const RTLD_LOCAL: c_int = 0;
 /// `browser-test/abi-parity.mjs`.
 const EXPECTED_API_VERSION: u32 = 2;
 
-type PluginInitFn = unsafe extern "C" fn(host: *const crate::ffi::host_api_v1_t) -> *mut plugin_api_v2_t;
+type PluginInitFn = unsafe extern "C" fn(host: *const host_api_v1_t) -> *mut plugin_api_v2_t;
+
+/// The vtable movy's chains see: schwung's, with the two single-producer MIDI
+/// sends replaced by wrappers that park a call made from inside a render.
+///
+/// Built once and leaked for the process lifetime, because the chain host keeps
+/// the pointer in its own `g_host` and dereferences it on the audio thread for
+/// as long as any chain exists. An `AtomicPtr` and not a `OnceLock` only because
+/// the struct holds raw pointers and so is not `Sync`; `load` is reached from a
+/// param set, never from render, so the init race is theoretical.
+static SHIMMED_HOST: AtomicPtr<host_api_v1_t> = AtomicPtr::new(core::ptr::null_mut());
+
+unsafe extern "C" fn shim_send_internal(msg: *const u8, len: c_int) -> c_int {
+    shim_send(msg, len, false)
+}
+
+unsafe extern "C" fn shim_send_external(msg: *const u8, len: c_int) -> c_int {
+    shim_send(msg, len, true)
+}
+
+/// Park the call if a chain is rendering on this thread, otherwise forward it
+/// untouched. The forward path is what movy's own engine sends take, and it is
+/// the same pointer schwung installed — one extra branch, no behaviour change.
+unsafe fn shim_send(msg: *const u8, len: c_int, external: bool) -> c_int {
+    if msg.is_null() || len <= 0 {
+        return 0;
+    }
+    let slice = core::slice::from_raw_parts(msg, len as usize);
+    if let Some(n) = QUEUE.park(slice, external) {
+        return n;
+    }
+    // Not inside a render: straight through to schwung's own sender, saved
+    // before the copy's pointers were overwritten. Calling back through the
+    // copy would recurse.
+    let Some((int_fn, ext_fn)) = ORIGINALS.get() else { return 0 };
+    match if external { *ext_fn } else { *int_fn } {
+        Some(f) => f(msg, len),
+        None => 0,
+    }
+}
+
+type SendFn = unsafe extern "C" fn(msg: *const u8, len: c_int) -> c_int;
+
+/// Schwung's own `(internal, external)` senders, saved before the copy's
+/// pointers are overwritten. The drain and the pass-through both go here.
+static ORIGINALS: OnceLock<(Option<SendFn>, Option<SendFn>)> = OnceLock::new();
+
+/// Replay one parked message to schwung. Audio thread, after the join.
+pub fn send_direct(msg: &[u8], external: bool) {
+    let Some((int_fn, ext_fn)) = ORIGINALS.get() else { return };
+    let f = if external { *ext_fn } else { *int_fn };
+    if let Some(f) = f {
+        unsafe { f(msg.as_ptr(), msg.len() as c_int) };
+    }
+}
+
+/// Copy schwung's host vtable and swap in the two wrappers.
+///
+/// A COPY and not a mutation of schwung's own struct: that struct is shared with
+/// schwung's four native chain slots and with every other module in the process,
+/// and none of them renders on a movy lane. Only movy's chains get the wrappers.
+fn shimmed_host() -> *const host_api_v1_t {
+    let raw = host::raw();
+    if raw.is_null() {
+        return raw;
+    }
+    let existing = SHIMMED_HOST.load(Ordering::Acquire);
+    if !existing.is_null() {
+        return existing;
+    }
+    // Safe: schwung hands movy this pointer at plugin init and it outlives the
+    // process. The struct is mirrored in full (see `ffi.rs`), which
+    // `abi-parity.mjs` asserts, so the copy carries every field the chain host
+    // reads — `slot_recv_channel` and `get_beat_position` included.
+    let mut copy = unsafe { core::ptr::read(raw) };
+    let _ = ORIGINALS.set((copy.midi_send_internal, copy.midi_send_external));
+    copy.midi_send_internal = Some(shim_send_internal);
+    copy.midi_send_external = Some(shim_send_external);
+    let leaked: *mut host_api_v1_t = Box::leak(Box::new(copy));
+    SHIMMED_HOST.store(leaked, Ordering::Release);
+    leaked
+}
 
 pub struct ChainHost {
     api: &'static plugin_api_v2_t,
@@ -80,7 +164,10 @@ impl ChainHost {
         }
         let init: PluginInitFn = unsafe { core::mem::transmute(init_ptr) };
 
-        let api_ptr = unsafe { init(host::raw()) };
+        // The shimmed vtable, not schwung's own — see `shimmed_host`. Every
+        // module in every movy chain is handed this, which is what makes the
+        // "one producer behind midi_send_*" promise movy's to keep.
+        let api_ptr = unsafe { init(shimmed_host()) };
         if api_ptr.is_null() {
             return Err("move_plugin_init_v2 returned NULL".to_string());
         }

@@ -44,10 +44,18 @@ pub struct host_api_v1_t {
     pub mod_clear_source: Option<unsafe extern "C" fn(ctx: *mut c_void, source_id: *const c_char)>,
     pub mod_host_ctx: *mut c_void,
     pub get_bpm: Option<unsafe extern "C" fn() -> f32>,
-    // Field order mirrors host_api_v1_t — NEVER reorder or skip. midi_inject_to_move
-    // sits immediately after get_bpm; the C struct's trailing slot_recv_channel is
-    // intentionally omitted (unused here — a shorter prefix of an over-allocated struct).
+    // Field order mirrors host_api_v1_t — NEVER reorder or skip.
     pub midi_inject_to_move: Option<unsafe extern "C" fn(msg: *const u8, len: c_int) -> c_int>,
+    // The mirror used to stop above, as a deliberate prefix of fields movy does
+    // not call. It cannot any more: `chain_host` now hands the chain host a
+    // COPY of this struct with two pointers replaced (see `midi_out`), so every
+    // field the chain host reads must exist here or it reads past the end.
+    // `slot_recv_channel` is what Pre mode addresses Move tracks with and
+    // `get_beat_position` is what a chain LFO locks to — both live paths.
+    // `abi-parity.mjs` now demands an exact match rather than a prefix, so
+    // schwung appending a field fails a test instead of truncating silently.
+    pub slot_recv_channel: Option<unsafe extern "C" fn(instance: *mut c_void) -> c_int>,
+    pub get_beat_position: Option<unsafe extern "C" fn() -> f64>,
 }
 
 #[repr(C)]

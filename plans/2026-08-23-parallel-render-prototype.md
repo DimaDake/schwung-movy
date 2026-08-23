@@ -330,11 +330,10 @@ prints rather than something a reader has to notice.
 - **The equivalence oracle exists and passes, on 2 modules of 8.** See §9. No
   difference has been found, but coverage is the finding: two thirds of the
   fleet cannot be compared this way at all.
-- **§4 is untouched.** `midi_send_external` and `midi_send_internal` are
-  single-producer, and modules *do* emit MIDI from render (`v2_tick_midi_fx`).
-  The pinning does not help: two *different* modules emitting concurrently is
-  enough. The 8 sounding chains here are plain synths, so the measurement did
-  not exercise it.
+- ~~**§4 is untouched.**~~ **Fixed — see §10.** It was also much smaller than
+  this section believed: no module in the 93-repo fleet reaches either unsafe
+  sender from `render_block`, and the one render-path MIDI call that does exist
+  goes to the MPSC-safe `midi_inject_to_move`.
 - **The fourth lane is unmeasured.** `MAX_LANES` is 4 and `chlanes 4` works, but
   the sweep that would have priced it was interrupted. The balance measurement's
   0.13× assumed no contention, and the third lane's ledger (594 µs of extra work
@@ -371,9 +370,7 @@ and the design point of three lanes survives.
    (imbalance measured 20–38 µs at 2–3 lanes), decisive on twelve tracks of one
    module, where the current design returns 1.00×. Needs the confirmed-clean
    allow-list first.
-4. **§4 of the review, the MIDI-out rings** — the first hazard neither the
-   pinning nor the tiering covers, since two *different* modules emitting from
-   render is enough.
+4. ~~**§4 of the review, the MIDI-out rings.**~~ **Done — see §10.**
 5. **T1 and T2**, together worth about 0.1×, and only if something above them
    has not already changed the design.
 
@@ -477,3 +474,120 @@ against synthetic arms, each proven to fail when its guard is removed.
 - Coverage is the thing to improve next. The eight unstable modules are unstable
   for a reason nobody has looked at yet — a time-seeded noise source is benign,
   a static that survives re-instantiation is the same hazard class as §5.
+
+
+---
+
+## 10. The MIDI-out rings: measured first, then closed
+
+§4 of the review named this the hazard that neither the pinning nor the tiering
+covers, and it was the last *correctness* item on the list. It turned out to be
+two separate questions that had been fused: **how big is it**, and **how do we
+stop it**. The first has an answer that changes the second.
+
+### How big it is: much smaller than "modules do emit MIDI from render"
+
+The review's evidence was that `v2_render_block` calls `v2_tick_midi_fx`
+(chain_host.c:1942) and that MIDI leaves from in there. True, but it does not
+follow that the unsafe senders are reachable. Enumerating the three render-path
+MIDI exits, against the current schwung checkout and all 93 fleet repos:
+
+| exit | reachable from render? | shape |
+| --- | --- | --- |
+| `midi_inject_to_move` | **yes** — `v2_tick_midi_fx` Pre mode (chain_midi.c:608), plus `schwung-fork` from `process_midi` | **bounded MPSC** (Vyukov per-slot-sequence, `shadow_constants.h:520`), documented for concurrent producers *across processes* |
+| `midi_send_internal` | **no module in 93 repos** | unsafe |
+| `midi_send_external` | **no module in 93 repos** | unsafe |
+
+Two findings sit behind that table.
+
+**MIDI FX cannot reach the unsafe senders at all — structurally.**
+`midi_fx_api_v1_t` (`schwung/src/host/midi_fx_api_v1.h`) has no host pointer:
+`create_instance(module_dir, config_json)`, and `tick` returns messages through
+an `out_msgs` buffer. A MIDI FX has nothing to call. Everything it generates is
+funnelled by the *chain host* into `midi_inject_to_move` — the safe one. So the
+intuition that "MIDI FX are the risk, and they are cheap enough to pin to one
+lane" is exactly inverted: MIDI FX are the one category that is safe by
+construction, and pinning them would buy nothing.
+
+**The only fleet module that calls `midi_send_internal` at all is `essaim`**, at
+`src/dsp/essaim.c:504`, and it uses it to drive **pad LEDs**. Its callers are
+`on_midi` and `set_param` — never `render_block`. Movy runs neither off the audio
+thread, so it was never exposed. `scripts/audit-render-globals.py` already
+collected this (it tracks host calls per render entry point); nobody had grepped
+its output for the MIDI ones.
+
+So there is no live bug. What there is, is a **contract** movy quietly broke: 93
+repos were written against "one thread, one chain at a time, in slot order", and
+a module added tomorrow is entitled to send MIDI from render. That is worth
+fixing regardless — but it is a guard, not a rescue.
+
+### How it is closed: movy owns the vtable, so movy can keep the promise
+
+`chain_host.rs:170` hands the chain host a host API pointer at
+`move_plugin_init_v2`, and that pointer reaches **every module in every movy
+chain**. It used to be schwung's own struct, passed through. It is now a *copy*
+with two pointers replaced — `engine/crates/movy-dsp/src/midi_out.rs`:
+
+- A send issued while a chain is rendering is **parked** in that chain's queue.
+  One producer per queue, because a chain renders on exactly one lane.
+- The audio thread **drains** it after the join, **in slot order**.
+- A send from outside a render — movy's own transport clock and automation CC —
+  passes straight through, untouched.
+
+Two properties fall out, and the second is the one worth having:
+
+1. schwung sees a single producer again, which is the safety claim.
+2. The emission **order** becomes deterministic, and identical between serial and
+   parallel. This is the same reason the mix is summed serially in slot order
+   after the join rather than as lanes finish. Parallel render now produces
+   identical *MIDI*, not merely identical audio — which extends what §9's oracle
+   is able to claim, since the oracle can only ever see samples.
+
+`midi_inject_to_move` is deliberately left alone. It is a real MPSC queue, it
+already carries the Pre-mode path from render, and routing a working
+safety-correct path through this one would add risk to buy nothing. Its
+cross-chain ordering stays nondeterministic under parallel; within a chain it is
+unchanged, and the chains address different recv channels.
+
+### The one thing this cost
+
+The mirror in `ffi.rs` was deliberately a **prefix** of schwung's
+`host_api_v1_t`, stopping at `midi_inject_to_move`. Safe while movy only read
+fields out of schwung's struct — the offsets of the fields present do not move.
+Not safe once movy hands over a copy: the chain host reads `slot_recv_channel`
+(Pre-mode track addressing) and `get_beat_position` (chain LFO lock) off whatever
+it is given, and a short copy makes it read past the end and call a garbage
+function pointer on the audio thread.
+
+So the mirror is now complete, and `browser-test/abi-parity.mjs` demands an
+**exact** match rather than a prefix. schwung appending a field now fails a local
+test with a diff to apply, instead of failing on the device. That guard was
+proven by deleting `get_beat_position` from the mirror and watching the test say
+`C has 17, Rust has 16`.
+
+### What it measured
+
+| check | result |
+| --- | --- |
+| `cargo test` | 89 movy-dsp (up from 78), 261 seq-core, 0 failed |
+| local suites | all green, 133 passed |
+| device — `test-chains.sh` | PASSED, 14 checks; chains load, sound (peak 10669), dexed metadata intact, state restored |
+| device — `measure-render-equivalence.sh` | **PASS, 4/12 bit-identical, 0 differences, 3 on helper lanes** (was 2) — and the surviving hashes are byte-for-byte the ones the pre-change build produced |
+| device — `measure-parallel-render.sh` | **2.23× at 3 lanes**, unchanged; `chlanes 1` control still 1.00×; serial drift 0.1% |
+| device — `chmidilog` | `dropped=0` after a full twelve-chain run |
+
+The drain is a 12-iteration walk over relaxed atomics per block when nothing is
+queued, which is why the speedup did not move.
+
+### Teeth
+
+Each guard was removed and the failure watched, per the repo rule:
+
+- Scope removed from `render_pool::run` → `a_send_from_inside_a_task_is_attributed_to_that_task_s_chain` FAILED.
+- Drain order reversed → `the_drain_is_in_slot_order_whatever_order_the_lanes_queued_in` FAILED.
+- `get_beat_position` deleted from the ABI mirror → abi-parity FAILED.
+
+The serial path takes the same `Scope`, but note what it is for: serial has one
+thread by definition, so its scope buys **ordering parity**, not safety. The
+safety-critical site is `run`, and that is the one under test — under parallel
+every lane, the audio thread's included, goes through it.

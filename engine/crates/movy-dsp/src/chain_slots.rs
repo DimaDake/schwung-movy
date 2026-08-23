@@ -409,6 +409,11 @@ impl ChainSlots {
         if active > 0 {
             self.cost.add_wall(t0.elapsed().as_nanos() as u64);
         }
+        // After the join, before anything else: every lane is idle, so schwung
+        // sees exactly one producer again, and slot order makes the emission
+        // deterministic. Costs nothing when no chain sent anything, which today
+        // is every chain in the fleet.
+        crate::midi_out::QUEUE.drain(crate::chain_host::send_direct);
         let digesting = self.digest.running();
 
         for i in 0..MOVY_CHAINS {
@@ -476,7 +481,13 @@ impl ChainSlots {
             let Some(inst) = self.slots[i].as_mut() else { continue };
             active += 1;
             let t0 = self.cost.start();
+            // Serial takes the same scope as a lane does, so a module's MIDI
+            // leaves in slot order after the block in BOTH modes. Two orderings
+            // would be a difference parallel introduced, which is the one thing
+            // it is not allowed to do.
+            let scope = crate::midi_out::Scope::enter(i);
             inst.render_block(&mut self.scratch[i][..frames]);
+            drop(scope);
             self.cost.stop(t0, i);
         }
         active

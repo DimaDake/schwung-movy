@@ -36,7 +36,7 @@ if (!existsSync(HEADER)) {
 }
 
 /* Commit the mirror was last verified against, so a failure says what to diff. */
-const VERIFIED_AT = '120ba662';
+const VERIFIED_AT = 'd6c818c3';
 
 const header = readFileSync(HEADER, 'utf8');
 const rust = readFileSync('engine/crates/movy-dsp/src/ffi.rs', 'utf8');
@@ -75,9 +75,6 @@ function compare(label, cName, rustName, { prefixOnly = false } = {}) {
     ok(`Rust struct ${rustName} found in ffi.rs`, Array.isArray(r) && r.length > 0);
     if (!c || !r) return;
 
-    /* host_api_v1_t is deliberately mirrored as a PREFIX — ffi.rs documents that
-     * the trailing slot_recv_channel is omitted because it is unused. A prefix is
-     * safe (offsets of the fields present are unchanged); a reorder is not. */
     const want = prefixOnly ? c.slice(0, r.length) : c;
 
     if (!prefixOnly) {
@@ -103,8 +100,18 @@ function compare(label, cName, rustName, { prefixOnly = false } = {}) {
 _log('\x1b[1mABI mirror vs schwung/src/host/plugin_api_v1.h\x1b[0m');
 compare('plugin_api_v2 — the struct movy calls the chain host through',
         'plugin_api_v2', 'plugin_api_v2_t');
-compare('host_api_v1 — the struct schwung calls movy through',
-        'host_api_v1', 'host_api_v1_t', { prefixOnly: true });
+/* Mirrored in FULL, not as a prefix. It used to be a prefix, which was safe
+ * while movy only read fields out of schwung's own struct — the offsets of the
+ * fields present are unchanged by omitting trailing ones. It stopped being safe
+ * when `chain_host.rs` began handing the chain host a COPY of this struct with
+ * the two MIDI senders swapped for movy's wrappers (`midi_out`): the chain host
+ * reads `slot_recv_channel` (Pre-mode track addressing) and `get_beat_position`
+ * (chain LFO lock) off whatever it is given, so a short copy makes it read past
+ * the end and call a garbage function pointer on the audio thread. An exact
+ * match means schwung appending a field fails HERE, with a diff to apply,
+ * instead of on the device. */
+compare('host_api_v1 — the struct schwung calls movy through, and copies',
+        'host_api_v1', 'host_api_v1_t');
 
 /* api_version must be first in both, because it is the runtime check's anchor:
  * movy reads it before trusting any other field. */

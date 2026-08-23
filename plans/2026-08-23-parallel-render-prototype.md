@@ -357,26 +357,21 @@ D1 reordered this list and T0 has now confirmed the shape it implied: the
 rendezvous work (T1, T2) is worth ~0.1× between them and stays at the bottom,
 and the design point of three lanes survives.
 
-1. **Finish the lane curve — the fourth arm.** `LANES="1 2 3 4"`, one run. The
-   third lane cost 594 µs of extra work for 212 µs of wall; if the fourth turns
-   the curve over, the answer is to *cap* lanes, which is a one-line default and
-   the cheapest remaining win. Nothing below this changes what the feature is.
-2. ~~**The serial/parallel equivalence oracle.**~~ **Built and passing — see §9.**
-   ~~What replaces it is widening its coverage.~~ **Wrong goal — what replaces it
-   is defeating the pinning and re-running the oracle on two instances of ONE
-   module, on two lanes.** The planner pins same-module chains to one lane, so
-   the oracle as configured cannot see the hazard that pinning exists to prevent;
-   on that axis it passes vacuously. `forge` is the proof: the static audit flags
-   it as touching shared statics from render, and it *passed* — because the set
-   contains exactly one forge, so there was nothing for it to collide with.
-   Needs the same planner control as item 3, and nothing else: the harness
-   already reports lane-per-chain and already refuses to call a lane-0-only run
-   evidence. Chasing the coverage number instead adds weak independent checks at
-   device-run prices.
+1. ~~**Finish the lane curve — the fourth arm.**~~ **Run — the curve turns
+   over, and `DEFAULT_LANES = 3` is already the cap, so this closes with no code
+   change. See §12.**
+2. ~~**The serial/parallel equivalence oracle.**~~ ~~Widening its coverage.~~
+   ~~Defeating the pinning and re-running on two instances of ONE module.~~
+   **Run — `chpin 0` exists and the unpinned oracle produced its first
+   duplicate-race evidence. See §12.** What is left of this item is not another
+   oracle run: it is the eight chains that are *not reproducible serially*, which
+   is now the binding constraint on every question the oracle can be asked.
 3. **Tier 1 of §5 — stop pinning clean duplicates.** Modest on a varied set
    (imbalance measured 20–38 µs at 2–3 lanes), decisive on twelve tracks of one
    module, where the current design returns 1.00×. Needs the confirmed-clean
-   allow-list first.
+   allow-list first. **The mechanism is now built and measured** (§12); what is
+   missing is only the policy that decides which modules may use it, and the
+   evidence for that policy is what item 2's remaining half would supply.
 4. ~~**§4 of the review, the MIDI-out rings.**~~ **Done — see §10.**
 5. **T1 and T2**, together worth about 0.1×, and only if something above them
    has not already changed the design.
@@ -742,3 +737,99 @@ flags as the one unanswered question in per-chain `module_dir`: a copy must neve
 happen on the audio thread, and movy has no non-audio thread of its own.
 
 Nothing to ask for here beyond making sure movy's need is visible when it lands.
+
+---
+
+## 12. Two measurements that close §8 items 1 and 2
+
+Both run 2026-08-23 on engine 0.41.0, on the twelve-chain fleet set.
+
+### The fourth lane turns the curve over, and it is not contention that does it
+
+| lanes | wall | speedup | contention | imbalance | overhead |
+| --- | --- | --- | --- | --- | --- |
+| serial | 2465.2 µs | 1.00× | — | — | — |
+| 1 | 2431.0 µs | 1.01× | −38.0 µs | 0.0 µs | 9.2 µs |
+| 2 | 1301.3 µs | 1.89× | 40.5 µs | 2.1 µs | 49.1 µs |
+| **3** | **1107.4 µs** | **2.23×** | 585.5 µs | 48.2 µs | 44.2 µs |
+| 4 | 1393.3 µs | 1.77× | 638.6 µs | 226.9 µs | 391.8 µs |
+
+Serial drift over the sweep −0.2%, and the `chlanes 1` control arm returned
+1.01×, so the set held still.
+
+**Three lanes is the design point and the answer is already in the code**:
+`DEFAULT_LANES = 3`. `MAX_LANES` stays 4 because it is the ceiling on a
+*measurement* control, and removing the arm that produced this table would make
+the table unreproducible.
+
+The interesting part is *why* the fourth lane loses, because it is not the
+mechanism T0 found. Contention barely moves — 585.5 → 638.6 µs, +9% — while
+**rendezvous overhead goes up 8.9× (44.2 → 391.8 µs) and imbalance 4.7× (48.2 →
+226.9 µs)**. Adding the fourth lane does not make the chains cost more; it makes
+the *join* cost more. That is consistent with the frame-phase result: Move's own
+FIFO-70 workers run on the same four cores immediately after movy's render, so a
+fourth helper is the one that stops fitting in the gap, and the wall is then set
+by whichever lane got descheduled. The run flagged it independently — the plan
+changed *during* the four-lane window, which is the planner reacting to costs
+that were themselves preemption noise.
+
+So the third lane and the fourth fail for opposite reasons, and only the third
+is worth its price.
+
+### The oracle, unpinned: dexed raced itself and stayed bit-identical
+
+`chpin 0` (`render_plan::plan`, `ChainSlots::set_pin_duplicates`) stops the
+planner keeping same-module chains on one lane. It is off by default, never
+persisted, and deliberately unsafe — it is what allows the race the pinning
+exists to prevent, which is the only way to get evidence about that race.
+
+| run | evidence | on a helper | **raced a sibling** | verdict |
+| --- | --- | --- | --- | --- |
+| `PIN=1` (control) | 4/12 | 4 | **0** | PASS |
+| `PIN=0` | 4/12 | 2 | **2** | PASS |
+
+**The control is the finding.** Pinned, all four duplicate pairs sat on one lane
+each (`plaits` L1+L1, `obxd` L0+L0, `dexed` L1+L1, `noisemaker` L2+L2) and the
+run printed the same green PASS over the same four chains — while testing
+nothing whatsoever about duplicates. That is the vacuity §8 item 2 asserted,
+now demonstrated rather than argued.
+
+Unpinned, the planner split all four pairs, and one pair survived to be
+evidence: **`dexed` on lanes 0 and 1, both `7a0d03e7374a79e3`, byte-identical to
+each other, to the serial arms, and to every earlier run of this set.** Two
+instances of one module rendering concurrently through one `dlopen` mapping
+produced the same audio as one at a time.
+
+`RACED` is a distinct count from `EXPOSED` for a reason a single number hides: a
+helper lane exposes a chain to concurrency *in general*, but only a sibling on
+another lane exercises the shared `.data` of one mapping. The harness now
+refuses to print PASS for a `PIN=0` run whose `RACED` is 0 — an unpinned run
+that spread nothing is indistinguishable from a pinned one, and would otherwise
+report a green answer to a question it never asked.
+
+**What this does not license.** One module of duplicate evidence is not the
+allow-list §5 tier 1 needs. `forge` remains flagged-and-passing on the same
+vacuous ground it was before — there is still exactly one forge in the set, so
+splitting duplicates changed nothing for it. And the binding constraint is
+unchanged and now clearly the top of the list: **eight of twelve chains are not
+reproducible serially**, so no amount of lane arrangement can turn them into
+evidence. Widening the oracle means fixing that, not running it again.
+
+### Teeth
+
+Each guard was removed and the named test watched to fail:
+
+- ignore `pin_duplicates` when grouping → `unpinned_duplicates_land_on_different_lanes`
+  and `unpinned_still_schedules_every_chain_exactly_once` FAILED
+- keep module-equality membership when unpinned → both FAILED (three chains of
+  one module scheduled nine times)
+- drop the forced replan in `set_pin_duplicates` →
+  `unpinning_forces_a_replan_rather_than_waiting_for_one` FAILED
+
+Plus two scorer cases in `browser-test/device-scripts.mjs` fixing that a split
+pair counts as raced and a pinned pair does not, and a source assertion that the
+`RACED == 0` branch exits non-zero.
+
+`pin` is reported in `chrenderlog` because a set with no duplicated module plans
+identically either way: an arm that meant to unpin and did not would otherwise
+look exactly like one that did.

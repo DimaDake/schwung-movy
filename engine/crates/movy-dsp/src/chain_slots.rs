@@ -111,6 +111,9 @@ pub struct ChainSlots {
     /// Which slots are loaded, as the planner wants it. A field rather than a
     /// local because replanning happens on the audio thread.
     loaded: Vec<bool>,
+    /// Keep same-module chains on one lane. On by default; turning it off is a
+    /// measurement instrument, not a tuning knob — see `render_plan`.
+    pin_duplicates: bool,
     /// The equivalence oracle: what each chain rendered, not what it cost.
     /// Idle until `chdigest` arms it.
     digest: ChainDigest,
@@ -144,6 +147,7 @@ impl ChainSlots {
             blocks_since_plan: 0,
             plan_generation: u32::MAX,
             loaded: vec![false; MOVY_CHAINS],
+            pin_duplicates: true,
             digest: ChainDigest::new(MOVY_CHAINS),
         }
     }
@@ -194,6 +198,27 @@ impl ChainSlots {
         host::log(&format!("chain mode: lanes={lanes}"));
     }
 
+    /// Whether same-module chains still share a lane.
+    ///
+    /// Turning this off removes the only thing standing between two instances
+    /// of one module and a genuine data race on its file-scope state, so it is
+    /// never persisted and never on by default. It is here because the oracle
+    /// cannot otherwise produce evidence about that race: with duplicates
+    /// pinned, the case it is meant to test never occurs.
+    ///
+    /// Unlike `set_lanes` this does not touch the pool, so it is cheap — but it
+    /// must still force a replan, or the flag flips while the assignment it
+    /// changes stays exactly as it was for up to `REPLAN_BLOCKS`, and an arm
+    /// that believes it split the duplicates measures the pinned plan instead.
+    pub fn set_pin_duplicates(&mut self, pin: bool) {
+        if pin == self.pin_duplicates {
+            return;
+        }
+        self.pin_duplicates = pin;
+        self.plan_generation = u32::MAX;
+        host::log(&format!("chain mode: pin_duplicates={}", pin as u8));
+    }
+
     /// `parallel=<0|1> lanes=<n> late=<blocks> plan=<lane0>|<lane1>|...`
     pub fn render_report(&self) -> String {
         let plan = self
@@ -203,10 +228,14 @@ impl ChainSlots {
             .map(|l| l.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(","))
             .collect::<Vec<_>>()
             .join("|");
+        // `pin` is reported because the harness cannot infer it: a set with no
+        // duplicated module plans identically either way, so an arm that meant
+        // to split duplicates and did not would look exactly like one that did.
         format!(
-            "parallel={} lanes={} yielded={} plan={}",
+            "parallel={} lanes={} pin={} yielded={} plan={}",
             self.parallel as u8,
             self.lanes.len(),
+            self.pin_duplicates as u8,
             self.pool.as_ref().map_or(0, |p| p.joins_yielded_blocks()),
             plan
         )
@@ -543,7 +572,7 @@ impl ChainSlots {
         for (i, s) in self.slots.iter().enumerate() {
             self.loaded[i] = s.is_some();
         }
-        self.planner.plan(&self.modules, self.cost.plan_ns(), &self.loaded);
+        self.planner.plan(&self.modules, self.cost.plan_ns(), &self.loaded, self.pin_duplicates);
     }
 
     /// Per-chain render cost since the last call — see `CostMeter::report`.
@@ -676,6 +705,28 @@ mod tests {
         slots.set_lanes(1);
         assert_eq!(slots.pool.as_ref().map(|p| p.helpers()), Some(0));
         assert!(slots.parallel, "one lane is still the parallel path");
+    }
+
+    /* Splitting duplicates is the oracle's stimulus, so the ways it can fail
+     * quietly matter more than the ways it can fail loudly: an arm that thinks
+     * it split them and did not reports a pass for a race it never ran. */
+
+    #[test]
+    fn unpinning_forces_a_replan_rather_than_waiting_for_one() {
+        let mut slots = ChainSlots::new();
+        slots.plan_generation = slots.generation;
+        slots.blocks_since_plan = 0;
+        slots.set_pin_duplicates(false);
+        assert_eq!(slots.plan_generation, u32::MAX,
+            "the plan the flag changes must be rebuilt before the next block, not in 512");
+    }
+
+    #[test]
+    fn the_report_says_which_pinning_an_arm_ran_under() {
+        let mut slots = ChainSlots::new();
+        assert!(slots.render_report().contains("pin=1"), "pinned is the default");
+        slots.set_pin_duplicates(false);
+        assert!(slots.render_report().contains("pin=0"));
     }
 
     #[test]

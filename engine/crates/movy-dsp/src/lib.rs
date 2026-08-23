@@ -66,7 +66,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.40.0";
+const ENGINE_VERSION: &str = "0.41.0";
 
 /// Tracks backed by schwung's own shadow slots. Their notes go out as MIDI on
 /// the matching channel, exactly as before; everything above this index is a
@@ -158,6 +158,16 @@ impl Instance {
                 Ok(n) if n >= 1 => self.chains.set_lanes(n),
                 _ => host::log(&format!("chain mode: ignoring chlanes '{val}'")),
             },
+            /* `chpin <0|1>` — whether same-module chains share a lane. On by
+             * default, and `0` is deliberately unsafe: it is what lets two
+             * instances of one module render at once, which is both the thing
+             * §5's tiering wants to allow and the thing the oracle has never
+             * actually tested. Pinned, the race cannot happen, so a pass says
+             * nothing about it. Never persisted; pointless unless `chparallel`
+             * is on, since serial render has one thread either way. */
+            "chpin" => {
+                self.chains.set_pin_duplicates(val != "0" && !val.is_empty());
+            }
             /* `chdigest [blocks]` — run the equivalence oracle: strike a fixed
              * chord on every loaded chain, checksum exactly `blocks` blocks of
              * each chain's output, release. The stimulus is generated in the

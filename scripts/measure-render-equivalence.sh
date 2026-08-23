@@ -40,6 +40,12 @@ CHAINS=12
 # Blocks per window. ~344 blocks/s, so 512 is ~1.5 s of audio: long enough for a
 # rare race to land inside it, short enough that most of it is not decay.
 BLOCKS="${BLOCKS:-512}"
+# PIN=0 stops the planner keeping same-module chains on one lane, which is the
+# ONLY way this run says anything about duplicates. Pinned, two instances of a
+# module never render at once, so the hazard the pinning exists to prevent is
+# not in the experiment — and the run still prints green. Default stays 1 so the
+# normal run keeps measuring the configuration movy would actually ship.
+PIN="${PIN:-1}"
 # Generous: the window itself is ~1.5 s and the log read is a round trip behind.
 WINDOW_WAIT=6
 # Between arms, so the previous arm's release tails do not bleed into the next
@@ -51,7 +57,7 @@ ssh -o ConnectTimeout=5 "ableton@$HOST" true 2>/dev/null || { echo "DEVICE OFFLI
 ssh "ableton@$HOST" 'touch /data/UserData/schwung/debug_log_on'
 
 echo "${BLD}=== render equivalence: does parallel produce the same audio? ===${RST}"
-echo "host=$HOST  lanes=$LANES  window=$BLOCKS blocks  modules: ${MODULES[*]}"
+echo "host=$HOST  lanes=$LANES  pin=$PIN  window=$BLOCKS blocks  modules: ${MODULES[*]}"
 
 ts_open_movy
 sleep 8
@@ -116,6 +122,8 @@ echo
 A=$(arm "A: serial — the control, first half" 0)
 sleep "$GAP"
 ep "chlanes" "$LANES"
+# Before the arm loads, not after: the plan is what the arm renders under.
+ep "chpin" "$PIN"
 B=$(arm "B: parallel, $LANES lane(s) — the arm under test" 1)
 # Which lane each chain actually ran on, read while the parallel arm's plan is
 # still current. A chain pinned to lane 0 rendered on the audio thread exactly as
@@ -131,6 +139,7 @@ A2=$(arm "A': serial again — the control, second half" 0)
 # Leave the device as it was found: the engine releases its own chord, but the
 # mode is a session setting and a later benchmark must not inherit it.
 ep "chparallel" "0"
+ep "chpin" "1"
 
 # Shape check, not just emptiness. The scorer splits on "," and "/" and will
 # happily score whatever it is handed, so a digest with anything else in it
@@ -157,7 +166,7 @@ RESULT=$(awk -v a="$A" -v b="$B" -v a2="$A2" -v mods="${ASSIGN[*]}" -v n="$CHAIN
              -v G="$GRN" -v R="$RED" -v Y="$YEL" -v Z="$RST" \
              -f "$MOVY_DIR/scripts/lib/digest-verdict.awk")
 printf '%s\n' "$RESULT" | grep -v '^SUMMARY'
-read -r _ PASS FAIL SILENT UNSTABLE EXPOSED <<<"$(printf '%s' "$RESULT" | grep '^SUMMARY')"
+read -r _ PASS FAIL SILENT UNSTABLE EXPOSED RACED <<<"$(printf '%s' "$RESULT" | grep '^SUMMARY')"
 
 echo
 echo "${BLD}verdict${RST}"
@@ -165,6 +174,7 @@ printf '  %-34s %s/%s\n' "chains that are evidence" "$((PASS + FAIL))" "$CHAINS"
 printf '  %-34s %s\n'    "  silent in some arm" "$SILENT"
 printf '  %-34s %s\n'    "  not reproducible serially" "$UNSTABLE"
 printf '  %-34s %s\n'    "passing chains run on a HELPER lane" "$EXPOSED"
+printf '  %-34s %s\n'    "  and RACED a sibling instance" "$RACED"
 echo
 if [ "$FAIL" -gt 0 ]; then
     echo "${RED}${BLD}FAIL: $FAIL chain(s) rendered different audio in parallel.${RST}"
@@ -175,6 +185,16 @@ elif [ "$PASS" -eq 0 ]; then
     # compared. It has to read as a failed measurement, not as a pass.
     echo "${YEL}${BLD}INCONCLUSIVE: no chain was reproducible enough to compare.${RST}"
     echo "  The oracle proved nothing. Do not read this as equivalence."
+    exit 1
+elif [ "$PIN" = "0" ] && [ "$RACED" -eq 0 ]; then
+    # PIN=0 was asked for, so the question was specifically about duplicates —
+    # and no passing chain actually had a sibling on another lane. Whatever this
+    # run proved, it did not prove that. Failing here rather than printing the
+    # generic PASS is the difference between the unpinned experiment and the
+    # pinned one it would otherwise be indistinguishable from.
+    echo "${YEL}${BLD}INCONCLUSIVE: unpinned, but no passing chain raced a sibling.${RST}"
+    echo "  No two instances of one module landed on different lanes, so the"
+    echo "  duplicate hazard was never exercised. Check the plan line above."
     exit 1
 elif [ "$EXPOSED" -eq 0 ]; then
     # Every comparable chain stayed on the audio thread, where the parallel path
@@ -187,4 +207,7 @@ else
     printf '  %d of them ran on a helper lane, so concurrency was genuinely exercised.\n' "$EXPOSED"
     printf '  Coverage is %d of %d chains — the rest were not testable this way.\n' \
         "$PASS" "$CHAINS"
+    if [ "$PIN" = "0" ]; then
+        printf '  %d of them raced another instance of the SAME module.\n' "$RACED"
+    fi
 fi

@@ -23,6 +23,16 @@
 //! which `twelve_of_one_module_cannot_be_split` pins as a fact rather than a
 //! target.
 //!
+//! **`pin_duplicates` can be turned off, and doing so is deliberately unsafe.**
+//! It exists because the equivalence oracle cannot otherwise see the hazard the
+//! pinning exists to prevent: with duplicates pinned, two instances of one
+//! module never render concurrently, so the oracle passes on that axis without
+//! having tested it. `forge` is the proof — flagged by the static audit, and it
+//! passed, because the measured set holds exactly one forge. Splitting the
+//! duplicates is the only way to turn that vacuous pass into evidence, and it is
+//! also the mechanism §5's tier 1 needs. It is off by default, never persisted,
+//! and gated behind `chparallel` being on at all.
+//!
 //! Everything here is preallocated and reused: planning happens on the audio
 //! thread, where an allocation is a realtime hazard.
 //!
@@ -62,7 +72,18 @@ impl Planner {
     /// `modules[c]` is the chain's module id and `cost_ns[c]` its recent mean
     /// render cost — zero before it has rendered, which degrades to an even
     /// split rather than a bad one.
-    pub fn plan(&mut self, modules: &[String], cost_ns: &[u64], loaded: &[bool]) {
+    ///
+    /// `pin_duplicates` is passed in rather than held as state so that rebuilding
+    /// the planner — which `set_lanes` does on every lane change — cannot
+    /// silently drop it and turn a split-duplicate measurement back into a
+    /// pinned one that still reports itself as split.
+    pub fn plan(
+        &mut self,
+        modules: &[String],
+        cost_ns: &[u64],
+        loaded: &[bool],
+        pin_duplicates: bool,
+    ) {
         self.heads.clear();
         self.group_cost.clear();
         self.order.clear();
@@ -79,7 +100,12 @@ impl Planner {
             if !loaded[c] {
                 continue;
             }
-            match self.heads.iter().position(|&h| modules[h] == modules[c]) {
+            let existing = if pin_duplicates {
+                self.heads.iter().position(|&h| modules[h] == modules[c])
+            } else {
+                None
+            };
+            match existing {
                 Some(g) => self.group_cost[g] += cost_ns[c],
                 None => {
                     self.heads.push(c);
@@ -113,7 +139,12 @@ impl Planner {
             self.lane_load[pick] += self.group_cost[g];
             let head = self.heads[g];
             for c in 0..loaded.len() {
-                if loaded[c] && modules[c] == modules[head] {
+                // Unpinned, a group is exactly its head, so the membership test
+                // has to be identity rather than module equality — otherwise
+                // every duplicate is scheduled once per sibling.
+                let member =
+                    if pin_duplicates { modules[c] == modules[head] } else { c == head };
+                if loaded[c] && member {
                     self.lanes[pick].push(c);
                 }
             }
@@ -130,12 +161,16 @@ impl Planner {
 mod tests {
     use super::*;
 
-    fn run(mods: &[&str], costs: &[u64], lanes: usize) -> Planner {
+    fn run_with(mods: &[&str], costs: &[u64], lanes: usize, pin: bool) -> Planner {
         let m: Vec<String> = mods.iter().map(|s| s.to_string()).collect();
         let loaded = vec![true; mods.len()];
         let mut p = Planner::new(mods.len(), lanes);
-        p.plan(&m, costs, &loaded);
+        p.plan(&m, costs, &loaded, pin);
         p
+    }
+
+    fn run(mods: &[&str], costs: &[u64], lanes: usize) -> Planner {
+        run_with(mods, costs, lanes, true)
     }
 
     /// The safety property. If this ever splits, two instances of one module
@@ -157,6 +192,29 @@ mod tests {
         let p = run(&["helm"; 12], &[100; 12], 3);
         assert_eq!(p.makespan(), 1200);
         assert_eq!(p.lanes.iter().filter(|l| !l.is_empty()).count(), 1);
+    }
+
+    /// Unpinned, the same set is what parallel render would look like if the
+    /// audit in §5 is right about every module in it — and it is the stimulus
+    /// the oracle needs, since a pinned duplicate never races anything.
+    #[test]
+    fn unpinned_duplicates_land_on_different_lanes() {
+        let p = run_with(&["helm"; 12], &[100; 12], 3, false);
+        assert_eq!(p.makespan(), 400, "{:?}", p.lanes);
+        assert!(p.lanes.iter().all(|l| l.len() == 4), "{:?}", p.lanes);
+    }
+
+    /// Unpinned scheduling must still schedule each chain exactly once. The
+    /// membership test changes with the flag, and a group that kept matching by
+    /// module id would place every duplicate once per sibling — three chains of
+    /// one module would render nine times, which sounds like distortion rather
+    /// than like a planner bug.
+    #[test]
+    fn unpinned_still_schedules_every_chain_exactly_once() {
+        let p = run_with(&["obxd", "obxd", "obxd", "helm"], &[10, 10, 10, 10], 2, false);
+        let mut seen: Vec<usize> = p.lanes.iter().flatten().copied().collect();
+        seen.sort_unstable();
+        assert_eq!(seen, vec![0, 1, 2, 3], "{:?}", p.lanes);
     }
 
     /// Sorting descending is what makes this LPT and not plain greedy. Fed
@@ -190,7 +248,7 @@ mod tests {
         let m: Vec<String> = ["a", "b", "a", "c", "b", "d"].iter().map(|s| s.to_string()).collect();
         let loaded = [true, true, false, true, true, true];
         let mut p = Planner::new(6, 3);
-        p.plan(&m, &[10, 20, 30, 40, 50, 60], &loaded);
+        p.plan(&m, &[10, 20, 30, 40, 50, 60], &loaded, true);
         let mut seen: Vec<usize> = p.lanes.iter().flatten().copied().collect();
         seen.sort_unstable();
         assert_eq!(seen, vec![0, 1, 3, 4, 5], "an unloaded chain must not be scheduled");
@@ -203,7 +261,7 @@ mod tests {
         let m: Vec<String> = ["a", "b", "c"].iter().map(|s| s.to_string()).collect();
         let mut p = Planner::new(3, 2);
         for _ in 0..3 {
-            p.plan(&m, &[5, 3, 1], &[true, true, true]);
+            p.plan(&m, &[5, 3, 1], &[true, true, true], true);
         }
         let seen: Vec<usize> = p.lanes.iter().flatten().copied().collect();
         assert_eq!(seen.len(), 3, "{:?}", p.lanes);
@@ -213,7 +271,7 @@ mod tests {
     #[test]
     fn empty_and_single_lane_are_not_special_cases() {
         let mut p = Planner::new(3, 3);
-        p.plan(&[], &[], &[]);
+        p.plan(&[], &[], &[], true);
         assert!(p.lanes.iter().all(|l| l.is_empty()));
         assert_eq!(run(&["a", "b"], &[5, 5], 1).lanes, vec![vec![0, 1]]);
         assert_eq!(Planner::new(2, 0).lane_count(), 1, "zero lanes degrades to serial");

@@ -211,14 +211,19 @@ ok('every benchmark that drives the engine proves the link first',
  */
 log('\nTest 7: three digest arms are scored into the right verdict');
 
-/** The real scorer over synthetic arms → "<pass> <fail> <silent> <unstable> <exposed>".
+/** The real scorer over synthetic arms →
+ *  "<pass> <fail> <silent> <unstable> <exposed> <raced>".
  *  `plan` is chrenderlog's `<lane0>|<lane1>|...`; it defaults to putting every
- *  chain on a helper so the cases that are not about lanes stay readable. */
-function score(a, b, a2, n, plan = null) {
+ *  chain on a helper so the cases that are not about lanes stay readable.
+ *  `mods` defaults to all-DISTINCT module names — with every chain sharing one
+ *  name every pair would count as a duplicate and `raced` would be noise in
+ *  cases that are not about duplicates at all. */
+function score(a, b, a2, n, plan = null, mods = null) {
     const out = execFileSync('awk', [
         '-v', `a=${a}`, '-v', `b=${b}`, '-v', `a2=${a2}`, '-v', `n=${n}`,
         '-v', `plan=${plan ?? '|' + [...Array(n).keys()].join(',')}`,
-        '-v', 'mods=', '-v', 'G=', '-v', 'R=', '-v', 'Y=', '-v', 'Z=',
+        '-v', `mods=${mods ?? [...Array(n).keys()].map(i => 'm' + i).join(' ')}`,
+        '-v', 'G=', '-v', 'R=', '-v', 'Y=', '-v', 'Z=',
         '-f', 'scripts/lib/digest-verdict.awk',
     ], { encoding: 'utf8' });
     return out.split('\n').find(l => l.startsWith('SUMMARY')).slice(8);
@@ -226,22 +231,22 @@ function score(a, b, a2, n, plan = null) {
 
 // Two chains, both sounding, both stable, parallel agrees.
 ok('identical arms score as evidence that passed',
-   score('aaaa/9,bbbb/9', 'aaaa/9,bbbb/9', 'aaaa/9,bbbb/9', 2) === '2 0 0 0 2');
+   score('aaaa/9,bbbb/9', 'aaaa/9,bbbb/9', 'aaaa/9,bbbb/9', 2) === '2 0 0 0 2 0');
 
 // The finding the whole run exists to produce.
 ok('a parallel arm that differs is a FAIL, not a rounding note',
-   score('aaaa/9,bbbb/9', 'aaaa/9,cccc/9', 'aaaa/9,bbbb/9', 2) === '1 1 0 0 1');
+   score('aaaa/9,bbbb/9', 'aaaa/9,cccc/9', 'aaaa/9,bbbb/9', 2) === '1 1 0 0 1 0');
 
 // The dangerous false pass: nothing sounded, so every digest matches.
 ok('silent chains are coverage, never agreement',
-   score('0000/0,0000/0', '0000/0,0000/0', '0000/0,0000/0', 2) === '0 0 2 0 0');
+   score('0000/0,0000/0', '0000/0,0000/0', '0000/0,0000/0', 2) === '0 0 2 0 0 0');
 
 // The other false pass: a chain that cannot even reproduce itself serially
 // says nothing about threading, whichever way the parallel arm lands.
 ok('a chain that fails its own serial control is excluded, not failed',
-   score('aaaa/9,bbbb/9', 'aaaa/9,zzzz/9', 'aaaa/9,dddd/9', 2) === '1 0 0 1 1');
+   score('aaaa/9,bbbb/9', 'aaaa/9,zzzz/9', 'aaaa/9,dddd/9', 2) === '1 0 0 1 1 0');
 ok('and excluded even when the parallel arm happens to match arm A',
-   score('bbbb/9', 'bbbb/9', 'dddd/9', 1) === '0 0 0 1 0');
+   score('bbbb/9', 'bbbb/9', 'dddd/9', 1) === '0 0 0 1 0 0');
 
 /* The third false pass, and the subtlest. Lane 0 IS the audio thread: a chain
  * the planner put there renders on the same thread in both arms, so it matches
@@ -249,14 +254,29 @@ ok('and excluded even when the parallel arm happens to match arm A',
  * one lane, so a whole set landing on lane 0 is a plan the planner can really
  * produce — and it would print a green PASS having tested nothing. */
 ok('a pass on lane 0 is not counted as concurrency being exercised',
-   score('aaaa/9,bbbb/9', 'aaaa/9,bbbb/9', 'aaaa/9,bbbb/9', 2, '0,1') === '2 0 0 0 0');
+   score('aaaa/9,bbbb/9', 'aaaa/9,bbbb/9', 'aaaa/9,bbbb/9', 2, '0,1') === '2 0 0 0 0 0');
 ok('and a pass on a helper lane is',
-   score('aaaa/9,bbbb/9', 'aaaa/9,bbbb/9', 'aaaa/9,bbbb/9', 2, '0|1') === '2 0 0 0 1');
+   score('aaaa/9,bbbb/9', 'aaaa/9,bbbb/9', 'aaaa/9,bbbb/9', 2, '0|1') === '2 0 0 0 1 0');
+
+/* The fourth false pass, and the one PIN=0 exists to close. Pinning keeps two
+ * instances of one module on one lane, so the race it prevents never happens
+ * and a green run says nothing about it. `raced` counts only chains that had a
+ * sibling of the SAME module on ANOTHER lane, which is what makes an unpinned
+ * run distinguishable from a pinned one that happened to spread. */
+ok('two instances of one module on two lanes count as having raced',
+   score('aaaa/9,bbbb/9', 'aaaa/9,bbbb/9', 'aaaa/9,bbbb/9', 2, '0|1', 'obxd obxd')
+   === '2 0 0 0 1 2');
+ok('the same two pinned to one lane did not, however green they print',
+   score('aaaa/9,bbbb/9', 'aaaa/9,bbbb/9', 'aaaa/9,bbbb/9', 2, '|0,1', 'obxd obxd')
+   === '2 0 0 0 2 0');
 
 const eqSrc = readFileSync('scripts/measure-render-equivalence.sh', 'utf8');
 ok('a run where nothing was comparable exits non-zero',
    /INCONCLUSIVE/.test(eqSrc) && /PASS" -eq 0/.test(eqSrc),
    'zero differences out of zero comparisons is not equivalence');
+ok('an unpinned run that raced nothing exits non-zero too',
+   /PIN" = "0" \] && \[ "\$RACED" -eq 0/.test(eqSrc),
+   'PIN=0 asks about duplicates; zero races cannot answer it');
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 

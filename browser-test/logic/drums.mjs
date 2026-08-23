@@ -438,7 +438,8 @@ _log('\nTest: 9w9 padKeys per-pad addressing');
 
   const at = (key) => [0, 1, 2, 3, 4, 5, 6, 7]
       .find((k) => nw.getKnobParamInfo(k)?.key === key);
-  const pitch = at('pad_pitch'), decay = at('pad_decay'), drive = at('pad_drive');
+  const pitch = at('pad_pitch'), decay = at('pad_decay'), drive = at('pad_drive'),
+        pdepth = at('pad_pdepth');
   eq('Voice bank knobs are on page 0', pitch !== undefined && decay !== undefined, true);
 
   // Pad 1 = kick: the alias resolves to the kick circuit's own param.
@@ -472,23 +473,26 @@ _log('\nTest: 9w9 padKeys per-pad addressing');
   eq('pad 9 decay value', nw.getKnobParamInfo(decay).value, 91);
   eq('pad 9 pitch shares the voice key', nw.getKnobParamInfo(pitch).ioKey, 'ohh_pitch');
 
-  // The sampled hat has no Drive: unavailable, inert, and no automation dot —
-  // rather than showing the kick's value and writing to a key that isn't there.
+  eq('pad 9 drive → ohh_drive', nw.getKnobParamInfo(drive).ioKey, 'ohh_drive');
+
+  // The hat has no pitch envelope, so Pitch Depth is listed as null for it:
+  // unavailable, inert, and no automation dot — rather than showing the kick's
+  // value and writing to a key this voice hasn't got.
   const cell = (k) => { const vm2 = nw.getViewModel();
       return vm2.rows[Math.floor(k / 4)]?.[k % 4]; };
-  eq('absent drive reads as unavailable', cell(drive)?.displayValue, '...');
-  eq('absent drive not automatable', nw.getKnobParamInfo(drive).automatable, false);
+  eq('absent P.Depth reads as unavailable', cell(pdepth)?.displayValue, '...');
+  eq('absent P.Depth not automatable', nw.getKnobParamInfo(pdepth).automatable, false);
   const seen2 = [];
   globalThis.shadow_set_param = (sl, k, v) => { seen2.push(k); return origSet(sl, k, v); };
-  nw.handleKnobDelta(drive, 6);
+  nw.handleKnobDelta(pdepth, 6);
   nw.tick();
   globalThis.shadow_set_param = origSet;
-  eq('absent drive writes nothing', seen2.length, 0);
+  eq('absent P.Depth writes nothing', seen2.length, 0);
 
   // Back to a voice that has it: the knob comes alive again.
   nw.updateDrumPad(1, 68);
-  eq('drive live again on pad 1', nw.getKnobParamInfo(drive).value, 12);
-  eq('drive displays again on pad 1', cell(drive)?.displayValue, '12');
+  eq('P.Depth live again on pad 1', nw.getKnobParamInfo(pdepth).ioKey, 'bd_c_sweep_depth');
+  eq('P.Depth displays again on pad 1', cell(pdepth)?.displayValue, '14');
 }
 
 /* ── drumPadOn / drumPadOff ──────────────────────────────────────────────── */

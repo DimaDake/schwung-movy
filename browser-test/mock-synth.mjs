@@ -1058,7 +1058,8 @@ export const MOCK_SYNTHS = {
      * VOICE (bd_c_tune, ohh_pitch) and the sampled cymbals have no Drive or
      * Distortion at all. Nothing a {pad}-number template can address — this is
      * the module the padKeys form exists for. Values differ per voice so a test
-     * can prove which key a knob actually reached. */
+     * can prove which key a knob actually reached. The hi-hat has Drive but no
+     * pitch-envelope depth — only the five circuit voices have one. */
     nw9: {
         "synth:name":           "9W9",
         "synth_module":         "9w9",
@@ -1067,6 +1068,7 @@ export const MOCK_SYNTHS = {
               options: ["Diode (909)", "Hard Clip", "Wavefolder", "Bitcrush"] },
         ]),
         "synth:bd_c_tune":      "10",
+        "synth:bd_c_sweep_depth": "14",
         "synth:bd_c_decay":     "11",
         "synth:bd_c_drive":     "12",
         "synth:bd_c_dist_type": "Hard Clip",
@@ -1079,6 +1081,7 @@ export const MOCK_SYNTHS = {
         "synth:ohh_decay_closed":  "81",
         "synth:ohh_decay":         "91",
         "synth:ohh_volume":        "82",
+        "synth:ohh_drive":         "83",
     },
 
     mrdrums: {

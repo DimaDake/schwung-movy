@@ -21,6 +21,19 @@
           "cr_pitch",
           "rc_pitch"
         ],
+        "pdepth": [
+          "bd_c_sweep_depth",
+          "sd_c_sweep_depth",
+          "lt_c_sweep_depth",
+          "mt_c_sweep_depth",
+          "ht_c_sweep_depth",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
         "decay": [
           "bd_c_decay",
           "sd_c_decay",
@@ -42,10 +55,10 @@
           "ht_c_drive",
           "rs_saturation",
           "hc_drive",
-          null,
-          null,
-          null,
-          null
+          "ohh_drive",
+          "ohh_drive",
+          "cr_drive",
+          "rc_drive"
         ],
         "dist": [
           "bd_c_dist_type",
@@ -53,12 +66,12 @@
           "lt_c_dist_type",
           "mt_c_dist_type",
           "ht_c_dist_type",
-          null,
-          null,
-          null,
-          null,
-          null,
-          null
+          "rs_dist_type",
+          "hc_dist_type",
+          "ohh_dist_type",
+          "ohh_dist_type",
+          "cr_dist_type",
+          "rc_dist_type"
         ],
         "level": [
           "bd_c_level",
@@ -86,6 +99,14 @@
             "key": "pad_pitch",
             "short": "PITCH",
             "full": "Pitch",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "pad_pdepth",
+            "short": "PDEP",
+            "full": "Pitch Depth",
             "type": "int",
             "min": 0,
             "max": 127
@@ -126,7 +147,6 @@
             "min": 0,
             "max": 127
           },
-          null,
           null,
           null
         ]

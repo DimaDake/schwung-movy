@@ -362,10 +362,17 @@ and the design point of three lanes survives.
    the curve over, the answer is to *cap* lanes, which is a one-line default and
    the cheapest remaining win. Nothing below this changes what the feature is.
 2. ~~**The serial/parallel equivalence oracle.**~~ **Built and passing — see §9.**
-   What replaces it is **widening its coverage**: 8 of 12 chains are not
-   reproducible even serially from a fresh load, and nobody has looked at why.
-   A time-seeded noise source is benign; a static that survives re-instantiation
-   is §5's hazard class showing up in a second measurement.
+   ~~What replaces it is widening its coverage.~~ **Wrong goal — what replaces it
+   is defeating the pinning and re-running the oracle on two instances of ONE
+   module, on two lanes.** The planner pins same-module chains to one lane, so
+   the oracle as configured cannot see the hazard that pinning exists to prevent;
+   on that axis it passes vacuously. `forge` is the proof: the static audit flags
+   it as touching shared statics from render, and it *passed* — because the set
+   contains exactly one forge, so there was nothing for it to collide with.
+   Needs the same planner control as item 3, and nothing else: the harness
+   already reports lane-per-chain and already refuses to call a lane-0-only run
+   evidence. Chasing the coverage number instead adds weak independent checks at
+   device-run prices.
 3. **Tier 1 of §5 — stop pinning clean duplicates.** Modest on a varied set
    (imbalance measured 20–38 µs at 2–3 lanes), decisive on twelve tracks of one
    module, where the current design returns 1.00×. Needs the confirmed-clean
@@ -448,6 +455,32 @@ weird-dreams surge`:
 **No difference was found. The honest headline is the coverage, not the pass.**
 Two thirds of the fleet cannot be compared this way, because they do not repeat
 themselves even single-threaded from a fresh load.
+
+### The unit of evidence is the module, not the chain
+
+"4 of 12 chains" overstates it. The set is 8 modules across 12 chains, four of
+them loaded twice, and the two `dexed` chains hashed *identically to each other*
+in every arm — that is one piece of evidence duplicated, not two. The honest
+figure is **3 modules of 8**: dexed, forge, weird-dreams.
+
+The eight that are not reproducible are also not merely missing coverage. A
+module that renders differently on two identical fresh loads, single-threaded,
+is doing one of two things, and they have opposite consequences:
+
+- **(a) seeding from a clock or `/dev/urandom`** — harmless, and it means the
+  oracle can *never* test that module, which is a fact worth knowing rather than
+  a gap worth closing.
+- **(b) carrying state across re-instantiation in a file-scope static** — §5's
+  hazard class exactly, and it would make the module unsafe under parallel render
+  regardless of anything the oracle reports.
+
+Sorting the eight into (a) and (b) is the useful question. Part of the answer is
+already free: `scripts/audit-render-globals.py` flags 7 fleet repos as touching
+shared statics from render — forge-move, krautdrums-move, schwung-StreamRTSP,
+schwung-airwindows, schwung-chordism, schwung-sfz, schwung-virus — and **none of
+the eight unreproducible modules is among them**, which points at (a). Not proof:
+the audit is static and cannot see through function pointers or C++ virtual
+dispatch, and plaits, obxd and surge are all C++.
 
 ### Lane 0 passes are nearly tautological, and the run says so
 

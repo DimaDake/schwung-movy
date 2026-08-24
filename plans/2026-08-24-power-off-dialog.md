@@ -1,15 +1,18 @@
 # Power-off dialog under overtake
 
-Status: **two fixes implemented and device-verified (2026-08-24)**. Pressing
-power while movy is open now shows Move's real "Press wheel to shut down"
-prompt, Back dismisses it safely (no accidental shutdown), and a power press
-no longer leaks a spurious Loop-mode trigger into movy (cable-14 collision
-with CC 58, found and fixed same session). **Two follow-on auto-resume
-attempts were tried and reverted — still open**: the user still has to
-manually reselect movy from Move's Tools menu after Back, and pad LEDs don't
-recover until the next interaction. See **Two more attempts made and
-reverted** below for what was tried, why both failed, and what to
-investigate next — this needs a different approach, not a retry of either.
+Status: **two fixes implemented, device-verified, PR open (2026-08-24)**.
+schwung PR: https://github.com/charlesvestal/schwung/pull/292 (branch
+`feat/power-button-sysex-fix`, split out clean — same reasoning as Feature
+1's PR #291). Pressing power while movy is open now shows Move's real
+"Press wheel to shut down" prompt, Back dismisses it safely (no accidental
+shutdown), and a power press no longer leaks a spurious Loop-mode trigger
+into movy (cable-14 collision with CC 58, found and fixed same session).
+**Two follow-on auto-resume attempts were tried and reverted — still
+open**: the user still has to manually reselect movy from Move's Tools menu
+after Back, and pad LEDs don't recover until the next interaction. See
+**Two more attempts made and reverted** below for what was tried, why both
+failed, and what to investigate next — this needs a different approach, not
+a retry of either.
 
 Repos touched: `schwung` (fork `DimaDake/schwung`, new branch), `movy`
 (minimal — see below).

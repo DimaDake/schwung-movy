@@ -54,14 +54,33 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
+- **Parallel chain render is on by default** (`chparallel`). Movy's twelve
+  chains render across three lanes instead of one at a time on the audio thread.
+  Measured on device: **2.15× on the twelve-chain obxd ramp**, 2.0-2.2× across
+  the mid-weight fleet. What that buys is not a number but headroom — `hera`
+  fails at one note per chain serially and passes at four in parallel, `obxd`
+  and `nusaw` passed twelve chains only at reduced polyphony and now pass at
+  four notes, and the nine-chain row that was past the shim's overrun threshold
+  is comfortably under it. Tables in `docs/track-performance.md` §1-2.
+
+  **Light and idle sets pay nothing for it**, which was checked before the
+  default moved rather than assumed: an empty set costs 378 µs serial against
+  380 µs parallel, and twelve sleeping chains cost 445 µs against 440 µs. (The
+  pool also no longer wakes its helpers when every helper lane is empty. That is
+  worth ~0 µs — it was measured against a build without it — and is kept only
+  because doing nothing should not cost three thread wakes.)
+
+  Turning it off is still one flag on the Global Params page, and `chpin 1`
+  remains the containment for a set that misbehaves.
+
 - **Modules are assumed thread-safe under parallel chain render.** Duplicated
   modules are no longer pinned to a single lane by default, so twelve tracks of
   one instrument can actually divide across lanes. Containment for a module that
   turns out to race is a **blacklist** (`moduleBlacklist` in `prefs.json`) that
   puts all its instances back together; `chpin 1` still pins every duplicate as
   the blunt fallback. This is deliberately optimistic — nothing has been measured
-  racing, but nothing has been proven safe either, and `chparallel` remains off
-  by default.
+  racing, but nothing has been proven safe either, and with `chparallel` now on
+  by default that optimism is what every set runs under.
 
 ### Removed
 

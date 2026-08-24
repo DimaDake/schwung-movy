@@ -23,7 +23,13 @@ export type FlagDef = {
 export const FLAGS: FlagDef[] = [
     {
         key: 'chparallel', name: 'Parallel Render',
-        min: 0, max: 1, def: 0, bool: true,
+        // On: measured 2.15x on the twelve-chain obxd ramp and 2.0-2.2x across
+        // the mid-weight fleet (docs/track-performance.md §1, §2), which is what
+        // takes hera and nusaw from over the frame budget to under it. The
+        // engine's own default stays serial — the UI pushes this on every engine
+        // boot, and keeping the two apart is what lets a device script detect
+        // the flag by writing a value the engine will actually log.
+        min: 0, max: 1, def: 1, bool: true,
     },
     {
         key: 'chlanes', name: 'Render Lanes',

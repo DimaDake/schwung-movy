@@ -7,10 +7,11 @@ Measured 2026-08-15/16 on `move.local`. Reproduce with the scripts named in each
 section.
 
 **Everything below §1 and §2 was measured with chain render SERIAL**, which is
-still the default. Both sections now carry a second table measured 2026-08-24
-with **parallel render on and no pinning** (`chparallel` 1, `chlanes` 3,
-`chpin` 0, `chidle` at its default 3). The flags live on the Global Params page
-(`src/seq/flags-def.ts`); the mechanism is
+no longer the default. Both sections now carry a second table measured
+2026-08-24 with **parallel render on and no pinning** (`chparallel` 1,
+`chlanes` 3, `chpin` 0, `chidle` at its default 3) — **and that is now the
+shipped configuration**, so the serial tables are the historical arm. The flags
+live on the Global Params page (`src/seq/flags-def.ts`); the mechanism is
 `plans/2026-08-23-parallel-render-prototype.md`.
 
 ---
@@ -125,6 +126,27 @@ across polyphony — that flatness is real, unlike the cases in §4.
 in every one, all 12 sounding in every row (measured 2026-08-24). Baseline with
 movy open and no chains: **404 µs**, against 263 µs serial — the pool costs
 ~140 µs before a single chain renders.
+
+> **That 140 µs did not reproduce, and the pool is not what it was.** Re-measured
+> 2026-08-24 before defaulting `chparallel` on, because a fixed ~140 µs tax on
+> every light set would have been a reason not to:
+>
+> | set | serial | parallel |
+> |---|---|---|
+> | no chains loaded at all | 378 µs | 380 µs |
+> | twelve chains loaded, all asleep (`chidle` 3) | 445 µs | 440 µs |
+>
+> **The pool costs an idle set nothing** — ~2 µs on an empty one, and nothing
+> distinguishable from noise on a sleeping one. The 404-vs-263 pair above is two
+> numbers taken in different device states, not a measurement of the pool.
+>
+> `render_pool::render_block` does now skip the rendezvous when no helper lane
+> has a task, and a unit test holds it. Do not expect that line to show up in a
+> mean: the second row is what it is worth, and it was **measured against a build
+> with the line removed** — 441 µs vs 444 µs, indistinguishable. It is kept
+> because not waking three threads to do nothing is obviously right, not because
+> it bought anything. Recorded here so the idea does not get rediscovered and
+> re-argued.
 
 | synth | 1 note | 2 | 3 | 4 | serial @4 | speedup @4 |
 |---|---|---|---|---|---|---|
@@ -437,7 +459,8 @@ standalone rewrite. Design and risks:
 **Built, and it is.** The `chparallel` tables in §1 and §2 are that fan-out
 measured on real sets: **2.15× on the twelve-chain obxd ramp, 2.0-2.2× across
 the mid-weight fleet** — multiples, as predicted, against the ~15% standalone
-would buy. It is off by default and lives on the Global Params page.
+would buy. **It is on by default as of 2026-08-24** and lives on the Global
+Params page, where it can still be turned off for an A/B.
 
 ## 8. Caveats
 

@@ -44,6 +44,16 @@ export async function run() {
     eq('a non-number falls back to the default', clampFlag(lanes, NaN), lanes.def);
     eq('fractions land on a whole setting', clampFlag(lanes, 2.4), 2);
 
+    /* The shipped render configuration, pinned because it is a product decision
+     * that lives in a one-character field. `chparallel` off is a ~2x CPU
+     * regression and `chidle` off is a ~14x one on an idle set, and neither
+     * would fail any other test in this repo — every suite below sets the flags
+     * it cares about explicitly, and the screenshot scenes do too. */
+    eq('parallel render ships ON', flagDef('chparallel').def, 1);
+    eq('idle skip ships at full (synth + FX)', flagDef('chidle').def, 3);
+    eq('three lanes, the measured design point', flagDef('chlanes').def, 3);
+    eq('duplicates are not pinned', flagDef('chpin').def, 0);
+
     const par = flagDef('chparallel');
     eq('a bool flag reads as OFF', flagValueLabel(par, 0), 'OFF');
     eq('a bool flag reads as ON', flagValueLabel(par, 1), 'ON');

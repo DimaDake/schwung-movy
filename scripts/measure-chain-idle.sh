@@ -138,9 +138,8 @@ fi
 #
 # Loaded and silent is the case the optimization exists for: a chain costs CPU
 # whenever it is loaded, whether or not anything is playing.
-cost_at() {
-    local level="$1"
-    ep "chidle" "$level"
+cost_with() {  # cost_with <flag> <value>
+    ep "$1" "$2"
     sleep "$SLEEP_SETTLE"
     ssh "ableton@$HOST" "> $LOG"
     ep "chcostlog" "1"        # first read RESETS the window
@@ -152,8 +151,8 @@ cost_at() {
 
 echo
 echo "${BLD}2. the saving: twelve chains loaded, nothing playing${RST}"
-C0="$(cost_at 0)"
-C3="$(cost_at 3)"
+C0="$(cost_with chidle 0)"
+C3="$(cost_with chidle 3)"
 echo "  chidle 0: $C0"
 echo "  chidle 3: $C3"
 
@@ -238,6 +237,65 @@ elif [ "$V1" = "$V2" ]; then
     FAILED=1
 else
     echo "${GRN}✓ the LFO advanced while chain 0 was asleep — mod_tick works${RST}"
+fi
+
+# --- 4. the two defaults together ----------------------------------------
+#
+# Both flags now ship ON, and they could have pulled against each other:
+# `chidle` empties the helper lanes, and if the pool's unpark/join cost anything
+# per block, every sleeping set would pay it for work it is not doing — the one
+# case where defaulting parallel on is a REGRESSION rather than a speedup.
+#
+# It does not, and this section is the evidence: measured at 440us parallel
+# against 445us serial on twelve sleeping chains (2026-08-24), and 380 vs 378 on
+# a set with no chains at all. Note what this does NOT test — the empty-lane
+# skip in render_pool::render_block scores the same with the line removed, so
+# that line's guard is the unit test, not this. What this guards is the DEFAULT:
+# it fails if parallel render ever starts taxing a set that is asleep.
+echo
+echo "${BLD}4. does the pool cost anything once everything is asleep?${RST}"
+#
+# Read with cb_frame_work, NOT chcostlog: the engine only accumulates wall time
+# on a block where some chain rendered, so a fully-asleep set reports ~0 from
+# the cost meter whatever the render path did. That would have made this check
+# pass without testing anything.
+ep "chidle" "3"
+frame_work_with() {  # frame_work_with <flag> <value> -> mean us
+    ep "$1" "$2"
+    sleep "$SLEEP_SETTLE"
+    ssh "ableton@$HOST" "> $LOG"
+    # The shim emits Frame(us) on a slow period, not per block. A 3s window
+    # caught none of them and the arm read as 0us — which the guard below
+    # reports as "nothing was compared" rather than as a match. 10s is what
+    # measure-work-ceiling.sh settles for, for the same reason.
+    sleep 10
+    cb_frame_work
+}
+TS="$(frame_work_with chparallel 0)"
+TP="$(frame_work_with chparallel 1)"
+echo "  chparallel 0 (serial):   ${TS}us frame work"
+echo "  chparallel 1 (default):  ${TP}us frame work"
+
+ep "chidlelog" "1"
+sleep 1
+G4="$(ssh "ableton@$HOST" "grep 'chain idle: level' $LOG | tail -1" | sed 's/.*chain idle: //')"
+A4="$(printf '%s' "$G4" | grep -o 'asleep=[0-9]*' | grep -o '[0-9]*')"
+echo "  gate: ${G4:-unreported}"
+
+if [ "${TS:-0}" = "0" ] || [ "${TP:-0}" = "0" ]; then
+    echo "${YEL}! no Frame(us) lines came back — nothing was compared${RST}"
+elif [ -z "$A4" ] || [ "$A4" -lt 2 ] 2>/dev/null; then
+    # A set that never slept has full helper lanes, so the skip was never
+    # reached and a matching pair of numbers would mean nothing.
+    echo "${YEL}! only ${A4:-0} chain(s) asleep — the empty-lane path was not exercised${RST}"
+elif [ "$TP" -gt $((TS + 60)) ]; then
+    # 60us is well under the ~140us the pool cost per frame before the skip, and
+    # well over frame-to-frame noise on an idle device.
+    echo "${RED}✗ parallel costs ${TP}us against serial's ${TS}us on a SLEEPING set —${RST}"
+    echo "${RED}  the pool is being woken for empty lanes${RST}"
+    FAILED=1
+else
+    echo "${GRN}✓ ${TP}us parallel vs ${TS}us serial — an asleep set does not pay for the pool${RST}"
 fi
 
 if [ "${EP_FAILS:-0}" -gt 0 ]; then

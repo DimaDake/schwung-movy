@@ -139,11 +139,17 @@ impl Instance {
                 host::log(&format!("chain cost: {}", self.chains.cost_report()));
             }
             /* `chparallel <0|1>` — render the movy chains across helper threads.
-             * Off by default and never persisted: this changes the "one thread,
+             * The UI's default is now ON (`flags-def.ts`), because the measured
+             * 2.0-2.2x is what puts several synths under the frame budget at
+             * all. The ENGINE's default stays serial, deliberately: the UI
+             * pushes every flag on each engine boot, so the product default is
+             * never in doubt, while a device script writing `1` still gets a log
+             * line rather than the silence of a no-op write.
+             *
+             * It remains a runtime toggle because this changes the "one thread,
              * one at a time, in slot order" contract 93 module repos were
-             * written against, so it is opted into for a measurement and dropped
-             * again. Toggling it mid-set is the point — A/B on one running set
-             * is the only comparison that holds the chains constant. */
+             * written against — and because A/B on one running set is the only
+             * comparison that holds the chains constant. */
             "chparallel" => {
                 self.chains.set_parallel(val != "0" && !val.is_empty());
             }

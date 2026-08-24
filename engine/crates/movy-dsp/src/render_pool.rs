@@ -148,7 +148,13 @@ impl RenderPool {
     /// Callers must not read any task's `buf` before this returns.
     pub fn render_block(&self, lanes: &[Vec<Task>]) {
         let helpers = self.handles.len();
-        if self.is_poisoned() || lanes.is_empty() {
+        // Nothing for a helper to do: run what there is inline and skip the
+        // rendezvous. The unpark/join pair is pure scheduler wake, so paying it
+        // for zero tasks is the whole cost of the pool and none of the benefit —
+        // which is exactly a set that `chidle` has put to sleep. Identical
+        // output either way: `run` is the same call on the same tasks, and lane
+        // 0 already runs first.
+        if self.is_poisoned() || lanes.is_empty() || lanes[1..].iter().all(|l| l.is_empty()) {
             for l in lanes {
                 run(l, &self.shared);
             }
@@ -406,6 +412,42 @@ mod tests {
         crate::midi_out::QUEUE.drain(|m, _| got.push(m[2]));
         // Slot order, though chain 5 ran on the helper and 2 on this thread.
         assert_eq!(got, vec![0x42, 0x45]);
+    }
+
+    /* `chidle` puts a silent set to sleep, which empties every helper lane while
+     * leaving parallel render on — now the default. The rendezvous costs the
+     * same whether the helpers have twelve tasks or none, so a sleeping set must
+     * not pay it. Asserted on `generation`, the counter that publishes work to
+     * the helpers: it is the wake itself, not a proxy for it. */
+    #[test]
+    fn empty_helper_lanes_do_not_wake_the_helpers() {
+        let _lock = crate::midi_out::test_guard();
+        let pool = RenderPool::new(2, CHAINS);
+        let before = pool.shared.generation.load(Ordering::Acquire);
+
+        let mut buf = vec![0i16; BLOCK * 2];
+        pool.render_block(&[
+            vec![Task {
+                render: Some(fill),
+                process_fx: None,
+                inst: 7 as *mut c_void,
+                buf: buf.as_mut_ptr(),
+                frames: BLOCK as i32,
+                chain: 0,
+            }],
+            vec![],
+            vec![],
+        ]);
+
+        assert_eq!(
+            pool.shared.generation.load(Ordering::Acquire),
+            before,
+            "helpers were woken for two empty lanes"
+        );
+        // And the work that WAS there still ran — skipping the fan-out must not
+        // become skipping the render.
+        assert_eq!(buf[0], 7, "lane 0 did not render");
+        assert_eq!(buf[BLOCK * 2 - 1], 7 + (BLOCK * 2 - 1) as i16);
     }
 
     /* And nothing may stay attributed once the call returns: the audio thread

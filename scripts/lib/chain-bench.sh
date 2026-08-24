@@ -7,7 +7,8 @@
 # reach the other, so the table lives in one place.
 #
 # Requires: $HOST, and cwd = the movy repo root (for scripts/engine-param.mjs).
-# Provides: ep, cb_discover_samples, cb_pitches (-> $CB_P), cb_prepare.
+# Provides: ep, cb_discover_samples, cb_pitches (-> $CB_P), cb_prepare,
+#           cb_frame_field, cb_frame_total.
 
 CB_MELODIC=(60 64 67 71)
 CB_DRUMS=(36 37 38 39)
@@ -93,4 +94,33 @@ cb_prepare() {
         forge)        ep "ch$c:synth:kit" "5" ;;
         *) : ;;
     esac
+}
+
+# --- the shim's own frame timing -----------------------------------------
+#
+# The SHIM's numbers, not the engine's, and the difference matters. movy's
+# `chcostlog` only accumulates wall time on a block where at least one chain
+# rendered, so once `chidle` puts a set to sleep the engine reports ~0 however
+# much the render path cost — including a parallel fan-out woken for empty
+# lanes. `Frame(us): pre=.. post=..` is measured around the whole callback and
+# cannot be fooled that way.
+#
+# Averaged over the last few log lines because a single frame is noise; both
+# readers need $HOST and $LOG.
+
+cb_frame_field() {  # cb_frame_field <pre|ioctl|post> -> mean us
+    ssh "ableton@$HOST" "grep -o 'Frame(us):.*' $LOG | tail -n 5" \
+        | awk -v want="$1" '{ for (i=1;i<=NF;i++) if ($i==want) { split($(i+1),a,"="); s+=a[2]+0; n++ } }
+                             END { print (n? int(s/n):0) }'
+}
+
+cb_frame_total() {  # -> mean us
+    ssh "ableton@$HOST" "grep -o 'total avg=[0-9]*' $LOG | tail -n 5" \
+        | awk -F= '{ s+=$2+0; n++ } END { print (n? int(s/n):0) }'
+}
+
+# What a frame actually spent working: pre + post, excluding the ioctl wait.
+# This is the number every ceiling in docs/track-performance.md is stated in.
+cb_frame_work() {  # -> mean us
+    echo $(( $(cb_frame_field pre) + $(cb_frame_field post) ))
 }

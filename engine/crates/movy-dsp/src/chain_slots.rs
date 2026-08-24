@@ -367,6 +367,40 @@ impl ChainSlots {
         self.idle.asleep_count()
     }
 
+    /// The gate's state, for `chidlelog`.
+    ///
+    /// The socket a device script drives can WRITE an engine param but has no
+    /// read verb, so `diag` and `status` — where these numbers also live — are
+    /// unreachable from a benchmark. Same write-to-read trick as `chcostlog`.
+    pub fn idle_report(&self) -> String {
+        let mut deep = 0;
+        for i in 0..MOVY_CHAINS {
+            if self.idle.deep_asleep(i) {
+                deep += 1;
+            }
+        }
+        // The counts alone cannot answer "is THIS chain asleep?", which is the
+        // question any check aimed at one chain has to ask — a global count of
+        // ten lets a test pass while the chain it is watching stays awake.
+        let mut sleeping = String::new();
+        for i in 0..MOVY_CHAINS {
+            if self.idle.deep_asleep(i) {
+                if !sleeping.is_empty() {
+                    sleeping.push(',');
+                }
+                sleeping.push_str(&i.to_string());
+            }
+        }
+        format!(
+            "level={:?} asleep={} deep={} loaded={} sleeping=[{}]",
+            self.idle.level(),
+            self.idle.asleep_count(),
+            deep,
+            self.slots.iter().filter(|s| s.is_some()).count(),
+            sleeping
+        )
+    }
+
     pub fn pending_loads(&self) -> usize {
         self.queue.len()
     }

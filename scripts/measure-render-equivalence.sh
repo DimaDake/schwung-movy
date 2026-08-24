@@ -32,6 +32,8 @@ MOVY_DIR="$(pwd)"
 source "$MOVY_DIR/scripts/lib/test-set.sh"
 # shellcheck source=lib/chain-bench.sh
 source "$MOVY_DIR/scripts/lib/chain-bench.sh"
+# shellcheck source=lib/chain-equiv.sh
+source "$MOVY_DIR/scripts/lib/chain-equiv.sh"
 # The same fleet the speed measurements are scored on — coverage here only means
 # something if it covers the modules those runs packed into lanes.
 MODULES=("${CB_DEFAULT_MODULES[@]}")
@@ -77,58 +79,13 @@ echo
 echo "chain assignment:"
 for c in $(seq 0 $((CHAINS-1))); do printf '  ch%-3s %s\n' "$c" "${ASSIGN[$c]}"; done
 
-# Every arm gets FRESHLY INSTANTIATED chains. The first run of this script did
-# not, and all twelve chains came back "not reproducible": the modules are
-# perfectly deterministic — two dexed instances hashed identically inside every
-# arm — but state survives from one arm to the next, so arm A' begins where arm
-# B left off. Voice-allocator position and free-running LFO phase are the usual
-# carriers, and neither is something a gap can wait out. A load request is never
-# deduplicated, so re-setting the same module is a real re-instantiation.
-#
-# Redirected wholesale to stderr: this runs INSIDE the command substitution that
-# captures the digest, so a single stray `echo` — here or in a future
-# `cb_prepare` — would be prepended to the digest string and the scorer would
-# split it into nonsense while still printing a confident verdict.
-load_chains() {
-    for c in $(seq 0 $((CHAINS-1))); do ep "ch$c:synth:module" "${ASSIGN[$c]}"; done
-    sleep $((CHAINS + 6))
-    for c in $(seq 0 $((CHAINS-1))); do cb_prepare "${ASSIGN[$c]}" "$c"; done
-    sleep 2
-} >&2
-
-# One armed window -> the per-chain digest line. The engine strikes and releases
-# its own chord, so nothing about network timing can reach the measurement.
-digest() {  # digest <label> -> "<hex>/<voiced>,..."
-    ssh "ableton@$HOST" "> $LOG"
-    ep "chdigest" "$BLOCKS"
-    sleep "$WINDOW_WAIT"
-    local line
-    line=$(ssh "ableton@$HOST" "grep -o 'chain digest: state=done.*' $LOG | tail -n 1")
-    if [ -z "$line" ]; then
-        echo "${RED}the window never closed in arm $1 — is 0.39.0 deployed?${RST}" >&2
-        echo ""
-        return
-    fi
-    printf '%s' "$line" | sed 's/.*d=//'
-}
-
-# The mode is set BEFORE the reload so every arm loads under the conditions it
-# will render under, and the reload is what makes the arms comparable at all.
-arm() {  # arm <label> <parallel 0|1>  -> "<hex>/<voiced>,..." on stdout
-    # stderr, because stdout of this function IS the digest.
-    echo "${BLD}$1${RST}" >&2
-    ep "chparallel" "$2"
-    load_chains
-    digest "$1"
-}
-
 echo
-A=$(arm "A: serial — the control, first half" 0)
+A=$(ce_arm "A: serial — the control, first half" 0)
 sleep "$GAP"
 ep "chlanes" "$LANES"
 # Before the arm loads, not after: the plan is what the arm renders under.
 ep "chpin" "$PIN"
-B=$(arm "B: parallel, $LANES lane(s) — the arm under test" 1)
+B=$(ce_arm "B: parallel, $LANES lane(s) — the arm under test" 1)
 # Which lane each chain actually ran on, read while the parallel arm's plan is
 # still current. A chain pinned to lane 0 rendered on the audio thread exactly as
 # it does serially, so "identical" there is close to tautological — the verdict
@@ -138,7 +95,7 @@ sleep 1
 PLAN=$(ssh "ableton@$HOST" "grep -o 'chain render: .*' $LOG | tail -n 1")
 PLAN="${PLAN#*plan=}"
 sleep "$GAP"
-A2=$(arm "A': serial again — the control, second half" 0)
+A2=$(ce_arm "A': serial again — the control, second half" 0)
 
 # Leave the device as it was found: the engine releases its own chord, but the
 # mode is a session setting and a later benchmark must not inherit it.

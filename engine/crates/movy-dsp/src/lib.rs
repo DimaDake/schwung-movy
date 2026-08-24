@@ -185,6 +185,12 @@ impl Instance {
             "chidle" => {
                 self.chains.set_idle_level(crate::chain_idle::IdleLevel::from_flag(val));
             }
+            /* Log the idle gate's state. Same write-to-read trick as
+             * `chcostlog`: `diag` and `status` carry the same numbers, but the
+             * remote-UI socket a benchmark drives has no read verb. */
+            "chidlelog" => {
+                host::log(&format!("chain idle: {}", self.chains.idle_report()));
+            }
             "chblock" => {
                 self.chains.set_blacklist(val);
             }

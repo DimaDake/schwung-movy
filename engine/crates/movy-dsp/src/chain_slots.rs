@@ -12,6 +12,7 @@
 use crate::chain_cost::CostMeter;
 use crate::chain_digest::{ChainDigest, STIMULUS};
 use crate::chain_host::{ChainHost, ChainInstance};
+use crate::chain_idle::{IdleGate, IdleLevel, Work};
 use crate::chain_pin::PinPolicy;
 use crate::ffi::MOVE_MIDI_SOURCE_INTERNAL;
 use crate::host;
@@ -116,6 +117,18 @@ pub struct ChainSlots {
     /// Keep same-module chains on one lane. OFF by default: modules are assumed
     /// thread-safe and the ones proven otherwise go on `chain_pin`'s blacklist.
     pin_duplicates: bool,
+    /// Which chains may skip work this block. See `chain_idle`.
+    idle: IdleGate,
+    /// This block's decision per chain, taken once before anything renders —
+    /// the parallel path builds its whole task list up front, so serial and
+    /// parallel have to be reading the same answer.
+    work: Vec<Work>,
+    /// Each chain's peak after its synth stage and before its FX. Written by
+    /// whichever lane rendered it; the parallel path copies it back after the
+    /// join, exactly as it already does for cost.
+    synth_peak: Vec<i32>,
+    /// The `idle` epoch the current lane plan was built for.
+    plan_idle_epoch: u32,
     /// The equivalence oracle: what each chain rendered, not what it cost.
     /// Idle until `chdigest` arms it.
     digest: ChainDigest,
@@ -151,6 +164,10 @@ impl ChainSlots {
             loaded: vec![false; MOVY_CHAINS],
             pin_duplicates: false,
             digest: ChainDigest::new(MOVY_CHAINS),
+            idle: IdleGate::new(MOVY_CHAINS),
+            work: vec![Work::NONE; MOVY_CHAINS],
+            synth_peak: vec![0; MOVY_CHAINS],
+            plan_idle_epoch: u32::MAX,
         }
     }
 
@@ -324,6 +341,32 @@ impl ChainSlots {
         self.generation
     }
 
+    pub fn idle_level(&self) -> IdleLevel {
+        self.idle.level()
+    }
+
+    /// Changing the level re-applies external FX mode to every live chain: the
+    /// mode is a property of the instance, and a chain loaded under one level
+    /// would otherwise keep rendering under the old contract.
+    pub fn set_idle_level(&mut self, level: IdleLevel) {
+        if self.idle.level() == level {
+            return;
+        }
+        self.idle.set_level(level);
+        let split = level.splits();
+        for s in self.slots.iter_mut().flatten() {
+            let want = split && s.supports_split();
+            s.set_external_fx_mode(want);
+        }
+        self.plan_generation = u32::MAX;
+        host::log(&format!("chain idle: level {level:?}"));
+    }
+
+    /// Chains whose synth is asleep. Read by `diag` and `status`.
+    pub fn asleep_count(&self) -> usize {
+        self.idle.asleep_count()
+    }
+
     pub fn pending_loads(&self) -> usize {
         self.queue.len()
     }
@@ -358,6 +401,13 @@ impl ChainSlots {
          * remote-UI socket can WRITE an engine param but has no read verb, so a
          * device test has nothing else to assert on. */
         self.generation = self.generation.wrapping_add(1);
+        self.idle.wake(req.slot);
+        /* A freshly created instance is in whatever FX mode the module defaults
+         * to. Claim it here, once, rather than per block. */
+        if let Some(inst) = self.slots[req.slot].as_mut() {
+            let split = self.idle.level().splits() && inst.supports_split();
+            inst.set_external_fx_mode(split);
+        }
         /* The load path IS the audio thread, so every millisecond here is a
          * dropped frame — and this one is a blocking dlopen, which is the
          * expensive half of opening a set. Logged rather than assumed, because
@@ -381,6 +431,7 @@ impl ChainSlots {
         if slot >= MOVY_CHAINS {
             return;
         }
+        self.idle.wake(slot);
         if self.queue.attach_state(slot, component, state) {
             return;
         }
@@ -395,6 +446,7 @@ impl ChainSlots {
         if slot >= MOVY_CHAINS {
             return;
         }
+        self.idle.wake(slot);
         if let Some(inst) = self.slots[slot].as_mut() {
             inst.set_param(key, val);
         }
@@ -406,6 +458,7 @@ impl ChainSlots {
 
     pub fn set_mix(&mut self, slot: usize, mix: TrackMix) {
         if slot < MOVY_CHAINS {
+            self.idle.wake(slot);
             self.mixes[slot] = mix;
         }
     }
@@ -415,6 +468,7 @@ impl ChainSlots {
         if slot >= MOVY_CHAINS {
             return;
         }
+        self.idle.wake(slot);
         if let Some(inst) = self.slots[slot].as_mut() {
             inst.on_midi(msg, source);
         }
@@ -442,6 +496,34 @@ impl ChainSlots {
         // deliberately NOT part of this: summing after the join keeps the output
         // in slot order, so parallel and serial produce the same samples rather
         // than the same samples in whatever order the lanes finished.
+        // Decide first, for every chain, before anything renders — the parallel
+        // path builds its whole task list up front, so a decision that depended
+        // on this block's own output could not be honoured there.
+        let digesting = self.digest.running();
+        for i in 0..MOVY_CHAINS {
+            self.work[i] = if self.slots[i].is_none() {
+                Work::NONE
+            } else if digesting {
+                // The oracle compares renders. A skipped block is not a
+                // difference in threading, which is the only thing it is
+                // allowed to report.
+                Work { synth: true, fx: self.idle.level().splits() }
+            } else {
+                self.idle.plan(i)
+            };
+        }
+        // LFOs still have to advance for every chain whose synth did not render,
+        // and on the audio thread rather than a lane — see `ChainInstance::mod_tick`.
+        if self.idle.level().splits() {
+            for i in 0..MOVY_CHAINS {
+                if !self.work[i].synth {
+                    if let Some(inst) = self.slots[i].as_mut() {
+                        inst.mod_tick();
+                    }
+                }
+            }
+        }
+
         let t0 = self.cost.start();
         let active = if self.parallel_ready() {
             self.render_parallel(frames)
@@ -456,10 +538,15 @@ impl ChainSlots {
         // deterministic. Costs nothing when no chain sent anything, which today
         // is every chain in the fleet.
         crate::midi_out::QUEUE.drain(crate::chain_host::send_direct);
-        let digesting = self.digest.running();
 
         for i in 0..MOVY_CHAINS {
             if self.slots[i].is_none() {
+                continue;
+            }
+            if self.work[i].none() {
+                // Nothing ran, so the scratch holds a stale block. Not mixed,
+                // and its peak is the truth about this block: silence.
+                self.peaks[i] = 0;
                 continue;
             }
             let scratch = &self.scratch[i][..frames];
@@ -475,6 +562,16 @@ impl ChainSlots {
                 host::log(&format!("chain {}: audio active (peak {})", i, peak));
             }
             mix_into(&mut out[..frames], scratch, &self.mixes[i]);
+        }
+        // Folded back after the mix, so the borrow of `scratch` is done with.
+        for i in 0..MOVY_CHAINS {
+            let w = self.work[i];
+            if w.none() {
+                continue;
+            }
+            let keep_alive =
+                w.fx && self.slots[i].as_mut().is_some_and(|s| s.fx_requires_continuous());
+            self.idle.observe(i, w, self.synth_peak[i], self.peaks[i], keep_alive);
         }
         if active > 0 {
             self.cost.end_block();
@@ -505,6 +602,10 @@ impl ChainSlots {
     /// Arm an equivalence run: strike a fixed chord, digest `blocks` blocks of
     /// every chain's output, release. See `chain_digest`.
     pub fn digest_arm(&mut self, blocks: u32) {
+        // The oracle compares renders, and `digest_stimulus` strikes its chord
+        // straight into the instances — bypassing `on_midi`, so the gate would
+        // never see the notes that are about to arrive.
+        self.idle.wake_all();
         self.digest.arm(blocks);
         host::log(&format!("chain digest: armed window={blocks}"));
     }
@@ -519,7 +620,12 @@ impl ChainSlots {
 
     fn render_serial(&mut self, frames: usize) -> usize {
         let mut active = 0usize;
+        let split = self.idle.level().splits();
         for i in 0..MOVY_CHAINS {
+            let w = self.work[i];
+            if w.none() {
+                continue;
+            }
             let Some(inst) = self.slots[i].as_mut() else { continue };
             active += 1;
             let t0 = self.cost.start();
@@ -528,7 +634,20 @@ impl ChainSlots {
             // would be a difference parallel introduced, which is the one thing
             // it is not allowed to do.
             let scope = crate::midi_out::Scope::enter(i);
-            inst.render_block(&mut self.scratch[i][..frames]);
+            if w.synth {
+                inst.render_block(&mut self.scratch[i][..frames]);
+            } else {
+                // The FX is owed silence to decay into, not the last block.
+                self.scratch[i][..frames].fill(0);
+            }
+            if split {
+                self.synth_peak[i] = self.scratch[i][..frames]
+                    .iter()
+                    .fold(0i32, |m, &s| m.max((s as i32).abs()));
+            }
+            if w.fx {
+                inst.process_fx(&mut self.scratch[i][..frames]);
+            }
             drop(scope);
             self.cost.stop(t0, i);
         }
@@ -545,15 +664,25 @@ impl ChainSlots {
         for lane in 0..self.planner.lanes.len() {
             for idx in 0..self.planner.lanes[lane].len() {
                 let c = self.planner.lanes[lane][idx];
-                let Some((render, inst)) = self.slots[c].as_mut().and_then(|s| s.raw_render())
-                else {
+                let w = self.work[c];
+                if w.none() {
+                    continue;
+                }
+                let Some((ptr, render, fx)) = self.slots[c].as_mut().map(|s| s.raw_parts()) else {
                     continue;
                 };
+                let render = if w.synth { render } else { None };
+                let fx = if w.fx { fx } else { None };
+                if render.is_none() && fx.is_none() {
+                    // A module with no render_block and nothing to process: the
+                    // same slot the old code skipped outright.
+                    continue;
+                }
                 active += 1;
                 self.lanes[lane].push(Task {
-                    render: Some(render),
-                    process_fx: None,
-                    inst,
+                    render,
+                    process_fx: fx,
+                    inst: ptr,
                     buf: self.scratch[c].as_mut_ptr(),
                     frames: (frames / 2) as i32,
                     chain: c,
@@ -568,6 +697,7 @@ impl ChainSlots {
             for c in 0..MOVY_CHAINS {
                 if self.slots[c].is_some() {
                     self.cost.add_ns(c, pool.cost_ns(c));
+                    self.synth_peak[c] = pool.synth_peak(c);
                 }
             }
         }
@@ -578,13 +708,19 @@ impl ChainSlots {
     /// as measured costs settle. Allocation-free — see `render_plan::Planner`.
     fn maybe_replan(&mut self) {
         self.blocks_since_plan += 1;
-        if self.plan_generation == self.generation && self.blocks_since_plan < REPLAN_BLOCKS {
+        if self.plan_generation == self.generation
+            && self.plan_idle_epoch == self.idle.epoch()
+            && self.blocks_since_plan < REPLAN_BLOCKS
+        {
             return;
         }
         self.plan_generation = self.generation;
+        self.plan_idle_epoch = self.idle.epoch();
         self.blocks_since_plan = 0;
         for (i, s) in self.slots.iter().enumerate() {
-            self.loaded[i] = s.is_some();
+            // A deep-asleep chain is not work, and a partition that counts it
+            // can put every SOUNDING chain on one lane.
+            self.loaded[i] = s.is_some() && !self.idle.deep_asleep(i);
         }
         self.planner.plan(self.pin.pin_keys(), self.cost.plan_ns(), &self.loaded);
     }
@@ -606,8 +742,9 @@ impl ChainSlots {
     /// slots that will not exist.
     pub fn teardown(&mut self) {
         self.queue.clear();
-        for s in self.slots.iter_mut() {
-            *s = None;
+        for i in 0..MOVY_CHAINS {
+            self.slots[i] = None;
+            self.idle.forget(i);
         }
         for a in self.audible.iter_mut() {
             *a = false;
@@ -644,6 +781,30 @@ mod tests {
         slots.digest_arm(64);
         assert!(slots.digest_report().starts_with("state=armed window=64 "),
             "{}", slots.digest_report());
+    }
+
+    /// The whole point, stated as a property: nothing that skipped its render
+    /// may reach the mix, because its scratch buffer holds a stale block.
+    #[test]
+    fn a_chain_that_did_not_render_is_not_mixed() {
+        let mut slots = ChainSlots::new();
+        let mut out = vec![1234i16; SCRATCH_SAMPLES];
+        // No chain host on the host build, so nothing is loaded and nothing can
+        // render — every chain's work is NONE and the buffer must be untouched.
+        slots.render(&mut out);
+        assert!(out.iter().all(|&s| s == 1234));
+        assert_eq!(slots.active_count(), 0);
+    }
+
+    #[test]
+    fn the_idle_level_survives_a_round_trip() {
+        let mut slots = ChainSlots::new();
+        assert_eq!(slots.idle_level(), IdleLevel::SynthFx, "on by default");
+        slots.set_idle_level(IdleLevel::Off);
+        assert_eq!(slots.idle_level(), IdleLevel::Off);
+        slots.set_idle_level(IdleLevel::SynthFx);
+        assert_eq!(slots.idle_level(), IdleLevel::SynthFx);
+        assert_eq!(slots.asleep_count(), 0, "nothing is loaded, so nothing sleeps");
     }
 
     #[test]

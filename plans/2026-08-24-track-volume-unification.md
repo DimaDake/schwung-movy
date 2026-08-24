@@ -1,10 +1,11 @@
 # Track+Volume combo unification (no-shift, Move-excluded)
 
-Status: **implemented and device-verified (2026-08-24)**. schwung fork
-branch `feat/suppress-master-volume` pushed (PR not yet opened — see final
-note); movy changes committed to main.
-Repos touched: `schwung` (fork `DimaDake/schwung`, branch
-`feat/suppress-master-volume`), `movy`.
+Status: **implemented, device-verified, PR open (2026-08-24)**. schwung PR:
+https://github.com/charlesvestal/schwung/pull/291 (branch
+`feat/track-volume-suppress`, split out clean from the fork branch that also
+held the unrelated power-off-dialog work). movy changes on main.
+Repos touched: `schwung` (fork `DimaDake/schwung`,
+PR https://github.com/charlesvestal/schwung/pull/291), `movy`.
 
 ## Problem
 

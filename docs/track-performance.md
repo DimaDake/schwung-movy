@@ -6,6 +6,13 @@ how many you can run, and how long a note takes to reach a synth.
 Measured 2026-08-15/16 on `move.local`. Reproduce with the scripts named in each
 section.
 
+**Everything below §1 and §2 was measured with chain render SERIAL**, which is
+still the default. Both sections now carry a second table measured 2026-08-24
+with **parallel render on and no pinning** (`chparallel` 1, `chlanes` 3,
+`chpin` 0, `chidle` at its default 3). The flags live on the Global Params page
+(`src/seq/flags-def.ts`); the mechanism is
+`plans/2026-08-23-parallel-render-prototype.md`.
+
 ---
 
 ## 1. The budget
@@ -42,6 +49,46 @@ breached and it begins **skipping DSP work**.
 > boot and already runs at ~1700 per sampling window at idle, because the debug
 > logging that makes these measurements possible is itself causing them.
 
+### The same ramp with parallel render on
+
+Same script, same synth, same four held notes — `chparallel` 1, `chlanes` 3,
+`chpin` 0 (measured 2026-08-24):
+
+| chains | work | `total` | serial work (above) |
+|---|---|---|---|
+| 0 | 405 µs | 2665 µs | 263 |
+| 1 | 653 | 2657 | |
+| 2 | 680 | 2651 | |
+| 3 | 691 | 2647 | 971 |
+| 4 | 932 | 2640 | |
+| 6 | 956 | 2633 | |
+| 7 | 1188 | 2627 | 2000 |
+| 8 | 1218 | 2620 | 2236 |
+| 9 | 1225 | 2616 | 2422 |
+| 10 | 1445 | 2613 | |
+| 11 | 1470 | 2609 | |
+| 12 | **1495** | **2601** | 3213 |
+
+**Twelve obxd chains at four notes cost 1495 µs against the ~2000 µs ceiling** —
+2.15× less than serial, and the row that was `2422 µs, past the overrun
+threshold` at nine chains is now 1225 µs.
+
+Two things confirm the number rather than just report it:
+
+- **`total` falls monotonically from 2665 to 2601 µs across the whole ramp.** In
+  the serial table it turned and climbed at eight chains, which is the ioctl
+  wait running out. Here the wait absorbs everything to twelve, so the frame is
+  never late at any point on the ramp.
+- **The work column is a staircase, stepping at 1, 4, 7 and 10** — every third
+  chain. That is the three-lane packing showing through: chains 2 and 3 join
+  lanes that are already running and cost the audio thread nothing, and only the
+  chain that starts a new round adds to the critical path. A flat-then-jump
+  shape is what a working fan-out looks like; a smooth line would have meant the
+  lanes were not really running at the same time.
+
+The ceiling itself does not move — it is a property of the frame, not of who
+computes in it. What moves is how many chains fit under it.
+
 ---
 
 ## 2. Per-track cost, all 12 movy chains loaded
@@ -72,6 +119,42 @@ across polyphony — that flatness is real, unlike the cases in §4.
 > `surge` loaded into only 11 of 12 chains and `moog` into 10. Not diagnosed.
 > Both are far past the budget anyway, so it does not change their verdict.
 
+### The same table with parallel render on
+
+`chparallel` 1, `chlanes` 3, `chpin` 0 — twelve chains of one synth, chord held
+in every one, all 12 sounding in every row (measured 2026-08-24). Baseline with
+movy open and no chains: **404 µs**, against 263 µs serial — the pool costs
+~140 µs before a single chain renders.
+
+| synth | 1 note | 2 | 3 | 4 | serial @4 | speedup @4 |
+|---|---|---|---|---|---|---|
+| **freak** (MrHyde) | 601 µs ✅ | 716 ✅ | 803 ✅ | 893 ✅ | 1403 | 1.57× |
+| **nusaw** | 660 ✅ | 858 ✅ | 1054 ✅ | 1247 ✅ | 2487 ❌ | 2.00× |
+| **obxd** | 799 ✅ | 1055 ✅ | 1252 ✅ | 1491 ✅ | 3112 ❌ | 2.09× |
+| **hera** | 1199 ✅ | 1367 ✅ | 1530 ✅ | 1702 ✅ | 3729 ❌ | 2.19× |
+| **surge** | 1864 ✅ | 2209 ❌ | 2458 ❌ | 2615 ❌ | 4016 ❌ | 1.54× |
+| **helm** | 3401 ❌ | 4072 ❌ | 4954 ❌ | 5865 ❌ | 8125 ❌ | 1.39× |
+
+**Three synths cross the line.** obxd and nusaw passed at 12 chains only at
+reduced polyphony and now pass at four notes; **hera fails at one note serially
+and passes at four in parallel**; surge goes from hopeless to usable at one note
+per chain. helm does not move far enough to matter.
+
+**The speedup shrinks as the synth gets heavier** — 2.0-2.2× through the middle
+of the range, 1.54× for surge, 1.39× for helm, against a three-lane ideal of 3×
+for twelve equal chains. Not diagnosed here. Two candidates, and they are not
+exclusive: the four A72s share L2 and one memory controller, so the heaviest
+synths are the most likely to be bandwidth-bound rather than compute-bound (§7's
+contention ramp saturates at ~24%); and both of these arms are *already over the
+frame*, where the shim starts skipping DSP work above its 2850 µs overrun
+threshold — a number measured on a frame that is being dropped into is not a
+clean measurement of anything. **Trust the speedups in rows that pass; treat
+surge's and helm's as a lower bound on a broken frame.**
+
+The lighter half of the fleet (dexed, plaits, moog) was not re-run: at 223 µs
+and 457 µs for twelve chains they are nowhere near the ceiling, so nothing about
+their verdict could change.
+
 ---
 
 ## 3. But you asked about **16** tracks
@@ -100,12 +183,37 @@ host-phase benchmark only ever routed MIDI channel 0 to slot 0, so per-host-trac
 cost is not properly measured yet. Treat that column as the right shape, not a
 measurement.
 
+### With parallel render, the host tracks become the ceiling
+
+Parallel render fans out **movy's twelve chains only**. Tracks 1-4 are rendered
+by the shim, serially, in the same frame, and they cost exactly what they always
+did. So a full 16 is now `12 movy chains in parallel + 4 host tracks in series`,
+and the second term stops being a rounding error:
+
+| synth (4 notes) | 12 movy, parallel | + 4 host, serial | 16 |
+|---|---|---|---|
+| freak | 893 | 4 × 95 = 380 | ~1273 ✅ |
+| nusaw | 1247 | 4 × 185 = 741 | ~1988 ⚠️ marginal |
+| obxd | 1491 | 4 × 237 = 950 | ~2441 ❌ |
+| hera | 1702 | 4 × 289 = 1156 | ~2858 ❌ |
+
+Same caveat as the table above it, and one more on top: the per-host-track figure
+is the serial 12-chain slope divided by twelve, resting on the single host-slot
+data point. It is the right shape, not a measurement. What is solid is the
+direction — **the four serial host tracks now cost more than half the budget of a
+full 16 for anything mid-weight**, so they, not the movy chains, are what a
+16-track set runs out of room on.
+
 ### Which synths run on all 16
 
 - **dexed, plaits** — any polyphony, comfortably.
 - **moog** — any polyphony, because it is monophonic.
 - **freak** — marginal at four notes; fine at one or two.
 - **Everything else** — no.
+
+With parallel render on, add **nusaw** at four notes (marginal), and everything
+above moves further clear. obxd and hera fit all twelve *movy* chains at full
+polyphony but not a full 16.
 
 ---
 
@@ -325,6 +433,11 @@ while ~3.4 cores idle — next to a Move that uses three workers for exactly thi
 Fanning the chain render out is worth multiples, not percent, and needs no
 standalone rewrite. Design and risks:
 `plans/2026-08-16-parallel-chain-render.md`.
+
+**Built, and it is.** The `chparallel` tables in §1 and §2 are that fan-out
+measured on real sets: **2.15× on the twelve-chain obxd ramp, 2.0-2.2× across
+the mid-weight fleet** — multiples, as predicted, against the ~15% standalone
+would buy. It is off by default and lives on the Global Params page.
 
 ## 8. Caveats
 

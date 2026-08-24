@@ -18,7 +18,7 @@
 
 use std::cell::UnsafeCell;
 use std::ffi::c_void;
-use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
@@ -30,7 +30,13 @@ use crate::host;
 /// at all, which is what makes its safety argument checkable in one place.
 #[derive(Clone, Copy)]
 pub struct Task {
-    pub render: unsafe extern "C" fn(*mut c_void, *mut i16, i32),
+    /// `None` when the chain's synth is asleep. The lane zeroes `buf` instead —
+    /// `process_fx` must decay a tail into silence, not into whatever the last
+    /// block left behind.
+    pub render: Option<unsafe extern "C" fn(*mut c_void, *mut i16, i32)>,
+    /// `None` when the FX is asleep, or when the chain is not being split at
+    /// all and `render` already did the FX itself.
+    pub process_fx: Option<unsafe extern "C" fn(*mut c_void, *mut i16, i32)>,
     pub inst: *mut c_void,
     pub buf: *mut i16,
     pub frames: i32,
@@ -59,6 +65,11 @@ struct Shared {
     ready: AtomicU32,
     lanes: Vec<Lane>,
     cost_ns: Vec<AtomicU64>,
+    /// Each chain's output peak after its synth stage and BEFORE its FX. Taken
+    /// on the lane, because the audio thread only ever sees the buffer once
+    /// both stages have run — and by then an FX that never settles would be
+    /// holding a silent synth awake.
+    synth_peak: Vec<AtomicI32>,
 }
 
 /* `Task` holds raw pointers, so `Shared` is not automatically shareable. It is
@@ -98,6 +109,7 @@ impl RenderPool {
                 .map(|_| Lane { tasks: UnsafeCell::new(Vec::with_capacity(chains)) })
                 .collect(),
             cost_ns: (0..chains).map(|_| AtomicU64::new(0)).collect(),
+            synth_peak: (0..chains).map(|_| AtomicI32::new(0)).collect(),
         });
 
         let mut handles = Vec::with_capacity(helpers);
@@ -195,6 +207,11 @@ impl RenderPool {
     }
 
     /// What each chain's `render_block` cost in the last block, nanoseconds.
+    /// The chain's output peak after the synth stage and before the FX.
+    pub fn synth_peak(&self, chain: usize) -> i32 {
+        self.shared.synth_peak.get(chain).map_or(0, |p| p.load(Ordering::Relaxed))
+    }
+
     pub fn cost_ns(&self, chain: usize) -> u64 {
         self.shared.cost_ns.get(chain).map_or(0, |c| c.load(Ordering::Relaxed))
     }
@@ -230,9 +247,30 @@ fn run(tasks: &[Task], shared: &Shared) {
         // `t.chain` and replayed on the audio thread after the join — schwung's
         // MIDI-out senders are single-producer. See `midi_out`.
         let _scope = crate::midi_out::Scope::enter(t.chain);
+        let samples = (t.frames as usize) * 2;
         // Safe by the partition argument on `Shared`: this lane owns `inst` and
         // `buf` for the duration of the round.
-        unsafe { (t.render)(t.inst, t.buf, t.frames) };
+        unsafe {
+            match t.render {
+                Some(f) => f(t.inst, t.buf, t.frames),
+                // A sleeping synth still owes its FX a block of SILENCE. Handing
+                // it the previous block is a stuck buzz, not a decaying tail.
+                None => core::ptr::write_bytes(t.buf, 0, samples),
+            }
+        }
+        // Measured HERE, between the two stages: an FX that never settles must
+        // not be able to hold a silent synth awake.
+        if let Some(p) = shared.synth_peak.get(t.chain) {
+            let mut peak = 0i32;
+            for k in 0..samples {
+                let s = unsafe { *t.buf.add(k) } as i32;
+                peak = peak.max(s.abs());
+            }
+            p.store(peak, Ordering::Relaxed);
+        }
+        if let Some(f) = t.process_fx {
+            unsafe { f(t.inst, t.buf, t.frames) };
+        }
         if let Some(c) = shared.cost_ns.get(t.chain) {
             c.store(t0.elapsed().as_nanos() as u64, Ordering::Relaxed);
         }
@@ -355,7 +393,8 @@ mod tests {
         let _lock = crate::midi_out::test_guard();
         let pool = RenderPool::new(1, CHAINS);
         let mk = |chain: usize| Task {
-            render: sends_midi,
+            render: Some(sends_midi),
+            process_fx: None,
             inst: (0x40 + chain) as *mut c_void,
             buf: core::ptr::null_mut(),
             frames: 0,
@@ -376,7 +415,8 @@ mod tests {
         let _lock = crate::midi_out::test_guard();
         let pool = RenderPool::new(0, CHAINS);
         pool.render_block(&[vec![Task {
-            render: sends_midi,
+            render: Some(sends_midi),
+            process_fx: None,
             inst: 0x41 as *mut c_void,
             buf: core::ptr::null_mut(),
             frames: 0,
@@ -396,13 +436,65 @@ mod tests {
     fn tasks(bufs: &mut [[i16; BLOCK]], range: std::ops::Range<usize>) -> Vec<Task> {
         range
             .map(|c| Task {
-                render: fill,
+                render: Some(fill),
+                process_fx: None,
                 inst: (c + 1) as *mut c_void,
                 buf: bufs[c].as_mut_ptr(),
                 frames: (BLOCK / 2) as i32,
                 chain: c,
             })
             .collect()
+    }
+
+    /// A sleeping synth still owes its FX a block of SILENCE. Handing the FX
+    /// whatever the previous block left in the buffer is a stuck buzz, not a
+    /// decaying tail — and it is the failure mode the whole split invites.
+    #[test]
+    fn a_task_with_no_render_hands_the_fx_a_zeroed_buffer() {
+        unsafe extern "C" fn assert_zero_then_mark(_i: *mut c_void, buf: *mut i16, frames: i32) {
+            let n = (frames as usize) * 2;
+            for k in 0..n {
+                assert_eq!(unsafe { *buf.add(k) }, 0, "FX must see silence, not the last block");
+            }
+            unsafe { *buf = 99 };
+        }
+        let pool = RenderPool::new(1, CHAINS);
+        let mut b = bufs();
+        b[0] = [7, 7, 7, 7];
+        let lanes = vec![vec![Task {
+            render: None,
+            process_fx: Some(assert_zero_then_mark),
+            inst: 1 as *mut c_void,
+            buf: b[0].as_mut_ptr(),
+            frames: (BLOCK / 2) as i32,
+            chain: 0,
+        }]];
+        pool.render_block(&lanes);
+        assert_eq!(b[0][0], 99, "the FX ran");
+    }
+
+    /// The synth gate reads the buffer BEFORE the FX touches it, so an FX that
+    /// never settles below the silence level cannot hold a silent synth awake.
+    #[test]
+    fn the_synth_peak_is_measured_before_the_fx_runs() {
+        unsafe extern "C" fn quiet_synth(_i: *mut c_void, buf: *mut i16, _f: i32) {
+            unsafe { *buf = 3 };
+        }
+        unsafe extern "C" fn loud_fx(_i: *mut c_void, buf: *mut i16, _f: i32) {
+            unsafe { *buf = 30000 };
+        }
+        let pool = RenderPool::new(1, CHAINS);
+        let mut b = bufs();
+        let lanes = vec![vec![Task {
+            render: Some(quiet_synth),
+            process_fx: Some(loud_fx),
+            inst: 1 as *mut c_void,
+            buf: b[0].as_mut_ptr(),
+            frames: (BLOCK / 2) as i32,
+            chain: 0,
+        }]];
+        pool.render_block(&lanes);
+        assert_eq!(pool.synth_peak(0), 3, "a loud FX may not hide a silent synth");
     }
 
     fn expect(bufs: &[[i16; BLOCK]]) {

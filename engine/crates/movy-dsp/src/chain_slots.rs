@@ -551,7 +551,8 @@ impl ChainSlots {
                 };
                 active += 1;
                 self.lanes[lane].push(Task {
-                    render,
+                    render: Some(render),
+                    process_fx: None,
                     inst,
                     buf: self.scratch[c].as_mut_ptr(),
                     frames: (frames / 2) as i32,

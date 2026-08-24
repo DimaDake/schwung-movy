@@ -1,12 +1,15 @@
 # Power-off dialog under overtake
 
-Status: **core fix implemented and device-verified (2026-08-24)**. Pressing
+Status: **two fixes implemented and device-verified (2026-08-24)**. Pressing
 power while movy is open now shows Move's real "Press wheel to shut down"
-prompt, and Back dismisses it safely (no accidental shutdown; movy is left
-correctly parked, same state as its own Background feature). One follow-up
-remains: Back doesn't yet auto-resume movy, so the user has to manually
-reselect it from Move's Tools menu. Deliberately left for a future session —
-see **Follow-up** below.
+prompt, Back dismisses it safely (no accidental shutdown), and a power press
+no longer leaks a spurious Loop-mode trigger into movy (cable-14 collision
+with CC 58, found and fixed same session). **Two follow-on auto-resume
+attempts were tried and reverted — still open**: the user still has to
+manually reselect movy from Move's Tools menu after Back, and pad LEDs don't
+recover until the next interaction. See **Two more attempts made and
+reverted** below for what was tried, why both failed, and what to
+investigate next — this needs a different approach, not a retry of either.
 
 Repos touched: `schwung` (fork `DimaDake/schwung`, new branch), `movy`
 (minimal — see below).
@@ -144,6 +147,59 @@ re-assert on resume is the likely place to check first). Whoever picks up
 the auto-resume fix should verify pad LEDs recover on manual resume too,
 independent of the auto-resume trigger — it may be a pre-existing gap in
 the manual path, not something the new fix introduces.
+
+### Two more attempts made and reverted (2026-08-24, same session)
+
+Both were implemented, device-tested, and found ineffective — reverted
+rather than shipped as dead weight. Recorded here so the next session
+doesn't retry them blind.
+
+**Attempt A — suppress the Back event at the shim, so it never reaches
+movy's own router.** Theory: the module's tick rate is unaffected
+throughout the dialog (confirmed — `perf_phase`/`perf_ipc` keep logging at
+the normal ~4.5ms period the whole time), so `overtake_mode` was assumed to
+never actually change; Back was assumed to leak through schwung's normal
+forwarding to movy's own `suspend_self_managed` Back-handling, which
+self-parks. Fix: arm a flag on the power SysEx, swallow the next Back
+down+up pair before it reaches the module (bounded to 30s). **Result:
+no effect** — a repeat trace showed `shadow_dbus_handle_text()`'s
+`overtake_mode = 0` DID fire this time (unlike the trace the theory was
+built on), which bypasses the module-dispatch loop entirely. The two
+mechanisms are apparently non-deterministic about which one fires on a
+given press — tap vs hold didn't cleanly predict it either ("a quick tap is
+enough", per user testing).
+
+**Attempt B — restore `overtake_mode`/`display_mode` directly in
+`shadow_dbus_handle_text()` (`shadow_dbus.c`) once the prompt is
+dismissed.** Needed a "the prompt is gone" signal with none available
+directly, so it hooked the *next* distinct D-Bus screen-reader text after
+"Press wheel to shut down" — reasoned as safe because a device trace once
+showed "Set 31" arrive ~7s after the prompt, presumably as Move returned to
+its own home screen. **Result: no effect** — a fresh trace showed the
+D-Bus text stream going completely silent after a *duplicate* "Press wheel
+to shut down" line (logged twice, ~1ms apart) — no further text arrived at
+all in the window before the user gave up and used Tools. So the "next
+text" signal is not reliable either; whatever screen Move lands on after
+dismissal apparently doesn't always re-trigger the screen-reader D-Bus
+path.
+
+**What this rules in for next time**: neither "suppress the Back" nor "wait
+for the next D-Bus text" works alone, and the underlying mechanism appears
+non-deterministic across presses — schwung's own `overtake_mode` clearing
+sometimes fires (confirmed via the "Overtake exit" log line + the D-Bus
+handler's own log line) and sometimes doesn't (a trace showing zero D-Bus
+activity at all around the press, with the tick rate staying at ~4.5ms
+throughout and *only* changing after Back). Both are real, both were
+observed on real hardware in the same session, and nothing so far
+distinguishes which one a given press will hit. Worth investigating before
+another implementation attempt: (a) why `shadow_dbus_handle_text()` fires
+inconsistently for the same physical gesture — possibly a race between the
+D-Bus signal delivery and Move's own internal announcement timing; (b)
+whether there's a *polling* signal (rather than an event) for "is Move
+currently showing this prompt" — e.g. reading Move's own displayed pixels
+the way `schwung_shim.c`'s master-volume-overlay OCR (~5650, see the
+track-volume-unification plan) reads Move's on-screen volume bar, which
+would sidestep the D-Bus reliability question entirely.
 
 ## Testing
 

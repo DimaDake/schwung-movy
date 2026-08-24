@@ -2,22 +2,29 @@
 # test-volume.sh — device e2e for the track-volume gesture
 #
 # Hold a track button + turn the master volume knob → that track's schwung
-# slot volume moves, and movy diverts the knob at Move by injecting the
-# track-hold Move never sees in overtake (schwung_shim.c:5860 forwards CC 79
-# to Move unconditionally).
+# slot volume moves. On a schwung fork with shadow_set_overtake_suppress_
+# master_volume (2026-08-24), movy excludes Move from the gesture entirely
+# via that flag; on an older shim it falls back to diverting the knob by
+# injecting the track-hold Move never sees in overtake (CC 79 otherwise
+# forwards to Move unconditionally). See the module header in
+# src/mixer/track-volume.ts.
 #
 # What this proves:
-#   1. CC 79 reaches the gesture handler and applies 0.05/detent.
+#   1. CC 79 reaches the gesture handler and walks the dB ladder (1 dB/detent
+#      multiplicative, not a flat linear step — see DB_STEP in
+#      track-volume.ts) correctly.
 #   2. The value lands on the chain slot — the second run re-reads slot:volume
 #      at arm time, so its starting point is the first run's result.
-#   3. movy's divert packets are delivered into Move's MIDI_IN (the inject
-#      ring's consumer cursor advances).
+#   3. Whichever path armed the divert did what it claims: "suppress" moves
+#      nothing through the inject ring (Move is excluded), "inject" delivers
+#      the track-hold press+release into Move's MIDI_IN.
 #
 # What it cannot prove: that Move's *master* volume stays put during a real
-# gesture. Move ignores injected knob events (verified: 120 synthetic detents
-# moved nothing), and the only live master-volume readout schwung has is a
-# pixel scan of Move's overlay, gated on a hardware touch. That check needs a
-# physical turn of the knob.
+# gesture on the "inject" (old-schwung) path. Move ignores injected knob
+# events (verified: 120 synthetic detents moved nothing), and the only live
+# master-volume readout schwung has is a pixel scan of Move's overlay, gated
+# on a hardware touch. That check needs a physical turn of the knob. On the
+# "suppress" (new-schwung) path this is moot — Move never sees the event.
 #
 # Usage: ./scripts/test-volume.sh [host]   (default: move.local)
 
@@ -64,10 +71,6 @@ REMOTE="/data/UserData/schwung/modules/tools/movy"
 ssh "ableton@$HOST" "mkdir -p $REMOTE" >/dev/null 2>&1
 scp -q "$MOVY_DIR/ui.js" "ableton@$HOST:$REMOTE/"
 pass "Built + deployed"
-
-# The previous run's applied value is the expected starting point for this one
-# (the slot keeps it), so read it before clearing the log.
-PREV_VOL=$(ssh "ableton@$HOST" 'grep -a "trackvol t='"$TRACK"'" /data/UserData/schwung/debug.log | tail -1' || true)
 
 ssh "ableton@$HOST" '
     touch /data/UserData/schwung/debug_log_on
@@ -116,35 +119,57 @@ else
     fail "expected a single d=$DETENTS packet, got: $APPLIED"
 fi
 
-# The value is read back off the slot at arm time, so a second run must start
-# where the first ended — that is the proof the write landed on the chain slot.
-# `|| true` on both: APPLIED is empty when the gesture never reached the handler
-# (already reported above), and pipefail would otherwise abort here — taking the
-# divert check below down with it and hiding a second, independent failure.
+# The value is read back off the slot at ARM time (before the turn), logged
+# separately as "trackvol arm t=N read=X" — compare against that instead of a
+# previous run's log line: the shared device-test fixture (test_set_begin)
+# resets chain-slot state on every invocation (see movy/CLAUDE.md "Device
+# tests run against a fixture state"), so nothing actually carries between
+# runs and a cross-run comparison would silently compare two independent
+# fixture-reset baselines instead of proving the write landed.
+# `|| true`: APPLIED/ARM_LOG can be empty when the gesture never reached the
+# handler (already reported above), and pipefail would otherwise abort here —
+# taking the divert check below down with it and hiding an independent failure.
 NEW_VAL=$(echo "$APPLIED" | grep -o "v=[0-9.]*" | cut -d= -f2 || true)
-EXPECTED_STEP=$(python3 -c "print('%.2f' % ($DETENTS * 0.05))")
-if [ -z "$NEW_VAL" ]; then
-    info "no applied value to compare — slot read-back not asserted"
-elif [ -n "$PREV_VOL" ]; then
-    OLD_VAL=$(echo "$PREV_VOL" | grep -o "v=[0-9.]*" | cut -d= -f2 || true)
-    DIFF=$(python3 -c "print('%.2f' % ($NEW_VAL - $OLD_VAL))")
-    if [ "$DIFF" = "$EXPECTED_STEP" ]; then
-        pass "slot read-back: $OLD_VAL -> $NEW_VAL (+$DIFF)"
-    else
-        fail "slot read-back drifted: $OLD_VAL -> $NEW_VAL (expected +$EXPECTED_STEP)"
-    fi
+ARM_LOG=$(echo "$LOG" | grep -o "trackvol arm t=$TRACK[^$]*" | tail -1 || true)
+OLD_VAL=$(echo "$ARM_LOG" | grep -o "read=[0-9.]*" | cut -d= -f2 || true)
+if [ -z "$NEW_VAL" ] || [ -z "$OLD_VAL" ]; then
+    info "no applied/arm value to compare — slot read-back not asserted"
 else
-    info "first run on a clean log — re-run to assert slot read-back"
+    # The ladder is 1 dB/detent, multiplicative — DETENTS up moves the ratio
+    # by 10^(DETENTS/20), not a flat linear step (see DB_STEP in
+    # track-volume.ts). OLD_VAL is only printed to 2dp (mlog's toFixed(2)),
+    # so this is a tolerance check, not exact-match.
+    EXPECTED=$(python3 -c "print('%.4f' % ($OLD_VAL * 10 ** ($DETENTS / 20)))")
+    CLOSE=$(python3 -c "print(1 if abs($NEW_VAL - $EXPECTED) < 0.01 or $NEW_VAL in (0.0000, 4.0000) else 0)")
+    if [ "$CLOSE" = "1" ]; then
+        pass "slot read-back: $OLD_VAL -> $NEW_VAL (expected ~$EXPECTED)"
+    else
+        fail "slot read-back drifted: $OLD_VAL -> $NEW_VAL (expected ~$EXPECTED)"
+    fi
 fi
 
-# movy pushes a track-hold press + release into Move's MIDI_IN; the shim's
-# drain advances the ring's consumer cursor once per delivered packet.
+# Which path armed the divert: "suppress" (shadow_set_overtake_suppress_
+# master_volume, no MIDI_IN injection needed — Move is excluded entirely) or
+# "inject" (the older injectHold trick, which does push packets into Move's
+# MIDI_IN). Keyed off the debug log rather than assumed, since a schwung build
+# without the new capability falls back to "inject" automatically. ARM_LOG was
+# already captured above for the slot read-back check.
 RING_AFTER=$(ssh "ableton@$HOST" "$RING")
 DELIVERED=$(( $(echo "$RING_AFTER" | cut -d' ' -f2) - $(echo "$RING_BEFORE" | cut -d' ' -f2) ))
-if [ "$DELIVERED" -ge 2 ]; then
-    pass "divert delivered into Move's MIDI_IN ($DELIVERED packets)"
+if echo "$ARM_LOG" | qgrep "path=suppress"; then
+    if [ "$DELIVERED" -eq 0 ]; then
+        pass "new path: Move excluded, no MIDI_IN injection ($ARM_LOG)"
+    else
+        fail "new path armed (path=suppress) but the inject ring still moved ($DELIVERED packets)"
+    fi
+elif echo "$ARM_LOG" | qgrep "path=inject"; then
+    if [ "$DELIVERED" -ge 2 ]; then
+        pass "old path: divert delivered into Move's MIDI_IN ($DELIVERED packets)"
+    else
+        fail "old path armed (path=inject) but divert not delivered (ring advanced by $DELIVERED, expected >= 2)"
+    fi
 else
-    fail "divert not delivered (ring consumer advanced by $DELIVERED, expected >= 2)"
+    fail "no trackvol arm log line with a path= tag — can't tell which mechanism ran"
 fi
 
 echo

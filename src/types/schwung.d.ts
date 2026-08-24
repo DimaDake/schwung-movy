@@ -23,6 +23,11 @@ declare function host_exit_module(): void;
 /* Strip Move's cable-0 RGB LED sysex during full overtake. Absent on hosts
  * older than the flag; the framework clears it on overtake exit. */
 declare function shadow_set_overtake_suppress_sysex(flag: number): void;
+/* Suppress CC 79 (master volume) / master-touch note 8's hardcoded overtake
+ * passthrough to Move firmware, and the matching plain-volume-touch OLED
+ * handoff, for the duration a tool sets. Absent on hosts older than the flag
+ * (2026-08-24 fork PR) — always guard with `typeof ... === 'function'`. */
+declare function shadow_set_overtake_suppress_master_volume(flag: number): void;
 /* Background mode (Phase 2). host_suspend_overtake() parks movy under Move's
  * native UI; it is ABSENT on hosts that predate the capability, so always
  * guard with `typeof host_suspend_overtake === 'function'`. overtakeParked is

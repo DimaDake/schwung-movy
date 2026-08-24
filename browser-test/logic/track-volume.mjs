@@ -139,6 +139,31 @@ _log('\nTest: track volume gesture (hold track + CC 79)');
     eq('absent slot:volume defaults to unity', volumeOverlay()?.value, 1);
 
     resetTrackVolume();
+
+    // New-schwung path: when the host advertises
+    // shadow_set_overtake_suppress_master_volume, the gesture excludes Move via
+    // that flag instead of injectHold, and needs no Shift to draw — see
+    // movy/plans/2026-08-24-track-volume-unification.md.
+    const suppressCalls = [];
+    globalThis.shadow_set_overtake_suppress_master_volume = (flag) => { suppressCalls.push(flag); };
+
+    resetTrackVolume();
+    env.setParams({ 'slot:volume': '1.00' });
+    env.clearInjected();
+    volumeTrackDown(1);
+    eq('new path: track-down suppresses Move, no injectHold', JSON.stringify(suppressCalls), '[1]');
+    eq('new path: track-down injects nothing', env.injected.length, 0);
+    volumeTouch(true);
+    eq('new path: overlay shows with no Shift plumbing involved', volumeOverlay()?.track, 1);
+    volumeKnobDelta(CW);
+    eq('new path: edit still lands on the ladder', env.params['slot:volume'], '1.1220');
+    suppressCalls.length = 0;
+    volumeTrackUp(1);
+    eq('new path: track-up un-suppresses Move, no injectHold', JSON.stringify(suppressCalls), '[0]');
+    eq('new path: track-up injects nothing', env.injected.length, 0);
+
+    delete globalThis.shadow_set_overtake_suppress_master_volume;
+    resetTrackVolume();
 }
 
 }

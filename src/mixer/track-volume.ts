@@ -6,26 +6,35 @@ import { endEdit } from '../undo/group.js';
 /* Hold a track button + turn the master volume knob → that track's schwung
  * chain-slot volume (`slot:volume`, 0–4 where 1.0 = unity).
  *
- * Two shim behaviours shape this module (both in schwung/src/schwung_shim.c):
+ * Two shim behaviours shape this module (both in schwung/src/schwung_shim.c).
+ * Which one applies depends on whether the running schwung build has
+ * `shadow_set_overtake_suppress_master_volume` (2026-08-24 fork PR — absent in
+ * older shims, guard with `typeof`):
  *
- * 1. The overtake input filter (:5696) hard-codes a passthrough for CC 79 and
- *    the master touch note, so Move firmware always sees the knob and would
- *    move *master* volume under us. `button_passthrough` can only un-block, so
- *    there is no way to hide it. Instead we change what Move does with the CC:
- *    injecting the track-hold Move never saw (movy owns CC 40-43 in overtake)
- *    makes Move route the turn to its own track volume, leaving master alone.
+ * - **New schwung (capability present)**: setting the flag for the duration of
+ *   the gesture suppresses CC 79 and the master-touch note from Move firmware
+ *   entirely (both the hardcoded passthrough and the plain-volume-touch OLED
+ *   handoff in shadow_swap_display()), so Move is excluded and our own slider
+ *   overlay always shows — Shift no longer matters.
  *
- * 2. `shadow_swap_display()` (:3262) hands the OLED to Move for the duration of
- *    a volume-knob touch unless Shift is held, so the slider we draw is only
- *    visible in the Shift variant. Drawing is unconditional — without Shift the
- *    frame simply is not pushed to the panel.
+ * - **Old schwung (capability absent)**: the overtake input filter hard-codes
+ *   a passthrough for CC 79 and the master touch note, so Move firmware always
+ *   sees the knob and would move *master* volume under us; there is no way to
+ *   hide it. Instead we change what Move does with the CC: injecting the
+ *   track-hold Move never saw (movy owns CC 40-43 in overtake) makes Move
+ *   route the turn to its own track volume, leaving master alone. And
+ *   `shadow_swap_display()` hands the OLED to Move for the duration of a
+ *   volume-knob touch unless Shift is held, so the slider we draw is only
+ *   visible in the Shift variant — drawing is unconditional, but without Shift
+ *   the frame simply is not pushed to the panel.
  *
- * The injection fires on track-button **down**, not on knob touch. Move decides
- * what the volume knob targets at touch time, so a hold injected in response to
- * the touch arrives too late and the gesture moves the slot *and* master volume
- * together (observed on device). Pressing first also matches Move's own
- * ordering. The cost is that an ordinary track switch in movy now also moves
- * Move's selected track, which is invisible under overtake.
+ *   The injection fires on track-button **down**, not on knob touch. Move
+ *   decides what the volume knob targets at touch time, so a hold injected in
+ *   response to the touch arrives too late and the gesture moves the slot
+ *   *and* master volume together (observed on device). Pressing first also
+ *   matches Move's own ordering. The cost is that an ordinary track switch in
+ *   movy now also moves Move's selected track, which is invisible under
+ *   overtake.
  */
 
 import { mlog } from '../log.js';
@@ -85,6 +94,14 @@ function injectHold(track: number, pressed: boolean): void {
     move_midi_inject_to_move([0x0B, 0xB0, trackCc(track), pressed ? 127 : 0]);
 }
 
+/* New-schwung path: ask the shim to exclude Move from the gesture entirely
+ * instead of fooling it with injectHold. Absent on a pre-merge shim — see the
+ * module header. */
+function setMoveExcluded(excluded: boolean): void {
+    if (typeof shadow_set_overtake_suppress_master_volume !== 'function') return;
+    shadow_set_overtake_suppress_master_volume(excluded ? 1 : 0);
+}
+
 /* Where a track's level lives.
  *
  * A host track's is schwung's `slot:volume` — a chain-host param Move's own
@@ -123,13 +140,26 @@ function beginDivert(): void {
      * undo group's — no touch plumbing needed. */
     volumeBefore = value.toFixed(4);
     volIdx   = ampToIdx(value);
-    injectHold(heldTrack, true);
-    mlog('trackvol arm t=' + heldTrack + ' read=' + value.toFixed(2));
+    const moveExcluded = typeof shadow_set_overtake_suppress_master_volume === 'function';
+    if (moveExcluded) {
+        setMoveExcluded(true);
+    } else {
+        injectHold(heldTrack, true);
+    }
+    /* path= distinguishes the two schwung generations in the debug log —
+     * device tests key on it rather than inferring the path from whether the
+     * inject ring moved (it legitimately doesn't, on the new path). */
+    mlog('trackvol arm t=' + heldTrack + ' read=' + value.toFixed(2) +
+         ' path=' + (moveExcluded ? 'suppress' : 'inject'));
 }
 
 function endDivert(): void {
     if (diverted < 0) return;
-    injectHold(diverted, false);
+    if (typeof shadow_set_overtake_suppress_master_volume === 'function') {
+        setMoveExcluded(false);
+    } else {
+        injectHold(diverted, false);
+    }
     endEdit('vol:' + diverted);
     diverted = -1;
     volumeBefore = null;

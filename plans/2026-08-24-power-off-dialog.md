@@ -1,9 +1,12 @@
 # Power-off dialog under overtake
 
-Status: design informed by an on-device spike (2026-08-24); the schwung PR's
-first implementation step is itself a verification (does Move's dialog
-actually appear once ceded — see Open Question below). Not a finished,
-risk-free spec — the closest thing to one this problem currently allows.
+Status: **core fix implemented and device-verified (2026-08-24)**. Pressing
+power while movy is open now shows Move's real "Press wheel to shut down"
+prompt, and Back dismisses it safely (no accidental shutdown; movy is left
+correctly parked, same state as its own Background feature). One follow-up
+remains: Back doesn't yet auto-resume movy, so the user has to manually
+reselect it from Move's Tools menu. Deliberately left for a future session —
+see **Follow-up** below.
 
 Repos touched: `schwung` (fork `DimaDake/schwung`, new branch), `movy`
 (minimal — see below).
@@ -64,81 +67,95 @@ cable=0  cin=0x6 : 06 00 f7 00
    receiving this event unmodified and still not reacting — pointing at a
    **display/session ownership** problem, not an input-suppression one.
 
-## Design
+## Design (as implemented — the co-run theory below was superseded)
 
-### Why co-run, not raw passthrough
+The spike's "co-run"/display-ownership theory turned out to be a red
+herring, disproven by actually tracing `shim_post_transfer`'s two buffers:
+`hw` (raw, `hardware_mmap_addr`) is filtered *into* a working `shadow`
+buffer (`sh_midi`) each frame, and it's `shadow` — not `hw` — that ends up
+back in what MoveOriginal reads. So the original "input already reaches
+Move unfiltered" reading of the "never modified" comments was wrong at the
+one site that matters: those comments describe OTHER code paths
+deliberately avoiding a write to `hw` (which really would crash Move), not
+a claim that filtering has no effect on what Move sees.
 
-schwung already ships a general mechanism for exactly "cede OLED + jog +
-back to Move firmware for one session, then automatically hand it back on
-Back": **co-run**, target `CORUN_TARGET_MOVE_NATIVE` (`docs/CORUN.md`,
-`shadow_corun_begin_cede()` in `shadow_ui.c`). Its existing exit path
-(`schwung_shim.c` ~7758-7769) already does the "Back ends the session and
-returns `shadow_display_owner` to `DISPLAY_OWNER_SCHWUNG_UI`" half of what
-this feature needs — for free, already tested, already shipping (used
-today for Move's native preset/synth editor). The old doc's "Option A"
-(patch the raw MIDI filter to let the event through) solves a problem the
-spike now suggests doesn't exist (input already reaches Move) and does
-nothing for the "resume to movy on Back" half, which co-run already solves.
+**Real root cause**: the mode-2/mode-1 filter's blanket `status >= 0x80 →
+filter = 1` rule (meant to block Move's own button CCs) also matches
+`0xF0`, the lead byte of *every* cable-0 SysEx — including the
+power-button's `F0 00 21 1D 01 01 3A ... F7`. Its first USB-MIDI packet gets
+zeroed like any other cable-0 event in full overtake, handing Move a
+message missing its own header. That's it — no display-ownership problem,
+no co-run needed.
 
-### schwung PR (shape, to be refined during implementation)
+**Fix implemented** (`schwung_shim.c`, mode-2 and mode-1 filter branches):
+a small lookahead at the SysEx's first packet — when a cable-0 `cin=0x04`
+packet matches `F0 00 21` and the following two packets match the fixed
+Ableton-manufacturer continuation (`1D 01 01`) and the power subcommand
+(`3A`), and the fourth packet is a SysEx-end (`cin=0x06`), all four packets
+are exempted from suppression via a `power_sysex_remaining` counter carried
+across loop iterations (function-local, reset every frame). The `id` byte
+right after `0x3A` varies between presses (observed `0x2A` tap, `0x3A`
+hold) and is intentionally not matched on — only the fixed header +
+subcommand identify the message. See the inline comment above the
+lookahead in `schwung_shim.c` for the exact byte offsets.
 
-1. Classify the identified signal (cable 14, CC 0x2A/0x3A-ish, or the
-   mirrored SysEx subcommand `0x3A`) in the shim's overtake input scan.
-2. On detecting it, begin a co-run session ceding to
-   `CORUN_TARGET_MOVE_NATIVE` (or a new, lighter sibling target if
-   `MOVE_NATIVE`'s existing semantics — built for the preset/synth editor —
-   don't cleanly fit a modal confirm dialog; this is a call to make once the
-   first cede is wired up and observed on-device). Cede at minimum OLED +
-   jog + back; movy's own knob/button/LED handling is already fully
-   superseded by co-run's routing while ceded, so no separate "block movy's
-   input" logic is needed on the movy side.
-3. Rely on the existing, shipped `shadow_dbus_handle_text` /
-   `527a3c90` handler to do the rest once Move's prompt is actually visible
-   and announced: it already saves state, clears `overtake_mode` +
-   `display_mode`, and lets the jog click reach Move for the real shutdown
-   confirm.
-4. Back exits co-run through the existing framework path (interception,
-   `shadow_corun_end()`, ownership returns to `DISPLAY_OWNER_SCHWUNG_UI`) —
-   verify this actually leaves movy resumed and redrawing correctly, not
-   dropped to Move's home menu; this is the "resume to movy on dismiss"
-   requirement.
+Device-verified: pressing and holding power now shows Move's real
+"Press wheel to shut down" prompt on screen (Move's own rendering, not a
+movy overlay — nothing built on the movy side). **Back dismisses it
+correctly with no accidental shutdown** — but see Follow-up below for what
+Back does *not* yet do.
 
-### movy PR (small)
+### movy PR
 
-No dialog to build — this is schwung reaching parity with stock Move, not a
-new movy UI. movy only needs:
+None needed. This is schwung reaching parity with stock Move; movy has no
+role in showing or handling the prompt.
 
-- Nothing to *initiate* — the shim detects the signal and takes ownership
-  unilaterally, symmetric with how a real power button works on stock Move.
-- A capability/version guard if the co-run resume path needs movy to redraw
-  proactively on regaining ownership (versus schwung already forcing a
-  redraw as part of ending a co-run session, which the existing chain-edit
-  co-run consumer may already rely on) — confirm during implementation
-  whether this is already free.
+## Follow-up: auto-resume on dismiss (not yet implemented)
 
-## Open Question (first thing to verify when implementing)
+Confirmed on-device: when the prompt appears, the existing
+`shadow_dbus_handle_text` / `527a3c90` handler clears `overtake_mode` and
+`display_mode` as designed, which correctly parks movy (the exact same
+"suspended" state as its own deliberate Background feature — nothing is
+lost or corrupted). Move's native Back then dismisses the prompt safely.
+But nothing re-selects movy afterward, so the user lands on Move's own
+Tools/File-Browser menu and has to manually scroll to "Movy" and click to
+resume it (schwung's existing `resumeOvertakeModule()` then works exactly
+as it does from a deliberate Background/manual-resume today).
 
-Does Move's native shutdown prompt actually render and announce once ceded
-via co-run? The spike confirmed the *signal* and a plausible *mechanism*,
-but did not (and, without writing the cede code, could not) confirm Move's
-reaction once display/input ownership is actually handed over. If co-run
-alone isn't sufficient (e.g. Move's dialog trigger needs something beyond
-display ownership), fall back to the old doc's Option B: detect the signal
-in the shim and directly mirror `shadow_dbus_handle_text`'s effect
-(`overtake_mode=0`, `display_mode=0`, `SAVE_STATE`) without depending on
-Move's own D-Bus announcement at all.
+**Shape of the fix** (next session): capture which overtake module was
+active at the moment the power-button SysEx is detected (before
+`overtake_mode` gets cleared), and once the prompt is dismissed without an
+actual shutdown (device still running), auto-invoke `resumeOvertakeModule()`
+for it — the same call the tools-menu selection already makes. The open
+part is *detecting* "dismissed, not shut down" cleanly from the shim/JS
+side (Move's Back on that screen isn't schwung-intercepted the way co-run's
+Back is) — likely via the next D-Bus screen-reader announcement differing
+from the shutdown prompt's text, but not yet designed in detail.
+
+**Second symptom observed the same session, worth folding into the same
+fix**: pads showed Move's own native colors/behavior, not movy's, both
+*during* the dialog and *after* manually reselecting movy from Tools. The
+"during" half is expected (Move genuinely owns the surface while its prompt
+is up). The "after" half is not — it means `resumeOvertakeModule()`'s
+manual path (same one the auto-resume fix would call) isn't fully
+reclaiming LED ownership the way movy's own deliberate Background→resume
+cycle does (`app/led-ownership.ts`'s `shadow_set_overtake_suppress_sysex`
+re-assert on resume is the likely place to check first). Whoever picks up
+the auto-resume fix should verify pad LEDs recover on manual resume too,
+independent of the auto-resume trigger — it may be a pre-existing gap in
+the manual path, not something the new fix introduces.
 
 ## Testing
 
-- No local/CI-testable surface on the movy side beyond the capability guard
-  (if any) — this is fundamentally a hardware/firmware-interaction feature.
-- schwung side: manual on-device verification per the existing repo's own
-  testing model for hardware interactions (no CI-testable surface for a
-  physical power-button press). Verify: prompt appears + is legible, Back
-  returns cleanly to movy with correct redraw, jog click performs a real
-  shutdown.
-- Do not add a new `scripts/test-*.sh` device suite for this — a physical
-  button press cannot be scripted (confirmed during the spike: no software
-  injection path reaches it, unlike CC/note gestures), so a scripted test
-  would only be able to cover the co-run cede/resume mechanics, which
-  belong in schwung's own test suite if anywhere, not movy's.
+- No local/CI-testable surface on the movy side — this is fundamentally a
+  hardware/firmware-interaction feature with no movy code involved.
+- schwung side: verified manually on-device (no CI-testable surface for a
+  physical power-button press, and no software injection path reaches it —
+  confirmed during the spike, unlike CC/note gestures). `tests/host` (the
+  CI-gated suite) passes unchanged; no new host test added, since the fix
+  is a raw-byte lookahead over live hardware timing that a host-side unit
+  test can't meaningfully exercise without fabricating the exact SPI frame
+  shape — a device check is the correct-weight test here.
+- Do not add a new movy `scripts/test-*.sh` device suite — a physical
+  button press cannot be scripted, and the mechanics that got fixed are
+  entirely inside schwung, not movy.

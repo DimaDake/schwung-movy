@@ -117,6 +117,53 @@ ts_push_fixture() {
     done < <(ts_fixture_entries)
 }
 
+# True when every chain slot reads empty while the fixture wants a module in at
+# least one — the single state no number of applies can leave (see
+# ts_seed_boot_state). A device that does not answer is NOT cold: silence is
+# unknown, and seeding on it would restart the stack for nothing.
+ts_chain_is_cold() {
+    local got
+    ts_fixture_entries | qgrep -vE '[[:space:]]none$' || return 1
+    got=$(node "$MOVY_DIR/scripts/slots-read.mjs" </dev/null 2>/dev/null) || return 1
+    [ -n "$got" ] || return 1
+    echo "$got" | qgrep -vE '[[:space:]]-$' && return 1
+    return 0
+}
+
+# Seed the shim's BOOT path with the fixture, then restart the stack.
+#
+# The remote-UI route ts_apply uses cannot load the FIRST module into a slot. A
+# web set-ring write lands in the shim's shadow_direct_set_param(), which
+# forwards to the chain plugin only when shadow_chain_slots[slot].active is
+# already set — so `synth:module` into a slot that holds nothing is dropped with
+# no error, no log line, and a cheerful success from the manager. A device
+# rebooted on an unsaved set comes up exactly there (every slot_N.json in the
+# active set's state dir is "{}"), and the attempts below then cost ~110 s each
+# while never being able to work: 11 minutes per suite, every suite.
+#
+# The shim's boot has no such gate — it load_file's each slot_N.json itself and
+# sets active from the result. So write the fixture where boot reads it. The
+# copy goes in the restart's DOWN window because the running shim autosaves over
+# that directory.
+ts_seed_boot_state() {
+    local uuid dir slot mod
+    uuid=$(ts_active_uuid)
+    dir="/data/UserData/schwung/set_state/$uuid"
+    [ -n "$uuid" ] || dir="/data/UserData/schwung/slot_state"
+    ts_ssh "mkdir -p /tmp/ts-seed" || return 1
+    while read -r slot mod; do
+        [ -z "${slot:-}" ] && continue
+        if [ "$mod" = "none" ]; then
+            # "{}" is what the shim itself autosaves for an empty slot.
+            ts_ssh "echo '{}' > /tmp/ts-seed/slot_${slot}.json" || return 1
+        else
+            scp -q "$TS_FIXTURE_DIR/slot_${slot}.json" \
+                   "ableton@$HOST:/tmp/ts-seed/slot_${slot}.json" || return 1
+        fi
+    done < <(ts_fixture_entries)
+    ts_restart_stack "mkdir -p $dir && cp /tmp/ts-seed/slot_*.json $dir/" >/dev/null || return 1
+}
+
 # Wait until a slot reports the module we asked for. Chain loads settle at their
 # own pace — anywhere from under a second to several — so a fixed sleep either
 # wastes time or gives up too early; both happened before this polled.
@@ -406,6 +453,15 @@ test_set_begin() {
     ts_close_movy || return 1
     ts_seq_apply || { echo "test-set: could not install the fixture sequencer state" >&2; return 1; }
     ts_phase_end
+    # A chain with nothing in it at all is not a slow load, it is an unreachable
+    # one: ts_apply's writes are dropped by the shim until a slot is active, so
+    # the attempts below would each burn ~110 s proving it. Seed the boot path
+    # instead — a rebooted device on an unsaved set arrives here every time.
+    if ts_chain_is_cold; then
+        ts_phase_start "fixture: cold chain — seeding boot state + restart"
+        ts_seed_boot_state || echo "test-set: WARNING — could not seed the boot state" >&2
+        ts_phase_end
+    fi
     # Six attempts, not three. A module load is a set_param into the chain
     # host's single-slot param SHM, where a write can simply be dropped rather
     # than merely being slow — so an attempt failing says nothing about the

@@ -32,6 +32,14 @@ export const FLAGS: FlagDef[] = [
         min: 1, max: 4, def: 3,
     },
     {
+        key: 'chidle', name: 'Idle Skip',
+        // An ordinal, not a bool: the FX gate depends on the synth gate.
+        // 0 one render_block call (today) · 1 split, never sleeps (the arm
+        // chdigest compares against 0) · 2 sleep a silent synth · 3 also sleep
+        // a silent FX tail.
+        min: 0, max: 3, def: 3,
+    },
+    {
         key: 'chpin', name: 'Pin Duplicates',
         // Off by default: modules are assumed thread-safe and the ones proven
         // otherwise go on chain_pin's blacklist. This is the blunt containment

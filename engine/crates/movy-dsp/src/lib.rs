@@ -68,7 +68,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.44.0";
+const ENGINE_VERSION: &str = "0.45.0";
 
 /// Tracks backed by schwung's own shadow slots. Their notes go out as MIDI on
 /// the matching channel, exactly as before; everything above this index is a
@@ -175,6 +175,16 @@ impl Instance {
              * clears it. The UI sends it from prefs.json on every engine boot;
              * unlike the flags this is a hazard list, so it is policy the user
              * adds to when a module misbehaves rather than a tuning knob. */
+            /* `chidle <0|1|2|3>` — skip work for chains that are making no
+             * sound. An ordinal because the FX gate depends on the synth gate:
+             * 0 is today's single render_block call, 1 splits synth from FX but
+             * never sleeps (the arm chdigest compares against 0), 2 sleeps a
+             * silent synth, 3 also sleeps a silent FX tail. Default 3 — unlike
+             * chparallel this is meant to be on, so an unrecognised value reads
+             * as the default rather than as off. */
+            "chidle" => {
+                self.chains.set_idle_level(crate::chain_idle::IdleLevel::from_flag(val));
+            }
             "chblock" => {
                 self.chains.set_blacklist(val);
             }
@@ -287,8 +297,9 @@ impl Instance {
                 /* Rides the existing poll rather than costing its own IPC: the
                  * UI needs to notice a chain change to persist it, and status
                  * is the one thing it already reads every few ticks. */
-                s.push_str(&format!(" chgen={} chact={}",
-                    self.chains.generation(), self.chains.active_count()));
+                s.push_str(&format!(" chgen={} chact={} chslp={}",
+                    self.chains.generation(), self.chains.active_count(),
+                    self.chains.asleep_count()));
                 Some(s)
             }
             "capinfo" => Some(self.engine.capture_info()),
@@ -304,12 +315,13 @@ impl Instance {
             "chgen" => Some(self.chains.generation().to_string()),
             "chpeak" => Some(self.chains.peaks_csv()),
             "diag" => Some(format!(
-                "blocks={} out_cap={} chains={} pending={} active={}",
+                "blocks={} out_cap={} chains={} pending={} active={} asleep={}",
                 self.blocks,
                 self.out.capacity(),
                 self.chains.is_available() as u8,
                 self.chains.pending_loads(),
-                self.chains.active_count()
+                self.chains.active_count(),
+                self.chains.asleep_count()
             )),
             _ if key.starts_with("ch") => {
                 let (slot, rest) = parse_chain_key(key)?;

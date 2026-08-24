@@ -15,6 +15,27 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Silent chains stop rendering** (`chidle`, on by default). A movy chain used
+  to cost CPU whenever it was *loaded*, playing or not — twelve idle `helm`
+  chains cost ~2340 µs against a ~2000 µs frame budget, with nothing playing.
+  schwung's shim has skipped silent host slots for years; movy's twelve now do
+  the same, on the same chain module and with the same constants.
+
+  Measured on device, twelve mixed chains loaded and nothing playing:
+  **978 µs → 71 µs per block, a 13.8× reduction**, with 10 of 12 chains asleep.
+  The two that stayed awake were still ringing, which is the gate working.
+
+  The synth and the FX sleep **separately**, because otherwise any FX that never
+  settles — a long reverb, a delay with high feedback, a noise floor — would
+  hold the expensive synth awake forever. A sleeping synth still hands its FX a
+  block of silence, so tails decay normally, and FX that declare
+  `requires_continuous_processing` (loopers, modulated delays) never sleep.
+
+  Sleeping chains keep their LFOs moving (`mod:tick`), and are dropped from the
+  parallel-render partition so lanes balance around what is actually sounding.
+  `chidle 0` restores the old single-call path byte for byte; `chidle 1` is the
+  split with nothing sleeping, which is what `chdigest` compares against 0.
+
 - **Global Params page** (Shift+Step 2, **debug builds only**). The runtime
   chain-render flags as a scrolling list with their values: jog scrolls, knob 1
   edits, and knob 1's LED brightness carries the value. Unlike the other two

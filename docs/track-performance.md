@@ -143,9 +143,9 @@ A chain costs CPU whenever it is *loaded*, playing or not.
 | helm | 195 | 716 | 27% |
 
 **Twelve idle helm chains cost ~2340 µs — more than the whole budget, with
-nothing playing.** Skipping silent chains is analysed in
-`chain-idle-cpu-optimization.md`; it is documented, not built, because a skipped
-chain cannot wake itself.
+nothing playing.** This is now fixed: silent chains stop rendering (`chidle`, on
+by default), which took twelve mixed idle chains from 978 µs to 71 µs per block.
+See `chain-idle-cpu-optimization.md` — the table above is the BEFORE.
 
 ---
 

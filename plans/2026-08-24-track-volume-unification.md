@@ -1,7 +1,10 @@
 # Track+Volume combo unification (no-shift, Move-excluded)
 
-Status: approved design, ready to implement.
-Repos touched: `schwung` (fork `DimaDake/schwung`, new branch), `movy`.
+Status: **implemented and device-verified (2026-08-24)**. schwung fork
+branch `feat/suppress-master-volume` pushed (PR not yet opened — see final
+note); movy changes committed to main.
+Repos touched: `schwung` (fork `DimaDake/schwung`, branch
+`feat/suppress-master-volume`), `movy`.
 
 ## Problem
 
@@ -112,8 +115,26 @@ required — the check is purely dynamic.
   uniformity claim above. Assert the capability-absent fallback still drives
   `injectHold`-equivalent behavior (mock `move_midi_inject_to_move`) so the
   pre-merge path doesn't silently rot.
-- **Device**: no new device script — this is an input-routing change with no
-  new render/LED surface; the existing fixture-based suites cover chain
-  param writes generically. Manual verification once the schwung PR is
-  deployed: hold a track, turn volume with and without Shift, confirm the
-  overlay shows both times and Move's own screen/volume never appears.
+- **Device**: reused and repaired the existing `scripts/test-volume.sh`
+  rather than adding a new script (it already scripted exactly this
+  gesture via MIDI injection; its divert-mechanism assertion just needed to
+  become path-aware, and its cross-run "slot read-back" comparison needed
+  fixing independently — see the movy commit message). Verified against the
+  deployed `feat/suppress-master-volume` fork: `path=suppress` in the arm
+  log, zero packets through the MIDI_IN inject ring (Move genuinely gets
+  nothing), correct dB-ladder application (+5 detents from unity → 1.7783),
+  and slot read-back round-trips correctly within one run.
+
+## Verification (2026-08-24)
+
+- `tests/host` (schwung, CI-gated): unchanged, all green.
+- `npm test` (movy, all 8 local suites): all green, including new
+  capability-path coverage in `browser-test/logic/track-volume.mjs` (teeth
+  confirmed — reverting the fix fails 3 of the new assertions).
+- `scripts/test-volume.sh` (device): all checks pass against the deployed
+  fork.
+- Visual confirmation (`scripts/grab-screen.mjs`): drove track 1 hold +
+  master-touch + turn via MIDI injection with **no Shift held**, grabbed the
+  live OLED. movy's own "T2 VOLUME" slider overlay renders — Move's native
+  volume screen never appears. This is the core user-facing claim, checked
+  directly rather than inferred from log evidence alone.

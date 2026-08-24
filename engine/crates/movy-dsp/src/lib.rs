@@ -9,6 +9,7 @@ mod host;
 mod chain_copy;
 mod chain_cost;
 mod chain_digest;
+mod chain_idle;
 mod midi_out;
 mod chain_host;
 mod chain_slots;

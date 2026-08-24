@@ -147,10 +147,11 @@ _log('\nTest: movy-track value refresh is batched, not one read per tick');
     const { REFRESH_BULK_TICKS } = await import('../../dist/esm/model/constants.js');
     const { encodeBulk, decodeBulk } = await import('../../dist/esm/track/bulk.js');
 
-    /* The whole preset, namespaced to chain 0 — a movy track reads `ch0:` keys
+    /* The whole preset, namespaced to chain 4 — a track's chain IS its index,
+     * so track 4 reads `ch4:` keys
      * through the engine, never shadow_get_param. */
     const vals = {};
-    for (const [k, v] of Object.entries(MOCK_SYNTHS.plaits)) vals['ch0:' + k] = v;
+    for (const [k, v] of Object.entries(MOCK_SYNTHS.plaits)) vals['ch4:' + k] = v;
 
     const oG  = globalThis.host_module_get_param;
     const oBG = globalThis.shadow_get_params;
@@ -163,7 +164,7 @@ _log('\nTest: movy-track value refresh is batched, not one read per tick');
     };
 
     resetPorts();
-    const m = createModel(portFor(4), 'synth');   // track 5 = movy chain 0
+    const m = createModel(portFor(4), 'synth');   // track 4 -> chain 4
     m.reload(); m.tick(); m.tick();
 
     const TICKS = 4 * REFRESH_BULK_TICKS;
@@ -175,7 +176,7 @@ _log('\nTest: movy-track value refresh is batched, not one read per tick');
      * tick period that IS the pad sampling interval. */
     eq('movy refresh: at most one bulk read per window', bulks <= TICKS / REFRESH_BULK_TICKS, true);
     eq('movy refresh: made some bulk reads', bulks > 0, true);
-    const valueGets = gets.filter((k) => k !== 'ch0:synth:name' && k !== 'ch0:synth_module');
+    const valueGets = gets.filter((k) => k !== 'ch4:synth:name' && k !== 'ch4:synth_module');
     eq('movy refresh: no per-param reads outside the batch', valueGets.join(','), '');
 
     /* Batched must still mean CONVERGING: a value changed behind the model's
@@ -183,7 +184,7 @@ _log('\nTest: movy-track value refresh is batched, not one read per tick');
     const layout = m.dumpLayout().params;
     const pk = layout.find((p) => p && p.type !== 'enum' && p.type !== 'file').key;
     const before = m.getValueByKey(pk);
-    vals['ch0:synth:' + pk] = String(Number(vals['ch0:synth:' + pk]) + 0.25);
+    vals['ch4:synth:' + pk] = String(Number(vals['ch4:synth:' + pk]) + 0.25);
     for (let i = 0; i < REFRESH_BULK_TICKS * 2; i++) m.tick();
     eq('movy refresh: a value changed behind the model reaches the knob',
        m.getValueByKey(pk), before + 0.25);

@@ -36,6 +36,28 @@ far. Earlier work is summarised in the timeline below for context.
   `chidle 0` restores the old single-call path byte for byte; `chidle 1` is the
   split with nothing sleeping, which is what `chdigest` compares against 0.
 
+- **Tracks 1-4 can run on movy's own chains** (`chtracks`, off by default,
+  Global Params page). They are schwung's four shadow slots, which render
+  serially on the audio thread; turned on, they become movy chains and join the
+  parallel lanes. Worth roughly 20-25% of the chain render — not four tracks'
+  worth, because a host track already ran on the same thread as lane 0.
+
+  Not free, which is why it is off: those tracks give up Move's own mixer fader
+  (their level moves to movy's summing mixer), per-slot Link Audio, and
+  schwung's cached param reads.
+
+  **Nothing migrates.** The flag chooses which host movy addresses. Schwung's
+  slot keeps its module and simply stops being sent notes; flipping back finds
+  it exactly as it was. Flipping releases whatever is sounding on those four
+  tracks first, through the ports as they are at that moment — a note-off is
+  routed by looking up the port at release time, so the other order strands the
+  note on the host that played it.
+
+  Movy now hosts **sixteen** chains, one per track, and `ch<N>` is track N.
+  Chains for tracks 1-4 sit empty until the flag is on. This renumbered the
+  twelve existing chains (track 4 was chain 0, and is now chain 4) and needs no
+  migration: movy's saved state records a *track*, never a chain.
+
 - **Global Params page** (Shift+Step 2, **debug builds only**). The runtime
   chain-render flags as a scrolling list with their values: jog scrolls, knob 1
   edits, and knob 1's LED brightness carries the value. Unlike the other two

@@ -50,6 +50,7 @@ export async function run() {
      * would fail any other test in this repo — every suite below sets the flags
      * it cares about explicitly, and the screenshot scenes do too. */
     eq('parallel render ships ON', flagDef('chparallel').def, 1);
+    eq('tracks 1-4 stay on schwung slots', flagDef('chtracks').def, 0);
     eq('idle skip ships at full (synth + FX)', flagDef('chidle').def, 3);
     eq('three lanes, the measured design point', flagDef('chlanes').def, 3);
     eq('duplicates are not pinned', flagDef('chpin').def, 0);
@@ -105,6 +106,25 @@ export async function run() {
     eq('alongside the one just written', after.flags.chlanes, 2);
     uninstallMockFs();
 
+    /* A device that formed an opinion under the OLD default. `chparallel` was
+     * off by default and got written as 0 during measurement sessions; without
+     * the rev check, "on by default" reaches only a device that never opened
+     * the page — which is how it silently failed to ship. */
+    installMockFs({   // no flagsRev key at all, which reads as rev 0
+        [PREFS_PATH]: JSON.stringify({ flags: { chparallel: 0, chlanes: 3 } }),
+    });
+    resetFlags();
+    eq('a superseded stored value is replaced by the new default',
+       flagValue('chparallel'), flagDef('chparallel').def);
+    eq('a flag with no revision keeps its stored value', flagValue('chlanes'), 3);
+
+    /* Exactly once. Turning it off after the adoption is a real choice and must
+     * survive the next boot — a re-adopting migration would fight the user. */
+    setFlag('chparallel', 0);
+    resetFlags();
+    eq('and turning it off again sticks', flagValue('chparallel'), 0);
+    uninstallMockFs();
+
     installMockFs({ [PREFS_PATH]: '{not json' });
     resetFlags();
     eq('corrupt prefs fall back to defaults', flagValue('chlanes'), flagDef('chlanes').def);
@@ -130,11 +150,20 @@ export async function run() {
      * user's measurement is of the wrong thing. */
     let sent = [];
     applyFlagsToEngine((k, v) => sent.push(k + '=' + v));
-    for (const f of FLAGS) {
+    const engineFlags = FLAGS.filter((f) => !f.uiOnly);
+    for (const f of engineFlags) {
         ok(`${f.key} is pushed on an engine boot`,
            sent.some((s) => s.indexOf(f.key + '=') === 0), sent.join(' '));
     }
-    eq('every flag exactly once, plus the blacklist', sent.length, FLAGS.length + 1);
+    /* A uiOnly flag is one the UI acts on by itself. The engine has no handler
+     * for it, so writing it costs a blocking round trip on the audio thread to
+     * be told nothing — and it would read, in the log, exactly like a flag the
+     * engine understands. */
+    for (const f of FLAGS.filter((f) => f.uiOnly)) {
+        ok(`${f.key} is NOT pushed — the engine has no such param`,
+           !sent.some((s) => s.indexOf(f.key + '=') === 0), sent.join(' '));
+    }
+    eq('every engine flag exactly once, plus the blacklist', sent.length, engineFlags.length + 1);
     ok('including the values that were set', sent.indexOf('chparallel=1') >= 0
         && sent.indexOf('chlanes=2') >= 0);
     /* Turning parallel on spawns the pool at the CURRENT lane count, so a lane

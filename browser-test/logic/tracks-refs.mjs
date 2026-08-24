@@ -6,6 +6,7 @@
 
 import {
     readFileSync, readdirSync, portFor, trackRef, TRACK_COUNT, appState,
+    installMockFs, uninstallMockFs,
     eq, _log,
 } from './harness.mjs';
 
@@ -33,17 +34,74 @@ export async function run() {
   eq('index-in-group of 5', trackIndexInGroup(5), 1);
   eq('index-in-group of 15', trackIndexInGroup(15), 3);
 
-  /* Chain instances are movy-side only and 0-based: track 4 is the FIRST movy
-   * chain, not the fifth. Getting this offset wrong would address the wrong
-   * synth on every movy track. */
-  eq('chain instance of track 4', chainInstance(4), 0);
-  eq('chain instance of track 15', chainInstance(15), 11);
+  /* A track's chain IS its index — no offset to get wrong. Tracks 0-3 have no
+   * chain until `chtracks` gives them one. */
+  eq('chain instance of track 4', chainInstance(4), 4);
+  eq('chain instance of track 15', chainInstance(15), 15);
   eq('host tracks have no chain instance', chainInstance(3), -1);
 
   const r = trackRef(6);
   eq('trackRef carries index', r.index, 6);
   eq('trackRef carries kind', r.kind, 'movy');
   eq('HOST_TRACKS is 4', HOST_TRACKS, 4);
+}
+
+{
+  _log('\ntrack refs — chtracks moves tracks 1-4 onto movy chains:');
+  const { trackKind, chainInstance, MOVY_CHAINS, TRACK_COUNT: TC } =
+    await import('../../dist/esm/track/ref.js');
+  const { setFlag, resetFlags } = await import('../../dist/esm/seq/flags.js');
+
+  installMockFs();
+  resetFlags();
+
+  /* Turning the flag off must put every mapping back exactly. A kind that is a
+   * setting can be flipped twice, and a track that came back addressing a
+   * different chain than it left would do so silently — the audio simply comes
+   * out of the wrong track. */
+  const before = [];
+  for (let t = 0; t < TC; t++) before.push(chainInstance(t));
+
+  setFlag('chtracks', 1);
+  eq('track 0 becomes movy', trackKind(0), 'movy');
+  eq('track 3 becomes movy', trackKind(3), 'movy');
+  eq('track 0 gets chain 0', chainInstance(0), 0);
+  eq('track 3 gets chain 3', chainInstance(3), 3);
+  eq('track 4 is still chain 4', chainInstance(4), 4);
+  eq('track 15 is still chain 15', chainInstance(15), 15);
+
+  /* Two tracks sharing a chain is the failure this numbering exists to avoid,
+   * and it is invisible in any single-track assertion. */
+  const seen = new Set();
+  let collision = null;
+  for (let t = 0; t < TC; t++) {
+    const c = chainInstance(t);
+    if (c < 0) continue;
+    if (seen.has(c)) collision = 'tracks share chain ' + c;
+    seen.add(c);
+  }
+  eq('every track has its own chain', collision, null);
+  eq('sixteen tracks, sixteen chains', seen.size, TC);
+
+  /* The engine has to actually HAVE chain 15. `parse_chain_key` rejects a slot
+   * at or above MOVY_CHAINS by returning None, and a rejected key is dropped in
+   * silence — track 4 would simply never make a sound, with nothing in any log
+   * saying why. Two numbers in two languages that must add up, so they are
+   * compared rather than trusted. */
+  const rust = readFileSync('engine/crates/movy-dsp/src/chain_slots.rs', 'utf8');
+  const m = rust.match(/pub const MOVY_CHAINS:\s*usize\s*=\s*(\d+)/);
+  eq('the engine declares a chain count', !!m, true);
+  eq('and it covers every track', m && Number(m[1]), MOVY_CHAINS);
+  eq('one chain per track', MOVY_CHAINS, TC);
+
+  setFlag('chtracks', 0);
+  const after = [];
+  for (let t = 0; t < TC; t++) after.push(chainInstance(t));
+  eq('turning it off restores every mapping', after.join(','), before.join(','));
+  eq('track 0 is a host slot again', trackKind(0), 'host');
+
+  resetFlags();
+  uninstallMockFs();
 }
 
 {
@@ -331,6 +389,55 @@ export async function run() {
   selectTrack(4);
   eq('mid groups can go both ways', groupArrowColor(GROUP_DIR_UP) === WHITE_DIM && groupArrowColor(GROUP_DIR_DOWN) === WHITE_DIM, true);
   selectTrack(0);
+}
+
+{
+  /* The one way this feature strands a note forever.
+   *
+   * A note-off is routed by looking the track's port up at RELEASE time, not by
+   * remembering where the note-on went. Flip `chtracks` while a pad on track 1
+   * is down and the note-off is addressed to the host that never played it —
+   * the schwung slot that DID keeps sounding, and no later gesture reaches it
+   * because movy no longer addresses that slot at all.
+   *
+   * Asserted on which HOST API was called, because that is the actual
+   * destination. Asserting that a note-off was "sent" would pass either way. */
+  _log('\nchtracks — a held note is released on the host that played it:');
+  const L = await import('../../dist/esm/keyboard/held-notes.js');
+  const { setMovyTracks } = await import('../../dist/esm/track/host-mode.js');
+  const { resetFlags, flagValue } = await import('../../dist/esm/seq/flags.js');
+  const { resetPorts } = await import('../../dist/esm/track/registry.js');
+
+  installMockFs();
+  resetFlags();
+  resetPorts();
+
+  const toSlot = [], toEngine = [];
+  const origMidi = globalThis.shadow_send_midi_to_dsp;
+  const origBlk  = globalThis.host_module_set_param_blocking;
+  globalThis.shadow_send_midi_to_dsp = (m) => { toSlot.push(m.slice()); };
+  globalThis.host_module_set_param_blocking = (k, v) => { toEngine.push([k, v]); return true; };
+
+  L.drainAll();
+  // Pad 68 on track 1, while track 1 is still a schwung slot.
+  L.noteSounded(68, 1, 60);
+  eq('the track started as a host slot', flagValue('chtracks'), 0);
+
+  setMovyTracks(true);
+
+  eq('the flag did move', flagValue('chtracks'), 1);
+  const offToSlot = toSlot.some((m) => (m[0] & 0xf0) === 0x80 && m[1] === 60);
+  eq('the note-off went to the schwung slot', offToSlot, true);
+  const offToChain = toEngine.some(([k]) => typeof k === 'string' && k.indexOf('midi') >= 0);
+  eq('and not to a movy chain', offToChain, false);
+  eq('the ledger is empty afterwards', L.soundingCount(), 0);
+
+  globalThis.shadow_send_midi_to_dsp = origMidi;
+  globalThis.host_module_set_param_blocking = origBlk;
+  setMovyTracks(false);
+  resetFlags();
+  resetPorts();
+  uninstallMockFs();
 }
 
 }

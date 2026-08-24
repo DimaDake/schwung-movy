@@ -631,13 +631,18 @@ mod tests {
     fn parses_a_chain_key() {
         assert_eq!(parse_chain_key("ch0:synth:cutoff"), Some((0, "synth:cutoff")));
         assert_eq!(parse_chain_key("ch11:fx1:wet"), Some((11, "fx1:wet")));
+        // Two digits, and the four chains that back tracks 0..3 under
+        // `chtracks`. A parser that stopped at one digit would silently address
+        // chain 1 for every one of them.
+        assert_eq!(parse_chain_key("ch15:synth:cutoff"), Some((15, "synth:cutoff")));
     }
 
     #[test]
     fn rejects_slots_that_cannot_exist() {
         // Would otherwise index past the slot vector, or silently address the
         // wrong chain.
-        assert_eq!(parse_chain_key("ch12:synth:cutoff"), None);
+        let past_the_end = format!("ch{}:synth:cutoff", chain_slots::MOVY_CHAINS);
+        assert_eq!(parse_chain_key(&past_the_end), None);
         assert_eq!(parse_chain_key("ch99:synth:cutoff"), None);
     }
 

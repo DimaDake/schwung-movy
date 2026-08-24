@@ -51,15 +51,15 @@ export async function run() {
   globalThis.host_module_set_param_blocking = (k, v) => { sets.push([k, v]); return true; };
 
   resetPorts();
-  const p = portFor(7);              // track 7 = movy chain 3
+  const p = portFor(7);              // track 7 -> chain 7
   eq('movy track gets a chain port', p.track.kind, 'movy');
 
   /* The namespace mapping is the routing: get it wrong and edits land on
    * another track's synth. */
   p.getParam('synth:cutoff');
-  eq('reads are namespaced by chain index', gets[0], 'ch3:synth:cutoff');
+  eq('reads are namespaced by chain index', gets[0], 'ch7:synth:cutoff');
   p.setParam('synth:cutoff', '0.5');
-  eq('writes are namespaced by chain index', sets[0][0], 'ch3:synth:cutoff');
+  eq('writes are namespaced by chain index', sets[0][0], 'ch7:synth:cutoff');
   eq('writes pass the value', sets[0][1], '0.5');
 
   /* getMany must be ONE round trip — that is the entire reason the bulk
@@ -73,7 +73,7 @@ export async function run() {
   eq('getMany issued exactly one bulk call', bulk.length, 1);
   eq('getMany issued no individual gets', gets.length, 0);
   eq('getMany routes to the overtake DSP', bulk[0][1], 'overtake_dsp:');
-  eq('getMany namespaces every key', bulk[0][2], '2\n11\nch3:synth:a11\nch3:synth:b');
+  eq('getMany namespaces every key', bulk[0][2], '2\n11\nch7:synth:a11\nch7:synth:b');
   eq('getMany returns values in order', many.join(','), '.7,.3');
 
   /* A short/garbled response must NOT read as empty values — falling back to
@@ -101,11 +101,12 @@ export async function run() {
   globalThis.host_module_set_param_blocking = (k, v) => { writes.push([k, v]); return true; };
   globalThis.shadow_get_params = undefined;   // force the per-key path for clarity
 
-  /* Only chain 0 (track 4) holds a module; every other movy track is empty. */
+  /* Only track 4 holds a module — chain 4, since a track's chain IS its index.
+   * Every other movy track is empty. */
   globalThis.host_module_get_param = (k) => {
     reads.push(k);
-    if (k === 'ch0:synth_module') return 'plaits';
-    if (k === 'ch0:synth:state') return 'BLOB42';
+    if (k === 'ch4:synth_module') return 'plaits';
+    if (k === 'ch4:synth:state') return 'BLOB42';
     return null;
   };
   resetPorts();
@@ -121,8 +122,8 @@ export async function run() {
   writes.length = 0;
   const n = restoreChains(snap);
   eq('restored one component', n, 1);
-  eq('module written first', writes[0][0], 'ch0:synth:module');
-  eq('state written second', writes[1][0], 'ch0:synth:state');
+  eq('module written first', writes[0][0], 'ch4:synth:module');
+  eq('state written second', writes[1][0], 'ch4:synth:state');
   eq('state value round-tripped', writes[1][1], 'BLOB42');
 
   /* Tolerance: older blobs have no `chains` key, and a corrupt one must not
@@ -133,12 +134,53 @@ export async function run() {
   eq('host track index skipped', restoreChains([{ t: 0, comp: [{ c: 'synth', m: 'x' }] }]), 0);
   eq('unknown component skipped', restoreChains([{ t: 4, comp: [{ c: 'bogus', m: 'x' }] }]), 0);
 
+  /* With `chtracks` on, tracks 0-3 are movy chains and their modules exist
+   * ONLY inside movy's engine — schwung's set file no longer carries them, so
+   * a capture that still started at HOST_TRACKS would lose them silently on
+   * every set switch. */
+  {
+    const { setFlag, resetFlags } = await import('../../dist/esm/seq/flags.js');
+    const { installMockFs, uninstallMockFs } = await import('../mock-fs.mjs');
+    installMockFs();
+    resetFlags();
+    setFlag('chtracks', 1);
+    resetPorts();
+
+    reads.length = 0;
+    globalThis.host_module_get_param = (k) => {
+      reads.push(k);
+      if (k === 'ch0:synth_module') return 'dexed';
+      return null;
+    };
+    const t1 = captureChains();
+    eq('track 1 is captured once it is a movy chain', t1.length, 1);
+    eq('and recorded under its TRACK index, not its chain', t1[0].t, 0);
+    eq('with the module read from chain 0', t1[0].comp[0].m, 'dexed');
+
+    writes.length = 0;
+    eq('and it restores', restoreChains(t1), 1);
+    eq('to chain 0', writes[0][0], 'ch0:synth:module');
+
+    /* Off again, the same saved entry is inert rather than misdirected — a
+     * track with no chain must not write to one. */
+    setFlag('chtracks', 0);
+    resetPorts();
+    writes.length = 0;
+    eq('a saved movy-track-1 chain is skipped when the flag is off',
+       restoreChains(t1), 0);
+    eq('and nothing was written', writes.length, 0);
+
+    resetFlags();
+    resetPorts();
+    uninstallMockFs();
+  }
+
   /* ── the chain's LFOs ride the same snapshot ──────────────────────────────
    * They live in the chain instance, not in any component's :state blob, so
    * without this a movy-track LFO assignment survived exactly until the tool
    * closed. */
-  const lfoAssigned = { 'ch0:synth_module': 'plaits', 'ch0:lfo1:target': 'synth',
-    'ch0:lfo1:target_param': 'cutoff', 'ch0:lfo1:enabled': '1', 'ch0:lfo1:depth': '0.5000' };
+  const lfoAssigned = { 'ch4:synth_module': 'plaits', 'ch4:lfo1:target': 'synth',
+    'ch4:lfo1:target_param': 'cutoff', 'ch4:lfo1:enabled': '1', 'ch4:lfo1:depth': '0.5000' };
   reads.length = 0;
   globalThis.host_module_get_param = (k) => { reads.push(k); return lfoAssigned[k] ?? null; };
   resetPorts();
@@ -150,18 +192,18 @@ export async function run() {
   writes.length = 0;
   restoreChains(withLfo);
   const wroteLfo = Object.fromEntries(writes.filter(([k]) => k.includes('lfo')));
-  eq('LFO target restored',       wroteLfo['ch0:lfo1:target'], 'synth');
-  eq('LFO target_param restored', wroteLfo['ch0:lfo1:target_param'], 'cutoff');
-  eq('LFO enabled restored',      wroteLfo['ch0:lfo1:enabled'], '1');
-  eq('LFO depth restored',        wroteLfo['ch0:lfo1:depth'], '0.5000');
+  eq('LFO target restored',       wroteLfo['ch4:lfo1:target'], 'synth');
+  eq('LFO target_param restored', wroteLfo['ch4:lfo1:target_param'], 'cutoff');
+  eq('LFO enabled restored',      wroteLfo['ch4:lfo1:enabled'], '1');
+  eq('LFO depth restored',        wroteLfo['ch4:lfo1:depth'], '0.5000');
   /* A target binds to a param on a module, so the module must be requested
    * first — otherwise the restore lands on an empty chain and is dropped. */
   const firstLfoWrite = writes.findIndex(([k]) => k.includes(':lfo'));
-  const moduleWrite   = writes.findIndex(([k]) => k === 'ch0:synth:module');
+  const moduleWrite   = writes.findIndex(([k]) => k === 'ch4:synth:module');
   eq('modules are written before the LFO', moduleWrite < firstLfoWrite, true);
 
   /* A track that never touched an LFO writes nothing into the set file. */
-  globalThis.host_module_get_param = (k) => (k === 'ch0:synth_module' ? 'plaits' : null);
+  globalThis.host_module_get_param = (k) => (k === 'ch4:synth_module' ? 'plaits' : null);
   resetPorts();
   eq('idle LFOs are not persisted', captureChains()[0].lfo, undefined);
 
@@ -210,7 +252,7 @@ export async function run() {
   volumeTrackDown(6);
   volumeKnobDelta(1);
   const movyWrite = writes.find((w) => w[0] === 'movy');
-  eq('movy track writes its mixer', movyWrite && movyWrite[1], 'ch2:mix');
+  eq('movy track writes its mixer', movyWrite && movyWrite[1], 'ch6:mix');
   eq('mixer write is the gain,pan,mute triple',
      !!(movyWrite && /^[0-9.]+,0,0$/.test(movyWrite[2])), true);
 
@@ -241,11 +283,11 @@ export async function run() {
 
   /* A movy track hands pads to the engine. */
   sent.length = 0;
-  selectTrack(6);                       // movy chain 2
+  selectTrack(6);                       // -> chain 6
   syncPadRoute(send);
   eq('a map is pushed for a movy track', sent.length, 1);
   eq('the key is padmap', sent[0][0], 'padmap');
-  eq('it names the chain', sent[0][1].split(',')[0], '2');
+  eq('it names the chain', sent[0][1].split(',')[0], '6');
   eq('it carries 32 pad entries', sent[0][1].split(',').length - 1, 32);
   eq('the engine owns pads for that track', engineOwnsPads(6), true);
   eq('but not for a different chain', engineOwnsPads(7), false);
@@ -281,7 +323,7 @@ export async function run() {
   sent.length = 0;
   syncPadRoute(send);
   eq('leaving Session gives the pads back to the engine', engineOwnsPads(6), true);
-  eq('and names the chain again', (sent[0]?.[1] ?? '').split(',')[0], '2');
+  eq('and names the chain again', (sent[0]?.[1] ?? '').split(',')[0], '6');
 
   resetPadRoute();
   selectTrack(0);

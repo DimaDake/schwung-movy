@@ -103,16 +103,16 @@ echo "${BLD}=== pad-note IPC cost, host vs movy ===${RST}"
 # A chain must be loaded for the movy case to be meaningful — but load it FIRST
 # and let it settle, because the load itself blocks the callback for ~2 ms and
 # would land in the sample.
-ep "ch0:synth:module" plaits
+ep "ch4:synth:module" plaits
 sleep 8
-echo "  (plaits loaded on movy chain 0, settled)"
+echo "  (plaits loaded on movy chain 4 — track index 4, settled)"
 echo
 
 measure "host track 1" 0 host -
-measure "movy track 5" 4 movy 0
+measure "movy track 5" 4 movy 4
 
 echo
-echo "${YEL}Expected: no ch0 pad writes at all — the engine answers pads on the audio"
+echo "${YEL}Expected: no ch4 pad writes at all — the engine answers pads on the audio"
 echo "thread. Reverting engineOwnsPads() to false puts them back at ~0.1/tick"
 echo "(~2 ms per note), which is how this was proved to have teeth.${RST}"
-ep "ch0:synth:module" ""
+ep "ch4:synth:module" ""

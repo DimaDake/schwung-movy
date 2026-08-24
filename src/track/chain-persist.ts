@@ -14,7 +14,7 @@
  * no movy chains costs one batched read, not sixty. */
 
 import { CHAIN_SLOTS, isLfoSlot, moduleReadKey } from '../chain/config.js';
-import { HOST_TRACKS, TRACK_COUNT, chainInstance, trackKind } from './ref.js';
+import { TRACK_COUNT, chainInstance, trackKind } from './ref.js';
 import { portFor } from './registry.js';
 import { lfoStateKeys, packLfoState, restoreLfoState } from './lfo-persist.js';
 
@@ -48,7 +48,11 @@ export function captureChains(): ChainTrackState[] {
     const out: ChainTrackState[] = [];
     const comps = persistableComponents();
 
-    for (let t = HOST_TRACKS; t < TRACK_COUNT; t++) {
+    /* From 0, not HOST_TRACKS: with `chtracks` on, tracks 0-3 are movy chains
+     * too, and their modules exist only inside movy's engine — nothing else
+     * writes them down. The `trackKind` test below is what actually excludes
+     * them when the flag is off. */
+    for (let t = 0; t < TRACK_COUNT; t++) {
         if (trackKind(t) !== 'movy') continue;
         const port = portFor(t);
         /* One batched read for the whole track: MovyChainPort collapses these
@@ -89,7 +93,11 @@ export function restoreChains(saved: ChainTrackState[] | undefined | null): numb
 
     for (const track of saved) {
         const t = track?.t;
-        if (typeof t !== 'number' || t < HOST_TRACKS || t >= TRACK_COUNT) continue;
+        if (typeof t !== 'number' || t < 0 || t >= TRACK_COUNT) continue;
+        /* The real gate, and the only one since `chtracks`: tracks 0-3 have a
+         * chain when the flag is on and none when it is off. A set saved with
+         * it on and reopened with it off leaves those entries on disk, so
+         * turning it back on finds them again. */
         if (chainInstance(t) < 0) continue;
         if (!Array.isArray(track.comp)) continue;
         const port = portFor(t);

@@ -181,9 +181,15 @@ their verdict could change.
 
 ## 3. But you asked about **16** tracks
 
-Movy hosts **12** chains — tracks 5-16. Tracks 1-4 are schwung's own slots,
-rendered by the shim. All 16 draw on the *same* frame budget, so a full set costs
+Movy hosts **16** chains, one per track. Tracks 1-4 use schwung's own slots by
+default, rendered serially by the shim, and their movy chains sit empty until
+`chtracks` is turned on (Global Params page) — which is the point of that flag:
+a host slot renders on the audio thread, a movy chain renders on the parallel
+lanes. All 16 draw on the *same* frame budget either way, so a full set costs
 `baseline + 16 × per-track`.
+
+> Movy hosted **12** chains until 2026-08-24, numbered 0-11 for tracks 5-16.
+> `ch<N>` is now track N throughout.
 
 One clean host-slot measurement (helm: **694 µs** on a host slot against 741 µs
 on a movy chain) says the per-track cost is about the same either way. On that

@@ -11,8 +11,12 @@
  * then only ever written through `setFlag`, so the cache cannot outlive the
  * file it mirrors. */
 
-import { FLAGS, clampFlag, flagDef } from './flags-def.js';
-import { readPrefFlags, writePrefFlag, readPrefModuleBlacklist } from './prefs.js';
+import { FLAGS, FLAGS_REV, clampFlag, flagDef } from './flags-def.js';
+import {
+    readPrefFlags, writePrefFlag, readPrefModuleBlacklist,
+    readPrefFlagsRev, writePrefFlagsRev,
+} from './prefs.js';
+import { mlog } from '../log.js';
 
 /** How to write an engine param. Handed over by engine.ts rather than imported
  *  from it — same arrangement as `syncPadRoute`, and for the same reason: this
@@ -27,11 +31,33 @@ let values: Record<string, number> | null = null;
 function ensure(): Record<string, number> {
     if (values) return values;
     const stored = readPrefFlags();
+    /* A stored value normally wins — that is what a preference is. The one
+     * exception is a flag whose shipped default has CHANGED since this file was
+     * written: it is taken once, so a device that formed an opinion under the
+     * old default still gets the new one. Without this the flag is on by
+     * default only for someone who has never opened the page. */
+    const rev = readPrefFlagsRev();
     const v: Record<string, number> = {};
+    let adopted = 0;
     for (const f of FLAGS) {
-        v[f.key] = f.key in stored ? clampFlag(f, stored[f.key]) : f.def;
+        const superseded = f.revisedAt !== undefined && rev < f.revisedAt;
+        if (f.key in stored && !superseded) {
+            v[f.key] = clampFlag(f, stored[f.key]);
+        } else {
+            v[f.key] = f.def;
+            if (superseded && f.key in stored && stored[f.key] !== f.def) adopted++;
+        }
     }
     values = v;
+    if (rev < FLAGS_REV) {
+        /* Written back so the adoption happens exactly once — a user who then
+         * turns it off again must keep it off. */
+        for (const f of FLAGS) {
+            if (f.revisedAt !== undefined && rev < f.revisedAt) writePrefFlag(f.key, v[f.key]);
+        }
+        writePrefFlagsRev(FLAGS_REV);
+        if (adopted > 0) mlog('flags: adopted ' + adopted + ' new default(s) at rev ' + FLAGS_REV);
+    }
     return v;
 }
 
@@ -50,7 +76,7 @@ export function setFlag(key: string, value: number): number {
     if (v[key] === next) return next;
     v[key] = next;
     writePrefFlag(key, next);
-    sendToEngine?.(key, String(next));
+    if (!def.uiOnly) sendToEngine?.(key, String(next));
     return next;
 }
 
@@ -66,7 +92,8 @@ export function applyFlagsToEngine(set: EngineSet): void {
      * other way round spawns one pool and immediately replaces it — harmless,
      * but it blocks the audio thread twice for no reason. */
     for (const f of FLAGS) {
-        if (f.key !== 'chparallel') set(f.key, String(v[f.key]));
+        if (f.uiOnly || f.key === 'chparallel') continue;
+        set(f.key, String(v[f.key]));
     }
     /* The hazard list, before parallel render can act on it. Sent even when
      * empty: the engine replaces the list wholesale, so an empty write is how a

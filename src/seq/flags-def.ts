@@ -18,7 +18,24 @@ export type FlagDef = {
     def: number;
     /** Render as OFF/ON rather than as a number. */
     bool?: boolean;
+    /** Never written to the engine. For settings the UI acts on by itself —
+     *  the engine would answer an unknown key with a log line and nothing
+     *  else. */
+    uiOnly?: boolean;
+    /** The `FLAGS_REV` at which this flag's DEFAULT changed. A prefs.json older
+     *  than that has its stored value ignored once, so the new default actually
+     *  reaches a device that already has an opinion. */
+    revisedAt?: number;
 };
+
+/** Bumped whenever a shipped default changes; see `revisedAt`.
+ *
+ *  A flag is persisted the moment it is edited, and a stored value beats a
+ *  changed default forever — so "we turned it on by default" silently does not
+ *  happen on any device that has ever opened the page. That is exactly what
+ *  happened to `chparallel`: prefs.json held a 0 written during a measurement
+ *  session, and the new default reached nobody who had run one. */
+export const FLAGS_REV = 1;
 
 export const FLAGS: FlagDef[] = [
     {
@@ -29,7 +46,7 @@ export const FLAGS: FlagDef[] = [
         // engine's own default stays serial — the UI pushes this on every engine
         // boot, and keeping the two apart is what lets a device script detect
         // the flag by writing a value the engine will actually log.
-        min: 0, max: 1, def: 1, bool: true,
+        min: 0, max: 1, def: 1, bool: true, revisedAt: 1,
     },
     {
         key: 'chlanes', name: 'Render Lanes',
@@ -44,6 +61,18 @@ export const FLAGS: FlagDef[] = [
         // chdigest compares against 0) · 2 sleep a silent synth · 3 also sleep
         // a silent FX tail.
         min: 0, max: 3, def: 3,
+    },
+    {
+        key: 'chtracks', name: 'Movy Tracks 1-4',
+        // Tracks 1-4 are schwung's four shadow slots, which render serially on
+        // the audio thread. On, they become movy chains 0-3 instead and join
+        // the parallel lanes. Worth ~20-25% of the chain render, not four
+        // tracks' worth — a host track already ran on the same thread as lane 0.
+        //
+        // Off by default because it is not free: those tracks give up Move's own
+        // mixer fader, per-slot Link Audio, and schwung's cached param reads.
+        // See plans/2026-08-24-movy-hosted-first-tracks.md.
+        min: 0, max: 1, def: 0, bool: true, uiOnly: true,
     },
     {
         key: 'chpin', name: 'Pin Duplicates',

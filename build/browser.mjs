@@ -154,6 +154,7 @@ await esbuild.build({
         resolve(root, 'src/track/bulk.ts'),
         resolve(root, 'src/track/pad-route.ts'),
         resolve(root, 'src/track/chain-persist.ts'),
+        resolve(root, 'src/track/host-mode.ts'),
         resolve(root, 'src/browser/handler.ts'),
         resolve(root, 'src/browser/state.ts'),
         resolve(root, 'src/seq/track-select.ts'),

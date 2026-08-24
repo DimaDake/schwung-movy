@@ -195,26 +195,26 @@ _log('\nTest: LFO target commit reaches a movy-hosted track');
     globalThis.host_module_get_param = (k) => chain[k] ?? null;
     globalThis.host_module_set_param = (k, v) => { chain[k] = v; return true; };
     globalThis.host_module_set_param_blocking = (k, v) => { chain[k] = v; return true; };
-    chain['ch0:synth:chain_params'] = JSON.stringify([{ key: 'cutoff', name: 'Cutoff', type: 'float' }]);
+    chain['ch4:synth:chain_params'] = JSON.stringify([{ key: 'cutoff', name: 'Cutoff', type: 'float' }]);
     resetPorts();
 
-    const m3 = createLfoModel(4);          // track 5 = movy chain 0
+    const m3 = createLfoModel(4);          // track 4 -> chain 4
     m3.tick();
     m3.handleKnobTouch(3);
     m3.handleKnobDelta(3, DETENT);         // first real target
     m3.handleKnobRelease(3);
 
-    eq('movy track: target reached the chain',       chain['ch0:lfo1:target'], 'synth');
-    eq('movy track: target_param reached the chain', chain['ch0:lfo1:target_param'], 'cutoff');
-    eq('movy track: enabled reached the chain',      chain['ch0:lfo1:enabled'], '1');
+    eq('movy track: target reached the chain',       chain['ch4:lfo1:target'], 'synth');
+    eq('movy track: target_param reached the chain', chain['ch4:lfo1:target_param'], 'cutoff');
+    eq('movy track: enabled reached the chain',      chain['ch4:lfo1:enabled'], '1');
 
     /* Clearing has to travel the same road, or a target can be set and never
      * removed. */
     m3.handleKnobTouch(3);
     m3.handleKnobDelta(3, -DETENT * 4);    // back up to None
     m3.handleKnobRelease(3);
-    eq('movy track: clear reached the chain',   chain['ch0:lfo1:target'], '');
-    eq('movy track: disabled reached the chain', chain['ch0:lfo1:enabled'], '0');
+    eq('movy track: clear reached the chain',   chain['ch4:lfo1:target'], '');
+    eq('movy track: disabled reached the chain', chain['ch4:lfo1:enabled'], '0');
 
     globalThis.host_module_get_param = oG;
     globalThis.host_module_set_param = oS;

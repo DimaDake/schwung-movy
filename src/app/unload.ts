@@ -1,5 +1,5 @@
 import { TRACK_COUNT } from '../track/ref.js';
-import { releaseAllLive, emitNoteOff } from '../keyboard/release.js';
+import { releaseAllLive, releaseSequencerGates } from '../keyboard/release.js';
 import { seqCmdFlush } from '../seq/engine.js';
 import { resetSeqChord } from '../seq/router.js';
 import { seqState } from '../seq/state.js';
@@ -24,16 +24,7 @@ export function onUnload(): void {
      * queues — the note-offs below still go out first. */
     resetSeqChord(true);
     releaseAllLive();
-    let gates = 0;
-    for (let t = 0; t < TRACK_COUNT; t++) {
-        const base = t * 128;
-        for (let p = 0; p < 128; p++) {
-            if (seqState.activeNotes[base + p] === 1) {
-                emitNoteOff(t, p);
-                gates++;
-            }
-        }
-    }
+    const gates = releaseSequencerGates(0, TRACK_COUNT);
     mlog('unload: released ' + gates + ' sequencer note(s)');
 
     /* There is no next tick to drain the queue, and the engine has to have

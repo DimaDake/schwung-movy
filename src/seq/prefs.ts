@@ -75,6 +75,18 @@ export function readPrefFlags(): Record<string, number> {
     return out;
 }
 
+/* Which revision of the flag DEFAULTS this file was last reconciled against.
+ * Absent in every file written before the idea existed, which reads as 0 — and
+ * 0 is correct for them, since they predate the first revised default. */
+export function readPrefFlagsRev(): number {
+    const v = (readPrefs() as Record<string, unknown>).flagsRev;
+    return typeof v === 'number' && isFinite(v) ? v : 0;
+}
+
+export function writePrefFlagsRev(rev: number): void {
+    writePrefs((p) => { (p as Record<string, unknown>).flagsRev = rev; });
+}
+
 /* One key at a time, read-modify-write: the page edits one flag per gesture,
  * and writing the whole map would let a value this build does not know about
  * be erased by a build that does not list it. */

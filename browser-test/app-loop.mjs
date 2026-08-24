@@ -2124,9 +2124,10 @@ _log('\napp-loop: the module browser loads onto a movy-hosted track');
     const moduleWrite = engineWrites.find(([k]) => k.endsWith(':synth:module'));
     eq('the load reached the engine as a chain write', !!moduleWrite, true);
     if (moduleWrite) {
-        /* Track 5 is the SECOND movy track, so chain instance 1 — an off-by-one
-         * here would load the module onto a different track entirely. */
-        eq('addressed chain instance 1 (track 5)', moduleWrite[0], 'ch1:synth:module');
+        /* A track's chain IS its index, so track 5 is chain 5. This used to be
+         * `index - HOST_TRACKS`; either way, getting it wrong loads the module
+         * onto a different track entirely. */
+        eq('addressed chain 5 (track 5)', moduleWrite[0], 'ch5:synth:module');
         eq('wrote the picked module id', moduleWrite[1], picked.id);
     }
 

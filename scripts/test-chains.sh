@@ -100,28 +100,28 @@ fi
 #    the module browser is a Stage-4 gesture; here the load is issued directly
 #    over the remote-UI websocket to the engine's ch0 namespace, which is the
 #    same path the port uses.
-echo "${BLD}=== loading a module into movy chain 0 (track 5) ===${RST}"
-node scripts/engine-param.mjs set "ch0:synth:module" plaits "$HOST" >/dev/null 2>&1
+echo "${BLD}=== loading a module into movy chain 4 (track index 4, shown as track 5) ===${RST}"
+node scripts/engine-param.mjs set "ch4:synth:module" plaits "$HOST" >/dev/null 2>&1
 sleep 3
 LOGTXT=$(ssh "ableton@$HOST" "cat $LOG")
 
 # The engine logs each serviced load. That is the only external evidence
 # available: the remote-UI socket can write an engine param but has no read
 # verb, so there is nothing to poll.
-if echo "$LOGTXT" | qgrep "chain 0: synth = plaits"; then
-    pass "movy chain 0 created and loaded plaits"
+if echo "$LOGTXT" | qgrep "chain 4: synth = plaits"; then
+    pass "movy chain 4 created and loaded plaits"
 else
-    fail "no 'chain 0: synth = plaits' in the log — the load never reached the queue or was never serviced"
+    fail "no 'chain 4: synth = plaits' in the log — the load never reached the queue or was never serviced"
 fi
 
 # A second load into the same slot must reuse the instance, not leak one.
-node scripts/engine-param.mjs set "ch0:synth:module" wurl "$HOST" >/dev/null 2>&1
+node scripts/engine-param.mjs set "ch4:synth:module" wurl "$HOST" >/dev/null 2>&1
 sleep 3
 LOGTXT=$(ssh "ableton@$HOST" "cat $LOG")
-if echo "$LOGTXT" | qgrep "chain 0: synth = wurl"; then
-    pass "chain 0 swapped module without a reload of the host"
+if echo "$LOGTXT" | qgrep "chain 4: synth = wurl"; then
+    pass "chain 4 swapped module without a reload of the host"
 else
-    fail "second load into chain 0 did not appear in the log"
+    fail "second load into chain 4 did not appear in the log"
 fi
 
 if echo "$LOGTXT" | qgrep "chain hosting unavailable"; then
@@ -135,17 +135,17 @@ fi
 # note goes straight to the chain via the engine's ch<N>:midi param, and the
 # engine reports the first non-silent block it renders.
 echo "${BLD}=== is it audible? ===${RST}"
-node scripts/engine-param.mjs set "ch0:synth:module" plaits "$HOST" >/dev/null 2>&1
+node scripts/engine-param.mjs set "ch4:synth:module" plaits "$HOST" >/dev/null 2>&1
 sleep 2
-node scripts/engine-param.mjs set "ch0:midi" "144.60.100" "$HOST" >/dev/null 2>&1
+node scripts/engine-param.mjs set "ch4:midi" "144.60.100" "$HOST" >/dev/null 2>&1
 sleep 2
 LOGTXT=$(ssh "ableton@$HOST" "cat $LOG")
-if echo "$LOGTXT" | qgrep "chain 0: audio active"; then
-    pass "movy chain 0 produced audio: $(echo "$LOGTXT" | grep -o 'chain 0: audio active.*' | head -1)"
+if echo "$LOGTXT" | qgrep "chain 4: audio active"; then
+    pass "movy chain 4 produced audio: $(echo "$LOGTXT" | grep -o 'chain 4: audio active.*' | head -1)"
 else
-    fail "chain 0 rendered only silence — the note never reached the synth, or its output is not summed"
+    fail "chain 4 rendered only silence — the note never reached the synth, or its output is not summed"
 fi
-node scripts/engine-param.mjs set "ch0:midi" "128.60.0" "$HOST" >/dev/null 2>&1
+node scripts/engine-param.mjs set "ch4:midi" "128.60.0" "$HOST" >/dev/null 2>&1
 
 # 5. Track selection across groups. This is what looked unreliable on device:
 #    per-track state existed only for tracks 1-4, so a track button in any other
@@ -181,7 +181,7 @@ CC_JOG=14; CC_CLICK=3
 ssh "ableton@$HOST" "> $LOG"
 ts_tap_cc 50            # Session view
 sleep 0.6
-ts_tap_note 20          # step 5 -> track 5 (first movy track, chain 0)
+ts_tap_note 20          # step 5 -> track 5 (first movy track, chain 4)
 sleep 0.8
 ts_tap_cc 50            # back to Note view, still on track 5
 sleep 0.6
@@ -221,8 +221,8 @@ if [ -n "$BROWSE" ]; then
     else
         fail "the browser opened on host track $BROWSE_T — the track selection did not stick"
     fi
-    if echo "$LOGTXT" | qgrep -E "chain 0: (synth|midi_fx1|fx1|fx2) = "; then
-        pass "browser load reached a movy chain: $(echo "$LOGTXT" | grep -oE 'chain 0: [a-z_0-9]+ = .*' | tail -1)"
+    if echo "$LOGTXT" | qgrep -E "chain 4: (synth|midi_fx1|fx1|fx2) = "; then
+        pass "browser load reached a movy chain: $(echo "$LOGTXT" | grep -oE 'chain 4: [a-z_0-9]+ = .*' | tail -1)"
     else
         fail "the browser opened but confirming it produced no chain load"
     fi
@@ -263,7 +263,7 @@ node scripts/engine-param.mjs set "ch1:synth:module" "" "$HOST" >/dev/null 2>&1
 #    Move's own set file; a movy chain exists only inside movy, so if movy does
 #    not write it down it is gone. Reopening is the only way to prove it did.
 echo "${BLD}=== does a movy chain survive a reopen? ===${RST}"
-node scripts/engine-param.mjs set "ch0:synth:module" plaits "$HOST" >/dev/null 2>&1
+node scripts/engine-param.mjs set "ch4:synth:module" plaits "$HOST" >/dev/null 2>&1
 sleep 3
 # Autosave is tick-based (~8s at the real tick rate), so wait for the write
 # rather than guessing — a fixed sleep here is the classic fake persistence bug.
@@ -288,10 +288,10 @@ f=open(\"/dev/shm/schwung-control\",\"r+b\"); mm=mmap.mmap(f.fileno(),0); mm[56]
 "' >/dev/null 2>&1
 sleep 8
 LOGTXT=$(ssh "ableton@$HOST" "cat $LOG")
-if echo "$LOGTXT" | qgrep "chain 0: synth = plaits"; then
+if echo "$LOGTXT" | qgrep "chain 4: synth = plaits"; then
     pass "the chain was restored on reopen"
 else
-    fail "chain 0 did not reload plaits after reopen"
+    fail "chain 4 did not reload plaits after reopen"
 fi
 
 # 8. Tick rate — chain rendering runs every block.

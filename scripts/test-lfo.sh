@@ -33,12 +33,14 @@ ssh -o ConnectTimeout=5 "ableton@$HOST" true 2>/dev/null || {
 }
 
 ep() { node scripts/engine-param.mjs set "$1" "$2" "$HOST" >/dev/null 2>&1; }
-# The engine's LFO report for chain 0, as one line.
+# The engine's LFO report for chain 4, as one line. `chlfolog`'s VALUE is the
+# chain to report on — it has to track the chain this suite loads into, or the
+# report comes back empty and every check below fails on a blank string.
 lfo_report() {
     ssh "ableton@$HOST" "> $LOG"
-    ep "chlfolog" "0"
+    ep "chlfolog" "4"
     sleep 1.2
-    ssh "ableton@$HOST" "grep -o 'chain 0 lfos:.*' $LOG | head -n 1"
+    ssh "ableton@$HOST" "grep -o 'chain 4 lfos:.*' $LOG | head -n 1"
 }
 
 echo "${BLD}=== deploying ===${RST}"
@@ -59,13 +61,13 @@ with open(\"/dev/shm/schwung-control\", \"r+b\") as f:
 "'
 sleep 8
 
-echo "${BLD}=== loading a synth into movy chain 0 (track 5) ===${RST}"
-ep "ch0:synth:module" "plaits"
+echo "${BLD}=== loading a synth into movy chain 4 (track index 4, shown as track 5) ===${RST}"
+ep "ch4:synth:module" "plaits"
 sleep 3
-if ssh "ableton@$HOST" "cat $LOG" | qgrep "chain 0: synth = plaits"; then
-    pass "chain 0 holds a synth"
+if ssh "ableton@$HOST" "cat $LOG" | qgrep "chain 4: synth = plaits"; then
+    pass "chain 4 holds a synth"
 else
-    fail "chain 0 never loaded — the rest of this suite would prove nothing"
+    fail "chain 4 never loaded — the rest of this suite would prove nothing"
     echo "${RED}${BLD}LFO DEVICE TEST FAILED${RST} ($PASS passed, $FAIL failed)"; exit 1
 fi
 
@@ -80,12 +82,12 @@ fi
 
 # ── 2. the assignment lands in the chain ───────────────────────────────────────
 # Exactly the three fields movy's assign path commits, in the same order.
-ep "ch0:lfo1:target" "synth"
-ep "ch0:lfo1:target_param" "morph"
-ep "ch0:lfo1:enabled" "1"
-ep "ch0:lfo1:depth" "0.9"
-ep "ch0:lfo1:rate_hz" "8.0"
-ep "ch0:lfo1:sync" "0"
+ep "ch4:lfo1:target" "synth"
+ep "ch4:lfo1:target_param" "morph"
+ep "ch4:lfo1:enabled" "1"
+ep "ch4:lfo1:depth" "0.9"
+ep "ch4:lfo1:rate_hz" "8.0"
+ep "ch4:lfo1:sync" "0"
 sleep 1
 
 AFTER=$(lfo_report)
@@ -123,9 +125,9 @@ else
 fi
 
 # ── 4. clearing stops it ───────────────────────────────────────────────────────
-ep "ch0:lfo1:target" ""
-ep "ch0:lfo1:target_param" ""
-ep "ch0:lfo1:enabled" "0"
+ep "ch4:lfo1:target" ""
+ep "ch4:lfo1:target_param" ""
+ep "ch4:lfo1:enabled" "0"
 sleep 1
 CLEARED=$(lfo_report)
 if echo "$CLEARED" | qgrep 'lfo1=\[: active=0'; then

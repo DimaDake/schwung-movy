@@ -130,6 +130,28 @@ fn shimmed_host() -> *const host_api_v1_t {
 
 pub struct ChainHost {
     api: &'static plugin_api_v2_t,
+    fx: ChainFxApi,
+}
+
+/// The split-render entry points, all three or none.
+///
+/// These are plain exported symbols on the chain module, NOT members of
+/// `plugin_api_v2_t` — the shim resolves the same three by name. A chain module
+/// without them is not an error: movy falls back to one `render_block` call and
+/// the FX gate is simply unavailable.
+#[derive(Clone, Copy, Default)]
+pub struct ChainFxApi {
+    set_external_fx_mode: Option<FxModeFn>,
+    process_fx: Option<FxFn>,
+    requires_continuous: Option<FxContinuousFn>,
+}
+
+impl ChainFxApi {
+    fn complete(&self) -> bool {
+        self.set_external_fx_mode.is_some()
+            && self.process_fx.is_some()
+            && self.requires_continuous.is_some()
+    }
 }
 
 fn last_dlerror() -> String {
@@ -200,8 +222,35 @@ impl ChainHost {
             }
         }
 
+        // Resolved by name from the handle that is already open, because these
+        // are exported symbols rather than vtable entries. Missing symbols mean
+        // an older chain module: movy degrades to one render_block call rather
+        // than refusing to host chains at all.
+        let mut fx = ChainFxApi::default();
+        unsafe {
+            let mode = CString::new("chain_set_external_fx_mode").unwrap();
+            let proc_fx = CString::new("chain_process_fx").unwrap();
+            let cont = CString::new("chain_fx_requires_continuous").unwrap();
+            let m = dlsym(handle, mode.as_ptr());
+            let p = dlsym(handle, proc_fx.as_ptr());
+            let c = dlsym(handle, cont.as_ptr());
+            if !m.is_null() {
+                fx.set_external_fx_mode = Some(core::mem::transmute::<*mut c_void, FxModeFn>(m));
+            }
+            if !p.is_null() {
+                fx.process_fx = Some(core::mem::transmute::<*mut c_void, FxFn>(p));
+            }
+            if !c.is_null() {
+                fx.requires_continuous =
+                    Some(core::mem::transmute::<*mut c_void, FxContinuousFn>(c));
+            }
+        }
+        if !fx.complete() {
+            host::log("chain host exports no split render — idle skip limited to whole chains");
+        }
+
         host::log(&format!("chain host loaded from {} (api v{})", so_path, version));
-        Ok(Self { api })
+        Ok(Self { api, fx })
     }
 
     /// Create one chain instance. `module_dir` must be SCHWUNG's chain module
@@ -214,7 +263,7 @@ impl ChainHost {
             host::log(&format!("chain create_instance failed for {}", module_dir));
             return None;
         }
-        Some(ChainInstance { inst, api: self.api, scratch: vec![0u8; PARAM_BUF] })
+        Some(ChainInstance { inst, api: self.api, fx: self.fx, scratch: vec![0u8; PARAM_BUF] })
     }
 }
 
@@ -231,6 +280,7 @@ const PARAM_BUF: usize = 64 * 1024;
 pub struct ChainInstance {
     inst: *mut c_void,
     api: &'static plugin_api_v2_t,
+    fx: ChainFxApi,
     /// Reusable read buffer. Allocated once at load time — get_param is served
     /// from the shim's param handler on the AUDIO thread, where a per-call
     /// allocation of this size would be a real-time hazard.
@@ -289,10 +339,67 @@ impl ChainInstance {
     pub fn raw_render(&mut self) -> Option<(RenderFn, *mut c_void)> {
         self.api.render_block.map(|f| (f, self.inst))
     }
+
+    /// Whether this chain can render its synth and FX as two calls.
+    pub fn supports_split(&self) -> bool {
+        self.fx.complete()
+    }
+
+    /// In external FX mode `render_block` returns straight after the synth
+    /// (`chain_host.c:1960`), and the caller owes `process_fx` a buffer.
+    pub fn set_external_fx_mode(&mut self, on: bool) {
+        if let Some(f) = self.fx.set_external_fx_mode {
+            unsafe { f(self.inst, on as c_int) };
+        }
+    }
+
+    pub fn process_fx(&mut self, buf: &mut [i16]) {
+        if let Some(f) = self.fx.process_fx {
+            unsafe { f(self.inst, buf.as_mut_ptr(), (buf.len() / 2) as c_int) };
+        }
+    }
+
+    /// 1 when any FX slot declared `capabilities.requires_continuous_processing`
+    /// — loopers and modulated delays, whose state stops advancing if skipped.
+    pub fn fx_requires_continuous(&mut self) -> bool {
+        match self.fx.requires_continuous {
+            Some(f) => (unsafe { f(self.inst) }) != 0,
+            None => false,
+        }
+    }
+
+    /// Advance the chain's LFOs without rendering audio.
+    ///
+    /// `lfo_tick` normally runs inside `render_block`, so a skipped block ran a
+    /// sleeping chain's LFOs 172x too slow and resumed them from a stale phase
+    /// at note-on. `chain_host.c:709` exists for exactly this.
+    ///
+    /// NOT `set_param`: that builds two `CString`s, and this runs on the audio
+    /// thread once per block for every sleeping chain. Byte literals carrying
+    /// their own NUL are `'static` and allocate nothing.
+    pub fn mod_tick(&mut self) {
+        const KEY: &[u8] = b"mod:tick\0";
+        const VAL: &[u8] = b"128\0";
+        if let Some(f) = self.api.set_param {
+            unsafe { f(self.inst, KEY.as_ptr() as *const c_char, VAL.as_ptr() as *const c_char) };
+        }
+    }
+
+    /// Instance pointer and both entry points, for the pool to call from a
+    /// helper thread. The instance comes back even when the synth is asleep:
+    /// the lane still owes it a zeroed buffer and possibly an FX pass.
+    pub fn raw_parts(&mut self) -> (*mut c_void, Option<RenderFn>, Option<FxFn>) {
+        (self.inst, self.api.render_block, self.fx.process_fx)
+    }
 }
 
 /// `plugin_api_v2_t::render_block`, unwrapped from its `Option`.
 pub type RenderFn = unsafe extern "C" fn(*mut c_void, *mut i16, c_int);
+
+/// `chain_process_fx`, and the two symbols that go with it.
+pub type FxFn = unsafe extern "C" fn(*mut c_void, *mut i16, c_int);
+type FxModeFn = unsafe extern "C" fn(*mut c_void, c_int);
+type FxContinuousFn = unsafe extern "C" fn(*mut c_void) -> c_int;
 
 impl Drop for ChainInstance {
     fn drop(&mut self) {

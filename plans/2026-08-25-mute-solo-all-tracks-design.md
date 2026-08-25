@@ -57,82 +57,74 @@ overriding mute. Neither is revisited here.
 | Track or Session view | **Mute + track button** | that track; quartet-addressed, now works above track 4 |
 | Session view | **Mute + step 1-16** | that track directly, no group scrolling |
 | any of the above | **+ Shift** | solo instead of mute |
-| Session step form only | tap vs hold | tap latches; hold ≥ 500 ms reverts on release |
+
+Every form is a **latch**: one press toggles, the state stays until it is
+toggled back. There is no momentary/hold mute — how long a button is held is
+not a different intent here, which is the rule `momentaryUpUngated` already
+encodes for the Mute button today.
 
 Shift counts if it was down when Mute was pressed **or** is down at the moment
 of the action, as it does today (`muteShiftHeld() || appState.shiftHeld`) —
 either order of the two modifiers works.
 
-The two rows of that table compose: **Shift + Mute + step** solos, and it takes
-the same tap/hold rule — a held Shift+Mute+step is a momentary solo that drops
-on release.
-
 Mute alone in Session view stays a no-op: there is no current track there. That
 is also Move's own rule (manual §16.3 — Mute alone is Note mode only).
 
-Toasts follow the state, not the gesture: the press toasts as today
-(`T7 MUTED` / `T7 SOLO`), and a revert toasts the state it restored, so the
-display never keeps claiming a mute that has already lifted.
+### Both ways into Session view
 
-### Why the hold form is Session-only
+Session view is reachable two ways, and the mute gesture must work in both:
 
-Approved 2026-08-25: `Mute + track button` keeps today's behaviour, where any
-press latches however long it is held. Only the Session step form distinguishes
-tap from hold. The two surfaces therefore differ, and MANUAL.md must say so
-rather than describe one rule.
+- **latched** — a tap of Note/Session leaves you in Session view;
+- **held (temporary)** — the Session button held down shows Session view for as
+  long as it is held, and the view reverts on release.
+
+The step row is the 16-track selector in both, plus a third case:
+`trackSelectHold`, where a selection made during a held Session keeps the row a
+selector after the switch has already dropped you back onto a track. One
+predicate already names exactly that set — `trackSelectActive()`
+(`seq/track-select.ts:44`) — so the mute branch keys off it rather than off
+`sessionMode`, and all three cases are covered by construction.
 
 ### Routing
 
-The Session step branch must sit **above** `sessionStepPress` in
-`seq/router-steps.ts:58`: while Mute is held the step row is a mute map, not the
-track selector, and the press must not also switch tracks. It calls
-`momentaryGesture()` on the Mute momentary so that Mute's own release does not
-additionally toggle the active track — the same suppression
-`midi/router.ts:416` already performs for the track-button form.
+The mute branch sits **above** `sessionStepPress` in `seq/router-steps.ts:58`:
+while Mute is held the step row is a mute map, not the track selector, and the
+press must not also switch tracks.
+
+It must also leave the **Session button's own momentary alone**. Holding
+Session, muting a track, then releasing Session has to revert to the prior view
+— the hold was a peek, and muting inside it does not turn it into a latch. So
+the mute branch does not touch `CC_NOTE_SESSION`'s momentary the way
+`sessionStepPress` does (`momentaryCancel`) for a real track switch.
+
+### The shared momentary slot must stop being clobbered
+
+`momentary.ts` holds exactly **one** active button, and Mute's press currently
+takes it (`momentaryDown(CC_MUTE, () => {})`, `router-buttons.ts:65`). Holding
+Session and then pressing Mute therefore overwrites the Session momentary,
+restore closure included: the later `momentaryUp(CC_NOTE_SESSION)` returns
+`none`, the restore never runs, and the peek silently latches into Session view.
+That is a bug today, and the new gesture lands squarely on it — holding Session
+and pressing Mute is now something the user is *told* to do.
+
+The fix is to stop Mute using the shared slot at all. It never needed the
+primitive's real job — its restore is a no-op — only the "was a gesture made
+while held" flag. That becomes a plain module-level boolean in
+`router-buttons.ts`, and `midi/router.ts:416`'s `momentaryGesture()` call in the
+Mute+track branch sets it instead. Mute then never disturbs another button's
+momentary, and Session's peek survives.
 
 ## State
 
 `src/mixer/track-mutes.ts` remains the sole owner of mute, solo and the
-interaction between them. It is 150 lines today and the hold bookkeeping will
-not fit under the 200-line limit, so the map and its release rule move into
-`src/mixer/mute-hold.ts`, which calls back into the toggle API rather than
-touching `solo`/`base` itself — one owner of the state, one owner of the
-gesture's timing.
+interaction between them, and stays well under the 200-line limit: the only
+change to it is the guard.
 
 - Both guards become `track < 0 || track >= TRACK_COUNT`.
-- New pair for the hold form: `muteGestureDown(track, opts)` /
-  `muteGestureUp(track)`, backed by a module-level
-  `Map<number, {solo, pressMs, prevMuted, prevSolo}>`.
-- Release rule: `now - pressMs >= HOLD_MS (500)` → revert to the snapshot taken
-  at the press; otherwise latch. Wall-clock, not ticks, for the reason
-  `seq/momentary.ts` already documents: the device tick rate is not a constant.
-- The map is deliberately **not** `momentary.ts`. That primitive holds exactly
-  one active button and Mute already occupies the slot
-  (`router-buttons.ts:65`). A per-track map also allows several tracks to be
-  held muted at once, which is the point of a momentary mute.
-- `prevSolo` is the previously soloed track index (or `-1`): solo is exclusive,
-  so one number restores it exactly. `prevMuted` is that track's own mute bit —
-  the user's intent (`isMuted`), not the derived engine mute, so a hold taken
-  while some other track is soloed reverts to the right thing.
-- Timestamps are injected by the caller for the same testability reason
-  `momentaryDownAt`/`momentaryUpAt` take them.
-
-**The gesture belongs to the step, not to Mute.** Releasing the Mute button
-while a step is still held does not end the hold — the step's own release
-decides latch vs revert. Otherwise letting go of the modifier first (the common
-grip) would silently latch a mute the user was auditioning.
-
-**In-flight holds are reverted, never stranded.** `resetHeldInput`
-(`app/input-reset.ts`) and `resetTrackMutes` restore every open hold's snapshot
-rather than dropping it where `resetTrackSelect` drops its latches: an
-abandoned view switch is a surprise, but an abandoned momentary mute is a
-silent track with no finger on it and no way to see why.
-
-A momentary hold does move `seqState.muted`, so an autosave landing mid-hold
-can persist a mute the user never latched. That is bounded by the revert-on-
-reset rule above (movy's teardown restores it) and is not worked around
-further — a hold is a sub-second gesture, and the alternative is a shadow mute
-state the engine does not share.
+- `toggleMute` / `toggleSolo` keep their present shape — one gesture, one undo
+  entry, solo derived from the engine mutes with the user's own intent held in
+  `base`.
+- No new state and no new module: every surface calls those same two functions.
 
 ## LEDs
 
@@ -161,21 +153,11 @@ solo mutes — no second source of truth.
 
 ## Undo and persistence
 
-A momentary that reverts leaves **no** undo entry. Otherwise a one-second hold
-pushes MUTE and then UNMUTE, and undo walks the user through states they never
-chose.
-
-So the press applies raw (not through `asOneEdit`) and captures
-`readUiField('mutes')`; the release decides:
-
-- **latch** → open the edit group, record the one UI op, close it — exactly the
-  entry today's tap produces;
-- **revert** → restore raw, record nothing.
-
-Latched mutes persist unchanged: `mutesSnapshot`/`restoreMutes` are already
-16-wide and their shape does not move. An in-flight hold is deliberately not
-persisted — it dies with the gesture, and reviving one on reopen would strand a
-mute the user never latched.
+Unchanged. Each mute or solo press is one undo entry covering both halves of
+what it moves — the engine mutes and the solo bookkeeping — exactly as
+`asOneEdit` does today. `mutesSnapshot`/`restoreMutes` are already 16-wide, so
+the persisted blob's shape does not move; tracks 5-16 simply start appearing in
+arrays that always had room for them.
 
 ## Tests
 
@@ -185,15 +167,15 @@ Local first, cheapest level that reproduces each claim:
   - a mute on track 15 reaches the engine (`mute 15 1`) and the mirror — prove
     the teeth by restoring the `> 3` guard and watching it fail;
   - solo on a track above 3 derives all sixteen mutes and restores `base` on
-    un-solo;
-  - latch vs revert with injected timestamps (`< 500 ms` latches, `>= 500 ms`
-    reverts to the exact prior mute *and* solo state);
-  - a reverted hold records no undo entry; a latched one records exactly one;
-  - releasing Mute before the step does not end the hold;
-  - `resetTrackMutes` with a hold open restores the snapshot.
-- `browser-test/logic/seq-router.mjs` — with Mute held, a Session step press
-  mutes that track and does **not** switch tracks; Shift makes the same press a
-  solo.
+    un-solo.
+- `browser-test/logic/seq-router.mjs`
+  - with Mute held, a Session step press mutes that track and does **not**
+    switch tracks; Shift makes the same press a solo;
+  - the same press works in all three selector states: latched Session, held
+    Session, and `trackSelectHold`;
+  - pressing Mute while Session is held no longer strands the Session
+    momentary — the Session release still reverts to the prior view. (Teeth:
+    fails on today's code.)
 - `browser-test/logic/seq-leds.mjs`, `seq-session.mjs` — dim rendering on the
   step row (including the muted-and-focused composition) and on clip-grid cells;
   Mute button bright while anything is muted.
@@ -210,8 +192,8 @@ Local first, cheapest level that reproduces each claim:
 ## Docs
 
 - `MANUAL.md` §Mute/Solo (~line 744) and the gesture table (~line 1405): the
-  16-track reach, the Session step gesture, the Session-only hold rule, and the
-  new LED meanings.
+  16-track reach, the Session step gesture (in both latched and held Session
+  view), and the new LED meanings.
 - `README.md` only if this is called out as a headline feature; otherwise
   MANUAL.md alone.
 - `CHANGELOG.md` entry.
@@ -220,6 +202,7 @@ Local first, cheapest level that reproduces each claim:
 
 - Changing what mute silences (audio gate vs sequenced-note gate).
 - Making solo additive rather than exclusive.
+- A momentary (hold-to-mute) form on any surface. Every mute latches.
 - Mute for drum pads within a track (Move has it; movy does not, and it is a
   different feature).
 - Any schwung-side or Move-side mute integration.

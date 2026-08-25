@@ -118,6 +118,11 @@ export function paramAutomatable(s: ModelState, p: KnobParam): boolean {
     if (!p.automatable) return false;
     const drum = s.moduleConfig?.drum;
     if (drum?.padScoping && drum.automatablePads && s.drumCurrentPad > drum.automatablePads) return false;
+    /* padKeys: an alias with no key on the focused pad has no target to offer,
+     * so no automation dot appears for a knob that does nothing. Gated on
+     * padKeys — this runs per knob per frame, and a template always resolves. */
+    if (drum?.padScoping?.padKeys && p.key.startsWith(drum.padScoping.aliasPrefix)
+        && paramIoKey(s, p) === p.key) return false;
     return true;
 }
 
@@ -228,7 +233,15 @@ export function reseedPadParams(s: ModelState): void {
         const p = s.knobParams[i];
         if (!p) continue;
         const ioKey = concreteKey(ps, s.drumCurrentPad, p.key);
-        if (ioKey === p.key) continue; // not pad-scoped
+        if (ioKey === p.key) {
+            if (!p.key.startsWith(ps.aliasPrefix)) continue;   // not pad-scoped
+            /* A padKeys alias with no key on this pad. Clear rather than read:
+             * the key cannot exist, so the IPC would be wasted, and keeping the
+             * previous pad's number would show a value this voice hasn't got. */
+            s.knobValues[i] = null;
+            if (p.type === 'file') s.fileValues[i] = null;
+            continue;
+        }
         const raw = s.port.getParam(s.componentKey + ':' + ioKey);
         if (p.type === 'file') {
             s.fileValues[i] = raw;

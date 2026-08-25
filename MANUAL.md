@@ -689,6 +689,11 @@ distortion and level are per-voice automatable, and the Noise page draws the
 noise filter's response curve. Each voice is addressed by a fixed index, so
 per-voice automation is playback-safe regardless of which pad last played.
 
+Per-pad pages are not only for sample players and voice-cloned engines:
+an **analog-style drum machine**, where every voice is its own circuit with its
+own knobs (a kick that has Sub and Tube, a sampled cymbal that has neither), can
+have one too — its layout lists each pad's parameters by name.
+
 Because there's no other way to choose a drum type on the device, drum modules
 rely on Movy's **layout templates**. Mr Drums, Weird Dreams, KrautDrums and
 Signal ship Movy templates; Forge and Libpo32 are **self-describing** — they

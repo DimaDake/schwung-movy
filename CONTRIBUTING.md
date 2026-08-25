@@ -112,6 +112,45 @@ falling back to its bundled templates.
 > Prefer a module-owned layout when you also maintain that module; keep bundled
 > compatibility templates declarative and minimal.
 
+### Per-pad pages on a drum module
+
+A bank marked `"padSpecific": true` follows the pad you press. Its slots hold
+*alias* keys, and `drum.padScoping` says how an alias becomes the real key for
+the focused pad. There are two forms — use whichever matches how the module
+names its parameters:
+
+**Template** — when the pad number builds the key (sample players, voice-cloned
+engines). One rule covers every pad:
+
+```json
+"padScoping": {
+  "aliasPrefix": "pad_", "concreteKeyTemplate": "p{pad}_{suffix}", "padDigits": 2
+}
+```
+`pad_vol` on pad 3 → `p03_vol`.
+
+**Table** — when each voice is its own circuit and owns its parameter names, as
+on a TR-909/606-style machine. List each pad's key; `null` means that voice
+hasn't got that knob, and Movy shows the knob as unavailable rather than the
+previous pad's value:
+
+```json
+"padScoping": {
+  "aliasPrefix": "pad_",
+  "padKeys": {
+    "pitch": ["bd_c_tune", "sd_c_tune", "ohh_pitch"],
+    "drive": ["bd_c_drive", "sd_c_drive", null]
+  }
+}
+```
+`pad_pitch` on pad 3 → `ohh_pitch`.
+
+The table's keys are the module's **own declared parameters**, so they automate
+by their own name and need nothing extra in `chain_params` — unlike template
+keys, which are synthetic and validate through their alias. Both forms may
+appear in one config: the table wins where it lists a suffix, the template
+covers the rest.
+
 For modules whose releases Movy explicitly supports, copy the released
 `module.json` into `browser-test/fixtures/module-contracts/` using the
 `<component-type>--<module-id>.json` name. Contract fixtures replace an older

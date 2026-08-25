@@ -63,8 +63,16 @@ Shift counts if it was down when Mute was pressed **or** is down at the moment
 of the action, as it does today (`muteShiftHeld() || appState.shiftHeld`) —
 either order of the two modifiers works.
 
+The two rows of that table compose: **Shift + Mute + step** solos, and it takes
+the same tap/hold rule — a held Shift+Mute+step is a momentary solo that drops
+on release.
+
 Mute alone in Session view stays a no-op: there is no current track there. That
 is also Move's own rule (manual §16.3 — Mute alone is Note mode only).
+
+Toasts follow the state, not the gesture: the press toasts as today
+(`T7 MUTED` / `T7 SOLO`), and a revert toasts the state it restored, so the
+display never keeps claiming a mute that has already lifted.
 
 ### Why the hold form is Session-only
 
@@ -85,7 +93,11 @@ additionally toggle the active track — the same suppression
 ## State
 
 `src/mixer/track-mutes.ts` remains the sole owner of mute, solo and the
-interaction between them.
+interaction between them. It is 150 lines today and the hold bookkeeping will
+not fit under the 200-line limit, so the map and its release rule move into
+`src/mixer/mute-hold.ts`, which calls back into the toggle API rather than
+touching `solo`/`base` itself — one owner of the state, one owner of the
+gesture's timing.
 
 - Both guards become `track < 0 || track >= TRACK_COUNT`.
 - New pair for the hold form: `muteGestureDown(track, opts)` /
@@ -98,8 +110,29 @@ interaction between them.
   one active button and Mute already occupies the slot
   (`router-buttons.ts:65`). A per-track map also allows several tracks to be
   held muted at once, which is the point of a momentary mute.
+- `prevSolo` is the previously soloed track index (or `-1`): solo is exclusive,
+  so one number restores it exactly. `prevMuted` is that track's own mute bit —
+  the user's intent (`isMuted`), not the derived engine mute, so a hold taken
+  while some other track is soloed reverts to the right thing.
 - Timestamps are injected by the caller for the same testability reason
   `momentaryDownAt`/`momentaryUpAt` take them.
+
+**The gesture belongs to the step, not to Mute.** Releasing the Mute button
+while a step is still held does not end the hold — the step's own release
+decides latch vs revert. Otherwise letting go of the modifier first (the common
+grip) would silently latch a mute the user was auditioning.
+
+**In-flight holds are reverted, never stranded.** `resetHeldInput`
+(`app/input-reset.ts`) and `resetTrackMutes` restore every open hold's snapshot
+rather than dropping it where `resetTrackSelect` drops its latches: an
+abandoned view switch is a surprise, but an abandoned momentary mute is a
+silent track with no finger on it and no way to see why.
+
+A momentary hold does move `seqState.muted`, so an autosave landing mid-hold
+can persist a mute the user never latched. That is bounded by the revert-on-
+reset rule above (movy's teardown restores it) and is not worked around
+further — a hold is a sub-second gesture, and the alternative is a shadow mute
+state the engine does not share.
 
 ## LEDs
 
@@ -155,13 +188,19 @@ Local first, cheapest level that reproduces each claim:
     un-solo;
   - latch vs revert with injected timestamps (`< 500 ms` latches, `>= 500 ms`
     reverts to the exact prior mute *and* solo state);
-  - a reverted hold records no undo entry; a latched one records exactly one.
+  - a reverted hold records no undo entry; a latched one records exactly one;
+  - releasing Mute before the step does not end the hold;
+  - `resetTrackMutes` with a hold open restores the snapshot.
 - `browser-test/logic/seq-router.mjs` — with Mute held, a Session step press
   mutes that track and does **not** switch tracks; Shift makes the same press a
   solo.
 - `browser-test/logic/seq-leds.mjs`, `seq-session.mjs` — dim rendering on the
   step row (including the muted-and-focused composition) and on clip-grid cells;
   Mute button bright while anything is muted.
+- `browser-test/perf.mjs` — unchanged budgets must still pass. Nothing here adds
+  IPC or a per-tick read: the LED work reads `seqState.muted`, which the status
+  poll already maintains, and every write goes through the existing
+  `cachedSetLED`/`cachedSetAnimLED` diffing, so an idle frame sends nothing new.
 - Screenshot baselines regenerated if rendering moves
   (`node browser-test/screenshot.mjs --update`).
 - `scripts/test-mutes.sh` extended on device with one track above 4 and the

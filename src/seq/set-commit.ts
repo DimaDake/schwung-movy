@@ -47,12 +47,17 @@ import { claimLedOwnership } from '../app/led-ownership.js';
 import { flagValue } from './flags.js';
 import { isProvisionalUuid } from './set-context.js';
 
-/* Measured, not guessed. A press held 1 s and one held 2 s both made Move
- * commit the Set; three presses of ~10 ticks did nothing at all. Ticks were the
- * wrong unit — the rate swings 43-220 Hz on this device, so ten of them is
- * anywhere from 45 to 230 ms — so this is wall-clock, with margin over the
- * shortest hold known to work. */
-const HOLD_MS = 1200;
+/* Wall-clock, because ticks are not a duration here: the rate swings 43-220 Hz,
+ * so "ten ticks" is anywhere from 45 to 230 ms.
+ *
+ * 1 s and 2 s are both known to work. The short presses that appeared to fail
+ * proved nothing — they were sent while movy held the surface, so they never
+ * reached Move at all — and the drain hands Move at most one packet per frame,
+ * so press and release are already a frame apart at minimum. This is short
+ * enough to keep Move's pads on screen briefly rather than for two seconds, and
+ * long enough to be many frames. It is logged, so a failure to commit can be
+ * read against the value that produced it. */
+const HOLD_MS = 250;
 
 /* MoveRow1 — the same CC, and the same packet shape, that the track-volume
  * divert already injects (mixer/track-volume.ts). */
@@ -144,5 +149,5 @@ export function setCommitTick(id: string, ready: boolean): void {
 
     askedFor = id;
     phase = 'waiting'; since = Date.now();
-    mlog('seq: will ask Move to commit ' + id);
+    mlog('seq: will ask Move to commit ' + id + ' (hold ' + HOLD_MS + 'ms)');
 }

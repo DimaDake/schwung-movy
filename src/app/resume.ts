@@ -1,4 +1,4 @@
-import { invalidateLedCachesOnResume } from './tick.js';
+import { invalidateLedCachesOnResume, logLedRepaint } from './tick.js';
 import { claimLedOwnership } from './led-ownership.js';
 import { mlog } from '../log.js';
 
@@ -10,4 +10,5 @@ export function onResume(): void {
     mlog('resume from background');
     claimLedOwnership();
     invalidateLedCachesOnResume();
+    logLedRepaint('resume');
 }

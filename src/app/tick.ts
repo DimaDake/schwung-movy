@@ -203,6 +203,33 @@ const warmReadValue = (slot: number, lane: number): void => {
  * hardware, but the sequencer advanced while we were parked, so every on-change
  * LED cache is now stale. Drop them all and force a full repaint so the first
  * active frame repaints the pads, knob LEDs, and screen from current state. */
+/* The LED repair is several layers deep — the chromatic init batch, the drum
+ * grid, the session painter, the knob rings — and each has its own gate, so a
+ * repaint that only half happens says which gate was shut. Logged on both paths
+ * that need the repair (resume, and the set-commit surface window), then again
+ * once it should have finished. */
+let ledWatchTicks = -1;
+
+function ledContext(): string {
+    return 'session=' + (seqState.sessionMode ? 1 : 0)
+        + ' track=' + appState.activeTrack.index
+        + ' initDone=' + (appState.initLedsDone ? 1 : 0)
+        + ' initIdx=' + appState.initLedIndex
+        + ' drumStale=' + (drumCacheStale ? 1 : 0);
+}
+
+export function logLedRepaint(why: string): void {
+    mlog('leds: repaint (' + why + ') ' + ledContext());
+    ledWatchTicks = 90;
+}
+
+export function ledRepaintWatch(): void {
+    if (ledWatchTicks < 0) return;
+    if (--ledWatchTicks > 0) return;
+    ledWatchTicks = -1;
+    mlog('leds: after repaint ' + ledContext());
+}
+
 export function invalidateLedCachesOnResume(): void {
     chromaticCache.fill(0);
     drumCache.fill(0);
@@ -322,7 +349,12 @@ function tickBody(): void {
      * repaints the pads while it holds it. Same repair a resume needs, for the
      * same reason — see seq/set-commit.ts. Only ever armed while movy is in
      * front, which is why it lives on this side of the parked return. */
-    if (takeSurfaceReturn()) { claimLedOwnership(); invalidateLedCachesOnResume(); }
+    if (takeSurfaceReturn()) {
+        claimLedOwnership();
+        invalidateLedCachesOnResume();
+        logLedRepaint('surface returned');
+    }
+    ledRepaintWatch();
     /* Undo housekeeping, after seqPersistTick so the set uuid it watches is the
      * one this tick resolved. Order within: close timed-out groups, notice a
      * set/engine change, drop snapshots the stacks have released, retract a

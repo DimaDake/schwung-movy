@@ -15,6 +15,33 @@ import {
     MOVE_SETS_DIR, fileExists, isProvisionalUuid, loadNameIndex, removeSetState, saveNameIndex,
 } from './set-context.js';
 
+/* Where schwung parks the Sets belonging to a set page you are not on. A
+ * stashed Set is NOT in `UserLibrary/Sets/`, so a bare check there calls every
+ * Set on every other page deleted — on the device this was written against,
+ * page 0 held 28 of them while page 1 was current. davebox's seq8 carries the
+ * same rule and the same warning: never reduce this back to a bare stat of
+ * Sets/ (`seq8_set_uuid_alive`, dsp/setparam/sp_globals_state.c).
+ *
+ * The module JS API cannot list a directory, so the pages are probed by name.
+ * `SET_PAGES_TOTAL` is 8 (schwung shadow_set_pages.h); the second root is the
+ * davebox host's own install. */
+const PAGE_ROOTS = [
+    '/data/UserData/schwung/set_pages',
+    '/data/UserData/dbx-host/set_pages',
+];
+const SET_PAGES_TOTAL = 8;
+
+/** Does Move still have this Set — on ANY set page, not just the current one? */
+export function setUuidAlive(uuid: string): boolean {
+    if (fileExists(MOVE_SETS_DIR + '/' + uuid)) return true;
+    for (const root of PAGE_ROOTS) {
+        if (!fileExists(root)) continue;
+        for (let p = 0; p < SET_PAGES_TOTAL; p++)
+            if (fileExists(root + '/page_' + p + '/' + uuid)) return true;
+    }
+    return false;
+}
+
 /** Remove state for every indexed Set whose Move Set is gone. `keep` is the
  *  live Set, which is never collected whatever the index says about it. */
 export function collectDeadSets(keep: string): number {
@@ -33,7 +60,7 @@ export function collectDeadSets(keep: string): number {
         /* A provisional id names a pad, not a Set: Move has no directory for it
          * and never will, so "missing from Sets/" says nothing about it. */
         if (isProvisionalUuid(uuid)) continue;
-        if (fileExists(MOVE_SETS_DIR + '/' + uuid)) continue;
+        if (setUuidAlive(uuid)) continue;
         if (removeSetState(uuid)) removed++;
         delete idx[name];
         changed = true;

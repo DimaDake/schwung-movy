@@ -329,7 +329,30 @@ export async function run() {
         teardown();
     }
 
-    /* R16 — the guard on R13. An unreadable Sets/ directory says nothing about
+    /* R16 — a Set parked on another schwung set page is NOT deleted. Switching
+     * set pages moves whole Sets out of `UserLibrary/Sets/`, so a bare check
+     * there reads every Set on every other page as gone: the device this was
+     * written on had 28 of them stashed while 8 were current. */
+    {
+        const SETS  = '/data/UserData/UserLibrary/Sets';
+        const PAGES = '/data/UserData/schwung/set_pages';
+        const IDX   = '/data/UserData/schwung/modules/tools/movy/sets/name-index.json';
+        boot({
+            [ACTIVE]: 'LIVE\nStill Here\n',
+            [SETS]: DIR,
+            [SETS + '/LIVE']: DIR,
+            [PAGES]: DIR,
+            [PAGES + '/page_3/STASHED']: DIR,
+            [IDX]: JSON.stringify({ 'Still Here': 'LIVE', 'Other Page': 'STASHED' }),
+            [uuidToStatePath('LIVE')]: SAVED,
+            [uuidToStatePath('STASHED')]: EDITED,
+        });
+        eq('R16 a set stashed on another page survives',
+           readBestState('STASHED')?.payload ?? null, EDITED);
+        teardown();
+    }
+
+    /* R17 — the guard on R15. An unreadable Sets/ directory says nothing about
      * which sets exist, and collecting on that answer would delete all of them. */
     {
         const IDX = '/data/UserData/schwung/modules/tools/movy/sets/name-index.json';
@@ -338,7 +361,7 @@ export async function run() {
             [IDX]: JSON.stringify({ 'Deleted': 'DEAD' }),
             [uuidToStatePath('DEAD')]: EDITED,
         });
-        eq('R16 nothing collected without a Sets dir', readBestState('DEAD').payload, EDITED);
+        eq('R17 nothing collected without a Sets dir', readBestState('DEAD').payload, EDITED);
         teardown();
     }
 }

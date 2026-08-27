@@ -36,7 +36,10 @@ far. Earlier work is summarised in the timeline below for context.
 - **Sequences for deleted Sets are collected.** Deleting a Set in Move left
   Movy's state for it on the device permanently. It is now removed on load —
   only for Sets Move no longer has, and only when Move's own Set directory can
-  be read, so an unreadable one never reads as "everything was deleted".
+  be read, so an unreadable one never reads as "everything was deleted". A Set
+  parked on another Schwung **set page** counts as alive: switching pages moves
+  whole Sets out of `UserLibrary/Sets/`, so checking there alone would read
+  every Set on every other page as deleted.
 
 ### Added
 

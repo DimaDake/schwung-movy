@@ -20,6 +20,7 @@ import {
     uuidToStatePath,
 } from './set-context.js';
 import { collectDeadSets } from './set-gc.js';
+import { resetSetCommit, setCommitTick } from './set-commit.js';
 import { readBestState, readUiBlob, writeStateBlob, writeUiBlob } from './persist-store.js';
 import { clearUiDirty, markUiStateDirty } from './ui-dirty.js';
 import { resetUiState } from './ui-state.js';
@@ -63,6 +64,7 @@ export function resetSetSession(): void {
     failReason = '';
     collected = false;
     resetSetSave();
+    resetSetCommit();
     clearUiDirty();
 }
 
@@ -218,6 +220,10 @@ export function sessionTick(): void {
         else if (id !== setId) identityChanged(id, name, provisional);
         if (phase !== 'ready') return;
     }
+    /* A Set Move never committed loses BOTH stores on the next visit, so ask it
+     * to commit before anything is recorded into a namespace with no future. */
+    setCommitTick(setId, phase === 'ready');
+
     if (--saveCountdown > 0) return;
     saveCountdown = SAVE_TICKS;
     sessionFlush();

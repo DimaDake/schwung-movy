@@ -265,6 +265,57 @@ export async function run() {
         teardown();
     }
 
+    /* ── asking Move to commit the Set ──────────────────────────────────── */
+
+    /* R18 — a Set Move never committed loses both stores on the next visit, so
+     * movy asks Move to commit it with the one gesture that does: a track
+     * button. Once per Set, never while parked, never for a real Set. */
+    {
+        const sent = [];
+        const oldInject = globalThis.move_midi_inject_to_move;
+        globalThis.move_midi_inject_to_move = (d) => sent.push(d.slice());
+
+        const { fs } = boot({ [ACTIVE]: '__pending-12-7\nNew Set 13\n' });
+        eq('R18 asked Move to commit the pad', sent.length > 0, true);
+        eq('R18 with a track-button press', sent[0].join(','), '11,176,43,127');
+        run(60);
+        eq('R18 and released it', sent[1]?.join(','), '11,176,43,0');
+        eq('R18 exactly one press', sent.filter((d) => d[3] === 127).length, 1);
+
+        /* Move declined — asking again every tick would be a stuck button. */
+        sent.length = 0;
+        run(400);
+        eq('R18 not asked twice for the same Set', sent.length, 0);
+
+        /* A real Set needs nothing: it is already committed. */
+        fs.files[uuidToStatePath('REAL1')] = SAVED;
+        fs.files[ACTIVE] = 'REAL1\nSong One\n';
+        run();
+        eq('R18 a real Set is never asked', sent.length, 0);
+        teardown();
+        globalThis.move_midi_inject_to_move = oldInject;
+    }
+
+    /* R19 — parked, the set pads ARE Move's UI and the user is standing on
+     * them. A track press there throws them off the Sets page mid-selection. */
+    {
+        const sent = [];
+        const oldInject = globalThis.move_midi_inject_to_move;
+        globalThis.move_midi_inject_to_move = (d) => sent.push(d.slice());
+        globalThis.overtakeParked = true;
+
+        boot({ [ACTIVE]: '__pending-12-7\nNew Set 13\n' });
+        run(200);
+        eq('R19 parked movy never injects', sent.length, 0);
+
+        globalThis.overtakeParked = false;
+        run(60);
+        eq('R19 but asks as soon as it is in front', sent.length > 0, true);
+        teardown();
+        globalThis.move_midi_inject_to_move = oldInject;
+        delete globalThis.overtakeParked;
+    }
+
     /* R15 — a Set deleted in Move leaves state behind that nothing can reach.
      * host_remove_dir is allowed anywhere under modules/, which is where this
      * lives, so it can actually be collected. */

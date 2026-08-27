@@ -5,6 +5,8 @@
 #   Shift + Mute        → solo the current track
 #   Shift + Mute + track→ solo that track
 #   Session view        → both standalone forms inactive
+#   Mute + step         → mute any of the 16 tracks, no group scrolling
+#   Shift + Mute + step → solo that track instead
 #
 # The last check is the one that needs a device: solo lives only in movy's
 # memory while its effect (the derived engine mutes) outlives a reopen, so the
@@ -165,6 +167,69 @@ if [ -z "$(logtail 'solo t=')" ] && [ -z "$(logtail 'mute t=')" ]; then
     pass "Session view: Mute and Shift+Mute are modifiers only"
 else
     fail "Session view fired: $(logtail 'solo t=') $(logtail 'mute t=')"
+fi
+inject 50:127 50:0 >/dev/null   # back to Note view
+
+# 6. Mute + step in Session view — the 16-track mute map.
+#
+# This is the only surface that reaches tracks 5-16 without scrolling the focus
+# group, and it is the form that carries the old `track > 3` ceiling's teeth:
+# with the guard back in place the gesture is silently dropped and the log line
+# below never appears. The device is also where the single-file bundle is
+# exercised — router-steps.ts now reaches mixer/track-mutes.ts, and an import
+# cycle there breaks only in the device build.
+HI=9                       # track index 10 — two groups past the track buttons
+HI_STEP=$((16 + HI))       # step buttons are notes 16..31
+inject 50:127 50:0 >/dev/null; sleep 1     # Session view
+ssh "ableton@$HOST" "> $LOG"
+ts_send "0x0B:0xB0:88:127:0.08" "0x09:0x90:$HI_STEP:127:0.08" \
+        "0x08:0x80:$HI_STEP:0:0.08" "0x0B:0xB0:88:0:0"
+sleep 2
+if [ -n "$(logtail "mute t=$HI -> 1")" ]; then
+    pass "Mute + step mutes track $((HI+1)) — past the old 4-track ceiling"
+else
+    fail "Mute + step on track $((HI+1)) did nothing: $(logtail 'mute t=')"
+fi
+# The same press must not ALSO switch tracks: with Mute held the row is a mute
+# map, not the track selector. A switch would log its own line.
+if [ -z "$(logtail "track: active=$HI")" ]; then
+    pass "and it did not switch to that track"
+else
+    fail "Mute + step switched tracks too: $(logtail 'track: active=')"
+fi
+ssh "ableton@$HOST" "> $LOG"
+ts_send "0x0B:0xB0:88:127:0.08" "0x09:0x90:$HI_STEP:127:0.08" \
+        "0x08:0x80:$HI_STEP:0:0.08" "0x0B:0xB0:88:0:0"
+sleep 2
+if [ -n "$(logtail "mute t=$HI -> 0")" ]; then
+    pass "pressing it again unmutes — every form of the gesture is a latch"
+else
+    fail "second press did not unmute: $(logtail 'mute t=')"
+fi
+
+# 7. Shift + Mute + step solos that track, on the same 16-wide surface.
+ssh "ableton@$HOST" "> $LOG"
+ts_send "0x0B:0xB0:49:127:0.08" "0x0B:0xB0:88:127:0.08" \
+        "0x09:0x90:$HI_STEP:127:0.08" "0x08:0x80:$HI_STEP:0:0.08" \
+        "0x0B:0xB0:88:0:0.08" "0x0B:0xB0:49:0:0"
+sleep 2
+SOLO_HI=$(logtail "solo t=$HI")
+want_set=$(awk -v n="$NTRACKS" -v t="$HI" 'BEGIN{for(i=0;i<n;i++)printf (i==t?"1":"0")}')
+want_mut=$(awk -v n="$NTRACKS" -v t="$HI" 'BEGIN{for(i=0;i<n;i++)printf (i==t?"0":"1")}')
+if echo "$SOLO_HI" | qgrep "set=$want_set mutes=$want_mut"; then
+    pass "Shift + Mute + step solos track $((HI+1)), muting the other 15"
+else
+    fail "expected 'set=$want_set mutes=$want_mut', got: ${SOLO_HI:-no solo line}"
+fi
+ssh "ableton@$HOST" "> $LOG"
+ts_send "0x0B:0xB0:49:127:0.08" "0x0B:0xB0:88:127:0.08" \
+        "0x09:0x90:$HI_STEP:127:0.08" "0x08:0x80:$HI_STEP:0:0.08" \
+        "0x0B:0xB0:88:0:0.08" "0x0B:0xB0:49:0:0"
+sleep 2
+if echo "$(logtail "solo t=$HI")" | qgrep -- "-> 0 set=$ALL_UNMUTED mutes=$ALL_UNMUTED"; then
+    pass "un-solo from the step row releases all 16"
+else
+    fail "stranded mutes after un-solo: $(logtail "solo t=$HI")"
 fi
 inject 50:127 50:0 >/dev/null   # back to Note view
 

@@ -83,7 +83,7 @@ function apply(): void {
 }
 
 export function toggleMute(track: number): void {
-    if (track < 0 || track > 3) return;
+    if (track < 0 || track >= TRACK_COUNT) return;
     asOneEdit(isMuted(track) ? 'UNMUTE' : 'MUTE', trackLabel(track), () => {
         if (base) base[track] = !base[track];
         else setEngineMute(track, !seqState.muted[track]);
@@ -95,7 +95,7 @@ export function toggleMute(track: number): void {
 }
 
 export function toggleSolo(track: number): void {
-    if (track < 0 || track > 3) return;
+    if (track < 0 || track >= TRACK_COUNT) return;
     const was = solo[track];
     asOneEdit(was ? 'UNSOLO' : 'SOLO', trackLabel(track), () => {
         for (let t = 0; t < TRACK_COUNT; t++) solo[t] = false;   // exclusive — one at a time

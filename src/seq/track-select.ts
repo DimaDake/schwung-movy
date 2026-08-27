@@ -18,7 +18,7 @@
 import { appState } from '../app/state.js';
 import { TRACK_COUNT, trackGroup } from '../track/ref.js';
 import { beginTrackSwitch, restoreTrackState, switchToTrack } from '../track/switch.js';
-import { ANIM_NONE, ANIM_PULSE, C_BLACK, C_WHITE, trackColor } from './colors.js';
+import { ANIM_NONE, ANIM_PULSE, C_BLACK, C_WHITE, trackColor, trackColorDim } from './colors.js';
 import { CC_NOTE_SESSION } from './constants.js';
 import { momentaryCancel, momentaryDown, momentaryUp } from './momentary.js';
 import { seqState } from './state.js';
@@ -52,9 +52,17 @@ export function sessionButtonHeld(): boolean {
     return sessionBtnDown;
 }
 
-export function sessionStepLed(step: number, focusGroup: number, selectedTrack: number): CellLed {
+export function sessionStepLed(
+    step: number, focusGroup: number, selectedTrack: number, muted = false,
+): CellLed {
     if (step < 0 || step >= TRACK_COUNT) return { base: C_BLACK, anim: C_BLACK, channel: ANIM_NONE };
-    const tc = trackColor(step);
+    /* Muted tracks dim, the same cue the track button carries. This row is the
+     * only surface showing all sixteen at once, so it is where a mute outside
+     * the focused quartet is visible at all. It rides on the colour rather than
+     * being a layer of its own, which is what lets the group pulse below keep
+     * working: a muted focused track pulses to its DIM colour, so motion still
+     * reads as focus while brightness reads as mute. */
+    const tc = muted ? trackColorDim(step) : trackColor(step);
     /* Selected outranks focused: when the group holds the selected track both
      * would apply, and "which one am I editing" is the finer answer.
      *

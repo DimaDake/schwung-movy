@@ -338,6 +338,90 @@ export async function run() {
     resetSeqState(); seqLedsInvalidate();
 }
 
+/* ── Mute + step: the Session row mutes any of the 16 tracks ─────────────── */
+{
+    /* The step row is the 16-track selector in Session view, which makes it the
+     * one surface that addresses every track without scrolling the group. With
+     * Mute held it is a mute map instead, and the press must NOT also switch
+     * tracks. */
+    _log('\nsession mute by step:');
+    const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
+    const { seqHandleMidi } = await import('../../dist/esm/seq/router.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
+    const { resetMomentary } = await import('../../dist/esm/seq/momentary.js');
+    const { resetTrackSelect } = await import('../../dist/esm/seq/track-select.js');
+    const { isSoloed, resetTrackMutes } = await import('../../dist/esm/mixer/track-mutes.js');
+    const { appState } = await import('../../dist/esm/app/state.js');
+    const { trackRef } = await import('../../dist/esm/track/ref.js');
+
+    const CC_MUTE = 88, CC_NOTE_SESSION = 50, STEP = 16;
+    installMockEngine();
+    const fresh = () => {
+        resetSeqEngine(); resetSeqState(); resetMomentary(); resetTrackSelect();
+        resetTrackMutes(); appState.activeTrack = trackRef(0);
+    };
+    /* Mute is a modifier held across the press, which is the whole gesture. */
+    const muteStep = (step, shift = false) => {
+        seqHandleMidi([0xB0, CC_MUTE, 127], shift);
+        seqHandleMidi([0x90, STEP + step, 127], shift);
+        seqHandleMidi([0x80, STEP + step, 0], shift);
+        seqHandleMidi([0xB0, CC_MUTE, 0], shift);
+    };
+
+    fresh();
+    seqState.sessionMode = true;
+    muteStep(11);
+    eq('step 12 mutes track 12', seqState.muted[11], true);
+    eq('mute reaches the engine', peekSeqCmdQueue().some(c => c === 'mute 11 1'), true);
+    eq('the press did not switch tracks', appState.activeTrack.index, 0);
+    eq('and did not leave Session view', seqState.sessionMode, true);
+
+    /* Same press again unmutes — every form of this gesture is a latch. */
+    resetSeqEngine();
+    muteStep(11);
+    eq('pressing again unmutes', seqState.muted[11], false);
+
+    // Shift makes it a solo, on the same track the un-shifted press would mute.
+    fresh();
+    seqState.sessionMode = true;
+    muteStep(9, true);
+    eq('shift+mute+step solos', isSoloed(9), true);
+    eq('the solo did not switch tracks', appState.activeTrack.index, 0);
+
+    /* trackSelectHold: a selection made during a held Session leaves the row a
+     * selector with sessionMode already false. Keying the branch off
+     * sessionMode would miss exactly this case. */
+    fresh();
+    seqState.sessionMode = false;
+    seqState.trackSelectHold = true;
+    muteStep(6);
+    eq('mutes while the row is held-selector', seqState.muted[6], true);
+    eq('still no track switch', appState.activeTrack.index, 0);
+
+    /* Held Session is a PEEK: muting inside it must not turn the hold into a
+     * latch. Mute's press used to take the single momentary slot from the
+     * Session button, so its release found nothing to restore. */
+    fresh();
+    seqState.sessionMode = false;
+    seqHandleMidi([0xB0, CC_NOTE_SESSION, 127], false);   // hold Session
+    eq('held Session shows the clip grid', seqState.sessionMode, true);
+    seqHandleMidi([0xB0, CC_MUTE, 127], false);
+    seqHandleMidi([0x90, STEP + 5, 127], false);
+    seqHandleMidi([0x80, STEP + 5, 0], false);
+    seqHandleMidi([0xB0, CC_MUTE, 0], false);
+    eq('track 6 muted from the peek', seqState.muted[5], true);
+    /* Without this the three assertions around it pass for the wrong reason:
+     * the un-fixed code switches to track 6 on the step press, leaves Session
+     * view as part of the switch, and then mutes the newly-active track on the
+     * Mute release. */
+    eq('the peek did not switch tracks', appState.activeTrack.index, 0);
+    seqHandleMidi([0xB0, CC_NOTE_SESSION, 0], false);     // release Session
+    eq('the peek still reverts', seqState.sessionMode, false);
+
+    uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetTrackMutes();
+}
+
 /* ── seq pads: chromatic layout + coloring ───────────────────────────────── */
 {
     _log('\nseq chromatic pads:');

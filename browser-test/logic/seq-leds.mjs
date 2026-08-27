@@ -200,6 +200,55 @@ export async function run() {
     eq('queued = fast pulse', led({ ...base, exists:true, isQueued:true }), want(tc, C_WHITE, ANIM_PULSE_FAST));
     // Priority: queued outranks playing.
     eq('queued outranks playing', sessionCellColor({ ...base, exists:true, isPlaying:true, isQueued:true }).channel, ANIM_PULSE_FAST);
+
+    /* A muted track's cells wear its dim accent, the same cue the track button
+     * and the step row carry. The transport layers survive it: a muted track is
+     * still running, and the grid is where you watch it run. */
+    const { trackColorDim } = await import('../../dist/esm/seq/colors.js');
+    const dim = trackColorDim(1);
+    eq('muted content cell is dim', led({ ...base, exists:true, muted:true }), want(dim, dim, ANIM_NONE));
+    eq('muted playing cell keeps the white pulse',
+       led({ ...base, exists:true, isPlaying:true, muted:true }), want(dim, C_WHITE, ANIM_PULSE));
+    eq('muted queued cell keeps the fast pulse',
+       sessionCellColor({ ...base, exists:true, isQueued:true, muted:true }).channel, ANIM_PULSE_FAST);
+    eq('an empty cell on a muted track is still off',
+       led({ ...base, muted:true }), want(C_BLACK, C_BLACK, ANIM_NONE));
+}
+
+/* ── the Mute button reports that something is silenced ──────────────────── */
+{
+    /* Four track buttons show mute for the focused quartet; with sixteen tracks
+     * a mute two groups away has nowhere else to be seen from Track view. */
+    _log('\nmute button LED:');
+    const { seqLedsTick, seqLedsInvalidate } = await import('../../dist/esm/seq/leds.js');
+    const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
+    const { WHITE_BRIGHT, WHITE_DIM } = await import('../../dist/esm/seq/colors.js');
+
+    const CC_MUTE = 88;
+    const btnCalls = [];
+    const origSetButtonLED = globalThis.setButtonLED;
+    const origSetLED = globalThis.setLED;
+    globalThis.setButtonLED = (cc, c) => btnCalls.push([cc, c]);
+    globalThis.setLED = () => {};
+
+    const paint = () => {
+        seqLedsInvalidate(); btnCalls.length = 0;
+        for (let i = 0; i < 8; i++) seqLedsTick();
+        return Object.fromEntries(btnCalls);
+    };
+
+    resetSeqState();
+    eq('nothing muted → dim', paint()[CC_MUTE], WHITE_DIM);
+
+    seqState.muted[13] = true;   // outside the focused quartet on purpose
+    eq('a far track muted → bright', paint()[CC_MUTE], WHITE_BRIGHT);
+
+    seqState.muted[13] = false;
+    eq('unmuting puts it back', paint()[CC_MUTE], WHITE_DIM);
+
+    globalThis.setButtonLED = origSetButtonLED;
+    globalThis.setLED = origSetLED;
+    resetSeqState(); seqLedsInvalidate();
 }
 
 /* ── loop single-press selects bar ───────────────────────────────────────── */

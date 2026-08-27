@@ -751,8 +751,18 @@ for the concepts:
   track-button form suppresses the current-track toggle, so one press never
   mutes two things. In Session view there is no current track, so Mute stays a
   pure modifier there.
-- **Solo** — the same two gestures with **Shift**: **Shift + Mute** solos the
-  current track, **Shift + Mute + track button** solos that one. Press again to
+
+  Both forms reach **any of the 16 tracks**. The track buttons address the
+  focused group, so **+ / −** scrolls that quartet to the one you want. To skip
+  the scrolling, use the step row: in **Session view**, **hold Mute and press a
+  step** to mute that track directly — step 1 is track 1, step 16 is track 16.
+  That works whether you latched Session view with a tap or are just holding
+  **Note/Session** for a peek; muting inside a peek does not latch it, so the
+  view still reverts when you let the button go. Every form is a **latch**:
+  press again to unmute, and how long you hold the button makes no difference.
+- **Solo** — the same gestures with **Shift**: **Shift + Mute** solos the
+  current track, **Shift + Mute + track button** solos that one, and
+  **Shift + Mute + step** solos it from the Session step row. Press again to
   un-solo. Solo is **exclusive** — soloing another track moves the solo rather
   than adding to it. **Solo overrides mute**,
   so soloing a track you had muted makes it audible; your own mutes are
@@ -762,6 +772,17 @@ for the concepts:
   tracks dim their track button like muted ones, and every mute or solo shows a
   toast naming the track (and the whole solo set, e.g. `SOLO T1 T3`). Shift can
   go down before or after Mute — either order works.
+
+  **Seeing what is silenced.** A muted track wears its **dim** colour wherever
+  it is drawn: its track button, its step in the Session track selector, and its
+  cells in the clip grid. In the selector, mute and focus stack rather than
+  compete — a muted track in the focused group still pulses, just to its dim
+  colour, so the motion reads as focus and the brightness as mute. Clips keep
+  their white playing/queued pulse when muted: the track is still running, and
+  the grid is where you watch it run. Because only four track buttons are
+  visible at once, the **Mute button itself lights bright** whenever anything is
+  muted or soloed — the one always-visible cue that something is silent two
+  groups away.
 - **Automation** — turn a module knob while recording (or while holding a step)
   to record parameter automation; the on-screen knob arc follows the automation.
 
@@ -795,6 +816,12 @@ buttons move the group without changing which track is open.
   for by holding the button rather than a permanent marker competing with the
   pulse, and it stays visible even after **+ / −** has scrolled its group away.
   Let go, or latch Session view with a tap, and the white goes away.
+- **Muted tracks** show their **dim** colour, which is what makes this row the
+  place to read mutes: it is the only surface showing all sixteen at once. It
+  composes with the pulse rather than replacing it, so a muted track in the
+  focused group pulses to its dim colour. Hold **Mute** and the whole row
+  becomes a **mute map** — see **Mute** in
+  [The sequencer](#5-the-sequencer-aligned-with-move) above.
 
 Press any step to **open that track**: the pads, the screen and the knobs all
 switch to it immediately, exactly as if you had pressed its track button. It
@@ -1407,10 +1434,12 @@ behaviour you'd like — or, better, a PR.
 | **Hold Clear + pad** | Clear every note of that pad's pitch from the clip — a whole drum lane at once. |
 | **Undo** | Undo the last edit. |
 | **Shift + Undo** | Redo it. |
-| **Mute** | Mute / unmute the current track (Track view only — Session view has no current track). |
-| **Mute + track** | Mute that track instead; suppresses the current-track toggle on release. |
+| **Mute** | Mute / unmute the current track (Track view only — Session view has no current track). Bright while anything is muted or soloed. |
+| **Mute + track** | Mute that track instead; suppresses the current-track toggle on release. Addresses the focused group of four. |
+| **Mute + step** | In Session view (latched or held), mute that track directly — all 16, no group scrolling. Does not switch tracks. |
 | **Shift + Mute** | Solo / un-solo the current track (Track view only). Exclusive — soloing another moves it. |
 | **Shift + Mute + track** | Solo that track instead. |
+| **Shift + Mute + step** | Solo that track from the Session step row. |
 | **Track buttons 1–4** | Select a track within the focused group of four (hold = momentary peek). |
 | **Volume encoder** | Adjust held steps' velocity. With a track button held instead, sets that track's volume (**add Shift on tracks 5-16** — see [Track volume](#track-volume)); otherwise it stays Move's master volume. |
 | **TEMPO knob** (Set page) | Set the tempo; also sets Move's device-wide tempo via Link. **EXT** on the cell = locked to Move's transport. |

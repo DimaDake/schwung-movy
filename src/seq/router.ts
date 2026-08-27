@@ -32,7 +32,7 @@ import { muteHeld, seqHandleButtonCc } from './router-buttons.js';
 
 /* The sequencer's public input surface stays on this module: these are its
  * other halves, re-exported so callers keep one import site. */
-export { muteHeld, muteShiftHeld, muteTrack, setMuteHeld } from './router-buttons.js';
+export { muteHeld, muteMarkGestured, muteShiftHeld, muteTrack, setMuteHeld } from './router-buttons.js';
 export { padsPlayNotes, resetSeqChord, seqNotePadPlayed, seqNotePadReleased } from './router-pads.js';
 
 const CC_LEFT = 62;

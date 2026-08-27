@@ -71,15 +71,17 @@ export async function run() {
     Date.now = realNow;
     eq('long press mutes active track', peekSeqCmdQueue().some(c => c === 'mute 3 1'), true);
 
-    // Mute+track must still suppress it: the track-button path marks the
-    // momentary as gestured (midi/router.ts), so the release mutes nothing more.
+    // Mute+track must still suppress it: the track-button path marks the Mute
+    // press as gestured (midi/router.ts), so the release mutes nothing more.
+    // The mark itself stands in for that path — midi/router sits behind the
+    // set-session gate, which a unit test has no set to satisfy.
     {
-        const { momentaryGesture } = await import('../../dist/esm/seq/momentary.js');
+        const { muteMarkGestured } = await import('../../dist/esm/seq/router.js');
         resetSeqEngine(); resetMomentary();
         appState.activeTrack = trackRef(0);
         seqState.muted[0] = false;
         seqHandleMidi([0xB0, CC_MUTE, 127], false);
-        momentaryGesture();   // stands in for Mute+track muting some other track
+        muteMarkGestured();   // what Mute+track and Mute+step both call
         seqHandleMidi([0xB0, CC_MUTE, 0], false);
         eq('mute+track suppresses active-track mute',
             peekSeqCmdQueue().some(c => c === 'mute 0 1'), false);
@@ -385,6 +387,57 @@ export async function run() {
     eq('loop restored',    seqState.loopMode,    true);
 
     uninstallMockEngine(); resetSeqEngine(); resetSeqState();
+}
+
+/* ── every track, not just the first four ────────────────────────────────── */
+{
+    /* toggleMute/toggleSolo carried a `track > 3` ceiling from when movy had
+     * four tracks. Everything under it was already 16-wide, so the gesture
+     * reached tracks 5-16 and was dropped at the door — silently, since the
+     * toast and the LED both read the mirror it never moved. */
+    _log('\nmute/solo above track 4:');
+    const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
+    const { resetMomentary } = await import('../../dist/esm/seq/momentary.js');
+    const { toggleSolo, toggleMute, isSoloed, isMuted, resetTrackMutes } =
+        await import('../../dist/esm/mixer/track-mutes.js');
+
+    const cmds = () => peekSeqCmdQueue().filter((c) => c.startsWith('mute '));
+    const fresh = () => { resetSeqEngine(); resetSeqState(); resetMomentary(); resetTrackMutes(); };
+
+    installMockEngine();
+
+    fresh();
+    toggleMute(15);
+    eq('track 15 mute reaches the engine', cmds().some(c => c === 'mute 15 1'), true);
+    eq('track 15 mute in the mirror', seqState.muted[15], true);
+    toggleMute(15);
+    eq('track 15 unmutes again', seqState.muted[15], false);
+
+    /* One above the old ceiling, where an off-by-one would still pass at 15. */
+    fresh();
+    toggleMute(4);
+    eq('track 4 mutes', seqState.muted[4], true);
+
+    fresh();
+    toggleSolo(12);
+    eq('solo above 4 registers', isSoloed(12), true);
+    eq('soloed track audible', seqState.muted[12], false);
+    eq('every other track muted',
+       Array.from({ length: TRACK_COUNT }, (_, t) => t).filter(t => t !== 12)
+            .every(t => seqState.muted[t]), true);
+
+    /* The user's own mute on a high track has to survive the borrowed ones. */
+    fresh();
+    toggleMute(9);
+    toggleSolo(14);
+    eq('intent held under solo', isMuted(9), true);
+    toggleSolo(14);
+    eq('un-solo restores the high-track mute', seqState.muted[9], true);
+    eq('un-solo clears the borrowed ones', seqState.muted[10], false);
+
+    uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetTrackMutes();
 }
 
 }

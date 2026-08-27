@@ -114,8 +114,10 @@ Movy stands on the shoulders of several projects:
   unchanged. Tracks 5-16 load a module the same way and Movy hosts the chain
   itself, saved with the set. In Session view, **octave +/−** moves between the
   four groups and **a step button selects a track** — or hold **Session** and
-  press a step from anywhere. How many you can actually run is a CPU question,
-  not a Movy one: see [Limitations](MANUAL.md#7-limitations-vs-move).
+  press a step from anywhere. Hold **Mute** and that same row becomes a
+  **16-track mute map**; add **Shift** to solo. How many you can actually run is
+  a CPU question, not a Movy one: see
+  [Limitations](MANUAL.md#7-limitations-vs-move).
 
 - **Step recording** — hold **Rec** while stopped and play notes or chords in
   one step at a time, with ties, rests and back-stepping. An empty clip grows to

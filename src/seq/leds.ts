@@ -171,7 +171,7 @@ function paintAffordances(view: number, barOffset: number, maxOff: number, shift
     /* Note/Session was painted by nobody, so the button read as dead rather
      * than available. Same dim-idle / bright-active shape as Loop. */
     cachedSetButtonLED(CC_NOTE_SESSION, seqState.sessionMode ? WHITE_BRIGHT : WHITE_DIM);
-    cachedSetButtonLED(CC_COPY, WHITE_DIM); cachedSetButtonLED(CC_DELETE_BTN, WHITE_DIM); cachedSetButtonLED(CC_MUTE, WHITE_DIM);
+    cachedSetButtonLED(CC_COPY, WHITE_DIM); cachedSetButtonLED(CC_DELETE_BTN, WHITE_DIM); cachedSetButtonLED(CC_MUTE, seqState.muted.some((m) => m) ? WHITE_BRIGHT : WHITE_DIM);
     /* Octave buttons move the focused track group in Session view. Outside it
      * they are the pad octave and app/tick.ts owns them (it knows whether the
      * track is a drum, which has no octave). */
@@ -214,7 +214,7 @@ function paintTrackSelector(): void {
      * latched, so a row you sit and work in shows only the group pulse. */
     const selected = sessionButtonHeld() ? appState.activeTrack.index : -1;
     for (let i = 0; i < NUM_STEP_BUTTONS; i++) {
-        const led = sessionStepLed(i, appState.focusGroup, selected);
+        const led = sessionStepLed(i, appState.focusGroup, selected, seqState.muted[i]);
         cachedSetAnimLED(STEP_NOTE_BASE + i, led.base, led.anim, led.channel);
     }
 }

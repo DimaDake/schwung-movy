@@ -16,7 +16,7 @@ import { closeParamPage, paramPageActive } from './param-page.js';
 import { deleteActive, deleteButton } from './edit-ops.js';
 import { copyButton as dupCopyButton } from './duplicate.js';
 import { loopButton } from './loop-mode.js';
-import { momentaryDown, momentaryUp, momentaryUpUngated } from './momentary.js';
+import { momentaryDown, momentaryUp } from './momentary.js';
 import { sessionDeleteButton } from './session.js';
 import { sessionButtonDown } from './track-select.js';
 import { seqState } from './state.js';
@@ -36,6 +36,19 @@ export function muteHeld(): boolean { return muteHeldState; }
 let muteShift = false;
 export function muteShiftHeld(): boolean { return muteShift; }
 
+/* Was a mute gesture (Mute+track, Mute+step) used while Mute was held? If so
+ * the release must not ALSO mute the active track.
+ *
+ * A flag of its own rather than the shared momentary slot, which is what this
+ * used to be. momentary.ts holds exactly ONE active button, so Mute's press
+ * evicted whatever was there — and the button most likely to be there is
+ * Note/Session, whose hold is a peek that reverts on release. Losing its
+ * restore closure silently latched Session view the moment you muted anything
+ * from inside a held-Session peek. Mute never needed the primitive: its own
+ * restore was a no-op, and this flag is all it ever read back. */
+let muteGestured = false;
+export function muteMarkGestured(): void { muteGestured = true; }
+
 /* Mute and solo both live in mixer/track-mutes.ts, which owns the interaction
  * between them (a solo derives the engine's mutes from the user's own). */
 export function muteTrack(track: number): void { toggleMute(track); }
@@ -46,14 +59,14 @@ let sessionPrev = false;
 
 /** Handle a 0xB0 button. Returns false when the CC is not one of ours. */
 export function seqHandleButtonCc(d1: number, d2: number, shiftHeld: boolean): boolean {
-    /* Mute button: held state gates the Mute+track mute gesture (midi/router.ts).
-     * In Track view a press with no track-button mute used while held instead
-     * mutes the active track on release; Session view keeps Mute as a pure
-     * held modifier (no current track to mute). The Mute+track gesture marks the
-     * momentary (momentaryGesture in midi/router.ts) so it suppresses this.
+    /* Mute button: held state gates the Mute+track and Mute+step gestures
+     * (midi/router.ts, router-steps.ts). In Track view a press with no such
+     * gesture used while held instead mutes the active track on release;
+     * Session view keeps Mute as a pure held modifier (no current track to
+     * mute). Either gesture calls muteMarkGestured() so it suppresses this.
      *
-     * Ungated release: how long the button was down is not a different intent
-     * here, and the 500 ms hold rule silently swallowed any deliberate press.
+     * How long the button was down is not a different intent here — a
+     * deliberate press mutes exactly like a quick tap.
      *
      * Shift selects solo instead of mute. Taken at the press OR at the moment
      * of the action, because either order is natural: Shift is often released
@@ -62,10 +75,10 @@ export function seqHandleButtonCc(d1: number, d2: number, shiftHeld: boolean): b
         if (d2 > 0) {
             setMuteHeld(true);
             muteShift = shiftHeld;
-            momentaryDown(CC_MUTE, () => {});
+            muteGestured = false;
         } else {
             setMuteHeld(false);
-            if (momentaryUpUngated(CC_MUTE) === 'clean' && !seqState.sessionMode) {
+            if (!muteGestured && !seqState.sessionMode) {
                 if (muteShift || shiftHeld) toggleSolo(appState.activeTrack.index);
                 else muteTrack(appState.activeTrack.index);
                 appState.dirty = true;

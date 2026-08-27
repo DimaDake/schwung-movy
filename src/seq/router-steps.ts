@@ -19,13 +19,17 @@ import { dupActive, onUnit as dupOnUnit } from './duplicate.js';
 import { seqCmd } from './engine.js';
 import { doubleLoop, loopStepOff, loopStepOn } from './loop-mode.js';
 import { seqToast } from './render.js';
-import { sessionStepPress, sessionStepRelease, trackSelectActive } from './track-select.js';
+import { muteHeld, muteMarkGestured, muteShiftHeld } from './router-buttons.js';
+import { toggleMute, toggleSolo } from '../mixer/track-mutes.js';
+import { TRACK_COUNT } from '../track/ref.js';
+import { sessionButtonHeld, sessionStepPress, sessionStepRelease, trackSelectActive } from './track-select.js';
 import { maxBarOffset, minBarOffset, occHasStep, occToggleStep, seqState } from './state.js';
 import { heldSetList, setHeldSet } from './held.js';
 import {
     anyStepHeld, editStepDown, editStepUp, heldStepAbs, setLengthTo,
     endStepAutomation,
 } from './step-edit.js';
+import { momentaryGesture } from './momentary.js';
 import { stepRecActive, stepRecStepTap } from './step-rec.js';
 import { heldChordPitches } from './router-pads.js';
 import { nextQuantCandidate } from './quant.js';
@@ -53,9 +57,33 @@ export function handleStepButton(button: number, on: boolean, shiftHeld: boolean
      * also while the Session button is held after a selection has already
      * dropped us back onto a track (trackSelectHold). Above the edit gestures
      * below, because none of them mean anything when the row is addressing
-     * tracks. Shift is not consulted — the shifted step functions stay
-     * available in Track view, where the row is actually steps. */
+     * tracks. Shift is not consulted for the selector itself — the shifted step
+     * functions stay available in Track view, where the row is actually steps.
+     *
+     * With Mute held the same row is a MUTE MAP: it is the only surface that
+     * reaches all sixteen tracks without scrolling the group, so this is where
+     * tracks 5-16 get muted. The press must not also switch tracks, hence the
+     * branch above sessionStepPress — and it deliberately leaves the Session
+     * button's own momentary alone, so a mute made inside a held-Session peek
+     * still reverts the view on release. */
     if (trackSelectActive()) {
+        if (on && muteHeld()) {
+            if (button < TRACK_COUNT) {
+                if (muteShiftHeld() || appState.shiftHeld) toggleSolo(button);
+                else toggleMute(button);
+                muteMarkGestured();
+                /* Muting from inside a held-Session peek USED the peek, so its
+                 * release reverts to the view you came from. Marking the
+                 * gesture rather than leaning on the 500 ms rule: the intent is
+                 * in what the press did, not in how long it lasted, and a quick
+                 * hold would otherwise latch Session view behind the mute.
+                 * Guarded on the button actually being down so a latched
+                 * Session view never marks some unrelated momentary. */
+                if (sessionButtonHeld()) momentaryGesture();
+                appState.dirty = true;
+            }
+            return;
+        }
         if (on) sessionStepPress(button);
         return;
     }

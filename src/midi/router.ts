@@ -20,7 +20,7 @@ import { releaseAllLive } from '../keyboard/release.js';
 import { drumPadOn, drumPadOff } from '../keyboard/drum-handler.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
-import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteShiftHeld, muteTrack } from '../seq/router.js';
+import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteMarkGestured, muteShiftHeld, muteTrack } from '../seq/router.js';
 import { anyStepHeld, editStepPageKnob } from '../seq/step-edit.js';
 import { stepPageState, setStepPageSelected, setStepTouchedKnob, stepPageAvailable } from '../seq/step-page.js';
 import { seqState } from '../seq/state.js';
@@ -410,12 +410,12 @@ export function onMidiMessageInternal(data: number[]): void {
             // Mute+track mutes that track; Shift+Mute+track solos it instead.
             // Shift counts if it was down at the Mute press or is down now, so
             // neither ordering of the two modifiers loses the gesture.
-            // Either marks the momentary as gestured, so the release no longer
+            // Either marks the Mute press as gestured, so its release no longer
             // toggles the *current* track as well.
             if (muteHeld()) {
                 if (muteShiftHeld() || appState.shiftHeld) toggleSolo(track);
                 else muteTrack(track);
-                momentaryGesture(); appState.dirty = true; return;
+                muteMarkGestured(); appState.dirty = true; return;
             }
             /* Snapshot before switching so the hold-release closure returns
              * exactly here. beginTrackSwitch also closes the global Main/Clip

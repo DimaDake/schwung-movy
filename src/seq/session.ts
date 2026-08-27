@@ -13,7 +13,7 @@
  * The engine owns clip state; this module emits commands and paints the grid
  * LEDs from the `session` mirror, pulsing queued/stopping/selected cells. */
 
-import { C_BLACK, C_DARKGREY, C_WHITE, trackColor, ANIM_NONE, ANIM_PULSE, ANIM_PULSE_FAST, ANIM_PULSE_SLOW } from './colors.js';
+import { C_BLACK, C_DARKGREY, C_WHITE, trackColor, trackColorDim, ANIM_NONE, ANIM_PULSE, ANIM_PULSE_FAST, ANIM_PULSE_SLOW } from './colors.js';
 import { undoableEdit } from '../undo/edit.js';
 import { clipTarget } from '../undo/label.js';
 import { seqCmd, requestLabelSync } from './engine.js';
@@ -86,7 +86,7 @@ export function sessionPad(padNote: number, padMin: number): void {
 
 export interface CellCtx {
     exists: boolean; isSel: boolean; isPlaying: boolean; isQueued: boolean;
-    track: number;
+    track: number; muted?: boolean;
 }
 export interface CellLed { base: number; anim: number; channel: number; }
 
@@ -96,7 +96,11 @@ export interface CellLed { base: number; anim: number; channel: number; }
  * degrades to a white<->black pulse (the chosen fallback), since the base is
  * ignored once the pulse channel is set. */
 export function sessionCellColor(c: CellCtx): CellLed {
-    const tc = trackColor(c.track);
+    /* A muted track's cells wear its DIM accent — the same cue the track button
+     * and the step row carry, so mute reads the same wherever a track is drawn.
+     * Only the colour changes: the white pulses stay, because a muted track is
+     * still running and the grid is where you watch it run. */
+    const tc = c.muted ? trackColorDim(c.track) : trackColor(c.track);
     if (c.isQueued)          return { base: c.exists ? tc : C_BLACK, anim: C_WHITE, channel: ANIM_PULSE_FAST }; // queued for launch
     if (c.isPlaying)         return { base: tc,        anim: C_WHITE,   channel: ANIM_PULSE };      // playing
     if (c.isSel && c.exists) return { base: tc,        anim: C_WHITE,   channel: ANIM_PULSE_SLOW }; // selected w/ content (focus)
@@ -120,7 +124,8 @@ export function sessionPaintGrid(
         const isSel = st.selected === slot;
         const isPlaying = st.playing === slot;
         const isQueued = st.queued === slot;
-        const led = sessionCellColor({ exists, isSel, isPlaying, isQueued, track });
+        const led = sessionCellColor({ exists, isSel, isPlaying, isQueued, track,
+                                       muted: seqState.muted[track] });
         setLed(padMin + idx, led.base, led.anim, led.channel);
     }
 }

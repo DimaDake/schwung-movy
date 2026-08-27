@@ -34,6 +34,7 @@ import { muteHeld, seqHandleButtonCc } from './router-buttons.js';
  * other halves, re-exported so callers keep one import site. */
 export { muteHeld, muteMarkGestured, muteShiftHeld, muteTrack, setMuteHeld } from './router-buttons.js';
 export { padsPlayNotes, resetSeqChord, seqNotePadPlayed, seqNotePadReleased } from './router-pads.js';
+export { resetMuteMap } from './router-steps.js';
 
 const CC_LEFT = 62;
 const CC_RIGHT = 63;

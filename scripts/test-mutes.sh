@@ -170,6 +170,41 @@ else
 fi
 inject 50:127 50:0 >/dev/null   # back to Note view
 
+# 5b. Mute + step in TRACK view — the same map, without leaving the pads.
+#
+# The map used to be gated on the step row already being the track selector, so
+# in Track view the press fell through to the step path: it entered a NOTE and
+# muted nothing. Track view is where you play, so this is the form that gets
+# used; it is worth one device case of its own because the gate it removed sat
+# in the router, above every other row owner.
+TV=9                       # track index 10 — two groups past the track buttons
+TV_STEP=$((16 + TV))
+ssh "ableton@$HOST" "> $LOG"
+ts_send "0x0B:0xB0:88:127:0.08" "0x09:0x90:$TV_STEP:127:0.08" \
+        "0x08:0x80:$TV_STEP:0:0.08" "0x0B:0xB0:88:0:0"
+sleep 2
+if [ -n "$(logtail "mute t=$TV -> 1")" ]; then
+    pass "Track view: Mute + step mutes track $((TV+1)) without going to Session"
+else
+    fail "Track-view Mute + step did nothing: $(logtail 'mute t=')"
+fi
+# Mute's own release must not mute the active track on top of it: the map press
+# is the gesture that suppresses it.
+if [ -z "$(logtail 'mute t=0')" ]; then
+    pass "and the Mute release did not also mute the active track"
+else
+    fail "the release muted the active track too: $(logtail 'mute t=')"
+fi
+ssh "ableton@$HOST" "> $LOG"
+ts_send "0x0B:0xB0:88:127:0.08" "0x09:0x90:$TV_STEP:127:0.08" \
+        "0x08:0x80:$TV_STEP:0:0.08" "0x0B:0xB0:88:0:0"
+sleep 2
+if [ -n "$(logtail "mute t=$TV -> 0")" ]; then
+    pass "Track-view map is a latch too"
+else
+    fail "second Track-view press did not unmute: $(logtail 'mute t=')"
+fi
+
 # 6. Mute + step in Session view — the 16-track mute map.
 #
 # This is the only surface that reaches tracks 5-16 without scrolling the focus

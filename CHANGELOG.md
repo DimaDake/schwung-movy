@@ -22,13 +22,20 @@ far. Earlier work is summarised in the timeline below for context.
   moved. Everything underneath the guard (the `muted` array, the persisted
   blob, the engine's `mute` command) had been 16-wide since `578139b`.
 
-- **Mute + step: a 16-track mute map in Session view.** Holding **Mute** turns
-  the Session track selector into a mute map — step 1 is track 1, step 16 is
-  track 16 — so a track two groups away is muted without scrolling the focused
-  quartet first. **Shift** makes the same press a solo. It works in every state
-  where that row is a selector, including a held **Note/Session** peek: the
-  press does not switch tracks, and muting inside a peek no longer latches the
-  view.
+- **Mute + step: a 16-track mute map, in any view.** Holding **Mute** turns the
+  step row into a mute map — step 1 is track 1, step 16 is track 16, each in its
+  track colour and dim while silenced — so a track two groups away is muted
+  without scrolling the focused quartet first. **Shift** makes the same press a
+  solo.
+
+  The map outranks whatever the row was showing, for as long as the button is
+  down: steps, Loop mode's bars, the step-record head, the Session track
+  selector. Muting from the pads you are playing no longer costs a trip to
+  Session view and back. A press the map consumed enters no note (and its
+  release is consumed with it), while a step already held when Mute arrives
+  still belongs to the step path. In Session view it works in every state where
+  that row is a selector, including a held **Note/Session** peek: the press does
+  not switch tracks, and muting inside a peek no longer latches the view.
 
 - **Mute is visible wherever a track is drawn.** A muted track takes its dim
   colour in the Session track selector and in its clip-grid cells, matching the

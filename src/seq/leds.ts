@@ -14,6 +14,7 @@ import { focusedTrack, GROUP_DIR_DOWN, GROUP_DIR_UP } from '../track/focus.js';
 import { GROUP_SIZE } from '../track/ref.js';
 import { sessionPaintGrid } from './session.js';
 import { sessionButtonHeld, sessionStepLed, trackSelectActive } from './track-select.js';
+import { muteHeld } from './router-buttons.js';
 import { loopEndBar, loopStartBar, occHasStep, seqState, stepInLoop } from './state.js';
 import { stepRecActive, stepRecCanGoLeft, stepRecHead } from './step-rec.js';
 import { cachedSetLED, cachedSetButtonLED, cachedSetAnimLED, ledFrameReset, seqLedsInvalidate } from './led-cache.js';
@@ -240,7 +241,9 @@ export function seqLedsTick(
      * invalidate on the sessionMode edge that always precedes the hold, which
      * leaves lastNoteLed empty and covers today's exit by luck — this keeps the
      * row correct on its own terms rather than on that coincidence. */
-    const selector = trackSelectActive();
+    /* Holding Mute puts the same track map over the row in Track view, so it
+     * belongs to this edge too — entering AND leaving it swaps painters. */
+    const selector = trackSelectActive() || muteHeld();
     if (seqState.loopMode !== lastLoopMode || selector !== lastSelector) {
         lastLoopMode = seqState.loopMode;
         lastSelector = selector;
@@ -261,6 +264,16 @@ export function seqLedsTick(
     paintTrackButtons();
     paintStepIcons(shiftHeld);
     paintAffordances(currentView, barOffset, maxOff, shiftHeld);
+    /* Mute held: the row is the 16-track mute map (router-steps.ts). Above
+     * every other row painter, because the map is what the row MEANS while the
+     * button is down. Same painter as the selector — a muted track is its dim
+     * colour, which is the whole reason the map is worth looking at, and solo
+     * needs nothing of its own since it silences the others by muting them. */
+    if (muteHeld()) {
+        paintTrackSelector();
+        paintTransport();
+        return;
+    }
     /* Session still held after a selection dropped us onto the track: the pads
      * are the note layout again (app/tick.ts owns them), and only the step row
      * stays the selector so the next press switches again. */

@@ -24,7 +24,7 @@ import { DEBUG_BUILD } from './debug.js';
 import { resetEditOps } from '../seq/edit-ops.js';
 import { resetDuplicate } from '../seq/duplicate.js';
 import { resetLoopMode } from '../seq/loop-mode.js';
-import { resetSeqChord, setMuteHeld } from '../seq/router.js';
+import { resetMuteMap, resetSeqChord, setMuteHeld } from '../seq/router.js';
 import { resetStepRec } from '../seq/step-rec.js';
 import { resetTrackSelect } from '../seq/track-select.js';
 import { resetTrackVolume } from '../mixer/track-volume.js';
@@ -53,6 +53,7 @@ export function resetHeldInput(notifyEngine: boolean): void {
     resetTrackVolume();   // track-button + volume-knob gesture
     resetAssignMode();    // knob held → LFO assign
     setMuteHeld(false);
+    resetMuteMap();   // step presses the mute map consumed, whose release is gone
     jogHintTouch(false);
 
     seqState.stepAutoMode = false;

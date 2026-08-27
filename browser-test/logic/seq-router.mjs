@@ -422,6 +422,165 @@ export async function run() {
     uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetTrackMutes();
 }
 
+/* ── Mute + step in TRACK view: the same 16-track map, without Session ───── */
+{
+    /* Reaching a track above the focused quartet used to mean leaving the view
+     * you were playing in. With Mute held the step row is the track map
+     * WHEREVER you are, so a mute is one gesture from the pads you are on. The
+     * map outranks every other row state — steps, Loop mode's bars, the
+     * step-record head — for as long as Mute is down. */
+    _log('\ntrack-view mute by step:');
+    const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
+    const { seqHandleMidi } = await import('../../dist/esm/seq/router.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState, occHasStep, occToggleStep } = await import('../../dist/esm/seq/state.js');
+    const { resetMomentary } = await import('../../dist/esm/seq/momentary.js');
+    const { resetTrackSelect } = await import('../../dist/esm/seq/track-select.js');
+    const { isSoloed, resetTrackMutes } = await import('../../dist/esm/mixer/track-mutes.js');
+    const { stepRecDown, stepRecEnd, stepRecActive, stepRecHead, resetStepRec } =
+        await import('../../dist/esm/seq/step-rec.js');
+    const { appState } = await import('../../dist/esm/app/state.js');
+    const { trackRef } = await import('../../dist/esm/track/ref.js');
+
+    const CC_MUTE = 88, STEP = 16;
+    installMockEngine();
+    const fresh = () => {
+        resetSeqEngine(); resetSeqState(); resetMomentary(); resetTrackSelect();
+        resetTrackMutes(); resetStepRec(); appState.activeTrack = trackRef(0);
+        seqState.sessionMode = false; seqState.lenSteps = 16;
+    };
+    const muteStep = (step, shift = false) => {
+        seqHandleMidi([0xB0, CC_MUTE, 127], shift);
+        seqHandleMidi([0x90, STEP + step, 127], shift);
+        seqHandleMidi([0x80, STEP + step, 0], shift);
+        seqHandleMidi([0xB0, CC_MUTE, 0], shift);
+    };
+
+    fresh();
+    muteStep(11);
+    eq('step 12 mutes track 12 from Track view', seqState.muted[11], true);
+    eq('mute reaches the engine', peekSeqCmdQueue().some(c => c === 'mute 11 1'), true);
+    /* The press belongs to the map, not to the pattern: a step under the finger
+     * must not gain a note, and it must not switch tracks either. */
+    eq('the press entered no note', occHasStep(11), false);
+    eq('the press did not switch tracks', appState.activeTrack.index, 0);
+    /* Mute's release mutes the active track when no gesture was made while
+     * held. The map press IS that gesture, so track 1 stays audible. */
+    eq('the release did not also mute the active track', seqState.muted[0], false);
+
+    // Latch, same as every other form of the gesture.
+    resetSeqEngine();
+    muteStep(11);
+    eq('pressing again unmutes', seqState.muted[11], false);
+
+    // Shift solos, on the track the un-shifted press would have muted.
+    fresh();
+    muteStep(9, true);
+    eq('shift+mute+step solos from Track view', isSoloed(9), true);
+
+    /* Loop mode: the row is bars, not steps. The map still takes it — and the
+     * loop window must come through the gesture untouched. */
+    fresh();
+    seqState.loopMode = true;
+    seqState.lenSteps = 32; seqState.loopStart = 0;
+    muteStep(6);
+    eq('mutes while the row is Loop bars', seqState.muted[6], true);
+    eq('the loop window is unchanged', seqState.lenSteps + ':' + seqState.loopStart, '32:0');
+    seqState.loopMode = false;
+
+    /* Step record owns the row harder than anything else — it swallows presses
+     * before every edit gesture. Mute still outranks it, and the head stays. */
+    fresh();
+    stepRecDown(1000);
+    eq('step record is active', stepRecActive(), true);
+    const head = stepRecHead();
+    muteStep(4);
+    eq('mutes while step recording', seqState.muted[4], true);
+    eq('the head did not move', stepRecHead(), head);
+    stepRecEnd();
+
+    /* A step already held when Mute goes down was NOT a map press: its release
+     * still belongs to the step path, or the note it entered never lands. */
+    fresh();
+    seqHandleMidi([0x90, STEP + 2, 127], false);     // press step 3 normally
+    seqHandleMidi([0xB0, CC_MUTE, 127], false);      // Mute joins mid-hold
+    seqHandleMidi([0x80, STEP + 2, 0], false);       // release: still a step
+    seqHandleMidi([0xB0, CC_MUTE, 0], false);
+    eq('a step held before Mute still toggles its note', occHasStep(2), true);
+    /* Mute itself was pressed and released with no map press, so it does what a
+     * bare Mute always does: mutes the current track. */
+    eq('the bare Mute press still mutes the active track', seqState.muted[0], true);
+
+    uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetTrackMutes(); resetStepRec();
+}
+
+/* ── LEDs: holding Mute turns the Track-view step row into the track map ─── */
+{
+    /* The row has two painters over the same notes — cachedSetLED for steps,
+     * cachedSetAnimLED for the track map — so both edges of the hold have to
+     * invalidate or the row keeps the other painter's colours. */
+    _log('\ntrack-view mute map LEDs:');
+    const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
+    const { seqHandleMidi } = await import('../../dist/esm/seq/router.js');
+    const { seqLedsTick, seqLedsInvalidate } = await import('../../dist/esm/seq/leds.js');
+    const { seqState, resetSeqState, occToggleStep } = await import('../../dist/esm/seq/state.js');
+    const { resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
+    const { resetMomentary } = await import('../../dist/esm/seq/momentary.js');
+    const { resetTrackMutes } = await import('../../dist/esm/mixer/track-mutes.js');
+    const { C_WHITE, trackColor, trackColorDim } = await import('../../dist/esm/seq/colors.js');
+    const { appState } = await import('../../dist/esm/app/state.js');
+    const { trackRef } = await import('../../dist/esm/track/ref.js');
+
+    const CC_MUTE = 88;
+    /* Two painters, two wires: the step row goes through setLED, the track map
+     * through the firmware's animation send (cachedSetAnimLED). Both are
+     * captured, so a row painted by the wrong one shows up as a missing colour
+     * rather than a passing assertion. */
+    const ledCalls = [];
+    const animMsgs = [];
+    const origSetLED = globalThis.setLED;
+    const origSetButtonLED = globalThis.setButtonLED;
+    const origSend = globalThis.move_midi_internal_send;
+    globalThis.setLED = (note, color) => ledCalls.push([note, color]);
+    globalThis.setButtonLED = (cc, color) => ledCalls.push(['b' + cc, color]);
+    globalThis.move_midi_internal_send = (m) => animMsgs.push(m);
+    const drain = () => {
+        ledCalls.length = 0; animMsgs.length = 0;
+        for (let i = 0; i < 8; i++) seqLedsTick();
+        return Object.fromEntries(ledCalls.map(([n, c]) => [n, c]));
+    };
+    const mapColor = (note) => animMsgs.filter((m) => m[2] === note).at(-1)?.[3];
+
+    installMockEngine();
+    resetSeqEngine(); resetSeqState(); resetMomentary(); resetTrackMutes();
+    seqLedsInvalidate();
+    appState.activeTrack = trackRef(0); appState.focusGroup = 0;
+    seqState.watchTrack = 0; seqState.lenSteps = 16;
+    occToggleStep(0);
+    let byNote = drain();
+    eq('steps first: occupied step is white', byNote[16], C_WHITE);
+
+    /* Mute down: track colours, and a muted track reads dim — which is the
+     * whole point of the map, since the four track buttons cannot show it. */
+    seqState.muted[9] = true;
+    seqHandleMidi([0xB0, CC_MUTE, 127], false);
+    byNote = drain();
+    eq('unmuted track shows its colour', mapColor(16 + 8), trackColor(8));
+    eq('muted track shows its dim colour', mapColor(16 + 9), trackColorDim(9));
+    eq('the occupied step is no longer white', byNote[16] === C_WHITE, false);
+
+    // Release: back to steps, without waiting for anything else to invalidate.
+    seqHandleMidi([0xB0, CC_MUTE, 0], false);
+    byNote = drain();
+    eq('release restores the step row', byNote[16], C_WHITE);
+
+    globalThis.setLED = origSetLED;
+    globalThis.setButtonLED = origSetButtonLED;
+    globalThis.move_midi_internal_send = origSend;
+    uninstallMockEngine();
+    resetSeqEngine(); resetSeqState(); resetTrackMutes(); seqLedsInvalidate();
+}
+
 /* ── seq pads: chromatic layout + coloring ───────────────────────────────── */
 {
     _log('\nseq chromatic pads:');

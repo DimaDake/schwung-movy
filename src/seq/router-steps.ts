@@ -35,6 +35,46 @@ import { heldChordPitches } from './router-pads.js';
 import { nextQuantCandidate } from './quant.js';
 import { armQuantOverlay } from './quant-overlay.js';
 
+/* Steps whose PRESS the mute map consumed. Their release is consumed too, or
+ * the step path sees a release with no press: a bit-per-step rather than "Mute
+ * is still down", because a step already held when Mute arrives is NOT a map
+ * press — its release still belongs to the note it was entering. */
+let muteMapPresses = 0;
+
+/* The step row as a 16-track mute map, held under Mute. It is the only surface
+ * that reaches every track without scrolling the group, and holding Mute puts
+ * it in front of whatever the row was showing — steps, Loop bars, the
+ * step-record head — so muting track 12 never costs you the view you play in.
+ *
+ * Returns true when the event belonged to the map. */
+function muteMapStep(button: number, on: boolean): boolean {
+    const bit = 1 << button;
+    if (!on) {
+        if (!(muteMapPresses & bit)) return false;
+        muteMapPresses &= ~bit;
+        return true;
+    }
+    if (!muteHeld() || button >= TRACK_COUNT) return false;
+    muteMapPresses |= bit;
+    if (muteShiftHeld() || appState.shiftHeld) toggleSolo(button);
+    else toggleMute(button);
+    /* Suppresses the current-track toggle on Mute's release: the gesture the
+     * user made is this one. */
+    muteMarkGestured();
+    /* Muting from inside a held-Session peek USED the peek, so its release
+     * reverts to the view you came from. Marking the gesture rather than
+     * leaning on the 500 ms rule: the intent is in what the press did, not in
+     * how long it lasted, and a quick hold would otherwise latch Session view
+     * behind the mute. Guarded on the button actually being down so a latched
+     * Session view never marks some unrelated momentary. */
+    if (sessionButtonHeld()) momentaryGesture();
+    appState.dirty = true;
+    return true;
+}
+
+/** Forget consumed presses whose release can no longer arrive (input reset). */
+export function resetMuteMap(): void { muteMapPresses = 0; }
+
 /* A press registers a held range (for hold-step editing) and, in the relevant
  * mode, also drives note toggle / bar select. The note toggle fires on RELEASE
  * so a held step + gesture can edit instead of toggling (native behavior).
@@ -46,6 +86,11 @@ export function handleStepButton(button: number, on: boolean, shiftHeld: boolean
      * only ever selecting a track. Above everything, including step recording:
      * it closes a gesture that is already in flight. */
     if (!on && sessionStepRelease(button)) return;
+    /* Mute held: the row is the MUTE MAP, wherever you are. Above step
+     * recording, the track selector and every edit gesture, because the map is
+     * the row's meaning for as long as the button is down — one rule, in Track
+     * view and Session view alike. */
+    if (muteMapStep(button, on)) return;
     /* Step recording owns the row while it is active: a press moves the head,
      * and nothing registers as a held range — so hold-step editing and step
      * recording can never both be claiming the pads. */
@@ -58,32 +103,8 @@ export function handleStepButton(button: number, on: boolean, shiftHeld: boolean
      * dropped us back onto a track (trackSelectHold). Above the edit gestures
      * below, because none of them mean anything when the row is addressing
      * tracks. Shift is not consulted for the selector itself — the shifted step
-     * functions stay available in Track view, where the row is actually steps.
-     *
-     * With Mute held the same row is a MUTE MAP: it is the only surface that
-     * reaches all sixteen tracks without scrolling the group, so this is where
-     * tracks 5-16 get muted. The press must not also switch tracks, hence the
-     * branch above sessionStepPress — and it deliberately leaves the Session
-     * button's own momentary alone, so a mute made inside a held-Session peek
-     * still reverts the view on release. */
+     * functions stay available in Track view, where the row is actually steps. */
     if (trackSelectActive()) {
-        if (on && muteHeld()) {
-            if (button < TRACK_COUNT) {
-                if (muteShiftHeld() || appState.shiftHeld) toggleSolo(button);
-                else toggleMute(button);
-                muteMarkGestured();
-                /* Muting from inside a held-Session peek USED the peek, so its
-                 * release reverts to the view you came from. Marking the
-                 * gesture rather than leaning on the 500 ms rule: the intent is
-                 * in what the press did, not in how long it lasted, and a quick
-                 * hold would otherwise latch Session view behind the mute.
-                 * Guarded on the button actually being down so a latched
-                 * Session view never marks some unrelated momentary. */
-                if (sessionButtonHeld()) momentaryGesture();
-                appState.dirty = true;
-            }
-            return;
-        }
         if (on) sessionStepPress(button);
         return;
     }

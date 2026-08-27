@@ -24,6 +24,15 @@ far. Earlier work is summarised in the timeline below for context.
   is a switch, and a Set with no sequence starts empty, the same way Schwung
   seeds an unseen Set with empty slots.
 
+- **Switching between two Sets Move never materialised no longer drags the first
+  one along.** Both such pads are addressed by a provisional id, and any change
+  of identity away from one was treated as that Set arriving under its real
+  name — so the sequence and the modules followed you onto the next pad and were
+  saved there. Schwung mints one provisional id per pad and does not re-mint
+  while you sit on one, so a changed provisional id always means you moved. The
+  rename is now the single transition it was written for: a provisional id being
+  replaced by a real one.
+
 - **A set switch unloads the modules the incoming Set does not want.** Schwung
   clears every slot on a set change before loading the new Set's; Movy only ever
   loaded. So a module on a Movy-hosted track outlived every switch, followed you

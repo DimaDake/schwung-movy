@@ -148,6 +148,20 @@ export async function run() {
     eq('a replaced component is cleared',
        clearChainsNotIn([{ t: 4, comp: [{ c: 'synth', m: 'braids' }] }]), 1);
     eq('by the same teardown write', writes[0].join('='), 'ch4:synth:module=');
+
+    /* The wiring, not just the function: a Set with no UI blob of its own goes
+     * through resetUiState, and that has to unload too. Missing this is how a
+     * module followed a user onto a pad that had never held it. */
+    {
+      const { resetUiState } = await import('../../dist/esm/seq/ui-state.js');
+      const { installMockFs, uninstallMockFs } = await import('../mock-fs.mjs');
+      installMockFs();
+      writes.length = 0;
+      resetUiState();
+      eq('resetUiState unloads the previous set\'s modules',
+         writes.filter((w) => w[0] === 'ch4:synth:module' && w[1] === '').length, 1);
+      uninstallMockFs();
+    }
   }
 
   /* Tolerance: older blobs have no `chains` key, and a corrupt one must not

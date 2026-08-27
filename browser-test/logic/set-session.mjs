@@ -103,17 +103,22 @@ export async function run() {
         teardown();
     }
 
-    /* R3 — provisional to a DIFFERENT provisional, which the device log shows
-     * happening while the user browses Sets. Still a rename: work that follows
-     * you can be undone, work orphaned in a dead namespace cannot. */
+    /* R3 — provisional to a DIFFERENT provisional is a different set PAD, and
+     * gets that pad's own slate. schwung mints one `__pending-<index>-<seq>`
+     * per pad and does not re-mint while you sit on one, so a changed
+     * provisional id always means you moved. Renaming here carried a pad's
+     * sequence and its modules onto the next pad — reported from a device,
+     * switching between two Sets Move had never materialised. */
     {
         const { fs, eng } = boot({ [ACTIVE]: '__pending-11-3\nNew Set\n' });
         eng.stateBlob = EDITED;
         seqState.dirty = true;
         fs.files[ACTIVE] = '__pending-10-2\nNew Set\n';
         run();
-        eq('R3 followed the browse', currentSetUuid(), '__pending-10-2');
-        eq('R3 the work came along', eng.stateBlob, EDITED);
+        eq('R3 followed the switch', currentSetUuid(), '__pending-10-2');
+        eq('R3 the other pad starts blank', eng.stateBlob, BLANK);
+        eq('R3 and the work stayed on the pad it was made on',
+           readBestState('__pending-11-3').payload, EDITED);
         teardown();
     }
 

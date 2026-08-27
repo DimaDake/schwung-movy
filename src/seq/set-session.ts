@@ -140,17 +140,20 @@ function enterLoading(id: string, name: string): void {
  * (SET_CHANGED seeds an unseen set with empty slots), and a blank load here is
  * that same empty seed in movy's terms.
  *
- * The test is on the OUTGOING id alone: work done under a provisional id has
- * nowhere else to belong, so it follows. Work done under a real Set belongs to
- * that Set and stays there.
+ * BOTH ends are tested. Leaving a provisional id for another provisional id is
+ * a different set PAD, not the same Set arriving late — schwung mints a new
+ * `__pending-<index>-<seq>` per pad, and it does not re-mint while you sit on
+ * one. Renaming there carried a pad's sequence AND its modules onto the next
+ * pad, which is what a user hit switching between two Sets Move had never
+ * materialised.
  *
  * The residual: leaving a provisional id for a REAL Set movy has never seen is
  * a rename too, because telling that apart from materialisation needs the
  * incoming Set's song index and no host API exposes it. Materialisation is the
  * common case, and carrying work that did not belong here can be undone where
  * discarding work cannot. */
-function identityChanged(id: string, name: string): void {
-    if (!setHasState(id) && isProvisionalUuid(setId)) {
+function identityChanged(id: string, name: string, provisional: boolean): void {
+    if (!setHasState(id) && isProvisionalUuid(setId) && !provisional) {
         rename(id, name);
         return;
     }
@@ -210,8 +213,9 @@ export function sessionTick(): void {
          * the rename carries the work when a real id arrives. */
         const id = active ? active.id.uuid : '_default';
         const name = active ? active.id.name : '';
+        const provisional = active ? active.provisional : true;
         if (phase !== 'ready') enterLoading(id, name);
-        else if (id !== setId) identityChanged(id, name);
+        else if (id !== setId) identityChanged(id, name, provisional);
         if (phase !== 'ready') return;
     }
     if (--saveCountdown > 0) return;

@@ -4,10 +4,17 @@
 in this document has been changed in schwung — it is written to open a
 conversation about fixing it once, centrally, rather than once per tool.
 
-**Scope:** Universal. Two of the three problems below cost **Schwung's own slot
-state** exactly as much as they cost a tool's, and were observed doing so on a
-user's device. The third is specific to tools, but every overtake tool that
-keeps per-set state hits it.
+**Scope:** The failure is in Schwung's per-set layer and can cost Schwung's own
+slot state, but **in practice it lands on tools**, for a reason worth stating up
+front: loading a Schwung synth means selecting a track, and selecting a track is
+what makes Move commit the Set. The normal Schwung workflow therefore
+materialises the Set incidentally, and this stays invisible.
+
+A tool opened **straight from Move's Sets page** never makes that gesture. The
+user picks a pad, opens the tool, and plays entirely inside it — Move is given
+nothing to save, the Set is never committed, and everything either side writes
+for it is written under an id that will not exist next time. That is the path
+where all three problems below become the user's normal experience.
 
 **Written from:** schwung `origin/main` at the time of writing, plus measurements
 on a Move running it. File and symbol references are to that tree.
@@ -56,10 +63,14 @@ The seq increments whenever the song index changes and never resets, so one set
 pad produces a different identity each time it is opened.
 
 Nothing matches because **Move only writes `Sets/<uuid>/` once Move itself has
-something to save there.** A user whose instruments are all Schwung chains and
-whose notes are all in a tool never gives Move anything to save, so the pad
-stays unresolved indefinitely — not for the 12-60 s the code comments describe,
-but forever.
+something to save there.**
+
+This is why the problem looks rare from inside Schwung. Selecting a track — the
+first thing anyone does to load a synth — is enough to make Move commit the Set,
+so the pending window closes on its own and matches the 12-60 s the code
+comments describe. Open a tool directly from the Sets page instead and no such
+gesture ever happens: the pad stays unresolved not for a minute, but forever, and
+every visit mints another id.
 
 ### What it costs
 
@@ -98,6 +109,10 @@ being left afterwards. Measured repeatedly on device. Once it is real, Move's UI
 Schwung's slot state and every tool's per-set files all agree, and the whole
 problem class disappears rather than being papered over.
 
+Note what that gesture is: **the same track selection a user makes to load a
+Schwung synth.** This is not a synthetic trick that happens to work — it is
+Schwung's own users' normal path, replayed for the case where nobody walked it.
+
 **Schwung is the right place to do this**, for two reasons:
 
 1. It already owns a path that reaches Move under overtake —
@@ -112,12 +127,15 @@ The open design question is **when** to fire it. Candidates:
 
 - when `shadow_poll_current_set` first publishes a pending id (earliest; commits
   a Set the user may only be passing through);
-- when anything is first *persisted* under a pending id — Schwung's own
-  autosave, or a tool's write (latest point at which nothing is lost yet);
+- **when an overtake tool opens on a pending Set** — precisely the path that
+  skips the track selection, and the only one where the window stays open
+  indefinitely;
+- when anything is first *persisted* under a pending id, from either side;
 - when a tool declares it keeps per-set state, via a capability.
 
-The middle one looks best from here: nothing is committed for a pad merely
-browsed past, and nothing is ever written to a namespace with no future.
+The second looks best from here: it is narrow, it fires exactly where the
+incidental commit was missed, and it leaves a pad the user merely browsed past
+untouched.
 
 ## 2. State for deleted Sets is never collected, and "deleted" is subtle
 

@@ -131,6 +131,13 @@ Two things to know before rebuilding it:
   vanish. The user-visible bug is only half fixed, which is most of the argument
   for doing it upstream instead.
 
+## For the upstream conversation
+
+`schwung-per-set-tool-state.md` is the version of this written for Schwung
+rather than for movy: the same three problems (identity churn, uncollected
+deleted Sets, no way to reach Move under overtake), with movy's workarounds
+described only as evidence of what not fixing them centrally costs.
+
 ## Related: storing state where Schwung and davebox store it
 
 davebox writes its per-set files **inside Schwung's own directory** —

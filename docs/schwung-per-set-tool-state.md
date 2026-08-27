@@ -21,7 +21,9 @@ on a Move running it. File and symbol references are to that tree.
    ever-incrementing seq, so everything keyed on it — Schwung's `slot_*.json`
    and any tool's per-set files — is written somewhere nothing will read again.
    A user playing entirely through Schwung never materialises a Set, so this is
-   not an edge case for them; it is every Set they own.
+   not an edge case for them; it is every Set they own. Making that id *stable*
+   is not the fix — Move's UI shows those pads as empty, so the stores would
+   then disagree with the UI. Making the Set **real** is.
 
 2. **Nothing ever collects state for a deleted Set,** and the obvious test for
    "deleted" is wrong: switching set pages moves whole Sets out of
@@ -76,23 +78,46 @@ through `__pending-9-7` for six visits to one pad. One tool's tree held
 From the user's seat this reads as "this pad only remembers my layout" — the
 layout survives because it lives in memory, not because anything saved it.
 
-### The smallest fix
+### The fix is NOT to make the pending id stable
 
-Key the pending namespace by song index alone (`__pending-<index>`), dropping
-the per-visit counter. One pad, one directory, across any number of visits.
-Schwung's own instruments then persist on these pads, and **every tool that
-follows `active_set.txt` inherits the fix without changing a line** — which is
-the argument for doing it here rather than in each tool.
+The obvious idea — key the namespace by song index alone, so one pad keeps one
+directory — was built and measured working, and it is still the wrong answer.
+**Move's UI shows those pads as empty.** Restoring instruments and a pattern into
+a pad that Move presents as an empty Set puts the stores in open disagreement
+with the UI the user is looking at, and Move is free to reuse an index, so the
+state can later attach to something else entirely.
 
-A tool can only fix its own half, and doing so makes it file Sets under an id
-neither Schwung nor davebox agrees with. That was built, measured working, and
-then withdrawn for exactly that reason.
+The identity is not the problem. **Having an identity Move does not recognise is
+the problem.**
 
-**Question for discussion:** is the per-visit seq load-bearing anywhere? It
-looks like it exists to keep two *different* unresolved Sets apart, but the
-index already does that.
+### The fix is to make the Set real
 
----
+Move commits a pending Set on a track-button press (CC 40-43): an injected press
+turns `__pending-<n>-<s>` into a real uuid within seconds, and the Set survives
+being left afterwards. Measured repeatedly on device. Once it is real, Move's UI,
+Schwung's slot state and every tool's per-set files all agree, and the whole
+problem class disappears rather than being papered over.
+
+**Schwung is the right place to do this**, for two reasons:
+
+1. It already owns a path that reaches Move under overtake —
+   `shadow_queue_packet_to_move` (`src/host/shadow_midi.c`), used today to send
+   shift-off on overtake entry. From the shim this is one call with none of the
+   ceremony section 3 describes: no `overtake_mode` juggling, no LED damage, no
+   driving a transition the shim itself guards.
+2. It fixes Schwung's own instruments at the same time, and every tool inherits
+   it without changing a line.
+
+The open design question is **when** to fire it. Candidates:
+
+- when `shadow_poll_current_set` first publishes a pending id (earliest; commits
+  a Set the user may only be passing through);
+- when anything is first *persisted* under a pending id — Schwung's own
+  autosave, or a tool's write (latest point at which nothing is lost yet);
+- when a tool declares it keeps per-set state, via a capability.
+
+The middle one looks best from here: nothing is committed for a pad merely
+browsed past, and nothing is ever written to a namespace with no future.
 
 ## 2. State for deleted Sets is never collected, and "deleted" is subtle
 
@@ -195,12 +220,16 @@ fixing this centrally is concrete:
 
 ## Open questions
 
-1. Is the per-visit seq in `__pending-<index>-<seq>` needed? Keying by index
-   alone looks like the single highest-value change here.
+1. Should Schwung commit a pending Set itself, from the shim, via
+   `shadow_queue_packet_to_move`? If so, at which moment (see section 1)? This
+   looks like the single highest-value change here, and it is the one a tool
+   cannot make well from outside.
 2. Should Schwung own deletion of `set_state/<uuid>/`, so tools storing files
    there are cleaned up without each shipping a C-side pruner?
 3. Is there appetite for a JS-reachable "send this packet to Move" that works
-   under overtake? It would replace the overtake_mode borrowing above, and it is
-   presumably useful to more than one tool.
-4. Is there a supported way for a tool to ask Move to commit the current Set that
-   does not involve synthesising a button press at all?
+   under overtake? It would replace the overtake_mode borrowing above, and is
+   presumably useful to more than one tool — but if question 1 is answered yes,
+   no tool needs it for this.
+4. Is there a supported way to ask Move to commit the current Set that does not
+   involve synthesising a button press at all? The press is the only trigger
+   found by experiment; there may be a real API behind it.

@@ -16,29 +16,43 @@
  * real uuid without knowing anything happened, which is why this beats keying
  * movy's own files by pad: that would have fixed movy's half only.
  *
- * NEVER while parked. The set pads are Move's own UI, so that is where the user
- * is standing when they choose one — injecting a track press there would throw
- * them off the Sets page mid-selection. In front, the press is invisible: it
- * selects Move's track 1 under a screen movy owns. */
+ * ONLY while parked, and that is not a preference — it is the only window that
+ * exists. schwung's inject drain refuses to feed Move's MIDI_IN whenever a tool
+ * is overtaking:
+ *
+ *     In OVERTAKE mode the queue belongs to the overtake publisher in
+ *     schwung_shim.c, not to us.  ...  if (sc->overtake_mode != 0) return;
+ *          — shadow_midi.c, shadow_drain_midi_inject()
+ *
+ * The ring is repurposed for the overtake module, so a packet pushed while movy
+ * is in front never reaches Move at all. Measured here the same way: three
+ * presses from movy in front did nothing, the identical bytes pushed while movy
+ * was parked committed the Set every time.
+ *
+ * Parked is also where the user already is when this matters — they are on
+ * Move's Sets page having just chosen an empty pad, and pressing a track button
+ * there is the very gesture that commits it by hand. */
 
 import { mlog } from '../log.js';
 import { isProvisionalUuid } from './set-context.js';
 
-/* Long enough to read as a press rather than a glitch, short enough to be over
- * before anything else could want the button. The tick rate swings 63-205 Hz,
- * so this is ~50-190 ms. */
-const HOLD_TICKS = 10;
+/* Measured, not guessed. A press held 1 s and one held 2 s both made Move
+ * commit the Set; three presses of ~10 ticks did nothing at all. Ticks were the
+ * wrong unit — the rate swings 43-220 Hz on this device, so ten of them is
+ * anywhere from 45 to 230 ms — so this is wall-clock, with margin over the
+ * shortest hold known to work. */
+const HOLD_MS = 1200;
 
 /* MoveRow1 — the same CC, and the same packet shape, that the track-volume
  * divert already injects (mixer/track-volume.ts). */
 const TRACK_CC = 43;
 
 let askedFor = '';       // the provisional id we have already asked Move to commit
-let releaseIn = -1;      // ticks until the button goes up (-1 = not held)
+let pressedAt = 0;       // when the button went down (0 = not held)
 
 export function resetSetCommit(): void {
     askedFor = '';
-    releaseIn = -1;
+    pressedAt = 0;
 }
 
 function send(pressed: boolean): void {
@@ -48,17 +62,19 @@ function send(pressed: boolean): void {
 /** Called once per tick with the live Set. Does nothing at all unless movy is
  *  in front on a Set Move has not committed, and at most once per such Set. */
 export function setCommitTick(id: string, ready: boolean): void {
-    if (releaseIn > 0) {
-        if (--releaseIn === 0) { send(false); releaseIn = -1; }
+    if (pressedAt !== 0) {
+        if (Date.now() - pressedAt >= HOLD_MS) { send(false); pressedAt = 0; }
         return;
     }
     if (!ready || !id || !isProvisionalUuid(id)) return;
     if (id === askedFor) return;                       // asked once; Move said no
-    if (globalThis.overtakeParked === true) return;    // the user is in Move's UI
+    /* In front, the packet would be dropped by the drain — see the header. */
+    if (globalThis.overtakeParked !== true) return;
     if (typeof move_midi_inject_to_move !== 'function') return;
 
     askedFor = id;
     send(true);
-    releaseIn = HOLD_TICKS;
+    pressedAt = Date.now() || 1;   // 0 is the "not held" sentinel
+
     mlog('seq: asking Move to commit ' + id);
 }

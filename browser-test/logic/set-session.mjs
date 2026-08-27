@@ -275,11 +275,21 @@ export async function run() {
         const oldInject = globalThis.move_midi_inject_to_move;
         globalThis.move_midi_inject_to_move = (d) => sent.push(d.slice());
 
+        /* The hold is wall-clock — ticks were the wrong unit, and a press too
+         * short to register is exactly the bug this test exists to catch. */
+        const realNow = Date.now;
+        let clock = realNow.call(Date);
+        Date.now = () => clock;
+
+        globalThis.overtakeParked = true;   // the only window the drain accepts
         const { fs } = boot({ [ACTIVE]: '__pending-12-7\nNew Set 13\n' });
         eq('R18 asked Move to commit the pad', sent.length > 0, true);
         eq('R18 with a track-button press', sent[0].join(','), '11,176,43,127');
         run(60);
-        eq('R18 and released it', sent[1]?.join(','), '11,176,43,0');
+        eq('R18 holds the button, it does not blip', sent.length, 1);
+        clock += 1200;
+        run(4);
+        eq('R18 and releases it after the hold', sent[1]?.join(','), '11,176,43,0');
         eq('R18 exactly one press', sent.filter((d) => d[3] === 127).length, 1);
 
         /* Move declined — asking again every tick would be a stuck button. */
@@ -292,25 +302,29 @@ export async function run() {
         fs.files[ACTIVE] = 'REAL1\nSong One\n';
         run();
         eq('R18 a real Set is never asked', sent.length, 0);
+        Date.now = realNow;
+        delete globalThis.overtakeParked;
         teardown();
         globalThis.move_midi_inject_to_move = oldInject;
     }
 
-    /* R19 — parked, the set pads ARE Move's UI and the user is standing on
-     * them. A track press there throws them off the Sets page mid-selection. */
+    /* R19 — in front, schwung's drain refuses to feed Move's MIDI_IN at all
+     * (`if (sc->overtake_mode != 0) return`, shadow_midi.c), so a press there is
+     * not merely rude, it is discarded. Parked is the only window. */
     {
         const sent = [];
         const oldInject = globalThis.move_midi_inject_to_move;
         globalThis.move_midi_inject_to_move = (d) => sent.push(d.slice());
-        globalThis.overtakeParked = true;
+        globalThis.overtakeParked = false;
 
         boot({ [ACTIVE]: '__pending-12-7\nNew Set 13\n' });
         run(200);
-        eq('R19 parked movy never injects', sent.length, 0);
+        eq('R19 movy in front never injects', sent.length, 0);
 
-        globalThis.overtakeParked = false;
+        globalThis.overtakeParked = true;
         run(60);
-        eq('R19 but asks as soon as it is in front', sent.length > 0, true);
+        eq('R19 but asks once it is parked', sent.length > 0, true);
+        eq('R19 with a press, still held', sent[0].join(','), '11,176,43,127');
         teardown();
         globalThis.move_midi_inject_to_move = oldInject;
         delete globalThis.overtakeParked;

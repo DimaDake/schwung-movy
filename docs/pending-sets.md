@@ -58,6 +58,41 @@ The Set is still fully playable while you are on it. Recording anything into the
 Set from Move itself materialises it, after which everything persists normally —
 and only a real Set can be renamed, copied or backed up.
 
+## What movy does about it
+
+Movy asks Move to commit the Set, rather than working around an unreal one — a
+track-button press is the gesture that does it, and Move accepts it from the
+injection ring like any hardware press.
+
+Two facts constrain when it can be sent, both established on a device and then
+confirmed in schwung's source:
+
+- **It must be held.** A press of ~50-200 ms does nothing; 1 s and 2 s both
+  work. Movy holds 1.2 s of wall-clock — ticks are the wrong unit, since the
+  rate swings 43-220 Hz.
+- **It only works while movy is NOT overtaking.** `shadow_drain_midi_inject`
+  refuses to feed Move's MIDI_IN whenever a tool is up:
+
+  ```c
+  /* In OVERTAKE mode the queue belongs to the overtake publisher in
+   * schwung_shim.c, not to us. */
+  if (sc && sc->overtake_mode != 0) return;
+  ```
+
+  The ring is repurposed for the overtake module, so a packet pushed while movy
+  is on screen never reaches Move at all.
+
+There is no window at startup either: `loadOvertakeModule` sets
+`shadow_set_overtake_mode(2)` in step 1 and calls the module's `init()` in step
+6, so movy is already overtaking before its first line runs.
+
+So movy asks while **parked**, once per Set, which is also where the user
+already is when it matters. Coverage is better than that sounds: reaching Move's
+Sets page requires parking, so the commit happens before the work is at risk —
+including when the Set was picked before movy was ever started. The one gap is
+leaving via Shift+Back without ever parking, where press and release would land
+in the same instant and Move would not see a hold.
+
 ## What a fix would look like
 
 **Upstream, one line, fixes it for everyone.** Drop the per-visit counter and key

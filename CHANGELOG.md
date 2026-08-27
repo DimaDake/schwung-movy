@@ -24,6 +24,15 @@ far. Earlier work is summarised in the timeline below for context.
   is a switch, and a Set with no sequence starts empty, the same way Schwung
   seeds an unseen Set with empty slots.
 
+- **Movy asks Move to commit a Set it never wrote to disk.** Move only
+  materialises a Set once *Move itself* has something to save in it, so a pad
+  played entirely through Schwung never becomes a real Set — and both Movy's
+  sequence and Schwung's instruments are then filed under an id that changes on
+  every visit. Movy now sends the gesture that commits it: a held track-button
+  press, while parked, once per Set. It has to be while parked — Schwung's
+  inject drain refuses to feed Move's MIDI_IN whenever a tool is overtaking —
+  and it has to be held, since a momentary press does not register.
+
 - **Switching between two Sets Move never materialised no longer drags the first
   one along.** Both such pads are addressed by a provisional id, and any change
   of identity away from one was treated as that Set arriving under its real

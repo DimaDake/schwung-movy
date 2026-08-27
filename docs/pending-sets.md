@@ -89,10 +89,14 @@ untouched. Measured on device: `2 -> 0 @0.15s -> 2 @2.01s`, the Set committed,
 and movy kept the surface. Doing it without parking is what makes it cover the
 paths parking cannot — an instant Shift+Back exit, a crash, a power cut —
 because the Set is real within seconds of opening rather than whenever the user
-next parks. Parked, none of it applies: the drain is already open, the flag is
-not movy's, and the press just goes.
+next parks. Parked, movy does not try at all. The drain is open there and no borrowing
+would be needed, but the press is swallowed — Move is still loading the Set the
+user just picked, and the pad they picked it with is the last thing it handled.
+Every parked attempt did nothing; every attempt from the front committed.
+Nothing is lost by waiting: the Set becomes real the moment movy is back on
+screen, long before an exit or a crash could cost anything.
 
-The cost, stated plainly: for ~1.9 s the surface belongs to Move, so a pad
+The cost, stated plainly: for ~1.7 s the surface belongs to Move, so a pad
 pressed in that window plays Move rather than movy, and schwung sees an overtake
 exit and re-entry (it holds the inject drain 3 frames across that transition,
 which is why the press waits 300 ms before going out). Lowering the flag also

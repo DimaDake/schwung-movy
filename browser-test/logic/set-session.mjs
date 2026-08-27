@@ -271,28 +271,39 @@ export async function run() {
      * movy sends the gesture that commits it: a HELD track-button press. The
      * hold is wall-clock; a momentary press does not register on Move. */
     {
-        const sent = [], modes = [];
+        const sent = [], modes = [], sysex = [];
         const oldInject = globalThis.move_midi_inject_to_move;
         const oldMode = globalThis.shadow_set_overtake_mode;
+        const oldSysex = globalThis.shadow_set_overtake_suppress_sysex;
         globalThis.move_midi_inject_to_move = (d) => sent.push(d.slice());
         globalThis.shadow_set_overtake_mode = (m) => modes.push(m);
+        globalThis.shadow_set_overtake_suppress_sysex = (v) => sysex.push(v);
         const realNow = Date.now;
         let clock = realNow.call(Date);
         Date.now = () => clock;
 
         const { fs } = boot({ [ACTIVE]: '__pending-12-7\nNew Set 13\n' });
+        /* Move is still loading the Set it just switched to; a press inside
+         * that is swallowed. Waited out BEFORE the surface is lent, so the
+         * wait costs nothing on screen. */
+        eq('R18 does not grab the surface immediately', modes.length, 0);
+        clock += 1500; run(4);
         /* In front, the drain is shut, so the surface is lent to Move FIRST —
          * and the press waits out schwung's 3-frame post-transition hold. */
         eq('R18 lent Move the surface', modes[0], 0);
         eq('R18 nothing sent into the hold', sent.length, 0);
-        clock += 300; run(4);
+        clock += 250; run(4);
         eq('R18 then pressed', sent[0]?.join(','), '11,176,43,127');
         run(60);
         eq('R18 holds the button, it does not blip', sent.length, 1);
         clock += 1200; run(4);
         eq('R18 and releases it after the hold', sent[1]?.join(','), '11,176,43,0');
-        clock += 300; run(4);
+        clock += 250; run(4);
         eq('R18 the surface came back', modes[1], 2);
+        /* Move owned the pad LEDs while it held the surface, so movy's claim on
+         * them has to be retaken with it (shadow_ui.c clears the suppression
+         * when the flag goes down). */
+        eq('R18 retook the LEDs with the surface', sysex[sysex.length - 1], 1);
 
         /* Move declined — asking again every tick would be a stuck button. */
         sent.length = 0; modes.length = 0;
@@ -309,10 +320,13 @@ export async function run() {
         teardown();
         globalThis.move_midi_inject_to_move = oldInject;
         globalThis.shadow_set_overtake_mode = oldMode;
+        globalThis.shadow_set_overtake_suppress_sysex = oldSysex;
     }
 
-    /* R19 — parked, the drain is already open and the flag belongs to the host.
-     * Touching it there would hand movy the surface it does not have. */
+    /* R19 — parked, movy does not try at all. The drain is open there, but the
+     * press is swallowed: Move is still loading the Set the user just picked.
+     * Waiting costs nothing — the Set is committed the moment movy is back on
+     * screen, long before an exit or a crash could cost anything. */
     {
         const sent = [], modes = [];
         const oldInject = globalThis.move_midi_inject_to_move;
@@ -325,9 +339,17 @@ export async function run() {
         Date.now = () => clock;
 
         boot({ [ACTIVE]: '__pending-12-7\nNew Set 13\n' });
-        clock += 300; run(4);
-        eq('R19 parked movy still asks', sent[0]?.join(','), '11,176,43,127');
-        eq('R19 without touching overtake_mode', modes.length, 0);
+        clock += 1500; run(4);
+        clock += 250; run(4);
+        eq('R19 parked movy sends nothing', sent.length, 0);
+        eq('R19 and never touches overtake_mode', modes.length, 0);
+
+        /* And it is not written off: coming back to the front commits it. */
+        globalThis.overtakeParked = false;
+        run(4);                       // arms on the first tick in front
+        clock += 1500; run(4);        // Move settles, surface is lent
+        clock += 250;  run(4);        // schwung's post-transition hold
+        eq('R19 the front commits it instead', sent[0]?.join(','), '11,176,43,127');
         Date.now = realNow;
         teardown();
         globalThis.move_midi_inject_to_move = oldInject;

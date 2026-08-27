@@ -61,20 +61,37 @@ const TRACK_CC = 43;
 /* schwung holds the inject drain for 3 frames after an overtake exit, because a
  * packet arriving mid-transition aborts Move deep in its own stack. The press
  * has to land after that hold, not inside it. */
-const SETTLE_MS = 300;
+const SETTLE_MS = 250;
 
-type Phase = 'idle' | 'settling' | 'holding' | 'releasing';
+/* Move is still loading the Set it just switched to, and a press that arrives
+ * inside that is swallowed. Waited out BEFORE the surface is lent, so it costs
+ * nothing on screen. */
+const SETTLE_SET_MS = 1500;
+
+type Phase = 'idle' | 'waiting' | 'settling' | 'holding' | 'releasing';
 
 let askedFor = '';       // the provisional id we have already asked Move to commit
 let phase: Phase = 'idle';
 let since = 0;           // when the current phase began
 let tookSurface = false; // we lowered overtake_mode and owe it back
+let repaint = false;     // the surface came back and the LEDs are Move's
+
+/* Lowering overtake_mode hands Move the pad LEDs (shadow_led_queue.c strips its
+ * sysex only while the tool holds the surface), and movy's LED layer only sends
+ * what changed — so what Move painted would stay. The app layer owns the
+ * repaint; taking the flag is how it hears about it. */
+export function takeSurfaceReturn(): boolean {
+    const v = repaint;
+    repaint = false;
+    return v;
+}
 
 export function resetSetCommit(): void {
     askedFor = '';
     phase = 'idle';
     since = 0;
     tookSurface = false;
+    repaint = false;
 }
 
 function send(pressed: boolean): void {
@@ -87,8 +104,9 @@ function surface(toMove: boolean): void {
     if (typeof shadow_set_overtake_mode !== 'function') return;
     shadow_set_overtake_mode(toMove ? 0 : 2);
     /* Lowering the flag clears overtake_suppress_sysex (shadow_ui.c), which is
-     * movy's claim on the LEDs — take it back with the surface. */
-    if (!toMove) claimLedOwnership();
+     * movy's claim on the LEDs — take it back with the surface, and ask for the
+     * full repaint that a resume does, since Move has been painting over us. */
+    if (!toMove) { claimLedOwnership(); repaint = true; }
 }
 
 /** Called once per tick with the live Set. Does nothing at all unless movy is on
@@ -96,7 +114,10 @@ function surface(toMove: boolean): void {
 export function setCommitTick(id: string, ready: boolean): void {
     if (phase !== 'idle') {
         const waited = Date.now() - since;
-        if (phase === 'settling' && waited >= SETTLE_MS) {
+        if (phase === 'waiting' && waited >= SETTLE_SET_MS) {
+            surface(true); tookSurface = true;
+            phase = 'settling'; since = Date.now();
+        } else if (phase === 'settling' && waited >= SETTLE_MS) {
             send(true);
             phase = 'holding'; since = Date.now();
         } else if (phase === 'holding' && waited >= HOLD_MS) {
@@ -112,12 +133,16 @@ export function setCommitTick(id: string, ready: boolean): void {
     if (id === askedFor) return;                       // asked once; Move said no
     if (flagValue('setcommit') === 0) return;
     if (typeof move_midi_inject_to_move !== 'function') return;
+    /* Only from the front. Parked, movy could press without borrowing anything
+     * — the drain is already open — but that press is swallowed: Move is still
+     * loading the Set the user just picked, and the pad they picked it with is
+     * the last thing it handled. Measured that way too: every parked attempt
+     * did nothing, every attempt from the front committed. Nothing is lost by
+     * waiting, because the Set becomes real the moment movy is back on screen,
+     * long before any exit or crash could cost anything. */
+    if (globalThis.overtakeParked === true) { askedFor = ''; return; }
 
     askedFor = id;
-    /* Parked, the drain is already open and the flag is not ours to touch. */
-    if (globalThis.overtakeParked !== true) { surface(true); tookSurface = true; }
-    phase = 'settling'; since = Date.now();
-
-    mlog('seq: asking Move to commit ' + id
-        + (tookSurface ? ' (lending it the surface)' : ' (parked)'));
+    phase = 'waiting'; since = Date.now();
+    mlog('seq: will ask Move to commit ' + id);
 }

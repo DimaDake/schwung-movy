@@ -30,6 +30,8 @@ import type { Model } from '../model/index.js';
 import { concreteKey } from '../model/pad-scope.js';
 import { mlog } from '../log.js';
 import { sessionError, sessionPhase, sessionReady, sessionTick } from '../seq/set-session.js';
+import { takeSurfaceReturn } from '../seq/set-commit.js';
+import { claimLedOwnership } from './led-ownership.js';
 import { renderLoadingView } from '../renderer/loading-view.js';
 import { tempoOverrideTick } from '../seq/tempo-override.js';
 import { captureTick } from '../seq/capture.js';
@@ -316,6 +318,11 @@ function tickBody(): void {
             + ' type=' + portFor(t).getParam( 'knob_' + (l + 1) + '_type'));
     });
     sessionTick();
+    /* The set-commit window lends Move the surface for a moment, and Move
+     * repaints the pads while it holds it. Same repair a resume needs, for the
+     * same reason — see seq/set-commit.ts. Only ever armed while movy is in
+     * front, which is why it lives on this side of the parked return. */
+    if (takeSurfaceReturn()) { claimLedOwnership(); invalidateLedCachesOnResume(); }
     /* Undo housekeeping, after seqPersistTick so the set uuid it watches is the
      * one this tick resolved. Order within: close timed-out groups, notice a
      * set/engine change, drop snapshots the stacks have released, retract a

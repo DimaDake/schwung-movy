@@ -59,6 +59,19 @@ export const FLAGS: FlagDef[] = [
         min: 0, max: 3, def: 3,
     },
     {
+        key: 'setcommit', name: 'Commit New Sets',
+        // Move writes a Set to disk only once MOVE itself has something to save
+        // in it, so a pad played entirely through schwung is never a real Set
+        // and BOTH stores lose it. On, movy sends the gesture that commits it.
+        //
+        // A flag because of how it has to be sent: schwung's inject drain
+        // refuses to feed Move while a tool is overtaking, so movy lowers
+        // overtake_mode for the length of one press. That is the transition
+        // schwung carries a 3-frame hold for, and the surface belongs to Move
+        // for ~1.5 s. Worth it against losing the Set, but worth an off switch.
+        min: 0, max: 1, def: 1,
+    },
+    {
         key: 'chtracks', name: 'Movy Tracks 1-4',
         // Tracks 1-4 are schwung's four shadow slots, which render serially on
         // the audio thread. On, they become movy chains 0-3 instead and join

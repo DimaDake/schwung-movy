@@ -70,7 +70,7 @@ confirmed in schwung's source:
 - **It must be held.** A press of ~50-200 ms does nothing; 1 s and 2 s both
   work. Movy holds 1.2 s of wall-clock — ticks are the wrong unit, since the
   rate swings 43-220 Hz.
-- **It only works while movy is NOT overtaking.** `shadow_drain_midi_inject`
+- **The drain is shut while movy is overtaking.** `shadow_drain_midi_inject`
   refuses to feed Move's MIDI_IN whenever a tool is up:
 
   ```c
@@ -79,19 +79,26 @@ confirmed in schwung's source:
   if (sc && sc->overtake_mode != 0) return;
   ```
 
-  The ring is repurposed for the overtake module, so a packet pushed while movy
-  is on screen never reaches Move at all.
+  There is no startup window either: `loadOvertakeModule` sets
+  `shadow_set_overtake_mode(2)` in step 1 and calls the module's `init()` in
+  step 6, so movy is already overtaking before its first line runs.
 
-There is no window at startup either: `loadOvertakeModule` sets
-`shadow_set_overtake_mode(2)` in step 1 and calls the module's `init()` in step
-6, so movy is already overtaking before its first line runs.
+`shadow_set_overtake_mode` is exposed to modules, so movy lowers the flag for
+the length of one press and puts it back — no parking, no exit, screen
+untouched. Measured on device: `2 -> 0 @0.15s -> 2 @2.01s`, the Set committed,
+and movy kept the surface. Doing it without parking is what makes it cover the
+paths parking cannot — an instant Shift+Back exit, a crash, a power cut —
+because the Set is real within seconds of opening rather than whenever the user
+next parks. Parked, none of it applies: the drain is already open, the flag is
+not movy's, and the press just goes.
 
-So movy asks while **parked**, once per Set, which is also where the user
-already is when it matters. Coverage is better than that sounds: reaching Move's
-Sets page requires parking, so the commit happens before the work is at risk —
-including when the Set was picked before movy was ever started. The one gap is
-leaving via Shift+Back without ever parking, where press and release would land
-in the same instant and Move would not see a hold.
+The cost, stated plainly: for ~1.9 s the surface belongs to Move, so a pad
+pressed in that window plays Move rather than movy, and schwung sees an overtake
+exit and re-entry (it holds the inject drain 3 frames across that transition,
+which is why the press waits 300 ms before going out). Lowering the flag also
+clears `overtake_suppress_sysex`, movy's claim on the LEDs, so movy re-claims it
+with the surface. That is why this sits behind the `setcommit` flag — on by
+default, because the alternative is losing the Set, but switchable.
 
 ## What a fix would look like
 

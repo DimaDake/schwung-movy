@@ -16,24 +16,35 @@
  * real uuid without knowing anything happened, which is why this beats keying
  * movy's own files by pad: that would have fixed movy's half only.
  *
- * ONLY while parked, and that is not a preference — it is the only window that
- * exists. schwung's inject drain refuses to feed Move's MIDI_IN whenever a tool
- * is overtaking:
+ * The press cannot simply be sent. schwung's inject drain refuses to feed
+ * Move's MIDI_IN whenever a tool is overtaking:
  *
  *     In OVERTAKE mode the queue belongs to the overtake publisher in
  *     schwung_shim.c, not to us.  ...  if (sc->overtake_mode != 0) return;
  *          — shadow_midi.c, shadow_drain_midi_inject()
  *
- * The ring is repurposed for the overtake module, so a packet pushed while movy
- * is in front never reaches Move at all. Measured here the same way: three
- * presses from movy in front did nothing, the identical bytes pushed while movy
- * was parked committed the Set every time.
+ * so a packet pushed while movy is on screen never reaches Move at all — three
+ * presses sent that way did nothing, while the identical bytes sent with movy
+ * parked committed the Set every time.
  *
- * Parked is also where the user already is when this matters — they are on
- * Move's Sets page having just chosen an empty pad, and pressing a track button
- * there is the very gesture that commits it by hand. */
+ * `shadow_set_overtake_mode` is exposed to modules, so movy lowers the flag for
+ * the length of one press and puts it back. Verified on device with movy in
+ * front throughout: `__pending-26-25` became a real uuid and movy kept the
+ * surface. Doing it WITHOUT parking is what makes this cover the paths parking
+ * cannot — an instant Shift+Back exit, a crash, a power cut — because the Set
+ * is real within seconds of opening rather than whenever the user next parks.
+ *
+ * The cost, stated plainly: for ~1.5 s the surface belongs to Move, so a pad
+ * pressed in that window plays Move rather than movy, and schwung sees an
+ * overtake exit and re-entry (it holds the inject drain 3 frames across that
+ * transition, which is why the press waits before going out). That is also why
+ * this is behind `setcommit` — on by default, because the alternative is losing
+ * the Set, but switchable. When movy is already parked the drain is open and
+ * none of this applies: the press just goes. */
 
 import { mlog } from '../log.js';
+import { claimLedOwnership } from '../app/led-ownership.js';
+import { flagValue } from './flags.js';
 import { isProvisionalUuid } from './set-context.js';
 
 /* Measured, not guessed. A press held 1 s and one held 2 s both made Move
@@ -47,34 +58,66 @@ const HOLD_MS = 1200;
  * divert already injects (mixer/track-volume.ts). */
 const TRACK_CC = 43;
 
+/* schwung holds the inject drain for 3 frames after an overtake exit, because a
+ * packet arriving mid-transition aborts Move deep in its own stack. The press
+ * has to land after that hold, not inside it. */
+const SETTLE_MS = 300;
+
+type Phase = 'idle' | 'settling' | 'holding' | 'releasing';
+
 let askedFor = '';       // the provisional id we have already asked Move to commit
-let pressedAt = 0;       // when the button went down (0 = not held)
+let phase: Phase = 'idle';
+let since = 0;           // when the current phase began
+let tookSurface = false; // we lowered overtake_mode and owe it back
 
 export function resetSetCommit(): void {
     askedFor = '';
-    pressedAt = 0;
+    phase = 'idle';
+    since = 0;
+    tookSurface = false;
 }
 
 function send(pressed: boolean): void {
     move_midi_inject_to_move([0x0B, 0xB0, TRACK_CC, pressed ? 127 : 0]);
 }
 
-/** Called once per tick with the live Set. Does nothing at all unless movy is
- *  in front on a Set Move has not committed, and at most once per such Set. */
+/* Hand the surface to Move so the drain will run, or take it back. Only when
+ * movy is actually in front: parked, the flag is already 0 and is not ours. */
+function surface(toMove: boolean): void {
+    if (typeof shadow_set_overtake_mode !== 'function') return;
+    shadow_set_overtake_mode(toMove ? 0 : 2);
+    /* Lowering the flag clears overtake_suppress_sysex (shadow_ui.c), which is
+     * movy's claim on the LEDs — take it back with the surface. */
+    if (!toMove) claimLedOwnership();
+}
+
+/** Called once per tick with the live Set. Does nothing at all unless movy is on
+ *  a Set Move has not committed, and at most once per such Set. */
 export function setCommitTick(id: string, ready: boolean): void {
-    if (pressedAt !== 0) {
-        if (Date.now() - pressedAt >= HOLD_MS) { send(false); pressedAt = 0; }
+    if (phase !== 'idle') {
+        const waited = Date.now() - since;
+        if (phase === 'settling' && waited >= SETTLE_MS) {
+            send(true);
+            phase = 'holding'; since = Date.now();
+        } else if (phase === 'holding' && waited >= HOLD_MS) {
+            send(false);
+            phase = 'releasing'; since = Date.now();
+        } else if (phase === 'releasing' && waited >= SETTLE_MS) {
+            if (tookSurface) { surface(false); tookSurface = false; }
+            phase = 'idle';
+        }
         return;
     }
     if (!ready || !id || !isProvisionalUuid(id)) return;
     if (id === askedFor) return;                       // asked once; Move said no
-    /* In front, the packet would be dropped by the drain — see the header. */
-    if (globalThis.overtakeParked !== true) return;
+    if (flagValue('setcommit') === 0) return;
     if (typeof move_midi_inject_to_move !== 'function') return;
 
     askedFor = id;
-    send(true);
-    pressedAt = Date.now() || 1;   // 0 is the "not held" sentinel
+    /* Parked, the drain is already open and the flag is not ours to touch. */
+    if (globalThis.overtakeParked !== true) { surface(true); tookSurface = true; }
+    phase = 'settling'; since = Date.now();
 
-    mlog('seq: asking Move to commit ' + id);
+    mlog('seq: asking Move to commit ' + id
+        + (tookSurface ? ' (lending it the surface)' : ' (parked)'));
 }

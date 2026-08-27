@@ -21,6 +21,7 @@ import { releaseLiveOnTrack, releaseSequencerGates } from '../keyboard/release.j
 import { requestLabelSync } from '../seq/engine.js';
 import { flagValue, setFlag } from '../seq/flags.js';
 import { appState } from '../app/state.js';
+import { buildTrackModels } from '../app/track-models.js';
 import { mlog } from '../log.js';
 
 /** True when tracks 1-4 are movy chains rather than schwung slots. */
@@ -45,6 +46,13 @@ export function setMovyTracks(on: boolean): void {
     /* `registry.ts` caches one port per track and the kind is baked into it, so
      * a stale cache would keep writing to the host we just left. */
     resetPorts();
+    /* And the MODELS hold the port they were built with — re-pointing the
+     * registry does not reach them. Without this the param pages go on reading
+     * the old host until movy is restarted, which is what it looked like on
+     * device: the flip appeared to do nothing. */
+    for (let t = 0; t < HOST_TRACKS; t++) {
+        appState.trackModels[t] = buildTrackModels(t);
+    }
     /* The pad map carries the chain index. Forgetting it is what makes the next
      * tick push the new one — a comparison against the old value would find the
      * string unchanged for a track going back to `-1`. */

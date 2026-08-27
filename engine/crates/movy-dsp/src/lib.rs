@@ -68,12 +68,29 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.45.0";
+const ENGINE_VERSION: &str = "0.46.0";
 
-/// Tracks backed by schwung's own shadow slots. Their notes go out as MIDI on
-/// the matching channel, exactly as before; everything above this index is a
-/// chain movy hosts itself.
+/// Tracks backed by schwung's own shadow slots by default. Their notes go out as
+/// MIDI on the matching channel; everything above this index is a chain movy
+/// hosts itself. `chtracks` moves these four onto chains as well.
 const HOST_TRACKS: u8 = 4;
+
+/// Where a track's output goes: `None` = out as MIDI on the track's own channel,
+/// which is how a schwung shadow slot is addressed; `Some(chain)` = a chain movy
+/// hosts, whose note never leaves this process.
+///
+/// **A track's chain is its own index.** It was `track - HOST_TRACKS` while movy
+/// hosted twelve chains numbered from zero, and that offset had to be deleted in
+/// two languages at once: the UI addresses `ch<N>` for track N, so an engine
+/// still subtracting four sequences track 4's notes into track 0's synth. Wrong
+/// instrument, no error, nothing in any log.
+fn chain_for(track: u8, movy_tracks: bool) -> Option<usize> {
+    if track < HOST_TRACKS && !movy_tracks {
+        None
+    } else {
+        Some(track as usize)
+    }
+}
 
 struct Instance {
     engine: Engine,
@@ -82,6 +99,10 @@ struct Instance {
     blocks: u64,
     chains: ChainSlots,
     pads: PadRoute,
+    /// `chtracks`: tracks 0..3 are movy chains rather than schwung shadow slots.
+    /// Pushed by the UI on every engine boot — the UI is the one that knows,
+    /// because it is where the setting lives.
+    movy_tracks: bool,
 }
 
 impl Instance {
@@ -94,6 +115,7 @@ impl Instance {
             blocks: 0,
             chains: ChainSlots::new(),
             pads: PadRoute::new(),
+            movy_tracks: false,
         }
     }
 
@@ -127,6 +149,20 @@ impl Instance {
                         self.chains.on_midi(chain, &[0x80, pitch, 0], MOVE_MIDI_SOURCE_INTERNAL);
                     }
                 }
+            }
+            /* `chtracks <0|1>` — tracks 0..3 render on movy chains instead of
+             * schwung's shadow slots. The UI acts on this too (it re-points
+             * every port), but the ENGINE has to know as well: it sequences the
+             * notes, and `drain_out` is the one place that decides whether a
+             * track's note goes out as MIDI or into a chain. Without this the
+             * flag moves the UI and leaves every sequenced note going to
+             * schwung — which is exactly how it shipped broken. */
+            "chtracks" => {
+                self.movy_tracks = val != "0" && !val.is_empty();
+                host::log(&format!(
+                    "chain tracks: 0-3 -> {}",
+                    if self.movy_tracks { "movy chains" } else { "schwung slots" }
+                ));
             }
             "chpeaklog" => {
                 host::log(&format!("chain peaks: {}", self.chains.peaks_csv()));
@@ -353,39 +389,48 @@ impl Instance {
                  * track is addressed by MIDI channel; a movy track is a chain
                  * movy owns, so its note never leaves this process. */
                 OutEvent::NoteOn { track, pitch, vel } => {
-                    if track < HOST_TRACKS {
-                        host::midi_send_internal(0x90 | track, pitch, vel);
-                    } else {
-                        self.chains.on_midi(
-                            (track - HOST_TRACKS) as usize,
-                            &[0x90, pitch, vel],
-                            MOVE_MIDI_SOURCE_INTERNAL,
-                        );
+                    match chain_for(track, self.movy_tracks) {
+                        None => {
+                            host::midi_send_internal(0x90 | track, pitch, vel);
+                        }
+                        Some(c) => {
+                            self.chains.on_midi(
+                                c,
+                                &[0x90, pitch, vel],
+                                MOVE_MIDI_SOURCE_INTERNAL,
+                            );
+                        }
                     }
                 }
                 OutEvent::NoteOff { track, pitch } => {
-                    if track < HOST_TRACKS {
-                        host::midi_send_internal(0x80 | track, pitch, 0);
-                    } else {
-                        self.chains.on_midi(
-                            (track - HOST_TRACKS) as usize,
-                            &[0x80, pitch, 0],
-                            MOVE_MIDI_SOURCE_INTERNAL,
-                        );
+                    match chain_for(track, self.movy_tracks) {
+                        None => {
+                            host::midi_send_internal(0x80 | track, pitch, 0);
+                        }
+                        Some(c) => {
+                            self.chains.on_midi(
+                                c,
+                                &[0x80, pitch, 0],
+                                MOVE_MIDI_SOURCE_INTERNAL,
+                            );
+                        }
                     }
                 }
                 OutEvent::Click { accent } => {
                     self.click.trigger(accent);
                 }
                 OutEvent::Cc { track, lane, val } => {
-                    if track < HOST_TRACKS {
-                        host::midi_send_internal(0xB0 | track, 102 + lane, val);
-                    } else {
-                        self.chains.on_midi(
-                            (track - HOST_TRACKS) as usize,
-                            &[0xB0, 102 + lane, val],
-                            MOVE_MIDI_SOURCE_INTERNAL,
-                        );
+                    match chain_for(track, self.movy_tracks) {
+                        None => {
+                            host::midi_send_internal(0xB0 | track, 102 + lane, val);
+                        }
+                        Some(c) => {
+                            self.chains.on_midi(
+                                c,
+                                &[0xB0, 102 + lane, val],
+                                MOVE_MIDI_SOURCE_INTERNAL,
+                            );
+                        }
                     }
                 }
                 OutEvent::Start => {
@@ -625,6 +670,39 @@ mod tests {
         for bad in ["", "144", "144.60", "144.60.100.7", "144.x.100", "999.60.100"] {
             assert_eq!(parse_midi_triplet(bad), None, "{:?} must be rejected", bad);
         }
+    }
+
+    /* Where a sequenced note goes. This is the assertion that was missing when
+     * the chain numbering changed: the UI moved to `ch<N>` = track N and the
+     * engine kept subtracting four, so track 4's notes were sequenced into
+     * track 0's synth. Every device suite still passed — they inject
+     * `ch<N>:midi` directly and never drive a movy track from the sequencer. */
+    #[test]
+    fn a_tracks_notes_go_to_its_own_chain() {
+        // Default: the first four are schwung's, addressed as MIDI channels.
+        assert_eq!(chain_for(0, false), None);
+        assert_eq!(chain_for(3, false), None);
+        // And a movy track's chain is its own index — NOT index minus four.
+        assert_eq!(chain_for(4, false), Some(4), "track 4 must not reach chain 0");
+        assert_eq!(chain_for(15, false), Some(15));
+
+        // With `chtracks`, all sixteen are chains, still one-to-one.
+        for t in 0u8..16 {
+            assert_eq!(chain_for(t, true), Some(t as usize));
+        }
+    }
+
+    /* The flag has to reach the engine, not just the UI. The UI re-points its
+     * ports on its own, so a flag the engine never hears looks completely
+     * applied right up until a clip plays and the note goes to schwung. */
+    #[test]
+    fn chtracks_moves_the_first_four_tracks() {
+        let mut inst = Instance::new();
+        assert_eq!(chain_for(0, inst.movy_tracks), None, "off by default");
+        inst.set_param("chtracks", "1");
+        assert_eq!(chain_for(0, inst.movy_tracks), Some(0));
+        inst.set_param("chtracks", "0");
+        assert_eq!(chain_for(0, inst.movy_tracks), None);
     }
 
     #[test]

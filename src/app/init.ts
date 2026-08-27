@@ -1,9 +1,10 @@
 import { createModel }  from '../model/index.js';
-import { portFor }      from '../track/registry.js';
+import { portFor, hostPort } from '../track/registry.js';
 import { trackRef, TRACK_COUNT } from '../track/ref.js';
 import { createLfoModel, createScopedLfoModel } from '../lfo/model.js';
 import { masterScope } from '../lfo/scope.js';
 import { appState, VIEW_CHAIN } from './state.js';
+import { buildTrackModels } from './track-models.js';
 import { jogHintTouch } from './jog-hint.js';
 import { keyboardState, resetOctaves } from '../keyboard/state.js';
 import { drainAll } from '../keyboard/held-notes.js';
@@ -41,14 +42,15 @@ export function init(): void {
      *
      * Building all 16 costs memory, not time: only the ACTIVE track's model
      * ticks (see app/tick.ts and seq/drum-sync.ts), so idle tracks are inert. */
-    appState.trackModels = Array.from({ length: TRACK_COUNT }, (_, slot) =>
-        CHAIN_SLOTS.map((s, i) => isLfoSlot(i)
-            ? createLfoModel(slot)
-            : createModel(portFor(slot), s.componentKey))
-    );
+    appState.trackModels = Array.from({ length: TRACK_COUNT },
+        (_, slot) => buildTrackModels(slot));
+    /* `hostPort(0)` and not `portFor(0)`: a `master_fx:` key is global, and the
+     * slot it rides on is only a carrier. Track 0 can become a movy chain
+     * (`chtracks`), and the chain port would namespace those keys as
+     * `ch0:master_fx:…` and send the master chain's edits into a synth. */
     appState.masterFxModels  = MASTER_FX_SLOTS.map((s, i) => isMasterLfoSlot(i)
         ? createScopedLfoModel(masterScope())
-        : createModel(portFor(0), s.componentKey));
+        : createModel(hostPort(0), s.componentKey));
     appState.masterChainIndex = 0;
     appState.masterDetail     = false;
     appState.trackChainIndex = new Array(TRACK_COUNT).fill(1) as number[];

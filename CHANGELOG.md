@@ -15,6 +15,30 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Mute and solo reach all 16 tracks.** `toggleMute`/`toggleSolo` carried a
+  `track > 3` ceiling from when movy had four tracks, so the existing gestures
+  already *pointed* at tracks 5-16 and were dropped at the door — silently,
+  because the toast, the log line and the LED all read a mirror that never
+  moved. Everything underneath the guard (the `muted` array, the persisted
+  blob, the engine's `mute` command) had been 16-wide since `578139b`.
+
+- **Mute + step: a 16-track mute map in Session view.** Holding **Mute** turns
+  the Session track selector into a mute map — step 1 is track 1, step 16 is
+  track 16 — so a track two groups away is muted without scrolling the focused
+  quartet first. **Shift** makes the same press a solo. It works in every state
+  where that row is a selector, including a held **Note/Session** peek: the
+  press does not switch tracks, and muting inside a peek no longer latches the
+  view.
+
+- **Mute is visible wherever a track is drawn.** A muted track takes its dim
+  colour in the Session track selector and in its clip-grid cells, matching the
+  cue its track button already carried. In the selector it composes with the
+  focus pulse instead of replacing it (a muted focused track pulses to its *dim*
+  colour), and clips keep their white playing/queued pulse, since a muted track
+  is still running. The **Mute button** now lights bright whenever anything is
+  muted or soloed — with 16 tracks and 4 visible track buttons, that is the only
+  always-visible "something is silenced" cue.
+
 - **Silent chains stop rendering** (`chidle`, on by default). A movy chain used
   to cost CPU whenever it was *loaded*, playing or not — twelve idle `helm`
   chains cost ~2340 µs against a ~2000 µs frame budget, with nothing playing.
@@ -110,6 +134,37 @@ far. Earlier work is summarised in the timeline below for context.
   Giving each duplicate a private copy of its `.so` took MoveOriginal down with
   `helm`, inside the second `dlopen`, for a reason that was never established —
   and it did not reproduce outside MoveOriginal. The blacklist above replaces it.
+
+### Fixed
+
+- **Mute no longer strands another button's momentary.** `momentary.ts` holds
+  exactly one active button, and Mute's press took it for a restore closure that
+  was a no-op. Holding **Note/Session** and then pressing Mute therefore evicted
+  Session's own momentary, so its release found nothing to restore and the peek
+  silently latched into Session view. Mute now keeps its "was a gesture used
+  while held" flag on its own — the only thing it ever read back.
+
+- **`chtracks` reaches the engine, not just the UI.** The flag was marked
+  UI-only, but `drain_out` is what decides whether a sequenced note goes out as
+  MIDI or into a chain: every sequenced note kept going to schwung while the UI
+  looked entirely switched over. The engine also mapped a track to
+  `track - HOST_TRACKS` while the UI had moved to `ch<N>` = track N, so track 4's
+  notes were sequenced into track 0's synth — wrong instrument, no error,
+  nothing in any log. Both are now one function (`chain_for`) with tests.
+  (ENGINE 0.46.0.)
+
+- **`chtracks` re-points the param pages.** A model captures the port it was
+  built with, so re-pointing the registry left every page reading the host the
+  track had just left until movy was restarted — the flip looked like it did
+  nothing. The four moved tracks' models are now rebuilt on the flip; the twelve
+  that did not move keep theirs.
+
+- **Master FX no longer follows track 0 onto a chain.** `master_fx:` keys are
+  global to schwung and only ride on a slot number as a carrier, and that
+  carrier has always been slot 0 — which `chtracks` can turn into a movy chain,
+  namespacing those keys `ch0:master_fx:…` and sending the master chain's edits
+  into a synth. The master models now take a `hostPort`, whatever `chtracks`
+  says track 0 is.
 
 ## [0.29.0] — 2026-08-22
 

@@ -23,7 +23,25 @@ export function portFor(index: number): TrackPort {
     return p;
 }
 
+/** A schwung shadow slot, whatever `chtracks` says a track is.
+ *
+ *  For keys that are NOT a track's: `master_fx:…` is global to schwung and only
+ *  rides on a slot number as a carrier. Reaching it through `portFor(0)` worked
+ *  until track 0 could become a movy chain — then the chain port namespaces it
+ *  as `ch0:master_fx:…` and the master chain's edits land in a synth. */
+const hostPorts: (TrackPort | undefined)[] = [];
+
+export function hostPort(slot: number): TrackPort {
+    let p = hostPorts[slot];
+    if (!p) {
+        p = new HostSlotPort(slot);
+        hostPorts[slot] = p;
+    }
+    return p;
+}
+
 /** Drop cached ports. Tests use this to swap the ambient shadow_* globals. */
 export function resetPorts(): void {
     ports.length = 0;
+    hostPorts.length = 0;
 }

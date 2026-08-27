@@ -76,7 +76,7 @@ export function setFlag(key: string, value: number): number {
     if (v[key] === next) return next;
     v[key] = next;
     writePrefFlag(key, next);
-    if (!def.uiOnly) sendToEngine?.(key, String(next));
+    sendToEngine?.(key, String(next));
     return next;
 }
 
@@ -92,8 +92,7 @@ export function applyFlagsToEngine(set: EngineSet): void {
      * other way round spawns one pool and immediately replaces it — harmless,
      * but it blocks the audio thread twice for no reason. */
     for (const f of FLAGS) {
-        if (f.uiOnly || f.key === 'chparallel') continue;
-        set(f.key, String(v[f.key]));
+        if (f.key !== 'chparallel') set(f.key, String(v[f.key]));
     }
     /* The hazard list, before parallel render can act on it. Sent even when
      * empty: the engine replaces the list wholesale, so an empty write is how a

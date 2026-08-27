@@ -18,10 +18,6 @@ export type FlagDef = {
     def: number;
     /** Render as OFF/ON rather than as a number. */
     bool?: boolean;
-    /** Never written to the engine. For settings the UI acts on by itself —
-     *  the engine would answer an unknown key with a log line and nothing
-     *  else. */
-    uiOnly?: boolean;
     /** The `FLAGS_REV` at which this flag's DEFAULT changed. A prefs.json older
      *  than that has its stored value ignored once, so the new default actually
      *  reaches a device that already has an opinion. */
@@ -71,8 +67,13 @@ export const FLAGS: FlagDef[] = [
         //
         // Off by default because it is not free: those tracks give up Move's own
         // mixer fader, per-slot Link Audio, and schwung's cached param reads.
+        //
+        // The ENGINE needs this too, not just the UI: `drain_out` is what
+        // decides whether a sequenced note goes out as MIDI or into a chain. It
+        // was briefly UI-only, and every sequenced note kept going to schwung
+        // while the UI looked entirely switched over.
         // See plans/2026-08-24-movy-hosted-first-tracks.md.
-        min: 0, max: 1, def: 0, bool: true, uiOnly: true,
+        min: 0, max: 1, def: 0, bool: true,
     },
     {
         key: 'chpin', name: 'Pin Duplicates',

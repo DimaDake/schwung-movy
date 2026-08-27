@@ -370,6 +370,29 @@ export async function run() {
 
   eq('out-of-range step is black', sessionStepLed(16, 1, 6).base, C_BLACK);
   eq('a negative step is black',   sessionStepLed(-1, 1, 6).base, C_BLACK);
+
+  /* MUTED tracks dim, the same cue their track button carries. The row is the
+   * only place all sixteen are visible at once, so this is where a mute on a
+   * track outside the focused quartet is readable at all.
+   *
+   * It composes with the group pulse rather than replacing it: a muted track
+   * inside the focused group pulses to its DIM colour, so motion still says
+   * "focused" while brightness says "muted". Both layers, one LED. */
+  const { TRACK_COLOR_DIM } = await import('../../dist/esm/seq/colors.js');
+  eq('muted unfocused step is dim',
+     sessionStepLed(0, 1, 12, true).base, TRACK_COLOR_DIM[0]);
+  eq('muted unfocused step stays solid',
+     sessionStepLed(0, 1, 12, true).channel, ANIM_NONE);
+  eq('muted focused step pulses to dim',
+     sessionStepLed(4, 1, 12, true).anim, TRACK_COLOR_DIM[4]);
+  eq('muted focused step keeps the pulse',
+     sessionStepLed(4, 1, 12, true).channel, ANIM_PULSE);
+  eq('muted focused step still starts from black',
+     sessionStepLed(4, 1, 12, true).base, C_BLACK);
+  /* Selection outranks mute for the same reason it outranks focus: it answers
+   * the finer question, and it is a momentary read-out you asked for. */
+  eq('a muted selected step is still white',
+     sessionStepLed(6, 1, 6, true).base, C_WHITE);
 }
 
 {
@@ -435,6 +458,83 @@ export async function run() {
   globalThis.shadow_send_midi_to_dsp = origMidi;
   globalThis.host_module_set_param_blocking = origBlk;
   setMovyTracks(false);
+  resetFlags();
+  resetPorts();
+  uninstallMockFs();
+}
+
+{
+  /* A model CAPTURES the port it was built with, so re-pointing the registry
+   * does not reach it. On device this looked like the flag doing nothing: every
+   * param page went on reading the host the track had just left, and only a
+   * restart of movy fixed it. */
+  _log('\nchtracks — the param pages follow the track to its new host:');
+  const { setMovyTracks } = await import('../../dist/esm/track/host-mode.js');
+  const { resetFlags } = await import('../../dist/esm/seq/flags.js');
+  const { resetPorts } = await import('../../dist/esm/track/registry.js');
+
+  installMockFs();
+  resetFlags();
+  resetPorts();
+  const { init } = await import('../../dist/esm/app/init.js');
+  init();
+
+  /* Asserted on which host API the model's own reads REACH, not on a field it
+   * happens to expose: reaching the wrong host is the symptom, and a port
+   * reference that looks right while the model holds an older one would pass an
+   * identity check. */
+  const slotReads = [], chainReads = [];
+  const oG = globalThis.shadow_get_param;
+  const oMG = globalThis.host_module_get_param;
+  globalThis.shadow_get_param = (slot, k) => { slotReads.push(k); return null; };
+  globalThis.host_module_get_param = (k) => { chainReads.push(k); return null; };
+
+  const readsOf = (track) => {
+    slotReads.length = 0; chainReads.length = 0;
+    const m = appState.trackModels[track][0];
+    m.reload(); m.tick(); m.tick();
+    return { slot: slotReads.length, chain: chainReads.filter((k) => k.indexOf('ch') === 0).length };
+  };
+
+  let r = readsOf(0);
+  eq('track 0 starts on a schwung slot', r.slot > 0 && r.chain === 0, true);
+  const before = appState.trackModels[0][0];
+
+  setMovyTracks(true);
+  r = readsOf(0);
+  eq('after the flip its reads go to a movy chain', r.chain > 0 && r.slot === 0, true);
+  eq('and the model was rebuilt, not merely re-pointed',
+     appState.trackModels[0][0] !== before, true);
+  /* The twelve that did not move must NOT be rebuilt — discarding a model
+   * throws away its cached page state for no reason. */
+  r = readsOf(8);
+  eq('a track that did not move still reads its own chain', r.chain > 0, true);
+
+  /* Master FX is NOT a track. `master_fx:` keys are global to schwung and only
+   * ride on a slot number as a carrier, and that carrier has always been slot 0
+   * — which `chtracks` can turn into a movy chain. A chain port would namespace
+   * them `ch0:master_fx:…` and send the master chain's edits into a synth.
+   *
+   * The models are built by init(), so this only bites when movy OPENS with the
+   * flag already on — the normal case, since it is persisted. Flipping it in a
+   * running session leaves the master models holding the port they were built
+   * with and hides the bug entirely, which is why this re-inits. */
+  setMovyTracks(true);
+  init();
+  slotReads.length = 0; chainReads.length = 0;
+  appState.masterFxModels[0].reload();
+  appState.masterFxModels[0].tick();
+  eq('master FX still reads through a schwung slot', slotReads.length > 0, true);
+  eq('and never namespaces its keys to a chain',
+     chainReads.filter((k) => k.indexOf('ch') === 0).join(','), '');
+
+  setMovyTracks(false);
+  r = readsOf(0);
+  eq('and back to the slot again', r.slot > 0 && r.chain === 0, true);
+
+  globalThis.shadow_get_param = oG;
+  globalThis.host_module_get_param = oMG;
+
   resetFlags();
   resetPorts();
   uninstallMockFs();

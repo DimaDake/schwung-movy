@@ -906,16 +906,31 @@ _log('\napp-loop: active-set switch reloads the engine');
     eq('S1 saved on switch-out', typeof fs[stPath('s1-uuid')], 'string');
     eq('S1 kept its edits', fs[stPath('s1-uuid')].includes('bpm 13700'), true);
 
-    /* And the counterpart, which is the whole point of the rewrite: moving to a
-     * set with NO state is a rename, not a load. Nothing is pushed into the
-     * engine, so the work in hand survives and lands under the new id. */
-    const loadsBeforeRename = engine.stateLoads.length;
+    /* And the counterpart: moving to another REAL set that has no state is a
+     * switch, and it starts blank. Deleting a set in Move makes exactly this
+     * shape — a fresh uuid movy has never seen — and carrying the work into it
+     * is what made a deleted set appear to come back. */
     engine.stateBlob = 'movy1\nbpm 14900\ncl 0 0 16 0 0:24:64:100\n';
     seqState.dirty = true;
     fs[ACTIVE] = 's3-uuid\nSet Three\n';
     advance(120);
-    eq('a set with no state is not loaded over', engine.stateLoads.length, loadsBeforeRename);
-    eq('the work followed it', (fs[stPath('s3-uuid')] || '').includes('bpm 14900'), true);
+    eq('a new set starts blank', engine.stateBlob, 'movy1\n');
+    eq('the work stayed with the set it was made in',
+       (fs[stPath('s2-uuid')] || '').includes('bpm 14900'), true);
+    eq('and did not follow', (fs[stPath('s3-uuid')] || '').includes('bpm 14900'), false);
+
+    /* The one transition that IS a rename: schwung's provisional id being
+     * replaced by the real one Move finally materialised. The id changed; the
+     * set did not. */
+    const loadsBeforeRename = engine.stateLoads.length;
+    fs[ACTIVE] = '__pending-4-2\nNew Set 5\n';
+    advance(120);
+    engine.stateBlob = 'movy1\nbpm 15100\ncl 0 0 16 0 0:24:67:100\n';
+    seqState.dirty = true;
+    fs[ACTIVE] = 's4-uuid\nSet Four\n';
+    advance(120);
+    eq('materialising a set is not loaded over', engine.stateLoads.length, loadsBeforeRename + 1);
+    eq('the work followed it', (fs[stPath('s4-uuid')] || '').includes('bpm 15100'), true);
 }
 
 _log('\napp-loop: nothing is live until the Set is loaded');

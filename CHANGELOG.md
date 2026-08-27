@@ -13,6 +13,31 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A deleted Set no longer comes back.** Switching to a Set that had no Movy
+  sequence of its own was treated as the *current* Set being renamed, so the
+  work in hand was carried into it — delete a Set in Move and the Set Move made
+  in its place inherited the deleted one's sequence. The rename now applies only
+  to the one transition it was written for: Schwung's provisional id being
+  replaced by the real one Move finally materialises. Every other change of Set
+  is a switch, and a Set with no sequence starts empty, the same way Schwung
+  seeds an unseen Set with empty slots.
+
+- **Set pads that Move never wrote to disk keep their sequence.** Move only
+  materialises a Set once Move itself has something to save in it, so a pad
+  played entirely through Schwung never resolves to a real Set and Schwung
+  addresses it by a synthetic id that changed on *every visit*. Movy filed its
+  sequence under that id, so each visit to the pad was a brand-new Set: nothing
+  the pad recorded survived leaving it. Movy now keys those Sets by the pad
+  itself. Work stranded by the old behaviour is adopted the next time that pad
+  is opened.
+
+- **Sequences for deleted Sets are collected.** Deleting a Set in Move left
+  Movy's state for it on the device permanently. It is now removed on load —
+  only for Sets Move no longer has, and only when Move's own Set directory can
+  be read, so an unreadable one never reads as "everything was deleted".
+
 ### Added
 
 - **Mute and solo reach all 16 tracks.** `toggleMute`/`toggleSolo` carried a

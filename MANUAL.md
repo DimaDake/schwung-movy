@@ -77,6 +77,22 @@ on its own — the unreadable file is left untouched, so it can still be recover
 from the device by hand. Your modules and their settings are Schwung's and are
 not affected either way.
 
+### Which Set your sequence belongs to
+
+Movy stores one sequence per Move Set, and follows Move: pick another Set and
+you get that Set's sequence, or an empty one if it has never had a sequence.
+Deleting a Set in Move takes its Movy sequence with it — the Set Move creates in
+its place starts blank, the same way its instrument slots do. Movy also clears
+out sequences whose Set has been deleted the next time you open it.
+
+Set pads you have never saved anything into from Move itself are a special case
+worth knowing about. Move only writes such a Set to disk once *Move* has
+something to save in it, and if you work entirely inside Movy it never does — so
+Schwung has no name to file your work under and uses the pad itself. Your
+sequence still comes back every time you return to that pad. It is worth
+recording something in Move on that Set anyway, since only a real Set can be
+renamed, copied or backed up.
+
 The **screen** is the 128×64 OLED. A typical parameter page looks like this:
 
 ![Synth parameter page](docs/assets/obxd_main_page.png)

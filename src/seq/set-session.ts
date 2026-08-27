@@ -15,7 +15,11 @@
 
 import { mlog } from '../log.js';
 import { engineAbsent, engineGeneration, engineReady } from './engine.js';
-import { BLANK_STATE, fileExists, readActiveSetAny, rememberSet, uuidToStatePath } from './set-context.js';
+import {
+    BLANK_STATE, fileExists, isProvisionalUuid, readActiveSetAny, rememberSet, removeSetState,
+    uuidToStatePath,
+} from './set-context.js';
+import { collectDeadSets } from './set-gc.js';
 import { readBestState, readUiBlob, writeStateBlob, writeUiBlob } from './persist-store.js';
 import { clearUiDirty, markUiStateDirty } from './ui-dirty.js';
 import { resetUiState } from './ui-state.js';
@@ -37,6 +41,8 @@ let loadedGen = -1;
 let saveCountdown = SAVE_TICKS;
 let pollCountdown = 1;
 let failReason = '';
+/* Dead-set collection is a once-per-session sweep, not a per-load one. */
+let collected = false;
 
 export function sessionPhase(): Phase { return phase; }
 export function sessionError(): string { return failReason; }
@@ -55,6 +61,7 @@ export function resetSetSession(): void {
     setId = ''; setName = ''; gen = 0; loadedGen = -1;
     saveCountdown = SAVE_TICKS; pollCountdown = 1;
     failReason = '';
+    collected = false;
     resetSetSave();
     clearUiDirty();
 }
@@ -63,12 +70,8 @@ function filesAvailable(): boolean {
     return typeof host_read_file === 'function' && typeof host_write_file === 'function';
 }
 
-/* Carry the work in hand to a Set that has none of its own.
- *
- * The provisional files are left where they are: the host exposes no delete,
- * only read and write. They are a few hundred bytes and nothing reads them
- * again — the same shape as the orphaned `__pending-*` directories schwung
- * accumulates, which is where this whole problem was first visible. */
+/* Carry the work in hand to a Set that has none of its own — Move having
+ * finally materialised the Set movy was already working in. */
 function rename(toId: string, toName: string): void {
     const from = setId;
     /* Capture what the engine is holding RIGHT NOW, not what was last written.
@@ -84,6 +87,10 @@ function rename(toId: string, toName: string): void {
         adoptSaved(payload);
         const ui = readUiBlob(from);
         if (ui) writeUiBlob(toId, ui);
+        /* Only once the bytes are durable under the new id. The pad's directory
+         * is now a stale copy of this Set, and leaving it is how a device grows
+         * a `__pending-*` tree that nothing will ever read. */
+        if (isProvisionalUuid(from)) removeSetState(from);
     } else {
         /* Nothing durable yet — the live UI state is still this Set's, so the
          * next save has to write it rather than assume it is already on disk. */
@@ -116,18 +123,36 @@ function enterLoading(id: string, name: string): void {
     loadedGen = engineGeneration();
     phase = 'ready';
     mlog('seq: loaded set ' + id);
+    /* After the Set is live, never before: collecting is pure hygiene and must
+     * never delay the instrument becoming playable. Once per session. */
+    if (!collected) { collected = true; collectDeadSets(id); }
 }
 
-/* The one rule. An incoming Set with state of its own is a switch; one without
- * is this Set, newly named, and the work already in hand belongs to it. */
-function identityChanged(id: string, name: string): void {
-    if (setHasState(id)) {
-        phase = 'switching';
-        sessionFlush(true);
-        enterLoading(id, name);
+/* The one rule, and the whole of it: a rename is the ONE transition where the
+ * id changed but the Set did not — schwung's provisional id being replaced by
+ * the real one Move finally materialised. Everything else is a switch, and a
+ * switch into a Set with no state of its own starts blank.
+ *
+ * It used to turn on "does the incoming Set have state?" alone, which made
+ * every switch into an unseen Set a rename: delete a Set in Move, and the Set
+ * Move made in its place inherited the deleted one's sequence — the deleted Set
+ * appearing to come back. schwung answers the same question the other way
+ * (SET_CHANGED seeds an unseen set with empty slots), and a blank load here is
+ * that same empty seed in movy's terms.
+ *
+ * The residual: leaving a provisional id for a REAL Set movy has never seen is
+ * a rename too, because telling that apart from materialisation needs the
+ * incoming Set's song index and no host API exposes it. Materialisation is the
+ * common case, and carrying work that did not belong here can be undone where
+ * discarding work cannot. */
+function identityChanged(id: string, name: string, provisional: boolean): void {
+    if (!setHasState(id) && isProvisionalUuid(setId) && !provisional) {
+        rename(id, name);
         return;
     }
-    rename(id, name);
+    phase = 'switching';
+    sessionFlush(true);
+    enterLoading(id, name);
 }
 
 export function sessionFlush(force = false): void {
@@ -181,8 +206,9 @@ export function sessionTick(): void {
          * the rename carries the work when a real id arrives. */
         const id = active ? active.id.uuid : '_default';
         const name = active ? active.id.name : '';
+        const provisional = active ? active.provisional : true;
         if (phase !== 'ready') enterLoading(id, name);
-        else if (id !== setId) identityChanged(id, name);
+        else if (id !== setId) identityChanged(id, name, provisional);
         if (phase !== 'ready') return;
     }
     if (--saveCountdown > 0) return;

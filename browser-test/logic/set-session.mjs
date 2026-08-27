@@ -43,6 +43,7 @@ export async function run() {
 {
     _log('\nset session:');
     const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
+    const { DIR } = await import('../mock-fs.mjs');
     const { seqEngineTick, resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
     const { sessionTick, sessionFlush, sessionPhase, sessionReady, currentSetUuid,
@@ -54,6 +55,7 @@ export async function run() {
     const ACTIVE = '/data/UserData/schwung/active_set.txt';
     const SAVED  = 'movy1\nbpm 14000\ncl 0 0 16 0 0:24:60:100\n';
     const EDITED = 'movy1\nbpm 14000\ncl 0 0 32 0 0:24:62:110\n';
+    const BLANK  = 'movy1\n';
 
     const boot = (files, opts = {}) => {
         const fs = installMockFs(files);
@@ -74,7 +76,7 @@ export async function run() {
      * all work throughout. */
     {
         const { fs, eng } = boot({ [ACTIVE]: '__pending-13-3\nNew Set\n' });
-        eq('R1 adopted the provisional id', currentSetUuid(), '__pending-13-3');
+        eq('R1 adopted the provisional id, keyed by pad', currentSetUuid(), '__pending-13');
         eng.stateBlob = EDITED;                       // the user enters a pattern
         seqState.dirty = true;
 
@@ -84,6 +86,7 @@ export async function run() {
         eq('R1 renamed to the real id', currentSetUuid(), 'NEW1');
         eq('R1 the pattern survived', eng.stateBlob, EDITED);
         eq('R1 and reached disk under it', readBestState('NEW1').payload, EDITED);
+        eq('R1 the pad directory did not survive it', readBestState('__pending-13'), null);
         teardown();
     }
 
@@ -100,17 +103,17 @@ export async function run() {
         teardown();
     }
 
-    /* R3 — provisional to a DIFFERENT provisional, which the device log shows
-     * happening while the user browses Sets. Still a rename: work that follows
-     * you can be undone, work orphaned in a dead namespace cannot. */
+    /* R3 — a provisional id whose seq changes but whose PAD does not. schwung
+     * mints a fresh seq freely; the pad is the set. (Its old form asserted that
+     * a different pad was a rename too — see R10 for why that was the bug.) */
     {
         const { fs, eng } = boot({ [ACTIVE]: '__pending-11-3\nNew Set\n' });
         eng.stateBlob = EDITED;
         seqState.dirty = true;
-        fs.files[ACTIVE] = '__pending-10-2\nNew Set\n';
+        fs.files[ACTIVE] = '__pending-11-9\nNew Set\n';
         run();
-        eq('R3 followed the browse', currentSetUuid(), '__pending-10-2');
-        eq('R3 the work came along', eng.stateBlob, EDITED);
+        eq('R3 still the same pad', currentSetUuid(), '__pending-11');
+        eq('R3 the work stayed put', eng.stateBlob, EDITED);
         teardown();
     }
 
@@ -231,6 +234,111 @@ export async function run() {
         run(700);
         eq('R8 generation kept climbing', readBestState('S1').gen > genAfterFirstRun, true);
         eq('R8 newest wins', readBestState('S1').payload, 'movy1\nbpm 15000\n');
+        teardown();
+    }
+
+    /* ── switch vs rename ────────────────────────────────────────────────
+     *
+     * The rename exists for ONE transition: schwung's provisional id being
+     * replaced by the real one Move finally materialised. Every other identity
+     * change is a switch, and a switch into a Set with no state of its own
+     * starts blank — the same thing schwung does when it seeds an unseen set
+     * with empty slots. Deleting a Set in Move produces exactly that shape, and
+     * carrying the old work into it is what made a deleted Set come back. */
+
+    /* R11 — real to real, incoming has no state: a switch, not a rename. */
+    {
+        const { fs, eng } = boot({ [ACTIVE]: 'SETA\nSong A\n', [uuidToStatePath('SETA')]: SAVED });
+        eng.stateBlob = EDITED; seqState.dirty = true;   // work in hand
+        run(40);
+        fs.files[ACTIVE] = 'SETB\nSong B\n';           // the Set Move made after a delete
+        run();
+        eq('R11 we are on the new set', currentSetUuid(), 'SETB');
+        eq('R11 the engine was cleared', eng.stateBlob, BLANK);
+        eq('R11 nothing was carried onto disk', readBestState('SETB'), null);
+        eq('R11 and the old set kept its work', readBestState('SETA').payload, EDITED);
+        teardown();
+    }
+
+    /* R12 — the flipped R3. With provisional ids keyed by pad, a DIFFERENT
+     * provisional id is a different pad, so it gets its own blank slate. */
+    {
+        const { fs, eng } = boot({ [ACTIVE]: '__pending-11-3\nNew Set\n' });
+        eng.stateBlob = EDITED; seqState.dirty = true;
+        run(40);
+        fs.files[ACTIVE] = '__pending-10-2\nNew Set\n';
+        run();
+        eq('R12 followed the browse', currentSetUuid(), '__pending-10');
+        eq('R12 the new pad is blank', eng.stateBlob, BLANK);
+        eq('R12 pad 12 kept its work', readBestState('__pending-11').payload, EDITED);
+        teardown();
+    }
+
+    /* R13 — the same pad revisited. schwung mints a fresh `-<seq>` on every
+     * visit to a Set Move never materialised (a user who plays only through
+     * movy never gives Move anything to save), so the seq is noise: the pad
+     * index is the identity. Without this, every visit was a brand-new Set and
+     * the pad recorded nothing that survived leaving it. */
+    {
+        const { fs, eng } = boot({ [ACTIVE]: '__pending-17-1\nNew Set 18\n' });
+        eq('R13 keyed by pad, not by visit', currentSetUuid(), '__pending-17');
+        eng.stateBlob = EDITED; seqState.dirty = true;
+        run(700);                                        // autosave lands
+        fs.files[ACTIVE] = 'SETA\nSong A\n';            // away to another set
+        fs.files[uuidToStatePath('SETA')] = SAVED;
+        run();
+        fs.files[ACTIVE] = '__pending-17-6\nNew Set 18\n';   // back to the same pad
+        run();
+        eq('R13 back on the same pad', currentSetUuid(), '__pending-17');
+        eq('R13 and its work came back', eng.stateBlob, EDITED);
+        teardown();
+    }
+
+    /* R14 — the work already stranded on devices in the field: one directory
+     * per visit, none of them ever read again. The highest intact one wins. */
+    {
+        const { eng } = boot({
+            [ACTIVE]: '__pending-9-7\nNew Set 10\n',
+            [uuidToStatePath('__pending-9-2')]: 'movy1\nbpm 11000\n',
+            [uuidToStatePath('__pending-9-5')]: EDITED,
+        });
+        eq('R14 adopted the pad', currentSetUuid(), '__pending-9');
+        eq('R14 the newest orphan was recovered', eng.stateBlob, EDITED);
+        eq('R14 and now belongs to the pad', readBestState('__pending-9').payload, EDITED);
+        teardown();
+    }
+
+    /* R15 — a Set deleted in Move leaves state behind that nothing can reach.
+     * host_remove_dir is allowed anywhere under modules/, which is where this
+     * lives, so it can actually be collected. */
+    {
+        const SETS = '/data/UserData/UserLibrary/Sets';
+        const IDX  = '/data/UserData/schwung/modules/tools/movy/sets/name-index.json';
+        const { fs } = boot({
+            [ACTIVE]: 'LIVE\nStill Here\n',
+            [SETS]: DIR,
+            [SETS + '/LIVE']: DIR,
+            [IDX]: JSON.stringify({ 'Still Here': 'LIVE', 'Deleted': 'DEAD' }),
+            [uuidToStatePath('LIVE')]: SAVED,
+            [uuidToStatePath('DEAD')]: EDITED,
+        });
+        eq('R15 the dead set was collected', readBestState('DEAD'), null);
+        eq('R15 the live set was not', readBestState('LIVE').payload, SAVED);
+        eq('R15 and it left the name index',
+           JSON.parse(fs.files[IDX])['Deleted'] === undefined, true);
+        teardown();
+    }
+
+    /* R16 — the guard on R13. An unreadable Sets/ directory says nothing about
+     * which sets exist, and collecting on that answer would delete all of them. */
+    {
+        const IDX = '/data/UserData/schwung/modules/tools/movy/sets/name-index.json';
+        boot({
+            [ACTIVE]: 'LIVE\nStill Here\n',
+            [IDX]: JSON.stringify({ 'Deleted': 'DEAD' }),
+            [uuidToStatePath('DEAD')]: EDITED,
+        });
+        eq('R16 nothing collected without a Sets dir', readBestState('DEAD').payload, EDITED);
         teardown();
     }
 }

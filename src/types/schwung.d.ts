@@ -39,6 +39,9 @@ declare function host_read_file(path: string): string | null;
 declare function host_write_file(path: string, content: string): boolean;
 declare function host_file_exists(path: string): boolean;
 declare function host_ensure_dir(path: string): boolean;
+/* rm -rf, permitted only under modules/ — which is where movy's per-set state
+ * lives. There is no host_remove_file, so a directory is the unit of deletion. */
+declare function host_remove_dir(path: string): boolean;
 /* Tool-DSP param bridge — installed by shadow_ui before ui.js loads when the
  * tool ships a dsp.so (routes to shadow_set/get_param(0, "overtake_dsp:"+key)).
  * Guard with typeof checks: absent in browser tests and DSP-less installs. */

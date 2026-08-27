@@ -47,32 +47,15 @@ export function shadowPath(uuid: string, slot: number): string {
     return SETS_DIR + '/' + (uuid || '_default') + '/seq-state.' + slot + '.json';
 }
 
-/* schwung mints a fresh `__pending-<index>-<seq>` every time Move's set index
- * moves to a Set it cannot resolve, and it can only resolve one once Move has
- * materialised `UserLibrary/Sets/<uuid>` — which Move does only when MOVE
- * itself has content to save. A user who plays entirely through schwung never
- * gives it any, so those pads stay provisional forever and the seq climbs on
- * every visit: a device in the field had `__pending-9-2` … `__pending-9-7`, six
- * directories for six visits to one pad, none of them ever read again.
+/* Provisional: an id that names a pad Move has not committed to disk rather
+ * than a Set. `_default` (no answer at all) counts — it is not a Set either.
  *
- * The pad index is the identity; the seq is noise. Collapsing it is what lets a
- * never-materialised Set keep its sequence across visits. */
-export function normalizeSetUuid(uuid: string): string {
-    const m = uuid.match(/^(__pending-\d+)-\d+$/);
-    return m ? m[1] : uuid;
-}
-
-/** Provisional: an id that names a pad rather than a Set Move has committed to
- *  disk. `_default` (no answer at all) counts — it is not a Set either. */
+ * schwung mints a fresh `__pending-<index>-<seq>` on every visit to such a pad
+ * and movy follows it verbatim, exactly as davebox's seq8 does: it is the id
+ * both hosts agree on. What that costs, and what fixing it would take, is
+ * `docs/pending-sets.md`. */
 export function isProvisionalUuid(uuid: string): boolean {
     return uuid === '' || uuid === '_default' || uuid.startsWith('__');
-}
-
-/** The pad index behind a provisional id, or -1. Used to reach the orphaned
- *  per-visit directories written before ids were keyed by pad. */
-export function provisionalIndex(uuid: string): number {
-    const m = normalizeSetUuid(uuid).match(/^__pending-(\d+)$/);
-    return m ? Number(m[1]) : -1;
 }
 
 /* Everything movy holds for one Set lives under a single directory, so one
@@ -119,7 +102,7 @@ export function readActiveSetAny(): { id: SetId; provisional: boolean } | null {
     const uuid = (lines[0] || '').trim();
     if (!uuid) return null;
     return {
-        id: { uuid: normalizeSetUuid(uuid), name: (lines[1] || '').trim() },
+        id: { uuid, name: (lines[1] || '').trim() },
         provisional: isProvisionalUuid(uuid),
     };
 }

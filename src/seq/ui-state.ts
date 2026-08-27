@@ -4,7 +4,7 @@
  * alongside the state blob. */
 
 import { TRACK_COUNT } from '../track/ref.js';
-import { captureChains, restoreChains } from '../track/chain-persist.js';
+import { captureChains, clearChainsNotIn, restoreChains } from '../track/chain-persist.js';
 import { mlog } from '../log.js';
 import { keyboardState, resetOctaves, OCT_MIN, OCT_MAX } from '../keyboard/state.js';
 import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
@@ -44,6 +44,11 @@ export function applyUiState(blob: string): void {
          * the sooner they start the sooner the set sounds like itself. Absent in
          * blobs written before movy hosted chains, which restoreChains treats as
          * "nothing to do". */
+        /* schwung's pass 1, before its pass 2: unload what this Set does not
+         * want before loading what it does. Without it a module outlived every
+         * set switch and was then autosaved into whichever Set it landed in. */
+        const gone = clearChainsNotIn(o.chains);
+        if (gone > 0) mlog('chains: cleared ' + gone + ' component(s) from the previous set');
         const n = restoreChains(o.chains);
         if (n > 0) mlog('chains: restoring ' + n + ' movy chain component(s)');
         if (Array.isArray(o.oct)) {
@@ -80,6 +85,10 @@ function applyDefaultQuant(pct: number): void {
 
 /* Defaults match init(): C tonic, Major, Chromatic/4ths, C3 on every track. */
 export function resetUiState(): void {
+    /* A Set with no UI blob wants no movy chains — the same clean slate schwung
+     * gives an unseen set when it seeds empty slots. */
+    const gone = clearChainsNotIn(null);
+    if (gone > 0) mlog('chains: cleared ' + gone + ' component(s) from the previous set');
     keyboardState.rootPc = 0;
     keyboardState.scale = 0;
     keyboardState.mode = 0;

@@ -83,6 +83,61 @@ export function captureChains(): ChainTrackState[] {
     return out;
 }
 
+/* What the incoming Set wants loaded, as "<track>|<component>" -> module id. */
+function wantedModules(saved: ChainTrackState[] | undefined | null): Map<string, string> {
+    const want = new Map<string, string>();
+    if (!Array.isArray(saved)) return want;
+    for (const track of saved) {
+        if (!track || typeof track.t !== 'number' || !Array.isArray(track.comp)) continue;
+        for (const c of track.comp) {
+            if (c && typeof c.c === 'string' && typeof c.m === 'string' && c.m !== '')
+                want.set(track.t + '|' + c.c, c.m);
+        }
+    }
+    return want;
+}
+
+/** Unload every movy-hosted component the incoming Set does not want.
+ *
+ *  schwung does this on every set change and calls it pass 1: clear all the
+ *  slots, THEN load the new set's (shadow_ui.js, SET_CHANGED). movy had no
+ *  pass 1 at all — `restoreChains` only ever loads — so a module stayed loaded
+ *  across every switch, followed the user into a Set that had never held it,
+ *  and was then written into that Set's own state on the next autosave.
+ *
+ *  A component both Sets want is left ALONE rather than cleared and reloaded:
+ *  writing `<component>:module` tears the old one down and dlopens the new,
+ *  and schwung's own note on this (`shadow_slot_clear_all_modules`) is that a
+ *  full chain teardown is materially expensive and has caused audio dropouts.
+ *  Doing it to arrive back where we started is exactly the cost worth skipping.
+ *
+ *  Returns the number of components cleared. */
+export function clearChainsNotIn(saved: ChainTrackState[] | undefined | null): number {
+    const want = wantedModules(saved);
+    const comps = persistableComponents();
+    let cleared = 0;
+
+    for (let t = 0; t < TRACK_COUNT; t++) {
+        if (trackKind(t) !== 'movy') continue;
+        const port = portFor(t);
+        /* One batched read per track, the same shape `captureChains` uses: an
+         * empty track costs a single round trip, so a Set with no movy chains
+         * pays almost nothing to switch away from. */
+        const ids = port.getMany(comps.map((c) => moduleReadKey(c)));
+        comps.forEach((c, i) => {
+            const id = ids[i];
+            if (!id) return;                          // already empty
+            if (want.get(t + '|' + c) === id) return; // the new Set wants this one
+            /* The empty string is schwung's own teardown value — the same one
+             * `shadow_slot_clear_all_modules` writes, and the one movy's undo
+             * writes to restore a slot that used to be empty. */
+            port.setParam(c + ':module', '');
+            cleared++;
+        });
+    }
+    return cleared;
+}
+
 /** Write the chains back. Safe to call with anything `captureChains` produced,
  *  including from an older build — unknown tracks and components are skipped
  *  rather than trusted. */

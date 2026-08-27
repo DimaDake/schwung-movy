@@ -76,7 +76,7 @@ export async function run() {
      * all work throughout. */
     {
         const { fs, eng } = boot({ [ACTIVE]: '__pending-13-3\nNew Set\n' });
-        eq('R1 adopted the provisional id, keyed by pad', currentSetUuid(), '__pending-13');
+        eq('R1 adopted the provisional id', currentSetUuid(), '__pending-13-3');
         eng.stateBlob = EDITED;                       // the user enters a pattern
         seqState.dirty = true;
 
@@ -86,7 +86,7 @@ export async function run() {
         eq('R1 renamed to the real id', currentSetUuid(), 'NEW1');
         eq('R1 the pattern survived', eng.stateBlob, EDITED);
         eq('R1 and reached disk under it', readBestState('NEW1').payload, EDITED);
-        eq('R1 the pad directory did not survive it', readBestState('__pending-13'), null);
+        eq('R1 the provisional state did not survive it', readBestState('__pending-13-3'), null);
         teardown();
     }
 
@@ -103,17 +103,17 @@ export async function run() {
         teardown();
     }
 
-    /* R3 — a provisional id whose seq changes but whose PAD does not. schwung
-     * mints a fresh seq freely; the pad is the set. (Its old form asserted that
-     * a different pad was a rename too — see R10 for why that was the bug.) */
+    /* R3 — provisional to a DIFFERENT provisional, which the device log shows
+     * happening while the user browses Sets. Still a rename: work that follows
+     * you can be undone, work orphaned in a dead namespace cannot. */
     {
         const { fs, eng } = boot({ [ACTIVE]: '__pending-11-3\nNew Set\n' });
         eng.stateBlob = EDITED;
         seqState.dirty = true;
-        fs.files[ACTIVE] = '__pending-11-9\nNew Set\n';
+        fs.files[ACTIVE] = '__pending-10-2\nNew Set\n';
         run();
-        eq('R3 still the same pad', currentSetUuid(), '__pending-11');
-        eq('R3 the work stayed put', eng.stateBlob, EDITED);
+        eq('R3 followed the browse', currentSetUuid(), '__pending-10-2');
+        eq('R3 the work came along', eng.stateBlob, EDITED);
         teardown();
     }
 
@@ -257,54 +257,6 @@ export async function run() {
         eq('R11 the engine was cleared', eng.stateBlob, BLANK);
         eq('R11 nothing was carried onto disk', readBestState('SETB'), null);
         eq('R11 and the old set kept its work', readBestState('SETA').payload, EDITED);
-        teardown();
-    }
-
-    /* R12 — the flipped R3. With provisional ids keyed by pad, a DIFFERENT
-     * provisional id is a different pad, so it gets its own blank slate. */
-    {
-        const { fs, eng } = boot({ [ACTIVE]: '__pending-11-3\nNew Set\n' });
-        eng.stateBlob = EDITED; seqState.dirty = true;
-        run(40);
-        fs.files[ACTIVE] = '__pending-10-2\nNew Set\n';
-        run();
-        eq('R12 followed the browse', currentSetUuid(), '__pending-10');
-        eq('R12 the new pad is blank', eng.stateBlob, BLANK);
-        eq('R12 pad 12 kept its work', readBestState('__pending-11').payload, EDITED);
-        teardown();
-    }
-
-    /* R13 — the same pad revisited. schwung mints a fresh `-<seq>` on every
-     * visit to a Set Move never materialised (a user who plays only through
-     * movy never gives Move anything to save), so the seq is noise: the pad
-     * index is the identity. Without this, every visit was a brand-new Set and
-     * the pad recorded nothing that survived leaving it. */
-    {
-        const { fs, eng } = boot({ [ACTIVE]: '__pending-17-1\nNew Set 18\n' });
-        eq('R13 keyed by pad, not by visit', currentSetUuid(), '__pending-17');
-        eng.stateBlob = EDITED; seqState.dirty = true;
-        run(700);                                        // autosave lands
-        fs.files[ACTIVE] = 'SETA\nSong A\n';            // away to another set
-        fs.files[uuidToStatePath('SETA')] = SAVED;
-        run();
-        fs.files[ACTIVE] = '__pending-17-6\nNew Set 18\n';   // back to the same pad
-        run();
-        eq('R13 back on the same pad', currentSetUuid(), '__pending-17');
-        eq('R13 and its work came back', eng.stateBlob, EDITED);
-        teardown();
-    }
-
-    /* R14 — the work already stranded on devices in the field: one directory
-     * per visit, none of them ever read again. The highest intact one wins. */
-    {
-        const { eng } = boot({
-            [ACTIVE]: '__pending-9-7\nNew Set 10\n',
-            [uuidToStatePath('__pending-9-2')]: 'movy1\nbpm 11000\n',
-            [uuidToStatePath('__pending-9-5')]: EDITED,
-        });
-        eq('R14 adopted the pad', currentSetUuid(), '__pending-9');
-        eq('R14 the newest orphan was recovered', eng.stateBlob, EDITED);
-        eq('R14 and now belongs to the pad', readBestState('__pending-9').payload, EDITED);
         teardown();
     }
 

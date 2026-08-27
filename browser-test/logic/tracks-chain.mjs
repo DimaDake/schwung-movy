@@ -126,6 +126,30 @@ export async function run() {
   eq('state written second', writes[1][0], 'ch4:synth:state');
   eq('state value round-tripped', writes[1][1], 'BLOB42');
 
+  /* Pass 1. schwung clears every slot on a set change before loading the new
+   * set's; movy only ever loaded, so a module outlived the switch, followed the
+   * user into a Set that never held it, and was autosaved into that Set. */
+  {
+    const { clearChainsNotIn } = await import('../../dist/esm/track/chain-persist.js');
+
+    writes.length = 0;
+    eq('a set with no chains clears the loaded one', clearChainsNotIn(null), 1);
+    eq('and clears it the way schwung does', writes[0].join('='), 'ch4:synth:module=');
+
+    /* A component the incoming Set wants at the SAME module is left alone:
+     * writing it would dlclose and dlopen to arrive back where we started. */
+    writes.length = 0;
+    eq('an unchanged component is not torn down', clearChainsNotIn(snap), 0);
+    eq('and nothing was written', writes.length, 0);
+
+    /* A different module in the same component IS cleared — restoreChains then
+     * loads the new one over an empty slot rather than a stale chain. */
+    writes.length = 0;
+    eq('a replaced component is cleared',
+       clearChainsNotIn([{ t: 4, comp: [{ c: 'synth', m: 'braids' }] }]), 1);
+    eq('by the same teardown write', writes[0].join('='), 'ch4:synth:module=');
+  }
+
   /* Tolerance: older blobs have no `chains` key, and a corrupt one must not
    * throw during set load. */
   eq('missing chains key is a no-op', restoreChains(undefined), 0);

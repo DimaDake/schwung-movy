@@ -88,10 +88,12 @@ out sequences whose Set has been deleted the next time you open it.
 Set pads you have never saved anything into from Move itself are a special case
 worth knowing about. Move only writes such a Set to disk once *Move* has
 something to save in it, and if you work entirely inside Movy it never does — so
-Schwung has no name to file your work under and uses the pad itself. Your
-sequence still comes back every time you return to that pad. It is worth
-recording something in Move on that Set anyway, since only a real Set can be
-renamed, copied or backed up.
+neither Schwung nor Movy has a Set to file your work under, and **what you record
+there will not be waiting for you next time**. This affects your instruments the
+same way it affects your sequence, and it is the same on Schwung and davebox.
+Recording anything into the Set from Move itself makes it real, after which
+everything persists normally — and only a real Set can be renamed, copied or
+backed up. (`docs/pending-sets.md` has the detail.)
 
 The **screen** is the 128×64 OLED. A typical parameter page looks like this:
 

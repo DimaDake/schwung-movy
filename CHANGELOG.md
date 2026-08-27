@@ -24,14 +24,12 @@ far. Earlier work is summarised in the timeline below for context.
   is a switch, and a Set with no sequence starts empty, the same way Schwung
   seeds an unseen Set with empty slots.
 
-- **Set pads that Move never wrote to disk keep their sequence.** Move only
-  materialises a Set once Move itself has something to save in it, so a pad
-  played entirely through Schwung never resolves to a real Set and Schwung
-  addresses it by a synthetic id that changed on *every visit*. Movy filed its
-  sequence under that id, so each visit to the pad was a brand-new Set: nothing
-  the pad recorded survived leaving it. Movy now keys those Sets by the pad
-  itself. Work stranded by the old behaviour is adopted the next time that pad
-  is opened.
+- **A set switch unloads the modules the incoming Set does not want.** Schwung
+  clears every slot on a set change before loading the new Set's; Movy only ever
+  loaded. So a module on a Movy-hosted track outlived every switch, followed you
+  into a Set that had never held it, and was written into *that* Set's state on
+  the next autosave. A component both Sets want at the same module is left
+  alone rather than torn down and re-opened.
 
 - **Sequences for deleted Sets are collected.** Deleting a Set in Move left
   Movy's state for it on the device permanently. It is now removed on load —

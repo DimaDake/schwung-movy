@@ -5,44 +5,9 @@
  * Move set. */
 
 import {
-    BLANK_STATE, MOVE_SETS_DIR, fileExists, loadNameIndex, provisionalIndex, removeSetState,
-    uuidToStatePath,
+    BLANK_STATE, MOVE_SETS_DIR, fileExists, loadNameIndex, uuidToStatePath,
 } from './set-context.js';
 import { readBestState, readUiBlob, writeStateBlob, writeUiBlob } from './persist-store.js';
-import { mlog } from '../log.js';
-
-/* How far up the per-visit seq to look. schwung's counter climbs once per
- * unresolved visit and never resets, so this is a recovery window rather than a
- * bound: devices in the field showed seqs up to 8. */
-const ORPHAN_SEQ_MAX = 12;
-
-/* State written before provisional ids were keyed by pad: one directory per
- * visit (`__pending-9-2` … `__pending-9-7`), each abandoned the moment the user
- * left the pad. The highest intact one is the most recent work, so it becomes
- * the pad's state and the per-visit directories go.
- *
- * Runs only for a pad that has no state of its own — which is once, since
- * adopting the orphan gives it some. */
-function adoptOrphans(uuid: string): { payload: string; gen: number } | null {
-    const idx = provisionalIndex(uuid);
-    if (idx < 0) return null;
-    let best: { payload: string; gen: number } | null = null;
-    let bestSeq = 0;
-    const found: string[] = [];
-    for (let seq = 1; seq <= ORPHAN_SEQ_MAX; seq++) {
-        const from = '__pending-' + idx + '-' + seq;
-        const st = readBestState(from);
-        if (!st) continue;
-        found.push(from);
-        if (seq >= bestSeq) { best = { payload: st.payload, gen: st.gen }; bestSeq = seq; }
-    }
-    if (!best || !writeStateBlob(uuid, best.payload, best.gen + 1)) return null;
-    const ui = readUiBlob('__pending-' + idx + '-' + bestSeq);
-    if (ui) writeUiBlob(uuid, ui);
-    for (const from of found) removeSetState(from);
-    mlog('seq: adopted orphaned pad state from ' + found.length + ' visit(s)');
-    return { payload: best.payload, gen: best.gen + 1 };
-}
 
 function escapeRegex(s: string): string {
     return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -90,9 +55,6 @@ export function findInheritCandidates(
 export function resolveState(uuid: string, name: string): { payload: string; gen: number } {
     const own = readBestState(uuid);
     if (own) return own;
-
-    const orphan = adoptOrphans(uuid);
-    if (orphan) return orphan;
 
     const cands = findInheritCandidates(name, loadNameIndex());
     if (cands.length > 0) {

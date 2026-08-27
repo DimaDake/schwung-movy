@@ -106,17 +106,35 @@ would carry work onto it. Distinguishing that from materialisation needs the
 incoming set's song index, which no host API exposes. Materialisation is the
 common case and losing the work is the worse failure, so it keeps the rename.
 
-### 2. Key an unresolved set by its index
+### 2. Key an unresolved set by its index — BUILT, MEASURED, THEN DROPPED
 
-Normalise `__pending-<index>-<seq>` to `__pending-<index>` for storage and
-identity. One pad, one directory, across any number of visits.
+Normalising `__pending-<index>-<seq>` to `__pending-<index>` worked, and the
+migration recovered real stranded work on a device. It was dropped anyway: it
+makes movy file a Set under an id neither schwung nor davebox agrees with, and
+it fixes only movy's half — the pad's *instruments* are schwung's and keep
+churning regardless. Aligning beat half-fixing.
 
-Migration, so the work already on those devices is not stranded: when adopting
-`__pending-<index>` for the first time and it has no state, probe
-`__pending-<index>-<seq>` for seq 1..12 and adopt the highest that parses.
-Bounded, runs once per pad, uses the existing `readBestState`.
+The full write-up, including what to watch out for if it is ever rebuilt and the
+one-line upstream change that would fix it properly, is `docs/pending-sets.md`.
+
+### 2b. Unload what the incoming Set does not want
+
+schwung's `SET_CHANGED` runs two passes — clear every slot, then load the new
+Set's. movy had no pass 1: `restoreChains` only ever loads, so a module outlived
+every switch and was autosaved into whichever Set it landed in. `braids`
+followed a switch onto a pad that had never held it and was written there.
+
+`clearChainsNotIn` is that pass, with one deliberate difference: a component both
+Sets want at the same module is left alone. Writing `<component>:module` is a
+teardown plus a dlopen, and schwung's own note on
+`shadow_slot_clear_all_modules` is that a full chain teardown is expensive enough
+to have caused audio dropouts.
 
 ### 3. Garbage-collect dead sets
+
+Aliveness is davebox's test, not a bare check of `Sets/`: switching schwung set
+pages moves whole Sets into `set_pages/page_<n>/`, so from any other page every
+Set on every other page reads as deleted (`seq8_set_uuid_alive`).
 
 No host API lists a directory, but `name-index.json` already maps every set name
 movy has seen to its uuid. On load, for each uuid in that index whose

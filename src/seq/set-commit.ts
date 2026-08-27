@@ -50,14 +50,15 @@ import { isProvisionalUuid } from './set-context.js';
 /* Wall-clock, because ticks are not a duration here: the rate swings 43-220 Hz,
  * so "ten ticks" is anywhere from 45 to 230 ms.
  *
- * 1 s and 2 s are both known to work. The short presses that appeared to fail
- * proved nothing — they were sent while movy held the surface, so they never
- * reached Move at all — and the drain hands Move at most one packet per frame,
- * so press and release are already a frame apart at minimum. This is short
- * enough to keep Move's pads on screen briefly rather than for two seconds, and
- * long enough to be many frames. It is logged, so a failure to commit can be
- * read against the value that produced it. */
-const HOLD_MS = 250;
+ * 1 s, 2 s and 250 ms are all confirmed to commit the Set. The short presses
+ * that appeared to fail proved nothing — they were sent while movy held the
+ * surface, so they never reached Move at all.
+ *
+ * Zero means a tap: the release goes on the next tick, and the drain hands Move
+ * at most one packet per frame anyway, so the two still arrive separately. That
+ * makes the window where Move owns the pads as short as it can be. Logged, so a
+ * Set that fails to commit can be read against the hold that produced it. */
+const HOLD_MS = 0;
 
 /* MoveRow1 — the same CC, and the same packet shape, that the track-volume
  * divert already injects (mixer/track-volume.ts). */

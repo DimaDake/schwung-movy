@@ -253,6 +253,7 @@ _log('\nTest: LED ownership claimed on init and on resume');
 
 _log('\nTest: knob LEDs diff against a movy-owned cache');
 {
+    const { ledFrameReset } = await import('../../dist/esm/seq/led-cache.js');
     const { updateKnobLEDs, resetKnobLedCache } =
         await import('../../dist/esm/renderer/knob-leds.js');
 
@@ -280,6 +281,7 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     /* 0.1 and 0.9 land in different whiteLevel/amberLevel bands, so every
      * knob's colour actually changes. */
     sends = 0;
+    ledFrameReset();
     updateKnobLEDs(vmAt(0.9));
     eq('changed frame writes all 16 again', sends, 16);
 
@@ -287,6 +289,7 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
      * LED-clear repaints hardware without going through our cache. */
     sends = 0;
     resetKnobLedCache();
+    ledFrameReset();          // one LED frame per app tick; this suite is one frame per call
     updateKnobLEDs(vmAt(0.9));
     eq('reset forces a full repaint', sends, 16);
 

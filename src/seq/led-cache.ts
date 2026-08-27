@@ -23,6 +23,23 @@ let sentThisFrame = 0;
 /* Reset the per-tick send budget. Call once at the top of each LED frame. */
 export function ledFrameReset(): void { sentThisFrame = 0; }
 
+/** Claim `n` packets of this frame's budget. `false` means DO NOT SEND, and —
+ *  just as importantly — do not record the colour as sent: the write has to
+ *  retry next tick.
+ *
+ *  Every LED writer has to come through here, not only the cached ones. The pad
+ *  painters in app/tick.ts and the knob rings called `setLED` directly, so a
+ *  cold repaint (32 chromatic or drum pads + the step row + the knob rings)
+ *  sent well over the ~64-packet output buffer in one frame; the overflow is
+ *  dropped silently by the hardware, and because each painter had already
+ *  written its own cache, nothing ever repainted. Symptom on device: come back
+ *  from background and every pad is black while the buttons are fine. */
+export function ledBudgetTake(n = 1): boolean {
+    if (sentThisFrame + n > FRAME_BUDGET) return false;
+    sentThisFrame += n;
+    return true;
+}
+
 export function cachedSetLED(note: number, color: number): void {
     if (lastNoteLed.get(note) === color) return;
     if (sentThisFrame >= FRAME_BUDGET) return; // over budget: retry next tick

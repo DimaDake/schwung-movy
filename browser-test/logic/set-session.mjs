@@ -294,10 +294,12 @@ export async function run() {
         eq('R18 nothing sent into the hold', sent.length, 0);
         clock += 250; run(4);
         eq('R18 then pressed', sent[0]?.join(','), '11,176,43,127');
-        run(60);
-        eq('R18 holds the button, it does not blip', sent.length, 1);
-        clock += 1200; run(4);
-        eq('R18 and releases it after the hold', sent[1]?.join(','), '11,176,43,0');
+        /* A tap: the release rides the next tick. The drain hands Move at most
+         * one packet per frame, so the two still reach it separately, and the
+         * window where Move owns the pads is as short as it can be. */
+        run(4);
+        eq('R18 and released on the next tick', sent[1]?.join(','), '11,176,43,0');
+        eq('R18 exactly two packets', sent.length, 2);
         clock += 250; run(4);
         eq('R18 the surface came back', modes[1], 2);
         /* Move owned the pad LEDs while it held the surface, so movy's claim on

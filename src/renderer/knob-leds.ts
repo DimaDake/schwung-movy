@@ -1,5 +1,6 @@
 import type { ViewModel } from '../types/viewmodel.js';
 import { mlog } from '../log.js';
+import { ledBudgetTake } from '../seq/led-cache.js';
 
 /* White intensity scale (knobs 1-4) — always lit so row is identifiable */
 function whiteLevel(nv: number): number {
@@ -56,6 +57,9 @@ export function updateKnobLEDs(vm: ViewModel): void {
                 : row === 0 ? (flash ? 120 : whiteLevel(pvm.normalizedValue))
                 : (flash ? 3 : amberLevel(pvm.normalizedValue));
             if (lastKnobColor[physK] !== color) {
+                /* Two packets per knob, and they come after the pad painters —
+                 * a cold frame must not spend the buffer they still need. */
+                if (!ledBudgetTake(2)) continue;
                 lastKnobColor[physK] = color;
                 /* notes 0-7: knob touch LEDs */
                 setLED(physK, color, true);
@@ -79,6 +83,7 @@ export function updateSingleKnobLED(knob: number, nv: number): void {
     for (let k = 0; k < 8; k++) {
         const color = k === knob ? whiteLevel(nv) : 0;
         if (lastKnobColor[k] === color) continue;
+        if (!ledBudgetTake(2)) continue;
         lastKnobColor[k] = color;
         setLED(k, color, true);
         setButtonLED(MoveKnob1 + k, color, true);

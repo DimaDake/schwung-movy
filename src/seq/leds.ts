@@ -226,6 +226,10 @@ export function seqLedsTick(
     barOffset: number = 0,
     maxOff: number = 0,
 ): void {
+    /* Starts the LED frame for everything painted from here on. app/tick.ts
+     * resets it too, at the very top: this one keeps the budget meaningful for
+     * callers that drive the LED layer directly, that one guarantees a tick
+     * which never reaches here cannot leave it exhausted and stop every LED. */
     ledFrameReset();
     /* The step row has THREE painters over the same notes: cachedSetLED in the
      * normal view, and cachedSetAnimLED in both Loop mode and Session mode.

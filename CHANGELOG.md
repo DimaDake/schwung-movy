@@ -15,6 +15,17 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Every pad going black after returning from background.** The LED layer has a
+  per-frame send budget because the MIDI output buffer holds ~64 packets and
+  drops the overflow *silently* — but only the cached step/button layer
+  respected it. The pad painters and the knob rings wrote straight to `setLED`,
+  so a cold repaint (32 pads + the step row + eight knob rings) reached **74
+  packets in one tick**. The overflow never arrived, and because each painter
+  had already recorded the colour in its own cache, nothing ever repainted it.
+  Movy's log insisted it had painted all 32 pads, and the hardware was dark.
+  Every LED writer now shares one budget and leaves its cache untouched when it
+  cannot send, so the write simply retries on the next tick.
+
 - **A deleted Set no longer comes back.** Switching to a Set that had no Movy
   sequence of its own was treated as the *current* Set being renamed, so the
   work in hand was carried into it — delete a Set in Move and the Set Move made

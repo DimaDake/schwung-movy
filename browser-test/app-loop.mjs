@@ -124,6 +124,42 @@ _log('\napp-loop: drum grid repaints once on a track switch, then idles');
     _log(`    (${ledWrites} LED writes across 40 ticks after a track switch)`);
 }
 
+_log('\napp-loop: a cold LED frame never overflows the output buffer');
+{
+    /* The MIDI output buffer holds ~64 packets and drops the overflow SILENTLY,
+     * and every painter records its own cache as sent — so an over-budget frame
+     * is not retried, it is lost. On device that read as: come back from
+     * background and every pad is black while the buttons are fine, with movy's
+     * own log insisting it had painted all 32.
+     *
+     * The pad painters and the knob rings used to call setLED directly, outside
+     * the budget the cached step/button layer respects. */
+    resetApp();
+    advance(45);
+
+    let perTick = 0, worst = 0;
+    const realSetLED = globalThis.setLED;
+    const realSetButtonLED = globalThis.setButtonLED;
+    globalThis.setLED = (n, c) => { perTick++; realSetLED(n, c); };
+    if (typeof realSetButtonLED === 'function')
+        globalThis.setButtonLED = (n, c, i) => { perTick++; realSetButtonLED(n, c, i); };
+
+    globalThis.onResume();                  // exactly what returning from background does
+    for (let i = 0; i < 40; i++) {
+        perTick = 0;
+        advance(1);
+        if (perTick > worst) worst = perTick;
+    }
+    globalThis.setLED = realSetLED;
+    if (typeof realSetButtonLED === 'function') globalThis.setButtonLED = realSetButtonLED;
+
+    /* ~64 packets is where the hardware starts dropping, per schwung's API
+     * notes. The budgeted painters stop at 40, and the slack above it is for
+     * the bounded one-shots that ride a layout transition (the octave arrows). */
+    eq('no tick overflows the output buffer', worst <= 60, true);
+    _log(`    (worst tick sent ${worst} LED packets after a resume invalidation)`);
+}
+
 _log('\napp-loop: selected pad is white when idle');
 {
     resetApp();

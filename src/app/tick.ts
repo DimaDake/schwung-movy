@@ -36,6 +36,7 @@ import { renderLoadingView } from '../renderer/loading-view.js';
 import { tempoOverrideTick } from '../seq/tempo-override.js';
 import { captureTick } from '../seq/capture.js';
 import { seqLedsTick, seqLedsInvalidate, displayHoldNotes } from '../seq/leds.js';
+import { ledBudgetTake, ledFrameReset } from '../seq/led-cache.js';
 import { seqSetLane } from '../seq/router.js';
 import { stepAutoTick } from '../seq/step-edit.js';
 import { stepRecTick } from '../seq/step-rec-view.js';
@@ -209,6 +210,13 @@ const warmReadValue = (slot: number, lane: number): void => {
  * that need the repair (resume, and the set-commit surface window), then again
  * once it should have finished. */
 let ledWatchTicks = -1;
+/* schwung clears the LEDs when it observes the overtake re-entry, and that can
+ * land AFTER movy has finished repainting — the device showed all 32 pads
+ * painted (initIdx=32, twice) with the hardware still dark. Rather than race
+ * it, repaint a second time once the entry has settled. One extra pass over 32
+ * pads and the step row is nothing next to a surface that looks broken. */
+let ledRepeatTicks = -1;
+const LED_REPEAT_TICKS = 45;
 
 function ledContext(): string {
     return 'session=' + (seqState.sessionMode ? 1 : 0)
@@ -221,9 +229,16 @@ function ledContext(): string {
 export function logLedRepaint(why: string): void {
     mlog('leds: repaint (' + why + ') ' + ledContext());
     ledWatchTicks = 90;
+    ledRepeatTicks = LED_REPEAT_TICKS;
 }
 
 export function ledRepaintWatch(): void {
+    if (ledRepeatTicks >= 0 && --ledRepeatTicks <= 0) {
+        ledRepeatTicks = -1;
+        claimLedOwnership();
+        invalidateLedCachesOnResume();
+        mlog('leds: repainting again ' + ledContext());
+    }
     if (ledWatchTicks < 0) return;
     if (--ledWatchTicks > 0) return;
     ledWatchTicks = -1;
@@ -251,6 +266,12 @@ export function tick(): void {
 }
 
 function tickBody(): void {
+    /* One LED frame per app tick. This used to live at the top of seqLedsTick,
+     * which was fine while that was the only budgeted writer — now the pad
+     * painters and the knob rings share the budget too, and any tick that did
+     * not reach seqLedsTick would leave it exhausted and silently stop every
+     * LED on the device. */
+    ledFrameReset();
     perfPhase('seqengine');
     // Keep the engine mirror synced first (flushes any queued command, polls
     // status) — the mock/real engine reports transport + step state regardless
@@ -404,14 +425,22 @@ function tickBody(): void {
     if (!appState.initLedsDone && !seqState.sessionMode && !isDrum) {
         const total = PAD_MAX - PAD_MIN + 1;
         const end   = Math.min(appState.initLedIndex + LED_INIT_BATCH, total);
-        for (let i = appState.initLedIndex; i < end; i++) {
+        let i = appState.initLedIndex;
+        for (; i < end; i++) {
+            /* Stop at the frame budget rather than sending into a full output
+             * buffer — the overflow is dropped silently, and the cache write
+             * below would then claim the pad was painted. */
+            if (!ledBudgetTake()) break;
             const p = PAD_MIN + i;
             const color = padColor(p, PAD_MIN, appState.activeTrack.index, false);
             chromaticCache[i] = color;
             setLED(p, color, true);
         }
-        appState.initLedIndex = end;
-        if (appState.initLedIndex >= total) {
+        appState.initLedIndex = i;
+        /* The octave arrows finish the layout, so they are part of it: if the
+         * budget cannot take them, do not mark the init done — retry next tick
+         * rather than leave them dark for good. */
+        if (appState.initLedIndex >= total && ledBudgetTake(2)) {
             setButtonLED(MoveUp, WHITE_DIM, true);
             setButtonLED(MoveDown, WHITE_DIM, true);
             appState.initLedsDone = true; appState.dirty = true;
@@ -624,6 +653,7 @@ function tickBody(): void {
                 const playing = activeHasNote(track, note) || isSounding(p);
                 const color = drumPadLedColor(p, PAD_MIN, drumCfg, sel, track, playing);
                 if (drumCache[i] !== color) {
+                    if (!ledBudgetTake()) continue;   // cache left stale: retries next tick
                     drumCache[i] = color;
                     setLED(p, color, true);
                 }
@@ -658,6 +688,7 @@ function tickBody(): void {
             const isPlaying = isSounding(p) || (pitch >= 0 && activeHasNote(track, pitch));
             const color = padColor(p, PAD_MIN, track, isPlaying, holdNotes);
             if (chromaticCache[i] !== color) {
+                if (!ledBudgetTake()) continue;   // cache left stale: retries next tick
                 chromaticCache[i] = color;
                 setLED(p, color, true);
             }

@@ -24,10 +24,17 @@ export type FlagDef = {
      *  settings are a user's business — how much CPU movy takes, and which host
      *  owns tracks 1-4. The rest are measurement instruments. */
     release?: boolean;
-    /** Never pushed to the engine under its own key: the UI acts on it itself,
-     *  or it reaches the engine folded into another key (see `engineValue`).
-     *  Writing one would cost a blocking round trip on the audio thread to be
-     *  told nothing, and would read in the log exactly like a flag that took. */
+    /** Never pushed to the engine under ITS OWN key, because the engine has no
+     *  such param. Writing one would cost a blocking round trip on the audio
+     *  thread to be told nothing, and would read in the log exactly like a flag
+     *  that took.
+     *
+     *  It does NOT mean the engine is unaffected. Both flags marked `uiOnly`
+     *  reach it folded into another key (flags.ts `engineValue`), and that fold
+     *  is the load-bearing part: `chtracks` was once `uiOnly` with no fold, so
+     *  `drain_out` never heard it and every sequenced note kept going to schwung
+     *  while the UI had fully switched over. Mark a flag `uiOnly` only after
+     *  answering "and what does the engine do about it?". */
     uiOnly?: boolean;
     /** The value lives in the SET's ui-state.json, not in prefs.json. */
     perSet?: boolean;

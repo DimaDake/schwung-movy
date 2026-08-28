@@ -69,7 +69,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.49.0";
+const ENGINE_VERSION: &str = "0.50.0";
 
 /// Tracks backed by schwung's own shadow slots by default. Their notes go out as
 /// MIDI on the matching channel; everything above this index is a chain movy
@@ -357,9 +357,9 @@ impl Instance {
                 /* Rides the existing poll rather than costing its own IPC: the
                  * UI needs to notice a chain change to persist it, and status
                  * is the one thing it already reads every few ticks. */
-                s.push_str(&format!(" chgen={} chact={} chslp={}",
+                s.push_str(&format!(" chgen={} chact={} chslp={} chpend={}",
                     self.chains.generation(), self.chains.active_count(),
-                    self.chains.asleep_count()));
+                    self.chains.asleep_count(), self.chains.pending_loads()));
                 Some(s)
             }
             "capinfo" => Some(self.engine.capture_info()),
@@ -764,4 +764,22 @@ mod tests {
         assert_eq!(rest.strip_suffix(":module"), Some("synth"),
             "the component name is what the queue needs");
     }
+
+    /* The UI holds its loading splash until the chain modules exist, and the
+     * queue depth is the only thing that says whether they do. It rides the
+     * status poll the UI already makes every few ticks — `diag` carries it too,
+     * but reading diag would buy a second blocking get_param per tick for one
+     * number. */
+    #[test]
+    fn status_reports_the_chain_load_backlog() {
+        let mut inst = Instance::new();
+        let idle = inst.get_param("status").expect("status");
+        assert!(idle.contains(" chpend=0"), "an idle engine says so: {idle}");
+
+        inst.chains.request_load(0, "synth", "plaits");
+        inst.chains.request_load(1, "synth", "obxd");
+        let busy = inst.get_param("status").expect("status");
+        assert!(busy.contains(" chpend=2"), "queued loads are reported: {busy}");
+    }
+
 }

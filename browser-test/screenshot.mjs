@@ -34,7 +34,7 @@ const UPDATE     = process.argv.includes('--update');
 const PRESETS = [
     'test8', 'test16', 'test_enum', 'test_steps', 'plaits', 'wurl',
     'enum_overlay', 'knob_toast', 'no_params', 'keys_view', 'browse_view',
-    'session_booting', 'session_loading', 'session_failed',
+    'session_booting', 'session_loading', 'session_modules', 'session_preparing', 'session_failed',
     'obxd_preset_page', 'obxd_main_page', 'obxd_filter_page',
     'items_cell', 'items_overlay',
     'lfo_prefix', 'collide_osc',
@@ -349,6 +349,11 @@ function applyView(preset) {
          * the Set's sequencer state. */
         case 'session_booting':  lastRender = () => renderLoadingView('booting', ''); lastRender(); break;
         case 'session_loading':  lastRender = () => renderLoadingView('loading', ''); lastRender(); break;
+        /* The two halves of settling: the Set is loaded but its modules are
+         * still arriving one per audio callback, then the tail where the
+         * Set-commit press has the surface. */
+        case 'session_modules':  lastRender = () => renderLoadingView('settling', '', 7); lastRender(); break;
+        case 'session_preparing': lastRender = () => renderLoadingView('settling', '', 0); lastRender(); break;
         case 'session_failed':
             lastRender = () => renderLoadingView('failed', 'ENGINE DID NOT START'); lastRender(); break;
         case 'browse_view':      showBrowse([{ name: 'Plaits' }, { name: 'Wurl' }, { name: 'Bass' }], 1); break;

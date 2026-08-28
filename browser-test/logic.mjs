@@ -21,6 +21,7 @@ import { run as run_seq_router } from './logic/seq-router.mjs';
 import { run as run_seq_edit } from './logic/seq-edit.mjs';
 import { run as run_seq_session } from './logic/seq-session.mjs';
 import { run as run_set_session } from './logic/set-session.mjs';
+import { run as run_set_settling } from './logic/set-settling.mjs';
 import { run as run_seq_leds } from './logic/seq-leds.mjs';
 import { run as run_mute_solo } from './logic/mute-solo.mjs';
 import { run as run_step_entry } from './logic/step-entry.mjs';
@@ -65,6 +66,7 @@ const SUITES = [
     run_seq_edit,
     run_seq_session,
     run_set_session,
+    run_set_settling,
     run_seq_leds,
     run_mute_solo,
     run_step_entry,

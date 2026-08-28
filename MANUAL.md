@@ -63,10 +63,29 @@ For the first few seconds Movy shows **STARTING ENGINE**, then **LOADING SET**:
 
 ![Starting up](docs/assets/session_booting.png)
 
-The pads, knobs and buttons are inert until it is done, and that is deliberate.
-Everything you play or enter after that point belongs to the Set; nothing you do
-before it can be lost. (**Back** always works, so a Movy that cannot start is
-never a trap.)
+Reading the Set is only the first half. Its instruments are loaded one at a time
+— a full Set is twelve of them — so the screen then counts them in with
+**LOADING MODULES**:
+
+![Loading the Set's modules](docs/assets/session_modules.png)
+
+and finishes on **PREPARING SET**, which is Movy asking Move to file the Set
+under a real name (see *Which Set your sequence belongs to* below). Move owns
+the pads for about a second there, which is the other reason to wait it out.
+
+![Preparing the Set](docs/assets/session_preparing.png)
+
+The pads, knobs and buttons are inert until all of that is done, and that is
+deliberate. Everything you play or enter after that point belongs to the Set,
+and to the instruments the Set actually loaded; nothing you do before it can be
+lost or land on the wrong module. (**Back** always works, so a Movy that cannot
+start is never a trap.)
+
+Switching Sets shows the same screens again — the incoming Set's instruments
+have to be loaded just like the first one's.
+
+If a module never loads, Movy gives up waiting after ten seconds and starts
+anyway: what did load still plays.
 
 If a Set's saved sequence cannot be read, Movy says so instead of starting
 empty and letting you discover it later:

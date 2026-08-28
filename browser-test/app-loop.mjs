@@ -72,6 +72,13 @@ function resetApp() {
      * boots into is one movy has never seen — which would put those four tracks
      * on movy's own empty chains, where there is no drum module to find. */
     setFlag('chtracks', 0);
+    /* The Set-commit press is WALL-CLOCK timed (it waits 1.5 s for Move to
+     * finish loading the Set before borrowing the surface), and the loading
+     * splash now waits for it — so with this harness's 12 instant ticks movy
+     * would never leave `settling` and every gesture below would be refused.
+     * The press itself is covered in logic/set-settling.mjs, on a stubbed
+     * clock. */
+    setFlag('setcommit', 0);
     globalThis.init();                       // builds 4×chain models, resets keyboardState
     appState.trackModels[0][1].reload();     // force synth hierarchy/drum-config load
     advance(12);                             // settle engine boot + hierarchy + lane

@@ -48,6 +48,10 @@ export interface SeqUiState {
     capGen: number;
     metro: boolean;
     dirty: boolean;          // engine has unsaved state changes
+    /* Chain-module loads the engine has accepted but not yet released — it
+     * releases at most one per audio callback, so a restored Set's modules
+     * arrive over seconds. Nonzero means the Set is named but not yet playable. */
+    chainPending: number;
 
     /* note entry */
     lastPitch: number[];     // per-track: last played pitch (step-entry value)
@@ -126,6 +130,7 @@ function defaults(): SeqUiState {
         capGen: -1,
         metro: false,
         dirty: false,
+        chainPending: 0,
         lastPitch: new Array(TRACK_COUNT).fill(60) as number[],
         lastVel: new Array(TRACK_COUNT).fill(100) as number[],
         barOffset: 0,

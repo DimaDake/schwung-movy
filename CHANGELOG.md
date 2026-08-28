@@ -13,6 +13,20 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Changed
+
+- **The loading screen now waits for the whole Set.** Movy used to declare
+  itself ready the moment a Set's sequence was in the engine — but the Set's
+  instruments are loaded one per audio callback after that, and the
+  track-button press that makes Move file a new Set hands Move the pads for
+  about a second. Both happened behind a UI that looked live, so a pad hit in
+  that window could reach the wrong module or Move itself. The splash now stays
+  up through both, naming what it is waiting on (**LOADING MODULES** →
+  **PREPARING SET**), and switching Sets shows it again. The wait is capped at
+  ten seconds: a module that never loads no longer strands the instrument. The
+  engine reports its load backlog as `chpend` on the status poll it already
+  serves (`ENGINE_VERSION` 0.50.0).
+
 ### Added
 
 - **Settings page — Shift + Step 2.** Two settings now ship in the release

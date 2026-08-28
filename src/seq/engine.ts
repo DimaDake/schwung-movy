@@ -51,6 +51,8 @@ let loadAttempts = 0;
 let absentCountdown = 0;
 let pollCountdown = 1;
 let statusFailures = 0;
+/* Successful status parses this engine session — see statusSeq(). */
+let statusPolls = 0;
 
 export function engineAvailable(): boolean {
     return typeof host_module_set_param === 'function'
@@ -117,6 +119,14 @@ export function seqCmdFlush(): void {
 /* Automation label re-sync request: set on engine boot/reload; the app tick
  * consumes it once to fetch `alabels` and rebuild the lane registry. */
 let labelSyncPending = false;
+/* How many status polls have been parsed. The mirror is only as fresh as the
+ * last poll, so a caller that acts on a status FIELD BEING ZERO — rather than on
+ * it changing — has to know whether the engine has spoken since it asked. The
+ * set lifecycle does exactly that: it queues chain loads and then waits for
+ * `chpend` to reach 0, which it already is until the first poll after the
+ * queueing lands. */
+export function statusSeq(): number { return statusPolls; }
+
 export function requestLabelSync(): void { labelSyncPending = true; }
 export function takeLabelSync(): boolean {
     if (!labelSyncPending) return false;
@@ -170,6 +180,7 @@ export function seqEngineTick(): void {
             return;
         }
         statusFailures = 0;
+        statusPolls++;
         parseStatus(s);
     }
 }
@@ -294,6 +305,7 @@ function parseStatus(s: string): void {
             if (lastChainGen >= 0 && g !== lastChainGen) markUiStateDirty();
             lastChainGen = g;
         }
+        else if (key === 'chpend') seqState.chainPending = Number(val) || 0;
         else if (key === 'rec') seqState.recording = val === '1';
         else if (key === 'cin') seqState.countingIn = val === '1';
         else if (key === 'cap') {
@@ -362,6 +374,7 @@ export function resetSeqEngine(): void {
     absentCountdown = 0;
     pollCountdown = 1;
     statusFailures = 0;
+    statusPolls = 0;
     lastEnginePlay = null;
     /* A re-dlopened engine starts its chain generation at 0 again; carrying the
      * old value across would read as a change and dirty the set for nothing. */

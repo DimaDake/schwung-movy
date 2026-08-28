@@ -15,6 +15,8 @@
 
 import { mlog } from '../log.js';
 import { engineAbsent, engineGeneration, engineReady } from './engine.js';
+import { seqState } from './state.js';
+import { beginSettle, resetSettle, settleCheck, settleOutstanding, settleWaited } from './set-settle.js';
 import {
     BLANK_STATE, fileExists, isProvisionalUuid, readActiveSetAny, rememberSet, removeSetState,
     uuidToStatePath,
@@ -27,7 +29,7 @@ import { resetUiState } from './ui-state.js';
 import { loadSet, setHasState } from './set-load.js';
 import { adoptSaved, resetSetSave, saveNeeded, saveSet, savedPayload } from './set-save.js';
 
-export type Phase = 'booting' | 'loading' | 'ready' | 'switching' | 'failed';
+export type Phase = 'booting' | 'loading' | 'settling' | 'ready' | 'switching' | 'failed';
 
 const SAVE_TICKS = 600;      // ~3-8 s: the device tick is 63-205 Hz and varies with load
 const SET_POLL_TICKS = 96;   // ~0.5 s: catch a set switch, including on resume
@@ -55,6 +57,16 @@ export function clearFailure(): void { failReason = ''; phase = 'booting'; pollC
 export function currentGen(): number { return gen; }
 export function bumpGen(): void { gen++; }
 export function sessionReady(): boolean { return phase === 'ready'; }
+/* The Set is identified and its state is in the engine — true from the moment
+ * loading finishes, whether or not the modules have arrived. The lifecycle uses
+ * it wherever the question is "do we have a Set?" rather than "can it play?":
+ * the identity poll, the engine-reload guard, and the commit press all run
+ * during settling. */
+function live(): boolean { return phase === 'ready' || phase === 'settling'; }
+/* What the splash is waiting on, for the renderer. */
+export function chainLoadsPending(): number {
+    return phase === 'settling' ? seqState.chainPending : 0;
+}
 export function currentSetUuid(): string { return setId; }
 
 export function resetSetSession(): void {
@@ -62,6 +74,7 @@ export function resetSetSession(): void {
     setId = ''; setName = ''; gen = 0; loadedGen = -1;
     saveCountdown = SAVE_TICKS; pollCountdown = 1;
     failReason = '';
+    resetSettle();
     collected = false;
     resetSetSave();
     resetSetCommit();
@@ -123,11 +136,26 @@ function enterLoading(id: string, name: string): void {
     rememberSet(name, id);
     clearUiDirty();
     loadedGen = engineGeneration();
-    phase = 'ready';
+    /* Loaded is not playable. `restoreChains` (via the UI blob above) only
+     * QUEUES the module loads — the engine releases one per audio callback, and
+     * each is a 78-276 ms dlopen — so going ready here put a live-looking
+     * surface in front of a Set whose instruments did not exist yet. Settling
+     * is that gap, made visible. */
+    phase = 'settling';
+    beginSettle();
     mlog('seq: loaded set ' + id);
+}
+
+/* Promote a loaded Set to a playable one — set-settle.ts owns what that means. */
+function settleTick(): void {
+    const r = settleCheck();
+    if (r === 'wait') return;
+    if (r === 'capped') mlog('seq: settle cap reached — ' + settleOutstanding());
+    phase = 'ready';
+    mlog('seq: set ready after ' + settleWaited() + 'ms');
     /* After the Set is live, never before: collecting is pure hygiene and must
      * never delay the instrument becoming playable. Once per session. */
-    if (!collected) { collected = true; collectDeadSets(id); }
+    if (!collected) { collected = true; collectDeadSets(setId); }
 }
 
 /* The one rule, and the whole of it: a rename is the ONE transition where the
@@ -185,7 +213,7 @@ export function sessionTick(): void {
     }
     if (phase === 'failed') return;   // waiting on the user
     if (!engineReady()) {
-        if (phase === 'ready') phase = 'booting';   // the engine went away
+        if (live()) phase = 'booting';   // the engine went away
         return;
     }
     /* No file APIs: movy cannot persist anything, but it must still play. Going
@@ -193,7 +221,7 @@ export function sessionTick(): void {
      * forever behind a load that can never happen — the autosave and the
      * identity poll below both no-op without a Set. */
     if (!filesAvailable()) {
-        if (phase !== 'ready') {
+        if (!sessionReady()) {
             phase = 'ready';
             loadedGen = engineGeneration();
             mlog('seq: no file API — running without per-set persistence');
@@ -202,7 +230,7 @@ export function sessionTick(): void {
     }
     /* A generation we did not load into is an EMPTY engine: push the Set back
      * before anything can save from it. */
-    if (phase === 'ready' && engineGeneration() !== loadedGen) {
+    if (live() && engineGeneration() !== loadedGen) {
         enterLoading(setId, setName);
         return;
     }
@@ -216,13 +244,21 @@ export function sessionTick(): void {
         const id = active ? active.id.uuid : '_default';
         const name = active ? active.id.name : '';
         const provisional = active ? active.provisional : true;
-        if (phase !== 'ready') enterLoading(id, name);
+        /* Settling counts as having a Set: re-entering the load here would
+         * restart every module load the settle is waiting on, every half
+         * second, and the wait would never end. */
+        if (!live()) enterLoading(id, name);
         else if (id !== setId) identityChanged(id, name, provisional);
-        if (phase !== 'ready') return;
+        if (!live()) return;
     }
     /* A Set Move never committed loses BOTH stores on the next visit, so ask it
-     * to commit before anything is recorded into a namespace with no future. */
-    setCommitTick(setId, phase === 'ready');
+     * to commit before anything is recorded into a namespace with no future.
+     * Run from `settling` too, and told whether the chain loads have drained:
+     * the press borrows the surface, so it must land after the last dlopen but
+     * still inside the splash. */
+    setCommitTick(setId, live(), seqState.chainPending === 0);
+
+    if (phase === 'settling') { settleTick(); return; }   // nothing to autosave yet
 
     if (--saveCountdown > 0) return;
     saveCountdown = SAVE_TICKS;

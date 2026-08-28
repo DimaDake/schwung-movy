@@ -1,4 +1,5 @@
 import { trackRef } from '../track/ref.js';
+import { schwungChangePage } from '../renderer/schwung-grid.js';
 import { focusedTrack, focusGroupStep, GROUP_DIR_UP, GROUP_DIR_DOWN } from '../track/focus.js';
 import { beginTrackSwitch, restoreTrackState, switchToTrack } from '../track/switch.js';
 import { portFor } from '../track/registry.js';
@@ -637,10 +638,18 @@ export function onMidiMessageInternal(data: number[]): void {
                     } else if (dir < 0 && onBank0) {
                         setStepPageSelected(true);
                     } else {
-                        m?.changePage(dir);
+                        /* Schwung owns the page set under mode 'page' — its page COUNT differs
+                         * from movy's, so advancing movy's index and mirroring it would land
+                         * on a page that does not exist. It takes the move or declines it. */
+                        if (!schwungChangePage(appState.activeTrack.index,
+                                               m?.getComponentKey() ?? 'synth', dir)) m?.changePage(dir);
                     }
                 } else {
-                    m?.changePage(dir);
+                    /* Schwung owns the page set under mode 'page' — its page COUNT differs
+                     * from movy's, so advancing movy's index and mirroring it would land
+                     * on a page that does not exist. It takes the move or declines it. */
+                    if (!schwungChangePage(appState.activeTrack.index,
+                                           m?.getComponentKey() ?? 'synth', dir)) m?.changePage(dir);
                 }
             } else if (appState.currentView === VIEW_BROWSE) {
                 browserState.browseIndex = Math.max(0, Math.min(browserState.modules.length - 1, browserState.browseIndex + delta));

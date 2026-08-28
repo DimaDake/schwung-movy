@@ -17,6 +17,7 @@ import { WHITE_DIM } from '../seq/colors.js';
 import { padColor } from '../seq/pads.js';
 import { midiNoteName } from '../keyboard/notes.js';
 import { renderKnobsView } from '../renderer/knob-view.js';
+import { schwungGridMode, schwungPageFor } from '../renderer/schwung-grid.js';
 import { renderKeysView }  from '../renderer/keys-view.js';
 import { renderBrowseView } from '../renderer/browse-view.js';
 import { renderChainView }    from '../renderer/chain-view.js';
@@ -124,6 +125,9 @@ function buildAutomationView(track: number, model: Model): AutomationView {
     };
 }
 
+/* The automation view built for this frame, so the Schwung page can resolve
+ * lanes without building a second one. */
+let lastAutoView: any = undefined;
 let _autoLanesLog = '';
 let _autoRenderLog = '';
 /* Diagnostic (off unless debug_log_on): the per-knob automation render decision
@@ -551,6 +555,7 @@ function tickBody(): void {
             } else {
                 perfPhase('autoview');
                 const av = buildAutomationView(appState.activeTrack.index, activeModel!);
+                lastAutoView = av;
                 perfPhase('buildvm');
                 vm = activeModel!.getViewModel(av);
                 perfPhaseEnd();
@@ -558,7 +563,33 @@ function tickBody(): void {
             }
             diagAutoRender(vm);
             perfPhase('render');
-            renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index);
+            /*
+             * SCHWUNG PAGINATION. Under mode 'page' Schwung plans the page set
+             * and draws the whole grid; movy's contribution is the automation
+             * view, which Schwung resolves BY PARAMETER KEY — so a lane keeps
+             * pointing at its parameter wherever Schwung puts it.
+             *
+             * Only the module view takes this path. VIEW_MAIN_PARAMS and
+             * VIEW_CLIP_PARAMS are movy's OWN pages (tempo, swing, clip
+             * settings); they are not a module's declared contract and there is
+             * nothing for a module planner to plan. Routing them here would
+             * have replaced the sequencer's own screens with an empty grid.
+             *
+             * The step page is movy's too, so it keeps its own renderer.
+             */
+            const usingSchwungPage = schwungGridMode() === 'page'
+                && !(stepAvail && stepPageState.selected);
+            const sp = usingSchwungPage
+                ? schwungPageFor(appState.activeTrack.index, activeModel!.getComponentKey())
+                : null;
+            if (sp && sp.ready) {
+                sp.poll();   /* one read per frame, never eight on the draw path */
+                sp.render('T' + (appState.activeTrack.index + 1) + ' > '
+                          + (activeModel!.getModuleName() ?? ''),
+                          vm.automationHeld || vm.rows ? lastAutoView : undefined, -1);
+            } else {
+                renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index);
+            }
             perfPhaseEnd();
             // The pool-full toast shares the bottom rows with the Loop strip;
             // claim them so the strip yields to it (like every other toast).

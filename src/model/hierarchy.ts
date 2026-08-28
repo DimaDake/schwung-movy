@@ -1,5 +1,5 @@
 import type { ModelState } from './state.js';
-import { loadModuleConfig } from '../modules/loader.js';
+import { loadModuleConfig, loadModuleJson } from '../modules/loader.js';
 import { mlog } from '../log.js';
 import { moduleReadKey } from '../chain/config.js';
 import { buildConfigPages } from './config-pages.js';
@@ -80,38 +80,56 @@ export function loadHierarchy(s: ModelState): void {
         } catch (e) { mlog('chain_params parse error: ' + e); }
     }
 
-    const raw = s.port.getParam(s.componentKey + ':ui_hierarchy');
-    // B1: with no ui_hierarchy and no config we can still build pages from
-    // chain_params (handled by the fallback in the generic path below). Only bail
-    // when there's genuinely nothing — no hierarchy, no config, no chain_params.
-    if (!raw && !s.moduleConfig && cpOrder.length === 0) {
-        mlog('loadHierarchy: ui_hierarchy null — no params');
-        s.dirty = true;
-        return;
-    }
-
     /* Parse ui_hierarchy — build paramDefs (from .params arrays) and knobInline
      * (from inline object knobs) for label/type fallback lookups */
     const paramDefs:  Record<string, HierParam> = {};
     const knobInline: Record<string, HierParam> = {};
     let allLevels: Record<string, HierLevel> = {};
-    if (raw) {
-        try {
-            const hier = JSON.parse(raw) as { levels?: Record<string, HierLevel> };
-            allLevels = hier.levels ?? {};
-            for (const lvl of Object.values(allLevels)) {
-                if (lvl.params) {
-                    for (const p of lvl.params) {
-                        if (typeof p === 'object' && p.key) paramDefs[p.key] = p;
-                    }
-                }
-                if (lvl.knobs) {
-                    for (const k of lvl.knobs) {
-                        if (typeof k === 'object' && k.key) knobInline[k.key] = k;
-                    }
+    function absorbHierarchy(hier: { levels?: Record<string, HierLevel> } | null): void {
+        allLevels = hier?.levels ?? {};
+        for (const lvl of Object.values(allLevels)) {
+            if (lvl.params) {
+                for (const p of lvl.params) {
+                    if (typeof p === 'object' && p.key) paramDefs[p.key] = p;
                 }
             }
-        } catch (e) { mlog('ui_hierarchy parse error: ' + e); }
+            if (lvl.knobs) {
+                for (const k of lvl.knobs) {
+                    if (typeof k === 'object' && k.key) knobInline[k.key] = k;
+                }
+            }
+        }
+    }
+
+    const raw = s.port.getParam(s.componentKey + ':ui_hierarchy');
+    if (raw) {
+        try { absorbHierarchy(JSON.parse(raw) as { levels?: Record<string, HierLevel> }); }
+        catch (e) { mlog('ui_hierarchy parse error: ' + e); }
+    }
+
+    /* Nothing served? Read the module's own manifest. Schwung serves a SYNTH
+     * slot's ui_hierarchy from the plugin alone — only FX and MIDI FX slots get
+     * module.json's, cached by the chain host — so a module that describes its
+     * UI in module.json and not in its DSP arrives here with an empty
+     * hierarchy, and everything it declares there (a sample browser, most
+     * visibly) would be unreachable. This is the same file schwung parses for
+     * the slot's own param table. */
+    if (Object.keys(allLevels).length === 0) {
+        const caps = loadModuleJson(s.moduleId, s.componentKey)?.capabilities;
+        const hier = caps?.ui_hierarchy as { levels?: Record<string, HierLevel> } | undefined;
+        if (hier?.levels) {
+            mlog('loadHierarchy: ui_hierarchy from module.json');
+            absorbHierarchy(hier);
+        }
+    }
+
+    // B1: with no ui_hierarchy and no config we can still build pages from
+    // chain_params (handled by the fallback in the generic path below). Only bail
+    // when there's genuinely nothing — no hierarchy, no config, no chain_params.
+    if (Object.keys(allLevels).length === 0 && !s.moduleConfig && cpOrder.length === 0) {
+        mlog('loadHierarchy: ui_hierarchy null — no params');
+        s.dirty = true;
+        return;
     }
 
     /* Which params the module is hiding right now. Evaluated against live

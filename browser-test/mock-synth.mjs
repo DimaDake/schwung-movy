@@ -1039,6 +1039,41 @@ export const MOCK_SYNTHS = {
         "synth:size_ms":     "100",
     },
 
+    /* slicer-shaped, second half: the DSP serves no ui_hierarchy at all (a
+     * synth slot's comes from the plugin alone) and its chain_params omits the
+     * sample browser the module.json declares. */
+    module_json_hier: {
+        "synth:name":         "SlicerTest",
+        "synth_module":       "slicer",
+        "synth:ui_hierarchy": "{}",
+        "synth:chain_params": JSON.stringify([
+            { key: "threshold", name: "Sensitivity", type: "float", min: 0, max: 1 },
+        ]),
+        "synth:sample_path": "",
+        "synth:threshold":   "0.5",
+    },
+
+    /* slicer-shaped: the module publishes chain_params, but its filepath param
+     * is described only by the ui_hierarchy — root/filter/start_path live
+     * there, which is where module.json-declared browsers put them. */
+    hier_file_param: {
+        "synth:name": "SlicerTest",
+        "synth:chain_params": JSON.stringify([
+            { key: "pitch", name: "Pitch", type: "float", min: -24, max: 24, step: 0.5 },
+        ]),
+        "synth:ui_hierarchy": JSON.stringify({ levels: { root: {
+            knobs: ["sample_path", "pitch"],
+            params: [
+                { key: "sample_path", label: "Sample", type: "filepath",
+                  root: "/data/UserData/UserLibrary",
+                  filter: [".wav", ".aif"],
+                  start_path: "/data/UserData/UserLibrary/Samples" },
+            ],
+        }}}),
+        "synth:sample_path": "",
+        "synth:pitch":       "0",
+    },
+
     file_param: {
         "synth:name": "SamplerTest",
         "synth:chain_params": JSON.stringify([

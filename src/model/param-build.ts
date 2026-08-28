@@ -50,18 +50,24 @@ export function buildGenericParam(key: string, cp: RawMeta, def: RawMeta): KnobP
     const uiType = rawUiType || (declared === 'wav_position' ? 'wav_position' : '');
     const type = declared === 'wav_position' ? 'float' : declared;
     if (type === 'filepath') {
+        /* Where a browser is described is the module's choice: granny puts
+         * root/filter in chain_params, breakbeat and slicer put them in
+         * module.json's ui_hierarchy. Reading only chain_params left a
+         * hierarchy-declared browser rooted at /data/UserData with no
+         * extension filter — every file on the device, none of them relevant. */
+        const root = String(cp.root ?? def.root ?? '/data/UserData');
         return {
             key,
-            label:      String(cp.name ?? def.label ?? key),
+            label:      String(cp.name ?? def.name ?? def.label ?? key),
             shortLabel: null,
             type:       'file',
             min: 0, max: 0, step: 0,
             options:    null,
             renderStyle: 'arc',
             automatable: false,
-            fileRoot:      String(cp.root ?? '/data/UserData'),
-            fileFilter:    parseFilter(cp.filter),
-            fileStartPath: String(cp.start_path ?? cp.root ?? '/data/UserData'),
+            fileRoot:      root,
+            fileFilter:    parseFilter(cp.filter ?? def.filter),
+            fileStartPath: String(cp.start_path ?? def.start_path ?? root),
         };
     }
     const options  = cp.options ?? def.options ?? null;

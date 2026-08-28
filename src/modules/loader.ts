@@ -49,6 +49,20 @@ function componentCategory(componentKey: string): string {
     return 'audio_fx'; // track FX and master_fx:fxN
 }
 
+/* The module's own manifest, as JSON — the file schwung's chain host reads for
+ * the slot's param table. */
+export function loadModuleJson(moduleId: string, componentKey = 'synth'):
+    { capabilities?: { ui_hierarchy?: unknown } } | null {
+    if (!moduleId) return null;
+    if (typeof host_read_file !== 'function') return null;
+    try {
+        const raw = host_read_file(
+            `${MOVY_MODULE_ROOT}/${componentCategory(componentKey)}/${moduleId}/module.json`);
+        if (raw) return JSON.parse(raw) as { capabilities?: { ui_hierarchy?: unknown } };
+    } catch {}
+    return null;
+}
+
 export function loadModuleConfig(moduleId: string, componentKey = 'synth'): ModuleConfig | null {
     if (!moduleId) return null;
     return tryFile(`${MOVY_MODULE_ROOT}/${componentCategory(componentKey)}/${moduleId}/movy_config.json`)

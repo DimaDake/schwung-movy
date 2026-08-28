@@ -6,7 +6,7 @@
 
 import {
     MOCK_SYNTHS, NAME_POLL_TICKS, META_RETRY_LIMIT, fail, eq, notMatch,
-    bootModel, bankNames, _log, env,
+    bootModel, bankNames, _log, env, mockFsEntries, installMockFs, uninstallMockFs,
 } from './harness.mjs';
 
 export async function run() {
@@ -265,6 +265,50 @@ _log('\nTest: a same-module rebuild keeps the current page');
     m.reload();
     m.tick(); m.tick();
     eq('rebuild: page survives a same-module reload', m.getKnobPage(), 2);
+}
+
+/* ── module.json as the hierarchy source ──────────────────────────────────
+ * Schwung serves a SYNTH slot's ui_hierarchy from the plugin only, so a module
+ * that describes its UI in module.json (Sample Slicer) arrives with none and
+ * everything it declares there — a sample browser above all — was unreachable. */
+
+_log('\nTest: a module.json hierarchy is read when the host serves none');
+
+const SLICER_MODULE_JSON = JSON.stringify({ capabilities: { ui_hierarchy: { levels: { root: {
+    label: 'Slicer',
+    knobs: ['sample_path', 'threshold'],
+    params: [{
+        key: 'sample_path', label: 'Sample', type: 'filepath',
+        root: '/data/UserData/UserLibrary',
+        filter: ['.wav'],
+        start_path: '/data/UserData/UserLibrary/Samples',
+    }],
+} } } } });
+
+{
+    // Control: with no manifest to read, all movy has is chain_params.
+    const m = bootModel(MOCK_SYNTHS.module_json_hier);
+    const names = m.getViewModel().rows.flat().filter(Boolean).map(c => c.fullName);
+    eq('no manifest: only the chain_params param',
+       JSON.stringify(names), JSON.stringify(['Sensitivity']));
+}
+
+{
+    mockFsEntries['/data/UserData/UserLibrary/Samples'] = ['break.wav', 'notes.txt'];
+    // Installed BEFORE boot: the manifest is read while the hierarchy loads.
+    installMockFs({ '/data/UserData/schwung/modules/sound_generators/slicer/module.json':
+                    SLICER_MODULE_JSON });
+    const m = bootModel(MOCK_SYNTHS.module_json_hier);
+    for (let i = 0; i < 20; i++) m.tick();
+    const vm = m.getViewModel();
+    eq('manifest: sample browser is the first knob', vm.rows[0][0]?.fullName, 'Sample');
+    eq('manifest: it is a file param',               vm.rows[0][0]?.type, 'file');
+    m.handleKnobTouch(0);
+    eq('manifest: the browser opens in the declared folder, filtered',
+       JSON.stringify(m.getViewModel().overlay?.options ?? []), JSON.stringify(['break']));
+    eq('manifest: browse root is the declared one',
+       m.getFileBrowseTarget()?.root, '/data/UserData/UserLibrary');
+    uninstallMockFs();
 }
 
 _log('\nTest: the async retry latches off and does not poll forever');

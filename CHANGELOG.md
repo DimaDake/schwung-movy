@@ -15,6 +15,19 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Modules whose UI lives in their `module.json` showed the wrong params — or
+  none of the interesting ones.** Schwung serves a synth slot's `ui_hierarchy`
+  from the plugin binary alone (only FX and MIDI FX slots get the manifest's,
+  cached by the chain host), so a module that describes its knobs in
+  `module.json` and not in its DSP arrived at movy with nothing and fell back to
+  whatever `chain_params` happened to list. Sample Slicer is the visible case:
+  its sample browser is declared only in the manifest, so from movy there was no
+  way to choose a sample at all. Movy now reads the module's own `module.json`
+  when the host serves no hierarchy — the same file schwung parses for the
+  slot's param table — and a `filepath` param declared there keeps its `root`,
+  `filter` and `start_path` instead of falling back to an unfiltered
+  `/data/UserData`.
+
 - **Recording a new clip while the beat played started it mid-bar.** With the
   transport already running, pressing **Rec** to record into an empty slot began
   capturing on the spot, planting the new clip's first tick wherever in the bar

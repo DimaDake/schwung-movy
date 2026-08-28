@@ -206,6 +206,26 @@ _log('\nTest: file overlay opens on touch with dir scan');
     eq('file overlay: selected = kick', vm.overlay?.options[vm.overlay.selected], 'kick');
 }
 
+/* ── hierarchy-declared filepath ──────────────────────────────────────────
+ * A module may describe its file browser in module.json's ui_hierarchy rather
+ * than in chain_params (slicer, breakbeat). Reading root/filter from
+ * chain_params alone left such a browser rooted at /data/UserData, unfiltered. */
+
+_log('\nTest: a filepath declared only in ui_hierarchy keeps its root and filter');
+
+{
+    mockFsEntries['/data/UserData/UserLibrary/Samples'] = ['break.wav', 'notes.txt', 'vox.aif'];
+    const m = bootModel(MOCK_SYNTHS.hier_file_param);
+    for (let i = 0; i < 20; i++) m.tick();
+    m.handleKnobTouch(0);
+    const vm = m.getViewModel();
+    eq('hier filepath: first knob is a file param', vm.rows[0][0]?.type, 'file');
+    eq('hier filepath: overlay lists the declared folder, extension-filtered',
+       JSON.stringify(vm.overlay?.options ?? []), JSON.stringify(['break', 'vox']));
+    eq('hier filepath: browse root is the declared one',
+       m.getFileBrowseTarget()?.root, '/data/UserData/UserLibrary');
+}
+
 /* ── sticky browse folder ─────────────────────────────────────────────────
  * fileStartPath is a factory default; the folder the user last loaded from
  * outranks it, machine-wide (prefs.json), per param. */

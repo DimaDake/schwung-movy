@@ -7,6 +7,7 @@ mod click;
 mod ffi;
 mod host;
 mod chain_copy;
+mod chain_doc;
 mod chain_cost;
 mod chain_digest;
 mod chain_idle;
@@ -68,7 +69,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.48.0";
+const ENGINE_VERSION: &str = "0.49.0";
 
 /// Tracks backed by schwung's own shadow slots by default. Their notes go out as
 /// MIDI on the matching channel; everything above this index is a chain movy
@@ -291,6 +292,17 @@ impl Instance {
                     }
                 }
             }
+            /* The whole chain set in one message. It used to cross as one
+             * unacknowledged write per component, and the writes that could not
+             * be serviced while an earlier load held the audio thread were
+             * dropped in silence — then the next save read back what had
+             * survived and wrote the shrunken set to disk. One document can be
+             * acknowledged, and retried whole when it is not. */
+            "chains" => {
+                if !self.chains.set_chain_set(val) {
+                    host::log("chains: malformed set document ignored");
+                }
+            }
             // Load persisted state (UI sends the autosave file's contents).
             "state" => {
                 if seq_core::persist::load(&mut self.engine, val) {
@@ -360,6 +372,10 @@ impl Instance {
                 self.engine.dirty = false;
                 Some(s)
             }
+            /* What was REQUESTED, not what has finished loading: loads are
+             * released one per audio callback, so a save taken mid-drain must
+             * still report the whole set. */
+            "chains" => Some(self.chains.chain_set()),
             "chgen" => Some(self.chains.generation().to_string()),
             "chpeak" => Some(self.chains.peaks_csv()),
             "diag" => Some(format!(

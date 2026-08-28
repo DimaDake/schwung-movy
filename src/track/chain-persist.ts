@@ -4,19 +4,30 @@
  * track's chain exists only inside movy's engine, so if movy does not write it
  * down it is gone on the next open. This is that write-down.
  *
- * Two things per component: the module id, and the module's own opaque preset
- * blob. Restoring writes the id first and the blob second — the engine keeps
- * them ordered internally (the blob rides the queued load), so the blob can
- * never land on a slot whose module has not arrived yet.
+ * **The set travels as one document, both ways.** It used to cross the wire as
+ * one blocking param write per component, each with its own 50 ms timeout and
+ * none of them acknowledged. The shim services those writes on the audio
+ * thread — the same thread a chain load's blocking `dlopen` holds for 78-276 ms
+ * — so a write issued during the drain could not be serviced, returned false,
+ * and was discarded by a caller that never looked. The set then shrank on disk,
+ * because the save read back whatever had actually loaded. One document can be
+ * acknowledged, and retried whole when it is not.
  *
- * COST: reads are one engine round trip per key and a round trip blocks ~3-5 ms,
- * so `capture` reads only components that actually hold a module — a set with
- * no movy chains costs one batched read, not sixty. */
+ * The engine answers with what was REQUESTED, not what has finished loading, so
+ * a save taken while loads are still draining still reports the whole set.
+ * Design: plans/2026-08-29-chain-set-document.md.
+ *
+ * Preset blobs and LFO state follow in one bulk write per track. They are
+ * ordered after the document on purpose: the engine attaches a blob to the
+ * queued load, and an LFO target only binds to a param on a module that is at
+ * least on its way in. */
 
-import { CHAIN_SLOTS, isLfoSlot, moduleReadKey } from '../chain/config.js';
+import { CHAIN_SLOTS, isLfoSlot } from '../chain/config.js';
+import { decodeBulk, encodeBulk } from './bulk.js';
+import { mlog } from '../log.js';
 import { TRACK_COUNT, chainInstance, trackKind } from './ref.js';
 import { portFor } from './registry.js';
-import { lfoStateKeys, packLfoState, restoreLfoState } from './lfo-persist.js';
+import { lfoPairs, lfoStateKeys, packLfoState } from './lfo-persist.js';
 
 export interface ChainComponentState {
     /** Component key: "synth", "fx1", … */
@@ -28,7 +39,7 @@ export interface ChainComponentState {
 }
 
 export interface ChainTrackState {
-    /** Track index (4-15). Stored rather than implied by position so a partial
+    /** Track index (0-15). Stored rather than implied by position so a partial
      *  save stays readable and a future TRACK_COUNT change cannot shift it. */
     t: number;
     comp: ChainComponentState[];
@@ -37,114 +48,94 @@ export interface ChainTrackState {
     lfo?: string[];
 }
 
+/** The engine param carrying the whole chain set. Addressed at the engine root
+ *  rather than through a `TrackPort`, which namespaces every key to one chain —
+ *  the point of this key is that it is not per-chain. */
+const CHAIN_SET_KEY = 'chains';
+
+/* Generous, and deliberately not the port's 50 ms: this write races a cold
+ * `dlopen` on the shim's own thread, which is the whole reason the old
+ * per-component writes were being dropped. */
+const SET_TIMEOUT_MS = 500;
+
 /* The chain components worth persisting: every real slot, minus the virtual LFO
  * page (it has no module of its own). */
 function persistableComponents(): string[] {
     return CHAIN_SLOTS.filter((_, i) => !isLfoSlot(i)).map((s) => s.componentKey);
 }
 
+/** The last blob captured for `<track>|<component>`, so a read that fails can
+ *  fall back to it. A module written into the set file with no preset is a
+ *  track that lost its sound, and this file is the only place that blob is. */
+const lastBlob = new Map<string, string>();
+
+function readChainSet(): string | null {
+    if (typeof host_module_get_param !== 'function') return null;
+    return host_module_get_param(CHAIN_SET_KEY);
+}
+
+/** Deliver the set. One retry, because the refusal this is guarding against is
+ *  transient by nature — the shim was busy opening the previous module. */
+function writeChainSet(doc: string): boolean {
+    if (typeof host_module_set_param_blocking !== 'function') return false;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        if (host_module_set_param_blocking(CHAIN_SET_KEY, doc, SET_TIMEOUT_MS)) return true;
+    }
+    return false;
+}
+
 /** Read every movy-hosted chain that has something loaded. */
 export function captureChains(): ChainTrackState[] {
+    const doc = decodeBulk(readChainSet());
+    /* A malformed answer is not an empty set. Reading it as one would hand the
+     * autosave a set with no chains and delete the user's work. */
+    if (!doc || doc.length % 3 !== 0) return [];
+
+    /* Group the flat triples by track. A movy track's chain IS its index, so
+     * the slot the engine reports is the track we store. */
+    const known = new Set(persistableComponents());
+    const byTrack = new Map<number, ChainComponentState[]>();
+    for (let i = 0; i + 2 < doc.length; i += 3) {
+        const t = Number(doc[i]);
+        const c = doc[i + 1], m = doc[i + 2];
+        if (!Number.isInteger(t) || t < 0 || t >= TRACK_COUNT) continue;
+        /* A chain the engine still holds for a track that is no longer movy's
+         * belongs to the host now and must not be written into this set. */
+        if (trackKind(t) !== 'movy' || !known.has(c) || m === '') continue;
+        const comps = byTrack.get(t) ?? [];
+        comps.push({ c, m });
+        byTrack.set(t, comps);
+    }
+
     const out: ChainTrackState[] = [];
-    const comps = persistableComponents();
-
-    /* From 0, not HOST_TRACKS: with `chtracks` on, tracks 0-3 are movy chains
-     * too, and their modules exist only inside movy's engine — nothing else
-     * writes them down. The `trackKind` test below is what actually excludes
-     * them when the flag is off. */
-    for (let t = 0; t < TRACK_COUNT; t++) {
-        if (trackKind(t) !== 'movy') continue;
+    for (const t of [...byTrack.keys()].sort((a, b) => a - b)) {
+        const comps = byTrack.get(t)!;
         const port = portFor(t);
-        /* One batched read for the whole track: MovyChainPort collapses these
-         * into a single bulk round trip, so an empty track costs one IPC. */
-        const ids = port.getMany(comps.map((c) => moduleReadKey(c)));
-        const loaded: { c: string; m: string }[] = [];
-        comps.forEach((c, i) => {
-            const id = ids[i];
-            if (id) loaded.push({ c, m: id });
-        });
-        if (loaded.length === 0) continue;
-
-        /* Only now, for components that actually hold a module, ask for blobs —
-         * and let the LFO keys ride that same batch. An LFO can only target a
-         * loaded module, so a track with nothing loaded has no LFO worth reading
-         * and keeps costing exactly one round trip. */
+        /* One bulk round trip for the whole track: the blobs, and the LFO keys
+         * riding along. An LFO can only target a loaded module, so a track with
+         * nothing loaded is never here and costs nothing. */
         const lfoKeys = lfoStateKeys();
-        const tail = port.getMany([...loaded.map((l) => l.c + ':state'), ...lfoKeys]);
-        const blobs = tail.slice(0, loaded.length);
-        const lfo = packLfoState(tail.slice(loaded.length));
-        const track: ChainTrackState = {
-            t,
-            comp: loaded.map((l, i) => (blobs[i] ? { ...l, s: blobs[i]! } : l)),
-        };
+        const tail = port.getMany([...comps.map((c) => c.c + ':state'), ...lfoKeys]);
+        const track: ChainTrackState = { t, comp: comps };
+        comps.forEach((comp, i) => {
+            const key = t + '|' + comp.c;
+            const blob = tail[i] ?? lastBlob.get(key);
+            if (blob) { comp.s = blob; lastBlob.set(key, blob); }
+        });
+        const lfo = packLfoState(tail.slice(comps.length));
         if (lfo) track.lfo = lfo;
         out.push(track);
     }
     return out;
 }
 
-/* What the incoming Set wants loaded, as "<track>|<component>" -> module id. */
-function wantedModules(saved: ChainTrackState[] | undefined | null): Map<string, string> {
-    const want = new Map<string, string>();
-    if (!Array.isArray(saved)) return want;
-    for (const track of saved) {
-        if (!track || typeof track.t !== 'number' || !Array.isArray(track.comp)) continue;
-        for (const c of track.comp) {
-            if (c && typeof c.c === 'string' && typeof c.m === 'string' && c.m !== '')
-                want.set(track.t + '|' + c.c, c.m);
-        }
-    }
-    return want;
-}
-
-/** Unload every movy-hosted component the incoming Set does not want.
- *
- *  schwung does this on every set change and calls it pass 1: clear all the
- *  slots, THEN load the new set's (shadow_ui.js, SET_CHANGED). movy had no
- *  pass 1 at all — `restoreChains` only ever loads — so a module stayed loaded
- *  across every switch, followed the user into a Set that had never held it,
- *  and was then written into that Set's own state on the next autosave.
- *
- *  A component both Sets want is left ALONE rather than cleared and reloaded:
- *  writing `<component>:module` tears the old one down and dlopens the new,
- *  and schwung's own note on this (`shadow_slot_clear_all_modules`) is that a
- *  full chain teardown is materially expensive and has caused audio dropouts.
- *  Doing it to arrive back where we started is exactly the cost worth skipping.
- *
- *  Returns the number of components cleared. */
-export function clearChainsNotIn(saved: ChainTrackState[] | undefined | null): number {
-    const want = wantedModules(saved);
-    const comps = persistableComponents();
-    let cleared = 0;
-
-    for (let t = 0; t < TRACK_COUNT; t++) {
-        if (trackKind(t) !== 'movy') continue;
-        const port = portFor(t);
-        /* One batched read per track, the same shape `captureChains` uses: an
-         * empty track costs a single round trip, so a Set with no movy chains
-         * pays almost nothing to switch away from. */
-        const ids = port.getMany(comps.map((c) => moduleReadKey(c)));
-        comps.forEach((c, i) => {
-            const id = ids[i];
-            if (!id) return;                          // already empty
-            if (want.get(t + '|' + c) === id) return; // the new Set wants this one
-            /* The empty string is schwung's own teardown value — the same one
-             * `shadow_slot_clear_all_modules` writes, and the one movy's undo
-             * writes to restore a slot that used to be empty. */
-            port.setParam(c + ':module', '');
-            cleared++;
-        });
-    }
-    return cleared;
-}
-
-/** Write the chains back. Safe to call with anything `captureChains` produced,
- *  including from an older build — unknown tracks and components are skipped
- *  rather than trusted. */
-export function restoreChains(saved: ChainTrackState[] | undefined | null): number {
-    if (!Array.isArray(saved)) return 0;
+/** The saved state as the engine's document — flat `slot, component, module`
+ *  triples — dropping anything this build (or this Move) cannot honour:
+ *  unknown tracks and components are skipped rather than trusted. */
+function chainSetTriples(saved: ChainTrackState[] | undefined | null): string[] {
     const known = new Set(persistableComponents());
-    let restored = 0;
+    const flat: string[] = [];
+    if (!Array.isArray(saved)) return flat;
 
     for (const track of saved) {
         const t = track?.t;
@@ -155,24 +146,60 @@ export function restoreChains(saved: ChainTrackState[] | undefined | null): numb
          * turning it back on finds them again. */
         if (chainInstance(t) < 0) continue;
         if (!Array.isArray(track.comp)) continue;
-        const port = portFor(t);
-
         for (const c of track.comp) {
             if (!c || typeof c.c !== 'string' || typeof c.m !== 'string') continue;
             if (!known.has(c.c) || c.m === '') continue;
-            port.setParam(c.c + ':module', c.m);
-            /* Written second on purpose. The engine attaches it to the queued
-             * load, so ordering holds even though the load itself is deferred to
-             * a later audio callback. */
-            if (typeof c.s === 'string' && c.s !== '') {
-                port.setParam(c.c + ':state', c.s);
-            }
-            restored++;
+            flat.push(String(t), c.c, c.m);
         }
-
-        /* Last: an LFO target names a param on a module, so the module has to be
-         * on its way in before the target can bind to anything. */
-        restoreLfoState(port, track.lfo);
     }
-    return restored;
+    return flat;
+}
+
+/** Write the chains back. Safe to call with anything `captureChains` produced,
+ *  including from an older build.
+ *
+ *  Returns the number of components delivered — 0 when the document did not
+ *  land, which the caller must treat as "this set is not loaded", never as
+ *  "this set has no chains". */
+export function restoreChains(saved: ChainTrackState[] | undefined | null): number {
+    const triples = chainSetTriples(saved);
+    const entries = triples.length / 3;
+
+    /* Sent even when it is empty, and that is the point: an empty set is the
+     * instruction to unload. schwung clears every slot on a set change before
+     * loading the new set's; movy does it by naming the set it wants. Without
+     * this a module outlived every switch, followed the user into a Set that had
+     * never held it, and was written into that Set on the next autosave. */
+    if (!writeChainSet(encodeBulk(triples))) {
+        mlog('chains: SET NOT DELIVERED — ' + entries + ' component(s) still pending');
+        return 0;
+    }
+    if (entries === 0) return 0;
+
+    /* Now the parts that are addressed per chain. One bulk write per track, and
+     * only for tracks that have something in them. */
+    /* Which components actually made it into the document, so a blob can never
+     * be addressed to a component the engine was not told about. */
+    const sent = new Set<string>();
+    for (let i = 0; i + 2 < triples.length; i += 3) sent.add(triples[i] + '|' + triples[i + 1]);
+
+    for (const track of Array.isArray(saved) ? saved : []) {
+        const t = track?.t;
+        if (typeof t !== 'number' || chainInstance(t) < 0) continue;
+        const pairs: [string, string][] = [];
+        for (const c of Array.isArray(track.comp) ? track.comp : []) {
+            if (!c || typeof c.c !== 'string' || !sent.has(t + '|' + c.c)) continue;
+            if (typeof c.s === 'string' && c.s !== '') {
+                pairs.push([c.c + ':state', c.s]);
+                lastBlob.set(t + '|' + c.c, c.s);
+            }
+        }
+        const lfo = lfoPairs(track.lfo);
+        if (lfo) pairs.push(...lfo);
+        if (pairs.length === 0) continue;
+        if (!portFor(t).setMany(pairs)) {
+            mlog('chains: track ' + (t + 1) + ' presets not delivered');
+        }
+    }
+    return entries;
 }

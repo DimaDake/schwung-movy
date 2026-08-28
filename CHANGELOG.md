@@ -48,6 +48,19 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Modules no longer go missing from a set.** A set could come back from a
+  power cycle with its sequences intact but half its tracks empty, and it got
+  worse every time the set was opened — one real case went from eleven chains to
+  eight to five. The chains crossed to the engine as one blocking param write
+  per component, and the shim services those writes on the audio thread, which a
+  cold module load holds for 78-276 ms; a write issued during that window could
+  not be serviced and was thrown away by a caller that never checked. The next
+  autosave then read back what had survived and wrote the smaller set to disk.
+  The whole chain set now travels as **one acknowledged document** that is
+  retried when it is refused, and the engine reports what was *requested* rather
+  than what has finished loading — so a save taken while modules are still
+  loading can no longer shrink the set. Engine 0.48.0 → 0.49.0.
+
 - **Modules whose UI lives in their `module.json` showed the wrong params — or
   none of the interesting ones.** Schwung serves a synth slot's `ui_hierarchy`
   from the plugin binary alone (only FX and MIDI FX slots get the manifest's,

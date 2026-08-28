@@ -4,7 +4,7 @@
  * alongside the state blob. */
 
 import { TRACK_COUNT } from '../track/ref.js';
-import { captureChains, clearChainsNotIn, restoreChains } from '../track/chain-persist.js';
+import { captureChains, restoreChains } from '../track/chain-persist.js';
 import { mlog } from '../log.js';
 import { keyboardState, resetOctaves, OCT_MIN, OCT_MAX } from '../keyboard/state.js';
 import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
@@ -46,22 +46,17 @@ export function serializeUiState(): string {
 export function applyUiState(blob: string): void {
     try {
         const o = JSON.parse(blob);
-        /* FIRST, ahead of the chains: `clearChainsNotIn`/`restoreChains` route
-         * by `trackKind()`, so tracks 1-4 have to be on the host this set wants
-         * before a single component is addressed. A blob with no `flags` object
-         * is a set saved before this existed and keeps the schwung slots it was
-         * built on — which is not the same answer as a set movy has never seen. */
+        /* FIRST, ahead of the chains: `restoreChains` routes by `trackKind()`,
+         * so tracks 1-4 have to be on the host this set wants before a single
+         * component is addressed. A blob with no `flags` object is a set saved
+         * before this existed and keeps the schwung slots it was built on —
+         * which is not the same answer as a set movy has never seen. */
         loadSetHostChoice(o.flags && typeof o.flags === 'object' ? o.flags : {});
         /* Then the chains, before anything cosmetic: the loads are queued one
          * per audio callback, so the sooner they start the sooner the set sounds
-         * like itself. Absent in blobs written before movy hosted chains, which
-         * restoreChains treats as "nothing to do".
-         *
-         * schwung's pass 1, before its pass 2: unload what this Set does not
-         * want before loading what it does. Without it a module outlived every
-         * set switch and was then autosaved into whichever Set it landed in. */
-        const gone = clearChainsNotIn(o.chains);
-        if (gone > 0) mlog('chains: cleared ' + gone + ' component(s) from the previous set');
+         * like itself. One document says both what to unload and what to load —
+         * a set with no `chains` key names nothing, which is how a set written
+         * before movy hosted chains still clears the previous set's. */
         const n = restoreChains(o.chains);
         if (n > 0) mlog('chains: restoring ' + n + ' movy chain component(s)');
         if (Array.isArray(o.oct)) {
@@ -103,8 +98,7 @@ export function resetUiState(): void {
     loadSetHostChoice(null);
     /* A Set with no UI blob wants no movy chains — the same clean slate schwung
      * gives an unseen set when it seeds empty slots. */
-    const gone = clearChainsNotIn(null);
-    if (gone > 0) mlog('chains: cleared ' + gone + ' component(s) from the previous set');
+    restoreChains(null);
     keyboardState.rootPc = 0;
     keyboardState.scale = 0;
     keyboardState.mode = 0;

@@ -10,6 +10,7 @@
 //! rather than by inspection.
 
 use crate::chain_cost::CostMeter;
+use crate::chain_doc;
 use crate::chain_digest::{ChainDigest, STIMULUS};
 use crate::chain_host::{ChainHost, ChainInstance};
 use crate::chain_idle::{IdleGate, IdleLevel, Work};
@@ -68,6 +69,13 @@ pub struct ChainSlots {
     slots: Vec<Option<ChainInstance>>,
     mixes: Vec<TrackMix>,
     queue: LoadQueue,
+    /// The chain set as last REQUESTED, per slot, as (component, module) in the
+    /// order it arrived. Not as last loaded: a load is queued and released one
+    /// per audio callback, so "what has finished dlopen-ing" is a moving target
+    /// that a save must never be allowed to see. Reporting the request instead
+    /// is what makes a partial set unrepresentable — see
+    /// plans/2026-08-29-chain-set-document.md.
+    desired: Vec<Vec<(String, String)>>,
     /// One output buffer per chain, not one shared buffer: two chains rendering
     /// concurrently need somewhere disjoint to write, and the mix has to happen
     /// after the join anyway. 12 x 512 bytes.
@@ -157,6 +165,7 @@ impl ChainSlots {
             slots,
             mixes: vec![TrackMix::default(); MOVY_CHAINS],
             queue: LoadQueue::new(),
+            desired: vec![Vec::new(); MOVY_CHAINS],
             scratch: vec![vec![0i16; SCRATCH_SAMPLES]; MOVY_CHAINS],
             pin: PinPolicy::new(MOVY_CHAINS),
             host_failed: false,
@@ -306,12 +315,77 @@ impl ChainSlots {
         if slot >= MOVY_CHAINS {
             return;
         }
+        /* The one place the set is updated, for the same reason `generation`
+         * lives on this path: a module can arrive from a browser load, an undo,
+         * or a remote param write the UI never saw, and all of them have to be
+         * in the set the next save writes down. */
+        let at = self.desired[slot].iter().position(|(c, _)| c == component);
+        match (at, module.is_empty()) {
+            // The empty string is schwung's teardown value: not a module.
+            (Some(i), true) => { self.desired[slot].remove(i); }
+            (Some(i), false) => self.desired[slot][i].1 = module.to_string(),
+            (None, false) => self.desired[slot]
+                .push((component.to_string(), module.to_string())),
+            (None, true) => {}
+        }
         self.queue.push(LoadRequest {
             slot,
             component: component.to_string(),
             module: module.to_string(),
             state: None,
         });
+    }
+
+    /// The chain set, as the document `set_chain_set` accepts.
+    pub fn chain_set(&self) -> String {
+        let mut entries = Vec::new();
+        for (slot, comps) in self.desired.iter().enumerate() {
+            for (component, module) in comps {
+                entries.push(chain_doc::Entry {
+                    slot,
+                    component: component.clone(),
+                    module: module.clone(),
+                });
+            }
+        }
+        chain_doc::encode(&entries)
+    }
+
+    /// Apply a whole chain set at once: unload what it does not name, queue what
+    /// it does. `false` when the document is malformed, in which case NOTHING
+    /// changes — a torn write decoding as "no chains" would unload the set.
+    ///
+    /// A component both sets want at the same module is left alone rather than
+    /// cleared and reloaded: a teardown dlcloses and dlopens to arrive back
+    /// where we started, and schwung's own note on that (`shadow_slot_clear_all_modules`)
+    /// is that it has caused audio dropouts.
+    pub fn set_chain_set(&mut self, doc: &str) -> bool {
+        let Some(wanted) = chain_doc::decode(doc) else {
+            return false;
+        };
+        let mut gone: Vec<(usize, String)> = Vec::new();
+        for (slot, comps) in self.desired.iter().enumerate() {
+            for (component, _) in comps {
+                if !wanted.iter().any(|w| w.slot == slot && &w.component == component) {
+                    gone.push((slot, component.clone()));
+                }
+            }
+        }
+        for (slot, component) in gone {
+            self.request_load(slot, &component, "");
+        }
+        for w in &wanted {
+            let loaded = self
+                .desired
+                .get(w.slot)
+                .and_then(|c| c.iter().find(|(c, _)| c == &w.component))
+                .map(|(_, m)| m.as_str());
+            if loaded == Some(w.module.as_str()) {
+                continue;
+            }
+            self.request_load(w.slot, &w.component, &w.module);
+        }
+        true
     }
 
     /// Per-chain output peak of the last block, comma separated.
@@ -788,6 +862,9 @@ impl ChainSlots {
     /// slots that will not exist.
     pub fn teardown(&mut self) {
         self.queue.clear();
+        for d in self.desired.iter_mut() {
+            d.clear();
+        }
         for i in 0..MOVY_CHAINS {
             self.slots[i] = None;
             self.idle.forget(i);
@@ -1013,4 +1090,110 @@ mod tests {
         slots.configure("/nonexistent/chain", "/nonexistent/chain/dsp.so");
         assert!(!slots.is_available());
     }
+
+    /* ── the chain set as a document ──────────────────────────────────────────
+     * The set used to cross the wire as one unacknowledged write per component,
+     * and a save read back whatever had survived — so a dropped write deleted a
+     * module from the set file. `desired` is what was ASKED for, which is what
+     * a save has to report. See plans/2026-08-29-chain-set-document.md. */
+
+    #[test]
+    fn the_set_reports_what_was_requested_not_what_has_loaded() {
+        let mut slots = ChainSlots::new();
+        slots.request_load(4, "synth", "noisemaker");
+        assert_eq!(slots.pending_loads(), 1, "nothing has loaded yet");
+        assert_eq!(
+            chain_doc::decode(&slots.chain_set()),
+            Some(vec![chain_doc::Entry { slot: 4, component: "synth".into(),
+                                         module: "noisemaker".into() }]),
+            "a queued load is already part of the set"
+        );
+    }
+
+    #[test]
+    fn clearing_a_component_removes_it_from_the_set() {
+        let mut slots = ChainSlots::new();
+        slots.request_load(4, "synth", "noisemaker");
+        slots.request_load(4, "synth", "");
+        assert_eq!(chain_doc::decode(&slots.chain_set()), Some(vec![]));
+    }
+
+    #[test]
+    fn a_document_queues_every_component_it_names() {
+        let mut slots = ChainSlots::new();
+        let doc = chain_doc::encode(&(0..MOVY_CHAINS)
+            .map(|i| chain_doc::Entry { slot: i, component: "synth".into(),
+                                        module: "noisemaker".into() })
+            .collect::<Vec<_>>());
+        assert!(slots.set_chain_set(&doc));
+        assert_eq!(slots.pending_loads(), MOVY_CHAINS,
+            "one message delivers the whole set");
+        assert_eq!(slots.chain_set(), doc, "and the set reads back identically");
+    }
+
+    #[test]
+    fn a_document_clears_what_it_does_not_name() {
+        let mut slots = ChainSlots::new();
+        slots.request_load(4, "synth", "noisemaker");
+        slots.request_load(5, "synth", "plaits");
+        assert!(slots.set_chain_set(&chain_doc::encode(&[chain_doc::Entry {
+            slot: 5, component: "synth".into(), module: "plaits".into() }])));
+        assert_eq!(
+            chain_doc::decode(&slots.chain_set()),
+            Some(vec![chain_doc::Entry { slot: 5, component: "synth".into(),
+                                         module: "plaits".into() }]),
+            "chain 4 is gone from the set"
+        );
+    }
+
+    #[test]
+    fn a_component_both_sets_want_is_left_alone() {
+        /* A full teardown dlcloses and dlopens to arrive back where we started,
+         * and schwung's own note on this is that it has caused audio dropouts. */
+        let mut slots = ChainSlots::new();
+        let doc = chain_doc::encode(&[chain_doc::Entry {
+            slot: 4, component: "synth".into(), module: "noisemaker".into() }]);
+        assert!(slots.set_chain_set(&doc));
+        while slots.pending_loads() > 0 { slots.service_loads(); }
+        assert!(slots.set_chain_set(&doc));
+        assert_eq!(slots.pending_loads(), 0, "the same set queues no work");
+    }
+
+    #[test]
+    fn a_replaced_module_is_queued_once_not_cleared_and_reloaded() {
+        let mut slots = ChainSlots::new();
+        slots.request_load(4, "synth", "noisemaker");
+        while slots.pending_loads() > 0 { slots.service_loads(); }
+        assert!(slots.set_chain_set(&chain_doc::encode(&[chain_doc::Entry {
+            slot: 4, component: "synth".into(), module: "plaits".into() }])));
+        assert_eq!(slots.pending_loads(), 1, "one load, not a clear plus a load");
+    }
+
+    #[test]
+    fn a_malformed_document_changes_nothing() {
+        /* The dangerous reading: a truncated write decoding as "no chains" and
+         * unloading the user's set. */
+        let mut slots = ChainSlots::new();
+        slots.request_load(4, "synth", "noisemaker");
+        let before = slots.chain_set();
+        assert!(!slots.set_chain_set("3\n1\n4"), "a torn document is refused");
+        assert_eq!(slots.chain_set(), before);
+    }
+
+    #[test]
+    fn an_out_of_range_slot_never_enters_the_set() {
+        let mut slots = ChainSlots::new();
+        assert!(slots.set_chain_set(&chain_doc::encode(&[chain_doc::Entry {
+            slot: MOVY_CHAINS, component: "synth".into(), module: "plaits".into() }])));
+        assert_eq!(chain_doc::decode(&slots.chain_set()), Some(vec![]));
+    }
+
+    #[test]
+    fn teardown_forgets_the_set() {
+        let mut slots = ChainSlots::new();
+        slots.request_load(4, "synth", "noisemaker");
+        slots.teardown();
+        assert_eq!(chain_doc::decode(&slots.chain_set()), Some(vec![]));
+    }
+
 }

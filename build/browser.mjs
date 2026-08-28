@@ -228,7 +228,8 @@ await esbuild.build({
     }],
     /* Tests exercise the debug-only surfaces, so they build with the gate ON —
      * a suite that compiled them out would assert nothing about them. */
-    define:    { __MOVY_DEBUG__: 'true' },
+    define:    { __MOVY_DEBUG__: 'true',
+                 __MOVY_SCHWUNG_GRID__: JSON.stringify(process.env.MOVY_SCHWUNG_GRID || 'off') },
     outdir:    resolve(root, 'dist/esm'),
     outbase:   resolve(root, 'src'),
     format:    'esm',

@@ -36,7 +36,11 @@ await esbuild.build({
     target:      ['es2020'],
     banner:      { js: SCHWUNG_BANNER },
     external:    ['/data/UserData/schwung/*'],
-    define:      { __MOVY_DEBUG__: String(DEBUG) },
+    /* MOVY_SCHWUNG_GRID=page builds the experimental grid: Schwung plans the
+     * module's pages and draws them, movy targets the parameters. Default 'off'
+     * so a normal build is byte-for-byte the movy that shipped. */
+    define:      { __MOVY_DEBUG__: String(DEBUG),
+                   __MOVY_SCHWUNG_GRID__: JSON.stringify(process.env.MOVY_SCHWUNG_GRID || 'off') },
     logLevel:    'info',
 });
 console.log(`Device bundle written: ui.js (debug=${DEBUG})`);

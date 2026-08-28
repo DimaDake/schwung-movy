@@ -64,7 +64,8 @@ export interface SchwungPage {
      *  Schwung addresses it by key, so comparing the two layouts needs this;
      *  key.toUpperCase() is not the label (`filter_cutoff` is "Cutoff"). */
     labelAt(slot: number): string | null;
-    render(title: string, auto?: AutomationView, touched?: number): void;
+    render(title: string, auto?: AutomationView, touched?: number,
+           opts?: { bands?: any; rect?: any }): void;
     readonly ready: boolean;
 }
 
@@ -123,7 +124,8 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
         return (keys[slot] as string) || null;
     }
 
-    function render(title: string, auto?: AutomationView, touched = -1): void {
+    function render(title: string, auto?: AutomationView, touched = -1,
+                    opts?: { bands?: any; rect?: any }): void {
         const p = pages[index];
         if (!p) return;
 
@@ -162,6 +164,11 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
             touched,
             decorations: decorations.some(Boolean) ? decorations : null,
             viz,
+            /* Body-only when the caller keeps its own chrome — the chain view
+             * draws a bank bar of CHAIN SLOTS, which is not a page indicator
+             * and must not be replaced by one. */
+            bands: opts && opts.bands,
+            rect: opts && opts.rect,
         });
     }
 

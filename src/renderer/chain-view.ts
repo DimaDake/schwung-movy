@@ -10,7 +10,8 @@ import { CHAIN_SLOTS, isVirtualSlot, type ChainSlot } from '../chain/config.js';
  * CHAIN_SLOTS unconditionally, which drew the track chain's five dots over the
  * master's four slots. */
 export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: boolean, trackLabel: string,
-                                slotLabel?: string, slots: ChainSlot[] = CHAIN_SLOTS): void {
+                                slotLabel?: string, slots: ChainSlot[] = CHAIN_SLOTS,
+                                bodyOverride?: () => void): void {
     clear_screen();
 
     const slot = slots[chainIndex] ?? slots[1];
@@ -47,7 +48,12 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
     } else {
         drawBankBar(chainIndex, slots.length);
     }
-    drawKnobParams(vm);
+    /* THE CHAIN VIEW DRAWS THE KNOB BODY TOO. It was the site the Schwung
+     * delegation missed: renderKnobsView was routed, this was not, and movy
+     * opens on this view — so on device the grid stayed movy's while every
+     * local check passed. */
+    if (bodyOverride) bodyOverride();
+    else drawKnobParams(vm);
 
     if (vm.overlay) drawEnumOverlay(vm);
     /* The file-browse gesture works here too — the touched param lives on the

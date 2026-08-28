@@ -7,7 +7,8 @@ import { W } from './layout.js';
 import { drawKnobParamsSchwung } from './schwung-body.js';
 import { schwungGridEnabled } from './schwung-flag.js';
 
-export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 0): void {
+export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 0,
+                                bodyOverride?: () => void): void {
     clear_screen();
 
     if (vm.toast) {
@@ -45,7 +46,8 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
     /* The body band, drawn either by movy's own widgets or by Schwung's. Only
      * the WIDGETS move: the header and bank bar above are movy's in both cases,
      * and so are the overlays below. */
-    if (schwungGridEnabled()) drawKnobParamsSchwung(vm);
+    if (bodyOverride) bodyOverride();
+    else if (schwungGridEnabled()) drawKnobParamsSchwung(vm);
     else drawKnobParams(vm);
 
     if (vm.overlay) drawEnumOverlay(vm);

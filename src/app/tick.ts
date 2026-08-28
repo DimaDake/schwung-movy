@@ -128,6 +128,32 @@ function buildAutomationView(track: number, model: Model): AutomationView {
 /* The automation view built for this frame, so the Schwung page can resolve
  * lanes without building a second one. */
 let lastAutoView: any = undefined;
+let _schwungDiag = '';
+/*
+ * The Schwung body for whichever module grid is being drawn.
+ *
+ * Returned as a CALLBACK the view calls in place of drawKnobParams, because
+ * movy draws a module's knobs from more than one screen — renderKnobsView AND
+ * renderChainView — and routing only the first is what left the device drawing
+ * movy's widgets while every local check passed. One helper, both call sites.
+ *
+ * Body-only: each view keeps its own header and bank bar. The chain view's bar
+ * indexes CHAIN SLOTS, not param pages, so replacing it with Schwung's page
+ * indicator would be a lie about what the jog does there.
+ */
+function schwungBodyFor(model: any, stepSelected: boolean): (() => void) | undefined {
+    if (schwungGridMode() !== 'page' || !model || stepSelected) return undefined;
+    const sp = schwungPageFor(appState.activeTrack.index, model.getComponentKey());
+    if (!sp.ready) return undefined;
+    return () => {
+        sp.poll();
+        sp.render('', lastAutoView, -1, {
+            bands: { header: false, bank: false, footer: false },
+            rect: { x: 0, y: 8, w: 128, h: 48 },
+        });
+    };
+}
+let _schwungView = '';
 let _autoLanesLog = '';
 let _autoRenderLog = '';
 /* Diagnostic (off unless debug_log_on): the per-knob automation render decision
@@ -508,6 +534,15 @@ function tickBody(): void {
          * below doesn't paint over it. Recomputed each rendered frame; persists
          * across non-dirty ticks since the on-screen toast persists too. */
         jogToastShown = false;
+        /* Which branch of this chain is about to draw. Logged once per change:
+         * the Schwung delegation was put on VIEW_KNOBS, but `seqState.sessionMode`
+         * is tested EARLIER in the same else-if chain, so in session mode
+         * VIEW_KNOBS is unreachable and the delegation never ran on device. */
+        {
+            const vst = `view=${appState.currentView} session=${seqState.sessionMode}`
+                      + ` masterDetail=${appState.masterDetail} ready=${sessionReady()}`;
+            if (vst !== _schwungView) { _schwungView = vst; mlog('schwung-view ' + vst); }
+        }
         if (appState.currentView === VIEW_BROWSE) {
             // A browser opened from the master chain shows the master slot label.
             const browseTitle = seqState.sessionMode
@@ -577,19 +612,8 @@ function tickBody(): void {
              *
              * The step page is movy's too, so it keeps its own renderer.
              */
-            const usingSchwungPage = schwungGridMode() === 'page'
-                && !(stepAvail && stepPageState.selected);
-            const sp = usingSchwungPage
-                ? schwungPageFor(appState.activeTrack.index, activeModel!.getComponentKey())
-                : null;
-            if (sp && sp.ready) {
-                sp.poll();   /* one read per frame, never eight on the draw path */
-                sp.render('T' + (appState.activeTrack.index + 1) + ' > '
-                          + (activeModel!.getModuleName() ?? ''),
-                          vm.automationHeld || vm.rows ? lastAutoView : undefined, -1);
-            } else {
-                renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index);
-            }
+            renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
+                            schwungBodyFor(activeModel, stepAvail && stepPageState.selected));
             perfPhaseEnd();
             // The pool-full toast shares the bottom rows with the Loop strip;
             // claim them so the strip yields to it (like every other toast).
@@ -608,7 +632,9 @@ function tickBody(): void {
                 if (stepAvail) { vm.stepPagePresent = true; vm.stepPageSelected = false; }
             }
             diagAutoRender(vm);
-            renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1));
+            renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1),
+                            undefined, undefined as any,
+                            schwungBodyFor(activeModel, stepAvail && stepPageState.selected));
             /* Must match what renderChainView actually drew: the Loop strip
              * clears rows 60-63 every tick and would erase a toast it was not
              * told about. */

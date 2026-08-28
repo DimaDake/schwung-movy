@@ -33,7 +33,7 @@ const _log = console.log.bind(console);
 console.log = (...a) => { if (typeof a[0] === 'string' && a[0].startsWith('[movy]')) return; _log(...a); };
 
 await import('../dist/esm/app/globals.js');
-const { appState, VIEW_KNOBS } = await import('../dist/esm/app/state.js');
+const { appState, VIEW_KNOBS, VIEW_CHAIN } = await import('../dist/esm/app/state.js');
 const { resetSeqState } = await import('../dist/esm/seq/state.js');
 const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
 const { setSchwungGridMode, schwungPageFor, schwungGridReload } =
@@ -115,6 +115,62 @@ if (!dp) fail('changing the Schwung page did not change the frame — the loop i
         if (!ink(main)) fail('the sequencer main-params page drew nothing under mode=page — '
                            + 'it was routed through the module planner');
         _log(`  sequencer main-params page still draws (${ink(main)} px) under mode=page`);
+    }
+}
+
+/* ---- 5. EVERY view that draws a module grid, not just the one I patched ----
+ *
+ * This is the check that was missing. movy draws a module's knobs from
+ * renderKnobsView AND from renderChainView, and VIEW_CHAIN is the view movy
+ * OPENS ON. Routing only VIEW_KNOBS passed every local check and shipped a
+ * device build that drew movy's widgets — the bug was invisible precisely
+ * because the check chose the view instead of using the one the app lands on.
+ */
+{
+    const grids = [['VIEW_KNOBS', VIEW_KNOBS], ['VIEW_CHAIN', VIEW_CHAIN]];
+    for (const [name, view] of grids) {
+        if (view === undefined) fail(name + ' is not exported — cannot check it');
+
+        /* ON A FULL PAGE. obxd_like's first page is a single Preset cell in
+         * movy and EMPTY in Schwung, so comparing there comes to 86 px and
+         * passes a bare "not identical" test while saying nothing. Both sides
+         * are moved to a page carrying eight parameters first. */
+        setSchwungGridMode('off');
+        boot('obxd_like');
+        appState.currentView = view;
+        appState.trackModels[0][1].changePage(1);
+        advance(6);
+        const off = frame();
+        if (!ink(off)) fail(name + ' drew nothing with the mode off');
+
+        setSchwungGridMode('page');
+        boot('obxd_like');
+        appState.currentView = view;
+        /* MOVE BOTH MODELS TO THE SAME PAGE.
+         *
+         * Advancing only the Schwung page left movy's own model on page 0, so
+         * the two runs differed by WHICH PAGE MOVY WAS ON as well as by who
+         * drew it. With the chain-view override deleted the check still saw
+         * 763 px and passed — it was measuring movy page 0 against movy page 1.
+         * Both models are stepped so the only remaining variable is the
+         * renderer. */
+        appState.trackModels[0][1].changePage(1);
+        schwungPageFor(0, 'synth').goToPage(1);
+        advance(6);
+        const on = frame();
+        if (!ink(on)) fail(name + ' drew nothing under mode=page');
+
+        let dv = 0;
+        for (let i = 0; i < off.length; i++) if (off[i] !== on[i]) dv++;
+        /* A real body swap moves ~1000 px of the body band (measured across the
+         * mock presets). A two-figure delta means the two sides were compared
+         * on a near-empty page, not that the renderers nearly agree. */
+        if (dv < 300) {
+            fail(name + ' differs by only ' + dv + ' px under mode=page - too little for '
+               + 'a body swap. Either that view still draws movy own widgets, or the '
+               + 'pages being compared are empty.');
+        }
+        _log(`  ${name}: body swap changes ${dv} px`);
     }
 }
 

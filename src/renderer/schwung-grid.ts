@@ -21,7 +21,13 @@ import { portFor } from '../track/registry.js';
 
 export type SchwungGridMode = 'off' | 'body' | 'page';
 
-let mode: SchwungGridMode = 'off';
+/* __MOVY_SCHWUNG_GRID__ is a build-time define: 'off' for an ordinary build,
+ * 'page' for the experimental one that hands the module pages to Schwung. It is
+ * a define rather than a runtime default so an ordinary build cannot ship the
+ * experiment by forgetting a call. */
+declare const __MOVY_SCHWUNG_GRID__: SchwungGridMode;
+let mode: SchwungGridMode =
+    (typeof __MOVY_SCHWUNG_GRID__ === 'string' ? __MOVY_SCHWUNG_GRID__ : 'off');
 export function schwungGridMode(): SchwungGridMode { return mode; }
 export function setSchwungGridMode(m: SchwungGridMode): void { mode = m; }
 

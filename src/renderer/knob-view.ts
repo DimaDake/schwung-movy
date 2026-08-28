@@ -4,6 +4,8 @@ import { drawHeader, drawBankBar, drawPadGridIcon } from './header.js';
 import { drawKnobParams } from './label.js';
 import { drawEnumOverlay, drawJogToast } from './overlay.js';
 import { W } from './layout.js';
+import { drawKnobParamsSchwung } from './schwung-body.js';
+import { schwungGridEnabled } from './schwung-flag.js';
 
 export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 0): void {
     clear_screen();
@@ -40,7 +42,11 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
     } else {
         drawBankBar(vm.bankIndex, vm.bankCount, false, vm.bankGroups);
     }
-    drawKnobParams(vm);
+    /* The body band, drawn either by movy's own widgets or by Schwung's. Only
+     * the WIDGETS move: the header and bank bar above are movy's in both cases,
+     * and so are the overlays below. */
+    if (schwungGridEnabled()) drawKnobParamsSchwung(vm);
+    else drawKnobParams(vm);
 
     if (vm.overlay) drawEnumOverlay(vm);
     // Limit reached + a step held: tell the user only the 8 lanes are editable.

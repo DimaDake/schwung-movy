@@ -15,6 +15,21 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Play with LINK on made the transport blink instead of play.** Pressing
+  Movy's Play button with the Move link on left the Play button and the step row
+  flashing about eighteen times a second, forever, and neither Movy nor Move
+  started; Play on Move's side still worked. Movy asks Move to start by handing
+  it a Play press through the host's inject queue, and Schwung 2026-07-29 (which
+  taught its test bus to drive overtaking tools) began draining that queue back
+  onto the *tool's own surface* while a takeover is live. Movy's press therefore
+  came home as a press on Movy: it toggled the transport, which sent another
+  press, which came home again. Schwung's own fix (2026-08-27) gives an overtake
+  DSP a queue that really does reach Move, plus a sentinel to recognise it by —
+  Movy now reads that sentinel on every engine boot and, when the host cannot
+  carry a press, keeps the Movy→Move half of the link switched off rather than
+  talking to itself. Play/Stop **in Move** still drives Movy on every build, as
+  do the tempo lock and EXT. `ENGINE_VERSION` 0.46.0 → 0.47.0.
+
 - **Every pad going black after returning from background.** The LED layer has a
   per-frame send budget because the MIDI output buffer holds ~64 packets and
   drops the overflow *silently* — but only the cached step/button layer

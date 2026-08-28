@@ -128,7 +128,7 @@ pub fn is_control_verb(verb: &str) -> bool {
     matches!(
         verb,
         // transport and recording mode
-        "play" | "stop" | "rec" | "metro" | "link" | "launch" | "stoptrk"
+        "play" | "stop" | "rec" | "metro" | "link" | "minject" | "launch" | "stoptrk"
         // view / selection
         | "watch" | "wlane" | "clipsel" | "hold" | "tdrum"
         // clipboard fills — they change no musical state; only the paste does
@@ -170,6 +170,14 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
         "link" => {
             if let Some(v) = next() {
                 engine.link_enabled = v != 0;
+            }
+        }
+        // minject <0|1> — does this shim carry an overtake DSP's inject to
+        // Move? Sent by the UI on every engine boot from a host capability
+        // probe, not by the user and not from saved state (engine.rs).
+        "minject" => {
+            if let Some(v) = next() {
+                engine.move_inject_ok = v != 0;
             }
         }
         "bpm" => {
@@ -763,6 +771,7 @@ mod tests {
         // (MovePlay inject) instead of starting immediately, and "stop" cancels.
         let mut e = engine();
         e.link_enabled = true;
+        e.move_inject_ok = true;   // a shim that carries the inject to Move
         let mut out = Vec::new();
         apply_batch(&mut e, "play", &mut out);
         assert!(!e.playing, "linked: play waits for Move's FA");

@@ -30,7 +30,7 @@ export const UNDOABLE_VERBS: string[] = [
 
 /** Transport, view/selection, bookkeeping, live input, undo machinery. */
 export const CONTROL_VERBS: string[] = [
-    'play', 'stop', 'rec', 'metro', 'link', 'launch', 'stoptrk',
+    'play', 'stop', 'rec', 'metro', 'link', 'minject', 'launch', 'stoptrk',
     'watch', 'wlane', 'clipsel', 'hold', 'tdrum',
     /* Clipboard fills: they change no musical state — only the paste does. */
     'cpy', 'cpyclr', 'clipcopy',

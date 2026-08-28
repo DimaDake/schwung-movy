@@ -1176,6 +1176,14 @@ With **LINK off** (the default) each transport is independent — Movy's Play/St
 never touches Move's, and Move's never starts or stops Movy. The tempo/grid
 locking below still happens automatically whenever both are playing, LINK or not.
 
+> **Movy → Move needs a recent Schwung.** Reaching Move's transport from Movy
+> means handing Move a Play press, and only a Schwung build from **2026-08-27**
+> or later carries one out of a tool that has taken over the surface. On an
+> older build Movy notices and leaves that half switched off: **Play in Movy
+> starts Movy alone**, while Play/Stop in Move still drives both. Everything
+> else on this page — the tempo lock, EXT, background mode — is unaffected.
+> Movy's log says which one you have: `host cannot inject to Move`.
+
 While both run, they lock as one grid:
 
 - Movy rides Move's clock, so both grids stay **drift-free** — their downbeats

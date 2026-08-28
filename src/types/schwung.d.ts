@@ -28,6 +28,12 @@ declare function shadow_set_overtake_suppress_sysex(flag: number): void;
  * handoff, for the duration a tool sets. Absent on hosts older than the flag
  * (2026-08-24 fork PR) — always guard with `typeof ... === 'function'`. */
 declare function shadow_set_overtake_suppress_master_volume(flag: number): void;
+/* Capability sentinel (schwung #293, 2026-08-27): returns 1 when an overtake
+ * DSP's `midi_inject_to_move` goes out on a dedicated queue that reaches Move
+ * while the takeover is live. ABSENT on older hosts, where the shared ring is
+ * instead drained back onto the overtaking tool's own surface — see
+ * seq/engine.ts (the play link) for what that costs. */
+declare function shadow_overtake_move_inject_active(): number;
 /* Background mode (Phase 2). host_suspend_overtake() parks movy under Move's
  * native UI; it is ABSENT on hosts that predate the capability, so always
  * guard with `typeof host_suspend_overtake === 'function'`. overtakeParked is

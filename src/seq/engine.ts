@@ -174,6 +174,23 @@ export function seqEngineTick(): void {
     }
 }
 
+/* Does an inject from the engine actually reach Move?
+ *
+ * It did until schwung's test bus taught the shim to drain the shared inject
+ * ring onto the overtaking TOOL instead (2026-07-29, "let injected MIDI reach
+ * overtake modules"): from then on movy's own CC 85 came back to movy as a
+ * Play press, so one press on the Play button toggled the transport ~18 times
+ * a second for as long as movy stayed open, and Move never heard any of it.
+ * schwung #293 (2026-08-27) gives an overtake DSP a dedicated queue that does
+ * reach Move, and this sentinel to recognise it by. On anything older the
+ * link's movy→Move half stays switched off — Move's Play still drives movy. */
+function moveInjectReachesMove(): boolean {
+    const ok = typeof shadow_overtake_move_inject_active === 'function'
+        && shadow_overtake_move_inject_active() === 1;
+    if (!ok) mlog('seq: host cannot inject to Move — play link is Move→movy only');
+    return ok;
+}
+
 function probeTick(): void {
     if (--probeCountdown > 0) return;
     probeCountdown = PROBE_TICKS;
@@ -201,6 +218,12 @@ function probeTick(): void {
          * once — a re-dlopened engine has default flags and has never heard of
          * prefs.json. */
         applyFlagsToEngine(engineSet);
+        /* Whether the engine may push a MovePlay press at Move is a property of
+         * the SHIM, not of the set, so the engine cannot know it and is told
+         * here on every boot (it defaults to "no"). Sent directly rather than
+         * queued: an engine reload mid-session must hear this before it can be
+         * handed a `play`. */
+        engineSet('cmd', 'minject ' + (moveInjectReachesMove() ? 1 : 0));
         engineSet('chain_host', CHAIN_MODULE_DIR + '|' + MOVY_MODULE_DIR);
         /* A re-dlopened engine has no pad map; believing otherwise would leave
          * the pads dead until something happened to change the mapping. */

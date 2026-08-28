@@ -28,6 +28,11 @@ export async function run() {
     eq('status poll marks engineOk', seqState.engineOk, true);
     eq('status play=0 parsed', seqState.playing, false);
 
+    /* Boot writes the host's inject capability straight out (engine.ts), which
+     * is traffic of its own — the coalescing assertions below are about the
+     * ops a user gesture queues, so start them from a clean sheet. */
+    engine.cmdBatches.length = 0; engine.ops.length = 0;
+
     // Multiple queued ops must flush as ONE batched set_param (coalescing).
     seqCmd('watch 0');
     seqCmd('non 0 60 100');
@@ -311,6 +316,40 @@ export async function run() {
     resetSeqState();
     parseStatusForTest('play=1 bpm=12000 swing=66');
     eq('swing mirrored from status', seqState.swingPct, 66);
+}
+
+/* ── play link: the movy→Move half needs a host that can carry the inject ── */
+{
+    _log('\nplay link capability probe:');
+    const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
+    const { seqEngineTick, resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
+    const { resetSeqState } = await import('../../dist/esm/seq/state.js');
+
+    /* An old shim has no sentinel at all. Telling the engine so is what stops
+     * movy's own CC 85 coming back at it as a Play press — the feedback loop
+     * that toggled the transport ~18x/second until movy was closed. */
+    delete globalThis.shadow_overtake_move_inject_active;
+    let engine = installMockEngine();
+    resetSeqEngine(); resetSeqState();
+    seqEngineTick();                       // boot probe → engine ready
+    eq('no sentinel → minject 0', engine.ops.includes('minject 0'), true);
+    uninstallMockEngine();
+
+    globalThis.shadow_overtake_move_inject_active = () => 1;
+    engine = installMockEngine();
+    resetSeqEngine(); resetSeqState();
+    seqEngineTick();
+    eq('sentinel says yes → minject 1', engine.ops.includes('minject 1'), true);
+
+    /* A sentinel that exists but answers 0 is a host that says no. */
+    globalThis.shadow_overtake_move_inject_active = () => 0;
+    engine = installMockEngine();
+    resetSeqEngine(); resetSeqState();
+    seqEngineTick();
+    eq('sentinel says no → minject 0', engine.ops.includes('minject 0'), true);
+
+    delete globalThis.shadow_overtake_move_inject_active;
+    uninstallMockEngine();
 }
 
 }

@@ -1,0 +1,64 @@
+{
+  "id": "slicer",
+  "name": "Slicer",
+  "drum": {
+    "padCount": 32,
+    "padNoteStart": 68,
+    "rawMidi": true,
+    "shiftSelectMidi": true
+  },
+  "banks": [
+    {
+      "name": "Main",
+      "rows": [
+        [
+          { "key": "sample_path", "short": "SAMPL", "full": "Sample", "type": "file", "fileRoot": "/data/UserData/UserLibrary", "fileFilter": [".wav", ".aif", ".aiff", ".mp3", ".flac"], "fileStartPath": "/data/UserData/UserLibrary/Samples" },
+          { "key": "scan",        "short": "SCAN",  "full": "Scan Slices", "type": "enum", "options": ["idle", "trigger"], "behavior": "trigger" },
+          { "key": "threshold",   "short": "SENSI", "full": "Sensitivity", "type": "float", "min": 0, "max": 1 },
+          { "key": "slices",      "short": "SLICE", "full": "Slices", "type": "enum", "options": ["8", "16", "32", "64"] }
+        ],
+        [
+          { "key": "pitch",         "short": "PITCH", "full": "Pitch",    "type": "float", "min": -24, "max": 24 },
+          { "key": "velocity_sens", "short": "VELOC", "full": "Velocity", "type": "enum" },
+          { "key": "global_gain",   "short": "GAIN",  "full": "Gain",     "type": "float", "min": 0, "max": 1 },
+          { "key": "mono_mode",     "short": "MONO",  "full": "Mono",     "type": "enum" }
+        ]
+      ]
+    },
+    {
+      "name": "Slice",
+      "padSpecific": true,
+      "rows": [
+        [
+          { "key": "slice_start_trim", "short": "START", "full": "Slice Start",  "type": "float", "automatable": false },
+          { "key": "slice_end_trim",   "short": "END",   "full": "Slice End",    "type": "float", "automatable": false },
+          { "key": "slice_attack",     "short": "ATTK",  "full": "Slice Attack", "type": "float", "automatable": false },
+          { "key": "slice_decay",      "short": "DECAY", "full": "Slice Decay",  "type": "float", "automatable": false }
+        ],
+        [
+          { "key": "slice_pitch", "short": "PTCH",  "full": "Slice Pitch", "type": "float", "automatable": false },
+          { "key": "slice_gain",  "short": "SGAIN", "full": "Slice Gain",  "type": "float", "automatable": false },
+          { "key": "slice_mode",  "short": "SMODE", "full": "Slice Mode",  "type": "enum",  "automatable": false },
+          { "key": "slice_loop",  "short": "LOOP",  "full": "Slice Loop",  "type": "enum",  "automatable": false }
+        ]
+      ]
+    },
+    {
+      "name": "Advanced",
+      "rows": [
+        [
+          { "key": "mode",        "short": "MODE",  "full": "Trigger Mode", "type": "enum" },
+          { "key": "slice_algo",  "short": "ALGO",  "full": "Slice Algo",   "type": "enum" },
+          { "key": "playthrough", "short": "PTHRU", "full": "Playthrough",  "type": "enum" },
+          { "key": "sync",        "short": "SYNC",  "full": "Tempo Sync",   "type": "enum" }
+        ],
+        [
+          { "key": "global_attack", "short": "GATTK", "full": "Global Attack", "type": "float" },
+          { "key": "global_decay",  "short": "GDECY", "full": "Global Decay",  "type": "float" },
+          { "key": "reroll",        "short": "ROLL",  "full": "Reroll Slices", "type": "enum", "options": ["idle", "trigger"], "behavior": "trigger" },
+          { "key": "detect_bpm",    "short": "DBPM",  "full": "Detect BPM",    "type": "enum", "options": ["idle", "trigger"], "behavior": "trigger" }
+        ]
+      ]
+    }
+  ]
+}

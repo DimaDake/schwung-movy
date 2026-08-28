@@ -687,6 +687,16 @@ pages instead of a page per voice. *Signal* (4 voices) works this way:
 
 ![Pad-selected voice page](docs/assets/signal_voice.png)
 
+*Sample Slicer* is a slice player rather than a kit: its **32 pads are the 32
+slices** the module can trigger (pad 1 = slice 1). Its Main page carries the
+**Sample** browser — hold that knob and click the jog to browse
+`UserLibrary/Samples` — and a **Scan Slices** action next to it, which is what
+turns a freshly loaded sample into slices. The **Slice** page then edits
+whichever slice you last hit: start, end, attack, decay, pitch, gain, mode and
+loop. Those per-slice knobs are not automatable — the module points them at the
+slice it is playing, so a lane would land on whatever the sequencer triggered
+last.
+
 *Forge* takes it further: its **16 pads are a Kit A↔B performance grid** (lower
 two rows = Kit A, upper two = Kit B; the *Morph* knob crossfades them), and
 tapping any pad selects that voice for deep editing across six pages —

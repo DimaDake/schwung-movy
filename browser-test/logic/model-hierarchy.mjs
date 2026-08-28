@@ -269,8 +269,10 @@ _log('\nTest: a same-module rebuild keeps the current page');
 
 /* ── module.json as the hierarchy source ──────────────────────────────────
  * Schwung serves a SYNTH slot's ui_hierarchy from the plugin only, so a module
- * that describes its UI in module.json (Sample Slicer) arrives with none and
- * everything it declares there — a sample browser above all — was unreachable. */
+ * that describes its UI in module.json arrives with none, and everything it
+ * declares there — a sample browser above all — was unreachable. (Sample
+ * Slicer was the case that found this; it now has a movy config of its own, so
+ * this uses a module id no bundled config claims.) */
 
 _log('\nTest: a module.json hierarchy is read when the host serves none');
 
@@ -296,7 +298,7 @@ const SLICER_MODULE_JSON = JSON.stringify({ capabilities: { ui_hierarchy: { leve
 {
     mockFsEntries['/data/UserData/UserLibrary/Samples'] = ['break.wav', 'notes.txt'];
     // Installed BEFORE boot: the manifest is read while the hierarchy loads.
-    installMockFs({ '/data/UserData/schwung/modules/sound_generators/slicer/module.json':
+    installMockFs({ '/data/UserData/schwung/modules/sound_generators/manifest-only/module.json':
                     SLICER_MODULE_JSON });
     const m = bootModel(MOCK_SYNTHS.module_json_hier);
     for (let i = 0; i < 20; i++) m.tick();

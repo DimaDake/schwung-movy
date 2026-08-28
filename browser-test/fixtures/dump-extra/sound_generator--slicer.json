@@ -1,0 +1,234 @@
+{
+ "id": "slicer",
+ "dir": "slicer",
+ "category": "sound_generator",
+ "component_key": "synth",
+ "status": "ok",
+ "module_json": null,
+ "movy_config": null,
+ "ui_hierarchy": {},
+ "chain_params": [
+  {
+   "key": "threshold",
+   "name": "Sensitivity",
+   "type": "float",
+   "min": 0,
+   "max": 1,
+   "default": 0.5
+  },
+  {
+   "key": "pitch",
+   "name": "Pitch",
+   "type": "float",
+   "min": -24,
+   "max": 24,
+   "default": 0
+  },
+  {
+   "key": "velocity_sens",
+   "name": "Velocity",
+   "type": "enum",
+   "options": [
+    "Off",
+    "On"
+   ],
+   "default": "On"
+  },
+  {
+   "key": "mode",
+   "name": "Mode",
+   "type": "enum",
+   "options": [
+    "trigger",
+    "gate"
+   ],
+   "default": "gate"
+  },
+  {
+   "key": "global_gain",
+   "name": "Gain",
+   "type": "float",
+   "min": 0,
+   "max": 1,
+   "default": 0.8
+  },
+  {
+   "key": "mono_mode",
+   "name": "Mono",
+   "type": "enum",
+   "options": [
+    "Off",
+    "On"
+   ],
+   "default": "Off"
+  },
+  {
+   "key": "sync",
+   "name": "Tempo Sync",
+   "type": "enum",
+   "options": [
+    "0",
+    "1"
+   ],
+   "labels": [
+    "Off",
+    "On"
+   ],
+   "default": "1"
+  },
+  {
+   "key": "slice_algo",
+   "name": "Slice Mode",
+   "type": "enum",
+   "options": [
+    "0",
+    "1"
+   ],
+   "labels": [
+    "Transient",
+    "Random"
+   ],
+   "default": "0"
+  },
+  {
+   "key": "playthrough",
+   "name": "Playthrough",
+   "type": "enum",
+   "options": [
+    "0",
+    "1"
+   ],
+   "labels": [
+    "Off",
+    "On"
+   ],
+   "default": "0"
+  },
+  {
+   "key": "global_attack",
+   "name": "Global Attack",
+   "type": "float",
+   "min": 5,
+   "max": 2000,
+   "default": 5,
+   "unit": "ms"
+  },
+  {
+   "key": "global_decay",
+   "name": "Global Decay",
+   "type": "float",
+   "min": 0,
+   "max": 5000,
+   "default": 500,
+   "unit": "ms"
+  },
+  {
+   "key": "slice_attack",
+   "name": "Attack",
+   "type": "float",
+   "min": 5,
+   "max": 2000,
+   "default": 5,
+   "unit": "ms"
+  },
+  {
+   "key": "slice_decay",
+   "name": "Decay",
+   "type": "float",
+   "min": 0,
+   "max": 5000,
+   "default": 500,
+   "unit": "ms"
+  },
+  {
+   "key": "slice_start_trim",
+   "name": "Start Trim",
+   "type": "float",
+   "min": -1000,
+   "max": 1000,
+   "default": 0,
+   "unit": "ms"
+  },
+  {
+   "key": "slice_end_trim",
+   "name": "End Trim",
+   "type": "float",
+   "min": -1000,
+   "max": 1000,
+   "default": 0,
+   "unit": "ms"
+  },
+  {
+   "key": "slice_pitch",
+   "name": "Pad Pitch",
+   "type": "float",
+   "min": -24,
+   "max": 24,
+   "default": 0
+  },
+  {
+   "key": "slice_gain",
+   "name": "Pad Gain",
+   "type": "float",
+   "min": 0,
+   "max": 2,
+   "default": 1
+  },
+  {
+   "key": "slice_mode",
+   "name": "Pad Mode",
+   "type": "enum",
+   "options": [
+    "0",
+    "1"
+   ],
+   "labels": [
+    "Trig",
+    "Gate"
+   ],
+   "default": "1"
+  },
+  {
+   "key": "slice_loop",
+   "name": "Loop",
+   "type": "enum",
+   "options": [
+    "0",
+    "1",
+    "2",
+    "3"
+   ],
+   "labels": [
+    "Off",
+    "Loop",
+    "Ping-Pong",
+    "Reverse"
+   ],
+   "default": "0"
+  }
+ ],
+ "presets": {
+  "list_param": null,
+  "count_param": null,
+  "name_param": null,
+  "count": 0,
+  "names": null
+ },
+ "params": {
+  "algo": "0",
+  "gg": "1",
+  "mode": "gate",
+  "mono": "0",
+  "pitch": "0",
+  "pt": "0",
+  "sample_path": "",
+  "sbpm": "0",
+  "sca": "0",
+  "slices": "16",
+  "sync": "1",
+  "threshold": "0.5",
+  "vel_sens": "1",
+  "ui_hierarchy": "{}",
+  "chain_params": "[{\"key\":\"threshold\",\"name\":\"Sensitivity\",\"type\":\"float\",\"min\":0,\"max\":1,\"default\":0.5},{\"key\":\"pitch\",\"name\":\"Pitch\",\"type\":\"float\",\"min\":-24,\"max\":24,\"default\":0},{\"key\":\"velocity_sens\",\"name\":\"Velocity\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"],\"default\":\"On\"},{\"key\":\"mode\",\"name\":\"Mode\",\"type\":\"enum\",\"options\":[\"trigger\",\"gate\"],\"default\":\"gate\"},{\"key\":\"global_gain\",\"name\":\"Gain\",\"type\":\"float\",\"min\":0,\"max\":1,\"default\":0.8},{\"key\":\"mono_mode\",\"name\":\"Mono\",\"type\":\"enum\",\"options\":[\"Off\",\"On\"],\"default\":\"Off\"},{\"key\":\"sync\",\"name\":\"Tempo Sync\",\"type\":\"enum\",\"options\":[\"0\",\"1\"],\"labels\":[\"Off\",\"On\"],\"default\":\"1\"},{\"key\":\"slice_algo\",\"name\":\"Slice Mode\",\"type\":\"enum\",\"options\":[\"0\",\"1\"],\"labels\":[\"Transient\",\"Random\"],\"default\":\"0\"},{\"key\":\"playthrough\",\"name\":\"Playthrough\",\"type\":\"enum\",\"options\":[\"0\",\"1\"],\"labels\":[\"Off\",\"On\"],\"default\":\"0\"},{\"key\":\"global_attack\",\"name\":\"Global Attack\",\"type\":\"float\",\"min\":5,\"max\":2000,\"default\":5,\"unit\":\"ms\"},{\"key\":\"global_decay\",\"name\":\"Global Decay\",\"type\":\"float\",\"min\":0,\"max\":5000,\"default\":500,\"unit\":\"ms\"},{\"key\":\"slice_attack\",\"name\":\"Attack\",\"type\":\"float\",\"min\":5,\"max\":2000,\"default\":5,\"unit\":\"ms\"},{\"key\":\"slice_decay\",\"name\":\"Decay\",\"type\":\"float\",\"min\":0,\"max\":5000,\"default\":500,\"unit\":\"ms\"},{\"key\":\"slice_start_trim\",\"name\":\"Start Trim\",\"type\":\"float\",\"min\":-1000,\"max\":1000,\"default\":0,\"unit\":\"ms\"},{\"key\":\"slice_end_trim\",\"name\":\"End Trim\",\"type\":\"float\",\"min\":-1000,\"max\":1000,\"default\":0,\"unit\":\"ms\"},{\"key\":\"slice_pitch\",\"name\":\"Pad Pitch\",\"type\":\"float\",\"min\":-24,\"max\":24,\"default\":0},{\"key\":\"slice_gain\",\"name\":\"Pad Gain\",\"type\":\"float\",\"min\":0,\"max\":2,\"default\":1},{\"key\":\"slice_mode\",\"name\":\"Pad Mode\",\"type\":\"enum\",\"options\":[\"0\",\"1\"],\"labels\":[\"Trig\",\"Gate\"],\"default\":\"1\"},{\"key\":\"slice_loop\",\"name\":\"Loop\",\"type\":\"enum\",\"options\":[\"0\",\"1\",\"2\",\"3\"],\"labels\":[\"Off\",\"Loop\",\"Ping-Pong\",\"Reverse\"],\"default\":\"0\"}]"
+ }
+}

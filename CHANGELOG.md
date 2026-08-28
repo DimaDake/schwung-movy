@@ -13,6 +13,18 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Added
+
+- **Sample Slicer is playable from Movy.** The module publishes no UI hierarchy
+  and never declares its sample parameter, so Movy could only show the handful
+  of knobs its `chain_params` listed — with no way to choose a sample at all.
+  It now has a Movy layout of its own: a **Sample** browser and a **Scan
+  Slices** action on the Main page, a per-slice page (start/end/attack/decay/
+  pitch/gain/mode/loop) that follows the pad you last hit, an Advanced page
+  (trigger mode, slice algorithm, playthrough, tempo sync, global envelope,
+  reroll, detect BPM), and the module's **32 pads mapped to its 32 slices**.
+  Works with the module exactly as shipped.
+
 ### Fixed
 
 - **Modules whose UI lives in their `module.json` showed the wrong params — or

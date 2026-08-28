@@ -12,6 +12,7 @@ import s303Json        from './303.json';
 import chiptuneJson    from './chiptune.json';
 import hush1Json       from './hush1.json';
 import signalJson      from './signal.json';
+import slicerJson      from './slicer.json';
 
 const MOVY_MODULE_ROOT = '/data/UserData/schwung/modules';
 
@@ -27,6 +28,7 @@ const CONFIGS: Record<string, ModuleConfig> = {
     plaits:          plaitsJson       as unknown as ModuleConfig,
     'po32-drum':     libpo32Json      as unknown as ModuleConfig,
     sfz:             sfzJson          as unknown as ModuleConfig,
+    slicer:          slicerJson       as unknown as ModuleConfig,
     'weird-dreams':  weirdDreamsJson  as unknown as ModuleConfig,
     wurl:            wurlJson         as unknown as ModuleConfig,
 };

@@ -2,7 +2,7 @@ import type { FlagsPageVM } from '../seq/flags-page-vm.js';
 import { fontPrint, fontWidth, FONT_HEIGHT } from '../font/index.js';
 import { drawHeader } from './header.js';
 import { wrapWords } from './wrap.js';
-import { W, HEADER_H } from './layout.js';
+import { W, HEADER_H, TOAST_Y } from './layout.js';
 
 const ROW_H    = FONT_HEIGHT + 2;
 
@@ -11,7 +11,13 @@ const ROW_H    = FONT_HEIGHT + 2;
  * setting does — and this page is the only place a user meets these. */
 export const HINT_LINES = 2;
 export const HINT_W     = W - 4;
-const HINT_TOP = 64 - HINT_LINES * ROW_H;
+/* Above TOAST_Y, not the bottom of the screen. Those last rows are spoken for:
+ * the toast band, and the Loop Overview strip that `tick.ts` repaints EVERY
+ * tick, outside the dirty-frame block. A band at the bottom of the screen had
+ * its second line cut in half a few milliseconds after the page drew it —
+ * visible only on the device, because no local suite rendered a view and then
+ * ticked. `browser-test/app-loop.mjs` does now. */
+export const HINT_TOP = TOAST_Y - HINT_LINES * ROW_H;
 
 const LIST_TOP = HEADER_H + 2;
 const LIST_BOT = HINT_TOP - 2;

@@ -8,6 +8,8 @@
 
 import { trackRef, TRACK_COUNT } from '../dist/esm/track/ref.js';
 import { setFlag } from '../dist/esm/seq/flags.js';
+import { FONT_HEIGHT } from '../dist/esm/font/index.js';
+import { HINT_TOP, HINT_LINES } from '../dist/esm/renderer/flags-view.js';
 import { selectTrack, focusGroupStep } from '../dist/esm/track/focus.js';
 import { installEnv } from './env.mjs';
 import { installMockEngine } from './mock-engine.mjs';
@@ -19,6 +21,10 @@ const engine = installMockEngine();
 /* Capture LED writes (override env's no-op setLED). */
 const ledByPad = {};                       // padNote → last color
 globalThis.setLED = (note, color) => { ledByPad[note] = color; };
+
+/* Capture painted rectangles, so a view can be asked which rows it owns. */
+const painted = [];
+globalThis.fill_rect = (x, y, w, h) => { painted.push([x, y, w, h]); };
 
 /* Capture button LED writes. */
 const buttonLeds = {};
@@ -2295,6 +2301,32 @@ _log('\napp-loop: every track gets a playable keyboard, not just the host four')
     }
     selectTrack(0);
     resetSeqState();
+}
+
+_log('\napp-loop: the Settings page owns the whole screen');
+{
+    /* The Loop Overview strip repaints at rows 60-63 on EVERY tick, outside the
+     * dirty-frame block — so a full-screen view that is not excluded from it
+     * gets its bottom painted over a few milliseconds after it draws. Settings
+     * puts its explanation band there, and the strip cut the second line in
+     * half on the device while every local suite passed: nothing here rendered
+     * a tick and a view together. */
+    resetApp();
+    const { VIEW_FLAGS } = await import('../dist/esm/app/state.js');
+    sendMidi([0xB0, 49, 127]);                    // Shift down
+    sendMidi([0x90, 16 + 1, 100]);                // Step 2
+    sendMidi([0x80, 16 + 1, 0]);
+    sendMidi([0xB0, 49, 0]);                      // Shift up
+    eq('Shift + Step 2 opens Settings', appState.currentView, VIEW_FLAGS);
+
+    painted.length = 0;
+    advance(8);
+    /* Full-width fills only: the band's own glyphs are one-pixel runs, while
+     * anything that repaints the bottom of the screen clears the whole width
+     * first. The rows the band occupies must survive every tick. */
+    const HINT_BOT = HINT_TOP + HINT_LINES * (FONT_HEIGHT + 2);
+    const swept = painted.filter(([, y, w, h]) => w >= 128 && y + h > HINT_TOP && y < HINT_BOT);
+    eq('nothing sweeps the explanation band away', swept.length, 0);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

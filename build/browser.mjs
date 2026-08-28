@@ -179,6 +179,7 @@ await esbuild.build({
         resolve(root, 'src/seq/flags-page-vm.ts'),
         resolve(root, 'src/seq/flags-visible.ts'),
         resolve(root, 'src/renderer/flags-view.ts'),
+        resolve(root, 'src/renderer/wrap.ts'),
         resolve(root, 'src/renderer/value-row.ts'),
         resolve(root, 'src/renderer/quant-overlay.ts'),
     ],

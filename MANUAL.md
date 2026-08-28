@@ -1326,7 +1326,7 @@ view closes them as well, so neither page follows you around.
 
 **Shift + Step 2** opens **Settings**, a scrolling list rather than a knob page:
 the **jog** moves the selection, **knob 1** changes the selected row's value,
-**Back** closes it.
+**Back** closes it. The line at the bottom explains whichever row is selected.
 
 ![Settings](docs/assets/flags-release.png)
 
@@ -1338,27 +1338,24 @@ to run off the audio thread, and this is the escape hatch. Everything under it
 (how many threads, how aggressively silent chains sleep) stays at the setting
 that measured best.
 
-**MOVY TRACKS 1-4** decides who owns the first four tracks. Movy's own tracks
-5-16 are always its own; tracks 1-4 can be either Schwung's four slots (what
-Move's mixer, per-slot Link Audio and the Move set file see) or four more Movy
-chains, which join the CPU optimization above and are worth ~20-25 % of the
-chain render.
+**TRACKS 1-4** decides who owns the first four tracks. Tracks 5-16 are always
+Movy's own; tracks 1-4 can be either:
 
 | Value | Tracks 1-4 |
 | --- | --- |
-| **NEW SETS** *(default)* | each Set decides — see below |
-| **MOVY** | Movy chains, in every Set |
-| **SCHWUNG** | Schwung slots, in every Set |
+| **MOVE** | Move keeps them: its mixer fader, per-slot Link Audio, and its own set file |
+| **MOVY** | Movy hosts them, like tracks 5-16 — they join the CPU optimization above, worth ~20-25 % of the chain render |
+| **NEW SETS** *(default)* | each set decides — see below |
 
-On **NEW SETS**, a Set that Movy has never opened before starts on Movy chains,
-and a Set you already have keeps the Schwung slots it was built on. Nothing is
-migrated either way: switching a Set over does not move a module from one host
-to the other — the Schwung slot keeps what it holds and simply stops being
-played, and switching back finds it exactly as it was.
+On **NEW SETS**, a set that Movy has never opened before starts on MOVY, and a
+set you already have stays on MOVE. Nothing is migrated either way: switching a
+set over does not move an instrument from one to the other — Move's track keeps
+what it holds and simply stops being played, and switching back finds it exactly
+as it was.
 
-**THIS SET** appears only under NEW SETS, and is that Set's own answer. Change
-it to move just the Set you are in; it is saved with the Set and travels with
-it.
+**THIS SET** appears only under NEW SETS, and is the current set's own answer.
+Change it to move just the set you are in; it is saved with the set and travels
+with it.
 
 ---
 

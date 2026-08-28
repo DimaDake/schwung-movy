@@ -59,7 +59,9 @@ import { loadSetHostChoice } from '../../dist/esm/track/host-mode.js';
 import { loadPerSetFlags } from '../../dist/esm/seq/flags.js';
 import { resetPorts } from '../../dist/esm/track/registry.js';
 import { serializeUiState, applyUiState, resetUiState } from '../../dist/esm/seq/ui-state.js';
-import { VISIBLE_ROWS, firstVisibleRow } from '../../dist/esm/renderer/flags-view.js';
+import { VISIBLE_ROWS, firstVisibleRow, HINT_W, HINT_LINES } from '../../dist/esm/renderer/flags-view.js';
+import { wrapWords } from '../../dist/esm/renderer/wrap.js';
+import { DETENT_DIV } from '../../dist/esm/seq/detent.js';
 import { readPrefFlags, writePrefFlag, readPrefModuleBlacklist } from '../../dist/esm/seq/prefs.js';
 import { DEBUG_BUILD } from '../../dist/esm/app/debug.js';
 import { openParamPage, closeParamPage, paramPageActive } from '../../dist/esm/seq/param-page.js';
@@ -151,7 +153,17 @@ console.log = (...args) => {
 let failures = 0;
 function failureCount() { return failures; }
 
-function ok(label)        { _log(`  \x1b[32m✓\x1b[0m ${label}`); }
+/* `ok(label)` passes unconditionally — that is how `eq` reports a pass. With a
+ * second argument it is an ASSERTION, and a falsy one fails.
+ *
+ * It used to take the label alone and ignore everything else, so ~50
+ * `ok(label, condition)` calls across these suites printed a green tick without
+ * ever evaluating the condition. Found by mutating a value the check was
+ * supposed to catch and watching the suite stay green. */
+function ok(label, cond = true, why = '') {
+    if (cond) _log(`  \x1b[32m✓\x1b[0m ${label}`);
+    else fail(label, why || 'expected a truthy value');
+}
 function fail(label, why) { _log(`  \x1b[31m✗\x1b[0m ${label}: ${why}`); failures++; }
 
 function eq(label, actual, expected) {
@@ -213,6 +225,7 @@ export {
     flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
     visibleFlags, movyTracksOn, loadSetHostChoice, loadPerSetFlags, resetPorts,
+    wrapWords, HINT_W, HINT_LINES, DETENT_DIV,
     serializeUiState, applyUiState, resetUiState,
     readPrefModuleBlacklist,
     DEBUG_BUILD, openParamPage, closeParamPage, paramPageActive,

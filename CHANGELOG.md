@@ -22,14 +22,17 @@ far. Earlier work is summarised in the timeline below for context.
   — with OFF as a full serial fallback for a module that misbehaves off the
   audio thread. Everything under it (lane count, how aggressively silent chains
   sleep, duplicate pinning) stays hidden at the setting that measured best.
-- **Movy tracks 1-4 default to Movy's own chains in new sets.** The same
-  Settings page carries **MOVY TRACKS 1-4**: `NEW SETS` (the default), `MOVY` or
-  `SCHWUNG`. On `NEW SETS`, a Set Movy has never opened starts with tracks 1-4
+- **Tracks 1-4 default to Movy's own chains in new sets.** The same Settings
+  page carries **TRACKS 1-4**: `NEW SETS` (the default), `MOVY` or `MOVE`. On
+  `NEW SETS`, a Set Movy has never opened starts with tracks 1-4
   on Movy chains — joining the parallel lanes, worth ~20-25 % of the chain
   render — while a Set you already have keeps the Schwung slots it was built on.
   The choice is stored in the Set and travels with it, and a **THIS SET** row
-  moves just the Set you are in. Nothing is migrated in either direction: the
-  Schwung slot keeps its module and simply stops being played.
+  moves just the Set you are in. Nothing is migrated in either direction:
+  Move's track keeps its module and simply stops being played.
+- **Every Settings row explains itself.** A two-line band at the bottom of the
+  page describes whichever row is selected — a name short enough to sit beside
+  its value is never long enough to say what the setting does.
 
 - **Sample Slicer is playable from Movy.** The module publishes no UI hierarchy
   and never declares its sample parameter, so Movy could only show the handful

@@ -13,6 +13,9 @@ export type FlagRow = { name: string; value: string; selected: boolean };
 export type FlagsPageVM = {
     rows: FlagRow[];
     selected: number;
+    /** The selected row's one-sentence explanation, for the band at the bottom.
+     *  Raw: the renderer owns the wrap, because only it knows the font. */
+    hint: string;
     /** 0..1 for the knob-1 LED — the value, so the brightness carries it. */
     knobNormalized: number;
 };
@@ -31,6 +34,7 @@ export function buildFlagsPageVM(flags: FlagDef[] = visibleFlags()): FlagsPageVM
     return {
         rows,
         selected: sel,
+        hint: def ? def.hint : '',
         knobNormalized: def ? flagNormalized(def, flagValue(def.key)) : 0,
     };
 }

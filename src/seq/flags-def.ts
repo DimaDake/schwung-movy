@@ -20,6 +20,14 @@ export type FlagDef = {
     bool?: boolean;
     /** Word labels, indexed from `min`, for a value OFF/ON cannot say. */
     labels?: string[];
+    /** One sentence under the list, for whichever row is selected. Every flag
+     *  has one: a name short enough for the row is never long enough to say
+     *  what the setting DOES, and the page is the only place a user meets it.
+     *
+     *  Two lines is the whole band — `browser-test/logic/flags.mjs` wraps every
+     *  hint at the real font and fails a third line, because the renderer would
+     *  cut it mid-sentence and only the device would show it. */
+    hint: string;
     /** Listed on the page in a RELEASE build, not only in a debug one. Two
      *  settings are a user's business — how much CPU movy takes, and which host
      *  owns tracks 1-4. The rest are measurement instruments. */
@@ -68,6 +76,7 @@ export const HOST_NEW_SETS = 2;
 export const FLAGS: FlagDef[] = [
     {
         key: 'cpuopt', name: 'CPU Optimize',
+        hint: 'More CPU for Movy. Off if sound glitches.',
         // The one CPU switch a user gets. Everything under it — lanes, idle
         // skip, pinning — stays hidden at its measured default.
         //
@@ -75,10 +84,11 @@ export const FLAGS: FlagDef[] = [
         // EFFECT on `chparallel` and `chidle` (flags.ts `engineValue`). Off is a
         // full serial fallback rather than half of one, because the module that
         // makes someone reach for this is not helped by keeping idle skip.
-        min: 0, max: 1, def: 1, bool: true, release: true,
+        min: 0, max: 1, def: 1, bool: true, release: true, uiOnly: true,
     },
     {
-        key: 'chtracks', name: 'Movy Tracks 1-4',
+        key: 'chtracks', name: 'Tracks 1-4',
+        hint: 'MOVE keeps its mixer. MOVY frees CPU.',
         // Tracks 1-4 are schwung's four shadow slots, which render serially on
         // the audio thread. On movy chains 0-3 instead they join the parallel
         // lanes — worth ~20-25% of the chain render, not four tracks' worth: a
@@ -90,16 +100,21 @@ export const FLAGS: FlagDef[] = [
         // it while anything new gets the faster arrangement. The per-set half
         // is `chtrackset`.
         //
+        // The VALUE is labelled MOVE, not SCHWUNG. Schwung is the framework movy
+        // runs on and names nothing a user can see; what they can see is whether
+        // Move still owns those four tracks.
+        //
         // The ENGINE needs the RESOLVED value, not this one: `drain_out` is what
         // decides whether a sequenced note goes out as MIDI or into a chain. It
         // was briefly UI-only, and every sequenced note kept going to schwung
         // while the UI looked entirely switched over.
         // See plans/2026-08-24-movy-hosted-first-tracks.md.
         min: HOST_SCHWUNG, max: HOST_NEW_SETS, def: HOST_NEW_SETS,
-        labels: ['SCHWUNG', 'MOVY', 'NEW SETS'], release: true, revisedAt: 2,
+        labels: ['MOVE', 'MOVY', 'NEW SETS'], release: true, revisedAt: 2,
     },
     {
         key: 'chtrackset', name: 'This Set',
+        hint: 'What this set uses. Saved with it.',
         // The half of `chtracks` the SET carries. Listed only while the mode
         // defers to it (flags-visible.ts) — under an explicit mode it would
         // show a value the knob cannot change, which reads as a broken row.
@@ -110,11 +125,12 @@ export const FLAGS: FlagDef[] = [
         //
         // uiOnly for the same reason as `cpuopt`: it reaches the engine folded
         // into `chtracks`.
-        min: 0, max: 1, def: 1, legacy: 0, labels: ['SCHWUNG', 'MOVY'],
+        min: 0, max: 1, def: 1, legacy: 0, labels: ['MOVE', 'MOVY'],
         release: true, perSet: true, uiOnly: true,
     },
     {
         key: 'chparallel', name: 'Parallel Render',
+        hint: 'Renders chains on several threads.',
         // On: measured 2.15x on the twelve-chain obxd ramp and 2.0-2.2x across
         // the mid-weight fleet (docs/track-performance.md §1, §2), which is what
         // takes hera and nusaw from over the frame budget to under it. The
@@ -125,12 +141,14 @@ export const FLAGS: FlagDef[] = [
     },
     {
         key: 'chlanes', name: 'Render Lanes',
+        hint: 'How many threads chains render on.',
         // 1 is a real setting, not an alias for serial: it is the parallel path
         // with no helpers. 4 is MAX_LANES in chain_slots.rs.
         min: 1, max: 4, def: 3,
     },
     {
         key: 'chidle', name: 'Idle Skip',
+        hint: 'Skips chains that are silent.',
         // An ordinal, not a bool: the FX gate depends on the synth gate.
         // 0 one render_block call (today) · 1 split, never sleeps (the arm
         // chdigest compares against 0) · 2 sleep a silent synth · 3 also sleep
@@ -139,6 +157,7 @@ export const FLAGS: FlagDef[] = [
     },
     {
         key: 'setcommit', name: 'Commit New Sets',
+        hint: 'Asks Move to save a new set.',
         // Move writes a Set to disk only once MOVE itself has something to save
         // in it, so a pad played entirely through schwung is never a real Set
         // and BOTH stores lose it. On, movy sends the gesture that commits it.
@@ -152,6 +171,7 @@ export const FLAGS: FlagDef[] = [
     },
     {
         key: 'chpin', name: 'Pin Duplicates',
+        hint: 'Keeps module copies on one thread.',
         // Off by default: modules are assumed thread-safe and the ones proven
         // otherwise go on chain_pin's blacklist. This is the blunt containment
         // for a set that misbehaves before the culprit is known.

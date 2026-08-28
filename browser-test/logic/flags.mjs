@@ -10,7 +10,8 @@ import {
     flagValue, setFlag, applyFlagsToEngine, resetFlags,
     flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
-    visibleFlags, movyTracksOn, loadSetHostChoice, trackRef,
+    visibleFlags, movyTracksOn, loadSetHostChoice, trackRef, DETENT_DIV,
+    wrapWords, HINT_W, HINT_LINES,
     serializeUiState, applyUiState, resetUiState,
     readPrefModuleBlacklist,
     DEBUG_BUILD, openParamPage, closeParamPage, paramPageActive,
@@ -18,11 +19,18 @@ import {
     appState, ok, eq, _log,
 } from './harness.mjs';
 
-/* Ten detents of one click each — countDetents accumulates, so a single
- * delta of 1 is not guaranteed to be a full step on every knob curve. Turning
- * far enough to be sure, then clamping, is what the page itself does. */
+/* One physical click is DETENT_DIV raw units — a delta of 1 is an EIGHTH of a
+ * click and moves nothing. This helper sent 1 per click and the assertions that
+ * depended on it were passing vacuously (see `ok` in harness.mjs). */
 function turn(k, clicks) {
-    for (let i = 0; i < Math.abs(clicks); i++) flagsPageKnob(k, clicks > 0 ? 1 : -1);
+    for (let i = 0; i < Math.abs(clicks); i++)
+        flagsPageKnob(k, clicks > 0 ? DETENT_DIV : -DETENT_DIV);
+}
+
+/** Where a key landed in the engine push, whatever value it went out with. */
+function sentIndex(sent, key) {
+    for (let i = 0; i < sent.length; i++) if (sent[i].indexOf(key + '=') === 0) return i;
+    return -1;
 }
 
 export async function run() {
@@ -205,7 +213,7 @@ export async function run() {
     applyFlagsToEngine((k, v) => sent.push(k + '=' + v));
     ok('and is sent as one csv', sent.indexOf('chblock=helm,obxd') >= 0, sent.join(' '));
     ok('before parallel render can act on it',
-       sent.indexOf('chblock=helm,obxd') < sent.indexOf('chparallel=0'), sent.join(' '));
+       sentIndex(sent, 'chblock') < sentIndex(sent, 'chparallel'), sent.join(' '));
     uninstallMockFs();
 
     /* Empty is a real value: the engine replaces the list wholesale, so this is
@@ -363,11 +371,18 @@ export async function run() {
     setFlag('chtracks', 2);
     ok('and NEW SETS brings it back', relKeys().indexOf('chtrackset') >= 0);
 
-    /* Word labels: OFF/ON cannot say which of two hosts a track is on. */
+    /* Word labels: OFF/ON cannot say which of two hosts a track is on.
+     *
+     * They name MOVE, not schwung. Schwung is the framework movy runs on, and
+     * nothing a user can see is labelled with it — the observable difference is
+     * whether Move still owns those four tracks. */
     const tr = flagDef('chtracks');
-    eq('0 is schwung', flagValueLabel(tr, 0), 'SCHWUNG');
-    eq('1 is movy', flagValueLabel(tr, 1), 'MOVY');
+    eq('the row asks about the tracks, not the host', tr.name, 'Tracks 1-4');
+    eq('0 leaves them with Move', flagValueLabel(tr, 0), 'MOVE');
+    eq('1 hands them to movy', flagValueLabel(tr, 1), 'MOVY');
     eq('2 defers to the set', flagValueLabel(tr, 2), 'NEW SETS');
+    eq('and the per-set row answers the same question',
+       flagValueLabel(flagDef('chtrackset'), 0), 'MOVE');
 
     /* The page walks the visible list, so a hidden flag can never be selected
      * — a knob turn on a row a release build does not draw would change a
@@ -376,6 +391,22 @@ export async function run() {
     for (let i = 0; i < FLAGS.length + 5; i++) flagsPageJog(1);
     ok('the selection cannot leave the listed rows',
        flagsPageState.selected < visibleFlags().length);
+
+    /* And the knob edits the row the page DREW. Hiding `This Set` shifts every
+     * row below it up by one, so a page reading the raw table edits the flag
+     * above the selection — invisibly, since both lists are the same length in
+     * a debug build until a row is dropped. */
+    setFlag('chtracks', 1);                       // drops the per-set row
+    resetFlagsPage();
+    flagsPageState.selected = 3;
+    eq('the drawn row here is Render Lanes', visibleFlags()[3].key, 'chlanes');
+    eq('while the raw table has Parallel Render there', FLAGS[3].key, 'chparallel');
+    setFlag('chlanes', 1);
+    setFlag('chparallel', 1);
+    turn(FLAG_KNOB, 2);
+    eq('the knob moved the row the page drew', flagValue('chlanes'), 3);
+    eq('and left the one the raw table has there alone', flagValue('chparallel'), 1);
+    setFlag('chtracks', 2);
 
     uninstallMockFs();
 }
@@ -497,6 +528,63 @@ export async function run() {
     setFlag('chtracks', 0);
     resetFlags();
     uninstallMockFs();
+}
+
+/* ── The hint band: every row says what it does ───────────── */
+{
+    _log('\nSettings hints');
+
+    installMockFs();
+    resetFlags();
+    resetFlagsPage();
+
+    for (const f of FLAGS) {
+        ok(`${f.key} explains itself`, typeof f.hint === 'string' && f.hint.length > 0);
+        /* The band is a fixed two lines at the bottom of a 128px screen. A hint
+         * that needs a third is not shortened at render time — it is silently
+         * cut, and the row ends mid-sentence on the device where nothing here
+         * would notice. */
+        const lines = wrapWords(f.hint, HINT_W);
+        ok(`${f.key}'s hint fits the band`, lines.length <= HINT_LINES,
+           `${lines.length} lines: ${f.hint}`);
+    }
+
+    /* The word a user has no way to know. It is the framework movy runs on, and
+     * it names nothing they can see or press. */
+    for (const f of visibleFlags(false)) {
+        const shown = f.name + ' ' + (f.labels || []).join(' ');
+        ok(`"${f.name}" says nothing about schwung`, shown.toLowerCase().indexOf('schwung') < 0, shown);
+    }
+
+    /* The band follows the selection, or it is describing a different row than
+     * the one under the inverted band. */
+    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'chidle');
+    eq('the hint is the selected row\'s', buildFlagsPageVM().hint, flagDef('chidle').hint);
+    flagsPageJog(-1);
+    const above = visibleFlags()[flagsPageState.selected];
+    eq('and it follows the jog', buildFlagsPageVM().hint, above.hint);
+
+    /* The list has to give the band its two lines back. */
+    ok('the list leaves room for the band', VISIBLE_ROWS >= 4 && VISIBLE_ROWS <= 5);
+
+    uninstallMockFs();
+}
+
+/* ── Word wrapping ───────────────────────────────────────── */
+{
+    _log('\nHint wrapping');
+
+    eq('a short line is one line', wrapWords('abc', HINT_W).length, 1);
+    eq('nothing to say is nothing to draw', wrapWords('', HINT_W).length, 0);
+    /* Greedy, at spaces: breaking mid-word would read as a typo at this size. */
+    const two = wrapWords('one two three four five six seven eight nine ten', 40);
+    ok('a long line breaks into several', two.length > 1);
+    ok('and never mid-word', two.every((l) => l.indexOf(' ') !== 0 && l.trim() === l), two.join('|'));
+    eq('every word survives the break', two.join(' '),
+       'one two three four five six seven eight nine ten');
+    /* A word too long for the line still gets drawn rather than dropped. */
+    eq('an unbreakable word gets its own line',
+       wrapWords('supercalifragilistic', 10).join('|'), 'supercalifragilistic');
 }
 
 }

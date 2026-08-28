@@ -4,14 +4,23 @@
 # esbuild bundles all TypeScript (model, renderer, font, modules) into ui.js.
 # ui_font.mjs is no longer deployed separately.
 #
-# Usage: ./scripts/deploy.sh [host]   (default: move.local)
+# Usage: ./scripts/deploy.sh [--release] [host]   (default: move.local)
+#
+# --release deploys the bundle that SHIPS: the Settings page then lists only the
+# two settings marked `release`, not every flag. Same build and same gate
+# assertion the store tarball uses (scripts/lib/build-release-ui.sh) — without
+# it, a "release" deploy would be a debug bundle wearing the name.
 set -euo pipefail
+RELEASE=0
+if [[ "${1:-}" == "--release" ]]; then RELEASE=1; shift; fi
 HOST="${1:-move.local}"
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 REMOTE="/data/UserData/schwung/modules/tools/movy"
 
 cd "$DIR"
-node build/device.mjs
+# shellcheck source=lib/build-release-ui.sh
+. "$DIR/scripts/lib/build-release-ui.sh"
+if [[ "$RELEASE" == 1 ]]; then build_release_ui "$DIR"; else node build/device.mjs; fi
 ./scripts/build-dsp.sh
 ssh "ableton@$HOST" "mkdir -p $REMOTE"
 scp "$DIR/ui.js" "ableton@$HOST:$REMOTE/"
@@ -26,4 +35,4 @@ scp "$DIR/module.json" "ableton@$HOST:$REMOTE/"
 # mapping stays intact; the movy UI then hot-reloads the engine by version.
 scp "$DIR/dist/dsp.so" "ableton@$HOST:$REMOTE/dsp.so.new"
 ssh "ableton@$HOST" "mv $REMOTE/dsp.so.new $REMOTE/dsp.so"
-echo "deployed to $HOST"
+echo "deployed $([[ "$RELEASE" == 1 ]] && echo 'RELEASE' || echo 'debug') build to $HOST"

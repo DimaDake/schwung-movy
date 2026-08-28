@@ -187,6 +187,10 @@ Other useful commands:
 # Build + deploy ui.js to device
 ./scripts/deploy.sh [move.local]
 
+# Same, but the bundle that SHIPS — the Settings page then lists only the two
+# flags marked `release`. ui.js reloads on tool OPEN, so reopen movy to see it.
+./scripts/deploy.sh --release [move.local]
+
 # Full automated test — deploy, open movy, inject knob CCs, check log (PASS/FAIL)
 ./scripts/test.sh [move.local]
 

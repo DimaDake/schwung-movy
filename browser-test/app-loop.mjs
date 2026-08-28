@@ -7,6 +7,7 @@
  * root: node browser-test/app-loop.mjs */
 
 import { trackRef, TRACK_COUNT } from '../dist/esm/track/ref.js';
+import { setFlag } from '../dist/esm/seq/flags.js';
 import { selectTrack, focusGroupStep } from '../dist/esm/track/focus.js';
 import { installEnv } from './env.mjs';
 import { installMockEngine } from './mock-engine.mjs';
@@ -60,6 +61,11 @@ function resetApp() {
     logs.length = 0;
     resetSeqState();
     resetSeqEngine();
+    /* The mocked instrument is a schwung SLOT (env.setParams), so tracks 1-4
+     * have to be slots. `chtracks` ships as NEW SETS, and the Set this harness
+     * boots into is one movy has never seen — which would put those four tracks
+     * on movy's own empty chains, where there is no drum module to find. */
+    setFlag('chtracks', 0);
     globalThis.init();                       // builds 4×chain models, resets keyboardState
     appState.trackModels[0][1].reload();     // force synth hierarchy/drum-config load
     advance(12);                             // settle engine boot + hierarchy + lane

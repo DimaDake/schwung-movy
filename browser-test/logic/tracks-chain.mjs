@@ -5,7 +5,7 @@
  */
 
 import {
-    portFor, appState, eq, _log,
+    portFor, appState, eq, _log, loadPerSetFlags, resetPorts,
 } from './harness.mjs';
 
 export async function run() {
@@ -163,6 +163,12 @@ export async function run() {
       uninstallMockFs();
     }
   }
+
+  /* `resetUiState()` above modelled a Set movy had never seen, which puts
+   * tracks 1-4 on movy chains. These are about a track that is NOT one, so put
+   * track 0 back on its schwung slot first. */
+  loadPerSetFlags({});
+  resetPorts();
 
   /* Tolerance: older blobs have no `chains` key, and a corrupt one must not
    * throw during set load. */

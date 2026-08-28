@@ -9,7 +9,7 @@
  * owns the failure counter every suite reports into.
  */
 
-import { _log, failureCount } from './logic/harness.mjs';
+import { _log, failureCount, loadPerSetFlags, resetPorts } from './logic/harness.mjs';
 import { run as run_model_hierarchy } from './logic/model-hierarchy.mjs';
 import { run as run_model_paging } from './logic/model-paging.mjs';
 import { run as run_model_params } from './logic/model-params.mjs';
@@ -96,7 +96,18 @@ const SUITES = [
     run_flags,
 ];
 
-for (const suite of SUITES) await suite();
+/* Between suites, back to the world movy boots in: no Set has said yet which
+ * host owns tracks 1-4, so they are schwung slots. `chtracks` ships as NEW SETS,
+ * so any suite that loads a Set leaves those four tracks on movy chains — and
+ * the next suite reads its params through the wrong port and fails for reasons
+ * that have nothing to do with what it tests. */
+for (const suite of SUITES) {
+    /* The store and the port cache only — not host-mode's flip, which talks to
+     * an engine a suite may have just uninstalled. */
+    loadPerSetFlags({});
+    resetPorts();
+    await suite();
+}
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 

@@ -1,7 +1,7 @@
 # Release-visible settings: CPU Optimization and Movy Tracks 1-4
 
 **Date:** 2026-08-28
-**Status:** approved, implementing
+**Status:** implemented
 
 ## Problem
 
@@ -29,13 +29,16 @@ arrangement by default, without changing what any set built before it does.
 | field | meaning |
 | --- | --- |
 | `release` | listed on the page in a release build, not only in a debug one |
-| `local` | never pushed to the engine under its own key |
+| `uiOnly` | never pushed to the engine under its own key |
 | `perSet` | the value lives in the set's `ui-state.json`, not `prefs.json` |
 | `labels` | word labels indexed from `min`, for values `OFF`/`ON` cannot say |
 
 The table stays the single driver of the page, persistence and the engine push.
 That property is the reason to extend it rather than special-case the two new
 rows in page code.
+
+(`uiOnly` rather than `local`: `browser-test/logic/flags.mjs` was already
+written against that name, testing a field the table did not yet have.)
 
 A new leaf `src/seq/flags-visible.ts` owns the list the page walks:
 
@@ -56,7 +59,7 @@ remaining reader of the constant.
 
 ### 2. CPU Optimization is one master over two derived engine values
 
-New flag `cpuopt` — `CPU Optimization`, bool, default ON, `release`, `local`.
+New flag `cpuopt` — `CPU Optimize`, bool, default ON, `release`, `uiOnly`.
 
 It is not an engine param. `flags.ts` gains `engineValue(key)`:
 
@@ -97,14 +100,16 @@ Default 2, with `revisedAt: 2` and `FLAGS_REV -> 2`, so a device that already
 stored a 0 adopts the new default exactly once. `chparallel`'s `revisedAt: 1` is
 untouched by the bump (`rev < 1` is already false).
 
-A second row `This Set` (`chtrackset`, `perSet`, `local`, labels
+A second row `This Set` (`chtrackset`, `perSet`, `uiOnly`, labels
 `SCHWUNG`/`MOVY`) is listed **only while the mode is NEW SETS**. In the two
 explicit modes it would display a value the knob cannot change, which is worse
 than not listing it.
 
-**Resolution** moves into a leaf `src/track/host-choice.ts`, imported by
-`ref.ts`. It cannot live in `host-mode.ts`: that file imports `ref.ts`, and
-`ref.ts` is what needs the answer.
+**Resolution** is `resolveHost(mode, setChoice)`, a pure function in
+`flags-def.ts` — beside the constants, and reachable from both the places that
+need it. It cannot live in `host-mode.ts`: that file imports `ref.ts`, and
+`ref.ts` is what needs the answer. `ref.ts` exports `movyTracksOn()` over it,
+and `flags.ts` folds it into the engine's `chtracks`.
 
 ```
 mode SCHWUNG  -> false
@@ -112,13 +117,20 @@ mode MOVY     -> true
 mode NEW SETS -> this set's stored value (false until a set has resolved)
 ```
 
-**Per-set storage** is a `movyTracks` field in the set's `ui-state.json`:
+**Per-set storage** is a `flags` object in the set's `ui-state.json`, keyed by
+flag key (`{"flags":{"chtrackset":1}}`) — the same shape prefs.json uses for the
+machine's half, so a second per-set flag needs no new plumbing:
 
 | path | value | why |
 | --- | --- | --- |
 | `resetUiState()` — no blob at all | 1 (movy) | a set movy has never seen is a new set |
-| `applyUiState()`, field absent | 0 (schwung) | a set built before this feature keeps behaving as it did |
+| `applyUiState()`, field absent | 0 (`legacy`) | a set built before this feature keeps behaving as it did |
 | `applyUiState()`, field present | as stored | the set's own decision, latched |
+| before any set has loaded | 0 (`legacy`) | boot is neither case; the conservative answer, and what movy did before the flag existed |
+
+That last row is not a detail: reading `def` at boot puts tracks 1-4 on movy
+chains before the set that owns them has said so, which is a different host for
+every param read in the window before the first load.
 
 `serializeUiState()` writes it, so a decision reached either way latches on the
 next save. The value is written and kept even while an explicit mode is active,
@@ -126,7 +138,7 @@ so returning to NEW SETS restores each set's own choice rather than a global one
 
 **Ordering.** Both apply paths set the per-set choice *before*
 `clearChainsNotIn`/`restoreChains`, which route by `trackKind()`.
-`setMovyTracks()` is refactored into `syncHostMode()`: same
+`setMovyTracks()` is refactored into `withHostFlip(next, mutate)`: same
 release-gates, then flip, then drop the port cache, rebuild the track models,
 reset the pad route, request a label sync — now driven by the RESOLVED value
 changing for any reason, a set load included. That ordering is the whole point of
@@ -146,7 +158,16 @@ builds, since it is now a user surface.
 
 ## Testing
 
-Every test proven by removing the fix and watching it fail.
+Every test proven by removing the fix and watching it fail. Three mutations were
+run against the finished code: dropping the `cpuopt` gate in `engineValue` (4
+failures), giving an old set the new default instead of `legacy` (50), and
+dropping the `release` filter in `visibleFlags` (1, naming the whole list).
+
+One thing the plan did not anticipate: `chtracks` shipping as NEW SETS makes any
+suite that loads a Set leave tracks 1-4 on movy chains, and the next suite reads
+its params through the wrong port. The runner now resets that between suites,
+and `app-loop.mjs` pins `chtracks` to SCHWUNG — its mocked instrument is a
+schwung slot.
 
 - Flag table pins: `cpuopt` default ON; `chtracks` default 2; the release list is
   exactly `cpuopt` + `chtracks` (+ `chtrackset` in NEW SETS); the debug list is

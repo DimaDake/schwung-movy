@@ -14,6 +14,7 @@ import {
     UNDOABLE_VERBS, undoOnce, redoOnce, undoWatchContext, resetUndoApply, undoToastVM,
     noteCount, clipTarget, valueChange, seqCmd, takeLabelSync, seqEngineTick,
     resetSeqEngine, appState, ok, eq, notMatch, _log,
+    loadPerSetFlags, resetPorts,
 } from './harness.mjs';
 
 export async function run() {
@@ -417,6 +418,14 @@ export async function run() {
     const {
         beginModuleRestore, moduleRestoreTick, moduleRestorePending, resetModuleRestore,
     } = await import('../../dist/esm/undo/module-apply.js');
+
+    /* A schwung SLOT, which is what this fake chain mocks (`shadow_get_param`).
+     * The session ticked above created a Set movy had never seen, and a new Set
+     * puts tracks 1-4 on movy's own chains — addressed through a different host
+     * entirely. Loading an existing set's per-set flags puts track 0 back on the
+     * slot this block is about. */
+    loadPerSetFlags({});
+    resetPorts();
 
     /* A fake chain slot: chain_params lists what the module exposes, and each
      * key reads back its value. */

@@ -53,6 +53,12 @@ import {
     flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
 } from '../../dist/esm/seq/flags-page.js';
 import { buildFlagsPageVM } from '../../dist/esm/seq/flags-page-vm.js';
+import { visibleFlags } from '../../dist/esm/seq/flags-visible.js';
+import { movyTracksOn } from '../../dist/esm/track/ref.js';
+import { loadSetHostChoice } from '../../dist/esm/track/host-mode.js';
+import { loadPerSetFlags } from '../../dist/esm/seq/flags.js';
+import { resetPorts } from '../../dist/esm/track/registry.js';
+import { serializeUiState, applyUiState, resetUiState } from '../../dist/esm/seq/ui-state.js';
 import { VISIBLE_ROWS, firstVisibleRow } from '../../dist/esm/renderer/flags-view.js';
 import { readPrefFlags, writePrefFlag, readPrefModuleBlacklist } from '../../dist/esm/seq/prefs.js';
 import { DEBUG_BUILD } from '../../dist/esm/app/debug.js';
@@ -206,6 +212,8 @@ export {
     flagValue, setFlag, applyFlagsToEngine, resetFlags,
     flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
+    visibleFlags, movyTracksOn, loadSetHostChoice, loadPerSetFlags, resetPorts,
+    serializeUiState, applyUiState, resetUiState,
     readPrefModuleBlacklist,
     DEBUG_BUILD, openParamPage, closeParamPage, paramPageActive,
     VIEW_FLAGS, VIEW_CHAIN, VIEW_MAIN_PARAMS,

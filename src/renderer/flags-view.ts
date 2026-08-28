@@ -21,10 +21,10 @@ export function firstVisibleRow(selected: number, count: number): number {
 
 export function renderFlagsView(vm: FlagsPageVM): void {
     clear_screen();
-    drawHeader('FLAGS', null, true);
+    drawHeader('SETTINGS', null, true);
 
     if (vm.rows.length === 0) {
-        fontPrint(2, LIST_TOP, 'No flags', 1);
+        fontPrint(2, LIST_TOP, 'No settings', 1);
         return;
     }
 

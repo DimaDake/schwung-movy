@@ -20,7 +20,6 @@ import { appState, VIEW_CHAIN, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS } 
 import { clearMainPage } from './main-page.js';
 import { clearClipPage } from './clip-page.js';
 import { clearFlagsPage } from './flags-page.js';
-import { DEBUG_BUILD } from '../app/debug.js';
 
 export const paramPageState = {
     origin: VIEW_CHAIN as number,   // view to restore when the layer is left
@@ -43,7 +42,7 @@ export function openParamPage(view: number): void {
     if (!paramPageActive()) paramPageState.origin = appState.currentView;
     clearMainPage();
     clearClipPage();
-    if (DEBUG_BUILD) clearFlagsPage();
+    clearFlagsPage();
     appState.currentView = view;
 }
 
@@ -51,7 +50,7 @@ export function openParamPage(view: number): void {
 export function closeParamPage(): number {
     clearMainPage();
     clearClipPage();
-    if (DEBUG_BUILD) clearFlagsPage();
+    clearFlagsPage();
     appState.currentView = paramPageState.origin;
     return paramPageState.origin;
 }

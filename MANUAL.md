@@ -34,6 +34,7 @@ official docs first:
 4. [Keyboard & drums](#4-keyboard--drums)
 5. [The sequencer (aligned with Move)](#5-the-sequencer-aligned-with-move)
 6. [Beyond Move: Step, Clip & Set parameters](#6-beyond-move-step-clip--set-parameters)
+   - [Settings](#settings--shift--step-2)
 6a. [Undo & redo](#6a-undo--redo)
 7. [Limitations vs Move](#7-limitations-vs-move)
 8. [Controls reference](#8-controls-reference)
@@ -1321,6 +1322,44 @@ other is up *replaces* it, so a single **Back** always leaves for the view you
 started from — never for the other page. Switching tracks or going to Session
 view closes them as well, so neither page follows you around.
 
+### Settings — Shift + Step 2
+
+**Shift + Step 2** opens **Settings**, a scrolling list rather than a knob page:
+the **jog** moves the selection, **knob 1** changes the selected row's value,
+**Back** closes it.
+
+![Settings](docs/assets/flags-release.png)
+
+**CPU OPTIMIZE** (ON) lets Movy render its chains on several threads and skip
+chains that are silent. It is worth roughly 2× on a heavy set, and it is the
+difference between a big set staying inside the audio frame and crackling. Turn
+it **OFF** only if a particular module misbehaves — a few plugins are not safe
+to run off the audio thread, and this is the escape hatch. Everything under it
+(how many threads, how aggressively silent chains sleep) stays at the setting
+that measured best.
+
+**MOVY TRACKS 1-4** decides who owns the first four tracks. Movy's own tracks
+5-16 are always its own; tracks 1-4 can be either Schwung's four slots (what
+Move's mixer, per-slot Link Audio and the Move set file see) or four more Movy
+chains, which join the CPU optimization above and are worth ~20-25 % of the
+chain render.
+
+| Value | Tracks 1-4 |
+| --- | --- |
+| **NEW SETS** *(default)* | each Set decides — see below |
+| **MOVY** | Movy chains, in every Set |
+| **SCHWUNG** | Schwung slots, in every Set |
+
+On **NEW SETS**, a Set that Movy has never opened before starts on Movy chains,
+and a Set you already have keeps the Schwung slots it was built on. Nothing is
+migrated either way: switching a Set over does not move a module from one host
+to the other — the Schwung slot keeps what it holds and simply stops being
+played, and switching back finds it exactly as it was.
+
+**THIS SET** appears only under NEW SETS, and is that Set's own answer. Change
+it to move just the Set you are in; it is saved with the Set and travels with
+it.
+
 ---
 
 ## 6a. Undo & redo
@@ -1499,6 +1538,7 @@ behaviour you'd like — or, better, a PR.
 
 | Combo | Action |
 | --- | --- |
+| **Shift + Step 2** | Open **Settings** (CPU optimization, which host owns tracks 1-4). |
 | **Shift + Step 3** | Open **Clip parameters** (scale, length, transpose, quantize; Track view). |
 | **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/link/quantize, root/key/mode/layout). |
 | **Shift + Step 6** | Toggle the **metronome**. |

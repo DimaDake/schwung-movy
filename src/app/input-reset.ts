@@ -20,7 +20,6 @@ import { resetMomentary } from '../seq/momentary.js';
 import { resetMainPage } from '../seq/main-page.js';
 import { resetClipPage } from '../seq/clip-page.js';
 import { resetFlagsPage } from '../seq/flags-page.js';
-import { DEBUG_BUILD } from './debug.js';
 import { resetEditOps } from '../seq/edit-ops.js';
 import { resetDuplicate } from '../seq/duplicate.js';
 import { resetLoopMode } from '../seq/loop-mode.js';
@@ -43,7 +42,7 @@ export function resetHeldInput(notifyEngine: boolean): void {
     resetMomentary();
     resetMainPage();
     resetClipPage();
-    if (DEBUG_BUILD) resetFlagsPage();
+    resetFlagsPage();
     resetEditOps();       // Delete held
     resetDuplicate();     // Copy held
     resetLoopMode();      // Loop held

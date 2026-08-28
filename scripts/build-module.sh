@@ -26,16 +26,18 @@ if [[ "$REL_VER" != "$MOD_VER" ]]; then
 fi
 
 echo "=== Building Movy module v$MOD_VER ==="
-# The one release path, so it is the one that turns the debug-only surfaces off
-# (the Global Params flags page). Asserted below rather than trusted: an esbuild
-# `define` that silently stopped applying would ship a page reachable from
-# Shift+Step 2, and nothing else here would notice.
+# The one release path, so it is the one that turns the debug-only surfaces off.
+# The Settings page itself ships — what MOVY_DEBUG=0 hides is the measurement
+# flags ON it (src/seq/flags-visible.ts), leaving the two settings marked
+# `release`. Asserted below rather than trusted: an esbuild `define` that
+# silently stopped applying would put the render lanes and the duplicate pin in
+# front of every user, and nothing else here would notice.
 #
 # The assertion is on the substituted CONSTANT, not on the page's strings. The
-# device bundle is not minified, so the page's code is still present either way
-# — what MOVY_DEBUG=0 buys is that every `DEBUG_BUILD &&` guarding it is a
-# literal false. Asserting absence instead would be asserting something untrue
-# and would fail every release.
+# device bundle is not minified, so every flag's name is still present either way
+# — what MOVY_DEBUG=0 buys is that `visibleFlags()` filters them out. Asserting
+# absence instead would be asserting something untrue and would fail every
+# release.
 MOVY_DEBUG=0 node build/device.mjs   # bundles TS (model/renderer/fonts) → ui.js
 if ! grep -qF 'DEBUG_BUILD = true ? false' ui.js; then
     echo "ERROR: the debug gate is not off in the release bundle" >&2

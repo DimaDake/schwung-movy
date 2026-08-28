@@ -5,7 +5,6 @@
 
 import { mlog } from '../log.js';
 import { appState, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS } from '../app/state.js';
-import { DEBUG_BUILD } from '../app/debug.js';
 import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
 import { beginGesture } from '../undo/edit.js';
 import { trackLabel } from '../undo/label.js';
@@ -165,11 +164,9 @@ function shiftStepFunction(step: number): void {
         appState.dirty = true;
         return;
     }
-    /* Global Params. Gated HERE rather than in the renderer: a release build
-     * must have no way to reach the view at all, or the gate merely turns the
-     * page into a blank screen with no way out. `DEBUG_BUILD` is a build-time
-     * literal, so this whole branch leaves the release bundle. */
-    if (DEBUG_BUILD && step === STEP_FLAGS) {
+    /* Settings. Reachable in every build — what a release build hides is the
+     * measurement flags on it, not the page (flags-visible.ts). */
+    if (step === STEP_FLAGS) {
         openParamPage(VIEW_FLAGS);
         appState.dirty = true;
         return;

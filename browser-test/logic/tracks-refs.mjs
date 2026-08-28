@@ -444,7 +444,7 @@ export async function run() {
   L.drainAll();
   // Pad 68 on track 1, while track 1 is still a schwung slot.
   L.noteSounded(68, 1, 60);
-  eq('the track started as a host slot', flagValue('chtracks'), 0);
+  eq('the track started as a host slot', trackRef(1).kind, 'host');
 
   setMovyTracks(true);
 

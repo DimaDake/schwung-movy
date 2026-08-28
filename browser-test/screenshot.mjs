@@ -55,7 +55,7 @@ const PRESETS = [
     'main-ext-sync', 'main-link-on',
     'clip-default', 'clip-fraction', 'clip-overlay', 'clip-drum', 'clip-quant',
     'main-quant', 'quant-overlay-three', 'quant-overlay-two',
-    'flags-top', 'flags-scrolled',
+    'flags-top', 'flags-scrolled', 'flags-release',
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
     'filter_slope24', 'filter_dual', 'filter_open',
@@ -98,7 +98,7 @@ const BASE = {
     'clip-default': 'test8', 'clip-fraction': 'test8', 'clip-overlay': 'test8',
     'clip-drum': 'test8', 'clip-quant': 'test8',
     'quant-overlay-three': 'test8', 'quant-overlay-two': 'test8',
-    'flags-top': 'test8', 'flags-scrolled': 'test8',
+    'flags-top': 'test8', 'flags-scrolled': 'test8', 'flags-release': 'test8',
     trigger_armed: 'triggers', trigger_fired: 'triggers',
     trigger_blink_off: 'triggers', trigger_touched: 'triggers',
     trigger_cooling: 'triggers', trigger_cooling_low: 'triggers',
@@ -171,7 +171,7 @@ const { drawQuantOverlay } = await import('../dist/esm/renderer/quant-overlay.js
 const { renderFlagsView } = await import('../dist/esm/renderer/flags-view.js');
 const { buildFlagsPageVM } = await import('../dist/esm/seq/flags-page-vm.js');
 const { flagsPageState, resetFlagsPage } = await import('../dist/esm/seq/flags-page.js');
-const { FLAGS } = await import('../dist/esm/seq/flags-def.js');
+const { visibleFlags } = await import('../dist/esm/seq/flags-visible.js');
 const { setFlag, resetFlags } = await import('../dist/esm/seq/flags.js');
 const { armQuantOverlay, buildQuantOverlayVM, resetQuantOverlay } =
     await import('../dist/esm/seq/quant-overlay.js');
@@ -549,11 +549,12 @@ function applyView(preset) {
             lastRender();
             break;
         }
-        /* The Global Params flags page (debug builds only). Two states, because
-         * the value column and the selection band are what the page IS: `top`
-         * has the selection on row 0 with the list unscrolled, `scrolled` puts
-         * it on the last flag with a value that is not the default, so a row
-         * whose number stopped tracking its flag shows up as a diff. */
+        /* The Settings page, in the debug arrangement: every flag listed. Two
+         * states, because the value column and the selection band are what the
+         * page IS — `top` has the selection on row 0 with the list unscrolled,
+         * `scrolled` puts it on the last flag with a value that is not the
+         * default, so a row whose number stopped tracking its flag shows up as
+         * a diff. */
         case 'flags-top':
         case 'flags-scrolled': {
             resetFlags(); resetFlagsPage();
@@ -561,8 +562,19 @@ function applyView(preset) {
             setFlag('chparallel', scrolled ? 1 : 0);
             setFlag('chlanes', scrolled ? 4 : 3);
             setFlag('chpin', scrolled ? 1 : 0);
-            flagsPageState.selected = scrolled ? FLAGS.length - 1 : 0;
+            flagsPageState.selected = scrolled ? visibleFlags().length - 1 : 0;
             lastRender = () => renderFlagsView(buildFlagsPageVM());
+            lastRender();
+            break;
+        }
+        /* And the arrangement that actually SHIPS: the two settings a release
+         * build lists, plus the per-set row the NEW SETS mode brings with it.
+         * The debug scenes above cannot cover this — they render the list this
+         * build has compiled in, which is every flag. */
+        case 'flags-release': {
+            resetFlags(); resetFlagsPage();
+            flagsPageState.selected = 1;         // the row with the word labels
+            lastRender = () => renderFlagsView(buildFlagsPageVM(visibleFlags(false)));
             lastRender();
             break;
         }

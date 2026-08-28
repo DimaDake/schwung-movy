@@ -7,7 +7,6 @@ import { buildClipPageVM } from '../seq/clip-page-vm.js';
 import { buildFlagsPageVM } from '../seq/flags-page-vm.js';
 import { FLAG_KNOB } from '../seq/flags-page.js';
 import { renderFlagsView } from '../renderer/flags-view.js';
-import { DEBUG_BUILD } from './debug.js';
 import { keyboardState, baseNoteFor, padMapFor } from '../keyboard/state.js';
 import { isSounding } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
@@ -524,7 +523,7 @@ function tickBody(): void {
             const vm = buildClipPageVM();
             renderKnobsView(vm, false, appState.activeTrack.index);
             updateKnobLEDs(vm); // knobs 0-2 reflect value; 3-7 (null cells) off
-        } else if (DEBUG_BUILD && appState.currentView === VIEW_FLAGS) {
+        } else if (appState.currentView === VIEW_FLAGS) {
             const vm = buildFlagsPageVM();
             renderFlagsView(vm);
             // Only knob 1 lights, and its brightness is the value — the page is

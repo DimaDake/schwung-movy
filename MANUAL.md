@@ -733,9 +733,14 @@ for the concepts:
 - **16 tracks in four groups** — see [Tracks and groups](#tracks-and-groups)
   below.
 - **Live recording** — **Rec** arms recording with a one-bar **count-in**; play
-  the pads to record. Clips start only after the count-in. A note played
-  slightly *ahead* of the final beat still lands on the downbeat rather than
-  being dropped, so leaning into the first hit does not cost you the note.
+  the pads to record. Clips start only after the count-in. Pressing **Rec**
+  while the transport is *already running* punches in instead: onto a clip that
+  already has notes it records from where you are, and into an **empty slot** it
+  waits for the next bar — the Rec button flashes until then — so the new clip
+  starts on the beat, in sync with everything already playing. Tapping Rec again
+  while it flashes cancels. A note played slightly *ahead* of the final beat
+  still lands on the downbeat rather than being dropped, so leaning into the
+  first hit does not cost you the note.
   A pad still **held when you press Rec to stop** (or when you stop the
   transport) is kept, not discarded: recording stops there, but the note you
   are sounding is written with the length you actually play it for, so ending a
@@ -1451,7 +1456,7 @@ behaviour you'd like — or, better, a PR.
 | **Hold step A + press step B** | Set step A's note length up to B. |
 | **Hold a step + pad** | Edit that step's notes from the keyboard. An added note takes the step's existing start and length (melodic only). |
 | **Play** | Start / stop the transport. When **LINK** is on, also starts / stops Move's native sequencer (a Movy-initiated start waits ~1 bar for Move's Link grid). |
-| **Rec** (tap) | Arm recording (one-bar count-in). Tapping again stops; a pad still held is kept and gets its full played length. |
+| **Rec** (tap) | Arm recording — one-bar count-in from stopped; while playing, punch in now (overdub) or at the next bar (new clip, Rec flashes). Tapping again stops or cancels; a pad still held is kept and gets its full played length. |
 | **Hold Rec** (stopped) | **Step recording** — play the pads to enter notes step by step. |
 | **Hold Rec + pads** | Enter a note or chord at the head; the head advances when the last pad lifts. |
 | **Hold Rec + Right / Left** | Rest / step back — or tie / untie the chord being held. |

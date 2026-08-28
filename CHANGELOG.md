@@ -15,6 +15,17 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Recording a new clip while the beat played started it mid-bar.** With the
+  transport already running, pressing **Rec** to record into an empty slot began
+  capturing on the spot, planting the new clip's first tick wherever in the bar
+  the press landed — so the take was permanently out of phase with the metronome
+  and with every clip already playing, which became obvious as soon as you
+  stopped and hit play again. A first take is now bar-quantized like any other
+  clip launch: the Rec button flashes until the next bar and capture begins
+  there, on the grid. Tapping Rec again while it flashes cancels. Overdubbing a
+  clip that is already running is unchanged — it punches in immediately, since
+  it is already in phase. Engine 0.48.0.
+
 - **Play with LINK on made the transport blink instead of play.** Pressing
   Movy's Play button with the Move link on left the Play button and the step row
   flashing about eighteen times a second, forever, and neither Movy nor Move

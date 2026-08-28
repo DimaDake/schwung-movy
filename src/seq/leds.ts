@@ -92,13 +92,19 @@ export function transportPlayColor(playing: boolean): number {
     return playing ? C_GREEN : C_DARKGREY;
 }
 
-export function transportRecColor(recording: boolean, countingIn: boolean): number {
-    return (recording || countingIn) ? C_REC_RED : C_DARKGREY;
+/* Armed but not capturing yet — a count-in, or a take queued to the next bar —
+ * FLASHES, the way Move's own Record button does; solid red means the take is
+ * running. Without the flash a queued take is indistinguishable from a rolling
+ * one, and the press reads as having been ignored for up to a bar. */
+export function transportRecColor(recording: boolean, countingIn: boolean, blink = true): number {
+    if (countingIn) return blink ? C_REC_RED : C_DARKGREY;
+    return recording ? C_REC_RED : C_DARKGREY;
 }
 
 function paintTransport(): void {
     cachedSetButtonLED(CC_PLAY, transportPlayColor(seqState.playing));
-    cachedSetButtonLED(CC_REC, transportRecColor(seqState.recording, seqState.countingIn));
+    cachedSetButtonLED(CC_REC,
+        transportRecColor(seqState.recording, seqState.countingIn, blinkPhase()));
 }
 
 /* Step-icon LEDs are CC 16..31 (the printed icons under each step), separate

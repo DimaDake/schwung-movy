@@ -69,7 +69,10 @@ export async function run() {
     eq('play running = green',       transportPlayColor(true), 11);
     eq('rec idle = dark grey',       transportRecColor(false, false), 124);
     eq('rec recording = red',        transportRecColor(true, false), C_REC_RED);
-    eq('rec counting-in = red',      transportRecColor(false, true), C_REC_RED);
+    /* Armed-and-waiting flashes: a count-in, or a take queued to the next bar. */
+    eq('rec armed, blink on = red',  transportRecColor(false, true, true), C_REC_RED);
+    eq('rec armed, blink off = dark', transportRecColor(false, true, false), 124);
+    eq('rec rolling ignores blink',  transportRecColor(true, false, false), C_REC_RED);
     eq('rec proper red color = 127', C_REC_RED, 127);
 }
 

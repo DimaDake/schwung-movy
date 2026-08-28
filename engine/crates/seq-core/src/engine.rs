@@ -86,6 +86,11 @@ pub struct Engine {
     rec_empty_start: bool,
     /// Count-in ticks remaining before capture begins (0 = not counting in).
     count_in_left: u32,
+    /// A take armed while the transport runs, waiting for the next bar. Only a
+    /// take that starts from an EMPTY clip queues: it is a clip launch like any
+    /// other, and starting it mid-bar plants the new clip's tick 0 off the
+    /// master grid for good. An overdub is already in phase and punches in now.
+    pending_rec: bool,
     pub metronome: bool,
     /// Set-level quantization stamped onto clips as they are created. Held in
     /// every EMPTY clip too (see `reseed_empty_clips`), so a clip is born with
@@ -227,6 +232,7 @@ impl Engine {
             rec_track: 0,
             rec_empty_start: false,
             count_in_left: 0,
+            pending_rec: false,
             metronome: false,
             default_quant: 0,
             rec_pending: Vec::new(),
@@ -358,8 +364,11 @@ impl Engine {
         ((x.wrapping_mul(0x2545F4914F6CDD1D) >> 33) % 100) as u8
     }
 
+    /// Armed but not capturing yet — a count-in, or a take queued to the next
+    /// bar. One flag because the UI treats them identically: the Rec button
+    /// blinks and the undo pass is already open.
     pub fn counting_in(&self) -> bool {
-        self.count_in_left > 0
+        self.count_in_left > 0 || self.pending_rec
     }
 
     // ── Clip operations (Copy/Delete, manual §12) ─────────────────────────
@@ -635,6 +644,7 @@ impl Engine {
         self.playing = false;
         self.recording = false;
         self.count_in_left = 0;
+        self.pending_rec = false;
         // The playhead is about to stop, so a held note has nothing left to
         // measure against: end it here rather than throw it away.
         self.rec_tail.append(&mut self.rec_pending);
@@ -736,16 +746,25 @@ impl Engine {
 
     // ── Recording (manual §14) ────────────────────────────────────────────
 
-    /// Rec button: toggle recording on `track`. Starting arms a one-bar
-    /// count-in (the metronome clicks; capture begins when it elapses) and
-    /// starts the transport if stopped.
+    /// Rec button: toggle recording on `track`. From stopped, this arms a
+    /// one-bar count-in (the metronome clicks; capture begins when it elapses)
+    /// and starts the transport. While the transport runs it punches in — now
+    /// for an overdub, at the next bar for a take that starts from an empty
+    /// clip (see `pending_rec`).
     pub fn toggle_record(&mut self, track: usize) {
         if track >= NUM_TRACKS {
             return;
         }
-        if self.recording || self.count_in_left > 0 {
+        if self.recording || self.count_in_left > 0 || self.pending_rec {
+            // Cancelling a queued take also un-queues the launch it asked for:
+            // the clip would otherwise start on its own at the bar, silently,
+            // as if the Rec press had half-happened.
+            if self.pending_rec {
+                self.tracks[self.rec_track].queued_slot = None;
+            }
             self.recording = false;
             self.count_in_left = 0;
+            self.pending_rec = false;
             // Whatever is still held becomes a tail: capture stops immediately,
             // but a pad you are sounding as you press Rec belongs to the take
             // and gets its real length when you let go. Clearing here erased it.
@@ -766,20 +785,25 @@ impl Engine {
         // pointed at the old clip) and never auto-extends.
         let a = self.tracks[track].active_clip;
         self.tracks[track].active_mut().ensure_exists();
-        self.tracks[track].playing_slot = Some(a);
-        self.tracks[track].queued_slot = None;
         self.tracks[track].pending_stop = false;
         if !was_playing {
+            self.tracks[track].playing_slot = Some(a);
+            self.tracks[track].queued_slot = None;
             self.play();                       // seeds playheads + starts transport
             self.count_in_left = crate::TICKS_PER_BAR;
+        } else if self.rec_empty_start {
+            // A first take is a clip launch, so it is bar-quantized like one:
+            // queue the slot and let the boundary in `service_tick` seed the
+            // playhead from the clip's loop start. Starting here instead put the
+            // new clip's tick 0 wherever in the bar the press landed, leaving the
+            // track out of phase with the metronome and every other clip.
+            self.tracks[track].queued_slot = Some(a);
+            self.pending_rec = true;
         } else {
-            // Punch-in: record now (no count-in). For a just-created empty clip,
-            // seed this track's playhead to the clip start so capture begins at
-            // bar 1 and auto-extends; an overdub keeps its current position.
-            if self.rec_empty_start {
-                let start = self.tracks[track].clips[a].loop_start_ticks();
-                self.tracks[track].pos_tick = start;
-            }
+            // Overdub punch-in: the clip is already running in phase, so record
+            // from where the playhead is — waiting would swallow up to a bar.
+            self.tracks[track].playing_slot = Some(a);
+            self.tracks[track].queued_slot = None;
             self.recording = true;
         }
     }
@@ -1243,7 +1267,8 @@ impl Engine {
     /// trigger. No-op unless recording this track.
     /// How far before the recording start a note played right now sits, if it
     /// still belongs to the take. During the count-in `pos_tick` never advances
-    /// (all of `step_tick` is gated on it), so `count_in_left` IS that distance.
+    /// (all of `step_tick` is gated on it), so `count_in_left` IS that distance;
+    /// for a take queued to the next bar it is the ticks left until that bar.
     ///
     /// Half a step is where `record_note` already puts the boundary between one
     /// grid position and the next — this removes an artificial floor at zero
@@ -1252,8 +1277,14 @@ impl Engine {
     /// push, narrow enough not to swallow a deliberate pickup, and it scales
     /// with tempo for free.
     fn preroll_offset(&self) -> Option<i32> {
-        if self.count_in_left > 0 && self.count_in_left <= TICKS_PER_STEP / 2 {
-            Some(-(self.count_in_left as i32))
+        let left = if self.pending_rec {
+            let bar = crate::TICKS_PER_BAR as u64;
+            (bar - self.master_tick % bar) as u32
+        } else {
+            self.count_in_left
+        };
+        if left > 0 && left <= TICKS_PER_STEP / 2 {
+            Some(-(left as i32))
         } else {
             None
         }
@@ -1631,6 +1662,20 @@ impl Engine {
                 if t.pending_stop {
                     t.pending_stop = false;
                     t.playing_slot = None;
+                }
+            }
+            // The queued take starts here, on the same tick its clip launched —
+            // so capture begins at the clip's loop start, on the grid.
+            if self.pending_rec {
+                self.pending_rec = false;
+                self.recording = true;
+                // The launch reset the track's cycle; a pre-roll note captured
+                // just before the boundary still carries the old one, and
+                // `commit_rec_note` would wrap its lap count into a maximal gate.
+                let cycle = self.tracks[self.rec_track].cycle;
+                let rt = self.rec_track;
+                for p in self.rec_pending.iter_mut().filter(|p| p.track == rt) {
+                    p.start_cycle = cycle;
                 }
             }
         }
@@ -2123,7 +2168,7 @@ impl Engine {
             clip.length_steps,
             clip.loop_start_steps,
             self.recording as u8,
-            (self.count_in_left > 0) as u8,
+            self.counting_in() as u8,
             self.metronome as u8,
             self.dirty as u8,
             self.session_state(),
@@ -2895,6 +2940,7 @@ mod tests {
         e.tracks[0].active_mut().transpose = 5;
         e.play();
         e.toggle_record(0);
+        run_ticks(&mut e, 1); // the queued take starts on the bar it was armed on
         e.live_note_on(0, 38, 100); // snare pad
         e.tracks[0].pos_tick += 4;
         e.live_note_off(0, 38);
@@ -2943,7 +2989,8 @@ mod tests {
         e.tracks[0].active_mut().set_loop(0, 16);
         e.tracks[0].active_mut().transpose = 5;
         e.play();
-        e.toggle_record(0); // punch-in (already playing → no count-in)
+        e.toggle_record(0); // punch-in, queued to the bar the transport is on
+        run_ticks(&mut e, 1);
         e.live_note_on(0, 67, 100); // pad plays raw 67
         e.tracks[0].pos_tick += 4;
         e.live_note_off(0, 67);
@@ -3568,7 +3615,8 @@ mod tests {
     fn armed_input_is_not_buffered() {
         let mut e = engine();
         e.play();
-        e.toggle_record(0); // punch-in: recording immediately, no count-in
+        e.toggle_record(0); // punch-in, queued to the bar the transport is on
+        run_ticks(&mut e, 1);
         assert!(e.recording);
         e.live_note_on(0, 60, 100);
         assert_eq!(e.capture_pending(0), 0, "the record path owns armed input");
@@ -4277,7 +4325,8 @@ mod tests {
         e.launch_clip(0, 2); // select empty slot 2 while running (sets pending_stop)
         assert!(e.tracks[0].active().notes.is_empty());
 
-        e.toggle_record(0); // punch-in (no count-in)
+        e.toggle_record(0); // punch-in, queued to the next bar
+        run_ticks(&mut e, 1); // armed at tick 0, so the bar is this one
         assert!(e.recording);
         assert_eq!(e.tracks[0].playing_slot, Some(2), "empty slot not made the playing clip");
         assert!(!e.tracks[0].pending_stop, "pending stop from empty-slot select not cleared");
@@ -4292,6 +4341,84 @@ mod tests {
         let before = e.tracks[0].clips[2].length_steps;
         run_ticks(&mut e, crate::TICKS_PER_BAR as u64);
         assert!(e.tracks[0].clips[2].length_steps > before, "new clip did not auto-extend");
+    }
+
+    #[test]
+    fn punch_in_into_empty_slot_waits_for_the_bar() {
+        // Reported: with a beat playing, pressing Rec to record a NEW clip
+        // started capturing mid-bar, so the take's tick 0 landed wherever in the
+        // bar the press did and the track was off the grid from then on. A new
+        // clip must launch like any other clip launch — at the next bar.
+        let mut e = engine();
+        e.tracks[1].active_mut().toggle_step(0, &[(48, 100)]); // a beat is playing
+        e.play();
+        run_ticks(&mut e, TICKS_PER_STEP as u64 * 3); // press somewhere mid-bar
+        assert_ne!(e.master_tick % crate::TICKS_PER_BAR as u64, 0);
+
+        e.launch_clip(0, 2); // select the empty slot
+        e.toggle_record(0);
+        assert!(!e.recording, "capture started mid-bar instead of waiting for the bar");
+        assert!(e.counting_in(), "the armed-and-waiting state must show on the Rec button");
+
+        // The bar arrives: now it launches, in lockstep with the beat that was
+        // already playing — which is the whole point of waiting.
+        run_ticks(&mut e, crate::TICKS_PER_BAR as u64);
+        assert!(e.recording, "recording did not start at the bar boundary");
+        assert_eq!(e.tracks[0].playing_slot, Some(2));
+        assert_eq!(e.tracks[0].pos_tick, e.tracks[1].pos_tick,
+                   "take is out of phase with the clip that was already playing");
+        assert!(!e.counting_in());
+    }
+
+    #[test]
+    fn punch_in_take_is_aligned_with_the_master_bar() {
+        // The alignment the report is really about: a note played on a beat of
+        // the master grid must land on that beat INSIDE the new clip, not offset
+        // by however far into the bar the Rec press happened to be.
+        let mut e = engine();
+        e.tracks[1].active_mut().toggle_step(0, &[(48, 100)]);
+        e.play();
+        run_ticks(&mut e, TICKS_PER_STEP as u64 * 5); // arm 5 steps into the bar
+
+        e.launch_clip(0, 2);
+        e.toggle_record(0);
+        // Wait out the rest of the bar, then two more steps, and play there.
+        let to_bar = crate::TICKS_PER_BAR as u64
+            - (e.master_tick % crate::TICKS_PER_BAR as u64);
+        run_ticks(&mut e, to_bar + 2 * TICKS_PER_STEP as u64);
+        e.live_note_on(0, 60, 110);
+        run_ticks(&mut e, TICKS_PER_STEP as u64);
+        e.live_note_off(0, 60);
+
+        let n = &e.tracks[0].clips[2].notes;
+        assert_eq!(n.len(), 1, "note not recorded");
+        assert_eq!(n[0].step, 2, "note landed off the grid (mid-bar take start)");
+    }
+
+    #[test]
+    fn overdub_punch_in_still_records_immediately() {
+        // A clip that already has notes is already in phase: punching in on it
+        // must stay immediate, or an overdub would lose up to a bar.
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.play();
+        run_ticks(&mut e, TICKS_PER_STEP as u64 * 3);
+        e.toggle_record(0);
+        assert!(e.recording, "overdub punch-in must not wait for the bar");
+    }
+
+    #[test]
+    fn second_rec_press_cancels_a_pending_take() {
+        let mut e = engine();
+        e.tracks[1].active_mut().toggle_step(0, &[(48, 100)]);
+        e.play();
+        run_ticks(&mut e, TICKS_PER_STEP as u64 * 3);
+        e.launch_clip(0, 2);
+        e.toggle_record(0);
+        e.toggle_record(0); // changed my mind
+        assert!(!e.counting_in(), "still armed after cancelling");
+        run_ticks(&mut e, crate::TICKS_PER_BAR as u64);
+        assert!(!e.recording, "cancelled take started anyway at the bar");
     }
 
     /// Clip-position tick at which pitch 60 fires. Same technique as

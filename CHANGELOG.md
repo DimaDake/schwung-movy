@@ -28,8 +28,10 @@ far. Earlier work is summarised in the timeline below for context.
   on Movy chains — joining the parallel lanes, worth ~20-25 % of the chain
   render — while a Set you already have keeps the Schwung slots it was built on.
   The choice is stored in the Set and travels with it, and a **THIS SET** row
-  moves just the Set you are in. Nothing is migrated in either direction:
-  Move's track keeps its module and simply stops being played.
+  moves just the Set you are in. Nothing is migrated in either direction: the
+  Schwung slot keeps its module and simply stops being played. A `SCHWUNG` track
+  behaves exactly as it does without Movy, including staying outside the CPU
+  optimization above.
 - **Every Settings row explains itself.** A two-line band at the bottom of the
   page describes whichever row is selected — a name short enough to sit beside
   its value is never long enough to say what the setting does.

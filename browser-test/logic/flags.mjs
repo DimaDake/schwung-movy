@@ -11,7 +11,7 @@ import {
     flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
     visibleFlags, movyTracksOn, loadSetHostChoice, trackRef, DETENT_DIV,
-    wrapWords, HINT_W, HINT_LINES,
+    wrapWords, HINT_W, HINT_LINES, fontWidth, W,
     serializeUiState, applyUiState, resetUiState,
     readPrefModuleBlacklist,
     DEBUG_BUILD, openParamPage, closeParamPage, paramPageActive,
@@ -371,18 +371,16 @@ export async function run() {
     setFlag('chtracks', 2);
     ok('and NEW SETS brings it back', relKeys().indexOf('chtrackset') >= 0);
 
-    /* Word labels: OFF/ON cannot say which of two hosts a track is on.
-     *
-     * They name MOVE, not schwung. Schwung is the framework movy runs on, and
-     * nothing a user can see is labelled with it — the observable difference is
-     * whether Move still owns those four tracks. */
+    /* Word labels: OFF/ON cannot say which of two hosts a track is on. They
+     * name the hosts — a SCHWUNG track behaves exactly as it does without movy,
+     * which is the thing a user is choosing between. */
     const tr = flagDef('chtracks');
-    eq('the row asks about the tracks, not the host', tr.name, 'Tracks 1-4');
-    eq('0 leaves them with Move', flagValueLabel(tr, 0), 'MOVE');
+    eq('the row names what it decides', tr.name, 'Tracks 1-4 Host');
+    eq('0 leaves them with schwung', flagValueLabel(tr, 0), 'SCHWUNG');
     eq('1 hands them to movy', flagValueLabel(tr, 1), 'MOVY');
     eq('2 defers to the set', flagValueLabel(tr, 2), 'NEW SETS');
     eq('and the per-set row answers the same question',
-       flagValueLabel(flagDef('chtrackset'), 0), 'MOVE');
+       flagValueLabel(flagDef('chtrackset'), 0), 'SCHWUNG');
 
     /* The page walks the visible list, so a hidden flag can never be selected
      * — a knob turn on a row a release build does not draw would change a
@@ -549,12 +547,24 @@ export async function run() {
            `${lines.length} lines: ${f.hint}`);
     }
 
-    /* The word a user has no way to know. It is the framework movy runs on, and
-     * it names nothing they can see or press. */
-    for (const f of visibleFlags(false)) {
-        const shown = f.name + ' ' + (f.labels || []).join(' ');
-        ok(`"${f.name}" says nothing about schwung`, shown.toLowerCase().indexOf('schwung') < 0, shown);
+    /* A row draws its name from the left and its value from the right edge, and
+     * neither is measured against the other — so a name one word too long does
+     * not wrap or ellipsize, it collides, and the row becomes unreadable at
+     * exactly the value the user most needs to read. */
+    for (const f of FLAGS) {
+        const widest = (f.labels || ['OFF', 'ON', String(f.max)])
+            .reduce((a, b) => (fontWidth(a) > fontWidth(b) ? a : b));
+        const used = fontWidth(f.name) + fontWidth(widest) + 4;
+        ok(`"${f.name}" and "${widest}" fit one row`, used <= W, `${used}px of ${W}`);
     }
+
+    /* The CPU boost is not something a track gets for being a track: it is what
+     * movy's own chains join. Say so where the user is choosing between them. */
+    ok('the host row explains what changes',
+       /movy/i.test(flagDef('chtracks').hint) && /schwung/i.test(flagDef('chtracks').hint),
+       flagDef('chtracks').hint);
+    ok('and the CPU row says which tracks it reaches',
+       /movy/i.test(flagDef('cpuopt').hint), flagDef('cpuopt').hint);
 
     /* The band follows the selection, or it is describing a different row than
      * the one under the inverted band. */

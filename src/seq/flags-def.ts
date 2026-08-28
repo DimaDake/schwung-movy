@@ -76,7 +76,7 @@ export const HOST_NEW_SETS = 2;
 export const FLAGS: FlagDef[] = [
     {
         key: 'cpuopt', name: 'CPU Optimize',
-        hint: 'More CPU for Movy. Off if sound glitches.',
+        hint: 'Speeds up Movy tracks only. Off if it glitches.',
         // The one CPU switch a user gets. Everything under it — lanes, idle
         // skip, pinning — stays hidden at its measured default.
         //
@@ -87,8 +87,8 @@ export const FLAGS: FlagDef[] = [
         min: 0, max: 1, def: 1, bool: true, release: true, uiOnly: true,
     },
     {
-        key: 'chtracks', name: 'Tracks 1-4',
-        hint: 'MOVE keeps its mixer. MOVY frees CPU.',
+        key: 'chtracks', name: 'Tracks 1-4 Host',
+        hint: 'MOVY gets the CPU boost. SCHWUNG is stock Schwung.',
         // Tracks 1-4 are schwung's four shadow slots, which render serially on
         // the audio thread. On movy chains 0-3 instead they join the parallel
         // lanes — worth ~20-25% of the chain render, not four tracks' worth: a
@@ -100,9 +100,11 @@ export const FLAGS: FlagDef[] = [
         // it while anything new gets the faster arrangement. The per-set half
         // is `chtrackset`.
         //
-        // The VALUE is labelled MOVE, not SCHWUNG. Schwung is the framework movy
-        // runs on and names nothing a user can see; what they can see is whether
-        // Move still owns those four tracks.
+        // The value is SCHWUNG, the host those four tracks actually belong to —
+        // a movy user meets the name everywhere else (it is the framework movy
+        // is a tool for), and a SCHWUNG track behaves exactly as it does without
+        // movy: outside the parallel render, on Move's mixer, with per-slot Link
+        // Audio. The hints are what carry that, since no row name can.
         //
         // The ENGINE needs the RESOLVED value, not this one: `drain_out` is what
         // decides whether a sequenced note goes out as MIDI or into a chain. It
@@ -110,7 +112,7 @@ export const FLAGS: FlagDef[] = [
         // while the UI looked entirely switched over.
         // See plans/2026-08-24-movy-hosted-first-tracks.md.
         min: HOST_SCHWUNG, max: HOST_NEW_SETS, def: HOST_NEW_SETS,
-        labels: ['MOVE', 'MOVY', 'NEW SETS'], release: true, revisedAt: 2,
+        labels: ['SCHWUNG', 'MOVY', 'NEW SETS'], release: true, revisedAt: 2,
     },
     {
         key: 'chtrackset', name: 'This Set',
@@ -125,7 +127,7 @@ export const FLAGS: FlagDef[] = [
         //
         // uiOnly for the same reason as `cpuopt`: it reaches the engine folded
         // into `chtracks`.
-        min: 0, max: 1, def: 1, legacy: 0, labels: ['MOVE', 'MOVY'],
+        min: 0, max: 1, def: 1, legacy: 0, labels: ['SCHWUNG', 'MOVY'],
         release: true, perSet: true, uiOnly: true,
     },
     {

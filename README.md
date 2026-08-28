@@ -110,9 +110,9 @@ Movy stands on the shoulders of several projects:
 
   ![Live automation](docs/assets/auto_live.png)
 
-- **Sixteen tracks in four groups.** Tracks 1-4 are the Schwung tracks (in a
-  set you already have; a new set hands them to Movy instead — see **Settings**
-  below). Tracks 5-16 load a module the same way and Movy hosts
+- **Sixteen tracks in four groups.** Tracks 1-4 are the Schwung tracks in a set
+  you already have; a new set hands them to Movy instead, which is what lets
+  them join the CPU optimization (see **Settings** below). Tracks 5-16 load a module the same way and Movy hosts
   the chain itself, saved with the set. In Session view, **octave +/−** moves between the
   four groups and **a step button selects a track** — or hold **Session** and
   press a step from anywhere. Hold **Mute** anywhere — the pads, Loop mode,
@@ -169,10 +169,10 @@ Movy stands on the shoulders of several projects:
 
 - **Settings — Shift + Step 2** — CPU optimization (multi-threaded chain
   render, worth roughly 2× on a heavy set) with one switch to turn it off if a
-  module misbehaves, and whether tracks 1-4 belong to Move or to Movy. New sets
-  hand those four tracks to Movy so they share the same speed-up; sets you
-  already have stay with Move, keeping its mixer fader. Each row explains itself
-  on screen.
+  module misbehaves, and which host owns tracks 1-4. The speed-up applies to
+  Movy's own tracks, so new sets hand tracks 1-4 to Movy as well; sets you
+  already have keep them on Schwung, behaving exactly as they do without Movy.
+  Each row explains itself on screen.
 
   ![Settings](docs/assets/flags-release.png)
 

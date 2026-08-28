@@ -61,6 +61,8 @@ import { resetPorts } from '../../dist/esm/track/registry.js';
 import { serializeUiState, applyUiState, resetUiState } from '../../dist/esm/seq/ui-state.js';
 import { VISIBLE_ROWS, firstVisibleRow, HINT_W, HINT_LINES } from '../../dist/esm/renderer/flags-view.js';
 import { wrapWords } from '../../dist/esm/renderer/wrap.js';
+import { fontWidth } from '../../dist/esm/font/index.js';
+import { W } from '../../dist/esm/renderer/layout.js';
 import { DETENT_DIV } from '../../dist/esm/seq/detent.js';
 import { readPrefFlags, writePrefFlag, readPrefModuleBlacklist } from '../../dist/esm/seq/prefs.js';
 import { DEBUG_BUILD } from '../../dist/esm/app/debug.js';
@@ -225,7 +227,7 @@ export {
     flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
     visibleFlags, movyTracksOn, loadSetHostChoice, loadPerSetFlags, resetPorts,
-    wrapWords, HINT_W, HINT_LINES, DETENT_DIV,
+    wrapWords, HINT_W, HINT_LINES, DETENT_DIV, fontWidth, W,
     serializeUiState, applyUiState, resetUiState,
     readPrefModuleBlacklist,
     DEBUG_BUILD, openParamPage, closeParamPage, paramPageActive,

@@ -1332,26 +1332,27 @@ the **jog** moves the selection, **knob 1** changes the selected row's value,
 
 **CPU OPTIMIZE** (ON) lets Movy render its chains on several threads and skip
 chains that are silent. It is worth roughly 2× on a heavy set, and it is the
-difference between a big set staying inside the audio frame and crackling. Turn
-it **OFF** only if a particular module misbehaves — a few plugins are not safe
-to run off the audio thread, and this is the escape hatch. Everything under it
-(how many threads, how aggressively silent chains sleep) stays at the setting
-that measured best.
+difference between a big set staying inside the audio frame and crackling. It
+applies to **Movy's own tracks only** — a Schwung track renders exactly as it
+does without Movy. Turn it **OFF** only if a particular module misbehaves: a few
+plugins are not safe to run off the audio thread, and this is the escape hatch.
+Everything under it (how many threads, how aggressively silent chains sleep)
+stays at the setting that measured best.
 
-**TRACKS 1-4** decides who owns the first four tracks. Tracks 5-16 are always
-Movy's own; tracks 1-4 can be either:
+**TRACKS 1-4 HOST** decides who owns the first four tracks. Tracks 5-16 are
+always Movy's own; tracks 1-4 can be either:
 
 | Value | Tracks 1-4 |
 | --- | --- |
-| **MOVE** | Move keeps them: its mixer fader, per-slot Link Audio, and its own set file |
-| **MOVY** | Movy hosts them, like tracks 5-16 — they join the CPU optimization above, worth ~20-25 % of the chain render |
+| **SCHWUNG** | Schwung's four slots, exactly as they behave without Movy: Move's mixer fader, per-slot Link Audio, Schwung's own cached parameter reads, and no share of the CPU optimization above |
+| **MOVY** | Movy hosts them like tracks 5-16, so they join the CPU optimization — worth ~20-25 % of the chain render |
 | **NEW SETS** *(default)* | each set decides — see below |
 
 On **NEW SETS**, a set that Movy has never opened before starts on MOVY, and a
-set you already have stays on MOVE. Nothing is migrated either way: switching a
-set over does not move an instrument from one to the other — Move's track keeps
-what it holds and simply stops being played, and switching back finds it exactly
-as it was.
+set you already have stays on SCHWUNG. Nothing is migrated either way: switching
+a set over does not move an instrument from one host to the other — the Schwung
+slot keeps what it holds and simply stops being played, and switching back finds
+it exactly as it was.
 
 **THIS SET** appears only under NEW SETS, and is the current set's own answer.
 Change it to move just the set you are in; it is saved with the set and travels

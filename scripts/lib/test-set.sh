@@ -18,6 +18,9 @@ TS_DEVICE_DIR=/data/UserData/schwung/_movy-fixture
 
 ts_ssh() { ssh "ableton@$HOST" "$@"; }
 
+# shellcheck source=restart-stack.sh
+. "$(dirname "${BASH_SOURCE[0]}")/restart-stack.sh"
+
 # Drop-in for `grep -q`, same arguments, in a pipeline.
 #
 # `grep -q` exits at its first match, which hands the writer EPIPE; under
@@ -55,26 +58,11 @@ ts_phase_end() {
 # over ssh the round trip alone outlasts it.
 ts_restart_stack() {
     local while_down="${1:-}"
-    ts_ssh "python3 -c \"
-import os, subprocess, time
-def pids(name):
-    try: return subprocess.check_output(['pidof', name]).decode().split()
-    except Exception: return []
-old = pids('MoveOriginal')
-subprocess.call(['/data/UserData/schwung/restart-move.sh'])
-t0 = time.time()
-while time.time() - t0 < 60:
-    if not pids('MoveOriginal'): break
-    time.sleep(0.02)
-down = time.time() - t0
-cmd = '''$while_down'''
-if cmd.strip(): os.system(cmd)
-while time.time() - t0 < 120:
-    new = pids('MoveOriginal')
-    if new and new != old and pids('shadow_ui'): break
-    time.sleep(0.1)
-print('restart: down at %.1fs, new stack at %.1fs' % (down, time.time() - t0))
-\""
+    # One implementation, in lib/restart-stack.sh — and it runs as root, which
+    # is the only way restart-move.sh does anything (MoveOriginal is root's).
+    # It reports failure when the stack never went down instead of printing a
+    # 60-second wait as though it had.
+    restart_move_stack "$HOST" "$while_down"
 }
 
 # Line 1 of active_set.txt is the set UUID; line 2 is its display name.

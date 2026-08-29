@@ -65,6 +65,26 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **A redeployed engine is now the engine that runs.** `deploy.sh` shipped
+  `dsp.so` and left it to the version gate to hot-reload — but the shim opens
+  the engine by path and the loader keeps serving the copy already loaded there
+  until Move itself restarts, so the gate just re-asked for a load the shim
+  answered with the old binary. The restart helper could not have saved it
+  either: Move runs as root, so it was pkilling nothing and reporting success
+  after a 60-second wait. Deploying a changed engine now restarts the stack (as
+  root, verified by the process actually cycling) and fails loudly if it
+  cannot. Costed a full session of a real fix looking dead on the device.
+
+- **Full velocity now actually applies.** *Shift + Step 10* left pad notes
+  coming out at whatever you hit the pad with, so the pads stayed as dynamic as
+  ever with the toggle on. Movy applied the 127 where the UI *sends* a pad note
+  — but on a movy-chain track it sends none: the engine answers pads itself on
+  the audio thread and built the note-on from the raw hardware velocity. So the
+  setting worked on schwung host tracks and was inert on every other track. The
+  engine is now told the setting (`padvel`, pushed beside the pad map by the
+  same comparison, so a reloaded engine is told again), and the velocity is
+  decided in the one place the note is built.
+
 - **Reopening a Set no longer resets its instruments to factory defaults.** A
   chain's module was restored, but its sound was not: the filter you closed
   came back open, oscillator octaves reverted, LFO assignments and track levels

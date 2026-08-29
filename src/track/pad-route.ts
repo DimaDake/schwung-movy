@@ -19,6 +19,7 @@
  */
 
 import { appState } from '../app/state.js';
+import { seqState } from '../seq/state.js';
 import { padPitch } from '../seq/pads.js';
 import { padsPlayNotes } from '../seq/router-pads.js';
 import { chainInstance, trackKind } from './ref.js';
@@ -28,6 +29,7 @@ const PAD_COUNT = 32;
 
 /* What the engine currently believes. Empty until the first push. */
 let pushed = '';
+let pushedVel = '';
 
 /** Rebuild the map string for the active track. `-1` chain = the UI keeps pads
  *  (host track, no movy chain selected, or the pads are not playing notes at
@@ -51,16 +53,31 @@ export function engineOwnsPads(track: number): boolean {
         && pushed.startsWith(chainInstance(track) + ',');
 }
 
-/** Push the map if it changed. Called once per tick; cheap when nothing moved. */
+/** Push the map and Full Velocity if either changed. Called once per tick;
+ *  cheap when nothing moved.
+ *
+ *  Full Velocity travels with the map because it belongs to the note the ENGINE
+ *  builds: for a movy track the UI sends no pad notes at all, so applying it
+ *  only where the UI sends (midi/router.ts) left the toggle working on host
+ *  tracks and doing nothing anywhere else. Pushed by comparison for the same
+ *  reason as the map — including the first push, which states the value rather
+ *  than assuming the engine's default. */
 export function syncPadRoute(send: (key: string, value: string) => void): void {
     const next = buildMap();
-    if (next === pushed) return;
-    pushed = next;
-    send('padmap', next);
+    if (next !== pushed) {
+        pushed = next;
+        send('padmap', next);
+    }
+    const vel = seqState.fullVelocity ? '1' : '0';
+    if (vel !== pushedVel) {
+        pushedVel = vel;
+        send('padvel', vel);
+    }
 }
 
 /** Forget the pushed state. Used on teardown and engine reload — a re-dlopened
  *  engine has no map, and believing otherwise would leave pads dead. */
 export function resetPadRoute(): void {
     pushed = '';
+    pushedVel = '';
 }

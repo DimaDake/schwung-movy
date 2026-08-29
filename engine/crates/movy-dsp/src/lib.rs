@@ -69,7 +69,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.51.0";
+const ENGINE_VERSION: &str = "0.54.0";
 
 /// Tracks backed by schwung's own shadow slots by default. Their notes go out as
 /// MIDI on the matching channel; everything above this index is a chain movy
@@ -150,6 +150,20 @@ impl Instance {
                         self.chains.on_midi(chain, &[0x80, pitch, 0], MOVE_MIDI_SOURCE_INTERNAL);
                     }
                 }
+            }
+            /* `padvel <0|1>` — Full Velocity (Shift + Step 10). The engine has to
+             * be told because it is the one building the note-on: for a movy
+             * track the UI does not send pad notes at all, so applying it only
+             * on the UI's own send left the toggle audible on host tracks and
+             * silent everywhere else. Pushed by comparison beside `padmap`, so
+             * a re-dlopened engine is told again. */
+            "padvel" => {
+                let on = val != "0" && !val.is_empty();
+                self.pads.set_full_velocity(on);
+                /* Logged like `chtracks`: it only ever moves on a deliberate
+                 * gesture, and it is the one place a device check can see that
+                 * the UI's toggle reached the thread that builds the note. */
+                host::log(&format!("pad velocity: {}", if on { "full" } else { "as played" }));
             }
             /* `chtracks <0|1>` — tracks 0..3 render on movy chains instead of
              * schwung's shadow slots. The UI acts on this too (it re-points
@@ -576,8 +590,8 @@ unsafe extern "C" fn on_midi(instance: *mut c_void, msg: *const u8, len: c_int, 
             let d1 = unsafe { *msg.add(1) };
             let d2 = unsafe { *msg.add(2) };
             if let Some(i) = inst(instance) {
-                if let Some((chain, pitch, on)) = i.pads.route(status, d1, d2) {
-                    let m = if on { [0x90, pitch, d2] } else { [0x80, pitch, 0] };
+                if let Some((chain, pitch, vel, on)) = i.pads.route(status, d1, d2) {
+                    let m = if on { [0x90, pitch, vel] } else { [0x80, pitch, 0] };
                     i.chains.on_midi(chain, &m, MOVE_MIDI_SOURCE_INTERNAL);
                     return;
                 }

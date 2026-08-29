@@ -513,24 +513,26 @@ export async function run() {
 
   const sent = [];
   const send = (k, v) => sent.push([k, v]);
+  const maps = () => sent.filter((s) => s[0] === 'padmap');
+  const vels = () => sent.filter((s) => s[0] === 'padvel');
 
   /* A host track keeps its own pad handling: chain -1, and the UI must still
    * send its notes. */
   resetPadRoute();
   selectTrack(0);
   syncPadRoute(send);
-  eq('a map is pushed for a host track', sent.length, 1);
-  eq('host track pushes chain -1', sent[0][1].split(',')[0], '-1');
+  eq('a map is pushed for a host track', maps().length, 1);
+  eq('host track pushes chain -1', maps()[0][1].split(',')[0], '-1');
   eq('the UI still owns host-track pads', engineOwnsPads(0), false);
 
   /* A movy track hands pads to the engine. */
   sent.length = 0;
   selectTrack(6);                       // -> chain 6
   syncPadRoute(send);
-  eq('a map is pushed for a movy track', sent.length, 1);
-  eq('the key is padmap', sent[0][0], 'padmap');
-  eq('it names the chain', sent[0][1].split(',')[0], '6');
-  eq('it carries 32 pad entries', sent[0][1].split(',').length - 1, 32);
+  eq('a map is pushed for a movy track', maps().length, 1);
+  eq('the key is padmap', maps()[0][0], 'padmap');
+  eq('it names the chain', maps()[0][1].split(',')[0], '6');
+  eq('it carries 32 pad entries', maps()[0][1].split(',').length - 1, 32);
   eq('the engine owns pads for that track', engineOwnsPads(6), true);
   eq('but not for a different chain', engineOwnsPads(7), false);
 
@@ -545,7 +547,43 @@ export async function run() {
   eq('after a reset the engine owns nothing', engineOwnsPads(6), false);
   sent.length = 0;
   syncPadRoute(send);
-  eq('and the map is pushed again', sent.length, 1);
+  eq('and the map is pushed again', maps().length, 1);
+
+  /* Full Velocity. The engine builds the note for a movy track — the UI sends
+   * none — so the toggle has to reach the engine or it changes nothing the
+   * player can hear, which is how it shipped. */
+  resetPadRoute();
+  sent.length = 0;
+  seqState.fullVelocity = false;
+  syncPadRoute(send);
+  eq('the first push states full velocity', vels().length, 1);
+  eq('and states it off', vels()[0][1], '0');
+
+  sent.length = 0;
+  seqState.fullVelocity = true;
+  syncPadRoute(send);
+  eq('switching it on reaches the engine', vels().length, 1);
+  eq('as padvel 1', vels()[0][1], '1');
+  eq('without re-sending the unchanged map', maps().length, 0);
+
+  sent.length = 0;
+  syncPadRoute(send);
+  syncPadRoute(send);
+  eq('and it is not re-sent while unchanged', sent.length, 0);
+
+  sent.length = 0;
+  seqState.fullVelocity = false;
+  syncPadRoute(send);
+  eq('switching it off reaches the engine too', vels()[0]?.[1], '0');
+
+  /* A re-dlopened engine knows nothing about it either. */
+  seqState.fullVelocity = true;
+  syncPadRoute(send);
+  resetPadRoute();
+  sent.length = 0;
+  syncPadRoute(send);
+  eq('a reset re-states full velocity', vels()[0]?.[1], '1');
+  seqState.fullVelocity = false;
 
   /* Session view is the clip grid, not an instrument. The engine answers pads
    * from the audio thread and cannot see a UI mode, so the map has to say so —

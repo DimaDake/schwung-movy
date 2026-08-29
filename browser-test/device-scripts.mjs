@@ -161,6 +161,7 @@ const rawRestart = [];
 for (const f of shFiles) {
     const src = readFileSync(f, 'utf8');
     if (f.endsWith('lib/test-set.sh')) continue;          // ts_restart_stack lives here
+    if (f.endsWith('lib/restart-stack.sh')) continue;    // and this IS the restart
     src.split('\n').forEach((line, i) => {
         if (/^\s*#/.test(line)) return;                   // a comment may name it
         if (/restart-move\.sh/.test(line)) rawRestart.push(`${f}:${i + 1}`);
@@ -171,6 +172,33 @@ ok('no suite restarts the stack by hand', rawRestart.length === 0,
    rawRestart.length ? rawRestart.join(', ') : 'all go through ts_restart_stack');
 
 ok('the shared lib defines ts_restart_stack', /^ts_restart_stack\(\)/m.test(libSrc));
+
+/* ── Test 5b: a restart that restarts nothing, and a deploy that ships an ─────
+ * engine nobody loads. Both were true at once on 2026-08-29, and together they
+ * make a fix look dead: MoveOriginal runs as root, so restart-move.sh run as
+ * the ableton user matches nothing with pkill and still exits 0; and the shim
+ * dlopens dsp.so by path, so glibc keeps serving the library it already loaded
+ * there. Two builds an hour apart, the newer verified on disk by md5, and the
+ * running engine stayed the older one through two "successful" restarts.
+ */
+const restartSrc = readFileSync(join(SCRIPTS, 'lib/restart-stack.sh'), 'utf8');
+ok('the restart runs as root', /ssh[^\n]*root@/.test(restartSrc),
+   'as the ableton user pkill matches nothing and the stack stays up');
+ok('a stack that never went down is reported as a failure',
+   /NEVER WENT DOWN/.test(restartSrc) && /sys\.exit\(1\)/.test(restartSrc),
+   'otherwise a 60-second wait prints as though it had restarted');
+const tsBody = libSrc.split('ts_restart_stack()')[1].split('\n}')[0]
+    .split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');   // a comment may name it
+ok('ts_restart_stack keeps no second copy of it',
+   /restart_move_stack/.test(tsBody) && !/pidof|restart-move\.sh/.test(tsBody),
+   'it delegates to lib/restart-stack.sh');
+
+const deploySrc = readFileSync(join(SCRIPTS, 'deploy.sh'), 'utf8');
+ok('deploy restarts the stack when the engine binary changed',
+   /md5sum/.test(deploySrc) && /restart_move_stack/.test(deploySrc),
+   'a redeployed dsp.so is not the one running until MoveOriginal is gone');
+ok('and says so loudly when it could not', /RESTART FAILED/.test(deploySrc),
+   'a silent stale engine is what makes a real fix look broken');
 
 /* ── Test 6: a benchmark whose engine writes go nowhere must not report ───────
  * `ep` writes a movy engine param over the WebSocket on port 7700 and discards

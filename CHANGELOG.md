@@ -15,6 +15,9 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
+- **Launching a clip in Session view selects its track.** The knobs, screen,
+  pads and step row all move to the clip you just started, instead of only the
+  step row moving while the instrument stayed behind on another track.
 - **The loading screen now waits for the whole Set.** Movy used to declare
   itself ready the moment a Set's sequence was in the engine — but the Set's
   instruments are loaded one per audio callback after that, and the
@@ -66,12 +69,12 @@ far. Earlier work is summarised in the timeline below for context.
   Move had selected, but only the screen, pads and knobs were told: the
   sequencer went on editing track 1. Open Movy on track 2, pick a module,
   step-record — and the notes you played and heard on track 2 were written into
-  track 1's clip. The two halves of "the current track" are now set together at
-  open, and the sequencer's half is asserted against the engine rather than
-  assumed, since the engine keeps running after Movy is closed and may still be
-  watching a track from an earlier session. Launching a clip from the Session
-  grid had the same gap in a smaller form — the step row followed for a few
-  milliseconds and then snapped back.
+  track 1's clip. There is now one current track rather than two kept in step by
+  hand: the step row follows the selected track, and the engine is told by
+  comparing what it reports against that, once a tick. So it also survives the
+  cases a list of gestures could never cover — the sequencer engine keeps
+  running after Movy is closed, and is replaced outright if it ever has to be
+  reloaded, and either one used to leave the step row on a track of its own.
 - **Full velocity is remembered.** **Shift + Step 10** — every pad note leaves
   at 127 — was forgotten the moment you closed Movy, so anyone who plays that
   way had to switch it back on at every open. It is now a preference of the

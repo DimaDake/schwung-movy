@@ -11,6 +11,7 @@ import { setFlag } from '../dist/esm/seq/flags.js';
 import { FONT_HEIGHT } from '../dist/esm/font/index.js';
 import { HINT_TOP, HINT_LINES } from '../dist/esm/renderer/flags-view.js';
 import { selectTrack, focusGroupStep } from '../dist/esm/track/focus.js';
+import { watchedTrack } from '../dist/esm/seq/watch.js';
 import { installEnv } from './env.mjs';
 import { installMockEngine } from './mock-engine.mjs';
 import { MOCK_SYNTHS } from './mock-synth.mjs';
@@ -1699,7 +1700,7 @@ _log('\napp-loop: loop-mode bars pulse on the firmware channels, not on any tick
         chanOf(STEP_NOTE_BASE + 2).includes(ANIM_PULSE), true);
     eq('selected bar pulses white', lastColor(STEP_NOTE_BASE + 1), C_WHITE);
     eq('active bar pulses the track colour',
-        lastColor(STEP_NOTE_BASE + 2), trackColor(seqState.watchTrack));
+        lastColor(STEP_NOTE_BASE + 2), trackColor(watchedTrack()));
     eq('a bar outside the loop is dark grey', lastColor(STEP_NOTE_BASE + 0), C_DARKGREY);
 
     // Time passing sends nothing further: the pulse is not redrawn per frame.
@@ -1960,7 +1961,7 @@ _log('\napp-loop: session view selects tracks from the step row');
     /* The bug this fixes: the selector moved the screen and the pads but not the
      * sequencer, and the engine re-pinned watchTrack from `trk=` on every status
      * poll — so every step edit kept landing on the track you came from. */
-    eq('step press retargeted the watched track', seqState.watchTrack, 9);
+    eq('step press retargeted the watched track', watchedTrack(), 9);
     eq('step press emitted the engine watch', engine.ops.some((o) => o === 'watch 9'), true);
 
     /* Quick release = tap = latch: you stay on track 9, and the release must not
@@ -1985,7 +1986,7 @@ _log('\napp-loop: session view selects tracks from the step row');
         Date.now = realNow;
         eq('a held step reverts to the track it came from', appState.activeTrack.index, 9);
         eq('a held step reverts to session view', seqState.sessionMode, true);
-        eq('the revert put the watched track back', seqState.watchTrack, 9);
+        eq('the revert put the watched track back', watchedTrack(), 9);
     }
 
     /* Octave up moves the focused group without changing the active track, and
@@ -2034,7 +2035,7 @@ _log('\napp-loop: holding Session keeps the step row a track selector');
     eq('held-session step selected track 5', appState.activeTrack.index, 5);
     eq('held-session step left the clip grid', seqState.sessionMode, false);
     eq('the step row is still the selector', seqState.trackSelectHold, true);
-    eq('held-session step retargeted the sequencer', seqState.watchTrack, 5);
+    eq('held-session step retargeted the sequencer', watchedTrack(), 5);
     eq('held-session step emitted the engine watch',
         engine.ops.some((o) => o === 'watch 5'), true);
     eq('the selecting press entered no note',
@@ -2274,13 +2275,13 @@ _log('\napp-loop: the step view follows the FOCUSED track, not the button index'
     sendMidi([0xB0, 43, 0]);
     advance(2);
     eq('active track is 4', appState.activeTrack.index, 4);
-    eq('the step view watches track 4, not 0', seqState.watchTrack, 4);
+    eq('the step view watches track 4, not 0', watchedTrack(), 4);
 
     focusGroupStep(1);                    // group 2 => tracks 8-11
     sendMidi([0xB0, 42, 127]);            // second track button
     sendMidi([0xB0, 42, 0]);
     advance(2);
-    eq('second button in group 2 watches track 9', seqState.watchTrack, 9);
+    eq('second button in group 2 watches track 9', watchedTrack(), 9);
 
     selectTrack(0);
     resetSeqState();

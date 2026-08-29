@@ -5,6 +5,7 @@
  */
 
 import {
+    selectTrack,
     MOCK_SYNTHS, installMockEngine, uninstallMockEngine, seqEngineTick, resetSeqEngine, eq,
     bootModel, lastMusicalOp, _log,
 } from './harness.mjs';
@@ -21,6 +22,10 @@ export async function run() {
 
     const engine = installMockEngine();
     resetSeqEngine(); resetSeqState(); seqEngineTick();
+    /* The step view follows the selected track, so a suite that asserts on the
+     * track in an op has to say which one it is on — resetSeqState() cannot,
+     * the selection is not sequencer state. */
+    selectTrack(0);
     seqState.lenSteps = 16; seqState.watchLane = -1;
     const lastOp = () => lastMusicalOp(engine.ops);
 
@@ -137,7 +142,7 @@ export async function run() {
 
     installMockEngine();
     resetSeqEngine(); resetSeqState(); resetStepEdit();
-    seqState.barOffset = 0; seqState.watchLane = -1; seqState.watchTrack = 0;
+    seqState.barOffset = 0; seqState.watchLane = -1; selectTrack(0);
 
     editStepDown(2);                  // hold step 2 (abs 2)
     eq('heldStepAbs is 2', heldStepAbs(), 2);

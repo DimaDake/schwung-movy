@@ -762,7 +762,9 @@ for the concepts:
 
 - **Clips** — one clip per track slot; steps entered on the 16 step buttons.
 - **Session view & clip launching** — press **Note/Session** to see the clip
-  grid; pads launch clips. Hold it for a momentary peek; tap to latch.
+  grid; pads launch clips. Launching a clip also **selects its track**, so the
+  knobs, screen and step row all move to the clip you just started. Hold
+  Note/Session for a momentary peek; tap to latch.
 - **16 tracks in four groups** — see [Tracks and groups](#tracks-and-groups)
   below.
 - **Live recording** — **Rec** arms recording with a one-bar **count-in**; play

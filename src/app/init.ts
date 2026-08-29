@@ -2,7 +2,7 @@ import { createModel }  from '../model/index.js';
 import { portFor, hostPort } from '../track/registry.js';
 import { TRACK_COUNT } from '../track/ref.js';
 import { selectTrack } from '../track/focus.js';
-import { forceWatchTrack } from '../seq/watch.js';
+import { resetWatchPush } from '../seq/watch.js';
 import { createLfoModel, createScopedLfoModel } from '../lfo/model.js';
 import { masterScope } from '../lfo/scope.js';
 import { appState, VIEW_CHAIN } from './state.js';
@@ -26,20 +26,14 @@ import { installPerfProbe } from './perf-probe.js';
 
 export function init(): void {
     installPerfProbe();   // wrap the host globals before anything calls them
-    /* Movy opens on the track Move had selected. Both halves of "the current
-     * track" have to be told, not just the one the screen reads: the knobs and
-     * pads follow `activeTrack`, every step edit follows the engine's watched
-     * track, and the engine defaults to track 1 — and OUTLIVES the tool, so it
-     * may still be watching whatever a previous movy session left it on. Open
-     * on track 2 and, before this, the module you selected and heard was track
-     * 2's while step recording wrote into track 1's clip.
-     *
-     * `selectTrack` rather than a bare assignment: the focus group has to
-     * follow too, or the four track buttons address a different quartet than
-     * the screen. */
-    const openTrack = (typeof shadow_get_ui_slot === 'function') ? shadow_get_ui_slot() : 0;
-    selectTrack(openTrack);
-    forceWatchTrack(openTrack);
+    /* Movy opens on the track Move had selected. Through `selectTrack`, not a
+     * bare assignment: the focus group has to follow (or the four track buttons
+     * address a different quartet than the screen), and so does the sequencer —
+     * seq/watch.ts derives the engine's watched track from this one. Before
+     * that, opening on track 2 left the step row on track 1, so the module you
+     * selected and heard was track 2's while step recording wrote into track
+     * 1's clip. */
+    selectTrack((typeof shadow_get_ui_slot === 'function') ? shadow_get_ui_slot() : 0);
     mlog('init: activeTrack=' + appState.activeTrack.index);
 
     claimLedOwnership();
@@ -96,6 +90,11 @@ export function init(): void {
     // property of the host's module cache, not of movy, and "close and reopen"
     // is the user's only cure for a stranded hold. Make the cure explicit.
     resetHeldInput(false);   // engine not booted yet — nothing to notify
+    /* Same reasoning for what the engine has been told: a fresh open knows
+     * nothing about the DSP it is about to find, which may have been sequencing
+     * on its own for hours. Clearing this makes the next tick say it all again
+     * rather than trusting a belief carried over from a previous session. */
+    resetWatchPush();
 
     keyboardState.rootPc = 0;
     keyboardState.mode   = 0;

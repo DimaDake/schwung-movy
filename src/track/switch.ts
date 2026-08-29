@@ -1,18 +1,15 @@
 /* What "switch to track N" actually means, in one place.
  *
- * A track switch is nine coordinated moves, not one assignment: close the
- * global pages, drop live notes, move the focus, retarget the step view AND the
- * engine's watch target, reset the bar offset, adopt the new clip's loop window,
- * restore that track's remembered view, and repaint. The track buttons did all
- * nine inline in midi/router.ts while the Session step selector did one
- * (`selectTrack`), so selecting a track from the step row moved the screen and
- * the pads but left `watchTrack` — and therefore every step edit — on the track
- * you came from. The engine re-pins `watchTrack` from `trk=` on every status
- * poll, so it never caught up on its own.
+ * A track switch is several coordinated moves, not one assignment: close the
+ * global pages, drop live notes, move the focus, restore that track's
+ * remembered view, and repaint. The track buttons did all of it inline in
+ * midi/router.ts while the Session step selector did one (`selectTrack`), so
+ * selecting a track from the step row moved the screen and the pads but left
+ * the step view on the track you came from.
  *
- * Both callers go through here now, which is the only way the two can't drift
- * apart again. The watch retarget itself lives in seq/watch.ts, because the
- * Session grid and the tool's own open retarget it without switching tracks. */
+ * Both callers go through here now. What the ENGINE watches is not a step of a
+ * switch at all — seq/watch.ts derives it from the selected track and pushes it
+ * by comparison, so a gesture that forgets to mention it cannot exist. */
 
 import { appState, VIEW_BROWSE } from '../app/state.js';
 import { jogHintTouch } from '../app/jog-hint.js';
@@ -20,7 +17,6 @@ import { mlog } from '../log.js';
 import { releaseAllLive } from '../keyboard/release.js';
 import { closeParamPage, paramPageActive } from '../seq/param-page.js';
 import { seqState } from '../seq/state.js';
-import { setWatchTrack } from '../seq/watch.js';
 import { selectTrack } from './focus.js';
 import { chainInstance, trackKind } from './ref.js';
 
@@ -70,7 +66,6 @@ export function switchToTrack(track: number, prev: TrackSnapshot): void {
     releaseAllLive();   // no live note outlives the track it was played on
     selectTrack(track);
     appState.currentView = appState.trackView[track];
-    setWatchTrack(track);
     jogHintTouch(false);
     logSwitch(track);
     repaint();
@@ -83,7 +78,6 @@ export function restoreTrackState(prev: TrackSnapshot): void {
     seqState.loopMode = prev.loop;
     selectTrack(prev.track);
     appState.currentView = prev.view;
-    setWatchTrack(prev.track);
     logSwitch(prev.track);
     repaint();
 }

@@ -21,6 +21,7 @@ import { seqToast } from './render.js';
 import { seqState } from './state.js';
 import { clearStepAllAutomation } from './automation.js';
 import { anyStepHeld, heldStepList, markHeldGestured } from './step-edit.js';
+import { watchedTrack } from './watch.js';
 
 let delHeld = false;
 let delActed = false;
@@ -48,8 +49,8 @@ export function deleteButton(down: boolean): void {
         // are left intact; the held step was being edited, not deleted).
         if (anyStepHeld()) {
             const steps = heldStepList();
-            undoableEdit('CLEAR AUTOMATION', trackLabel(seqState.watchTrack), () => {
-                for (const s of steps) clearStepAllAutomation(seqState.watchTrack, s);
+            undoableEdit('CLEAR AUTOMATION', trackLabel(watchedTrack()), () => {
+                for (const s of steps) clearStepAllAutomation(watchedTrack(), s);
             });
             if (steps.length > 0) {
                 markHeldGestured();    // release won't toggle a note
@@ -60,8 +61,8 @@ export function deleteButton(down: boolean): void {
     } else {
         delHeld = false;
         if (!delActed) {
-            undoableEdit('CLEAR CLIP', trackLabel(seqState.watchTrack),
-                () => seqCmd('clipdel ' + seqState.watchTrack));
+            undoableEdit('CLEAR CLIP', trackLabel(watchedTrack()),
+                () => seqCmd('clipdel ' + watchedTrack()));
             requestLabelSync(); // freed lanes (clip's automation gone) → re-sync
             // The clip is now empty (no bars), so refocus to bar 0 — otherwise a
             // stale barOffset would place freshly-added steps on a later bar and
@@ -75,7 +76,7 @@ export function deleteButton(down: boolean): void {
 /* A step pressed while Delete is held removes that step's notes — or the
  * whole bar's notes in Loop Mode. */
 export function deleteStep(button: number): void {
-    const t = seqState.watchTrack;
+    const t = watchedTrack();
     if (seqState.loopMode) {
         const base = button * NUM_STEP_BUTTONS;
         undoableEdit('CLEAR BAR', trackLabel(t) + ' BAR ' + (button + 1), () => {
@@ -97,8 +98,8 @@ export function deleteStep(button: number): void {
 /* A drum pad pressed while Delete is held removes all notes of that pitch
  * (manual: hold Delete + pad to clear a Drum Rack sample). */
 export function deletePad(pitch: number): void {
-    undoableEdit('CLEAR PAD', trackLabel(seqState.watchTrack) + ' PAD ' + pitch,
-        () => seqCmd(`del ${seqState.watchTrack} 0 255 ${pitch}`));
+    undoableEdit('CLEAR PAD', trackLabel(watchedTrack()) + ' PAD ' + pitch,
+        () => seqCmd(`del ${watchedTrack()} 0 255 ${pitch}`));
     seqToast('Notes cleared');
     delActed = true;
 }

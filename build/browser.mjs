@@ -113,6 +113,7 @@ await esbuild.build({
         resolve(root, 'src/seq/router-buttons.ts'),
         resolve(root, 'src/seq/router-pads.ts'),
         resolve(root, 'src/seq/state.ts'),
+        resolve(root, 'src/seq/watch.ts'),
         resolve(root, 'src/seq/leds.ts'),
         resolve(root, 'src/seq/led-cache.ts'),
         resolve(root, 'src/seq/button-held.ts'),

@@ -6,12 +6,25 @@
  * different quartet than the one on screen. */
 
 import { appState } from '../app/state.js';
+import { requestLoopWindowAdopt, seqState } from '../seq/state.js';
 import { GROUP_SIZE, TRACK_COUNT, trackGroup, trackRef } from './ref.js';
 
+/* Selecting a track is also what the STEP view means by a track: the engine is
+ * told by comparison (seq/watch.ts), but the bar the steps show and the loop
+ * window they sit in are UI state and move now, in the gesture, so a step
+ * pressed in the same breath as the track button reads the new track's view.
+ *
+ * Guarded on a real change: pressing the track button you are already on is a
+ * no-op today, and resetting the bar view under it would be a surprise. */
 export function selectTrack(index: number): void {
     if (index < 0 || index >= TRACK_COUNT) return;
+    const moved = index !== appState.activeTrack.index;
     appState.activeTrack = trackRef(index);
     appState.focusGroup  = trackGroup(index);
+    if (moved) {
+        seqState.barOffset = 0;
+        requestLoopWindowAdopt();   // the new track's window may start past bar 1
+    }
 }
 
 /** Track addressed by track button `n` (0-3) within the focused group. */

@@ -5,6 +5,7 @@
  */
 
 import {
+    selectTrack, watchedTrack,
     keyboardState, installMockEngine, uninstallMockEngine, seqEngineTick, resetSeqEngine, eq,
     lastMusicalOp, _log,
 } from './harness.mjs';
@@ -64,13 +65,15 @@ export async function run() {
     // Drum-lane mode: seqSetLane(38) → wlane, and a step tap uses ltog.
     seqSetLane(38);
     seqEngineTick();
-    eq('wlane cmd emitted', lastOp(), 'wlane 38');
+    /* On engine.ops, not lastOp(): the lane is a view subscription reconciled
+     * at the top of the engine tick, so it is never the op a gesture emitted. */
+    eq('wlane cmd emitted', engine.ops.includes('wlane 38'), true);
     tapStep(0);
     seqEngineTick();
     eq('drum lane uses ltog', lastOp(), 'ltog 0 0 38 90');
     seqSetLane(-1);
     seqEngineTick();
-    eq('melodic lane -1', lastOp(), 'wlane -1');
+    eq('melodic lane -1', engine.ops.includes('wlane -1'), true);
 
     // ── Multi-step entry ──────────────────────────────────────────────────
     // Melodic: hold step A + press step B is the length gesture (set A's note
@@ -149,10 +152,10 @@ export async function run() {
 
     // Mute held: a track-button press must NOT retarget the watched track.
     resetSeqState(); engine.reset(); resetSeqEngine(); seqEngineTick();
-    seqState.watchTrack = 0;
+    selectTrack(0);
     setMuteHeld(true);
     seqHandleMidi([0xB0, 42, 127], false);   // track button for track 1 (CC 43 = track 0)
-    eq('mute+track keeps watchTrack', seqState.watchTrack, 0);
+    eq('mute+track keeps watchTrack', watchedTrack(), 0);
     eq('mute+track emits no watch cmd', engine.ops.some((o) => o.startsWith('watch ')), false);
     setMuteHeld(false);
 
@@ -233,11 +236,15 @@ export async function run() {
     seqEngineTick();
     eq('second press emits stop', lastOp(), 'stop');
 
-    // Track buttons: watch retarget without claiming the event.
+    /* Track buttons belong to midi/router.ts, which switches the track — and
+     * the step view follows the SELECTED track, so the sequencer must not
+     * retarget behind its back. A second resolver here is how the step view
+     * once ended up on a different track than the screen. The whole press path
+     * is exercised in app-loop.mjs. */
+    selectTrack(0);
     eq('track button NOT claimed', seqHandleMidi([0xB0, 41, 127], false), false);
     seqEngineTick();
-    eq('watch cmd emitted for track 2', lastOp(), 'watch 2');
-    eq('watchTrack mirrored', seqState.watchTrack, 2);
+    eq('and the sequencer did not retarget on its own', watchedTrack(), 0);
 
     // Arrows fall through to existing nav when the engine is NOT ready.
     uninstallMockEngine(); resetSeqEngine(); resetSeqState();
@@ -261,7 +268,7 @@ export async function run() {
     globalThis.setButtonLED = (cc, color) => ledCalls.push(['b' + cc, color]);
 
     resetSeqState(); seqLedsInvalidate();
-    seqState.watchTrack = 0;
+    selectTrack(0);
     seqState.lenSteps = 32;       // 2 bars
     occToggleStep(0); occToggleStep(4);
     seqState.playing = true;
@@ -308,7 +315,7 @@ export async function run() {
     // Recording: playhead step is red instead of green.
     resetSeqState(); seqLedsInvalidate();
     const { C_REC_RED: C_REC_RED_LED } = await import('../../dist/esm/seq/colors.js');
-    seqState.watchTrack = 0; seqState.lenSteps = 16; seqState.playing = true;
+    selectTrack(0); seqState.lenSteps = 16; seqState.playing = true;
     seqState.recording = true; seqState.curStep = 0;
     ledCalls.length = 0;
     for (let i = 0; i < 3; i++) seqLedsTick();
@@ -555,7 +562,7 @@ export async function run() {
     resetSeqEngine(); resetSeqState(); resetMomentary(); resetTrackMutes();
     seqLedsInvalidate();
     appState.activeTrack = trackRef(0); appState.focusGroup = 0;
-    seqState.watchTrack = 0; seqState.lenSteps = 16;
+    selectTrack(0); seqState.lenSteps = 16;
     occToggleStep(0);
     let byNote = drain();
     eq('steps first: occupied step is white', byNote[16], C_WHITE);

@@ -218,13 +218,13 @@ let ledRepeatTicks = -1;
 const LED_REPEAT_TICKS = 45;
 
 function ledContext(): string {
-    /* Both halves of "the current track": the screen/pads follow `track`, every
-     * step edit follows `watch`, and the engine re-pins `watch` on every status
-     * poll. A repaint log that showed only the first could not tell a working
-     * open from the one that recorded track 2's take into track 1. */
+    /* The selected track AND the one the engine says it is reporting on. They
+     * are the same number whenever the subscription has landed, which is the
+     * point: a repaint log showing only the first could not tell a working open
+     * from the one that recorded track 2's take into track 1. */
     return 'session=' + (seqState.sessionMode ? 1 : 0)
         + ' track=' + appState.activeTrack.index
-        + ' watch=' + seqState.watchTrack
+        + ' engine=' + seqState.reportedTrack
         + ' initDone=' + (appState.initLedsDone ? 1 : 0)
         + ' initIdx=' + appState.initLedIndex
         + ' drumStale=' + (drumCacheStale ? 1 : 0);
@@ -646,7 +646,7 @@ function tickBody(): void {
                 drumCache.fill(0xFF);
                 drumCacheStale = false;
             }
-            const track = seqState.watchTrack;
+            const track = appState.activeTrack.index;
             const sel   = synthModel!.getDrumCurrentPhysPad();
             for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {
                 const p = PAD_MIN + i;

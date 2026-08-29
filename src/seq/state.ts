@@ -19,7 +19,12 @@ export interface SeqUiState {
     activeNotes: Uint8Array; // track*128 + pitch, 1 = sounding (from `act=`)
 
     /* watched clip (active track's selected clip) */
-    watchTrack: number;      // track whose clip the step LEDs show
+    /* The track the engine says these fields describe. NOT "the track being
+     * edited" — that is seq/watch.ts's watchedTrack(), which is UI-owned and
+     * derived from the selected track. This one exists so the reconciler can
+     * tell whether the engine has heard us yet; reading it as the edit target
+     * is what sent a take to the wrong track. */
+    reportedTrack: number;
     curStep: number;         // playhead step within the watched clip
     lenSteps: number;        // watched clip loop length in steps (0 = empty)
     loopStart: number;       // watched clip loop-window start step
@@ -114,7 +119,7 @@ function defaults(): SeqUiState {
         linkEnabled: false,
         swingPct: 50,
         activeNotes: new Uint8Array(TRACK_COUNT * 128),
-        watchTrack: 0,
+        reportedTrack: 0,
         curStep: 0,
         lenSteps: 0,
         loopStart: 0,

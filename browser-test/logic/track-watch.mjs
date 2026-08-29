@@ -1,18 +1,19 @@
 /* browser-test/logic/track-watch.mjs — which track the sequencer edits
  *
- * The screen/pads/knobs follow `appState.activeTrack`; every step edit follows
- * the engine's watched track. When the two name different tracks you play and
- * hear one module while recording into another track's clip — the bug that
- * made a step-recorded take show up on track 1 after opening movy on track 2.
+ * There is one track: the selected one. The screen, pads and knobs read it
+ * directly; the engine is told by comparison, once per tick, so that what the
+ * step row edits and what the instrument plays cannot come apart. They did
+ * once — movy opened on the track Move had selected but left the sequencer on
+ * track 1, so a step-recorded take on track 2 was written into track 1's clip.
  *
- * The engine is authoritative: `trk=` comes back in every status poll. So a
- * retarget is only real once the engine has been told, and each case below
- * polls after the gesture rather than reading the mirror straight back.
+ * Every case here polls the engine after the gesture instead of reading the
+ * mirror straight back: `trk=` is the engine's answer, and a retarget that it
+ * never heard is not a retarget.
  *
  * Run by browser-test/logic.mjs.
  */
 
-import { eq, _log, lastMusicalOp } from './harness.mjs';
+import { eq, _log, lastMusicalOp, selectTrack, watchedTrack } from './harness.mjs';
 
 export async function run() {
 
@@ -34,17 +35,18 @@ export async function run() {
         globalThis.shadow_get_ui_slot = () => slot;
         init();
         seqEngineTick();   // probe → ready
-        seqEngineTick();   // flush the queued cmds, then poll status back
+        seqEngineTick();   // reconcile + flush, then poll the answer back
     };
 
     /* Move had track 2 selected when movy was opened. */
     openOn(1);
     eq('the knobs and pads are on track 2', appState.activeTrack.index, 1);
-    eq('and the step row edits track 2', seqState.watchTrack, 1);
+    eq('and so is the step row', watchedTrack(), 1);
+    eq('the engine agrees', engine.status.trk, 1);
 
-    /* The whole point: a step recorded now belongs to the module you can hear.
-     * Asserted on the op the engine receives, because that — not the mirror —
-     * is what decides which clip the note lands in. */
+    /* The whole point: a step recorded at once belongs to the module you can
+     * hear. Asserted on the op the engine receives, because that — not the
+     * mirror — decides which clip the note lands in. */
     seqNotePadPlayed(1, 80, 72, 110);
     seqHandleMidi([0x90, 16, 127], false);
     seqHandleMidi([0x80, 16, 0], false);
@@ -54,12 +56,10 @@ export async function run() {
 
     /* The engine outlives the tool: closing movy leaves the DSP loaded, still
      * watching the track it was told last. Reopening on track 1 must take it
-     * back, even though the UI's own mirror already reads 0. */
+     * back, even though nothing in the fresh UI disagrees with track 0. */
     engine.status.trk = 2;              // as a previous session left it
     openOn(0);
-    eq('reopening on track 1 takes the engine off the old track',
-       seqState.watchTrack, 0);
-    eq('and the engine agrees', engine.status.trk, 0);
+    eq('reopening on track 1 takes the engine off the old track', engine.status.trk, 0);
 
     /* Move can only hand over one of its four slots, but the focus group has to
      * follow the track anyway — the four track buttons address the focused
@@ -71,50 +71,77 @@ export async function run() {
     delete globalThis.shadow_get_ui_slot;
     uninstallMockFs();
     uninstallMockEngine();
-    engine.reset(); resetSeqEngine(); resetSeqState();
+    engine.reset(); resetSeqEngine(); resetSeqState(); selectTrack(0);
 }
 
-/* ── every retarget survives the next status poll ────────────────────────── */
+/* ── the engine is told by comparison, so no gesture can forget ──────────── */
 {
-    _log('\nthe watched track — a retarget the engine was not told is undone:');
+    _log('\nthe watched track — the engine is reconciled, not notified:');
     const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
     const { seqHandleMidi } = await import('../../dist/esm/seq/router.js');
     const { seqEngineTick, resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
     const { resetSession } = await import('../../dist/esm/seq/session.js');
-    const { selectTrack } = await import('../../dist/esm/track/focus.js');
+    const { appState } = await import('../../dist/esm/app/state.js');
+    const { resetWatchPush } = await import('../../dist/esm/seq/watch.js');
     const { beginTrackSwitch, switchToTrack } = await import('../../dist/esm/track/switch.js');
 
     const engine = installMockEngine();
     const reset = () => {
-        engine.reset(); resetSeqEngine(); resetSeqState(); resetSession(); seqEngineTick();
+        engine.reset(); resetSeqEngine(); resetSeqState(); resetSession(); resetWatchPush();
+        selectTrack(0); seqEngineTick();
     };
-    /* Two ticks: the first flushes the queued command, the second polls the
-     * engine's own answer back over the mirror. */
-    const settle = () => { seqEngineTick(); seqEngineTick(); };
+    /* Long enough to cover a status poll (one every STATUS_POLL_TICKS), which
+     * is the only way the engine's own answer gets back to the UI. */
+    const settle = () => { for (let i = 0; i < 12; i++) seqEngineTick(); };
 
-    /* Track button (focused group 2 → its second button is track 9). */
+    /* A committed track switch — the track buttons and the Session step row. */
     reset();
-    selectTrack(8);
-    seqHandleMidi([0xB0, 42, 127], false);
+    switchToTrack(13, beginTrackSwitch());
     settle();
-    eq('a track button retarget survives the poll', seqState.watchTrack, 9);
+    eq('a track switch reaches the engine', engine.status.trk, 13);
 
-    /* Session grid: launching a clip moves the step view onto its track. */
+    /* Launching a clip from the Session grid selects its track outright: the
+     * clip you launched is the one you are working on, so the instrument comes
+     * with it. Moving only the step row left the knobs on another track — the
+     * same split, reached from Session view. */
     reset();
     seqState.sessionMode = true;
     selectTrack(9);                            // group 2 → tracks 8-11
     seqHandleMidi([0x90, 92, 127], false);     // top-left pad → track 8
     settle();
-    eq('a session-grid launch survives the poll', seqState.watchTrack, 8);
-
-    /* Track switch (the Session step-row selector's committed switch). */
-    reset();
-    switchToTrack(13, beginTrackSwitch());
-    settle();
-    eq('a committed track switch survives the poll', seqState.watchTrack, 13);
-
+    eq('a grid launch selects the clip\'s track', appState.activeTrack.index, 8);
+    eq('and the engine follows it', engine.status.trk, 8);
     seqState.sessionMode = false;
+
+    /* A command the engine never applied. The status is the acknowledgement,
+     * so a disagreement — not a gesture — is what makes the UI say it again. */
+    reset();
+    selectTrack(5);
+    settle();
+    eq('the engine has the selected track', engine.status.trk, 5);
+    engine.status.trk = 0;                     // as if the command were lost
+    settle();
+    eq('a disagreement re-sends it', engine.status.trk, 5);
+
+    /* An engine that is replaced under us. It is a brand new Engine watching
+     * track 0 with every lane merged, and nothing in the UI has changed — so
+     * only the boot path re-teaching it can put the step row back. */
+    reset();
+    selectTrack(7);
+    seqState.watchLane = 38;                   // a drum lane, pushed with it
+    settle();
+    eq('engine knows the track', engine.status.trk, 7);
+    engine.ops.length = 0;
+    engine.statusUnavailable = true;
+    for (let i = 0; i < 160; i++) seqEngineTick();   // status lost → give up on it
+    engine.statusUnavailable = false;
+    engine.status.trk = 0;                     // the replacement starts fresh
+    for (let i = 0; i < 40; i++) seqEngineTick();    // probe → ready → reconcile
+    eq('a re-dlopened engine is told the track again', engine.status.trk, 7);
+    eq('and the drum lane with it', engine.ops.includes('wlane 38'), true);
+
+    seqState.watchLane = -1;
     selectTrack(0);
     uninstallMockEngine();
     engine.reset(); resetSeqEngine(); resetSeqState(); resetSession();

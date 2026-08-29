@@ -5,6 +5,7 @@
  */
 
 import {
+    selectTrack,
     installMockEngine, uninstallMockEngine, seqEngineTick, resetSeqEngine, eq, lastMusicalOp,
     installMockFs, uninstallMockFs, PREFS_PATH, readPrefDefaultQuant, writePrefDefaultQuant,
     _log,
@@ -171,7 +172,7 @@ export async function run() {
 
     resetSeqState(); seqLedsInvalidate();
     seqState.loopMode = true;
-    seqState.watchTrack = 0;
+    selectTrack(0);
     seqState.loopStart = 16;   // loop = bar 1..2
     seqState.lenSteps = 32;
     seqState.barOffset = 1;    // bar 1 is selected

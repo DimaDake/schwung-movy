@@ -35,6 +35,7 @@ import { appState } from './state.js';
  * the engine's parameter-lock session ends with ours; skip it at init, where
  * the engine has not booted yet and the queued command would be pointless. */
 import { resetButtonHeld } from '../seq/button-held.js';
+import { watchedTrack } from '../seq/watch.js';
 
 export function resetHeldInput(notifyEngine: boolean): void {
     resetStepEdit();      // heldRanges / gestured / pressMs / co-press / length target
@@ -68,5 +69,5 @@ export function resetHeldInput(notifyEngine: boolean): void {
     for (const track of appState.trackModels) for (const m of track) m.clearTouch();
     for (const m of appState.masterFxModels) m.clearTouch();
 
-    if (notifyEngine) seqCmd('hold ' + seqState.watchTrack + ' -1');
+    if (notifyEngine) seqCmd('hold ' + watchedTrack() + ' -1');
 }

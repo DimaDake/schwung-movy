@@ -130,6 +130,11 @@ import { shapeSample, drawWave } from '../../dist/esm/renderer/lfo-wave.js';
 import { CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../../dist/esm/chain/config.js';
 import { init } from '../../dist/esm/app/init.js';
 import { appState } from '../../dist/esm/app/state.js';
+/* The sequencer's track is the SELECTED track — a suite that wants the step row
+ * on track N selects track N, the way a user does. There is no separate field
+ * to set: seq/watch.ts derives the engine's watch from this one. */
+import { selectTrack } from '../../dist/esm/track/focus.js';
+import { watchedTrack } from '../../dist/esm/seq/watch.js';
 
 /* ── Mock globals ─────────────────────────────────────────────────────────── */
 
@@ -181,8 +186,11 @@ function notMatch(label, str, pattern) {
 
 /* The last MUSICAL op. Undo brackets every edit with ring bookkeeping
  * (usnap/ucommit/udrop/uswap), which is never what a test asserting "the
- * command the gesture emitted" means. */
-const UNDO_RING = /^(usnap|uswap|ucommit|udrop|uclr)\b/;
+ * command the gesture emitted" means — and neither is the view subscription
+ * (`watch`/`wlane`) the engine tick reconciles at the end of every batch. Both
+ * are bookkeeping on the engine's side too: seq-core/src/command.rs classifies
+ * them as non-musical, so this list agrees with the engine's own. */
+const UNDO_RING = /^(usnap|uswap|ucommit|udrop|uclr|watch|wlane)\b/;
 function lastMusicalOp(ops) {
     for (let i = ops.length - 1; i >= 0; i--) if (!UNDO_RING.test(ops[i])) return ops[i];
     return undefined;
@@ -252,7 +260,7 @@ export {
     holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle,
     assignCommit, assignToastText, resetAssignMode, jogHintTouch, jogHintTick, jogHintVisible,
     shapeSample, drawWave, CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot, init,
-    appState, ok, fail, eq, notMatch, bootModel,
+    appState, selectTrack, watchedTrack, ok, fail, eq, notMatch, bootModel,
     bankNames, P, lastMusicalOp, musicalOps, UNDO_RING, _log,
     env, mockFsEntries, failureCount,
 };

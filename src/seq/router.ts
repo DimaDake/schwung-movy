@@ -14,11 +14,10 @@
  * the transport, encoders and arrows, which are one branch each. */
 
 import {
-    CC_PLAY, CC_REC, CC_TRACK_END, CC_TRACK_START,
+    CC_PLAY, CC_REC,
     NUM_STEP_BUTTONS, PAD_MAX, PAD_MIN, STEP_NOTE_BASE,
 } from './constants.js';
 import { engineReady, seqCmd } from './engine.js';
-import { focusedTrack } from '../track/focus.js';
 import { recToggle } from '../undo/rec-pass.js';
 import { loopHeld, loopWheel } from './loop-mode.js';
 import { momentaryGesture } from './momentary.js';
@@ -28,8 +27,8 @@ import { anyStepHeld, editNudge, editTranspose, editVelocity } from './step-edit
 import { stepRecArrow, stepRecDown, stepRecEnd, stepRecUp } from './step-rec.js';
 import { padsPlayNotes } from './router-pads.js';
 import { handleStepButton, navigateBar } from './router-steps.js';
-import { muteHeld, seqHandleButtonCc } from './router-buttons.js';
-import { setWatchTrack } from './watch.js';
+import { seqHandleButtonCc } from './router-buttons.js';
+import { watchedTrack } from './watch.js';
 
 /* The sequencer's public input surface stays on this module: these are its
  * other halves, re-exported so callers keep one import site. */
@@ -74,9 +73,9 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
      * keeps the old meaning, toggling live recording with its one-bar count-in. */
     if (d1 === CC_REC) {
         if (d2 > 0) {
-            if (!stepRecDown()) recToggle(seqState.watchTrack);
+            if (!stepRecDown()) recToggle(watchedTrack());
         } else if (stepRecUp()) {
-            recToggle(seqState.watchTrack);
+            recToggle(watchedTrack());
         }
         return true;
     }
@@ -119,21 +118,12 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
         return false;
     }
 
-    /* Track buttons: observe only — retarget the watched clip and let the
-     * existing param-page track switching run unchanged. While Mute is held a
-     * track press is purely a mute (handled in midi/router.ts), so do not
-     * retarget the step-view focus. */
-    if (d1 >= CC_TRACK_START && d1 <= CC_TRACK_END && d2 > 0) {
-        /* The four buttons address the FOCUSED group's quartet, not tracks 0-3.
-         * Taking the raw button index here made the step view watch track 0-3
-         * whichever group was on screen, so edits meant for track 5, 9 or 13 all
-         * landed on track 1 — they share a button. midi/router.ts already
-         * resolves this the same way for the active track; the two must agree or
-         * the screen shows one track while the steps edit another. */
-        const track = focusedTrack(CC_TRACK_END - d1);
-        if (!muteHeld()) setWatchTrack(track);
-        return false;
-    }
+    /* Track buttons are NOT handled here. They used to retarget the step view
+     * on the way past, which meant the same press moved the track in two files
+     * — and each had to resolve the button to a track the same way, since the
+     * four buttons address the focused quartet rather than tracks 0-3. The step
+     * view now follows the selected track, so midi/router.ts switching it is
+     * the whole of the gesture. */
 
     return false;
 }

@@ -58,6 +58,14 @@ for _ in 1 2 3 4 5 6; do
 done
 sleep 2
 
+# Movy opens on the track MOVE has selected, so the run has to say which track
+# it is on rather than inherit whatever the last session left highlighted — the
+# fixture owns the clips, not Move's selection. It used to be track 0 whatever
+# Move said, but only because the sequencer ignored the open track entirely,
+# which is the bug that recorded a take onto track 1 while you played track 2.
+ts_tap_cc 43                             # track 0 (CC 43 = track 0 … CC 40 = track 3)
+sleep 0.5
+
 info "Playing a pad (note 80 → sets step-entry pitch)..."
 python3 "$INJECT" "$HOST" note_on 80 100
 sleep 0.2

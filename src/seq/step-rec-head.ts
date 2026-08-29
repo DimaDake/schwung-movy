@@ -9,6 +9,7 @@
 import { NUM_STEP_BUTTONS } from './constants.js';
 import { seqCmd } from './engine.js';
 import { seqState } from './state.js';
+import { watchedTrack } from './watch.js';
 
 export const TICKS_PER_STEP = 24;   // 96 PPQN / 4 (mirror of seq-core)
 export const MAX_STEPS = 256;       // 16 bars — the engine's clip ceiling
@@ -53,7 +54,7 @@ export function headEnd(): void {
     previewPending = false;
     seqState.holdStep = -1;
     seqState.holdNotes = [];
-    seqCmd('hold ' + seqState.watchTrack + ' -1');
+    seqCmd('hold ' + watchedTrack() + ' -1');
 }
 
 export function headReset(): void {
@@ -74,7 +75,7 @@ export function setHead(step: number): void {
     seqState.barOffset = Math.min(Math.floor(head / NUM_STEP_BUTTONS), 15);
     seqState.holdStep = head;
     seqState.holdNotes = [];
-    seqCmd('hold ' + seqState.watchTrack + ' ' + head);
+    seqCmd('hold ' + watchedTrack() + ' ' + head);
 }
 
 /* Grow mode only: take `step` into the clip. The engine rounds a clip up to the
@@ -93,7 +94,7 @@ export function growTo(step: number): void {
     if (want <= grown) return;
     grown = want;
     seqState.lenSteps = want;
-    seqCmd('clen ' + seqState.watchTrack + ' ' + want);
+    seqCmd('clen ' + watchedTrack() + ' ' + want);
 }
 
 /* One step forward. A new clip grows to include the step being left; an

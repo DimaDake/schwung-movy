@@ -5,6 +5,7 @@
  */
 
 import {
+    selectTrack, watchedTrack,
     installMockEngine, uninstallMockEngine, eq, _log,
 } from './harness.mjs';
 
@@ -203,14 +204,14 @@ export async function run() {
     /* Switching tracks resets the view to bar 0 as a placeholder, so it must adopt
      * the new track's window too — including when that window happens to be
      * identical to the outgoing one, where change detection alone sees nothing. */
-    const { seqHandleMidi } = await import('../../dist/esm/seq/router.js');
     const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
     installMockEngine();
     resetSeqState();
+    selectTrack(0);
     parseStatusForTest('play=0 trk=0 step=0 pos=768 len=32 lstart=32');
     eq('track 0 view adopted its window', seqState.barOffset, 2);
-    seqHandleMidi([0xB0, 42, 127], false);        // CC 42 = track 1
-    eq('track switched', seqState.watchTrack, 1);
+    selectTrack(1);                               // what a track button commits
+    eq('track switched', watchedTrack(), 1);
     parseStatusForTest('play=0 trk=1 step=0 pos=768 len=32 lstart=32');
     eq('the new track re-adopts an identical window', seqState.barOffset, 2);
     uninstallMockEngine();

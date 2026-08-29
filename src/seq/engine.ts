@@ -20,6 +20,7 @@ import { rationalToIdx } from './clip-scale.js';
 import { markUiStateDirty } from './ui-dirty.js';
 import { applyFlagsToEngine } from './flags.js';
 import { resetPadRoute, syncPadRoute } from '../track/pad-route.js';
+import { noteReportedTrack, resetWatchPush, syncWatch } from './watch.js';
 
 /* -1 until the first poll: the opening value is not a change, and treating it
  * as one would mark every fresh open dirty and rewrite the set for nothing. */
@@ -165,6 +166,10 @@ export function seqEngineTick(): void {
      * the mapping (track, octave, root, scale, layout, drum lane, module) is a
      * list that would rot, and a stale map sends notes to the wrong pitch. */
     syncPadRoute(engineSet);
+    /* Same rule, same reason: the step view's track and drum lane are pushed by
+     * comparing them against what the engine was last told. Queued rather than
+     * sent, so they ride the batch the flush below is about to send. */
+    syncWatch(seqCmd);
     seqCmdFlush();
     if (--pollCountdown <= 0) {
         pollCountdown = STATUS_POLL_TICKS;
@@ -239,6 +244,10 @@ function probeTick(): void {
         /* A re-dlopened engine has no pad map; believing otherwise would leave
          * the pads dead until something happened to change the mapping. */
         resetPadRoute();
+        /* Same for the watched track and drum lane: a brand new engine watches
+         * track 0 with every lane merged, and would go on doing so until the
+         * user happened to change tracks. */
+        resetWatchPush();
         requestLabelSync(); // rebuild automation registry + re-apply chain mappings
         return;
     }
@@ -283,7 +292,10 @@ function parseStatus(s: string): void {
         else if (key === 'ext') seqState.extSync = val === '1';
         else if (key === 'link') seqState.linkEnabled = val === '1';
         else if (key === 'swing') seqState.swingPct = Number(val) || seqState.swingPct;
-        else if (key === 'trk') seqState.watchTrack = Number(val) || 0;
+        else if (key === 'trk') {
+            seqState.reportedTrack = Number(val) || 0;
+            noteReportedTrack(seqState.reportedTrack);
+        }
         else if (key === 'step') seqState.curStep = Number(val) || 0;
         else if (key === 'len') seqState.lenSteps = Number(val) || 0;
         else if (key === 'lstart') seqState.loopStart = Number(val) || 0;

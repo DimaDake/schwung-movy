@@ -38,6 +38,15 @@ export function isVirtualSlot(slot: ChainSlot | undefined): boolean {
     return !!slot && slot.scanDir === '';
 }
 
+/* Whether a component belongs to the MASTER chain rather than to a track.
+ *
+ * A `master_fx:` key is schwung's own and global to the shim: it is not a
+ * track's param and only rides on a slot number as a carrier. Anything that
+ * turns a component key into a port has to ask this — see `componentPort`. */
+export function isMasterComponent(componentKey: string): boolean {
+    return componentKey.startsWith('master_fx');
+}
+
 /* Read-back param key for a component's loaded module id. The device sets a
  * module with the colon key (`fx1:module`) but track-chain components expose
  * the loaded id under an underscore alias (`fx1_module`) — while a master FX

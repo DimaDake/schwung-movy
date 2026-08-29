@@ -65,6 +65,17 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Modules can be added to the master chain again.** Since tracks 1–4 could
+  move onto Movy's own chains (**Tracks 1-4 Host**, which new Sets get by
+  default), the master FX slots stopped loading anything: the master chain is
+  not a track, and its `master_fx:` params are Schwung's own and merely ride on
+  slot 0 as a carrier — so a port picked by track number sent them to Movy's
+  engine as `ch0:master_fx:…`, a key nothing answers to. The load, the browser's
+  read-back, undo of a master module swap, a master module's file parameters and
+  the master LFOs were all affected. Every one of them now resolves its port
+  from the component being edited, so a Schwung-owned component stays on a
+  Schwung slot however that setting is resolved.
+
 - **A redeployed engine is now the engine that runs.** `deploy.sh` shipped
   `dsp.so` and left it to the version gate to hot-reload — but the shim opens
   the engine by path and the loader keeps serving the copy already loaded there

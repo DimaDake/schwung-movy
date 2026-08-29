@@ -7,6 +7,7 @@ import { HostSlotPort } from './host-port.js';
 import { MovyChainPort } from './movy-chain-port.js';
 import type { TrackPort } from './port.js';
 import { trackKind } from './ref.js';
+import { isMasterComponent } from '../chain/config.js';
 
 const ports: (TrackPort | undefined)[] = [];
 
@@ -38,6 +39,21 @@ export function hostPort(slot: number): TrackPort {
         hostPorts[slot] = p;
     }
     return p;
+}
+
+/** The port a component's params actually live behind.
+ *
+ *  Almost always the track's own — but a `master_fx:` component is schwung's,
+ *  global, and merely rides on slot 0. Reaching it through `portFor(0)` worked
+ *  until `chtracks` could make track 0 a movy chain: the chain port then
+ *  namespaces the key `ch0:master_fx:…`, which movy's engine does not know, so
+ *  a master FX module could not be loaded at all.
+ *
+ *  Every path that addresses a component BY KEY — browsing, loading, undo,
+ *  module dumps, file params — resolves its port here, so the rule is written
+ *  down once instead of at each call site that happens to remember it. */
+export function componentPort(index: number, componentKey: string): TrackPort {
+    return isMasterComponent(componentKey) ? hostPort(0) : portFor(index);
 }
 
 /** Drop cached ports. Tests use this to swap the ambient shadow_* globals. */

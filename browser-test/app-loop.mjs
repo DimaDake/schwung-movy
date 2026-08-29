@@ -855,6 +855,71 @@ _log('\napp-loop: master FX slot adds a module by DSP path');
     globalThis.host_read_file = prevRead;
 }
 
+/* ── Master FX: a chtracks chain on track 1 must not capture the master bus ── */
+_log('\napp-loop: master FX adds a module while tracks 1-4 are movy chains');
+{
+    /* `master_fx:` keys are schwung's own and global to the shim; they only RIDE
+     * on slot 0 as a carrier. With `chtracks` on, a port taken by track INDEX
+     * makes slot 0 a movy chain, which namespaces the write `ch0:master_fx:…` —
+     * a key movy's engine has never heard of. The module then silently never
+     * loads, and since chtracks ships as NEW SETS this is every new set. */
+    const { setMovyTracks } = await import('../dist/esm/track/host-mode.js');
+    const { movyTracksOn, trackKind } = await import('../dist/esm/track/ref.js');
+
+    const prevOs = globalThis.os;
+    const prevRead = globalThis.host_read_file;
+    globalThis.os = {
+        readdir: (p) => (p.endsWith('/audio_fx') ? [['reverb'], 0] : [[], 0]),
+        stat: () => [{ mode: 0x4000 }, 0],
+    };
+    globalThis.host_read_file = (p) =>
+        p.endsWith('/audio_fx/reverb/module.json')
+            ? JSON.stringify({ id: 'reverb', name: 'Reverb', dsp: 'dsp.so', component_type: 'audio_fx' })
+            : null;
+
+    resetApp();
+    setMovyTracks(true);
+    eq('the flag moved tracks 1-4', movyTracksOn() && trackKind(0) === 'movy', true);
+
+    const sets = [];
+    const engineWrites = [];
+    const realSet  = globalThis.shadow_set_param;
+    const realSetT = globalThis.shadow_set_param_timeout;
+    const realEng  = globalThis.host_module_set_param_blocking;
+    globalThis.shadow_set_param = (s, k, v) => { sets.push(`${s}|${k}=${v}`); return realSet(s, k, v); };
+    globalThis.shadow_set_param_timeout = (s, k, v, t) => { sets.push(`${s}|${k}=${v}`); return realSetT(s, k, v, t); };
+    globalThis.host_module_set_param_blocking = (k, v, t) => {
+        engineWrites.push(k);
+        return realEng ? realEng(k, v, t) : true;
+    };
+
+    seqState.sessionMode = true;          // master FX chain is shown in Session mode
+    appState.masterChainIndex = 0;
+    appState.currentView = VIEW_CHAIN;
+    advance(2);
+
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);   // jog-click on empty master slot
+    eq('master jog-click opens the module browser', appState.currentView, VIEW_BROWSE);
+
+    sendMidi([0xB0, globalThis.MoveMainKnob, 1]);       // jog → Reverb (0 = NONE)
+    sets.length = 0; engineWrites.length = 0;
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);   // jog-click → load selection
+
+    const moduleSet = sets.find((s) => s.includes('master_fx:fx1:module='));
+    eq('the master load still reaches a schwung slot', !!moduleSet, true);
+    eq('on slot 0, the carrier for a global key', moduleSet?.startsWith('0|'), true);
+    eq('carrying the DSP path', moduleSet?.endsWith('/audio_fx/reverb/dsp.so'), true);
+    eq('and nothing was namespaced to a movy chain',
+        engineWrites.filter((k) => k.indexOf('ch') === 0).join(','), '');
+
+    globalThis.shadow_set_param = realSet;
+    globalThis.shadow_set_param_timeout = realSetT;
+    globalThis.host_module_set_param_blocking = realEng;
+    globalThis.os = prevOs;
+    globalThis.host_read_file = prevRead;
+    setMovyTracks(false);
+}
+
 /* ── Master FX: jog-click on a loaded slot drills into its detail params ───── */
 _log('\napp-loop: master FX slot drills into detail params on jog-click');
 {

@@ -781,6 +781,10 @@ for the concepts:
   **end of the clip**, whichever comes first — so however long you lean on the
   pad, it never wraps round the loop into a drone.
 - **Metronome** — toggle with **Shift + Step 6**.
+- **Full velocity** — **Shift + Step 10** makes every pad note leave at
+  127, whatever you actually hit the pad with. It is a way of playing
+  rather than part of a piece of music, so it stays where you left it: in
+  every set, and after closing and reopening Movy.
 - **Step recording** — hold **Rec** while stopped and play the pads to enter
   notes one step at a time; see [Step recording](#step-recording) below.
 - **Capture** — play first, keep it after: see
@@ -1562,7 +1566,7 @@ behaviour you'd like — or, better, a PR.
 | **Shift + Step 3** | Open **Clip parameters** (scale, length, transpose, quantize; Track view). |
 | **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/link/quantize, root/key/mode/layout). |
 | **Shift + Step 6** | Toggle the **metronome**. |
-| **Shift + Step 10** | Toggle **full velocity**. |
+| **Shift + Step 10** | Toggle **full velocity** — every pad note at 127. Kept across sets and restarts. |
 | **Shift + Step 15** | **Double** the loop. |
 | **Shift + Step 16** | Cycle the current clip's **quantization** (0 / default / 100 %). |
 

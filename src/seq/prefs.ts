@@ -26,6 +26,7 @@ const clampPct = (v: unknown): number =>
 
 type PrefsFile = {
     defaultQuant?: unknown; fileDirs?: unknown; flags?: unknown; moduleBlacklist?: unknown;
+    fullVelocity?: unknown;
 };
 
 function readPrefs(): PrefsFile {
@@ -56,6 +57,20 @@ export function readPrefDefaultQuant(): number {
 
 export function writePrefDefaultQuant(pct: number): void {
     writePrefs((p) => { p.defaultQuant = clampPct(pct); });
+}
+
+/* Full velocity (Shift+Step 10): every pad note leaves at 127.
+ *
+ * Machine-level, not per set, because it is about how this player plays — flat
+ * fingers, a pad that reads light, drums that want no dynamics — and not about
+ * one piece of music. A user who wants it wants it in every set, and wanted it
+ * again after the reopen that used to silently clear it. */
+export function readPrefFullVelocity(): boolean {
+    return readPrefs().fullVelocity === true;
+}
+
+export function writePrefFullVelocity(on: boolean): void {
+    writePrefs((p) => { p.fullVelocity = on; });
 }
 
 /* Runtime flags (src/seq/flags-def.ts). They live here, not in the per-set

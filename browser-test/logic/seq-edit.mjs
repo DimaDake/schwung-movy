@@ -6,6 +6,7 @@
 
 import {
     installMockEngine, uninstallMockEngine, seqEngineTick, resetSeqEngine, eq, lastMusicalOp,
+    installMockFs, uninstallMockFs, PREFS_PATH, readPrefDefaultQuant, writePrefDefaultQuant,
     _log,
 } from './harness.mjs';
 
@@ -18,7 +19,10 @@ export async function run() {
     const { seqEngineTick, resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
 
+    const { loadFullVelocityPref } = await import('../../dist/esm/seq/state.js');
+
     installMockEngine();
+    const fs = installMockFs();
     resetSeqEngine(); resetSeqState();
     seqEngineTick(); // ready
 
@@ -33,6 +37,40 @@ export async function run() {
     seqHandleMidi([0x90, 25, 127], false);
     seqHandleMidi([0x80, 25, 0], false);
     eq('bare step did not touch full velocity', seqState.fullVelocity, false);
+
+    /* It is a machine preference, not part of a set: it has to come back on the
+     * next open, which is what `resetSeqState` + a fresh seed stands in for. */
+    writePrefDefaultQuant(70);
+    seqHandleMidi([0x90, 25, 127], true);
+    eq('the toggle reaches prefs.json',
+        JSON.parse(fs.files[PREFS_PATH]).fullVelocity, true);
+    eq('and leaves the other preferences alone', readPrefDefaultQuant(), 70);
+    resetSeqState();
+    eq('a fresh mirror starts off', seqState.fullVelocity, false);
+    loadFullVelocityPref();
+    eq('full velocity survives a reopen', seqState.fullVelocity, true);
+
+    seqHandleMidi([0x90, 25, 127], true);
+    eq('turning it off is durable too',
+        JSON.parse(fs.files[PREFS_PATH]).fullVelocity, false);
+    resetSeqState(); loadFullVelocityPref();
+    eq('and a reopen reads it off', seqState.fullVelocity, false);
+
+    uninstallMockFs();
+    // No prefs file at all (host FS unavailable): the toggle still works, it is
+    // simply not durable — same contract as every other preference here.
+    seqHandleMidi([0x90, 25, 127], true);
+    eq('the toggle survives an unwritable prefs file', seqState.fullVelocity, true);
+
+    /* And the seed is actually wired into the open: `init()` is the whole of
+     * what runs when the tool is opened, so a reader that is never called there
+     * would leave the preference as dead as it was before. */
+    installMockFs({ [PREFS_PATH]: JSON.stringify({ fullVelocity: true }) });
+    resetSeqState();
+    const { init } = await import('../../dist/esm/app/init.js');
+    init();
+    eq('opening movy seeds full velocity from prefs', seqState.fullVelocity, true);
+    uninstallMockFs();
 
     const { resetStepEdit } = await import('../../dist/esm/seq/step-edit.js');
     uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetStepEdit();

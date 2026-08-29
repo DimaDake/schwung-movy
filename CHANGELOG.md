@@ -62,6 +62,11 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Full velocity is remembered.** **Shift + Step 10** — every pad note leaves
+  at 127 — was forgotten the moment you closed Movy, so anyone who plays that
+  way had to switch it back on at every open. It is now a preference of the
+  Move rather than of one piece of music: it holds across sets and across
+  restarts, alongside the default quantize setting.
 - **A Movy track's volume is saved with the Set.** The level for tracks Movy
   hosts itself lives in Movy's own summing mixer, and nothing wrote it down: it
   came back at 100% after a power cycle, and — never being cleared either — the

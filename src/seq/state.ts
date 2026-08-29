@@ -5,6 +5,7 @@
  * one tick instead of one poll interval. */
 
 import { TRACK_COUNT } from '../track/ref.js';
+import { readPrefFullVelocity, writePrefFullVelocity } from './prefs.js';
 
 export interface SeqUiState {
     /* engine link */
@@ -252,6 +253,19 @@ export function loopEndBar(): number {
 }
 
 export const seqState: SeqUiState = defaults();
+
+/* Full velocity is durable, and prefs.json is where it lives (prefs.ts says
+ * why). Both halves are here so the field cannot be written past its store:
+ * the toggle goes through `setFullVelocity`, and a fresh open seeds the mirror
+ * from the file before any pad can be hit. */
+export function setFullVelocity(on: boolean): void {
+    seqState.fullVelocity = on;
+    writePrefFullVelocity(on);
+}
+
+export function loadFullVelocityPref(): void {
+    seqState.fullVelocity = readPrefFullVelocity();
+}
 
 export function resetSeqState(): void {
     Object.assign(seqState, defaults());

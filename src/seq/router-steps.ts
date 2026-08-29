@@ -22,7 +22,9 @@ import { muteHeld, muteMarkGestured, muteShiftHeld } from './router-buttons.js';
 import { toggleMute, toggleSolo } from '../mixer/track-mutes.js';
 import { TRACK_COUNT } from '../track/ref.js';
 import { sessionButtonHeld, sessionStepPress, sessionStepRelease, trackSelectActive } from './track-select.js';
-import { maxBarOffset, minBarOffset, occHasStep, occToggleStep, seqState } from './state.js';
+import {
+    maxBarOffset, minBarOffset, occHasStep, occToggleStep, seqState, setFullVelocity,
+} from './state.js';
 import { heldSetList, setHeldSet } from './held.js';
 import {
     anyStepHeld, editStepDown, editStepUp, heldStepAbs, setLengthTo,
@@ -179,7 +181,7 @@ function shiftStepFunction(step: number): void {
         return;
     }
     if (step === STEP_FULL_VEL) {
-        seqState.fullVelocity = !seqState.fullVelocity;
+        setFullVelocity(!seqState.fullVelocity);
         seqToast(seqState.fullVelocity ? 'Full Velocity On' : 'Full Velocity Off');
     } else if (step === STEP_DOUBLE_LOOP) {
         doubleLoop();

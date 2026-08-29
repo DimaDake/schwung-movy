@@ -12,6 +12,7 @@ import { browserState } from '../browser/state.js';
 import { CHAIN_SLOTS, MASTER_FX_SLOTS, isLfoSlot, isMasterLfoSlot } from '../chain/config.js';
 import { resetTrackMutes } from '../mixer/track-mutes.js';
 import { resetDrumSync } from '../seq/drum-sync.js';
+import { loadFullVelocityPref } from '../seq/state.js';
 import { claimLedOwnership } from './led-ownership.js';
 import { resetHeldInput } from './input-reset.js';
 import { installEditGuard } from '../undo/record.js';
@@ -71,6 +72,10 @@ export function init(): void {
 
     resetDrumSync();   // fresh models: re-tell the engine which tracks are drums
     resetTrackMutes(); // solo is a live control — never persisted, starts clear
+    /* Full velocity is the opposite: a machine-level preference, so it is read
+     * back here rather than reset. Before any pad can be hit — a note that left
+     * at the wrong velocity cannot be un-played. */
+    loadFullVelocityPref();
     // Nothing is held at open. Today the esbuild bundle is re-evaluated on every
     // tool open so these module-level latches start clear anyway — but that is a
     // property of the host's module cache, not of movy, and "close and reopen"

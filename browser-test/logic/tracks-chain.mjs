@@ -605,6 +605,61 @@ export async function run() {
   eq('leaving Session gives the pads back to the engine', engineOwnsPads(6), true);
   eq('and names the chain again', (sent[0]?.[1] ?? '').split(',')[0], '6');
 
+  /* A drum track's pads are a RACK, not a keyboard: the note a pad plays is a
+   * pad address. The engine answers pads from this map, so pushing the melodic
+   * one made a single press sound TWICE — the UI's kick, plus the engine's
+   * chromatic note, which on a 36-based rack is a different pad entirely
+   * (press kick, hear kick + cowbell). */
+  const { drumPadOn } = await import('../../dist/esm/keyboard/drum-handler.js');
+  const drumCfg = { padCount: 16, padNoteStart: 36, rawMidi: false };
+  const prevModels = appState.trackModels[6];
+  appState.trackModels[6] = [null, { getDrumConfig: () => drumCfg }];
+
+  resetPadRoute();
+  selectTrack(6);
+  sent.length = 0;
+  syncPadRoute(send);
+  const rack = (maps()[0]?.[1] ?? '').split(',');
+  eq('a drum track still hands its pads to the engine', rack[0], '6');
+  eq('pad 1 plays the rack note, not the keyboard note', rack[1], '36');
+  eq('the rack is four wide, so the fifth column is dead', rack[5], '-1');
+  eq('and the row above continues the rack', rack[9], '40');
+
+  /* …and with the map correct, the UI must stop sending its own copy: the
+   * melodic path has always checked engineOwnsPads and the drum path did not,
+   * so the drum note went out twice over (and its note-off, which DOES check,
+   * went out never). */
+  const writes = [];
+  const realEng = globalThis.host_module_set_param_blocking;
+  globalThis.host_module_set_param_blocking = (k, v, t) => {
+    writes.push(k);
+    return realEng ? realEng(k, v, t) : true;
+  };
+  drumPadOn(68, 68, false, drumCfg, 'synth', 6, 100);
+  eq('the UI does not re-send a note the engine already sounded',
+     writes.filter((k) => k.endsWith(':midi')).length, 0);
+
+  /* Shift turns the drum pads into a selector, and whether the selected pad
+   * also sounds is the module's decision — one the engine cannot see. So the
+   * pads go back to the UI for as long as Shift is held. */
+  appState.shiftHeld = true;
+  sent.length = 0;
+  syncPadRoute(send);
+  eq('Shift hands the drum pads back to the UI', (maps()[0]?.[1] ?? '').split(',')[0], '-1');
+  eq('so a shift-select cannot sound from the audio thread', engineOwnsPads(6), false);
+  writes.length = 0;
+  drumPadOn(68, 68, true, drumCfg, 'synth', 6, 100);
+  eq('and the silent select stays silent', writes.filter((k) => k.endsWith(':midi')).length, 0);
+
+  /* A melodic track has no such gesture: Shift is a modifier there, not a pad
+   * mode, and taking the pads back would cost every shifted press its latency. */
+  appState.trackModels[6] = prevModels;
+  sent.length = 0;
+  syncPadRoute(send);
+  eq('Shift leaves a melodic movy track with the engine', engineOwnsPads(6), true);
+  appState.shiftHeld = false;
+  globalThis.host_module_set_param_blocking = realEng;
+
   resetPadRoute();
   selectTrack(0);
 }

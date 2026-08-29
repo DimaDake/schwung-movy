@@ -12,6 +12,7 @@ import { isSounding } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
 import { MASTER_FX_SLOTS } from '../chain/config.js';
 import { drumPadLedColor } from '../keyboard/leds.js';
+import { drumNoteOfPhys } from '../keyboard/drum-grid.js';
 import { WHITE_DIM } from '../seq/colors.js';
 import { padColor } from '../seq/pads.js';
 import { midiNoteName } from '../keyboard/notes.js';
@@ -650,11 +651,11 @@ function tickBody(): void {
             const sel   = synthModel!.getDrumCurrentPhysPad();
             for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {
                 const p = PAD_MIN + i;
-                // Derive the pad's MIDI note to check activeHasNote (mirrors drumPadLedColor's mapping).
-                const idx = p - PAD_MIN, col = idx % 8, row = Math.floor(idx / 8);
-                const dp  = drumCfg.rawMidi ? p - drumCfg.padNoteStart + 1 : row * 4 + col + 1;
-                const note = drumCfg.rawMidi ? p : drumCfg.padNoteStart + dp - 1;
-                const playing = activeHasNote(track, note) || isSounding(p);
+                // The note this pad plays — the same lookup drumPadLedColor and
+                // the engine's pad map use, so "is it sounding" cannot disagree
+                // with what a press sends. -1 = not part of the rack.
+                const note = drumNoteOfPhys(p, PAD_MIN, drumCfg);
+                const playing = note >= 0 && (activeHasNote(track, note) || isSounding(p));
                 const color = drumPadLedColor(p, PAD_MIN, drumCfg, sel, track, playing);
                 if (drumCache[i] !== color) {
                     if (!ledBudgetTake()) continue;   // cache left stale: retries next tick

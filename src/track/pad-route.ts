@@ -19,28 +19,56 @@
  */
 
 import { appState } from '../app/state.js';
+import { drumNoteOfPhys, drumShiftSelect } from '../keyboard/drum-grid.js';
 import { seqState } from '../seq/state.js';
+import { PAD_MIN } from '../seq/constants.js';
 import { padPitch } from '../seq/pads.js';
 import { padsPlayNotes } from '../seq/router-pads.js';
+import type { DrumConfig } from '../types/param.js';
 import { chainInstance, trackKind } from './ref.js';
 
-const PAD_MIN = 68;
 const PAD_COUNT = 32;
 
 /* What the engine currently believes. Empty until the first push. */
 let pushed = '';
 let pushedVel = '';
 
+/* The active track's drum rack, or null when its synth is melodic. Read from
+ * the SYNTH slot (chain index 1) like every other drum question, so browsing an
+ * FX page cannot change what a pad plays. */
+function drumConfigFor(track: number): DrumConfig | null {
+    return appState.trackModels[track]?.[1]?.getDrumConfig() ?? null;
+}
+
 /** Rebuild the map string for the active track. `-1` chain = the UI keeps pads
  *  (host track, no movy chain selected, or the pads are not playing notes at
  *  all — in Session view they are the clip grid, and the engine cannot see a UI
- *  mode, so launching a clip sounded the synth underneath it). */
+ *  mode, so launching a clip sounded the synth underneath it).
+ *
+ *  A drum track maps its pads through the RACK, not the keyboard: the note a
+ *  drum pad plays is a pad address. Sending the melodic map here is what made
+ *  one press sound twice — the UI's kick and the engine's chromatic note, which
+ *  on a 36-based rack is another pad entirely.
+ *
+ *  Shift on a drum track makes the pads a selector, and whether the selected pad
+ *  also sounds is a per-module decision the UI holds — so the pads go back to
+ *  the UI for as long as Shift is down. It is pushed on the tick that sees the
+ *  button, so pressing Shift and a pad inside one tick period (~5-15 ms) can
+ *  still let the engine answer the press; holding Shift first, as the gesture
+ *  is played, cannot. */
 function buildMap(): string {
     const t = appState.activeTrack.index;
-    const chain = padsPlayNotes() && trackKind(t) === 'movy' ? chainInstance(t) : -1;
+    const drum = drumConfigFor(t);
+    const owns = padsPlayNotes()
+        && trackKind(t) === 'movy'
+        && !drumShiftSelect(appState.shiftHeld, drum);
+    const chain = owns ? chainInstance(t) : -1;
     const parts: (string | number)[] = [chain];
     for (let i = 0; i < PAD_COUNT; i++) {
-        parts.push(chain < 0 ? -1 : padPitch(t, PAD_MIN + i, PAD_MIN));
+        const pad = PAD_MIN + i;
+        parts.push(chain < 0 ? -1
+            : drum ? drumNoteOfPhys(pad, PAD_MIN, drum)
+            : padPitch(t, pad, PAD_MIN));
     }
     return parts.join(',');
 }

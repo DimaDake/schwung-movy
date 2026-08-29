@@ -96,6 +96,10 @@ _log('\napp-loop: drum grid loads');
     const vm = appState.trackModels[0][1].getViewModel();
     eq('drum preset detected (padCount 16)', vm.drumPadCount, 16);
     eq('drum lane selected (watchLane = note of current pad)', seqState.watchLane >= 0, true);
+    /* The lane opens on pad 1, so the grid must say which pad that is. It did
+     * not: the focused GRID pad was left at 0, and a freshly loaded rack lit no
+     * pad white while the sequencer was already editing one. */
+    eq('and the pad the lane belongs to is lit white', padColor(PAD_KICK), 120);
 }
 
 _log('\napp-loop: drum grid repaints once on a track switch, then idles');

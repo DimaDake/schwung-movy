@@ -65,6 +65,23 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **A drum pad on a Movy-hosted track plays one voice again.** Since the engine
+  started answering live pads from the audio thread, it was pushed the *melodic*
+  pad map whatever the track held — so on a drum track every press sounded
+  twice: the drum note from the UI, plus the keyboard note the engine looked up,
+  which on a rack numbered from note 36 is simply another pad (hit the kick,
+  hear the kick and a cowbell). The pushed map now follows the rack when the
+  track's synth is a drum module, the drum input path skips its own send when
+  the engine already sounded the note — as the melodic path always did, which is
+  also why the drum note-off was going out never — and Shift hands the pads back
+  to the UI, since whether a shift-select sounds is the module's decision and the
+  audio thread cannot see a held button. Affects every drum module on a Movy
+  chain (8W8, Forge, Weird Dreams, MrDrums, KrautDrums, …).
+- **A freshly loaded drum module shows which pad the step lane is editing.** The
+  focused pad opened on pad 1 and the sequencer lane followed it, but no pad on
+  the grid lit white until you physically hit one — the rack looked like it had
+  nothing selected while it was already being edited.
+
 - **Modules can be added to the master chain again.** Since tracks 1–4 could
   move onto Movy's own chains (**Tracks 1-4 Host**, which new Sets get by
   default), the master FX slots stopped loading anything: the master chain is

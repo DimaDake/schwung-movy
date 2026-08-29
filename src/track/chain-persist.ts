@@ -28,6 +28,7 @@ import { mlog } from '../log.js';
 import { TRACK_COUNT, chainInstance, trackKind } from './ref.js';
 import { portFor } from './registry.js';
 import { lfoPairs, lfoStateKeys, packLfoState } from './lfo-persist.js';
+import { MIX_KEY, mixPair, packMix } from './mix-persist.js';
 
 export interface ChainComponentState {
     /** Component key: "synth", "fx1", … */
@@ -46,6 +47,8 @@ export interface ChainTrackState {
     /** The chain's two LFOs, positional per `lfoStateKeys()`. Absent when both
      *  are idle. */
     lfo?: string[];
+    /** The summing mixer's `gain,pan,muted` triple. Absent at the default. */
+    mix?: string;
 }
 
 /** The engine param carrying the whole chain set. Addressed at the engine root
@@ -115,15 +118,18 @@ export function captureChains(): ChainTrackState[] {
          * riding along. An LFO can only target a loaded module, so a track with
          * nothing loaded is never here and costs nothing. */
         const lfoKeys = lfoStateKeys();
-        const tail = port.getMany([...comps.map((c) => c.c + ':state'), ...lfoKeys]);
+        const tail = port.getMany(
+            [...comps.map((c) => c.c + ':state'), ...lfoKeys, MIX_KEY]);
         const track: ChainTrackState = { t, comp: comps };
         comps.forEach((comp, i) => {
             const key = t + '|' + comp.c;
             const blob = tail[i] ?? lastBlob.get(key);
             if (blob) { comp.s = blob; lastBlob.set(key, blob); }
         });
-        const lfo = packLfoState(tail.slice(comps.length));
+        const lfo = packLfoState(tail.slice(comps.length, comps.length + lfoKeys.length));
         if (lfo) track.lfo = lfo;
+        const mix = packMix(tail[comps.length + lfoKeys.length]);
+        if (mix) track.mix = mix;
         out.push(track);
     }
     return out;
@@ -196,6 +202,10 @@ export function restoreChains(saved: ChainTrackState[] | undefined | null): numb
         }
         const lfo = lfoPairs(track.lfo);
         if (lfo) pairs.push(...lfo);
+        /* The mixer level. Not gated on the components the way a preset blob
+         * is — it belongs to the chain, not to any module in it. */
+        const mix = mixPair(track.mix);
+        if (mix) pairs.push(mix);
         if (pairs.length === 0) continue;
         if (!portFor(t).setMany(pairs)) {
             mlog('chains: track ' + (t + 1) + ' presets not delivered');

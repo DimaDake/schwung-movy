@@ -69,7 +69,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.50.0";
+const ENGINE_VERSION: &str = "0.51.0";
 
 /// Tracks backed by schwung's own shadow slots by default. Their notes go out as
 /// MIDI on the matching channel; everything above this index is a chain movy
@@ -389,6 +389,12 @@ impl Instance {
             )),
             _ if key.starts_with("ch") => {
                 let (slot, rest) = parse_chain_key(key)?;
+                /* Symmetric with set_param: the mix is movy's own state, not
+                 * any chain-host param, so forwarding this to the instance
+                 * answered "no such param" and the caller read unity. */
+                if rest == "mix" {
+                    return self.chains.mix_csv(slot);
+                }
                 self.chains.get_param(slot, rest)
             }
             _ => None,
@@ -672,6 +678,21 @@ mod tests {
         for bad in ["", "1", "1,0", "1,0,0,0", "x,0,0", "nan,0,0", "inf,0,0"] {
             assert!(parse_mix(bad).is_none(), "{:?} must be rejected", bad);
         }
+    }
+
+    /* End to end through the param wire, because the bug was in the ROUTING:
+     * `ch<N>:mix` was forwarded to the chain instance, which has no such key,
+     * so every read answered "absent" and callers fell back to unity — the
+     * volume gesture restarted at 0 dB and a save had nothing to record. */
+    #[test]
+    fn a_chain_mix_round_trips_through_the_param_wire() {
+        let mut inst = Instance::new();
+        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("1.0000,0.0000,0"));
+        inst.set_param("ch4:mix", "0.3162,0,0");
+        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("0.3162,0.0000,0"));
+        // A garbled write leaves the last good level alone.
+        inst.set_param("ch4:mix", "nonsense");
+        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("0.3162,0.0000,0"));
     }
 
     #[test]

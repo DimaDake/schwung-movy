@@ -62,6 +62,20 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **A Movy track's volume is saved with the Set.** The level for tracks Movy
+  hosts itself lives in Movy's own summing mixer, and nothing wrote it down: it
+  came back at 100% after a power cycle, and — never being cleared either — the
+  level you set in one Set went on attenuating whatever the next Set loaded into
+  that chain. It now travels in the set file beside the chain's modules, and a
+  new Set starts every chain at unity.
+
+  Two things went with it. The mixer state had no *reader* in the engine
+  (`ch<N>:mix` was forwarded to the chain host, which has no such key), so every
+  read answered "absent" and the gesture restarted at unity each time you took
+  it — turning a quiet track down put it back to 0 dB first. And undo recorded
+  its inverse as a bare gain rather than the whole `gain,pan,muted` triple the
+  engine parses, so undoing a Movy track's volume change silently did nothing.
+
 - **Modules no longer go missing from a set.** A set could come back from a
   power cycle with its sequences intact but half its tracks empty, and it got
   worse every time the set was opened — one real case went from eleven chains to

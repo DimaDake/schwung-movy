@@ -546,7 +546,10 @@ track it has nothing to be told, so the knob stays on Move's *master* volume.
 Known limitation, not by design.
 
 The value belongs to the track — a Schwung slot for tracks 1-4, Movy's own mixer
-for 5-16 — and it survives leaving and re-entering Movy.
+for 5-16 — and it is **saved with the Set**, so it survives leaving Movy, a
+power cycle, and switching to another Set and back. A Movy-hosted track's level
+is saved alongside its chain, so a chain with nothing loaded in it has no level
+to keep.
 
 ### The LFO page
 
@@ -919,8 +922,8 @@ a track button track, and movy hosts the whole chain itself.
 Two differences worth knowing:
 
 - **Move's mixer sees all twelve as one channel.** Movy sums them into a single
-  stereo output, so their levels are movy's own and the Move fader does not reach
-  them individually. Set them with **Shift + hold track + volume encoder** —
+  stereo output, so their levels are movy's own — the Move fader does not reach
+  them individually, and Movy saves them in the set itself. Set them with **Shift + hold track + volume encoder** —
   ⚠️ on tracks 5-16 the plain gesture *without* Shift does not work yet and moves
   Move's master volume instead, so use Shift there. Tracks 1-4 take either.
 - **They sound only while movy is open** (or parked in Background mode). The

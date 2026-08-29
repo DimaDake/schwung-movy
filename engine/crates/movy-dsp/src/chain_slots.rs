@@ -363,6 +363,14 @@ impl ChainSlots {
         let Some(wanted) = chain_doc::decode(doc) else {
             return false;
         };
+        /* A set document is a whole-set replace, and the mix belongs to the set
+         * that named the chain. Left alone, the level you set in one Set went on
+         * applying to whatever the next Set loaded into that chain. The restore
+         * writes the saved mixes immediately after this, so the only slots that
+         * stay at default are the ones the new set says nothing about. */
+        for m in self.mixes.iter_mut() {
+            *m = TrackMix::default();
+        }
         let mut gone: Vec<(usize, String)> = Vec::new();
         for (slot, comps) in self.desired.iter().enumerate() {
             for (component, _) in comps {
@@ -581,6 +589,16 @@ impl ChainSlots {
             self.idle.wake(slot);
             self.mixes[slot] = mix;
         }
+    }
+
+    /// One chain's mix as the same `gain,pan,muted` triple `set_mix` accepts.
+    ///
+    /// Movy owns this state — no chain-host param carries it — so without a
+    /// reader it was write-only: the volume gesture could not resume from the
+    /// level it last set, and the set file had no way to record it.
+    pub fn mix_csv(&self, slot: usize) -> Option<String> {
+        let m = self.mixes.get(slot)?;
+        Some(format!("{:.4},{:.4},{}", m.gain, m.pan, m.muted as u8))
     }
 
     /// Deliver a MIDI message to one chain.
@@ -917,6 +935,30 @@ mod tests {
         slots.render(&mut out);
         assert!(out.iter().all(|&s| s == 1234));
         assert_eq!(slots.active_count(), 0);
+    }
+
+    /* The mix is movy's own state — no chain-host param carries it — so it was
+     * write-only: `get_param` forwarded `mix` to the instance, which does not
+     * know the key, and every reader fell back to unity. That is why the volume
+     * gesture always restarted at 0 dB and why nothing could save the level. */
+    #[test]
+    fn the_mix_reads_back_what_was_set() {
+        let mut slots = ChainSlots::new();
+        assert_eq!(slots.mix_csv(4).as_deref(), Some("1.0000,0.0000,0"), "unity by default");
+        slots.set_mix(4, TrackMix { gain: 0.3162, pan: -0.5, muted: true });
+        assert_eq!(slots.mix_csv(4).as_deref(), Some("0.3162,-0.5000,1"));
+        assert_eq!(slots.mix_csv(5).as_deref(), Some("1.0000,0.0000,0"), "one slot only");
+        assert_eq!(slots.mix_csv(MOVY_CHAINS), None, "out of range");
+    }
+
+    /* A set document is a whole-set replace. Without this the level set in one
+     * Set went on attenuating whatever the next Set loaded into that chain. */
+    #[test]
+    fn a_new_set_document_clears_the_mixes() {
+        let mut slots = ChainSlots::new();
+        slots.set_mix(4, TrackMix { gain: 0.1, ..TrackMix::default() });
+        assert!(slots.set_chain_set("0\n"));
+        assert_eq!(slots.mix_csv(4).as_deref(), Some("1.0000,0.0000,0"));
     }
 
     #[test]

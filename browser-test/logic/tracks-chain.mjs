@@ -6,6 +6,7 @@
 
 import {
     portFor, appState, eq, _log, loadPerSetFlags, resetPorts,
+    undoOnce, resetUndoState, resetUndoGroups, resetUndoRecord,
 } from './harness.mjs';
 
 export async function run() {
@@ -153,6 +154,37 @@ export async function run() {
   {
     const flat = decodeBulk(bulkSets[0]);
     eq('the blob rides it', flat[flat.indexOf('ch4:synth:state') + 1], 'BLOB42');
+  }
+
+  /* ── the mixer level ─────────────────────────────────────────────────────
+   * A movy track's volume is movy's own `mix` triple. Nothing else in the set
+   * file carries it, so it was lost on every reopen — and, never being cleared,
+   * the level set in one Set went on attenuating whatever the next Set loaded
+   * into that chain. */
+  {
+    eq('a track at unity writes no mix into the set file', snap[0].mix, undefined);
+    engineVals['ch4:mix'] = '1.0000,0.0000,0';
+    eq('nor does an explicit unity triple', captureChains()[0].mix, undefined);
+
+    engineVals['ch4:mix'] = '0.3162,0.0000,0';
+    bulkGets.length = 0;
+    const withMix = captureChains();
+    eq('a moved fader is captured', withMix[0].mix, '0.3162,0.0000,0');
+    eq('and rides the batch that was already being issued', bulkGets.length, 1);
+
+    /* The restore is the half that was missing entirely: this is the chain
+     * arriving in a Set that has just been opened at unity. */
+    engineVals['ch4:mix'] = '1.0000,0.0000,0';
+    restoreChains(withMix);
+    eq('the level comes back with the chain', engineVals['ch4:mix'], '0.3162,0.0000,0');
+
+    /* Refused whole rather than half-applied: the engine drops a malformed
+     * triple, which would leave the chain at a level nothing wrote. */
+    engineVals['ch4:mix'] = '1.0000,0.0000,0';
+    restoreChains([{ ...withMix[0], mix: 'nonsense' }]);
+    eq('a malformed mix is not written', engineVals['ch4:mix'], '1.0000,0.0000,0');
+
+    delete engineVals['ch4:mix'];
   }
 
   /* ── the bug this design exists for ──────────────────────────────────────
@@ -331,7 +363,8 @@ export async function run() {
 
 {
   _log('\ntrack volume routes by track kind:');
-  const { volumeTrackDown, volumeKnobDelta } = await import('../../dist/esm/mixer/track-volume.js');
+  const { volumeTrackDown, volumeTrackUp, volumeKnobDelta } =
+    await import('../../dist/esm/mixer/track-volume.js');
   const { resetPorts } = await import('../../dist/esm/track/registry.js');
 
   const writes = [];
@@ -361,6 +394,41 @@ export async function run() {
   eq('movy track writes its mixer', movyWrite && movyWrite[1], 'ch6:mix');
   eq('mixer write is the gain,pan,mute triple',
      !!(movyWrite && /^[0-9.]+,0,0$/.test(movyWrite[2])), true);
+
+  /* The fader has to resume from the level it last set. `ch<N>:mix` had no
+   * reader in the engine — `get_param` forwarded it to the chain instance,
+   * which has no such key — so every read answered null and the gesture
+   * restarted at unity: turning a quiet track down put it back to 0 dB first. */
+  {
+    const { resetTrackVolume } = await import('../../dist/esm/mixer/track-volume.js');
+    resetTrackVolume();
+    writes.length = 0;
+    globalThis.host_module_get_param = (k) => (k === 'ch6:mix' ? '0.3162,-0.5000,0' : null);
+    volumeTrackDown(6);
+    volumeKnobDelta(1);                       // one detent up from -10 dB
+    const resumed = writes.find((w) => w[0] === 'movy');
+    eq('the gesture resumes from the level on the chain', resumed && resumed[2],
+       '0.3548,-0.5000,0');
+
+    /* The gain is the only field on this fader, so the other two must survive
+     * the write — the triple is saved state now, and zeroing pan on every turn
+     * would discard what the set file just restored. */
+    eq('and carries the rest of the triple through', resumed[2].endsWith(',-0.5000,0'), true);
+
+    /* Undo writes the inverse back to the same param, so it has to be the same
+     * SHAPE: a bare gain is not a triple, `parse_mix` rejects it, and undoing a
+     * movy track's volume silently did nothing. */
+    resetTrackVolume();
+    resetUndoState(); resetUndoGroups(); resetUndoRecord();
+    volumeTrackDown(6);
+    volumeKnobDelta(1);
+    volumeTrackUp(6);
+    writes.length = 0;
+    undoOnce();
+    const undone = writes.find((w) => w[0] === 'movy');
+    eq('undo restores the whole triple', undone && undone[2], '0.3162,-0.5000,0');
+    resetTrackVolume();
+  }
 
   globalThis.shadow_set_param = oSet; globalThis.host_module_set_param_blocking = oMSet;
   globalThis.host_module_get_param = oGet; globalThis.shadow_get_param = oSGet;

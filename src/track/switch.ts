@@ -11,15 +11,16 @@
  * poll, so it never caught up on its own.
  *
  * Both callers go through here now, which is the only way the two can't drift
- * apart again. */
+ * apart again. The watch retarget itself lives in seq/watch.ts, because the
+ * Session grid and the tool's own open retarget it without switching tracks. */
 
 import { appState, VIEW_BROWSE } from '../app/state.js';
 import { jogHintTouch } from '../app/jog-hint.js';
 import { mlog } from '../log.js';
 import { releaseAllLive } from '../keyboard/release.js';
 import { closeParamPage, paramPageActive } from '../seq/param-page.js';
-import { seqCmd } from '../seq/engine.js';
-import { requestLoopWindowAdopt, seqState } from '../seq/state.js';
+import { seqState } from '../seq/state.js';
+import { setWatchTrack } from '../seq/watch.js';
 import { selectTrack } from './focus.js';
 import { chainInstance, trackKind } from './ref.js';
 
@@ -43,17 +44,6 @@ export function beginTrackSwitch(): TrackSnapshot {
         session: seqState.sessionMode,
         loop: seqState.loopMode,
     };
-}
-
-/* Point the step view and the engine at `track`. Guarded because the track
- * buttons' watch retarget already ran in seq/router.ts by the time we get here
- * — re-sending `watch` would be a wasted blocking IPC every press. */
-function watchTrack(track: number): void {
-    if (track === seqState.watchTrack) return;
-    seqState.watchTrack = track;
-    seqState.barOffset = 0;
-    requestLoopWindowAdopt();   // the new track's window may start past bar 1
-    seqCmd('watch ' + track);
 }
 
 /* Logged because a device measurement has no other way to prove WHICH track it
@@ -80,7 +70,7 @@ export function switchToTrack(track: number, prev: TrackSnapshot): void {
     releaseAllLive();   // no live note outlives the track it was played on
     selectTrack(track);
     appState.currentView = appState.trackView[track];
-    watchTrack(track);
+    setWatchTrack(track);
     jogHintTouch(false);
     logSwitch(track);
     repaint();
@@ -93,7 +83,7 @@ export function restoreTrackState(prev: TrackSnapshot): void {
     seqState.loopMode = prev.loop;
     selectTrack(prev.track);
     appState.currentView = prev.view;
-    watchTrack(prev.track);
+    setWatchTrack(prev.track);
     logSwitch(prev.track);
     repaint();
 }

@@ -1,6 +1,8 @@
 import { createModel }  from '../model/index.js';
 import { portFor, hostPort } from '../track/registry.js';
-import { trackRef, TRACK_COUNT } from '../track/ref.js';
+import { TRACK_COUNT } from '../track/ref.js';
+import { selectTrack } from '../track/focus.js';
+import { forceWatchTrack } from '../seq/watch.js';
 import { createLfoModel, createScopedLfoModel } from '../lfo/model.js';
 import { masterScope } from '../lfo/scope.js';
 import { appState, VIEW_CHAIN } from './state.js';
@@ -24,7 +26,20 @@ import { installPerfProbe } from './perf-probe.js';
 
 export function init(): void {
     installPerfProbe();   // wrap the host globals before anything calls them
-    appState.activeTrack = trackRef((typeof shadow_get_ui_slot === 'function') ? shadow_get_ui_slot() : 0);
+    /* Movy opens on the track Move had selected. Both halves of "the current
+     * track" have to be told, not just the one the screen reads: the knobs and
+     * pads follow `activeTrack`, every step edit follows the engine's watched
+     * track, and the engine defaults to track 1 — and OUTLIVES the tool, so it
+     * may still be watching whatever a previous movy session left it on. Open
+     * on track 2 and, before this, the module you selected and heard was track
+     * 2's while step recording wrote into track 1's clip.
+     *
+     * `selectTrack` rather than a bare assignment: the focus group has to
+     * follow too, or the four track buttons address a different quartet than
+     * the screen. */
+    const openTrack = (typeof shadow_get_ui_slot === 'function') ? shadow_get_ui_slot() : 0;
+    selectTrack(openTrack);
+    forceWatchTrack(openTrack);
     mlog('init: activeTrack=' + appState.activeTrack.index);
 
     claimLedOwnership();

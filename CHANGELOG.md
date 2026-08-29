@@ -62,6 +62,16 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **A take no longer records onto the wrong track.** Movy opens on the track
+  Move had selected, but only the screen, pads and knobs were told: the
+  sequencer went on editing track 1. Open Movy on track 2, pick a module,
+  step-record — and the notes you played and heard on track 2 were written into
+  track 1's clip. The two halves of "the current track" are now set together at
+  open, and the sequencer's half is asserted against the engine rather than
+  assumed, since the engine keeps running after Movy is closed and may still be
+  watching a track from an earlier session. Launching a clip from the Session
+  grid had the same gap in a smaller form — the step row followed for a few
+  milliseconds and then snapped back.
 - **Full velocity is remembered.** **Shift + Step 10** — every pad note leaves
   at 127 — was forgotten the moment you closed Movy, so anyone who plays that
   way had to switch it back on at every open. It is now a preference of the

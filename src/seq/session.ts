@@ -22,6 +22,7 @@ import { seqState } from './state.js';
 import { appState } from '../app/state.js';
 import { focusedTrack } from '../track/focus.js';
 import { dupActive, onUnit as dupOnUnit } from './duplicate.js';
+import { setWatchTrack } from './watch.js';
 
 const COLS = 8;
 const ROWS = 4;
@@ -79,8 +80,10 @@ export function sessionPad(padNote: number, padMin: number): void {
         return;
     }
     // Launch the clip (or select-empty-stops). Also retarget the watched
-    // track so the step view follows.
-    seqState.watchTrack = track;
+    // track so the step view follows — through setWatchTrack, or the engine
+    // pins `watchTrack` straight back on its next status poll and the step
+    // row goes on editing the track you launched away from.
+    setWatchTrack(track);
     seqCmd(`launch ${track} ${slot}`);
 }
 

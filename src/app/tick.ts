@@ -218,8 +218,13 @@ let ledRepeatTicks = -1;
 const LED_REPEAT_TICKS = 45;
 
 function ledContext(): string {
+    /* Both halves of "the current track": the screen/pads follow `track`, every
+     * step edit follows `watch`, and the engine re-pins `watch` on every status
+     * poll. A repaint log that showed only the first could not tell a working
+     * open from the one that recorded track 2's take into track 1. */
     return 'session=' + (seqState.sessionMode ? 1 : 0)
         + ' track=' + appState.activeTrack.index
+        + ' watch=' + seqState.watchTrack
         + ' initDone=' + (appState.initLedsDone ? 1 : 0)
         + ' initIdx=' + appState.initLedIndex
         + ' drumStale=' + (drumCacheStale ? 1 : 0);

@@ -29,6 +29,7 @@ import { stepRecArrow, stepRecDown, stepRecEnd, stepRecUp } from './step-rec.js'
 import { padsPlayNotes } from './router-pads.js';
 import { handleStepButton, navigateBar } from './router-steps.js';
 import { muteHeld, seqHandleButtonCc } from './router-buttons.js';
+import { setWatchTrack } from './watch.js';
 
 /* The sequencer's public input surface stays on this module: these are its
  * other halves, re-exported so callers keep one import site. */
@@ -130,12 +131,7 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
          * resolves this the same way for the active track; the two must agree or
          * the screen shows one track while the steps edit another. */
         const track = focusedTrack(CC_TRACK_END - d1);
-        if (!muteHeld() && track !== seqState.watchTrack) {
-            seqState.watchTrack = track;
-            seqState.barOffset = 0;
-            requestLoopWindowAdopt();  // the new track's window may start past bar 1
-            seqCmd('watch ' + track);
-        }
+        if (!muteHeld()) setWatchTrack(track);
         return false;
     }
 

@@ -153,6 +153,54 @@ export async function run() {
         else delete globalThis.shadow_set_overtake_mode;
         teardown();
     }
+
+    /* S8 — the loads draining is not the end of the wait. A chain's preset
+     * blob, LFOs and mixer level travel on the bulk channel, which cannot be
+     * written while those loads hold the audio thread — so they are delivered
+     * HERE, and the Set does not go playable until they land. Promoting early
+     * is what put a live surface in front of modules sitting at their factory
+     * defaults: the filter reopened, the oscillator octaves reset.
+     * See plans/2026-08-29-chain-payload-delivery.md. */
+    {
+        const { armChainPayloads, chainPayloadsPending, resetChainPayloads } =
+            await import('../../dist/esm/track/chain-payload.js');
+        const arm = () => armChainPayloads(
+            [{ t: 4, pairs: [['synth:state', 'BLOB42']], saved: { t: 4, comp: [] } }]);
+
+        let refuse = true;
+        const oBS = globalThis.shadow_set_params;
+        globalThis.shadow_set_params = () => (refuse ? null : true);
+
+        const fs = installMockFs({ [ACTIVE]: 'SET1\nA Set\n' });
+        const eng = installMockEngine();
+        eng.status.chpend = 0;
+        resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
+        resetChainPayloads();
+
+        seqEngineTick(); sessionTick();        // the Set loads; settling begins
+        arm();
+        run(3);
+        eq('S8 an undelivered payload holds the splash', sessionPhase(), 'settling');
+        eq('S8 and it is still outstanding', chainPayloadsPending(), true);
+        refuse = false;
+        run(2);
+        eq('S8 delivering it goes live', sessionPhase(), 'ready');
+        eq('S8 with nothing outstanding', chainPayloadsPending(), false);
+
+        /* A payload that will NEVER land must not brick the instrument either —
+         * same rule as the load cap above, and for the same reason. */
+        resetSetSession(); resetSetSave();
+        refuse = true;
+        seqEngineTick(); sessionTick();
+        arm();
+        run(60);
+        eq('S8 a payload that never lands still goes live', sessionPhase(), 'ready');
+
+        globalThis.shadow_set_params = oBS;
+        resetChainPayloads();
+        void fs; void eng;
+        teardown();
+    }
 }
 
 

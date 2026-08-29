@@ -93,6 +93,8 @@ export async function run() {
 {
   _log('\nmovy chain persistence:');
   const { captureChains, restoreChains } = await import('../../dist/esm/track/chain-persist.js');
+  const { deliverChainPayloads, chainPayloadsPending, resetChainPayloads } =
+    await import('../../dist/esm/track/chain-payload.js');
   const { lfoStateKeys, lfoPairs } = await import('../../dist/esm/track/lfo-persist.js');
   const { encodeBulk, decodeBulk } = await import('../../dist/esm/track/bulk.js');
   const { resetPorts } = await import('../../dist/esm/track/registry.js');
@@ -150,10 +152,73 @@ export async function run() {
      writes.filter(([k]) => k === 'chains').length, 1);
   eq('and the document names the component',
      decodeBulk(writes[0][1]).join('|'), '4|synth|plaits');
-  eq('blobs follow in one bulk write', bulkSets.length, 1);
+  /* ── the payload is DEFERRED, and that is the fix ────────────────────────
+   * The document above is what queues the module loads, and the shim services
+   * the bulk channel on the same audio thread a cold `dlopen` holds — measured
+   * at 428 ms for obxd. A payload written here waits out its hardcoded 100 ms
+   * (shadow_ui.c, no retry), times out, and the module comes up at its shipped
+   * defaults. See plans/2026-08-29-chain-payload-delivery.md. */
+  eq('the payload is NOT written while the loads are draining', bulkSets.length, 0);
+  eq('it is armed instead', chainPayloadsPending(), true);
+  eq('and delivering it lands', deliverChainPayloads(), true);
+  eq('in one bulk write per track', bulkSets.length, 1);
+  eq('with nothing left outstanding', chainPayloadsPending(), false);
   {
     const flat = decodeBulk(bulkSets[0]);
     eq('the blob rides it', flat[flat.indexOf('ch4:synth:state') + 1], 'BLOB42');
+  }
+
+  /* ── the data loss, which is worse than the silent restore ───────────────
+   * `lastBlob` covers a read that FAILS. It does not cover one that succeeds
+   * and returns the module's defaults, which is exactly what an undelivered
+   * chain answers — so the next forced save (a set switch, a teardown) wrote
+   * those defaults over the user's patch. A capture taken before delivery must
+   * hand back what is already on disk. */
+  {
+    restoreChains(snap);
+    engineVals['ch4:synth:state'] = 'FACTORY-DEFAULTS';
+    const mid = captureChains();
+    eq('a capture before delivery does not read the live chain',
+       mid[0].comp[0].s, 'BLOB42');
+    deliverChainPayloads();
+    eq('and the delivery put the saved blob back',
+       engineVals['ch4:synth:state'], 'BLOB42');
+    eq('after which the live chain is what is captured',
+       captureChains()[0].comp[0].s, 'BLOB42');
+  }
+
+  /* A delivery the shim refuses is retried on the next tick rather than
+   * logged and dropped — the whole defect was a caller that never looked. */
+  {
+    let refuse = true;
+    const ok = globalThis.shadow_set_params;
+    globalThis.shadow_set_params = (slot, marker, payload) =>
+      refuse ? null : ok(slot, marker, payload);
+
+    restoreChains(snap);
+    engineVals['ch4:synth:state'] = 'FACTORY-DEFAULTS';
+    eq('a refused delivery does not release the Set', deliverChainPayloads(), false);
+    eq('and stays armed', chainPayloadsPending(), true);
+    eq('so the capture is still guarded', captureChains()[0].comp[0].s, 'BLOB42');
+    refuse = false;
+    eq('the retry lands', deliverChainPayloads(), true);
+    eq('restoring the blob', engineVals['ch4:synth:state'], 'BLOB42');
+
+    /* A payload that will never land must not hold the splash open forever —
+     * but the guard stays armed, because the set file is still the only copy
+     * of the patch. */
+    refuse = true;
+    restoreChains(snap);
+    engineVals['ch4:synth:state'] = 'FACTORY-DEFAULTS';
+    let n = 0;
+    while (!deliverChainPayloads()) { n++; if (n > 100) break; }
+    eq('the attempts are bounded', n < 100, true);
+    eq('but the capture guard survives the give-up',
+       captureChains()[0].comp[0].s, 'BLOB42');
+
+    globalThis.shadow_set_params = ok;
+    resetChainPayloads();
+    engineVals['ch4:synth:state'] = 'BLOB42';
   }
 
   /* ── the mixer level ─────────────────────────────────────────────────────
@@ -176,12 +241,14 @@ export async function run() {
      * arriving in a Set that has just been opened at unity. */
     engineVals['ch4:mix'] = '1.0000,0.0000,0';
     restoreChains(withMix);
+    deliverChainPayloads();
     eq('the level comes back with the chain', engineVals['ch4:mix'], '0.3162,0.0000,0');
 
     /* Refused whole rather than half-applied: the engine drops a malformed
      * triple, which would leave the chain at a level nothing wrote. */
     engineVals['ch4:mix'] = '1.0000,0.0000,0';
     restoreChains([{ ...withMix[0], mix: 'nonsense' }]);
+    deliverChainPayloads();
     eq('a malformed mix is not written', engineVals['ch4:mix'], '1.0000,0.0000,0');
 
     delete engineVals['ch4:mix'];
@@ -325,6 +392,7 @@ export async function run() {
   bulkSets.length = 0;
   writes.length = 0;
   restoreChains(withLfo);
+  deliverChainPayloads();
   {
     const flat = decodeBulk(bulkSets[0]);
     const wrote = {};

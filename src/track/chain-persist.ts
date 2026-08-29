@@ -17,12 +17,14 @@
  * a save taken while loads are still draining still reports the whole set.
  * Design: plans/2026-08-29-chain-set-document.md.
  *
- * Preset blobs and LFO state follow in one bulk write per track. They are
- * ordered after the document on purpose: the engine attaches a blob to the
- * queued load, and an LFO target only binds to a param on a module that is at
- * least on its way in. */
+ * Preset blobs, LFO state and the mixer level follow in one bulk write per
+ * track, and they are DEFERRED rather than issued here — the document is what
+ * starts the loads that make the bulk channel unwritable. chain-payload.ts owns
+ * that wait and the reason for it. */
 
 import { CHAIN_SLOTS, isLfoSlot } from '../chain/config.js';
+import { armChainPayloads, pendingPayloadFor, resetChainPayloads, type ChainPayload }
+    from './chain-payload.js';
 import { decodeBulk, encodeBulk } from './bulk.js';
 import { mlog } from '../log.js';
 import { TRACK_COUNT, chainInstance, trackKind } from './ref.js';
@@ -112,6 +114,12 @@ export function captureChains(): ChainTrackState[] {
 
     const out: ChainTrackState[] = [];
     for (const t of [...byTrack.keys()].sort((a, b) => a - b)) {
+        /* This track's saved payload has not reached the chain yet, so the chain
+         * is sitting at the module's shipped defaults. Reading it would write
+         * those defaults over the patch in the set file — the actual data loss
+         * behind "my filter reopened". Hand back what is already on disk. */
+        const held = pendingPayloadFor(t);
+        if (held) { out.push(held); continue; }
         const comps = byTrack.get(t)!;
         const port = portFor(t);
         /* One bulk round trip for the whole track: the blobs, and the LFO keys
@@ -168,6 +176,9 @@ function chainSetTriples(saved: ChainTrackState[] | undefined | null): string[] 
  *  land, which the caller must treat as "this set is not loaded", never as
  *  "this set has no chains". */
 export function restoreChains(saved: ChainTrackState[] | undefined | null): number {
+    /* Whatever the previous Set left outstanding is not wanted: its chains are
+     * about to be unloaded by the document below. */
+    resetChainPayloads();
     const triples = chainSetTriples(saved);
     const entries = triples.length / 3;
 
@@ -182,13 +193,16 @@ export function restoreChains(saved: ChainTrackState[] | undefined | null): numb
     }
     if (entries === 0) return 0;
 
-    /* Now the parts that are addressed per chain. One bulk write per track, and
-     * only for tracks that have something in them. */
+    /* Now the parts that are addressed per chain — one bulk write per track,
+     * and only for tracks that have something in them. They are ARMED, not
+     * written: the document above has just queued the loads, and the bulk
+     * channel is unwritable for as long as they hold the audio thread. */
     /* Which components actually made it into the document, so a blob can never
      * be addressed to a component the engine was not told about. */
     const sent = new Set<string>();
     for (let i = 0; i + 2 < triples.length; i += 3) sent.add(triples[i] + '|' + triples[i + 1]);
 
+    const payloads: ChainPayload[] = [];
     for (const track of Array.isArray(saved) ? saved : []) {
         const t = track?.t;
         if (typeof t !== 'number' || chainInstance(t) < 0) continue;
@@ -207,9 +221,8 @@ export function restoreChains(saved: ChainTrackState[] | undefined | null): numb
         const mix = mixPair(track.mix);
         if (mix) pairs.push(mix);
         if (pairs.length === 0) continue;
-        if (!portFor(t).setMany(pairs)) {
-            mlog('chains: track ' + (t + 1) + ' presets not delivered');
-        }
+        payloads.push({ t, pairs, saved: track });
     }
+    armChainPayloads(payloads);
     return entries;
 }

@@ -21,6 +21,7 @@ import {
     BLANK_STATE, fileExists, isProvisionalUuid, readActiveSetAny, rememberSet, removeSetState,
     uuidToStatePath,
 } from './set-context.js';
+import { deliverChainPayloads } from '../track/chain-payload.js';
 import { collectDeadSets } from './set-gc.js';
 import { resetSetCommit, setCommitTick } from './set-commit.js';
 import { readBestState, readUiBlob, writeStateBlob, writeUiBlob } from './persist-store.js';
@@ -150,6 +151,13 @@ function enterLoading(id: string, name: string): void {
 function settleTick(): void {
     const r = settleCheck();
     if (r === 'wait') return;
+    /* The loads have drained, which means the shim's param mailbox is free for
+     * the first time since the document went out: NOW a chain's preset blob,
+     * LFOs and level can actually land. Issued here rather than in
+     * `restoreChains` because there they raced the very loads they follow, and
+     * lost — see chain-payload.ts. Promotion waits on them, so a Set never goes
+     * playable with its modules still at factory defaults. */
+    if (!deliverChainPayloads() && r !== 'capped') return;
     if (r === 'capped') mlog('seq: settle cap reached — ' + settleOutstanding());
     phase = 'ready';
     mlog('seq: set ready after ' + settleWaited() + 'ms');

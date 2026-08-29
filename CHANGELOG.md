@@ -65,6 +65,21 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Reopening a Set no longer resets its instruments to factory defaults.** A
+  chain's module was restored, but its sound was not: the filter you closed
+  came back open, oscillator octaves reverted, LFO assignments and track levels
+  were gone. Movy sent the set document — which is what starts the module
+  loads — and then immediately wrote each track's preset blob, LFOs and mixer
+  level on a channel the shim services on the audio thread. That thread was by
+  then inside a blocking module load (measured at 428 ms for OB-Xd), so all
+  four writes hit their 100 ms timeout and were dropped. Worse, the next save
+  then read those defaults back out of the live chain and wrote them over the
+  patch in the Set file, so the sound was not merely un-restored but lost. The
+  payload is now delivered once the loads have drained and the channel is free,
+  retried until it lands, and the Set is not playable until it does. A capture
+  taken before it lands returns what the Set file already holds, so a failed
+  restore can never overwrite a patch.
+
 - **A take no longer records onto the wrong track.** Movy opens on the track
   Move had selected, but only the screen, pads and knobs were told: the
   sequencer went on editing track 1. Open Movy on track 2, pick a module,

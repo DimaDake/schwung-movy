@@ -82,3 +82,30 @@ ring that intermittently floods shadow_ui with zero-MIDI.
 
 Set `TS_SKIP_RESTORE=1` to suppress it — `test-all-device.sh` does this so a
 sweep restarts once at the end rather than once per suite.
+
+## The fixture assumes tracks 1-4 are Schwung's
+
+`slots.txt` seeds **Schwung's four shadow slots** (plaits on slot 0, a drum
+module on slot 1), and the suites that need an instrument reach it through
+`module-slot.mjs`, which also addresses those slots. Nothing here loads a module
+into one of movy's own chains.
+
+So with `chtracks` forced to `MOVY` in `prefs.json`, tracks 1-4 are movy chains
+and the fixture's instruments are on slots movy no longer addresses: the module
+is loaded, the fixture verifies it, and movy correctly reports no synth. The
+suites then fail on assertions that have nothing to do with what they test —
+`loadHierarchy: ui_hierarchy null`, an automation lane that falls back to
+`octave_transpose`, "knobParams empty at knob turn time", a multi-step check
+that enters no steps.
+
+Measured 2026-08-30, whole sweep at `chtracks: 1`: `test-unload`, `test-mutes`,
+`test-lfo`, `test-master-fx`, `test-volume` and `test-jog-hint` pass (they do not
+depend on the fixture's instruments, or they load into a movy chain themselves);
+`test.sh`, `test-seq`, `test-auto`, `test-reselect`, `test-module-contract` and
+`test-items` fail, and all six pass again at the shipped default.
+
+The default (`NEW SETS`) resolves to SCHWUNG for the fixture's set, since its
+blob predates the per-set field — which is why the sweep is green as it stands.
+**Movy hosting tracks 1-4 therefore has no device coverage**; giving it any
+means teaching the fixture to load a module into `ch0`-`ch3` through movy's own
+chain payload, not through `module-slot.mjs`.

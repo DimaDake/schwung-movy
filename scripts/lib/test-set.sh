@@ -397,7 +397,14 @@ ts_seq_path() {
 # line without a matching trailer would be rejected as a torn write.
 ts_seq_apply() {
     local p; p=$(ts_seq_path)
-    ts_ssh "mkdir -p \"\$(dirname '$p')\"" || return 1
+    # Delete before writing. Movy's own saves go through the host, which runs as
+    # ROOT (MoveOriginal's), so a set movy has saved since the last fixture
+    # install holds root-owned 644 files — and scp opens the destination for
+    # writing, so it is refused however writable the directory is. The directory
+    # is ableton's, so unlinking is allowed and the fresh file is ours again.
+    # Until this existed, one movy save turned every remaining suite in a sweep
+    # into "could not establish the fixture state".
+    ts_ssh "mkdir -p \"\$(dirname '$p')\" && rm -f '$p' '${p%/*}/ui-state.json'" || return 1
     scp -q "$TS_FIXTURE_DIR/seq-state.json" "ableton@$HOST:$p" || return 1
     # ui-state.json is a SECOND per-set file holding mute/solo, root, scale,
     # layout and per-track octave. Resetting only seq-state left a run inheriting

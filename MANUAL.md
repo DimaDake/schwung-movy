@@ -105,15 +105,18 @@ Deleting a Set in Move takes its Movy sequence with it — the Set Move creates 
 its place starts blank, the same way its instrument slots do. Movy also clears
 out sequences whose Set has been deleted the next time you open it.
 
-Set pads you have never saved anything into from Move itself are a special case
-worth knowing about. Move only writes such a Set to disk once *Move* has
-something to save in it, and if you work entirely inside Movy it never does — so
-neither Schwung nor Movy has a Set to file your work under, and **what you record
-there will not be waiting for you next time**. This affects your instruments the
-same way it affects your sequence, and it is the same on Schwung and davebox.
-Recording anything into the Set from Move itself makes it real, after which
-everything persists normally — and only a real Set can be renamed, copied or
-backed up. (`docs/pending-sets.md` has the detail.)
+Set pads you have never saved anything into from Move itself used to be a
+special case. Move only writes such a Set to disk once *Move* has something to
+save in it, and if you work entirely inside Movy it never does — so neither
+Schwung nor Movy had a Set to file the work under, and what you recorded there
+was not waiting for you next time. **Movy now commits the Set for you**: on the
+first visit it hands Move's own firmware a track-1 press, which is enough for
+Move to write the Set, and Movy's sequence and Schwung's instruments are then
+saved alongside it. It happens once per Set, and the visible cost is that **the
+pads may blink briefly while it happens** — for that moment the surface belongs
+to Move. The workaround lives in Movy today; Schwung is where it belongs, and
+there it could be done without the blink. (`docs/pending-sets.md` has the
+detail.)
 
 The **screen** is the 128×64 OLED. A typical parameter page looks like this:
 
@@ -920,21 +923,23 @@ never in the same row or the same column, so two tracks you can see at the same
 time never share one. Eight well-separated colours is also all this hardware
 offers — the pale and cool ones wash out to white next to the lit in-scale pads.
 
-**Tracks 5-16 host their own instruments.** Tracks 1-4 are the four Schwung
-tracks and behave as they always have — they are Move's, and Move's mixer sees
-them. Tracks 5-16 are movy's own: load a module onto one exactly as you would on
-a track button track, and movy hosts the whole chain itself.
+**Tracks 5-16 host their own instruments.** Load a module onto one exactly as
+you would on a track button track, and movy hosts the whole chain itself.
+Tracks 1-4 can be either Schwung's four slots — Move's, with Move's mixer seeing
+them — or movy's own, which is what a new set gets by default; **TRACKS 1-4
+HOST** on the [Settings page](#settings--shift--step-2) is what decides, and the
+two differences below apply to whichever tracks movy is hosting.
 
 Two differences worth knowing:
 
-- **Move's mixer sees all twelve as one channel.** Movy sums them into a single
-  stereo output, so their levels are movy's own — the Move fader does not reach
-  them individually, and Movy saves them in the set itself. Set them with **Shift + hold track + volume encoder** —
+- **Move's mixer sees every movy-hosted track as one channel.** Movy sums them
+  into a single stereo output, so their levels are movy's own — the Move fader
+  does not reach them individually, and Movy saves them in the set itself. Set them with **Shift + hold track + volume encoder** —
   ⚠️ on tracks 5-16 the plain gesture *without* Shift does not work yet and moves
   Move's master volume instead, so use Shift there. Tracks 1-4 take either.
-- **They sound only while movy is open** (or parked in Background mode). The
-  four Schwung tracks keep playing under Move's own UI; movy's twelve stop when
-  movy closes, because movy is what renders them.
+- **They sound only while movy is open** (or parked in Background mode). A
+  Schwung-hosted track keeps playing under Move's own UI; a movy-hosted one
+  stops when movy closes, because movy is what renders it.
 
 Their modules and settings are saved with the set, so a movy track comes back
 the way you left it.
@@ -1484,9 +1489,11 @@ missing or simplified. **All of these are candidates for future work — and
   not a promise.
 - **Track + volume needs Shift on tracks 5-16** (see
   [Track volume](#track-volume)).
-- **Movy-hosted tracks are silent while Movy is closed.** Tracks 1-4 keep playing
-  under Move's own UI; 5-16 need Movy open, or parked in
-  [Background mode](#background-mode--keep-playing-under-moves-ui).
+- **Movy-hosted tracks are silent while Movy is closed.** Only Schwung-hosted
+  tracks keep playing under Move's own UI; a movy-hosted one needs Movy open, or
+  parked in [Background mode](#background-mode--keep-playing-under-moves-ui).
+  Since a new set puts tracks 1-4 on movy's chains, that now applies to them
+  too unless you hand them back on the Settings page.
 - **Simplified clip model.** Sequencer resolution and some clip-level features
   are reduced compared to Move.
 - **Rough edges.** Expect occasional display glitches or, rarely, a crash that

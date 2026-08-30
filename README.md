@@ -44,10 +44,12 @@ that gap with two things:
 2. **A sequencer** — a **16-track** step sequencer whose behaviour is aligned as
    closely as possible with Move's native sequencer (clips, session view, live +
    step recording, automation), but driving Schwung tracks instead of Move's
-   instruments. Tracks 1-4 are the four Schwung tracks and behave exactly as they
-   always have; tracks 5-16 host their own module chains inside Movy, summed to
-   one stereo output. The 16 are arranged as **four groups of four**: in Session
-   view the +/− buttons move between groups, and the step buttons pick a track.
+   instruments. Tracks 5-16 host their own module chains inside Movy, summed to
+   one stereo output, and a new set puts tracks 1-4 on Movy's chains too — one
+   host for all sixteen, and the only way those four join Movy's CPU
+   optimization. A setting hands them back to Schwung, per set or for good. The
+   16 are arranged as **four groups of four**: in Session view the +/− buttons
+   move between groups, and the step buttons pick a track.
 
 ## Inspiration & lineage
 

@@ -317,8 +317,10 @@ export function onMidiMessageInternal(data: number[]): void {
                 if (pad !== null) {
                     model!.updateDrumPad(pad, d1);
                     /* Pad-follow, for configs that declare `pad` on a bank. A
-                     * no-op for every config that does not. */
-                    model!.selectBankForPad(pad);
+                     * no-op for every config that does not, and skipped while
+                     * the page is locked — the pad still sounds, it just stops
+                     * moving the page out from under you. */
+                    if (!appState.padFollowLocked) model!.selectBankForPad(pad);
                 }
             } else {
                 noteOn(d1, PAD_MIN, track, vel);
@@ -583,6 +585,17 @@ export function onMidiMessageInternal(data: number[]): void {
                     appState.currentView = VIEW_KNOBS;
                     appState.dirty = true;
                 }
+            } else if (appState.shiftHeld) {
+                /* Shift + jog click on the params page: lock pad-follow.
+                 *
+                 * schwung's own editor locks with a plain jog click, which is
+                 * not free here — a click opens the module browser. Shift+click
+                 * on this page was doing the same as a plain click (unlike the
+                 * chain views, which already read Shift), so it is the gesture
+                 * with nothing to lose. */
+                appState.padFollowLocked = !appState.padFollowLocked;
+                seqToast(appState.padFollowLocked ? 'Pads locked' : 'Pads unlocked');
+                appState.dirty = true;
             } else if (!isLfoSlot(chainIndex())) {
                 // VIEW_KNOBS with no file param held → module browser (the LFO
                 // slot has no module to swap, so a click is a no-op there).

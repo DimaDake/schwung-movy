@@ -585,14 +585,19 @@ export function onMidiMessageInternal(data: number[]): void {
                     appState.currentView = VIEW_KNOBS;
                     appState.dirty = true;
                 }
-            } else if (appState.shiftHeld) {
+            } else if (appState.shiftHeld && synthModel()?.getDrumConfig()?.padFollowLock) {
                 /* Shift + jog click on the params page: lock pad-follow.
                  *
                  * schwung's own editor locks with a plain jog click, which is
                  * not free here — a click opens the module browser. Shift+click
                  * on this page was doing the same as a plain click (unlike the
                  * chain views, which already read Shift), so it is the gesture
-                 * with nothing to lose. */
+                 * with nothing to lose.
+                 *
+                 * Opt-in: without `drum.padFollowLock` this branch does not
+                 * exist and Shift+click falls through to the browser exactly as
+                 * before, so no module loses a gesture it did not ask to spend.
+                 * Read from the SYNTH slot like every other drum question. */
                 appState.padFollowLocked = !appState.padFollowLocked;
                 seqToast(appState.padFollowLocked ? 'Pads locked' : 'Pads unlocked');
                 appState.dirty = true;

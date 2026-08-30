@@ -123,6 +123,12 @@ export interface DrumConfig {
     rawMidi:          boolean;
     currentPadParam?: string;
     shiftSelectMidi?: boolean;
+    /* Offer the pad-follow lock gesture (Shift + jog click on the params page):
+     * pads keep playing but stop turning the page, so the knobs you are editing
+     * stay put. Opt-in, because it spends a gesture — without it, Shift + jog
+     * click keeps doing exactly what it does today. Only meaningful alongside
+     * `pad` on the banks; a module with no pad-follow has nothing to lock. */
+    padFollowLock?: boolean;
     /* Only pads 1..N are host-automatable (the chain caps declared params at 256,
      * so a padScoped module can only declare concrete keys for some voices —
      * Forge: Kit A pv1-8). A param on a pad past this is not offered for

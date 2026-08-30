@@ -179,10 +179,19 @@ the silence and the page move are decided separately.
 The two mechanisms are independent: use `padSpecific` for one following bank,
 `pad` for a page per voice, or neither.
 
-**Shift + jog click** on the params page locks pad-follow: pads still play, but
-they stop turning the page, so the knobs you are working on stay put. Toggles,
-with a toast either way. (schwung's own editor locks with a plain jog click;
-here that opens the module browser, so the gesture moved to Shift.)
+Opt in to the lock gesture with `"padFollowLock": true` in the `drum` block:
+
+```json
+"drum": { "padCount": 16, "padNoteStart": 36, "rawMidi": false,
+          "padFollowLock": true }
+```
+
+**Shift + jog click** on the params page then locks pad-follow: pads still
+play, but they stop turning the page, so the knobs you are working on stay put.
+Toggles, with a toast either way. (schwung's own editor locks with a plain jog
+click; here that opens the module browser, so the gesture moved to Shift.)
+Without the flag, Shift + jog click keeps doing exactly what it does today —
+no module spends a gesture it did not ask to.
 
 For modules whose releases Movy explicitly supports, copy the released
 `module.json` into `browser-test/fixtures/module-contracts/` using the

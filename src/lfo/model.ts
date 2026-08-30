@@ -149,6 +149,9 @@ export function createScopedLfoModel(scope: LfoScope): Model {
             const next = clampI(bank + delta, 0, LFO_BANK_COUNT - 1);
             if (next !== bank) { bank = next; touched.length = 0; dirty = true; }
         },
+        /* The LFO page's banks are its own fixed set, not a module config, so
+         * no pad claims one. Present to satisfy the shared model shape. */
+        selectBankForPad(_pad: number): void {},
         getModuleName(): string { return 'LFO'; },
         reset(): void { bank = 0; touched.length = 0; overlay = null; accum.fill(0); loaded = false; dirty = true; },
         // Values are movy-owned once loaded; they are read from shadow only on

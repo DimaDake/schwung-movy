@@ -425,6 +425,84 @@ _log('\nTest: weird-dreams per-voice scoping');
   eq('ioKey follows focus to v3_vol', wd.getKnobParamInfo(0).ioKey, 'v3_vol');
 }
 
+/* ── Pad-follow: a pad selects the bank that declares it ──────────────────── */
+
+_log('\nTest: bank.pad — a pad press selects that bank');
+
+{
+  /* A voice-per-page kit: pages 1..3 are claimed by pads 1..3, page 0 (Main)
+   * by nobody. Mirrors 9W9's real layout without depending on its fixture. */
+  const layout = JSON.stringify({
+    id: 'padbank', name: 'PadBank',
+    drum: { padCount: 4, padNoteStart: 36, rawMidi: false },
+    banks: [
+      { name: 'Main',  rows: [[{ key: 'volume', short: 'VOL', full: 'Volume', type: 'int', min: 0, max: 127 }]] },
+      { name: 'Kick',  pad: 1, rows: [[{ key: 'bd_tune', short: 'TUNE', full: 'Tune', type: 'int', min: 0, max: 127 }]] },
+      { name: 'Snare', pad: 2, rows: [[{ key: 'sd_tune', short: 'TUNE', full: 'Tune', type: 'int', min: 0, max: 127 }]] },
+      { name: 'Hat',   pad: 3, rows: [[{ key: 'hh_tune', short: 'TUNE', full: 'Tune', type: 'int', min: 0, max: 127 }]] },
+    ],
+  });
+  const savedRead = globalThis.host_read_file;
+  globalThis.host_read_file = (p) => p.endsWith('/padbank/movy_config.json') ? layout : null;
+  const m = bootModel({ 'synth:name': 'PadBank', 'synth_module': 'padbank',
+                        'synth:volume': '64', 'synth:bd_tune': '10',
+                        'synth:sd_tune': '20', 'synth:hh_tune': '30' }, 0, 'synth');
+  globalThis.host_read_file = savedRead;
+
+  eq('opens on Main (page 0)', m.getKnobPage(), 0);
+
+  m.selectBankForPad(2);
+  eq('pad 2 selects Snare', m.getKnobPage(), 2);
+  eq('and the knob is the snare param', m.getKnobParamInfo(0)?.ioKey, 'sd_tune');
+
+  m.selectBankForPad(1);
+  eq('pad 1 selects Kick', m.getKnobPage(), 1);
+
+  /* No bank claims pad 4 — the page must not move. Falling back to a
+   * positional guess would drag the user off the page they are editing. */
+  m.selectBankForPad(4);
+  eq('unclaimed pad leaves the page alone', m.getKnobPage(), 1);
+
+  /* Re-selecting the page you are on is not a change (no needless redraw). */
+  m.selectBankForPad(1);
+  eq('re-selecting the same bank is a no-op', m.getKnobPage(), 1);
+}
+
+_log('\nTest: bank.pad — absent from a config, nothing follows');
+
+{
+  /* mrdrums declares no `pad` anywhere: every existing config must behave
+   * exactly as it did before this feature. */
+  const m = bootModel(MRDRUMS_PRESET, 0, 'synth');
+  const before = m.getKnobPage();
+  m.selectBankForPad(1);
+  m.selectBankForPad(3);
+  eq('no bank.pad → page unchanged', m.getKnobPage(), before);
+}
+
+_log('\nTest: bank.pad — shift+pad selects silently');
+
+{
+  /* The silence is drumPadOn's call (suppressMidi), and the page move is the
+   * model's; together they make Shift+Pad a silent page change. Asserted as
+   * one gesture so the pair cannot drift apart. */
+  const cfg = { padCount: 4, padNoteStart: 36, rawMidi: false };
+  let sent = [];
+  const origSend = globalThis.shadow_send_midi_to_dsp;
+  globalThis.shadow_send_midi_to_dsp = (msg) => { sent.push([...msg]); };
+
+  const padShift = drumPadOn(69, 68, true, cfg, 'synth', 0, 100);
+  eq('shift+pad sounds nothing', sent.length, 0);
+  eq('shift+pad still resolves a pad', padShift, 2);
+
+  sent = [];
+  const padPlain = drumPadOn(69, 68, false, cfg, 'synth', 0, 100);
+  eq('plain pad does sound', sent.length > 0, true);
+  eq('plain pad resolves the same pad', padPlain, 2);
+
+  globalThis.shadow_send_midi_to_dsp = origSend;
+}
+
 /* ── 9W9: per-voice keys via padKeys ─────────────────────────────────────── */
 
 _log('\nTest: 9w9 padKeys per-pad addressing');

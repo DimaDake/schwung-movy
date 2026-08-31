@@ -164,12 +164,10 @@ function schwungBodyFor(model: any, stepSelected: boolean): (() => void) | undef
     }
     why(`ok track=${appState.activeTrack.index} ck=${ck} pages=${sp.pageCount} `
       + `at=${sp.pageIndex}`);
-    return () => {
-        sp.render('', lastAutoView, -1, {
-            bands: { header: false, bank: false, footer: false },
-            rect: { x: 0, y: 8, w: 128, h: 48 },
-        });
-    };
+    /* The bands live with the page now, not with each call site: which chrome
+     * movy keeps is one decision about the embedding, and repeating it here
+     * would let the two disagree. */
+    return () => { sp.render('', lastAutoView, -1); };
 }
 let _schwungView = '';
 let _schwungWhy = '';

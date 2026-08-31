@@ -193,6 +193,11 @@ click; here that opens the module browser, so the gesture moved to Shift.)
 Without the flag, Shift + jog click keeps doing exactly what it does today —
 no module spends a gesture it did not ask to.
 
+> Worth a line in your own module's docs: schwung's on-device editor locks with
+> a **plain** jog click, Movy needs **Shift**, because a plain click here opens
+> the module browser. A user who learns the gesture on the device will try it in
+> Movy, get nothing, and report the feature broken.
+
 For modules whose releases Movy explicitly supports, copy the released
 `module.json` into `browser-test/fixtures/module-contracts/` using the
 `<component-type>--<module-id>.json` name. Contract fixtures replace an older

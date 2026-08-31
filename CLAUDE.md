@@ -189,6 +189,12 @@ suppressing Move's own LED writes, so without the restart the pads and step
 buttons stay dark afterwards and the hardware looks broken. It costs ~10 s;
 `test-all-device.sh` suppresses the per-suite restarts and does one at the end.
 
+The library has its own device suite — `./scripts/test-fixture-selftest.sh`. It
+is not in the sweep (it perturbs slots and flips both hosts, and takes minutes),
+so run it after changing `scripts/lib/test-set.sh`: a fixture that quietly did
+nothing would make every suite look clean while running on whatever the device
+happened to hold.
+
 **Writing a device test:** source the library, call `test_set_begin`, add
 `trap test_set_end EXIT INT TERM`, and use
 `ts_tap_cc` / `ts_tap_note` / `ts_tap_two_steps` for gestures. Each inject is

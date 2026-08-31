@@ -51,6 +51,8 @@ function parse(s: string | null): any {
 
 export interface SchwungPage {
     reload(): void;
+    /** Once per frame: retries the contract while unready, polls when ready. */
+    tick(): void;
     poll(): void;
     readonly pageCount: number;
     readonly pageIndex: number;
@@ -80,11 +82,17 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
      * than inventing a plan from the fallback — collapsing the two is what put
      * granny's sample_path on knob 1. */
     let unresolved = false;
+    /* The contract as last read, so a module that finishes loading — or is
+     * swapped for another — is noticed rather than believed forever. */
+    let contractRaw: string | null = null;
+    let attempts = 0;
+    let sinceCheck = 0;
 
     const qualify = (k: string) => componentKey + ':' + k;
 
     function reload(): void {
         const rawHier = port.getParam(qualify('ui_hierarchy'));
+        contractRaw = rawHier;
         unresolved = (rawHier === null || rawHier === undefined);
         const hierarchy = unresolved ? null : parse(rawHier);
         const chainParams = unresolved ? null : parse(port.getParam(qualify('chain_params')));
@@ -117,6 +125,46 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
         if (!keys.length) return;
         cursor = (cursor + 1) % keys.length;
         readKey(keys[cursor]);
+    }
+
+    /*
+     * A CONTRACT READ THAT CAME BACK EMPTY IS NOT A VERDICT.
+     *
+     * reload() used to run exactly once, at construction. On device that
+     * happens while the module is still loading, so the planner saw no
+     * hierarchy, produced no pages, and `ready` was false FOR THE SESSION —
+     * the grid silently stayed movy's and nothing ever asked again. Reported
+     * as "I opened braids, I see movy UI"; the log said
+     * `not-ready track=0 ck=synth pages=0` exactly once, which is the shape of
+     * a latched answer rather than a repeated failure.
+     *
+     * schwung's own page_controller has had this rule the whole time
+     * (CONTRACT_RETRY_INTERVAL_TICKS / CONTRACT_RETRY_LIMIT). This is that
+     * rule, not a new idea.
+     *
+     * When ready, the same heartbeat re-reads the contract at a slow interval
+     * so swapping the module in a slot re-plans instead of drawing the previous
+     * module's pages. One extra IPC every RECHECK_TICKS frames, against a
+     * param read costing a full round trip.
+     */
+    const RETRY_TICKS = 12;
+    const RETRY_LIMIT = 60;
+    const RECHECK_TICKS = 45;
+
+    function tick(): void {
+        sinceCheck++;
+        if (!pages.length || unresolved) {
+            if (attempts < RETRY_LIMIT && sinceCheck >= RETRY_TICKS) {
+                sinceCheck = 0; attempts++; reload();
+            }
+            return;
+        }
+        if (sinceCheck >= RECHECK_TICKS) {
+            sinceCheck = 0;
+            const raw = port.getParam(qualify('ui_hierarchy'));
+            if (raw !== contractRaw) { attempts = 0; reload(); return; }
+        }
+        poll();
     }
 
     function keyAt(slot: number): string | null {
@@ -173,7 +221,7 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
     }
 
     return {
-        reload, poll,
+        reload, tick, poll,
         get pageCount() { return pages.length; },
         get pageIndex() { return index; },
         get ready() { return !unresolved && pages.length > 0; },

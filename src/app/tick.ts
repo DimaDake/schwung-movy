@@ -154,6 +154,10 @@ function schwungBodyFor(model: any, stepSelected: boolean): (() => void) | undef
     if (stepSelected) return why('step-page-selected');
     const ck = model.getComponentKey ? model.getComponentKey() : '(none)';
     const sp = schwungPageFor(appState.activeTrack.index, ck);
+    /* BEFORE the ready check, so an unready page keeps asking. The page is
+     * built while the module is still loading, and without this its first
+     * empty answer stood for the whole session. */
+    sp.tick();
     if (!sp.ready) {
         return why(`not-ready track=${appState.activeTrack.index} ck=${ck} `
                  + `pages=${sp.pageCount}`);
@@ -161,7 +165,6 @@ function schwungBodyFor(model: any, stepSelected: boolean): (() => void) | undef
     why(`ok track=${appState.activeTrack.index} ck=${ck} pages=${sp.pageCount} `
       + `at=${sp.pageIndex}`);
     return () => {
-        sp.poll();
         sp.render('', lastAutoView, -1, {
             bands: { header: false, bank: false, footer: false },
             rect: { x: 0, y: 8, w: 128, h: 48 },

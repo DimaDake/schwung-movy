@@ -396,6 +396,49 @@ impl ChainSlots {
         true
     }
 
+    /// What each chain actually HOLDS — `<slot>:<component>=<module>` per
+    /// entry, with a trailing `?` on one that is still only a request.
+    ///
+    /// This is the only read-back a device test has for a movy-hosted chain.
+    /// The remote-UI socket can WRITE an engine param but has no get verb, and
+    /// the per-load line in `service_load` is not a substitute: a set that
+    /// already holds the right module is deliberately left alone
+    /// (`set_chain_set`), so it logs nothing at all and a second run against
+    /// the same fixture would read as a failed load.
+    ///
+    /// The value comes off the live instance rather than out of `desired`,
+    /// which is what makes it evidence — `desired` is what was asked for, and
+    /// echoing the request back would confirm nothing. Diagnostic only: it
+    /// allocates and queries every instance, so it belongs on the param write a
+    /// test pokes and never on the render path.
+    pub fn loaded_report(&mut self) -> String {
+        let wanted: Vec<(usize, String, String)> = self
+            .desired
+            .iter()
+            .enumerate()
+            .flat_map(|(s, cs)| cs.iter().map(move |(c, m)| (s, c.clone(), m.clone())))
+            .collect();
+        let mut out = String::new();
+        for (slot, component, module) in wanted {
+            if !out.is_empty() {
+                out.push(' ');
+            }
+            /* The underscore alias, which is the readable form for a track
+             * component — the colon key is write-only (see module-slot.mjs). */
+            match self
+                .get_param(slot, &format!("{component}_module"))
+                .filter(|v| !v.is_empty())
+            {
+                Some(live) => out.push_str(&format!("{slot}:{component}={live}")),
+                None => out.push_str(&format!("{slot}:{component}={module}?")),
+            }
+        }
+        if out.is_empty() {
+            out.push('-');
+        }
+        out
+    }
+
     /// Per-chain output peak of the last block, comma separated.
     pub fn peaks_csv(&self) -> String {
         let mut out = String::with_capacity(MOVY_CHAINS * 6);
@@ -1149,6 +1192,23 @@ mod tests {
             Some(vec![chain_doc::Entry { slot: 4, component: "synth".into(),
                                          module: "noisemaker".into() }]),
             "a queued load is already part of the set"
+        );
+    }
+
+    /* `loaded_report` is a device test's only read-back for a movy chain, so
+     * the one thing it must never do is echo the request as though it were
+     * evidence: a fixture that "verified" against `desired` would pass while
+     * every module failed to instantiate. There is no chain host on the host
+     * build, so a queued load here is exactly that unloaded case. */
+    #[test]
+    fn the_loaded_report_marks_a_component_that_has_not_instantiated() {
+        let mut slots = ChainSlots::new();
+        assert_eq!(slots.loaded_report(), "-", "no chains, nothing to report");
+        slots.request_load(4, "synth", "noisemaker");
+        assert_eq!(
+            slots.loaded_report(),
+            "4:synth=noisemaker?",
+            "a queued load is a request, not a loaded module"
         );
     }
 

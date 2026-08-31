@@ -158,30 +158,38 @@ else
 fi
 
 # Hierarchy load
+#
+# The fixture puts a real synth on track 0, so "no synth loaded" is a FAILURE
+# here rather than an outcome — it is precisely what a fixture that never
+# reached the track's host looks like, which is the whole risk when the host is
+# movy's own chains instead of schwung's slots. `ui_hierarchy null` still shows
+# up LATER in the log, because the jog injections above walk the chain cursor
+# onto an empty FX slot; what has to be true is that the fixture's synth loaded
+# at some point.
+#
+# Two lines say so, one per hierarchy path: a module with a bundled movy config
+# (src/modules/*.json) reports `config for <id>`, one without reports the
+# generic `<n> params, <n> banks`. The check knew only the generic form plus a
+# third phrase that no longer exists anywhere in src — so plaits, which HAS a
+# config, fell through to the "no synth" branch and passed while proving nothing.
+SYNTH=$(ts_fixture_synth 0)
 if echo "$LOG" | qgrep "loadHierarchy:"; then
-    if echo "$LOG" | qgrep -E "[0-9]+ params(,| loaded)"; then
-        N=$(echo "$LOG" | grep -E "[0-9]+ params" | tail -1 | grep -o "[0-9]* params" | awk '{print $1}')
-        pass "Hierarchy loaded — $N params"
-    elif echo "$LOG" | qgrep "ui_hierarchy null"; then
-        pass "Hierarchy: no synth loaded — fallback test params active"
+    if echo "$LOG" | qgrep -E "loadHierarchy: config for $SYNTH,|loadHierarchy: [0-9]+ params,"; then
+        pass "Hierarchy loaded for the fixture's synth ('$SYNTH')"
     else
-        fail "loadHierarchy ran but outcome unclear"
+        fail "the fixture's synth ('$SYNTH') never loaded a hierarchy — track 0's host has no instrument"
     fi
 else
     fail "loadHierarchy never called"
 fi
 
-# chain_params + config (only meaningful if real synth loaded)
-if echo "$LOG" | qgrep "config loaded for"; then
-    MOD=$(echo "$LOG" | grep "config loaded for" | tail -1 | grep -o "for [a-z]*" | cut -d' ' -f2)
-    pass "Module config loaded for '$MOD' — named banks active"
-elif echo "$LOG" | qgrep "loadHierarchy:.*module="; then
-    MOD=$(echo "$LOG" | grep "loadHierarchy:.*module=" | tail -1 | grep -o "module=[^ ]*" | cut -d= -f2)
-    if [[ -z "$MOD" || "$MOD" == "—" ]]; then
-        pass "No synth loaded — config lookup skipped (expected)"
-    else
-        pass "Synth '$MOD' loaded — no bundled config, fell back to auto-layout"
-    fi
+# The module's own metadata, read off the live chain. Empty here is the failure
+# mode behind "knobParams empty at knob turn time" below.
+if echo "$LOG" | qgrep "loadHierarchy: chain_params"; then
+    N=$(echo "$LOG" | grep "loadHierarchy: chain_params" | tail -1 | grep -o "[0-9]* entries" | awk '{print $1}')
+    pass "chain_params read from the module — $N entries"
+else
+    fail "chain_params never read — the module served no metadata"
 fi
 
 # Knob CCs
@@ -200,7 +208,10 @@ if echo "$LOG" | qgrep "^.*set slot="; then
     elif echo "$LOG" | qgrep "set_param returned false"; then
         fail "shadow_set_param returned false — IPC timeout or key rejected"
     else
-        pass "Test params path — IPC skipped (no real synth)"
+        # The fallback test params are what movy shows with NO synth on the
+        # track, and the fixture guarantees one — so reaching here means the
+        # knob turn never became a param write at all.
+        fail "no IPC for the knob turn — the fallback test params were on screen"
     fi
 else
     if echo "$LOG" | qgrep "no param\|empty slot"; then

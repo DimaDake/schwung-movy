@@ -80,22 +80,8 @@ ssh "ableton@$HOST" "mkdir -p $REMOTE" >/dev/null 2>&1
 scp -q "$MOVY_DIR/ui.js" "ableton@$HOST:$REMOTE/"
 pass "Built + deployed"
 
-# ── Load the module into FX 1, remembering what was there ────────────────────
-PREV=$(node "$MOVY_DIR/scripts/module-slot.mjs" get "$SLOT" fx1 2>/dev/null || echo "")
-info "FX 1 previously: '${PREV:-<empty>}' — loading $MODULE"
-restore() {
-    info "Restoring FX 1 to '${PREV:-<empty>}'"
-    node "$MOVY_DIR/scripts/module-slot.mjs" set "$SLOT" fx1 "${PREV:-none}" >/dev/null 2>&1 || true
-    # Then hand the LEDs back: this run leaves movy open in overtake owning the
-    # surface, so without a restart the hardware stays dark.
-    test_set_end
-}
-trap restore EXIT INT TERM
-node "$MOVY_DIR/scripts/module-slot.mjs" set "$SLOT" fx1 "$MODULE" >/dev/null 2>&1
-pass "$MODULE loaded into FX 1"
-
-# ── Reopen movy fresh, navigate chain → FX 1 → knobs ─────────────────────────
-info "Reopening movy and navigating to FX 1 knobs..."
+# ── Reopen movy fresh ────────────────────────────────────────────────────────
+info "Reopening movy..."
 for _ in 1 2 3; do inj cc $CC_BACK 127; sleep 0.12; inj cc $CC_BACK 0; sleep 0.15; done
 ssh "ableton@$HOST" "touch /data/UserData/schwung/debug_log_on; > $LOG" >/dev/null 2>&1
 ssh "ableton@$HOST" 'python3 -c "
@@ -104,9 +90,33 @@ open(\"/data/UserData/schwung/open_tool_cmd.json\",\"w\").write(json.dumps({\"fi
 f=open(\"/dev/shm/schwung-control\",\"r+b\"); mm=mmap.mmap(f.fileno(),0); mm[56]=1; mm.close()
 "' >/dev/null 2>&1
 sleep 3
-# The fixture loads smack into TRACK 0's FX 1, but movy opens on schwung's
-# focused slot — navigating the chain on any other track finds an empty slot.
+# The module goes into TRACK 0's FX 1, but movy opens on schwung's focused slot
+# — navigating the chain on any other track finds an empty slot.
 ts_focus_track0
+
+# ── Borrow the track's FX 1, remembering what was there ──────────────────────
+# After the open, deliberately. When tracks 1-4 are movy's, the track's chain
+# lives inside movy's own engine — which the host unloads on exit — so a load
+# issued with movy closed reaches nothing at all, and every assertion below then
+# runs against an empty slot. `ts_load_component` picks the transport for the
+# host that actually owns the track; a schwung slot would have taken it either
+# way, which is exactly why doing it the old way looked fine.
+PREV=$(ts_read_component "$SLOT" fx1)
+info "FX 1 previously: '${PREV:-<empty>}' — loading $MODULE"
+restore() {
+    info "Restoring FX 1 to '${PREV:-<empty>}'"
+    ts_load_component "$SLOT" fx1 "${PREV:-none}" || true
+    # Then hand the LEDs back: this run leaves movy open in overtake owning the
+    # surface, so without a restart the hardware stays dark.
+    test_set_end
+}
+trap restore EXIT INT TERM
+ts_load_component "$SLOT" fx1 "$MODULE"
+sleep 2
+pass "$MODULE loaded into FX 1"
+
+# ── Navigate chain → FX 1 → knobs ────────────────────────────────────────────
+info "Navigating to FX 1 knobs..."
 inj cc $CC_JOG 1; sleep 0.4                                  # chain: synth → FX 1
 inj cc $CC_CLICK 127; sleep 0.15; inj cc $CC_CLICK 0; sleep 1.0   # enter knobs
 CHAIN=$(movylog | grep -oE "chain chainIndex=[0-9]+" | tail -1 || true)

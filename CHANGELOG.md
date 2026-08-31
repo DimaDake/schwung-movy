@@ -11,6 +11,46 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
+## [Unreleased]
+
+### Testing
+
+- **The device suites run on both track hosts.** Tracks 1-4 belong to whichever
+  host `chtracks` names, and until now the fixture spoke only Schwung: it seeded
+  Schwung's four shadow slots and the suites reached the instrument through
+  them, so with the flag on MOVY six suites failed on assertions about a chain
+  that was genuinely empty. The fixture now seeds both hosts — `slots.txt` for
+  Schwung's slots, a `chains` array in `ui-state.json` for Movy's — and pins the
+  host in `prefs.json` for the run, so it does not depend on what the active
+  Move set happens to carry. Two sweeps:
+  `scripts/test-all-device-schwung.sh` and `scripts/test-all-device-movy.sh`.
+
+- **A Movy-hosted chain can be read back at all.** New engine diagnostic
+  `chloadedlog` logs what each chain HOLDS, read off the live instance. The
+  remote-UI socket has no get verb, and the per-load line is not a substitute:
+  a chain already holding the right module is deliberately left alone, so a
+  second run against the same fixture logs no load and would read as a failure.
+  (`ENGINE_VERSION` 0.55.0.)
+
+- **A Movy chain is a fixed parameter state, not just the right module.**
+  `set_chain_set` leaves a chain that already holds the module alone, so only
+  the first run got shipped defaults and every run after inherited the previous
+  suite's knob turns. The fixture's `ui-state.json` is now rendered at install
+  time (`scripts/fixture-ui-state.mjs`) with each component's preset blob taken
+  from the same `slot_<N>.json` the Schwung half restores from — one declaration
+  of the fixture's values, so the two hosts cannot drift apart.
+
+- **The harness puts the track-host setting back.** It pins `chtracks` for the
+  length of a run, and that is a real user setting; a sweep used to leave the
+  device on whichever host it had just tested.
+
+- **`test.sh` stopped reporting a missing instrument as a pass.** It keyed the
+  module-config check on a phrase (`config loaded for`) that no longer exists
+  anywhere in `src/`, so plaits — which HAS a bundled config — never matched,
+  fell through to the "no synth loaded" branch, and printed green precisely
+  where the fixture had failed to reach the track. Pinned by a new
+  `browser-test/device-scripts.mjs` invariant.
+
 ## [0.30.0] — 2026-08-30
 
 ### Highlights

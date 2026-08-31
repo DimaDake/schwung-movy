@@ -69,7 +69,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.54.0";
+const ENGINE_VERSION: &str = "0.55.0";
 
 /// Tracks backed by schwung's own shadow slots by default. Their notes go out as
 /// MIDI on the matching channel; everything above this index is a chain movy
@@ -178,6 +178,14 @@ impl Instance {
                     "chain tracks: 0-3 -> {}",
                     if self.movy_tracks { "movy chains" } else { "schwung slots" }
                 ));
+            }
+            /* `chloadedlog` — log what each movy chain actually holds, then
+             * carry on. Write-to-read, the same trick as `chpeaklog`, and for
+             * a harsher reason: a device test has no other way to read a movy
+             * chain back at all, and the load line is silent for a set that is
+             * already correct. Read by scripts/lib/test-set.sh. */
+            "chloadedlog" => {
+                host::log(&format!("chain loaded: {}", self.chains.loaded_report()));
             }
             "chpeaklog" => {
                 host::log(&format!("chain peaks: {}", self.chains.peaks_csv()));

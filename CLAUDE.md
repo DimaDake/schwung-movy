@@ -157,8 +157,11 @@ ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
   || echo "DEVICE OFFLINE — SKIPPING DEVICE TESTS"
 # If offline: report DEVICE OFFLINE to the user in CAPS
 
-# 4b. Every device suite at once (each one is independent — any subset, any order)
-./scripts/test-all-device.sh [move.local]
+# 4b. Every device suite at once (each one is independent — any subset, any order),
+#     once per host for tracks 1-4. Both must be green: the two arrangements are
+#     different code paths for routing, ports, note-offs and the param pages.
+./scripts/test-all-device-schwung.sh [move.local]   # tracks 1-4 = schwung slots
+./scripts/test-all-device-movy.sh    [move.local]   # tracks 1-4 = movy chains 0-3
 ```
 
 ### Device tests run against a fixture state
@@ -169,6 +172,12 @@ plaits on track 0, a drum module on track 1, fixed clips, and a seeded
 automation lane. It applies the state and then **reads it back** — a suite never
 runs on unconfirmed state. Move's firmware owns set switching, so the fixture is
 applied to whichever set is active; the previous contents are not preserved.
+
+`TS_HOST_MODE` picks which host owns tracks 1-4 for the run (`schwung`, the
+default, or `movy`) and pins it in the device's `prefs.json`, so the run does
+not depend on what the active set carries. The fixture seeds both hosts; only
+the named one is live. A suite that names the instrument must ask
+`ts_fixture_synth <track>` rather than hard-coding `plaits`.
 
 This is what makes the suites order-independent. Before it, `test-unload.sh`
 deleted the clip `test-reselect.sh` needed, and step presses toggled whatever a

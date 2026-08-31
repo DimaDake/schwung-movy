@@ -314,6 +314,74 @@ ok('DUPS is computed from the assignment, not assumed',
    /DUPS=\$\(printf .*uniq -d/.test(eqSrc),
    'the gate needs a real count or it never fires');
 
+/* ── Test 8: the phrases test.sh judges the fixture by must be emittable ─────
+ * `config loaded for` sat in test.sh for months and in src/ for none of them.
+ * plaits — the fixture's synth, and one that HAS a bundled movy config — never
+ * matched it, fell through to the "no synth loaded" branch, and reported a
+ * PASS. The suite's instrument check had stopped working, which is worse than a
+ * failing check: the sweep printed green exactly where the fixture had failed
+ * to reach the track's host, which is the one thing running the suites on two
+ * hosts is meant to catch.
+ *
+ * Only the STATIC halves are pinned here. Most movy log lines are composed at
+ * runtime ('auto render held=' + n), so a blanket "every grepped phrase exists
+ * in src" scan is dozens of false positives long and would not survive. These
+ * two are whole literals in the source, and test.sh's verdict on whether the
+ * fixture has an instrument turns on them. */
+log('\nTest 8: test.sh keys on phrases the source can actually emit');
+{
+    const srcFiles = [];
+    const walk = (d) => {
+        for (const f of readdirSync(d, { withFileTypes: true })) {
+            if (f.isDirectory()) walk(join(d, f.name));
+            else if (f.name.endsWith('.ts')) srcFiles.push(join(d, f.name));
+        }
+    };
+    walk('src');
+    const src = srcFiles.map((p) => readFileSync(p, 'utf8')).join('\n');
+    const testSh = readFileSync('scripts/test.sh', 'utf8');
+    for (const phrase of ['loadHierarchy: config for ', 'loadHierarchy: chain_params ']) {
+        ok(`src can emit ${JSON.stringify(phrase)}`, src.includes(phrase));
+        ok(`test.sh looks for ${JSON.stringify(phrase.trim())}`, testSh.includes(phrase.trim()));
+    }
+    /* And the branch that made the dead phrase harmless-looking: with a fixture
+     * that guarantees a synth, "no synth loaded" cannot be a pass. */
+    ok('a missing instrument is a failure, not an outcome',
+       !/pass "Hierarchy: no synth loaded/.test(testSh)
+       && /fail "the fixture's synth/.test(testSh));
+}
+
+/* ── Test 9: the movy half of the fixture is a fixed PARAMETER state ─────────
+ * A schwung slot is restored from slot_<N>.json, module and every parameter
+ * value together — "loading a module id alone leaves the slot's parameters
+ * wherever the last test dragged them, which is not a fixed state"
+ * (scripts/fixtures/README.md). A movy chain has exactly the same problem and
+ * it is easier to miss: `set_chain_set` leaves a chain that already holds the
+ * module alone, so only the FIRST run gets shipped defaults and every run after
+ * inherits the previous suite's knob turns.
+ *
+ * fixture-ui-state.mjs is what closes that, by filling each component's blob
+ * from the same slot file — so the two hosts cannot drift into testing
+ * different sounds. This asserts the render actually produces one. */
+log('\nTest 9: every movy chain component ships the fixture\'s parameter values');
+{
+    const rendered = JSON.parse(
+        execFileSync('node', ['scripts/fixture-ui-state.mjs', 'scripts/fixtures/device-set'],
+                     { encoding: 'utf8' }));
+    const comps = (rendered.chains ?? []).flatMap((t) => (t.comp ?? []).map((c) => [t.t, c]));
+    ok('the fixture declares at least one movy chain', comps.length > 0);
+    for (const [t, c] of comps) {
+        const slot = JSON.parse(
+            readFileSync(`scripts/fixtures/device-set/slot_${t}.json`, 'utf8'));
+        ok(`track ${t} ${c.c} carries a preset blob`, typeof c.s === 'string' && c.s.length > 0);
+        ok(`track ${t} ${c.c} is the same module both hosts declare`,
+           slot?.chain?.[c.c]?.module === c.m,
+           `slot file says ${slot?.chain?.[c.c]?.module}, chains say ${c.m}`);
+        ok(`track ${t} ${c.c} blob is the slot file's own state`,
+           c.s === JSON.stringify(slot?.chain?.[c.c]?.config?.state));
+    }
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 log('');

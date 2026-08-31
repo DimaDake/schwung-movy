@@ -36,6 +36,7 @@ await import('../dist/esm/app/globals.js');
 const { appState, VIEW_KNOBS, VIEW_CHAIN } = await import('../dist/esm/app/state.js');
 const { resetSeqState } = await import('../dist/esm/seq/state.js');
 const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+const { setFlag } = await import('../dist/esm/seq/flags.js');
 const { setSchwungGridMode, schwungPageFor, schwungGridReload } =
     await import('../dist/esm/renderer/schwung-grid.js');
 
@@ -47,6 +48,17 @@ function boot(preset) {
     env.setParams(MOCK_SYNTHS[preset]);
     resetSeqState(); resetSeqEngine();
     schwungGridReload();
+    /* Mirrors browser-test/app-loop.mjs's own reset, and both flags are load
+     * bearing since movy 0.30:
+     *   chtracks — the mocked instrument is a schwung SLOT, so tracks 1-4 must
+     *     be slots; on movy's own chains there is no module to find.
+     *   setcommit — the loading splash now waits on a WALL-CLOCK Set commit, so
+     *     with instant ticks movy never leaves `settling` and draws the splash
+     *     forever. That is what this check hit after the merge: "the app loop
+     *     drew nothing at all".
+     */
+    setFlag('chtracks', 0);
+    setFlag('setcommit', 0);
     globalThis.init();
     appState.trackModels[0][1].reload();
     advance(14);

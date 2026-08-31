@@ -58,3 +58,17 @@ export function schwungChangePage(trackIndex: number, componentKey: string, delt
     p.changePage(delta);
     return true;
 }
+
+/**
+ * The Schwung page for this track, or null when Schwung is not driving.
+ *
+ * One predicate for every input site, so a gesture cannot be routed to Schwung
+ * on one path and to movy's model on another — which is how the knob turn and
+ * the knob touch would end up disagreeing about which parameter is under the
+ * finger.
+ */
+export function schwungActiveFor(trackIndex: number, componentKey: string): SchwungPage | null {
+    if (mode !== 'page') return null;
+    const p = schwungPageFor(trackIndex, componentKey);
+    return p.ready ? p : null;
+}

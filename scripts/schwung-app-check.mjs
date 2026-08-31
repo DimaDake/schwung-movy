@@ -186,6 +186,80 @@ if (!dp) fail('changing the Schwung page did not change the frame — the loop i
     }
 }
 
+
+/* ---- 6. the ROUTER reaches Schwung, not just the page --------------------
+ *
+ * Everything above drives schwung-page directly. That proves the piece and not
+ * the wiring, which is the gap that has already shipped two wrong builds in
+ * this branch: a delegation wired to a view the device does not open, and a
+ * body override the chain view never called. So this sends real MIDI through
+ * globalThis.onMidiMessageInternal and watches what the PORT is asked to write.
+ */
+{
+    const { portFor } = await import('../dist/esm/track/registry.js');
+
+    /*
+     * ON A PAGE WHERE THE TWO PLANNERS DISAGREE.
+     *
+     * The first cut used test8, where both put `freq` on knob 0 — so deleting
+     * the router's Schwung branch still wrote synth:freq through movy's model
+     * and the check passed. Verified by mutation. obxd_like page 1 is the known
+     * disagreement (alignGroupsToRows swaps the rows), so the destination of
+     * the write is the evidence.
+     */
+    setSchwungGridMode('page');
+    boot('obxd_like');
+    appState.currentView = VIEW_KNOBS;
+    advance(6);
+
+    const { schwungActiveFor } = await import('../dist/esm/renderer/schwung-grid.js');
+    const model = appState.trackModels[0][1];
+    const sp = schwungActiveFor(0, model.getComponentKey ? model.getComponentKey() : 'synth');
+    if (!sp) fail('Schwung is not driving the page in the app loop');
+
+    model.changePage(1); advance(20);
+    sp.goToPage(1); advance(20);
+
+    const key = sp.keyAt(0);
+    const movyInfo = model.getKnobParamInfo(0);
+    if (!key) fail('no parameter at knob 0');
+    if (!movyInfo || movyInfo.ioKey === key) {
+        fail(`the two planners agree on knob 0 (${key}) — this check cannot tell a `
+           + `Schwung write from a movy one. Pick a page where they differ.`);
+    }
+    _log(`  knob 0: movy would write ${movyInfo.ioKey}, schwung ${key}`);
+
+    const port = portFor(0);
+    const writes = [];
+    const realSet = port.setParam.bind(port);
+    port.setParam = (k, v) => { writes.push(k); return realSet(k, v); };
+
+    /* Knob 1 is CC 71. A touch, a run of detents, a release — the shape of a
+     * real edit, so the write throttle and settle window behave as on device. */
+    globalThis.onMidiMessageInternal(new Uint8Array([0x90, 0, 127]));      /* knob 1 touch */
+    for (let i = 0; i < 12; i++) {
+        globalThis.onMidiMessageInternal(new Uint8Array([0xB0, 71, 1]));
+        advance(1);
+    }
+    globalThis.onMidiMessageInternal(new Uint8Array([0x80, 0, 0]));        /* release */
+    advance(40);
+    port.setParam = realSet;
+
+    const hit = writes.filter((k) => k === 'synth:' + key);
+    const wrong = writes.filter((k) => k === 'synth:' + movyInfo.ioKey);
+    if (!hit.length) {
+        fail(`a knob CC through the router wrote nothing for ${key} — the router is `
+           + `still driving movy's model. Writes seen: `
+           + (writes.length ? writes.slice(0, 5).join(', ') : 'none'));
+    }
+    if (wrong.length) {
+        fail(`the router also wrote ${movyInfo.ioKey}, which is what MOVY thinks is `
+           + `under knob 0 — two write paths for one gesture`);
+    }
+    _log(`  a knob CC through the router writes synth:${key} (${hit.length}x), `
+       + `never synth:${movyInfo.ioKey}`);
+}
+
 _log('');
 _log(`PASS: movy's own app loop renders Schwung's pages — frame differs by ${d} px from `
    + `movy's, the Schwung page set drives it (${sp.pageCount} pages), paging repaints `

@@ -48,6 +48,8 @@ export interface SchwungPage {
     /** Same, component-qualified — the form a lane's targetParam takes. */
     targetAt(slot: number): string | null;
     labelAt(slot: number): string | null;
+    /** What movy's automation layer needs about the param at this knob. */
+    knobParamInfo(slot: number): any | null;
     render(title: string, auto?: AutomationView, touched?: number): void;
     knobTurn(slot: number, delta: number): void;
     knobTouch(slot: number, down: boolean): void;
@@ -157,6 +159,43 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
             if (!k || !ctl.metaIndex) return null;
             const m = ctl.metaIndex.getOrGuess(k);
             return String((m && (m.label || m.key)) || k);
+        },
+        /*
+         * THE LANE MUST TARGET SCHWUNG'S PARAMETER, not movy's.
+         *
+         * movy builds an automation lane from `model.getKnobParamInfo(k)` —
+         * its OWN idea of which param knob k drives. Under Schwung pagination
+         * that is a different parameter: the two planners put different keys in
+         * the same cell (9 of them across the mock presets). Left alone, moving
+         * a knob to create a lane would have bound the lane to whatever movy
+         * thought was there, which is a silent mis-target rather than a visible
+         * failure — the lane would work perfectly, on the wrong param.
+         *
+         * Shaped as movy's KnobParamInfo (store.ts) so the automation layer
+         * needs no special case for where it came from.
+         */
+        knobParamInfo(slot: number) {
+            const k = keyAt(slot);
+            if (!k || !ctl.metaIndex) return null;
+            const m = ctl.metaIndex.getOrGuess(k);
+            if (!m) return null;
+            const min = typeof m.min === 'number' ? m.min : 0;
+            const max = typeof m.max === 'number' ? m.max : 1;
+            const raw = ctl.state && ctl.state.values ? ctl.state.values[k] : undefined;
+            const value = raw === undefined || raw === null ? min : parseFloat(String(raw));
+            return {
+                gi: slot,
+                key: k,
+                ioKey: k,
+                target: componentKey,
+                value: isNaN(value) ? min : value,
+                min, max,
+                type: m.type || (m.kind === 'enum' ? 'enum' : 'float'),
+                /* Same rule movy applies: a numeric range is automatable, a
+                 * door or a trigger is not. */
+                automatable: m.kind !== 'opaque' && !m.writeOnly && !m.readOnly
+                             && typeof m.min === 'number' && typeof m.max === 'number',
+            };
         },
         knobTurn: (slot: number, delta: number) => { ctl.onKnobTurn(slot, delta > 0 ? 1 : -1); },
         knobTouch: (slot: number, down: boolean) => { ctl.onKnobTouch(slot, down); },

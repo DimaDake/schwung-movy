@@ -1,5 +1,5 @@
 import { trackRef } from '../track/ref.js';
-import { schwungChangePage } from '../renderer/schwung-grid.js';
+import { schwungChangePage, schwungActiveFor } from '../renderer/schwung-grid.js';
 import { focusedTrack, focusGroupStep, GROUP_DIR_UP, GROUP_DIR_DOWN } from '../track/focus.js';
 import { beginTrackSwitch, restoreTrackState, switchToTrack } from '../track/switch.js';
 import { portFor } from '../track/registry.js';
@@ -272,6 +272,14 @@ export function onMidiMessageInternal(data: number[]): void {
                 return;
             }
             knobModel()?.handleKnobTouch(d1);
+            {   /* Schwung shows the held param's full name and value in the
+                 * header strip, and a dive is a click WITH a knob held — both
+                 * need the same finger movy just saw. */
+                const m2 = knobModel();
+                const sp2 = m2 ? schwungActiveFor(appState.activeTrack.index,
+                                m2.getComponentKey ? m2.getComponentKey() : 'synth') : null;
+                if (sp2) sp2.knobTouch(d1, true);
+            }
             automationKnobTouched(d1);    // arm tap-to-clear in step-auto mode
             /* Scoped to whichever chain the knobs are editing: hold-to-modulate
              * works on the master FX pages too, and a master knob's target
@@ -280,6 +288,12 @@ export function onMidiMessageInternal(data: number[]): void {
         } else {
             const info = knobModel()?.getKnobParamInfo(d1) ?? null;
             if (knobModel()?.handleKnobRelease(d1)) seqToast('Wrong preset type');
+            {
+                const m2 = knobModel();
+                const sp2 = m2 ? schwungActiveFor(appState.activeTrack.index,
+                                m2.getComponentKey ? m2.getComponentKey() : 'synth') : null;
+                if (sp2) sp2.knobTouch(d1, false);
+            }
             if (info) automationKnobReleased(appState.activeTrack.index, d1, info);
             holdRelease(d1);
         }
@@ -385,12 +399,29 @@ export function onMidiMessageInternal(data: number[]): void {
         }
         mlog('knobCC k=' + k + ' d2=' + d2 + ' delta=' + delta);
         const model = knobModel();
-        const info  = model?.getKnobParamInfo(k) ?? null;
         const track = appState.activeTrack.index;
+        /*
+         * THE LANE MUST TARGET THE PARAMETER THAT IS ACTUALLY UNDER THE KNOB.
+         *
+         * `model.getKnobParamInfo(k)` is movy's idea of it, and under Schwung
+         * pagination the two planners put DIFFERENT keys in the same cell — 9
+         * of them across the mock presets. Binding a lane from movy's answer
+         * while Schwung draws the page is a silent mis-target: the lane works
+         * perfectly, on the wrong param. So the info comes from whoever owns
+         * the page, and the automation layer is unchanged.
+         */
+        const spk = model ? schwungActiveFor(track,
+                        model.getComponentKey ? model.getComponentKey() : 'synth') : null;
+        const info = (spk ? spk.knobParamInfo(k) : model?.getKnobParamInfo(k)) ?? null;
         if (info && handleAutomationKnob(track, k, info, delta,
                 (lane) => portFor(track).setParam('knob_' + (lane + 1) + '_set', info.target + ':' + info.ioKey))) {
             return;
         }
+        /* Not automation, so it is an edit — through Schwung's own onKnobTurn,
+         * which carries the acceleration curve, the enum seeding, the write
+         * throttle and the settle window. A second write path here is what the
+         * one-implementation rule exists to prevent. */
+        if (spk) { spk.knobTurn(k, delta); appState.dirty = true; return; }
         model?.handleKnobDelta(k, delta);
         return;
     }
@@ -477,6 +508,22 @@ export function onMidiMessageInternal(data: number[]): void {
 
     /* Jog click */
     if (d1 === MoveMainButton && d2 > 0) {
+        /*
+         * A DOOR IS SCHWUNG'S CLICK.
+         *
+         * While Schwung owns the pages, a menu / items / preset / child page is
+         * something you go INTO, and only Schwung knows that — movy's click on
+         * these views opens its module browser. Asking `isDoor()` rather than
+         * listing kinds is the controller's own instruction ("Ask the
+         * controller; do not restate the kinds"), and it is what keeps the
+         * module browser reachable everywhere else.
+         */
+        {
+            const m = knobModel();
+            const spc = m ? schwungActiveFor(appState.activeTrack.index,
+                                             m.getComponentKey ? m.getComponentKey() : 'synth') : null;
+            if (spc && spc.ctl.isDoor()) { spc.click(); appState.dirty = true; return; }
+        }
         // Assign-mode: commit the LFO modulation (assign → jump to that LFO's
         // chain page; remove → stay + toast). Consumes the click.
         if (assignActive()) {

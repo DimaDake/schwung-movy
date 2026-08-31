@@ -230,7 +230,19 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
                     if (!k) return null;
                     const lane = auto.laneForKey(k as string);
                     const on = lane >= 0 && (auto.activeLanes & (1 << lane)) !== 0;
-                    return on ? { locked: true } : null;
+                    if (!on) return null;
+                    /*
+                     * ON A HELD STEP YOU LOOK AT WHAT THE STEP WILL PLAY, not
+                     * at where the knob happens to be. movy has already
+                     * resolved the held value per lane; passing only `locked`
+                     * marked the cell and then drew the LIVE value underneath
+                     * it, which is the one reading a parameter lock must not
+                     * show. `decoration.value` is exactly this, and Schwung
+                     * already prefers it over the live value.
+                     */
+                    const held = auto.held ? auto.heldValues.get(lane) : undefined;
+                    return held === undefined ? { locked: true }
+                                              : { locked: true, value: held };
                 });
                 ctl.setDecorations(decs.some(Boolean) ? decs : null);
             } else {

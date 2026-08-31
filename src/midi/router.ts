@@ -1,5 +1,26 @@
 import { trackRef } from '../track/ref.js';
 import { schwungChangePage, schwungActiveFor } from '../renderer/schwung-grid.js';
+
+/*
+ * WHICH PARAMETER IS UNDER KNOB k — one answer, for every gesture.
+ *
+ * The turn path asked Schwung and the touch/release paths asked movy, so a
+ * single gesture had two answers: the lane was CREATED against the parameter
+ * on screen, then Delete+touch cleared the lane for a different one, and
+ * hold-to-modulate armed a third. Under Schwung pagination those are genuinely
+ * different keys — obxd page 1 knob 0 is `cutoff` to Schwung and `attack` to
+ * movy — so this was not theoretical.
+ *
+ * Applying the rule to one of three sites is how I introduced it; asking one
+ * function is how it stays fixed.
+ */
+function knobInfoFor(k: number): any | null {
+    const m = knobModel();
+    if (!m) return null;
+    const sp = schwungActiveFor(appState.activeTrack.index,
+                                m.getComponentKey ? m.getComponentKey() : 'synth');
+    return (sp ? sp.knobParamInfo(k) : m.getKnobParamInfo(k)) ?? null;
+}
 import { focusedTrack, focusGroupStep, GROUP_DIR_UP, GROUP_DIR_DOWN } from '../track/focus.js';
 import { beginTrackSwitch, restoreTrackState, switchToTrack } from '../track/switch.js';
 import { portFor } from '../track/registry.js';
@@ -265,7 +286,7 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         if (d2 > 0) {
-            const info = knobModel()?.getKnobParamInfo(d1) ?? null;
+            const info = knobInfoFor(d1);
             if (deleteActive() && info) {
                 clearLaneForKnob(appState.activeTrack.index, info);
                 markDeleteActed();   // Clear release must not also delete the clip
@@ -286,7 +307,7 @@ export function onMidiMessageInternal(data: number[]): void {
              * belongs to the master LFOs, not the active track's. */
             holdTouch(knobLfoScope(), d1, info);   // arm hold-to-modulate
         } else {
-            const info = knobModel()?.getKnobParamInfo(d1) ?? null;
+            const info = knobInfoFor(d1);
             if (knobModel()?.handleKnobRelease(d1)) seqToast('Wrong preset type');
             {
                 const m2 = knobModel();
@@ -412,7 +433,7 @@ export function onMidiMessageInternal(data: number[]): void {
          */
         const spk = model ? schwungActiveFor(track,
                         model.getComponentKey ? model.getComponentKey() : 'synth') : null;
-        const info = (spk ? spk.knobParamInfo(k) : model?.getKnobParamInfo(k)) ?? null;
+        const info = knobInfoFor(k);
         if (info && handleAutomationKnob(track, k, info, delta,
                 (lane) => portFor(track).setParam('knob_' + (lane + 1) + '_set', info.target + ':' + info.ioKey))) {
             return;

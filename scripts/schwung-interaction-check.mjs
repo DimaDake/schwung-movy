@@ -9,6 +9,7 @@
  *   SCHWUNG=/path/to/schwung node scripts/schwung-interaction-check.mjs
  */
 import { installEnv } from '../browser-test/env.mjs';
+import { readFileSync } from 'node:fs';
 
 const W = 128, H = 64;
 globalThis.fill_rect = () => {};
@@ -116,6 +117,73 @@ const fail = (m) => { console.log('FAIL: ' + m); process.exit(1); };
     console.log(`  clicking a door page (${sp.ctl.page.kind}) enters it`);
 }
 
+
+/* ---- 4. ONE answer to "which param is under knob k" ----------------------
+ *
+ * A source check, because the failure is not visible at runtime without a
+ * device: the turn path asked Schwung while touch and release asked movy, so a
+ * lane was CREATED against the parameter on screen and then cleared, armed and
+ * reconciled against a different one. Under Schwung pagination those really are
+ * different keys.
+ *
+ * Pinned by counting call sites rather than by behaviour, because behaviour
+ * only diverges on a page where the two planners disagree — which is exactly
+ * the condition a future edit would forget to test on.
+ */
+{
+    const raw = readFileSync(new URL('../src/midi/router.ts', import.meta.url), 'utf8');
+    /* CODE ONLY. The comments above these call sites NAME the function while
+     * explaining why it must not be reached directly, so counting the raw file
+     * counts the explanation as a violation — which is what it did first. */
+    const src = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    const direct = (src.match(/\.getKnobParamInfo\(/g) || []).length;
+    if (direct !== 1) {
+        fail(`router.ts reaches getKnobParamInfo directly ${direct} times; exactly one `
+           + `(inside knobInfoFor) is allowed. Every gesture must get the same answer `
+           + `to "which param is under this knob".`);
+    }
+    const viaHelper = (src.match(/knobInfoFor\(/g) || []).length;
+    if (viaHelper < 4) {
+        fail(`only ${viaHelper} references to knobInfoFor — the touch, release and turn `
+           + `paths should all go through it`);
+    }
+    console.log(`  router asks one helper (${viaHelper} sites), never the model directly`);
+}
+
+/* ---- 5. a held step shows the LOCKED value, not the live one ------------ */
+{
+    env.setParams(MOCK_SYNTHS.test8);
+    const sp = createSchwungPage(portFor(0), 'synth');
+    for (let i = 0; i < 60 && !sp.ready; i++) sp.tick();
+    const key = sp.keyAt(0);
+    if (!key) fail('no param at knob 0');
+
+    const auto = (held) => ({
+        assignedLanes: 1, activeLanes: 1, held,
+        poolFull: false,
+        heldValues: new Map([[0, 0.9]]),
+        liveValues: new Map(),
+        laneForKey: (k) => (k === key ? 0 : -1),
+    });
+
+    const paint = (a) => {
+        const px = [];
+        globalThis.fill_rect = (x, y, w, h, v) => { if (v) px.push(x + ',' + y); };
+        sp.render('T1', a, -1);
+        globalThis.fill_rect = () => {};
+        return px.join('|');
+    };
+
+    const notHeld = paint(auto(false));
+    const heldNow = paint(auto(true));
+    if (notHeld === heldNow) {
+        fail('holding a step drew the same cell — the locked value is not reaching the '
+           + 'widget, so the cell shows where the knob is rather than what the step plays');
+    }
+    console.log('  a held step draws the locked value, not the live one');
+}
+
 console.log('');
 console.log('PASS: knob info comes from whoever drew the page, a turn writes through '
-    + 'Schwung, and a click enters a door.');
+    + 'Schwung, a click enters a door, one helper answers for every gesture, and a '
+    + 'held step shows its lock.');

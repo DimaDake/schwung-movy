@@ -197,7 +197,28 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
                              && typeof m.min === 'number' && typeof m.max === 'number',
             };
         },
-        knobTurn: (slot: number, delta: number) => { ctl.onKnobTurn(slot, delta > 0 ? 1 : -1); },
+        /*
+         * ONE DETENT PER UNIT OF DELTA. Move's encoders accumulate: a quick
+         * flick arrives as a single CC carrying 3, 6, more. movy scales by that
+         * magnitude; `onKnobTurn` takes a DIRECTION and moves one detent, so
+         * collapsing to +-1 threw the rest away and the knob moved at the speed
+         * of the slowest possible turn whatever you did with it. Reported as
+         * "knobs move very very slowly like shift is held" — which is what it
+         * feels like, though `fine` is never set on this path: measured, movy
+         * travelled 0.30 where this travelled 0.005 for the same gesture.
+         *
+         * Schwung's own host collapses to +-1 too and feels right, because it
+         * is fed by a path that has already expanded the accumulation. This one
+         * is not, so it expands it here.
+         *
+         * Capped because a delta arrives as a signed byte: a garbled CC should
+         * cost a bounded number of steps, not 63 of them.
+         */
+        knobTurn: (slot: number, delta: number) => {
+            const dir = delta > 0 ? 1 : -1;
+            const n = Math.min(Math.abs(delta) | 0, 32) || 1;
+            for (let i = 0; i < n; i++) ctl.onKnobTurn(slot, dir);
+        },
         knobTouch: (slot: number, down: boolean) => { ctl.onKnobTouch(slot, down); },
         click: () => { ctl.onClick(); },
 

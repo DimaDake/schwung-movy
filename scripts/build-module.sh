@@ -14,6 +14,8 @@ set -euo pipefail
 MODULE_ID="movy"
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$DIR"
+# shellcheck source=lib/build-release-ui.sh
+. "$DIR/scripts/lib/build-release-ui.sh"
 
 # release.json must advertise the same version the bundled module.json reports,
 # otherwise the store re-offers the update forever (catalog says vX, downloaded
@@ -26,23 +28,9 @@ if [[ "$REL_VER" != "$MOD_VER" ]]; then
 fi
 
 echo "=== Building Movy module v$MOD_VER ==="
-# The one release path, so it is the one that turns the debug-only surfaces off
-# (the Global Params flags page). Asserted below rather than trusted: an esbuild
-# `define` that silently stopped applying would ship a page reachable from
-# Shift+Step 2, and nothing else here would notice.
-#
-# The assertion is on the substituted CONSTANT, not on the page's strings. The
-# device bundle is not minified, so the page's code is still present either way
-# — what MOVY_DEBUG=0 buys is that every `DEBUG_BUILD &&` guarding it is a
-# literal false. Asserting absence instead would be asserting something untrue
-# and would fail every release.
-MOVY_DEBUG=0 node build/device.mjs   # bundles TS (model/renderer/fonts) → ui.js
-if ! grep -qF 'DEBUG_BUILD = true ? false' ui.js; then
-    echo "ERROR: the debug gate is not off in the release bundle" >&2
-    grep -o 'DEBUG_BUILD = [^;]*' ui.js | head -1 >&2
-    echo "  MOVY_DEBUG=0 did not take — check build/device.mjs's define." >&2
-    exit 1
-fi
+# The one release path for the store tarball. The bundle and its gate assertion
+# live in scripts/lib/build-release-ui.sh, shared with `deploy.sh --release`.
+build_release_ui "$(pwd)"
 ./scripts/build-dsp.sh         # cross-compiles the Rust engine → dist/dsp.so (GLIBC<=2.35 gate)
 
 rm -rf "dist/${MODULE_ID}"

@@ -11,9 +11,330 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
-## [Unreleased]
+## [0.30.0] — 2026-08-30
+
+### Highlights
+
+- **The CPU optimization is on out of the box.** Movy now renders its chains
+  across several threads and stops rendering the ones that are silent —
+  together worth roughly 2× on a heavy set, which is the difference between a
+  full set playing and a set that crackles. It applies to **Movy-hosted tracks
+  only**; a Schwung track renders exactly as it always did. If a module
+  misbehaves under it, **CPU OPTIMIZE** on the Settings page (**Shift + Step
+  2**) turns the whole thing off in one switch — no other setting to find, no
+  reinstall.
+
+- **New sets put tracks 1-4 on Movy's own chains.** Until now Movy's first four
+  tracks were Schwung's slots and the other twelve were Movy's, so the same
+  gesture could behave two different ways depending on which track you were on
+  — and every feature had to be written, and debugged, twice. One host for all
+  sixteen tracks means one code path: fewer bugs, and the ones that remain are
+  far easier to find because every track behaves the same. It is also the only
+  way those four tracks get the CPU optimization above, which exists only for
+  Movy-hosted chains. **Sets you already have are left exactly as they are** —
+  the change applies to sets Movy has never opened — and **TRACKS 1-4** on the
+  Settings page moves any set either way (with **THIS SET** for just the one you
+  are in). Nothing is migrated when you switch: the Schwung slot keeps its
+  module and simply stops being played.
+
+- **A Set you make by pressing an empty pad now keeps its contents.** Move only
+  writes a Set to disk once *Move itself* has something to save in it, so a pad
+  you filled entirely through Schwung and Movy was never a real Set — it stayed
+  provisional, took a new identity on every visit, and neither Movy's sequence
+  nor Schwung's instruments could be filed anywhere durable. Movy now makes Move
+  commit the Set for it: it hands Move's own firmware a track-1 press, which is
+  enough for Move to file the Set, and Movy's data is then saved alongside
+  Move's. The one visible cost is that **the pads may blink for a moment while
+  this happens at startup** — the gesture briefly belongs to Move. It is a
+  workaround living in Movy today; the proper home for it is Schwung, which
+  could also perform it without the blink, and that is the intent.
+
+- **A lot of other bug fixes** — set persistence, note routing, drum pads,
+  automation, LEDs and the sequencer's current track. They are listed in full
+  below.
+
+### Added
+
+- **Settings page — Shift + Step 2.** Two settings now ship in the release
+  build, on the page that used to be developer-only. **CPU OPTIMIZE** (ON) is
+  one switch over Movy's whole render optimisation — multi-threaded chain render
+  and skipping chains that are silent, together worth roughly 2× on a heavy set
+  — with OFF as a full serial fallback for a module that misbehaves off the
+  audio thread. Everything under it (lane count, how aggressively silent chains
+  sleep, duplicate pinning) stays hidden at the setting that measured best.
+- **Tracks 1-4 default to Movy's own chains in new sets.** The same Settings
+  page carries **TRACKS 1-4**: `NEW SETS` (the default), `MOVY` or `SCHWUNG`. On
+  `NEW SETS`, a Set Movy has never opened starts with tracks 1-4
+  on Movy chains — joining the parallel lanes, worth ~20-25 % of the chain
+  render — while a Set you already have keeps the Schwung slots it was built on.
+  The choice is stored in the Set and travels with it, and a **THIS SET** row
+  moves just the Set you are in. Nothing is migrated in either direction: the
+  Schwung slot keeps its module and simply stops being played. A `SCHWUNG` track
+  behaves exactly as it does without Movy, including staying outside the CPU
+  optimization above.
+
+  Flipping the setting releases whatever is sounding on those four tracks
+  first, through the ports as they are at that moment — a note-off is routed by
+  looking up the port at release time, so the other order strands the note on
+  the host that played it.
+
+  Movy now hosts **sixteen** chains, one per track, and `ch<N>` is track N.
+  Chains for tracks 1-4 sit empty while those tracks are Schwung's. This
+  renumbered the twelve existing chains (track 4 was chain 0, and is now chain
+  4) and needs no migration: Movy's saved state records a *track*, never a
+  chain.
+
+- **Every Settings row explains itself.** A two-line band at the bottom of the
+  page describes whichever row is selected — a name short enough to sit beside
+  its value is never long enough to say what the setting does.
+
+- **Sample Slicer is playable from Movy.** The module publishes no UI hierarchy
+  and never declares its sample parameter, so Movy could only show the handful
+  of knobs its `chain_params` listed — with no way to choose a sample at all.
+  It now has a Movy layout of its own: a **Sample** browser and a **Scan
+  Slices** action on the Main page, a per-slice page (start/end/attack/decay/
+  pitch/gain/mode/loop) that follows the pad you last hit, an Advanced page
+  (trigger mode, slice algorithm, playthrough, tempo sync, global envelope,
+  reroll, detect BPM), and the module's **32 pads mapped to its 32 slices**.
+  Works with the module exactly as shipped.
+
+- **Mute and solo reach all 16 tracks.** `toggleMute`/`toggleSolo` carried a
+  `track > 3` ceiling from when movy had four tracks, so the existing gestures
+  already *pointed* at tracks 5-16 and were dropped at the door — silently,
+  because the toast, the log line and the LED all read a mirror that never
+  moved. Everything underneath the guard (the `muted` array, the persisted
+  blob, the engine's `mute` command) had been 16-wide since `578139b`.
+
+- **Mute + step: a 16-track mute map, in any view.** Holding **Mute** turns the
+  step row into a mute map — step 1 is track 1, step 16 is track 16, each in its
+  track colour and dim while silenced — so a track two groups away is muted
+  without scrolling the focused quartet first. **Shift** makes the same press a
+  solo.
+
+  The map outranks whatever the row was showing, for as long as the button is
+  down: steps, Loop mode's bars, the step-record head, the Session track
+  selector. Muting from the pads you are playing no longer costs a trip to
+  Session view and back. A press the map consumed enters no note (and its
+  release is consumed with it), while a step already held when Mute arrives
+  still belongs to the step path. In Session view it works in every state where
+  that row is a selector, including a held **Note/Session** peek: the press does
+  not switch tracks, and muting inside a peek no longer latches the view.
+
+- **Mute is visible wherever a track is drawn.** A muted track takes its dim
+  colour in the Session track selector and in its clip-grid cells, matching the
+  cue its track button already carried. In the selector it composes with the
+  focus pulse instead of replacing it (a muted focused track pulses to its *dim*
+  colour), and clips keep their white playing/queued pulse, since a muted track
+  is still running. The **Mute button** now lights bright whenever anything is
+  muted or soloed — with 16 tracks and 4 visible track buttons, that is the only
+  always-visible "something is silenced" cue.
+
+- **Silent chains stop rendering** (`chidle`, on by default). A movy chain used
+  to cost CPU whenever it was *loaded*, playing or not — twelve idle `helm`
+  chains cost ~2340 µs against a ~2000 µs frame budget, with nothing playing.
+  schwung's shim has skipped silent host slots for years; movy's twelve now do
+  the same, on the same chain module and with the same constants.
+
+  Measured on device, twelve mixed chains loaded and nothing playing:
+  **978 µs → 71 µs per block, a 13.8× reduction**, with 10 of 12 chains asleep.
+  The two that stayed awake were still ringing, which is the gate working.
+
+  The synth and the FX sleep **separately**, because otherwise any FX that never
+  settles — a long reverb, a delay with high feedback, a noise floor — would
+  hold the expensive synth awake forever. A sleeping synth still hands its FX a
+  block of silence, so tails decay normally, and FX that declare
+  `requires_continuous_processing` (loopers, modulated delays) never sleep.
+
+  Sleeping chains keep their LFOs moving (`mod:tick`), and are dropped from the
+  parallel-render partition so lanes balance around what is actually sounding.
+  `chidle 0` restores the old single-call path byte for byte; `chidle 1` is the
+  split with nothing sleeping, which is what `chdigest` compares against 0.
+
+- **Track + volume no longer needs Shift.** Holding a track button and turning
+  the volume encoder sets that track's level. Move's firmware takes that encoder
+  for its own master-volume overlay and hands itself the screen while it is
+  touched, so Movy could only keep its own slider visible while **Shift** was
+  held. A Schwung build carrying the new suppress-master-volume capability lets
+  an overtaking tool exclude Move for the duration of the gesture instead — the
+  overlay then shows on its own, and Move's master volume is never touched.
+  Older Schwung builds keep exactly today's behaviour, Shift and all.
+
+- **The whole flag list, on the same page in debug builds.** Under the two
+  released settings, a debug build lists every runtime chain-render flag with
+  its value: jog scrolls, knob 1 edits, and knob 1's LED brightness carries the
+  value. Unlike the other two param pages this is a list rather than one knob
+  per parameter, so it can grow past eight entries — which is how the two
+  released settings came to sit on it.
+
+  The flags are now **persistent** (`prefs.json`, machine-level like the
+  quantize default) and have readable names. They used to reset on every engine
+  load, which is right for a measurement instrument and wrong for a setting.
+  They are re-applied on every engine boot, since a re-dlopened engine is a
+  brand new one that has never heard of them.
+
+  `scripts/build-module.sh` builds the store tarball with the gate off and
+  asserts the substituted constant, so the page cannot reach a release by
+  accident.
+
+### Changed
+
+- **Launching a clip in Session view selects its track.** The knobs, screen,
+  pads and step row all move to the clip you just started, instead of only the
+  step row moving while the instrument stayed behind on another track.
+- **The loading screen now waits for the whole Set.** Movy used to declare
+  itself ready the moment a Set's sequence was in the engine — but the Set's
+  instruments are loaded one per audio callback after that, and the
+  track-button press that makes Move file a new Set hands Move the pads for
+  about a second. Both happened behind a UI that looked live, so a pad hit in
+  that window could reach the wrong module or Move itself. The splash now stays
+  up through both, naming what it is waiting on (**LOADING MODULES** →
+  **PREPARING SET**), and switching Sets shows it again. The wait is capped at
+  ten seconds: a module that never loads no longer strands the instrument. The
+  engine reports its load backlog as `chpend` on the status poll it already
+  serves (`ENGINE_VERSION` 0.50.0).
+
+- **Parallel chain render is on by default** (`chparallel`). Movy's twelve
+  chains render across three lanes instead of one at a time on the audio thread.
+  Measured on device: **2.15× on the twelve-chain obxd ramp**, 2.0-2.2× across
+  the mid-weight fleet. What that buys is not a number but headroom — `hera`
+  fails at one note per chain serially and passes at four in parallel, `obxd`
+  and `nusaw` passed twelve chains only at reduced polyphony and now pass at
+  four notes, and the nine-chain row that was past the shim's overrun threshold
+  is comfortably under it. Tables in `docs/track-performance.md` §1-2.
+
+  **Light and idle sets pay nothing for it**, which was checked before the
+  default moved rather than assumed: an empty set costs 378 µs serial against
+  380 µs parallel, and twelve sleeping chains cost 445 µs against 440 µs. (The
+  pool also no longer wakes its helpers when every helper lane is empty. That is
+  worth ~0 µs — it was measured against a build without it — and is kept only
+  because doing nothing should not cost three thread wakes.)
+
+  Turning it off is one switch — **CPU OPTIMIZE** on the Settings page — and
+  `chpin 1`, on the debug flag list, remains the containment for a set that
+  misbehaves.
+
+- **Modules are assumed thread-safe under parallel chain render.** Duplicated
+  modules are no longer pinned to a single lane by default, so twelve tracks of
+  one instrument can actually divide across lanes. Containment for a module that
+  turns out to race is a **blacklist** (`moduleBlacklist` in `prefs.json`) that
+  puts all its instances back together; `chpin 1` still pins every duplicate as
+  the blunt fallback. This is deliberately optimistic — nothing has been measured
+  racing, but nothing has been proven safe either, and with `chparallel` now on
+  by default that optimism is what every set runs under.
+
+### Removed
+
+- **Per-chain module isolation** (`chiso`, `chcanary`, the `.movy-iso` trees).
+  Giving each duplicate a private copy of its `.so` took MoveOriginal down with
+  `helm`, inside the second `dlopen`, for a reason that was never established —
+  and it did not reproduce outside MoveOriginal. The blacklist above replaces it.
 
 ### Fixed
+
+- **A drum pad on a Movy-hosted track plays one voice again.** Since the engine
+  started answering live pads from the audio thread, it was pushed the *melodic*
+  pad map whatever the track held — so on a drum track every press sounded
+  twice: the drum note from the UI, plus the keyboard note the engine looked up,
+  which on a rack numbered from note 36 is simply another pad (hit the kick,
+  hear the kick and a cowbell). The pushed map now follows the rack when the
+  track's synth is a drum module, the drum input path skips its own send when
+  the engine already sounded the note — as the melodic path always did, which is
+  also why the drum note-off was going out never — and Shift hands the pads back
+  to the UI, since whether a shift-select sounds is the module's decision and the
+  audio thread cannot see a held button. Affects every drum module on a Movy
+  chain (8W8, Forge, Weird Dreams, MrDrums, KrautDrums, …).
+- **A freshly loaded drum module shows which pad the step lane is editing.** The
+  focused pad opened on pad 1 and the sequencer lane followed it, but no pad on
+  the grid lit white until you physically hit one — the rack looked like it had
+  nothing selected while it was already being edited.
+
+- **Modules can be added to the master chain again.** Since tracks 1–4 could
+  move onto Movy's own chains (**Tracks 1-4 Host**, which new Sets get by
+  default), the master FX slots stopped loading anything: the master chain is
+  not a track, and its `master_fx:` params are Schwung's own and merely ride on
+  slot 0 as a carrier — so a port picked by track number sent them to Movy's
+  engine as `ch0:master_fx:…`, a key nothing answers to. The load, the browser's
+  read-back, undo of a master module swap, a master module's file parameters and
+  the master LFOs were all affected. Every one of them now resolves its port
+  from the component being edited, so a Schwung-owned component stays on a
+  Schwung slot however that setting is resolved.
+
+- **A redeployed engine is now the engine that runs.** `deploy.sh` shipped
+  `dsp.so` and left it to the version gate to hot-reload — but the shim opens
+  the engine by path and the loader keeps serving the copy already loaded there
+  until Move itself restarts, so the gate just re-asked for a load the shim
+  answered with the old binary. The restart helper could not have saved it
+  either: Move runs as root, so it was pkilling nothing and reporting success
+  after a 60-second wait. Deploying a changed engine now restarts the stack (as
+  root, verified by the process actually cycling) and fails loudly if it
+  cannot. Costed a full session of a real fix looking dead on the device.
+
+- **Full velocity now actually applies.** *Shift + Step 10* left pad notes
+  coming out at whatever you hit the pad with, so the pads stayed as dynamic as
+  ever with the toggle on. Movy applied the 127 where the UI *sends* a pad note
+  — but on a movy-chain track it sends none: the engine answers pads itself on
+  the audio thread and built the note-on from the raw hardware velocity. So the
+  setting worked on schwung host tracks and was inert on every other track. The
+  engine is now told the setting (`padvel`, pushed beside the pad map by the
+  same comparison, so a reloaded engine is told again), and the velocity is
+  decided in the one place the note is built.
+
+- **Reopening a Set no longer resets its instruments to factory defaults.** A
+  chain's module was restored, but its sound was not: the filter you closed
+  came back open, oscillator octaves reverted, LFO assignments and track levels
+  were gone. Movy sent the set document — which is what starts the module
+  loads — and then immediately wrote each track's preset blob, LFOs and mixer
+  level on a channel the shim services on the audio thread. That thread was by
+  then inside a blocking module load (measured at 428 ms for OB-Xd), so all
+  four writes hit their 100 ms timeout and were dropped. Worse, the next save
+  then read those defaults back out of the live chain and wrote them over the
+  patch in the Set file, so the sound was not merely un-restored but lost. The
+  payload is now delivered once the loads have drained and the channel is free,
+  retried until it lands, and the Set is not playable until it does. A capture
+  taken before it lands returns what the Set file already holds, so a failed
+  restore can never overwrite a patch.
+
+- **A take no longer records onto the wrong track.** Movy opens on the track
+  Move had selected, but only the screen, pads and knobs were told: the
+  sequencer went on editing track 1. Open Movy on track 2, pick a module,
+  step-record — and the notes you played and heard on track 2 were written into
+  track 1's clip. There is now one current track rather than two kept in step by
+  hand: the step row follows the selected track, and the engine is told by
+  comparing what it reports against that, once a tick. So it also survives the
+  cases a list of gestures could never cover — the sequencer engine keeps
+  running after Movy is closed, and is replaced outright if it ever has to be
+  reloaded, and either one used to leave the step row on a track of its own.
+- **Full velocity is remembered.** **Shift + Step 10** — every pad note leaves
+  at 127 — was forgotten the moment you closed Movy, so anyone who plays that
+  way had to switch it back on at every open. It is now a preference of the
+  Move rather than of one piece of music: it holds across sets and across
+  restarts, alongside the default quantize setting.
+- **A Movy track's volume is saved with the Set.** The level for tracks Movy
+  hosts itself lives in Movy's own summing mixer, and nothing wrote it down: it
+  came back at 100% after a power cycle, and — never being cleared either — the
+  level you set in one Set went on attenuating whatever the next Set loaded into
+  that chain. It now travels in the set file beside the chain's modules, and a
+  new Set starts every chain at unity.
+
+  Two things went with it. The mixer state had no *reader* in the engine
+  (`ch<N>:mix` was forwarded to the chain host, which has no such key), so every
+  read answered "absent" and the gesture restarted at unity each time you took
+  it — turning a quiet track down put it back to 0 dB first. And undo recorded
+  its inverse as a bare gain rather than the whole `gain,pan,muted` triple the
+  engine parses, so undoing a Movy track's volume change silently did nothing.
+
+- **Modules no longer go missing from a set.** A set could come back from a
+  power cycle with its sequences intact but half its tracks empty, and it got
+  worse every time the set was opened — one real case went from eleven chains to
+  eight to five. The chains crossed to the engine as one blocking param write
+  per component, and the shim services those writes on the audio thread, which a
+  cold module load holds for 78-276 ms; a write issued during that window could
+  not be serviced and was thrown away by a caller that never checked. The next
+  autosave then read back what had survived and wrote the smaller set to disk.
+  The whole chain set now travels as **one acknowledged document** that is
+  retried when it is refused, and the engine reports what was *requested* rather
+  than what has finished loading — so a save taken while modules are still
+  loading can no longer shrink the set. Engine 0.48.0 → 0.49.0.
 
 - **Modules whose UI lives in their `module.json` showed the wrong params — or
   none of the interesting ones.** Schwung serves a synth slot's `ui_hierarchy`
@@ -107,137 +428,6 @@ far. Earlier work is summarised in the timeline below for context.
   whole Sets out of `UserLibrary/Sets/`, so checking there alone would read
   every Set on every other page as deleted.
 
-### Added
-
-- **Mute and solo reach all 16 tracks.** `toggleMute`/`toggleSolo` carried a
-  `track > 3` ceiling from when movy had four tracks, so the existing gestures
-  already *pointed* at tracks 5-16 and were dropped at the door — silently,
-  because the toast, the log line and the LED all read a mirror that never
-  moved. Everything underneath the guard (the `muted` array, the persisted
-  blob, the engine's `mute` command) had been 16-wide since `578139b`.
-
-- **Mute + step: a 16-track mute map, in any view.** Holding **Mute** turns the
-  step row into a mute map — step 1 is track 1, step 16 is track 16, each in its
-  track colour and dim while silenced — so a track two groups away is muted
-  without scrolling the focused quartet first. **Shift** makes the same press a
-  solo.
-
-  The map outranks whatever the row was showing, for as long as the button is
-  down: steps, Loop mode's bars, the step-record head, the Session track
-  selector. Muting from the pads you are playing no longer costs a trip to
-  Session view and back. A press the map consumed enters no note (and its
-  release is consumed with it), while a step already held when Mute arrives
-  still belongs to the step path. In Session view it works in every state where
-  that row is a selector, including a held **Note/Session** peek: the press does
-  not switch tracks, and muting inside a peek no longer latches the view.
-
-- **Mute is visible wherever a track is drawn.** A muted track takes its dim
-  colour in the Session track selector and in its clip-grid cells, matching the
-  cue its track button already carried. In the selector it composes with the
-  focus pulse instead of replacing it (a muted focused track pulses to its *dim*
-  colour), and clips keep their white playing/queued pulse, since a muted track
-  is still running. The **Mute button** now lights bright whenever anything is
-  muted or soloed — with 16 tracks and 4 visible track buttons, that is the only
-  always-visible "something is silenced" cue.
-
-- **Silent chains stop rendering** (`chidle`, on by default). A movy chain used
-  to cost CPU whenever it was *loaded*, playing or not — twelve idle `helm`
-  chains cost ~2340 µs against a ~2000 µs frame budget, with nothing playing.
-  schwung's shim has skipped silent host slots for years; movy's twelve now do
-  the same, on the same chain module and with the same constants.
-
-  Measured on device, twelve mixed chains loaded and nothing playing:
-  **978 µs → 71 µs per block, a 13.8× reduction**, with 10 of 12 chains asleep.
-  The two that stayed awake were still ringing, which is the gate working.
-
-  The synth and the FX sleep **separately**, because otherwise any FX that never
-  settles — a long reverb, a delay with high feedback, a noise floor — would
-  hold the expensive synth awake forever. A sleeping synth still hands its FX a
-  block of silence, so tails decay normally, and FX that declare
-  `requires_continuous_processing` (loopers, modulated delays) never sleep.
-
-  Sleeping chains keep their LFOs moving (`mod:tick`), and are dropped from the
-  parallel-render partition so lanes balance around what is actually sounding.
-  `chidle 0` restores the old single-call path byte for byte; `chidle 1` is the
-  split with nothing sleeping, which is what `chdigest` compares against 0.
-
-- **Tracks 1-4 can run on movy's own chains** (`chtracks`, off by default,
-  Global Params page). They are schwung's four shadow slots, which render
-  serially on the audio thread; turned on, they become movy chains and join the
-  parallel lanes. Worth roughly 20-25% of the chain render — not four tracks'
-  worth, because a host track already ran on the same thread as lane 0.
-
-  Not free, which is why it is off: those tracks give up Move's own mixer fader
-  (their level moves to movy's summing mixer), per-slot Link Audio, and
-  schwung's cached param reads.
-
-  **Nothing migrates.** The flag chooses which host movy addresses. Schwung's
-  slot keeps its module and simply stops being sent notes; flipping back finds
-  it exactly as it was. Flipping releases whatever is sounding on those four
-  tracks first, through the ports as they are at that moment — a note-off is
-  routed by looking up the port at release time, so the other order strands the
-  note on the host that played it.
-
-  Movy now hosts **sixteen** chains, one per track, and `ch<N>` is track N.
-  Chains for tracks 1-4 sit empty until the flag is on. This renumbered the
-  twelve existing chains (track 4 was chain 0, and is now chain 4) and needs no
-  migration: movy's saved state records a *track*, never a chain.
-
-- **Global Params page** (Shift+Step 2, **debug builds only**). The runtime
-  chain-render flags as a scrolling list with their values: jog scrolls, knob 1
-  edits, and knob 1's LED brightness carries the value. Unlike the other two
-  param pages this is a list rather than one knob per parameter, so it can grow
-  past eight entries — public parameters are the intended destination.
-
-  The flags are now **persistent** (`prefs.json`, machine-level like the
-  quantize default) and have readable names. They used to reset on every engine
-  load, which is right for a measurement instrument and wrong for a setting.
-  They are re-applied on every engine boot, since a re-dlopened engine is a
-  brand new one that has never heard of them.
-
-  `scripts/build-module.sh` builds the store tarball with the gate off and
-  asserts the substituted constant, so the page cannot reach a release by
-  accident.
-
-### Changed
-
-- **Parallel chain render is on by default** (`chparallel`). Movy's twelve
-  chains render across three lanes instead of one at a time on the audio thread.
-  Measured on device: **2.15× on the twelve-chain obxd ramp**, 2.0-2.2× across
-  the mid-weight fleet. What that buys is not a number but headroom — `hera`
-  fails at one note per chain serially and passes at four in parallel, `obxd`
-  and `nusaw` passed twelve chains only at reduced polyphony and now pass at
-  four notes, and the nine-chain row that was past the shim's overrun threshold
-  is comfortably under it. Tables in `docs/track-performance.md` §1-2.
-
-  **Light and idle sets pay nothing for it**, which was checked before the
-  default moved rather than assumed: an empty set costs 378 µs serial against
-  380 µs parallel, and twelve sleeping chains cost 445 µs against 440 µs. (The
-  pool also no longer wakes its helpers when every helper lane is empty. That is
-  worth ~0 µs — it was measured against a build without it — and is kept only
-  because doing nothing should not cost three thread wakes.)
-
-  Turning it off is still one flag on the Global Params page, and `chpin 1`
-  remains the containment for a set that misbehaves.
-
-- **Modules are assumed thread-safe under parallel chain render.** Duplicated
-  modules are no longer pinned to a single lane by default, so twelve tracks of
-  one instrument can actually divide across lanes. Containment for a module that
-  turns out to race is a **blacklist** (`moduleBlacklist` in `prefs.json`) that
-  puts all its instances back together; `chpin 1` still pins every duplicate as
-  the blunt fallback. This is deliberately optimistic — nothing has been measured
-  racing, but nothing has been proven safe either, and with `chparallel` now on
-  by default that optimism is what every set runs under.
-
-### Removed
-
-- **Per-chain module isolation** (`chiso`, `chcanary`, the `.movy-iso` trees).
-  Giving each duplicate a private copy of its `.so` took MoveOriginal down with
-  `helm`, inside the second `dlopen`, for a reason that was never established —
-  and it did not reproduce outside MoveOriginal. The blacklist above replaces it.
-
-### Fixed
-
 - **Mute no longer strands another button's momentary.** `momentary.ts` holds
   exactly one active button, and Mute's press took it for a restore closure that
   was a no-op. Holding **Note/Session** and then pressing Mute therefore evicted
@@ -266,6 +456,33 @@ far. Earlier work is summarised in the timeline below for context.
   namespacing those keys `ch0:master_fx:…` and sending the master chain's edits
   into a synth. The master models now take a `hostPort`, whatever `chtracks`
   says track 0 is.
+
+### Engine
+
+`0.35.0` → `0.54.0`, nineteen steps, most of them load-bearing for the entries
+above:
+
+- **`0.36.0`–`0.45.0` — the render work.** Parallel chain render (the pool, the
+  two-stage tasks, the serial/parallel equivalence oracle, unpinned duplicates)
+  and then the idle skip that stops rendering silent chains, with the module
+  copying that was tried between them removed again.
+- **`0.46.0` — `chain_for`.** One function decides whether a sequenced note
+  leaves as MIDI or enters a chain, so `chtracks` reaches the routing rather
+  than only the UI.
+- **`0.47.0` — the play-link sentinel**, which tells Movy whether the host's
+  inject queue really reaches Move or comes home to Movy itself.
+- **`0.48.0` — a first take is bar-quantized** instead of starting under the
+  press.
+- **`0.49.0` — the chain set as one acknowledged document**, reporting what was
+  *requested* rather than what has finished loading.
+- **`0.50.0` — `chpend`**, the load backlog the loading screen waits on.
+- **`0.51.0` — `ch<N>:mix` is readable**, so a track's level survives being read
+  back and undone.
+- **`0.54.0` — `padvel`**, the full-velocity setting, decided where the engine
+  builds the note.
+
+Every step also bumps the number for its own sake: the ping handshake is what
+stops a stale `dsp.so` from passing as current after a redeploy.
 
 ## [0.29.0] — 2026-08-22
 

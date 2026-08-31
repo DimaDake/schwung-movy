@@ -1,4 +1,6 @@
 import { setChainParam } from '../chain/set-param.js';
+import { MIX_KEY } from '../track/mix-persist.js';
+import { markUiStateDirty } from '../seq/ui-dirty.js';
 import { portFor } from '../track/registry.js';
 import { trackKind } from '../track/ref.js';
 import { beginGesture } from '../undo/edit.js';
@@ -109,14 +111,30 @@ function setMoveExcluded(excluded: boolean): void {
  * keeps its level itself and applies it in the summing mixer (design §5.4).
  * Same gesture, same dB ladder, different destination. */
 function volumeKey(track: number): string {
-    return trackKind(track) === 'movy' ? 'mix' : 'slot:volume';
+    return trackKind(track) === 'movy' ? MIX_KEY : 'slot:volume';
+}
+
+/* The rest of a movy track's triple, carried unchanged across the write. Only
+ * the gain is on this fader, and the triple is saved state now — writing the
+ * other two fields back at their defaults would quietly discard a pan the set
+ * file had restored. */
+let mixTail = ',0,0';
+
+/* One shape for the value, so the undo inverse is written in the same form as
+ * the edit. A movy track's param is the whole triple: recording just the gain
+ * meant `parse_mix` rejected the inverse and undoing a volume change on a movy
+ * track silently did nothing. */
+function writeValue(track: number, amp: number): string {
+    return trackKind(track) === 'movy' ? amp.toFixed(4) + mixTail : amp.toFixed(4);
 }
 
 function readVolume(track: number): number {
     if (trackKind(track) === 'movy') {
         /* "gain,pan,muted" — only the gain is on the fader. */
-        const raw = portFor(track).getParam('mix');
-        const g = raw === null ? NaN : parseFloat(raw.split(',')[0]);
+        const raw = portFor(track).getParam(MIX_KEY);
+        const parts = raw === null ? [] : raw.split(',');
+        mixTail = parts.length === 3 ? ',' + parts[1] + ',' + parts[2] : ',0,0';
+        const g = parts.length === 0 ? NaN : parseFloat(parts[0]);
         return Number.isFinite(g) ? Math.min(VOL_MAX, Math.max(VOL_MIN, g)) : 1;
     }
     const raw = portFor(track).getParam( 'slot:volume');
@@ -138,7 +156,7 @@ function beginDivert(): void {
     value    = readVolume(heldTrack);
     /* The gesture already has explicit start/end points, so they double as the
      * undo group's — no touch plumbing needed. */
-    volumeBefore = value.toFixed(4);
+    volumeBefore = writeValue(heldTrack, value);
     volIdx   = ampToIdx(value);
     const moveExcluded = typeof shadow_set_overtake_suppress_master_volume === 'function';
     if (moveExcluded) {
@@ -196,12 +214,14 @@ export function volumeKnobDelta(d2: number): boolean {
     beginGesture('vol:' + heldTrack, 'VOLUME', 'T' + (heldTrack + 1), false);
     /* Pan and mute are not part of this gesture: mute is the engine's own
      * per-track mute (so tails ring out, matching a host track), and pan has no
-     * control surface yet. Both are written at their defaults rather than left
-     * unset, because the engine parses the triple as a whole. */
-    const write = trackKind(heldTrack) === 'movy'
-        ? value.toFixed(4) + ',0,0'
-        : value.toFixed(4);
-    setChainParam(portFor(heldTrack), volumeKey(heldTrack), write, volumeBefore);
+     * control surface yet. They still travel on every write, because the engine
+     * parses the triple as a whole — as read, not as defaults (see mixTail). */
+    const movy = trackKind(heldTrack) === 'movy';
+    setChainParam(portFor(heldTrack), volumeKey(heldTrack),
+                  writeValue(heldTrack, value), volumeBefore);
+    /* A movy track's level is in movy's own set blob; a host track's is
+     * schwung's `slot:volume`, which Move saves for us. */
+    if (movy) markUiStateDirty();
     mlog('trackvol t=' + heldTrack + ' d=' + delta + ' v=' + value.toFixed(4));
     return true;
 }
@@ -221,4 +241,5 @@ export function resetTrackVolume(): void {
     diverted  = -1;
     value     = 1;
     volIdx    = ampToIdx(1);
+    mixTail   = ',0,0';
 }

@@ -15,6 +15,7 @@ import { scheduleTempoOverride } from './tempo-override.js';
 import { appState } from '../app/state.js';
 import { mlog } from '../log.js';
 import { markDeleteActed } from './edit-ops.js';
+import { watchedTrack } from './watch.js';
 
 /* Note 9 — the main encoder's capacitive touch (knob touches are notes 0-7,
  * note 8 is the master/volume knob). */
@@ -92,7 +93,7 @@ export function captureTick(): void {
 /** Drop the buffered input — the view or the gesture has moved on. */
 export function captureClear(): void {
     if (!engineReady()) return;
-    seqCmd('capclr ' + seqState.watchTrack);
+    seqCmd('capclr ' + watchedTrack());
     seqState.capPending = 0;
 }
 
@@ -112,7 +113,7 @@ export function captureButton(clearHeld: boolean): void {
         seqToast('Nothing to capture');
         return;
     }
-    const track = seqState.watchTrack;
+    const track = watchedTrack();
     /* One undo for the whole capture: the commit, plus any tempo re-pick made
      * from the overlay before it is dismissed. Closed by closeCaptureOverlay,
      * with the idle timer covering a capture made while playing, which shows no
@@ -171,6 +172,6 @@ export function captureDismiss(by?: number[]): void {
     captureState.overlay = 'none';
     if (by) mlog('seq: capture dismissed by ' + by.map((b) => b.toString(16)).join(' '));
     seqCmd('capdone');
-    endEdit('capture:' + seqState.watchTrack);
+    endEdit('capture:' + watchedTrack());
     appState.dirty = true;
 }

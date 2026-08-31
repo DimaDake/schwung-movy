@@ -1,6 +1,8 @@
 import { portFor } from '../track/registry.js';
+import { engineOwnsPads } from '../track/pad-route.js';
 import type { DrumConfig } from '../types/param.js';
 import { keyboardState } from './state.js';
+import { drumNoteOfPad, drumPadOfPhys } from './drum-grid.js';
 import { noteSounded, noteReleased } from './held-notes.js';
 import { emitNoteOff } from './release.js';
 
@@ -13,20 +15,9 @@ export function drumPadOn(
     slot:         number,
     vel:          number,
 ): number | null {
-    let midiNote: number;
-    let drumPad:  number;
-    if (drumConfig.rawMidi) {
-        midiNote = physPad;
-        drumPad  = midiNote - drumConfig.padNoteStart + 1;
-    } else {
-        const padIdx = physPad - padMin;
-        const col    = padIdx % 8;
-        const row    = Math.floor(padIdx / 8);
-        if (col >= 4) return null;
-        drumPad  = row * 4 + col + 1;
-        midiNote = drumConfig.padNoteStart + drumPad - 1;
-    }
-    if (drumPad < 1 || drumPad > drumConfig.padCount) return null;
+    const drumPad = drumPadOfPhys(physPad, padMin, drumConfig);
+    if (drumPad < 0) return null;
+    const midiNote = drumNoteOfPad(drumPad, drumConfig);
 
     const suppressMidi = shiftHeld && !drumConfig.shiftSelectMidi;
     if (!suppressMidi) {
@@ -34,7 +25,14 @@ export function drumPadOn(
         // Track the sounding pad so the drum grid lights it green while held
         // (a shift-select makes no sound, so it must not register as playing).
         noteSounded(physPad, slot, midiNote);
-        portFor(slot).sendMidi(MidiNoteOn, midiNote, shiftHeld ? 1 : vel);
+        /* The ledger entry above is recorded either way; only the SEND is
+         * skipped. When the engine owns the pads it has already sounded this
+         * note from the audio thread, and a second copy from here doubles it --
+         * which is what the melodic path (keyboard/handler.ts) has always
+         * checked and this one did not. */
+        if (!engineOwnsPads(slot)) {
+            portFor(slot).sendMidi(MidiNoteOn, midiNote, shiftHeld ? 1 : vel);
+        }
     }
     if (drumConfig.currentPadParam) {
         portFor(slot).setParam(componentKey + ':' + drumConfig.currentPadParam, String(drumPad));

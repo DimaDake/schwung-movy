@@ -109,6 +109,18 @@ export async function createDumpBoot(dump) {
     // the device. Keep the fixture in sync when the forge-move layout changes.
     const forgeLayout = readFileSync(join(MOVY, 'browser-test', 'fixtures', 'forge-movy-config.json'), 'utf8');
     movyConfigByPath['/data/UserData/schwung/modules/sound_generators/forge/movy_config.json'] = forgeLayout;
+    /* module.json is readable on the device for EVERY module, and movy reads it
+     * when the host serves no ui_hierarchy (model/hierarchy.ts). Serving the
+     * dumped manifests is what makes the replay answer "does this module still
+     * lay out the same way on a real device", rather than "…on a device where
+     * no manifest exists". */
+    for (const m of dump.modules) {
+        if (!m.module_json) continue;
+        const dir = m.component_key === 'synth' ? 'sound_generators'
+                  : String(m.component_key ?? '').startsWith('midi_fx') ? 'midi_fx' : 'audio_fx';
+        movyConfigByPath[`/data/UserData/schwung/modules/${dir}/${m.id}/module.json`] =
+            JSON.stringify(m.module_json);
+    }
     globalThis.host_read_file = (path) => movyConfigByPath[path] ?? null;
 
     const { createModel } = await import(join(MOVY, 'dist', 'esm', 'model', 'index.js'));

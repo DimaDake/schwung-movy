@@ -5,7 +5,6 @@
 
 import { mlog } from '../log.js';
 import { appState, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS } from '../app/state.js';
-import { DEBUG_BUILD } from '../app/debug.js';
 import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
 import { beginGesture } from '../undo/edit.js';
 import { trackLabel } from '../undo/label.js';
@@ -23,7 +22,9 @@ import { muteHeld, muteMarkGestured, muteShiftHeld } from './router-buttons.js';
 import { toggleMute, toggleSolo } from '../mixer/track-mutes.js';
 import { TRACK_COUNT } from '../track/ref.js';
 import { sessionButtonHeld, sessionStepPress, sessionStepRelease, trackSelectActive } from './track-select.js';
-import { maxBarOffset, minBarOffset, occHasStep, occToggleStep, seqState } from './state.js';
+import {
+    maxBarOffset, minBarOffset, occHasStep, occToggleStep, seqState, setFullVelocity,
+} from './state.js';
 import { heldSetList, setHeldSet } from './held.js';
 import {
     anyStepHeld, editStepDown, editStepUp, heldStepAbs, setLengthTo,
@@ -34,6 +35,7 @@ import { stepRecActive, stepRecStepTap } from './step-rec.js';
 import { heldChordPitches } from './router-pads.js';
 import { nextQuantCandidate } from './quant.js';
 import { armQuantOverlay } from './quant-overlay.js';
+import { watchedTrack } from './watch.js';
 
 /* Steps whose PRESS the mute map consumed. Their release is consumed too, or
  * the step path sees a release with no press: a bit-per-step rather than "Mute
@@ -111,8 +113,8 @@ export function handleStepButton(button: number, on: boolean, shiftHeld: boolean
     if (on && dupActive()) {
         const absB = seqState.barOffset * NUM_STEP_BUTTONS + button;
         dupOnUnit(seqState.loopMode
-            ? { kind: 'bar', track: seqState.watchTrack, bar: button }
-            : { kind: 'step', track: seqState.watchTrack, step: absB });
+            ? { kind: 'bar', track: watchedTrack(), bar: button }
+            : { kind: 'step', track: watchedTrack(), step: absB });
     } else if (on && deleteActive()) {
         deleteStep(button);
     } else if (on && shiftHeld) {
@@ -135,20 +137,20 @@ export function handleStepButton(button: number, on: boolean, shiftHeld: boolean
             if (!seqState.loopMode && seqState.watchLane < 0 && heldStepAbs() >= 0) {
                 seqState.holdStep = heldStepAbs();
                 seqState.holdNotes = [];
-                seqCmd('hold ' + seqState.watchTrack + ' ' + seqState.holdStep);
+                seqCmd('hold ' + watchedTrack() + ' ' + seqState.holdStep);
             }
         }
     } else {
         const wasTap = editStepUp(button);
         if (!anyStepHeld()) {
             if (seqState.holdNotes.length > 0) {
-                setHeldSet(seqState.watchTrack, seqState.holdNotes);
-                seqState.lastPitch[seqState.watchTrack] = seqState.holdNotes[0];
+                setHeldSet(watchedTrack(), seqState.holdNotes);
+                seqState.lastPitch[watchedTrack()] = seqState.holdNotes[0];
             }
             seqState.holdNotes = [];
             seqState.holdStep = -1;
             seqState.holdLen = 0;
-            seqCmd('hold ' + seqState.watchTrack + ' -1');
+            seqCmd('hold ' + watchedTrack() + ' -1');
             endStepAutomation();
         }
         if (seqState.loopMode) loopStepOff(button);
@@ -165,11 +167,9 @@ function shiftStepFunction(step: number): void {
         appState.dirty = true;
         return;
     }
-    /* Global Params. Gated HERE rather than in the renderer: a release build
-     * must have no way to reach the view at all, or the gate merely turns the
-     * page into a blank screen with no way out. `DEBUG_BUILD` is a build-time
-     * literal, so this whole branch leaves the release bundle. */
-    if (DEBUG_BUILD && step === STEP_FLAGS) {
+    /* Settings. Reachable in every build — what a release build hides is the
+     * measurement flags on it, not the page (flags-visible.ts). */
+    if (step === STEP_FLAGS) {
         openParamPage(VIEW_FLAGS);
         appState.dirty = true;
         return;
@@ -182,7 +182,7 @@ function shiftStepFunction(step: number): void {
         return;
     }
     if (step === STEP_FULL_VEL) {
-        seqState.fullVelocity = !seqState.fullVelocity;
+        setFullVelocity(!seqState.fullVelocity);
         seqToast(seqState.fullVelocity ? 'Full Velocity On' : 'Full Velocity Off');
     } else if (step === STEP_DOUBLE_LOOP) {
         doubleLoop();
@@ -199,7 +199,7 @@ function shiftStepFunction(step: number): void {
  * audition, so pressing through 0 -> 70 -> 100 is a single undo back to where
  * you started rather than three; the panel is the feedback, so no toast. */
 function cycleQuantize(): void {
-    const track = seqState.watchTrack;
+    const track = watchedTrack();
     const next = nextQuantCandidate(seqState.clipQuant, seqState.defaultQuant);
     beginGesture('quant:' + track, 'CLIP QUANT', trackLabel(track));
     seqState.clipQuant = next;
@@ -214,7 +214,7 @@ export function navigateBar(delta: number): void {
 
 function toggleStep(button: number): void {
     const step = seqState.barOffset * NUM_STEP_BUTTONS + button;
-    const t = seqState.watchTrack;
+    const t = watchedTrack();
     // A sub-bar clip length (LENGTH knob) hides the steps in the rest of that
     // bar; pressing one is inert (no entry). The next empty bar stays tappable
     // so the native "tap into the next bar to grow the clip" still works, and a

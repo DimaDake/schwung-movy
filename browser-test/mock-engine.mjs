@@ -11,8 +11,11 @@ export function installMockEngine() {
         cmdBatches: [],
         /* parsed individual ops across all batches */
         ops: [],
-        /* status the engine reports; tests mutate freely */
-        status: { play: 0, tick: 0, bpm: 12000 },
+        /* status the engine reports; tests mutate freely. `trk` is here
+         * because the real engine ALWAYS reports its watched track — a mock
+         * that omitted it let a UI-only watch retarget look like it worked,
+         * when on device the next poll pins the field straight back. */
+        status: { play: 0, tick: 0, bpm: 12000, trk: 0 },
         /* set true to simulate an engine that lacks the protocol */
         statusUnavailable: false,
         /* Set true to simulate a DSP that never loads: the UI probes `ping`
@@ -39,7 +42,7 @@ export function installMockEngine() {
         reset() {
             this.cmdBatches = [];
             this.ops = [];
-            this.status = { play: 0, tick: 0, bpm: 12000 };
+            this.status = { play: 0, tick: 0, bpm: 12000, trk: 0 };
             this.statusUnavailable = false;
             this.pingUnavailable = false;
             this.setParamCalls = 0;
@@ -70,6 +73,7 @@ export function installMockEngine() {
                 // reverting it — that round trip is what proves a knob turn
                 // actually reached the engine, not just the UI mirror.
                 else if (verb === 'bpm') engine.status.bpm = +parts[1];
+                else if (verb === 'watch') engine.status.trk = +parts[1];
                 else if (engine.trackClipLength && (verb === 'addp' || verb === 'clen')) {
                     const cur = engine.status.len ?? 0;
                     if (verb === 'clen') {

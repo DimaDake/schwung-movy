@@ -15,7 +15,20 @@ function centre(y: number, text: string, color: number): void {
     fontPrint(Math.floor((W - fontWidth(text)) / 2), y, text, color);
 }
 
-export function renderLoadingView(phase: string, error: string): void {
+/** What the splash is waiting on. Separated from the drawing so the wording is
+ *  testable without pixels — and because "loaded" and "playable" are different
+ *  things the user is entitled to see the difference between: the Set's state
+ *  lands in one blocking write, but its modules arrive one per audio callback
+ *  after it. */
+export function loadingStage(phase: string, chainPending: number): string {
+    if (phase === 'booting') return 'STARTING ENGINE';
+    if (phase !== 'settling') return 'LOADING SET';
+    /* The tail of the wait is the Set-commit press borrowing the surface, which
+     * is not a load and must not claim to be one. */
+    return chainPending > 0 ? 'LOADING MODULES' : 'PREPARING SET';
+}
+
+export function renderLoadingView(phase: string, error: string, chainPending = 0): void {
     clear_screen();
     if (phase === 'failed') {
         centre(18, 'CANNOT LOAD THIS SET', 1);
@@ -26,5 +39,5 @@ export function renderLoadingView(phase: string, error: string): void {
         centre(46, 'JOG CLICK = START EMPTY', 1);
         return;
     }
-    centre(Math.floor(H / 2) - 3, phase === 'booting' ? 'STARTING ENGINE' : 'LOADING SET', 1);
+    centre(Math.floor(H / 2) - 3, loadingStage(phase, chainPending), 1);
 }

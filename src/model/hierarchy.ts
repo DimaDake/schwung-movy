@@ -5,6 +5,8 @@ import { moduleReadKey } from '../chain/config.js';
 import { buildConfigPages } from './config-pages.js';
 import { buildGenericPages } from './generic-pages.js';
 import { conditionHolds, collectRules } from './visible-if.js';
+import { physPadOfDrumPad } from '../keyboard/drum-grid.js';
+import { PAD_MIN } from '../seq/constants.js';
 import type { RawMeta } from './param-build.js';
 
 type HierParam = RawMeta;
@@ -65,6 +67,11 @@ export function loadHierarchy(s: ModelState): void {
     if (s.moduleConfig?.drum) {
         s.isDrum       = true;
         s.drumPadCount = s.moduleConfig.drum.padCount;
+        /* Which GRID pad that first pad is. The step lane and the header icon
+         * already opened on pad 1; leaving the physical pad at 0 meant no pad
+         * lit white, so a freshly loaded rack looked like it had no pad
+         * selected while the sequencer was already editing one. */
+        s.drumCurrentPhysPad = physPadOfDrumPad(s.drumCurrentPad, PAD_MIN, s.moduleConfig.drum);
     }
 
     /* chain_params → cpMap for type/min/max/step/options/name lookups. cpOrder

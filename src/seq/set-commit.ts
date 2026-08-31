@@ -92,6 +92,13 @@ export function takeSurfaceReturn(): boolean {
     return v;
 }
 
+/** Is the press done with the surface? True whenever nothing is in flight —
+ *  which is the normal case, since a real uuid never arms this at all. The set
+ *  lifecycle holds the loading splash until it is true, so the ~1.5 s Move
+ *  spends owning the pads happens behind the splash rather than in front of a
+ *  UI that claims to be playable. */
+export function setCommitIdle(): boolean { return phase === 'idle'; }
+
 export function resetSetCommit(): void {
     askedFor = '';
     phase = 'idle';
@@ -116,11 +123,17 @@ function surface(toMove: boolean): void {
 }
 
 /** Called once per tick with the live Set. Does nothing at all unless movy is on
- *  a Set Move has not committed, and at most once per such Set. */
-export function setCommitTick(id: string, ready: boolean): void {
+ *  a Set Move has not committed, and at most once per such Set.
+ *
+ *  `chainsDrained` is the engine's chain-load queue being empty. Lending the
+ *  surface runs an overtake exit and re-entry, and doing that while the audio
+ *  thread is still dlopening a module stacks two overruns that have nothing to
+ *  do with each other — so the wait for Move to settle doubles as the wait for
+ *  the loads, and only the borrow itself lands after them. */
+export function setCommitTick(id: string, ready: boolean, chainsDrained = true): void {
     if (phase !== 'idle') {
         const waited = Date.now() - since;
-        if (phase === 'waiting' && waited >= SETTLE_SET_MS) {
+        if (phase === 'waiting' && waited >= SETTLE_SET_MS && chainsDrained) {
             surface(true); tookSurface = true;
             phase = 'settling'; since = Date.now();
         } else if (phase === 'settling' && waited >= SETTLE_MS) {

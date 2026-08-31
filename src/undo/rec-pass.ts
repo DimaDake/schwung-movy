@@ -14,6 +14,7 @@ import { seqState } from '../seq/state.js';
 import { seqCtl } from './record.js';
 import { CLOSE, beginEdit, endEdit, onLoopWrap } from './group.js';
 import { trackLabel } from './label.js';
+import { watchedTrack } from '../seq/watch.js';
 
 /* Ticks to keep a just-armed group open while waiting for the engine to
  * confirm. The status poll runs at ~24 Hz, so arming is not visible in the
@@ -32,9 +33,9 @@ function openPass(): void {
      * instead of starting a new entry. It is never shown. */
     passSeq++;
     beginEdit({
-        key: 'rec:' + seqState.watchTrack + ':' + passSeq,
+        key: 'rec:' + watchedTrack() + ':' + passSeq,
         verb: 'RECORD',
-        target: trackLabel(seqState.watchTrack),
+        target: trackLabel(watchedTrack()),
         close: CLOSE.LOOP_WRAP,
         seq: true,
     });

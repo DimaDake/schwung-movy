@@ -21,7 +21,7 @@ import { mlog } from '../log.js';
 import { requestLabelSync } from '../seq/engine.js';
 import { requestLaneWarm } from '../seq/automation.js';
 import { setChainParamUntracked } from '../chain/set-param.js';
-import { portFor } from '../track/registry.js';
+import { componentPort } from '../track/registry.js';
 import { moduleReadKey } from '../chain/config.js';
 import { invalidateUndo } from './state.js';
 import type { ModuleOp } from './types.js';
@@ -137,7 +137,8 @@ export function beginParamRestore(
  * the alias `synth_module`, and reading the colon form there returns null. */
 function liveModuleId(op: ModuleOp): string {
     if (typeof shadow_get_param !== 'function') return '';
-    return portFor(op.slot).getParam( moduleReadKey(op.componentKey)) || '';
+    return componentPort(op.slot, op.componentKey)
+        .getParam(moduleReadKey(op.componentKey)) || '';
 }
 
 /* Ready = the right module AND its params exist. The second half is what makes
@@ -150,7 +151,7 @@ function moduleIsReady(p: Pending): boolean {
     if (!p.wantIds.includes(live)) return false;
     if (p.state === null && p.params.length === 0) return true;   // nothing to write
     const cp = typeof shadow_get_param === 'function'
-        ? portFor(p.op.slot).getParam( p.op.componentKey + ':chain_params')
+        ? componentPort(p.op.slot, p.op.componentKey).getParam(p.op.componentKey + ':chain_params')
         : null;
     return !!cp && cp !== '[]';
 }
@@ -160,7 +161,8 @@ function write(p: Pending, from: number, to: number): void {
      * entry for the restore itself and the stack would never drain. */
     for (let i = from; i < to; i++) {
         const [key, val] = p.params[i];
-        setChainParamUntracked(portFor(p.op.slot), p.op.componentKey + ':' + key, val);
+        setChainParamUntracked(componentPort(p.op.slot, p.op.componentKey),
+                               p.op.componentKey + ':' + key, val);
     }
 }
 
@@ -184,9 +186,10 @@ function rewriteDrifted(p: Pending): number {
     for (let i = p.leadCount; i < p.params.length; i++) {
         const [key, want] = p.params[i];
         const full = p.op.componentKey + ':' + key;
-        const live = portFor(p.op.slot).getParam( full);
+        const port = componentPort(p.op.slot, p.op.componentKey);
+        const live = port.getParam(full);
         if (live === null || sameValue(live, want)) continue;
-        setChainParamUntracked(portFor(p.op.slot), full, want);
+        setChainParamUntracked(port, full, want);
         fixed++;
     }
     return fixed;
@@ -208,7 +211,7 @@ function finish(op: ModuleOp): void {
     for (const [key, val] of op.oldLfo ?? []) {
         /* Through the port: the slot-addressed API refuses a movy track's index
          * and would drop the restore silently (see lfo/assign.ts). */
-        portFor(op.slot).setParamTimeout(key, val, 100);
+        componentPort(op.slot, op.componentKey).setParamTimeout(key, val, 100);
     }
     if ((op.oldLfo?.length ?? 0) > 0) mlog('undo: restored ' + op.oldLfo!.length + ' LFO assignment fields');
     /* The reload emptied the host's static param cache; without the warm,
@@ -250,7 +253,8 @@ export function moduleRestoreTick(): void {
         /* One blob, applied by the DSP itself — no ordering to get right, no
          * settle to wait out, and it covers params movy never sees. */
         if (pending.state !== null) {
-            setChainParamUntracked(portFor(op.slot), op.componentKey + ':state', pending.state);
+            setChainParamUntracked(componentPort(op.slot, op.componentKey),
+                                   op.componentKey + ':state', pending.state);
             mlog('undo: restored module state (' + pending.state.length + ' bytes)');
             /* Trust the blob, then check it. A module that cannot parse its own
              * state is repaired by the verify pass; one that can pays nothing. */

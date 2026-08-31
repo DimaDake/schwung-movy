@@ -10105,6 +10105,77 @@
    "cv_sub_div"
   ]
  },
+ "sound_generator--slicer": {
+  "pageCount": 3,
+  "pageNames": [
+   "Main",
+   "Slice",
+   "Advanced"
+  ],
+  "pageShortNames": [
+   [
+    "SAMPL",
+    "SCAN",
+    "SENSI",
+    "SLICE",
+    "PITCH",
+    "VELOC",
+    "GAIN",
+    "MONO"
+   ],
+   [
+    "ATTK",
+    "DECAY",
+    "START",
+    "END",
+    "PTCH",
+    "SGAIN",
+    "SMODE",
+    "LOOP"
+   ],
+   [
+    "MODE",
+    "ALGO",
+    "PTHRU",
+    "SYNC",
+    "GATTK",
+    "GDECY",
+    "ROLL",
+    "DBPM"
+   ]
+  ],
+  "envelopeLines": 2,
+  "lfoViz": 0,
+  "hidden": 0,
+  "shownKeys": [
+   "detect_bpm",
+   "global_attack",
+   "global_decay",
+   "global_gain",
+   "mode",
+   "mono_mode",
+   "pitch",
+   "playthrough",
+   "reroll",
+   "sample_path",
+   "scan",
+   "slice_algo",
+   "slice_attack",
+   "slice_decay",
+   "slice_end_trim",
+   "slice_gain",
+   "slice_loop",
+   "slice_mode",
+   "slice_pitch",
+   "slice_start_trim",
+   "slices",
+   "sync",
+   "threshold",
+   "velocity_sens"
+  ],
+  "stepCells": [],
+  "slowCells": []
+ },
  "sound_generator--smack-in": {
   "pageCount": 6,
   "pageNames": [

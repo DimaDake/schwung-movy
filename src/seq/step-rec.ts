@@ -20,6 +20,7 @@ import {
 } from './step-rec-head.js';
 import { flushPreview } from './step-rec-preview.js';
 import { occHasStep, occToggleStep, seqState } from './state.js';
+import { watchedTrack } from './watch.js';
 
 const TAP_MS = 500;          // tap-vs-hold, matching momentary.ts
 
@@ -97,7 +98,7 @@ export function stepRecPad(padNote: number, pitch: number, vel: number): boolean
     if (!active) return false;
     touched = true;
     heldPads.set(padNote, pitch);
-    const t = seqState.watchTrack;
+    const t = watchedTrack();
     if (!chord) chord = { pitches: [], anchor: headStep(), tieSteps: 0 };
     /* The chord's anchor, not the head: a tie rides the head to the END of the
      * tied note, so a pitch added mid-chord would otherwise land on a later
@@ -166,7 +167,7 @@ export function stepRecArrow(dir: number): boolean {
         /* Per pitch rather than lane -1: on a drum track a tie must only touch
          * the notes this chord entered, never what an earlier pass left on the
          * same step. */
-        const t = seqState.watchTrack;
+        const t = watchedTrack();
         beginEdit({
             key: 'steprec:tie:' + t + ':' + chord.anchor,
             verb: dir > 0 ? 'TIE' : 'UNTIE',
@@ -204,14 +205,14 @@ export function stepRecStepTap(button: number): boolean {
     const step = seqState.barOffset * NUM_STEP_BUTTONS + button;
     if (!growModeOn() && step >= seqState.lenSteps) return true;
     beginEdit({
-        key: 'steprec:tap:' + seqState.watchTrack + ':' + step,
+        key: 'steprec:tap:' + watchedTrack() + ':' + step,
         verb: occHasStep(step) ? 'CLEAR STEP' : 'MOVE HEAD',
-        target: trackLabel(seqState.watchTrack) + ' STEP ' + (step + 1),
+        target: trackLabel(watchedTrack()) + ' STEP ' + (step + 1),
         close: CLOSE.IMMEDIATE, seq: true,
     });
     if (occHasStep(step)) {
         const ln = isDrum() ? seqState.watchLane : -1;
-        seqCmd(`del ${seqState.watchTrack} ${step} ${step} ${ln}`);
+        seqCmd(`del ${watchedTrack()} ${step} ${step} ${ln}`);
         occToggleStep(step);
     }
     growTo(step);

@@ -5,6 +5,7 @@
  */
 
 import {
+    selectTrack, watchedTrack,
     ENGINE_VERSION, installMockEngine, uninstallMockEngine, seqEngineTick, resetSeqEngine, appState,
     eq, lastMusicalOp, _log,
 } from './harness.mjs';
@@ -100,7 +101,7 @@ export async function run() {
     seqHandleMidi([0x90, 92, 127], false);
     seqEngineTick();
     eq('top-left pad → launch track 0 slot 0', lastOp(), 'launch 0 0');
-    eq('launch retargets watch track', seqState.watchTrack, 0);
+    eq('launch retargets watch track', watchedTrack(), 0);
     // Bottom-left pad (note 68) = track 3, slot 0.
     seqHandleMidi([0x90, 68, 127], false);
     seqEngineTick();
@@ -235,7 +236,7 @@ export async function run() {
     seqHandleMidi([0x90, 92, 127], false);       // top-left pad
     seqEngineTick();
     eq('top-left pad launches the group\'s first track', lastOp(), 'launch 8 0');
-    eq('and retargets the watched track with it', seqState.watchTrack, 8);
+    eq('and retargets the watched track with it', watchedTrack(), 8);
 
     seqHandleMidi([0x90, 68, 127], false);       // bottom-left pad
     seqEngineTick();

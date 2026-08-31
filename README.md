@@ -44,10 +44,12 @@ that gap with two things:
 2. **A sequencer** — a **16-track** step sequencer whose behaviour is aligned as
    closely as possible with Move's native sequencer (clips, session view, live +
    step recording, automation), but driving Schwung tracks instead of Move's
-   instruments. Tracks 1-4 are the four Schwung tracks and behave exactly as they
-   always have; tracks 5-16 host their own module chains inside Movy, summed to
-   one stereo output. The 16 are arranged as **four groups of four**: in Session
-   view the +/− buttons move between groups, and the step buttons pick a track.
+   instruments. Tracks 5-16 host their own module chains inside Movy, summed to
+   one stereo output, and a new set puts tracks 1-4 on Movy's chains too — one
+   host for all sixteen, and the only way those four join Movy's CPU
+   optimization. A setting hands them back to Schwung, per set or for good. The
+   16 are arranged as **four groups of four**: in Session view the +/− buttons
+   move between groups, and the step buttons pick a track.
 
 ## Inspiration & lineage
 
@@ -110,9 +112,10 @@ Movy stands on the shoulders of several projects:
 
   ![Live automation](docs/assets/auto_live.png)
 
-- **Sixteen tracks in four groups.** Tracks 1-4 are the Schwung tracks,
-  unchanged. Tracks 5-16 load a module the same way and Movy hosts the chain
-  itself, saved with the set. In Session view, **octave +/−** moves between the
+- **Sixteen tracks in four groups.** Tracks 1-4 are the Schwung tracks in a set
+  you already have; a new set hands them to Movy instead, which is what lets
+  them join the CPU optimization (see **Settings** below). Tracks 5-16 load a module the same way and Movy hosts
+  the chain itself, saved with the set. In Session view, **octave +/−** moves between the
   four groups and **a step button selects a track** — or hold **Session** and
   press a step from anywhere. Hold **Mute** anywhere — the pads, Loop mode,
   Session view — and the step row becomes a **16-track mute map**; add **Shift**
@@ -165,6 +168,15 @@ Movy stands on the shoulders of several projects:
   - **Set parameters** — tempo, swing, root, key.
 
   ![Step parameters](docs/assets/step_page_knobs.png)
+
+- **Settings — Shift + Step 2** — CPU optimization (multi-threaded chain
+  render, worth roughly 2× on a heavy set) with one switch to turn it off if a
+  module misbehaves, and which host owns tracks 1-4. The speed-up applies to
+  Movy's own tracks, so new sets hand tracks 1-4 to Movy as well; sets you
+  already have keep them on Schwung, behaving exactly as they do without Movy.
+  Each row explains itself on screen.
+
+  ![Settings](docs/assets/flags-release.png)
 
 - **Background mode** — Back at the root opens a Leave menu; choose Background
   to keep Movy sequencing under Move's own screens (synced LFOs stay locked).

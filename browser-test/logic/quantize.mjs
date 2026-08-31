@@ -5,6 +5,7 @@
  */
 
 import {
+    selectTrack,
     installMockFs, uninstallMockFs, quantCandidates, nextQuantCandidate, quantIndexForPct, candidateIndex,
     readPrefDefaultQuant, writePrefDefaultQuant, readPrefFileDir, writePrefFileDir,
     PREFS_PATH, FACTORY_DEFAULT_QUANT, armQuantOverlay, quantOverlayActive,
@@ -119,7 +120,7 @@ export async function run() {
 
     resetSeqEngine(); resetSeqState(); resetQuantOverlay(); engine.reset();
     seqEngineTick();   // prime: seqCmd only flushes once the engine is ready
-    seqState.watchTrack = 0; seqState.defaultQuant = 70; seqState.clipQuant = 0;
+    selectTrack(0); seqState.defaultQuant = 70; seqState.clipQuant = 0;
 
     armQuantOverlay(1000);
     eq('overlay is up after arming', quantOverlayActive(), true);

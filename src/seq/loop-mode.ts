@@ -18,6 +18,7 @@ import { seqCmd } from './engine.js';
 import { momentaryDown, momentaryGesture, momentaryUp } from './momentary.js';
 import { seqHeaderAnnounce, seqToast } from './render.js';
 import { clipBars, loopStartBar, seqState } from './state.js';
+import { watchedTrack } from './watch.js';
 
 const MAX_BARS = 16;
 /* Wall-clock, not tick-counted: the device tick rate is not a stable constant
@@ -107,8 +108,8 @@ function setLoopBars(startBar: number, endBar: number): void {
     const e = Math.max(s, Math.min(endBar, MAX_BARS - 1));
     const startStep = s * NUM_STEP_BUTTONS;
     const lenStep = (e - s + 1) * NUM_STEP_BUTTONS;
-    undoableEdit('SET LOOP', trackLabel(seqState.watchTrack),
-        () => seqCmd(`loop ${seqState.watchTrack} ${startStep} ${lenStep}`));
+    undoableEdit('SET LOOP', trackLabel(watchedTrack()),
+        () => seqCmd(`loop ${watchedTrack()} ${startStep} ${lenStep}`));
     // Optimistic mirror.
     seqState.loopStart = startStep;
     seqState.lenSteps = lenStep;
@@ -122,8 +123,8 @@ function setLoopBars(startBar: number, endBar: number): void {
 
 /* Shift+Step 15: double the loop (notes + length). */
 export function doubleLoop(): void {
-    undoableEdit('DOUBLE LOOP', trackLabel(seqState.watchTrack),
-        () => seqCmd('dbl ' + seqState.watchTrack));
+    undoableEdit('DOUBLE LOOP', trackLabel(watchedTrack()),
+        () => seqCmd('dbl ' + watchedTrack()));
     const bars = clipBars();
     if (loopStartBar() + bars * 2 <= MAX_BARS) {
         seqState.lenSteps = bars * 2 * NUM_STEP_BUTTONS; // optimistic

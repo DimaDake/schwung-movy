@@ -59,8 +59,17 @@ mirror in the UI.
 
 - **ENGINE_VERSION must match** between `engine/crates/movy-dsp/src/lib.rs`
   and `src/seq/constants.ts` (`build-dsp.sh` fails the build otherwise). The
-  UI probes `ping` and re-issues the DSP load until the version matches —
-  this is how a redeployed engine hot-reloads.
+  UI probes `ping` and re-issues the DSP load until the version matches.
+- **A redeployed `dsp.so` does NOT hot-reload — the stack must restart.** The
+  shim dlopens the engine by path, and glibc returns the library already loaded
+  under that path for as long as MoveOriginal lives, so the version gate above
+  just loops: it re-issues the load and the shim answers with the old binary.
+  `deploy.sh` therefore restarts the stack whenever the shipped `dsp.so`
+  differs (`--no-restart` opts out, and says loudly that the old engine is
+  still running). The restart must run **as root** — MoveOriginal is root's, so
+  `restart-move.sh` as the `ableton` user pkills nothing and still exits 0.
+  Bumping ENGINE_VERSION once for two different builds hides this completely:
+  both answer `ping` with the same string, and the stale one looks current.
 - **Engine sets must be blocking** (`host_module_set_param_blocking`): the
   `overtake_dsp:` param SHM is a single slot, so non-blocking writes (and even
   schwung's own DSP-load request) are routinely lost.
@@ -186,6 +195,10 @@ Other useful commands:
 ```bash
 # Build + deploy ui.js to device
 ./scripts/deploy.sh [move.local]
+
+# Same, but the bundle that SHIPS — the Settings page then lists only the two
+# flags marked `release`. ui.js reloads on tool OPEN, so reopen movy to see it.
+./scripts/deploy.sh --release [move.local]
 
 # Full automated test — deploy, open movy, inject knob CCs, check log (PASS/FAIL)
 ./scripts/test.sh [move.local]

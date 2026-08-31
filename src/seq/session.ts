@@ -20,7 +20,7 @@ import { seqCmd, requestLabelSync } from './engine.js';
 import { seqToast } from './render.js';
 import { seqState } from './state.js';
 import { appState } from '../app/state.js';
-import { focusedTrack } from '../track/focus.js';
+import { focusedTrack, selectTrack } from '../track/focus.js';
 import { dupActive, onUnit as dupOnUnit } from './duplicate.js';
 
 const COLS = 8;
@@ -78,9 +78,18 @@ export function sessionPad(padNote: number, padMin: number): void {
         dupOnUnit({ kind: 'clip', track, slot });
         return;
     }
-    // Launch the clip (or select-empty-stops). Also retarget the watched
-    // track so the step view follows.
-    seqState.watchTrack = track;
+    /* Launch the clip (or select-empty-stops), and SELECT its track: the clip
+     * you just launched is the one you are working on, so the knobs, screen,
+     * pads and step row all move to it. Retargeting only the step row left the
+     * instrument behind on another track — the same split that recorded a take
+     * onto the wrong track, reached from Session view instead of from the open.
+     *
+     * `selectTrack`, not a full `switchToTrack`: that closes Session view, and
+     * launching a clip must not throw you out of the grid you are launching
+     * from. The grid only shows the focused quartet, so the focus cannot move
+     * out from under the pad that was pressed. */
+    selectTrack(track);
+    appState.dirty = true;
     seqCmd(`launch ${track} ${slot}`);
 }
 

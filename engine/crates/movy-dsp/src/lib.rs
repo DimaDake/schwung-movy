@@ -7,6 +7,7 @@ mod click;
 mod ffi;
 mod host;
 mod chain_copy;
+mod chain_doc;
 mod chain_cost;
 mod chain_digest;
 mod chain_idle;
@@ -68,7 +69,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.48.0";
+const ENGINE_VERSION: &str = "0.54.0";
 
 /// Tracks backed by schwung's own shadow slots by default. Their notes go out as
 /// MIDI on the matching channel; everything above this index is a chain movy
@@ -149,6 +150,20 @@ impl Instance {
                         self.chains.on_midi(chain, &[0x80, pitch, 0], MOVE_MIDI_SOURCE_INTERNAL);
                     }
                 }
+            }
+            /* `padvel <0|1>` — Full Velocity (Shift + Step 10). The engine has to
+             * be told because it is the one building the note-on: for a movy
+             * track the UI does not send pad notes at all, so applying it only
+             * on the UI's own send left the toggle audible on host tracks and
+             * silent everywhere else. Pushed by comparison beside `padmap`, so
+             * a re-dlopened engine is told again. */
+            "padvel" => {
+                let on = val != "0" && !val.is_empty();
+                self.pads.set_full_velocity(on);
+                /* Logged like `chtracks`: it only ever moves on a deliberate
+                 * gesture, and it is the one place a device check can see that
+                 * the UI's toggle reached the thread that builds the note. */
+                host::log(&format!("pad velocity: {}", if on { "full" } else { "as played" }));
             }
             /* `chtracks <0|1>` — tracks 0..3 render on movy chains instead of
              * schwung's shadow slots. The UI acts on this too (it re-points
@@ -291,6 +306,17 @@ impl Instance {
                     }
                 }
             }
+            /* The whole chain set in one message. It used to cross as one
+             * unacknowledged write per component, and the writes that could not
+             * be serviced while an earlier load held the audio thread were
+             * dropped in silence — then the next save read back what had
+             * survived and wrote the shrunken set to disk. One document can be
+             * acknowledged, and retried whole when it is not. */
+            "chains" => {
+                if !self.chains.set_chain_set(val) {
+                    host::log("chains: malformed set document ignored");
+                }
+            }
             // Load persisted state (UI sends the autosave file's contents).
             "state" => {
                 if seq_core::persist::load(&mut self.engine, val) {
@@ -345,9 +371,9 @@ impl Instance {
                 /* Rides the existing poll rather than costing its own IPC: the
                  * UI needs to notice a chain change to persist it, and status
                  * is the one thing it already reads every few ticks. */
-                s.push_str(&format!(" chgen={} chact={} chslp={}",
+                s.push_str(&format!(" chgen={} chact={} chslp={} chpend={}",
                     self.chains.generation(), self.chains.active_count(),
-                    self.chains.asleep_count()));
+                    self.chains.asleep_count(), self.chains.pending_loads()));
                 Some(s)
             }
             "capinfo" => Some(self.engine.capture_info()),
@@ -360,6 +386,10 @@ impl Instance {
                 self.engine.dirty = false;
                 Some(s)
             }
+            /* What was REQUESTED, not what has finished loading: loads are
+             * released one per audio callback, so a save taken mid-drain must
+             * still report the whole set. */
+            "chains" => Some(self.chains.chain_set()),
             "chgen" => Some(self.chains.generation().to_string()),
             "chpeak" => Some(self.chains.peaks_csv()),
             "diag" => Some(format!(
@@ -373,6 +403,12 @@ impl Instance {
             )),
             _ if key.starts_with("ch") => {
                 let (slot, rest) = parse_chain_key(key)?;
+                /* Symmetric with set_param: the mix is movy's own state, not
+                 * any chain-host param, so forwarding this to the instance
+                 * answered "no such param" and the caller read unity. */
+                if rest == "mix" {
+                    return self.chains.mix_csv(slot);
+                }
                 self.chains.get_param(slot, rest)
             }
             _ => None,
@@ -554,8 +590,8 @@ unsafe extern "C" fn on_midi(instance: *mut c_void, msg: *const u8, len: c_int, 
             let d1 = unsafe { *msg.add(1) };
             let d2 = unsafe { *msg.add(2) };
             if let Some(i) = inst(instance) {
-                if let Some((chain, pitch, on)) = i.pads.route(status, d1, d2) {
-                    let m = if on { [0x90, pitch, d2] } else { [0x80, pitch, 0] };
+                if let Some((chain, pitch, vel, on)) = i.pads.route(status, d1, d2) {
+                    let m = if on { [0x90, pitch, vel] } else { [0x80, pitch, 0] };
                     i.chains.on_midi(chain, &m, MOVE_MIDI_SOURCE_INTERNAL);
                     return;
                 }
@@ -658,6 +694,21 @@ mod tests {
         }
     }
 
+    /* End to end through the param wire, because the bug was in the ROUTING:
+     * `ch<N>:mix` was forwarded to the chain instance, which has no such key,
+     * so every read answered "absent" and callers fell back to unity — the
+     * volume gesture restarted at 0 dB and a save had nothing to record. */
+    #[test]
+    fn a_chain_mix_round_trips_through_the_param_wire() {
+        let mut inst = Instance::new();
+        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("1.0000,0.0000,0"));
+        inst.set_param("ch4:mix", "0.3162,0,0");
+        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("0.3162,0.0000,0"));
+        // A garbled write leaves the last good level alone.
+        inst.set_param("ch4:mix", "nonsense");
+        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("0.3162,0.0000,0"));
+    }
+
     #[test]
     fn parses_a_midi_triplet() {
         assert_eq!(parse_midi_triplet("144.60.100"), Some([0x90, 60, 100]));
@@ -748,4 +799,22 @@ mod tests {
         assert_eq!(rest.strip_suffix(":module"), Some("synth"),
             "the component name is what the queue needs");
     }
+
+    /* The UI holds its loading splash until the chain modules exist, and the
+     * queue depth is the only thing that says whether they do. It rides the
+     * status poll the UI already makes every few ticks — `diag` carries it too,
+     * but reading diag would buy a second blocking get_param per tick for one
+     * number. */
+    #[test]
+    fn status_reports_the_chain_load_backlog() {
+        let mut inst = Instance::new();
+        let idle = inst.get_param("status").expect("status");
+        assert!(idle.contains(" chpend=0"), "an idle engine says so: {idle}");
+
+        inst.chains.request_load(0, "synth", "plaits");
+        inst.chains.request_load(1, "synth", "obxd");
+        let busy = inst.get_param("status").expect("status");
+        assert!(busy.contains(" chpend=2"), "queued loads are reported: {busy}");
+    }
+
 }

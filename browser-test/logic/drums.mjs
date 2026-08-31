@@ -57,6 +57,10 @@ _log('\nTest: drum module detection via loadHierarchy');
   eq('mrdrums: isDrum via drumPadCount', vm.drumPadCount, 16);
   // Focus is movy-owned: defaults to 1, NOT seeded from the DSP's ui_current_pad.
   eq('mrdrums: drumCurrentPad defaults to 1', vm.drumCurrentPad, 1);
+  /* And the GRID pad under it, or a freshly opened rack lights no pad white
+   * while the step lane is already editing pad 1 — the module looked like it
+   * had no pad selected until you hit one. */
+  eq('mrdrums: pad 1 is the lit grid pad', vm.drumCurrentPhysPad, 68);
 
   const krautPreset = {
     'synth:name': 'KrautDrums',
@@ -67,6 +71,7 @@ _log('\nTest: drum module detection via loadHierarchy');
   const vmk = mk.getViewModel();
   eq('krautdrums: drumPadCount=16', vmk.drumPadCount, 16);
   eq('krautdrums: drumCurrentPad defaults to 1', vmk.drumCurrentPad, 1);
+  eq('krautdrums: rawMidi pad 1 is the lit grid pad', vmk.drumCurrentPhysPad, 68);
 
   const plaitsPreset = {
     'synth:name': 'Plaits',
@@ -493,6 +498,34 @@ _log('\nTest: 9w9 padKeys per-pad addressing');
   nw.updateDrumPad(1, 68);
   eq('P.Depth live again on pad 1', nw.getKnobParamInfo(pdepth).ioKey, 'bd_c_sweep_depth');
   eq('P.Depth displays again on pad 1', cell(pdepth)?.displayValue, '14');
+}
+
+/* ── the drum grid's geometry ────────────────────────────────────────────── */
+
+_log('\nTest: drum grid mapping round-trips');
+
+{
+  const { drumPadOfPhys, drumNoteOfPhys, physPadOfDrumPad } =
+    await import('../../dist/esm/keyboard/drum-grid.js');
+
+  /* Input, LEDs, the engine's pad map and the model's initial focus all read
+   * these, so a pad and its rack position must be each other's inverse — a
+   * disagreement is a pad that sounds one voice and lights another. */
+  for (const cfg of [{ padCount: 16, padNoteStart: 36, rawMidi: false },
+                     { padCount: 8,  padNoteStart: 36, rawMidi: false },
+                     { padCount: 16, padNoteStart: 68, rawMidi: true }]) {
+    let roundTrips = 0;
+    for (let pad = 1; pad <= cfg.padCount; pad++) {
+      const phys = physPadOfDrumPad(pad, 68, cfg);
+      if (drumPadOfPhys(phys, 68, cfg) === pad
+          && drumNoteOfPhys(phys, 68, cfg) === cfg.padNoteStart + pad - 1) roundTrips++;
+    }
+    eq(`pad ↔ grid position round-trips (${cfg.rawMidi ? 'rawMidi' : 'rack'} ${cfg.padCount})`,
+       roundTrips, cfg.padCount);
+  }
+  eq('the fifth column is not part of a rack', drumPadOfPhys(72, 68, { padCount: 16, padNoteStart: 36, rawMidi: false }), -1);
+  eq('nor is a pad past the module\'s count', drumPadOfPhys(76, 68, { padCount: 4, padNoteStart: 36, rawMidi: false }), -1);
+  eq('a dead pad plays no note', drumNoteOfPhys(72, 68, { padCount: 16, padNoteStart: 36, rawMidi: false }), -1);
 }
 
 /* ── drumPadOn / drumPadOff ──────────────────────────────────────────────── */

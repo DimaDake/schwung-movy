@@ -77,7 +77,7 @@ export function seqNotePadPlayed(track: number, padNote: number, midiNote: numbe
 }
 
 /* Pad note-off: drop it from the held chord and end any recording capture. The
- * track comes from the caller's ledger lookup, not seqState.watchTrack — a
+ * track comes from the caller's ledger lookup, not watchedTrack() — a
  * track switch mid-hold used to send the capture-off to the wrong track and
  * leave a dangling rec_pending in the engine. */
 export function seqNotePadReleased(padNote: number, track: number): void {

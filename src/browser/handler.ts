@@ -1,4 +1,4 @@
-import { portFor } from '../track/registry.js';
+import { componentPort } from '../track/registry.js';
 import { browserState } from './state.js';
 import { appState, VIEW_BROWSE } from '../app/state.js';
 import { moduleReadKey, type ChainSlot } from '../chain/config.js';
@@ -51,9 +51,11 @@ function scanModules(slot: ChainSlot): { id: string; name: string; path: string 
  * `paramSlot` is a TRACK INDEX (0-15), not a schwung slot — it stopped being a
  * slot number when movy started hosting its own chains, and the name is kept
  * only because it is also the key undo records module ops under. Everything
- * here reaches the track through `portFor`, so a movy-hosted track browses and
- * loads exactly like a host one; the write lands as `ch<N>:<component>:module`
- * instead of a shadow-slot param. The master bus passes 0.
+ * here reaches the track through `componentPort`, so a movy-hosted track browses
+ * and loads exactly like a host one; the write lands as `ch<N>:<component>:module`
+ * instead of a shadow-slot param. The master bus passes 0 — and its `master_fx:`
+ * keys are schwung's own, so `componentPort` keeps them on a shadow slot however
+ * `chtracks` has resolved track 0.
  *
  * `reload` refreshes the model backing this slot after a load. Generalized over
  * CHAIN_SLOTS and MASTER_FX_SLOTS so master FX slots browse/load like track
@@ -64,7 +66,8 @@ export function openBrowser(slot: ChainSlot, paramSlot: number, reload: () => vo
     browserState.reload       = reload;
     browserState.modules      = [{ id: '', name: 'NONE', path: '' }, ...scanModules(slot)];
     browserState.browseIndex  = 0;
-    const activeId = portFor(paramSlot).getParam( moduleReadKey(slot.componentKey)) || '';
+    const activeId = componentPort(paramSlot, slot.componentKey)
+        .getParam(moduleReadKey(slot.componentKey)) || '';
     const idx = browserState.modules.findIndex(m => m.id === activeId);
     if (idx >= 0) browserState.browseIndex = idx;
     /* The only trace the browser leaves. Without it a device test cannot tell
@@ -91,8 +94,8 @@ export function loadSelectedModule(): void {
     /* Dump BEFORE the write: schwung tears the outgoing module down, and after
      * that its params are unrecoverable. A reselect of the same module records
      * nothing — it changes no state worth an undo press. */
-    const prevId = portFor(browserState.paramSlot).getParam(
-        moduleReadKey(browserState.componentKey)) || '';
+    const prevId = componentPort(browserState.paramSlot, browserState.componentKey)
+        .getParam(moduleReadKey(browserState.componentKey)) || '';
     /* Compare identities, not the written value: for a master slot `value` is a
      * path while `prevId` is an id, so comparing them called every reselect a
      * change. */
@@ -131,7 +134,7 @@ export function loadSelectedModule(): void {
             leadCount: dump.leadCount,
         });
     }
-    const port = portFor(browserState.paramSlot);
+    const port = componentPort(browserState.paramSlot, browserState.componentKey);
     if (isMaster) {
         /* Blocking, unlike the track path: the mirror resync below immediately
          * reads back what the shim loaded, and a plain set is fire-and-forget

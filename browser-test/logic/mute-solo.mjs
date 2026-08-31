@@ -5,6 +5,7 @@
  */
 
 import {
+    selectTrack, watchedTrack,
     trackRef, TRACK_COUNT, installMockEngine, uninstallMockEngine, resetSeqEngine, appState,
     eq, _log,
 } from './harness.mjs';
@@ -352,32 +353,38 @@ export async function run() {
     eq('ungated other-button none', momentaryUpUngated(58), 'none');
 }
 
-/* ── restoreTrackState: puts back watchTrack + barOffset on a peek revert ── */
+/* ── restoreTrackState: puts back the track + barOffset on a peek revert ── */
 {
     _log('\nrestoreTrackState:');
     const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
-    const { resetSeqEngine, peekSeqCmdQueue } = await import('../../dist/esm/seq/engine.js');
+    const { seqEngineTick, resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
     const { restoreTrackState } = await import('../../dist/esm/track/switch.js');
 
-    installMockEngine();
+    const engine = installMockEngine();
     resetSeqEngine(); resetSeqState();
-    seqState.watchTrack = 2;
+    seqEngineTick();                    // boot the engine so commands can flush
+    selectTrack(2);
     seqState.barOffset  = 3;
 
     restoreTrackState({ track: 0, view: 0, session: false, loop: false });
-    eq('watchTrack restored to 0', seqState.watchTrack, 0);
+    eq('the step view followed the revert', watchedTrack(), 0);
     eq('barOffset reset to 0',     seqState.barOffset,  0);
-    eq('watch cmd emitted', peekSeqCmdQueue().some(c => c === 'watch 0'), true);
+    /* Asserted on what the ENGINE received, a tick later: the revert selects
+     * the track, and seq/watch.ts reconciles the subscription from there. */
+    engine.ops.length = 0;
+    seqEngineTick();
+    eq('and the engine was told', engine.ops.includes('watch 0'), true);
 
-    /* Restoring to the track already being watched is a no-op on the watch
-     * target: the switch it reverts never moved it, so it never wiped the bar
-     * offset either, and re-sending `watch` would be a wasted blocking IPC. */
-    resetSeqEngine();
-    seqState.watchTrack = 1; seqState.barOffset = 2;
-    restoreTrackState({ track: 1, view: 0, session: false, loop: false });
+    /* Reverting to the track already selected moves nothing: the switch it
+     * undoes never left, so the bar offset stands and the engine — which is
+     * already watching that track — is not told again. */
+    seqState.barOffset = 2;
+    engine.ops.length = 0;
+    restoreTrackState({ track: 0, view: 0, session: false, loop: false });
+    seqEngineTick();
     eq('same track: barOffset untouched', seqState.barOffset, 2);
-    eq('same track: no watch cmd',        peekSeqCmdQueue().some(c => c === 'watch 1'), false);
+    eq('same track: no watch cmd',        engine.ops.some(c => c === 'watch 0'), false);
 
     // The session/loop modes it carries are restored verbatim.
     resetSeqEngine();

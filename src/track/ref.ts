@@ -9,6 +9,7 @@
  * `host-mode.ts` is what drops that cache when the setting moves. */
 
 import { flagValue } from '../seq/flags.js';
+import { resolveHost } from '../seq/flags-def.js';
 
 /** Tracks backed by a schwung shadow slot. Their index IS their slot number.
  *
@@ -36,9 +37,15 @@ export interface TrackRef {
     kind:  TrackKind;
 }
 
+/** Whether tracks 1-4 are movy chains right now: the global mode, plus — when
+ *  the mode defers to it — the value the current set carries. */
+export function movyTracksOn(): boolean {
+    return resolveHost(flagValue('chtracks'), flagValue('chtrackset'));
+}
+
 export function trackKind(index: number): TrackKind {
     if (index >= HOST_TRACKS) return 'movy';
-    return flagValue('chtracks') > 0 ? 'movy' : 'host';
+    return movyTracksOn() ? 'movy' : 'host';
 }
 
 export function trackRef(index: number): TrackRef {

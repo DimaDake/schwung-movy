@@ -444,7 +444,7 @@ export async function run() {
   L.drainAll();
   // Pad 68 on track 1, while track 1 is still a schwung slot.
   L.noteSounded(68, 1, 60);
-  eq('the track started as a host slot', flagValue('chtracks'), 0);
+  eq('the track started as a host slot', trackRef(1).kind, 'host');
 
   setMovyTracks(true);
 
@@ -526,6 +526,16 @@ export async function run() {
   appState.masterFxModels[0].tick();
   eq('master FX still reads through a schwung slot', slotReads.length > 0, true);
   eq('and never namespaces its keys to a chain',
+     chainReads.filter((k) => k.indexOf('ch') === 0).join(','), '');
+
+  /* The master chain's own two LFOs ride the very same carrier slot, and a port
+   * taken by track index swallows them the same way — an assign that writes
+   * `ch0:master_fx:lfo1:target` moves nothing and reports nothing. */
+  const { masterScope } = await import('../../dist/esm/lfo/scope.js');
+  slotReads.length = 0; chainReads.length = 0;
+  masterScope().port.getParam('master_fx:lfo1:depth');
+  eq('the master LFOs read through a schwung slot too', slotReads.length > 0, true);
+  eq('and are not namespaced to a chain either',
      chainReads.filter((k) => k.indexOf('ch') === 0).join(','), '');
 
   setMovyTracks(false);

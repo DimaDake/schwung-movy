@@ -158,3 +158,7 @@ Whatever prunes, it must use davebox's aliveness test rather than a bare check
 of `Sets/`: switching Schwung set pages moves whole Sets into
 `set_pages/page_<n>/`, so from any other page every Set on every other page
 looks deleted. Movy's `setUuidAlive` (`src/seq/set-gc.ts`) already implements it.
+
+The benefits and costs of that move — including the two that hold up without
+the alignment argument, and the one that turned out to depend on an upstream
+change — are worked through in `engine-owned-persistence.md`.

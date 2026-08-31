@@ -18,6 +18,7 @@ import { muteHeld } from './router-buttons.js';
 import { loopEndBar, loopStartBar, occHasStep, seqState, stepInLoop } from './state.js';
 import { stepRecActive, stepRecCanGoLeft, stepRecHead } from './step-rec.js';
 import { cachedSetLED, cachedSetButtonLED, cachedSetAnimLED, ledFrameReset, seqLedsInvalidate } from './led-cache.js';
+import { watchedTrack } from './watch.js';
 
 /* Re-exported so callers keep importing the LED API from one place. */
 export { seqLedsInvalidate, cachedSetAnimLED, ledFrameReset };
@@ -82,7 +83,7 @@ function paintLoopBars(): void {
             isPlayhead: bar === playBar,
             selected: bar === seqState.barOffset,
             inLoop: bar >= start && bar <= end,
-            track: seqState.watchTrack,
+            track: watchedTrack(),
         });
         cachedSetAnimLED(STEP_NOTE_BASE + bar, led.base, led.anim, led.channel);
     }
@@ -302,8 +303,9 @@ export function seqLedsTick(
 
     // Step-row: empty+playing → cycling green beat-group; else span/playhead/occ/loop.
     const playStep = seqState.playing ? seqState.curStep : -1;
-    const dimTrack = trackColorDim(seqState.watchTrack);
-    const { holdStep, holdLen, watchTrack } = seqState;
+    const dimTrack = trackColorDim(watchedTrack());
+    const { holdStep, holdLen } = seqState;
+    const watchTrack = watchedTrack();
     const emptyMetro = seqState.lenSteps === 0 && seqState.playing;
     // The step-record head outranks every other step colour, including the
     // past-the-clip-length blackout — in grow mode the head legitimately sits

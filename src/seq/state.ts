@@ -5,6 +5,7 @@
  * one tick instead of one poll interval. */
 
 import { TRACK_COUNT } from '../track/ref.js';
+import { readPrefFullVelocity, writePrefFullVelocity } from './prefs.js';
 
 export interface SeqUiState {
     /* engine link */
@@ -18,7 +19,12 @@ export interface SeqUiState {
     activeNotes: Uint8Array; // track*128 + pitch, 1 = sounding (from `act=`)
 
     /* watched clip (active track's selected clip) */
-    watchTrack: number;      // track whose clip the step LEDs show
+    /* The track the engine says these fields describe. NOT "the track being
+     * edited" — that is seq/watch.ts's watchedTrack(), which is UI-owned and
+     * derived from the selected track. This one exists so the reconciler can
+     * tell whether the engine has heard us yet; reading it as the edit target
+     * is what sent a take to the wrong track. */
+    reportedTrack: number;
     curStep: number;         // playhead step within the watched clip
     lenSteps: number;        // watched clip loop length in steps (0 = empty)
     loopStart: number;       // watched clip loop-window start step
@@ -48,6 +54,10 @@ export interface SeqUiState {
     capGen: number;
     metro: boolean;
     dirty: boolean;          // engine has unsaved state changes
+    /* Chain-module loads the engine has accepted but not yet released — it
+     * releases at most one per audio callback, so a restored Set's modules
+     * arrive over seconds. Nonzero means the Set is named but not yet playable. */
+    chainPending: number;
 
     /* note entry */
     lastPitch: number[];     // per-track: last played pitch (step-entry value)
@@ -109,7 +119,7 @@ function defaults(): SeqUiState {
         linkEnabled: false,
         swingPct: 50,
         activeNotes: new Uint8Array(TRACK_COUNT * 128),
-        watchTrack: 0,
+        reportedTrack: 0,
         curStep: 0,
         lenSteps: 0,
         loopStart: 0,
@@ -126,6 +136,7 @@ function defaults(): SeqUiState {
         capGen: -1,
         metro: false,
         dirty: false,
+        chainPending: 0,
         lastPitch: new Array(TRACK_COUNT).fill(60) as number[],
         lastVel: new Array(TRACK_COUNT).fill(100) as number[],
         barOffset: 0,
@@ -247,6 +258,19 @@ export function loopEndBar(): number {
 }
 
 export const seqState: SeqUiState = defaults();
+
+/* Full velocity is durable, and prefs.json is where it lives (prefs.ts says
+ * why). Both halves are here so the field cannot be written past its store:
+ * the toggle goes through `setFullVelocity`, and a fresh open seeds the mirror
+ * from the file before any pad can be hit. */
+export function setFullVelocity(on: boolean): void {
+    seqState.fullVelocity = on;
+    writePrefFullVelocity(on);
+}
+
+export function loadFullVelocityPref(): void {
+    seqState.fullVelocity = readPrefFullVelocity();
+}
 
 export function resetSeqState(): void {
     Object.assign(seqState, defaults());

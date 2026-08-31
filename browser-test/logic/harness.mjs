@@ -53,7 +53,17 @@ import {
     flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
 } from '../../dist/esm/seq/flags-page.js';
 import { buildFlagsPageVM } from '../../dist/esm/seq/flags-page-vm.js';
-import { VISIBLE_ROWS, firstVisibleRow } from '../../dist/esm/renderer/flags-view.js';
+import { visibleFlags } from '../../dist/esm/seq/flags-visible.js';
+import { movyTracksOn } from '../../dist/esm/track/ref.js';
+import { loadSetHostChoice } from '../../dist/esm/track/host-mode.js';
+import { loadPerSetFlags } from '../../dist/esm/seq/flags.js';
+import { resetPorts } from '../../dist/esm/track/registry.js';
+import { serializeUiState, applyUiState, resetUiState } from '../../dist/esm/seq/ui-state.js';
+import { VISIBLE_ROWS, firstVisibleRow, HINT_W, HINT_LINES } from '../../dist/esm/renderer/flags-view.js';
+import { wrapWords } from '../../dist/esm/renderer/wrap.js';
+import { fontWidth } from '../../dist/esm/font/index.js';
+import { W } from '../../dist/esm/renderer/layout.js';
+import { DETENT_DIV } from '../../dist/esm/seq/detent.js';
 import { readPrefFlags, writePrefFlag, readPrefModuleBlacklist } from '../../dist/esm/seq/prefs.js';
 import { DEBUG_BUILD } from '../../dist/esm/app/debug.js';
 import { openParamPage, closeParamPage, paramPageActive } from '../../dist/esm/seq/param-page.js';
@@ -120,6 +130,11 @@ import { shapeSample, drawWave } from '../../dist/esm/renderer/lfo-wave.js';
 import { CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../../dist/esm/chain/config.js';
 import { init } from '../../dist/esm/app/init.js';
 import { appState } from '../../dist/esm/app/state.js';
+/* The sequencer's track is the SELECTED track — a suite that wants the step row
+ * on track N selects track N, the way a user does. There is no separate field
+ * to set: seq/watch.ts derives the engine's watch from this one. */
+import { selectTrack } from '../../dist/esm/track/focus.js';
+import { watchedTrack } from '../../dist/esm/seq/watch.js';
 
 /* ── Mock globals ─────────────────────────────────────────────────────────── */
 
@@ -145,7 +160,17 @@ console.log = (...args) => {
 let failures = 0;
 function failureCount() { return failures; }
 
-function ok(label)        { _log(`  \x1b[32m✓\x1b[0m ${label}`); }
+/* `ok(label)` passes unconditionally — that is how `eq` reports a pass. With a
+ * second argument it is an ASSERTION, and a falsy one fails.
+ *
+ * It used to take the label alone and ignore everything else, so ~50
+ * `ok(label, condition)` calls across these suites printed a green tick without
+ * ever evaluating the condition. Found by mutating a value the check was
+ * supposed to catch and watching the suite stay green. */
+function ok(label, cond = true, why = '') {
+    if (cond) _log(`  \x1b[32m✓\x1b[0m ${label}`);
+    else fail(label, why || 'expected a truthy value');
+}
 function fail(label, why) { _log(`  \x1b[31m✗\x1b[0m ${label}: ${why}`); failures++; }
 
 function eq(label, actual, expected) {
@@ -161,8 +186,11 @@ function notMatch(label, str, pattern) {
 
 /* The last MUSICAL op. Undo brackets every edit with ring bookkeeping
  * (usnap/ucommit/udrop/uswap), which is never what a test asserting "the
- * command the gesture emitted" means. */
-const UNDO_RING = /^(usnap|uswap|ucommit|udrop|uclr)\b/;
+ * command the gesture emitted" means — and neither is the view subscription
+ * (`watch`/`wlane`) the engine tick reconciles at the end of every batch. Both
+ * are bookkeeping on the engine's side too: seq-core/src/command.rs classifies
+ * them as non-musical, so this list agrees with the engine's own. */
+const UNDO_RING = /^(usnap|uswap|ucommit|udrop|uclr|watch|wlane)\b/;
 function lastMusicalOp(ops) {
     for (let i = ops.length - 1; i >= 0; i--) if (!UNDO_RING.test(ops[i])) return ops[i];
     return undefined;
@@ -206,6 +234,9 @@ export {
     flagValue, setFlag, applyFlagsToEngine, resetFlags,
     flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
+    visibleFlags, movyTracksOn, loadSetHostChoice, loadPerSetFlags, resetPorts,
+    wrapWords, HINT_W, HINT_LINES, DETENT_DIV, fontWidth, W,
+    serializeUiState, applyUiState, resetUiState,
     readPrefModuleBlacklist,
     DEBUG_BUILD, openParamPage, closeParamPage, paramPageActive,
     VIEW_FLAGS, VIEW_CHAIN, VIEW_MAIN_PARAMS,
@@ -229,7 +260,7 @@ export {
     holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle,
     assignCommit, assignToastText, resetAssignMode, jogHintTouch, jogHintTick, jogHintVisible,
     shapeSample, drawWave, CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot, init,
-    appState, ok, fail, eq, notMatch, bootModel,
+    appState, selectTrack, watchedTrack, ok, fail, eq, notMatch, bootModel,
     bankNames, P, lastMusicalOp, musicalOps, UNDO_RING, _log,
     env, mockFsEntries, failureCount,
 };

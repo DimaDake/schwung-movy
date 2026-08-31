@@ -34,6 +34,7 @@ official docs first:
 4. [Keyboard & drums](#4-keyboard--drums)
 5. [The sequencer (aligned with Move)](#5-the-sequencer-aligned-with-move)
 6. [Beyond Move: Step, Clip & Set parameters](#6-beyond-move-step-clip--set-parameters)
+   - [Settings](#settings--shift--step-2)
 6a. [Undo & redo](#6a-undo--redo)
 7. [Limitations vs Move](#7-limitations-vs-move)
 8. [Controls reference](#8-controls-reference)
@@ -62,10 +63,29 @@ For the first few seconds Movy shows **STARTING ENGINE**, then **LOADING SET**:
 
 ![Starting up](docs/assets/session_booting.png)
 
-The pads, knobs and buttons are inert until it is done, and that is deliberate.
-Everything you play or enter after that point belongs to the Set; nothing you do
-before it can be lost. (**Back** always works, so a Movy that cannot start is
-never a trap.)
+Reading the Set is only the first half. Its instruments are loaded one at a time
+— a full Set is twelve of them — so the screen then counts them in with
+**LOADING MODULES**:
+
+![Loading the Set's modules](docs/assets/session_modules.png)
+
+and finishes on **PREPARING SET**, which is Movy asking Move to file the Set
+under a real name (see *Which Set your sequence belongs to* below). Move owns
+the pads for about a second there, which is the other reason to wait it out.
+
+![Preparing the Set](docs/assets/session_preparing.png)
+
+The pads, knobs and buttons are inert until all of that is done, and that is
+deliberate. Everything you play or enter after that point belongs to the Set,
+and to the instruments the Set actually loaded; nothing you do before it can be
+lost or land on the wrong module. (**Back** always works, so a Movy that cannot
+start is never a trap.)
+
+Switching Sets shows the same screens again — the incoming Set's instruments
+have to be loaded just like the first one's.
+
+If a module never loads, Movy gives up waiting after ten seconds and starts
+anyway: what did load still plays.
 
 If a Set's saved sequence cannot be read, Movy says so instead of starting
 empty and letting you discover it later:
@@ -85,15 +105,18 @@ Deleting a Set in Move takes its Movy sequence with it — the Set Move creates 
 its place starts blank, the same way its instrument slots do. Movy also clears
 out sequences whose Set has been deleted the next time you open it.
 
-Set pads you have never saved anything into from Move itself are a special case
-worth knowing about. Move only writes such a Set to disk once *Move* has
-something to save in it, and if you work entirely inside Movy it never does — so
-neither Schwung nor Movy has a Set to file your work under, and **what you record
-there will not be waiting for you next time**. This affects your instruments the
-same way it affects your sequence, and it is the same on Schwung and davebox.
-Recording anything into the Set from Move itself makes it real, after which
-everything persists normally — and only a real Set can be renamed, copied or
-backed up. (`docs/pending-sets.md` has the detail.)
+Set pads you have never saved anything into from Move itself used to be a
+special case. Move only writes such a Set to disk once *Move* has something to
+save in it, and if you work entirely inside Movy it never does — so neither
+Schwung nor Movy had a Set to file the work under, and what you recorded there
+was not waiting for you next time. **Movy now commits the Set for you**: on the
+first visit it hands Move's own firmware a track-1 press, which is enough for
+Move to write the Set, and Movy's sequence and Schwung's instruments are then
+saved alongside it. It happens once per Set, and the visible cost is that **the
+pads may blink briefly while it happens** — for that moment the surface belongs
+to Move. The workaround lives in Movy today; Schwung is where it belongs, and
+there it could be done without the blink. (`docs/pending-sets.md` has the
+detail.)
 
 The **screen** is the 128×64 OLED. A typical parameter page looks like this:
 
@@ -526,7 +549,10 @@ track it has nothing to be told, so the knob stays on Move's *master* volume.
 Known limitation, not by design.
 
 The value belongs to the track — a Schwung slot for tracks 1-4, Movy's own mixer
-for 5-16 — and it survives leaving and re-entering Movy.
+for 5-16 — and it is **saved with the Set**, so it survives leaving Movy, a
+power cycle, and switching to another Set and back. A Movy-hosted track's level
+is saved alongside its chain, so a chain with nothing loaded in it has no level
+to keep.
 
 ### The LFO page
 
@@ -687,6 +713,16 @@ pages instead of a page per voice. *Signal* (4 voices) works this way:
 
 ![Pad-selected voice page](docs/assets/signal_voice.png)
 
+*Sample Slicer* is a slice player rather than a kit: its **32 pads are the 32
+slices** the module can trigger (pad 1 = slice 1). Its Main page carries the
+**Sample** browser — hold that knob and click the jog to browse
+`UserLibrary/Samples` — and a **Scan Slices** action next to it, which is what
+turns a freshly loaded sample into slices. The **Slice** page then edits
+whichever slice you last hit: start, end, attack, decay, pitch, gain, mode and
+loop. Those per-slice knobs are not automatable — the module points them at the
+slice it is playing, so a lane would land on whatever the sequencer triggered
+last.
+
 *Forge* takes it further: its **16 pads are a Kit A↔B performance grid** (lower
 two rows = Kit A, upper two = Kit B; the *Morph* knob crossfades them), and
 tapping any pad selects that voice for deep editing across six pages —
@@ -729,7 +765,9 @@ for the concepts:
 
 - **Clips** — one clip per track slot; steps entered on the 16 step buttons.
 - **Session view & clip launching** — press **Note/Session** to see the clip
-  grid; pads launch clips. Hold it for a momentary peek; tap to latch.
+  grid; pads launch clips. Launching a clip also **selects its track**, so the
+  knobs, screen and step row all move to the clip you just started. Hold
+  Note/Session for a momentary peek; tap to latch.
 - **16 tracks in four groups** — see [Tracks and groups](#tracks-and-groups)
   below.
 - **Live recording** — **Rec** arms recording with a one-bar **count-in**; play
@@ -748,6 +786,10 @@ for the concepts:
   **end of the clip**, whichever comes first — so however long you lean on the
   pad, it never wraps round the loop into a drone.
 - **Metronome** — toggle with **Shift + Step 6**.
+- **Full velocity** — **Shift + Step 10** makes every pad note leave at
+  127, whatever you actually hit the pad with. It is a way of playing
+  rather than part of a piece of music, so it stays where you left it: in
+  every set, and after closing and reopening Movy.
 - **Step recording** — hold **Rec** while stopped and play the pads to enter
   notes one step at a time; see [Step recording](#step-recording) below.
 - **Capture** — play first, keep it after: see
@@ -881,21 +923,23 @@ never in the same row or the same column, so two tracks you can see at the same
 time never share one. Eight well-separated colours is also all this hardware
 offers — the pale and cool ones wash out to white next to the lit in-scale pads.
 
-**Tracks 5-16 host their own instruments.** Tracks 1-4 are the four Schwung
-tracks and behave as they always have — they are Move's, and Move's mixer sees
-them. Tracks 5-16 are movy's own: load a module onto one exactly as you would on
-a track button track, and movy hosts the whole chain itself.
+**Tracks 5-16 host their own instruments.** Load a module onto one exactly as
+you would on a track button track, and movy hosts the whole chain itself.
+Tracks 1-4 can be either Schwung's four slots — Move's, with Move's mixer seeing
+them — or movy's own, which is what a new set gets by default; **TRACKS 1-4
+HOST** on the [Settings page](#settings--shift--step-2) is what decides, and the
+two differences below apply to whichever tracks movy is hosting.
 
 Two differences worth knowing:
 
-- **Move's mixer sees all twelve as one channel.** Movy sums them into a single
-  stereo output, so their levels are movy's own and the Move fader does not reach
-  them individually. Set them with **Shift + hold track + volume encoder** —
+- **Move's mixer sees every movy-hosted track as one channel.** Movy sums them
+  into a single stereo output, so their levels are movy's own — the Move fader
+  does not reach them individually, and Movy saves them in the set itself. Set them with **Shift + hold track + volume encoder** —
   ⚠️ on tracks 5-16 the plain gesture *without* Shift does not work yet and moves
   Move's master volume instead, so use Shift there. Tracks 1-4 take either.
-- **They sound only while movy is open** (or parked in Background mode). The
-  four Schwung tracks keep playing under Move's own UI; movy's twelve stop when
-  movy closes, because movy is what renders them.
+- **They sound only while movy is open** (or parked in Background mode). A
+  Schwung-hosted track keeps playing under Move's own UI; a movy-hosted one
+  stops when movy closes, because movy is what renders it.
 
 Their modules and settings are saved with the set, so a movy track comes back
 the way you left it.
@@ -1311,6 +1355,42 @@ other is up *replaces* it, so a single **Back** always leaves for the view you
 started from — never for the other page. Switching tracks or going to Session
 view closes them as well, so neither page follows you around.
 
+### Settings — Shift + Step 2
+
+**Shift + Step 2** opens **Settings**, a scrolling list rather than a knob page:
+the **jog** moves the selection, **knob 1** changes the selected row's value,
+**Back** closes it. The line at the bottom explains whichever row is selected.
+
+![Settings](docs/assets/flags-release.png)
+
+**CPU OPTIMIZE** (ON) lets Movy render its chains on several threads and skip
+chains that are silent. It is worth roughly 2× on a heavy set, and it is the
+difference between a big set staying inside the audio frame and crackling. It
+applies to **Movy's own tracks only** — a Schwung track renders exactly as it
+does without Movy. Turn it **OFF** only if a particular module misbehaves: a few
+plugins are not safe to run off the audio thread, and this is the escape hatch.
+Everything under it (how many threads, how aggressively silent chains sleep)
+stays at the setting that measured best.
+
+**TRACKS 1-4 HOST** decides who owns the first four tracks. Tracks 5-16 are
+always Movy's own; tracks 1-4 can be either:
+
+| Value | Tracks 1-4 |
+| --- | --- |
+| **SCHWUNG** | Schwung's four slots, exactly as they behave without Movy: Move's mixer fader, per-slot Link Audio, Schwung's own cached parameter reads, and no share of the CPU optimization above |
+| **MOVY** | Movy hosts them like tracks 5-16, so they join the CPU optimization — worth ~20-25 % of the chain render |
+| **NEW SETS** *(default)* | each set decides — see below |
+
+On **NEW SETS**, a set that Movy has never opened before starts on MOVY, and a
+set you already have stays on SCHWUNG. Nothing is migrated either way: switching
+a set over does not move an instrument from one host to the other — the Schwung
+slot keeps what it holds and simply stops being played, and switching back finds
+it exactly as it was.
+
+**THIS SET** appears only under NEW SETS, and is the current set's own answer.
+Change it to move just the set you are in; it is saved with the set and travels
+with it.
+
 ---
 
 ## 6a. Undo & redo
@@ -1409,9 +1489,11 @@ missing or simplified. **All of these are candidates for future work — and
   not a promise.
 - **Track + volume needs Shift on tracks 5-16** (see
   [Track volume](#track-volume)).
-- **Movy-hosted tracks are silent while Movy is closed.** Tracks 1-4 keep playing
-  under Move's own UI; 5-16 need Movy open, or parked in
-  [Background mode](#background-mode--keep-playing-under-moves-ui).
+- **Movy-hosted tracks are silent while Movy is closed.** Only Schwung-hosted
+  tracks keep playing under Move's own UI; a movy-hosted one needs Movy open, or
+  parked in [Background mode](#background-mode--keep-playing-under-moves-ui).
+  Since a new set puts tracks 1-4 on movy's chains, that now applies to them
+  too unless you hand them back on the Settings page.
 - **Simplified clip model.** Sequencer resolution and some clip-level features
   are reduced compared to Move.
 - **Rough edges.** Expect occasional display glitches or, rarely, a crash that
@@ -1489,10 +1571,11 @@ behaviour you'd like — or, better, a PR.
 
 | Combo | Action |
 | --- | --- |
+| **Shift + Step 2** | Open **Settings** (CPU optimization, which host owns tracks 1-4). |
 | **Shift + Step 3** | Open **Clip parameters** (scale, length, transpose, quantize; Track view). |
 | **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/link/quantize, root/key/mode/layout). |
 | **Shift + Step 6** | Toggle the **metronome**. |
-| **Shift + Step 10** | Toggle **full velocity**. |
+| **Shift + Step 10** | Toggle **full velocity** — every pad note at 127. Kept across sets and restarts. |
 | **Shift + Step 15** | **Double** the loop. |
 | **Shift + Step 16** | Cycle the current clip's **quantization** (0 / default / 100 %). |
 

@@ -14,6 +14,7 @@ import {
     CC_MUTE, MAIN_PAGE_STEPS, STEP_CLIP_PARAMS, STEP_METRO, STEP_FULL_VEL,
     STEP_NOTE_BASE, STEP_QUANTIZE,
 } from './constants.js';
+import { watchedTrack } from './watch.js';
 
 /* Wall-clock, not ticks. The device tick rate swings 63-205 Hz with load, so a
  * tick-counted lifetime would be 0.96 s on a busy device and 3.1 s on an idle
@@ -61,7 +62,7 @@ export function dismissQuantOverlay(): void {
     untilMs = 0;
     /* The audition ends here, so the gesture the shortcut opened closes here:
      * walking 0 -> 70 -> 100 is one undo back to where you started. */
-    endEdit('quant:' + seqState.watchTrack);
+    endEdit('quant:' + watchedTrack());
     appState.dirty = true;
 }
 
@@ -85,7 +86,7 @@ export function quantOverlayJog(delta: number, nowMs: number): void {
     const next = Math.max(0, Math.min(cands.length - 1, (cur < 0 ? 0 : cur) + n));
     if (cands[next] !== seqState.clipQuant) {
         seqState.clipQuant = cands[next];
-        seqCmd('cq ' + seqState.watchTrack + ' ' + cands[next]);
+        seqCmd('cq ' + watchedTrack() + ' ' + cands[next]);
     }
     appState.dirty = true;
 }
@@ -131,7 +132,7 @@ export function buildQuantOverlayVM(): QuantOverlayVM {
     const cands = quantCandidates(seqState.defaultQuant);
     const d = Math.max(0, Math.min(100, Math.round(seqState.defaultQuant)));
     return {
-        track: seqState.watchTrack,
+        track: watchedTrack(),
         values: cands.map((v) => v + '%'),
         selIdx: candidateIndex(seqState.clipQuant, seqState.defaultQuant),
         defIdx: d === 0 || d === 100 ? -1 : cands.indexOf(d),

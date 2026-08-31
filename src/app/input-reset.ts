@@ -20,7 +20,6 @@ import { resetMomentary } from '../seq/momentary.js';
 import { resetMainPage } from '../seq/main-page.js';
 import { resetClipPage } from '../seq/clip-page.js';
 import { resetFlagsPage } from '../seq/flags-page.js';
-import { DEBUG_BUILD } from './debug.js';
 import { resetEditOps } from '../seq/edit-ops.js';
 import { resetDuplicate } from '../seq/duplicate.js';
 import { resetLoopMode } from '../seq/loop-mode.js';
@@ -36,6 +35,7 @@ import { appState } from './state.js';
  * the engine's parameter-lock session ends with ours; skip it at init, where
  * the engine has not booted yet and the queued command would be pointless. */
 import { resetButtonHeld } from '../seq/button-held.js';
+import { watchedTrack } from '../seq/watch.js';
 
 export function resetHeldInput(notifyEngine: boolean): void {
     resetStepEdit();      // heldRanges / gestured / pressMs / co-press / length target
@@ -43,7 +43,7 @@ export function resetHeldInput(notifyEngine: boolean): void {
     resetMomentary();
     resetMainPage();
     resetClipPage();
-    if (DEBUG_BUILD) resetFlagsPage();
+    resetFlagsPage();
     resetEditOps();       // Delete held
     resetDuplicate();     // Copy held
     resetLoopMode();      // Loop held
@@ -69,5 +69,5 @@ export function resetHeldInput(notifyEngine: boolean): void {
     for (const track of appState.trackModels) for (const m of track) m.clearTouch();
     for (const m of appState.masterFxModels) m.clearTouch();
 
-    if (notifyEngine) seqCmd('hold ' + seqState.watchTrack + ' -1');
+    if (notifyEngine) seqCmd('hold ' + watchedTrack() + ' -1');
 }

@@ -1044,7 +1044,7 @@ export const MOCK_SYNTHS = {
      * sample browser the module.json declares. */
     module_json_hier: {
         "synth:name":         "SlicerTest",
-        "synth_module":       "slicer",
+        "synth_module":       "manifest-only",
         "synth:ui_hierarchy": "{}",
         "synth:chain_params": JSON.stringify([
             { key: "threshold", name: "Sensitivity", type: "float", min: 0, max: 1 },

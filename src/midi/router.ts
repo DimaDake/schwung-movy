@@ -10,7 +10,6 @@ import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, 
 import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease } from '../seq/main-page.js';
 import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease } from '../seq/clip-page.js';
 import { flagsPageActive, flagsPageJog, flagsPageKnob } from '../seq/flags-page.js';
-import { DEBUG_BUILD } from '../app/debug.js';
 import { closeParamPage, paramPageActive } from '../seq/param-page.js';
 import { CHAIN_SLOTS, MASTER_FX_SLOTS, LFO_CHAIN_INDEX, MASTER_LFO_INDEX, isLfoSlot, isMasterLfoSlot } from '../chain/config.js';
 import { keyboardState } from '../keyboard/state.js';
@@ -257,7 +256,7 @@ export function onMidiMessageInternal(data: number[]): void {
          * to open. Claiming the touch anyway is what stops it reaching the
          * model underneath and arming a hold-to-modulate on a param the page is
          * not showing. */
-        if (DEBUG_BUILD && flagsPageActive()) return;
+        if (flagsPageActive()) return;
         // Step page owns the knobs: a touch shows that param's top toast; the
         // step params are intrinsic (no automation lane / model touch).
         if (stepPageAvailable() && stepPageState.selected) {
@@ -371,7 +370,7 @@ export function onMidiMessageInternal(data: number[]): void {
             if (k < 4) { clipPageKnob(k, delta, appState.activeTrack.index); appState.dirty = true; }
             return;
         }
-        if (DEBUG_BUILD && flagsPageActive()) {
+        if (flagsPageActive()) {
             // Knob 1 edits the selected flag; the rest are inert but still
             // consumed, so a stray turn cannot reach the module underneath.
             flagsPageKnob(k, delta);
@@ -600,7 +599,7 @@ export function onMidiMessageInternal(data: number[]): void {
              * because the jog is the page's ONLY navigation — the other two
              * param pages put every parameter under a knob and leave the jog to
              * the chain nav underneath. */
-            if (DEBUG_BUILD && flagsPageActive()) {
+            if (flagsPageActive()) {
                 flagsPageJog(delta > 0 ? 1 : -1);
                 appState.dirty = true;
                 return;

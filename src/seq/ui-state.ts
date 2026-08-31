@@ -4,7 +4,7 @@
  * alongside the state blob. */
 
 import { TRACK_COUNT } from '../track/ref.js';
-import { captureChains, clearChainsNotIn, restoreChains } from '../track/chain-persist.js';
+import { captureChains, restoreChains } from '../track/chain-persist.js';
 import { mlog } from '../log.js';
 import { keyboardState, resetOctaves, OCT_MIN, OCT_MAX } from '../keyboard/state.js';
 import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
@@ -13,6 +13,8 @@ import { mutesSnapshot, restoreMutes, resetTrackMutes } from '../mixer/track-mut
 import { seqState } from './state.js';
 import { seqCmd } from './engine.js';
 import { readPrefDefaultQuant } from './prefs.js';
+import { perSetFlagsSnapshot } from './flags.js';
+import { loadSetHostChoice } from '../track/host-mode.js';
 
 const clampInt = (v: unknown, lo: number, hi: number, dflt: number): number =>
     typeof v === 'number' && isFinite(v) ? Math.max(lo, Math.min(hi, v | 0)) : dflt;
@@ -33,6 +35,10 @@ export function serializeUiState(): string {
         /* Movy-hosted chains. Host tracks are not here: Move's own set file
          * carries those, and duplicating them would let the two disagree. */
         chains: captureChains(),
+        /* The flags that belong to the SET rather than to this Move — today,
+         * which host owns tracks 1-4. Keyed by flag key, the way prefs.json
+         * keys the machine's half. */
+        flags: perSetFlagsSnapshot(),
     });
 }
 
@@ -40,15 +46,17 @@ export function serializeUiState(): string {
 export function applyUiState(blob: string): void {
     try {
         const o = JSON.parse(blob);
-        /* Before anything else: the loads are queued one per audio callback, so
-         * the sooner they start the sooner the set sounds like itself. Absent in
-         * blobs written before movy hosted chains, which restoreChains treats as
-         * "nothing to do". */
-        /* schwung's pass 1, before its pass 2: unload what this Set does not
-         * want before loading what it does. Without it a module outlived every
-         * set switch and was then autosaved into whichever Set it landed in. */
-        const gone = clearChainsNotIn(o.chains);
-        if (gone > 0) mlog('chains: cleared ' + gone + ' component(s) from the previous set');
+        /* FIRST, ahead of the chains: `restoreChains` routes by `trackKind()`,
+         * so tracks 1-4 have to be on the host this set wants before a single
+         * component is addressed. A blob with no `flags` object is a set saved
+         * before this existed and keeps the schwung slots it was built on —
+         * which is not the same answer as a set movy has never seen. */
+        loadSetHostChoice(o.flags && typeof o.flags === 'object' ? o.flags : {});
+        /* Then the chains, before anything cosmetic: the loads are queued one
+         * per audio callback, so the sooner they start the sooner the set sounds
+         * like itself. One document says both what to unload and what to load —
+         * a set with no `chains` key names nothing, which is how a set written
+         * before movy hosted chains still clears the previous set's. */
         const n = restoreChains(o.chains);
         if (n > 0) mlog('chains: restoring ' + n + ' movy chain component(s)');
         if (Array.isArray(o.oct)) {
@@ -85,10 +93,12 @@ function applyDefaultQuant(pct: number): void {
 
 /* Defaults match init(): C tonic, Major, Chromatic/4ths, C3 on every track. */
 export function resetUiState(): void {
+    /* A Set with no UI blob at all is new work: it takes the shipped default,
+     * which puts tracks 1-4 on movy's own chains. */
+    loadSetHostChoice(null);
     /* A Set with no UI blob wants no movy chains — the same clean slate schwung
      * gives an unseen set when it seeds empty slots. */
-    const gone = clearChainsNotIn(null);
-    if (gone > 0) mlog('chains: cleared ' + gone + ' component(s) from the previous set');
+    restoreChains(null);
     keyboardState.rootPc = 0;
     keyboardState.scale = 0;
     keyboardState.mode = 0;

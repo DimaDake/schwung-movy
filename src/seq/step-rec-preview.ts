@@ -12,6 +12,7 @@ import { portFor } from '../track/registry.js';
 import { emitNoteOff } from '../keyboard/release.js';
 import { seqState } from './state.js';
 import { headStep, previewWanted, takePreview } from './step-rec-head.js';
+import { watchedTrack } from './watch.js';
 
 const PREVIEW_MS = 150;
 const GIVE_UP_MS = 500;   // no reply for the new head → drop the request
@@ -39,7 +40,7 @@ export function previewTickAt(nowMs: number): void {
     }
     takePreview();
     watchingSince = -1;
-    const t = seqState.watchTrack;
+    const t = watchedTrack();
     const vel = seqState.holdVel > 0 ? seqState.holdVel : 100;
     for (const p of seqState.holdNotes) {
         const pitch = Math.max(0, Math.min(127, p + seqState.clipTranspose));

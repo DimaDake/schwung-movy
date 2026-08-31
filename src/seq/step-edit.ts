@@ -20,6 +20,7 @@ import {
     lengthIndexForTicks, probIndexForPct, condIndexFor,
 } from './step-page-vm.js';
 import { countDetents } from './detent.js';
+import { watchedTrack } from './watch.js';
 
 const TICKS_PER_STEP = 24;             // 96 PPQN / 4 (mirror of seq-core)
 const VEL_STEP = 4;                    // velocity per encoder detent
@@ -107,7 +108,7 @@ export function beginStepAutomation(): number {
         seqState.stepAutoMode = true;
         onSessionStart();                 // restore step-vs-module page per memory
         seqState.holdStep = r.s0;         // representative step for the held-value display
-        seqCmd('hold ' + seqState.watchTrack + ' ' + r.s0);
+        seqCmd('hold ' + watchedTrack() + ' ' + r.s0);
     }
     return r.s0;
 }
@@ -165,15 +166,15 @@ function forEach(emit: (r: Range) => void): void {
 /* One undo per held-step gesture: the key includes the held range, so turning
  * the encoder repeatedly coalesces while moving to another step splits. */
 function heldKey(kind: string): string {
-    return 'held:' + kind + ':' + seqState.watchTrack + ':' + heldStepAbs();
+    return 'held:' + kind + ':' + watchedTrack() + ':' + heldStepAbs();
 }
 
 /* Volume encoder → velocity. */
 export function editVelocity(delta: number): boolean {
     if (!anyStepHeld()) return false;
     const d = (delta > 0 ? 1 : -1) * VEL_STEP;
-    beginGesture(heldKey('vel'), 'VELOCITY', trackLabel(seqState.watchTrack));
-    forEach((r) => seqCmd(`evel ${seqState.watchTrack} ${r.s0} ${r.s1} ${lane()} ${d}`));
+    beginGesture(heldKey('vel'), 'VELOCITY', trackLabel(watchedTrack()));
+    forEach((r) => seqCmd(`evel ${watchedTrack()} ${r.s0} ${r.s1} ${lane()} ${d}`));
     seqToast(d > 0 ? 'Velocity +' : 'Velocity -');
     return true;
 }
@@ -182,8 +183,8 @@ export function editVelocity(delta: number): boolean {
 export function editNudge(dir: number, shift: boolean): boolean {
     if (!anyStepHeld()) return false;
     const d = dir * (shift ? NUDGE_FINE : NUDGE_COARSE);
-    beginGesture(heldKey('nudge'), 'NUDGE', trackLabel(seqState.watchTrack));
-    forEach((r) => seqCmd(`enudge ${seqState.watchTrack} ${r.s0} ${r.s1} ${lane()} ${d}`));
+    beginGesture(heldKey('nudge'), 'NUDGE', trackLabel(watchedTrack()));
+    forEach((r) => seqCmd(`enudge ${watchedTrack()} ${r.s0} ${r.s1} ${lane()} ${d}`));
     seqToast(dir > 0 ? 'Nudge >' : 'Nudge <');
     return true;
 }
@@ -191,8 +192,8 @@ export function editNudge(dir: number, shift: boolean): boolean {
 /* +/- buttons → transpose by a semitone (melodic only). */
 export function editTranspose(semitones: number): boolean {
     if (!anyStepHeld() || seqState.watchLane >= 0) return false;
-    beginGesture(heldKey('trn'), 'TRANSPOSE', trackLabel(seqState.watchTrack));
-    forEach((r) => seqCmd(`etrn ${seqState.watchTrack} ${r.s0} ${r.s1} -1 ${semitones}`));
+    beginGesture(heldKey('trn'), 'TRANSPOSE', trackLabel(watchedTrack()));
+    forEach((r) => seqCmd(`etrn ${watchedTrack()} ${r.s0} ${r.s1} -1 ${semitones}`));
     seqToast(semitones > 0 ? 'Transpose +' : 'Transpose -');
     return true;
 }
@@ -202,7 +203,7 @@ export function editTranspose(semitones: number): boolean {
  * true if consumed (so the pad isn't also treated as chord input). */
 export function editPad(pitch: number, vel: number): boolean {
     if (!anyStepHeld()) return false;
-    const t = seqState.watchTrack;
+    const t = watchedTrack();
     undoableEdit('ADD NOTE', trackLabel(t), () => {
         forEach((r) => {
             if (r.s0 === r.s1) {
@@ -258,8 +259,8 @@ export function setLengthTo(absB: number): boolean {
     }
     lastLenTarget = { a, b: absB, atEnd };
     const steps = atEnd ? (absB - a + 1) : (absB - a);
-    undoableEdit('NOTE LENGTH', trackLabel(seqState.watchTrack),
-        () => seqCmd(`slen ${seqState.watchTrack} ${a} ${a} ${lane()} ${steps * TICKS_PER_STEP}`));
+    undoableEdit('NOTE LENGTH', trackLabel(watchedTrack()),
+        () => seqCmd(`slen ${watchedTrack()} ${a} ${a} ${lane()} ${steps * TICKS_PER_STEP}`));
     seqToast('Length ' + steps);
     return true;
 }
@@ -290,7 +291,7 @@ function clampIdx(i: number, len: number): number {
  * and Loop-bar holds all get the edit (and their release won't toggle a note). */
 export function editStepPageKnob(knob: number, delta: number): boolean {
     if (!anyStepHeld()) return false;
-    const t = seqState.watchTrack;
+    const t = watchedTrack();
     const ln = lane();
     setStepTouchedKnob(knob);             // drives the top param toast
     if (knob === 0) {

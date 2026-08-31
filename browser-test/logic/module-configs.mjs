@@ -6,10 +6,73 @@
 
 import {
     readFileSync, detectEnvelopes, MOCK_SYNTHS, init, eq, bootModel,
-    _log, env,
+    _log, env, fail,
 } from './harness.mjs';
 
 export async function run() {
+/* ── Sample Slicer: movy-side config for a module that publishes neither a
+ *    ui_hierarchy nor its sample param ────────────────────────────────────
+ * The metadata below is the device capture the dump replay uses, so these
+ * assertions run against what the module really publishes. */
+
+_log('\nTest: slicer config — sample browser, one-shot actions, slice pads');
+
+{
+    const cap = JSON.parse(readFileSync(
+        new URL('../fixtures/dump-extra/sound_generator--slicer.json', import.meta.url), 'utf8'));
+    const preset = { 'synth:name': 'Slicer', 'synth_module': 'slicer' };
+    for (const [k, v] of Object.entries(cap.params)) preset['synth:' + k] = v;
+    /* get_param('slices') answers on the device; the capture only carries the
+     * values the host pushed, so state it here. */
+    preset['synth:slices'] = '16';
+
+    const m = bootModel(preset);
+    const d = m.dumpLayout();
+    const byKey = (k) => d.params.find(p => p && p.key === k);
+
+    // The module maps Move pads 68-99 to slices 0-31 (note_to_slice), so the
+    // grid is the full 32 pads and the pad note IS the slice.
+    eq('slicer: 32 pads',            d.drum?.padCount, 32);
+    eq('slicer: pads start at 68',   d.drum?.padNoteStart, 68);
+    eq('slicer: pad note is raw',    d.drum?.rawMidi, true);
+    // Selecting a slice is note-driven in the DSP (voice_start sets
+    // selected_slice), so a silent shift-select would edit the wrong slice.
+    eq('slicer: shift-select still sounds', d.drum?.shiftSelectMidi, true);
+
+    // The sample param exists in no metadata the module publishes.
+    eq('slicer: sample_path is absent from chain_params',
+       cap.chain_params.some(p => p.key === 'sample_path'), false);
+    eq('slicer: and movy still offers it as a file param', byKey('sample_path')?.type, 'file');
+    m.handleKnobTouch(0);
+    const t = m.getFileBrowseTarget();
+    eq('slicer: browse root',   t?.root, '/data/UserData/UserLibrary');
+    eq('slicer: browse start',  t?.startPath, '/data/UserData/UserLibrary/Samples');
+    eq('slicer: browse filter', JSON.stringify(t?.filter),
+       JSON.stringify(['.wav', '.aif', '.aiff', '.mp3', '.flac']));
+    m.handleKnobRelease(0);
+
+    // Actions the module implements but never declares.
+    for (const k of ['scan', 'reroll', 'detect_bpm']) {
+        eq(`slicer: ${k} is a one-shot`, byKey(k)?.behavior, 'trigger');
+        eq(`slicer: ${k} is not automatable`, byKey(k)?.automatable, false);
+    }
+
+    // Per-slice params address whichever slice is selected, so an automation
+    // lane on one would land on whatever the sequencer last triggered.
+    eq('slicer: slice params are not automatable', byKey('slice_attack')?.automatable, false);
+
+    // `slices` accepts 8/16/32/64 by VALUE (atoi), and it is the one enum the
+    // module publishes no metadata for — writing the option INDEX would set a
+    // slice count the DSP ignores, and the knob would snap back.
+    m.handleKnobTouch(3);      // SLICE is knob 4 on the Main page
+    m.handleKnobDelta(3, 4);
+    m.tick();                  // deltas are buffered and applied on the tick
+    m.handleKnobRelease(3);
+    const written = env.params['synth:slices'];
+    if (written === '32') _log('  \x1b[32m✓\x1b[0m slicer: slices writes the count, not the index');
+    else fail('slicer: slices writes the count, not the index', `got ${JSON.stringify(written)}`);
+}
+
 /* ── Chunk-6 custom configs: chordism, sfz, 303, chiptune, hush1 ──────────── */
 
 _log('\nTest: chunk-6 module configs (chordism/sfz/303/chiptune/hush1)');

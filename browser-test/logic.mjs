@@ -9,7 +9,7 @@
  * owns the failure counter every suite reports into.
  */
 
-import { _log, failureCount } from './logic/harness.mjs';
+import { _log, failureCount, loadPerSetFlags, resetPorts } from './logic/harness.mjs';
 import { run as run_model_hierarchy } from './logic/model-hierarchy.mjs';
 import { run as run_model_paging } from './logic/model-paging.mjs';
 import { run as run_model_params } from './logic/model-params.mjs';
@@ -21,6 +21,7 @@ import { run as run_seq_router } from './logic/seq-router.mjs';
 import { run as run_seq_edit } from './logic/seq-edit.mjs';
 import { run as run_seq_session } from './logic/seq-session.mjs';
 import { run as run_set_session } from './logic/set-session.mjs';
+import { run as run_set_settling } from './logic/set-settling.mjs';
 import { run as run_seq_leds } from './logic/seq-leds.mjs';
 import { run as run_mute_solo } from './logic/mute-solo.mjs';
 import { run as run_step_entry } from './logic/step-entry.mjs';
@@ -46,6 +47,7 @@ import { run as run_undo_restore } from './logic/undo-restore.mjs';
 import { run as run_undo_params } from './logic/undo-params.mjs';
 import { run as run_quantize } from './logic/quantize.mjs';
 import { run as run_loop_window } from './logic/loop-window.mjs';
+import { run as run_track_watch } from './logic/track-watch.mjs';
 import { run as run_tracks_refs } from './logic/tracks-refs.mjs';
 import { run as run_tracks_chain } from './logic/tracks-chain.mjs';
 import { run as run_partition } from './logic/partition.mjs';
@@ -65,6 +67,7 @@ const SUITES = [
     run_seq_edit,
     run_seq_session,
     run_set_session,
+    run_set_settling,
     run_seq_leds,
     run_mute_solo,
     run_step_entry,
@@ -90,13 +93,25 @@ const SUITES = [
     run_undo_params,
     run_quantize,
     run_loop_window,
+    run_track_watch,
     run_tracks_refs,
     run_tracks_chain,
     run_partition,
     run_flags,
 ];
 
-for (const suite of SUITES) await suite();
+/* Between suites, back to the world movy boots in: no Set has said yet which
+ * host owns tracks 1-4, so they are schwung slots. `chtracks` ships as NEW SETS,
+ * so any suite that loads a Set leaves those four tracks on movy chains — and
+ * the next suite reads its params through the wrong port and fails for reasons
+ * that have nothing to do with what it tests. */
+for (const suite of SUITES) {
+    /* The store and the port cache only — not host-mode's flip, which talks to
+     * an engine a suite may have just uninstalled. */
+    loadPerSetFlags({});
+    resetPorts();
+    await suite();
+}
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 

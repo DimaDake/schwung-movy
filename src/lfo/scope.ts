@@ -10,7 +10,7 @@
  * addressed API is what left tracks 5-16 unable to assign an LFO at all. */
 
 import type { TrackPort } from '../track/port.js';
-import { portFor } from '../track/registry.js';
+import { hostPort, portFor } from '../track/registry.js';
 
 export interface LfoScope {
     /** Where the `lfoN:*` keys live. */
@@ -54,10 +54,14 @@ export function trackScope(track: number): LfoScope {
 
 /* The master chain is not a track. Its params are global to the shim and reach
  * it through any slot, so slot 0 carries them — the `master_fx:` prefix in the
- * key is what does the addressing. */
+ * key is what does the addressing.
+ *
+ * A SLOT, though, not track 0: `chtracks` can make that track a movy chain,
+ * whose port would namespace these keys `ch0:master_fx:…` and send the master
+ * LFOs' edits into a synth. */
 export function masterScope(): LfoScope {
     return {
-        port: portFor(0),
+        port: hostPort(0),
         keyPrefix: 'master_fx:',
         slot: 0,
         label: 'MASTER',

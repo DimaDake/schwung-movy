@@ -7,7 +7,11 @@
  * root: node browser-test/app-loop.mjs */
 
 import { trackRef, TRACK_COUNT } from '../dist/esm/track/ref.js';
+import { setFlag } from '../dist/esm/seq/flags.js';
+import { FONT_HEIGHT } from '../dist/esm/font/index.js';
+import { HINT_TOP, HINT_LINES } from '../dist/esm/renderer/flags-view.js';
 import { selectTrack, focusGroupStep } from '../dist/esm/track/focus.js';
+import { watchedTrack } from '../dist/esm/seq/watch.js';
 import { installEnv } from './env.mjs';
 import { installMockEngine } from './mock-engine.mjs';
 import { MOCK_SYNTHS } from './mock-synth.mjs';
@@ -18,6 +22,10 @@ const engine = installMockEngine();
 /* Capture LED writes (override env's no-op setLED). */
 const ledByPad = {};                       // padNote → last color
 globalThis.setLED = (note, color) => { ledByPad[note] = color; };
+
+/* Capture painted rectangles, so a view can be asked which rows it owns. */
+const painted = [];
+globalThis.fill_rect = (x, y, w, h) => { painted.push([x, y, w, h]); };
 
 /* Capture button LED writes. */
 const buttonLeds = {};
@@ -60,6 +68,18 @@ function resetApp() {
     logs.length = 0;
     resetSeqState();
     resetSeqEngine();
+    /* The mocked instrument is a schwung SLOT (env.setParams), so tracks 1-4
+     * have to be slots. `chtracks` ships as NEW SETS, and the Set this harness
+     * boots into is one movy has never seen — which would put those four tracks
+     * on movy's own empty chains, where there is no drum module to find. */
+    setFlag('chtracks', 0);
+    /* The Set-commit press is WALL-CLOCK timed (it waits 1.5 s for Move to
+     * finish loading the Set before borrowing the surface), and the loading
+     * splash now waits for it — so with this harness's 12 instant ticks movy
+     * would never leave `settling` and every gesture below would be refused.
+     * The press itself is covered in logic/set-settling.mjs, on a stubbed
+     * clock. */
+    setFlag('setcommit', 0);
     globalThis.init();                       // builds 4×chain models, resets keyboardState
     appState.trackModels[0][1].reload();     // force synth hierarchy/drum-config load
     advance(12);                             // settle engine boot + hierarchy + lane
@@ -76,6 +96,10 @@ _log('\napp-loop: drum grid loads');
     const vm = appState.trackModels[0][1].getViewModel();
     eq('drum preset detected (padCount 16)', vm.drumPadCount, 16);
     eq('drum lane selected (watchLane = note of current pad)', seqState.watchLane >= 0, true);
+    /* The lane opens on pad 1, so the grid must say which pad that is. It did
+     * not: the focused GRID pad was left at 0, and a freshly loaded rack lit no
+     * pad white while the sequencer was already editing one. */
+    eq('and the pad the lane belongs to is lit white', padColor(PAD_KICK), 120);
 }
 
 _log('\napp-loop: drum grid repaints once on a track switch, then idles');
@@ -833,6 +857,71 @@ _log('\napp-loop: master FX slot adds a module by DSP path');
     globalThis.shadow_set_param_timeout = realSetT;
     globalThis.os = prevOs;
     globalThis.host_read_file = prevRead;
+}
+
+/* ── Master FX: a chtracks chain on track 1 must not capture the master bus ── */
+_log('\napp-loop: master FX adds a module while tracks 1-4 are movy chains');
+{
+    /* `master_fx:` keys are schwung's own and global to the shim; they only RIDE
+     * on slot 0 as a carrier. With `chtracks` on, a port taken by track INDEX
+     * makes slot 0 a movy chain, which namespaces the write `ch0:master_fx:…` —
+     * a key movy's engine has never heard of. The module then silently never
+     * loads, and since chtracks ships as NEW SETS this is every new set. */
+    const { setMovyTracks } = await import('../dist/esm/track/host-mode.js');
+    const { movyTracksOn, trackKind } = await import('../dist/esm/track/ref.js');
+
+    const prevOs = globalThis.os;
+    const prevRead = globalThis.host_read_file;
+    globalThis.os = {
+        readdir: (p) => (p.endsWith('/audio_fx') ? [['reverb'], 0] : [[], 0]),
+        stat: () => [{ mode: 0x4000 }, 0],
+    };
+    globalThis.host_read_file = (p) =>
+        p.endsWith('/audio_fx/reverb/module.json')
+            ? JSON.stringify({ id: 'reverb', name: 'Reverb', dsp: 'dsp.so', component_type: 'audio_fx' })
+            : null;
+
+    resetApp();
+    setMovyTracks(true);
+    eq('the flag moved tracks 1-4', movyTracksOn() && trackKind(0) === 'movy', true);
+
+    const sets = [];
+    const engineWrites = [];
+    const realSet  = globalThis.shadow_set_param;
+    const realSetT = globalThis.shadow_set_param_timeout;
+    const realEng  = globalThis.host_module_set_param_blocking;
+    globalThis.shadow_set_param = (s, k, v) => { sets.push(`${s}|${k}=${v}`); return realSet(s, k, v); };
+    globalThis.shadow_set_param_timeout = (s, k, v, t) => { sets.push(`${s}|${k}=${v}`); return realSetT(s, k, v, t); };
+    globalThis.host_module_set_param_blocking = (k, v, t) => {
+        engineWrites.push(k);
+        return realEng ? realEng(k, v, t) : true;
+    };
+
+    seqState.sessionMode = true;          // master FX chain is shown in Session mode
+    appState.masterChainIndex = 0;
+    appState.currentView = VIEW_CHAIN;
+    advance(2);
+
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);   // jog-click on empty master slot
+    eq('master jog-click opens the module browser', appState.currentView, VIEW_BROWSE);
+
+    sendMidi([0xB0, globalThis.MoveMainKnob, 1]);       // jog → Reverb (0 = NONE)
+    sets.length = 0; engineWrites.length = 0;
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);   // jog-click → load selection
+
+    const moduleSet = sets.find((s) => s.includes('master_fx:fx1:module='));
+    eq('the master load still reaches a schwung slot', !!moduleSet, true);
+    eq('on slot 0, the carrier for a global key', moduleSet?.startsWith('0|'), true);
+    eq('carrying the DSP path', moduleSet?.endsWith('/audio_fx/reverb/dsp.so'), true);
+    eq('and nothing was namespaced to a movy chain',
+        engineWrites.filter((k) => k.indexOf('ch') === 0).join(','), '');
+
+    globalThis.shadow_set_param = realSet;
+    globalThis.shadow_set_param_timeout = realSetT;
+    globalThis.host_module_set_param_blocking = realEng;
+    globalThis.os = prevOs;
+    globalThis.host_read_file = prevRead;
+    setMovyTracks(false);
 }
 
 /* ── Master FX: jog-click on a loaded slot drills into its detail params ───── */
@@ -1680,7 +1769,7 @@ _log('\napp-loop: loop-mode bars pulse on the firmware channels, not on any tick
         chanOf(STEP_NOTE_BASE + 2).includes(ANIM_PULSE), true);
     eq('selected bar pulses white', lastColor(STEP_NOTE_BASE + 1), C_WHITE);
     eq('active bar pulses the track colour',
-        lastColor(STEP_NOTE_BASE + 2), trackColor(seqState.watchTrack));
+        lastColor(STEP_NOTE_BASE + 2), trackColor(watchedTrack()));
     eq('a bar outside the loop is dark grey', lastColor(STEP_NOTE_BASE + 0), C_DARKGREY);
 
     // Time passing sends nothing further: the pulse is not redrawn per frame.
@@ -1941,7 +2030,7 @@ _log('\napp-loop: session view selects tracks from the step row');
     /* The bug this fixes: the selector moved the screen and the pads but not the
      * sequencer, and the engine re-pinned watchTrack from `trk=` on every status
      * poll — so every step edit kept landing on the track you came from. */
-    eq('step press retargeted the watched track', seqState.watchTrack, 9);
+    eq('step press retargeted the watched track', watchedTrack(), 9);
     eq('step press emitted the engine watch', engine.ops.some((o) => o === 'watch 9'), true);
 
     /* Quick release = tap = latch: you stay on track 9, and the release must not
@@ -1966,7 +2055,7 @@ _log('\napp-loop: session view selects tracks from the step row');
         Date.now = realNow;
         eq('a held step reverts to the track it came from', appState.activeTrack.index, 9);
         eq('a held step reverts to session view', seqState.sessionMode, true);
-        eq('the revert put the watched track back', seqState.watchTrack, 9);
+        eq('the revert put the watched track back', watchedTrack(), 9);
     }
 
     /* Octave up moves the focused group without changing the active track, and
@@ -2015,7 +2104,7 @@ _log('\napp-loop: holding Session keeps the step row a track selector');
     eq('held-session step selected track 5', appState.activeTrack.index, 5);
     eq('held-session step left the clip grid', seqState.sessionMode, false);
     eq('the step row is still the selector', seqState.trackSelectHold, true);
-    eq('held-session step retargeted the sequencer', seqState.watchTrack, 5);
+    eq('held-session step retargeted the sequencer', watchedTrack(), 5);
     eq('held-session step emitted the engine watch',
         engine.ops.some((o) => o === 'watch 5'), true);
     eq('the selecting press entered no note',
@@ -2255,13 +2344,13 @@ _log('\napp-loop: the step view follows the FOCUSED track, not the button index'
     sendMidi([0xB0, 43, 0]);
     advance(2);
     eq('active track is 4', appState.activeTrack.index, 4);
-    eq('the step view watches track 4, not 0', seqState.watchTrack, 4);
+    eq('the step view watches track 4, not 0', watchedTrack(), 4);
 
     focusGroupStep(1);                    // group 2 => tracks 8-11
     sendMidi([0xB0, 42, 127]);            // second track button
     sendMidi([0xB0, 42, 0]);
     advance(2);
-    eq('second button in group 2 watches track 9', seqState.watchTrack, 9);
+    eq('second button in group 2 watches track 9', watchedTrack(), 9);
 
     selectTrack(0);
     resetSeqState();
@@ -2289,6 +2378,32 @@ _log('\napp-loop: every track gets a playable keyboard, not just the host four')
     }
     selectTrack(0);
     resetSeqState();
+}
+
+_log('\napp-loop: the Settings page owns the whole screen');
+{
+    /* The Loop Overview strip repaints at rows 60-63 on EVERY tick, outside the
+     * dirty-frame block — so a full-screen view that is not excluded from it
+     * gets its bottom painted over a few milliseconds after it draws. Settings
+     * puts its explanation band there, and the strip cut the second line in
+     * half on the device while every local suite passed: nothing here rendered
+     * a tick and a view together. */
+    resetApp();
+    const { VIEW_FLAGS } = await import('../dist/esm/app/state.js');
+    sendMidi([0xB0, 49, 127]);                    // Shift down
+    sendMidi([0x90, 16 + 1, 100]);                // Step 2
+    sendMidi([0x80, 16 + 1, 0]);
+    sendMidi([0xB0, 49, 0]);                      // Shift up
+    eq('Shift + Step 2 opens Settings', appState.currentView, VIEW_FLAGS);
+
+    painted.length = 0;
+    advance(8);
+    /* Full-width fills only: the band's own glyphs are one-pixel runs, while
+     * anything that repaints the bottom of the screen clears the whole width
+     * first. The rows the band occupies must survive every tick. */
+    const HINT_BOT = HINT_TOP + HINT_LINES * (FONT_HEIGHT + 2);
+    const swept = painted.filter(([, y, w, h]) => w >= 128 && y + h > HINT_TOP && y < HINT_BOT);
+    eq('nothing sweeps the explanation band away', swept.length, 0);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

@@ -35,6 +35,11 @@ pub struct PadRoute {
     map: [i16; PAD_COUNT],
     /// What each pad actually started, so its note-off matches: (chain, pitch).
     held: [Option<(usize, u8)>; PAD_COUNT],
+    /// Full Velocity: every pad note leaves at 127, whatever it was hit with.
+    /// The UI owns the setting (Shift + Step 10) and pushes it here, for the
+    /// same reason it pushes the map — the note is built on the audio thread,
+    /// so a decision the UI makes about it has to travel with it.
+    full_vel: bool,
 }
 
 impl Default for PadRoute {
@@ -45,7 +50,7 @@ impl Default for PadRoute {
 
 impl PadRoute {
     pub fn new() -> Self {
-        Self { chain: -1, map: [-1; PAD_COUNT], held: [None; PAD_COUNT] }
+        Self { chain: -1, map: [-1; PAD_COUNT], held: [None; PAD_COUNT], full_vel: false }
     }
 
     /// Apply a pushed map: `"<chain>,<p0>,<p1>,…,<p31>"`. A malformed payload is
@@ -74,16 +79,27 @@ impl PadRoute {
         true
     }
 
+    /// Full Velocity on or off. Held notes are left alone: the velocity is
+    /// fixed when the note starts, and a note-off carries none.
+    pub fn set_full_velocity(&mut self, on: bool) {
+        self.full_vel = on;
+    }
+
     /// True when the DSP is handling pads (so the UI must not also send them).
     pub fn active(&self) -> bool {
         self.chain >= 0
     }
 
-    /// Resolve a pad event. Returns `(chain, pitch, on)` to forward, or None.
+    /// Resolve a pad event. Returns `(chain, pitch, velocity, on)` to forward,
+    /// or None.
     ///
     /// Note-ONs consult the map; note-OFFs consult the ledger, so a map that
-    /// changed mid-hold cannot strand the note.
-    pub fn route(&mut self, status: u8, d1: u8, _d2: u8) -> Option<(usize, u8, bool)> {
+    /// changed mid-hold cannot strand the note. The velocity is decided here
+    /// rather than by the caller so Full Velocity cannot be applied on one pad
+    /// path and forgotten on another — which is exactly how it shipped: the UI
+    /// applied it to the notes it sent, and the notes the engine answers came
+    /// out with whatever the pad was hit with.
+    pub fn route(&mut self, status: u8, d1: u8, d2: u8) -> Option<(usize, u8, u8, bool)> {
         if d1 < PAD_MIN || (d1 as usize) >= PAD_MIN as usize + PAD_COUNT {
             return None;
         }
@@ -99,12 +115,13 @@ impl PadRoute {
                     return None; // dead pad (piano gap, out of range)
                 }
                 self.held[idx] = Some((chain as usize, pitch as u8));
-                Some((chain as usize, pitch as u8, true))
+                let vel = if self.full_vel { 127 } else { d2 };
+                Some((chain as usize, pitch as u8, vel, true))
             }
             0x80 => {
                 // From the ledger, whatever the map says now.
                 let (chain, pitch) = self.held[idx].take()?;
-                Some((chain, pitch, false))
+                Some((chain, pitch, 0, false))
             }
             _ => None,
         }
@@ -141,8 +158,8 @@ mod tests {
     fn routes_a_pad_to_the_mapped_pitch() {
         let mut r = PadRoute::new();
         assert!(r.set_map(&map_for(2, 60)));
-        assert_eq!(r.route(0x90, PAD_MIN, 100), Some((2, 60, true)));
-        assert_eq!(r.route(0x90, PAD_MIN + 5, 100), Some((2, 65, true)));
+        assert_eq!(r.route(0x90, PAD_MIN, 100), Some((2, 60, 100, true)));
+        assert_eq!(r.route(0x90, PAD_MIN + 5, 100), Some((2, 65, 100, true)));
     }
 
     #[test]
@@ -161,10 +178,10 @@ mod tests {
         // pad is held, releasing it must still close the note that was STARTED.
         let mut r = PadRoute::new();
         r.set_map(&map_for(0, 60));
-        assert_eq!(r.route(0x90, PAD_MIN, 100), Some((0, 60, true)));
+        assert_eq!(r.route(0x90, PAD_MIN, 100), Some((0, 60, 100, true)));
 
         r.set_map(&map_for(0, 72));                       // octave up mid-hold
-        assert_eq!(r.route(0x80, PAD_MIN, 0), Some((0, 60, false)),
+        assert_eq!(r.route(0x80, PAD_MIN, 0), Some((0, 60, 0, false)),
             "the note-off must close pitch 60, not the newly mapped 72");
     }
 
@@ -174,7 +191,7 @@ mod tests {
         r.set_map(&map_for(1, 60));
         r.route(0x90, PAD_MIN, 100);
         r.set_map(&map_for(7, 60));                       // switched track
-        assert_eq!(r.route(0x80, PAD_MIN, 0), Some((1, 60, false)),
+        assert_eq!(r.route(0x80, PAD_MIN, 0), Some((1, 60, 0, false)),
             "the off goes to the chain that started it");
     }
 
@@ -209,7 +226,7 @@ mod tests {
         assert!(!r.set_map("2,1,2,3"), "too few entries");
         assert!(!r.set_map("notanumber,1"), "bad chain");
         // The good map must survive a refused one.
-        assert_eq!(r.route(0x90, PAD_MIN, 100), Some((3, 60, true)));
+        assert_eq!(r.route(0x90, PAD_MIN, 100), Some((3, 60, 100, true)));
     }
 
     #[test]
@@ -222,5 +239,38 @@ mod tests {
         got.sort();
         assert_eq!(got, vec![(0, 60), (0, 61)]);
         assert!(r.drain_held().is_empty(), "draining twice yields nothing");
+    }
+
+    #[test]
+    fn a_pad_carries_the_velocity_it_was_hit_with() {
+        let mut r = PadRoute::new();
+        r.set_map(&map_for(0, 60));
+        assert_eq!(r.route(0x90, PAD_MIN, 41), Some((0, 60, 41, true)));
+        assert_eq!(r.route(0x90, PAD_MIN + 1, 118), Some((0, 61, 118, true)));
+    }
+
+    #[test]
+    fn full_velocity_replaces_what_the_pad_was_hit_with() {
+        // Shift + Step 10. The UI can no longer apply this itself for a movy
+        // track — it does not send those notes at all — so a soft press must
+        // leave HERE at 127 or the toggle does nothing the player can hear.
+        let mut r = PadRoute::new();
+        r.set_map(&map_for(0, 60));
+        r.set_full_velocity(true);
+        assert_eq!(r.route(0x90, PAD_MIN, 41), Some((0, 60, 127, true)));
+        assert_eq!(r.route(0x90, PAD_MIN + 1, 1), Some((0, 61, 127, true)));
+
+        r.set_full_velocity(false);
+        assert_eq!(r.route(0x90, PAD_MIN + 2, 41), Some((0, 62, 41, true)),
+            "switching it off gives the player their dynamics back");
+    }
+
+    #[test]
+    fn full_velocity_does_not_disturb_a_release() {
+        let mut r = PadRoute::new();
+        r.set_map(&map_for(0, 60));
+        r.set_full_velocity(true);
+        r.route(0x90, PAD_MIN, 41);
+        assert_eq!(r.route(0x80, PAD_MIN, 0), Some((0, 60, 0, false)));
     }
 }

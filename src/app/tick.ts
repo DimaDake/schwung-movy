@@ -7,12 +7,12 @@ import { buildClipPageVM } from '../seq/clip-page-vm.js';
 import { buildFlagsPageVM } from '../seq/flags-page-vm.js';
 import { FLAG_KNOB } from '../seq/flags-page.js';
 import { renderFlagsView } from '../renderer/flags-view.js';
-import { DEBUG_BUILD } from './debug.js';
 import { keyboardState, baseNoteFor, padMapFor } from '../keyboard/state.js';
 import { isSounding } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
 import { MASTER_FX_SLOTS } from '../chain/config.js';
 import { drumPadLedColor } from '../keyboard/leds.js';
+import { drumNoteOfPhys } from '../keyboard/drum-grid.js';
 import { WHITE_DIM } from '../seq/colors.js';
 import { padColor } from '../seq/pads.js';
 import { midiNoteName } from '../keyboard/notes.js';
@@ -30,7 +30,7 @@ import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
 import { concreteKey } from '../model/pad-scope.js';
 import { mlog } from '../log.js';
-import { sessionError, sessionPhase, sessionReady, sessionTick } from '../seq/set-session.js';
+import { chainLoadsPending, sessionError, sessionPhase, sessionReady, sessionTick } from '../seq/set-session.js';
 import { takeSurfaceReturn } from '../seq/set-commit.js';
 import { claimLedOwnership } from './led-ownership.js';
 import { renderLoadingView } from '../renderer/loading-view.js';
@@ -265,8 +265,13 @@ let ledRepeatTicks = -1;
 const LED_REPEAT_TICKS = 45;
 
 function ledContext(): string {
+    /* The selected track AND the one the engine says it is reporting on. They
+     * are the same number whenever the subscription has landed, which is the
+     * point: a repaint log showing only the first could not tell a working open
+     * from the one that recorded track 2's take into track 1. */
     return 'session=' + (seqState.sessionMode ? 1 : 0)
         + ' track=' + appState.activeTrack.index
+        + ' engine=' + seqState.reportedTrack
         + ' initDone=' + (appState.initLedsDone ? 1 : 0)
         + ' initIdx=' + appState.initLedIndex
         + ' drumStale=' + (drumCacheStale ? 1 : 0);
@@ -570,7 +575,7 @@ function tickBody(): void {
         } else if (!sessionReady()) {
             /* Ahead of every view: until the Set is in the engine there is
              * nothing truthful to draw, and input is refused anyway. */
-            renderLoadingView(sessionPhase(), sessionError());
+            renderLoadingView(sessionPhase(), sessionError(), chainLoadsPending());
         } else if (appState.currentView === VIEW_MAIN_PARAMS) {
             const vm = buildMainPageVM();
             renderKnobsView(vm, false, appState.activeTrack.index);
@@ -579,7 +584,7 @@ function tickBody(): void {
             const vm = buildClipPageVM();
             renderKnobsView(vm, false, appState.activeTrack.index);
             updateKnobLEDs(vm); // knobs 0-2 reflect value; 3-7 (null cells) off
-        } else if (DEBUG_BUILD && appState.currentView === VIEW_FLAGS) {
+        } else if (appState.currentView === VIEW_FLAGS) {
             const vm = buildFlagsPageVM();
             renderFlagsView(vm);
             // Only knob 1 lights, and its brightness is the value — the page is
@@ -715,15 +720,15 @@ function tickBody(): void {
                 drumCache.fill(0xFF);
                 drumCacheStale = false;
             }
-            const track = seqState.watchTrack;
+            const track = appState.activeTrack.index;
             const sel   = synthModel!.getDrumCurrentPhysPad();
             for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {
                 const p = PAD_MIN + i;
-                // Derive the pad's MIDI note to check activeHasNote (mirrors drumPadLedColor's mapping).
-                const idx = p - PAD_MIN, col = idx % 8, row = Math.floor(idx / 8);
-                const dp  = drumCfg.rawMidi ? p - drumCfg.padNoteStart + 1 : row * 4 + col + 1;
-                const note = drumCfg.rawMidi ? p : drumCfg.padNoteStart + dp - 1;
-                const playing = activeHasNote(track, note) || isSounding(p);
+                // The note this pad plays — the same lookup drumPadLedColor and
+                // the engine's pad map use, so "is it sounding" cannot disagree
+                // with what a press sends. -1 = not part of the rack.
+                const note = drumNoteOfPhys(p, PAD_MIN, drumCfg);
+                const playing = note >= 0 && (activeHasNote(track, note) || isSounding(p));
                 const color = drumPadLedColor(p, PAD_MIN, drumCfg, sel, track, playing);
                 if (drumCache[i] !== color) {
                     if (!ledBudgetTake()) continue;   // cache left stale: retries next tick

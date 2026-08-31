@@ -142,9 +142,24 @@ let _schwungDiag = '';
  * indicator would be a lie about what the jog does there.
  */
 function schwungBodyFor(model: any, stepSelected: boolean): (() => void) | undefined {
-    if (schwungGridMode() !== 'page' || !model || stepSelected) return undefined;
-    const sp = schwungPageFor(appState.activeTrack.index, model.getComponentKey());
-    if (!sp.ready) return undefined;
+    /* Says WHY it declined, once per distinct reason. Reporting only that the
+     * grid "is still movy's" cost two device round trips; the answer is always
+     * one of these four and none of them is visible from the screen. */
+    const why = (r: string) => {
+        if (r !== _schwungWhy) { _schwungWhy = r; mlog('schwung-body ' + r); }
+        return undefined;
+    };
+    if (schwungGridMode() !== 'page') return why('mode=' + schwungGridMode());
+    if (!model) return why('no-model');
+    if (stepSelected) return why('step-page-selected');
+    const ck = model.getComponentKey ? model.getComponentKey() : '(none)';
+    const sp = schwungPageFor(appState.activeTrack.index, ck);
+    if (!sp.ready) {
+        return why(`not-ready track=${appState.activeTrack.index} ck=${ck} `
+                 + `pages=${sp.pageCount}`);
+    }
+    why(`ok track=${appState.activeTrack.index} ck=${ck} pages=${sp.pageCount} `
+      + `at=${sp.pageIndex}`);
     return () => {
         sp.poll();
         sp.render('', lastAutoView, -1, {
@@ -154,6 +169,7 @@ function schwungBodyFor(model: any, stepSelected: boolean): (() => void) | undef
     };
 }
 let _schwungView = '';
+let _schwungWhy = '';
 let _autoLanesLog = '';
 let _autoRenderLog = '';
 /* Diagnostic (off unless debug_log_on): the per-knob automation render decision

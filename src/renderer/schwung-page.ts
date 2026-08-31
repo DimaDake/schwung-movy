@@ -75,9 +75,36 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
     let attempts = 0;
     let sinceRetry = 0;
 
+    /*
+     * IS THERE A PAGE SET TO DRAW — asked every tick, not decided once.
+     *
+     * `loaded` used to be set inside reload() alone. Once true it stayed true,
+     * so when the module was removed from the slot the controller re-planned to
+     * NO PAGES and this still claimed ready: Schwung went on drawing the
+     * departed module's page and movy never got the frame back, so the view
+     * that should have ejected just sat there. Reported as "if I choose None I
+     * do not get kicked out".
+     *
+     * The tri-state decides the middle case. `contractUnresolved` means the
+     * READ failed, which is not news about the module — ejecting on it would
+     * throw the user out of a live editor because one param request timed out.
+     * So an unresolved read HOLDS the previous verdict, exactly as schwung's
+     * own host holds its screen, and only a resolved, genuinely empty plan
+     * hands the frame back.
+     */
+    function refreshLoaded(): void {
+        if (ctl.contractUnresolved) return;          /* a failed read empties nothing */
+        const has = !!(ctl.pages && ctl.pages.length);
+        if (has === loaded) return;
+        loaded = has;
+        /* Going empty re-arms the retry, so the NEXT module to arrive in the
+         * slot is picked up instead of waiting on a spent attempt budget. */
+        if (!loaded) { attempts = 0; sinceRetry = 0; }
+    }
+
     function reload(): void {
         ctl.load({ slot: port.track.index, component: componentKey });
-        loaded = !!(ctl.pages && ctl.pages.length) && !ctl.contractUnresolved;
+        refreshLoaded();
     }
     reload();
 
@@ -106,6 +133,7 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
         }
         ctl.reloadIfChanged();
         ctl.tick();                 /* exactly one get_param */
+        refreshLoaded();            /* the module may have just left the slot */
     }
 
     function keysOf(): (string | null)[] {

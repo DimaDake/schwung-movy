@@ -83,6 +83,69 @@ const fail = (m) => { console.log('FAIL: ' + m); process.exit(1); };
     console.log(`  a module swap re-plans (${before} pages -> ${sp.pageCount})`);
 }
 
+
+/* ---- 4. the module LEAVES the slot: hand the frame back ------------------
+ *
+ * Choosing "None" empties the slot. The page set goes with it, and the frame
+ * must return to movy so the view that should eject can. `loaded` used to be
+ * decided once inside reload(), so once true it stayed true: Schwung kept
+ * drawing the departed module's page and movy never got a frame. Reported as
+ * "if I choose None I do not get kicked out".
+ */
+{
+    env.setParams(MOCK_SYNTHS.obxd_like);
+    const sp = createSchwungPage(portFor(0), 'synth');
+    for (let i = 0; i < 60 && !sp.ready; i++) sp.tick();
+    if (!sp.ready) fail('never became ready on a port serving obxd');
+
+    /* AN EMPTIED SLOT STILL ANSWERS. The chain host is there; it just has no
+     * synth, so the contract reads come back "" — served, nothing declared.
+     * `setParams({})` would make every read return NULL, which is a FAILED
+     * read, a different state entirely and the one test 5 covers. Modelling
+     * "None" as null is how this check first reported the fix broken. */
+    env.setParams({ 'synth:ui_hierarchy': '', 'synth:chain_params': '' });
+    let released = false;
+    for (let i = 0; i < 400 && !released; i++) { sp.tick(); released = !sp.ready; }
+    if (!released) {
+        fail('the module left the slot and the page still claims ready — movy never '
+           + 'gets the frame back, so the view cannot eject');
+    }
+    console.log('  an emptied slot hands the frame back to movy');
+
+    /* And it must pick the NEXT module up, rather than having spent its retry
+     * budget on the empty stretch. */
+    env.setParams(MOCK_SYNTHS.plaits);
+    let recovered = false;
+    for (let i = 0; i < 400 && !recovered; i++) { sp.tick(); recovered = sp.ready; }
+    if (!recovered) fail('a new module in the slot was never picked up after an empty one');
+    console.log('  and picks up the next module loaded into the slot');
+}
+
+/* ---- 5. a FAILED read is not an empty slot ------------------------------
+ *
+ * The distinction the tri-state exists for. A param request that times out
+ * must not eject a live editor; only a resolved, genuinely empty plan may.
+ */
+{
+    env.setParams(MOCK_SYNTHS.obxd_like);
+    const sp = createSchwungPage(portFor(0), 'synth');
+    for (let i = 0; i < 60 && !sp.ready; i++) sp.tick();
+    if (!sp.ready) fail('never became ready before the failure case');
+
+    const port = portFor(0);
+    const realGet = port.getParam.bind(port);
+    port.getParam = () => null;              /* every read times out */
+    for (let i = 0; i < 120; i++) sp.tick();
+    const survived = sp.ready;
+    port.getParam = realGet;
+    if (!survived) {
+        fail('a run of FAILED reads ejected the page — a timeout is not a statement '
+           + 'that the module has no parameters');
+    }
+    console.log('  a failed read holds the page instead of ejecting');
+}
+
 console.log('');
 console.log('PASS: a late contract is retried, a permanently empty one is given up on, '
-    + 'and a module swap re-plans.');
+    + 'a module swap re-plans, an emptied slot hands the frame back, and a failed '
+    + 'read does not.');

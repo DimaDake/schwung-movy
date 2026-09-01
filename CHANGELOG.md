@@ -13,6 +13,28 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Added
+
+- **Scene launching.** Hold **Shift** in Session view and the step row becomes
+  eight scenes, on the buttons printed 1, 3, 5 … 15. A scene launches a whole
+  clip column across all **16** tracks, not just the four on screen — bar
+  quantized like any clip launch, and a track whose slot in that column is
+  empty stops, because a scene is a snapshot of what plays.
+- **Song mode.** Keep holding Shift and press more scenes to build a looping
+  arrangement. Each scene lasts as long as its longest clip, rounded up to whole
+  bars; pressing the same scene twice holds it twice as long without
+  re-triggering it. The next scene is queued a full bar early, so it flashes in
+  the grid the way a launched clip does, and every scene the song uses pulses on
+  the step row. The bottom of the screen shows `SONG` and the scene numbers with
+  the one playing boxed, scrolling when the arrangement outgrows the row.
+  Launching any clip by hand ends the song, Play restarts it from the top, and
+  it is saved with the Set.
+
+  Recording works through a song: a take follows the arrangement into whichever
+  clip ends up playing. Punching in used to cancel a queued launch — correct for
+  the stale queue a Session empty-slot selection leaves behind, but with a song
+  running that queue *is* the arrangement, so it is now left alone.
+
 ### Testing
 
 - **The device suites run on both track hosts.** Tracks 1-4 belong to whichever

@@ -112,6 +112,15 @@ Movy stands on the shoulders of several projects:
 
   ![Live automation](docs/assets/auto_live.png)
 
+- **Scenes & Song mode** — hold **Shift** in Session view and the step row
+  becomes eight **scenes**: each one launches a whole clip column across all 16
+  tracks. Keep holding and press more scenes to build a looping **song**. A
+  scene plays for as long as its longest clip; press one twice to hold it twice
+  as long. The next scene flashes a bar before it lands, the song is saved with
+  the set, and launching any clip by hand ends it.
+
+  ![Song mode](docs/assets/song_band.png)
+
 - **Sixteen tracks in four groups.** Tracks 1-4 are the Schwung tracks in a set
   you already have; a new set hands them to Movy instead, which is what lets
   them join the CPU optimization (see **Settings** below). Tracks 5-16 load a module the same way and Movy hosts

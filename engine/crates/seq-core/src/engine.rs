@@ -702,7 +702,6 @@ impl Engine {
         let playing = self.playing;
         let mut any_clip = false;
         for t in &mut self.tracks {
-            t.active_clip = slot;
             let exists = t.clips[slot].exists();
             any_clip |= exists;
             if playing {
@@ -713,7 +712,16 @@ impl Engine {
                     t.pending_stop = true;
                     t.queued_slot = None;
                 }
+                /* The edit target is NOT moved here. The song arms the next
+                 * scene a bar early to light the queued pulse, and retargeting
+                 * now would move a running take into the next scene's clip a
+                 * whole bar before that clip plays. The queue-resolution block
+                 * in `service_tick` sets `active_clip` when the launch actually
+                 * lands, which is the moment the target really did change.
+                 * `launch_clip` selects immediately because pressing a cell IS
+                 * a selection; arming is not. */
             } else {
+                t.active_clip = slot;
                 t.playing_slot = if exists { Some(slot) } else { None };
                 t.queued_slot = None;
                 t.pending_stop = false;
@@ -1016,7 +1024,15 @@ impl Engine {
             // Overdub punch-in: the clip is already running in phase, so record
             // from where the playhead is — waiting would swallow up to a bar.
             self.tracks[track].playing_slot = Some(a);
-            self.tracks[track].queued_slot = None;
+            /* Clearing the queue drops a STALE launch left by selecting an
+             * empty Session slot. A song's queue is not stale — it is the
+             * arrangement, armed a bar early — so punching in must not cancel
+             * the scene change underneath it. Recording follows the song into
+             * whatever ends up playing, which is what "record during a song"
+             * has to mean. */
+            if self.song.is_empty() {
+                self.tracks[track].queued_slot = None;
+            }
             self.recording = true;
         }
     }
@@ -5139,5 +5155,79 @@ mod tests {
         let song = s.split("song=").nth(1).unwrap().split(' ').next().unwrap();
         assert_eq!(song, "0:1,2,2");
         assert!(!song.contains(' '), "a status value may never contain a space");
+    }
+
+
+    #[test]
+    fn a_take_follows_the_song_into_the_next_scene() {
+        // Overdub punch-in — what "record during a song" normally means: the
+        // clip is already running, so Rec captures from the playhead and does
+        // not queue a launch of its own.
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[0].clips[0].toggle_step(0, &[(60, 100)]);
+        e.tracks[0].clips[1].length_steps = 16;
+        e.tracks[0].clips[1].toggle_step(0, &[(62, 100)]);
+        e.song_start(0);
+        e.song_add(1);
+
+        run_ticks(&mut e, 1);
+        e.toggle_record(0);
+        assert!(e.recording, "an overdub punches in immediately");
+        run_bars(&mut e, 1);
+
+        assert_eq!(e.tracks[0].playing_slot, Some(1), "the song moved on");
+        assert_eq!(
+            e.tracks[0].active_clip, 1,
+            "and the take follows into the clip that is now playing"
+        );
+        assert!(e.recording, "the take is still running after the scene change");
+    }
+
+    #[test]
+    fn arming_the_next_scene_does_not_move_the_edit_target_early() {
+        // The song arms a scene a full bar ahead to light the queued pulse.
+        // Retargeting then would move a running take into the next scene's clip
+        // a whole bar before that clip plays.
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[0].clips[1].length_steps = 16;
+        e.song_start(0);
+        e.song_add(1);
+
+        run_ticks(&mut e, 1);
+        assert_eq!(e.tracks[0].queued_slot, Some(1), "armed a bar early");
+        assert_eq!(
+            e.tracks[0].active_clip, 0,
+            "but the edit target is still the clip that is actually playing"
+        );
+    }
+
+    #[test]
+    fn a_first_take_holds_its_track_against_the_song_for_that_scene() {
+        // Rec on a note-empty clip is itself a bar-quantized clip launch, and
+        // it overwrites the scene the song had armed for that track. The
+        // explicit gesture wins: the take lands in the clip the user asked for
+        // rather than being moved out from under them. Only that track is held
+        // — the song keeps running and takes it back at the next scene.
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16; // exists, but no notes
+        e.tracks[0].clips[1].length_steps = 16;
+        e.tracks[1].clips[0].length_steps = 16;
+        e.tracks[1].clips[1].length_steps = 16;
+        e.song_start(0);
+        e.song_add(1);
+
+        run_ticks(&mut e, 1);
+        e.toggle_record(0);
+        run_bars(&mut e, 1);
+
+        assert_eq!(e.tracks[0].playing_slot, Some(0), "the take kept its track");
+        assert!(e.recording, "and it is running");
+        assert_eq!(
+            e.tracks[1].playing_slot,
+            Some(1),
+            "every other track still followed the song"
+        );
     }
 }

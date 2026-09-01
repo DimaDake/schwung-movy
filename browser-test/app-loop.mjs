@@ -2406,6 +2406,42 @@ _log('\napp-loop: the Settings page owns the whole screen');
     eq('nothing sweeps the explanation band away', swept.length, 0);
 }
 
+/* ── Scene row: Shift in Session view ────────────────────────────────────── */
+/* Asserted through the real app loop because this is the layer the device
+ * cannot read back — a scene row that never reaches the LED wire looks
+ * identical to one painted in the wrong colours. The row uses the native
+ * animation path, so it goes out on move_midi_internal_send rather than
+ * setLED, and an animated pad costs TWO ticks (base handshake, then the
+ * animation): the capture spans several. */
+{
+    _log('\nscene row:');
+    resetApp();
+    sendMidi([0xB0, CC_NOTE_SESSION, 127]); sendMidi([0xB0, CC_NOTE_SESSION, 0]);
+    seqState.songScenes = [1];                 // scene 2 is in the song, scene 1 is not
+
+    const msgs = [];
+    const real = globalThis.move_midi_internal_send;
+    globalThis.move_midi_internal_send = (m) => msgs.push(m);
+    sendMidi([0xB0, 49, 127]);                 // Shift down (MoveShift)
+    advance(12);
+    globalThis.move_midi_internal_send = real;
+    sendMidi([0xB0, 49, 0]);
+
+    /* The last state each step note was left in: [channel, colour]. */
+    const last = (step) => {
+        const m = msgs.filter((x) => x[2] === STEP_NOTE_BASE + step).pop();
+        return m ? [m[1] & 0x0f, m[3]] : null;
+    };
+    const C_GREEN = 11, ANIM_PULSE = 0x09, ANIM_NONE = 0x00;
+
+    eq('step 1 is scene 1, solid green (not in the song)',
+       JSON.stringify(last(0)), JSON.stringify([ANIM_NONE, C_GREEN]));
+    eq('step 3 is scene 2 and pulses — the song uses it',
+       JSON.stringify(last(2)), JSON.stringify([ANIM_PULSE, C_GREEN]));
+    eq('step 2 is inert, and dark',
+       JSON.stringify(last(1)), JSON.stringify([ANIM_NONE, 0]));
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

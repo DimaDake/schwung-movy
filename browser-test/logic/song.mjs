@@ -85,5 +85,26 @@ export async function run() {
     parseStatusForTest('play=1 song=-');
     eq('a dash clears the mirror', seqState.songScenes.length, 0);
 
+    /* ── the scene row's LEDs ────────────────────────────────────────────── */
+    const { sceneStepLed } = await import('../../dist/esm/seq/song.js');
+    const { C_BLACK, C_GREEN, ANIM_NONE, ANIM_PULSE } =
+        await import('../../dist/esm/seq/colors.js');
+
+    const inert = sceneStepLed(1, []);
+    eq('an inert step is black', inert.base, C_BLACK);
+    eq('and carries no animation', inert.channel, ANIM_NONE);
+
+    const idle = sceneStepLed(0, []);
+    eq('a scene not in the song is solid green', idle.base, C_GREEN);
+    eq('solid means no animation channel', idle.channel, ANIM_NONE);
+
+    const used = sceneStepLed(4, [1, 2, 2, 3]);   // step 4 -> scene 2, in the song
+    eq('a scene the song uses pulses', used.channel, ANIM_PULSE);
+    eq('the lit colour is in anim, never in base', used.anim, C_GREEN);
+    eq('so a base-ignoring firmware still shows it', used.base, C_BLACK);
+
+    const unused = sceneStepLed(0, [1, 2, 2, 3]);  // step 0 -> scene 0, not in the song
+    eq('a scene outside the song stays solid', unused.channel, ANIM_NONE);
+
     uninstallMockEngine();
 }

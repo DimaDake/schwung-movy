@@ -13,6 +13,7 @@ import { appState } from '../app/state.js';
 import { focusedTrack, GROUP_DIR_DOWN, GROUP_DIR_UP } from '../track/focus.js';
 import { GROUP_SIZE } from '../track/ref.js';
 import { sessionPaintGrid } from './session.js';
+import { sceneStepLed } from './song.js';
 import { sessionButtonHeld, sessionStepLed, trackSelectActive } from './track-select.js';
 import { muteHeld } from './router-buttons.js';
 import { loopEndBar, loopStartBar, occHasStep, seqState, stepInLoop } from './state.js';
@@ -227,6 +228,18 @@ function paintTrackSelector(): void {
     }
 }
 
+/* The 16 step buttons as the scene launcher — Shift held in Session view. The
+ * eight scenes sit on the buttons printed 1,3,5…15; the rest are inert. Shares
+ * cachedSetAnimLED with the track selector it replaces, so the two swap inside
+ * ONE cache and no seqLedsInvalidate edge is needed: that hazard only exists
+ * between the cachedSetLED and cachedSetAnimLED maps, which are independent. */
+function paintSceneRow(): void {
+    for (let i = 0; i < NUM_STEP_BUTTONS; i++) {
+        const led = sceneStepLed(i, seqState.songScenes);
+        cachedSetAnimLED(STEP_NOTE_BASE + i, led.base, led.anim, led.channel);
+    }
+}
+
 export function seqLedsTick(
     shiftHeld: boolean = false,
     currentView: number = 0,
@@ -265,7 +278,7 @@ export function seqLedsTick(
     // priority within the frame budget.
     if (seqState.sessionMode) {
         sessionPaintGrid(cachedSetAnimLED, PAD_MIN);
-        paintTrackSelector();
+        if (shiftHeld) paintSceneRow(); else paintTrackSelector();
         paintTrackButtons();
         paintStepIcons(shiftHeld);
         paintAffordances(currentView, barOffset, maxOff, shiftHeld);

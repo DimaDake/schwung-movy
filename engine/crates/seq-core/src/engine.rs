@@ -136,8 +136,16 @@ pub struct Engine {
     /// first scene actually falls in, which is the boundary its launch
     /// resolves on.
     song_start_bar: Option<u64>,
-    /// The next entry is already queued — its one-bar pulse is showing.
+    /// The transition out of the current entry has been prepared: either the
+    /// next scene was launched, or it needed no launch because it names the
+    /// same scene. The advance is gated on this — stepping to an entry whose
+    /// clips were never launched skips it silently.
     song_armed: bool,
+    /// The scene that arming launched, or `None` when it needed no launch. A
+    /// no-op arm is the one that can go STALE: a song of one entry wraps onto
+    /// itself and launches nothing, and appending a different scene after that
+    /// makes the decision wrong (see `song_add`).
+    song_armed_launch: Option<usize>,
     gates: Vec<Gate>,
     /// (track, step) the UI is holding, for the step-length readout. None = not held.
     held_query: Option<(usize, u16)>,
@@ -247,6 +255,7 @@ impl Engine {
             song_pos: 0,
             song_start_bar: None,
             song_armed: false,
+            song_armed_launch: None,
             rec_track: 0,
             rec_empty_start: false,
             count_in_left: 0,
@@ -589,6 +598,8 @@ impl Engine {
             self.song_pos = 0;
             self.song_start_bar = None;
             self.song_armed = false;
+            self.song_armed_launch = None;
+        self.song_armed_launch = None;
             for t in &mut self.tracks {
                 t.active_clip = scene;
                 t.playing_slot = if t.clips[scene].exists() { Some(scene) } else { None };
@@ -786,6 +797,7 @@ impl Engine {
         self.song_pos = 0;
         self.song_start_bar = None;
         self.song_armed = false;
+        self.song_armed_launch = None;
     }
 
     /// Start a new song from one scene — the first Shift+scene press of a hold.
@@ -809,6 +821,25 @@ impl Engine {
             return;
         }
         self.song.push(slot as u8);
+        /* An arm made while the song was SHORTER can be stale. A song of one
+         * entry wraps onto itself, so the scheduler correctly arms nothing —
+         * but appending a different scene after that makes the decision wrong,
+         * and the next boundary would advance onto an entry whose clips were
+         * never launched. That scene is then skipped outright, which is exactly
+         * what happens when a bar falls between two presses of a live build.
+         *
+         * Only a NO-OP arm is withdrawn: nothing went out, so re-arming is
+         * free. A launch that has already been issued stands — it cannot be
+         * recalled, and the scene it named is the one about to play. Re-arming
+         * costs the appended scene one bar; it is never skipped. */
+        if self.song_armed && self.song_armed_launch.is_none() {
+            let cur = self.song_entry_at(self.song_pos).map(|(s, _)| s);
+            let next = self.song_next_pos(self.song_pos);
+            let nxt = self.song_entry_at(next).map(|(s, _)| s);
+            if cur.is_some() && nxt != cur {
+                self.song_armed = false;
+            }
+        }
     }
 
     /// One bar boundary of the song scheduler. Called from `service_tick`
@@ -832,10 +863,16 @@ impl Engine {
             if self.scene_is_empty(scene) {
                 return;
             }
-            if (bar - start) as u32 >= self.scene_bars(scene) * reps {
+            /* Gated on the arm: without it the boundary steps onto an entry
+             * whose clips were never launched, and that scene is skipped
+             * outright — see the stale-arm note in `song_add`. */
+            if self.song_armed && (bar - start) as u32 >= self.scene_bars(scene) * reps {
                 self.song_pos = self.song_next_pos(self.song_pos);
                 self.song_start_bar = Some(bar);
                 self.song_armed = false;
+                self.song_armed_launch = None;
+            self.song_armed_launch = None;
+        self.song_armed_launch = None;
             }
         }
 
@@ -855,7 +892,8 @@ impl Engine {
         }
         let total = self.scene_bars(scene) * reps;
         if !self.song_armed && (bar - start) as u32 + 1 >= total {
-            self.song_armed = true;
+            /* Only arm when there IS an entry to arm for, and record what the
+             * arming actually DID — a no-op arm is the one that can go stale. */
             let next = self.song_next_pos(self.song_pos);
             if let Some((next_scene, _)) = self.song_entry_at(next) {
                 /* Identical scenes either side of the boundary: a repeat, or a
@@ -864,7 +902,11 @@ impl Engine {
                  * trig condition would never reach B. */
                 if next_scene != scene {
                     self.launch_scene(next_scene);
+                    self.song_armed_launch = Some(next_scene);
+                } else {
+                    self.song_armed_launch = None;
                 }
+                self.song_armed = true;
             }
         }
     }
@@ -898,6 +940,7 @@ impl Engine {
         self.song_pos = 0;
         self.song_start_bar = None;
         self.song_armed = false;
+        self.song_armed_launch = None;
         for t in &mut self.tracks {
             t.last_auto_step = -1;
             t.auto_cur = [-1; 8];
@@ -5346,5 +5389,37 @@ mod tests {
         assert!(e.song.is_empty(), "the song is gone");
         run_bars(&mut e, 1);
         assert_eq!(e.tracks[0].playing_slot, Some(4), "and playing again");
+    }
+
+
+    #[test]
+    fn a_scene_added_after_a_bar_has_passed_is_not_skipped() {
+        // Building a song is a LIVE gesture: bars go by between the presses.
+        // While the song was still a single entry the scheduler correctly armed
+        // nothing — it wraps onto itself — and appending a second scene after
+        // that must not let the next boundary step past it. The new scene
+        // starts a bar later than it otherwise would; it is never skipped.
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[0].clips[1].length_steps = 16;
+        e.tracks[0].clips[2].length_steps = 16;
+
+        e.song_start(0);
+        run_ticks(&mut e, 1); // bar 0: scene 1 starts; a song of one arms nothing
+        run_bars(&mut e, 1);  // ...and a whole bar passes before the next press
+
+        e.song_add(1);
+        e.song_add(2);
+
+        run_bars(&mut e, 2);
+        assert_eq!(
+            e.tracks[0].playing_slot,
+            Some(1),
+            "scene 2 played — it was not skipped over"
+        );
+        assert_eq!(e.song_pos(), 1, "and the song knows it is on scene 2");
+
+        run_bars(&mut e, 1);
+        assert_eq!(e.tracks[0].playing_slot, Some(2), "then scene 3 followed it");
     }
 }

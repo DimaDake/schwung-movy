@@ -2374,7 +2374,7 @@ impl Engine {
         let htp = self.held_trig();
         let hlmax = self.held_max_gate();
         format!(
-            "play={} tick={} bpm={} ext={} link={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={} quant={} dquant={} cap={}.{}",
+            "play={} tick={} bpm={} ext={} link={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={} quant={} dquant={} cap={}.{} song={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -2414,6 +2414,7 @@ impl Engine {
             self.default_quant,
             self.capture.pending(self.watch_track as u8),
             self.capture_gen,
+            self.song_state(),
         )
     }
 
@@ -2457,6 +2458,25 @@ impl Engine {
     /// Per-track Session grid state for the UI: tracks joined by ',', each
     /// `EE.P.Q.S` — EE = 2-hex bitmap of occupied slots, P/Q/S = playing /
     /// queued / selected slot (digit, or '-' for none).
+    /// `song=` — the raw scene list and which entry is playing, e.g.
+    /// `1:1,2,2,3` (on the entry that starts at press 1). `-` when there is no
+    /// song. Never contains a space: status is space-separated key=value.
+    fn song_state(&self) -> String {
+        if self.song.is_empty() {
+            return "-".to_string();
+        }
+        let mut out = String::with_capacity(2 + self.song.len() * 2);
+        out.push_str(&self.song_pos.to_string());
+        out.push(':');
+        for (i, s) in self.song.iter().enumerate() {
+            if i > 0 {
+                out.push(',');
+            }
+            out.push_str(&s.to_string());
+        }
+        out
+    }
+
     fn session_state(&self) -> String {
         let slot = |o: Option<usize>| o.map_or('-', |s| (b'0' + s as u8) as char);
         let mut out = String::with_capacity(40);
@@ -5100,5 +5120,24 @@ mod tests {
         let mut e = engine();
         e.song_add(3);
         assert!(e.song.is_empty(), "an append with no song to append to is inert");
+    }
+
+
+    #[test]
+    fn status_reports_the_song_and_where_we_are_in_it() {
+        let mut e = engine();
+        let s = e.status();
+        let song = s.split("song=").nth(1).unwrap().split(' ').next().unwrap();
+        assert_eq!(song, "-", "no song reads as a dash, never as an empty value");
+
+        e.tracks[0].clips[1].length_steps = 16;
+        e.tracks[0].clips[2].length_steps = 16;
+        e.song_start(1);
+        e.song_add(2);
+        e.song_add(2);
+        let s = e.status();
+        let song = s.split("song=").nth(1).unwrap().split(' ').next().unwrap();
+        assert_eq!(song, "0:1,2,2");
+        assert!(!song.contains(' '), "a status value may never contain a space");
     }
 }

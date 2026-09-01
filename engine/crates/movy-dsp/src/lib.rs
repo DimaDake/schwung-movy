@@ -69,7 +69,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.55.0";
+const ENGINE_VERSION: &str = "0.56.0";
 
 /// Tracks backed by schwung's own shadow slots by default. Their notes go out as
 /// MIDI on the matching channel; everything above this index is a chain movy

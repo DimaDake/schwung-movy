@@ -16,6 +16,7 @@
 //! playback scale — neither of which is known while the `cl` line is parsed.
 //! Legacy four-field notes fall back to the straight-grid rounding that wrote
 //! them.
+//!   sg <scene> <scene> …            (the song's raw scene presses; omitted when none)
 //! The `cp` line is optional — clips from older saves load with defaults.
 //! Unknown lines are ignored so the format can grow.
 
@@ -31,6 +32,16 @@ pub fn serialize(engine: &Engine) -> String {
     s.push_str(&format!("bpm {}\n", engine.clock.bpm_x100()));
     s.push_str(&format!("swing {}\n", engine.swing_pct));
     s.push_str(&format!("link {}\n", engine.link_enabled as u8));
+    /* The song is Set-level, like tempo — one line, omitted when there is no
+     * song so older builds (and songless Sets) are byte-identical to before. */
+    if !engine.song.is_empty() {
+        s.push_str("sg");
+        for scene in &engine.song {
+            s.push(' ');
+            s.push_str(&scene.to_string());
+        }
+        s.push('\n');
+    }
     for (ti, t) in engine.tracks.iter().enumerate() {
         s.push_str(&format!("tk {} {} {}\n", ti, t.active_clip, t.muted as u8));
         for lane in 0..8 {
@@ -109,6 +120,9 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
     }
     // Link defaults off; a legacy save without a `link` line loads with it off.
     engine.link_enabled = false;
+    // A Set with no `sg` line has no song — including one loaded over a Set
+    // that did.
+    engine.clear_song();
     for line in lines {
         let mut it = line.split_whitespace();
         match it.next() {
@@ -126,6 +140,12 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
                 if let Some(v) = it.next().and_then(|x| x.parse::<u8>().ok()) {
                     engine.link_enabled = v != 0;
                 }
+            }
+            Some("sg") => {
+                engine.song = it
+                    .filter_map(|x| x.parse::<u8>().ok())
+                    .filter(|s| (*s as usize) < crate::track::CLIPS_PER_TRACK)
+                    .collect();
             }
             Some("tk") => {
                 let nums: Vec<usize> = it.filter_map(|x| x.parse().ok()).collect();
@@ -530,5 +550,36 @@ mod tests {
         let mut e = Engine::new(44100, 12000);
         assert!(load(&mut e, "movy1\ntk 2 4 0\n"));
         assert_eq!(e.tracks[2].active_clip, 4);
+    }
+
+
+    #[test]
+    fn a_song_survives_a_save_and_load() {
+        let mut e = Engine::new(44100, 12000);
+        e.tracks[0].clips[1].length_steps = 16;
+        e.tracks[0].clips[3].length_steps = 16;
+        e.song_start(1);
+        e.song_add(3);
+        e.song_add(3);
+
+        let blob = serialize(&e);
+        assert!(blob.contains("sg 1 3 3\n"));
+
+        let mut loaded = Engine::new(44100, 12000);
+        assert!(load(&mut loaded, &blob));
+        assert_eq!(loaded.song, vec![1, 3, 3], "the arrangement comes back with the Set");
+    }
+
+    #[test]
+    fn a_save_with_no_song_writes_no_line_and_clears_a_stale_one() {
+        let e = Engine::new(44100, 12000);
+        let blob = serialize(&e);
+        assert!(!blob.contains("sg "), "no song, no line — old builds keep reading this");
+
+        let mut loaded = Engine::new(44100, 12000);
+        loaded.tracks[0].clips[0].length_steps = 16;
+        loaded.song_start(0);
+        assert!(load(&mut loaded, &blob));
+        assert!(loaded.song.is_empty(), "loading a songless Set clears the previous song");
     }
 }

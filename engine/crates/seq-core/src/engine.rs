@@ -626,6 +626,66 @@ impl Engine {
         }
     }
 
+    /// How many bars a scene lasts: the longest clip in that column, rounded
+    /// up to whole bars, minimum 1. Rounding up is what keeps every scene
+    /// switch on the same 1-bar launch grid `service_tick` already resolves
+    /// against, which is in turn what makes the one-bar-ahead pulse exact.
+    pub fn scene_bars(&self, slot: usize) -> u32 {
+        if slot >= CLIPS_PER_TRACK {
+            return 1;
+        }
+        let mut bars = 1;
+        for t in &self.tracks {
+            let c = &t.clips[slot];
+            if c.exists() {
+                let b = (c.length_steps as u32 + crate::STEPS_PER_BAR - 1) / crate::STEPS_PER_BAR;
+                if b > bars {
+                    bars = b;
+                }
+            }
+        }
+        bars
+    }
+
+    /// Launch a whole column: every track's clip in `slot`. A track whose slot
+    /// is empty STOPS — a scene is a full snapshot of what plays, so what is
+    /// not in the column goes quiet.
+    ///
+    /// Deliberately the same per-track mechanics as `launch_clip`, reusing
+    /// `queued_slot` / `pending_stop` rather than inventing a scene-level
+    /// queue. That is what makes the Session grid's queued and stopping pulses
+    /// light up for a scene with no LED work of its own — and what stops the
+    /// empty case needing any gating beyond `playing_slot = None`, since
+    /// `service_tick` already flushes the gates of a track it is not servicing.
+    pub fn launch_scene(&mut self, slot: usize) {
+        if slot >= CLIPS_PER_TRACK {
+            return;
+        }
+        let playing = self.playing;
+        let mut any_clip = false;
+        for t in &mut self.tracks {
+            t.active_clip = slot;
+            let exists = t.clips[slot].exists();
+            any_clip |= exists;
+            if playing {
+                if exists {
+                    t.queued_slot = Some(slot);
+                    t.pending_stop = false;
+                } else {
+                    t.pending_stop = true;
+                    t.queued_slot = None;
+                }
+            } else {
+                t.playing_slot = if exists { Some(slot) } else { None };
+                t.queued_slot = None;
+                t.pending_stop = false;
+            }
+        }
+        if !playing && any_clip {
+            self.start_transport();
+        }
+    }
+
     /// Stop a track's clip — at the next bar while running, immediately when
     /// stopped (used when pressing an empty slot in Session mode).
     pub fn stop_track(&mut self, track: usize) {
@@ -4671,6 +4731,59 @@ mod tests {
         e.swing_pct = 66;
         assert!(e.status().contains("swing=66"));
     }
+
+    #[test]
+    fn a_scene_launches_every_track_in_its_column() {
+        let mut e = engine();
+        // Clips in column 2 on two tracks, plus one on a third track in a
+        // DIFFERENT column, so we can prove that track gets stopped, not left.
+        e.tracks[0].clips[2].length_steps = 16;
+        e.tracks[5].clips[2].length_steps = 16;
+        e.tracks[9].clips[0].length_steps = 16;
+        e.tracks[9].playing_slot = Some(0);
+
+        e.launch_scene(2);
+
+        assert!(e.playing, "a scene launched from stopped starts the transport");
+        assert_eq!(e.tracks[0].playing_slot, Some(2));
+        assert_eq!(e.tracks[5].playing_slot, Some(2));
+        // Track 9 has nothing in column 2: a scene is a snapshot, so it stops.
+        assert_eq!(
+            e.tracks[9].playing_slot, None,
+            "an empty slot in the column stops that track"
+        );
+        assert_eq!(e.tracks[9].active_clip, 2, "every track's edit target follows the scene");
+    }
+
+    #[test]
+    fn a_scene_launched_while_running_is_bar_quantized() {
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[0].clips[3].length_steps = 16;
+        e.tracks[4].clips[0].length_steps = 16; // nothing in column 3 -> stops
+        e.play();
+        assert!(e.playing);
+
+        e.launch_scene(3);
+
+        assert_eq!(e.tracks[0].queued_slot, Some(3), "queued, not switched mid-bar");
+        assert_eq!(e.tracks[0].playing_slot, Some(0), "still on the old clip until the bar");
+        assert!(e.tracks[4].pending_stop, "an empty slot queues a stop, not an instant cut");
+    }
+
+    #[test]
+    fn a_scene_lasts_as_long_as_its_longest_clip_rounded_up_to_bars() {
+        let mut e = engine();
+        assert_eq!(e.scene_bars(0), 1, "an empty scene is one bar");
+
+        e.tracks[0].clips[0].length_steps = 16; // 1 bar
+        e.tracks[1].clips[0].length_steps = 48; // 3 bars
+        e.tracks[2].clips[0].length_steps = 20; // 1.25 bars -> 2
+        assert_eq!(e.scene_bars(0), 3, "the longest clip sets the length");
+
+        e.tracks[1].clips[0].length_steps = 0; // no longer exists
+        assert_eq!(e.scene_bars(0), 2, "20 steps rounds up to 2 bars");
+
+        assert_eq!(e.scene_bars(99), 1, "an out-of-range slot is one bar, not a panic");
+    }
 }
-
-

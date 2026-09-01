@@ -30,8 +30,11 @@ far. Earlier work is summarised in the timeline below for context.
   Launching any clip by hand ends the song, Play restarts it from the top, and
   it is saved with the Set.
 
-  A scene with no clips at all is one bar of silence — the song passes through
-  it rather than stopping on it.
+  A scene with no clips on any track is the **end** of the song: there is no
+  clip to take a length from, so the arrangement parks there, goes quiet and
+  shows `END` on screen — while the transport keeps running, so you stay in
+  time. Ending a song with an empty scene makes it play once instead of
+  looping.
 
   Recording works through a song: a take follows the arrangement into whichever
   clip ends up playing. Punching in used to cancel a queued launch — correct for

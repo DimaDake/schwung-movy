@@ -145,6 +145,18 @@ export function songBandTokens(
     return { tokens, leading: from > 0 };
 }
 
+/* The song is parked on its END: the entry now playing names a column with no
+ * clip on any track, so the arrangement stops there (the transport keeps
+ * running). Derived from the same clip existence the engine reads rather than
+ * from a status field of its own, so the readout cannot disagree with what the
+ * engine actually did. */
+export function songTerminal(): boolean {
+    const n = seqState.songScenes.length;
+    if (n === 0) return false;
+    const scene = seqState.songScenes[Math.min(seqState.songPos, n - 1)];
+    return !seqState.session.some((st) => (st.exist & (1 << scene)) !== 0);
+}
+
 /* The band shows while Shift is held in Session view — so it appears the
  * instant you press Shift, empty, telling you the row has become the scenes —
  * and for as long as a song is active. Outside Session view it never draws. */

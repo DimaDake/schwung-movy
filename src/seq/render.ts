@@ -7,7 +7,7 @@
 import { drawJogToast } from '../renderer/overlay.js';
 import { W, TOAST_Y, TOAST_H } from '../renderer/layout.js';
 import { fontPrint, fontWidth } from '../font/index.js';
-import { songBandTokens, songBandVisible } from './song.js';
+import { songBandTokens, songBandVisible, songTerminal } from './song.js';
 import { loopBarCount, loopEndBar, loopStartBar, seqState } from './state.js';
 import { NUM_STEP_BUTTONS } from './constants.js';
 
@@ -174,7 +174,8 @@ const SONG_GAP = 2;
 let lastSongSig = '';
 
 function songBandSig(): string {
-    return seqState.songScenes.join(',') + '@' + seqState.songPos;
+    return seqState.songScenes.join(',') + '@' + seqState.songPos
+        + (songTerminal() ? '!' : '');
 }
 
 export function drawSongBand(): void {
@@ -182,8 +183,13 @@ export function drawSongBand(): void {
     let x = 2;
     fontPrint(x, TOAST_Y + 1, 'SONG', 0);
     x += fontWidth('SONG') + SONG_GAP * 2;
+    /* A song parked on an empty scene has ENDED. The width it needs comes off
+     * the token budget first, so the marker can never be the thing that gets
+     * clipped — an arrangement that has stopped must say so. */
+    const end = songTerminal();
+    const endW = end ? fontWidth('END') + SONG_GAP * 2 : 0;
     const { tokens, leading } = songBandTokens(
-        seqState.songScenes, seqState.songPos, W - x - 2, fontWidth);
+        seqState.songScenes, seqState.songPos, W - x - 2 - endW, fontWidth);
     if (leading) {
         fontPrint(x, TOAST_Y + 1, '.', 0);
         x += fontWidth('.') + SONG_GAP;
@@ -200,6 +206,9 @@ export function drawSongBand(): void {
             fontPrint(x, TOAST_Y + 1, t.label, 0);
         }
         x += w + SONG_GAP;
+    }
+    if (end) {
+        fontPrint(x + SONG_GAP, TOAST_Y + 1, 'END', 0);
     }
 }
 

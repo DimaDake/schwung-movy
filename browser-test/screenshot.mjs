@@ -50,7 +50,7 @@ const PRESETS = [
     'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
     'step_page_knobs', 'step_page_chain', 'step_indicator', 'step_rec_header',
     'loop_strip_midclip', 'loop_strip_outside', 'loop_header',
-    'song_band', 'song_band_overflow',
+    'song_band', 'song_band_overflow', 'song_band_end',
     'main-default', 'main-tempo-touched', 'main-swing-touched',
     'main-root-touched', 'main-key-overlay', 'main-mode-overlay', 'main-layout-overlay',
     'main-ext-sync', 'main-link-on',
@@ -679,6 +679,7 @@ function applyView(preset) {
             seqState.sessionMode = true;
             seqState.songScenes = [0, 1, 1, 2];
             seqState.songPos = 1;
+            seqState.session[0].exist = 0b111;   // scenes 1-3 all have clips
             lastRender = () => { renderKnobsView(model.getViewModel()); drawSongBand(); };
             lastRender();
             break;
@@ -693,6 +694,19 @@ function applyView(preset) {
                 0, 1, 2, 3, 4, 5, 6, 7, 0, 1,
             ];
             seqState.songPos = 22;
+            seqState.session[0].exist = 0xff;    // every scene has a clip
+            lastRender = () => { renderKnobsView(model.getViewModel()); drawSongBand(); };
+            lastRender();
+            break;
+        }
+        case 'song_band_end': {
+            // Parked on an empty scene: the arrangement has ended, and says so.
+            // The transport keeps running — this is a stop in the song only.
+            resetSeqState(); resetSongBand();
+            seqState.sessionMode = true;
+            seqState.songScenes = [0, 1, 2];
+            seqState.songPos = 2;
+            seqState.session[0].exist = 0b011;   // nothing in scene 3
             lastRender = () => { renderKnobsView(model.getViewModel()); drawSongBand(); };
             lastRender();
             break;

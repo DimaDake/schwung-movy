@@ -688,6 +688,13 @@ impl Engine {
         bars
     }
 
+    /// True when no track has a clip in that column. Such a scene is TERMINAL
+    /// in a song: with no clip there is nothing to take a length from, so the
+    /// arrangement ends on it rather than guessing a duration.
+    pub fn scene_is_empty(&self, slot: usize) -> bool {
+        slot >= CLIPS_PER_TRACK || !self.tracks.iter().any(|t| t.clips[slot].exists())
+    }
+
     /// Launch a whole column: every track's clip in `slot`. A track whose slot
     /// is empty STOPS — a scene is a full snapshot of what plays, so what is
     /// not in the column goes quiet.
@@ -819,6 +826,12 @@ impl Engine {
         // Advance first. The launch armed a bar ago resolved on this boundary,
         // before we ran, so the entry that was current is now behind us.
         if let Some((scene, reps)) = self.song_entry_at(self.song_pos) {
+            /* Parked on the end of the song. Checked before the advance as well
+             * as before the arm below, or the next boundary would step off the
+             * terminal scene as if it had simply run its length. */
+            if self.scene_is_empty(scene) {
+                return;
+            }
             if (bar - start) as u32 >= self.scene_bars(scene) * reps {
                 self.song_pos = self.song_next_pos(self.song_pos);
                 self.song_start_bar = Some(bar);
@@ -833,6 +846,13 @@ impl Engine {
         let Some((scene, reps)) = self.song_entry_at(self.song_pos) else {
             return;
         };
+        /* The advance above may have just landed on an empty scene: that is
+         * where the arrangement ends, so nothing is armed after it. The
+         * transport keeps running — this is a stop in the song, not a stop of
+         * the machine — and launching a clip or building a new song leaves it. */
+        if self.scene_is_empty(scene) {
+            return;
+        }
         let total = self.scene_bars(scene) * reps;
         if !self.song_armed && (bar - start) as u32 + 1 >= total {
             self.song_armed = true;
@@ -5289,21 +5309,42 @@ mod tests {
 
 
     #[test]
-    fn a_song_moves_on_from_a_scene_that_is_completely_empty() {
+    fn a_song_parks_on_an_empty_scene_without_stopping_the_transport() {
+        // An empty scene has no clip to take a length from, so it is TERMINAL:
+        // the arrangement ends there. The transport keeps running — this is a
+        // stop in the song, not a stop of the machine.
         let mut e = engine();
-        e.tracks[0].clips[0].length_steps = 16;   // scene 1 plays
-        // scene 2 (slot 1) has no clip on ANY track — it is silence.
+        e.tracks[0].clips[0].length_steps = 16; // scene 1 plays
+        // scene 2 (slot 1) has no clip on ANY track.
         e.song_start(0);
         e.song_add(1);
 
         run_ticks(&mut e, 1);
-        assert_eq!(e.tracks[0].pending_stop, true, "the empty scene is armed as a stop");
         run_bars(&mut e, 1);
-        assert_eq!(e.song_pos(), 1, "we are on the empty scene");
-        assert_eq!(e.tracks[0].playing_slot, None, "and everything is silent");
+        assert_eq!(e.song_pos(), 1, "we reached the empty scene");
+        assert_eq!(e.tracks[0].playing_slot, None, "everything is silent");
 
+        run_bars(&mut e, 4);
+        assert_eq!(e.song_pos(), 1, "and the song stays there — it is the end");
+        assert_eq!(e.tracks[0].playing_slot, None, "nothing came back");
+        assert_eq!(e.tracks[0].queued_slot, None, "nothing is even queued");
+        assert!(e.playing, "but the transport is still running");
+    }
+
+    #[test]
+    fn a_song_that_ends_can_be_left_by_launching_a_clip() {
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[0].clips[4].length_steps = 16;
+        e.song_start(0);
+        e.song_add(1); // empty -> terminal
+        run_ticks(&mut e, 1);
+        run_bars(&mut e, 2);
+        assert_eq!(e.song_pos(), 1, "parked on the end");
+
+        e.launch_clip(0, 4);
+        assert!(e.song.is_empty(), "the song is gone");
         run_bars(&mut e, 1);
-        assert_eq!(e.song_pos(), 0, "the song moved on rather than sticking on silence");
-        assert_eq!(e.tracks[0].playing_slot, Some(0), "and the music came back");
+        assert_eq!(e.tracks[0].playing_slot, Some(4), "and playing again");
     }
 }

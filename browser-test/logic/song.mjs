@@ -164,5 +164,28 @@ export async function run() {
         resetSeqState(); resetSongBand();
     }
 
+    /* ── the end of a song ───────────────────────────────────────────────── */
+    /* A scene with no clip on any track is TERMINAL: there is nothing to take a
+     * length from, so the arrangement stops there (the transport keeps
+     * running). The UI derives that from the same clip existence the engine
+     * reads, so the readout cannot disagree with what the engine did. */
+    {
+        const { songTerminal } = await import('../../dist/esm/seq/song.js');
+        resetSeqState();
+        eq('no song is not an ended song', songTerminal(), false);
+
+        seqState.songScenes = [0, 1, 2];
+        seqState.session[0].exist = 0b011;   // clips in scenes 1 and 2, none in 3
+        seqState.songPos = 0;
+        eq('playing a scene that has clips is not the end', songTerminal(), false);
+        seqState.songPos = 2;
+        eq('parked on a scene with no clips anywhere IS the end', songTerminal(), true);
+
+        /* Existence is read across ALL tracks, not just the first. */
+        seqState.session[9].exist = 0b100;
+        eq('a clip on any track keeps the scene alive', songTerminal(), false);
+        resetSeqState();
+    }
+
     uninstallMockEngine();
 }

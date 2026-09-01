@@ -53,8 +53,13 @@ note-offs for any track that is not serviced" loop closes the open gates.
 **No new gating is added**: no mute, no all-notes-off blast, no per-track
 silencing layer. A track stops because its clip stopped, and nothing more.
 
-Command: `scene <slot>`, classified in `command.rs` alongside `launch` /
-`stoptrk` (clears the capture buffer; not undoable — clip launching isn't
+There is no bare `scene` command: `song <slot>` (§4) replaces the song and
+launches the scene, which for a single press is identical behaviour — §3 argues
+a one-scene song *is* a hand-launched scene. A separate verb would be dead
+surface with a third classification to keep correct.
+
+`song` and `songadd` are classified in `command.rs` alongside `launch` /
+`stoptrk` (they clear the capture buffer; not undoable — clip launching isn't
 either, and both are performance gestures rather than edits).
 
 **Scene length** = `max` over the 16 tracks of `ceil(clip.length_steps / 16)`

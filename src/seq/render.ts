@@ -5,7 +5,7 @@
  * it keep the frame alive while content is showing; *Tick() ages them. */
 
 import { drawJogToast } from '../renderer/overlay.js';
-import { W } from '../renderer/layout.js';
+import { W, TOAST_Y, TOAST_H } from '../renderer/layout.js';
 import { fontPrint, fontWidth } from '../font/index.js';
 import { songBandTokens, songBandVisible } from './song.js';
 import { loopBarCount, loopEndBar, loopStartBar, seqState } from './state.js';
@@ -165,7 +165,10 @@ export function resetSeqToast(): void {
  * Unlike the Loop strip this does NOT repaint every tick: nothing in it moves
  * between scene changes. songBandTick draws only when the content changed, or
  * when the view underneath was repainted over it. */
-const SONG_Y = 55;      // band top; the display is 64 tall and the band is 9
+/* The band occupies the BOTTOM TOAST's rows, and shares its geometry rather
+ * than picking its own: the rows above are the param view's second label row
+ * (LBL1_Y + LBL_H reaches row 57), so anything taller than the toast overlaps
+ * live UI. Same constants drawJogToast uses. */
 const SONG_GAP = 2;
 
 let lastSongSig = '';
@@ -175,14 +178,14 @@ function songBandSig(): string {
 }
 
 export function drawSongBand(): void {
-    fill_rect(0, SONG_Y, W, 9, 1);              // inverted band
+    fill_rect(0, TOAST_Y, W, TOAST_H, 1);       // inverted band, as the toast draws
     let x = 2;
-    fontPrint(x, SONG_Y + 1, 'SONG', 0);
+    fontPrint(x, TOAST_Y + 1, 'SONG', 0);
     x += fontWidth('SONG') + SONG_GAP * 2;
     const { tokens, leading } = songBandTokens(
         seqState.songScenes, seqState.songPos, W - x - 2, fontWidth);
     if (leading) {
-        fontPrint(x, SONG_Y + 1, '.', 0);
+        fontPrint(x, TOAST_Y + 1, '.', 0);
         x += fontWidth('.') + SONG_GAP;
     }
     for (const t of tokens) {
@@ -191,10 +194,10 @@ export function drawSongBand(): void {
         if (t.current) {
             /* Boxed rather than inverted again: the band is already inverted,
              * so the entry now playing is a hole punched back through it. */
-            fill_rect(x - 1, SONG_Y, w + 2, 9, 0);
-            fontPrint(x, SONG_Y + 1, t.label, 1);
+            fill_rect(x - 1, TOAST_Y, w + 2, TOAST_H, 0);
+            fontPrint(x, TOAST_Y + 1, t.label, 1);
         } else {
-            fontPrint(x, SONG_Y + 1, t.label, 0);
+            fontPrint(x, TOAST_Y + 1, t.label, 0);
         }
         x += w + SONG_GAP;
     }

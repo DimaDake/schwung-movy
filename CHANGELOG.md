@@ -30,6 +30,9 @@ far. Earlier work is summarised in the timeline below for context.
   Launching any clip by hand ends the song, Play restarts it from the top, and
   it is saved with the Set.
 
+  A scene with no clips at all is one bar of silence — the song passes through
+  it rather than stopping on it.
+
   Recording works through a song: a take follows the arrangement into whichever
   clip ends up playing. Punching in used to cancel a queued launch — correct for
   the stale queue a Session empty-slot selection leaves behind, but with a song

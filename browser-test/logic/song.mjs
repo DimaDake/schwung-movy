@@ -135,5 +135,34 @@ export async function run() {
 
     eq('an empty song has no tokens', songBandTokens([], 0, 1000, w2).tokens.length, 0);
 
+    /* ── the band stays in the bottom toast's rows ───────────────────────── */
+    /* It shares TOAST_Y/TOAST_H with drawJogToast rather than choosing its own
+     * geometry: the rows above belong to the param view's second label row, and
+     * a taller band drew straight over live UI. Asserted on every rectangle the
+     * band paints, glyph runs included. */
+    {
+        const { drawSongBand, resetSongBand } = await import('../../dist/esm/seq/render.js');
+        const { TOAST_Y, TOAST_H } = await import('../../dist/esm/renderer/layout.js');
+        resetSeqState(); resetSongBand();
+        seqState.sessionMode = true;
+        seqState.songScenes = [0, 1, 1, 2];
+        seqState.songPos = 1;
+
+        const rects = [];
+        const prev = globalThis.fill_rect;
+        globalThis.fill_rect = (x, y, w, h) => { rects.push([y, h]); };
+        drawSongBand();
+        globalThis.fill_rect = prev;
+
+        ok('the band paints something', rects.length > 0);
+        eq('nothing is drawn above the toast band',
+           rects.filter(([y]) => y < TOAST_Y).length, 0);
+        eq('and nothing runs off the bottom of the screen',
+           rects.filter(([y, h]) => y + h > 64).length, 0);
+        eq('the band is exactly the toast height',
+           Math.max(...rects.map(([y, h]) => y + h)) - TOAST_Y <= TOAST_H, true);
+        resetSeqState(); resetSongBand();
+    }
+
     uninstallMockEngine();
 }

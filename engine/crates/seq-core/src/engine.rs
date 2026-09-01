@@ -647,6 +647,9 @@ impl Engine {
          * sequencing stops. */
         self.clear_song();
         self.tracks[track].active_clip = slot;
+        /* The user just picked a slot by hand; a scene's deferred selection
+         * must not overwrite it when the bar lands. */
+        self.tracks[track].pending_select = None;
         let exists = self.tracks[track].clips[slot].exists();
         if self.playing {
             if exists {
@@ -711,6 +714,10 @@ impl Engine {
                 } else {
                     t.pending_stop = true;
                     t.queued_slot = None;
+                    /* No launch to carry the selection across, so it is
+                     * deferred by hand — the Session grid must not show this
+                     * track sitting in the previous scene's column. */
+                    t.pending_select = Some(slot);
                 }
                 /* The edit target is NOT moved here. The song arms the next
                  * scene a bar early to light the queued pulse, and retargeting
@@ -1891,6 +1898,9 @@ impl Engine {
                 if t.pending_stop {
                     t.pending_stop = false;
                     t.playing_slot = None;
+                }
+                if let Some(sel) = t.pending_select.take() {
+                    t.active_clip = sel;
                 }
             }
             // The queued take starts here, on the same tick its clip launched —
@@ -5229,5 +5239,71 @@ mod tests {
             Some(1),
             "every other track still followed the song"
         );
+    }
+
+
+    #[test]
+    fn a_scene_moves_the_selection_even_on_the_tracks_it_stops() {
+        // The Session grid's selected cell is `active_clip`. A track the scene
+        // silences has no queued launch to carry its selection across, so
+        // without help its selected pad stays in the old column while every
+        // other track moves — the grid then shows two different scenes at once.
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[1].clips[0].length_steps = 16;
+        e.tracks[0].clips[2].length_steps = 16; // scene 2 plays on track 0 only
+        e.play();
+
+        e.launch_scene(2);
+        assert_eq!(
+            e.tracks[1].active_clip, 0,
+            "the selection does not move a bar early, any more than a take does"
+        );
+
+        run_bars(&mut e, 1);
+        assert_eq!(e.tracks[0].active_clip, 2, "the playing track followed the scene");
+        assert_eq!(
+            e.tracks[1].active_clip, 2,
+            "and so did the one the scene stopped"
+        );
+        assert_eq!(e.tracks[1].playing_slot, None, "stopped, but selected there");
+    }
+
+    #[test]
+    fn launching_a_clip_by_hand_outranks_a_scene_the_bar_has_not_reached() {
+        // A pending selection from a scene must not overwrite a slot the user
+        // picked by hand in the meantime.
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[1].clips[0].length_steps = 16;
+        e.tracks[1].clips[5].length_steps = 16;
+        e.play();
+
+        e.launch_scene(2);              // nothing in column 2 on track 1 -> stops it
+        e.launch_clip(1, 5);            // ...but the user picks slot 5 before the bar
+        run_bars(&mut e, 1);
+
+        assert_eq!(e.tracks[1].active_clip, 5, "the hand-picked slot won");
+        assert_eq!(e.tracks[1].playing_slot, Some(5));
+    }
+
+
+    #[test]
+    fn a_song_moves_on_from_a_scene_that_is_completely_empty() {
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;   // scene 1 plays
+        // scene 2 (slot 1) has no clip on ANY track — it is silence.
+        e.song_start(0);
+        e.song_add(1);
+
+        run_ticks(&mut e, 1);
+        assert_eq!(e.tracks[0].pending_stop, true, "the empty scene is armed as a stop");
+        run_bars(&mut e, 1);
+        assert_eq!(e.song_pos(), 1, "we are on the empty scene");
+        assert_eq!(e.tracks[0].playing_slot, None, "and everything is silent");
+
+        run_bars(&mut e, 1);
+        assert_eq!(e.song_pos(), 0, "the song moved on rather than sticking on silence");
+        assert_eq!(e.tracks[0].playing_slot, Some(0), "and the music came back");
     }
 }

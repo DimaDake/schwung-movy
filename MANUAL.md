@@ -886,7 +886,9 @@ of a hold starts a new song; every press after it adds to the end. Press the
 same scene twice and it plays twice as long. Let Shift go and the song is what
 you pressed — it plays through in order and then **loops**.
 
-Each scene lasts as long as its longest clip, rounded up to whole bars. One bar
+Each scene lasts as long as its longest clip, rounded up to whole bars. A
+scene with no clips at all is **one bar** of silence — the song passes through
+it rather than stopping on it. One bar
 before a switch the next scene's clips start flashing in the grid, the same way
 a clip you have just launched flashes while it waits for the bar. Every scene
 the song uses pulses on the step row, so you can see the whole arrangement at a

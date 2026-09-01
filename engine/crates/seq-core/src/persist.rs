@@ -114,6 +114,7 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
         t.playing_slot = None;
         t.queued_slot = None;
         t.pending_stop = false;
+        t.pending_select = None;
         t.lane_assigned = [false; 8];
         t.lane_base = [0u8; 8];
         t.lane_label = Default::default();

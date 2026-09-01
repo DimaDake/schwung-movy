@@ -18,6 +18,12 @@ pub struct Track {
     pub queued_slot: Option<usize>,
     /// Stop this track's clip at the next bar boundary.
     pub pending_stop: bool,
+    /// Slot to select when the next bar boundary lands. A scene moves every
+    /// track's selection to its column, but a track the scene STOPS has no
+    /// queued launch to carry that across — and doing it at press time would
+    /// move the selection (and a running take) a bar before the scene it names
+    /// actually plays. Runtime-only; not persisted.
+    pub pending_select: Option<usize>,
     /// Position inside the playing clip in ticks; valid while transport runs.
     pub pos_tick: u32,
     pub muted: bool,
@@ -56,6 +62,7 @@ impl Track {
             playing_slot: None,
             queued_slot: None,
             pending_stop: false,
+            pending_select: None,
             pos_tick: 0,
             muted: false,
             lane_assigned: [false; 8],

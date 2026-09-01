@@ -70,7 +70,7 @@ fn clears_capture(verb: &str) -> bool {
         | "cpy" | "cpyclr" | "pst"
         // whole-clip and session gestures
         | "clipcopy" | "clipdel" | "clipdelat" | "clipdup" | "clippaste"
-        | "clipsel" | "launch" | "stoptrk"
+        | "clipsel" | "launch" | "stoptrk" | "song" | "songadd"
         // automation edits — but NOT `abase`/`abaseq`, which are internal base
         // syncs the UI emits on lane allocation and on any knob read. Those
         // arrive while you are simply playing, and clearing on them wiped the
@@ -129,6 +129,9 @@ pub fn is_control_verb(verb: &str) -> bool {
         verb,
         // transport and recording mode
         "play" | "stop" | "rec" | "metro" | "link" | "minject" | "launch" | "stoptrk"
+        // song mode: building an arrangement is a performance gesture, not an
+        // edit — the same call `launch` gets, and for the same reason.
+        | "song" | "songadd"
         // view / selection
         | "watch" | "wlane" | "clipsel" | "hold" | "tdrum"
         // clipboard fills — they change no musical state; only the paste does
@@ -442,6 +445,18 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
         "launch" => {
             if let (Some(t), Some(s)) = (next(), next()) {
                 engine.launch_clip(t as usize, s.max(0) as usize);
+            }
+        }
+        // song <slot> — start a NEW song from this scene and launch it.
+        "song" => {
+            if let Some(s) = next() {
+                engine.song_start(s.max(0) as usize);
+            }
+        }
+        // songadd <slot> — append a scene to the song being built.
+        "songadd" => {
+            if let Some(s) = next() {
+                engine.song_add(s.max(0) as usize);
             }
         }
         // stoptrk <t> — stop a track's clip (quantized while running).

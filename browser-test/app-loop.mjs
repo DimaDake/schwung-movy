@@ -208,6 +208,45 @@ _log('\napp-loop: drum pads + step lane stay live on a non-synth module slot');
     eq('FX slot focused: selected drum pad lights white', padColor(PAD_SNARE), 120);
 }
 
+_log('\napp-loop: a pad press turns the page (bank.pad, through the router)');
+{
+    /* The logic suite calls selectBankForPad() directly; this covers the
+     * router hookup — a real pad note-on arriving at onMidiMessageInternal
+     * has to move the page. Served as a module-owned layout, the way a kit
+     * with a page per voice ships it. */
+    const layout = JSON.stringify({
+        id: 'mrdrums', name: 'MrDrums',
+        drum: { padCount: 16, padNoteStart: 36, rawMidi: false },
+        banks: [
+            { name: 'Main', rows: [[{ key: 'pad_vol', short: 'VOL', full: 'Volume',
+                                      type: 'float', min: 0, max: 2 }]] },
+            { name: 'Kick',  pad: 1, rows: [[{ key: 'pad_vol', short: 'VOL', full: 'Volume',
+                                               type: 'float', min: 0, max: 2 }]] },
+            { name: 'Snare', pad: 2, rows: [[{ key: 'pad_vol', short: 'VOL', full: 'Volume',
+                                               type: 'float', min: 0, max: 2 }]] },
+        ],
+    });
+    const savedRead = globalThis.host_read_file;
+    globalThis.host_read_file = (p) =>
+        String(p).endsWith('/mrdrums/movy_config.json') ? layout : (savedRead ? savedRead(p) : null);
+    resetApp();
+    globalThis.host_read_file = savedRead;
+
+    const model = appState.trackModels[0][1];
+    eq('opens on the bank no pad claims', model.getKnobPage(), 0);
+
+    const PAD_SNARE = 69;                    // grid pad 2 → drumPad 2
+    sendMidi([0x90, PAD_SNARE, 100]);
+    sendMidi([0x80, PAD_SNARE, 0]);
+    advance(2);
+    eq('a pad note-on selects that pad\'s bank', model.getKnobPage(), 2);
+
+    sendMidi([0x90, PAD_KICK, 100]);
+    sendMidi([0x80, PAD_KICK, 0]);
+    advance(2);
+    eq('and another pad moves it again', model.getKnobPage(), 1);
+}
+
 _log('\napp-loop: green wins over white (sequencer gate)');
 {
     resetApp();

@@ -721,14 +721,6 @@ editor does. **Shift + pad** goes there without sounding the voice. Pads that
 have no voice behind them (a spare pad in the grid) can open a page too — 9W9
 puts Main, Reverb and Delay on three of them.
 
-> **The lock gesture differs between Movy and the on-device editor, and this
-> catches people out.** Schwung's stock editor freezes the page with a **plain
-> jog click**. In Movy a plain jog click opens the module browser, so the lock
-> is **Shift + jog click** on the params page. Learn it on the device, try it
-> here, and it will look broken. Locked, the pads still play — they just stop
-> turning the page, so the knobs you are editing stay put. Modules opt in, so
-> the gesture does nothing on a module that has not asked for it.
-
 *Sample Slicer* is a slice player rather than a kit: its **32 pads are the 32
 slices** the module can trigger (pad 1 = slice 1). Its Main page carries the
 **Sample** browser — hold that knob and click the jog to browse

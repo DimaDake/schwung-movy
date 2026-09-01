@@ -40,10 +40,6 @@ export const appState = {
     focusGroup:       0,
     currentView:      VIEW_CHAIN,
     shiftHeld:        false,
-    /* Pad-follow lock (Shift + jog click on the params page). While set, a pad
-     * still plays its voice but no longer turns the page, so the knobs you are
-     * working on stay under your hands. Session state, not persisted. */
-    padFollowLocked:  false,
     dirty:            true,
     initLedIndex:     0,
     initLedsDone:     false,

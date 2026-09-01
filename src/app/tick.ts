@@ -67,7 +67,7 @@ import { activeHasNote, maxBarOffset, seqState } from '../seq/state.js';
 import { engineReady } from '../seq/engine.js';
 import { perfProbeEnter, perfProbeTick, perfPhase, perfPhaseEnd } from './perf-probe.js';
 import {
-    drawLoopStrip, drawLoopHeader, drawSeqToast, drawSeqHeader,
+    drawLoopStrip, drawLoopHeader, drawSeqToast, drawSeqHeader, songBandTick,
     seqToastActive, seqToastTick,
     seqHeaderActive, seqHeaderTick,
 } from '../seq/render.js';
@@ -502,8 +502,12 @@ function tickBody(): void {
     const toastShowing = seqToastActive();
     const headerShowing = seqHeaderActive();
 
+    /* Whether this tick repainted the view. The song band sits on top of it,
+     * so a repaint erases the band and it has to be drawn again. */
+    let viewRepainted = false;
     if (modelDirty || masterDirty || appState.dirty || toastShowing !== lastToastShowing
         || headerShowing !== lastHeaderShowing) {
+        viewRepainted = true;
         /* A bottom jog/browse toast (drawn by the param/chain renderers) shares
          * the bottom rows with the Loop strip; track it so the per-tick strip
          * below doesn't paint over it. Recomputed each rendered frame; persists
@@ -716,5 +720,14 @@ function tickBody(): void {
          * sweep). While it is up it supersedes the timed announcement. */
         if (seqState.loopMode) drawLoopHeader();
         drawLoopStrip();
+    }
+
+    /* Song band: Session view only, and on its own schedule — on the frames the
+     * view underneath repainted over it, and otherwise only when the
+     * arrangement or the position in it changed. A running song must cost
+     * nothing per tick. */
+    if (engineReady() && !seqToastActive() && !jogToastShown && !isBrowseView
+        && !captureOverlayActive()) {
+        songBandTick(viewRepainted);
     }
 }

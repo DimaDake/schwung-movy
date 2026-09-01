@@ -973,6 +973,38 @@ _origLog('\nTest: status parse cost, 4 vs 16 tracks');
     }
 }
 
+/* ── Test: the song band is free when nothing changed ────────────────────── */
+/* A running song must cost nothing per tick. The band's content only moves on a
+ * scene switch, so once drawn it must not redraw until the arrangement, the
+ * position in it, or the view underneath changes. */
+
+_origLog('\nTest: song band steady-state cost');
+{
+    const { seqState, resetSeqState } = await import('../dist/esm/seq/state.js');
+    const { songBandTick, resetSongBand } = await import('../dist/esm/seq/render.js');
+    resetSeqState(); resetSongBand();
+    seqState.sessionMode = true;
+    seqState.songScenes = [0, 1, 1, 2];
+    seqState.songPos = 1;
+
+    fillRectCount = 0;
+    songBandTick(true);                 // the view repainted -> the band redraws
+    const drawn = fillRectCount;
+    check('the band actually draws when the view repainted', drawn > 0 ? 0 : 1, 0);
+
+    fillRectCount = 0;
+    for (let i = 0; i < 100; i++) songBandTick(false);
+    check('fill_rect over 100 idle ticks', fillRectCount, 0);
+
+    /* ...and it DOES redraw when the song moves on, or the readout would lie. */
+    fillRectCount = 0;
+    seqState.songPos = 3;
+    songBandTick(false);
+    check('a scene change redraws the band', fillRectCount > 0 ? 0 : 1, 0);
+
+    resetSeqState(); resetSongBand();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _origLog('');

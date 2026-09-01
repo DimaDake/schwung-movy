@@ -106,5 +106,34 @@ export async function run() {
     const unused = sceneStepLed(0, [1, 2, 2, 3]);  // step 0 -> scene 0, not in the song
     eq('a scene outside the song stays solid', unused.channel, ANIM_NONE);
 
+    /* ── the bottom-row readout ──────────────────────────────────────────── */
+    const { songBandTokens } = await import('../../dist/esm/seq/song.js');
+    /* A stand-in for fontWidth: two pixels per character, so the window maths
+     * is what is checked rather than the font's metrics. */
+    const w2 = (t) => t.length * 2;
+
+    const short = songBandTokens([0, 1, 1, 2], 1, 1000, w2);
+    eq('scene numbers are 1-based, matching the step buttons',
+       short.tokens.map((t) => t.label).join(' '), '1 2 2 3');
+    eq('both presses of the current entry are marked',
+       short.tokens.map((t) => (t.current ? '*' : '.')).join(''), '.**.');
+    ok('a song that fits has no leading ellipsis', short.leading === false);
+
+    const first = songBandTokens([0, 1, 2], 0, 1000, w2);
+    eq('the first entry is the current one at pos 0',
+       first.tokens.map((t) => (t.current ? '*' : '.')).join(''), '*..');
+
+    /* Overflow: the current entry and the one after it stay on screen, and the
+     * window fills leftward with as much history as fits. */
+    const many = [0, 1, 2, 3, 4, 5, 6, 7];
+    const win = songBandTokens(many, 6, 12, w2);
+    ok('the current entry survives the window',
+       win.tokens.some((t) => t.current && t.label === '7'));
+    ok('so does the entry after it', win.tokens.some((t) => t.label === '8'));
+    ok('a windowed song says so', win.leading === true);
+    ok('the window really is smaller than the song', win.tokens.length < many.length);
+
+    eq('an empty song has no tokens', songBandTokens([], 0, 1000, w2).tokens.length, 0);
+
     uninstallMockEngine();
 }

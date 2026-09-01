@@ -12,6 +12,7 @@
 
 import { seqCmd } from './engine.js';
 import { appState } from '../app/state.js';
+import { seqState } from './state.js';
 import { C_BLACK, C_GREEN, ANIM_NONE, ANIM_PULSE } from './colors.js';
 
 export const NUM_SCENES = 8;
@@ -85,4 +86,69 @@ export function sceneStepLed(step: number, songScenes: number[]): SceneLed {
 export function resetSong(): void {
     holdStarted = false;
     scenePresses = 0;
+}
+
+export interface SongToken { label: string; current: boolean; }
+
+/* Where the current entry ends: a run of identical presses is ONE entry, so
+ * both `2`s of `1 2 2 3` are highlighted together. */
+function entryEnd(scenes: number[], pos: number): number {
+    let i = pos;
+    while (i < scenes.length && scenes[i] === scenes[pos]) i++;
+    return i;
+}
+
+/* The song as display tokens, windowed to `maxW` pixels so the entry now
+ * playing and the one after it are always on screen — you should never have to
+ * guess where in the arrangement you are. The window then fills leftward with
+ * as much history as fits, so what you just heard stays visible too.
+ *
+ * `width` is injected rather than imported so this is testable without the
+ * font, and so the caller measures with the same function it draws with. */
+export function songBandTokens(
+    scenes: number[], pos: number, maxW: number, width: (s: string) => number,
+): { tokens: SongToken[]; leading: boolean } {
+    if (scenes.length === 0) return { tokens: [], leading: false };
+    const curFrom = Math.min(Math.max(pos, 0), scenes.length - 1);
+    const curTo = entryEnd(scenes, curFrom);
+    /* The last index that MUST be visible: the end of the entry AFTER the
+     * current one, or the end of the song when the current entry is last. */
+    const must = entryEnd(scenes, Math.min(curTo, scenes.length - 1)) - 1;
+
+    const label = (i: number) => String(scenes[i] + 1);
+    const GAP = 2;
+    const span = (a: number, b: number) => {
+        let w = 0;
+        for (let i = a; i <= b; i++) w += (i > a ? GAP : 0) + width(label(i));
+        return w;
+    };
+
+    /* Start from the span that MUST fit, then grow outwards while there is
+     * room: right first, so what is coming stays visible in preference to what
+     * has already been played. */
+    let from = curFrom;
+    let to = must;
+    let used = span(from, to);
+    while (to < scenes.length - 1 && used + GAP + width(label(to + 1)) <= maxW) {
+        used += GAP + width(label(to + 1));
+        to++;
+    }
+    while (from > 0 && used + GAP + width(label(from - 1)) <= maxW) {
+        used += GAP + width(label(from - 1));
+        from--;
+    }
+
+    const tokens: SongToken[] = [];
+    for (let i = from; i <= to; i++) {
+        tokens.push({ label: label(i), current: i >= curFrom && i < curTo });
+    }
+    return { tokens, leading: from > 0 };
+}
+
+/* The band shows while Shift is held in Session view — so it appears the
+ * instant you press Shift, empty, telling you the row has become the scenes —
+ * and for as long as a song is active. Outside Session view it never draws. */
+export function songBandVisible(): boolean {
+    if (!seqState.sessionMode) return false;
+    return appState.shiftHeld || seqState.songScenes.length > 0;
 }

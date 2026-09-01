@@ -50,6 +50,7 @@ const PRESETS = [
     'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
     'step_page_knobs', 'step_page_chain', 'step_indicator', 'step_rec_header',
     'loop_strip_midclip', 'loop_strip_outside', 'loop_header',
+    'song_band', 'song_band_overflow',
     'main-default', 'main-tempo-touched', 'main-swing-touched',
     'main-root-touched', 'main-key-overlay', 'main-mode-overlay', 'main-layout-overlay',
     'main-ext-sync', 'main-link-on',
@@ -196,7 +197,7 @@ const { appState }                     = await import('../dist/esm/app/state.js'
 const { keyboardState }                = await import('../dist/esm/keyboard/state.js');
 const { resetStepRec, stepRecDownAt } = await import('../dist/esm/seq/step-rec.js');
 const { stepRecTick }      = await import('../dist/esm/seq/step-rec-view.js');
-const { drawSeqHeader, resetSeqHeader, drawLoopStrip, drawLoopHeader } =
+const { drawSeqHeader, resetSeqHeader, drawLoopStrip, drawLoopHeader, drawSongBand, resetSongBand } =
     await import('../dist/esm/seq/render.js');
 const { MOCK_SYNTHS }      = await import('./mock-synth.mjs');
 const { fontPrint5x3, fontWidth5x3, FONT5_HEIGHT, CHARS5 } =
@@ -668,6 +669,31 @@ function applyView(preset) {
             seqState.holdNotes = [60, 64, 67];
             stepRecTick();
             lastRender = () => { renderKnobsView(model.getViewModel()); drawSeqHeader(); };
+            lastRender();
+            break;
+        }
+        case 'song_band': {
+            // Session view with a four-scene song, playing the doubled second
+            // scene: `SONG 1 2 2 3` with both 2s boxed as one entry.
+            resetSeqState(); resetSongBand();
+            seqState.sessionMode = true;
+            seqState.songScenes = [0, 1, 1, 2];
+            seqState.songPos = 1;
+            lastRender = () => { renderKnobsView(model.getViewModel()); drawSongBand(); };
+            lastRender();
+            break;
+        }
+        case 'song_band_overflow': {
+            // A song longer than the row: the window keeps the current entry
+            // and the next one on screen behind a leading ellipsis.
+            resetSeqState(); resetSongBand();
+            seqState.sessionMode = true;
+            seqState.songScenes = [
+                0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7,
+                0, 1, 2, 3, 4, 5, 6, 7, 0, 1,
+            ];
+            seqState.songPos = 22;
+            lastRender = () => { renderKnobsView(model.getViewModel()); drawSongBand(); };
             lastRender();
             break;
         }

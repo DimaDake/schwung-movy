@@ -6,7 +6,8 @@
 
 import { drawJogToast } from '../renderer/overlay.js';
 import { W } from '../renderer/layout.js';
-import { fontPrint } from '../font/index.js';
+import { fontPrint, fontWidth } from '../font/index.js';
+import { songBandTokens, songBandVisible } from './song.js';
 import { loopBarCount, loopEndBar, loopStartBar, seqState } from './state.js';
 import { NUM_STEP_BUTTONS } from './constants.js';
 
@@ -155,3 +156,58 @@ export function resetSeqToast(): void {
     text = '';
     ttl = 0;
 }
+
+/* Song band: the bottom row in Session view. Inverted, like the header
+ * announcement — `SONG` then the scene numbers in the order they were pressed,
+ * with the entry now playing boxed out of the band so you can see where in the
+ * arrangement you are.
+ *
+ * Unlike the Loop strip this does NOT repaint every tick: nothing in it moves
+ * between scene changes. songBandTick draws only when the content changed, or
+ * when the view underneath was repainted over it. */
+const SONG_Y = 55;      // band top; the display is 64 tall and the band is 9
+const SONG_GAP = 2;
+
+let lastSongSig = '';
+
+function songBandSig(): string {
+    return seqState.songScenes.join(',') + '@' + seqState.songPos;
+}
+
+export function drawSongBand(): void {
+    fill_rect(0, SONG_Y, W, 9, 1);              // inverted band
+    let x = 2;
+    fontPrint(x, SONG_Y + 1, 'SONG', 0);
+    x += fontWidth('SONG') + SONG_GAP * 2;
+    const { tokens, leading } = songBandTokens(
+        seqState.songScenes, seqState.songPos, W - x - 2, fontWidth);
+    if (leading) {
+        fontPrint(x, SONG_Y + 1, '.', 0);
+        x += fontWidth('.') + SONG_GAP;
+    }
+    for (const t of tokens) {
+        const w = fontWidth(t.label);
+        if (x + w > W - 1) break;
+        if (t.current) {
+            /* Boxed rather than inverted again: the band is already inverted,
+             * so the entry now playing is a hole punched back through it. */
+            fill_rect(x - 1, SONG_Y, w + 2, 9, 0);
+            fontPrint(x, SONG_Y + 1, t.label, 1);
+        } else {
+            fontPrint(x, SONG_Y + 1, t.label, 0);
+        }
+        x += w + SONG_GAP;
+    }
+}
+
+/** Draw the band if it needs drawing. `viewRepainted` is true on a tick whose
+ *  frame redrew the view underneath, which paints over the band. */
+export function songBandTick(viewRepainted: boolean): void {
+    if (!songBandVisible()) { lastSongSig = ''; return; }
+    const sig = songBandSig();
+    if (!viewRepainted && sig === lastSongSig) return;
+    lastSongSig = sig;
+    drawSongBand();
+}
+
+export function resetSongBand(): void { lastSongSig = ''; }

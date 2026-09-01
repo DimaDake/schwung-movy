@@ -15,7 +15,7 @@
 
 import { mlog } from '../log.js';
 import { CHAIN_MODULE_DIR, ENGINE_DSP_PATH, ENGINE_VERSION, MOVY_MODULE_DIR } from './constants.js';
-import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, seqState, sessionFromStr } from './state.js';
+import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, seqState, sessionFromStr, songFromStr } from './state.js';
 import { rationalToIdx } from './clip-scale.js';
 import { markUiStateDirty } from './ui-dirty.js';
 import { applyFlagsToEngine } from './flags.js';
@@ -348,6 +348,7 @@ function parseStatus(s: string): void {
         else if (key === 'act') activeFromStr(val);
         else if (key === 'mute') muteFromStr(val);
         else if (key === 'sess') sessionFromStr(val);
+        else if (key === 'song') songFromStr(val);
         else if (key === 'occ') occFromHex(val);
         else if (key === 'unop') noopSnapId = Number(val);
         else if (key === 'alanes') seqState.autoAssigned = parseInt(val, 16) || 0;

@@ -89,6 +89,9 @@ export interface SeqUiState {
     /* session mode */
     sessionMode: boolean;        // pads show the clip grid
     session: SessionTrack[];     // one entry per track, clip-slot state (from status)
+    /* song mode — mirror of the engine's `song=` (src/seq/song.ts owns the gesture) */
+    songScenes: number[];        // raw press list, e.g. [1,2,2,3]
+    songPos: number;             // index in songScenes of the entry now playing
 
     /* parameter automation (mirrored from status, watched track / active clip) */
     autoAssigned: number;            // bitmask of assigned lanes (from `alanes`)
@@ -157,6 +160,8 @@ function defaults(): SeqUiState {
         muted: new Array(TRACK_COUNT).fill(false) as boolean[],
         sessionMode: false,
         session: emptySession(),
+        songScenes: [],
+        songPos: 0,
         autoAssigned: 0,
         autoActive: 0,
         heldLocks: new Map(),
@@ -183,6 +188,21 @@ export function sessionFromStr(s: string): void {
             selected: g[3] === undefined ? 0 : Number(g[3]) || 0,
         };
     }
+}
+
+/* Parse the engine's `song=` value: `-` for no song, else `<pos>:<csv>` where
+ * pos is the RAW index of the first press of the entry now playing. */
+export function songFromStr(s: string): void {
+    if (!s || s === '-') {
+        seqState.songScenes = [];
+        seqState.songPos = 0;
+        return;
+    }
+    const colon = s.indexOf(':');
+    seqState.songPos = Number(s.slice(0, colon)) || 0;
+    seqState.songScenes = s.slice(colon + 1).split(',')
+        .map(Number)
+        .filter((n) => n >= 0 && n < 8);
 }
 
 /* Number of bars the watched clip's loop spans (its length, bar-rounded), capped

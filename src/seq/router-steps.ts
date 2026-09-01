@@ -22,6 +22,7 @@ import { muteHeld, muteMarkGestured, muteShiftHeld } from './router-buttons.js';
 import { toggleMute, toggleSolo } from '../mixer/track-mutes.js';
 import { TRACK_COUNT } from '../track/ref.js';
 import { sessionButtonHeld, sessionStepPress, sessionStepRelease, trackSelectActive } from './track-select.js';
+import { songSceneStep, songSceneReleasePending } from './song.js';
 import {
     maxBarOffset, minBarOffset, occHasStep, occToggleStep, seqState, setFullVelocity,
 } from './state.js';
@@ -106,6 +107,15 @@ export function handleStepButton(button: number, on: boolean, shiftHeld: boolean
      * below, because none of them mean anything when the row is addressing
      * tracks. Shift is not consulted for the selector itself — the shifted step
      * functions stay available in Track view, where the row is actually steps. */
+    /* Shift in Session view turns the row into the scene launcher: the eight
+     * clip columns on the step buttons printed 1,3,5…15. Above the track
+     * selector, which keeps the row on unshifted presses — Shift is what
+     * changes what the row means. The release of a press this row consumed
+     * belongs to it too, even if Shift came up in between. */
+    if ((seqState.sessionMode && shiftHeld) || (!on && songSceneReleasePending(button))) {
+        songSceneStep(button, on);
+        return;
+    }
     if (trackSelectActive()) {
         if (on) sessionStepPress(button);
         return;

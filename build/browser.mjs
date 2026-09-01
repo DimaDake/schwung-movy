@@ -134,6 +134,7 @@ await esbuild.build({
         resolve(root, 'src/seq/edit-ops.ts'),
         resolve(root, 'src/seq/duplicate.ts'),
         resolve(root, 'src/seq/session.ts'),
+        resolve(root, 'src/seq/song.ts'),
         resolve(root, 'src/seq/persist-blob.ts'),
         resolve(root, 'src/seq/persist-store.ts'),
         resolve(root, 'src/seq/set-load.ts'),

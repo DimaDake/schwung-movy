@@ -1,5 +1,5 @@
 import { portFor } from '../track/registry.js';
-import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS } from './state.js';
+import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS, VIEW_CPU } from './state.js';
 import { mainPageActive, mainPageState } from '../seq/main-page.js';
 import { buildMainPageVM } from '../seq/main-page-vm.js';
 import { clipPageActive, clipPageState } from '../seq/clip-page.js';
@@ -7,6 +7,9 @@ import { buildClipPageVM } from '../seq/clip-page-vm.js';
 import { buildFlagsPageVM } from '../seq/flags-page-vm.js';
 import { FLAG_KNOB } from '../seq/flags-page.js';
 import { renderFlagsView } from '../renderer/flags-view.js';
+import { renderCpuView, barPixels } from '../renderer/cpu-view.js';
+import { buildCpuPageVM } from '../seq/cpu-page-vm.js';
+import { cpuPageActive } from '../seq/cpu-page.js';
 import { keyboardState, baseNoteFor, padMapFor } from '../keyboard/state.js';
 import { isSounding } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
@@ -166,6 +169,38 @@ function mainSig(): string {
         keyboardState.octave[appState.activeTrack.index]].join(',');
 }
 
+let lastCpuRaw = '';
+let lastCpuSig = '';
+/* The CPU page's repaint gate.
+ *
+ * TWO stages, unlike the other pages' signatures. The cheap one is the raw
+ * status strings: the tick runs at 60-200 Hz and the poll that can change them
+ * at ~24, so on most ticks nothing can possibly have moved and two string
+ * concatenations settle it. Only when a new poll has landed is the view model
+ * built — and then the signature is over the DRAWN PIXELS, not the microseconds
+ * behind them, so microsecond jitter under a pixel does not repaint anything.
+ *
+ * That second stage is the load-bearing one: movy's UI thread competes with the
+ * render lanes for Move's cores, so a meter that repaints on noise inflates the
+ * very number it is displaying.
+ *
+ * Called once per tick and it does its own storing — the other signature checks
+ * call their function twice per tick, which this one cannot afford. */
+function cpuRepaintTick(): void {
+    if (!cpuPageActive()) return;
+    const raw = seqState.cpuCost + '|' + seqState.cpuWall + '|' + seqState.cpuMask;
+    if (raw === lastCpuRaw) return;
+    lastCpuRaw = raw;
+    const vm = buildCpuPageVM();
+    const cols = vm.columns.map((c) =>
+        c.kind[0] + barPixels(c.synthUs) + '.' + barPixels(c.totalUs) + '.' + barPixels(c.peakUs));
+    const sig = Math.round(vm.load * 100) + '|' + Math.round(vm.peakLoad * 100) + '|'
+        + (vm.optimized ? 1 : 0) + '|' + cols.join(',');
+    if (sig === lastCpuSig) return;
+    lastCpuSig = sig;
+    appState.dirty = true;
+}
+
 let lastClipSig = '';
 function clipSig(): string {
     return [clipPageActive(), clipPageState.touchedKnob, clipPageState.scaleOverlay,
@@ -318,6 +353,7 @@ function tickBody(): void {
     if (mainSig() !== lastMainSig) { lastMainSig = mainSig(); appState.dirty = true; }
     // Repaint when clip params page values or touch/overlay state change.
     if (clipSig() !== lastClipSig) { lastClipSig = clipSig(); appState.dirty = true; }
+    cpuRepaintTick();   // repaint only when a pixel the CPU page draws would change
     // Diagnostic (off unless debug_log_on): the UI lane registry mirrors the
     // engine's assigned lanes. Empty here means automation display + read-back
     // suppression are dead — the device automation test asserts it is populated.
@@ -539,6 +575,12 @@ function tickBody(): void {
             // Only knob 1 lights, and its brightness is the value — the page is
             // a list, so the LED is the only thing saying which knob edits it.
             updateSingleKnobLED(FLAG_KNOB, vm.knobNormalized);
+        } else if (appState.currentView === VIEW_CPU) {
+            renderCpuView(buildCpuPageVM());
+            // Nothing on this page is editable, so every knob goes dark. A knob
+            // still lit from the page underneath would be inviting a turn this
+            // page consumes and ignores.
+            updateSingleKnobLED(-1, 0);
         } else if (seqState.sessionMode) {
             const vm = masterModel!.getViewModel();
             if (appState.masterDetail) {
@@ -710,11 +752,14 @@ function tickBody(): void {
      * master chain (Session mode) — it tracks the watched track's clip, which
      * is irrelevant while editing master FX. */
     const isBrowseView = appState.currentView === VIEW_BROWSE || appState.currentView === VIEW_FILE_BROWSE;
+    // The CPU meter owns the whole screen down to row 62, and the strip's
+    // per-tick clear would take its label row.
+    const isFullScreenView = isBrowseView || appState.currentView === VIEW_CPU;
     // The strip repaints every tick, outside the dirty-frame block, so anything
     // that owns the whole screen has to be excluded here or the strip draws back
     // over it a few milliseconds later.
     if (engineReady() && !seqToastActive() && !jogToastShown && !seqState.sessionMode
-        && !isBrowseView && !captureOverlayActive()) {
+        && !isFullScreenView && !captureOverlayActive()) {
         /* Loop mode's readout runs on the same per-tick schedule as the strip:
          * both track state that moves without a dirty frame (bar navigation, the
          * sweep). While it is up it supersedes the timed announcement. */

@@ -73,6 +73,22 @@ export async function run() {
     eq('synth equals total when the chain does not split', vm.columns[0].synthUs, 800);
     eq('so the FX segment is nothing', vm.columns[0].totalUs - vm.columns[0].synthUs, 0);
 
+    _log('\ncpu page: the pixel quantisation the repaint gate compares on');
+    {
+        const { barPixels } = await import('../../dist/esm/renderer/cpu-view.js');
+        /* app/tick.ts hashes barPixels(), not microseconds. If these stopped
+         * collapsing, the meter would repaint ~24 times a second on jitter it
+         * cannot draw — and inflate the very number it is displaying, because
+         * the UI thread competes with the render lanes for Move's cores. */
+        eq('a microsecond is below a pixel', barPixels(801), barPixels(800));
+        eq('so is the next one', barPixels(799), barPixels(800));
+        ok('100 us is not', barPixels(900) !== barPixels(800));
+        eq('nothing is the floor', barPixels(0), 0);
+        ok('full scale is the ceiling', barPixels(FULL_SCALE_US) > 0);
+        eq('and over-scale clamps to it', barPixels(FULL_SCALE_US * 3), barPixels(FULL_SCALE_US));
+        eq('a negative us cannot draw upward', barPixels(-500), 0);
+    }
+
     _log('\ncpu page: nothing to draw');
     resetFlags();
     setFlag('chtracks', 1);

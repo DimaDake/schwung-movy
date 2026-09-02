@@ -34,6 +34,7 @@ official docs first:
 4. [Keyboard & drums](#4-keyboard--drums)
 5. [The sequencer (aligned with Move)](#5-the-sequencer-aligned-with-move)
 6. [Beyond Move: Step, Clip & Set parameters](#6-beyond-move-step-clip--set-parameters)
+   - [CPU meter](#cpu-meter--shift--step-12)
    - [Settings](#settings--shift--step-2)
 6a. [Undo & redo](#6a-undo--redo)
 7. [Limitations vs Move](#7-limitations-vs-move)
@@ -1401,6 +1402,56 @@ other is up *replaces* it, so a single **Back** always leaves for the view you
 started from — never for the other page. Switching tracks or going to Session
 view closes them as well, so neither page follows you around.
 
+### CPU meter — Shift + Step 12
+
+**Shift + Step 12** opens the **CPU meter**: one column per track over a bar for
+the whole audio block. **Back** closes it. Pressing **Shift + Step 12** again
+while it is open clears the held peaks and starts a fresh observation.
+
+![CPU meter](docs/assets/cpu-opt-on.png)
+
+The bar under the header is the **audio block** — 2.9 ms, the time Movy has to
+render every chain before the sound card needs the next buffer. The fill is how
+much of it Movy used; the notch above the bar is the worst single block since
+the page opened, and it is held for as long as the page stays open. The
+percentage in the header is the same number, and it is *not* capped: if it reads
+over 100 % you are hearing dropouts.
+
+This is **Movy's chain render only**. Move's own engine takes roughly another
+240 µs of the same block, so 100 % here means "Movy used the whole block", not
+"the device is at its limit".
+
+Each column is one track, at a fixed scale of **1 ms per block** — the same
+scale every time, so a column means the same thing from one session to the next.
+Tracks 1, 5, 9 and 13 are labelled; the rest count across from them.
+
+| What you see | What it means |
+| --- | --- |
+| A solid bar | The instrument |
+| Checkered on top of it | The effects after it |
+| A dotted line above the bar | The worst block that track has had since you opened the page |
+| A solid line across the top with a gap under it | Over 1 ms — the column ran off the scale |
+| A short dash just above the baseline | Loaded, but silent right now, so Movy is skipping it entirely |
+| Just the baseline | Nothing loaded |
+| A dotted vertical column | A **Schwung**-hosted track — it renders outside Movy, so Movy cannot measure it. Not the same as costing nothing |
+
+#### With CPU Optimize off
+
+![CPU meter with CPU Optimize off](docs/assets/cpu-opt-off.png)
+
+The header says **CPU OPT OFF**, and two things change. Chains render in a
+single pass, so there is no separate effects section to show and every bar is
+solid. And nothing sleeps, so the dash never appears.
+
+Expect an individual track to read **higher** with CPU Optimize on — around a
+quarter higher — while the bar at the top reads much *lower*. That is not a
+bug: several chains rendering at once cost each other a little, and the whole
+point is that they are running side by side instead of one after another. The
+bar is the number that decides whether you get dropouts; the columns are for
+finding which track is expensive.
+
+---
+
 ### Settings — Shift + Step 2
 
 **Shift + Step 2** opens **Settings**, a scrolling list rather than a knob page:
@@ -1416,7 +1467,8 @@ applies to **Movy's own tracks only** — a Schwung track renders exactly as it
 does without Movy. Turn it **OFF** only if a particular module misbehaves: a few
 plugins are not safe to run off the audio thread, and this is the escape hatch.
 Everything under it (how many threads, how aggressively silent chains sleep)
-stays at the setting that measured best.
+stays at the setting that measured best. The **CPU meter** (Shift + Step 12) is
+where you see what it buys you.
 
 **TRACKS 1-4 HOST** decides who owns the first four tracks. Tracks 5-16 are
 always Movy's own; tracks 1-4 can be either:
@@ -1623,6 +1675,7 @@ behaviour you'd like — or, better, a PR.
 | **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/link/quantize, root/key/mode/layout). |
 | **Shift + Step 6** | Toggle the **metronome**. |
 | **Shift + Step 10** | Toggle **full velocity** — every pad note at 127. Kept across sets and restarts. |
+| **Shift + Step 12** | Open the **CPU meter** (per-track cost, block usage). Press again to clear the held peaks. |
 | **Shift + Step 15** | **Double** the loop. |
 | **Shift + Step 16** | Cycle the current clip's **quantization** (0 / default / 100 %). |
 

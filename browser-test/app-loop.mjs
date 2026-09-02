@@ -47,6 +47,10 @@ const { anyStepHeld, STEP_AUTO_MS } = await import('../dist/esm/seq/step-edit.js
 const { stepPageState } = await import('../dist/esm/seq/step-page.js');
 const { leaveModalActive } = await import('../dist/esm/app/leave-modal.js');
 const { mainPageActive } = await import('../dist/esm/seq/main-page.js');
+const { VIEW_CPU } = await import('../dist/esm/app/state.js');
+const { STEP_CPU } = await import('../dist/esm/seq/constants.js');
+const { handleStepButton } = await import('../dist/esm/seq/router-steps.js');
+const { closeParamPage } = await import('../dist/esm/seq/param-page.js');
 
 let failures = 0;
 const _log = _origLog.bind(console);
@@ -2444,5 +2448,98 @@ _log('\napp-loop: the Settings page owns the whole screen');
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
+/* ── CPU page owns its bottom rows ──────────────────────────────────────────
+ * drawLoopStrip() clears rows 60-63 every tick, OUTSIDE the dirty-frame block.
+ * A page that draws down there and is not excluded loses those rows a few
+ * milliseconds after it painted them — visible only on the device, because a
+ * screenshot scene never ticks.
+ *
+ * Run as two arms. "The strip did not draw" is worth nothing on its own: half
+ * the guard's conditions are module state this harness does not reset, so a
+ * silent strip can just as easily mean the harness cannot see one. The CONTROL
+ * is a page that must keep it. */
+_log('\napp-loop: CPU page is not painted over by the loop strip');
+{
+    const { seqToastActive } = await import('../dist/esm/seq/render.js');
+    const stripRectsFor = (view) => {
+        resetApp();
+        for (let i = 0; i < 400 && seqToastActive(); i++) advance(1);
+        if (view === VIEW_CPU) handleStepButton(STEP_CPU, true, true);
+        else appState.currentView = view;
+        eq(`arm is on view ${view}`, appState.currentView, view);
+        appState.dirty = true;
+        const rects = [];
+        /* jogToastShown and the toast TTL are tick.ts / render.ts module state
+         * that resetApp() does not reach, and both suppress the strip. Ticking
+         * the toast out is what makes the control arm meaningful. */
+        const origFR = globalThis.fill_rect;
+        globalThis.fill_rect = (x, y, w, h, v) => rects.push([x, y, w, h, v]);
+        advance(1);
+        globalThis.fill_rect = origFR;
+        if (view === VIEW_CPU) appState.currentView = closeParamPage();
+        return rects;
+    };
+    const cleared = (rects) => rects.some(
+        ([x, y, w, h, v]) => x === 0 && y === 60 && w === 128 && h === 4 && v === 0);
+
+    /* CONTROL: the step/knobs view keeps the strip. If this is false the arm
+     * below is vacuous and the whole check has to be treated as broken. */
+    const control = stripRectsFor(VIEW_KNOBS);
+    eq('control: a normal page still gets the loop strip', cleared(control), true);
+
+    const cpu = stripRectsFor(VIEW_CPU);
+    eq('loop strip suppressed on the CPU page', cleared(cpu), false);
+    eq('and the page actually painted', cpu.length > 0, true);
+}
+
+/* ── CPU page repaints on pixels, not on microseconds ───────────────────────
+ * The meter runs on the UI thread, which competes with the render lanes for
+ * Move's cores. A page that repaints because a number wobbled below the
+ * resolution of a bar is measuring its own repaint. */
+_log('\napp-loop: CPU page repaints only when a drawn pixel changes');
+{
+    resetApp();
+    const cols = (t, sy) => [`${t}/${sy}/900`].concat(Array(15).fill('0/0/0')).join(',');
+    engine.status.chmask = '0001/0000';
+    engine.status.chwall = '1491/2180/2902';
+    engine.status.chcost = cols(800, 600);
+
+    handleStepButton(STEP_CPU, true, true);
+    eq('the CPU page is up for the gate check', appState.currentView, VIEW_CPU);
+    advance(12);                        // past a poll; settles the first repaint
+
+    const paintsAfter = (mutate) => {
+        mutate();
+        appState.dirty = false;
+        const before = painted.length;
+        advance(12);
+        return painted.length - before;
+    };
+
+    /* One microsecond on a 1000 us column is 1/39th of a pixel, and one on the
+     * capacity bar is well under 1%. */
+    eq('sub-pixel jitter does not repaint', paintsAfter(() => {
+        engine.status.chcost = cols(801, 601);
+        engine.status.chwall = '1492/2180/2902';
+    }) > 0, false);
+
+    /* 100 us is ~4 px of a column: a change the screen can actually show.
+     *
+     * NOT a gate-isolating assertion — other dirty sources can repaint in the
+     * same window, and killing `cpuRepaintTick` does not fail this. It is here
+     * as a liveness check (the page is not frozen); the gate's own logic is
+     * pinned by the quantisation assertions in logic/cpu-page.mjs, and its
+     * suppressing half by the jitter arm above. */
+    eq('the page is still live after a real change', paintsAfter(() => {
+        engine.status.chcost = cols(900, 700);
+    }) > 0, true);
+
+    delete engine.status.chcost;
+    delete engine.status.chwall;
+    delete engine.status.chmask;
+    appState.currentView = closeParamPage();
+}
+
+
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');
 else { _log(`\n\x1b[31m\x1b[1m${failures} APP-LOOP CHECK(S) FAILED\x1b[0m`); process.exit(1); }

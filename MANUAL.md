@@ -1426,7 +1426,10 @@ there for any normal set, so a column means the same thing from one session to
 the next — but if a track goes past it the whole plot re-scales to fit, and the
 number at the bottom right tells you what a full-height column is now worth. It
 only ever grows while the page is open; re-press **Shift + Step 12** to start
-over. Tracks 1, 5, 9 and 13 are labelled; the rest count across from them.
+over. The row of dots across the plot marks **1 ms**: it sits at the very top
+while the scale is at its floor, and drops as the scale grows, so the gap above
+it shows at a glance how far the plot has been squashed. Tracks 1, 5, 9 and 13
+are labelled; the rest count across from them.
 
 | What you see | What it means |
 | --- | --- |

@@ -6,7 +6,7 @@
  * only ceiling on this page is the capacity bar, which is where it belongs. */
 
 import type { CpuColumn, CpuPageVM } from '../seq/cpu-page-vm.js';
-import { scaleLabel } from '../seq/cpu-page-vm.js';
+import { FULL_SCALE_US, scaleLabel } from '../seq/cpu-page-vm.js';
 import { fontPrint5x3, fontWidth5x3 } from '../font/index5x3.js';
 import { drawHeader } from './header.js';
 import { drawDottedH, drawDottedV, hatchRect } from './primitives.js';
@@ -31,6 +31,7 @@ export function renderCpuView(vm: CpuPageVM): void {
     clear_screen();
     drawHeader(vm.optimized ? 'CPU' : 'CPU OPT OFF', Math.round(vm.load * 100) + '%');
     drawCapacity(vm.load, vm.peakLoad);
+    drawFloorDatum(vm.scaleUs);
     for (let i = 0; i < vm.columns.length && i < 16; i++) {
         drawColumn(i * 8, vm.columns[i], vm.scaleUs);
     }
@@ -41,6 +42,22 @@ export function renderCpuView(vm: CpuPageVM): void {
      * label is the only thing telling you what a column's height is worth. */
     const scale = scaleLabel(vm.scaleUs);
     fontPrint5x3(W - fontWidth5x3(scale), LABEL_Y, scale, 1);
+}
+
+/* Where 1 ms sits.
+ *
+ * At the floor scale that is the top of the plot, and it stays there for any
+ * normal set. Once a column has forced the scale up it drops, and the gap above
+ * it is how much the plot has been squashed to fit — the rescale becomes
+ * something you SEE rather than something you read off the label.
+ *
+ * Ticks in the 1 px column gutters, never a line through the bars. A line
+ * spanning all sixteen columns reads as a ceiling, and this is a datum: there is
+ * no per-track limit on this page.
+ */
+function drawFloorDatum(scaleUs: number): void {
+    const y = BOT - barPixels(FULL_SCALE_US, scaleUs);
+    for (let i = 0; i < 16; i++) fill_rect(i * 8 + COL_W, y, 1, 1, 1);
 }
 
 /* The block, as a bar. Fill is what movy consumed; the notch is the worst block

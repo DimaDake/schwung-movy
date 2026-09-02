@@ -27,7 +27,9 @@ far. Earlier work is summarised in the timeline below for context.
   free). The scale starts at 1 ms — so a column means the same thing across
   sessions and across the CPU Optimize setting — and grows to fit when a track
   goes past it, rather than clamping the one column you opened the page to look
-  at; the number under the plot says what full height is worth. Costs nothing to run: the
+  at; the number under the plot says what full height is worth, and a row of
+  dots marks 1 ms — at the top while the scale is at its floor, dropping as it
+  grows. Costs nothing to run: the
   measurement was already on the audio thread, the numbers ride the status poll
   Movy already makes, and the page repaints only when a drawn pixel would change.
   The step button under the gesture lights like the other page openers: dim

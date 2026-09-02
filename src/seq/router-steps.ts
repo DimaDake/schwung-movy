@@ -10,8 +10,9 @@ import { beginGesture } from '../undo/edit.js';
 import { trackLabel } from '../undo/label.js';
 import {
     NUM_STEP_BUTTONS, MAIN_PAGE_STEPS, STEP_CLIP_PARAMS, STEP_FLAGS, STEP_METRO,
-    STEP_FULL_VEL, STEP_DOUBLE_LOOP, STEP_QUANTIZE,
+    STEP_FULL_VEL, STEP_DOUBLE_LOOP, STEP_QUANTIZE, STEP_CPU,
 } from './constants.js';
+import { openCpuPage } from './cpu-page.js';
 import { openParamPage } from './param-page.js';
 import { deleteActive, deleteStep } from './edit-ops.js';
 import { dupActive, onUnit as dupOnUnit } from './duplicate.js';
@@ -188,6 +189,11 @@ function shiftStepFunction(step: number): void {
     // (Session view shows the clip grid, not a single clip's params).
     if (step === STEP_CLIP_PARAMS) {
         if (!seqState.sessionMode) openParamPage(VIEW_CLIP_PARAMS);
+        appState.dirty = true;
+        return;
+    }
+    if (step === STEP_CPU) {
+        openCpuPage();
         appState.dirty = true;
         return;
     }

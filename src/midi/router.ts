@@ -9,6 +9,7 @@ import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, 
 import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease } from '../seq/main-page.js';
 import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease } from '../seq/clip-page.js';
 import { flagsPageActive, flagsPageJog, flagsPageKnob } from '../seq/flags-page.js';
+import { cpuPageActive } from '../seq/cpu-page.js';
 import { closeParamPage, paramPageActive } from '../seq/param-page.js';
 import { CHAIN_SLOTS, MASTER_FX_SLOTS, LFO_CHAIN_INDEX, MASTER_LFO_INDEX, isLfoSlot, isMasterLfoSlot } from '../chain/config.js';
 import { keyboardState } from '../keyboard/state.js';
@@ -377,6 +378,12 @@ export function onMidiMessageInternal(data: number[]): void {
             appState.dirty = true;
             return;
         }
+        if (cpuPageActive()) {
+            // Nothing on this page is editable. Consumed anyway, or a stray
+            // turn reaches the module underneath and edits a parameter the user
+            // cannot see.
+            return;
+        }
         // Step page owns the knobs while it is selected (intrinsic trig props,
         // never chain automation). Knobs 5..7 are blank → ignored.
         if (stepPageAvailable() && stepPageState.selected) {
@@ -604,6 +611,7 @@ export function onMidiMessageInternal(data: number[]): void {
                 appState.dirty = true;
                 return;
             }
+            if (cpuPageActive()) return;   // sixteen columns fit; nothing to scroll
             if (masterDetailActive()) {
                 masterModel()?.changePage(delta > 0 ? 1 : -1);
             } else if (masterGridActive()) {

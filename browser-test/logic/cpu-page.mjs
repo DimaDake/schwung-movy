@@ -87,9 +87,12 @@ export async function run() {
         eq('one heavy chain lifts the whole plot', scaleFor([col(1200, 1400), col(200, 260)]), 1500);
         eq('and further when it has to', scaleFor([col(2400, 2900)]), 3000);
 
-        /* Driven by the PEAK, not the mean — the peak is what a bar can never
-         * exceed, so fitting it fits the bar too. */
-        eq('a held peak alone can lift it', scaleFor([col(300, 1900)]), 2000);
+        /* Driven by the BAR, not the peak. Loading a chain costs milliseconds
+         * in dlopen and first-block allocation, and that single block lands in
+         * the held peak — on device it took the scale to 5 ms and squashed
+         * every real column to nothing for the rest of the viewing. */
+        eq('a lone spike in the held peak does NOT lift it', scaleFor([col(300, 4800)]), FULL_SCALE_US);
+        eq('a sustained bar does', scaleFor([col(1300, 4800)]), 1500);
 
         /* Past the ladder the reading has stopped being about proportions. */
         eq('a runaway chain clamps at the top of the ladder', scaleFor([col(40000, 40000)]), 9000);

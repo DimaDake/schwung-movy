@@ -1431,12 +1431,18 @@ while the scale is at its floor, and drops as the scale grows, so the gap above
 it shows at a glance how far the plot has been squashed. Tracks 1, 5, 9 and 13
 are labelled; the rest count across from them.
 
+The scale follows the **bars**, not the peak lines. Loading an instrument costs
+several milliseconds in one block, and letting that single spike set the scale
+would flatten every real column for the rest of the viewing. A peak taller than
+the plot therefore clips, and its column is capped with a detached line to say
+so — the same bargain any level meter makes.
+
 | What you see | What it means |
 | --- | --- |
 | A solid bar | The instrument |
 | Checkered on top of it | The effects after it |
 | A dotted line above the bar | The worst block that track has had since you opened the page |
-| A solid line across the top with a gap under it | Off the top of the plot — past 9 ms, where the scale stops growing |
+| A solid line across the top with a gap under it | Something on that column is off the top of the plot — usually a one-off spike in its peak, which the scale deliberately ignores (see below) |
 | A short dash just above the baseline | Loaded, but silent right now, so Movy is skipping it entirely |
 | Just the baseline | Nothing loaded |
 | A dotted vertical column | A **Schwung**-hosted track — it renders outside Movy, so Movy cannot measure it. Not the same as costing nothing |

@@ -225,6 +225,11 @@ Other useful commands:
 # (asserts on the real framebuffer's toast band, not the log)
 node scripts/test-jog-hint.mjs [move.local]
 
+# Device e2e: the CPU meter's numbers are real, and a chain that goes silent
+# stops being charged for what it cost awake (the one claim no host build can
+# reach — a host build cannot load a chain at all)
+./scripts/test-cpu.sh [move.local]
+
 # Device e2e: closing Movy mid-sequence releases every sounding note.
 # Fills all 16 steps first — one note on one step is silent for most of the
 # loop, so a teardown sampled at random would find no open gate and prove

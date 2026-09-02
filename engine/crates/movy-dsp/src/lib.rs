@@ -69,7 +69,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.61.0";
+const ENGINE_VERSION: &str = "0.62.0";
 
 /// Tracks backed by schwung's own shadow slots by default. Their notes go out as
 /// MIDI on the matching channel; everything above this index is a chain movy
@@ -203,6 +203,15 @@ impl Instance {
              * script reading the log. */
             "cpurst" => {
                 self.chains.cost_ui_reset();
+            }
+            /* `cpulog` — log exactly what the CPU page reads. Same write-to-read
+             * trick as `chpeaklog`, and for the same reason: the remote-UI
+             * socket a device test drives can write but not read, so this is the
+             * only way to see the meter's numbers from outside. Unlike
+             * `chcostlog` it closes no window — the page's peaks are held until
+             * `cpurst`. */
+            "cpulog" => {
+                host::log(&format!("cpu:{}", self.chains.cost_status()));
             }
             /* `chparallel <0|1>` — render the movy chains across helper threads.
              * The UI's default is now ON (`flags-def.ts`), because the measured

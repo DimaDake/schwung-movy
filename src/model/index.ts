@@ -275,6 +275,26 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
             if (next !== s.knobPage) { s.knobPage = next; s.dirty = true; }
         },
 
+        /* Pad-follow: select the bank that declares this pad.
+         *
+         * Silent by construction for a shift-select — the caller has already
+         * decided whether the pad sounds; choosing the page is the same either
+         * way, which is what makes Shift+Pad a silent page change.
+         *
+         * No bank claims the pad -> nothing moves. That is the documented way
+         * to keep a page (Main, an FX page) out of the rotation, so it must not
+         * fall back to a positional guess. */
+        selectBankForPad(pad: number): void {
+            if (s.enumOverlay) return;
+            const banks = s.moduleConfig?.banks;
+            if (!banks) return;
+            const next = banks.findIndex(b => b.pad === pad);
+            if (next < 0 || next === s.knobPage) return;
+            mlog('selectBankForPad pad=' + pad + ' ' + s.knobPage + '→' + next);
+            s.knobPage = next;
+            s.dirty = true;
+        },
+
         /* Shift+jog: jump to the head of the previous/next level. From mid-level
          * a backward jump lands on the current level's own head first — the same
          * "back out to the section start" feel as a paragraph jump. */

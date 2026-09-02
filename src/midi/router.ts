@@ -315,7 +315,12 @@ export function onMidiMessageInternal(data: number[]): void {
             const vel = seqState.fullVelocity ? 127 : d2;
             if (drumCfg) {
                 const pad = drumPadOn(d1, PAD_MIN, appState.shiftHeld, drumCfg, model!.getComponentKey(), track, vel);
-                if (pad !== null) model!.updateDrumPad(pad, d1);
+                if (pad !== null) {
+                    model!.updateDrumPad(pad, d1);
+                    /* Pad-follow, for configs that declare `pad` on a bank. A
+                     * no-op for every config that does not. */
+                    model!.selectBankForPad(pad);
+                }
             } else {
                 noteOn(d1, PAD_MIN, track, vel);
             }

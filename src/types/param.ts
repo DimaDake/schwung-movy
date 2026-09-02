@@ -80,6 +80,23 @@ export interface BankConfig {
     name: string;
     rows: (KnobSlot | null)[][];
     padSpecific?: boolean;
+    /* Pad-follow: pressing this pad selects this bank, the way schwung's stock
+     * editor switches page to the drum you hit.
+     *
+     * The alternative already here is `padSpecific` — ONE bank whose alias keys
+     * re-target to the focused pad. That fits a kit whose pads share a control
+     * set. It does not fit an analog-style drum machine, where the voices are
+     * different circuits: a 909's snare has no Decay or Attack, its kick has no
+     * FX sends, so a single re-targeting row is mostly holes. Such a module
+     * wants a page PER voice, and the pad to choose among them.
+     *
+     * Opt-in and per bank. A bank without `pad` is never auto-selected (that is
+     * how a module keeps Main, or an FX page, off the pad rotation), and a
+     * config that sets it nowhere behaves exactly as before.
+     *
+     * 1-based, like every other pad number movy hands around (drumPadOn returns
+     * 1 for the first pad, and padKeys indexes `table[pad - 1]`). */
+    pad?: number;
     /* Params in this bank are non-automatable globals (not reachable as a chain
      * target:param). Replaces the old `g_` key-prefix heuristic. */
     global?: boolean;

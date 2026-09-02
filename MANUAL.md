@@ -714,6 +714,14 @@ pages instead of a page per voice. *Signal* (4 voices) works this way:
 
 ![Pad-selected voice page](docs/assets/signal_voice.png)
 
+A drum machine whose voices are separate circuits — a TR-909 or TR-606 style
+kit, where the snare has no Attack and the kick has no FX sends — does the
+opposite: a **page per voice**, with the pad choosing among them. Press the
+snare pad and the screen goes to the snare's page, exactly as schwung's own
+editor does. **Shift + pad** goes there without sounding the voice. Pads that
+have no voice behind them (a spare pad in the grid) can open a page too — 9W9
+puts Main, Reverb and Delay on three of them.
+
 *Sample Slicer* is a slice player rather than a kit: its **32 pads are the 32
 slices** the module can trigger (pad 1 = slice 1). Its Main page carries the
 **Sample** browser — hold that knob and click the jog to browse

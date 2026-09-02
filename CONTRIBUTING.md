@@ -151,6 +151,34 @@ keys, which are synthetic and validate through their alias. Both forms may
 appear in one config: the table wins where it lists a suffix, the template
 covers the rest.
 
+### A pad that selects a whole page
+
+`padSpecific` re-points ONE bank at the pad you press. That fits a kit whose
+pads share a control set. It does not fit a machine whose voices are separate
+circuits with different panels — a 909's snare has no Decay or Attack and its
+kick has no FX sends, so a single re-targeting row is mostly holes. Such a
+module wants a page *per* voice, and the pad to choose among them, the way
+schwung's stock editor switches page to the drum you hit.
+
+For that, a bank names the pad that selects it:
+
+```json
+"banks": [
+  { "name": "Main",  "rows": [ ... ] },
+  { "name": "Kick",  "pad": 1, "rows": [ ... ] },
+  { "name": "Snare", "pad": 2, "rows": [ ... ] }
+]
+```
+
+Pad numbers are 1-based, like everywhere else in the drum API. A bank with no
+`pad` is never auto-selected — that is how a page stays off the rotation (Main
+here, or an FX page) — and an unclaimed pad leaves the page where it is rather
+than guessing. **Shift+Pad** selects the page without sounding the voice, since
+the silence and the page move are decided separately.
+
+The two mechanisms are independent: use `padSpecific` for one following bank,
+`pad` for a page per voice, or neither.
+
 For modules whose releases Movy explicitly supports, copy the released
 `module.json` into `browser-test/fixtures/module-contracts/` using the
 `<component-type>--<module-id>.json` name. Contract fixtures replace an older

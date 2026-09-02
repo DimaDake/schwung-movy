@@ -85,16 +85,18 @@ function drawColumn(x: number, col: CpuColumn, scaleUs: number): void {
         return;
     }
     fill_rect(x, BOT, COL_W, 1, 1);          // the column exists, even unused
+    if (col.kind === 'empty') return;
     if (col.kind === 'asleep') {
         // Loaded, silent, skipped: costing nothing right now, which is not the
-        // same as nothing being here.
+        // same as nothing being here. Its HELD PEAK is still drawn below —
+        // a chain that spiked and then went quiet is the exact case someone
+        // opens this page for, and the dash alone would hide the evidence.
         fill_rect(x + 2, BOT - 3, 3, 1, 1);
-        return;
     }
-    if (col.kind === 'empty') return;
 
-    const sH = barPixels(col.synthUs, scaleUs);
-    const fH = Math.min(HGT - sH, barPixels(col.totalUs - col.synthUs, scaleUs));
+    const sH = col.kind === 'asleep' ? 0 : barPixels(col.synthUs, scaleUs);
+    const fH = col.kind === 'asleep'
+        ? 0 : Math.min(HGT - sH, barPixels(col.totalUs - col.synthUs, scaleUs));
     if (sH > 0) fill_rect(x, BOT - sH, COL_W, sH, 1);
     if (fH > 0) hatchRect(x, BOT - sH - fH, COL_W, fH, 1);
     /* Off the top of the plot. Only reachable past the top of the scale ladder

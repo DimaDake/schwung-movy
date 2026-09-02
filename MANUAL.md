@@ -1443,7 +1443,7 @@ so — the same bargain any level meter makes.
 | Checkered on top of it | The effects after it |
 | A dotted line above the bar | The worst block that track has had since you opened the page |
 | A solid line across the top with a gap under it | Something on that column is off the top of the plot — usually a one-off spike in its peak, which the scale deliberately ignores (see below) |
-| A short dash just above the baseline | Loaded, but silent right now, so Movy is skipping it entirely |
+| A short dash just above the baseline | Loaded, but silent right now, so Movy is skipping it entirely. Its peak line is still drawn — a track that spiked and then went quiet is exactly what you came here to find |
 | Just the baseline | Nothing loaded |
 | A dotted vertical column | A **Schwung**-hosted track — it renders outside Movy, so Movy cannot measure it. Not the same as costing nothing |
 

@@ -610,8 +610,12 @@ function applyView(preset) {
              * 2.5 ms chain drawing as the same clamped bar. */
             const over = live.slice();
             over[2] = '2400/1900/2600';
-            const rows = preset === 'cpu-overscale' ? over
-                : preset === 'cpu-opt-off' ? unsplit : live;
+            const rows = (preset === 'cpu-overscale' ? over
+                : preset === 'cpu-opt-off' ? unsplit : live).slice();
+            /* Chain 8 is the sleeping one (mask 0100). Giving it a held peak is
+             * what pins that a chain which spiked and then went quiet still
+             * shows what it did — the dash alone would hide it. */
+            rows[8] = '0/0/620';
             if (preset === 'cpu-empty') {
                 seqState.cpuCost = ''; seqState.cpuWall = ''; seqState.cpuMask = '';
             } else {

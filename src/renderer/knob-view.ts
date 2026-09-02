@@ -1,6 +1,6 @@
 import type { ViewModel } from '../types/viewmodel.js';
 import { fontPrint, fontWidth } from '../font/index.js';
-import { drawHeader, drawBankBar, drawPadGridIcon } from './header.js';
+import { drawHeader, drawBankBar, drawHeaderWithPadIcon, PAD_ICON_W } from './header.js';
 import { drawKnobParams } from './label.js';
 import { drawEnumOverlay, drawJogToast } from './overlay.js';
 import { W } from './layout.js';
@@ -12,7 +12,7 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
         drawHeader(vm.toast.fullName, vm.overlay ? null : vm.toast.value, true);
     } else {
         const showIcon = vm.isPadScoped && vm.drumPadCount > 0;
-        const iconW    = showIcon ? 7 : 0;   // 6px icon + 1px gap
+        const iconW    = showIcon ? PAD_ICON_W : 0;
         const rightW   = vm.bankName ? fontWidth(vm.bankName) + iconW + 4 : 0;
         const maxLeftW = W - rightW - 4;
         const trackLabel = 'T' + (activeSlot + 1);
@@ -21,12 +21,7 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
             dispName = dispName.slice(0, -1);
         }
         if (showIcon && vm.bankName) {
-            // Draw header without bank name, then overlay icon + bank name text
-            drawHeader(dispName, null, false);
-            const bankNameW = fontWidth(vm.bankName);
-            const iconX     = W - 2 - bankNameW - iconW;
-            drawPadGridIcon(iconX, 0, vm.drumPadCount, vm.drumCurrentPad);
-            fontPrint(W - 2 - bankNameW, 1, vm.bankName, 1);
+            drawHeaderWithPadIcon(dispName, vm.bankName, vm.drumPadCount, vm.drumCurrentPad);
         } else {
             drawHeader(dispName, vm.bankName || null, false);
         }

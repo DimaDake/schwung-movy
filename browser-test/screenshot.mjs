@@ -63,7 +63,7 @@ const PRESETS = [
     'filter_slope24', 'filter_dual', 'filter_open',
     'deep_page', 'lfo_helm_step', 'lfo_helm_pyramid',
     'signal_voice', 'forge_voice', 'forge_filter', 'forge_mod', 'forge_send', 'forge_mix',
-    '8w8_master', '8w8_voice', '8w8_delay',
+    '8w8_voice', '8w8_master', '8w8_delay', '8w8_chain',
     'leave_modal', 'capture_select', 'capture_fixed',
     'undo_toast', 'redo_toast', 'undo_empty', 'undo_unavailable', 'clip-undo-toast',
     'track_volume_unity', 'track_volume_quiet', 'track_volume_min', 'track_volume_max',
@@ -117,7 +117,7 @@ const BASE = {
     spray_saturated: 'wav_sample', wav_sample: 'wav_sample', wav_loop: 'wav_loop', wav_loop_off: 'wav_loop',
     wav_beside_filter: 'wav_beside_filter',
     signal_voice: 'signal', forge_voice: 'forge',
-    '8w8_master': '8w8', '8w8_voice': '8w8', '8w8_delay': '8w8',
+    '8w8_master': '8w8', '8w8_voice': '8w8', '8w8_delay': '8w8', '8w8_chain': '8w8',
     forge_filter: 'forge', forge_mod: 'forge', forge_send: 'forge', forge_mix: 'forge',
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
     lfo_target_overlay: 'test8', lfo_viz_unipolar: 'test8', lfo_viz_retrig: 'test8',
@@ -538,9 +538,14 @@ function applyView(preset) {
          * which voice is under the knobs — and the rotation collapses nineteen
          * banks to a FOUR-dot bank bar, the voice slot sitting second and
          * wearing the selected voice's own name. */
-        case '8w8_master': settle(); forceRender(); break;
         case '8w8_voice':  model.updateDrumPad(11, 46); model.selectBankForPad(11); settle(); forceRender(); break;
+        case '8w8_master': model.changePage(1); settle(); forceRender(); break;
         case '8w8_delay':  model.changePage(3); settle(); forceRender(); break;
+        /* The same voice page on the CHAIN view, where the icon has to appear
+         * too — that is where you land after a slot change, and an icon on only
+         * one of the two reads as the voice selection having been lost. */
+        case '8w8_chain':  model.updateDrumPad(11, 46); model.selectBankForPad(11);
+                           settle(); showChain(1, false); break;
         case 'obxd_preset_page': forceRender(); break;                       // page 0
         case 'obxd_main_page':   model.changePage(1); forceRender(); break;
         case 'obxd_filter_page': model.changePage(3); forceRender(); break;

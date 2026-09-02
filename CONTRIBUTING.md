@@ -160,41 +160,55 @@ kick has no FX sends, so a single re-targeting row is mostly holes. Such a
 module wants a page *per* voice, and the pad to choose among them, the way
 schwung's stock editor switches page to the drum you hit.
 
-For that, a bank names the pad that selects it:
+For that, each voice bank names the pad that selects it — and movy accepts
+**exactly one arrangement**, the same one `padSpecific` has always had: the
+pad-following pages first, the ordinary pages behind them.
 
 ```json
+"drum":  { "padCount": 3, "padNoteStart": 36, "rawMidi": false },
 "banks": [
-  { "name": "Main",  "rows": [ ... ] },
-  { "name": "Kick",  "pad": 1, "rows": [ ... ] },
-  { "name": "Snare", "pad": 2, "rows": [ ... ] }
+  { "name": "Kick",   "pad": 1, "rows": [ ... ] },
+  { "name": "Snare",  "pad": 2, "rows": [ ... ] },
+  { "name": "Hat",    "pad": 3, "rows": [ ... ] },
+  { "name": "Master",           "rows": [ ... ] },
+  { "name": "Reverb",           "rows": [ ... ] }
 ]
 ```
 
-Pad numbers are 1-based, like everywhere else in the drum API. A bank with no
-`pad` is never auto-selected — that is how a page stays off the rotation (Main
-here, or an FX page) — and an unclaimed pad leaves the page where it is rather
-than guessing. **Shift+Pad** selects the page without sounding the voice, since
-the silence and the page move are decided separately.
+The **voice run** is the leading run of banks that declare a `pad`. Movy reads
+only that run as voices, so ordering is load-bearing, and a `pad` on any bank
+behind it is ignored.
 
-The two mechanisms are independent: use `padSpecific` for one following bank,
-`pad` for a page per voice, or neither. Either way the header grows the pad-grid
-icon, with the pad you last hit lit — on a per-voice-page kit that icon is the
-only thing on screen saying which voice is under the knobs.
+- **The voice pages share one seat in the rotation.** Sixteen voices at sixteen
+  seats is a sixteen-dot bank bar and a walk through the whole kit to reach the
+  delay. 8W8 ships nineteen banks and shows four pages: *voice* → Master →
+  Reverb → Delay.
+- **A pad only turns the page from a voice page.** From Master or Reverb it
+  re-points the voice slot and leaves you where you are — reaching for a pad to
+  hear an edit must not cost you your place. The slot remembers, so jogging back
+  lands on the voice you last hit.
+- **The module opens on the voice slot**, the way it opens `padSpecific`
+  modules. Your own editor may open on Master; movy does not.
+- Pad numbers are **1-based**, like everywhere else in the drum API.
+- **Shift+Pad** picks a voice without sounding it.
 
-**Voice pages share one seat in the jog rotation.** Sixteen voices at sixteen
-seats is a sixteen-dot bank bar and a walk through the whole kit to reach the
-delay, so they collapse into a single *voice slot* holding whichever voice the
-pad last selected. A bank with **no** `pad` keeps its own seat. 8W8 declares
-sixteen voices with pads and Master/Reverb/Delay without, and the rotation reads
-Master → *voice* → Reverb → Delay.
+**`padCount` is the kit, not the grid.** Set it to the number of voices; the
+remaining seats of the 4×4 are dead. It used to be worth padding out to 16 to
+keep page-only pads addressable — see below.
 
-That is the whole contract, and it has one consequence worth stating: **having a
-`pad` is what makes a bank a voice page.** Putting a pad on a page that has no
-voice behind it — a spare seat in the grid that opens Reverb — does not add a
-shortcut, it takes that page *out* of the rotation and leaves it reachable only
-by pad. Leave `pad` off every page that is not a voice.
+**No page-only pads.** Putting a `pad` on a page that has no voice behind it — a
+spare seat in the grid that opens Reverb — reads as a free shortcut and is the
+opposite: **having a `pad` is what makes a bank a voice.** Inside the run it
+would make Reverb a voice; behind the run movy ignores it. Leave `pad` off every
+page that is not a voice, and let the jog reach them.
 
-Movy checks three things about `pad` over every bundled config and fixture, and
+Either mechanism gives the header its pad-grid icon, lit on the pad you last
+hit — on a per-voice-page kit that icon is the only thing on screen saying which
+voice is under the knobs. It is drawn on the **chain page** too, so a voice page
+is recognisable from either view, and only on a voice page: on Master the pad
+decides nothing, so an icon there would claim a relationship that is not there.
+
+Movy checks four things about `pad` over every bundled config and fixture, and
 a module config wants to hold them too:
 
 - **One bank is one page.** A bank's cells must fit `KNOBS_PER_PAGE` (8). Pages
@@ -204,6 +218,8 @@ a module config wants to hold them too:
   unreachable by pad.
 - **`pad` must be ≤ `drum.padCount`.** A pad past the count resolves to nothing,
   so its page is reachable only by the jog.
+- **No `pad` behind the voice run.** Movy ignores it, so a config that declares
+  one there is not doing what it reads as doing.
 
 ### Vetoing a graphic Movy inferred
 

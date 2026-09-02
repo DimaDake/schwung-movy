@@ -714,24 +714,30 @@ pages instead of a page per voice. *Signal* (4 voices) works this way:
 
 ![Pad-selected voice page](docs/assets/signal_voice.png)
 
-A drum machine whose voices are separate circuits — a TR-909 or TR-606 style
-kit, where the snare has no Attack and the kick has no FX sends — does the
-opposite: a **page per voice**, with the pad choosing among them. Press the
-snare pad and the screen goes to the snare's page, exactly as schwung's own
-editor does. **Shift + pad** goes there without sounding the voice. Pads that
-have no voice behind them (a spare pad in the grid) can open a page too — 9W9
-puts Main, Reverb and Delay on three of them.
+A drum machine whose voices are separate circuits — a TR-808/909 style kit,
+where the snare has no Attack and the kick has no FX sends — cannot share one
+page like that: most of the row would be holes on most pads. Those kits get a
+**page per voice** instead, and it behaves the same way from the front: the
+**voice page comes first**, and the pad picks which voice it shows.
 
 The voice pages **share one seat in the page list**, so the jog does not walk
 through sixteen drums to reach the reverb. 8W8 has nineteen pages of parameters
-and four in the rotation — **Master, the selected voice, Reverb, Delay** — with
-the pad choosing which voice that middle seat holds. Jog away and back and it
-returns to the voice you were editing.
-
-The pad icon is lit on the pad you last hit; on a kit like this it is the only
-thing on screen telling you which voice the knobs are holding:
+and four in the rotation — **the selected voice, Master, Reverb, Delay**:
 
 ![A page per voice, selected by pad](docs/assets/8w8_voice.png)
+
+The pad icon is lit on the pad you last hit; on a kit like this it is the only
+thing on screen telling you which voice the knobs are holding. **Shift + pad**
+picks a voice without sounding it.
+
+As with a per-pad page, **a pad only turns the page while you are on the voice
+page**. Reach for a pad from Master or Reverb and you stay where you are — the
+voice page just remembers the new selection for when you jog back to it.
+
+The same icon appears on the **chain page**, so a voice page is recognisable
+from either view:
+
+![The voice page on the chain view](docs/assets/8w8_chain.png)
 
 *Sample Slicer* is a slice player rather than a kit: its **32 pads are the 32
 slices** the module can trigger (pad 1 = slice 1). Its Main page carries the

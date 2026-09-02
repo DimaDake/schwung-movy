@@ -10,7 +10,7 @@ import { applyKnobDelta, knobParamInfo, reseedPadParams, refreshModulatedKeys, s
 import { buildViewModel }   from './viewmodel.js';
 import { processTick }      from './tick.js';
 import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV, ITEMS_RELOAD_TICKS } from './constants.js';
-import { pageRotation, rotationPos, stepGroup } from './page-rotation.js';
+import { pageRotation, rotationPos, stepGroup, isVoiceBank } from './page-rotation.js';
 import { enumUsesIndex, enumSetValue } from './enum-value.js';
 import { basename, stripKnownExt } from './path.js';
 import { rememberFileDir, startDirFor, defaultDirFor } from './file-dirs.js';
@@ -278,26 +278,29 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
             if (next !== s.knobPage) { s.knobPage = next; s.dirty = true; }
         },
 
-        /* Pad-follow: select the bank that declares this pad.
+        /* Pad-follow: point the voice slot at the voice this pad selects.
          *
          * Silent by construction for a shift-select — the caller has already
-         * decided whether the pad sounds; choosing the page is the same either
+         * decided whether the pad sounds; choosing the voice is the same either
          * way, which is what makes Shift+Pad a silent page change.
          *
-         * No bank claims the pad -> nothing moves. That is the documented way
-         * to keep a page (Main, an FX page) out of the rotation, so it must not
-         * fall back to a positional guess. */
+         * The page moves ONLY when a voice page is the one open, matching what
+         * padSpecific has always done: pressing a pad while you are on Reverb
+         * changes which voice the voice page holds, it does not drag you off
+         * the page you were editing. The slot is still updated, so jogging back
+         * to it lands on the voice you last hit.
+         *
+         * Only the leading voice run answers to pads. A `pad` on a bank behind
+         * it is an ordinary page's field and is ignored — see page-rotation.ts. */
         selectBankForPad(pad: number): void {
             if (s.enumOverlay) return;
             const banks = s.moduleConfig?.banks;
             if (!banks) return;
-            const next = banks.findIndex(b => b.pad === pad);
+            const rot  = pageRotation(s);
+            const next = banks.findIndex((b, i) => isVoiceBank(rot, i) && b.pad === pad);
             if (next < 0) return;
-            /* The slot is updated even when the page does not move, so jogging
-             * away to Reverb and back returns to the voice you last touched
-             * rather than the first one. */
             s.voiceBank = next;
-            if (next === s.knobPage) return;
+            if (!isVoiceBank(rot, s.knobPage) || next === s.knobPage) return;
             mlog('selectBankForPad pad=' + pad + ' ' + s.knobPage + '→' + next);
             s.knobPage = next;
             s.dirty = true;

@@ -1482,10 +1482,11 @@ export const MOCK_SYNTHS = {
  * Master/Reverb/Delay which name none — the shape the page rotation collapses
  * to four entries. Params come from the fixture's own keys; the model boots
  * fine without values, and this test is about navigation, not readback. */
-MOCK_SYNTHS['8w8'] = {
-    "synth:name":   "8W8",
-    "synth_module": "8w8",
-};
+MOCK_SYNTHS['8w8'] = { "synth:name": "8W8", "synth_module": "8w8" };
+/* 6W6 and CW-78 round out the family. Same story: the fixture is the shipped
+ * config and carries the keys, so the mock only has to name the module. */
+MOCK_SYNTHS['6w6']  = { "synth:name": "6W6",   "synth_module": "6w6" };
+MOCK_SYNTHS['cw78'] = { "synth:name": "CW-78", "synth_module": "cw78" };
 
 /* The pre-2.0 9W9 layout, under a name that does not claim to be 9W9. 9W9
  * deliberately stopped shipping padScoping/padKeys — one re-targeting row is

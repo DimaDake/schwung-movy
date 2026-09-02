@@ -1,8 +1,8 @@
 {
-  "id": "8w8",
-  "name": "8W8",
+  "id": "cw78",
+  "name": "CW-78",
   "drum": {
-    "padCount": 16,
+    "padCount": 14,
     "padNoteStart": 36,
     "rawMidi": false
   },
@@ -21,25 +21,9 @@
             "max": 127
           },
           {
-            "key": "bd_attack",
-            "short": "ATTK",
-            "full": "Attack",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
             "key": "bd_decay",
             "short": "DECAY",
             "full": "Decay",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "bd_tone",
-            "short": "TONE",
-            "full": "Tone",
             "type": "int",
             "min": 0,
             "max": 127
@@ -75,6 +59,8 @@
             "min": 0,
             "max": 127
           },
+          null,
+          null,
           null
         ]
       ]
@@ -159,440 +145,8 @@
       ]
     },
     {
-      "name": "Lo Tom",
-      "pad": 3,
-      "rows": [
-        [
-          {
-            "key": "lt_tune",
-            "short": "TUNE",
-            "full": "Tune",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "lt_decay",
-            "short": "DECAY",
-            "full": "Decay",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "lt_drive",
-            "short": "DRIVE",
-            "full": "Drive",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "lt_dist_type",
-            "short": "DIST",
-            "full": "Distortion",
-            "type": "enum",
-            "options": [
-              "Diode",
-              "Clip",
-              "SAT",
-              "BFZ",
-              "PDIST",
-              "Fold",
-              "Crush"
-            ]
-          },
-          {
-            "key": "lt_level",
-            "short": "LEVEL",
-            "full": "Level",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "lt_rev",
-            "short": "REV",
-            "full": "Rev",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "lt_dly",
-            "short": "DLY",
-            "full": "Dly",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          null
-        ]
-      ]
-    },
-    {
-      "name": "Mid Tom",
-      "pad": 4,
-      "rows": [
-        [
-          {
-            "key": "mt_tune",
-            "short": "TUNE",
-            "full": "Tune",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "mt_decay",
-            "short": "DECAY",
-            "full": "Decay",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "mt_drive",
-            "short": "DRIVE",
-            "full": "Drive",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "mt_dist_type",
-            "short": "DIST",
-            "full": "Distortion",
-            "type": "enum",
-            "options": [
-              "Diode",
-              "Clip",
-              "SAT",
-              "BFZ",
-              "PDIST",
-              "Fold",
-              "Crush"
-            ]
-          },
-          {
-            "key": "mt_level",
-            "short": "LEVEL",
-            "full": "Level",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "mt_rev",
-            "short": "REV",
-            "full": "Rev",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "mt_dly",
-            "short": "DLY",
-            "full": "Dly",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          null
-        ]
-      ]
-    },
-    {
-      "name": "Hi Tom",
-      "pad": 5,
-      "rows": [
-        [
-          {
-            "key": "ht_tune",
-            "short": "TUNE",
-            "full": "Tune",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "ht_decay",
-            "short": "DECAY",
-            "full": "Decay",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "ht_drive",
-            "short": "DRIVE",
-            "full": "Drive",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "ht_dist_type",
-            "short": "DIST",
-            "full": "Distortion",
-            "type": "enum",
-            "options": [
-              "Diode",
-              "Clip",
-              "SAT",
-              "BFZ",
-              "PDIST",
-              "Fold",
-              "Crush"
-            ]
-          },
-          {
-            "key": "ht_level",
-            "short": "LEVEL",
-            "full": "Level",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "ht_rev",
-            "short": "REV",
-            "full": "Rev",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "ht_dly",
-            "short": "DLY",
-            "full": "Dly",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          null
-        ]
-      ]
-    },
-    {
-      "name": "Lo Cnga",
-      "pad": 6,
-      "rows": [
-        [
-          {
-            "key": "lc_tune",
-            "short": "TUNE",
-            "full": "Tune",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "lc_decay",
-            "short": "DECAY",
-            "full": "Decay",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "lc_drive",
-            "short": "DRIVE",
-            "full": "Drive",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "lc_dist_type",
-            "short": "DIST",
-            "full": "Distortion",
-            "type": "enum",
-            "options": [
-              "Diode",
-              "Clip",
-              "SAT",
-              "BFZ",
-              "PDIST",
-              "Fold",
-              "Crush"
-            ]
-          },
-          {
-            "key": "lc_level",
-            "short": "LEVEL",
-            "full": "Level",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "lc_rev",
-            "short": "REV",
-            "full": "Rev",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "lc_dly",
-            "short": "DLY",
-            "full": "Dly",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          null
-        ]
-      ]
-    },
-    {
-      "name": "Md Cnga",
-      "pad": 7,
-      "rows": [
-        [
-          {
-            "key": "mc_tune",
-            "short": "TUNE",
-            "full": "Tune",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "mc_decay",
-            "short": "DECAY",
-            "full": "Decay",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "mc_drive",
-            "short": "DRIVE",
-            "full": "Drive",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "mc_dist_type",
-            "short": "DIST",
-            "full": "Distortion",
-            "type": "enum",
-            "options": [
-              "Diode",
-              "Clip",
-              "SAT",
-              "BFZ",
-              "PDIST",
-              "Fold",
-              "Crush"
-            ]
-          },
-          {
-            "key": "mc_level",
-            "short": "LEVEL",
-            "full": "Level",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "mc_rev",
-            "short": "REV",
-            "full": "Rev",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "mc_dly",
-            "short": "DLY",
-            "full": "Dly",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          null
-        ]
-      ]
-    },
-    {
-      "name": "Hi Cnga",
-      "pad": 8,
-      "rows": [
-        [
-          {
-            "key": "hc_tune",
-            "short": "TUNE",
-            "full": "Tune",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "hc_decay",
-            "short": "DECAY",
-            "full": "Decay",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "hc_drive",
-            "short": "DRIVE",
-            "full": "Drive",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "hc_dist_type",
-            "short": "DIST",
-            "full": "Distortion",
-            "type": "enum",
-            "options": [
-              "Diode",
-              "Clip",
-              "SAT",
-              "BFZ",
-              "PDIST",
-              "Fold",
-              "Crush"
-            ]
-          },
-          {
-            "key": "hc_level",
-            "short": "LEVEL",
-            "full": "Level",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "hc_rev",
-            "short": "REV",
-            "full": "Rev",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "hc_dly",
-            "short": "DLY",
-            "full": "Dly",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          null
-        ]
-      ]
-    },
-    {
       "name": "Rim",
-      "pad": 9,
+      "pad": 3,
       "rows": [
         [
           {
@@ -663,12 +217,12 @@
       ]
     },
     {
-      "name": "Claves",
-      "pad": 10,
+      "name": "Hi Hat",
+      "pad": 4,
       "rows": [
         [
           {
-            "key": "cl_tune",
+            "key": "hh_tune",
             "short": "TUNE",
             "full": "Tune",
             "type": "int",
@@ -676,7 +230,7 @@
             "max": 127
           },
           {
-            "key": "cl_decay",
+            "key": "hh_decay",
             "short": "DECAY",
             "full": "Decay",
             "type": "int",
@@ -684,7 +238,7 @@
             "max": 127
           },
           {
-            "key": "cl_drive",
+            "key": "hh_drive",
             "short": "DRIVE",
             "full": "Drive",
             "type": "int",
@@ -692,7 +246,7 @@
             "max": 127
           },
           {
-            "key": "cl_dist_type",
+            "key": "hh_dist_type",
             "short": "DIST",
             "full": "Distortion",
             "type": "enum",
@@ -707,7 +261,7 @@
             ]
           },
           {
-            "key": "cl_level",
+            "key": "hh_level",
             "short": "LEVEL",
             "full": "Level",
             "type": "int",
@@ -715,7 +269,7 @@
             "max": 127
           },
           {
-            "key": "cl_rev",
+            "key": "hh_rev",
             "short": "REV",
             "full": "Rev",
             "type": "int",
@@ -723,384 +277,7 @@
             "max": 127
           },
           {
-            "key": "cl_dly",
-            "short": "DLY",
-            "full": "Dly",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          null
-        ]
-      ]
-    },
-    {
-      "name": "Maracas",
-      "pad": 11,
-      "rows": [
-        [
-          {
-            "key": "ma_tune",
-            "short": "TUNE",
-            "full": "Tune",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "ma_attack",
-            "short": "ATTK",
-            "full": "Attack",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "ma_decay",
-            "short": "DECAY",
-            "full": "Decay",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "ma_drive",
-            "short": "DRIVE",
-            "full": "Drive",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "ma_dist_type",
-            "short": "DIST",
-            "full": "Distortion",
-            "type": "enum",
-            "options": [
-              "Diode",
-              "Clip",
-              "SAT",
-              "BFZ",
-              "PDIST",
-              "Fold",
-              "Crush"
-            ]
-          },
-          {
-            "key": "ma_level",
-            "short": "LEVEL",
-            "full": "Level",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "ma_rev",
-            "short": "REV",
-            "full": "Rev",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "ma_dly",
-            "short": "DLY",
-            "full": "Dly",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          }
-        ]
-      ]
-    },
-    {
-      "name": "Clap",
-      "pad": 12,
-      "rows": [
-        [
-          {
-            "key": "cp_tune",
-            "short": "TUNE",
-            "full": "Tune",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "cp_decay",
-            "short": "DECAY",
-            "full": "Decay",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "cp_drive",
-            "short": "DRIVE",
-            "full": "Drive",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "cp_dist_type",
-            "short": "DIST",
-            "full": "Distortion",
-            "type": "enum",
-            "options": [
-              "Diode",
-              "Clip",
-              "SAT",
-              "BFZ",
-              "PDIST",
-              "Fold",
-              "Crush"
-            ]
-          },
-          {
-            "key": "cp_level",
-            "short": "LEVEL",
-            "full": "Level",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "cp_rev",
-            "short": "REV",
-            "full": "Rev",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "cp_dly",
-            "short": "DLY",
-            "full": "Dly",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          null
-        ]
-      ]
-    },
-    {
-      "name": "Cowbell",
-      "pad": 13,
-      "rows": [
-        [
-          {
-            "key": "cb_tune",
-            "short": "TUNE",
-            "full": "Tune",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "cb_decay",
-            "short": "DECAY",
-            "full": "Decay",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "cb_drive",
-            "short": "DRIVE",
-            "full": "Drive",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "cb_dist_type",
-            "short": "DIST",
-            "full": "Distortion",
-            "type": "enum",
-            "options": [
-              "Diode",
-              "Clip",
-              "SAT",
-              "BFZ",
-              "PDIST",
-              "Fold",
-              "Crush"
-            ]
-          },
-          {
-            "key": "cb_level",
-            "short": "LEVEL",
-            "full": "Level",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "cb_rev",
-            "short": "REV",
-            "full": "Rev",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "cb_dly",
-            "short": "DLY",
-            "full": "Dly",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          null
-        ]
-      ]
-    },
-    {
-      "name": "Cl Hat",
-      "pad": 14,
-      "rows": [
-        [
-          {
-            "key": "ch_tune",
-            "short": "TUNE",
-            "full": "Tune",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "ch_decay",
-            "short": "DECAY",
-            "full": "Decay",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "ch_drive",
-            "short": "DRIVE",
-            "full": "Drive",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "ch_dist_type",
-            "short": "DIST",
-            "full": "Distortion",
-            "type": "enum",
-            "options": [
-              "Diode",
-              "Clip",
-              "SAT",
-              "BFZ",
-              "PDIST",
-              "Fold",
-              "Crush"
-            ]
-          },
-          {
-            "key": "ch_level",
-            "short": "LEVEL",
-            "full": "Level",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "hh_choke",
-            "short": "CHOKE",
-            "full": "Choke",
-            "type": "enum",
-            "options": [
-              "Off",
-              "CH>OH",
-              "Mutual"
-            ]
-          },
-          {
-            "key": "ch_rev",
-            "short": "REV",
-            "full": "Rev",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "ch_dly",
-            "short": "DLY",
-            "full": "Dly",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          }
-        ]
-      ]
-    },
-    {
-      "name": "Op Hat",
-      "pad": 15,
-      "rows": [
-        [
-          {
-            "key": "oh_tune",
-            "short": "TUNE",
-            "full": "Tune",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "oh_decay",
-            "short": "DECAY",
-            "full": "Decay",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "oh_drive",
-            "short": "DRIVE",
-            "full": "Drive",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "oh_dist_type",
-            "short": "DIST",
-            "full": "Distortion",
-            "type": "enum",
-            "options": [
-              "Diode",
-              "Clip",
-              "SAT",
-              "BFZ",
-              "PDIST",
-              "Fold",
-              "Crush"
-            ]
-          },
-          {
-            "key": "oh_level",
-            "short": "LEVEL",
-            "full": "Level",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "oh_rev",
-            "short": "REV",
-            "full": "Rev",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "oh_dly",
+            "key": "hh_dly",
             "short": "DLY",
             "full": "Dly",
             "type": "int",
@@ -1113,7 +290,7 @@
     },
     {
       "name": "Cymbal",
-      "pad": 16,
+      "pad": 5,
       "rows": [
         [
           {
@@ -1184,6 +361,661 @@
       ]
     },
     {
+      "name": "Maracas",
+      "pad": 6,
+      "rows": [
+        [
+          {
+            "key": "ma_tune",
+            "short": "TUNE",
+            "full": "Tune",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "ma_decay",
+            "short": "DECAY",
+            "full": "Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "ma_drive",
+            "short": "DRIVE",
+            "full": "Drive",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "ma_dist_type",
+            "short": "DIST",
+            "full": "Distortion",
+            "type": "enum",
+            "options": [
+              "Diode",
+              "Clip",
+              "SAT",
+              "BFZ",
+              "PDIST",
+              "Fold",
+              "Crush"
+            ]
+          },
+          {
+            "key": "ma_level",
+            "short": "LEVEL",
+            "full": "Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "ma_rev",
+            "short": "REV",
+            "full": "Rev",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "ma_dly",
+            "short": "DLY",
+            "full": "Dly",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Claves",
+      "pad": 7,
+      "rows": [
+        [
+          {
+            "key": "cl_tune",
+            "short": "TUNE",
+            "full": "Tune",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "cl_decay",
+            "short": "DECAY",
+            "full": "Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "cl_drive",
+            "short": "DRIVE",
+            "full": "Drive",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "cl_dist_type",
+            "short": "DIST",
+            "full": "Distortion",
+            "type": "enum",
+            "options": [
+              "Diode",
+              "Clip",
+              "SAT",
+              "BFZ",
+              "PDIST",
+              "Fold",
+              "Crush"
+            ]
+          },
+          {
+            "key": "cl_level",
+            "short": "LEVEL",
+            "full": "Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "cl_rev",
+            "short": "REV",
+            "full": "Rev",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "cl_dly",
+            "short": "DLY",
+            "full": "Dly",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Hi Bngo",
+      "pad": 8,
+      "rows": [
+        [
+          {
+            "key": "hb_tune",
+            "short": "TUNE",
+            "full": "Tune",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "hb_decay",
+            "short": "DECAY",
+            "full": "Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "hb_drive",
+            "short": "DRIVE",
+            "full": "Drive",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "hb_dist_type",
+            "short": "DIST",
+            "full": "Distortion",
+            "type": "enum",
+            "options": [
+              "Diode",
+              "Clip",
+              "SAT",
+              "BFZ",
+              "PDIST",
+              "Fold",
+              "Crush"
+            ]
+          },
+          {
+            "key": "hb_level",
+            "short": "LEVEL",
+            "full": "Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "hb_rev",
+            "short": "REV",
+            "full": "Rev",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "hb_dly",
+            "short": "DLY",
+            "full": "Dly",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Lo Bngo",
+      "pad": 9,
+      "rows": [
+        [
+          {
+            "key": "lb_tune",
+            "short": "TUNE",
+            "full": "Tune",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "lb_decay",
+            "short": "DECAY",
+            "full": "Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "lb_drive",
+            "short": "DRIVE",
+            "full": "Drive",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "lb_dist_type",
+            "short": "DIST",
+            "full": "Distortion",
+            "type": "enum",
+            "options": [
+              "Diode",
+              "Clip",
+              "SAT",
+              "BFZ",
+              "PDIST",
+              "Fold",
+              "Crush"
+            ]
+          },
+          {
+            "key": "lb_level",
+            "short": "LEVEL",
+            "full": "Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "lb_rev",
+            "short": "REV",
+            "full": "Rev",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "lb_dly",
+            "short": "DLY",
+            "full": "Dly",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Lo Cnga",
+      "pad": 10,
+      "rows": [
+        [
+          {
+            "key": "lc_tune",
+            "short": "TUNE",
+            "full": "Tune",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "lc_decay",
+            "short": "DECAY",
+            "full": "Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "lc_drive",
+            "short": "DRIVE",
+            "full": "Drive",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "lc_dist_type",
+            "short": "DIST",
+            "full": "Distortion",
+            "type": "enum",
+            "options": [
+              "Diode",
+              "Clip",
+              "SAT",
+              "BFZ",
+              "PDIST",
+              "Fold",
+              "Crush"
+            ]
+          },
+          {
+            "key": "lc_level",
+            "short": "LEVEL",
+            "full": "Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "lc_rev",
+            "short": "REV",
+            "full": "Rev",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "lc_dly",
+            "short": "DLY",
+            "full": "Dly",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Cowbell",
+      "pad": 11,
+      "rows": [
+        [
+          {
+            "key": "cb_tune",
+            "short": "TUNE",
+            "full": "Tune",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "cb_decay",
+            "short": "DECAY",
+            "full": "Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "cb_drive",
+            "short": "DRIVE",
+            "full": "Drive",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "cb_dist_type",
+            "short": "DIST",
+            "full": "Distortion",
+            "type": "enum",
+            "options": [
+              "Diode",
+              "Clip",
+              "SAT",
+              "BFZ",
+              "PDIST",
+              "Fold",
+              "Crush"
+            ]
+          },
+          {
+            "key": "cb_level",
+            "short": "LEVEL",
+            "full": "Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "cb_rev",
+            "short": "REV",
+            "full": "Rev",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "cb_dly",
+            "short": "DLY",
+            "full": "Dly",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Tambrn",
+      "pad": 12,
+      "rows": [
+        [
+          {
+            "key": "tb_tune",
+            "short": "TUNE",
+            "full": "Tune",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "tb_decay",
+            "short": "DECAY",
+            "full": "Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "tb_drive",
+            "short": "DRIVE",
+            "full": "Drive",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "tb_dist_type",
+            "short": "DIST",
+            "full": "Distortion",
+            "type": "enum",
+            "options": [
+              "Diode",
+              "Clip",
+              "SAT",
+              "BFZ",
+              "PDIST",
+              "Fold",
+              "Crush"
+            ]
+          },
+          {
+            "key": "tb_level",
+            "short": "LEVEL",
+            "full": "Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "tb_rev",
+            "short": "REV",
+            "full": "Rev",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "tb_dly",
+            "short": "DLY",
+            "full": "Dly",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Guiro",
+      "pad": 13,
+      "rows": [
+        [
+          {
+            "key": "gu_tune",
+            "short": "TUNE",
+            "full": "Tune",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "gu_decay",
+            "short": "DECAY",
+            "full": "Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "gu_rate",
+            "short": "RATE",
+            "full": "Rate",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "gu_drive",
+            "short": "DRIVE",
+            "full": "Drive",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "gu_dist_type",
+            "short": "DIST",
+            "full": "Distortion",
+            "type": "enum",
+            "options": [
+              "Diode",
+              "Clip",
+              "SAT",
+              "BFZ",
+              "PDIST",
+              "Fold",
+              "Crush"
+            ]
+          },
+          {
+            "key": "gu_level",
+            "short": "LEVEL",
+            "full": "Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "gu_rev",
+            "short": "REV",
+            "full": "Rev",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "gu_dly",
+            "short": "DLY",
+            "full": "Dly",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          }
+        ]
+      ]
+    },
+    {
+      "name": "Mtl Bt",
+      "pad": 14,
+      "rows": [
+        [
+          {
+            "key": "mb_tune",
+            "short": "TUNE",
+            "full": "Tune",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "mb_decay",
+            "short": "DECAY",
+            "full": "Decay",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "mb_drive",
+            "short": "DRIVE",
+            "full": "Drive",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "mb_dist_type",
+            "short": "DIST",
+            "full": "Distortion",
+            "type": "enum",
+            "options": [
+              "Diode",
+              "Clip",
+              "SAT",
+              "BFZ",
+              "PDIST",
+              "Fold",
+              "Crush"
+            ]
+          },
+          {
+            "key": "mb_level",
+            "short": "LEVEL",
+            "full": "Level",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "mb_rev",
+            "short": "REV",
+            "full": "Rev",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "mb_dly",
+            "short": "DLY",
+            "full": "Dly",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          null
+        ]
+      ]
+    },
+    {
       "name": "Master",
       "rows": [
         [
@@ -1236,17 +1068,6 @@
             "max": 127
           },
           {
-            "key": "hh_choke",
-            "short": "CHOKE",
-            "full": "Choke",
-            "type": "enum",
-            "options": [
-              "Off",
-              "CH>OH",
-              "Mutual"
-            ]
-          },
-          {
             "key": "note_map",
             "short": "NMAP",
             "full": "Note Map",
@@ -1256,6 +1077,74 @@
               "GM"
             ]
           },
+          {
+            "key": "hat_choke",
+            "short": "CHOKE",
+            "full": "Choke",
+            "type": "enum",
+            "options": [
+              "Off",
+              "MA/TB",
+              "All3"
+            ]
+          },
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Rhythm",
+      "rows": [
+        [
+          {
+            "key": "rhy_mode",
+            "short": "MODE",
+            "full": "Mode",
+            "type": "enum",
+            "options": [
+              "Off",
+              "Play"
+            ]
+          },
+          {
+            "key": "rhy_ab",
+            "short": "A/B",
+            "full": "A/B",
+            "type": "enum",
+            "options": [
+              "A",
+              "B"
+            ]
+          },
+          {
+            "key": "rhy_style",
+            "short": "STYLE",
+            "full": "Style",
+            "type": "enum",
+            "options": [
+              "Waltz",
+              "Shufl",
+              "SloRck",
+              "Swing",
+              "FoxTng",
+              "Boogie",
+              "Enka",
+              "Bossa",
+              "Samba",
+              "MamCha",
+              "BegRhu",
+              "Rock1",
+              "Rock2",
+              "Rock3",
+              "Rock4",
+              "Disco1",
+              "Disco2"
+            ]
+          },
+          null,
+          null,
+          null,
+          null,
           null
         ]
       ]

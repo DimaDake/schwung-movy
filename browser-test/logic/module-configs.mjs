@@ -460,6 +460,20 @@ _log('\nTest: every bundled config and fixture is one page per bank');
             try { cfg = JSON.parse(readFileSync(new URL(f, dir), 'utf8')); }
             catch (e) { fail(`${kind} ${f}`, `not valid JSON (${e.message})`); bad++; continue; }
             if (!Array.isArray(cfg.banks)) continue;
+            /* The voice run: the LEADING banks that declare a pad. Movy accepts
+             * exactly this one shape — voices first, ordinary pages behind them
+             * — and ignores a `pad` on anything after the run, so a config that
+             * declares one there is not doing what it reads as doing. */
+            let voiceCount = 0;
+            while (voiceCount < cfg.banks.length
+                   && cfg.banks[voiceCount].pad !== undefined) voiceCount++;
+            cfg.banks.forEach((b, i) => {
+                if (i < voiceCount || b.pad === undefined) return;
+                fail(`${kind} ${f}: bank ${i} "${b.name}"`,
+                     `declares pad ${b.pad} but sits behind the voice run `
+                   + `(${voiceCount} banks); movy ignores it and the page is jog-only`);
+                bad++;
+            });
             const seen = new Map();
             cfg.banks.forEach((b, i) => {
                 checked++;

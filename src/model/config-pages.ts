@@ -112,7 +112,14 @@ export function buildConfigPages(
                     shortLabel: slot.short ?? null,
                     type:       type as KnobParam['type'],
                     options, min, max, step, ...style,
-                    env:        slot.env,
+                    /* The module's `viz: false` is the same veto as the
+                     * config's `env: false`, and it is the one the module can
+                     * state without movy's config existing. 9W9 declared it on
+                     * every `*_attack` and movy read it nowhere, so it drew an
+                     * AD envelope over a click level and hoisted Attack to knob
+                     * 1. The config still wins where it says anything. */
+                    env:        slot.env ?? (cp.viz === false || hier.viz === false
+                                             ? false as const : undefined),
                     lfo:        slot.lfo,
                     filter:     slot.filter,
                     // Global-bank params aren't reachable as chain target:params

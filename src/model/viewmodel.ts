@@ -12,7 +12,7 @@ import { buildEqViz } from './eq-vm.js';
 import { cutKindOf } from './cut-viz.js';
 import { wavPeaks, resamplePeaks } from './wav-peaks.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
-import { pageRotation, rotationPos } from './page-rotation.js';
+import { pageRotation, rotationPos, isVoiceBank } from './page-rotation.js';
 import { dedupShortNames } from '../renderer/shorten.js';
 import { basename } from './path.js';
 import { triggerVisual } from './trigger.js';
@@ -311,12 +311,14 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         drumPadCount:       s.drumPadCount,
         drumCurrentPad:     s.drumCurrentPad,
         drumCurrentPhysPad: s.drumCurrentPhysPad,
-        /* Pad-scoped either way: a bank that re-targets by pad, or a config
-         * where a pad chooses the page. In both the header icon answers the
-         * same question — which voice is under the knobs — and without it a
-         * per-voice-page kit gives no on-screen clue at all. */
+        /* Pad-scoped either way: a bank that re-targets by pad, or a voice page
+         * the pad selects. In both the header icon answers the same question —
+         * which voice is under the knobs — and without it a per-voice-page kit
+         * gives no on-screen clue at all. Scoped to the page, not the config:
+         * on Master or Reverb the pad decides nothing, so an icon there would
+         * claim a relationship that is not on screen. */
         isPadScoped:        !!(s.moduleConfig?.banks[s.knobPage]?.padSpecific)
-                            || !!s.moduleConfig?.banks.some(b => b.pad !== undefined),
+                            || isVoiceBank(rot, s.knobPage),
         automationHeld:     auto.held,
         automationPoolFull: auto.poolFull,
         stepPagePresent:    false,

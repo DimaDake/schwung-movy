@@ -15,6 +15,20 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **CPU meter — Shift + Step 12.** One column per track for what that track's
+  chain costs per audio block, over a bar for the block as a whole. A solid bar
+  is the instrument and a checkered one the effects after it; a dotted line
+  above each column is the worst block that track has had since the page opened,
+  and the notch above the capacity bar is the same thing for the whole render.
+  Press the gesture again to clear the held peaks. Four states a column can be
+  in, because a bar reading zero has four different reasons: costing something,
+  loaded-but-silent (a dash — Movy is skipping it), empty, and Schwung-hosted
+  (a dotted column — it renders outside Movy, which is not the same as being
+  free). Full scale is a fixed 1 ms, so a column means the same thing across
+  sessions and across the CPU Optimize setting. Costs nothing to run: the
+  measurement was already on the audio thread, the numbers ride the status poll
+  Movy already makes, and the page repaints only when a drawn pixel would change.
+
 - **Scene launching.** Hold **Shift** in Session view and the step row becomes
   eight scenes, on the buttons printed 1, 3, 5 … 15. A scene launches a whole
   clip column across all **16** tracks, not just the four on screen — bar
@@ -78,6 +92,16 @@ far. Earlier work is summarised in the timeline below for context.
   fell through to the "no synth loaded" branch, and printed green precisely
   where the fixture had failed to reach the track. Pinned by a new
   `browser-test/device-scripts.mjs` invariant.
+
+### Fixed
+
+- **A sleeping chain was still being charged for what it cost awake.** The
+  parallel render folded each chain's last measured cost in on every block, but
+  a chain that `chidle` had put to sleep builds no render task at all and the
+  pool never clears the previous reading — so its cost never decayed, and the
+  render planner went on reserving a lane for a chain producing nothing. Silent
+  chains now fold in a zero, which both fixes the partition and is what lets the
+  CPU meter show them at rest.
 
 ## [0.30.0] — 2026-08-30
 

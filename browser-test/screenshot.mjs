@@ -63,6 +63,7 @@ const PRESETS = [
     'filter_slope24', 'filter_dual', 'filter_open',
     'deep_page', 'lfo_helm_step', 'lfo_helm_pyramid',
     'signal_voice', 'forge_voice', 'forge_filter', 'forge_mod', 'forge_send', 'forge_mix',
+    '9w9_main', '9w9_voice', '9w9_send',
     'leave_modal', 'capture_select', 'capture_fixed',
     'undo_toast', 'redo_toast', 'undo_empty', 'undo_unavailable', 'clip-undo-toast',
     'track_volume_unity', 'track_volume_quiet', 'track_volume_min', 'track_volume_max',
@@ -116,6 +117,7 @@ const BASE = {
     spray_saturated: 'wav_sample', wav_sample: 'wav_sample', wav_loop: 'wav_loop', wav_loop_off: 'wav_loop',
     wav_beside_filter: 'wav_beside_filter',
     signal_voice: 'signal', forge_voice: 'forge',
+    '9w9_main': 'nw9', '9w9_voice': 'nw9', '9w9_send': 'nw9',
     forge_filter: 'forge', forge_mod: 'forge', forge_send: 'forge', forge_mix: 'forge',
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
     lfo_target_overlay: 'test8', lfo_viz_unipolar: 'test8', lfo_viz_retrig: 'test8',
@@ -531,6 +533,13 @@ function applyView(preset) {
         case 'forge_mod':      model.updateDrumPad(3, 38); model.changePage(3); settle(); forceRender(); break;
         case 'forge_send':     model.updateDrumPad(3, 38); model.changePage(5); settle(); forceRender(); break; // per-voice sends + pan
         case 'forge_mix':      model.changePage(8); settle(); forceRender(); break;   // Mix bank: vbar faders
+        /* A kit with a page PER voice and the pad choosing among them: no bank
+         * re-targets, so the pad-grid icon is the only thing on screen saying
+         * which voice is under the knobs. `9w9_main` is the page-only pad 12
+         * (Main), which sounds nothing and just turns the page. */
+        case '9w9_main':  model.updateDrumPad(12, 47); model.selectBankForPad(12); settle(); forceRender(); break;
+        case '9w9_voice': model.updateDrumPad(2, 37);  model.selectBankForPad(2);  settle(); forceRender(); break;
+        case '9w9_send':  model.updateDrumPad(15, 50); model.selectBankForPad(15); settle(); forceRender(); break;
         case 'obxd_preset_page': forceRender(); break;                       // page 0
         case 'obxd_main_page':   model.changePage(1); forceRender(); break;
         case 'obxd_filter_page': model.changePage(3); forceRender(); break;

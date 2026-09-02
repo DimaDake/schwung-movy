@@ -177,7 +177,38 @@ than guessing. **Shift+Pad** selects the page without sounding the voice, since
 the silence and the page move are decided separately.
 
 The two mechanisms are independent: use `padSpecific` for one following bank,
-`pad` for a page per voice, or neither.
+`pad` for a page per voice, or neither. Either way the header grows the pad-grid
+icon, with the pad you last hit lit — on a per-voice-page kit that icon is the
+only thing on screen saying which voice is under the knobs.
+
+Movy checks three things about `pad` over every bundled config and fixture, and
+a module config wants to hold them too:
+
+- **One bank is one page.** A bank's cells must fit `KNOBS_PER_PAGE` (8). Pages
+  are fixed slices and the bank name is looked up by page index, so an overfull
+  bank silently wears the next bank's name — and `pad` targets the wrong page.
+- **No two banks claim the same pad.** The first one wins; the second becomes
+  unreachable by pad.
+- **`pad` must be ≤ `drum.padCount`.** A pad past the count resolves to nothing,
+  so its page is reachable only by the jog.
+
+### Vetoing a graphic Movy inferred
+
+Movy detects envelopes, filters and LFOs from param names, and reads the **key**
+as well as the label. A key stem is not always a promise: 9W9's `bd_c_attack` is
+a click *level*, not a time, so pairing it with `bd_c_decay` drew an envelope
+over a level and hoisted Attack to knob 1 — disagreeing with the module's own
+editor about knob order. Renaming the label does not help while the key matches.
+
+A slot can say no:
+
+```json
+{ "key": "bd_c_attack", "short": "ATCK", "full": "Attack",
+  "type": "int", "min": 0, "max": 127, "env": false }
+```
+
+`"env": false` keeps the param a plain knob, in its declared position. The same
+field still *names* a stage (`"env": "a"`) where detection needs the help.
 
 For modules whose releases Movy explicitly supports, copy the released
 `module.json` into `browser-test/fixtures/module-contracts/` using the

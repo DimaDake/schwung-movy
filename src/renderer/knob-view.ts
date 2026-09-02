@@ -11,7 +11,7 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
     if (vm.toast) {
         drawHeader(vm.toast.fullName, vm.overlay ? null : vm.toast.value, true);
     } else {
-        const showIcon = vm.isPadSpecific && vm.drumPadCount > 0;
+        const showIcon = vm.isPadScoped && vm.drumPadCount > 0;
         const iconW    = showIcon ? 7 : 0;   // 6px icon + 1px gap
         const rightW   = vm.bankName ? fontWidth(vm.bankName) + iconW + 4 : 0;
         const maxLeftW = W - rightW - 4;

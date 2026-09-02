@@ -40,6 +40,10 @@ function qualifierFrom(ws: string[], skip: number): string {
 
 /* Word/tag match → {role, qualifier}. */
 function roleOf(p: KnobParam): { role: EnvRole; qualifier: string } | null {
+    /* `env: false` is the config vetoing detection, not an absent tag — check it
+     * before the truthy read, or a declared non-stage falls through to the
+     * keyword tables and gets grouped anyway. */
+    if (p.env === false) return null;
     if (p.env) return { role: p.env, qualifier: '' };
     for (const text of [p.key, p.label]) {
         const ws = words(text);

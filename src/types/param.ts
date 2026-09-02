@@ -7,7 +7,16 @@ export interface KnobSlot {
     /* `render: 'items'` only: the ui_hierarchy level key whose
      * items_param/select_param pair this slot selects from. */
     itemsLevel?:    string;
-    env?:           'a' | 'd' | 's' | 'r';
+    /* Names this param's envelope stage — or `false` to declare that it is NOT
+     * one, vetoing the name-based auto-detect.
+     *
+     * The veto exists because detection reads the param KEY as well as the
+     * label, and a key stem is not always a promise: 9W9's `bd_c_attack` is a
+     * click LEVEL, not a time, so pairing it with `bd_c_decay` drew a fake AD
+     * graphic and hoisted Attack to knob 1 — disagreeing with the module's own
+     * editor about knob order. A module cannot rename its way out of that while
+     * the key still matches, so the config has to be able to say no. */
+    env?:           'a' | 'd' | 's' | 'r' | false;
     lfo?:           'shape' | 'phase' | 'mode' | 'retrig' | 'rate' | 'depth' | 'deform';
     filter?:        'cutoff' | 'resonance' | 'mode' | 'slope';
     /* Override movy's automatable heuristic: force a param on (an enum the host
@@ -181,7 +190,8 @@ export interface KnobParam {
     itemsKey?:      string;
     /** Step cell whose value reads as an offset: show a leading + above zero. */
     signed?:        boolean;
-    env?:           'a' | 'd' | 's' | 'r';
+    /** See KnobSlot.env — a stage name, or `false` vetoing the auto-detect. */
+    env?:           'a' | 'd' | 's' | 'r' | false;
     lfo?:           'shape' | 'phase' | 'mode' | 'retrig' | 'rate' | 'depth' | 'deform';
     filter?:        'cutoff' | 'resonance' | 'mode' | 'slope';
     automatable:    boolean;

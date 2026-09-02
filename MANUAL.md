@@ -722,6 +722,11 @@ editor does. **Shift + pad** goes there without sounding the voice. Pads that
 have no voice behind them (a spare pad in the grid) can open a page too — 9W9
 puts Main, Reverb and Delay on three of them.
 
+The pad icon appears here too, lit on the pad you last hit — on a kit like this
+it is the only thing on screen telling you which voice the knobs are holding:
+
+![A page per voice, selected by pad](docs/assets/9w9_voice.png)
+
 *Sample Slicer* is a slice player rather than a kit: its **32 pads are the 32
 slices** the module can trigger (pad 1 = slice 1). Its Main page carries the
 **Sample** browser — hold that knob and click the jog to browse

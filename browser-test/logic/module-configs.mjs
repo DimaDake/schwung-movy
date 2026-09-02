@@ -5,8 +5,8 @@
  */
 
 import {
-    readFileSync, detectEnvelopes, MOCK_SYNTHS, init, eq, bootModel,
-    _log, env, fail,
+    readFileSync, readdirSync, detectEnvelopes, MOCK_SYNTHS, init, eq, bootModel,
+    _log, env, fail, KNOBS_PER_PAGE,
 } from './harness.mjs';
 
 export async function run() {
@@ -430,6 +430,79 @@ _log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
         eq('forge: loaded from movy_config.json', cfg?.name, 'Forge');
         globalThis.host_read_file = saved;
     }
+}
+
+
+/* ── the layout invariants every config is silently assumed to hold ────────── */
+
+_log('\nTest: every bundled config and fixture is one page per bank');
+
+{
+    /* buildConfigPages slices knobParams into fixed KNOBS_PER_PAGE pages and
+     * looks the bank name up BY PAGE INDEX, so a bank that overflows a page
+     * silently steals the next bank's name — and `bank.pad`'s findIndex, which
+     * returns a BANK index used as a PAGE index, then targets the wrong page
+     * too. Nobody gets an error for it: the fixture that violated this booted
+     * fine and just showed page 2 labelled "Snare" over Kick's overflow.
+     *
+     * Read the configs as data rather than booting each one: the failure is a
+     * property of the file, and a boot would need a matching mock per module. */
+    const roots = [
+        ['bundled', new URL('../../src/modules/', import.meta.url), (f) => f.endsWith('.json')],
+        ['fixture', new URL('../fixtures/',      import.meta.url),
+            (f) => f.endsWith('movy-config.json')],
+    ];
+    let checked = 0, bad = 0;
+    const pads = [];
+    for (const [kind, dir, keep] of roots) {
+        for (const f of readdirSync(dir).filter(keep).sort()) {
+            let cfg;
+            try { cfg = JSON.parse(readFileSync(new URL(f, dir), 'utf8')); }
+            catch (e) { fail(`${kind} ${f}`, `not valid JSON (${e.message})`); bad++; continue; }
+            if (!Array.isArray(cfg.banks)) continue;
+            const seen = new Map();
+            cfg.banks.forEach((b, i) => {
+                checked++;
+                const cells = b.rows.reduce((n, r) => n + r.length, 0);
+                if (cells > KNOBS_PER_PAGE) {
+                    fail(`${kind} ${f}: bank ${i} "${b.name}"`,
+                         `${cells} cells > ${KNOBS_PER_PAGE}, so it spans pages `
+                       + `and desyncs every later bank's name`);
+                    bad++;
+                }
+                if (b.pad === undefined) return;
+                /* 1-based, matching drumPadOn's return. A 0-based config selects
+                 * the wrong voice's page on every pad, which is how this shipped
+                 * wrong the first time. */
+                if (!Number.isInteger(b.pad) || b.pad < 1) {
+                    fail(`${kind} ${f}: bank ${i} "${b.name}"`,
+                         `pad ${b.pad} — pads are 1-based integers`);
+                    bad++;
+                }
+                /* selectBankForPad takes the FIRST bank claiming the pad, so a
+                 * duplicate is a page that can never be reached by its pad. */
+                if (seen.has(b.pad)) {
+                    fail(`${kind} ${f}: bank ${i} "${b.name}"`,
+                         `pad ${b.pad} is already claimed by "${seen.get(b.pad)}", `
+                       + `so this page is unreachable by pad`);
+                    bad++;
+                }
+                seen.set(b.pad, b.name);
+                const cap = cfg.drum?.padCount;
+                /* A pad past padCount resolves to nothing (drumPadOfPhys returns
+                 * -1), so the page is jog-only — the CW-78 bug. */
+                if (cap !== undefined && b.pad > cap) {
+                    fail(`${kind} ${f}: bank ${i} "${b.name}"`,
+                         `claims pad ${b.pad} but padCount is ${cap}, `
+                       + `so that pad does not exist and the page is jog-only`);
+                    bad++;
+                }
+            });
+            pads.push(`${f}:${seen.size}`);
+        }
+    }
+    eq('at least the bundled configs were read', checked > 50, true);
+    eq('no config breaks a layout invariant', bad, 0);
 }
 
 }

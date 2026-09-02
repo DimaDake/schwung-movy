@@ -17,14 +17,14 @@ export const SHADOW_UI_SLOTS = 4;
 
 /* Simulate a module shipping its own layout: on the device Forge carries
  * `sound_generators/forge/movy_config.json` (canonical: forge-move repo,
- * src/movy_config.json); here we serve the fixture snapshot so the loader's
- * self-describing path is exercised. */
+ * src/movy_config.json), 9W9 carries its own, and so on. Any module id with a
+ * `<id>-movy-config.json` fixture is served here, so the loader's
+ * self-describing path is exercised without each suite restubbing the host. */
 function serveModuleLayout(path) {
     const m = /\/(?:sound_generators|audio_fx|midi_fx)\/([^/]+)\/movy_config\.json$/.exec(path || '');
-    if (m && m[1] === 'forge') {
-        try { return readFileSync(join(FIXTURE_DIR, 'forge-movy-config.json'), 'utf8'); } catch { return null; }
-    }
-    return null;
+    if (!m) return null;
+    try { return readFileSync(join(FIXTURE_DIR, `${m[1]}-movy-config.json`), 'utf8'); }
+    catch { return null; }
 }
 
 export function installEnv() {

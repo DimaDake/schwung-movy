@@ -305,7 +305,12 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         drumPadCount:       s.drumPadCount,
         drumCurrentPad:     s.drumCurrentPad,
         drumCurrentPhysPad: s.drumCurrentPhysPad,
-        isPadSpecific:      (s.moduleConfig?.banks[s.knobPage]?.padSpecific) ?? false,
+        /* Pad-scoped either way: a bank that re-targets by pad, or a config
+         * where a pad chooses the page. In both the header icon answers the
+         * same question — which voice is under the knobs — and without it a
+         * per-voice-page kit gives no on-screen clue at all. */
+        isPadScoped:        !!(s.moduleConfig?.banks[s.knobPage]?.padSpecific)
+                            || !!s.moduleConfig?.banks.some(b => b.pad !== undefined),
         automationHeld:     auto.held,
         automationPoolFull: auto.poolFull,
         stepPagePresent:    false,

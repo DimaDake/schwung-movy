@@ -276,6 +276,14 @@ _log('\nTest: envStageOf — lone attack/decay knobs');
     // An enum named Decay is a mode list, not a time.
     eq('enum decay rejected',
         envStageOf({ key: 'decay', label: 'Decay', type: 'enum', options: ['Short', 'Long'] }), null);
+
+    /* `env: false` is the config's veto — the escape hatch for a key stem that
+     * matches while the param is something else. 9W9's `bd_c_attack` is a click
+     * LEVEL; without this it draws a ramp over a level. */
+    eq('env:false vetoes a lone stage',
+        envStageOf({ ...N('bd_c_attack', 'Attack'), env: false }), null);
+    eq('and the same key without it is still a stage',
+        envStageOf(N('bd_c_attack', 'Attack')), 'a');
 }
 
 }

@@ -73,7 +73,7 @@ export function buildClipPageVM(): ViewModel {
         bankName: '', bankIndex: 0, bankCount: 1,
         rows: [[scale, length, transpose, quant], [null, null, null, null]],
         touchedSlot: null, toast, overlay, isEmpty: false,
-        drumPadCount: 0, drumCurrentPad: 0, drumCurrentPhysPad: 0, isPadSpecific: false,
+        drumPadCount: 0, drumCurrentPad: 0, drumCurrentPhysPad: 0, isPadScoped: false,
         automationHeld: false, automationPoolFull: false,
         stepPagePresent: false, stepPageSelected: false,
     };

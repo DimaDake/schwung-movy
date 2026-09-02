@@ -151,7 +151,10 @@ export interface ViewModel {
     drumPadCount:      number;
     drumCurrentPad:    number;
     drumCurrentPhysPad: number;
-    isPadSpecific:     boolean;
+    /* Which pad you last hit is information this page shows — either because the
+     * bank re-targets by pad (`padSpecific`) or because a pad chooses the page
+     * (`bank.pad`). Both make the pad-grid icon in the header say something. */
+    isPadScoped:       boolean;
     automationHeld:    boolean;   // a step is held → automation-edit view
     automationPoolFull: boolean;  // 8-lane cap reached (limit toast)
     stepPagePresent:   boolean;   // a parameter-lock session is active → indicator prepends dotted segment

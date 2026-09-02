@@ -279,7 +279,7 @@ _log('\nTest: track colors — track 3 neon pink, track 4 royal blue');
   eq('track 4 dim = NeonPink dim(109)',       TRACK_COLOR_DIM[3], 109);
 }
 
-// ── ViewModel drum fields: isPadSpecific, drumCurrentPad, drumPadCount ───
+// ── ViewModel drum fields: isPadScoped, drumCurrentPad, drumPadCount ───
 
 _log('\nTest: ViewModel drum fields');
 
@@ -294,7 +294,7 @@ _log('\nTest: ViewModel drum fields');
 
   // Main bank (index 0) has padSpecific=true
   const vm0 = m.getViewModel();
-  eq('mrdrums Main bank isPadSpecific', vm0.isPadSpecific, true);
+  eq('mrdrums Main bank is pad-scoped', vm0.isPadScoped, true);
   eq('mrdrums drumCurrentPad defaults to 1', vm0.drumCurrentPad, 1);
   eq('mrdrums drumPadCount', vm0.drumPadCount, 16);
 
@@ -306,18 +306,18 @@ _log('\nTest: ViewModel drum fields');
   };
   const mk = bootModel(krautPreset);
   const vmk = mk.getViewModel();
-  eq('krautdrums bank 0 isPadSpecific=false (default)', vmk.isPadSpecific, false);
+  eq('krautdrums bank 0 not pad-scoped (default)', vmk.isPadScoped, false);
   eq('krautdrums drumPadCount', vmk.drumPadCount, 16);
 
   // Navigate to a different bank and verify it's also not padSpecific
   mk.changePage(1);
   const vmk2 = mk.getViewModel();
-  eq('krautdrums bank 1 isPadSpecific=false (default)', vmk2.isPadSpecific, false);
+  eq('krautdrums bank 1 not pad-scoped (default)', vmk2.isPadScoped, false);
 
   // Non-drum module
   const plaitsPreset = { 'synth:name': 'Plaits', 'synth_module': 'plaits' };
   const mp = bootModel(plaitsPreset);
-  eq('plaits isPadSpecific=false', mp.getViewModel().isPadSpecific, false);
+  eq('plaits not pad-scoped', mp.getViewModel().isPadScoped, false);
   eq('plaits drumPadCount=0', mp.getViewModel().drumPadCount, 0);
 }
 
@@ -503,21 +503,24 @@ _log('\nTest: bank.pad — shift+pad selects silently');
   globalThis.shadow_send_midi_to_dsp = origSend;
 }
 
-/* ── 9W9: per-voice keys via padKeys ─────────────────────────────────────── */
+/* ── padKeys: per-voice keys behind ONE re-targeting row ─────────────────── */
 
-_log('\nTest: 9w9 padKeys per-pad addressing');
+_log('\nTest: padKeys per-pad addressing');
 {
-  /* 9W9 ships its own movy_config.json (canonical: athousanddetails/schwung-9W9,
-   * src/movy_config.json); serve the fixture snapshot the way module-configs
-   * does, since the logic harness stubs host_read_file to null. */
+  /* The pre-2.0 9W9 layout, under a synthetic name — 9W9 itself dropped this
+   * form (see the 9w9 test below), and a fixture called "9w9" would assert a
+   * layout the module deliberately stopped shipping. The mechanism is still
+   * right for a kit whose pads share a control set, so its coverage lives on
+   * here. Serve the fixture the way module-configs does, since the logic
+   * harness stubs host_read_file to null. */
   const savedRead = globalThis.host_read_file;
-  const layout = readFileSync(new URL('../fixtures/9w9-movy-config.json', import.meta.url), 'utf8');
-  globalThis.host_read_file = (p) => p.endsWith('/9w9/movy_config.json') ? layout : null;
-  const nw = bootModel(MOCK_SYNTHS.nw9, 0, 'synth');
+  const layout = readFileSync(new URL('../fixtures/padkeys-movy-config.json', import.meta.url), 'utf8');
+  globalThis.host_read_file = (p) => p.endsWith('/padkeys/movy_config.json') ? layout : null;
+  const nw = bootModel(MOCK_SYNTHS.padkeys, 0, 'synth');
   globalThis.host_read_file = savedRead;
   const vm = nw.getViewModel();
-  eq('9w9 is a drum module', vm.drumPadCount, 11);
-  eq('Voice bank is pad-specific', vm.isPadSpecific, true);
+  eq('padKeys module is a drum module', vm.drumPadCount, 11);
+  eq('Voice bank is pad-scoped', vm.isPadScoped, true);
 
   const at = (key) => [0, 1, 2, 3, 4, 5, 6, 7]
       .find((k) => nw.getKnobParamInfo(k)?.key === key);
@@ -576,6 +579,59 @@ _log('\nTest: 9w9 padKeys per-pad addressing');
   nw.updateDrumPad(1, 68);
   eq('P.Depth live again on pad 1', nw.getKnobParamInfo(pdepth).ioKey, 'bd_c_sweep_depth');
   eq('P.Depth displays again on pad 1', cell(pdepth)?.displayValue, '14');
+}
+
+/* ── 9W9 as it actually ships: a page per voice, each naming its pad ─────── */
+
+_log('\nTest: 9w9 pad-follow over the shipped layout');
+{
+  /* The fixture is a straight copy of athousanddetails/schwung-9W9
+   * src/movy_config.json. It is here rather than synthesised because the value
+   * of this test is that it breaks when the SHIPPED config and movy disagree —
+   * the 1-based pad numbering especially, which a synthetic fixture would just
+   * restate. */
+  const savedRead = globalThis.host_read_file;
+  const layout = readFileSync(new URL('../fixtures/9w9-movy-config.json', import.meta.url), 'utf8');
+  globalThis.host_read_file = (p) => p.endsWith('/9w9/movy_config.json') ? layout : null;
+  const nw = bootModel(MOCK_SYNTHS.nw9, 0, 'synth');
+  globalThis.host_read_file = savedRead;
+
+  const names = nw.dumpLayout().banks.map(b => b.name);
+  eq('one bank per voice page', names.length, 14);
+  eq('opens on Main', nw.getKnobPage(), 0);
+  /* The header's pad-grid icon is gated on this. Widened from `padSpecific` to
+   * pad-scoped EITHER WAY: on a per-voice-page kit no bank re-targets, so the
+   * old gate left the one kit that most needs it with no on-screen clue as to
+   * which voice is under the knobs. */
+  eq('a per-voice-page kit is pad-scoped', nw.getViewModel().isPadScoped, true);
+  eq('though no bank re-targets by pad',
+     nw.dumpLayout().banks.some(b => b.padSpecific), false);
+
+  // Pads are 1-based and in drum-rack order: pad N is padNoteStart + N - 1.
+  nw.selectBankForPad(1);
+  eq('pad 1 → Bass Drum', names[nw.getKnobPage()], 'Bass Drum');
+  nw.selectBankForPad(2);
+  eq('pad 2 → Snare', names[nw.getKnobPage()], 'Snare');
+  nw.selectBankForPad(9);
+  eq('pad 9 → Open Hat', names[nw.getKnobPage()], 'Open Hat');
+
+  /* Ride is on pad 11 and Crash on pad 10 — the banks are NOT in pad order, so
+   * a positional fallback would land on the wrong voice here and nowhere else. */
+  nw.selectBankForPad(10);
+  eq('pad 10 → Crash, not the 10th bank', names[nw.getKnobPage()], 'Crash');
+  nw.selectBankForPad(11);
+  eq('pad 11 → Ride', names[nw.getKnobPage()], 'Ride');
+
+  /* Page-only pads: 12/15/16 sit past the kit's note range (36-46), so they
+   * sound nothing and only turn the page — the stock editor's own seats. */
+  nw.selectBankForPad(15);
+  eq('pad 15 → Reverb', names[nw.getKnobPage()], 'Reverb');
+  nw.selectBankForPad(12);
+  eq('pad 12 → back to Main', names[nw.getKnobPage()], 'Main');
+
+  // 13 and 14 claim nothing: the page stays where it was, no positional guess.
+  nw.selectBankForPad(13);
+  eq('an unclaimed pad leaves the page alone', names[nw.getKnobPage()], 'Main');
 }
 
 /* ── the drum grid's geometry ────────────────────────────────────────────── */

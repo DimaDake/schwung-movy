@@ -1,0 +1,28 @@
+# Aider configuration for the Movy repository.
+#
+# This repository lives under a parent `cld` directory containing several
+# related repositories. Sibling repos are READ-ONLY context for aider agents.
+# Once the exact sibling repo names are known, replace `../*` with an explicit
+# list to keep the repo-map tight and avoid pulling in unrelated directories.
+
+# DeepSeek V4 Pro API endpoint and recommended settings for V4 Pro.
+model: deepseek/deepseek-v4-pro
+edit-format: diff
+cache-prompts: true
+
+# Automatically answer "yes" to all Aider confirmation prompts.
+yes-always: true
+
+# Highly recommended pairing for an uninterrupted hands-free workflow:
+auto-commits: true    # Automatically commits successful edits to Git
+auto-test: true       # Automatically runs tests after edits without asking
+
+read:
+  - CONVENTIONS.md
+
+  # The main host runtime Movy targets. This is the most important sibling.
+  - ../schwung
+
+  # All other sibling repos under the parent cld directory.
+  # TODO: replace with explicit repo paths when the full sibling list is available.
+  - ../*

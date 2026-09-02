@@ -714,6 +714,16 @@ impl ChainSlots {
         if active > 0 {
             self.cost.add_wall(t0.elapsed().as_nanos() as u64);
         }
+        // A chain that did no work this block cost nothing, and its mean has to
+        // say so. Serial `continue`s past it and parallel skips it above, so
+        // without this the mean simply freezes — see the fold in
+        // `render_parallel` for what that was doing to the plan.
+        for i in 0..MOVY_CHAINS {
+            if self.slots[i].is_some() && self.work[i].none() {
+                self.cost.add_ns(i, 0);
+                self.cost.add_synth_ns(i, 0);
+            }
+        }
         // After the join, before anything else: every lane is idle, so schwung
         // sees exactly one producer again, and slot order makes the emission
         // deterministic. Costs nothing when no chain sent anything, which today
@@ -821,6 +831,9 @@ impl ChainSlots {
                 // The FX is owed silence to decay into, not the last block.
                 self.scratch[i][..frames].fill(0);
             }
+            // Before the peak scan, exactly as the pool does it — the two paths
+            // have to mean the same thing or the meter changes when a flag does.
+            let synth_ns = if w.synth { t0.elapsed().as_nanos() as u64 } else { 0 };
             if split {
                 self.synth_peak[i] = self.scratch[i][..frames]
                     .iter()
@@ -831,6 +844,7 @@ impl ChainSlots {
             }
             drop(scope);
             self.cost.stop(t0, i);
+            self.cost.add_synth_ns(i, synth_ns);
         }
         active
     }
@@ -875,9 +889,16 @@ impl ChainSlots {
             pool.render_block(&self.lanes);
             // Costs are timed on whichever lane ran the chain — the audio thread
             // cannot bracket a call it did not make.
+            //
+            // Only for chains that HAD work: `cost_ns` is never cleared between
+            // rounds and a deep-asleep chain builds no task at all, so folding
+            // unconditionally re-added the cost the chain had while awake, every
+            // block, for as long as it slept. Its mean never decayed and the
+            // planner went on reserving a lane for a chain rendering nothing.
             for c in 0..MOVY_CHAINS {
-                if self.slots[c].is_some() {
+                if self.slots[c].is_some() && !self.work[c].none() {
                     self.cost.add_ns(c, pool.cost_ns(c));
+                    self.cost.add_synth_ns(c, pool.synth_ns(c));
                     self.synth_peak[c] = pool.synth_peak(c);
                 }
             }

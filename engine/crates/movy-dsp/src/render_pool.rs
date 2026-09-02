@@ -65,6 +65,9 @@ struct Shared {
     ready: AtomicU32,
     lanes: Vec<Lane>,
     cost_ns: Vec<AtomicU64>,
+    /// The synth stage alone. Measured before the peak scan, so movy's own
+    /// bookkeeping is not attributed to the module.
+    synth_ns: Vec<AtomicU64>,
     /// Each chain's output peak after its synth stage and BEFORE its FX. Taken
     /// on the lane, because the audio thread only ever sees the buffer once
     /// both stages have run — and by then an FX that never settles would be
@@ -109,6 +112,7 @@ impl RenderPool {
                 .map(|_| Lane { tasks: UnsafeCell::new(Vec::with_capacity(chains)) })
                 .collect(),
             cost_ns: (0..chains).map(|_| AtomicU64::new(0)).collect(),
+            synth_ns: (0..chains).map(|_| AtomicU64::new(0)).collect(),
             synth_peak: (0..chains).map(|_| AtomicI32::new(0)).collect(),
         });
 
@@ -222,6 +226,11 @@ impl RenderPool {
         self.shared.cost_ns.get(chain).map_or(0, |c| c.load(Ordering::Relaxed))
     }
 
+    /// What the chain's synth stage cost in the last block it ran, nanoseconds.
+    pub fn synth_ns(&self, chain: usize) -> u64 {
+        self.shared.synth_ns.get(chain).map_or(0, |s| s.load(Ordering::Relaxed))
+    }
+
     /// Blocks where the join needed more than a spin.
     ///
     /// NOT a fault count. The audio thread reaching the join first is the normal
@@ -263,6 +272,14 @@ fn run(tasks: &[Task], shared: &Shared) {
                 // it the previous block is a stuck buzz, not a decaying tail.
                 None => core::ptr::write_bytes(t.buf, 0, samples),
             }
+        }
+        // Split HERE, not after the peak scan: the scan is movy's own
+        // bookkeeping, and a module must not be charged for it. A sleeping
+        // synth rendered nothing, so it cost nothing — the zero-fill above is
+        // ours.
+        let synth_ns = if t.render.is_some() { t0.elapsed().as_nanos() as u64 } else { 0 };
+        if let Some(s) = shared.synth_ns.get(t.chain) {
+            s.store(synth_ns, Ordering::Relaxed);
         }
         // Measured HERE, between the two stages: an FX that never settles must
         // not be able to hold a silent synth awake.
@@ -612,5 +629,48 @@ mod tests {
         let lanes = vec![tasks(&mut b, 0..2), tasks(&mut b, 2..4), tasks(&mut b, 4..6)];
         pool.render_block(&lanes);
         expect(&b);
+    }
+
+    /// The meter draws the two stages a split chain renders in. The pool has to
+    /// publish the first one, because the audio thread cannot bracket a call it
+    /// did not make — the same reason `cost_ns` exists.
+    ///
+    /// A sleeping synth (`render: None`) costs nothing: the zero-fill is movy's
+    /// own bookkeeping, not the module's.
+    #[test]
+    fn the_pool_publishes_the_synth_stage_on_its_own() {
+        let _lock = crate::midi_out::test_guard();
+        let pool = RenderPool::new(1, CHAINS);
+        let mut buf = vec![0i16; BLOCK * 2];
+
+        pool.render_block(&[
+            vec![Task {
+                render: Some(fill),
+                process_fx: None,
+                inst: 7 as *mut c_void,
+                buf: buf.as_mut_ptr(),
+                frames: BLOCK as i32,
+                chain: 0,
+            }],
+            vec![],
+        ]);
+        assert!(pool.synth_ns(0) > 0, "a chain that rendered has a synth cost");
+        assert!(
+            pool.synth_ns(0) <= pool.cost_ns(0),
+            "the synth stage is a part of the block, not more than it"
+        );
+
+        pool.render_block(&[
+            vec![Task {
+                render: None,
+                process_fx: None,
+                inst: 7 as *mut c_void,
+                buf: buf.as_mut_ptr(),
+                frames: BLOCK as i32,
+                chain: 1,
+            }],
+            vec![],
+        ]);
+        assert_eq!(pool.synth_ns(1), 0, "a sleeping synth costs nothing");
     }
 }

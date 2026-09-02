@@ -23,6 +23,7 @@ await esbuild.build({
         resolve(root, 'src/model/wave-viz.ts'),
         resolve(root, 'src/model/wave-toggle.ts'),
         resolve(root, 'src/model/env-stage.ts'),
+        resolve(root, 'src/model/page-rotation.ts'),
         resolve(root, 'src/model/eq-viz.ts'),
         resolve(root, 'src/model/eq-vm.ts'),
         resolve(root, 'src/renderer/eq-curve.ts'),

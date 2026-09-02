@@ -12,6 +12,7 @@ import { buildEqViz } from './eq-vm.js';
 import { cutKindOf } from './cut-viz.js';
 import { wavPeaks, resamplePeaks } from './wav-peaks.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
+import { pageRotation, rotationPos } from './page-rotation.js';
 import { dedupShortNames } from '../renderer/shorten.js';
 import { basename } from './path.js';
 import { triggerVisual } from './trigger.js';
@@ -32,7 +33,12 @@ function overlayShapeIds(s: ModelState): number[] | null {
 }
 
 export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATION): ViewModel {
-    const nBanks = Math.max(1, Math.ceil(s.knobParams.length / KNOBS_PER_PAGE));
+    /* The bank bar and the jog both walk the ROTATION, not the banks: a kit with
+     * a page per voice collapses its voice pages into one slot, so 8W8's
+     * nineteen dots become four. Identical to the bank list for every config
+     * that declares no pad. */
+    const rot    = pageRotation(s);
+    const nBanks = rot.entries.length;
 
     let bankName = '';
     if (s.bankNames.length > 1 && s.bankNames[s.knobPage]) {
@@ -279,7 +285,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     return {
         moduleName:     s.activeModuleName,
         bankName,
-        bankIndex:      s.knobPage,
+        bankIndex:      rotationPos(rot, s.knobPage),
         bankCount:      nBanks,
         bankGroups:     s.bankGroups,
         rows,

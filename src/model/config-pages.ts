@@ -164,6 +164,9 @@ export function buildConfigPages(
     mlog('loadHierarchy: config for ' + s.moduleId + ', ' + cfg.banks.length + ' banks');
     // Each config bank is exactly one page, so a group per bank.
     s.bankGroups = cfg.banks.map((_, i) => i);
+    /* The voice slot opens on the first bank that claims a pad; a config with
+     * none leaves this at 0 and buildRotation returns the banks unchanged. */
+    s.voiceBank  = Math.max(0, cfg.banks.findIndex(b => b.pad !== undefined));
     s.knobValues = new Array(s.knobParams.length).fill(null) as (number | null)[];
     s.enumFmt    = new Array(s.knobParams.length).fill(undefined) as (boolean | undefined)[];
     s.fileValues = new Array(s.knobParams.length).fill(null) as (string | null)[];

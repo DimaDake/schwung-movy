@@ -634,6 +634,101 @@ _log('\nTest: 9w9 pad-follow over the shipped layout');
   eq('an unclaimed pad leaves the page alone', names[nw.getKnobPage()], 'Main');
 }
 
+/* ── the page rotation: voice pages collapse, pages without a voice do not ── */
+
+_log('\nTest: 8w8 page rotation — nineteen banks, four pages');
+{
+  /* 8W8 is the shape the rotation is for: sixteen voices each naming a pad,
+   * and Master/Reverb/Delay naming none. Fixture copied from
+   * athousanddetails/schwung-8W8 src/movy_config.json. */
+  const saved8 = globalThis.host_read_file;
+  const layout8 = readFileSync(new URL('../fixtures/8w8-movy-config.json', import.meta.url), 'utf8');
+  globalThis.host_read_file = (p) => p.endsWith('/8w8/movy_config.json') ? layout8 : null;
+  const m = bootModel(MOCK_SYNTHS['8w8'], 0, 'synth');
+  globalThis.host_read_file = saved8;
+  const names = m.dumpLayout().banks.map(b => b.name);
+  eq('the config still has all nineteen banks', names.length, 19);
+
+  /* Nineteen seats in the jog rotation is a nineteen-dot bank bar and a walk
+   * through fifteen voices to reach Delay. The voices share one slot instead. */
+  eq('but the rotation is four pages', m.getBankCount(), 4);
+
+  eq('opens on Master', names[m.getKnobPage()], 'Master');
+  m.changePage(1);
+  eq('jog 1 → the voice slot', names[m.getKnobPage()], 'Kick');
+  m.changePage(1);
+  eq('jog 2 → Reverb, not the second voice', names[m.getKnobPage()], 'Reverb');
+  m.changePage(1);
+  eq('jog 3 → Delay', names[m.getKnobPage()], 'Delay');
+  m.changePage(1);
+  eq('and that is the end of the rotation', names[m.getKnobPage()], 'Delay');
+
+  // The pad chooses which voice the one slot holds.
+  m.selectBankForPad(11);
+  eq('pad 11 → Maracas', names[m.getKnobPage()], 'Maracas');
+  eq('still four pages', m.getBankCount(), 4);
+
+  /* The slot REMEMBERS. Jogging away to Delay and back must return to the
+   * voice you were editing — going back to Kick would undo the pad press that
+   * got you there. */
+  m.changePage(1);
+  eq('jog forward from a voice → Reverb', names[m.getKnobPage()], 'Reverb');
+  m.changePage(-1);
+  eq('and back → the voice you left, not the first one',
+     names[m.getKnobPage()], 'Maracas');
+
+  /* The bank bar reads positions, not bank indices: Maracas is bank 11 and
+   * would otherwise light an eleventh dot on a four-dot bar. */
+  m.changePage(0);
+  eq('the bar puts the voice slot second', m.getViewModel().bankIndex, 1);
+  eq('over four dots', m.getViewModel().bankCount, 4);
+  eq('and names the voice, not the slot', m.getViewModel().bankName, 'Maracas');
+}
+
+_log('\nTest: a page-only pad takes its page out of the rotation');
+{
+  /* 9W9 as shipped puts pads on Main/Reverb/Delay too — spare seats in the
+   * 16-pad grid that sound nothing and just turn the page. Under the rotation
+   * that is not a free extra: having a pad IS what makes a bank a voice page,
+   * so all fourteen collapse into the one slot and the jog has nowhere to go.
+   * Those three pads have to come off for the rotation to read
+   * Main → voice → Reverb → Delay. Tripwire: this flips when 9W9 re-ships. */
+  const shipped = readFileSync(
+      new URL('../fixtures/9w9-movy-config.json', import.meta.url), 'utf8');
+  const saved9 = globalThis.host_read_file;
+  globalThis.host_read_file = (p) => p.endsWith('/9w9/movy_config.json') ? shipped : null;
+  const nw = bootModel(MOCK_SYNTHS.nw9, 0, 'synth');
+  globalThis.host_read_file = saved9;
+  /* Guard: an unserved config also boots to one page, so without this the
+   * collapse assertion below passes on a model that loaded nothing at all. */
+  eq('every 9w9 bank claims a pad', nw.dumpLayout().banks.length, 14);
+  eq('so the jog rotation has collapsed to one page', nw.getBankCount(), 1);
+
+  /* Same config with the three page-only pads removed — the shape 8W8 already
+   * ships, and what the rotation is asking 9W9 for. */
+  const cfg = JSON.parse(shipped);
+  for (const b of cfg.banks) if (['Main', 'Reverb', 'Delay'].includes(b.name)) delete b.pad;
+  globalThis.host_read_file = (p) =>
+      p.endsWith('/9w9/movy_config.json') ? JSON.stringify(cfg) : null;
+  const fixed = bootModel(MOCK_SYNTHS.nw9, 0, 'synth');
+  globalThis.host_read_file = saved9;
+
+  const names = fixed.dumpLayout().banks.map(b => b.name);
+  eq('the corrected config still has fourteen banks', names.length, 14);
+  eq('without them the rotation is four pages', fixed.getBankCount(), 4);
+  eq('opening on Main', names[fixed.getKnobPage()], 'Main');
+  fixed.changePage(1);
+  eq('jog → the voice slot', names[fixed.getKnobPage()], 'Bass Drum');
+  fixed.changePage(1);
+  eq('jog → Reverb', names[fixed.getKnobPage()], 'Reverb');
+  fixed.changePage(1);
+  eq('jog → Delay', names[fixed.getKnobPage()], 'Delay');
+  /* And the three pads are dead, as intended: nothing claims them, so the page
+   * stays put rather than jumping somewhere by position. */
+  fixed.selectBankForPad(12);
+  eq('pad 12 no longer selects anything', names[fixed.getKnobPage()], 'Delay');
+}
+
 /* ── the drum grid's geometry ────────────────────────────────────────────── */
 
 _log('\nTest: drum grid mapping round-trips');

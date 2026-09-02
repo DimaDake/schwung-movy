@@ -181,6 +181,19 @@ The two mechanisms are independent: use `padSpecific` for one following bank,
 icon, with the pad you last hit lit — on a per-voice-page kit that icon is the
 only thing on screen saying which voice is under the knobs.
 
+**Voice pages share one seat in the jog rotation.** Sixteen voices at sixteen
+seats is a sixteen-dot bank bar and a walk through the whole kit to reach the
+delay, so they collapse into a single *voice slot* holding whichever voice the
+pad last selected. A bank with **no** `pad` keeps its own seat. 8W8 declares
+sixteen voices with pads and Master/Reverb/Delay without, and the rotation reads
+Master → *voice* → Reverb → Delay.
+
+That is the whole contract, and it has one consequence worth stating: **having a
+`pad` is what makes a bank a voice page.** Putting a pad on a page that has no
+voice behind it — a spare seat in the grid that opens Reverb — does not add a
+shortcut, it takes that page *out* of the rotation and leaves it reachable only
+by pad. Leave `pad` off every page that is not a voice.
+
 Movy checks three things about `pad` over every bundled config and fixture, and
 a module config wants to hold them too:
 

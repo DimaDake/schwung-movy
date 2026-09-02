@@ -26,6 +26,7 @@ export function loadHierarchy(s: ModelState): void {
     s.moduleConfig = null;
     s.bankNames    = [];
     s.bankGroups   = [];
+    s.voiceBank    = 0;
     s.presetDeclared = false;
     s.degenerateKeys = [];
     s.slotMapCache = null;

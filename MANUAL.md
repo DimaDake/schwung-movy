@@ -722,10 +722,16 @@ editor does. **Shift + pad** goes there without sounding the voice. Pads that
 have no voice behind them (a spare pad in the grid) can open a page too — 9W9
 puts Main, Reverb and Delay on three of them.
 
-The pad icon appears here too, lit on the pad you last hit — on a kit like this
-it is the only thing on screen telling you which voice the knobs are holding:
+The voice pages **share one seat in the page list**, so the jog does not walk
+through sixteen drums to reach the reverb. 8W8 has nineteen pages of parameters
+and four in the rotation — **Master, the selected voice, Reverb, Delay** — with
+the pad choosing which voice that middle seat holds. Jog away and back and it
+returns to the voice you were editing.
 
-![A page per voice, selected by pad](docs/assets/9w9_voice.png)
+The pad icon is lit on the pad you last hit; on a kit like this it is the only
+thing on screen telling you which voice the knobs are holding:
+
+![A page per voice, selected by pad](docs/assets/8w8_voice.png)
 
 *Sample Slicer* is a slice player rather than a kit: its **32 pads are the 32
 slices** the module can trigger (pad 1 = slice 1). Its Main page carries the

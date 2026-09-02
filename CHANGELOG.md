@@ -13,6 +13,18 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Changed
+
+- **Scenes and Song mode moved from Shift to Loop.** Hold **Loop** in Session
+  view for the scene launcher and the song builder; Shift in Session view is
+  once again the sixteen **shifted step shortcuts** — the CPU meter, Settings,
+  Set params, the metronome, full velocity, double loop and clip quantization,
+  which the scene row had been swallowing in the one view where the step icons
+  were still advertising them. Loop is free there: Session view has no bars on
+  the row to select, so holding it is a pure modifier and no longer latches the
+  Loop view on the way out. Clip Params (Shift + Step 3) is unchanged — it
+  edits one clip, so it stays Track-view only.
+
 ### Added
 
 - **CPU meter — Shift + Step 12.** One column per track for what that track's

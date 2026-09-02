@@ -2410,7 +2410,7 @@ _log('\napp-loop: the Settings page owns the whole screen');
     eq('nothing sweeps the explanation band away', swept.length, 0);
 }
 
-/* ── Scene row: Shift in Session view ────────────────────────────────────── */
+/* ── Scene row: Loop held in Session view ────────────────────────────────── */
 /* Asserted through the real app loop because this is the layer the device
  * cannot read back — a scene row that never reaches the LED wire looks
  * identical to one painted in the wrong colours. The row uses the native
@@ -2426,10 +2426,10 @@ _log('\napp-loop: the Settings page owns the whole screen');
     const msgs = [];
     const real = globalThis.move_midi_internal_send;
     globalThis.move_midi_internal_send = (m) => msgs.push(m);
-    sendMidi([0xB0, 49, 127]);                 // Shift down (MoveShift)
+    sendMidi([0xB0, 58, 127]);                 // Loop down — the scene modifier
     advance(12);
     globalThis.move_midi_internal_send = real;
-    sendMidi([0xB0, 49, 0]);
+    sendMidi([0xB0, 58, 0]);
 
     /* The last state each step note was left in: [channel, colour]. */
     const last = (step) => {

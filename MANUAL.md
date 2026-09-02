@@ -874,17 +874,22 @@ red, only actionable buttons lit, the playhead sweeps the step row, etc.).
 ### Scenes & Song mode
 
 A **scene** is a column of the clip grid — the same clip slot on all 16 tracks,
-not just the four you can see. **Hold Shift in Session view** and the step row
+not just the four you can see. **Hold Loop in Session view** and the step row
 becomes the scene launcher: the eight buttons printed **1, 3, 5 … 15** are
 scenes 1-8, and the ones between them are dark because they do nothing.
+
+Loop, not Shift: Shift keeps the [shifted step
+shortcuts](#shift--step-shortcuts) here, exactly as in Track view. Loop has
+nothing else to do in Session view — there are no bars on the row to select —
+so holding it there is a pure modifier and never latches the Loop view.
 
 Pressing a scene launches that whole column. Tracks with a clip there start it
 (on the next bar, like any clip launch); **tracks with an empty slot stop** — a
 scene is a snapshot of what plays, so what is not in the column goes quiet.
 
-**Building a song.** Keep holding Shift and press more scenes. The first press
+**Building a song.** Keep holding Loop and press more scenes. The first press
 of a hold starts a new song; every press after it adds to the end. Press the
-same scene twice and it plays twice as long. Let Shift go and the song is what
+same scene twice and it plays twice as long. Let Loop go and the song is what
 you pressed — it plays through in order and then **loops**.
 
 Each scene lasts as long as its longest clip, rounded up to whole bars.
@@ -901,12 +906,12 @@ the song uses pulses on the step row, so you can see the whole arrangement at a
 glance.
 
 The bottom of the screen shows `SONG` and the scene numbers, with the one
-playing boxed. It appears as soon as you press Shift in Session view and stays
+playing boxed. It appears as soon as you press Loop in Session view and stays
 up while a song is running. A song too long for the row scrolls, keeping the
 scene you are on and what comes next in view.
 
 **Ending a song.** Launch any clip by hand and the song is gone — what is
-playing keeps playing, it just stops moving on by itself. Pressing Shift and a
+playing keeps playing, it just stops moving on by itself. Pressing Loop and a
 scene again starts a fresh song.
 
 Stop and Play restarts the song from the beginning. The song is saved with your
@@ -1683,6 +1688,7 @@ behaviour you'd like — or, better, a PR.
 | **Hold Note/Session + step** | Jump to that track (pads, screen, knobs) while the step row stays a track selector — keep tapping to keep switching. Releasing keeps the last track you picked. |
 | **Loop** | Toggle the bar selector; hold + jog resizes the loop. See [The Loop view](#the-loop-view). |
 | **Loop + bar** | Press one bar to view it, two to loop that range, double-tap for a 1-bar loop. |
+| **Loop + Step 1 / 3 / 5 / 7 / 9 / 11 / 13 / 15** | *(Session view)* **Scenes 1-8** — launch a whole clip column, or build a song. Loop is a modifier only there: it does not latch the bar selector. |
 | **Left / Right** | Navigate bars — the loop's own bars plus one empty bar past its end (or nudge held steps). |
 | **Copy** | Duplicate a step / clip / bar (context-dependent). |
 | **Delete (Clear)** | Delete a step / clip / bar; in Session, delete a clip. Hold + knob-touch clears that knob's automation lane. |
@@ -1702,9 +1708,13 @@ behaviour you'd like — or, better, a PR.
 
 ### Shift + Step shortcuts
 
+These work **in Session view too** — the step row's own meanings there (the
+track selector, and the scene launcher under Loop) leave Shift free. The one
+exception is Clip Params, which needs a single clip and so stays Track-view
+only.
+
 | Combo | Action |
 | --- | --- |
-| **Shift + Step 1 / 3 / 5 / 7 / 9 / 11 / 13 / 15** | *(Session view)* **Scenes 1-8** — launch a whole clip column, or build a song. |
 | **Shift + Step 2** | Open **Settings** (CPU optimization, which host owns tracks 1-4). |
 | **Shift + Step 3** | Open **Clip parameters** (scale, length, transpose, quantize; Track view). |
 | **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/link/quantize, root/key/mode/layout). |

@@ -112,7 +112,7 @@ Movy stands on the shoulders of several projects:
 
   ![Live automation](docs/assets/auto_live.png)
 
-- **Scenes & Song mode** — hold **Shift** in Session view and the step row
+- **Scenes & Song mode** — hold **Loop** in Session view and the step row
   becomes eight **scenes**: each one launches a whole clip column across all 16
   tracks. Keep holding and press more scenes to build a looping **song**. A
   scene plays for as long as its longest clip; press one twice to hold it twice

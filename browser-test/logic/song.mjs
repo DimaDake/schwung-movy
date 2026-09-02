@@ -1,4 +1,4 @@
-/* browser-test/logic/song.mjs — scene launching and Song mode: the Shift+scene
+/* browser-test/logic/song.mjs — scene launching and Song mode: the Loop+scene
  * gesture, the `song=` mirror, the scene row's LEDs and the bottom-row readout.
  *
  * Run by browser-test/logic.mjs.
@@ -12,11 +12,16 @@ export async function run() {
     const { seqHandleMidi } = await import('../../dist/esm/seq/router.js');
     const { seqState, resetSeqState, songFromStr } = await import('../../dist/esm/seq/state.js');
     const { parseStatusForTest } = await import('../../dist/esm/seq/engine.js');
-    const { sceneForStep, songShift, resetSong, NUM_SCENES } =
+    const { sceneForStep, resetSong, songSceneRowActive, songBandVisible, NUM_SCENES } =
         await import('../../dist/esm/seq/song.js');
+    const { resetLoopMode } = await import('../../dist/esm/seq/loop-mode.js');
+    /* The modifier is pressed as REAL MIDI (Loop = CC 58) rather than by calling
+     * the hold directly: the wiring from the button to the scene row is half of
+     * what this suite is guarding. */
+    const loop = (down) => seqHandleMidi([0xB0, 58, down ? 127 : 0], false);
 
     const engine = installMockEngine();
-    const reset = () => { resetSeqEngine(); resetSeqState(); resetSong(); engine.reset(); };
+    const reset = () => { resetSeqEngine(); resetSeqState(); resetSong(); resetLoopMode(); engine.reset(); };
     const lastOp = () => lastMusicalOp(engine.ops);
     reset(); seqEngineTick();
 
@@ -31,46 +36,60 @@ export async function run() {
     /* ── building a song: first press of a hold replaces, later ones append ── */
     reset(); seqEngineTick();
     seqState.sessionMode = true;
-    songShift(true);
-    seqHandleMidi([0x90, 16 + 0, 127], true);   // Shift + step 1 → scene 0
+    loop(true);
+    ok('Loop held in Session view turns the row into the scene launcher',
+       songSceneRowActive());
+    ok('and the readout band comes up empty with it', songBandVisible());
+    seqHandleMidi([0x90, 16 + 0, 127], false);   // Loop + step 1 → scene 0
     seqEngineTick();
-    eq('the first Shift+scene starts a new song', lastOp(), 'song 0');
+    eq('the first Loop+scene starts a new song', lastOp(), 'song 0');
 
-    seqHandleMidi([0x90, 16 + 0, 0], true);
-    seqHandleMidi([0x90, 16 + 2, 127], true);   // Shift + step 3 → scene 1
+    seqHandleMidi([0x90, 16 + 0, 0], false);
+    seqHandleMidi([0x90, 16 + 2, 127], false);   // Loop + step 3 → scene 1
     seqEngineTick();
     eq('a later press in the same hold appends', lastOp(), 'songadd 1');
 
-    seqHandleMidi([0x90, 16 + 2, 0], true);
-    seqHandleMidi([0x90, 16 + 2, 127], true);   // the same scene again
+    seqHandleMidi([0x90, 16 + 2, 0], false);
+    seqHandleMidi([0x90, 16 + 2, 127], false);   // the same scene again
     seqEngineTick();
     eq('pressing the same scene twice appends it twice', lastOp(), 'songadd 1');
 
-    /* A NEW Shift hold starts a NEW song — the only way to replace one. */
-    seqHandleMidi([0x90, 16 + 2, 0], true);
-    songShift(false);
-    songShift(true);
-    seqHandleMidi([0x90, 16 + 4, 127], true);
+    /* A NEW Loop hold starts a NEW song — the only way to replace one. */
+    seqHandleMidi([0x90, 16 + 2, 0], false);
+    loop(false);
+    ok('releasing Loop puts the row back to the track selector',
+       !songSceneRowActive());
+    loop(true);
+    seqHandleMidi([0x90, 16 + 4, 127], false);
     seqEngineTick();
-    eq('a new Shift hold starts a new song', lastOp(), 'song 2');
+    eq('a new Loop hold starts a new song', lastOp(), 'song 2');
+    seqHandleMidi([0x90, 16 + 4, 0], false);
+    loop(false);
 
     /* An inert step emits nothing at all — and is still consumed, so it can
      * never fall through to the track selector underneath. */
     reset(); seqEngineTick();
     seqState.sessionMode = true;
-    songShift(true);
-    seqHandleMidi([0x90, 16 + 1, 127], true);
+    loop(true);
+    seqHandleMidi([0x90, 16 + 1, 127], false);
     seqEngineTick();
     ok('an inert step emits no command', !String(lastOp()).startsWith('song'));
     ok('and does not switch tracks', !String(lastOp()).startsWith('watch'));
+    seqHandleMidi([0x90, 16 + 1, 0], false);
+    loop(false);
 
-    /* Outside Session view Shift+step keeps its old meaning. */
+    /* Outside Session view Loop keeps its own meaning: the bar selector, not
+     * scenes. Session view is the only place the row addresses scenes at all. */
     reset(); seqEngineTick();
     seqState.sessionMode = false;
-    songShift(true);
-    seqHandleMidi([0x90, 16 + 5, 127], true);
+    loop(true);
+    ok('Loop outside Session view is not the scene launcher', !songSceneRowActive());
+    seqHandleMidi([0x90, 16 + 0, 127], false);
     seqEngineTick();
-    eq('Shift+Step 6 is still the metronome in Track view', lastOp(), 'metro 1');
+    ok('so a step under it emits no song command', !String(lastOp()).startsWith('song'));
+    seqHandleMidi([0x90, 16 + 0, 0], false);
+    loop(false);
+    resetLoopMode(); seqState.loopMode = false;
 
     /* ── the mirror ──────────────────────────────────────────────────────── */
     reset();

@@ -1,4 +1,4 @@
-/* Song mode: hold Shift in Session view and press scenes to build an
+/* Song mode: hold Loop in Session view and press scenes to build an
  * arrangement out of them.
  *
  * Only the GESTURE lives here. The engine owns the song itself — the sequence,
@@ -22,22 +22,36 @@ export const NUM_SCENES = 8;
  * gain. session.ts keeps its own copy for the same reason. */
 export interface SceneLed { base: number; anim: number; channel: number; }
 
-/* Whether this Shift hold has already placed its first scene. The FIRST press
+/* Whether this Loop hold has already placed its first scene. The FIRST press
  * of a hold REPLACES the song and every later press appends, so one hold is
- * one song — and a bare Shift press with no scene leaves a running song alone.
- * Shift is reached for constantly; it must never be the thing that destroys an
- * arrangement. */
+ * one song — and a bare Loop press with no scene leaves a running song alone.
+ *
+ * Loop rather than Shift because Shift already means the sixteen shifted step
+ * functions (the CPU meter, Settings, the metronome…), and those are global —
+ * Session view is exactly where you still want to reach them. Loop is free
+ * here: its own meaning is the bar selector, which Session view does not show. */
 let holdStarted = false;
 
 /* Steps whose PRESS the scene row consumed, so their release is consumed too.
- * A bit per step rather than "Shift is still down": releasing Shift before the
+ * A bit per step rather than "Loop is still down": releasing Loop before the
  * finger leaves the button would otherwise drop that release into the track
  * selector, which would switch tracks off a press that never meant to. */
 let scenePresses = 0;
 
-/** Shift went down or up. */
-export function songShift(down: boolean): void {
+/* Loop button physically down. Owned here rather than read back from
+ * loop-mode.ts, which imports render.ts, which imports this module: a flag the
+ * button's own handler sets keeps the scene row out of that cycle. */
+let loopHold = false;
+
+/** The Loop button went down or up. */
+export function songLoopHold(down: boolean): void {
+    loopHold = down;
     if (down) holdStarted = false;
+}
+
+/** True while the step row is the scene launcher rather than the selector. */
+export function songSceneRowActive(): boolean {
+    return seqState.sessionMode && loopHold;
 }
 
 /** The scene a step button addresses, or -1 when the step is inert. */
@@ -86,6 +100,7 @@ export function sceneStepLed(step: number, songScenes: number[]): SceneLed {
 export function resetSong(): void {
     holdStarted = false;
     scenePresses = 0;
+    loopHold = false;
 }
 
 export interface SongToken { label: string; current: boolean; }
@@ -157,10 +172,10 @@ export function songTerminal(): boolean {
     return !seqState.session.some((st) => (st.exist & (1 << scene)) !== 0);
 }
 
-/* The band shows while Shift is held in Session view — so it appears the
- * instant you press Shift, empty, telling you the row has become the scenes —
+/* The band shows while Loop is held in Session view — so it appears the
+ * instant you press Loop, empty, telling you the row has become the scenes —
  * and for as long as a song is active. Outside Session view it never draws. */
 export function songBandVisible(): boolean {
     if (!seqState.sessionMode) return false;
-    return appState.shiftHeld || seqState.songScenes.length > 0;
+    return loopHold || seqState.songScenes.length > 0;
 }

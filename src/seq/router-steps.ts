@@ -1,31 +1,26 @@
-/* The step-button row: presses, the shifted functions, and note entry.
+/* The step-button row: what a press MEANS in each mode, and note entry.
  *
  * Split out of router.ts, which is the dispatcher; this is the step half of
- * what it dispatches to. */
+ * what it dispatches to. The shifted functions the row can reach live next
+ * door in step-shortcuts.ts — two of the branches below hand off to them. */
 
 import { mlog } from '../log.js';
-import { appState, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS } from '../app/state.js';
+import { appState } from '../app/state.js';
 import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
-import { beginGesture } from '../undo/edit.js';
 import { trackLabel } from '../undo/label.js';
-import {
-    NUM_STEP_BUTTONS, MAIN_PAGE_STEPS, STEP_CLIP_PARAMS, STEP_FLAGS, STEP_METRO,
-    STEP_FULL_VEL, STEP_DOUBLE_LOOP, STEP_QUANTIZE, STEP_CPU,
-} from './constants.js';
-import { openCpuPage } from './cpu-page.js';
-import { openParamPage } from './param-page.js';
+import { NUM_STEP_BUTTONS } from './constants.js';
 import { deleteActive, deleteStep } from './edit-ops.js';
 import { dupActive, onUnit as dupOnUnit } from './duplicate.js';
 import { seqCmd } from './engine.js';
-import { doubleLoop, loopStepOff, loopStepOn } from './loop-mode.js';
-import { seqToast } from './render.js';
+import { loopStepOff, loopStepOn } from './loop-mode.js';
+import { shiftStepFunction } from './step-shortcuts.js';
 import { muteHeld, muteMarkGestured, muteShiftHeld } from './router-buttons.js';
 import { toggleMute, toggleSolo } from '../mixer/track-mutes.js';
 import { TRACK_COUNT } from '../track/ref.js';
 import { sessionButtonHeld, sessionStepPress, sessionStepRelease, trackSelectActive } from './track-select.js';
-import { songSceneStep, songSceneReleasePending } from './song.js';
+import { songSceneStep, songSceneReleasePending, songSceneRowActive } from './song.js';
 import {
-    maxBarOffset, minBarOffset, occHasStep, occToggleStep, seqState, setFullVelocity,
+    maxBarOffset, minBarOffset, occHasStep, occToggleStep, seqState,
 } from './state.js';
 import { heldSetList, setHeldSet } from './held.js';
 import {
@@ -35,8 +30,6 @@ import {
 import { momentaryGesture } from './momentary.js';
 import { stepRecActive, stepRecStepTap } from './step-rec.js';
 import { heldChordPitches } from './router-pads.js';
-import { nextQuantCandidate } from './quant.js';
-import { armQuantOverlay } from './quant-overlay.js';
 import { watchedTrack } from './watch.js';
 
 /* Steps whose PRESS the mute map consumed. Their release is consumed too, or
@@ -106,18 +99,28 @@ export function handleStepButton(button: number, on: boolean, shiftHeld: boolean
      * also while the Session button is held after a selection has already
      * dropped us back onto a track (trackSelectHold). Above the edit gestures
      * below, because none of them mean anything when the row is addressing
-     * tracks. Shift is not consulted for the selector itself — the shifted step
-     * functions stay available in Track view, where the row is actually steps. */
-    /* Shift in Session view turns the row into the scene launcher: the eight
-     * clip columns on the step buttons printed 1,3,5…15. Above the track
-     * selector, which keeps the row on unshifted presses — Shift is what
+     * tracks. */
+    /* Loop held in Session view turns the row into the scene launcher: the
+     * eight clip columns on the step buttons printed 1,3,5…15. Above the track
+     * selector, which keeps the row on unmodified presses — Loop is what
      * changes what the row means. The release of a press this row consumed
-     * belongs to it too, even if Shift came up in between. */
-    if ((seqState.sessionMode && shiftHeld) || (!on && songSceneReleasePending(button))) {
+     * belongs to it too, even if Loop came up in between. */
+    if (songSceneRowActive() || (!on && songSceneReleasePending(button))) {
         songSceneStep(button, on);
         return;
     }
     if (trackSelectActive()) {
+        /* Shift keeps the SHIFTED STEP FUNCTIONS in Session view. They are
+         * global — the CPU meter, Settings, the metronome — and Session view is
+         * where you are most likely to reach for them; the row's own meaning
+         * (the track selector) is the unmodified press. Latched Session view
+         * only: while the Session button is still HELD the row is a transient
+         * selector inside Track view, and a press there is finishing that
+         * gesture. */
+        if (on && shiftHeld && seqState.sessionMode) {
+            shiftStepFunction(button);
+            return;
+        }
         if (on) sessionStepPress(button);
         return;
     }
@@ -167,60 +170,6 @@ export function handleStepButton(button: number, on: boolean, shiftHeld: boolean
         if (seqState.loopMode) loopStepOff(button);
         else if (wasTap) toggleStep(button);
     }
-}
-
-/* Shift + step button = Move's shifted step functions. Step 10 toggles Full
- * Velocity; further entries (Double Loop = Step 15, Quantize = Step 16) land
- * in later steps. Steps 5/7/9 (0-indexed 4/6/8) open the Main Params page. */
-function shiftStepFunction(step: number): void {
-    if (step in MAIN_PAGE_STEPS) {
-        openParamPage(VIEW_MAIN_PARAMS);
-        appState.dirty = true;
-        return;
-    }
-    /* Settings. Reachable in every build — what a release build hides is the
-     * measurement flags on it, not the page (flags-visible.ts). */
-    if (step === STEP_FLAGS) {
-        openParamPage(VIEW_FLAGS);
-        appState.dirty = true;
-        return;
-    }
-    // Clip Params edits the active/playing clip, so it only opens in Track view
-    // (Session view shows the clip grid, not a single clip's params).
-    if (step === STEP_CLIP_PARAMS) {
-        if (!seqState.sessionMode) openParamPage(VIEW_CLIP_PARAMS);
-        appState.dirty = true;
-        return;
-    }
-    if (step === STEP_CPU) {
-        openCpuPage();
-        appState.dirty = true;
-        return;
-    }
-    if (step === STEP_FULL_VEL) {
-        setFullVelocity(!seqState.fullVelocity);
-        seqToast(seqState.fullVelocity ? 'Full Velocity On' : 'Full Velocity Off');
-    } else if (step === STEP_DOUBLE_LOOP) {
-        doubleLoop();
-    } else if (step === STEP_METRO) {
-        seqCmd('metro ' + (seqState.metro ? 0 : 1));
-        seqToast(seqState.metro ? 'Metronome Off' : 'Metronome On');
-    } else if (step === STEP_QUANTIZE) {
-        cycleQuantize();
-    }
-}
-
-/* Shift+Step 16: advance the watched clip's quantization to the next candidate
- * (0 / set default / 100) and show the panel. One gesture key for the whole
- * audition, so pressing through 0 -> 70 -> 100 is a single undo back to where
- * you started rather than three; the panel is the feedback, so no toast. */
-function cycleQuantize(): void {
-    const track = watchedTrack();
-    const next = nextQuantCandidate(seqState.clipQuant, seqState.defaultQuant);
-    beginGesture('quant:' + track, 'CLIP QUANT', trackLabel(track));
-    seqState.clipQuant = next;
-    seqCmd('cq ' + track + ' ' + next);
-    armQuantOverlay(Date.now());
 }
 
 export function navigateBar(delta: number): void {

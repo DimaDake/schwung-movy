@@ -406,10 +406,10 @@ else
 fi
 
 # ── Song mode ─────────────────────────────────────────────────────────────
-# Shift + the odd step buttons in Session view are the eight scenes; the first
-# press of a Shift hold starts a song and later ones extend it. Driven as ONE
-# gesture (ts_send holds Shift across both taps in a single device-side script)
-# — two injects would be >500 ms apart and Shift would have come up in between.
+# Loop + the odd step buttons in Session view are the eight scenes; the first
+# press of a Loop hold starts a song and later ones extend it. Driven as ONE
+# gesture (ts_send holds Loop across both taps in a single device-side script)
+# — two injects would be >500 ms apart and Loop would have come up in between.
 #
 # Asserted on the PERSISTED set rather than the log: `sg` in seq-state.json is
 # the whole round trip — gesture → UI → engine → the Set on disk — and it is
@@ -418,14 +418,14 @@ fi
 # app-loop.mjs and the screenshot baselines.
 ts_tap_cc 50                             # Note/Session → Session view
 sleep 0.5
-ts_send "0x0B:0xB0:49:127:0.10" \
+ts_send "0x0B:0xB0:58:127:0.10" \
         "0x09:0x90:16:127:0.10" "0x08:0x80:16:0:0.10" \
         "0x09:0x90:18:127:0.10" "0x08:0x80:18:0:0.10" \
-        "0x0B:0xB0:49:0:0"               # Shift + step 1 + step 3 → scenes 1,2
+        "0x0B:0xB0:58:0:0"               # Loop + step 1 + step 3 → scenes 1,2
 if ts_wait_seq_state '^sg 0 1$'; then
-    pass "Song built from Shift+scenes and saved with the Set (sg 0 1)"
+    pass "Song built from Loop+scenes and saved with the Set (sg 0 1)"
 else
-    fail "No 'sg 0 1' line in seq-state — the Shift+scene gesture did not build a song"
+    fail "No 'sg 0 1' line in seq-state — the Loop+scene gesture did not build a song"
 fi
 ts_tap_cc 50                             # back to Note view for anything after
 sleep 0.5

@@ -20,7 +20,6 @@ import { releaseAllLive } from '../keyboard/release.js';
 import { drumPadOn, drumPadOff } from '../keyboard/drum-handler.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
-import { songShift } from '../seq/song.js';
 import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteMarkGestured, muteShiftHeld, muteTrack } from '../seq/router.js';
 import { anyStepHeld, editStepPageKnob } from '../seq/step-edit.js';
 import { stepPageState, setStepPageSelected, setStepTouchedKnob, stepPageAvailable } from '../seq/step-page.js';
@@ -439,7 +438,7 @@ export function onMidiMessageInternal(data: number[]): void {
     }
 
     /* Shift */
-    if (d1 === MoveShift) { appState.shiftHeld = d2 > 0; songShift(d2 > 0); return; }
+    if (d1 === MoveShift) { appState.shiftHeld = d2 > 0; return; }
 
     /* Back */
     if (d1 === MoveBack && d2 > 0) {

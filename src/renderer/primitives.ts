@@ -31,3 +31,17 @@ export function drawDottedH(x0: number, x1: number, y: number): void {
     const lo = Math.min(x0, x1), hi = Math.max(x0, x1);
     for (let x = lo; x <= hi; x += 2) fill_rect(x, y, 1, 1, 1);
 }
+
+/* 50% checkerboard fill, broken on a DIAGONAL parity (x+y) rather than
+ * per-column: a vertical edge and a flat run both come out dashed, where a
+ * per-column rule leaves whole edges either solid or missing.
+ *
+ * Shared because three renderers want it — the LFO wave's "not sounding"
+ * dotting, the knob envelope's ramp, and the CPU page's FX segment. */
+export function hatchRect(x: number, y: number, w: number, h: number, color: number): void {
+    for (let yy = y; yy < y + h; yy++) {
+        for (let xx = x; xx < x + w; xx++) {
+            if (((xx + yy) & 1) === 0) fill_rect(xx, yy, 1, 1, color);
+        }
+    }
+}

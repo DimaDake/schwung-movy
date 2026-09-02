@@ -57,6 +57,7 @@ const PRESETS = [
     'clip-default', 'clip-fraction', 'clip-overlay', 'clip-drum', 'clip-quant',
     'main-quant', 'quant-overlay-three', 'quant-overlay-two',
     'flags-top', 'flags-scrolled', 'flags-release',
+    'cpu-opt-on', 'cpu-opt-off', 'cpu-overscale', 'cpu-empty',
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
     'filter_slope24', 'filter_dual', 'filter_open',
@@ -170,6 +171,8 @@ const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view
 const { drawCaptureOverlay } = await import('../dist/esm/renderer/capture-overlay.js');
 const { drawQuantOverlay } = await import('../dist/esm/renderer/quant-overlay.js');
 const { renderFlagsView } = await import('../dist/esm/renderer/flags-view.js');
+const { renderCpuView }   = await import('../dist/esm/renderer/cpu-view.js');
+const { buildCpuPageVM }  = await import('../dist/esm/seq/cpu-page-vm.js');
 const { buildFlagsPageVM } = await import('../dist/esm/seq/flags-page-vm.js');
 const { flagsPageState, resetFlagsPage } = await import('../dist/esm/seq/flags-page.js');
 const { visibleFlags } = await import('../dist/esm/seq/flags-visible.js');
@@ -577,6 +580,45 @@ function applyView(preset) {
          * build lists, plus the per-set row the NEW SETS mode brings with it.
          * The debug scenes above cannot cover this — they render the list this
          * build has compiled in, which is every flag. */
+        case 'cpu-opt-on':
+        case 'cpu-opt-off':
+        case 'cpu-overscale':
+        case 'cpu-empty': {
+            resetFlags();
+            const on = preset !== 'cpu-opt-off';
+            setFlag('cpuopt', on ? 1 : 0);
+            // 'cpu-opt-off' also stands for the arrangement where tracks 1-4
+            // are Schwung's: the two are the states the page has to survive.
+            setFlag('chtracks', on ? 1 : 0);
+            /* Every column ON scale, so `cpu-overscale` is the only baseline
+             * carrying the detached cap — otherwise the two scenes differ by
+             * nothing and neither pins it. */
+            const live = [
+                '240/180/310', '370/300/450', '900/760/980', '820/620/910',
+                '250/200/300', '320/320/400', '180/140/220', '670/560/790',
+            ];
+            /* With CPU Optimize off the chain renders in ONE call, so the synth
+             * stage IS the total and there is no FX segment. Sending split
+             * costs here would draw a picture the engine cannot produce. */
+            const unsplit = live.map((t) => {
+                const [total, , peak] = t.split('/');
+                return `${total}/${total}/${peak}`;
+            });
+            const over = live.slice();
+            over[2] = '1600/1300/1900';
+            const rows = preset === 'cpu-overscale' ? over
+                : preset === 'cpu-opt-off' ? unsplit : live;
+            if (preset === 'cpu-empty') {
+                seqState.cpuCost = ''; seqState.cpuWall = ''; seqState.cpuMask = '';
+            } else {
+                seqState.cpuCost = rows.concat(Array(16 - rows.length).fill('0/0/0')).join(',');
+                seqState.cpuWall = preset === 'cpu-overscale' ? '2210/2680/2902' : '1491/2180/2902';
+                seqState.cpuMask = '01ff/0100';
+            }
+            lastRender = () => renderCpuView(buildCpuPageVM());
+            lastRender();
+            break;
+        }
         case 'flags-release': {
             resetFlags(); resetFlagsPage();
             flagsPageState.selected = 1;         // the row with the word labels

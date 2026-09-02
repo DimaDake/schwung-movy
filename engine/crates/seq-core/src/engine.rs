@@ -599,7 +599,6 @@ impl Engine {
             self.song_start_bar = None;
             self.song_armed = false;
             self.song_armed_launch = None;
-        self.song_armed_launch = None;
             for t in &mut self.tracks {
                 t.active_clip = scene;
                 t.playing_slot = if t.clips[scene].exists() { Some(scene) } else { None };
@@ -830,15 +829,29 @@ impl Engine {
          *
          * Only a NO-OP arm is withdrawn: nothing went out, so re-arming is
          * free. A launch that has already been issued stands — it cannot be
-         * recalled, and the scene it named is the one about to play. Re-arming
-         * costs the appended scene one bar; it is never skipped. */
+         * recalled, and the scene it named is the one about to play. */
         if self.song_armed && self.song_armed_launch.is_none() {
             let cur = self.song_entry_at(self.song_pos).map(|(s, _)| s);
             let next = self.song_next_pos(self.song_pos);
             let nxt = self.song_entry_at(next).map(|(s, _)| s);
             if cur.is_some() && nxt != cur {
                 self.song_armed = false;
+                self.song_armed_launch = None;
             }
+        }
+        /* Then arm straight away rather than leaving it to the next boundary.
+         * A one-bar entry arms on the bar it STARTS, so by the time a scene is
+         * appended that window has usually gone by, and deferring would repeat
+         * the current scene for a bar nobody asked for. This only QUEUES — the
+         * switch still lands on the boundary — and it lights the queued pulse
+         * the moment the scene is added.
+         *
+         * Not before the song's opening scene has actually fallen in
+         * (`song_start_bar` is None until then): its own launch is still
+         * sitting in `queued_slot`, and arming would overwrite it — skipping
+         * the very scene the song starts on. */
+        if self.playing && self.song_start_bar.is_some() {
+            self.song_try_arm(self.master_tick / crate::TICKS_PER_BAR as u64);
         }
     }
 
@@ -857,9 +870,9 @@ impl Engine {
         // Advance first. The launch armed a bar ago resolved on this boundary,
         // before we ran, so the entry that was current is now behind us.
         if let Some((scene, reps)) = self.song_entry_at(self.song_pos) {
-            /* Parked on the end of the song. Checked before the advance as well
-             * as before the arm below, or the next boundary would step off the
-             * terminal scene as if it had simply run its length. */
+            /* Parked on the end of the song. Checked here as well as in
+             * `song_try_arm`, or the next boundary would step off the terminal
+             * scene as if it had simply run its length. */
             if self.scene_is_empty(scene) {
                 return;
             }
@@ -871,43 +884,56 @@ impl Engine {
                 self.song_start_bar = Some(bar);
                 self.song_armed = false;
                 self.song_armed_launch = None;
-            self.song_armed_launch = None;
-        self.song_armed_launch = None;
             }
         }
 
-        // Then arm. One bar to go → queue what comes next, so the Session grid
-        // shows it queued for a full bar before it happens. A one-bar entry
-        // arms on the boundary it starts, which is exactly one bar of warning.
-        let start = self.song_start_bar.unwrap_or(bar);
+        // Then arm: one bar to go, so the Session grid shows the next scene
+        // queued for a full bar before it happens.
+        self.song_try_arm(bar);
+    }
+
+    /// Arm the transition out of the entry now playing, once its LAST bar has
+    /// arrived — queueing the next scene a full bar before it lands, which is
+    /// what gives the Session grid its one-bar warning pulse.
+    ///
+    /// Shared by the bar boundary and by `song_add`, because appending a scene
+    /// during the current entry's last bar has to arm it THERE AND THEN: the
+    /// boundary that would have armed it has already gone by, and waiting for
+    /// the next one repeats the current scene for a bar nobody asked for.
+    fn song_try_arm(&mut self, bar: u64) {
+        if self.song_armed {
+            return;
+        }
         let Some((scene, reps)) = self.song_entry_at(self.song_pos) else {
             return;
         };
-        /* The advance above may have just landed on an empty scene: that is
-         * where the arrangement ends, so nothing is armed after it. The
-         * transport keeps running — this is a stop in the song, not a stop of
-         * the machine — and launching a clip or building a new song leaves it. */
+        /* An empty scene is where the arrangement ends, so nothing is armed
+         * after it. The transport keeps running — this is a stop in the song,
+         * not a stop of the machine — and launching a clip or building a new
+         * song leaves it. */
         if self.scene_is_empty(scene) {
             return;
         }
+        let start = self.song_start_bar.unwrap_or(bar);
         let total = self.scene_bars(scene) * reps;
-        if !self.song_armed && (bar - start) as u32 + 1 >= total {
-            /* Only arm when there IS an entry to arm for, and record what the
-             * arming actually DID — a no-op arm is the one that can go stale. */
-            let next = self.song_next_pos(self.song_pos);
-            if let Some((next_scene, _)) = self.song_entry_at(next) {
-                /* Identical scenes either side of the boundary: a repeat, or a
-                 * one-entry song wrapping onto itself. Re-launching would
-                 * restart every clip and reset each track's `cycle`, so an A:B
-                 * trig condition would never reach B. */
-                if next_scene != scene {
-                    self.launch_scene(next_scene);
-                    self.song_armed_launch = Some(next_scene);
-                } else {
-                    self.song_armed_launch = None;
-                }
-                self.song_armed = true;
+        if bar.saturating_sub(start) as u32 + 1 < total {
+            return;
+        }
+        /* Only arm when there IS an entry to arm for, and record what the
+         * arming actually DID — a no-op arm is the one that can go stale. */
+        let next = self.song_next_pos(self.song_pos);
+        if let Some((next_scene, _)) = self.song_entry_at(next) {
+            /* Identical scenes either side of the boundary: a repeat, or a
+             * one-entry song wrapping onto itself. Re-launching would restart
+             * every clip and reset each track's `cycle`, so an A:B trig
+             * condition would never reach B. */
+            if next_scene != scene {
+                self.launch_scene(next_scene);
+                self.song_armed_launch = Some(next_scene);
+            } else {
+                self.song_armed_launch = None;
             }
+            self.song_armed = true;
         }
     }
 
@@ -5397,8 +5423,7 @@ mod tests {
         // Building a song is a LIVE gesture: bars go by between the presses.
         // While the song was still a single entry the scheduler correctly armed
         // nothing — it wraps onto itself — and appending a second scene after
-        // that must not let the next boundary step past it. The new scene
-        // starts a bar later than it otherwise would; it is never skipped.
+        // that must not let the next boundary step past it.
         let mut e = engine();
         e.tracks[0].clips[0].length_steps = 16;
         e.tracks[0].clips[1].length_steps = 16;
@@ -5411,7 +5436,9 @@ mod tests {
         e.song_add(1);
         e.song_add(2);
 
-        run_bars(&mut e, 2);
+        // Appending arms immediately, so the new scene lands on the NEXT
+        // boundary rather than a bar after it.
+        run_bars(&mut e, 1);
         assert_eq!(
             e.tracks[0].playing_slot,
             Some(1),
@@ -5421,5 +5448,36 @@ mod tests {
 
         run_bars(&mut e, 1);
         assert_eq!(e.tracks[0].playing_slot, Some(2), "then scene 3 followed it");
+    }
+
+
+    #[test]
+    fn a_scene_added_during_the_current_bar_falls_in_on_the_very_next_one() {
+        // Two one-bar scenes. Adding the second WHILE the first is playing its
+        // only bar must queue it at once: the boundary that would have armed it
+        // (a one-bar entry arms on the bar it starts) has already gone by, so
+        // leaving it to the next boundary repeats the first scene for a bar
+        // nobody asked for.
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[0].clips[1].length_steps = 16;
+
+        e.song_start(0);
+        run_ticks(&mut e, 1); // bar 0: scene 1 is playing its only bar
+        assert_eq!(e.tracks[0].playing_slot, Some(0));
+
+        e.song_add(1); // ...appended mid-bar, before the boundary
+
+        assert_eq!(
+            e.tracks[0].queued_slot,
+            Some(1),
+            "the appended scene is queued at once, not a bar later"
+        );
+        run_bars(&mut e, 1);
+        assert_eq!(
+            e.tracks[0].playing_slot,
+            Some(1),
+            "so scene 2 fell in on the very next bar"
+        );
     }
 }

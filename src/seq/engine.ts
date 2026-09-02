@@ -281,6 +281,12 @@ let lastEnginePlay: boolean | null = null;
 
 function parseStatus(s: string): void {
     seqState.engineOk = true;
+    /* Cleared each poll rather than only overwritten: an engine that predates
+     * the fields sends none of them, and last poll's numbers standing in for
+     * this one is exactly the meter lying. */
+    seqState.cpuCost = '';
+    seqState.cpuWall = '';
+    seqState.cpuMask = '';
     for (const kv of s.split(' ')) {
         const eq = kv.indexOf('=');
         if (eq <= 0) continue;
@@ -318,6 +324,9 @@ function parseStatus(s: string): void {
             lastChainGen = g;
         }
         else if (key === 'chpend') seqState.chainPending = Number(val) || 0;
+        else if (key === 'chcost') seqState.cpuCost = val;
+        else if (key === 'chwall') seqState.cpuWall = val;
+        else if (key === 'chmask') seqState.cpuMask = val;
         else if (key === 'rec') seqState.recording = val === '1';
         else if (key === 'cin') seqState.countingIn = val === '1';
         else if (key === 'cap') {

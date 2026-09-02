@@ -58,6 +58,14 @@ export interface SeqUiState {
      * releases at most one per audio callback, so a restored Set's modules
      * arrive over seconds. Nonzero means the Set is named but not yet playable. */
     chainPending: number;
+    /* CPU meter, exactly as the engine sent them.
+     *
+     * RAW on purpose: parsed only when the page repaints. 32 numbers split and
+     * Number()-ed at the 24 Hz poll is real work for a page that is closed
+     * almost all the time, and three string assignments are not. */
+    cpuCost: string;
+    cpuWall: string;
+    cpuMask: string;
 
     /* note entry */
     lastPitch: number[];     // per-track: last played pitch (step-entry value)
@@ -140,6 +148,9 @@ function defaults(): SeqUiState {
         metro: false,
         dirty: false,
         chainPending: 0,
+        cpuCost: '',
+        cpuWall: '',
+        cpuMask: '',
         lastPitch: new Array(TRACK_COUNT).fill(60) as number[],
         lastVel: new Array(TRACK_COUNT).fill(100) as number[],
         barOffset: 0,

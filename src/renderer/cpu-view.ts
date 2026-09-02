@@ -6,7 +6,7 @@
  * only ceiling on this page is the capacity bar, which is where it belongs. */
 
 import type { CpuColumn, CpuPageVM } from '../seq/cpu-page-vm.js';
-import { FULL_SCALE_US } from '../seq/cpu-page-vm.js';
+import { scaleLabel } from '../seq/cpu-page-vm.js';
 import { fontPrint5x3, fontWidth5x3 } from '../font/index5x3.js';
 import { drawHeader } from './header.js';
 import { drawDottedH, drawDottedV, hatchRect } from './primitives.js';
@@ -21,10 +21,10 @@ const HGT = BOT - TOP;
 const LABEL_Y = 58;
 const COL_W = 7;     // plus a 1 px gutter: 16 * 8 == W
 
-/** Pixels for `us`, clamped to the plot. Exported so the scaling — and the
- *  repaint gate that quantises to it — share one definition. */
-export function barPixels(us: number): number {
-    return Math.min(HGT, Math.max(0, Math.round((us / FULL_SCALE_US) * HGT)));
+/** Pixels for `us` at the current scale, clamped to the plot. Exported so the
+ *  scaling — and the repaint gate that quantises to it — share one definition. */
+export function barPixels(us: number, scaleUs: number): number {
+    return Math.min(HGT, Math.max(0, Math.round((us / scaleUs) * HGT)));
 }
 
 export function renderCpuView(vm: CpuPageVM): void {
@@ -32,12 +32,14 @@ export function renderCpuView(vm: CpuPageVM): void {
     drawHeader(vm.optimized ? 'CPU' : 'CPU OPT OFF', Math.round(vm.load * 100) + '%');
     drawCapacity(vm.load, vm.peakLoad);
     for (let i = 0; i < vm.columns.length && i < 16; i++) {
-        drawColumn(i * 8, vm.columns[i]);
+        drawColumn(i * 8, vm.columns[i], vm.scaleUs);
     }
     /* Every fourth track, because a 7 px column cannot hold a two-digit label
      * and a ruler nobody can read is worse than a sparse one. */
     for (const n of [1, 5, 9, 13]) fontPrint5x3((n - 1) * 8, LABEL_Y, String(n), 1);
-    const scale = String(FULL_SCALE_US / 1000) + 'MS';
+    /* The scale is not a constant any more — it grows to fit the set — so the
+     * label is the only thing telling you what a column's height is worth. */
+    const scale = scaleLabel(vm.scaleUs);
     fontPrint5x3(W - fontWidth5x3(scale), LABEL_Y, scale, 1);
 }
 
@@ -58,7 +60,7 @@ function drawCapacity(load: number, peak: number): void {
     fill_rect(px - 1, BAR_Y - 1, 3, 1, 1);
 }
 
-function drawColumn(x: number, col: CpuColumn): void {
+function drawColumn(x: number, col: CpuColumn, scaleUs: number): void {
     if (col.kind === 'na') {
         // Not ours to measure. Blank would say the track is free.
         drawDottedV(x + 3, TOP + 2, BOT);
@@ -74,17 +76,23 @@ function drawColumn(x: number, col: CpuColumn): void {
     }
     if (col.kind === 'empty') return;
 
-    const sH = barPixels(col.synthUs);
-    const fH = Math.min(HGT - sH, barPixels(col.totalUs - col.synthUs));
+    const sH = barPixels(col.synthUs, scaleUs);
+    const fH = Math.min(HGT - sH, barPixels(col.totalUs - col.synthUs, scaleUs));
     if (sH > 0) fill_rect(x, BOT - sH, COL_W, sH, 1);
     if (fH > 0) hatchRect(x, BOT - sH - fH, COL_W, fH, 1);
-    if (col.totalUs > FULL_SCALE_US) {
-        // Detached cap: a gap under a solid line, which reads over the solid
-        // synth and the checkered FX alike.
+    /* Off the top of the plot. Only reachable past the top of the scale ladder
+     * — `scaleFor` fits every column below that — but the PEAK has to be
+     * checked too, not just the bar: a load spike lands in the held peak while
+     * the mean stays low, and without this its line would clamp to the top row
+     * and read as an ordinary peak sitting at full scale.
+     *
+     * Detached cap: a gap under a solid line, which reads over the solid synth
+     * and the checkered FX alike. */
+    if (col.totalUs > scaleUs || col.peakUs > scaleUs) {
         fill_rect(x, TOP + 1, COL_W, 1, 0);
         fill_rect(x, TOP, COL_W, 1, 1);
     }
     if (col.peakUs > 0) {
-        drawDottedH(x, x + COL_W - 1, BOT - barPixels(col.peakUs));
+        drawDottedH(x, x + COL_W - 1, BOT - barPixels(col.peakUs, scaleUs));
     }
 }

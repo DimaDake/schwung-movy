@@ -130,7 +130,7 @@ import { shapeSample, drawWave } from '../../dist/esm/renderer/lfo-wave.js';
 import { CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../../dist/esm/chain/config.js';
 import { init } from '../../dist/esm/app/init.js';
 import { appState } from '../../dist/esm/app/state.js';
-import { buildCpuPageVM, FULL_SCALE_US } from '../../dist/esm/seq/cpu-page-vm.js';
+import { buildCpuPageVM, FULL_SCALE_US, scaleFor, scaleLabel } from '../../dist/esm/seq/cpu-page-vm.js';
 /* The sequencer's track is the SELECTED track — a suite that wants the step row
  * on track N selects track N, the way a user does. There is no separate field
  * to set: seq/watch.ts derives the engine's watch from this one. */
@@ -239,7 +239,7 @@ export {
     wrapWords, HINT_W, HINT_LINES, DETENT_DIV, fontWidth, W,
     serializeUiState, applyUiState, resetUiState,
     readPrefModuleBlacklist,
-    buildCpuPageVM, FULL_SCALE_US,
+    buildCpuPageVM, FULL_SCALE_US, scaleFor, scaleLabel,
     DEBUG_BUILD, openParamPage, closeParamPage, paramPageActive,
     VIEW_FLAGS, VIEW_CHAIN, VIEW_MAIN_PARAMS,
     FACTORY_DEFAULT_QUANT, armQuantOverlay, quantOverlayActive, quantOverlayTickAt, quantOverlayJog, quantOverlayAction,

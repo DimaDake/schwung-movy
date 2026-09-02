@@ -6,7 +6,7 @@
  */
 
 import {
-    buildCpuPageVM, FULL_SCALE_US, setFlag, resetFlags,
+    buildCpuPageVM, FULL_SCALE_US, scaleFor, scaleLabel, setFlag, resetFlags,
     ok, eq, _log,
 } from './harness.mjs';
 
@@ -73,6 +73,32 @@ export async function run() {
     eq('synth equals total when the chain does not split', vm.columns[0].synthUs, 800);
     eq('so the FX segment is nothing', vm.columns[0].totalUs - vm.columns[0].synthUs, 0);
 
+    _log('\ncpu page: the scale grows to fit, and never shrinks below 1 ms');
+    {
+        const col = (total, peak) => ({ kind: 'live', totalUs: total, synthUs: total, peakUs: peak });
+        /* The floor. A light set must not get a scale of its own, or a column
+         * stops meaning the same thing from one session to the next. */
+        eq('an empty set sits at the floor', scaleFor([]), FULL_SCALE_US);
+        eq('and so does a light one', scaleFor([col(180, 240), col(90, 120)]), FULL_SCALE_US);
+        eq('exactly 1 ms still fits', scaleFor([col(1000, 1000)]), FULL_SCALE_US);
+
+        /* The whole point: past 1 ms nothing may be clamped into looking like a
+         * different column. */
+        eq('one heavy chain lifts the whole plot', scaleFor([col(1200, 1400), col(200, 260)]), 1500);
+        eq('and further when it has to', scaleFor([col(2400, 2900)]), 3000);
+
+        /* Driven by the PEAK, not the mean — the peak is what a bar can never
+         * exceed, so fitting it fits the bar too. */
+        eq('a held peak alone can lift it', scaleFor([col(300, 1900)]), 2000);
+
+        /* Past the ladder the reading has stopped being about proportions. */
+        eq('a runaway chain clamps at the top of the ladder', scaleFor([col(40000, 40000)]), 9000);
+
+        eq('the label reads whole milliseconds plainly', scaleLabel(2000), '2MS');
+        eq('and a half step with one decimal', scaleLabel(1500), '1.5MS');
+        eq('the floor is 1MS', scaleLabel(FULL_SCALE_US), '1MS');
+    }
+
     _log('\ncpu page: the pixel quantisation the repaint gate compares on');
     {
         const { barPixels } = await import('../../dist/esm/renderer/cpu-view.js');
@@ -80,13 +106,18 @@ export async function run() {
          * collapsing, the meter would repaint ~24 times a second on jitter it
          * cannot draw — and inflate the very number it is displaying, because
          * the UI thread competes with the render lanes for Move's cores. */
-        eq('a microsecond is below a pixel', barPixels(801), barPixels(800));
-        eq('so is the next one', barPixels(799), barPixels(800));
-        ok('100 us is not', barPixels(900) !== barPixels(800));
-        eq('nothing is the floor', barPixels(0), 0);
-        ok('full scale is the ceiling', barPixels(FULL_SCALE_US) > 0);
-        eq('and over-scale clamps to it', barPixels(FULL_SCALE_US * 3), barPixels(FULL_SCALE_US));
-        eq('a negative us cannot draw upward', barPixels(-500), 0);
+        const S = FULL_SCALE_US;
+        eq('a microsecond is below a pixel', barPixels(801, S), barPixels(800, S));
+        eq('so is the next one', barPixels(799, S), barPixels(800, S));
+        ok('100 us is not', barPixels(900, S) !== barPixels(800, S));
+        eq('nothing is the floor', barPixels(0, S), 0);
+        ok('full scale is the ceiling', barPixels(S, S) > 0);
+        eq('and over-scale clamps to it', barPixels(S * 3, S), barPixels(S, S));
+        eq('a negative us cannot draw upward', barPixels(-500, S), 0);
+        /* The same microseconds are a different height at a different scale —
+         * which is exactly why the scale is in the repaint signature. */
+        ok('a taller scale shortens the same bar', barPixels(800, 2000) < barPixels(800, S));
+        eq('and the top of the plot is the same either way', barPixels(2000, 2000), barPixels(S, S));
     }
 
     _log('\ncpu page: nothing to draw');
@@ -97,5 +128,6 @@ export async function run() {
     eq('an engine that never sent the fields draws empty', vm.columns[0].kind, 'empty');
     eq('and no load', vm.load, 0);
     ok('with a sane block period', vm.blockUs > 0);
-    eq('full scale is fixed', FULL_SCALE_US, 1000);
+    eq('the floor is 1 ms', FULL_SCALE_US, 1000);
+    eq('an engine that sent nothing still has a scale', vm.scaleUs, FULL_SCALE_US);
 }

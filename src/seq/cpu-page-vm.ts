@@ -10,13 +10,54 @@ import { seqState } from './state.js';
 import { flagValue } from './flags.js';
 import { TRACK_COUNT, trackKind } from '../track/ref.js';
 
-/** Column full scale, microseconds per block. FIXED.
+/** The column scale's FLOOR, microseconds per block.
  *
- *  Auto-ranging to the heaviest track would make a column legible on any set
- *  and comparable on none — not between sessions, and not across the CPU
- *  Optimize flag, which is the one comparison the page exists to make. 1000 us
- *  is round and puts every chain the fleet has measured on scale. */
+ *  Free auto-ranging would make a column legible on any set and comparable on
+ *  none — not between sessions, and not across the CPU Optimize flag, which is
+ *  the one comparison the page exists to make. So the scale does not follow the
+ *  set downward: it sits at 1 ms, which is round and fits almost every chain the
+ *  fleet has measured, and only ever grows. */
 export const FULL_SCALE_US = 1000;
+
+/** Steps the scale may take, once 1 ms is not enough.
+ *
+ *  A ladder rather than "round up to the next 100 us" so the number under the
+ *  plot stays a number you can hold in your head, and so the plot does not
+ *  re-scale by a hair every time a peak creeps up. */
+const SCALE_LADDER = [FULL_SCALE_US, 1500, 2000, 3000, 4000, 5000, 6000, 8000, 9000];
+
+/** The scale this set needs, driven by the HELD PEAKS.
+ *
+ *  Peaks only grow while the page is open and are cleared by the same `cpurst`
+ *  that opens it, so the scale is monotonic for a viewing and needs no
+ *  hysteresis and no state of its own — a scale that could shrink again would
+ *  make the whole plot jump every time a column crossed a boundary.
+ *
+ *  Driven by the peaks rather than the means so that nothing on the page can
+ *  exceed it: the peak of a block is never smaller than the mean of blocks, so
+ *  fitting the peaks fits the bars too, and no column is ever clamped into
+ *  looking like a different column.
+ *
+ *  A column past the top of the ladder is still clamped, and says so with the
+ *  detached cap — at 9 ms a single chain is three audio blocks deep and the
+ *  reading has stopped being about proportions. */
+export function scaleFor(columns: CpuColumn[]): number {
+    let worst = 0;
+    for (const c of columns) {
+        if (c.peakUs > worst) worst = c.peakUs;
+        if (c.totalUs > worst) worst = c.totalUs;
+    }
+    for (const step of SCALE_LADDER) {
+        if (worst <= step) return step;
+    }
+    return SCALE_LADDER[SCALE_LADDER.length - 1];
+}
+
+/** The scale as the label under the plot draws it: `1MS`, `1.5MS`, `2MS`. */
+export function scaleLabel(scaleUs: number): string {
+    const ms = scaleUs / 1000;
+    return (Number.isInteger(ms) ? String(ms) : ms.toFixed(1)) + 'MS';
+}
 
 /** Fallback block period, microseconds — 128 frames at 44.1 kHz. Only used
  *  before the first poll carrying `chwall`; the engine computes the real one
@@ -45,6 +86,8 @@ export type CpuColumn = {
 
 export type CpuPageVM = {
     columns: CpuColumn[];
+    /** Microseconds at the top of a column. At least `FULL_SCALE_US`. */
+    scaleUs: number;
     wallUs: number;
     wallPeakUs: number;
     blockUs: number;
@@ -98,6 +141,7 @@ export function buildCpuPageVM(): CpuPageVM {
 
     return {
         columns,
+        scaleUs: scaleFor(columns),
         wallUs,
         wallPeakUs,
         blockUs,

@@ -590,9 +590,9 @@ function applyView(preset) {
             // 'cpu-opt-off' also stands for the arrangement where tracks 1-4
             // are Schwung's: the two are the states the page has to survive.
             setFlag('chtracks', on ? 1 : 0);
-            /* Every column ON scale, so `cpu-overscale` is the only baseline
-             * carrying the detached cap — otherwise the two scenes differ by
-             * nothing and neither pins it. */
+            /* Every column inside the 1 ms floor, so `cpu-overscale` is the
+             * only baseline where the scale has had to GROW — otherwise the two
+             * scenes differ by nothing and neither pins it. */
             const live = [
                 '240/180/310', '370/300/450', '900/760/980', '820/620/910',
                 '250/200/300', '320/320/400', '180/140/220', '670/560/790',
@@ -604,8 +604,12 @@ function applyView(preset) {
                 const [total, , peak] = t.split('/');
                 return `${total}/${total}/${peak}`;
             });
+            /* One chain well past the floor. The plot must re-scale so this
+             * column's real height is visible and every other column shrinks
+             * with it — the failure this replaced was a 1.6 ms chain and a
+             * 2.5 ms chain drawing as the same clamped bar. */
             const over = live.slice();
-            over[2] = '1600/1300/1900';
+            over[2] = '2400/1900/2600';
             const rows = preset === 'cpu-overscale' ? over
                 : preset === 'cpu-opt-off' ? unsplit : live;
             if (preset === 'cpu-empty') {

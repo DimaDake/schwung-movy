@@ -192,10 +192,12 @@ function cpuRepaintTick(): void {
     if (raw === lastCpuRaw) return;
     lastCpuRaw = raw;
     const vm = buildCpuPageVM();
-    const cols = vm.columns.map((c) =>
-        c.kind[0] + barPixels(c.synthUs) + '.' + barPixels(c.totalUs) + '.' + barPixels(c.peakUs));
+    const cols = vm.columns.map((c) => c.kind[0] + barPixels(c.synthUs, vm.scaleUs)
+        + '.' + barPixels(c.totalUs, vm.scaleUs) + '.' + barPixels(c.peakUs, vm.scaleUs));
+    // The scale itself is in the signature: it changes every column's height at
+    // once, and is the one change that moves no individual number.
     const sig = Math.round(vm.load * 100) + '|' + Math.round(vm.peakLoad * 100) + '|'
-        + (vm.optimized ? 1 : 0) + '|' + cols.join(',');
+        + (vm.optimized ? 1 : 0) + '|' + vm.scaleUs + '|' + cols.join(',');
     if (sig === lastCpuSig) return;
     lastCpuSig = sig;
     appState.dirty = true;

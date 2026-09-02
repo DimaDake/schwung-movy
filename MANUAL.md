@@ -1421,16 +1421,19 @@ This is **Movy's chain render only**. Move's own engine takes roughly another
 240 µs of the same block, so 100 % here means "Movy used the whole block", not
 "the device is at its limit".
 
-Each column is one track, at a fixed scale of **1 ms per block** — the same
-scale every time, so a column means the same thing from one session to the next.
-Tracks 1, 5, 9 and 13 are labelled; the rest count across from them.
+Each column is one track. The scale starts at **1 ms per block** and stays
+there for any normal set, so a column means the same thing from one session to
+the next — but if a track goes past it the whole plot re-scales to fit, and the
+number at the bottom right tells you what a full-height column is now worth. It
+only ever grows while the page is open; re-press **Shift + Step 12** to start
+over. Tracks 1, 5, 9 and 13 are labelled; the rest count across from them.
 
 | What you see | What it means |
 | --- | --- |
 | A solid bar | The instrument |
 | Checkered on top of it | The effects after it |
 | A dotted line above the bar | The worst block that track has had since you opened the page |
-| A solid line across the top with a gap under it | Over 1 ms — the column ran off the scale |
+| A solid line across the top with a gap under it | Off the top of the plot — past 9 ms, where the scale stops growing |
 | A short dash just above the baseline | Loaded, but silent right now, so Movy is skipping it entirely |
 | Just the baseline | Nothing loaded |
 | A dotted vertical column | A **Schwung**-hosted track — it renders outside Movy, so Movy cannot measure it. Not the same as costing nothing |

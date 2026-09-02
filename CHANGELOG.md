@@ -24,8 +24,10 @@ far. Earlier work is summarised in the timeline below for context.
   in, because a bar reading zero has four different reasons: costing something,
   loaded-but-silent (a dash — Movy is skipping it), empty, and Schwung-hosted
   (a dotted column — it renders outside Movy, which is not the same as being
-  free). Full scale is a fixed 1 ms, so a column means the same thing across
-  sessions and across the CPU Optimize setting. Costs nothing to run: the
+  free). The scale starts at 1 ms — so a column means the same thing across
+  sessions and across the CPU Optimize setting — and grows to fit when a track
+  goes past it, rather than clamping the one column you opened the page to look
+  at; the number under the plot says what full height is worth. Costs nothing to run: the
   measurement was already on the audio thread, the numbers ride the status poll
   Movy already makes, and the page repaints only when a drawn pixel would change.
   The step button under the gesture lights like the other page openers: dim

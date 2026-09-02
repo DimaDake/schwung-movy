@@ -2492,6 +2492,28 @@ _log('\napp-loop: CPU page is not painted over by the loop strip');
     eq('and the page actually painted', cpu.length > 0, true);
 }
 
+/* ── The step LED under the CPU page's own gesture ──────────────────────────
+ * stepIconColor is a pure function and is unit-tested as one, which says
+ * nothing about whether paintStepIcons ever passes it the page's state: wiring
+ * `cpuPage: false` there passes every one of those assertions. This is the arm
+ * that fails. */
+_log('\napp-loop: the CPU page lights its own step LED');
+{
+    const CC_CPU_ICON = 16 + 11;          // step-icon LEDs are CC 16..31
+    const WHITE_BRIGHT = 124, WHITE_OFF = 0;
+    resetApp();
+    advance(2);
+    eq('closed and unshifted, the icon is dark', buttonLeds[CC_CPU_ICON] ?? WHITE_OFF, WHITE_OFF);
+
+    handleStepButton(STEP_CPU, true, true);
+    advance(2);
+    eq('open, the icon is full bright', buttonLeds[CC_CPU_ICON], WHITE_BRIGHT);
+
+    appState.currentView = closeParamPage();
+    advance(2);
+    eq('closed again, it goes dark', buttonLeds[CC_CPU_ICON], WHITE_OFF);
+}
+
 /* ── CPU page repaints on pixels, not on microseconds ───────────────────────
  * The meter runs on the UI thread, which competes with the render lanes for
  * Move's cores. A page that repaints because a number wobbled below the

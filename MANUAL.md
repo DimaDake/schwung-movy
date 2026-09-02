@@ -1435,6 +1435,20 @@ Tracks 1, 5, 9 and 13 are labelled; the rest count across from them.
 | Just the baseline | Nothing loaded |
 | A dotted vertical column | A **Schwung**-hosted track — it renders outside Movy, so Movy cannot measure it. Not the same as costing nothing |
 
+#### A module that reads as free
+
+A few modules do their synthesis in a **separate process** and hand Movy
+finished audio through a shared buffer — **Virus** is the one instrument that
+works this way, and the streaming modules (Radio Garden, AirPlay, Web Stream,
+StreamRTSP) do too. Their column shows almost nothing, because copying that
+audio out really does cost Movy almost nothing.
+
+They are not free. The work is happening on another core, in another process,
+where Movy cannot see it — so a set of six Virus tracks can run the device out
+of CPU while every column on this page still looks empty. Treat a
+suspiciously-empty column on a module you know is heavy as "measured elsewhere",
+not as "costs nothing".
+
 #### With CPU Optimize off
 
 ![CPU meter with CPU Optimize off](docs/assets/cpu-opt-off.png)

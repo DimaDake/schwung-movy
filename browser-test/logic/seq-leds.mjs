@@ -132,6 +132,14 @@ export async function run() {
     eq('clip-params step bright when page open', stepIconColor(2, { shift: false, metro: false, fullVel: false, clipPage: true }), 124);
     eq('clip-params step dark when closed+noshift', stepIconColor(2, { shift: false, metro: false, fullVel: false, clipPage: false }), 0);
     eq('clip-params step off in Session even with Shift', stepIconColor(2, { shift: true, metro: false, fullVel: false, session: true }), 0);
+    /* CPU meter opener (Step 12 = idx 11). Same three states as the other page
+     * openers, and available everywhere — unlike Clip Params it means the same
+     * thing in Session view, where the chains are still rendering. */
+    eq('shift shows cpu step dim', stepIconColor(11, { shift: true, metro: false, fullVel: false }), 16);
+    eq('cpu step bright when page open', stepIconColor(11, { shift: false, metro: false, fullVel: false, cpuPage: true }), 124);
+    eq('cpu step dark when closed+noshift', stepIconColor(11, { shift: false, metro: false, fullVel: false, cpuPage: false }), 0);
+    eq('cpu step available in Session too', stepIconColor(11, { shift: true, metro: false, fullVel: false, session: true }), 16);
+    eq('and stays bright there while open', stepIconColor(11, { shift: false, metro: false, fullVel: false, session: true, cpuPage: true }), 124);
 }
 
 /* ── track-button LEDs ───────────────────────────────────────────────────── */

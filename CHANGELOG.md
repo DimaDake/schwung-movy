@@ -28,6 +28,8 @@ far. Earlier work is summarised in the timeline below for context.
   sessions and across the CPU Optimize setting. Costs nothing to run: the
   measurement was already on the audio thread, the numbers ride the status poll
   Movy already makes, and the page repaints only when a drawn pixel would change.
+  The step button under the gesture lights like the other page openers: dim
+  while Shift is held, full bright while the page is up.
 
 - **Scene launching.** Hold **Shift** in Session view and the step row becomes
   eight scenes, on the buttons printed 1, 3, 5 … 15. A scene launches a whole

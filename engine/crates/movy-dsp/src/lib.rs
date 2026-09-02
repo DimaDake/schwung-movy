@@ -69,7 +69,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.60.0";
+const ENGINE_VERSION: &str = "0.61.0";
 
 /// Tracks backed by schwung's own shadow slots by default. Their notes go out as
 /// MIDI on the matching channel; everything above this index is a chain movy
@@ -196,6 +196,13 @@ impl Instance {
              * the settled set. Read by scripts/measure-chain-balance.sh. */
             "chcostlog" => {
                 host::log(&format!("chain cost: {}", self.chains.cost_report()));
+            }
+            /* `cpurst` — clear the CPU page's held peaks. Deliberately NOT
+             * `chcostlog`: that closes the window `measure-chain-balance.sh`
+             * owns, and a peak the user is looking at must survive a device
+             * script reading the log. */
+            "cpurst" => {
+                self.chains.cost_ui_reset();
             }
             /* `chparallel <0|1>` — render the movy chains across helper threads.
              * The UI's default is now ON (`flags-def.ts`), because the measured
@@ -382,6 +389,9 @@ impl Instance {
                 s.push_str(&format!(" chgen={} chact={} chslp={} chpend={}",
                     self.chains.generation(), self.chains.active_count(),
                     self.chains.asleep_count(), self.chains.pending_loads()));
+                /* Rides the same poll, for the same reason: the CPU page
+                 * repaints from `status` and must not buy an IPC of its own. */
+                s.push_str(&self.chains.cost_status());
                 Some(s)
             }
             "capinfo" => Some(self.engine.capture_info()),
@@ -825,4 +835,42 @@ mod tests {
         assert!(busy.contains(" chpend=2"), "queued loads are reported: {busy}");
     }
 
+    /* The page rides the poll the UI already makes. A dedicated get_param would
+     * buy one blocking round trip per repaint for numbers `status` can carry in
+     * 250 bytes, and `SHADOW_PARAM_VALUE_LEN` is 65536. */
+    #[test]
+    fn status_carries_the_cpu_meter_fields() {
+        let mut inst = Instance::new();
+        let s = inst.get_param("status").expect("status");
+
+        let cost = s
+            .split(" chcost=")
+            .nth(1)
+            .and_then(|r| r.split(' ').next())
+            .expect("chcost field");
+        assert_eq!(cost.split(',').count(), 16, "one triple per chain: {cost}");
+        assert!(cost.split(',').all(|t| t.split('/').count() == 3), "{cost}");
+        assert!(cost.starts_with("0/0/0,"), "an idle engine costs nothing: {cost}");
+
+        let wall = s
+            .split(" chwall=")
+            .nth(1)
+            .and_then(|r| r.split(' ').next())
+            .expect("chwall field");
+        let block: u64 = wall.split('/').nth(2).unwrap().parse().unwrap();
+        assert!((2800..3000).contains(&block), "128 frames at 44.1k is ~2902us, got {block}");
+
+        assert!(s.contains(" chmask=0000/0000"), "nothing loaded, nothing asleep: {s}");
+    }
+
+    /* `cpurst` must not be `chcostlog`: that one closes the window a device
+     * benchmark owns, and the page's peak has to survive a benchmark reading
+     * the log while the page is up. */
+    #[test]
+    fn cpurst_is_accepted_and_does_not_disturb_the_status_shape() {
+        let mut inst = Instance::new();
+        inst.set_param("cmd", "cpurst");
+        let s = inst.get_param("status").expect("status");
+        assert!(s.contains(" chcost="), "{s}");
+    }
 }

@@ -927,6 +927,53 @@ impl ChainSlots {
         self.planner.plan(self.pin.pin_keys(), self.cost.plan_ns(), &self.loaded);
     }
 
+    /// The CPU page's numbers as `status` fields, each with its leading space.
+    ///
+    /// MICROSECONDS, not nanoseconds: this goes out 24 times a second, four
+    /// extra digits per chain buys nothing, and the page draws a 1000 us column
+    /// in 39 pixels.
+    ///
+    /// Emitted unconditionally rather than behind an "the page is open" flag —
+    /// that flag is a second copy of a fact the UI already owns, and it desyncs
+    /// the moment an engine is re-dlopened under an open page.
+    pub fn cost_status(&self) -> String {
+        let mut s = String::with_capacity(288);
+        s.push_str(" chcost=");
+        for i in 0..MOVY_CHAINS {
+            if i > 0 {
+                s.push(',');
+            }
+            let (total, synth, peak) = self.cost.ui_costs(i);
+            s.push_str(&format!("{}/{}/{}", total / 1000, synth / 1000, peak as u64 / 1000));
+        }
+        let (wall, wall_peak) = self.cost.ui_wall();
+        let block_us =
+            crate::ffi::MOVE_FRAMES_PER_BLOCK as u64 * 1_000_000 / host::sample_rate().max(1) as u64;
+        s.push_str(&format!(
+            " chwall={}/{}/{}",
+            wall / 1000,
+            wall_peak as u64 / 1000,
+            block_us
+        ));
+        let mut loaded = 0u32;
+        let mut asleep = 0u32;
+        for i in 0..MOVY_CHAINS {
+            if self.slots[i].is_some() {
+                loaded |= 1 << i;
+            }
+            if self.idle.deep_asleep(i) {
+                asleep |= 1 << i;
+            }
+        }
+        s.push_str(&format!(" chmask={loaded:04x}/{asleep:04x}"));
+        s
+    }
+
+    /// Clear the meter's held peaks — the page's own reset, never `report()`.
+    pub fn cost_ui_reset(&mut self) {
+        self.cost.ui_reset();
+    }
+
     /// Per-chain render cost since the last call — see `CostMeter::report`.
     /// Reading closes the window.
     pub fn cost_report(&mut self) -> String {

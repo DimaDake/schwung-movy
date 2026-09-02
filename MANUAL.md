@@ -1405,21 +1405,29 @@ view closes them as well, so neither page follows you around.
 ### CPU meter — Shift + Step 12
 
 **Shift + Step 12** opens the **CPU meter**: one column per track over a bar for
-the whole audio block. **Back** closes it. Pressing **Shift + Step 12** again
-while it is open clears the held peaks and starts a fresh observation.
+Movy's share of the audio block. **Back** closes it. Pressing **Shift + Step 12** again
+while it is open clears the held peaks and starts a fresh observation. Like the
+other page shortcuts, step 12 lights dim while Shift is held and full bright
+while the page is up.
 
 ![CPU meter](docs/assets/cpu-opt-on.png)
 
-The bar under the header is the **audio block** — 2.9 ms, the time Movy has to
-render every chain before the sound card needs the next buffer. The fill is how
-much of it Movy used; the notch above the bar is the worst single block since
-the page opened, and it is held for as long as the page stays open. The
-percentage in the header is the same number, and it is *not* capped: if it reads
-over 100 % you are hearing dropouts.
+The bar under the header is Movy's **budget** for one audio block. The fill is
+how much of it Movy used; the notch above the bar is the worst single block
+since the page opened, held for as long as the page stays open. The percentage
+in the header is the same number, and it is *not* capped.
 
-This is **Movy's chain render only**. Move's own engine takes roughly another
-240 µs of the same block, so 100 % here means "Movy used the whole block", not
-"the device is at its limit".
+**100 % is the edge, not the ceiling.** It is calibrated against what actually
+happens on the device: dropouts set in at around 70 % of the raw 2.9 ms block,
+so that is what the bar calls full. Two things account for the rest. Move's own
+engine takes about 240 µs of the same block. And this bar is an *average* over
+blocks, while a dropout is one block missing its deadline — so an average
+sitting at the raw block length would have been glitching for a long time
+already. The notch is the block that gets there first; if it is near the end of
+the bar, listen for it.
+
+Practically: **under 80 % is comfortable, near 100 % you are at the edge, over
+it you are hearing it.**
 
 Each column is one track. The scale starts at **1 ms per block** and stays
 there for any normal set, so a column means the same thing from one session to
@@ -1483,6 +1491,7 @@ finding which track is expensive.
 **Shift + Step 2** opens **Settings**, a scrolling list rather than a knob page:
 the **jog** moves the selection, **knob 1** changes the selected row's value,
 **Back** closes it. The line at the bottom explains whichever row is selected.
+Step 2 lights dim under Shift and full bright while the page is open.
 
 ![Settings](docs/assets/flags-release.png)
 

@@ -140,6 +140,12 @@ export async function run() {
     eq('cpu step dark when closed+noshift', stepIconColor(11, { shift: false, metro: false, fullVel: false, cpuPage: false }), 0);
     eq('cpu step available in Session too', stepIconColor(11, { shift: true, metro: false, fullVel: false, session: true }), 16);
     eq('and stays bright there while open', stepIconColor(11, { shift: false, metro: false, fullVel: false, session: true, cpuPage: true }), 124);
+    /* Settings opener (Step 2 = idx 1). Reachable in every build and every
+     * view, so it follows the CPU page's rule, not Clip Params'. */
+    eq('shift shows settings step dim', stepIconColor(1, { shift: true, metro: false, fullVel: false }), 16);
+    eq('settings step bright when page open', stepIconColor(1, { shift: false, metro: false, fullVel: false, flagsPage: true }), 124);
+    eq('settings step dark when closed+noshift', stepIconColor(1, { shift: false, metro: false, fullVel: false }), 0);
+    eq('settings step available in Session too', stepIconColor(1, { shift: true, metro: false, fullVel: false, session: true }), 16);
 }
 
 /* ── track-button LEDs ───────────────────────────────────────────────────── */

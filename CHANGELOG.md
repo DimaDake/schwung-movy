@@ -32,8 +32,12 @@ far. Earlier work is summarised in the timeline below for context.
   grows. Costs nothing to run: the
   measurement was already on the audio thread, the numbers ride the status poll
   Movy already makes, and the page repaints only when a drawn pixel would change.
+  The capacity bar is calibrated against the device rather than against the raw
+  block: dropouts set in around 70 % of a 2.9 ms block, so that is what the bar
+  calls 100 %. Under 80 % is comfortable, over 100 % you are hearing it.
   The step button under the gesture lights like the other page openers: dim
-  while Shift is held, full bright while the page is up.
+  while Shift is held, full bright while the page is up — and **Settings**
+  (Shift + Step 2) now does the same, which it never did.
 
 - **Scene launching.** Hold **Shift** in Session view and the step row becomes
   eight scenes, on the buttons printed 1, 3, 5 … 15. A scene launches a whole

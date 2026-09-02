@@ -2512,6 +2512,15 @@ _log('\napp-loop: the CPU page lights its own step LED');
     appState.currentView = closeParamPage();
     advance(2);
     eq('closed again, it goes dark', buttonLeds[CC_CPU_ICON], WHITE_OFF);
+
+    /* Settings, through the same paint path. */
+    const CC_FLAGS_ICON = 16 + 1;
+    handleStepButton(1, true, true);      // STEP_FLAGS
+    advance(2);
+    eq('the settings icon lights when its page opens', buttonLeds[CC_FLAGS_ICON], WHITE_BRIGHT);
+    appState.currentView = closeParamPage();
+    advance(2);
+    eq('and goes dark again', buttonLeds[CC_FLAGS_ICON], WHITE_OFF);
 }
 
 /* ── CPU page repaints on pixels, not on microseconds ───────────────────────

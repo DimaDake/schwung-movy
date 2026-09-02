@@ -64,6 +64,20 @@ export function scaleLabel(scaleUs: number): string {
  *  from the host's sample rate. */
 const DEFAULT_BLOCK_US = 2902;
 
+/** The share of an audio block movy can actually spend before the device starts
+ *  dropping samples. MEASURED on hardware, not derived: glitching sets in at
+ *  65-69% of the raw block, so the bar is calibrated to 70% of it and 100% on
+ *  this page means "at the edge", not "the block is full".
+ *
+ *  Two things account for the missing 30%. Move's own engine takes ~240 µs of
+ *  the same block (about 8%). The rest is the gap between what this bar shows
+ *  and what actually causes a dropout: the bar is a MEAN over blocks, and a
+ *  dropout is one block missing its deadline — so a mean sitting at 100% of the
+ *  raw block would already have been dropping samples for a long time. The peak
+ *  notch is the individual worst block, and it is the one that hits the wall
+ *  first. */
+export const USABLE_BLOCK = 0.70;
+
 export type CpuColumnKind =
     /** Rendering in movy's chain render, with a cost. */
     | 'live'
@@ -91,7 +105,10 @@ export type CpuPageVM = {
     wallUs: number;
     wallPeakUs: number;
     blockUs: number;
-    /** Wall over block. NOT clamped — an overrun is the reading that matters
+    /** What movy may actually spend of `blockUs` — see `USABLE_BLOCK`. This,
+     *  not the raw block, is what the bar and the percentage are against. */
+    budgetUs: number;
+    /** Wall over BUDGET. NOT clamped — an overrun is the reading that matters
      *  most, and the bar clamping is the renderer's business, not this. */
     load: number;
     peakLoad: number;
@@ -139,14 +156,16 @@ export function buildCpuPageVM(): CpuPageVM {
         });
     }
 
+    const budgetUs = Math.max(1, Math.round(blockUs * USABLE_BLOCK));
     return {
         columns,
         scaleUs: scaleFor(columns),
         wallUs,
         wallPeakUs,
         blockUs,
-        load: wallUs / blockUs,
-        peakLoad: wallPeakUs / blockUs,
+        budgetUs,
+        load: wallUs / budgetUs,
+        peakLoad: wallPeakUs / budgetUs,
         optimized: flagValue('cpuopt') > 0,
     };
 }

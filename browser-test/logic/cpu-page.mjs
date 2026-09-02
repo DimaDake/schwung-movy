@@ -6,7 +6,7 @@
  */
 
 import {
-    buildCpuPageVM, FULL_SCALE_US, scaleFor, scaleLabel, setFlag, resetFlags,
+    buildCpuPageVM, FULL_SCALE_US, USABLE_BLOCK, scaleFor, scaleLabel, setFlag, resetFlags,
     ok, eq, _log,
 } from './harness.mjs';
 
@@ -42,8 +42,13 @@ export async function run() {
 
     _log('\ncpu page: capacity');
     eq('block period comes from the engine', vm.blockUs, 2902);
-    ok('load is wall over block', Math.abs(vm.load - 1491 / 2902) < 1e-6);
-    ok('peak load likewise', Math.abs(vm.peakLoad - 2180 / 2902) < 1e-6);
+    /* 100% is where the device starts dropping samples, not where the raw block
+     * runs out — measured at 65-69% of the block, so the budget is 70% of it. */
+    eq('the budget is the usable share of the block', vm.budgetUs, Math.round(2902 * USABLE_BLOCK));
+    ok('budget is well under the raw block', vm.budgetUs < vm.blockUs);
+    ok('load is wall over BUDGET', Math.abs(vm.load - 1491 / vm.budgetUs) < 1e-6);
+    ok('peak load likewise', Math.abs(vm.peakLoad - 2180 / vm.budgetUs) < 1e-6);
+    ok('so a wall at 70% of the block reads as full', Math.abs(vm.blockUs * 0.7 / vm.budgetUs - 1) < 0.01);
 
     /* An overrun is the one reading that matters most. Clamping it here would
      * hide it, so the bar clamps and the number does not. */

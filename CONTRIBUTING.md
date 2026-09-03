@@ -240,6 +240,30 @@ A slot can say no:
 `"env": false` keeps the param a plain knob, in its declared position. The same
 field still *names* a stage (`"env": "a"`) where detection needs the help.
 
+### When movy has to override a module's own config
+
+A module that ships `movy_config.json` is authoritative — movy's bundled table
+is only the fallback for modules that ship nothing. The exception is a shipped
+layout movy cannot use: the 808/909-family kits declare a `pad` on every bank,
+including the pages with no voice, which reads as "every bank is a voice" and
+collapses the module to one page.
+
+`OVERRIDES_MODULE_FILE` in `src/modules/loader.ts` names those modules, and the
+replacement config lives in `src/module-configs/<id>.json`. It is a **data
+file, not an import**: esbuild inlines an imported `.json` into `ui.js`, which
+is re-parsed on every tool open, so importing four kit configs cost ~90 KB per
+open for layouts needed only when one of them is loaded. It ships beside
+`ui.js` and is read through the same `host_read_file` path.
+
+A list of named exceptions rather than a flipped rule, because libpo32 is both
+bundled and self-describing — inverting the default would silently override it
+with movy's older copy.
+
+Adding one: drop the config in `src/module-configs/`, add the id to the list.
+`scripts/build-module.sh` fails the release if the two disagree, or if the
+tarball ends up without the files. **Delete the id** as soon as the module ships
+a config movy can use.
+
 For modules whose releases Movy explicitly supports, copy the released
 `module.json` into `browser-test/fixtures/module-contracts/` using the
 `<component-type>--<module-id>.json` name. Contract fixtures replace an older

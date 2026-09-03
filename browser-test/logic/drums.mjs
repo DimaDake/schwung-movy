@@ -619,8 +619,10 @@ _log('\nTest: the four kits ship the one shape movy accepts');
      * regression in that precedence shows up here as the kit assertions
      * failing rather than as silence. */
     const layout = readFileSync(
-        new URL(`../../src/modules/${id}.json`, import.meta.url), 'utf8');
-    globalThis.host_read_file = (p) => p.endsWith(`/${id}/movy_config.json`)
+        new URL(`../../src/module-configs/${id}.json`, import.meta.url), 'utf8');
+    globalThis.host_read_file = (p) =>
+        p.endsWith(`/tools/movy/configs/${id}.json`) ? layout
+      : p.endsWith(`/${id}/movy_config.json`)
         ? JSON.stringify({ id, name: id, drum: { padCount: 16, padNoteStart: 36, rawMidi: false },
                            banks: [{ name: 'FromTheModule', pad: 1,
                                      rows: [[{ key: 'x', short: 'X', full: 'X',
@@ -679,9 +681,10 @@ _log('\nTest: the four kits ship the one shape movy accepts');
 _log('\nTest: the voice slot keeps its place and its selection');
 {
   const layout = readFileSync(
-      new URL('../../src/modules/8w8.json', import.meta.url), 'utf8');
+      new URL('../../src/module-configs/8w8.json', import.meta.url), 'utf8');
   const saved = globalThis.host_read_file;
-  globalThis.host_read_file = (p) => p.endsWith('/8w8/movy_config.json') ? layout : null;
+  globalThis.host_read_file = (p) =>
+      p.endsWith('/tools/movy/configs/8w8.json') ? layout : null;
   const m = bootModel(MOCK_SYNTHS['8w8'], 0, 'synth');
   globalThis.host_read_file = saved;
   const names = m.dumpLayout().banks.map(b => b.name);

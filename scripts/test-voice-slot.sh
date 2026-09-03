@@ -53,12 +53,12 @@ trap test_set_end EXIT INT TERM
 read -r VOICES TAIL V2 <<EOF
 $(python3 -c "
 import json
-b = json.load(open('$SRC/src/modules/$KIT.json'))['banks']
+b = json.load(open('$SRC/src/module-configs/$KIT.json'))['banks']
 v = [x for x in b if 'pad' in x]; t = [x for x in b if 'pad' not in x]
 print(len(v), len(t), v[1]['name'])
 " 2>/dev/null)
 EOF
-[ -n "${VOICES:-}" ] || { echo "movy bundles no config for $KIT" >&2; exit 1; }
+[ -n "${VOICES:-}" ] || { echo "movy ships no override config for $KIT" >&2; exit 1; }
 echo "== $KIT: $VOICES voices, $TAIL pages without one (from movy's bundled config)"
 
 # The override is only under test if the DEVICE is serving something different.

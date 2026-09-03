@@ -444,7 +444,13 @@ _log('\nTest: a module that describes itself wins, unless movy supersedes it');
         id, name: 'FromTheModule',
         banks: [{ name: 'OwnBank', rows: [[]] }],
     });
+    const overrideDir = new URL('../../src/module-configs/', import.meta.url);
     globalThis.host_read_file = (p) => {
+        const o = /\/tools\/movy\/configs\/([^/]+)\.json$/.exec(String(p));
+        if (o) {
+            try { return readFileSync(new URL(`${o[1]}.json`, overrideDir), 'utf8'); }
+            catch { return null; }
+        }
         const m = /\/([^/]+)\/movy_config\.json$/.exec(String(p));
         return m ? ownFile(m[1]) : null;
     };
@@ -463,6 +469,13 @@ _log('\nTest: a module that describes itself wins, unless movy supersedes it');
         eq(`${id}: movy's bundled config wins`, cfg?.name !== 'FromTheModule', true);
         eq(`${id}: and it is the voice-run shape`, cfg?.banks?.[0]?.pad, 1);
     }
+
+    /* An override module deployed WITHOUT its config file must not silently get
+     * the layout the override exists to replace — it falls back, and says so. */
+    globalThis.host_read_file = (p) =>
+        /movy_config\.json$/.test(String(p)) ? ownFile('8w8') : null;
+    eq('a missing override file falls back to the module',
+       loadModuleConfig('8w8')?.name, 'FromTheModule');
 
     // With no file at all, the bundled table is the fallback it has always been.
     globalThis.host_read_file = () => null;
@@ -489,6 +502,10 @@ _log('\nTest: every bundled config and fixture is one page per bank');
         ['bundled', new URL('../../src/modules/', import.meta.url), (f) => f.endsWith('.json')],
         ['fixture', new URL('../fixtures/',      import.meta.url),
             (f) => f.endsWith('movy-config.json')],
+        /* Shipped as data files beside ui.js rather than imported, so they are
+         * not under src/modules — and would fall out of the lint with it. */
+        ['override', new URL('../../src/module-configs/', import.meta.url),
+            (f) => f.endsWith('.json')],
     ];
     let checked = 0, bad = 0;
     const pads = [];

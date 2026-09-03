@@ -1,4 +1,5 @@
 import type { ModuleConfig } from '../types/param.js';
+import { mlog } from '../log.js';
 import plaitsJson      from './plaits.json';
 import wurlJson        from './wurl.json';
 import mrdrumsJson     from './mrdrums.json';
@@ -13,14 +14,17 @@ import chiptuneJson    from './chiptune.json';
 import hush1Json       from './hush1.json';
 import signalJson      from './signal.json';
 import slicerJson      from './slicer.json';
-/* The 808/909-family kits. Bundled rather than left to the modules because
- * their shipped configs put a pad on every bank — see supersedesModuleFile. */
-import k6w6Json        from './6w6.json';
-import k8w8Json        from './8w8.json';
-import k9w9Json        from './9w9.json';
-import kcw78Json       from './cw78.json';
 
 const MOVY_MODULE_ROOT = '/data/UserData/schwung/modules';
+/* movy's own install dir. The override configs below are DATA FILES shipped
+ * beside ui.js, not imports: esbuild inlines an imported .json into the single
+ * bundle, and ui.js is re-evaluated on every tool open, so bundling these four
+ * put 91 KB of JSON through the QuickJS parser every time movy was opened —
+ * for configs that are only needed when one of those four modules is loaded.
+ * As files they cost one host_read_file, and only for the module in the slot.
+ * (The dodge-the-module-cache reason movy bundles its CODE does not apply: this
+ * is a host file read, not an ES module import.) */
+const MOVY_TOOL_ROOT   = `${MOVY_MODULE_ROOT}/tools/movy`;
 
 /* Modules whose SHIPPED movy_config.json is outdated or broken, so movy's
  * bundled copy is used INSTEAD of it rather than as a fallback.
@@ -44,10 +48,6 @@ const MOVY_MODULE_ROOT = '/data/UserData/schwung/modules';
 export const OVERRIDES_MODULE_FILE = new Set(['6w6', '8w8', '9w9', 'cw78']);
 
 const CONFIGS: Record<string, ModuleConfig> = {
-    '6w6':           k6w6Json         as unknown as ModuleConfig,
-    '8w8':           k8w8Json         as unknown as ModuleConfig,
-    '9w9':           k9w9Json         as unknown as ModuleConfig,
-    cw78:            kcw78Json        as unknown as ModuleConfig,
     '303':           s303Json         as unknown as ModuleConfig,
     chiptune:        chiptuneJson     as unknown as ModuleConfig,
     chordism:        chordismJson     as unknown as ModuleConfig,
@@ -98,12 +98,19 @@ export function loadModuleJson(moduleId: string, componentKey = 'synth'):
 
 export function loadModuleConfig(moduleId: string, componentKey = 'synth'): ModuleConfig | null {
     if (!moduleId) return null;
-    const bundled = CONFIGS[moduleId] ?? null;
     /* A module that describes itself wins by default; the bundled table is the
      * fallback for modules that ship nothing. OVERRIDES_MODULE_FILE is the list
-     * of named exceptions. Checked BEFORE the file read, so an override costs
-     * no host_read_file at all. */
-    if (bundled && OVERRIDES_MODULE_FILE.has(moduleId)) return bundled;
+     * of named exceptions, whose replacement configs ship beside ui.js. */
+    if (OVERRIDES_MODULE_FILE.has(moduleId)) {
+        const override = tryFile(`${MOVY_TOOL_ROOT}/configs/${moduleId}.json`);
+        if (override) return override;
+        /* Deployed without its configs. Falling through silently would hand the
+         * module back the layout the override exists to replace — a kit that
+         * quietly collapses to one page — so say which file is missing. */
+        mlog('loadModuleConfig: no override config for ' + moduleId
+             + ', falling back to the module\'s own');
+    }
+    const bundled = CONFIGS[moduleId] ?? null;
     return tryFile(`${MOVY_MODULE_ROOT}/${componentCategory(componentKey)}/${moduleId}/movy_config.json`)
         ?? bundled
         ?? null;

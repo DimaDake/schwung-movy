@@ -34,6 +34,39 @@ function visibilityChanged(s: ModelState): boolean {
     return false;
 }
 
+/* Rebuild the page set when the module the state names is not the one it was
+ * built from. Shared with `reReadModule` below, which is the same work done at
+ * once rather than over the next couple of ticks. */
+function syncHierarchy(s: ModelState): void {
+    if (s.hierarchyKey === s.activeModuleName) return;
+    const prevModuleId = s.moduleId;
+    loadHierarchy(s);
+    /* A metadata re-resolve (meta-retry.ts) rebuilds the SAME module — keep
+     * the user on the page they were reading. Only a real module change,
+     * or a page that no longer exists, starts over. */
+    if (s.moduleId !== prevModuleId || s.knobPage >= s.bankNames.length) s.knobPage = 0;
+    s.refreshParamCursor = 0;
+    refreshModulatedKeys(s);   // populate LFO-target cache for the new module
+}
+
+/* Re-read the module NOW, rather than scheduling it for the name poll.
+ *
+ * The poll is deliberately slow — `NAME_POLL_TICKS` is ~1 s, and movy's tick
+ * period IS its MIDI sampling interval, so a faster one is paid for in pad
+ * latency. That is the right cadence for a module changing under a live
+ * surface, and the wrong one for a Set load, where every model is stale at once
+ * and the next frame is the first the user sees. Both reads are synchronous, so
+ * the frame that follows this call already draws the Set that loaded.
+ *
+ * Values are NOT read here: they converge on the existing round-robin, the same
+ * way they do after loading a module from the browser. */
+export function reReadModule(s: ModelState): void {
+    s.pollCountdown = NAME_POLL_TICKS;
+    pollModuleName(s);
+    syncHierarchy(s);
+    s.dirty = true;
+}
+
 export function processTick(s: ModelState): boolean {
     /* Chip away at the sample waveform. The read is deliberately here and not
      * in buildViewModel: movy's tick period IS its MIDI sampling interval, so
@@ -55,16 +88,7 @@ export function processTick(s: ModelState): boolean {
         s.hierarchyKey = '';
     }
 
-    if (s.hierarchyKey !== s.activeModuleName) {
-        const prevModuleId = s.moduleId;
-        loadHierarchy(s);
-        /* A metadata re-resolve (meta-retry.ts) rebuilds the SAME module — keep
-         * the user on the page they were reading. Only a real module change,
-         * or a page that no longer exists, starts over. */
-        if (s.moduleId !== prevModuleId || s.knobPage >= s.bankNames.length) s.knobPage = 0;
-        s.refreshParamCursor = 0;
-        refreshModulatedKeys(s);   // populate LFO-target cache for the new module
-    }
+    syncHierarchy(s);
 
     let hadDelta = false;
     for (let k = 0; k < KNOBS_PER_PAGE; k++) {

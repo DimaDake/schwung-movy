@@ -83,7 +83,9 @@ lost or land on the wrong module. (**Back** always works, so a Movy that cannot
 start is never a trap.)
 
 Switching Sets shows the same screens again — the incoming Set's instruments
-have to be loaded just like the first one's.
+have to be loaded just like the first one's — and the screen stays up until the
+module page underneath it is showing the new Set's own modules, not an empty
+slot or the Set you just left.
 
 If a module never loads, Movy gives up waiting after ten seconds and starts
 anyway: what did load still plays.

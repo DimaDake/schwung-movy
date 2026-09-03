@@ -8,7 +8,7 @@ import type { KnobParam } from '../types/param.js';
 import { loadHierarchy }    from './hierarchy.js';
 import { applyKnobDelta, knobParamInfo, reseedPadParams, refreshModulatedKeys, slotToLocal }   from './store.js';
 import { buildViewModel }   from './viewmodel.js';
-import { processTick }      from './tick.js';
+import { processTick, reReadModule } from './tick.js';
 import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV, ITEMS_RELOAD_TICKS } from './constants.js';
 import { pageRotation, rotationPos, stepGroup, isVoiceBank } from './page-rotation.js';
 import { enumUsesIndex, enumSetValue } from './enum-value.js';
@@ -351,6 +351,12 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
         getViewModel(auto?: import('../types/viewmodel.js').AutomationView) { return buildViewModel(s, auto); },
 
         reload(): void { s.hierarchyKey = ''; s.pollCountdown = 1; s.dirty = true; },
+
+        /* `reload()` schedules the re-read for this model's next tick; this does
+         * it now. Used where the next frame must already show the new module —
+         * a Set load, where the poll's ~1 s cadence is what put an empty slot,
+         * or the previous Set's module, on a surface that had gone live. */
+        reloadNow(): void { reReadModule(s); },
 
         getFileBrowseTarget(): { key: string; gi: number; root: string; filter: string[]; startPath: string; currentPath: string | null; requireContains?: string } | null {
             const primary = primarySlot();

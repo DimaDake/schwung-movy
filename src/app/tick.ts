@@ -79,6 +79,7 @@ const PAD_MIN        = MovePads[0];
 const PAD_MAX        = MovePads[MovePads.length - 1];
 const LED_INIT_BATCH = 8;
 
+let lastPhase = '';
 let lastToastShowing = false;
 let lastHeaderShowing = false;
 let lastSessionMode = false;
@@ -409,6 +410,12 @@ function tickBody(): void {
             + ' type=' + portFor(t).getParam( 'knob_' + (l + 1) + '_type'));
     });
     sessionTick();
+    /* A phase change is a view change, and the render below is gated on
+     * something being dirty — neither entering the splash nor leaving it makes
+     * a model dirty on its own. Without this the previous Set's chain page
+     * stayed on screen through the load, and the first live frame waited on
+     * whatever happened to repaint next (the ~1 s module-name poll). */
+    if (sessionPhase() !== lastPhase) { lastPhase = sessionPhase(); appState.dirty = true; }
     /* The set-commit window lends Move the surface for a moment, and Move
      * repaints the pads while it holds it. Same repair a resume needs, for the
      * same reason — see seq/set-commit.ts. Only ever armed while movy is in

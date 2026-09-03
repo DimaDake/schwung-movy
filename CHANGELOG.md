@@ -13,6 +13,18 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The loading screen now covers the whole load.** Opening a Set — or opening
+  Movy with one already selected — could put you on a live surface showing an
+  empty module slot, or the module from the Set you just left, for a second or
+  more before the real one appeared. The screen was only ever waiting on the
+  *engine*: Movy's own knob page caches each slot's module and parameter layout
+  behind a once-a-second poll, and nothing told it a Set had loaded, so the
+  first frame after the splash was drawn from answers older than the Set. The
+  page is now re-read before Movy goes live, and a change of loading stage
+  repaints immediately instead of leaving the previous Set's page on screen.
+
 ### Changed
 
 - **Scenes and Song mode moved from Shift to Loop.** Hold **Loop** in Session

@@ -1146,6 +1146,73 @@ _log('\napp-loop: nothing is live until the Set is loaded');
     eq('gate: ready again for the tests below', sessionReady(), true);
 }
 
+_log('\napp-loop: the splash does not lift on a UI that is still catching up');
+{
+    /* A Model caches its module name and hierarchy and re-reads them only on
+     * the name poll — 344 ticks, which is 1.7-5.5 s at the device's measured
+     * tick rate. The settling gate used to ask the ENGINE whether the loads had
+     * drained and nothing else, so the first frame after the splash came out of
+     * a cache that predated the Set: an empty slot on a cold open, the previous
+     * Set's module after a switch. Measured before the fix: ready at tick 1,
+     * name resolved at tick 348. */
+    const { sessionReady, resetSetSession: resetSess } =
+        await import('../dist/esm/seq/set-session.js');
+
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.mrdrums);
+    resetSeqState(); resetSeqEngine();
+    setFlag('chtracks', 0);
+    setFlag('setcommit', 0);
+    globalThis.init();                       // no manual reload(): this is a cold open
+    resetSess();
+
+    let nameAtReady = null;
+    for (let i = 0; i < 400 && nameAtReady === null; i++) {
+        globalThis.tick();
+        if (sessionReady()) nameAtReady = appState.trackModels[0][1].getModuleName();
+    }
+    eq('the visible slot names its module on the tick movy goes live',
+        nameAtReady, 'MrDrums');
+
+    resetApp();
+    advance(30);
+    eq('cold-open: ready again for the tests below', sessionReady(), true);
+}
+
+_log('\napp-loop: a session phase change repaints, so the splash actually covers');
+{
+    /* The render is gated on something being dirty, and a phase change makes no
+     * model dirty on its own. So entering the splash drew nothing: the previous
+     * Set's chain page stayed on screen for the whole load, and the first live
+     * frame waited on whatever repainted next — the ~1 s module-name poll. */
+    const { sessionReady, sessionPhase, resetSetSession: resetSess } =
+        await import('../dist/esm/seq/set-session.js');
+    resetApp();
+    advance(30);
+    eq('repaint: live to begin with', sessionReady(), true);
+
+    /* The control arm. Without it this test cannot fail: the Loop strip repaints
+     * a few rows every tick regardless, so "something was painted" proves
+     * nothing on its own — a whole view is an order of magnitude more. */
+    advance(2);
+    let n = painted.length;
+    advance(1);
+    const idleRects = painted.length - n;
+    eq('repaint: an idle tick paints almost nothing', idleRects < 5, true);
+
+    n = painted.length;
+    resetSess();                             // → 'booting': the splash is owed
+    advance(1);
+    eq('repaint: the phase change is on screen the very next tick',
+        painted.length - n > idleRects * 5, true);
+    eq('repaint: and what is owed is the splash', sessionPhase() !== 'ready', true);
+    _log(`    (idle tick ${idleRects} rects, phase-change tick ${painted.length - n})`);
+
+    resetApp();
+    advance(400);
+    eq('repaint: ready again for the tests below', sessionReady(), true);
+}
+
 _log('\napp-loop: LFO chain slot reachable + drill');
 {
     resetApp();

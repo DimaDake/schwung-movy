@@ -22,6 +22,7 @@ import {
     uuidToStatePath,
 } from './set-context.js';
 import { deliverChainPayloads } from '../track/chain-payload.js';
+import { refreshModelsForSet } from '../app/model-refresh.js';
 import { collectDeadSets } from './set-gc.js';
 import { resetSetCommit, setCommitTick } from './set-commit.js';
 import { readBestState, readUiBlob, writeStateBlob, writeUiBlob } from './persist-store.js';
@@ -159,6 +160,12 @@ function settleTick(): void {
      * playable with its modules still at factory defaults. */
     if (!deliverChainPayloads() && r !== 'capped') return;
     if (r === 'capped') mlog('seq: settle cap reached — ' + settleOutstanding());
+    /* Last, and only once the engine is holding the Set: the UI's own caches.
+     * Every model reads its module name and param hierarchy on a ~1 s poll, so
+     * without this the first live frame was drawn from answers older than the
+     * Set — an empty slot on a cold open, the previous Set's module after a
+     * switch, for as long as the poll took to come round. */
+    refreshModelsForSet();
     phase = 'ready';
     mlog('seq: set ready after ' + settleWaited() + 'ms');
     /* After the Set is live, never before: collecting is pure hygiene and must

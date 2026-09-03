@@ -203,7 +203,70 @@ export async function run() {
     }
 }
 
+/* ── S9: the UI's own caches are part of "loaded" ────────────────────────── */
+{
+    _log('\nset load re-reads the UI caches:');
+    const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
+    const { seqEngineTick, resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
+    const { resetSeqState } = await import('../../dist/esm/seq/state.js');
+    const { sessionTick, sessionPhase, resetSetSession }
+        = await import('../../dist/esm/seq/set-session.js');
+    const { resetSetSave } = await import('../../dist/esm/seq/set-save.js');
+    const { appState } = await import('../../dist/esm/app/state.js');
 
+    const ACTIVE = '/data/UserData/schwung/active_set.txt';
+
+    /* A Model caches its module name and its whole param hierarchy behind a
+     * ~1 s poll, and nothing used to kick that poll on a Set load — so the
+     * first frame after the splash was drawn from a cache older than the Set.
+     * These stand in for the models: `reloadNow()` is the synchronous re-read
+     * the load owes the one on screen, `reload()` the scheduled one the rest
+     * get. `phaseAt` records that it happens BEFORE movy goes live, which is
+     * the whole claim — doing it after is what the user saw. */
+    const mk = () => ({
+        now: 0, later: 0, phaseAt: '',
+        reloadNow() { this.now++; this.phaseAt = sessionPhase(); },
+        reload() { this.later++; },
+        getDrumConfig() { return null; },     // read off every synth slot each tick
+    });
+    const shown = mk();
+    const offscreen = mk();
+
+    const origModels = appState.trackModels;
+    const origMaster = appState.masterFxModels;
+    appState.trackModels = [[offscreen, shown], [offscreen, offscreen]];
+    appState.masterFxModels = [];
+    appState.trackChainIndex[0] = 1;
+
+    const fs = installMockFs({ [ACTIVE]: 'SET1\nA Set\n' });
+    const eng = installMockEngine();
+    eng.status.chpend = 2;                    // the Set's modules are still draining
+    resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
+    const run = (n) => { for (let i = 0; i < n; i++) { seqEngineTick(); sessionTick(); } };
+
+    run(4);
+    eq('S9 nothing is re-read while the modules are still loading', shown.now, 0);
+    eq('S9 and the splash is still up', sessionPhase(), 'settling');
+
+    eng.status.chpend = 0;
+    run(200);                                 // enough for a status poll to land
+    eq('S9 the shown model is re-read once the engine holds the Set', shown.now, 1);
+    eq('S9 and it happened BEFORE movy went live', shown.phaseAt, 'settling');
+    eq('S9 so the first live frame is truthful', sessionPhase(), 'ready');
+    /* Eighty models' worth of synchronous reads on one tick would cost far more
+     * than it buys, and each re-reads on the tick it becomes visible. */
+    eq('S9 an off-screen model is scheduled, not read now', offscreen.now, 0);
+    eq('S9 but it IS scheduled', offscreen.later > 0, true);
+
+    run(200);
+    eq('S9 a load re-reads once, not once per tick', shown.now, 1);
+
+    appState.trackModels = origModels;
+    appState.masterFxModels = origMaster;
+    void fs;
+    uninstallMockEngine(); uninstallMockFs();
+    resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
+}
 
 /* ── splash text ─────────────────────────────────────────────────────────── */
 {

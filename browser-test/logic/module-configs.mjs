@@ -433,6 +433,44 @@ _log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
 }
 
 
+/* ── which config wins when both exist ────────────────────────────────────── */
+
+_log('\nTest: a module that describes itself wins, unless movy supersedes it');
+
+{
+    const { loadModuleConfig } = await import('../../dist/esm/modules/loader.js');
+    const saved = globalThis.host_read_file;
+    const ownFile = (id) => JSON.stringify({
+        id, name: 'FromTheModule',
+        banks: [{ name: 'OwnBank', rows: [[]] }],
+    });
+    globalThis.host_read_file = (p) => {
+        const m = /\/([^/]+)\/movy_config\.json$/.exec(String(p));
+        return m ? ownFile(m[1]) : null;
+    };
+
+    /* The default, and the reason forge and libpo32 work: a module's own file
+     * beats the bundled table. libpo32 is bundled AND self-describing, so it is
+     * the one that would silently regress if the rule were flipped wholesale —
+     * which is why this is a per-module flag and not a global inversion. */
+    eq('libpo32 keeps its own file', loadModuleConfig('po32-drum')?.name, 'FromTheModule');
+    eq('and an unbundled module too',   loadModuleConfig('forge')?.name,  'FromTheModule');
+
+    /* The exception. These four ship a layout that predates the voice-run rule
+     * and cannot satisfy it, so movy carries the corrected one. */
+    for (const id of ['6w6', '8w8', '9w9', 'cw78']) {
+        const cfg = loadModuleConfig(id);
+        eq(`${id}: movy's bundled config wins`, cfg?.name !== 'FromTheModule', true);
+        eq(`${id}: and it is the voice-run shape`, cfg?.banks?.[0]?.pad, 1);
+    }
+
+    // With no file at all, the bundled table is the fallback it has always been.
+    globalThis.host_read_file = () => null;
+    eq('bundled is still the fallback', loadModuleConfig('mrdrums')?.id, 'mrdrums');
+    eq('and an unknown module is still null', loadModuleConfig('nope'), null);
+    globalThis.host_read_file = saved;
+}
+
 /* ── the layout invariants every config is silently assumed to hold ────────── */
 
 _log('\nTest: every bundled config and fixture is one page per bank');

@@ -7,6 +7,7 @@
 import {
     MOCK_SYNTHS, drumPadOn, drumPadOff, fail, eq, bootModel,
     _log, env, mockFsEntries, readFileSync,
+    OVERRIDES_MODULE_FILE,
 } from './harness.mjs';
 
 export async function run() {
@@ -611,13 +612,26 @@ _log('\nTest: the four kits ship the one shape movy accepts');
   ];
   const saved = globalThis.host_read_file;
   for (const [id, mock, voices, tail] of KITS) {
+    /* Read from src/modules — movy BUNDLES these four, so the file under test
+     * is the one that ships. The modules' own configs still declare a pad on
+     * every bank; the device serves those, and `supersedesModuleFile` is why
+     * they lose. The stub returns a wrong-shaped config on purpose, so a
+     * regression in that precedence shows up here as the kit assertions
+     * failing rather than as silence. */
     const layout = readFileSync(
-        new URL(`../fixtures/${id}-movy-config.json`, import.meta.url), 'utf8');
-    globalThis.host_read_file = (p) => p.endsWith(`/${id}/movy_config.json`) ? layout : null;
+        new URL(`../../src/modules/${id}.json`, import.meta.url), 'utf8');
+    globalThis.host_read_file = (p) => p.endsWith(`/${id}/movy_config.json`)
+        ? JSON.stringify({ id, name: id, drum: { padCount: 16, padNoteStart: 36, rawMidi: false },
+                           banks: [{ name: 'FromTheModule', pad: 1,
+                                     rows: [[{ key: 'x', short: 'X', full: 'X',
+                                               type: 'int', min: 0, max: 127 }]] }] })
+        : null;
     const m = bootModel(MOCK_SYNTHS[mock], 0, 'synth');
     globalThis.host_read_file = saved;
 
     const cfg   = JSON.parse(layout);
+    eq(`${id}: bundled, and listed as overriding the module's file`,
+       OVERRIDES_MODULE_FILE.has(id), true);
     const names = m.dumpLayout().banks.map(b => b.name);
     /* Control: an unserved config also boots to one page, so without this the
      * collapse assertions below would pass on a model that loaded nothing. */
@@ -665,7 +679,7 @@ _log('\nTest: the four kits ship the one shape movy accepts');
 _log('\nTest: the voice slot keeps its place and its selection');
 {
   const layout = readFileSync(
-      new URL('../fixtures/8w8-movy-config.json', import.meta.url), 'utf8');
+      new URL('../../src/modules/8w8.json', import.meta.url), 'utf8');
   const saved = globalThis.host_read_file;
   globalThis.host_read_file = (p) => p.endsWith('/8w8/movy_config.json') ? layout : null;
   const m = bootModel(MOCK_SYNTHS['8w8'], 0, 'synth');

@@ -1096,10 +1096,11 @@ export const MOCK_SYNTHS = {
      * The hi-hat has Drive but no pitch-envelope depth — only the five circuit
      * voices have one.
      *
-     * Serves BOTH fixture layouts, since the keys are the module's either way:
-     * `9w9-movy-config.json` (what 9W9 ships now — a page per voice, each
-     * naming its pad) and `padkeys-movy-config.json` (the pre-2.0 padSpecific
-     * layout, kept under MOCK_SYNTHS.padkeys below). */
+     * Serves both layouts, since the keys are the module's either way: movy's
+     * bundled `src/modules/9w9.json` (a page per voice, each naming its pad —
+     * bundled because 9W9's own config predates the voice-run rule) and
+     * `padkeys-movy-config.json` (the pre-2.0 padSpecific layout, kept under
+     * MOCK_SYNTHS.padkeys below). */
     nw9: {
         "synth:name":           "9W9",
         "synth_module":         "9w9",

@@ -828,80 +828,6 @@
       "pad": 11
     },
     {
-      "name": "Main",
-      "rows": [
-        [
-          {
-            "key": "note_map",
-            "short": "NOTE",
-            "full": "Note Map",
-            "type": "enum",
-            "options": [
-              "Drum Rack (36+)",
-              "General MIDI"
-            ]
-          },
-          {
-            "key": "master_dist",
-            "short": "MDST",
-            "full": "Master Dist",
-            "type": "enum",
-            "options": [
-              "Off",
-              "Diode (909)",
-              "Hard Clip",
-              "SAT",
-              "BFZ",
-              "PDIST",
-              "Wavefolder",
-              "Bitcrush"
-            ]
-          },
-          {
-            "key": "master_drive",
-            "short": "MDRV",
-            "full": "Master Drive",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "master_comp",
-            "short": "COMP",
-            "full": "Comp",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "volume",
-            "short": "VOL",
-            "full": "Volume",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "accent",
-            "short": "ACC",
-            "full": "Accent",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "vel_depth",
-            "short": "VEL",
-            "full": "Velocity",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          null
-        ]
-      ]
-    },
-    {
       "name": "Reverb",
       "rows": [
         [
@@ -1003,6 +929,80 @@
           },
           null,
           null,
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Main",
+      "rows": [
+        [
+          {
+            "key": "note_map",
+            "short": "NOTE",
+            "full": "Note Map",
+            "type": "enum",
+            "options": [
+              "Drum Rack (36+)",
+              "General MIDI"
+            ]
+          },
+          {
+            "key": "master_dist",
+            "short": "MDST",
+            "full": "Master Dist",
+            "type": "enum",
+            "options": [
+              "Off",
+              "Diode (909)",
+              "Hard Clip",
+              "SAT",
+              "BFZ",
+              "PDIST",
+              "Wavefolder",
+              "Bitcrush"
+            ]
+          },
+          {
+            "key": "master_drive",
+            "short": "MDRV",
+            "full": "Master Drive",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "master_comp",
+            "short": "COMP",
+            "full": "Comp",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "volume",
+            "short": "VOL",
+            "full": "Volume",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "accent",
+            "short": "ACC",
+            "full": "Accent",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "vel_depth",
+            "short": "VEL",
+            "full": "Velocity",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
           null
         ]
       ]

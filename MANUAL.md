@@ -722,7 +722,8 @@ page like that: most of the row would be holes on most pads. Those kits get a
 
 The voice pages **share one seat in the page list**, so the jog does not walk
 through sixteen drums to reach the reverb. 8W8 has nineteen pages of parameters
-and four in the rotation — **the selected voice, Master, Reverb, Delay**:
+and four in the rotation — **the selected voice, Reverb, Delay, Master**, the
+chain's own left-to-right order:
 
 ![A page per voice, selected by pad](docs/assets/8w8_voice.png)
 

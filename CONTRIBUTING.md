@@ -170,8 +170,8 @@ pad-following pages first, the ordinary pages behind them.
   { "name": "Kick",   "pad": 1, "rows": [ ... ] },
   { "name": "Snare",  "pad": 2, "rows": [ ... ] },
   { "name": "Hat",    "pad": 3, "rows": [ ... ] },
-  { "name": "Master",           "rows": [ ... ] },
-  { "name": "Reverb",           "rows": [ ... ] }
+  { "name": "Reverb",           "rows": [ ... ] },
+  { "name": "Master",           "rows": [ ... ] }
 ]
 ```
 
@@ -181,8 +181,9 @@ behind it is ignored.
 
 - **The voice pages share one seat in the rotation.** Sixteen voices at sixteen
   seats is a sixteen-dot bank bar and a walk through the whole kit to reach the
-  delay. 8W8 ships nineteen banks and shows four pages: *voice* → Master →
-  Reverb → Delay.
+  delay. 8W8 ships nineteen banks and shows four pages: *voice* → Reverb →
+  Delay → Master — the chain's own order, master bus last, as elsewhere in the
+  fleet.
 - **A pad only turns the page from a voice page.** From Master or Reverb it
   re-points the voice slot and leaves you where you are — reaching for a pad to
   hear an edit must not cost you your place. The slot remembers, so jogging back

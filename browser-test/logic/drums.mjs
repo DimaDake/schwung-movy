@@ -439,7 +439,7 @@ _log('\nTest: bank.pad — a pad press selects that bank');
       { name: 'Kick',  pad: 1, rows: [[{ key: 'bd_tune', short: 'TUNE', full: 'Tune', type: 'int', min: 0, max: 127 }]] },
       { name: 'Snare', pad: 2, rows: [[{ key: 'sd_tune', short: 'TUNE', full: 'Tune', type: 'int', min: 0, max: 127 }]] },
       { name: 'Hat',   pad: 3, rows: [[{ key: 'hh_tune', short: 'TUNE', full: 'Tune', type: 'int', min: 0, max: 127 }]] },
-      { name: 'Main',  rows: [[{ key: 'volume', short: 'VOL', full: 'Volume', type: 'int', min: 0, max: 127 }]] },
+      { name: 'Main',  rows: [[{ key: 'volume', short: 'VOL', full: 'Volume', type: 'int', min: 0, max: 127 }]] },   // last: the bus everything lands on
     ],
   });
   const savedRead = globalThis.host_read_file;
@@ -604,10 +604,10 @@ _log('\nTest: the four kits ship the one shape movy accepts');
    * would only restate. */
   const KITS = [
     // id      mock    voices  pages behind the voice run
-    ['6w6',   '6w6',   8,  ['Master', 'Reverb', 'Delay']],
-    ['8w8',   '8w8',  16,  ['Master', 'Reverb', 'Delay']],
-    ['9w9',   'nw9',  11,  ['Main', 'Reverb', 'Delay']],
-    ['cw78',  'cw78', 14,  ['Master', 'Rhythm', 'Reverb', 'Delay']],
+    ['6w6',   '6w6',   8,  ['Reverb', 'Delay', 'Master']],
+    ['8w8',   '8w8',  16,  ['Reverb', 'Delay', 'Master']],
+    ['9w9',   'nw9',  11,  ['Reverb', 'Delay', 'Main']],
+    ['cw78',  'cw78', 14,  ['Rhythm', 'Reverb', 'Delay', 'Master']],
   ];
   const saved = globalThis.host_read_file;
   for (const [id, mock, voices, tail] of KITS) {
@@ -686,7 +686,7 @@ _log('\nTest: the voice slot keeps its place and its selection');
   /* The slot REMEMBERS. Jogging away to Delay and back must return to the
    * voice you were editing; going back to Kick would undo the pad press. */
   m.changePage(2);
-  eq('jog to Reverb', names[m.getKnobPage()], 'Reverb');
+  eq('jog to Delay', names[m.getKnobPage()], 'Delay');
   m.changePage(-2);
   eq('and back → the voice you left, not the first one',
      names[m.getKnobPage()], 'Maracas');
@@ -694,7 +694,7 @@ _log('\nTest: the voice slot keeps its place and its selection');
   /* Shift+jog walks the same positions. Stepping by BANK index would leave the
    * page on a voice the slot is not showing. */
   m.changePageGroup(1);
-  eq('shift+jog leaves the voice run in one step', names[m.getKnobPage()], 'Master');
+  eq('shift+jog leaves the voice run in one step', names[m.getKnobPage()], 'Reverb');
   m.changePageGroup(-1);
   eq('and comes back to the same voice', names[m.getKnobPage()], 'Maracas');
 }
@@ -711,6 +711,9 @@ _log('\nTest: a pad behind the voice run is not a voice');
     banks: [
       { name: 'Kick',   pad: 1, rows: [[{ key: 'bd', short: 'BD', full: 'BD', type: 'int', min: 0, max: 127 }]] },
       { name: 'Snare',  pad: 2, rows: [[{ key: 'sd', short: 'SD', full: 'SD', type: 'int', min: 0, max: 127 }]] },
+      /* Master sits between them ON PURPOSE, unlike the shipped kits: the
+       * stray pad has to fall BEHIND a bank that declares none, or it just
+       * extends the voice run and there is nothing left to ignore. */
       { name: 'Master', rows: [[{ key: 'vol', short: 'VOL', full: 'Vol', type: 'int', min: 0, max: 127 }]] },
       { name: 'Reverb', pad: 3, rows: [[{ key: 'rev', short: 'REV', full: 'Rev', type: 'int', min: 0, max: 127 }]] },
     ],

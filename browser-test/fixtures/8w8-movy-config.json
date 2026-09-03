@@ -1184,83 +1184,6 @@
       ]
     },
     {
-      "name": "Master",
-      "rows": [
-        [
-          {
-            "key": "master_dist",
-            "short": "MDIST",
-            "full": "Master Dist",
-            "type": "enum",
-            "options": [
-              "Off",
-              "Diode",
-              "Clip",
-              "SAT",
-              "BFZ",
-              "PDIST",
-              "Fold",
-              "Crush"
-            ]
-          },
-          {
-            "key": "master_drive",
-            "short": "MDRV",
-            "full": "Master Drive",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "comp",
-            "short": "COMP",
-            "full": "Comp",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "volume",
-            "short": "VOL",
-            "full": "Volume",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "vel_depth",
-            "short": "VEL",
-            "full": "Velocity",
-            "type": "int",
-            "min": 0,
-            "max": 127
-          },
-          {
-            "key": "hh_choke",
-            "short": "CHOKE",
-            "full": "Choke",
-            "type": "enum",
-            "options": [
-              "Off",
-              "CH>OH",
-              "Mutual"
-            ]
-          },
-          {
-            "key": "note_map",
-            "short": "NMAP",
-            "full": "Note Map",
-            "type": "enum",
-            "options": [
-              "Rack 36",
-              "GM"
-            ]
-          },
-          null
-        ]
-      ]
-    },
-    {
       "name": "Reverb",
       "rows": [
         [
@@ -1362,6 +1285,83 @@
           },
           null,
           null,
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Master",
+      "rows": [
+        [
+          {
+            "key": "master_dist",
+            "short": "MDIST",
+            "full": "Master Dist",
+            "type": "enum",
+            "options": [
+              "Off",
+              "Diode",
+              "Clip",
+              "SAT",
+              "BFZ",
+              "PDIST",
+              "Fold",
+              "Crush"
+            ]
+          },
+          {
+            "key": "master_drive",
+            "short": "MDRV",
+            "full": "Master Drive",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "comp",
+            "short": "COMP",
+            "full": "Comp",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "volume",
+            "short": "VOL",
+            "full": "Volume",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "vel_depth",
+            "short": "VEL",
+            "full": "Velocity",
+            "type": "int",
+            "min": 0,
+            "max": 127
+          },
+          {
+            "key": "hh_choke",
+            "short": "CHOKE",
+            "full": "Choke",
+            "type": "enum",
+            "options": [
+              "Off",
+              "CH>OH",
+              "Mutual"
+            ]
+          },
+          {
+            "key": "note_map",
+            "short": "NMAP",
+            "full": "Note Map",
+            "type": "enum",
+            "options": [
+              "Rack 36",
+              "GM"
+            ]
+          },
           null
         ]
       ]

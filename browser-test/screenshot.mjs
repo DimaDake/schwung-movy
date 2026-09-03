@@ -539,8 +539,8 @@ function applyView(preset) {
          * banks to a FOUR-dot bank bar, the voice slot sitting second and
          * wearing the selected voice's own name. */
         case '8w8_voice':  model.updateDrumPad(11, 46); model.selectBankForPad(11); settle(); forceRender(); break;
-        case '8w8_master': model.changePage(1); settle(); forceRender(); break;
-        case '8w8_delay':  model.changePage(3); settle(); forceRender(); break;
+        case '8w8_delay':  model.changePage(2); settle(); forceRender(); break;
+        case '8w8_master': model.changePage(3); settle(); forceRender(); break;
         /* The same voice page on the CHAIN view, where the icon has to appear
          * too — that is where you land after a slot change, and an icon on only
          * one of the two reads as the voice selection having been lost. */

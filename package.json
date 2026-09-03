@@ -1,5 +1,6 @@
 {
   "name": "movy",
+  "version": "0.31.0",
   "type": "module",
   "scripts": {
     "build": "node build/device.mjs && node build/browser.mjs",

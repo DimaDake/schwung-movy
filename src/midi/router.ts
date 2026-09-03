@@ -315,6 +315,12 @@ export function onMidiMessageInternal(data: number[]): void {
             const vel = seqState.fullVelocity ? 127 : d2;
             if (drumCfg) {
                 const pad = drumPadOn(d1, PAD_MIN, appState.shiftHeld, drumCfg, model!.getComponentKey(), track, vel);
+                /* The only trace a pad leaves. selectBankForPad logs when it
+                 * MOVES the page, so without this there is no way to tell a pad
+                 * that changed nothing from a pad that never arrived — and a
+                 * device suite asserting "the page did not move" cannot know
+                 * which of the two it just proved. */
+                mlog('drumPad note=' + d1 + ' pad=' + pad);
                 if (pad !== null) {
                     model!.updateDrumPad(pad, d1);
                     /* Pad-follow, for configs that declare `pad` on a bank. A

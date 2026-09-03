@@ -32,26 +32,52 @@ is()  { if [ "$2" = "$3" ]; then ok "$1" "$2"; else bad "$1" "want $3, got $2"; 
 
 # One probe = one ssh round trip: clear the log, inject, poll, dump.
 probe() { "$SRC/scripts/dev-probe.sh" log "$HOST" "$@" 2>/dev/null; }
-# Pads are notes padNoteStart + N - 1, and padNoteStart is 36 on all four kits.
-note_ev() { echo "0x09:0x90:$((35 + $1)):127:0.05"; }
-off_ev()  { echo "0x08:0x80:$((35 + $1)):0:0"; }
+# The PHYSICAL note a Move pad sends (68..99), not the module's drum-rack note.
+# Injecting the rack note (36 + N - 1) put every event below PAD_MIN, so the
+# router never saw a pad at all and the suite read that as movy ignoring it.
+# Asked of movy's own drum-grid so the test and the app cannot drift apart.
+pad_note() {
+    node -e "import('$SRC/dist/esm/keyboard/drum-grid.js').then(g=>console.log(
+        g.physPadOfDrumPad($1, 68, {padCount:$VOICES,padNoteStart:36,rawMidi:false})))"
+}
+note_ev() { echo "0x09:0x90:$(pad_note "$1"):127:0.05"; }
+off_ev()  { echo "0x08:0x80:$(pad_note "$1"):0:0"; }
 jog_ev()  { echo "0x0B:0xB0:14:$1"; }          # 1 = forward, 127 = back
 
 test_set_begin
 trap test_set_end EXIT INT TERM
 
-# Expectations come from the SHIPPED file on the device, not from this script's
-# memory of it: a kit that re-orders its banks should change what is asserted.
+# Expectations come from the config movy will actually USE — its bundled copy —
+# not from this script's memory of it. A kit that re-orders its banks changes
+# what is asserted here.
 read -r VOICES TAIL V2 <<EOF
-$(ssh "ableton@$HOST" "python3 -c \"
+$(python3 -c "
 import json
-b = json.load(open('/data/UserData/schwung/modules/sound_generators/$KIT/movy_config.json'))['banks']
+b = json.load(open('$SRC/src/modules/$KIT.json'))['banks']
 v = [x for x in b if 'pad' in x]; t = [x for x in b if 'pad' not in x]
 print(len(v), len(t), v[1]['name'])
-\"" 2>/dev/null)
+" 2>/dev/null)
 EOF
-[ -n "${VOICES:-}" ] || { echo "could not read $KIT's config from $HOST" >&2; exit 1; }
-echo "== $KIT on $HOST: $VOICES voices, $TAIL pages without one"
+[ -n "${VOICES:-}" ] || { echo "movy bundles no config for $KIT" >&2; exit 1; }
+echo "== $KIT: $VOICES voices, $TAIL pages without one (from movy's bundled config)"
+
+# The override is only under test if the DEVICE is serving something different.
+# Without this the suite would pass just as well on a device that happened to
+# have movy's own config installed — which is exactly how it was set up before,
+# and it would have proved nothing about OVERRIDES_MODULE_FILE.
+dev_voices="$(ssh "ableton@$HOST" "python3 -c \"
+import json
+b = json.load(open('/data/UserData/schwung/modules/sound_generators/$KIT/movy_config.json'))['banks']
+print(sum(1 for x in b if 'pad' in x), len(b), b[0].get('pad') is not None)
+\"" 2>/dev/null)"
+set -- $dev_voices
+if [ "${3:-}" = "False" ] || [ "$1" != "$VOICES" ]; then
+    ok "the device serves a DIFFERENT config, so the override is live" \
+       "device: $1/$2 banks have pads, first-is-voice=${3:-?}"
+else
+    bad "the device serves a DIFFERENT config, so the override is live" \
+        "device config already matches movy's — nothing is being overridden"
+fi
 
 ts_open_movy
 ts_focus_track0
@@ -66,8 +92,11 @@ sleep 3
 # there, logged `chain chainIndex=3`, and read the resulting silence as three
 # clean failures plus one vacuous pass. Walk to the synth slot, then click.
 CHAIN_SYNTH=1                        # CHAIN_SLOTS: midi_fx1, synth, fx1, fx2, lfo
+# Walk to the LEFT end first (the jog clamps at 0), then forward one. Counting
+# steps back from wherever movy happened to be is how this landed on slot 0.
 out="$(probe -p 'chain chainIndex' -i "$(jog_ev 127)" -i "$(jog_ev 127)" \
-             -i "$(jog_ev 127)" -i "$(jog_ev 127)")"
+             -i "$(jog_ev 127)" -i "$(jog_ev 127)" -i "$(jog_ev 127)" \
+             -i "$(jog_ev 1)")"
 at="$(echo "$out" | grep -oE 'chainIndex=[0-9]+' | tail -1 | cut -d= -f2)"
 is "walked the chain to the synth slot" "${at:-none}" "$CHAIN_SYNTH"
 probe -p 'view|knobPage' -i '0x0B:0xB0:3:127' -i '0x0B:0xB0:3:0' >/dev/null

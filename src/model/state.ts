@@ -95,6 +95,10 @@ export interface ModelState {
     /* Group id per page: pages built from the same hierarchy level share one, so
      * shift+jog can skip a level's overflow pages in a single gesture. */
     bankGroups:          number[];
+    /* Which voice the rotation's voice slot is showing (a bank index). Held
+     * separately from knobPage so jogging off to Reverb and back returns to the
+     * voice you were editing rather than the first one. See page-rotation.ts. */
+    voiceBank:           number;
     hierarchyKey:        string;
     pollCountdown:       number;
     /* A module can publish its preset list and enum options AFTER load (osirus
@@ -168,6 +172,7 @@ export function createModelState(port: TrackPort, componentKey: string): ModelSt
         moduleConfig:        null,
         bankNames:           [],
         bankGroups:          [],
+        voiceBank:           0,
         hierarchyKey:        '',
         pollCountdown:       NAME_POLL_TICKS,
         metaRetries:         0,

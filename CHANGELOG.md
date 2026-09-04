@@ -11,6 +11,221 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
+## [0.31.0] — 2026-09-03
+
+### Highlights
+
+- **Scenes and Song mode.** Hold **Loop** in Session view and the step row
+  becomes eight **scenes**, each one launching a whole clip column across all
+  **16** tracks — not just the four on screen. Keep holding and press more
+  scenes to build a looping **song**: each scene plays for as long as its
+  longest clip, pressing one twice holds it twice as long, and the arrangement
+  is saved with the Set. An empty scene is the end of the song, so a song can
+  play once instead of looping. Recording works through it — a take follows the
+  arrangement into whichever clip ends up playing.
+
+- **A CPU meter — Shift + Step 12.** One column per track for what that track's
+  chain costs per audio block, over a bar for the whole render, with the peak
+  each has hit since you opened the page. It is calibrated against where the
+  device actually glitches rather than against the raw block, so 100 % means
+  "at the edge" — the page to open when a set starts crackling, to find which
+  track is responsible before turning anything off.
+
+- **Drum machines with a page per voice.** A kit whose voices are separate
+  circuits — a 909's snare has no Attack, its kick has no sends — can now give
+  each voice its own page and let the **pad choose which one you are editing**,
+  the way the device's own editor does. The voice pages share **one seat** in
+  the jog rotation, so a sixteen-voice kit is four pages to walk rather
+  than nineteen, and the voice you last hit is the one that comes back. Movy
+  ships corrected configs for **6W6, 8W8, 9W9 and CW-78**, so those four kits
+  get the layout whether or not the module has been updated.
+
+- **The loading screen now covers the whole load.** Opening a Set no longer
+  drops you onto a live surface still showing the previous Set's module for a
+  second or more.
+
+### Added
+
+- **Scene launching.** Hold **Loop** in Session view and the step row becomes
+  eight scenes, on the buttons printed 1, 3, 5 … 15. A scene launches a whole
+  clip column across all **16** tracks, not just the four on screen — bar
+  quantized like any clip launch, and a track whose slot in that column is
+  empty stops, because a scene is a snapshot of what plays. Loop is a pure
+  modifier there: Session view has no bars on the row to select, so holding it
+  neither latches the Loop view nor resizes a loop you cannot see, and an
+  unmodified press is still the track selector.
+- **Song mode.** Keep holding Loop and press more scenes to build a looping
+  arrangement. Each scene lasts as long as its longest clip, rounded up to whole
+  bars; pressing the same scene twice holds it twice as long without
+  re-triggering it. The next scene is queued a full bar early, so it flashes in
+  the grid the way a launched clip does, and every scene the song uses pulses on
+  the step row. The bottom of the screen shows `SONG` and the scene numbers with
+  the one playing boxed, scrolling when the arrangement outgrows the row.
+  Launching any clip by hand ends the song, Play restarts it from the top, and
+  it is saved with the Set.
+
+  A scene with no clips on any track is the **end** of the song: there is no
+  clip to take a length from, so the arrangement parks there, goes quiet and
+  shows `END` on screen — while the transport keeps running, so you stay in
+  time. Ending a song with an empty scene makes it play once instead of
+  looping.
+
+  Recording works through a song: a take follows the arrangement into whichever
+  clip ends up playing. Punching in used to cancel a queued launch — correct for
+  the stale queue a Session empty-slot selection leaves behind, but with a song
+  running that queue *is* the arrangement, so it is now left alone.
+
+- **CPU meter — Shift + Step 12.** One column per track for what that track's
+  chain costs per audio block, over a bar for the block as a whole. A solid bar
+  is the instrument and a checkered one the effects after it; a dotted line
+  above each column is the worst block that track has had since the page opened,
+  and the notch above the capacity bar is the same thing for the whole render.
+  Press the gesture again to clear the held peaks. Four states a column can be
+  in, because a bar reading zero has four different reasons: costing something,
+  loaded-but-silent (a dash — Movy is skipping it), empty, and Schwung-hosted
+  (a dotted column — it renders outside Movy, which is not the same as being
+  free). The scale starts at 1 ms — so a column means the same thing across
+  sessions and across the CPU Optimize setting — and grows to fit when a track
+  goes past it, rather than clamping the one column you opened the page to look
+  at; the number under the plot says what full height is worth, and a row of
+  dots marks 1 ms — at the top while the scale is at its floor, dropping as it
+  grows. Costs nothing to run: the
+  measurement was already on the audio thread, the numbers ride the status poll
+  Movy already makes, and the page repaints only when a drawn pixel would change.
+  The capacity bar is calibrated against the device rather than against the raw
+  block: dropouts set in around 70 % of a 2.9 ms block, so that is what the bar
+  calls 100 %. Under 80 % is comfortable, over 100 % you are hearing it.
+  The step button under the gesture lights like the other page openers: dim
+  while Shift is held, full bright while the page is up — and **Settings**
+  (Shift + Step 2) now does the same, which it never did.
+
+- **A page per voice for drum machines, selected by the pad.** Until now a kit
+  could re-point *one* page at whichever pad you last hit, which fits a machine
+  whose voices share a control set and not one whose voices are separate
+  circuits. A kit can now give each voice its own page and name the pad that
+  selects it, and pressing a pad both sounds that voice and brings its page up
+  — the same thing the device's own editor does.
+
+  The voice pages **share one seat** in the page rotation, showing whichever
+  voice the pad last selected, so a sixteen-voice kit is four pages to jog
+  through rather than nineteen; jog away to Reverb and back and you return to
+  the voice you were editing. A pad only turns the page when you are already on
+  a voice page — from Master or Delay it re-points the voice slot and leaves you
+  where you are, so reaching for a pad to hear an edit never costs your place.
+  The pad-grid icon in the header says which voice is under the knobs, and is
+  drawn on the **chain page** too, where you land after a slot change.
+
+- **Movy ships corrected configs for 6W6, 8W8, 9W9 and CW-78.** All four
+  declare a pad on pages that have no voice behind them, which reads as "every
+  bank is a voice" and collapses the whole module to a single page. Fixes for
+  all four were offered upstream and closed unmerged, so Movy carries them and
+  uses them **instead of** the file each module installs. The bundled copies
+  carry no Movy-only field — each is a faithful copy of what the module should
+  ship, and retiring one is deleting an id from a list. Every other module,
+  including the ones that describe themselves correctly, is unaffected.
+
+### Changed
+
+- **The shifted step shortcuts now work in Session view.** The CPU meter,
+  Settings, Set params, the metronome, full velocity, double loop and clip
+  quantization are global, and Session view is where you are most likely to
+  reach for them — but the step row there is the 16-track selector, and Shift
+  was not consulted, so the sixteen printed icons did nothing in the one view
+  that shows all the tracks. Shift now reaches them; an unmodified press is
+  still the track selector. Clip Params (Shift + Step 3) is unchanged — it edits
+  one clip, so it stays Track-view only.
+
+- **A kit's Master bus is the last page, not the first.** Reading the chain left
+  to right — voices, their sends, then the bus everything lands on — is the
+  order the rest of the fleet uses and the one a chain view implies. The
+  modules' own editors still open on Master; that is their UI.
+
+### Fixed
+
+- **The loading screen now covers the whole load.** Opening a Set — or opening
+  Movy with one already selected — could put you on a live surface showing an
+  empty module slot, or the module from the Set you just left, for a second or
+  more before the real one appeared. The screen was only ever waiting on the
+  *engine*: Movy's own knob page caches each slot's module and parameter layout
+  behind a once-a-second poll, and nothing told it a Set had loaded, so the
+  first frame after the splash was drawn from answers older than the Set. The
+  page is now re-read before Movy goes live, and a change of loading stage
+  repaints immediately instead of leaving the previous Set's page on screen.
+
+- **A sleeping chain was still being charged for what it cost awake.** The
+  parallel render folded each chain's last measured cost in on every block, but
+  a chain that `chidle` had put to sleep builds no render task at all and the
+  pool never clears the previous reading — so its cost never decayed, and the
+  render planner went on reserving a lane for a chain producing nothing. Silent
+  chains now fold in a zero, which both fixes the partition and is what lets the
+  CPU meter show them at rest.
+
+- **An envelope drawn over something that is not one.** Movy detects A/D/S/R
+  from parameter keys as well as labels, and a key stem is not a promise: 9W9's
+  `bd_c_attack` is a click *level*, so pairing it with `bd_c_decay` drew an
+  envelope over a level and hoisted Attack to knob 1, disagreeing with the
+  module's own editor about knob order. A module can now veto the grouping
+  (`viz: false`), and Movy honours the one it already declares.
+
+### Testing
+
+- **The device suites run on both track hosts.** Tracks 1-4 belong to whichever
+  host `chtracks` names, and until now the fixture spoke only Schwung: it seeded
+  Schwung's four shadow slots and the suites reached the instrument through
+  them, so with the flag on MOVY six suites failed on assertions about a chain
+  that was genuinely empty. The fixture now seeds both hosts — `slots.txt` for
+  Schwung's slots, a `chains` array in `ui-state.json` for Movy's — and pins the
+  host in `prefs.json` for the run, so it does not depend on what the active
+  Move set happens to carry. Two sweeps:
+  `scripts/test-all-device-schwung.sh` and `scripts/test-all-device-movy.sh`.
+
+- **A Movy-hosted chain can be read back at all.** New engine diagnostic
+  `chloadedlog` logs what each chain HOLDS, read off the live instance. The
+  remote-UI socket has no get verb, and the per-load line is not a substitute:
+  a chain already holding the right module is deliberately left alone, so a
+  second run against the same fixture logs no load and would read as a failure.
+  (`ENGINE_VERSION` 0.55.0.)
+
+- **A Movy chain is a fixed parameter state, not just the right module.**
+  `set_chain_set` leaves a chain that already holds the module alone, so only
+  the first run got shipped defaults and every run after inherited the previous
+  suite's knob turns. The fixture's `ui-state.json` is now rendered at install
+  time (`scripts/fixture-ui-state.mjs`) with each component's preset blob taken
+  from the same `slot_<N>.json` the Schwung half restores from — one declaration
+  of the fixture's values, so the two hosts cannot drift apart.
+
+- **The harness puts the track-host setting back.** It pins `chtracks` for the
+  length of a run, and that is a real user setting; a sweep used to leave the
+  device on whichever host it had just tested.
+
+- **`test.sh` stopped reporting a missing instrument as a pass.** It keyed the
+  module-config check on a phrase (`config loaded for`) that no longer exists
+  anywhere in `src/`, so plaits — which HAS a bundled config — never matched,
+  fell through to the "no synth loaded" branch, and printed green precisely
+  where the fixture had failed to reach the track. Pinned by a new
+  `browser-test/device-scripts.mjs` invariant.
+
+- **The CPU meter's numbers are checked against the device.** `scripts/test-cpu.sh`
+  covers the two claims no host build can reach: that the per-chain figures are
+  real, and that a chain going silent stops being charged for what it cost
+  awake. New engine diagnostic `cpulog` (`ENGINE_VERSION` 0.62.0) — the remote-UI
+  socket can write but not read, so a write that makes the engine log is the only
+  way to see the meter from outside.
+
+- **The kit override is verified on hardware, against the module's own config.**
+  `scripts/test-voice-slot.sh` asserts up front that the *device* is serving a
+  different config from Movy's bundled one — without that the run would pass
+  just as well on a device that happened to have Movy's copy installed, proving
+  nothing about the override — and then drives a real pad note through Schwung's
+  overtake ring into Movy's router.
+
+- **The store tarball carries the override configs.** `build-module.sh` packed
+  `module.json`, `ui.js` and `dsp.so` only, so a fresh store install would have
+  had no configs at all and the four kits would have silently fallen back to the
+  layout the override exists to replace. Two guards, because the failure is
+  invisible on either side of the tar: the override list and the shipping files
+  must agree, and the finished tarball is read back and counted.
+
 ## [0.30.0] — 2026-08-30
 
 ### Highlights

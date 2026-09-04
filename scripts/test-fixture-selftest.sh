@@ -73,6 +73,49 @@ else
     pass "overtake is off, so movy genuinely exited"
 fi
 
+echo -e "${BLD}=== 6. the movy-hosted half of the fixture ===${RST}"
+# The other host. Every suite runs on both (test-all-device-movy.sh), and the
+# movy side has no schwung slot to read back — the whole thing rests on the
+# `chtracks` write landing and on `chloadedlog` telling the truth about what the
+# chains hold. Neither had any coverage while the fixture only spoke schwung.
+TS_HOST_MODE=movy
+if ts_apply_host_flag; then pass "prefs.json pins tracks 1-4 to movy"
+else fail "could not pin the track host in prefs.json"; fi
+if test_set_begin; then pass "test_set_begin established the movy-hosted fixture"
+else fail "test_set_begin failed with tracks 1-4 on movy chains"; fi
+
+# The falsifier, and the one that matters most: `set_chain_set` leaves a chain
+# that already holds the right module alone, so it logs no load — a verify
+# reading the engine's REQUEST rather than its instances would pass here
+# forever, on any device, however badly the chains had failed.
+ts_chain_entries_real=$(declare -f ts_chain_entries)
+ts_chain_entries() { echo "0 synth definitely-not-a-module"; }
+if ts_verify_chains 2>/dev/null; then
+    fail "verify accepted a chain that does not hold the fixture module"
+else
+    pass "verify rejected a chain that does not hold the fixture module"
+fi
+eval "$ts_chain_entries_real"
+
+TS_HOST_MODE=schwung
+if ts_apply_host_flag; then pass "and the host is put back to schwung"
+else fail "could not restore the schwung track host"; fi
+
+# ...then to whatever the device came in with. This suite has no test_set_end
+# trap (it is testing the library, not running against it), so the handback is
+# explicit — and asserted, because `chtracks` is a user setting rather than
+# scaffolding, and a restore that quietly did nothing would leave the device on
+# a host nobody chose. `TS_HOST_FLAG_SAVED` is the value read before section 1's
+# first pin, which is the only record of it left.
+BEFORE="$TS_HOST_FLAG_SAVED"
+ts_restore_host_flag
+ts_save_host_flag          # re-read the device (restore cleared the saved copy)
+if [ "$TS_HOST_FLAG_SAVED" = "$BEFORE" ]; then
+    pass "the user's own track-host setting was handed back (chtracks/rev: $BEFORE)"
+else
+    fail "handback left prefs at '$TS_HOST_FLAG_SAVED', wanted '$BEFORE'"
+fi
+
 echo
 if [ $fails -eq 0 ]; then echo -e "${GRN}${BLD}FIXTURE SELFTEST PASSED${RST}"; else
     echo -e "${RED}${BLD}$fails SELFTEST CHECK(S) FAILED${RST}"; exit 1; fi

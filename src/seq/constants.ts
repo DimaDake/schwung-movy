@@ -24,6 +24,7 @@ export const STEP_FLAGS = 1;         // Shift+Step 2  — Global Params (debug o
 export const STEP_CLIP_PARAMS = 2;   // Shift+Step 3  — Clip Params page
 export const STEP_METRO = 5;         // Shift+Step 6  — Metronome
 export const STEP_FULL_VEL = 9;      // Shift+Step 10 — Full Velocity
+export const STEP_CPU = 11;          // Shift+Step 12 — CPU meter
 export const STEP_DOUBLE_LOOP = 14;  // Shift+Step 15 — Double Loop
 export const STEP_QUANTIZE = 15;     // Shift+Step 16 — Quantize
 
@@ -35,7 +36,7 @@ export const MAIN_PAGE_STEPS: Record<number, number> = { 4: 0, 6: 0, 8: 0 };
  * build-dsp.sh fails the build when they diverge. The UI re-issues the DSP
  * load until ping returns this exact version (fixes the fire-and-forget
  * load race and stale engines after redeploy). */
-export const ENGINE_VERSION = '0.54.0';
+export const ENGINE_VERSION = '0.62.0';
 export const ENGINE_DSP_PATH = '/data/UserData/schwung/modules/tools/movy/dsp.so';
 
 /* Where the engine finds schwung's chain host, and where it may keep its own

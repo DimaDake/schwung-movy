@@ -40,6 +40,9 @@ export function createScopedLfoModel(scope: LfoScope): Model {
     const accum = new Array(8).fill(0) as number[];
     let overlay: LfoOverlay | null = null;
 
+    /* Drop the cache so the next build re-reads both LFOs. */
+    function dropCache(): void { loaded = false; dirty = true; }
+
     function load(): void {
         vals[0] = readLfoVals(scope, 0);
         vals[1] = readLfoVals(scope, 1);
@@ -149,8 +152,11 @@ export function createScopedLfoModel(scope: LfoScope): Model {
             const next = clampI(bank + delta, 0, LFO_BANK_COUNT - 1);
             if (next !== bank) { bank = next; touched.length = 0; dirty = true; }
         },
+        /* The LFO page's banks are its own fixed set, not a module config, so
+         * no pad claims one. Present to satisfy the shared model shape. */
+        selectBankForPad(_pad: number): void {},
         getModuleName(): string { return 'LFO'; },
-        reset(): void { bank = 0; touched.length = 0; overlay = null; accum.fill(0); loaded = false; dirty = true; },
+        reset(): void { bank = 0; touched.length = 0; overlay = null; accum.fill(0); dropCache(); },
         // Values are movy-owned once loaded; they are read from shadow only on
         // load/reload. No periodic re-read: a write's read-back can lag on
         // device, and re-reading would clobber a just-committed value (that was
@@ -160,13 +166,16 @@ export function createScopedLfoModel(scope: LfoScope): Model {
             const d = dirty; dirty = false; return d;
         },
         getViewModel(_auto?: import('../types/viewmodel.js').AutomationView): ViewModel { return buildVM(); },
-        reload(): void { loaded = false; dirty = true; },
+        reload(): void { dropCache(); },
+        /* Already immediate: this page's values are read by `load()` on the next
+         * build, not polled, so there is nothing to bring forward. */
+        reloadNow(): void { dropCache(); },
         getComponentKey(): string { return scope.keyPrefix + 'lfo'; },
         /* The page's values are read from schwung ONCE and owned by movy after
          * that (see `loaded`), so a value restored behind its back — by an undo
          * writing straight to the chain — leaves the display showing the old
          * one. Drop the cache; the next build re-reads both LFOs. */
-        refreshParamKey(): boolean { loaded = false; dirty = true; return true; },
+        refreshParamKey(): boolean { dropCache(); return true; },
         hasLoadedParams(): boolean { return loaded; },
         ...inertModelSurface('lfo', 'LFO', scope.keyPrefix + 'lfo'),
     };

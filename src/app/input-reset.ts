@@ -13,6 +13,7 @@
  * (the Leave-Movy modal), where releases provably cannot come back. */
 
 import { seqState } from '../seq/state.js';
+import { resetSong } from '../seq/song.js';
 import { seqCmd } from '../seq/engine.js';
 import { resetStepEdit } from '../seq/step-edit.js';
 import { resetStepPage } from '../seq/step-page.js';
@@ -62,6 +63,7 @@ export function resetHeldInput(notifyEngine: boolean): void {
     seqState.holdNotes = [];
     seqState.holdLen = 0;
     appState.shiftHeld = false;
+    resetSong();
 
     // Knob touch/hold state lives on each chain model (touched highlight, enum /
     // file overlay, long-press timer). Models are built by init() after this

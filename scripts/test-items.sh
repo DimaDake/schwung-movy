@@ -77,28 +77,7 @@ ssh "ableton@$HOST" "mkdir -p $REMOTE" >/dev/null 2>&1
 scp -q "$MOVY_DIR/ui.js" "ableton@$HOST:$REMOTE/"
 pass "Built + deployed"
 
-# Unlike test-module-contract.sh, which borrows the fixture's EMPTY FX 1 slot,
-# this borrows the SYNTH slot the fixture itself owns. A read that races the
-# stack restart comes back empty, and restoring that empty reading would leave
-# the fixture's own module unloaded — so fall back to what the fixture declares
-# rather than to "none".
-FIXTURE_SYNTH=$(node -e "
-  const f='$MOVY_DIR/scripts/fixtures/device-set/slot_$SLOT.json';
-  try { process.stdout.write(require(f).chain?.synth?.module ?? require(f).synth?.module ?? ''); }
-  catch { process.stdout.write(''); }" 2>/dev/null || echo "")
-PREV=$(node "$MOVY_DIR/scripts/module-slot.mjs" get "$SLOT" synth 2>/dev/null || echo "")
-PREV="${PREV:-$FIXTURE_SYNTH}"
-info "Synth slot previously: '${PREV:-<empty>}' — loading $MODULE"
-restore() {
-    info "Restoring synth to '${PREV:-<empty>}'"
-    node "$MOVY_DIR/scripts/module-slot.mjs" set "$SLOT" synth "${PREV:-none}" >/dev/null 2>&1 || true
-    test_set_end
-}
-trap restore EXIT INT TERM
-node "$MOVY_DIR/scripts/module-slot.mjs" set "$SLOT" synth "$MODULE" >/dev/null 2>&1
-pass "$MODULE loaded into the synth slot"
-
-info "Reopening movy and entering the synth knob page..."
+info "Reopening movy..."
 for _ in 1 2 3; do inj cc $CC_BACK 127; sleep 0.12; inj cc $CC_BACK 0; sleep 0.15; done
 ssh "ableton@$HOST" "touch /data/UserData/schwung/debug_log_on; > $LOG" >/dev/null 2>&1
 ssh "ableton@$HOST" 'python3 -c "
@@ -108,6 +87,34 @@ f=open(\"/dev/shm/schwung-control\",\"r+b\"); mm=mmap.mmap(f.fileno(),0); mm[56]
 "' >/dev/null 2>&1
 sleep 3
 ts_focus_track0
+
+# Unlike test-module-contract.sh, which borrows the track's EMPTY FX 1 slot,
+# this borrows the SYNTH slot the fixture itself owns. A read that races the
+# stack restart comes back empty, and restoring that empty reading would leave
+# the fixture's own module unloaded — so fall back to what the fixture declares
+# rather than to "none".
+#
+# Borrowed after the open, and addressed through `ts_load_component`: when
+# tracks 1-4 are movy's, the track's chain lives inside movy's own engine, which
+# the host unloads on exit — writing to schwung's slot 0, or writing at all with
+# movy closed, loads the module somewhere the track is not.
+FIXTURE_SYNTH=$(ts_fixture_synth "$SLOT")
+PREV=$(ts_read_component "$SLOT" synth)
+PREV="${PREV:-$FIXTURE_SYNTH}"
+info "Synth slot previously: '${PREV:-<empty>}' — loading $MODULE"
+restore() {
+    info "Restoring synth to '${PREV:-<empty>}'"
+    ts_load_component "$SLOT" synth "${PREV:-none}" || true
+    test_set_end
+}
+trap restore EXIT INT TERM
+ts_load_component "$SLOT" synth "$MODULE"
+# Dexed loads a .syx bank on its way up; the knob page below is built from the
+# list it serves once that has settled.
+sleep 4
+pass "$MODULE loaded into the synth slot"
+
+info "Entering the synth knob page..."
 inj cc $CC_CLICK 127; sleep 0.15; inj cc $CC_CLICK 0; sleep 1.5   # chain → knobs
 HIER=$(movylog | grep "loadHierarchy:" | tail -1 || true)
 [ -n "$HIER" ] && pass "Hierarchy loaded: ${HIER##*movy] }" \

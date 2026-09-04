@@ -31,6 +31,7 @@ import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, 
 import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease } from '../seq/main-page.js';
 import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease } from '../seq/clip-page.js';
 import { flagsPageActive, flagsPageJog, flagsPageKnob } from '../seq/flags-page.js';
+import { cpuPageActive } from '../seq/cpu-page.js';
 import { closeParamPage, paramPageActive } from '../seq/param-page.js';
 import { CHAIN_SLOTS, MASTER_FX_SLOTS, LFO_CHAIN_INDEX, MASTER_LFO_INDEX, isLfoSlot, isMasterLfoSlot } from '../chain/config.js';
 import { keyboardState } from '../keyboard/state.js';
@@ -350,7 +351,18 @@ export function onMidiMessageInternal(data: number[]): void {
             const vel = seqState.fullVelocity ? 127 : d2;
             if (drumCfg) {
                 const pad = drumPadOn(d1, PAD_MIN, appState.shiftHeld, drumCfg, model!.getComponentKey(), track, vel);
-                if (pad !== null) model!.updateDrumPad(pad, d1);
+                /* The only trace a pad leaves. selectBankForPad logs when it
+                 * MOVES the page, so without this there is no way to tell a pad
+                 * that changed nothing from a pad that never arrived — and a
+                 * device suite asserting "the page did not move" cannot know
+                 * which of the two it just proved. */
+                mlog('drumPad note=' + d1 + ' pad=' + pad);
+                if (pad !== null) {
+                    model!.updateDrumPad(pad, d1);
+                    /* Pad-follow, for configs that declare `pad` on a bank. A
+                     * no-op for every config that does not. */
+                    model!.selectBankForPad(pad);
+                }
             } else {
                 noteOn(d1, PAD_MIN, track, vel);
             }
@@ -410,6 +422,12 @@ export function onMidiMessageInternal(data: number[]): void {
             // consumed, so a stray turn cannot reach the module underneath.
             flagsPageKnob(k, delta);
             appState.dirty = true;
+            return;
+        }
+        if (cpuPageActive()) {
+            // Nothing on this page is editable. Consumed anyway, or a stray
+            // turn reaches the module underneath and edits a parameter the user
+            // cannot see.
             return;
         }
         // Step page owns the knobs while it is selected (intrinsic trig props,
@@ -672,6 +690,7 @@ export function onMidiMessageInternal(data: number[]): void {
                 appState.dirty = true;
                 return;
             }
+            if (cpuPageActive()) return;   // sixteen columns fit; nothing to scroll
             if (masterDetailActive()) {
                 masterModel()?.changePage(delta > 0 ? 1 : -1);
             } else if (masterGridActive()) {

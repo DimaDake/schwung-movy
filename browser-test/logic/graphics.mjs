@@ -115,7 +115,7 @@ _log('\nTest: the browse hint is drawn on every view that shows the overlay');
         moduleName: 'M', bankName: '', bankIndex: 0, bankCount: 1,
         rows: [[null, null, null, null], [null, null, null, null]],
         touchedSlot: 0, overlay: null, isEmpty: false,
-        drumPadCount: 0, drumCurrentPad: 0, drumCurrentPhysPad: 0, isPadSpecific: false,
+        drumPadCount: 0, drumCurrentPad: 0, drumCurrentPhysPad: 0, isPadScoped: false,
         automationHeld: false, automationPoolFull: false,
         stepPagePresent: false, stepPageSelected: false,
         toast: { fullName: 'Sample', value: '—', browseHint: true },

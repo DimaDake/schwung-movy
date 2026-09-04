@@ -1091,10 +1091,16 @@ export const MOCK_SYNTHS = {
 
     /* 9W9 (TR-909 style): one circuit per voice, so params are named after the
      * VOICE (bd_c_tune, ohh_pitch) and the sampled cymbals have no Drive or
-     * Distortion at all. Nothing a {pad}-number template can address — this is
-     * the module the padKeys form exists for. Values differ per voice so a test
-     * can prove which key a knob actually reached. The hi-hat has Drive but no
-     * pitch-envelope depth — only the five circuit voices have one. */
+     * Distortion at all. Nothing a {pad}-number template can address. Values
+     * differ per voice so a test can prove which key a knob actually reached.
+     * The hi-hat has Drive but no pitch-envelope depth — only the five circuit
+     * voices have one.
+     *
+     * Serves both layouts, since the keys are the module's either way: movy's
+     * bundled `src/modules/9w9.json` (a page per voice, each naming its pad —
+     * bundled because 9W9's own config predates the voice-run rule) and
+     * `padkeys-movy-config.json` (the pre-2.0 padSpecific layout, kept under
+     * MOCK_SYNTHS.padkeys below). */
     nw9: {
         "synth:name":           "9W9",
         "synth_module":         "9w9",
@@ -1471,4 +1477,27 @@ export const MOCK_SYNTHS = {
         "synth:preset_names": JSON.stringify(["P0", "P1", "P2", "P3", "..."]),
         "synth:chain_params": JSON.stringify([{"key": "preset", "name": "Preset", "type": "int", "min": 0, "max": -1}, {"key": "volume", "name": "Volume", "type": "float", "min": 0, "max": 1}, {"key": "bend_range", "name": "Bend", "type": "float", "min": 0, "max": 12}, {"key": "saw", "name": "Saw", "type": "float", "min": 0, "max": 1}, {"key": "pulse", "name": "Pulse", "type": "float", "min": 0, "max": 1}, {"key": "sub", "name": "Sub", "type": "float", "min": 0, "max": 1}, {"key": "noise", "name": "Noise", "type": "float", "min": 0, "max": 1}, {"key": "sub_mode", "name": "Sub Mode", "type": "enum", "min": 0, "max": 2, "options": ["-2 Oct 50% PW", "-2 Oct", "-1 Oct"]}, {"key": "white_noise", "name": "White Noise", "type": "enum", "min": 0, "max": 1, "options": ["Off", "On"]}, {"key": "pulse_width", "name": "Pulse Width", "type": "float", "min": 0.05, "max": 0.95}, {"key": "pwm_mode", "name": "PWM Mode", "type": "enum", "min": 0, "max": 2, "options": ["Env", "Manual", "LFO"]}, {"key": "pwm_depth", "name": "PWM Depth", "type": "float", "min": 0, "max": 1}, {"key": "pwm_env_depth", "name": "PWM Env", "type": "float", "min": 0, "max": 1}, {"key": "cutoff", "name": "Cutoff", "type": "float", "min": 0, "max": 1}, {"key": "resonance", "name": "Res", "type": "float", "min": 0, "max": 1.2}, {"key": "env_amt", "name": "Env Amt", "type": "float", "min": 0, "max": 1}, {"key": "key_follow", "name": "Key Follow", "type": "float", "min": 0, "max": 1}, {"key": "filter_velocity_sens", "name": "Vel Filt", "type": "float", "min": 0, "max": 1}, {"key": "attack", "name": "Attack", "type": "float", "min": 0.001, "max": 4}, {"key": "decay", "name": "Decay", "type": "float", "min": 0.001, "max": 6}, {"key": "sustain", "name": "Sustain", "type": "float", "min": 0, "max": 1}, {"key": "release", "name": "Release", "type": "float", "min": 0.001, "max": 8}, {"key": "velocity_sens", "name": "Vel Amp", "type": "float", "min": 0, "max": 1}, {"key": "f_attack", "name": "F Attack", "type": "float", "min": 0.001, "max": 4}, {"key": "f_decay", "name": "F Decay", "type": "float", "min": 0.001, "max": 6}, {"key": "f_sustain", "name": "F Sustain", "type": "float", "min": 0, "max": 1}, {"key": "f_release", "name": "F Release", "type": "float", "min": 0.001, "max": 8}, {"key": "lfo_rate", "name": "LFO Rate", "type": "float", "min": 0.02, "max": 40}, {"key": "lfo_waveform", "name": "LFO Wave", "type": "enum", "min": 0, "max": 3, "options": ["Tri", "Rect", "Random", "Noise"]}, {"key": "lfo_trigger", "name": "LFO Trig", "type": "enum", "min": 0, "max": 1, "options": ["Free", "Retrig"]}, {"key": "lfo_sync", "name": "LFO Sync", "type": "enum", "min": 0, "max": 1, "options": ["Free", "Sync"]}, {"key": "lfo_invert", "name": "LFO Inv", "type": "enum", "min": 0, "max": 1, "options": ["Off", "On"]}, {"key": "lfo_pitch_snap", "name": "Pitch Snap", "type": "enum", "min": 0, "max": 1, "options": ["Off", "On"]}, {"key": "lfo_pitch", "name": "LFO Pitch", "type": "float", "min": 0, "max": 1}, {"key": "lfo_filter", "name": "LFO Filter", "type": "float", "min": 0, "max": 1}, {"key": "lfo_pwm", "name": "LFO PWM", "type": "float", "min": 0, "max": 1}, {"key": "glide", "name": "Glide", "type": "float", "min": 0, "max": 500}, {"key": "portamento_mode", "name": "Porta Mode", "type": "enum", "min": 0, "max": 2, "options": ["Off", "On", "Auto"]}, {"key": "portamento_linear", "name": "Porta Curve", "type": "enum", "min": 0, "max": 1, "options": ["Expo", "Linear"]}, {"key": "retrigger", "name": "Retrigger", "type": "enum", "min": 0, "max": 1, "options": ["Legato", "Trig"]}, {"key": "hold", "name": "Hold", "type": "enum", "min": 0, "max": 1, "options": ["Off", "On"]}, {"key": "transpose", "name": "Transpose", "type": "int", "min": -24, "max": 24}, {"key": "octave_transpose", "name": "Octave", "type": "int", "min": -2, "max": 2}, {"key": "fine_tune", "name": "Fine Tune", "type": "float", "min": -100, "max": 100}, {"key": "gate_trig_mode", "name": "Gate Mode", "type": "enum", "min": 0, "max": 2, "options": ["Gate", "Gate+Trig", "LFO"]}, {"key": "vca_mode", "name": "VCA Mode", "type": "enum", "min": 0, "max": 1, "options": ["Gate", "Envelope"]}, {"key": "adsr_declick", "name": "ADSR DeClick", "type": "float", "min": 0, "max": 1}, {"key": "priority", "name": "Priority", "type": "enum", "min": 0, "max": 1, "options": ["Last", "Low"]}, {"key": "velocity_mode", "name": "Vel Mode", "type": "enum", "min": 0, "max": 2, "options": ["Off", "Trigger", "Active"]}, {"key": "same_note_quirk", "name": "Same-Note", "type": "enum", "min": 0, "max": 1, "options": ["Off", "On"]}, {"key": "filter_env_full_range", "name": "Env Full Range", "type": "enum", "min": 0, "max": 1, "options": ["Off", "On"]}, {"key": "filter_env_polarity", "name": "Env Polarity", "type": "enum", "min": 0, "max": 1, "options": ["Positive", "Negative"]}, {"key": "filter_volume_correction", "name": "Vol Correction", "type": "float", "min": 0, "max": 1}]),
     },
+};
+
+/* 8W8 (TR-808 style). Sixteen voices, each its own page naming its pad, plus
+ * Master/Reverb/Delay which name none — the shape the page rotation collapses
+ * to four entries. Params come from the fixture's own keys; the model boots
+ * fine without values, and this test is about navigation, not readback. */
+MOCK_SYNTHS['8w8'] = { "synth:name": "8W8", "synth_module": "8w8" };
+/* 6W6 and CW-78 round out the family. Same story: the fixture is the shipped
+ * config and carries the keys, so the mock only has to name the module. */
+MOCK_SYNTHS['6w6']  = { "synth:name": "6W6",   "synth_module": "6w6" };
+MOCK_SYNTHS['cw78'] = { "synth:name": "CW-78", "synth_module": "cw78" };
+
+/* The pre-2.0 9W9 layout, under a name that does not claim to be 9W9. 9W9
+ * deliberately stopped shipping padScoping/padKeys — one re-targeting row is
+ * mostly holes on a kit whose voices are separate circuits — so a mock still
+ * called "9w9" would assert a layout the module dropped on purpose. The form is
+ * still right for a kit whose pads share a control set, and this is its only
+ * exercise, so it keeps its coverage under its own name.
+ * Same params as 9W9: real per-voice keys are what make the addressing real. */
+MOCK_SYNTHS.padkeys = {
+    ...MOCK_SYNTHS.nw9,
+    "synth:name":   "PadKeys",
+    "synth_module": "padkeys",
 };

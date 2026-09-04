@@ -124,6 +124,28 @@ pub struct Engine {
     /// Set by edit commands, cleared when the state is serialized for saving.
     /// The UI polls it to know when to write the autosave file.
     pub dirty: bool,
+    /// Song mode: the raw sequence of scene presses, e.g. `[1,2,2,3]`. Empty =
+    /// no song. Consecutive duplicates fold into one entry with a repeat count
+    /// only at scheduling time (`song_entry_at`), so this stays the literal
+    /// gesture the user made — the same list the screen reads out and
+    /// persistence stores, with no second representation to keep in sync.
+    pub song: Vec<u8>,
+    /// Raw index in `song` of the first press of the entry now playing.
+    song_pos: usize,
+    /// Master bar on which the current entry started. `None` until the song's
+    /// first scene actually falls in, which is the boundary its launch
+    /// resolves on.
+    song_start_bar: Option<u64>,
+    /// The transition out of the current entry has been prepared: either the
+    /// next scene was launched, or it needed no launch because it names the
+    /// same scene. The advance is gated on this — stepping to an entry whose
+    /// clips were never launched skips it silently.
+    song_armed: bool,
+    /// The scene that arming launched, or `None` when it needed no launch. A
+    /// no-op arm is the one that can go STALE: a song of one entry wraps onto
+    /// itself and launches nothing, and appending a different scene after that
+    /// makes the decision wrong (see `song_add`).
+    song_armed_launch: Option<usize>,
     gates: Vec<Gate>,
     /// (track, step) the UI is holding, for the step-length readout. None = not held.
     held_query: Option<(usize, u16)>,
@@ -229,6 +251,11 @@ impl Engine {
             clipboard_span: 0,
             clip_clipboard: None,
             recording: false,
+            song: Vec::new(),
+            song_pos: 0,
+            song_start_bar: None,
+            song_armed: false,
+            song_armed_launch: None,
             rec_track: 0,
             rec_empty_start: false,
             count_in_left: 0,
@@ -565,6 +592,23 @@ impl Engine {
     /// Play button / auto-start: every track plays its selected clip (native
     /// "Play starts all selected clips"), restarting from the loop start.
     pub fn play(&mut self) {
+        /* A song owns what plays: Play restarts the arrangement from the top
+         * rather than resuming each track's own selection. */
+        if let Some((scene, _)) = self.song_entry_at(0) {
+            self.song_pos = 0;
+            self.song_start_bar = None;
+            self.song_armed = false;
+            self.song_armed_launch = None;
+            for t in &mut self.tracks {
+                t.active_clip = scene;
+                t.playing_slot = if t.clips[scene].exists() { Some(scene) } else { None };
+                t.queued_slot = None;
+                t.pending_stop = false;
+            }
+            self.capture.clear();
+            self.start_transport();
+            return;
+        }
         for t in &mut self.tracks {
             t.playing_slot = if t.active().exists() {
                 Some(t.active_clip)
@@ -608,7 +652,14 @@ impl Engine {
         if track >= NUM_TRACKS || slot >= CLIPS_PER_TRACK {
             return;
         }
+        /* Launching a clip by hand is taking the wheel: the arrangement stops
+         * being an arrangement. What is playing keeps playing — only the
+         * sequencing stops. */
+        self.clear_song();
         self.tracks[track].active_clip = slot;
+        /* The user just picked a slot by hand; a scene's deferred selection
+         * must not overwrite it when the bar lands. */
+        self.tracks[track].pending_select = None;
         let exists = self.tracks[track].clips[slot].exists();
         if self.playing {
             if exists {
@@ -623,6 +674,266 @@ impl Engine {
             self.start_transport();
         } else {
             self.tracks[track].playing_slot = None;
+        }
+    }
+
+    /// How many bars a scene lasts: the longest clip in that column, rounded
+    /// up to whole bars, minimum 1. Rounding up is what keeps every scene
+    /// switch on the same 1-bar launch grid `service_tick` already resolves
+    /// against, which is in turn what makes the one-bar-ahead pulse exact.
+    pub fn scene_bars(&self, slot: usize) -> u32 {
+        if slot >= CLIPS_PER_TRACK {
+            return 1;
+        }
+        let mut bars = 1;
+        for t in &self.tracks {
+            let c = &t.clips[slot];
+            if c.exists() {
+                let b = (c.length_steps as u32 + crate::STEPS_PER_BAR - 1) / crate::STEPS_PER_BAR;
+                if b > bars {
+                    bars = b;
+                }
+            }
+        }
+        bars
+    }
+
+    /// True when no track has a clip in that column. Such a scene is TERMINAL
+    /// in a song: with no clip there is nothing to take a length from, so the
+    /// arrangement ends on it rather than guessing a duration.
+    pub fn scene_is_empty(&self, slot: usize) -> bool {
+        slot >= CLIPS_PER_TRACK || !self.tracks.iter().any(|t| t.clips[slot].exists())
+    }
+
+    /// Launch a whole column: every track's clip in `slot`. A track whose slot
+    /// is empty STOPS — a scene is a full snapshot of what plays, so what is
+    /// not in the column goes quiet.
+    ///
+    /// Deliberately the same per-track mechanics as `launch_clip`, reusing
+    /// `queued_slot` / `pending_stop` rather than inventing a scene-level
+    /// queue. That is what makes the Session grid's queued and stopping pulses
+    /// light up for a scene with no LED work of its own — and what stops the
+    /// empty case needing any gating beyond `playing_slot = None`, since
+    /// `service_tick` already flushes the gates of a track it is not servicing.
+    pub fn launch_scene(&mut self, slot: usize) {
+        if slot >= CLIPS_PER_TRACK {
+            return;
+        }
+        let playing = self.playing;
+        let mut any_clip = false;
+        for t in &mut self.tracks {
+            let exists = t.clips[slot].exists();
+            any_clip |= exists;
+            if playing {
+                if exists {
+                    t.queued_slot = Some(slot);
+                    t.pending_stop = false;
+                } else {
+                    t.pending_stop = true;
+                    t.queued_slot = None;
+                    /* No launch to carry the selection across, so it is
+                     * deferred by hand — the Session grid must not show this
+                     * track sitting in the previous scene's column. */
+                    t.pending_select = Some(slot);
+                }
+                /* The edit target is NOT moved here. The song arms the next
+                 * scene a bar early to light the queued pulse, and retargeting
+                 * now would move a running take into the next scene's clip a
+                 * whole bar before that clip plays. The queue-resolution block
+                 * in `service_tick` sets `active_clip` when the launch actually
+                 * lands, which is the moment the target really did change.
+                 * `launch_clip` selects immediately because pressing a cell IS
+                 * a selection; arming is not. */
+            } else {
+                t.active_clip = slot;
+                t.playing_slot = if exists { Some(slot) } else { None };
+                t.queued_slot = None;
+                t.pending_stop = false;
+            }
+        }
+        if !playing && any_clip {
+            self.start_transport();
+        }
+    }
+
+    /// Raw index of the first press of the entry now playing.
+    pub fn song_pos(&self) -> usize {
+        self.song_pos
+    }
+
+    /// The entry starting at raw index `i`: `(scene, repeat count)`. Pressing
+    /// the same scene twice in a row is one entry that plays twice as long, so
+    /// a run of identical presses folds here rather than being stored folded.
+    pub fn song_entry_at(&self, i: usize) -> Option<(usize, u32)> {
+        let scene = *self.song.get(i)? as usize;
+        let reps = self.song[i..]
+            .iter()
+            .take_while(|&&s| s as usize == scene)
+            .count() as u32;
+        Some((scene, reps))
+    }
+
+    /// Raw index of the entry after the one starting at `i`, wrapping to the
+    /// start of the song — that wrap is what makes a song loop.
+    pub fn song_next_pos(&self, i: usize) -> usize {
+        match self.song_entry_at(i) {
+            Some((_, reps)) => {
+                let n = i + reps as usize;
+                if n >= self.song.len() {
+                    0
+                } else {
+                    n
+                }
+            }
+            None => 0,
+        }
+    }
+
+    /// Forget the song. What is playing keeps playing — only the sequencing
+    /// stops.
+    pub fn clear_song(&mut self) {
+        self.song.clear();
+        self.song_pos = 0;
+        self.song_start_bar = None;
+        self.song_armed = false;
+        self.song_armed_launch = None;
+    }
+
+    /// Start a new song from one scene — the first Shift+scene press of a hold.
+    /// It launches straight away (bar-quantized like any clip launch) so the
+    /// song starts before the user has finished building it.
+    pub fn song_start(&mut self, slot: usize) {
+        if slot >= CLIPS_PER_TRACK {
+            return;
+        }
+        self.clear_song();
+        self.song.push(slot as u8);
+        self.launch_scene(slot);
+    }
+
+    /// Append a scene to the song being built. It does NOT launch: the song is
+    /// already running and will reach this scene in order. Appending to the
+    /// entry now playing lengthens it on this pass too, because the entry's
+    /// total is derived from the list every bar rather than latched at entry.
+    pub fn song_add(&mut self, slot: usize) {
+        if slot >= CLIPS_PER_TRACK || self.song.is_empty() {
+            return;
+        }
+        self.song.push(slot as u8);
+        /* An arm made while the song was SHORTER can be stale. A song of one
+         * entry wraps onto itself, so the scheduler correctly arms nothing —
+         * but appending a different scene after that makes the decision wrong,
+         * and the next boundary would advance onto an entry whose clips were
+         * never launched. That scene is then skipped outright, which is exactly
+         * what happens when a bar falls between two presses of a live build.
+         *
+         * Only a NO-OP arm is withdrawn: nothing went out, so re-arming is
+         * free. A launch that has already been issued stands — it cannot be
+         * recalled, and the scene it named is the one about to play. */
+        if self.song_armed && self.song_armed_launch.is_none() {
+            let cur = self.song_entry_at(self.song_pos).map(|(s, _)| s);
+            let next = self.song_next_pos(self.song_pos);
+            let nxt = self.song_entry_at(next).map(|(s, _)| s);
+            if cur.is_some() && nxt != cur {
+                self.song_armed = false;
+                self.song_armed_launch = None;
+            }
+        }
+        /* Then arm straight away rather than leaving it to the next boundary.
+         * A one-bar entry arms on the bar it STARTS, so by the time a scene is
+         * appended that window has usually gone by, and deferring would repeat
+         * the current scene for a bar nobody asked for. This only QUEUES — the
+         * switch still lands on the boundary — and it lights the queued pulse
+         * the moment the scene is added.
+         *
+         * Not before the song's opening scene has actually fallen in
+         * (`song_start_bar` is None until then): its own launch is still
+         * sitting in `queued_slot`, and arming would overwrite it — skipping
+         * the very scene the song starts on. */
+        if self.playing && self.song_start_bar.is_some() {
+            self.song_try_arm(self.master_tick / crate::TICKS_PER_BAR as u64);
+        }
+    }
+
+    /// One bar boundary of the song scheduler. Called from `service_tick`
+    /// AFTER the queue-resolution block, which is load-bearing twice over: the
+    /// entry we are leaving has already had its successor fall in on this very
+    /// boundary, and a one-bar entry must be able to arm on the same boundary
+    /// it starts without us resolving the launch we just made.
+    fn song_bar(&mut self) {
+        if self.song.is_empty() || !self.playing {
+            return;
+        }
+        let bar = self.master_tick / crate::TICKS_PER_BAR as u64;
+        let start = *self.song_start_bar.get_or_insert(bar);
+
+        // Advance first. The launch armed a bar ago resolved on this boundary,
+        // before we ran, so the entry that was current is now behind us.
+        if let Some((scene, reps)) = self.song_entry_at(self.song_pos) {
+            /* Parked on the end of the song. Checked here as well as in
+             * `song_try_arm`, or the next boundary would step off the terminal
+             * scene as if it had simply run its length. */
+            if self.scene_is_empty(scene) {
+                return;
+            }
+            /* Gated on the arm: without it the boundary steps onto an entry
+             * whose clips were never launched, and that scene is skipped
+             * outright — see the stale-arm note in `song_add`. */
+            if self.song_armed && (bar - start) as u32 >= self.scene_bars(scene) * reps {
+                self.song_pos = self.song_next_pos(self.song_pos);
+                self.song_start_bar = Some(bar);
+                self.song_armed = false;
+                self.song_armed_launch = None;
+            }
+        }
+
+        // Then arm: one bar to go, so the Session grid shows the next scene
+        // queued for a full bar before it happens.
+        self.song_try_arm(bar);
+    }
+
+    /// Arm the transition out of the entry now playing, once its LAST bar has
+    /// arrived — queueing the next scene a full bar before it lands, which is
+    /// what gives the Session grid its one-bar warning pulse.
+    ///
+    /// Shared by the bar boundary and by `song_add`, because appending a scene
+    /// during the current entry's last bar has to arm it THERE AND THEN: the
+    /// boundary that would have armed it has already gone by, and waiting for
+    /// the next one repeats the current scene for a bar nobody asked for.
+    fn song_try_arm(&mut self, bar: u64) {
+        if self.song_armed {
+            return;
+        }
+        let Some((scene, reps)) = self.song_entry_at(self.song_pos) else {
+            return;
+        };
+        /* An empty scene is where the arrangement ends, so nothing is armed
+         * after it. The transport keeps running — this is a stop in the song,
+         * not a stop of the machine — and launching a clip or building a new
+         * song leaves it. */
+        if self.scene_is_empty(scene) {
+            return;
+        }
+        let start = self.song_start_bar.unwrap_or(bar);
+        let total = self.scene_bars(scene) * reps;
+        if bar.saturating_sub(start) as u32 + 1 < total {
+            return;
+        }
+        /* Only arm when there IS an entry to arm for, and record what the
+         * arming actually DID — a no-op arm is the one that can go stale. */
+        let next = self.song_next_pos(self.song_pos);
+        if let Some((next_scene, _)) = self.song_entry_at(next) {
+            /* Identical scenes either side of the boundary: a repeat, or a
+             * one-entry song wrapping onto itself. Re-launching would restart
+             * every clip and reset each track's `cycle`, so an A:B trig
+             * condition would never reach B. */
+            if next_scene != scene {
+                self.launch_scene(next_scene);
+                self.song_armed_launch = Some(next_scene);
+            } else {
+                self.song_armed_launch = None;
+            }
+            self.song_armed = true;
         }
     }
 
@@ -650,6 +961,12 @@ impl Engine {
         self.rec_tail.append(&mut self.rec_pending);
         self.commit_rec_tail();
         self.capture.clear();
+        /* The song survives a stop — Play replays it from the top — but the
+         * cursor into it does not. */
+        self.song_pos = 0;
+        self.song_start_bar = None;
+        self.song_armed = false;
+        self.song_armed_launch = None;
         for t in &mut self.tracks {
             t.last_auto_step = -1;
             t.auto_cur = [-1; 8];
@@ -803,7 +1120,15 @@ impl Engine {
             // Overdub punch-in: the clip is already running in phase, so record
             // from where the playhead is — waiting would swallow up to a bar.
             self.tracks[track].playing_slot = Some(a);
-            self.tracks[track].queued_slot = None;
+            /* Clearing the queue drops a STALE launch left by selecting an
+             * empty Session slot. A song's queue is not stale — it is the
+             * arrangement, armed a bar early — so punching in must not cancel
+             * the scene change underneath it. Recording follows the song into
+             * whatever ends up playing, which is what "record during a song"
+             * has to mean. */
+            if self.song.is_empty() {
+                self.tracks[track].queued_slot = None;
+            }
             self.recording = true;
         }
     }
@@ -1663,6 +1988,9 @@ impl Engine {
                     t.pending_stop = false;
                     t.playing_slot = None;
                 }
+                if let Some(sel) = t.pending_select.take() {
+                    t.active_clip = sel;
+                }
             }
             // The queued take starts here, on the same tick its clip launched —
             // so capture begins at the clip's loop start, on the grid.
@@ -1678,6 +2006,11 @@ impl Engine {
                     p.start_cycle = cycle;
                 }
             }
+            /* The song advances only once the queue above has resolved: the
+             * scene it armed a bar ago has just fallen in, and a one-bar entry
+             * has to be able to arm the next one on this same boundary without
+             * that launch being resolved by the loop we just ran. */
+            self.song_bar();
         }
         // Gate countdown now lives in step_tick (scaled per track), which only
         // runs for a track playing an existing clip. Flush hanging note-offs for
@@ -2156,7 +2489,7 @@ impl Engine {
         let htp = self.held_trig();
         let hlmax = self.held_max_gate();
         format!(
-            "play={} tick={} bpm={} ext={} link={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={} quant={} dquant={} cap={}.{}",
+            "play={} tick={} bpm={} ext={} link={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={} quant={} dquant={} cap={}.{} song={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -2196,6 +2529,7 @@ impl Engine {
             self.default_quant,
             self.capture.pending(self.watch_track as u8),
             self.capture_gen,
+            self.song_state(),
         )
     }
 
@@ -2239,6 +2573,25 @@ impl Engine {
     /// Per-track Session grid state for the UI: tracks joined by ',', each
     /// `EE.P.Q.S` — EE = 2-hex bitmap of occupied slots, P/Q/S = playing /
     /// queued / selected slot (digit, or '-' for none).
+    /// `song=` — the raw scene list and which entry is playing, e.g.
+    /// `1:1,2,2,3` (on the entry that starts at press 1). `-` when there is no
+    /// song. Never contains a space: status is space-separated key=value.
+    fn song_state(&self) -> String {
+        if self.song.is_empty() {
+            return "-".to_string();
+        }
+        let mut out = String::with_capacity(2 + self.song.len() * 2);
+        out.push_str(&self.song_pos.to_string());
+        out.push(':');
+        for (i, s) in self.song.iter().enumerate() {
+            if i > 0 {
+                out.push(',');
+            }
+            out.push_str(&s.to_string());
+        }
+        out
+    }
+
     fn session_state(&self) -> String {
         let slot = |o: Option<usize>| o.map_or('-', |s| (b'0' + s as u8) as char);
         let mut out = String::with_capacity(40);
@@ -4671,6 +5024,460 @@ mod tests {
         e.swing_pct = 66;
         assert!(e.status().contains("swing=66"));
     }
+
+    #[test]
+    fn a_scene_launches_every_track_in_its_column() {
+        let mut e = engine();
+        // Clips in column 2 on two tracks, plus one on a third track in a
+        // DIFFERENT column, so we can prove that track gets stopped, not left.
+        e.tracks[0].clips[2].length_steps = 16;
+        e.tracks[5].clips[2].length_steps = 16;
+        e.tracks[9].clips[0].length_steps = 16;
+        e.tracks[9].playing_slot = Some(0);
+
+        e.launch_scene(2);
+
+        assert!(e.playing, "a scene launched from stopped starts the transport");
+        assert_eq!(e.tracks[0].playing_slot, Some(2));
+        assert_eq!(e.tracks[5].playing_slot, Some(2));
+        // Track 9 has nothing in column 2: a scene is a snapshot, so it stops.
+        assert_eq!(
+            e.tracks[9].playing_slot, None,
+            "an empty slot in the column stops that track"
+        );
+        assert_eq!(e.tracks[9].active_clip, 2, "every track's edit target follows the scene");
+    }
+
+    #[test]
+    fn a_scene_launched_while_running_is_bar_quantized() {
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[0].clips[3].length_steps = 16;
+        e.tracks[4].clips[0].length_steps = 16; // nothing in column 3 -> stops
+        e.play();
+        assert!(e.playing);
+
+        e.launch_scene(3);
+
+        assert_eq!(e.tracks[0].queued_slot, Some(3), "queued, not switched mid-bar");
+        assert_eq!(e.tracks[0].playing_slot, Some(0), "still on the old clip until the bar");
+        assert!(e.tracks[4].pending_stop, "an empty slot queues a stop, not an instant cut");
+    }
+
+    #[test]
+    fn a_scene_lasts_as_long_as_its_longest_clip_rounded_up_to_bars() {
+        let mut e = engine();
+        assert_eq!(e.scene_bars(0), 1, "an empty scene is one bar");
+
+        e.tracks[0].clips[0].length_steps = 16; // 1 bar
+        e.tracks[1].clips[0].length_steps = 48; // 3 bars
+        e.tracks[2].clips[0].length_steps = 20; // 1.25 bars -> 2
+        assert_eq!(e.scene_bars(0), 3, "the longest clip sets the length");
+
+        e.tracks[1].clips[0].length_steps = 0; // no longer exists
+        assert_eq!(e.scene_bars(0), 2, "20 steps rounds up to 2 bars");
+
+        assert_eq!(e.scene_bars(99), 1, "an out-of-range slot is one bar, not a panic");
+    }
+
+    /// Advance by whole bars through the real audio-block path, so the song's
+    /// bar-boundary scheduler runs exactly as it does on device.
+    fn run_bars(e: &mut Engine, bars: u32) {
+        run_ticks(e, bars as u64 * crate::TICKS_PER_BAR as u64);
+    }
+
+    #[test]
+    fn a_song_folds_repeated_presses_into_one_longer_entry() {
+        let mut e = engine();
+        e.song_start(1);
+        e.song_add(2);
+        e.song_add(2);
+        e.song_add(3);
+        assert_eq!(e.song, vec![1, 2, 2, 3]);
+        assert_eq!(e.song_entry_at(0), Some((1, 1)));
+        assert_eq!(
+            e.song_entry_at(1),
+            Some((2, 2)),
+            "two presses of 2 are one entry, twice as long"
+        );
+        assert_eq!(e.song_entry_at(3), Some((3, 1)));
+        assert_eq!(e.song_next_pos(1), 3, "the entry after the doubled 2 starts at press 3");
+        assert_eq!(e.song_next_pos(3), 0, "the last entry wraps to the first");
+    }
+
+    #[test]
+    fn a_song_arms_the_next_scene_exactly_one_bar_early_and_loops() {
+        let mut e = engine();
+        // Two 1-bar scenes on track 0.
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[0].clips[1].length_steps = 16;
+
+        e.song_start(0); // from stopped: starts the transport immediately
+        e.song_add(1);
+        assert!(e.playing);
+        assert_eq!(e.tracks[0].playing_slot, Some(0));
+
+        // With a one-bar entry the scheduler arms on the same boundary the
+        // entry starts — which is exactly one bar of warning.
+        run_ticks(&mut e, 1);
+        assert_eq!(
+            e.tracks[0].queued_slot,
+            Some(1),
+            "the next scene is queued a full bar before it plays"
+        );
+
+        run_bars(&mut e, 1);
+        assert_eq!(e.tracks[0].playing_slot, Some(1), "scene 2 fell in on the bar");
+        assert_eq!(e.song_pos(), 1);
+        assert_eq!(
+            e.tracks[0].queued_slot,
+            Some(0),
+            "and scene 1 is queued again — the song loops"
+        );
+
+        run_bars(&mut e, 1);
+        assert_eq!(e.tracks[0].playing_slot, Some(0));
+        assert_eq!(e.song_pos(), 0);
+    }
+
+    #[test]
+    fn a_two_bar_scene_holds_for_two_bars() {
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 32; // 2 bars
+        e.tracks[0].clips[1].length_steps = 16;
+        e.song_start(0);
+        e.song_add(1);
+
+        run_ticks(&mut e, 1); // bar 0: entry starts, two bars to go
+        assert_eq!(e.tracks[0].queued_slot, None, "nothing queued yet — two bars left");
+        run_bars(&mut e, 1); // bar 1: one to go
+        assert_eq!(e.tracks[0].queued_slot, Some(1), "one bar to go -> armed");
+        run_bars(&mut e, 1); // bar 2
+        assert_eq!(e.tracks[0].playing_slot, Some(1));
+    }
+
+    #[test]
+    fn a_repeated_scene_plays_twice_as_long_without_retriggering() {
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[0].clips[1].length_steps = 16;
+        e.song_start(0);
+        e.song_add(0); // scene 1 twice -> two bars
+        e.song_add(1);
+
+        run_ticks(&mut e, 1); // bar 0 of the doubled entry
+        assert_eq!(
+            e.tracks[0].queued_slot, None,
+            "a doubled scene does not re-queue itself between reps"
+        );
+        run_bars(&mut e, 1); // bar 1 — one to go
+        assert_eq!(e.tracks[0].queued_slot, Some(1));
+        run_bars(&mut e, 1);
+        assert_eq!(
+            e.tracks[0].playing_slot,
+            Some(1),
+            "the doubled scene held for two bars"
+        );
+    }
+
+    #[test]
+    fn a_one_entry_song_never_relaunches_itself() {
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.song_start(0);
+
+        run_bars(&mut e, 3);
+        // Re-launching would reset the track's `cycle` every bar, so an A:B
+        // trig condition could never reach B.
+        assert_eq!(
+            e.tracks[0].queued_slot, None,
+            "a song of one scene just keeps looping"
+        );
+        assert!(e.tracks[0].cycle > 1, "the play count keeps counting across the wrap");
+    }
+
+    #[test]
+    fn play_restarts_the_song_from_the_top() {
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[0].clips[1].length_steps = 16;
+        e.song_start(0);
+        e.song_add(1);
+        run_ticks(&mut e, 1);
+        run_bars(&mut e, 1);
+        assert_eq!(e.song_pos(), 1, "moved on to the second scene");
+
+        let mut out = Vec::new();
+        e.stop(&mut out);
+        assert_eq!(e.song, vec![0, 1], "stopping keeps the song");
+        e.play();
+        assert_eq!(e.song_pos(), 0, "play restarts the arrangement from the beginning");
+        assert_eq!(e.tracks[0].playing_slot, Some(0));
+    }
+
+    #[test]
+    fn launching_a_clip_by_hand_deletes_the_song() {
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[0].clips[1].length_steps = 16;
+        e.song_start(0);
+        e.song_add(1);
+        assert!(!e.song.is_empty());
+
+        e.launch_clip(0, 1);
+
+        assert!(e.song.is_empty(), "taking the wheel ends the arrangement");
+        assert_eq!(e.tracks[0].playing_slot, Some(0), "what was playing keeps playing");
+    }
+
+    #[test]
+    fn song_add_before_any_song_does_nothing() {
+        let mut e = engine();
+        e.song_add(3);
+        assert!(e.song.is_empty(), "an append with no song to append to is inert");
+    }
+
+
+    #[test]
+    fn status_reports_the_song_and_where_we_are_in_it() {
+        let mut e = engine();
+        let s = e.status();
+        let song = s.split("song=").nth(1).unwrap().split(' ').next().unwrap();
+        assert_eq!(song, "-", "no song reads as a dash, never as an empty value");
+
+        e.tracks[0].clips[1].length_steps = 16;
+        e.tracks[0].clips[2].length_steps = 16;
+        e.song_start(1);
+        e.song_add(2);
+        e.song_add(2);
+        let s = e.status();
+        let song = s.split("song=").nth(1).unwrap().split(' ').next().unwrap();
+        assert_eq!(song, "0:1,2,2");
+        assert!(!song.contains(' '), "a status value may never contain a space");
+    }
+
+
+    #[test]
+    fn a_take_follows_the_song_into_the_next_scene() {
+        // Overdub punch-in — what "record during a song" normally means: the
+        // clip is already running, so Rec captures from the playhead and does
+        // not queue a launch of its own.
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[0].clips[0].toggle_step(0, &[(60, 100)]);
+        e.tracks[0].clips[1].length_steps = 16;
+        e.tracks[0].clips[1].toggle_step(0, &[(62, 100)]);
+        e.song_start(0);
+        e.song_add(1);
+
+        run_ticks(&mut e, 1);
+        e.toggle_record(0);
+        assert!(e.recording, "an overdub punches in immediately");
+        run_bars(&mut e, 1);
+
+        assert_eq!(e.tracks[0].playing_slot, Some(1), "the song moved on");
+        assert_eq!(
+            e.tracks[0].active_clip, 1,
+            "and the take follows into the clip that is now playing"
+        );
+        assert!(e.recording, "the take is still running after the scene change");
+    }
+
+    #[test]
+    fn arming_the_next_scene_does_not_move_the_edit_target_early() {
+        // The song arms a scene a full bar ahead to light the queued pulse.
+        // Retargeting then would move a running take into the next scene's clip
+        // a whole bar before that clip plays.
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[0].clips[1].length_steps = 16;
+        e.song_start(0);
+        e.song_add(1);
+
+        run_ticks(&mut e, 1);
+        assert_eq!(e.tracks[0].queued_slot, Some(1), "armed a bar early");
+        assert_eq!(
+            e.tracks[0].active_clip, 0,
+            "but the edit target is still the clip that is actually playing"
+        );
+    }
+
+    #[test]
+    fn a_first_take_holds_its_track_against_the_song_for_that_scene() {
+        // Rec on a note-empty clip is itself a bar-quantized clip launch, and
+        // it overwrites the scene the song had armed for that track. The
+        // explicit gesture wins: the take lands in the clip the user asked for
+        // rather than being moved out from under them. Only that track is held
+        // — the song keeps running and takes it back at the next scene.
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16; // exists, but no notes
+        e.tracks[0].clips[1].length_steps = 16;
+        e.tracks[1].clips[0].length_steps = 16;
+        e.tracks[1].clips[1].length_steps = 16;
+        e.song_start(0);
+        e.song_add(1);
+
+        run_ticks(&mut e, 1);
+        e.toggle_record(0);
+        run_bars(&mut e, 1);
+
+        assert_eq!(e.tracks[0].playing_slot, Some(0), "the take kept its track");
+        assert!(e.recording, "and it is running");
+        assert_eq!(
+            e.tracks[1].playing_slot,
+            Some(1),
+            "every other track still followed the song"
+        );
+    }
+
+
+    #[test]
+    fn a_scene_moves_the_selection_even_on_the_tracks_it_stops() {
+        // The Session grid's selected cell is `active_clip`. A track the scene
+        // silences has no queued launch to carry its selection across, so
+        // without help its selected pad stays in the old column while every
+        // other track moves — the grid then shows two different scenes at once.
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[1].clips[0].length_steps = 16;
+        e.tracks[0].clips[2].length_steps = 16; // scene 2 plays on track 0 only
+        e.play();
+
+        e.launch_scene(2);
+        assert_eq!(
+            e.tracks[1].active_clip, 0,
+            "the selection does not move a bar early, any more than a take does"
+        );
+
+        run_bars(&mut e, 1);
+        assert_eq!(e.tracks[0].active_clip, 2, "the playing track followed the scene");
+        assert_eq!(
+            e.tracks[1].active_clip, 2,
+            "and so did the one the scene stopped"
+        );
+        assert_eq!(e.tracks[1].playing_slot, None, "stopped, but selected there");
+    }
+
+    #[test]
+    fn launching_a_clip_by_hand_outranks_a_scene_the_bar_has_not_reached() {
+        // A pending selection from a scene must not overwrite a slot the user
+        // picked by hand in the meantime.
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[1].clips[0].length_steps = 16;
+        e.tracks[1].clips[5].length_steps = 16;
+        e.play();
+
+        e.launch_scene(2);              // nothing in column 2 on track 1 -> stops it
+        e.launch_clip(1, 5);            // ...but the user picks slot 5 before the bar
+        run_bars(&mut e, 1);
+
+        assert_eq!(e.tracks[1].active_clip, 5, "the hand-picked slot won");
+        assert_eq!(e.tracks[1].playing_slot, Some(5));
+    }
+
+
+    #[test]
+    fn a_song_parks_on_an_empty_scene_without_stopping_the_transport() {
+        // An empty scene has no clip to take a length from, so it is TERMINAL:
+        // the arrangement ends there. The transport keeps running — this is a
+        // stop in the song, not a stop of the machine.
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16; // scene 1 plays
+        // scene 2 (slot 1) has no clip on ANY track.
+        e.song_start(0);
+        e.song_add(1);
+
+        run_ticks(&mut e, 1);
+        run_bars(&mut e, 1);
+        assert_eq!(e.song_pos(), 1, "we reached the empty scene");
+        assert_eq!(e.tracks[0].playing_slot, None, "everything is silent");
+
+        run_bars(&mut e, 4);
+        assert_eq!(e.song_pos(), 1, "and the song stays there — it is the end");
+        assert_eq!(e.tracks[0].playing_slot, None, "nothing came back");
+        assert_eq!(e.tracks[0].queued_slot, None, "nothing is even queued");
+        assert!(e.playing, "but the transport is still running");
+    }
+
+    #[test]
+    fn a_song_that_ends_can_be_left_by_launching_a_clip() {
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[0].clips[4].length_steps = 16;
+        e.song_start(0);
+        e.song_add(1); // empty -> terminal
+        run_ticks(&mut e, 1);
+        run_bars(&mut e, 2);
+        assert_eq!(e.song_pos(), 1, "parked on the end");
+
+        e.launch_clip(0, 4);
+        assert!(e.song.is_empty(), "the song is gone");
+        run_bars(&mut e, 1);
+        assert_eq!(e.tracks[0].playing_slot, Some(4), "and playing again");
+    }
+
+
+    #[test]
+    fn a_scene_added_after_a_bar_has_passed_is_not_skipped() {
+        // Building a song is a LIVE gesture: bars go by between the presses.
+        // While the song was still a single entry the scheduler correctly armed
+        // nothing — it wraps onto itself — and appending a second scene after
+        // that must not let the next boundary step past it.
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[0].clips[1].length_steps = 16;
+        e.tracks[0].clips[2].length_steps = 16;
+
+        e.song_start(0);
+        run_ticks(&mut e, 1); // bar 0: scene 1 starts; a song of one arms nothing
+        run_bars(&mut e, 1);  // ...and a whole bar passes before the next press
+
+        e.song_add(1);
+        e.song_add(2);
+
+        // Appending arms immediately, so the new scene lands on the NEXT
+        // boundary rather than a bar after it.
+        run_bars(&mut e, 1);
+        assert_eq!(
+            e.tracks[0].playing_slot,
+            Some(1),
+            "scene 2 played — it was not skipped over"
+        );
+        assert_eq!(e.song_pos(), 1, "and the song knows it is on scene 2");
+
+        run_bars(&mut e, 1);
+        assert_eq!(e.tracks[0].playing_slot, Some(2), "then scene 3 followed it");
+    }
+
+
+    #[test]
+    fn a_scene_added_during_the_current_bar_falls_in_on_the_very_next_one() {
+        // Two one-bar scenes. Adding the second WHILE the first is playing its
+        // only bar must queue it at once: the boundary that would have armed it
+        // (a one-bar entry arms on the bar it starts) has already gone by, so
+        // leaving it to the next boundary repeats the first scene for a bar
+        // nobody asked for.
+        let mut e = engine();
+        e.tracks[0].clips[0].length_steps = 16;
+        e.tracks[0].clips[1].length_steps = 16;
+
+        e.song_start(0);
+        run_ticks(&mut e, 1); // bar 0: scene 1 is playing its only bar
+        assert_eq!(e.tracks[0].playing_slot, Some(0));
+
+        e.song_add(1); // ...appended mid-bar, before the boundary
+
+        assert_eq!(
+            e.tracks[0].queued_slot,
+            Some(1),
+            "the appended scene is queued at once, not a bar later"
+        );
+        run_bars(&mut e, 1);
+        assert_eq!(
+            e.tracks[0].playing_slot,
+            Some(1),
+            "so scene 2 fell in on the very next bar"
+        );
+    }
 }
-
-

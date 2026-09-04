@@ -352,4 +352,23 @@ export async function run() {
     uninstallMockEngine();
 }
 
+/* ── CPU meter fields ────────────────────────────────────────────────────── */
+{
+    _log('\nseq engine: CPU meter fields');
+    const { parseStatusForTest } = await import('../../dist/esm/seq/engine.js');
+    const { seqState } = await import('../../dist/esm/seq/state.js');
+
+    parseStatusForTest('play=0 chcost=1050/900/1180,0/0/0 chwall=1491/2180/2902 chmask=00ff/0100');
+    eq('cpuCost kept raw', seqState.cpuCost, '1050/900/1180,0/0/0');
+    eq('cpuWall kept raw', seqState.cpuWall, '1491/2180/2902');
+    eq('cpuMask kept raw', seqState.cpuMask, '00ff/0100');
+
+    /* An engine older than the page sends none of them. The previous poll's
+     * values must not be left standing as if they were current — that is the
+     * meter showing a number nothing measured. */
+    parseStatusForTest('play=0');
+    eq('a status without the fields clears them', seqState.cpuCost, '');
+    eq('all three of them', seqState.cpuWall + seqState.cpuMask, '');
+}
+
 }

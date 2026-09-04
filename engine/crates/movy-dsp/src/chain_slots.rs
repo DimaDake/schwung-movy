@@ -396,6 +396,49 @@ impl ChainSlots {
         true
     }
 
+    /// What each chain actually HOLDS — `<slot>:<component>=<module>` per
+    /// entry, with a trailing `?` on one that is still only a request.
+    ///
+    /// This is the only read-back a device test has for a movy-hosted chain.
+    /// The remote-UI socket can WRITE an engine param but has no get verb, and
+    /// the per-load line in `service_load` is not a substitute: a set that
+    /// already holds the right module is deliberately left alone
+    /// (`set_chain_set`), so it logs nothing at all and a second run against
+    /// the same fixture would read as a failed load.
+    ///
+    /// The value comes off the live instance rather than out of `desired`,
+    /// which is what makes it evidence — `desired` is what was asked for, and
+    /// echoing the request back would confirm nothing. Diagnostic only: it
+    /// allocates and queries every instance, so it belongs on the param write a
+    /// test pokes and never on the render path.
+    pub fn loaded_report(&mut self) -> String {
+        let wanted: Vec<(usize, String, String)> = self
+            .desired
+            .iter()
+            .enumerate()
+            .flat_map(|(s, cs)| cs.iter().map(move |(c, m)| (s, c.clone(), m.clone())))
+            .collect();
+        let mut out = String::new();
+        for (slot, component, module) in wanted {
+            if !out.is_empty() {
+                out.push(' ');
+            }
+            /* The underscore alias, which is the readable form for a track
+             * component — the colon key is write-only (see module-slot.mjs). */
+            match self
+                .get_param(slot, &format!("{component}_module"))
+                .filter(|v| !v.is_empty())
+            {
+                Some(live) => out.push_str(&format!("{slot}:{component}={live}")),
+                None => out.push_str(&format!("{slot}:{component}={module}?")),
+            }
+        }
+        if out.is_empty() {
+            out.push('-');
+        }
+        out
+    }
+
     /// Per-chain output peak of the last block, comma separated.
     pub fn peaks_csv(&self) -> String {
         let mut out = String::with_capacity(MOVY_CHAINS * 6);
@@ -671,6 +714,16 @@ impl ChainSlots {
         if active > 0 {
             self.cost.add_wall(t0.elapsed().as_nanos() as u64);
         }
+        // A chain that did no work this block cost nothing, and its mean has to
+        // say so. Serial `continue`s past it and parallel skips it above, so
+        // without this the mean simply freezes — see the fold in
+        // `render_parallel` for what that was doing to the plan.
+        for i in 0..MOVY_CHAINS {
+            if self.slots[i].is_some() && self.work[i].none() {
+                self.cost.add_ns(i, 0);
+                self.cost.add_synth_ns(i, 0);
+            }
+        }
         // After the join, before anything else: every lane is idle, so schwung
         // sees exactly one producer again, and slot order makes the emission
         // deterministic. Costs nothing when no chain sent anything, which today
@@ -778,6 +831,9 @@ impl ChainSlots {
                 // The FX is owed silence to decay into, not the last block.
                 self.scratch[i][..frames].fill(0);
             }
+            // Before the peak scan, exactly as the pool does it — the two paths
+            // have to mean the same thing or the meter changes when a flag does.
+            let synth_ns = if w.synth { t0.elapsed().as_nanos() as u64 } else { 0 };
             if split {
                 self.synth_peak[i] = self.scratch[i][..frames]
                     .iter()
@@ -788,6 +844,7 @@ impl ChainSlots {
             }
             drop(scope);
             self.cost.stop(t0, i);
+            self.cost.add_synth_ns(i, synth_ns);
         }
         active
     }
@@ -832,9 +889,16 @@ impl ChainSlots {
             pool.render_block(&self.lanes);
             // Costs are timed on whichever lane ran the chain — the audio thread
             // cannot bracket a call it did not make.
+            //
+            // Only for chains that HAD work: `cost_ns` is never cleared between
+            // rounds and a deep-asleep chain builds no task at all, so folding
+            // unconditionally re-added the cost the chain had while awake, every
+            // block, for as long as it slept. Its mean never decayed and the
+            // planner went on reserving a lane for a chain rendering nothing.
             for c in 0..MOVY_CHAINS {
-                if self.slots[c].is_some() {
+                if self.slots[c].is_some() && !self.work[c].none() {
                     self.cost.add_ns(c, pool.cost_ns(c));
+                    self.cost.add_synth_ns(c, pool.synth_ns(c));
                     self.synth_peak[c] = pool.synth_peak(c);
                 }
             }
@@ -861,6 +925,53 @@ impl ChainSlots {
             self.loaded[i] = s.is_some() && !self.idle.deep_asleep(i);
         }
         self.planner.plan(self.pin.pin_keys(), self.cost.plan_ns(), &self.loaded);
+    }
+
+    /// The CPU page's numbers as `status` fields, each with its leading space.
+    ///
+    /// MICROSECONDS, not nanoseconds: this goes out 24 times a second, four
+    /// extra digits per chain buys nothing, and the page draws a 1000 us column
+    /// in 39 pixels.
+    ///
+    /// Emitted unconditionally rather than behind an "the page is open" flag —
+    /// that flag is a second copy of a fact the UI already owns, and it desyncs
+    /// the moment an engine is re-dlopened under an open page.
+    pub fn cost_status(&self) -> String {
+        let mut s = String::with_capacity(288);
+        s.push_str(" chcost=");
+        for i in 0..MOVY_CHAINS {
+            if i > 0 {
+                s.push(',');
+            }
+            let (total, synth, peak) = self.cost.ui_costs(i);
+            s.push_str(&format!("{}/{}/{}", total / 1000, synth / 1000, peak as u64 / 1000));
+        }
+        let (wall, wall_peak) = self.cost.ui_wall();
+        let block_us =
+            crate::ffi::MOVE_FRAMES_PER_BLOCK as u64 * 1_000_000 / host::sample_rate().max(1) as u64;
+        s.push_str(&format!(
+            " chwall={}/{}/{}",
+            wall / 1000,
+            wall_peak as u64 / 1000,
+            block_us
+        ));
+        let mut loaded = 0u32;
+        let mut asleep = 0u32;
+        for i in 0..MOVY_CHAINS {
+            if self.slots[i].is_some() {
+                loaded |= 1 << i;
+            }
+            if self.idle.deep_asleep(i) {
+                asleep |= 1 << i;
+            }
+        }
+        s.push_str(&format!(" chmask={loaded:04x}/{asleep:04x}"));
+        s
+    }
+
+    /// Clear the meter's held peaks — the page's own reset, never `report()`.
+    pub fn cost_ui_reset(&mut self) {
+        self.cost.ui_reset();
     }
 
     /// Per-chain render cost since the last call — see `CostMeter::report`.
@@ -1149,6 +1260,23 @@ mod tests {
             Some(vec![chain_doc::Entry { slot: 4, component: "synth".into(),
                                          module: "noisemaker".into() }]),
             "a queued load is already part of the set"
+        );
+    }
+
+    /* `loaded_report` is a device test's only read-back for a movy chain, so
+     * the one thing it must never do is echo the request as though it were
+     * evidence: a fixture that "verified" against `desired` would pass while
+     * every module failed to instantiate. There is no chain host on the host
+     * build, so a queued load here is exactly that unloaded case. */
+    #[test]
+    fn the_loaded_report_marks_a_component_that_has_not_instantiated() {
+        let mut slots = ChainSlots::new();
+        assert_eq!(slots.loaded_report(), "-", "no chains, nothing to report");
+        slots.request_load(4, "synth", "noisemaker");
+        assert_eq!(
+            slots.loaded_report(),
+            "4:synth=noisemaker?",
+            "a queued load is a request, not a loaded module"
         );
     }
 

@@ -8,6 +8,26 @@ export function drawHeader(left: string, right: string | null, inverted = false)
     if (right) fontPrint(W - fontWidth(right) - 2, 1, right, color);
 }
 
+/* Width the pad-grid icon claims ahead of the right-hand text: 6px icon + 1px
+ * gap. Callers subtract it when they decide how much room the other side gets. */
+export const PAD_ICON_W = 7;
+
+/* Header with the pad-grid icon tucked in front of the right-hand text.
+ *
+ * Shared by the module page and the chain page rather than written twice: a
+ * voice page has to look the same in both, since the chain view is where you
+ * land after a slot change, and an icon that appeared on only one of them reads
+ * as the voice selection having been lost. Both sides truncate their own text
+ * first — they shorten opposite ends — and hand the finished strings here. */
+export function drawHeaderWithPadIcon(
+    left: string, right: string, padCount: number, currentPad: number,
+): void {
+    drawHeader(left, null, false);
+    const rightW = fontWidth(right);
+    drawPadGridIcon(W - 2 - rightW - PAD_ICON_W, 0, padCount, currentPad);
+    fontPrint(W - 2 - rightW, 1, right, 1);
+}
+
 /* One segment per page, the current one double height. The separators carry the
  * BANK structure: pages belonging to the same bank sit flush against each other
  * and a 1 px gap marks where the next bank starts, so the bar shows the same

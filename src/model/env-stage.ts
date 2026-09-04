@@ -34,6 +34,10 @@ const words = (text: string): string[] =>
  * claim about a param, so it needs the word spelled out. */
 export function envStageOf(p: KnobParam): EnvStage | null {
     if (p.type === 'enum' || p.type === 'file') return null;
+    /* Same veto envelope.ts honours: a config that says this key is not a stage
+     * must not get a lone-stage ramp drawn over it instead of the group it just
+     * escaped. */
+    if (p.env === false) return null;
     /* Vetoes are checked across key AND label together, not per-text. Chordism
      * keys its reverb tail `reverb_decay` but LABELS it plain "Decay": vetoing
      * only the text that happened to carry the word let the label through and

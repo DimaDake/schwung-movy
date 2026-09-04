@@ -151,6 +151,119 @@ keys, which are synthetic and validate through their alias. Both forms may
 appear in one config: the table wins where it lists a suffix, the template
 covers the rest.
 
+### A pad that selects a whole page
+
+`padSpecific` re-points ONE bank at the pad you press. That fits a kit whose
+pads share a control set. It does not fit a machine whose voices are separate
+circuits with different panels — a 909's snare has no Decay or Attack and its
+kick has no FX sends, so a single re-targeting row is mostly holes. Such a
+module wants a page *per* voice, and the pad to choose among them, the way
+schwung's stock editor switches page to the drum you hit.
+
+For that, each voice bank names the pad that selects it — and movy accepts
+**exactly one arrangement**, the same one `padSpecific` has always had: the
+pad-following pages first, the ordinary pages behind them.
+
+```json
+"drum":  { "padCount": 3, "padNoteStart": 36, "rawMidi": false },
+"banks": [
+  { "name": "Kick",   "pad": 1, "rows": [ ... ] },
+  { "name": "Snare",  "pad": 2, "rows": [ ... ] },
+  { "name": "Hat",    "pad": 3, "rows": [ ... ] },
+  { "name": "Reverb",           "rows": [ ... ] },
+  { "name": "Master",           "rows": [ ... ] }
+]
+```
+
+The **voice run** is the leading run of banks that declare a `pad`. Movy reads
+only that run as voices, so ordering is load-bearing, and a `pad` on any bank
+behind it is ignored.
+
+- **The voice pages share one seat in the rotation.** Sixteen voices at sixteen
+  seats is a sixteen-dot bank bar and a walk through the whole kit to reach the
+  delay. 8W8 ships nineteen banks and shows four pages: *voice* → Reverb →
+  Delay → Master — the chain's own order, master bus last, as elsewhere in the
+  fleet.
+- **A pad only turns the page from a voice page.** From Master or Reverb it
+  re-points the voice slot and leaves you where you are — reaching for a pad to
+  hear an edit must not cost you your place. The slot remembers, so jogging back
+  lands on the voice you last hit.
+- **The module opens on the voice slot**, the way it opens `padSpecific`
+  modules. Your own editor may open on Master; movy does not.
+- Pad numbers are **1-based**, like everywhere else in the drum API.
+- **Shift+Pad** picks a voice without sounding it.
+
+**`padCount` is the kit, not the grid.** Set it to the number of voices; the
+remaining seats of the 4×4 are dead. It used to be worth padding out to 16 to
+keep page-only pads addressable — see below.
+
+**No page-only pads.** Putting a `pad` on a page that has no voice behind it — a
+spare seat in the grid that opens Reverb — reads as a free shortcut and is the
+opposite: **having a `pad` is what makes a bank a voice.** Inside the run it
+would make Reverb a voice; behind the run movy ignores it. Leave `pad` off every
+page that is not a voice, and let the jog reach them.
+
+Either mechanism gives the header its pad-grid icon, lit on the pad you last
+hit — on a per-voice-page kit that icon is the only thing on screen saying which
+voice is under the knobs. It is drawn on the **chain page** too, so a voice page
+is recognisable from either view, and only on a voice page: on Master the pad
+decides nothing, so an icon there would claim a relationship that is not there.
+
+Movy checks four things about `pad` over every bundled config and fixture, and
+a module config wants to hold them too:
+
+- **One bank is one page.** A bank's cells must fit `KNOBS_PER_PAGE` (8). Pages
+  are fixed slices and the bank name is looked up by page index, so an overfull
+  bank silently wears the next bank's name — and `pad` targets the wrong page.
+- **No two banks claim the same pad.** The first one wins; the second becomes
+  unreachable by pad.
+- **`pad` must be ≤ `drum.padCount`.** A pad past the count resolves to nothing,
+  so its page is reachable only by the jog.
+- **No `pad` behind the voice run.** Movy ignores it, so a config that declares
+  one there is not doing what it reads as doing.
+
+### Vetoing a graphic Movy inferred
+
+Movy detects envelopes, filters and LFOs from param names, and reads the **key**
+as well as the label. A key stem is not always a promise: 9W9's `bd_c_attack` is
+a click *level*, not a time, so pairing it with `bd_c_decay` drew an envelope
+over a level and hoisted Attack to knob 1 — disagreeing with the module's own
+editor about knob order. Renaming the label does not help while the key matches.
+
+A slot can say no:
+
+```json
+{ "key": "bd_c_attack", "short": "ATCK", "full": "Attack",
+  "type": "int", "min": 0, "max": 127, "env": false }
+```
+
+`"env": false` keeps the param a plain knob, in its declared position. The same
+field still *names* a stage (`"env": "a"`) where detection needs the help.
+
+### When movy has to override a module's own config
+
+A module that ships `movy_config.json` is authoritative — movy's bundled table
+is only the fallback for modules that ship nothing. The exception is a shipped
+layout movy cannot use: the 808/909-family kits declare a `pad` on every bank,
+including the pages with no voice, which reads as "every bank is a voice" and
+collapses the module to one page.
+
+`OVERRIDES_MODULE_FILE` in `src/modules/loader.ts` names those modules, and the
+replacement config lives in `src/module-configs/<id>.json`. It is a **data
+file, not an import**: esbuild inlines an imported `.json` into `ui.js`, which
+is re-parsed on every tool open, so importing four kit configs cost ~90 KB per
+open for layouts needed only when one of them is loaded. It ships beside
+`ui.js` and is read through the same `host_read_file` path.
+
+A list of named exceptions rather than a flipped rule, because libpo32 is both
+bundled and self-describing — inverting the default would silently override it
+with movy's older copy.
+
+Adding one: drop the config in `src/module-configs/`, add the id to the list.
+`scripts/build-module.sh` fails the release if the two disagree, or if the
+tarball ends up without the files. **Delete the id** as soon as the module ships
+a config movy can use.
+
 For modules whose releases Movy explicitly supports, copy the released
 `module.json` into `browser-test/fixtures/module-contracts/` using the
 `<component-type>--<module-id>.json` name. Contract fixtures replace an older

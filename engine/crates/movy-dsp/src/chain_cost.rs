@@ -38,6 +38,17 @@ pub struct CostMeter {
     /// benchmark can discard the load phase — planning must not lose its history
     /// every time a device script reads the log.
     plan_ns: Vec<u64>,
+    /// The CPU page's numbers.
+    ///
+    /// Deliberately NOT `ns` / `max_ns` / `wall_max_ns`: reading `report()`
+    /// closes that window, and a device benchmark closes it whenever it likes.
+    /// A peak the user is looking at must not disappear because someone read a
+    /// log, so these live on their own reset schedule (`ui_reset`, driven by the
+    /// `cpurst` command the page issues when it opens).
+    ui_synth_ns: Vec<u64>,
+    ui_peak_ns: Vec<u32>,
+    ui_wall_ns: u64,
+    ui_wall_peak_ns: u32,
 }
 
 impl CostMeter {
@@ -51,6 +62,10 @@ impl CostMeter {
             wall_ns: 0,
             wall_max_ns: 0,
             plan_ns: vec![0; chains],
+            ui_synth_ns: vec![0; chains],
+            ui_peak_ns: vec![0; chains],
+            ui_wall_ns: 0,
+            ui_wall_peak_ns: 0,
         }
     }
 
@@ -83,6 +98,20 @@ impl CostMeter {
         if capped > self.max_ns[chain] {
             self.max_ns[chain] = capped;
         }
+        if capped > self.ui_peak_ns[chain] {
+            self.ui_peak_ns[chain] = capped;
+        }
+    }
+
+    /// The synth stage of one block, for the chains that render in two calls.
+    ///
+    /// A chain that does not split — `chidle 0`, or a module whose chain host
+    /// does not export the FX trio — renders everything inside `render_block`,
+    /// so its synth cost IS its total and the FX segment comes out empty. That
+    /// is why the meter needs no branch for CPU Optimize being off.
+    pub fn add_synth_ns(&mut self, chain: usize, dt: u64) {
+        let Some(p) = self.ui_synth_ns.get_mut(chain) else { return };
+        *p = if *p == 0 { dt } else { *p - *p / 16 + dt / 16 };
     }
 
     /// Wall time of one block's whole chain render.
@@ -90,6 +119,12 @@ impl CostMeter {
         self.wall_ns += dt;
         if dt > self.wall_max_ns {
             self.wall_max_ns = dt;
+        }
+        self.ui_wall_ns =
+            if self.ui_wall_ns == 0 { dt } else { self.ui_wall_ns - self.ui_wall_ns / 16 + dt / 16 };
+        let capped = dt.min(u32::MAX as u64) as u32;
+        if capped > self.ui_wall_peak_ns {
+            self.ui_wall_peak_ns = capped;
         }
     }
 
@@ -136,6 +171,29 @@ impl CostMeter {
         &self.plan_ns
     }
 
+    /// `(total mean, synth mean, held peak)` in nanoseconds, for one chain.
+    pub fn ui_costs(&self, chain: usize) -> (u64, u64, u32) {
+        (
+            self.plan_ns.get(chain).copied().unwrap_or(0),
+            self.ui_synth_ns.get(chain).copied().unwrap_or(0),
+            self.ui_peak_ns.get(chain).copied().unwrap_or(0),
+        )
+    }
+
+    /// `(mean, held peak)` of the whole chain render, in nanoseconds.
+    pub fn ui_wall(&self) -> (u64, u32) {
+        (self.ui_wall_ns, self.ui_wall_peak_ns)
+    }
+
+    /// Clear the held peaks. The means are left alone — they settle in a couple
+    /// of hundred blocks, and blanking them would make the page open on zeros.
+    pub fn ui_reset(&mut self) {
+        for v in self.ui_peak_ns.iter_mut() {
+            *v = 0;
+        }
+        self.ui_wall_peak_ns = 0;
+    }
+
     /// Forget the planning history too. Only for teardown: the costs belong to
     /// chain instances that no longer exist, and a plan built from a dead set
     /// would put the wrong chains on the wrong lanes.
@@ -144,6 +202,14 @@ impl CostMeter {
         for v in self.plan_ns.iter_mut() {
             *v = 0;
         }
+        for v in self.ui_synth_ns.iter_mut() {
+            *v = 0;
+        }
+        // The mean too, not just the peak `ui_reset` clears: these costs belong
+        // to chain instances that no longer exist, and the page would open on
+        // the last set's numbers.
+        self.ui_wall_ns = 0;
+        self.ui_reset();
     }
 
     pub fn reset(&mut self) {
@@ -258,5 +324,87 @@ mod tests {
         m.end_block();
         let r = m.report();
         assert_eq!(r.split("cost=").nth(1).unwrap().split(',').count(), 2, "{r}");
+    }
+
+    /// The whole reason the page has its own numbers: `report()` belongs to
+    /// whichever device script is measuring, and it may fire at any moment. A
+    /// peak the page is holding must not vanish because someone read the log.
+    #[test]
+    fn the_held_peak_survives_a_report_and_clears_only_on_its_own_reset() {
+        let mut m = CostMeter::new(2);
+        m.add_ns(0, 5_000);
+        m.add_ns(0, 90_000);
+        m.end_block();
+        assert_eq!(m.ui_costs(0).2, 90_000, "the worst block is held");
+        m.report();
+        assert_eq!(m.ui_costs(0).2, 90_000, "a benchmark's read must not clear it");
+        m.ui_reset();
+        assert_eq!(m.ui_costs(0).2, 0, "cpurst clears it");
+    }
+
+    /// The bar draws a synth segment and an FX segment. The synth mean is its
+    /// own signal, on the same 1/16 settling as the total.
+    #[test]
+    fn the_synth_mean_is_separate_from_the_total() {
+        let mut m = CostMeter::new(1);
+        for _ in 0..200 {
+            m.add_ns(0, 1000);
+            m.add_synth_ns(0, 600);
+        }
+        let (total, synth, _) = m.ui_costs(0);
+        assert!((900..=1100).contains(&total), "total settled at {total}");
+        assert!((540..=660).contains(&synth), "synth settled at {synth}");
+        assert!(synth < total, "the synth is a part of the whole, not the whole");
+    }
+
+    /// A chain asleep under `chidle` builds no task at all, so nothing measures
+    /// it. Feeding a zero is what makes the mean say "this costs nothing now" —
+    /// without it the planner keeps budgeting a lane for a silent chain and the
+    /// meter draws a bar for a chain that is rendering nothing.
+    ///
+    /// The mean FLOORS rather than reaching zero: `p - p/16` stops moving once
+    /// `p < 16`, which is 15 ns — below the microsecond the page draws in.
+    #[test]
+    fn a_block_a_chain_did_not_work_in_decays_its_mean() {
+        let mut m = CostMeter::new(1);
+        for _ in 0..300 {
+            m.add_ns(0, 800_000);
+        }
+        assert!(m.plan_ns()[0] > 700_000);
+        for _ in 0..300 {
+            m.add_ns(0, 0);
+        }
+        assert!(m.plan_ns()[0] < 16, "did not decay: {}", m.plan_ns()[0]);
+        assert!(m.ui_costs(0).0 < 16, "the page's mean must decay with it");
+    }
+
+    /// The wall is the capacity bar. Same two numbers, same reset.
+    #[test]
+    fn the_wall_has_a_held_peak_too() {
+        let mut m = CostMeter::new(1);
+        for _ in 0..200 {
+            m.add_wall(1_000_000);
+        }
+        m.add_wall(2_500_000);
+        let (mean, peak) = m.ui_wall();
+        assert!((900_000..=1_200_000).contains(&mean), "wall mean {mean}");
+        assert_eq!(peak, 2_500_000, "the worst block is what the notch marks");
+        m.report();
+        assert_eq!(m.ui_wall().1, 2_500_000, "and it survives a benchmark read");
+        m.ui_reset();
+        assert_eq!(m.ui_wall().1, 0);
+    }
+
+    /// Teardown means the chains are gone. Everything about them goes with them,
+    /// including the page's numbers — otherwise the meter draws the last set.
+    #[test]
+    fn reset_all_clears_the_page_numbers_too() {
+        let mut m = CostMeter::new(1);
+        m.add_ns(0, 40_000);
+        m.add_synth_ns(0, 20_000);
+        m.add_wall(50_000);
+        m.reset_all();
+        assert_eq!(m.ui_costs(0), (0, 0, 0));
+        assert_eq!(m.ui_wall(), (0, 0));
     }
 }

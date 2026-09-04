@@ -16,20 +16,22 @@
  * on screen" the same fact: being open IS `currentView`, so no path can move
  * the view and leave a page latched (see the note in main-page.ts). */
 
-import { appState, VIEW_CHAIN, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS } from '../app/state.js';
+import { appState, VIEW_CHAIN, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS, VIEW_CPU } from '../app/state.js';
 import { clearMainPage } from './main-page.js';
 import { clearClipPage } from './clip-page.js';
 import { clearFlagsPage } from './flags-page.js';
+import { clearCpuPage } from './cpu-page.js';
 
 export const paramPageState = {
     origin: VIEW_CHAIN as number,   // view to restore when the layer is left
 };
 
-/** True while any of the three param pages is on screen. */
+/** True while any of the four param pages is on screen. */
 export function paramPageActive(): boolean {
     return appState.currentView === VIEW_MAIN_PARAMS
         || appState.currentView === VIEW_CLIP_PARAMS
-        || appState.currentView === VIEW_FLAGS;
+        || appState.currentView === VIEW_FLAGS
+        || appState.currentView === VIEW_CPU;
 }
 
 /** Show `view` (VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS or VIEW_FLAGS). Re-pressing
@@ -43,6 +45,7 @@ export function openParamPage(view: number): void {
     clearMainPage();
     clearClipPage();
     clearFlagsPage();
+    clearCpuPage();
     appState.currentView = view;
 }
 
@@ -51,6 +54,7 @@ export function closeParamPage(): number {
     clearMainPage();
     clearClipPage();
     clearFlagsPage();
+    clearCpuPage();
     appState.currentView = paramPageState.origin;
     return paramPageState.origin;
 }

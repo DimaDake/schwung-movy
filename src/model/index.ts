@@ -8,8 +8,9 @@ import type { KnobParam } from '../types/param.js';
 import { loadHierarchy }    from './hierarchy.js';
 import { applyKnobDelta, knobParamInfo, reseedPadParams, refreshModulatedKeys, slotToLocal }   from './store.js';
 import { buildViewModel }   from './viewmodel.js';
-import { processTick }      from './tick.js';
+import { processTick, reReadModule } from './tick.js';
 import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV, ITEMS_RELOAD_TICKS } from './constants.js';
+import { pageRotation, rotationPos, stepGroup, isVoiceBank } from './page-rotation.js';
 import { enumUsesIndex, enumSetValue } from './enum-value.js';
 import { basename, stripKnownExt } from './path.js';
 import { rememberFileDir, startDirFor, defaultDirFor } from './file-dirs.js';
@@ -265,14 +266,44 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
 
         getKnobPage(): number { return s.knobPage; },
 
-        getBankCount(): number { return numBanks(); },
+        getBankCount(): number { return pageRotation(s).entries.length; },
 
         changePage(delta: number): void {
             if (s.enumOverlay) return;
-            const nBanks = numBanks();
-            const next = Math.max(0, Math.min(nBanks - 1, s.knobPage + delta));
-            mlog('changePage delta=' + delta + ' ' + s.knobPage + '→' + next + '/' + nBanks);
+            const { entries } = pageRotation(s);
+            const pos  = rotationPos(pageRotation(s), s.knobPage);
+            const next = entries[Math.max(0, Math.min(entries.length - 1, pos + delta))];
+            mlog('changePage delta=' + delta + ' ' + s.knobPage + '→' + next
+                 + ' pos ' + pos + '/' + entries.length);
             if (next !== s.knobPage) { s.knobPage = next; s.dirty = true; }
+        },
+
+        /* Pad-follow: point the voice slot at the voice this pad selects.
+         *
+         * Silent by construction for a shift-select — the caller has already
+         * decided whether the pad sounds; choosing the voice is the same either
+         * way, which is what makes Shift+Pad a silent page change.
+         *
+         * The page moves ONLY when a voice page is the one open, matching what
+         * padSpecific has always done: pressing a pad while you are on Reverb
+         * changes which voice the voice page holds, it does not drag you off
+         * the page you were editing. The slot is still updated, so jogging back
+         * to it lands on the voice you last hit.
+         *
+         * Only the leading voice run answers to pads. A `pad` on a bank behind
+         * it is an ordinary page's field and is ignored — see page-rotation.ts. */
+        selectBankForPad(pad: number): void {
+            if (s.enumOverlay) return;
+            const banks = s.moduleConfig?.banks;
+            if (!banks) return;
+            const rot  = pageRotation(s);
+            const next = banks.findIndex((b, i) => isVoiceBank(rot, i) && b.pad === pad);
+            if (next < 0) return;
+            s.voiceBank = next;
+            if (!isVoiceBank(rot, s.knobPage) || next === s.knobPage) return;
+            mlog('selectBankForPad pad=' + pad + ' ' + s.knobPage + '→' + next);
+            s.knobPage = next;
+            s.dirty = true;
         },
 
         /* Shift+jog: jump to the head of the previous/next level. From mid-level
@@ -289,16 +320,15 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
                 if (clamped !== s.knobPage) { s.knobPage = clamped; s.dirty = true; }
                 return;
             }
-            const here = groups[s.knobPage];
-            let next = s.knobPage;
-            if (delta > 0) {
-                while (next < n - 1 && groups[next] === here) next++;
-            } else {
-                while (next > 0 && groups[next] === here) next--;
-                const target = groups[next];
-                while (next > 0 && groups[next - 1] === target) next--;
-            }
-            mlog('changePageGroup delta=' + delta + ' ' + s.knobPage + '→' + next + '/' + n);
+            /* Walk the ROTATION's positions, not the banks: the collapsed voice
+             * pages have no seats of their own, and stepping over them by bank
+             * index would leave knobPage on a voice the slot is not showing. */
+            const rot  = pageRotation(s);
+            const pos  = stepGroup(rot.entries.map(b => groups[b]),
+                                   rotationPos(rot, s.knobPage), delta);
+            const next = rot.entries[pos];
+            mlog('changePageGroup delta=' + delta + ' ' + s.knobPage + '→' + next
+                 + ' pos ' + pos + '/' + rot.entries.length);
             if (next !== s.knobPage) { s.knobPage = next; s.dirty = true; }
         },
 
@@ -321,6 +351,12 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
         getViewModel(auto?: import('../types/viewmodel.js').AutomationView) { return buildViewModel(s, auto); },
 
         reload(): void { s.hierarchyKey = ''; s.pollCountdown = 1; s.dirty = true; },
+
+        /* `reload()` schedules the re-read for this model's next tick; this does
+         * it now. Used where the next frame must already show the new module —
+         * a Set load, where the poll's ~1 s cadence is what put an empty slot,
+         * or the previous Set's module, on a surface that had gone live. */
+        reloadNow(): void { reReadModule(s); },
 
         getFileBrowseTarget(): { key: string; gi: number; root: string; filter: string[]; startPath: string; currentPath: string | null; requireContains?: string } | null {
             const primary = primarySlot();

@@ -1,6 +1,6 @@
 import type { ViewModel } from '../types/viewmodel.js';
 import { fontPrint, fontWidth } from '../font/index.js';
-import { drawHeader, drawBankBar } from './header.js';
+import { drawHeader, drawBankBar, drawHeaderWithPadIcon, PAD_ICON_W } from './header.js';
 import { drawKnobParams } from './label.js';
 import { drawEnumOverlay, drawJogToast } from './overlay.js';
 import { W } from './layout.js';
@@ -35,11 +35,16 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
     if (vm.toast) {
         drawHeader(vm.toast.fullName, vm.overlay ? null : vm.toast.value, true);
     } else {
-        const leftW    = fontWidth(trackLabel) + 4;
+        /* A voice page carries the same pad-grid icon it does on the module
+         * page: this view shows that page's knobs, so which voice they belong
+         * to is the same question here. */
+        const showIcon = vm.isPadScoped && vm.drumPadCount > 0;
+        const leftW    = fontWidth(trackLabel) + 4 + (showIcon ? PAD_ICON_W : 0);
         const maxRight = W - leftW - 4;
         let right = vm.moduleName;
         while (right.length > 1 && fontWidth(right) > maxRight) right = right.slice(0, -1);
-        drawHeader(trackLabel, right, false);
+        if (showIcon) drawHeaderWithPadIcon(trackLabel, right, vm.drumPadCount, vm.drumCurrentPad);
+        else          drawHeader(trackLabel, right, false);
     }
 
     if (vm.stepPagePresent) {

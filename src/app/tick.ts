@@ -1,5 +1,5 @@
 import { portFor } from '../track/registry.js';
-import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS } from './state.js';
+import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS, VIEW_CPU } from './state.js';
 import { mainPageActive, mainPageState } from '../seq/main-page.js';
 import { buildMainPageVM } from '../seq/main-page-vm.js';
 import { clipPageActive, clipPageState } from '../seq/clip-page.js';
@@ -7,6 +7,9 @@ import { buildClipPageVM } from '../seq/clip-page-vm.js';
 import { buildFlagsPageVM } from '../seq/flags-page-vm.js';
 import { FLAG_KNOB } from '../seq/flags-page.js';
 import { renderFlagsView } from '../renderer/flags-view.js';
+import { renderCpuView, barPixels } from '../renderer/cpu-view.js';
+import { buildCpuPageVM } from '../seq/cpu-page-vm.js';
+import { cpuPageActive } from '../seq/cpu-page.js';
 import { keyboardState, baseNoteFor, padMapFor } from '../keyboard/state.js';
 import { isSounding } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
@@ -68,7 +71,7 @@ import { activeHasNote, maxBarOffset, seqState } from '../seq/state.js';
 import { engineReady } from '../seq/engine.js';
 import { perfProbeEnter, perfProbeTick, perfPhase, perfPhaseEnd } from './perf-probe.js';
 import {
-    drawLoopStrip, drawLoopHeader, drawSeqToast, drawSeqHeader,
+    drawLoopStrip, drawLoopHeader, drawSeqToast, drawSeqHeader, songBandTick,
     seqToastActive, seqToastTick,
     seqHeaderActive, seqHeaderTick,
 } from '../seq/render.js';
@@ -77,6 +80,7 @@ const PAD_MIN        = MovePads[0];
 const PAD_MAX        = MovePads[MovePads.length - 1];
 const LED_INIT_BATCH = 8;
 
+let lastPhase = '';
 let lastToastShowing = false;
 let lastHeaderShowing = false;
 let lastSessionMode = false;
@@ -211,6 +215,40 @@ function mainSig(): string {
         keyboardState.rootPc, keyboardState.scale,
         keyboardState.mode, keyboardState.layout,
         keyboardState.octave[appState.activeTrack.index]].join(',');
+}
+
+let lastCpuRaw = '';
+let lastCpuSig = '';
+/* The CPU page's repaint gate.
+ *
+ * TWO stages, unlike the other pages' signatures. The cheap one is the raw
+ * status strings: the tick runs at 60-200 Hz and the poll that can change them
+ * at ~24, so on most ticks nothing can possibly have moved and two string
+ * concatenations settle it. Only when a new poll has landed is the view model
+ * built — and then the signature is over the DRAWN PIXELS, not the microseconds
+ * behind them, so microsecond jitter under a pixel does not repaint anything.
+ *
+ * That second stage is the load-bearing one: movy's UI thread competes with the
+ * render lanes for Move's cores, so a meter that repaints on noise inflates the
+ * very number it is displaying.
+ *
+ * Called once per tick and it does its own storing — the other signature checks
+ * call their function twice per tick, which this one cannot afford. */
+function cpuRepaintTick(): void {
+    if (!cpuPageActive()) return;
+    const raw = seqState.cpuCost + '|' + seqState.cpuWall + '|' + seqState.cpuMask;
+    if (raw === lastCpuRaw) return;
+    lastCpuRaw = raw;
+    const vm = buildCpuPageVM();
+    const cols = vm.columns.map((c) => c.kind[0] + barPixels(c.synthUs, vm.scaleUs)
+        + '.' + barPixels(c.totalUs, vm.scaleUs) + '.' + barPixels(c.peakUs, vm.scaleUs));
+    // The scale itself is in the signature: it changes every column's height at
+    // once, and is the one change that moves no individual number.
+    const sig = Math.round(vm.load * 100) + '|' + Math.round(vm.peakLoad * 100) + '|'
+        + (vm.optimized ? 1 : 0) + '|' + vm.scaleUs + '|' + cols.join(',');
+    if (sig === lastCpuSig) return;
+    lastCpuSig = sig;
+    appState.dirty = true;
 }
 
 let lastClipSig = '';
@@ -365,6 +403,7 @@ function tickBody(): void {
     if (mainSig() !== lastMainSig) { lastMainSig = mainSig(); appState.dirty = true; }
     // Repaint when clip params page values or touch/overlay state change.
     if (clipSig() !== lastClipSig) { lastClipSig = clipSig(); appState.dirty = true; }
+    cpuRepaintTick();   // repaint only when a pixel the CPU page draws would change
     // Diagnostic (off unless debug_log_on): the UI lane registry mirrors the
     // engine's assigned lanes. Empty here means automation display + read-back
     // suppression are dead — the device automation test asserts it is populated.
@@ -418,6 +457,12 @@ function tickBody(): void {
             + ' type=' + portFor(t).getParam( 'knob_' + (l + 1) + '_type'));
     });
     sessionTick();
+    /* A phase change is a view change, and the render below is gated on
+     * something being dirty — neither entering the splash nor leaving it makes
+     * a model dirty on its own. Without this the previous Set's chain page
+     * stayed on screen through the load, and the first live frame waited on
+     * whatever happened to repaint next (the ~1 s module-name poll). */
+    if (sessionPhase() !== lastPhase) { lastPhase = sessionPhase(); appState.dirty = true; }
     /* The set-commit window lends Move the surface for a moment, and Move
      * repaints the pads while it holds it. Same repair a resume needs, for the
      * same reason — see seq/set-commit.ts. Only ever armed while movy is in
@@ -549,8 +594,12 @@ function tickBody(): void {
     const toastShowing = seqToastActive();
     const headerShowing = seqHeaderActive();
 
+    /* Whether this tick repainted the view. The song band sits on top of it,
+     * so a repaint erases the band and it has to be drawn again. */
+    let viewRepainted = false;
     if (modelDirty || masterDirty || appState.dirty || toastShowing !== lastToastShowing
         || headerShowing !== lastHeaderShowing) {
+        viewRepainted = true;
         /* A bottom jog/browse toast (drawn by the param/chain renderers) shares
          * the bottom rows with the Loop strip; track it so the per-tick strip
          * below doesn't paint over it. Recomputed each rendered frame; persists
@@ -591,6 +640,12 @@ function tickBody(): void {
             // Only knob 1 lights, and its brightness is the value — the page is
             // a list, so the LED is the only thing saying which knob edits it.
             updateSingleKnobLED(FLAG_KNOB, vm.knobNormalized);
+        } else if (appState.currentView === VIEW_CPU) {
+            renderCpuView(buildCpuPageVM());
+            // Nothing on this page is editable, so every knob goes dark. A knob
+            // still lit from the page underneath would be inviting a turn this
+            // page consumes and ignores.
+            updateSingleKnobLED(-1, 0);
         } else if (seqState.sessionMode) {
             const vm = masterModel!.getViewModel();
             if (appState.masterDetail) {
@@ -780,15 +835,27 @@ function tickBody(): void {
      * master chain (Session mode) — it tracks the watched track's clip, which
      * is irrelevant while editing master FX. */
     const isBrowseView = appState.currentView === VIEW_BROWSE || appState.currentView === VIEW_FILE_BROWSE;
+    // The CPU meter owns the whole screen down to row 62, and the strip's
+    // per-tick clear would take its label row.
+    const isFullScreenView = isBrowseView || appState.currentView === VIEW_CPU;
     // The strip repaints every tick, outside the dirty-frame block, so anything
     // that owns the whole screen has to be excluded here or the strip draws back
     // over it a few milliseconds later.
     if (engineReady() && !seqToastActive() && !jogToastShown && !seqState.sessionMode
-        && !isBrowseView && !captureOverlayActive()) {
+        && !isFullScreenView && !captureOverlayActive()) {
         /* Loop mode's readout runs on the same per-tick schedule as the strip:
          * both track state that moves without a dirty frame (bar navigation, the
          * sweep). While it is up it supersedes the timed announcement. */
         if (seqState.loopMode) drawLoopHeader();
         drawLoopStrip();
+    }
+
+    /* Song band: Session view only, and on its own schedule — on the frames the
+     * view underneath repainted over it, and otherwise only when the
+     * arrangement or the position in it changed. A running song must cost
+     * nothing per tick. */
+    if (engineReady() && !seqToastActive() && !jogToastShown && !isBrowseView
+        && !captureOverlayActive()) {
+        songBandTick(viewRepainted);
     }
 }

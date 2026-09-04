@@ -9,7 +9,7 @@ Move's firmware owns set switching, so the harness cannot select a set.
 | `slots.txt` | `slot module` per line; `none` leaves the slot empty |
 | `slot_<N>.json` | schwung's own slot format — module **and** every parameter value |
 | `seq-state.json` | movy's sequencer state (clips, tempo, automation lanes) |
-| `ui-state.json` | movy's per-set UI state — mute/solo, root, scale, layout, per-track octave |
+| `ui-state.json` | movy's per-set UI state — mute/solo, root, scale, layout, per-track octave, **and the movy-hosted chains** |
 
 Both movy files are per-set and both must be reset: resetting only `seq-state`
 leaves each run inheriting the previous one's solo state. The rotating
@@ -83,29 +83,63 @@ ring that intermittently floods shadow_ui with zero-MIDI.
 Set `TS_SKIP_RESTORE=1` to suppress it — `test-all-device.sh` does this so a
 sweep restarts once at the end rather than once per suite.
 
-## The fixture assumes tracks 1-4 are Schwung's
+## The fixture seeds BOTH hosts for tracks 1-4
 
-`slots.txt` seeds **Schwung's four shadow slots** (plaits on slot 0, a drum
-module on slot 1), and the suites that need an instrument reach it through
-`module-slot.mjs`, which also addresses those slots. Nothing here loads a module
-into one of movy's own chains.
+Tracks 1-4 belong to whichever host `chtracks` names — Schwung's four shadow
+slots, or movy's own chains 0-3 — and every suite runs on both:
 
-So with `chtracks` forced to `MOVY` in `prefs.json`, tracks 1-4 are movy chains
-and the fixture's instruments are on slots movy no longer addresses: the module
-is loaded, the fixture verifies it, and movy correctly reports no synth. The
-suites then fail on assertions that have nothing to do with what they test —
-`loadHierarchy: ui_hierarchy null`, an automation lane that falls back to
-`octave_transpose`, "knobParams empty at knob turn time", a multi-step check
-that enters no steps.
+    ./scripts/test-all-device-schwung.sh    # tracks 1-4 on schwung's slots
+    ./scripts/test-all-device-movy.sh       # tracks 1-4 on movy's chains 0-3
 
-Measured 2026-08-30, whole sweep at `chtracks: 1`: `test-unload`, `test-mutes`,
-`test-lfo`, `test-master-fx`, `test-volume` and `test-jog-hint` pass (they do not
-depend on the fixture's instruments, or they load into a movy chain themselves);
-`test.sh`, `test-seq`, `test-auto`, `test-reselect`, `test-module-contract` and
-`test-items` fail, and all six pass again at the shipped default.
+`TS_HOST_MODE` (`schwung` | `movy`, default `schwung`) is what those two set.
+It reaches the device as `flags.chtracks` in **`prefs.json`** — the global mode,
+deliberately, not the set's `chtrackset`: `resolveHost` consults the per-set
+half only in `NEW SETS` mode, so writing 0 or 1 makes the run's host independent
+of which Move set happens to be active. Move's firmware owns set switching, so
+leaving the host to the set would make the mode a coin flip. `flags.ts` caches
+prefs for the life of one movy open, so it is written with movy closed.
 
-The default (`NEW SETS`) resolves to SCHWUNG for the fixture's set, since its
-blob predates the per-set field — which is why the sweep is green as it stands.
-**Movy hosting tracks 1-4 therefore has no device coverage**; giving it any
-means teaching the fixture to load a module into `ch0`-`ch3` through movy's own
-chain payload, not through `module-slot.mjs`.
+Both halves of the fixture are installed in either mode:
+
+| Host | Seeded from | Verified by |
+|---|---|---|
+| schwung slots | `slots.txt` + `slot_<N>.json`, via `module-slot.mjs` | `ts_verify` (`slots-read.mjs`) |
+| movy chains | the `chains` array in `ui-state.json`, restored by movy itself | `ts_verify_chains` (`chloadedlog`) |
+
+Only one is live at a time — `chainSetTriples` drops every track under
+`HOST_TRACKS` when the flag says schwung — so the inactive half is inert rather
+than conflicting, and switching modes costs no reload. A suite that needs to
+name the instrument asks `ts_fixture_synth <track>` rather than writing `plaits`
+down, because the two hosts are seeded from different files.
+
+### Reading a movy chain back
+
+There is no `get` verb on the remote-UI socket, so a movy-hosted chain cannot be
+read the way `slots-read.mjs` reads a schwung slot. The engine answers instead:
+writing `overtake_dsp:chloadedlog` makes it log `chain loaded: <slot>:<comp>=<module>`
+for every chain, read **off the live instance** (`ChainSlots::loaded_report`),
+with a trailing `?` on a component that was requested but never instantiated.
+
+The per-load line (`chain 0: synth = plaits`) is not a substitute: `set_chain_set`
+deliberately leaves a chain that already holds the right module alone rather
+than dlclosing and dlopening back to where it started, so a second run against
+the same fixture logs no load at all and would read as a failed one.
+
+### The `chains` array
+
+    "chains": [{"t": 0, "comp": [{"c": "synth", "m": "plaits"}]}]
+
+`t` is the TRACK (a movy track's chain is its index), `c` the component key,
+`m` the module id. The module's preset blob (`s`) is **not** written here — it
+is rendered in from `slot_<t>.json` at install time by
+`scripts/fixture-ui-state.mjs`, so the fixture declares its parameter values
+exactly once and the two hosts cannot drift into testing different sounds. Add
+a chain by naming its module here and giving it the matching `slot_<N>.json`,
+the same file the schwung side needs.
+
+The blob is not decoration. Without it the chain comes up at the module's
+shipped defaults — a fixed state only for as long as the chain is created
+fresh, and (per the section above) a chain that already holds the module is
+never rebuilt. So every run after the first would inherit whatever the previous
+suite dragged the parameters to: the same trap `load_file` exists to avoid on
+the schwung side.

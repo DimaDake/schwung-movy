@@ -17,6 +17,7 @@ import { trackLabel } from '../undo/label.js';
 import { seqCmd } from './engine.js';
 import { momentaryDown, momentaryGesture, momentaryUp } from './momentary.js';
 import { seqHeaderAnnounce, seqToast } from './render.js';
+import { songLoopHold } from './song.js';
 import { clipBars, loopStartBar, seqState } from './state.js';
 import { watchedTrack } from './watch.js';
 
@@ -37,10 +38,16 @@ let lastTapMs = -DOUBLE_TAP_MS;
 /* Loop button (CC 58): momentary. Down shows the loop bars; a clean tap latches
  * (or toggles back to Note if already in Loop); a hold or a wheel/bar gesture
  * while held reverts to the prior view on release (so Loop+wheel resize keeps
- * the bars visible and never permanently flips the mode). */
+ * the bars visible and never permanently flips the mode).
+ *
+ * In Session view it is a PURE modifier — the key to the scene row (song.ts).
+ * There are no bars to select there, so latching Loop Mode would only show up
+ * later, in the view you went back to. */
 export function loopButton(down: boolean): void {
+    songLoopHold(down);
     if (down) {
         held = true;
+        if (seqState.sessionMode) return;
         loopPrev = seqState.loopMode;
         momentaryDown(CC_LOOP_BTN, () => {
             seqState.loopMode = loopPrev;
@@ -51,7 +58,12 @@ export function loopButton(down: boolean): void {
         seqHeaderAnnounce('Loop');
     } else {
         held = false;
-        if (momentaryUp(CC_LOOP_BTN) === 'tap' && loopPrev) {
+        /* momentaryUp is keyed on the button, so a Session-view press — which
+         * registers no momentary at all — simply finds nothing here. The
+         * sessionMode guard is for the press that STARTED in Track view and is
+         * released after a view change: there are no bars in front of the user
+         * to toggle away from. */
+        if (momentaryUp(CC_LOOP_BTN) === 'tap' && loopPrev && !seqState.sessionMode) {
             seqState.loopMode = false; // tap while already in Loop → back to Note
             appState.dirty = true;
             seqHeaderAnnounce('Note');
@@ -66,7 +78,11 @@ export function loopHeld(): boolean {
 /* Wheel turn while Loop is held: resize the loop by whole bars from its
  * current start. Returns true if consumed. */
 export function loopWheel(delta: number): boolean {
-    if (!held) return false;
+    /* Session view: Loop is the scene modifier and the bars are not on screen,
+     * so a wheel turn under it must not silently resize a loop you cannot see —
+     * and must not spend the shared momentary slot, which in Session view
+     * belongs to the Note/Session peek. */
+    if (!held || seqState.sessionMode) return false;
     momentaryGesture(); // resizing = modifier use; release reverts, never latches
     const start = loopStartBar();
     const bars = clipBars();

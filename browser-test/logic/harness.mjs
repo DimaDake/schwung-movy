@@ -20,7 +20,8 @@ import { enumRawToIndex, enumUsesIndex, enumSetValue } from '../../dist/esm/mode
 import { MOCK_SYNTHS }    from '../mock-synth.mjs';
 import { drumPadOn, drumPadOff } from '../../dist/esm/keyboard/drum-handler.js';
 import { ENGINE_VERSION } from '../../dist/esm/seq/constants.js';
-import { NAME_POLL_TICKS, META_RETRY_LIMIT } from '../../dist/esm/model/constants.js';
+import { NAME_POLL_TICKS, META_RETRY_LIMIT, KNOBS_PER_PAGE } from '../../dist/esm/model/constants.js';
+import { OVERRIDES_MODULE_FILE } from '../../dist/esm/modules/loader.js';
 import {
     readActiveSet, uuidToStatePath, uuidToUiStatePath,
     loadNameIndex, rememberSet, BLANK_STATE,
@@ -130,6 +131,7 @@ import { shapeSample, drawWave } from '../../dist/esm/renderer/lfo-wave.js';
 import { CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../../dist/esm/chain/config.js';
 import { init } from '../../dist/esm/app/init.js';
 import { appState } from '../../dist/esm/app/state.js';
+import { buildCpuPageVM, FULL_SCALE_US, USABLE_BLOCK, scaleFor, scaleLabel } from '../../dist/esm/seq/cpu-page-vm.js';
 /* The sequencer's track is the SELECTED track — a suite that wants the step row
  * on track N selects track N, the way a user does. There is no separate field
  * to set: seq/watch.ts derives the engine's watch from this one. */
@@ -224,6 +226,7 @@ export {
     readFileSync, readdirSync, createModel, portFor, trackRef, TRACK_COUNT,
     dedupShortNames, detectEnvelopes, planPageLayout, enumRawToIndex, enumUsesIndex, enumSetValue,
     MOCK_SYNTHS, drumPadOn, drumPadOff, ENGINE_VERSION, NAME_POLL_TICKS, META_RETRY_LIMIT,
+    KNOBS_PER_PAGE, OVERRIDES_MODULE_FILE,
     readActiveSet, uuidToStatePath, uuidToUiStatePath, loadNameIndex, rememberSet, BLANK_STATE,
     stripCopySuffix, findInheritCandidates, resolveState, sessionTick, resetSetSession, wrapState,
     parseState, adler32, installMockFs, uninstallMockFs, safeWrite, readBestState,
@@ -238,6 +241,7 @@ export {
     wrapWords, HINT_W, HINT_LINES, DETENT_DIV, fontWidth, W,
     serializeUiState, applyUiState, resetUiState,
     readPrefModuleBlacklist,
+    buildCpuPageVM, FULL_SCALE_US, USABLE_BLOCK, scaleFor, scaleLabel,
     DEBUG_BUILD, openParamPage, closeParamPage, paramPageActive,
     VIEW_FLAGS, VIEW_CHAIN, VIEW_MAIN_PARAMS,
     FACTORY_DEFAULT_QUANT, armQuantOverlay, quantOverlayActive, quantOverlayTickAt, quantOverlayJog, quantOverlayAction,

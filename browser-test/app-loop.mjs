@@ -47,6 +47,10 @@ const { anyStepHeld, STEP_AUTO_MS } = await import('../dist/esm/seq/step-edit.js
 const { stepPageState } = await import('../dist/esm/seq/step-page.js');
 const { leaveModalActive } = await import('../dist/esm/app/leave-modal.js');
 const { mainPageActive } = await import('../dist/esm/seq/main-page.js');
+const { VIEW_CPU } = await import('../dist/esm/app/state.js');
+const { STEP_CPU } = await import('../dist/esm/seq/constants.js');
+const { handleStepButton } = await import('../dist/esm/seq/router-steps.js');
+const { closeParamPage } = await import('../dist/esm/seq/param-page.js');
 
 let failures = 0;
 const _log = _origLog.bind(console);
@@ -206,6 +210,46 @@ _log('\napp-loop: drum pads + step lane stay live on a non-synth module slot');
     advance(2);
     eq('FX slot focused: drum pad selects its lane', seqState.watchLane, 37);
     eq('FX slot focused: selected drum pad lights white', padColor(PAD_SNARE), 120);
+}
+
+_log('\napp-loop: a pad press turns the page (bank.pad, through the router)');
+{
+    /* The logic suite calls selectBankForPad() directly; this covers the
+     * router hookup — a real pad note-on arriving at onMidiMessageInternal
+     * has to move the page. Served as a module-owned layout, the way a kit
+     * with a page per voice ships it. */
+    const cell = { key: 'pad_vol', short: 'VOL', full: 'Volume',
+                   type: 'float', min: 0, max: 2 };
+    const layout = JSON.stringify({
+        id: 'mrdrums', name: 'MrDrums',
+        drum: { padCount: 2, padNoteStart: 36, rawMidi: false },
+        /* The one shape movy accepts: the voice run leads, the page with no
+         * voice sits behind it. */
+        banks: [
+            { name: 'Kick',  pad: 1, rows: [[cell]] },
+            { name: 'Snare', pad: 2, rows: [[cell]] },
+            { name: 'Main',           rows: [[cell]] },
+        ],
+    });
+    const savedRead = globalThis.host_read_file;
+    globalThis.host_read_file = (p) =>
+        String(p).endsWith('/mrdrums/movy_config.json') ? layout : (savedRead ? savedRead(p) : null);
+    resetApp();
+    globalThis.host_read_file = savedRead;
+
+    const model = appState.trackModels[0][1];
+    eq('opens on the voice slot', model.getKnobPage(), 0);
+
+    const PAD_SNARE = 69;                    // grid pad 2 → drumPad 2
+    sendMidi([0x90, PAD_SNARE, 100]);
+    sendMidi([0x80, PAD_SNARE, 0]);
+    advance(2);
+    eq('a pad note-on selects that pad\'s voice', model.getKnobPage(), 1);
+
+    sendMidi([0x90, PAD_KICK, 100]);
+    sendMidi([0x80, PAD_KICK, 0]);
+    advance(2);
+    eq('and another pad moves it again', model.getKnobPage(), 0);
 }
 
 _log('\napp-loop: green wins over white (sequencer gate)');
@@ -1100,6 +1144,73 @@ _log('\napp-loop: nothing is live until the Set is loaded');
     resetApp();
     advance(30);
     eq('gate: ready again for the tests below', sessionReady(), true);
+}
+
+_log('\napp-loop: the splash does not lift on a UI that is still catching up');
+{
+    /* A Model caches its module name and hierarchy and re-reads them only on
+     * the name poll — 344 ticks, which is 1.7-5.5 s at the device's measured
+     * tick rate. The settling gate used to ask the ENGINE whether the loads had
+     * drained and nothing else, so the first frame after the splash came out of
+     * a cache that predated the Set: an empty slot on a cold open, the previous
+     * Set's module after a switch. Measured before the fix: ready at tick 1,
+     * name resolved at tick 348. */
+    const { sessionReady, resetSetSession: resetSess } =
+        await import('../dist/esm/seq/set-session.js');
+
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.mrdrums);
+    resetSeqState(); resetSeqEngine();
+    setFlag('chtracks', 0);
+    setFlag('setcommit', 0);
+    globalThis.init();                       // no manual reload(): this is a cold open
+    resetSess();
+
+    let nameAtReady = null;
+    for (let i = 0; i < 400 && nameAtReady === null; i++) {
+        globalThis.tick();
+        if (sessionReady()) nameAtReady = appState.trackModels[0][1].getModuleName();
+    }
+    eq('the visible slot names its module on the tick movy goes live',
+        nameAtReady, 'MrDrums');
+
+    resetApp();
+    advance(30);
+    eq('cold-open: ready again for the tests below', sessionReady(), true);
+}
+
+_log('\napp-loop: a session phase change repaints, so the splash actually covers');
+{
+    /* The render is gated on something being dirty, and a phase change makes no
+     * model dirty on its own. So entering the splash drew nothing: the previous
+     * Set's chain page stayed on screen for the whole load, and the first live
+     * frame waited on whatever repainted next — the ~1 s module-name poll. */
+    const { sessionReady, sessionPhase, resetSetSession: resetSess } =
+        await import('../dist/esm/seq/set-session.js');
+    resetApp();
+    advance(30);
+    eq('repaint: live to begin with', sessionReady(), true);
+
+    /* The control arm. Without it this test cannot fail: the Loop strip repaints
+     * a few rows every tick regardless, so "something was painted" proves
+     * nothing on its own — a whole view is an order of magnitude more. */
+    advance(2);
+    let n = painted.length;
+    advance(1);
+    const idleRects = painted.length - n;
+    eq('repaint: an idle tick paints almost nothing', idleRects < 5, true);
+
+    n = painted.length;
+    resetSess();                             // → 'booting': the splash is owed
+    advance(1);
+    eq('repaint: the phase change is on screen the very next tick',
+        painted.length - n > idleRects * 5, true);
+    eq('repaint: and what is owed is the splash', sessionPhase() !== 'ready', true);
+    _log(`    (idle tick ${idleRects} rects, phase-change tick ${painted.length - n})`);
+
+    resetApp();
+    advance(400);
+    eq('repaint: ready again for the tests below', sessionReady(), true);
 }
 
 _log('\napp-loop: LFO chain slot reachable + drill');
@@ -2406,7 +2517,167 @@ _log('\napp-loop: the Settings page owns the whole screen');
     eq('nothing sweeps the explanation band away', swept.length, 0);
 }
 
+/* ── Scene row: Loop held in Session view ────────────────────────────────── */
+/* Asserted through the real app loop because this is the layer the device
+ * cannot read back — a scene row that never reaches the LED wire looks
+ * identical to one painted in the wrong colours. The row uses the native
+ * animation path, so it goes out on move_midi_internal_send rather than
+ * setLED, and an animated pad costs TWO ticks (base handshake, then the
+ * animation): the capture spans several. */
+{
+    _log('\nscene row:');
+    resetApp();
+    sendMidi([0xB0, CC_NOTE_SESSION, 127]); sendMidi([0xB0, CC_NOTE_SESSION, 0]);
+    seqState.songScenes = [1];                 // scene 2 is in the song, scene 1 is not
+
+    const msgs = [];
+    const real = globalThis.move_midi_internal_send;
+    globalThis.move_midi_internal_send = (m) => msgs.push(m);
+    sendMidi([0xB0, 58, 127]);                 // Loop down — the scene modifier
+    advance(12);
+    globalThis.move_midi_internal_send = real;
+    sendMidi([0xB0, 58, 0]);
+
+    /* The last state each step note was left in: [channel, colour]. */
+    const last = (step) => {
+        const m = msgs.filter((x) => x[2] === STEP_NOTE_BASE + step).pop();
+        return m ? [m[1] & 0x0f, m[3]] : null;
+    };
+    const C_GREEN = 11, ANIM_PULSE = 0x09, ANIM_NONE = 0x00;
+
+    eq('step 1 is scene 1, solid green (not in the song)',
+       JSON.stringify(last(0)), JSON.stringify([ANIM_NONE, C_GREEN]));
+    eq('step 3 is scene 2 and pulses — the song uses it',
+       JSON.stringify(last(2)), JSON.stringify([ANIM_PULSE, C_GREEN]));
+    eq('step 2 is inert, and dark',
+       JSON.stringify(last(1)), JSON.stringify([ANIM_NONE, 0]));
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 console.log = _origLog;
+/* ── CPU page owns its bottom rows ──────────────────────────────────────────
+ * drawLoopStrip() clears rows 60-63 every tick, OUTSIDE the dirty-frame block.
+ * A page that draws down there and is not excluded loses those rows a few
+ * milliseconds after it painted them — visible only on the device, because a
+ * screenshot scene never ticks.
+ *
+ * Run as two arms. "The strip did not draw" is worth nothing on its own: half
+ * the guard's conditions are module state this harness does not reset, so a
+ * silent strip can just as easily mean the harness cannot see one. The CONTROL
+ * is a page that must keep it. */
+_log('\napp-loop: CPU page is not painted over by the loop strip');
+{
+    const { seqToastActive } = await import('../dist/esm/seq/render.js');
+    const stripRectsFor = (view) => {
+        resetApp();
+        for (let i = 0; i < 400 && seqToastActive(); i++) advance(1);
+        if (view === VIEW_CPU) handleStepButton(STEP_CPU, true, true);
+        else appState.currentView = view;
+        eq(`arm is on view ${view}`, appState.currentView, view);
+        appState.dirty = true;
+        const rects = [];
+        /* jogToastShown and the toast TTL are tick.ts / render.ts module state
+         * that resetApp() does not reach, and both suppress the strip. Ticking
+         * the toast out is what makes the control arm meaningful. */
+        const origFR = globalThis.fill_rect;
+        globalThis.fill_rect = (x, y, w, h, v) => rects.push([x, y, w, h, v]);
+        advance(1);
+        globalThis.fill_rect = origFR;
+        if (view === VIEW_CPU) appState.currentView = closeParamPage();
+        return rects;
+    };
+    const cleared = (rects) => rects.some(
+        ([x, y, w, h, v]) => x === 0 && y === 60 && w === 128 && h === 4 && v === 0);
+
+    /* CONTROL: the step/knobs view keeps the strip. If this is false the arm
+     * below is vacuous and the whole check has to be treated as broken. */
+    const control = stripRectsFor(VIEW_KNOBS);
+    eq('control: a normal page still gets the loop strip', cleared(control), true);
+
+    const cpu = stripRectsFor(VIEW_CPU);
+    eq('loop strip suppressed on the CPU page', cleared(cpu), false);
+    eq('and the page actually painted', cpu.length > 0, true);
+}
+
+/* ── The step LED under the CPU page's own gesture ──────────────────────────
+ * stepIconColor is a pure function and is unit-tested as one, which says
+ * nothing about whether paintStepIcons ever passes it the page's state: wiring
+ * `cpuPage: false` there passes every one of those assertions. This is the arm
+ * that fails. */
+_log('\napp-loop: the CPU page lights its own step LED');
+{
+    const CC_CPU_ICON = 16 + 11;          // step-icon LEDs are CC 16..31
+    const WHITE_BRIGHT = 124, WHITE_OFF = 0;
+    resetApp();
+    advance(2);
+    eq('closed and unshifted, the icon is dark', buttonLeds[CC_CPU_ICON] ?? WHITE_OFF, WHITE_OFF);
+
+    handleStepButton(STEP_CPU, true, true);
+    advance(2);
+    eq('open, the icon is full bright', buttonLeds[CC_CPU_ICON], WHITE_BRIGHT);
+
+    appState.currentView = closeParamPage();
+    advance(2);
+    eq('closed again, it goes dark', buttonLeds[CC_CPU_ICON], WHITE_OFF);
+
+    /* Settings, through the same paint path. */
+    const CC_FLAGS_ICON = 16 + 1;
+    handleStepButton(1, true, true);      // STEP_FLAGS
+    advance(2);
+    eq('the settings icon lights when its page opens', buttonLeds[CC_FLAGS_ICON], WHITE_BRIGHT);
+    appState.currentView = closeParamPage();
+    advance(2);
+    eq('and goes dark again', buttonLeds[CC_FLAGS_ICON], WHITE_OFF);
+}
+
+/* ── CPU page repaints on pixels, not on microseconds ───────────────────────
+ * The meter runs on the UI thread, which competes with the render lanes for
+ * Move's cores. A page that repaints because a number wobbled below the
+ * resolution of a bar is measuring its own repaint. */
+_log('\napp-loop: CPU page repaints only when a drawn pixel changes');
+{
+    resetApp();
+    const cols = (t, sy) => [`${t}/${sy}/900`].concat(Array(15).fill('0/0/0')).join(',');
+    engine.status.chmask = '0001/0000';
+    engine.status.chwall = '1491/2180/2902';
+    engine.status.chcost = cols(800, 600);
+
+    handleStepButton(STEP_CPU, true, true);
+    eq('the CPU page is up for the gate check', appState.currentView, VIEW_CPU);
+    advance(12);                        // past a poll; settles the first repaint
+
+    const paintsAfter = (mutate) => {
+        mutate();
+        appState.dirty = false;
+        const before = painted.length;
+        advance(12);
+        return painted.length - before;
+    };
+
+    /* One microsecond on a 1000 us column is 1/39th of a pixel, and one on the
+     * capacity bar is well under 1%. */
+    eq('sub-pixel jitter does not repaint', paintsAfter(() => {
+        engine.status.chcost = cols(801, 601);
+        engine.status.chwall = '1492/2180/2902';
+    }) > 0, false);
+
+    /* 100 us is ~4 px of a column: a change the screen can actually show.
+     *
+     * NOT a gate-isolating assertion — other dirty sources can repaint in the
+     * same window, and killing `cpuRepaintTick` does not fail this. It is here
+     * as a liveness check (the page is not frozen); the gate's own logic is
+     * pinned by the quantisation assertions in logic/cpu-page.mjs, and its
+     * suppressing half by the jitter arm above. */
+    eq('the page is still live after a real change', paintsAfter(() => {
+        engine.status.chcost = cols(900, 700);
+    }) > 0, true);
+
+    delete engine.status.chcost;
+    delete engine.status.chwall;
+    delete engine.status.chmask;
+    appState.currentView = closeParamPage();
+}
+
+
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');
 else { _log(`\n\x1b[31m\x1b[1m${failures} APP-LOOP CHECK(S) FAILED\x1b[0m`); process.exit(1); }

@@ -3,7 +3,7 @@
  * retrigger from the LfoVizVM. Reusable by the track LFO and synth layouts. */
 
 import type { LfoVizVM } from '../types/viewmodel.js';
-import { drawLine, drawDottedH } from './primitives.js';
+import { drawLine, drawDottedH, hatchRect } from './primitives.js';
 import { spanX } from './layout.js';
 import { STEP_BASE, PYR_BASE } from '../model/lfo-shapes.js';
 
@@ -107,7 +107,7 @@ export function drawWave(
             return;
         }
         const lo = Math.min(a, b), hi = Math.max(a, b);
-        for (let yy = lo; yy <= hi; yy++) if (((yy + px) & 1) === 0) fill_rect(px, yy, 1, 1, colour);
+        hatchRect(px, lo, 1, hi - lo + 1, colour);
     };
 
     const firstY = yAt(x);

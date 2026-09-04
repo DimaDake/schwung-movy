@@ -4,7 +4,7 @@ import { fontPrint5x3, fontWidth5x3 } from '../font/index5x3.js';
 import { fontPrint, fontWidth, FONT_HEIGHT } from '../font/index.js';
 import { fontPrintBig, fontWidthBig, BIG_FONT_HEIGHT } from '../font/big.js';
 import { enumSquareLines } from './shorten.js';
-import { drawLine } from './primitives.js';
+import { drawLine, hatchRect } from './primitives.js';
 import { drawWave } from './lfo-wave.js';
 import { drawCutCurve } from './cut-curve.js';
 import { toggleIsOn } from '../model/toggle.js';
@@ -146,9 +146,7 @@ function drawEnvStage(cellX: number, ky: number, norm: number, stage: 'a' | 'd')
     const x = cellX + 2, y = ky + 1, w = CELL_W - 4, h = KW - 2;
     const top = y, bot = y + h - 1;
     const len = Math.max(2, Math.round(Math.max(0, Math.min(1, norm)) * (w - 1)));
-    const dottedV = (px: number): void => {
-        for (let yy = top; yy <= bot; yy++) if (((yy + px) & 1) === 0) fill_rect(px, yy, 1, 1, 1);
-    };
+    const dottedV = (px: number): void => { hatchRect(px, top, 1, bot - top + 1, 1); };
     const ramp = (x0: number, fromY: number, toY: number): void => {
         let py = fromY;
         for (let i = 1; i <= len; i++) {

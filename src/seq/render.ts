@@ -5,8 +5,9 @@
  * it keep the frame alive while content is showing; *Tick() ages them. */
 
 import { drawJogToast } from '../renderer/overlay.js';
-import { W } from '../renderer/layout.js';
-import { fontPrint } from '../font/index.js';
+import { W, TOAST_Y, TOAST_H } from '../renderer/layout.js';
+import { fontPrint, fontWidth } from '../font/index.js';
+import { songBandTokens, songBandVisible, songTerminal } from './song.js';
 import { loopBarCount, loopEndBar, loopStartBar, seqState } from './state.js';
 import { NUM_STEP_BUTTONS } from './constants.js';
 
@@ -155,3 +156,70 @@ export function resetSeqToast(): void {
     text = '';
     ttl = 0;
 }
+
+/* Song band: the bottom row in Session view. Inverted, like the header
+ * announcement — `SONG` then the scene numbers in the order they were pressed,
+ * with the entry now playing boxed out of the band so you can see where in the
+ * arrangement you are.
+ *
+ * Unlike the Loop strip this does NOT repaint every tick: nothing in it moves
+ * between scene changes. songBandTick draws only when the content changed, or
+ * when the view underneath was repainted over it. */
+/* The band occupies the BOTTOM TOAST's rows, and shares its geometry rather
+ * than picking its own: the rows above are the param view's second label row
+ * (LBL1_Y + LBL_H reaches row 57), so anything taller than the toast overlaps
+ * live UI. Same constants drawJogToast uses. */
+const SONG_GAP = 2;
+
+let lastSongSig = '';
+
+function songBandSig(): string {
+    return seqState.songScenes.join(',') + '@' + seqState.songPos
+        + (songTerminal() ? '!' : '');
+}
+
+export function drawSongBand(): void {
+    fill_rect(0, TOAST_Y, W, TOAST_H, 1);       // inverted band, as the toast draws
+    let x = 2;
+    fontPrint(x, TOAST_Y + 1, 'SONG', 0);
+    x += fontWidth('SONG') + SONG_GAP * 2;
+    /* A song parked on an empty scene has ENDED. The width it needs comes off
+     * the token budget first, so the marker can never be the thing that gets
+     * clipped — an arrangement that has stopped must say so. */
+    const end = songTerminal();
+    const endW = end ? fontWidth('END') + SONG_GAP * 2 : 0;
+    const { tokens, leading } = songBandTokens(
+        seqState.songScenes, seqState.songPos, W - x - 2 - endW, fontWidth);
+    if (leading) {
+        fontPrint(x, TOAST_Y + 1, '.', 0);
+        x += fontWidth('.') + SONG_GAP;
+    }
+    for (const t of tokens) {
+        const w = fontWidth(t.label);
+        if (x + w > W - 1) break;
+        if (t.current) {
+            /* Boxed rather than inverted again: the band is already inverted,
+             * so the entry now playing is a hole punched back through it. */
+            fill_rect(x - 1, TOAST_Y, w + 2, TOAST_H, 0);
+            fontPrint(x, TOAST_Y + 1, t.label, 1);
+        } else {
+            fontPrint(x, TOAST_Y + 1, t.label, 0);
+        }
+        x += w + SONG_GAP;
+    }
+    if (end) {
+        fontPrint(x + SONG_GAP, TOAST_Y + 1, 'END', 0);
+    }
+}
+
+/** Draw the band if it needs drawing. `viewRepainted` is true on a tick whose
+ *  frame redrew the view underneath, which paints over the band. */
+export function songBandTick(viewRepainted: boolean): void {
+    if (!songBandVisible()) { lastSongSig = ''; return; }
+    const sig = songBandSig();
+    if (!viewRepainted && sig === lastSongSig) return;
+    lastSongSig = sig;
+    drawSongBand();
+}
+
+export function resetSongBand(): void { lastSongSig = ''; }

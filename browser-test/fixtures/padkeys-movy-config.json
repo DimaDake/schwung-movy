@@ -1,6 +1,6 @@
 {
-  "id": "9w9",
-  "name": "9W9",
+  "id": "padkeys",
+  "name": "PadKeys",
   "drum": {
     "padCount": 11,
     "padNoteStart": 36,
@@ -220,7 +220,12 @@
             "min": 0,
             "max": 127
           }
-        ],
+        ]
+      ]
+    },
+    {
+      "name": "Kick 2",
+      "rows": [
         [
           {
             "key": "bd_c_tube",

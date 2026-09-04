@@ -69,6 +69,33 @@ _log('\n── Envelope detection ──');
     eq('ADS partial: one group', g.length, 1);
     eq('ADS partial: roles ads', g[0].roles.join(''), 'ads');
 }
+/* The config's veto. Detection reads the KEY as well as the label, so a module
+ * whose key stem matches by accident cannot rename its way out: 9W9 pairs
+ * `bd_c_attack` (a click LEVEL) with `bd_c_decay` and got a fake AD graphic
+ * hoisted to knob 1, disagreeing with its own editor about knob order. */
+{
+    const page = [
+        P('bd_c_tune','Tune'), P('bd_c_attack','Attack', false), P('bd_c_decay','Decay'),
+        P('bd_c_level','Level'),
+    ];
+    eq('env:false breaks the AD pair', detectEnvelopes(page).length, 0);
+}
+{
+    const page = [
+        P('bd_c_tune','Tune'), P('bd_c_attack','Attack'), P('bd_c_decay','Decay'),
+        P('bd_c_level','Level'),
+    ];
+    eq('the same page without the veto still groups', detectEnvelopes(page).length, 1);
+}
+/* The veto has to win over an explicit tag too — `env: false` is not "untagged",
+ * so it must be read before the truthy branch that a stage name takes. */
+{
+    const page = [
+        P('attack','Attack', false), P('decay','Decay', 'd'),
+        P('sustain','Sustain', 's'), P('release','Release', 'r'),
+    ];
+    eq('a vetoed attack leaves no group to build', detectEnvelopes(page).length, 0);
+}
 // A2: surge Amp Envelope — shape/mode curve params are NOT extra env stages
 {
     const page = [

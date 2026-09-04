@@ -40,6 +40,12 @@ if [[ "$RELEASE" == 1 ]]; then build_release_ui "$DIR"; else node build/device.m
 ./scripts/build-dsp.sh
 ssh "ableton@$HOST" "mkdir -p $REMOTE"
 scp "$DIR/ui.js" "ableton@$HOST:$REMOTE/"
+# Override configs for modules whose own movy_config.json movy cannot use (see
+# OVERRIDES_MODULE_FILE). Data files rather than imports, so ui.js does not
+# carry 91 KB of JSON through the QuickJS parser on every tool open. A deploy
+# that skips them leaves those kits on the layout the override replaces.
+ssh "ableton@$HOST" "mkdir -p $REMOTE/configs"
+scp "$DIR"/src/module-configs/*.json "ableton@$HOST:$REMOTE/configs/"
 # Ship module.json too — capabilities (e.g. suspend_self_managed) live here and
 # are read by the host at module-scan time. NOTE: the host caches module
 # metadata at boot, so a *capability* change only takes effect after a host

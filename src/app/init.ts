@@ -1,4 +1,5 @@
 import { createModel }  from '../model/index.js';
+import { resetSong } from '../seq/song.js';
 import { portFor, hostPort } from '../track/registry.js';
 import { TRACK_COUNT } from '../track/ref.js';
 import { selectTrack } from '../track/focus.js';
@@ -67,6 +68,7 @@ export function init(): void {
     appState.trackView       = new Array(TRACK_COUNT).fill(VIEW_CHAIN) as number[];
     appState.currentView     = VIEW_CHAIN;
     appState.shiftHeld    = false;
+    resetSong();
     jogHintTouch(false);
     appState.browseOrigin = VIEW_CHAIN;
     appState.dirty           = true;

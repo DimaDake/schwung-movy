@@ -449,5 +449,58 @@ export async function run() {
     keyboardState.octave = [4, 4, 4, 4];
 }
 
+/* ── CPU page: Shift+Step 12 ─────────────────────────────────────────────── */
+{
+    _log('\ncpu page: open, re-press, close');
+    const { openCpuPage, cpuPageActive } = await import('../../dist/esm/seq/cpu-page.js');
+    const { closeParamPage, paramPageActive, resetParamPage } =
+        await import('../../dist/esm/seq/param-page.js');
+    const { appState, VIEW_CPU, VIEW_CHAIN } = await import('../../dist/esm/app/state.js');
+    const { peekSeqCmdQueue, resetSeqEngine } =
+        await import('../../dist/esm/seq/engine.js');
+    /* COUNTED, not "is it in there". seqCmdFlush() no-ops until the engine has
+     * booted, so draining between the two presses is not available here — and a
+     * membership check would let the second assertion pass on the FIRST press's
+     * command, proving nothing about the re-press. */
+    const resets = () => peekSeqCmdQueue().filter((op) => op === 'cpurst').length;
+
+    resetParamPage(); resetSeqEngine();
+    installMockEngine();
+    appState.currentView = VIEW_CHAIN;
+
+    openCpuPage();
+    eq('Shift+Step 12 opens the CPU page', appState.currentView, VIEW_CPU);
+    eq('the page knows it is up', cpuPageActive(), true);
+    eq('the CPU page is a param-page sibling', paramPageActive(), true);
+    eq('opening resets the held peaks', resets(), 1);
+
+    /* Pressing again while it is up is the meter's "clear peaks" — the gesture
+     * a hardware meter puts on its own button. openParamPage() returns early
+     * when the view is already up, so the reset has to be sent BESIDE it. */
+    openCpuPage();
+    eq('a second press stays on the page', appState.currentView, VIEW_CPU);
+    eq('and clears the peaks again', resets(), 2);
+
+    /* Back leaves the layer for the view it was entered from — the same one
+     * gesture that leaves Set Params, Clip Params and Settings. */
+    appState.currentView = closeParamPage();
+    eq('Back leaves for the origin', appState.currentView, VIEW_CHAIN);
+    eq('and the page knows it is gone', cpuPageActive(), false);
+
+    /* The binding itself, through the router — everything above would pass with
+     * Shift+Step 12 wired to nothing at all. */
+    const { handleStepButton } = await import('../../dist/esm/seq/router-steps.js');
+    const { STEP_CPU } = await import('../../dist/esm/seq/constants.js');
+    handleStepButton(STEP_CPU, true, true);
+    eq('the step row reaches the page', appState.currentView, VIEW_CPU);
+    handleStepButton(STEP_CPU, false, true);
+
+    /* An UNSHIFTED step 12 is a note, not the page. */
+    appState.currentView = closeParamPage();
+    handleStepButton(STEP_CPU, true, false);
+    handleStepButton(STEP_CPU, false, false);
+    eq('and only with Shift', appState.currentView, VIEW_CHAIN);
+}
+
 
 }

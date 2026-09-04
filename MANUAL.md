@@ -34,6 +34,7 @@ official docs first:
 4. [Keyboard & drums](#4-keyboard--drums)
 5. [The sequencer (aligned with Move)](#5-the-sequencer-aligned-with-move)
 6. [Beyond Move: Step, Clip & Set parameters](#6-beyond-move-step-clip--set-parameters)
+   - [CPU meter](#cpu-meter--shift--step-12)
    - [Settings](#settings--shift--step-2)
 6a. [Undo & redo](#6a-undo--redo)
 7. [Limitations vs Move](#7-limitations-vs-move)
@@ -82,7 +83,9 @@ lost or land on the wrong module. (**Back** always works, so a Movy that cannot
 start is never a trap.)
 
 Switching Sets shows the same screens again — the incoming Set's instruments
-have to be loaded just like the first one's.
+have to be loaded just like the first one's — and the screen stays up until the
+module page underneath it is showing the new Set's own modules, not an empty
+slot or the Set you just left.
 
 If a module never loads, Movy gives up waiting after ten seconds and starts
 anyway: what did load still plays.
@@ -713,6 +716,32 @@ pages instead of a page per voice. *Signal* (4 voices) works this way:
 
 ![Pad-selected voice page](docs/assets/signal_voice.png)
 
+A drum machine whose voices are separate circuits — a TR-808/909 style kit,
+where the snare has no Attack and the kick has no FX sends — cannot share one
+page like that: most of the row would be holes on most pads. Those kits get a
+**page per voice** instead, and it behaves the same way from the front: the
+**voice page comes first**, and the pad picks which voice it shows.
+
+The voice pages **share one seat in the page list**, so the jog does not walk
+through sixteen drums to reach the reverb. 8W8 has nineteen pages of parameters
+and four in the rotation — **the selected voice, Reverb, Delay, Master**, the
+chain's own left-to-right order:
+
+![A page per voice, selected by pad](docs/assets/8w8_voice.png)
+
+The pad icon is lit on the pad you last hit; on a kit like this it is the only
+thing on screen telling you which voice the knobs are holding. **Shift + pad**
+picks a voice without sounding it.
+
+As with a per-pad page, **a pad only turns the page while you are on the voice
+page**. Reach for a pad from Master or Reverb and you stay where you are — the
+voice page just remembers the new selection for when you jog back to it.
+
+The same icon appears on the **chain page**, so a voice page is recognisable
+from either view:
+
+![The voice page on the chain view](docs/assets/8w8_chain.png)
+
 *Sample Slicer* is a slice player rather than a kit: its **32 pads are the 32
 slices** the module can trigger (pad 1 = slice 1). Its Main page carries the
 **Sample** browser — hold that knob and click the jog to browse
@@ -869,6 +898,57 @@ red, only actionable buttons lit, the playhead sweeps the step row, etc.).
 
 > **Note:** Movy's sequencer intentionally does **not** copy Davebox's timing
 > where Davebox deviates from Move — the goal is to match native Move.
+
+### Scenes & Song mode
+
+A **scene** is a column of the clip grid — the same clip slot on all 16 tracks,
+not just the four you can see. **Hold Loop in Session view** and the step row
+becomes the scene launcher: the eight buttons printed **1, 3, 5 … 15** are
+scenes 1-8, and the ones between them are dark because they do nothing.
+
+Loop, not Shift: Shift keeps the [shifted step
+shortcuts](#shift--step-shortcuts) here, exactly as in Track view. Loop has
+nothing else to do in Session view — there are no bars on the row to select —
+so holding it there is a pure modifier and never latches the Loop view.
+
+Pressing a scene launches that whole column. Tracks with a clip there start it
+(on the next bar, like any clip launch); **tracks with an empty slot stop** — a
+scene is a snapshot of what plays, so what is not in the column goes quiet.
+
+**Building a song.** Keep holding Loop and press more scenes. The first press
+of a hold starts a new song; every press after it adds to the end. Press the
+same scene twice and it plays twice as long. Let Loop go and the song is what
+you pressed — it plays through in order and then **loops**.
+
+Each scene lasts as long as its longest clip, rounded up to whole bars.
+
+**Ending a song deliberately.** A scene with no clips on any track is the **end
+of the song**: there is no clip to take a length from, so the arrangement stops
+there. Everything goes quiet and the screen adds `END` after the scene numbers —
+but the **transport keeps running**, so you are still in time and can launch
+straight back in. Put an empty scene at the end of a song and it plays once
+through instead of looping. One bar
+before a switch the next scene's clips start flashing in the grid, the same way
+a clip you have just launched flashes while it waits for the bar. Every scene
+the song uses pulses on the step row, so you can see the whole arrangement at a
+glance.
+
+The bottom of the screen shows `SONG` and the scene numbers, with the one
+playing boxed. It appears as soon as you press Loop in Session view and stays
+up while a song is running. A song too long for the row scrolls, keeping the
+scene you are on and what comes next in view.
+
+**Ending a song.** Launch any clip by hand and the song is gone — what is
+playing keeps playing, it just stops moving on by itself. Pressing Loop and a
+scene again starts a fresh song.
+
+Stop and Play restarts the song from the beginning. The song is saved with your
+Set.
+
+You can record while a song plays, and the take follows the song into whichever
+clip ends up playing on the track you are recording. The one exception is a
+take started on an **empty** clip: that is itself a clip launch, so it holds
+its own track for that scene while the rest of the song carries on.
 
 ### Tracks and groups
 
@@ -1355,11 +1435,96 @@ other is up *replaces* it, so a single **Back** always leaves for the view you
 started from — never for the other page. Switching tracks or going to Session
 view closes them as well, so neither page follows you around.
 
+### CPU meter — Shift + Step 12
+
+**Shift + Step 12** opens the **CPU meter**: one column per track over a bar for
+Movy's share of the audio block. **Back** closes it. Pressing **Shift + Step 12** again
+while it is open clears the held peaks and starts a fresh observation. Like the
+other page shortcuts, step 12 lights dim while Shift is held and full bright
+while the page is up.
+
+![CPU meter](docs/assets/cpu-opt-on.png)
+
+The bar under the header is Movy's **budget** for one audio block. The fill is
+how much of it Movy used; the notch above the bar is the worst single block
+since the page opened, held for as long as the page stays open. The percentage
+in the header is the same number, and it is *not* capped.
+
+**100 % is the edge, not the ceiling.** It is calibrated against what actually
+happens on the device: dropouts set in at around 70 % of the raw 2.9 ms block,
+so that is what the bar calls full. Two things account for the rest. Move's own
+engine takes about 240 µs of the same block. And this bar is an *average* over
+blocks, while a dropout is one block missing its deadline — so an average
+sitting at the raw block length would have been glitching for a long time
+already. The notch is the block that gets there first; if it is near the end of
+the bar, listen for it.
+
+Practically: **under 80 % is comfortable, near 100 % you are at the edge, over
+it you are hearing it.**
+
+Each column is one track. The scale starts at **1 ms per block** and stays
+there for any normal set, so a column means the same thing from one session to
+the next — but if a track goes past it the whole plot re-scales to fit, and the
+number at the bottom right tells you what a full-height column is now worth. It
+only ever grows while the page is open; re-press **Shift + Step 12** to start
+over. The row of dots across the plot marks **1 ms**: it sits at the very top
+while the scale is at its floor, and drops as the scale grows, so the gap above
+it shows at a glance how far the plot has been squashed. Tracks 1, 5, 9 and 13
+are labelled; the rest count across from them.
+
+The scale follows the **bars**, not the peak lines. Loading an instrument costs
+several milliseconds in one block, and letting that single spike set the scale
+would flatten every real column for the rest of the viewing. A peak taller than
+the plot therefore clips, and its column is capped with a detached line to say
+so — the same bargain any level meter makes.
+
+| What you see | What it means |
+| --- | --- |
+| A solid bar | The instrument |
+| Checkered on top of it | The effects after it |
+| A dotted line above the bar | The worst block that track has had since you opened the page |
+| A solid line across the top with a gap under it | Something on that column is off the top of the plot — usually a one-off spike in its peak, which the scale deliberately ignores (see below) |
+| A short dash just above the baseline | Loaded, but silent right now, so Movy is skipping it entirely. Its peak line is still drawn — a track that spiked and then went quiet is exactly what you came here to find |
+| Just the baseline | Nothing loaded |
+| A dotted vertical column | A **Schwung**-hosted track — it renders outside Movy, so Movy cannot measure it. Not the same as costing nothing |
+
+#### A module that reads as free
+
+A few modules do their synthesis in a **separate process** and hand Movy
+finished audio through a shared buffer — **Virus** is the one instrument that
+works this way, and the streaming modules (Radio Garden, AirPlay, Web Stream,
+StreamRTSP) do too. Their column shows almost nothing, because copying that
+audio out really does cost Movy almost nothing.
+
+They are not free. The work is happening on another core, in another process,
+where Movy cannot see it — so a set of six Virus tracks can run the device out
+of CPU while every column on this page still looks empty. Treat a
+suspiciously-empty column on a module you know is heavy as "measured elsewhere",
+not as "costs nothing".
+
+#### With CPU Optimize off
+
+![CPU meter with CPU Optimize off](docs/assets/cpu-opt-off.png)
+
+The header says **CPU OPT OFF**, and two things change. Chains render in a
+single pass, so there is no separate effects section to show and every bar is
+solid. And nothing sleeps, so the dash never appears.
+
+Expect an individual track to read **higher** with CPU Optimize on — around a
+quarter higher — while the bar at the top reads much *lower*. That is not a
+bug: several chains rendering at once cost each other a little, and the whole
+point is that they are running side by side instead of one after another. The
+bar is the number that decides whether you get dropouts; the columns are for
+finding which track is expensive.
+
+---
+
 ### Settings — Shift + Step 2
 
 **Shift + Step 2** opens **Settings**, a scrolling list rather than a knob page:
 the **jog** moves the selection, **knob 1** changes the selected row's value,
 **Back** closes it. The line at the bottom explains whichever row is selected.
+Step 2 lights dim under Shift and full bright while the page is open.
 
 ![Settings](docs/assets/flags-release.png)
 
@@ -1370,7 +1535,8 @@ applies to **Movy's own tracks only** — a Schwung track renders exactly as it
 does without Movy. Turn it **OFF** only if a particular module misbehaves: a few
 plugins are not safe to run off the audio thread, and this is the escape hatch.
 Everything under it (how many threads, how aggressively silent chains sleep)
-stays at the setting that measured best.
+stays at the setting that measured best. The **CPU meter** (Shift + Step 12) is
+where you see what it buys you.
 
 **TRACKS 1-4 HOST** decides who owns the first four tracks. Tracks 5-16 are
 always Movy's own; tracks 1-4 can be either:
@@ -1550,6 +1716,7 @@ behaviour you'd like — or, better, a PR.
 | **Hold Note/Session + step** | Jump to that track (pads, screen, knobs) while the step row stays a track selector — keep tapping to keep switching. Releasing keeps the last track you picked. |
 | **Loop** | Toggle the bar selector; hold + jog resizes the loop. See [The Loop view](#the-loop-view). |
 | **Loop + bar** | Press one bar to view it, two to loop that range, double-tap for a 1-bar loop. |
+| **Loop + Step 1 / 3 / 5 / 7 / 9 / 11 / 13 / 15** | *(Session view)* **Scenes 1-8** — launch a whole clip column, or build a song. Loop is a modifier only there: it does not latch the bar selector. |
 | **Left / Right** | Navigate bars — the loop's own bars plus one empty bar past its end (or nudge held steps). |
 | **Copy** | Duplicate a step / clip / bar (context-dependent). |
 | **Delete (Clear)** | Delete a step / clip / bar; in Session, delete a clip. Hold + knob-touch clears that knob's automation lane. |
@@ -1569,6 +1736,11 @@ behaviour you'd like — or, better, a PR.
 
 ### Shift + Step shortcuts
 
+These work **in Session view too** — the step row's own meanings there (the
+track selector, and the scene launcher under Loop) leave Shift free. The one
+exception is Clip Params, which needs a single clip and so stays Track-view
+only.
+
 | Combo | Action |
 | --- | --- |
 | **Shift + Step 2** | Open **Settings** (CPU optimization, which host owns tracks 1-4). |
@@ -1576,6 +1748,7 @@ behaviour you'd like — or, better, a PR.
 | **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/link/quantize, root/key/mode/layout). |
 | **Shift + Step 6** | Toggle the **metronome**. |
 | **Shift + Step 10** | Toggle **full velocity** — every pad note at 127. Kept across sets and restarts. |
+| **Shift + Step 12** | Open the **CPU meter** (per-track cost, block usage). Press again to clear the held peaks. |
 | **Shift + Step 15** | **Double** the loop. |
 | **Shift + Step 16** | Cycle the current clip's **quantization** (0 / default / 100 %). |
 

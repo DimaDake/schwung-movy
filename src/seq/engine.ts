@@ -15,7 +15,7 @@
 
 import { mlog } from '../log.js';
 import { CHAIN_MODULE_DIR, ENGINE_DSP_PATH, ENGINE_VERSION, MOVY_MODULE_DIR } from './constants.js';
-import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, seqState, sessionFromStr } from './state.js';
+import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, seqState, sessionFromStr, songFromStr } from './state.js';
 import { rationalToIdx } from './clip-scale.js';
 import { markUiStateDirty } from './ui-dirty.js';
 import { applyFlagsToEngine } from './flags.js';
@@ -281,6 +281,12 @@ let lastEnginePlay: boolean | null = null;
 
 function parseStatus(s: string): void {
     seqState.engineOk = true;
+    /* Cleared each poll rather than only overwritten: an engine that predates
+     * the fields sends none of them, and last poll's numbers standing in for
+     * this one is exactly the meter lying. */
+    seqState.cpuCost = '';
+    seqState.cpuWall = '';
+    seqState.cpuMask = '';
     for (const kv of s.split(' ')) {
         const eq = kv.indexOf('=');
         if (eq <= 0) continue;
@@ -318,6 +324,9 @@ function parseStatus(s: string): void {
             lastChainGen = g;
         }
         else if (key === 'chpend') seqState.chainPending = Number(val) || 0;
+        else if (key === 'chcost') seqState.cpuCost = val;
+        else if (key === 'chwall') seqState.cpuWall = val;
+        else if (key === 'chmask') seqState.cpuMask = val;
         else if (key === 'rec') seqState.recording = val === '1';
         else if (key === 'cin') seqState.countingIn = val === '1';
         else if (key === 'cap') {
@@ -348,6 +357,7 @@ function parseStatus(s: string): void {
         else if (key === 'act') activeFromStr(val);
         else if (key === 'mute') muteFromStr(val);
         else if (key === 'sess') sessionFromStr(val);
+        else if (key === 'song') songFromStr(val);
         else if (key === 'occ') occFromHex(val);
         else if (key === 'unop') noopSnapId = Number(val);
         else if (key === 'alanes') seqState.autoAssigned = parseInt(val, 16) || 0;

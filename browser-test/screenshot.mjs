@@ -50,17 +50,20 @@ const PRESETS = [
     'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
     'step_page_knobs', 'step_page_chain', 'step_indicator', 'step_rec_header',
     'loop_strip_midclip', 'loop_strip_outside', 'loop_header',
+    'song_band', 'song_band_overflow', 'song_band_end',
     'main-default', 'main-tempo-touched', 'main-swing-touched',
     'main-root-touched', 'main-key-overlay', 'main-mode-overlay', 'main-layout-overlay',
     'main-ext-sync', 'main-link-on',
     'clip-default', 'clip-fraction', 'clip-overlay', 'clip-drum', 'clip-quant',
     'main-quant', 'quant-overlay-three', 'quant-overlay-two',
     'flags-top', 'flags-scrolled', 'flags-release',
+    'cpu-opt-on', 'cpu-opt-off', 'cpu-overscale', 'cpu-empty',
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
     'filter_slope24', 'filter_dual', 'filter_open',
     'deep_page', 'lfo_helm_step', 'lfo_helm_pyramid',
     'signal_voice', 'forge_voice', 'forge_filter', 'forge_mod', 'forge_send', 'forge_mix',
+    '8w8_voice', '8w8_master', '8w8_delay', '8w8_chain',
     'leave_modal', 'capture_select', 'capture_fixed',
     'undo_toast', 'redo_toast', 'undo_empty', 'undo_unavailable', 'clip-undo-toast',
     'track_volume_unity', 'track_volume_quiet', 'track_volume_min', 'track_volume_max',
@@ -114,6 +117,7 @@ const BASE = {
     spray_saturated: 'wav_sample', wav_sample: 'wav_sample', wav_loop: 'wav_loop', wav_loop_off: 'wav_loop',
     wav_beside_filter: 'wav_beside_filter',
     signal_voice: 'signal', forge_voice: 'forge',
+    '8w8_master': '8w8', '8w8_voice': '8w8', '8w8_delay': '8w8', '8w8_chain': '8w8',
     forge_filter: 'forge', forge_mod: 'forge', forge_send: 'forge', forge_mix: 'forge',
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
     lfo_target_overlay: 'test8', lfo_viz_unipolar: 'test8', lfo_viz_retrig: 'test8',
@@ -169,6 +173,8 @@ const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view
 const { drawCaptureOverlay } = await import('../dist/esm/renderer/capture-overlay.js');
 const { drawQuantOverlay } = await import('../dist/esm/renderer/quant-overlay.js');
 const { renderFlagsView } = await import('../dist/esm/renderer/flags-view.js');
+const { renderCpuView }   = await import('../dist/esm/renderer/cpu-view.js');
+const { buildCpuPageVM }  = await import('../dist/esm/seq/cpu-page-vm.js');
 const { buildFlagsPageVM } = await import('../dist/esm/seq/flags-page-vm.js');
 const { flagsPageState, resetFlagsPage } = await import('../dist/esm/seq/flags-page.js');
 const { visibleFlags } = await import('../dist/esm/seq/flags-visible.js');
@@ -196,7 +202,7 @@ const { appState }                     = await import('../dist/esm/app/state.js'
 const { keyboardState }                = await import('../dist/esm/keyboard/state.js');
 const { resetStepRec, stepRecDownAt } = await import('../dist/esm/seq/step-rec.js');
 const { stepRecTick }      = await import('../dist/esm/seq/step-rec-view.js');
-const { drawSeqHeader, resetSeqHeader, drawLoopStrip, drawLoopHeader } =
+const { drawSeqHeader, resetSeqHeader, drawLoopStrip, drawLoopHeader, drawSongBand, resetSongBand } =
     await import('../dist/esm/seq/render.js');
 const { MOCK_SYNTHS }      = await import('./mock-synth.mjs');
 const { fontPrint5x3, fontWidth5x3, FONT5_HEIGHT, CHARS5 } =
@@ -527,6 +533,19 @@ function applyView(preset) {
         case 'forge_mod':      model.updateDrumPad(3, 38); model.changePage(3); settle(); forceRender(); break;
         case 'forge_send':     model.updateDrumPad(3, 38); model.changePage(5); settle(); forceRender(); break; // per-voice sends + pan
         case 'forge_mix':      model.changePage(8); settle(); forceRender(); break;   // Mix bank: vbar faders
+        /* A kit with a page PER voice and the pad choosing among them. No bank
+         * re-targets, so the pad-grid icon is the only thing on screen saying
+         * which voice is under the knobs — and the rotation collapses nineteen
+         * banks to a FOUR-dot bank bar, the voice slot sitting second and
+         * wearing the selected voice's own name. */
+        case '8w8_voice':  model.updateDrumPad(11, 46); model.selectBankForPad(11); settle(); forceRender(); break;
+        case '8w8_delay':  model.changePage(2); settle(); forceRender(); break;
+        case '8w8_master': model.changePage(3); settle(); forceRender(); break;
+        /* The same voice page on the CHAIN view, where the icon has to appear
+         * too — that is where you land after a slot change, and an icon on only
+         * one of the two reads as the voice selection having been lost. */
+        case '8w8_chain':  model.updateDrumPad(11, 46); model.selectBankForPad(11);
+                           settle(); showChain(1, false); break;
         case 'obxd_preset_page': forceRender(); break;                       // page 0
         case 'obxd_main_page':   model.changePage(1); forceRender(); break;
         case 'obxd_filter_page': model.changePage(3); forceRender(); break;
@@ -576,6 +595,53 @@ function applyView(preset) {
          * build lists, plus the per-set row the NEW SETS mode brings with it.
          * The debug scenes above cannot cover this — they render the list this
          * build has compiled in, which is every flag. */
+        case 'cpu-opt-on':
+        case 'cpu-opt-off':
+        case 'cpu-overscale':
+        case 'cpu-empty': {
+            resetFlags();
+            const on = preset !== 'cpu-opt-off';
+            setFlag('cpuopt', on ? 1 : 0);
+            // 'cpu-opt-off' also stands for the arrangement where tracks 1-4
+            // are Schwung's: the two are the states the page has to survive.
+            setFlag('chtracks', on ? 1 : 0);
+            /* Every column inside the 1 ms floor, so `cpu-overscale` is the
+             * only baseline where the scale has had to GROW — otherwise the two
+             * scenes differ by nothing and neither pins it. */
+            const live = [
+                '240/180/310', '370/300/450', '900/760/980', '820/620/910',
+                '250/200/300', '320/320/400', '180/140/220', '670/560/790',
+            ];
+            /* With CPU Optimize off the chain renders in ONE call, so the synth
+             * stage IS the total and there is no FX segment. Sending split
+             * costs here would draw a picture the engine cannot produce. */
+            const unsplit = live.map((t) => {
+                const [total, , peak] = t.split('/');
+                return `${total}/${total}/${peak}`;
+            });
+            /* One chain well past the floor. The plot must re-scale so this
+             * column's real height is visible and every other column shrinks
+             * with it — the failure this replaced was a 1.6 ms chain and a
+             * 2.5 ms chain drawing as the same clamped bar. */
+            const over = live.slice();
+            over[2] = '2400/1900/2600';
+            const rows = (preset === 'cpu-overscale' ? over
+                : preset === 'cpu-opt-off' ? unsplit : live).slice();
+            /* Chain 8 is the sleeping one (mask 0100). Giving it a held peak is
+             * what pins that a chain which spiked and then went quiet still
+             * shows what it did — the dash alone would hide it. */
+            rows[8] = '0/0/620';
+            if (preset === 'cpu-empty') {
+                seqState.cpuCost = ''; seqState.cpuWall = ''; seqState.cpuMask = '';
+            } else {
+                seqState.cpuCost = rows.concat(Array(16 - rows.length).fill('0/0/0')).join(',');
+                seqState.cpuWall = preset === 'cpu-overscale' ? '2210/2680/2902' : '1491/2180/2902';
+                seqState.cpuMask = '01ff/0100';
+            }
+            lastRender = () => renderCpuView(buildCpuPageVM());
+            lastRender();
+            break;
+        }
         case 'flags-release': {
             resetFlags(); resetFlagsPage();
             flagsPageState.selected = 1;         // the row with the word labels
@@ -668,6 +734,45 @@ function applyView(preset) {
             seqState.holdNotes = [60, 64, 67];
             stepRecTick();
             lastRender = () => { renderKnobsView(model.getViewModel()); drawSeqHeader(); };
+            lastRender();
+            break;
+        }
+        case 'song_band': {
+            // Session view with a four-scene song, playing the doubled second
+            // scene: `SONG 1 2 2 3` with both 2s boxed as one entry.
+            resetSeqState(); resetSongBand();
+            seqState.sessionMode = true;
+            seqState.songScenes = [0, 1, 1, 2];
+            seqState.songPos = 1;
+            seqState.session[0].exist = 0b111;   // scenes 1-3 all have clips
+            lastRender = () => { renderKnobsView(model.getViewModel()); drawSongBand(); };
+            lastRender();
+            break;
+        }
+        case 'song_band_overflow': {
+            // A song longer than the row: the window keeps the current entry
+            // and the next one on screen behind a leading ellipsis.
+            resetSeqState(); resetSongBand();
+            seqState.sessionMode = true;
+            seqState.songScenes = [
+                0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7,
+                0, 1, 2, 3, 4, 5, 6, 7, 0, 1,
+            ];
+            seqState.songPos = 22;
+            seqState.session[0].exist = 0xff;    // every scene has a clip
+            lastRender = () => { renderKnobsView(model.getViewModel()); drawSongBand(); };
+            lastRender();
+            break;
+        }
+        case 'song_band_end': {
+            // Parked on an empty scene: the arrangement has ended, and says so.
+            // The transport keeps running — this is a stop in the song only.
+            resetSeqState(); resetSongBand();
+            seqState.sessionMode = true;
+            seqState.songScenes = [0, 1, 2];
+            seqState.songPos = 2;
+            seqState.session[0].exist = 0b011;   // nothing in scene 3
+            lastRender = () => { renderKnobsView(model.getViewModel()); drawSongBand(); };
             lastRender();
             break;
         }

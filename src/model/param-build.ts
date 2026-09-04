@@ -19,6 +19,12 @@ export interface RawMeta {
     ui_type?: string;          // render type when it differs from the data type
     view_group?: string;       // markers sharing a group draw on one graphic
     visible_if?: unknown;      // { param, equals } — see visible-if.ts
+    /* The module's own statement about drawing this param. `false` means "no
+     * inferred graphic" — 9W9 ships it on every `*_attack`, which is a click
+     * LEVEL rather than a time. Movy honours the `false` case as an envelope
+     * veto; a `{kind: ...}` object is the module asking for a specific graphic
+     * and is not read here. */
+    viz?: unknown;
 }
 
 export function inferBehavior(explicit: unknown, options: string[] | null): KnobParam['behavior'] | undefined {

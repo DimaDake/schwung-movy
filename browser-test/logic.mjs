@@ -20,6 +20,8 @@ import { run as run_seq_engine } from './logic/seq-engine.mjs';
 import { run as run_seq_router } from './logic/seq-router.mjs';
 import { run as run_seq_edit } from './logic/seq-edit.mjs';
 import { run as run_seq_session } from './logic/seq-session.mjs';
+import { run as run_song } from './logic/song.mjs';
+import { run as run_session_shift } from './logic/session-shift.mjs';
 import { run as run_set_session } from './logic/set-session.mjs';
 import { run as run_set_settling } from './logic/set-settling.mjs';
 import { run as run_seq_leds } from './logic/seq-leds.mjs';
@@ -52,6 +54,7 @@ import { run as run_tracks_refs } from './logic/tracks-refs.mjs';
 import { run as run_tracks_chain } from './logic/tracks-chain.mjs';
 import { run as run_partition } from './logic/partition.mjs';
 import { run as run_flags } from './logic/flags.mjs';
+import { run as run_cpu_page } from './logic/cpu-page.mjs';
 
 /* Awaited one at a time: the suites share the mock device globals, and the
  * expected output is a fixed transcript, so they must not interleave. */
@@ -66,6 +69,8 @@ const SUITES = [
     run_seq_router,
     run_seq_edit,
     run_seq_session,
+    run_song,
+    run_session_shift,
     run_set_session,
     run_set_settling,
     run_seq_leds,
@@ -98,6 +103,7 @@ const SUITES = [
     run_tracks_chain,
     run_partition,
     run_flags,
+    run_cpu_page,
 ];
 
 /* Between suites, back to the world movy boots in: no Set has said yet which

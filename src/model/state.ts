@@ -125,6 +125,11 @@ export interface ModelState {
     dirty:               boolean;
     isDrum:              boolean;
     drumPadCount:        number;
+    /* The drum config actually in force: the module's declaration where it made
+     * one, otherwise movy's own table. Resolved once per hierarchy load rather
+     * than at every call site, so the two sources cannot be merged differently
+     * in two places. */
+    drumConfig:          import('../types/param.js').DrumConfig | null;
     drumCurrentPad:      number;
     drumCurrentPhysPad:  number;
     /* Param keys that are automation lanes — their synth value is driven by
@@ -185,6 +190,7 @@ export function createModelState(port: TrackPort, componentKey: string): ModelSt
         dirty:               false,
         isDrum:              false,
         drumPadCount:        0,
+        drumConfig:          null,
         drumCurrentPad:      1,
         drumCurrentPhysPad:  0,
         noRefreshKeys:       new Set(),

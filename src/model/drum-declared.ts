@@ -18,6 +18,27 @@
  */
 import type { DrumConfig } from '../types/param.js';
 
+/*
+ * THE READER IS PUSHED IN, NOT IMPORTED.
+ *
+ * Reading the contract needs Schwung's voices.mjs, and `model/` imports nothing
+ * from `renderer/`. So the renderer registers its reader at start-up and the
+ * model asks through this hook — the dependency points one way, and with the
+ * grid switched off nobody registers, `readSurface` answers null, and every
+ * module falls back to movy's table exactly as before.
+ */
+type SurfaceReader = (hierarchy: any) => DeclaredSurface | null;
+let reader: SurfaceReader | null = null;
+
+export function setSurfaceReader(fn: SurfaceReader | null): void { reader = fn; }
+
+/** What the module declared, or null when nothing can read it. Never throws:
+ *  a reader that fails is the same as no declaration. */
+export function readSurface(hierarchy: any): DeclaredSurface | null {
+    if (!reader || !hierarchy) return null;
+    try { return reader(hierarchy); } catch (_e) { return null; }
+}
+
 /** The shape renderer/schwung-voices produces. Restated structurally rather
  *  than imported, to keep the layering one-way. */
 export interface DeclaredSurface {

@@ -163,5 +163,44 @@ _log('');
     else fail('a synth with no rack anywhere came back with a drum config');
 }
 
+/* ---- END TO END: a real model, no override, learns the rack -------------
+ *
+ * The assertions above prove the pieces. This proves the WIRING — that a model
+ * built the way movy builds one, for a module movy has no config entry for,
+ * comes out of loadHierarchy believing it is a rack. Proving the pieces while
+ * the app never consults them is the trap this project has been caught by
+ * twice, so the last word goes to the model itself.
+ */
+_log('');
+{
+    const { portFor } = await import('../dist/esm/track/registry.js');
+    const { createModel } = await import('../dist/esm/model/index.js');
+    /* globals.ts is what registers the reader; importing it is part of what is
+     * under test, because a model with no reader must fall back. */
+    await import('../dist/esm/app/globals.js');
+
+    /* The module's own contract, served the way a DSP serves it, and NOTHING
+     * else — no entry in movy's table for "voice-poc". */
+    const envMod = await import('../browser-test/env.mjs');
+    const e2 = envMod.installEnv();
+    e2.setParams({ 'synth:ui_hierarchy': JSON.stringify(hierarchy) });
+
+    const port = portFor(0);
+    const m = createModel(port, 'synth');
+    m.reset(); m.reload();
+    for (let i = 0; i < 60; i++) m.tick();
+
+    const cfg = m.getDrumConfig();
+    if (cfg && cfg.padCount === 7) ok(`a real model learns the rack from the contract (${cfg.padCount} pads)`);
+    else fail(`the model reports ${JSON.stringify(cfg && cfg.padCount)} pads; movy has no config `
+            + `entry for this module, so the declaration is not reaching loadHierarchy`);
+
+    if (m.getDrumPadCount() === 7) ok(`...and the pad count the header icon draws follows (${m.getDrumPadCount()})`);
+    else fail(`getDrumPadCount is ${m.getDrumPadCount()}, wanted 7 — the minimap would show the wrong rack`);
+
+    if (cfg && drumNoteOfPad(2, cfg) === 38) ok('...and pad 2 plays the declared 38');
+    else fail(`pad 2 plays ${cfg && drumNoteOfPad(2, cfg)}, wanted the declared 38`);
+}
+
 if (failed) { _log(`\n\x1b[31m\x1b[1mFAIL: ${failed} check(s)\x1b[0m`); process.exit(1); }
-_log('\n\x1b[32m\x1b[1mPASS: movy reads a drum rack from the module, and prefers it over its own table.\x1b[0m');
+_log('\n\x1b[32m\x1b[1mPASS: movy learns a drum rack from the module alone, and prefers it over its own table.\x1b[0m');

@@ -19,17 +19,20 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
     } else {
         const showIcon = vm.isPadScoped && vm.drumPadCount > 0;
         const iconW    = showIcon ? PAD_ICON_W : 0;
-        const rightW   = vm.bankName ? fontWidth(vm.bankName) + iconW + 4 : 0;
+        /* Same rule as the chain view: the focused pad outranks the page
+         * label, because the page label is already implied by the bank bar. */
+        const rightText = vm.drumPadName || vm.bankName;
+        const rightW   = rightText ? fontWidth(rightText) + iconW + 4 : 0;
         const maxLeftW = W - rightW - 4;
         const trackLabel = 'T' + (activeSlot + 1);
         let dispName     = vm.headerOverride ?? (trackLabel + ' > ' + vm.moduleName);
         while (dispName.length > 1 && fontWidth(dispName) > maxLeftW) {
             dispName = dispName.slice(0, -1);
         }
-        if (showIcon && vm.bankName) {
-            drawHeaderWithPadIcon(dispName, vm.bankName, vm.drumPadCount, vm.drumCurrentPad);
+        if (showIcon && rightText) {
+            drawHeaderWithPadIcon(dispName, rightText, vm.drumPadCount, vm.drumCurrentPad);
         } else {
-            drawHeader(dispName, vm.bankName || null, false);
+            drawHeader(dispName, rightText || null, false);
         }
     }
 

@@ -41,7 +41,13 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
         const showIcon = vm.isPadScoped && vm.drumPadCount > 0;
         const leftW    = fontWidth(trackLabel) + 4 + (showIcon ? PAD_ICON_W : 0);
         const maxRight = W - leftW - 4;
-        let right = vm.moduleName;
+        /* A DECLARED RACK NAMES THE PAD, not the module. The module's name is
+         * already the one thing this view's bank bar and slot dots are about,
+         * while WHICH DRUM the knobs below belong to is otherwise unsayable —
+         * reported from the device as a header that just read "T4 Voice-POC"
+         * however many pads you moved through. Falls back to the module name
+         * the moment the module has not declared one. */
+        let right = vm.drumPadName || vm.moduleName;
         while (right.length > 1 && fontWidth(right) > maxRight) right = right.slice(0, -1);
         if (showIcon) drawHeaderWithPadIcon(trackLabel, right, vm.drumPadCount, vm.drumCurrentPad);
         else          drawHeader(trackLabel, right, false);

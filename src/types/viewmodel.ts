@@ -154,6 +154,8 @@ export interface ViewModel {
     /* Which pad you last hit is information this page shows — either because the
      * bank re-targets by pad (`padSpecific`) or because a pad chooses the page
      * (`bank.pad`). Both make the pad-grid icon in the header say something. */
+    /** What the MODULE calls the focused pad, or '' when it has not said. */
+    drumPadName:       string;
     isPadScoped:       boolean;
     automationHeld:    boolean;   // a step is held → automation-edit view
     automationPoolFull: boolean;  // 8-lane cap reached (limit toast)

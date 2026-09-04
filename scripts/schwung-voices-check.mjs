@@ -224,7 +224,10 @@ _log('');
     m2.reset(); m2.reload();
     for (let i = 0; i < 60; i++) m2.tick();
 
-    const nameAt = (pad) => { m2.updateDrumPad(pad, 0); return m2.getViewModel().bankName; };
+    /* The header's own field, not bankName: bankName is the PAGE label and only
+ * the module page draws it, so a pad name routed through it left the chain
+ * view — the one movy opens on — still reading the module name. */
+const nameAt = (pad) => { m2.updateDrumPad(pad, 0); return m2.getViewModel().drumPadName; };
 
     if (nameAt(1) === 'Kick') ok('the header names the focused pad: pad 1 = "Kick"');
     else fail(`pad 1 shows ${JSON.stringify(nameAt(1))}, wanted the declared "Kick"`);
@@ -232,6 +235,18 @@ _log('');
     else fail(`pad 2 shows ${JSON.stringify(nameAt(2))}, wanted "Snare"`);
     if (nameAt(4) === 'Tom Lo') ok('...including a child-level voice: pad 4 = "Tom Lo"');
     else fail(`pad 4 shows ${JSON.stringify(nameAt(4))}, wanted "Tom Lo"`);
+
+    /* THE MINIMAP. Both header renderers gate the pad-grid icon on
+     * `isPadScoped`, which read only movy's own table — so a declared rack drew
+     * NO icon at all, which is what "no minimap" was on the device. Reported
+     * against voice-poc, which has no table entry by design. */
+    const vmp = m2.getViewModel();
+    if (vmp.isPadScoped) ok('a declared rack is pad-scoped, so the header draws its minimap');
+    else fail('isPadScoped is false for a declared rack — the pad-grid icon is gated on it, '
+            + 'so the header shows no minimap. It read only s.moduleConfig, and a module that '
+            + 'declares its own voices has no config entry.');
+    if (vmp.drumPadCount === 7) ok(`...with the declared pad count (${vmp.drumPadCount})`);
+    else fail(`the icon would draw ${vmp.drumPadCount} pads`);
 }
 {
     const { portFor } = await import('../dist/esm/track/registry.js');

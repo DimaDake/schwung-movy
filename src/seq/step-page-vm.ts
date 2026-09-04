@@ -103,7 +103,7 @@ export function buildStepPageVM(h: HeldTrig, moduleBankCount = 1): ViewModel {
         moduleName: 'step', bankName: '', bankIndex: 0, bankCount: moduleBankCount,
         rows: [[vel, len, prob, cond], [inv, null, null, null]],
         touchedSlot: null, toast, overlay: null, isEmpty: false,
-        drumPadCount: 0, drumCurrentPad: 0, drumCurrentPhysPad: 0, isPadScoped: false,
+        drumPadCount: 0, drumCurrentPad: 0, drumCurrentPhysPad: 0, drumPadName: '', isPadScoped: false,
         // Not the automation-hold view: its params are intrinsic, not chain
         // lanes, so they must not be hidden by hiddenDuringHold.
         automationHeld: false, automationPoolFull: false,

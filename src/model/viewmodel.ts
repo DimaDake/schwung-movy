@@ -41,25 +41,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     const nBanks = rot.entries.length;
 
     let bankName = '';
-    /*
-     * A DECLARED RACK NAMES THE FOCUSED PAD, and that outranks the page label.
-     *
-     * Every other source here is keyed on `knobPage`, so on a rack the header
-     * named whichever LEVEL the page came from and then sat still as you moved
-     * between pads — pad 1 and pad 4 both read "Kick". The one fact a drum
-     * page's header can carry that its knobs do not already show is WHICH DRUM
-     * you are editing, so when the module has told us, that wins.
-     *
-     * Only when the module declared it: movy's own table names banks, never
-     * voices, so nothing that worked before can be displaced by this.
-     */
-    /* Read through a default: ModelState is assembled by hand in places (the
-     * logic suite builds partial ones), and a new field must not turn those
-     * into a crash on a path that has nothing to do with drums. */
-    const padName = (s.drumPadNames || [])[s.drumCurrentPad - 1];
-    if (padName) {
-        bankName = padName;
-    } else if (s.bankNames.length > 1 && s.bankNames[s.knobPage]) {
+    if (s.bankNames.length > 1 && s.bankNames[s.knobPage]) {
         bankName = s.bankNames[s.knobPage];
     } else if (s.moduleConfig && s.moduleConfig.banks[s.knobPage]) {
         bankName = s.moduleConfig.banks[s.knobPage].name;
@@ -335,7 +317,26 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
          * gives no on-screen clue at all. Scoped to the page, not the config:
          * on Master or Reverb the pad decides nothing, so an icon there would
          * claim a relationship that is not on screen. */
-        isPadScoped:        !!(s.moduleConfig?.banks[s.knobPage]?.padSpecific)
+        /* PAD-SCOPED MEANS "THESE KNOBS BELONG TO ONE VOICE", and a module that
+         * DECLARES a rack has said exactly that — it just has no entry in
+         * movy's table to say it through. Reading only the table meant a
+         * declared rack drew no pad-grid icon at all, reported from the device
+         * as "no minimap". Display-only: both header renderers gate the icon on
+         * this and nothing else consults it. */
+        /* WHAT THE MODULE CALLS THE FOCUSED PAD, for the header.
+         *
+         * Its own field rather than borrowed from `bankName`: bankName is the
+         * PAGE label and only the module page draws it, so putting the pad name
+         * there left the chain view — the view movy OPENS on — still reading
+         * "Voice-POC" with no idea which drum was under the knobs. Both header
+         * renderers take this, so the answer is the same wherever you are.
+         *
+         * Read through a default: ModelState is assembled by hand in places
+         * (the logic suite builds partial ones), and a new field must not turn
+         * those into a crash on a path with nothing to do with drums. */
+        drumPadName:        (s.drumPadNames || [])[s.drumCurrentPad - 1] || '',
+        isPadScoped:        (s.drumPadNames || []).length > 0
+                            || !!(s.moduleConfig?.banks[s.knobPage]?.padSpecific)
                             || isVoiceBank(rot, s.knobPage),
         automationHeld:     auto.held,
         automationPoolFull: auto.poolFull,

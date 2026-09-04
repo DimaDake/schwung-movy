@@ -290,6 +290,38 @@ the contract arrives. Two traps are recorded in it and in its check:
   registers, `isWidgetAvailable` says yes, and `vizGroups()` still comes back
   empty. movy's binding re-exports the registry so there is one door.
 
+### Modules declare their own drum rack (2026-09-04, later still)
+
+Merged schwung main again for #411 (`pad_layout`, voices, focused voice) and
+#410/#412 (param cards). 253 host suites.
+
+**movy now learns a rack from the module, with nothing configured.** A model
+served only `voice-poc`'s contract — no entry in movy's table — comes out of
+`loadHierarchy` with 7 pads, a pad count the header icon follows, pad 2 playing
+the declared 38, and the header naming the focused pad ("Kick", "Snare",
+"Tom Lo") instead of repeating a level name that never moved.
+
+Three things worth keeping:
+
+- **The pads are a MAP, not a range.** voice-poc declares 36, 38, 42, 60-63.
+  movy's `padNoteStart + pad - 1` reads that as 36..42 — five pads to the wrong
+  voice, two to none. `DrumConfig.padNotes` carries the declared list and
+  `drumNoteOfPad` consults it first; that is the single place a pad becomes a
+  note, so live input, the LEDs, the engine's pad map and the load-time focus
+  all follow from one change.
+- **Declaration wins, movy's table is the fallback, and silence changes
+  nothing.** `effectiveDrumConfig` hands back the very object it was given for
+  an undeclared module — all 100 captured fleet modules. The evidence is that
+  dump-replay (80 modules) and the 149 screenshot baselines did not move.
+- **The reader is PUSHED into the model.** `model/` imports nothing from
+  `renderer/`, so `globals.ts` hands it `surfaceOf` at start-up. With the grid
+  off that is the `.off` stand-in and every module falls back, so this needs no
+  flag of its own.
+
+`src/module-configs/{6w6,8w8,9w9,cw78}.json` are now the fallback for modules
+that have not declared yet. Delete each one as its module lands its
+declaration.
+
 ### Two device bugs, one fixed
 
 - **p-locks invisible** — fixed. `lastAutoView` was assigned only in the

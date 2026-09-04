@@ -260,6 +260,42 @@ if (!dp) fail('changing the Schwung page did not change the frame — the loop i
        + `never synth:${movyInfo.ioKey}`);
 }
 
+/* ---- A MODULE WITH NO CONTRACT KEEPS MOVY'S OWN RENDERING ----------------
+ *
+ * `forge` and `signal` serve neither ui_hierarchy nor chain_params — the
+ * planner says exactly that ("no ui_hierarchy and no chain_params") — so
+ * Schwung has nothing to plan and movy must draw them itself, unchanged. They
+ * are not broken modules: they describe themselves to movy's own config table
+ * and render 12 and 9 pages there.
+ *
+ * That fallback is what makes this flag safe to ship, and nothing asserted it.
+ * A regression would blank every module that describes itself only to movy,
+ * and the grid-delta run would report it as the laconic "schwung planned no
+ * knob page here" — which reads like a note, not a failure.
+ *
+ * Compared as PIXELS against the same module with the grid off. A fallback
+ * that drew a DIFFERENT picture would pass a page count.
+ */
+for (const preset of ['forge', 'signal']) {
+    if (!MOCK_SYNTHS[preset]) continue;
+    setSchwungGridMode('off');
+    boot(preset);
+    const plain = fb.slice();
+    setSchwungGridMode('page');
+    boot(preset);
+    const gridded = fb.slice();
+    let n = 0;
+    for (let i = 0; i < plain.length; i++) if (plain[i] !== gridded[i]) n++;
+    if (n === 0) {
+        _log(`  ${preset} declares no contract, so movy draws it — unchanged by the grid`);
+    } else {
+        fail(`${preset} declares no contract, so Schwung can plan nothing and movy must draw it `
+           + `exactly as before — but the grid moved ${n} pixels. The fallback this flag rests `
+           + `on has broken.`);
+    }
+}
+setSchwungGridMode('off');
+
 _log('');
 _log(`PASS: movy's own app loop renders Schwung's pages — frame differs by ${d} px from `
    + `movy's, the Schwung page set drives it (${sp.pageCount} pages), paging repaints `

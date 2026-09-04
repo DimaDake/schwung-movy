@@ -21,6 +21,7 @@ import { padColor } from '../seq/pads.js';
 import { midiNoteName } from '../keyboard/notes.js';
 import { renderKnobsView } from '../renderer/knob-view.js';
 import { schwungGridMode, schwungPageFor, schwungActiveFor } from '../renderer/schwung-grid.js';
+import { schwungEditorActive, renderSchwungEditor } from '../renderer/schwung-editor.js';
 import { renderKeysView }  from '../renderer/keys-view.js';
 import { renderBrowseView } from '../renderer/browse-view.js';
 import { renderChainView }    from '../renderer/chain-view.js';
@@ -660,6 +661,13 @@ function tickBody(): void {
             // Only knob 1 lights, and its brightness is the value — the page is
             // a list, so the LED is the only thing saying which knob edits it.
             updateSingleKnobLED(FLAG_KNOB, vm.knobNormalized);
+        } else if (schwungEditorActive()) {
+            /* A divable parameter's list, drawn over whatever view opened it.
+             * Ahead of every view branch because it is modal — the page beneath
+             * is not what the gestures are addressing. */
+            clear_screen();
+            renderSchwungEditor();
+            updateSingleKnobLED(-1, 0);
         } else if (appState.currentView === VIEW_CPU) {
             renderCpuView(buildCpuPageVM());
             // Nothing on this page is editable, so every knob goes dark. A knob

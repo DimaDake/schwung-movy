@@ -1,5 +1,7 @@
 import { trackRef } from '../track/ref.js';
 import { schwungChangePage, schwungActiveFor } from '../renderer/schwung-grid.js';
+import { openSchwungEditor, schwungEditorActive, schwungEditorJog,
+         schwungEditorCommit, schwungEditorCancel } from '../renderer/schwung-editor.js';
 
 /*
  * WHICH PARAMETER IS UNDER KNOB k — one answer, for every gesture.
@@ -519,6 +521,9 @@ export function onMidiMessageInternal(data: number[]): void {
          * The ladder is Schwung's own `applyInput`, not a copy — see
          * schwung-page.ts. movy asks and obeys.
          */
+        /* The divable editor is movy's own layer, so it comes down before we
+         * ask Schwung about its layers. */
+        if (schwungEditorActive()) { schwungEditorCancel(); appState.dirty = true; return; }
         {
             const m = knobModel();
             const spb = m ? schwungActiveFor(appState.activeTrack.index,
@@ -593,16 +598,28 @@ export function onMidiMessageInternal(data: number[]): void {
              * gesture people use for one they have never had. Left with movy
              * until the collision is decided.
              */
-            if (spc && (spc.ctl.pickerOpen || spc.ctl.isDoor()
+            /*
+             * SHIFT+CLICK IS THE SECTION PICKER, which is Schwung's own idiom
+             * ("Shift+Click is the section picker, EVERYWHERE" — page_input).
+             * Taken only on VIEW_KNOBS: on VIEW_CHAIN Shift+click already opens
+             * movy's module browser, and that gesture is older and more used.
+             *
+             * The plain no-knob-held click stays movy's on both views for the
+             * same reason — it is the module browser, and Schwung's fourth rung
+             * would have taken it.
+             */
+            const wantPicker = appState.shiftHeld && appState.currentView === VIEW_KNOBS;
+            if (spc && (wantPicker || spc.ctl.pickerOpen || spc.ctl.isDoor()
                         || spc.ctl.state.touched >= 0)) {
-                const intent = spc.click(appState.shiftHeld);
+                const intent = spc.click(wantPicker);
                 appState.dirty = true;
-                /* An "open" intent wants an editor movy does not have yet. Say
-                 * so once rather than dropping it silently — a divable param
-                 * that appears to do nothing is the bug this logs to prevent. */
-                if (intent && intent.action === 'open') {
-                    mlog('schwung-open ' + (intent.key || '?') + ' opts='
-                       + (intent.options ? intent.options.length : 0));
+                /* A divable param opens its list. An intent with no options —
+                 * a filepath, a canvas — has no editor here; it is logged
+                 * rather than dropped, because a param that appears inert is
+                 * exactly the failure a silent drop would hide. */
+                if (intent && intent.action === 'open' && !openSchwungEditor(intent, spc)) {
+                    mlog('schwung-open unhandled ' + (intent.key || '?')
+                       + ' kind=' + (intent.meta ? intent.meta.kind : '?'));
                 }
                 return;
             }
@@ -681,6 +698,9 @@ export function onMidiMessageInternal(data: number[]): void {
             // same gesture works on the module knob page and on the chain page,
             // since the touched param lives on the model regardless of view.
             // browseOrigin returns to whichever view the click happened in.
+            /* The editor is a modal layer: while it is up the click is its
+             * commit and nothing else's. */
+            if (schwungEditorActive()) { schwungEditorCommit(); appState.dirty = true; return; }
             const fileTarget = activeModel()?.getFileBrowseTarget() ?? null;
             if (fileTarget) {
                 // Capture the origin BEFORE openFileBrowser flips currentView to
@@ -724,6 +744,10 @@ export function onMidiMessageInternal(data: number[]): void {
         const delta = decodeDelta(d2);
         if (delta !== 0) {
             jogHintTouch(false);   // a turn answers the hint's question — drop it
+            /* The editor's list is what the jog moves while it is up — ahead of
+             * everything, because a modal that let the page change underneath
+             * it would commit against a parameter you can no longer see. */
+            if (schwungEditorActive()) { schwungEditorJog(delta); appState.dirty = true; return; }
             if (assignActive()) { assignCycle(delta); appState.dirty = true; return; }
             /* Global Params scrolls its list. Ahead of the view branches below
              * because the jog is the page's ONLY navigation — the other two

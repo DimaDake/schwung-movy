@@ -54,6 +54,7 @@ import { run as run_tracks_refs } from './logic/tracks-refs.mjs';
 import { run as run_tracks_chain } from './logic/tracks-chain.mjs';
 import { run as run_partition } from './logic/partition.mjs';
 import { run as run_flags } from './logic/flags.mjs';
+import { run as run_schwung_grid } from './logic/schwung-grid.mjs';
 import { run as run_cpu_page } from './logic/cpu-page.mjs';
 
 /* Awaited one at a time: the suites share the mock device globals, and the
@@ -103,6 +104,7 @@ const SUITES = [
     run_tracks_chain,
     run_partition,
     run_flags,
+    run_schwung_grid,
     run_cpu_page,
 ];
 

@@ -58,6 +58,9 @@ import { visibleFlags } from '../../dist/esm/seq/flags-visible.js';
 import { movyTracksOn } from '../../dist/esm/track/ref.js';
 import { loadSetHostChoice } from '../../dist/esm/track/host-mode.js';
 import { loadPerSetFlags } from '../../dist/esm/seq/flags.js';
+import { schwungGridMode, setSchwungGridMode, schwungPageFor,
+         schwungGridReload } from '../../dist/esm/renderer/schwung-grid.js';
+import { schwungLibAvailable, schwungLibError } from '../../dist/esm/renderer/schwung-lib.js';
 import { resetPorts } from '../../dist/esm/track/registry.js';
 import { serializeUiState, applyUiState, resetUiState } from '../../dist/esm/seq/ui-state.js';
 import { VISIBLE_ROWS, firstVisibleRow, HINT_W, HINT_LINES } from '../../dist/esm/renderer/flags-view.js';
@@ -235,6 +238,8 @@ export {
     readPrefFileDir, writePrefFileDir, PREFS_PATH,
     FLAGS, flagDef, clampFlag, flagValueLabel, flagNormalized,
     flagValue, setFlag, applyFlagsToEngine, resetFlags,
+    schwungGridMode, setSchwungGridMode, schwungPageFor, schwungGridReload,
+    schwungLibAvailable, schwungLibError,
     flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
     visibleFlags, movyTracksOn, loadSetHostChoice, loadPerSetFlags, resetPorts,

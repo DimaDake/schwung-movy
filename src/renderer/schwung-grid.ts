@@ -18,20 +18,76 @@
 
 import { createSchwungPage, type SchwungPage } from './schwung-page.js';
 import { portFor } from '../track/registry.js';
+import { schwungLibAvailable } from './schwung-lib.js';
+import { flagValue } from '../seq/flags.js';
 
 export type SchwungGridMode = 'off' | 'body' | 'page';
 
-/* __MOVY_SCHWUNG_GRID__ is a build-time define: 'off' for an ordinary build,
- * 'page' for the experimental one that hands the module pages to Schwung. It is
- * a define rather than a runtime default so an ordinary build cannot ship the
- * experiment by forgetting a call. */
-declare const __MOVY_SCHWUNG_GRID__: SchwungGridMode;
-let mode: SchwungGridMode =
-    (typeof __MOVY_SCHWUNG_GRID__ === 'string' ? __MOVY_SCHWUNG_GRID__ : 'off');
-export function schwungGridMode(): SchwungGridMode { return mode; }
-export function setSchwungGridMode(m: SchwungGridMode): void { mode = m; }
-
+/* One SchwungPage per (track, component). */
 const pages = new Map<string, SchwungPage>();
+
+/* The flag's three values, in the order the Settings row lists them. */
+const MODES: SchwungGridMode[] = ['off', 'body', 'page'];
+
+/*
+ * THE MODE IS A SETTING NOW, NOT A BUILD.
+ *
+ * It was `__MOVY_SCHWUNG_GRID__`, a define, on the reasoning that an ordinary
+ * build must not ship the experiment by forgetting a call. The define could not
+ * stay: a build-time switch has to compile ONE renderer in, and a user-facing
+ * switch needs both. What actually kept an ordinary build safe was never the
+ * define — it was the `.off` module swap that took the param_pages imports out
+ * of the graph, and schwung-lib.ts now does that job at runtime instead, so a
+ * Schwung that cannot serve the library costs nothing but this feature.
+ *
+ * READ THROUGH THE LIBRARY GATE, EVERY TIME. `flagValue` is a map read, so
+ * there is nothing to cache, and caching would be the bug: the flag is edited
+ * on a page the user can reach while a module is on screen, and a stale mode
+ * would leave Schwung's controller driving input into a body movy is drawing.
+ * Pinning to 'off' when the library is unavailable is what makes the setting
+ * safe to expose at all — otherwise choosing DRAW on an old Schwung would take
+ * the screen to a renderer that cannot run.
+ */
+let override: SchwungGridMode | null = null;
+let lastMode: SchwungGridMode | null = null;
+
+export function schwungGridMode(): SchwungGridMode {
+    const m = !schwungLibAvailable() ? 'off'
+            : override !== null ? override
+            : (MODES[flagValue('schwunggrid')] ?? 'off');
+    /*
+     * A CHANGED MODE DROPS THE CACHED PAGES, here rather than in a hook on
+     * `setFlag`.
+     *
+     * A hook would be the obvious place, and it would make flags.ts import this
+     * module while this one imports flags.ts — a cycle whose failure mode is a
+     * TDZ at load, i.e. movy not starting. Noticing the change where the value
+     * is already being read costs one string compare on a call that is already
+     * a map lookup, and it catches every route into the flag: the Settings
+     * knob, a prefs.json edited on disk, and the test override.
+     *
+     * It matters because a SchwungPage caches a controller bound to a
+     * component's contract. Coming back to PAGE with a stale one would draw the
+     * page the module had before the user went and changed it.
+     */
+    if (m !== lastMode) {
+        lastMode = m;
+        pages.clear();
+    }
+    return m;
+}
+
+/*
+ * FOR TESTS AND THE DEVICE PROBE ONLY.
+ *
+ * An override, not the source: setting it writes no flag and survives no
+ * reload, so a suite can pin a mode without touching prefs.json and without
+ * the next `flagValue` read contradicting it. `null` means "ask the flag",
+ * which is what production always does.
+ */
+export function setSchwungGridMode(m: SchwungGridMode | null): void {
+    override = m;
+}
 
 export function schwungPageFor(trackIndex: number, componentKey: string): SchwungPage {
     const id = trackIndex + ':' + componentKey;
@@ -52,7 +108,7 @@ export function schwungGridReload(trackIndex?: number): void {
 
 /** Jog moved a page. Returns true when Schwung owned the move. */
 export function schwungChangePage(trackIndex: number, componentKey: string, delta: number): boolean {
-    if (mode !== 'page') return false;
+    if (schwungGridMode() !== 'page') return false;
     const p = schwungPageFor(trackIndex, componentKey);
     if (!p.ready) return false;
     p.changePage(delta);
@@ -68,7 +124,7 @@ export function schwungChangePage(trackIndex: number, componentKey: string, delt
  * finger.
  */
 export function schwungActiveFor(trackIndex: number, componentKey: string): SchwungPage | null {
-    if (mode !== 'page') return null;
+    if (schwungGridMode() !== 'page') return null;
     const p = schwungPageFor(trackIndex, componentKey);
     return p.ready ? p : null;
 }

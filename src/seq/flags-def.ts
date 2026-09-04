@@ -179,6 +179,35 @@ export const FLAGS: FlagDef[] = [
         // for a set that misbehaves before the culprit is known.
         min: 0, max: 1, def: 0, bool: true,
     },
+    {
+        key: 'schwunggrid', name: 'Param Pages',
+        hint: 'Who draws module knobs. PAGE re-paginates.',
+        // WHICH RENDERER DRAWS A MODULE'S PARAMETER PAGE.
+        //
+        //   MOVY    movy plans the pages and draws them (what always shipped)
+        //   DRAW    movy plans, Schwung draws the widgets  (a restyle)
+        //   PAGE    Schwung plans AND draws; movy targets the parameters
+        //
+        // Three values rather than a bool because DRAW and PAGE are separate
+        // decisions and only one of them moves parameters between pages. PAGE
+        // is the one that re-paginates, which is a data-shaped change (the
+        // sequencer targets parameters, never page/slot, so lanes follow — but
+        // what is on which page visibly moves).
+        //
+        // uiOnly with NOTHING FOLDED, which is the rare honest case for that
+        // field: the engine has no parameter-page concept at all, so unlike
+        // `cpuopt` and `chtracks` there is no second key carrying its effect.
+        // Pushing it under its own name would cost a blocking round trip on the
+        // audio thread to be told the key does not exist.
+        //
+        // Debug-only for now (no `release`): it is an experiment against movy's
+        // own renderer, and the Schwung side still has open gaps — see
+        // docs/plans/ and browser-test/app-loop.mjs, which fails on PAGE.
+        //
+        // No `revisedAt`: a brand-new key has no stored value anywhere, so def 0
+        // reaches every device without help.
+        min: 0, max: 2, def: 0, labels: ['MOVY', 'DRAW', 'PAGE'], uiOnly: true,
+    },
 ];
 
 export function flagDef(key: string): FlagDef | null {

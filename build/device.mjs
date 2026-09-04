@@ -28,7 +28,12 @@ const SCHWUNG_BANNER = [
  * would otherwise ship the page. */
 const DEBUG = process.env.MOVY_DEBUG !== '0';
 
-const GRID = process.env.MOVY_SCHWUNG_GRID || 'off';
+/* The Schwung renderer is now a SETTING, so an ordinary build carries both
+ * renderers and `schwunggrid` chooses. This switch is the other axis: whether
+ * the layer is in the bundle at all. Default in; MOVY_NO_SCHWUNG_GRID=1 takes
+ * it out, which is what keeps `scripts/schwung-off-is-free.mjs` meaningful and
+ * leaves a way to ship a build with no Schwung dependency whatsoever. */
+const NO_GRID = process.env.MOVY_NO_SCHWUNG_GRID === '1';
 
 /*
  * THE OFF SWITCH HAS TO BE FREE.
@@ -52,12 +57,17 @@ const GRID = process.env.MOVY_SCHWUNG_GRID || 'off';
 const gridOffStubs = {
     name: 'schwung-grid-off',
     setup(build) {
-        if (GRID !== 'off') return;
-        build.onResolve({ filter: /\/schwung-(body|page|editor|widgets|voices)\.js$/ }, (a) => {
+        if (!NO_GRID) return;
+        build.onResolve({ filter: /\/schwung-(body|page|editor|widgets|voices|lib)\.js$/ }, (a) => {
+            /* `lib` is the one that matters: it is the only module that names
+             * param_pages now, so leaving it out of this list left the whole
+             * layer in a build that had asked for none of it. The other four
+             * still swap so their code goes too. */
             const which = a.path.includes('schwung-body') ? 'body'
                         : a.path.includes('schwung-editor') ? 'editor'
                         : a.path.includes('schwung-widgets') ? 'widgets'
-                        : a.path.includes('schwung-voices') ? 'voices' : 'page';
+                        : a.path.includes('schwung-voices') ? 'voices'
+                        : a.path.includes('schwung-lib') ? 'lib' : 'page';
             return { path: resolve(root, `src/renderer/schwung-${which}.off.ts`) };
         });
     },
@@ -72,11 +82,14 @@ await esbuild.build({
     target:      ['es2020'],
     banner:      { js: SCHWUNG_BANNER },
     external:    ['/data/UserData/schwung/*'],
-    /* MOVY_SCHWUNG_GRID=page builds the experimental grid: Schwung plans the
-     * module's pages and draws them, movy targets the parameters. Default 'off'
-     * so a normal build is byte-for-byte the movy that shipped. */
-    define:      { __MOVY_DEBUG__: String(DEBUG),
-                   __MOVY_SCHWUNG_GRID__: JSON.stringify(GRID) },
+    define:      { __MOVY_DEBUG__: String(DEBUG) },
+    /* schwung-lib.ts awaits its imports at module top level, which is the one
+     * place movy can await at all: `eval_buf` runs `js_std_await` on the
+     * module's result, so the host load blocks until they settle and every
+     * global assigned afterwards is in place before the load reports success.
+     * es2020 has no top-level await, and without this esbuild rewrites the
+     * module into a form that defers evaluation. */
+    supported:   { 'top-level-await': true },
     logLevel:    'info',
 });
-console.log(`Device bundle written: ui.js (debug=${DEBUG})`);
+console.log(`Device bundle written: ui.js (debug=${DEBUG}, schwung-grid=${NO_GRID ? 'absent' : 'available'})`);

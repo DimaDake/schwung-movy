@@ -22,8 +22,7 @@
  * 36, so five of the seven would address the wrong voice and two would address
  * nothing. So the pad->note relation is carried as the module stated it.
  */
-// @ts-ignore — absolute device path; external in the device build, aliased locally
-import { padLayoutOf, focusParamOf, voicesOf, voiceIndexFromNote } from '/data/UserData/schwung/shared/param_pages/voices.mjs';
+import { schwungLib } from './schwung-lib.js';
 
 export interface Voice {
     index: number;
@@ -50,10 +49,11 @@ const EMPTY: VoiceSurface = { layout: null, voices: [], focusParam: null };
 export function surfaceOf(hierarchy: any): VoiceSurface {
     if (!hierarchy) return EMPTY;
     try {
+        const lib = schwungLib();
         return {
-            layout: padLayoutOf(hierarchy) ?? null,
-            voices: voicesOf(hierarchy) || [],
-            focusParam: focusParamOf(hierarchy) ?? null,
+            layout: lib.padLayoutOf(hierarchy) ?? null,
+            voices: lib.voicesOf(hierarchy) || [],
+            focusParam: lib.focusParamOf(hierarchy) ?? null,
         };
     } catch (_e) {
         return EMPTY;
@@ -77,7 +77,12 @@ export function noteForPad(s: VoiceSurface, i: number): number | null {
 
 /** Which pad a note addresses, or null. */
 export function padForNote(s: VoiceSurface, note: number): number | null {
-    const i = voiceIndexFromNote(s.voices, note);
+    /* An empty surface answers without the library: a module that declared
+     * nothing has no pad for any note, and reaching for schwung-lib to be told
+     * so would throw on a device whose Schwung cannot serve it. `surfaceOf`
+     * returns exactly this surface in that case. */
+    if (!s.voices.length) return null;
+    const i = schwungLib().voiceIndexFromNote(s.voices, note);
     return typeof i === 'number' ? i : null;
 }
 

@@ -32,8 +32,7 @@ import { moduleReadKey } from '../chain/config.js';
 import { registerModuleWidgets } from './schwung-widgets.js';
 import { surfaceOf } from './schwung-voices.js';
 
-// @ts-ignore — absolute device path; external in the device build, aliased locally
-import { createController, LAYOUT_MOVY } from '/data/UserData/schwung/shared/param_pages/page_controller.mjs';
+import { schwungLib } from './schwung-lib.js';
 /*
  * SCHWUNG'S OWN INPUT HANDLER, not a copy of it. Click and Back are LADDERS —
  * click is picker/door/no-knob-held/held, Back is hint/peek/picker/menu/exit —
@@ -46,8 +45,7 @@ import { createController, LAYOUT_MOVY } from '/data/UserData/schwung/shared/par
  * shift is held"). movy scales by the encoder's accumulated delta and keeps its
  * own path for that.
  */
-// @ts-ignore — same absolute device path
-import { applyInput } from '/data/UserData/schwung/shared/param_pages/page_input.mjs';
+
 
 /* movy draws its own header, bank bar and footer; Schwung is asked for the
  * widgets between them.
@@ -108,7 +106,8 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
     /* Injected I/O — rule 1 of param_pages: the library does no param I/O, the
      * caller does every read and write. That is what keeps movy's port the one
      * thing talking to the track. */
-    const ctl = createController({
+    const lib = schwungLib();
+    const ctl = lib.createController({
         /*
          * `ui_hierarchy` FALLS BACK TO `ui_pages`, which is what a module
          * shipping its own chain editor publishes under.
@@ -152,7 +151,7 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
         /* movy has its own screen-reader path; nothing to say from here yet. */
         announce: () => {},
     });
-    ctl.setLayout(LAYOUT_MOVY);
+    ctl.setLayout(lib.LAYOUT_MOVY);
 
     let loaded = false;
     let attempts = 0;
@@ -341,9 +340,9 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
          * and openPicker was never reached — leaving the section picker
          * unreachable on a module with 24 pages.
          */
-        click: (shift = false) => applyInput(ctl, { type: 'click', shift },
+        click: (shift = false) => lib.applyInput(ctl, { type: 'click', shift },
                                              { nowMs: Date.now() }) ?? null,
-        back: () => applyInput(ctl, { type: 'back' }, { nowMs: Date.now() }) ?? null,
+        back: () => lib.applyInput(ctl, { type: 'back' }, { nowMs: Date.now() }) ?? null,
 
         /*
          * A PAD PRESS SHOWS THAT VOICE'S PAGE.

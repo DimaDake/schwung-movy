@@ -508,6 +508,27 @@ export function onMidiMessageInternal(data: number[]): void {
     if (d1 === MoveBack && d2 > 0) {
         jogHintTouch(false);
         holdTurnCancel();   // Back cancels an active hold-to-modulate
+        /*
+         * SCHWUNG'S LAYERS COME DOWN FIRST, one per press: a hint, then the
+         * enum peek, then the section picker, then an entered menu. Only when
+         * none of them was up does Schwung answer `exit`, and only then is Back
+         * movy's — which is what keeps it from being a trap. Reported upstream
+         * as "if i hit back during autopeek it exits the module": a peek about
+         * to vanish on its own should not take the module with it.
+         *
+         * The ladder is Schwung's own `applyInput`, not a copy — see
+         * schwung-page.ts. movy asks and obeys.
+         */
+        {
+            const m = knobModel();
+            const spb = m ? schwungActiveFor(appState.activeTrack.index,
+                                m.getComponentKey ? m.getComponentKey() : 'synth') : null;
+            if (spb) {
+                const intent = spb.back();
+                appState.dirty = true;
+                if (!intent) return;         /* a layer came down; that was the press */
+            }
+        }
         if (masterDetailActive()) {
             appState.masterDetail = false;   // master detail → back to the slot grid
             appState.dirty = true;
@@ -561,7 +582,30 @@ export function onMidiMessageInternal(data: number[]): void {
             const m = knobModel();
             const spc = m ? schwungActiveFor(appState.activeTrack.index,
                                              m.getComponentKey ? m.getComponentKey() : 'synth') : null;
-            if (spc && spc.ctl.isDoor()) { spc.click(); appState.dirty = true; return; }
+            /*
+             * Schwung takes the click when it has something to do with it: a
+             * door page to enter, its own picker to choose from, or a KNOB
+             * UNDER THE HAND whose parameter dives.
+             *
+             * Deliberately NOT the fourth rung of Schwung's ladder — a click
+             * with nothing held opens its section picker, and that is movy's
+             * module browser on both these views. Taking it would trade a
+             * gesture people use for one they have never had. Left with movy
+             * until the collision is decided.
+             */
+            if (spc && (spc.ctl.pickerOpen || spc.ctl.isDoor()
+                        || spc.ctl.state.touched >= 0)) {
+                const intent = spc.click(appState.shiftHeld);
+                appState.dirty = true;
+                /* An "open" intent wants an editor movy does not have yet. Say
+                 * so once rather than dropping it silently — a divable param
+                 * that appears to do nothing is the bug this logs to prevent. */
+                if (intent && intent.action === 'open') {
+                    mlog('schwung-open ' + (intent.key || '?') + ' opts='
+                       + (intent.options ? intent.options.length : 0));
+                }
+                return;
+            }
         }
         // Assign-mode: commit the LFO modulation (assign → jump to that LFO's
         // chain page; remove → stay + toast). Consumes the click.

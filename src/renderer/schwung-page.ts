@@ -30,6 +30,20 @@ import { fontPrint, fontWidth } from '../font/index.js';
 
 // @ts-ignore — absolute device path; external in the device build, aliased locally
 import { createController, LAYOUT_MOVY } from '/data/UserData/schwung/shared/param_pages/page_controller.mjs';
+/*
+ * SCHWUNG'S OWN INPUT HANDLER, not a copy of it. Click and Back are LADDERS —
+ * click is picker/door/no-knob-held/held, Back is hint/peek/picker/menu/exit —
+ * and restating either here is how the two would drift. Same reason the binding
+ * drives the controller rather than reimplementing its planning.
+ *
+ * KNOBS DELIBERATELY DO NOT GO THROUGH IT. `applyInput`'s knob intent carries a
+ * DIRECTION and moves one detent per call, which is exactly the magnitude bug
+ * schwung-knob-feel-check exists to catch ("knobs move very very slowly like
+ * shift is held"). movy scales by the encoder's accumulated delta and keeps its
+ * own path for that.
+ */
+// @ts-ignore — same absolute device path
+import { applyInput } from '/data/UserData/schwung/shared/param_pages/page_input.mjs';
 
 /* movy draws its own header, bank bar and footer; Schwung is asked for the
  * widgets between them.
@@ -44,6 +58,17 @@ import { createController, LAYOUT_MOVY } from '/data/UserData/schwung/shared/par
  * view it counts CHAIN SLOTS, which is what that view's jog moves and is not
  * Schwung's to overwrite. */
 const BANDS = { header: false, bank: false, footer: false };
+
+/** What Schwung asks the HOST to do. `open` wants an editor for `key`; `exit`
+ *  means every layer is down and Back now belongs to movy. */
+export interface SchwungIntent {
+    action: 'open' | 'exit' | string;
+    key?: string;
+    fullKey?: string;
+    meta?: any;
+    options?: string[];
+    index?: number;
+}
 
 export interface SchwungPage {
     reload(): void;
@@ -62,7 +87,10 @@ export interface SchwungPage {
     render(title: string, auto?: AutomationView, touched?: number): void;
     knobTurn(slot: number, delta: number): void;
     knobTouch(slot: number, down: boolean): void;
-    click(): void;
+    /** Jog click. Returns a host intent ("open") when Schwung asks for one. */
+    click(shift?: boolean): SchwungIntent | null;
+    /** Back. Null once a layer has been taken down; {action:'exit'} when none was. */
+    back(): SchwungIntent | null;
     readonly ready: boolean;
     /** The controller itself, for gestures this binding has not wired yet. */
     readonly ctl: any;
@@ -229,7 +257,17 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
             for (let i = 0; i < n; i++) ctl.onKnobTurn(slot, dir);
         },
         knobTouch: (slot: number, down: boolean) => { ctl.onKnobTouch(slot, down); },
-        click: () => { ctl.onClick(); },
+        /*
+         * The whole ladder, Schwung's. The old binding was `ctl.onClick()` with
+         * no slot and the return discarded, which silently dropped three
+         * behaviours: onClick never learned which knob was under the hand (so a
+         * divable param could not be opened), the "open" intent went nowhere,
+         * and openPicker was never reached — leaving the section picker
+         * unreachable on a module with 24 pages.
+         */
+        click: (shift = false) => applyInput(ctl, { type: 'click', shift },
+                                             { nowMs: Date.now() }) ?? null,
+        back: () => applyInput(ctl, { type: 'back' }, { nowMs: Date.now() }) ?? null,
 
         render(title: string, auto?: AutomationView, _touched = -1) {
             /* A lane with locks marks its cell. Asked BY PARAMETER, which is
@@ -267,6 +305,15 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
             /* No `footer` argument: movy draws its own. Every page kind honours
              * `bands` now that the controller's chrome is one definition. */
             ctl.render(ctx, { title, bands: BANDS });
+            /*
+             * THE OVERLAYS ARE THE CONTROLLER'S AND IT DRAWS THEM ITSELF — the
+             * enum peek that shows a divable enum's whole list while you turn
+             * it, and the section picker. It REFUSES to draw without a
+             * clearScreen (an overlay interleaved with the grid beneath is two
+             * screens at once), so omitting this argument is the same as having
+             * no overlays at all — which is what movy had.
+             */
+            ctl.renderOverlays(ctx, { clearScreen: () => clear_screen() });
         },
     };
 }

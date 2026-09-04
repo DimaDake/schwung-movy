@@ -43,7 +43,7 @@ const GRID = process.env.MOVY_SCHWUNG_GRID || 'off';
  * worse, a load-time dependency on a Schwung new enough to serve the file — on
  * an older one an ORDINARY movy fails to start.
  *
- * A define cannot fix it; the modules have to leave the graph. These three are
+ * A define cannot fix it; the modules have to leave the graph. These four are
  * the only importers of param_pages, so swapping them for their `.off`
  * stand-ins takes the whole Schwung layer with them. scripts/schwung-off-is-free.mjs
  * asserts both halves — absent when off, present when on, and it is what caught
@@ -53,9 +53,10 @@ const gridOffStubs = {
     name: 'schwung-grid-off',
     setup(build) {
         if (GRID !== 'off') return;
-        build.onResolve({ filter: /\/schwung-(body|page|editor)\.js$/ }, (a) => {
+        build.onResolve({ filter: /\/schwung-(body|page|editor|widgets)\.js$/ }, (a) => {
             const which = a.path.includes('schwung-body') ? 'body'
-                        : a.path.includes('schwung-editor') ? 'editor' : 'page';
+                        : a.path.includes('schwung-editor') ? 'editor'
+                        : a.path.includes('schwung-widgets') ? 'widgets' : 'page';
             return { path: resolve(root, `src/renderer/schwung-${which}.off.ts`) };
         });
     },

@@ -17,6 +17,7 @@ await esbuild.build({
         resolve(root, 'src/renderer/schwung-body.ts'),
         resolve(root, 'src/renderer/schwung-page.ts'),
         resolve(root, 'src/renderer/schwung-editor.ts'),
+        resolve(root, 'src/renderer/schwung-widgets.ts'),
         resolve(root, 'src/renderer/schwung-grid.ts'),
         resolve(root, 'src/model/envelope.ts'),
         resolve(root, 'src/model/lfo-viz.ts'),

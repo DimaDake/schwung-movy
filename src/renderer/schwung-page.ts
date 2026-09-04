@@ -27,6 +27,8 @@
 import type { TrackPort } from '../track/port.js';
 import type { AutomationView } from '../types/viewmodel.js';
 import { fontPrint, fontWidth } from '../font/index.js';
+import { moduleReadKey } from '../chain/config.js';
+import { registerModuleWidgets } from './schwung-widgets.js';
 
 // @ts-ignore — absolute device path; external in the device build, aliased locally
 import { createController, LAYOUT_MOVY } from '/data/UserData/schwung/shared/param_pages/page_controller.mjs';
@@ -144,6 +146,24 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
     function reload(): void {
         ctl.load({ slot: port.track.index, component: componentKey });
         refreshLoaded();
+        /*
+         * A MODULE'S OWN WIDGET, REGISTERED WHEN ITS CONTRACT ARRIVES.
+         *
+         * Here rather than on a gesture: upstream registered widgets from the
+         * canvas-open path, so an in-grid widget did not appear until the
+         * fullscreen view had been opened once and never appeared at all for a
+         * module with no canvas param. The contract is the only moment that is
+         * always reached and always current — a module swap re-plans through
+         * here too, so a new module's widget arrives with its pages.
+         *
+         * Nothing is read unless the contract declares a `custom:` kind, and a
+         * failure is not one: an unregistered kind falls through to the
+         * built-in widget by design.
+         */
+        try {
+            const id = port.getParam(moduleReadKey(componentKey));
+            if (id) registerModuleWidgets(String(id), ctl.state.chainParams || []);
+        } catch (_e) { /* a widget is never worth failing a page plan for */ }
     }
     reload();
 
@@ -253,7 +273,21 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
          */
         knobTurn: (slot: number, delta: number) => {
             const dir = delta > 0 ? 1 : -1;
-            const n = Math.min(Math.abs(delta) | 0, 32) || 1;
+            /*
+             * THE CAP MUST NOT BITE A REAL GESTURE. `onKnobTurn` moves one
+             * detent, so the encoder's magnitude is replayed as that many
+             * calls — this is the fix for "knobs move very very slowly like
+             * shift is held", and a clamp below the largest real delta
+             * reintroduces the same bug for fast turns only.
+             *
+             * The shadow UI accumulates and re-encodes a turn as ONE CC in
+             * 1..63 / 65..127, so 63 is the largest magnitude that can arrive.
+             * The old clamp of 32 silently halved a flick: measured 0.80x
+             * movy's travel at delta 40 and 0.51x at 63. 63 is the bound now —
+             * still a bound, because a corrupt CC must not spin this loop, but
+             * one no honest gesture can reach.
+             */
+            const n = Math.min(Math.abs(delta) | 0, 63) || 1;
             for (let i = 0; i < n; i++) ctl.onKnobTurn(slot, dir);
         },
         knobTouch: (slot: number, down: boolean) => { ctl.onKnobTouch(slot, down); },

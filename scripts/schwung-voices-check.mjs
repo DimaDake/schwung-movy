@@ -294,5 +294,38 @@ _log('');
     else fail(`...but the pad name is ${JSON.stringify(m4.getViewModel().drumPadName)}`);
 }
 
+/* ---- a pad press shows that voice's page ---------------------------------
+ *
+ * The rack declares which LEVEL each voice lives on and the planner names the
+ * same level on the page it built for it, so the jump is a lookup. On device
+ * this was the difference between the header following the pad and the page
+ * standing still on the bass drum.
+ */
+_log('');
+{
+    const { portFor } = await import('../dist/esm/track/registry.js');
+    const { createSchwungPage } = await import('../dist/esm/renderer/schwung-page.js');
+    const envMod = await import('../browser-test/env.mjs');
+    const e6 = envMod.installEnv();
+    e6.setParams({ 'synth:ui_hierarchy': JSON.stringify(hierarchy) });
+    const REAL = Date.now; let clk = REAL(); Date.now = () => clk;
+    const p6 = createSchwungPage(portFor(0), 'synth');
+    for (let i = 0; i < 80 && !p6.ready; i++) { clk += 16; p6.tick(); }
+
+    const at0 = p6.pageIndex;
+    const moved = p6.focusVoice(2);          /* pad 2 = the second declared voice */
+    if (moved) ok('a pad press resolves to its voice page');
+    else fail('focusVoice found no page for the second voice — the planner and the rack '
+            + 'disagree about the level, or the pages carry no level to match on');
+    if (p6.pageIndex !== at0) ok(`...and the page moved (${at0} -> ${p6.pageIndex})`);
+    else fail(`...but the page index is still ${at0}`);
+
+    /* A pad beyond the rack must not move anything rather than clamp. */
+    const before = p6.pageIndex;
+    if (!p6.focusVoice(99) && p6.pageIndex === before) ok('a pad past the rack moves nothing');
+    else fail('a pad past the rack moved the page');
+    Date.now = REAL;
+}
+
 if (failed) { _log(`\n\x1b[31m\x1b[1mFAIL: ${failed} check(s)\x1b[0m`); process.exit(1); }
 _log('\n\x1b[32m\x1b[1mPASS: movy learns a drum rack from the module alone, names its pads, and prefers it over its own table.\x1b[0m');

@@ -27,8 +27,10 @@
 import type { TrackPort } from '../track/port.js';
 import type { AutomationView } from '../types/viewmodel.js';
 import { fontPrint, fontWidth } from '../font/index.js';
+import { mlog } from '../log.js';
 import { moduleReadKey } from '../chain/config.js';
 import { registerModuleWidgets } from './schwung-widgets.js';
+import { surfaceOf } from './schwung-voices.js';
 
 // @ts-ignore — absolute device path; external in the device build, aliased locally
 import { createController, LAYOUT_MOVY } from '/data/UserData/schwung/shared/param_pages/page_controller.mjs';
@@ -93,6 +95,8 @@ export interface SchwungPage {
     click(shift?: boolean): SchwungIntent | null;
     /** Back. Null once a layer has been taken down; {action:'exit'} when none was. */
     back(): SchwungIntent | null;
+    /** Show the page for a 1-based drum pad. False when it cannot be resolved. */
+    focusVoice(pad: number): boolean;
     readonly ready: boolean;
     /** The controller itself, for gestures this binding has not wired yet. */
     readonly ctl: any;
@@ -105,7 +109,45 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
      * caller does every read and write. That is what keeps movy's port the one
      * thing talking to the track. */
     const ctl = createController({
-        getParam: (k: string) => port.getParam(qualify(k)),
+        /*
+         * `ui_hierarchy` FALLS BACK TO `ui_pages`, which is what a module
+         * shipping its own chain editor publishes under.
+         *
+         * 9W9 serves `ui_hierarchy` EMPTY on purpose — the shadow UI reaches
+         * for the hierarchy editor whenever one is offered, and 9W9's RD-9 pad
+         * editor is the point of the module — and publishes the same contract
+         * under a key the host does not probe. Its own ui_chain.js does exactly
+         * this rewrite to feed this controller; movy is the same kind of caller
+         * and needs the same one.
+         *
+         * Without it the controller planned from `chain_params` alone: 13 pages
+         * of "Params - 2", "Params - 3", with no level on any of them, instead
+         * of one page per voice named Bass Drum, Snare, Low Tom. Measured on
+         * device — it is why a pad press had no page to jump to.
+         */
+        getParam: (k: string) => {
+            const v = port.getParam(qualify(k));
+            if (v !== null && v !== undefined && v !== '') return v;
+            /* MATCHED ON THE SUFFIX, because the controller asks with the
+             * component already on the key — `synth:ui_hierarchy`, not
+             * `ui_hierarchy`. Comparing the whole string never matched and the
+             * fallback silently never ran. */
+            const key = String(k);
+            if (!key.endsWith('ui_hierarchy')) return v;
+            const alt = port.getParam(qualify(key.replace('ui_hierarchy', 'ui_pages')));
+            /*
+             * THE FALLBACK MUST NOT DESTROY THE TRI-STATE. The controller reads
+             * this key with three answers: JSON = declared, "" = served and
+             * empty (give up now), null = the read did not complete (hold and
+             * ask again). Returning `alt` unconditionally turned an EMPTY
+             * answer — a module that left the slot — into ui_pages' null, so
+             * the page held "ready" forever and movy never got the frame back.
+             * schwung-late-contract-check caught it; that is the fourth time in
+             * this branch a latched verdict has come from collapsing those
+             * three answers into two.
+             */
+            return (alt !== null && alt !== undefined && alt !== '') ? alt : v;
+        },
         setParam: (k: string, v: string) => { port.setParam(qualify(k), v); },
         /* movy has its own screen-reader path; nothing to say from here yet. */
         announce: () => {},
@@ -302,6 +344,68 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
         click: (shift = false) => applyInput(ctl, { type: 'click', shift },
                                              { nowMs: Date.now() }) ?? null,
         back: () => applyInput(ctl, { type: 'back' }, { nowMs: Date.now() }) ?? null,
+
+        /*
+         * A PAD PRESS SHOWS THAT VOICE'S PAGE.
+         *
+         * The rack declares its voices in order and each names the LEVEL it
+         * lives on; the planner names the same level on the page it built for
+         * it. So the jump is a lookup, not a guess: voice -> level -> page.
+         *
+         * The module's own focus param is written too, so the module agrees
+         * about which voice is selected rather than only movy's screen moving.
+         * Its value is a LEVEL NAME (voices.mjs), not an index.
+         *
+         * Only on a press. movy keeps the focused pad authoritative and does
+         * NOT follow the DSP during playback — hierarchy.ts records what
+         * happened when it did: the engine's playback-drifted pad leaked into
+         * the UI and moved the page under the user's hands.
+         */
+        focusVoice(pad: number): boolean {
+            /* READ THE CONTRACT FROM THE PORT, as movy's model does. The
+             * controller keeps its own copy but does not publish it, and its
+             * planned pages do not carry the level they came from — both were
+             * assumed and both were wrong, measured on device as
+             * `hier=no ... lv0=null`. Same two keys movy uses: a module that
+             * ships its own chain editor serves the first empty and publishes
+             * under the second. */
+            let raw = port.getParam(qualify('ui_hierarchy'));
+            if (!raw) raw = port.getParam(qualify('ui_pages'));
+            let hierarchy: any = null;
+            try { hierarchy = raw ? JSON.parse(raw) : null; } catch (_e) { hierarchy = null; }
+            const s = surfaceOf(hierarchy);
+            const v = s.voices[pad - 1];
+            if (!hierarchy || !v) return false;
+
+            /* A level with several voices addresses them by its own child index
+             * param — four toms on one page are one page, four children. */
+            if (v.childIndex !== null && v.childIndex !== undefined) {
+                const lvl = hierarchy.levels && hierarchy.levels[v.level];
+                const cip = lvl && lvl.child_index_param;
+                if (cip) port.setParam(qualify(cip), String(v.childIndex));
+            }
+            if (s.focusParam) port.setParam(qualify(s.focusParam), v.level);
+
+            /* Level first, NAME second. The planner names a page after the
+             * level it built it from, so when the level itself is not carried
+             * the name still identifies it — "Snare" the voice and "Snare" the
+             * page are the same declaration read twice. */
+            const pages = ctl.pages || [];
+            const want = String(v.name || '').toUpperCase();
+            let byName = -1;
+            for (let i = 0; i < pages.length; i++) {
+                const p = pages[i];
+                if (!p) continue;
+                if (p.level === v.level) { ctl.goToPage(i); return true; }
+                if (byName < 0 && want && String(p.name || '').toUpperCase() === want) byName = i;
+            }
+            if (byName >= 0) { ctl.goToPage(byName); return true; }
+            mlog('focusVoice no page for ' + v.level + '/' + v.name
+               + ' | keys=' + (pages[1] ? Object.keys(pages[1]).join(',') : '-')
+               + ' | p1=' + (pages[1] ? JSON.stringify({n: pages[1].name, l: pages[1].level,
+                                                        t: pages[1].title, k: pages[1].kind}) : '-'));
+            return false;
+        },
 
         render(title: string, auto?: AutomationView, _touched = -1) {
             /* A lane with locks marks its cell. Asked BY PARAMETER, which is

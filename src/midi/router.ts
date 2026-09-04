@@ -364,6 +364,16 @@ export function onMidiMessageInternal(data: number[]): void {
                     /* Pad-follow, for configs that declare `pad` on a bank. A
                      * no-op for every config that does not. */
                     model!.selectBankForPad(pad);
+                    /* The same follow for a DECLARED rack: the module said
+                     * which level each voice lives on and Schwung named that
+                     * level on the page it planned, so the pad shows its
+                     * voice's page. Reported from the device as the header
+                     * following the pad while the page stood still. Returns
+                     * false for anything that has not declared, which is where
+                     * selectBankForPad above still answers. */
+                    const spd = schwungActiveFor(appState.activeTrack.index,
+                        model!.getComponentKey());
+                    if (spd) spd.focusVoice(pad);
                 }
             } else {
                 noteOn(d1, PAD_MIN, track, vel);

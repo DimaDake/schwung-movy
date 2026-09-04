@@ -202,5 +202,52 @@ _log('');
     else fail(`pad 2 plays ${cfg && drumNoteOfPad(2, cfg)}, wanted the declared 38`);
 }
 
+/* ---- the pads carry their NAMES into the header -------------------------
+ *
+ * A declared rack names its voices — Kick, Snare, Hat — and movy's header had
+ * nowhere to say so: the right-hand slot fell back to "Main" / "Page 1", which
+ * is the least informative thing it could hold on a page whose knobs all
+ * belong to one drum. The name goes there, and ONLY there: a module that
+ * supplies real bank names keeps them, because those describe the PAGE and the
+ * voice name would be replacing information rather than filling a gap.
+ */
+_log('');
+{
+    const { portFor } = await import('../dist/esm/track/registry.js');
+    const { createModel } = await import('../dist/esm/model/index.js');
+    await import('../dist/esm/app/globals.js');
+    const envMod = await import('../browser-test/env.mjs');
+
+    const e3 = envMod.installEnv();
+    e3.setParams({ 'synth:ui_hierarchy': JSON.stringify(hierarchy) });
+    const m2 = createModel(portFor(0), 'synth');
+    m2.reset(); m2.reload();
+    for (let i = 0; i < 60; i++) m2.tick();
+
+    const nameAt = (pad) => { m2.updateDrumPad(pad, 0); return m2.getViewModel().bankName; };
+
+    if (nameAt(1) === 'Kick') ok('the header names the focused pad: pad 1 = "Kick"');
+    else fail(`pad 1 shows ${JSON.stringify(nameAt(1))}, wanted the declared "Kick"`);
+    if (nameAt(2) === 'Snare') ok('...and follows the pad: pad 2 = "Snare"');
+    else fail(`pad 2 shows ${JSON.stringify(nameAt(2))}, wanted "Snare"`);
+    if (nameAt(4) === 'Tom Lo') ok('...including a child-level voice: pad 4 = "Tom Lo"');
+    else fail(`pad 4 shows ${JSON.stringify(nameAt(4))}, wanted "Tom Lo"`);
+}
+{
+    const { portFor } = await import('../dist/esm/track/registry.js');
+    const { createModel } = await import('../dist/esm/model/index.js');
+    const envMod = await import('../browser-test/env.mjs');
+    /* A module that declares NO rack must keep whatever movy showed before —
+     * the name fills a gap, it never takes a slot that had something in it. */
+    const e4 = envMod.installEnv();
+    e4.setParams({ 'synth:ui_hierarchy': JSON.stringify({ levels: { root: { params: [] } } }) });
+    const m3 = createModel(portFor(0), 'synth');
+    m3.reset(); m3.reload();
+    for (let i = 0; i < 60; i++) m3.tick();
+    const vm = m3.getViewModel();
+    if (!vm.drumPadCount) ok('a module declaring no rack is still not a rack');
+    else fail(`an undeclared module reports ${vm.drumPadCount} pads`);
+}
+
 if (failed) { _log(`\n\x1b[31m\x1b[1mFAIL: ${failed} check(s)\x1b[0m`); process.exit(1); }
-_log('\n\x1b[32m\x1b[1mPASS: movy learns a drum rack from the module alone, and prefers it over its own table.\x1b[0m');
+_log('\n\x1b[32m\x1b[1mPASS: movy learns a drum rack from the module alone, names its pads, and prefers it over its own table.\x1b[0m');

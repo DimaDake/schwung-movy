@@ -156,6 +156,9 @@ export function loadHierarchy(s: ModelState): void {
      * places merging the two sources is how they would come to disagree.
      */
     const declaredSurface = readSurface(declaredHierarchy);
+    s.drumPadNames = (declaredSurface && declaredSurface.layout === 'drums')
+        ? declaredSurface.voices.map((v) => v.name || '')
+        : [];
     s.drumConfig = effectiveDrumConfig(declaredSurface, s.moduleConfig?.drum ?? null);
     if (s.drumConfig) {
         s.isDrum       = true;

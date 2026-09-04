@@ -41,7 +41,25 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
     const nBanks = rot.entries.length;
 
     let bankName = '';
-    if (s.bankNames.length > 1 && s.bankNames[s.knobPage]) {
+    /*
+     * A DECLARED RACK NAMES THE FOCUSED PAD, and that outranks the page label.
+     *
+     * Every other source here is keyed on `knobPage`, so on a rack the header
+     * named whichever LEVEL the page came from and then sat still as you moved
+     * between pads — pad 1 and pad 4 both read "Kick". The one fact a drum
+     * page's header can carry that its knobs do not already show is WHICH DRUM
+     * you are editing, so when the module has told us, that wins.
+     *
+     * Only when the module declared it: movy's own table names banks, never
+     * voices, so nothing that worked before can be displaced by this.
+     */
+    /* Read through a default: ModelState is assembled by hand in places (the
+     * logic suite builds partial ones), and a new field must not turn those
+     * into a crash on a path that has nothing to do with drums. */
+    const padName = (s.drumPadNames || [])[s.drumCurrentPad - 1];
+    if (padName) {
+        bankName = padName;
+    } else if (s.bankNames.length > 1 && s.bankNames[s.knobPage]) {
         bankName = s.bankNames[s.knobPage];
     } else if (s.moduleConfig && s.moduleConfig.banks[s.knobPage]) {
         bankName = s.moduleConfig.banks[s.knobPage].name;

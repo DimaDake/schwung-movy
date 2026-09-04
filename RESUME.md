@@ -273,6 +273,39 @@ the shadow UI, so it looked right and stayed wrong; movy crashed on `print is
 not defined`. Fixed in the schwung branch (75aa0f98's neighbour, commit
 `75cf51ad`); it was the only such call site in the engine.
 
+### Merged to schwung main again (2026-09-04, later)
+
+Brought in module-supplied widgets (#405) — `frame_ctx`, `widget_registry`,
+`sprite_rle` — plus #402's relative-CC decode fix. 247 host suites.
+
+**Custom widgets now work in movy.** The library does everything except
+registration; `src/renderer/schwung-widgets.ts` does that from `reload()`, when
+the contract arrives. Two traps are recorded in it and in its check:
+
+- `shadow_load_ui_module` evaluates canvas.js into MOVY'S OWN GLOBALS, so a
+  script that assigns `tick` would replace movy's silently. Saved and restored,
+  throwing path included.
+- The registry is MODULE STATE. Importing `widget_registry.mjs` by a different
+  specifier gives a second instance with its own empty map — the widget
+  registers, `isWidgetAvailable` says yes, and `vizGroups()` still comes back
+  empty. movy's binding re-exports the registry so there is one door.
+
+### Two device bugs, one fixed
+
+- **p-locks invisible** — fixed. `lastAutoView` was assigned only in the
+  VIEW_KNOBS branch, so on VIEW_CHAIN (the view movy opens on) Schwung was
+  rendered with a stale or absent automation view.
+- **knobs "update once a second"** — NOT fixed, and not reproducible in the
+  harness. Through the real app loop the value is exactly right (18 detents ->
+  0.090, 1.00x movy) and the frame repaints (817 px). On the device three
+  injected turns changed 0 px. It needs device evidence, not more local work.
+  Note the injected turns carried no knob TOUCH note (inject-ui.py sends CC
+  only), which is the first thing to rule out.
+
+A separate, provable knob bug was fixed on the way: `knobTurn` clamped the
+detent count at 32 while the shadow UI encodes up to 63, so a flick lost half
+its travel (0.80x at 40, 0.51x at 63).
+
 ### What is actually left
 
 Not gestures any more. The open questions are the two the measurement raised —

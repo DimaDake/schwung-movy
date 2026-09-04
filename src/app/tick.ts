@@ -734,7 +734,16 @@ function tickBody(): void {
             if (stepAvail && stepPageState.selected) {
                 vm = buildStepPageVM(heldTrigInput(), activeModel?.getBankCount() ?? 1);
             } else {
-                vm = activeModel!.getViewModel(buildAutomationView(appState.activeTrack.index, activeModel!));
+                /* KEPT, not discarded. `schwungBodyFor` renders Schwung from
+                 * `lastAutoView`, which is what carries the parameter locks —
+                 * and this branch used to build the view, hand it to
+                 * getViewModel and throw it away. So on THIS view, the one movy
+                 * opens on, Schwung was drawn with whatever a previous
+                 * VIEW_KNOBS frame had left behind, or with nothing at all.
+                 * Reported from the device as "i can't see p locks working". */
+                const av = buildAutomationView(appState.activeTrack.index, activeModel!);
+                lastAutoView = av;
+                vm = activeModel!.getViewModel(av);
                 if (stepAvail) { vm.stepPagePresent = true; vm.stepPageSelected = false; }
             }
             diagAutoRender(vm);

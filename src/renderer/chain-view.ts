@@ -47,6 +47,11 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
         else          drawHeader(trackLabel, right, false);
     }
 
+    /* THIS BAR STAYS, GRID OR NOT. It counts CHAIN SLOTS, and on this view the
+     * jog moves chain slots — `setChainIndex`, never schwungChangePage — so it
+     * is live and it is the only thing saying which fx slot you are on.
+     * Schwung is asked not to draw a bank bar (see schwung-page.ts) precisely
+     * so this one is the only one. */
     if (vm.stepPagePresent) {
         const sel = vm.stepPageSelected ? 0 : chainIndex + 1;
         drawBankBar(sel, slots.length + 1, true);

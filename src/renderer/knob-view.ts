@@ -7,8 +7,11 @@ import { W } from './layout.js';
 import { drawKnobParamsSchwung } from './schwung-body.js';
 import { schwungGridEnabled } from './schwung-flag.js';
 
+/** What the bank bar should index, when it is not movy's own banks. */
+export interface BankOverride { index: number; count: number }
+
 export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 0,
-                                bodyOverride?: () => void): void {
+                                bodyOverride?: () => void, bank?: BankOverride): void {
     clear_screen();
 
     if (vm.toast) {
@@ -30,17 +33,28 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
         }
     }
 
+    /* MOVY DRAWS THE BAR; SCHWUNG ONLY SAYS WHAT TO PUT IN IT.
+     *
+     * Under the grid the jog pages Schwung's page set, whose COUNT differs from
+     * movy's banks, so movy's own index would sit still while the body paged.
+     * `bank` carries Schwung's pageIndex/pageCount when it owns the paging.
+     * Drawing it here rather than letting Schwung draw its own keeps one bar
+     * (two were being stacked) and one visual language — and the groups go
+     * with movy's banks, so they are dropped when the pages are not movy's. */
+    const bankIndex = bank ? bank.index : vm.bankIndex;
+    const bankCount = bank ? bank.count : vm.bankCount;
+    const bankGroups = bank ? undefined : vm.bankGroups;
     if (vm.stepPagePresent) {
-        const sel = vm.stepPageSelected ? 0 : vm.bankIndex + 1;
+        const sel = vm.stepPageSelected ? 0 : bankIndex + 1;
         // The step page is a bank of its own, ahead of the module's own banks.
-        drawBankBar(sel, vm.bankCount + 1, true,
-            vm.bankGroups ? [-1, ...vm.bankGroups] : undefined);
+        drawBankBar(sel, bankCount + 1, true,
+            bankGroups ? [-1, ...bankGroups] : undefined);
     } else {
-        drawBankBar(vm.bankIndex, vm.bankCount, false, vm.bankGroups);
+        drawBankBar(bankIndex, bankCount, false, bankGroups);
     }
     /* The body band, drawn either by movy's own widgets or by Schwung's. Only
-     * the WIDGETS move: the header and bank bar above are movy's in both cases,
-     * and so are the overlays below. */
+     * the WIDGETS move: the header is movy's in both cases, and so are the
+     * overlays below. */
     if (bodyOverride) bodyOverride();
     else if (schwungGridEnabled()) drawKnobParamsSchwung(vm);
     else drawKnobParams(vm);

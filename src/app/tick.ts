@@ -20,7 +20,7 @@ import { WHITE_DIM } from '../seq/colors.js';
 import { padColor } from '../seq/pads.js';
 import { midiNoteName } from '../keyboard/notes.js';
 import { renderKnobsView } from '../renderer/knob-view.js';
-import { schwungGridMode, schwungPageFor } from '../renderer/schwung-grid.js';
+import { schwungGridMode, schwungPageFor, schwungActiveFor } from '../renderer/schwung-grid.js';
 import { renderKeysView }  from '../renderer/keys-view.js';
 import { renderBrowseView } from '../renderer/browse-view.js';
 import { renderChainView }    from '../renderer/chain-view.js';
@@ -172,6 +172,26 @@ function schwungBodyFor(model: any, stepSelected: boolean): (() => void) | undef
      * movy keeps is one decision about the embedding, and repeating it here
      * would let the two disagree. */
     return () => { sp.render('', lastAutoView, -1); };
+}
+
+/*
+ * WHAT THE BANK BAR SHOULD COUNT on the module page.
+ *
+ * movy draws the bar; Schwung only reports. Under the grid the jog pages
+ * SCHWUNG's page set, and its count differs from movy's banks, so movy's own
+ * index would sit still while the body paged. `schwungActiveFor` is the same
+ * one predicate every input site asks, so the bar cannot end up indexing a
+ * page set the jog is not moving.
+ *
+ * Undefined means "movy's own banks", which is also the answer on the step
+ * page — that page IS movy's, and so is its bar.
+ */
+function schwungBankFor(model: any, stepSelected: boolean):
+        { index: number; count: number } | undefined {
+    if (stepSelected || !model) return undefined;
+    const sp = schwungActiveFor(appState.activeTrack.index,
+        model.getComponentKey ? model.getComponentKey() : 'synth');
+    return sp ? { index: sp.pageIndex, count: sp.pageCount } : undefined;
 }
 let _schwungView = '';
 let _schwungWhy = '';
@@ -690,7 +710,8 @@ function tickBody(): void {
              * The step page is movy's too, so it keeps its own renderer.
              */
             renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
-                            schwungBodyFor(activeModel, stepAvail && stepPageState.selected));
+                            schwungBodyFor(activeModel, stepAvail && stepPageState.selected),
+                            schwungBankFor(activeModel, stepAvail && stepPageState.selected));
             perfPhaseEnd();
             // The pool-full toast shares the bottom rows with the Loop strip;
             // claim them so the strip yields to it (like every other toast).

@@ -31,10 +31,19 @@ import { fontPrint, fontWidth } from '../font/index.js';
 // @ts-ignore — absolute device path; external in the device build, aliased locally
 import { createController, LAYOUT_MOVY } from '/data/UserData/schwung/shared/param_pages/page_controller.mjs';
 
-/* movy draws its own header and footer, so Schwung is asked for everything
- * between them. The bank bar IS Schwung's: it indexes param pages, which is
- * what the jog moves through here, and movy has no equivalent of it. */
-const BANDS = { header: false, bank: true, footer: false };
+/* movy draws its own header, bank bar and footer; Schwung is asked for the
+ * widgets between them.
+ *
+ * The bank bar used to be Schwung's, on the reasoning that it indexes param
+ * pages and movy has no equivalent. Both halves were wrong. movy draws a bank
+ * bar on these views unconditionally, so asking for one too STACKED TWO
+ * full-width rules — the double bar seen on the device. And movy does have an
+ * equivalent: `drawBankBar` just needs the numbers, which `pageCount` and
+ * `pageIndex` already publish. So Schwung reports and movy draws, which keeps
+ * one visual language for the bar and leaves movy composing it — on the chain
+ * view it counts CHAIN SLOTS, which is what that view's jog moves and is not
+ * Schwung's to overwrite. */
+const BANDS = { header: false, bank: false, footer: false };
 
 export interface SchwungPage {
     reload(): void;

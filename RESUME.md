@@ -361,6 +361,21 @@ A separate, provable knob bug was fixed on the way: `knobTurn` clamped the
 detent count at 32 while the shadow UI encodes up to 63, so a flick lost half
 its travel (0.80x at 40, 0.51x at 63).
 
+### Opened, merged, and where it stands (2026-09-04)
+
+- **schwung**: the `enum_list` ctx fix is UPSTREAM — charlesvestal/schwung#415,
+  squashed to main as `a6fc6235`.
+- **movy**: DimaDake/schwung-movy#18, ready for review. Read-only access there;
+  the merge is megadake's call and always was.
+- **9w9**: athousanddetails/schwung-9W9#3 built from source (Docker cross-build)
+  and installed on the device. Declares 11 voices.
+
+**movy now builds against plain schwung `main`.** Verified by building against a
+clean `origin/main` worktree: all 19 suites pass. The
+`worktree-param-pages-embeddable` branch is therefore REDUNDANT — it is 3 behind
+main and its only unique content was the fix that just landed. Left in place,
+not deleted.
+
 ### What is actually left
 
 Not gestures any more. The open questions are the two the measurement raised —

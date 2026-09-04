@@ -525,7 +525,18 @@ export function onMidiMessageInternal(data: number[]): void {
          * ask Schwung about its layers. */
         if (schwungEditorActive()) { schwungEditorCancel(); appState.dirty = true; return; }
         {
-            const m = knobModel();
+            /* ONLY WHILE SCHWUNG IS THE THING ON SCREEN.
+             *
+             * `schwungActiveFor` says a page EXISTS, not that you are looking
+             * at it — it stays ready while movy shows its module browser, the
+             * keys view, a param page of its own. Routing Back to it from
+             * those swallowed the press and the browser could not be left:
+             * Back is Schwung's ladder on Schwung's pages and movy's
+             * everywhere else. Found on device, backing out of the module
+             * browser. */
+            const onSchwungView = appState.currentView === VIEW_KNOBS
+                               || appState.currentView === VIEW_CHAIN;
+            const m = onSchwungView ? knobModel() : null;
             const spb = m ? schwungActiveFor(appState.activeTrack.index,
                                 m.getComponentKey ? m.getComponentKey() : 'synth') : null;
             if (spb) {
@@ -609,8 +620,13 @@ export function onMidiMessageInternal(data: number[]): void {
              * would have taken it.
              */
             const wantPicker = appState.shiftHeld && appState.currentView === VIEW_KNOBS;
-            if (spc && (wantPicker || spc.ctl.pickerOpen || spc.ctl.isDoor()
-                        || spc.ctl.state.touched >= 0)) {
+            /* Same gate as Back: a page that exists is not a page you are
+             * looking at, and a click on movy's own screens is movy's. */
+            const onSchwungView = appState.currentView === VIEW_KNOBS
+                               || appState.currentView === VIEW_CHAIN;
+            if (onSchwungView && spc
+                && (wantPicker || spc.ctl.pickerOpen || spc.ctl.isDoor()
+                    || spc.ctl.state.touched >= 0)) {
                 const intent = spc.click(wantPicker);
                 appState.dirty = true;
                 /* A divable param opens its list. An intent with no options —

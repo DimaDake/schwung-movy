@@ -116,7 +116,29 @@ export function loadHierarchy(s: ModelState): void {
         }
     }
 
-    const raw = s.port.getParam(s.componentKey + ':ui_hierarchy');
+    /*
+     * `ui_hierarchy`, THEN `ui_pages`.
+     *
+     * A module that ships its own chain editor serves `ui_hierarchy` EMPTY on
+     * purpose: the shadow UI reaches for the hierarchy editor whenever one is
+     * offered, and only falls back to the module's ui_chain.js when it is not.
+     * 9W9 is the case — its RD-9 pad editor is the point — so it answers ""
+     * there and publishes the same hierarchy under `ui_pages`, which the host
+     * does not probe, for ui_chain.js to feed the param_pages controller.
+     *
+     * movy asked only the first key, so for exactly the modules that ship their
+     * own editor it saw no contract at all: no declared drum rack, no pad names,
+     * no notes. It looked like the declaration was being ignored; it was never
+     * being read. Asking the second key costs one param read on the modules
+     * that answer nothing to the first.
+     *
+     * NOT CACHED BEYOND THIS LOAD. 9W9's note map is switchable at runtime and
+     * it serves a DIFFERENT hierarchy per map, so a value kept across loads
+     * would seat every voice at the wrong note with nothing to say why. This
+     * runs on each hierarchy load, which is what a map change triggers.
+     */
+    let raw = s.port.getParam(s.componentKey + ':ui_hierarchy');
+    if (!raw) raw = s.port.getParam(s.componentKey + ':ui_pages');
     if (raw) {
         try {
             const parsed = JSON.parse(raw) as { levels?: Record<string, HierLevel> };
@@ -156,6 +178,14 @@ export function loadHierarchy(s: ModelState): void {
      * places merging the two sources is how they would come to disagree.
      */
     const declaredSurface = readSurface(declaredHierarchy);
+    /* Says what the module declared, once per load. Without it a rack that does
+     * not seat itself is indistinguishable from a rack that declared nothing,
+     * and the difference is the whole feature — the reader, the contract that
+     * reached movy, and the table fallback all fail the same silent way. */
+    mlog('drum-declared layout=' + (declaredSurface ? declaredSurface.layout : 'no-reader')
+       + ' voices=' + (declaredSurface ? declaredSurface.voices.length : 0)
+       + ' hier=' + (declaredHierarchy ? 'yes' : 'none')
+       + ' keys=' + (declaredHierarchy ? Object.keys(declaredHierarchy).join('|') : '-'));
     s.drumPadNames = (declaredSurface && declaredSurface.layout === 'drums')
         ? declaredSurface.voices.map((v) => v.name || '')
         : [];

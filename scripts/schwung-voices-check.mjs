@@ -264,5 +264,35 @@ const nameAt = (pad) => { m2.updateDrumPad(pad, 0); return m2.getViewModel().dru
     else fail(`an undeclared module reports ${vm.drumPadCount} pads`);
 }
 
+/* ---- a module that ships its own editor publishes under `ui_pages` -------
+ *
+ * A module offering its own chain editor serves `ui_hierarchy` EMPTY on
+ * purpose — the shadow UI reaches for the hierarchy editor whenever one is
+ * offered — and publishes the same contract under `ui_pages` instead. 9W9 is
+ * that case, and movy asked only the first key, so for exactly the modules that
+ * ship their own editor it saw no contract at all. On device that looked like
+ * the declaration being ignored; it was never being read.
+ */
+_log('');
+{
+    const { portFor } = await import('../dist/esm/track/registry.js');
+    const { createModel } = await import('../dist/esm/model/index.js');
+    const envMod = await import('../browser-test/env.mjs');
+    const e5 = envMod.installEnv();
+    /* Served exactly as 9W9 serves it: empty on the probed key, real on the
+     * other one. An empty string, not a missing key — that distinction is the
+     * module's own ("absent has a spelling"). */
+    e5.setParams({ 'synth:ui_hierarchy': '', 'synth:ui_pages': JSON.stringify(hierarchy) });
+    const m4 = createModel(portFor(0), 'synth');
+    m4.reset(); m4.reload();
+    for (let i = 0; i < 60; i++) m4.tick();
+    const cfg = m4.getDrumConfig();
+    if (cfg && cfg.padCount === 7) ok('a module publishing under ui_pages still seats its rack');
+    else fail('ui_hierarchy came back empty and ui_pages was not tried, so a module that ships '
+            + 'its own chain editor declares into the void');
+    if (m4.getViewModel().drumPadName === 'Kick') ok('...and names its pads');
+    else fail(`...but the pad name is ${JSON.stringify(m4.getViewModel().drumPadName)}`);
+}
+
 if (failed) { _log(`\n\x1b[31m\x1b[1mFAIL: ${failed} check(s)\x1b[0m`); process.exit(1); }
 _log('\n\x1b[32m\x1b[1mPASS: movy learns a drum rack from the module alone, names its pads, and prefers it over its own table.\x1b[0m');

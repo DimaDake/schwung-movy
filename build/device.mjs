@@ -28,7 +28,40 @@ const SCHWUNG_BANNER = [
  * would otherwise ship the page. */
 const DEBUG = process.env.MOVY_DEBUG !== '0';
 
+const GRID = process.env.MOVY_SCHWUNG_GRID || 'off';
+
+/*
+ * THE OFF SWITCH HAS TO BE FREE.
+ *
+ * `__MOVY_SCHWUNG_GRID__` makes the grid's CODE unreachable in an ordinary
+ * build, but unreachable is not absent: esbuild keeps an EXTERNAL import
+ * whatever the importing code does, so schwung-body.ts's
+ *
+ *     import { renderPageMovy, BAND_H } from ".../param_pages/render_page_movy.mjs"
+ *
+ * survived into a flag-off ui.js. That is 13.5 KB of dead widget code and, far
+ * worse, a load-time dependency on a Schwung new enough to serve the file — on
+ * an older one an ORDINARY movy fails to start.
+ *
+ * A define cannot fix it; the modules have to leave the graph. These two are
+ * the only importers of param_pages, so swapping them for their `.off`
+ * stand-ins takes the whole Schwung layer with them. scripts/schwung-off-is-free.mjs
+ * asserts both halves — absent when off, present when on.
+ */
+const gridOffStubs = {
+    name: 'schwung-grid-off',
+    setup(build) {
+        if (GRID !== 'off') return;
+        build.onResolve({ filter: /\/schwung-(body|page)\.js$/ }, (a) => ({
+            path: resolve(root, 'src/renderer/'
+                  + (a.path.includes('schwung-body') ? 'schwung-body.off.ts'
+                                                     : 'schwung-page.off.ts')),
+        }));
+    },
+};
+
 await esbuild.build({
+    plugins:     [gridOffStubs],
     entryPoints: [resolve(root, 'src/app/globals.ts')],
     bundle:      true,
     outfile:     resolve(root, 'ui.js'),
@@ -40,7 +73,7 @@ await esbuild.build({
      * module's pages and draws them, movy targets the parameters. Default 'off'
      * so a normal build is byte-for-byte the movy that shipped. */
     define:      { __MOVY_DEBUG__: String(DEBUG),
-                   __MOVY_SCHWUNG_GRID__: JSON.stringify(process.env.MOVY_SCHWUNG_GRID || 'off') },
+                   __MOVY_SCHWUNG_GRID__: JSON.stringify(GRID) },
     logLevel:    'info',
 });
 console.log(`Device bundle written: ui.js (debug=${DEBUG})`);

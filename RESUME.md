@@ -318,9 +318,32 @@ Three things worth keeping:
   off that is the `.off` stand-in and every module falls back, so this needs no
   flag of its own.
 
+**Confirmed on device against voice-poc** (2026-09-04): 7-pad rack, the header's
+pad minimap, and the focused pad named — `Kick` / `Snare` / `Hat` / `Tom Lo` —
+with no entry in movy's table.
+
+Both display bugs found there were the same shape: a fact that only movy's own
+table could express. `isPadScoped` gated the minimap on
+`moduleConfig.banks[page].padSpecific`, so the icon never drew for precisely the
+modules that declare instead of being tabled; and the pad name was routed
+through `bankName`, which is the PAGE label and is drawn only by the module
+page, so the chain view — the view movy OPENS on — never saw it. `drumPadName`
+is its own field now and both headers take it.
+
 `src/module-configs/{6w6,8w8,9w9,cw78}.json` are now the fallback for modules
 that have not declared yet. Delete each one as its module lands its
-declaration.
+declaration. **The 9w9 installed on the device does NOT declare** (no
+`pad_layout`, `focus_param` or `child_notes` in its module.json), so it still
+runs on the override and shows none of this.
+
+**Still unwired: `focus_param`.** The module names the param holding its focused
+voice; movy keeps pad focus authoritative on purpose (see the note in
+hierarchy.ts about the DSP's playback-drifted pad leaking in). Making them
+follow each other is the "jump to pads" half and is a behaviour change, not a
+translation.
+
+**Not surfaced anywhere: which NOTE a pad plays.** The declaration has it and
+`drumNoteOfPad` triggers with it, but nothing displays it.
 
 ### Two device bugs, one fixed
 

@@ -32,8 +32,19 @@ export function drumPadOfPhys(physPad: number, padMin: number, cfg: DrumConfig):
     return pad >= 1 && pad <= cfg.padCount ? pad : -1;
 }
 
-/** MIDI note a 1-based drum pad plays. */
+/** MIDI note a 1-based drum pad plays.
+ *
+ * THE DECLARED LIST WINS. A module that states its own voices (schwung #411)
+ * may space their notes however it likes — voice-poc uses 36, 38, 42, 60..63 —
+ * and the arithmetic below can only describe a contiguous run. Falling through
+ * to it for a declared rack would send most of its pads to the wrong voice, so
+ * `padNotes` is consulted first and answers on its own. */
 export function drumNoteOfPad(pad: number, cfg: DrumConfig): number {
+    const declared = cfg.padNotes;
+    if (declared && pad >= 1 && pad <= declared.length) {
+        const n = declared[pad - 1];
+        if (Number.isFinite(n)) return n;
+    }
     return cfg.padNoteStart + pad - 1;
 }
 

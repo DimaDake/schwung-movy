@@ -115,5 +115,53 @@ const broken = V.surfaceOf({ levels: null, pad_layout: 42 });
 if (broken.layout === null && broken.voices.length === 0) ok('a malformed contract is "has not said", not a throw');
 else fail('a malformed contract did not degrade to silence');
 
+/* ---- and movy USES it: declaration wins, the table is the fallback ------ */
+const { effectiveDrumConfig } = await import('../dist/esm/model/drum-declared.js');
+const { drumNoteOfPad } = await import('../dist/esm/keyboard/drum-grid.js');
+
+/* movy's own shape for a rack it already knew: contiguous from 36. */
+const OVERRIDE = { padCount: 11, padNoteStart: 36, rawMidi: false,
+                   padScoping: { aliasPrefix: 'pad_' } };
+
+_log('');
+{
+    /* Declared only — a module movy has no entry for. */
+    const cfg = effectiveDrumConfig(s, null);
+    if (cfg && cfg.padCount === 7) ok(`a module movy has never heard of seats itself (${cfg.padCount} pads)`);
+    else fail(`no config from the declaration alone: ${JSON.stringify(cfg)}`);
+
+    const played = [];
+    for (let p = 1; p <= cfg.padCount; p++) played.push(drumNoteOfPad(p, cfg));
+    if (JSON.stringify(played) === JSON.stringify(WANT)) {
+        ok(`...and its pads play the declared notes: ${played.join(', ')}`);
+    } else {
+        fail(`pads play ${played.join(', ')}, wanted ${WANT.join(', ')} — drumNoteOfPad is `
+           + `still deriving them with padNoteStart + pad - 1`);
+    }
+}
+{
+    /* Both — the module is believed. This is the policy, so it is asserted. */
+    const cfg = effectiveDrumConfig(s, OVERRIDE);
+    if (cfg.padCount === 7) ok('with BOTH an override and a declaration, the module wins');
+    else fail(`override won: padCount ${cfg.padCount}, wanted the declared 7`);
+    if (drumNoteOfPad(2, cfg) === 38) ok('...including its notes (pad 2 plays 38, not 37)');
+    else fail(`pad 2 plays ${drumNoteOfPad(2, cfg)}; the override's arithmetic is still winning`);
+    if (cfg.padScoping && cfg.padScoping.aliasPrefix === 'pad_') {
+        ok('...while keeping what only movy\'s table knows (padScoping)');
+    } else {
+        fail('padScoping was dropped — a declaring module lost facts the contract has no word for');
+    }
+}
+{
+    /* Silence — nothing may change for the 100 modules that declare nothing. */
+    const cfg = effectiveDrumConfig(quiet, OVERRIDE);
+    if (cfg === OVERRIDE) ok('a module that declares nothing keeps movy\'s override, untouched');
+    else fail('an undeclared module did not get its override back unchanged');
+    if (drumNoteOfPad(3, OVERRIDE) === 38) ok('...and its pads still use the old arithmetic');
+    else fail(`the fallback path changed: pad 3 plays ${drumNoteOfPad(3, OVERRIDE)}, wanted 38`);
+    if (effectiveDrumConfig(quiet, null) === null) ok('...and a plain synth is still not a rack');
+    else fail('a synth with no rack anywhere came back with a drum config');
+}
+
 if (failed) { _log(`\n\x1b[31m\x1b[1mFAIL: ${failed} check(s)\x1b[0m`); process.exit(1); }
-_log('\n\x1b[32m\x1b[1mPASS: movy reads a drum rack, its pads and its notes from the module itself.\x1b[0m');
+_log('\n\x1b[32m\x1b[1mPASS: movy reads a drum rack from the module, and prefers it over its own table.\x1b[0m');

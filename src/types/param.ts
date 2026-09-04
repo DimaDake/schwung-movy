@@ -130,6 +130,14 @@ export interface DrumConfig {
     padCount:         number;
     padNoteStart:     number;
     rawMidi:          boolean;
+    /* The note each pad plays, pad-ordered (1-based pad -> padNotes[pad-1]).
+     *
+     * Present only when the MODULE declared its voices (schwung #411). A
+     * declared rack's notes need not be contiguous — voice-poc states 36, 38,
+     * 42, 60, 61, 62, 63 — and `padNoteStart + pad - 1` cannot describe that:
+     * it would send five of those seven pads to the wrong voice. When this is
+     * present it is authoritative and the arithmetic is not consulted. */
+    padNotes?:        number[];
     currentPadParam?: string;
     shiftSelectMidi?: boolean;
     /* Only pads 1..N are host-automatable (the chain caps declared params at 256,

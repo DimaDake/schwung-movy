@@ -168,6 +168,36 @@ export async function run() {
     eq('the blob rides it', flat[flat.indexOf('ch4:synth:state') + 1], 'BLOB42');
   }
 
+  /* ── the sends ride the SAME document ────────────────────────────────────
+   * One acknowledged message that says the whole truth about what should be
+   * loaded. Sent separately they would be one more unacknowledged write racing
+   * the very loads the document just queued — the defect the document exists
+   * to fix. */
+  {
+    resetChainPayloads();
+    writes.length = 0; bulkSets.length = 0;
+    const sends = [{ b: 0, m: 'reverb', s: 'SENDBLOB' }];
+    restoreChains(snap, sends);
+    eq('still ONE acknowledged write', writes.filter(([k]) => k === 'chains').length, 1);
+    const flat = decodeBulk(writes[0][1]);
+    eq('and the document names the track AND the send',
+       flat.join('|'), '4|synth|plaits|16|fx1|reverb');
+    /* A send's blob waits for the same drain as a track's: its load was queued
+     * by the same document and holds the same audio thread. */
+    eq('the send blob is deferred too', bulkSets.length, 0);
+    eq('and delivering it lands', deliverChainPayloads(), true);
+    const all = bulkSets.map(decodeBulk).flat();
+    eq('the send blob rides its own bus key', all[all.indexOf('snd0:state') + 1], 'SENDBLOB');
+
+    /* An empty send list is the instruction to unload — a send must not outlive
+     * a set switch the way a chain module once did. */
+    resetChainPayloads();
+    writes.length = 0;
+    restoreChains(snap, []);
+    eq('a set with no sends names none', decodeBulk(writes[0][1]).join('|'), '4|synth|plaits');
+    resetChainPayloads();
+  }
+
   /* ── the data loss, which is worse than the silent restore ───────────────
    * `lastBlob` covers a read that FAILS. It does not cover one that succeeds
    * and returns the module's defaults, which is exactly what an undelivered

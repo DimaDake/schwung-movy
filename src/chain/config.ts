@@ -65,6 +65,14 @@ export function isMasterComponent(componentKey: string): boolean {
 /* A send bus is hosted by MOVY, not by schwung's master bus. It rides the master
  * page because that is where a user looks for it, but its params live in movy's
  * engine under `snd<n>:` and its port must not be a shadow slot. */
+export const SEND_BUSES = 2;
+
+/* The chain host component a send bus loads its FX into. A send holds ONE audio
+ * FX, so the bus lives in the engine key and the component underneath is always
+ * this — the UI addresses a bus and never a component. Must match
+ * `SEND_COMPONENT` in `engine/crates/movy-dsp/src/chain_slots.rs`. */
+export const SEND_COMPONENT = 'fx1';
+
 export function isSendComponent(componentKey: string): boolean {
     return componentKey === 'snd0' || componentKey === 'snd1';
 }

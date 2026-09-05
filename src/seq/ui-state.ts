@@ -4,7 +4,8 @@
  * alongside the state blob. */
 
 import { TRACK_COUNT } from '../track/ref.js';
-import { captureChains, restoreChains } from '../track/chain-persist.js';
+import { captureChains, readChainDoc, restoreChains } from '../track/chain-persist.js';
+import { captureSends } from '../track/send-persist.js';
 import { mlog } from '../log.js';
 import { keyboardState, resetOctaves, OCT_MIN, OCT_MAX } from '../keyboard/state.js';
 import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
@@ -21,6 +22,9 @@ const clampInt = (v: unknown, lo: number, hi: number, dflt: number): number =>
 
 /** JSON of the persisted UI keyboard state (tonic, scale, layout, octaves). */
 export function serializeUiState(): string {
+    /* One read for the chains AND the sends: an engine GET blocks ~3-5 ms and
+     * this runs on every autosave. */
+    const chainDoc = readChainDoc();
     return JSON.stringify({
         // `root` is kept as track 0's absolute base so an older build reading a
         // newer file still lands on a sane note.
@@ -34,7 +38,11 @@ export function serializeUiState(): string {
         defaultQuant: seqState.defaultQuant,
         /* Movy-hosted chains. Host tracks are not here: Move's own set file
          * carries those, and duplicating them would let the two disagree. */
-        chains: captureChains(),
+        chains: captureChains(chainDoc),
+        /* The two send FX buses. Their own array, not a `chains` entry with a
+         * track index above TRACK_COUNT: a send is not a track, and a reader
+         * that took `t` for one would address a track that does not exist. */
+        sends: captureSends(chainDoc),
         /* The flags that belong to the SET rather than to this Move — today,
          * which host owns tracks 1-4. Keyed by flag key, the way prefs.json
          * keys the machine's half. */
@@ -57,7 +65,7 @@ export function applyUiState(blob: string): void {
          * like itself. One document says both what to unload and what to load —
          * a set with no `chains` key names nothing, which is how a set written
          * before movy hosted chains still clears the previous set's. */
-        const n = restoreChains(o.chains);
+        const n = restoreChains(o.chains, o.sends);
         if (n > 0) mlog('chains: restoring ' + n + ' movy chain component(s)');
         if (Array.isArray(o.oct)) {
             for (let t = 0; t < TRACK_COUNT; t++)
@@ -98,7 +106,7 @@ export function resetUiState(): void {
     loadSetHostChoice(null);
     /* A Set with no UI blob wants no movy chains — the same clean slate schwung
      * gives an unseen set when it seeds empty slots. */
-    restoreChains(null);
+    restoreChains(null, null);
     keyboardState.rootPc = 0;
     keyboardState.scale = 0;
     keyboardState.mode = 0;

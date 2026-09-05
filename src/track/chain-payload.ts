@@ -20,18 +20,23 @@
 
 import { mlog } from '../log.js';
 import type { ChainTrackState } from './chain-persist.js';
+import type { SendState } from './send-persist.js';
 import { chainInstance } from './ref.js';
-import { portFor } from './registry.js';
+import { engineRootPort, portFor } from './registry.js';
 
 export interface ChainPayload {
-    /** Track index (0-15). */
+    /** Track index (0-15), or -1 for a send bus. */
     t: number;
-    /** The per-chain writes, already namespaced by the track's port. */
+    /** Set when this payload belongs to a send bus rather than a track. A send
+     *  waits for the same drain for the same reason — its module load is queued
+     *  by the same document and holds the same audio thread. */
+    bus?: number;
+    /** The per-chain writes, already namespaced by the destination's port. */
     pairs: [string, string][];
-    /** What the set file holds for this track. A capture taken before delivery
+    /** What the set file holds for this chain. A capture taken before delivery
      *  returns THIS: the chain is still at the module's shipped defaults, and
      *  writing those down is the data loss, not the silent restore. */
-    saved: ChainTrackState;
+    saved: ChainTrackState | SendState;
 }
 
 /* Retries are ticks, not milliseconds: this runs from the settle loop, which is
@@ -61,7 +66,15 @@ export function resetChainPayloads(): void {
  *  This is the guard that keeps a failed restore from becoming a lost patch: the
  *  live chain is at defaults, so a capture must not read it. */
 export function pendingPayloadFor(t: number): ChainTrackState | null {
-    for (const p of pending) if (p.t === t) return p.saved;
+    for (const p of pending) {
+        if (p.bus === undefined && p.t === t) return p.saved as ChainTrackState;
+    }
+    return null;
+}
+
+/** The same guard for a send bus. */
+export function pendingSendFor(bus: number): SendState | null {
+    for (const p of pending) if (p.bus === bus) return p.saved as SendState;
     return null;
 }
 
@@ -83,6 +96,12 @@ export function deliverChainPayloads(): boolean {
 
     const left: ChainPayload[] = [];
     for (const p of pending) {
+        if (p.bus !== undefined) {
+            /* A bus always exists — it is not a track and cannot be handed back
+             * to the host mid-set. */
+            if (!engineRootPort().setMany(p.pairs)) left.push(p);
+            continue;
+        }
         /* No longer a movy chain — `chtracks` was turned off under us, or the
          * track went back to the host. There is nothing to deliver to, and
          * holding it would guard a capture that is no longer ours to guard. */
@@ -93,7 +112,7 @@ export function deliverChainPayloads(): boolean {
 
     if (pending.length === 0) return true;
     if (attempts < MAX_ATTEMPTS) return false;
-    mlog('chains: ' + pending.length + ' track payload(s) NOT DELIVERED after '
+    mlog('chains: ' + pending.length + ' chain payload(s) NOT DELIVERED after '
         + attempts + ' attempts — set file left intact');
     return true;
 }

@@ -31,6 +31,7 @@ import { TRACK_COUNT, chainInstance, trackKind } from './ref.js';
 import { portFor } from './registry.js';
 import { lfoPairs, lfoStateKeys, packLfoState } from './lfo-persist.js';
 import { MIX_KEY, mixPair, packMix } from './mix-persist.js';
+import { sendPayloadPairs, sendTriples, type SendState } from './send-persist.js';
 
 export interface ChainComponentState {
     /** Component key: "synth", "fx1", … */
@@ -92,9 +93,15 @@ function writeChainSet(doc: string): boolean {
     return false;
 }
 
+/** The chain-set document, decoded. Exposed so the sends can be read out of the
+ *  SAME round trip — an engine GET blocks ~3-5 ms and this one runs on every
+ *  autosave. */
+export function readChainDoc(): string[] | null {
+    return decodeBulk(readChainSet());
+}
+
 /** Read every movy-hosted chain that has something loaded. */
-export function captureChains(): ChainTrackState[] {
-    const doc = decodeBulk(readChainSet());
+export function captureChains(doc: string[] | null = readChainDoc()): ChainTrackState[] {
     /* A malformed answer is not an empty set. Reading it as one would hand the
      * autosave a set with no chains and delete the user's work. */
     if (!doc || doc.length % 3 !== 0) return [];
@@ -178,11 +185,18 @@ function chainSetTriples(saved: ChainTrackState[] | undefined | null): string[] 
  *  Returns the number of components delivered — 0 when the document did not
  *  land, which the caller must treat as "this set is not loaded", never as
  *  "this set has no chains". */
-export function restoreChains(saved: ChainTrackState[] | undefined | null): number {
+export function restoreChains(
+    saved: ChainTrackState[] | undefined | null,
+    sends?: SendState[] | null,
+): number {
     /* Whatever the previous Set left outstanding is not wanted: its chains are
      * about to be unloaded by the document below. */
     resetChainPayloads();
-    const triples = chainSetTriples(saved);
+    /* The sends ride the same document, and are appended rather than sent
+     * separately for the reason the document exists at all: one acknowledged
+     * message that says the whole truth. Sent even when empty — that is the
+     * instruction to unload the previous set's sends. */
+    const triples = [...chainSetTriples(saved), ...sendTriples(sends)];
     const entries = triples.length / 3;
 
     /* Sent even when it is empty, and that is the point: an empty set is the
@@ -225,6 +239,12 @@ export function restoreChains(saved: ChainTrackState[] | undefined | null): numb
         if (mix) pairs.push(mix);
         if (pairs.length === 0) continue;
         payloads.push({ t, pairs, saved: track });
+    }
+    /* The sends' blobs wait for the same drain, for the same reason: their
+     * loads were queued by the document above and hold the same audio thread. */
+    for (const s of Array.isArray(sends) ? sends : []) {
+        const pairs = sendPayloadPairs(s);
+        if (pairs) payloads.push({ t: -1, bus: s.b, pairs, saved: s });
     }
     armChainPayloads(payloads);
     return entries;

@@ -486,12 +486,8 @@ impl Instance {
             )),
             _ if key.starts_with("snd") => {
                 let (bus, rest) = parse_send_key(key)?;
-                /* The chain host publishes a loaded module under an underscore
-                 * alias, not the colon key it was set with. Reading back the
-                 * key we wrote answers "absent", and the UI then draws a loaded
-                 * send slot as "click jog to add". */
                 if rest == "module" {
-                    return self.chains.send_get_param(bus, "fx1_module");
+                    return self.chains.send_module(bus);
                 }
                 self.chains.send_get_param(bus, rest)
             }

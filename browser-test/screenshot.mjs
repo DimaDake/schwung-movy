@@ -14,7 +14,7 @@
  */
 
 import { trackRef } from '../dist/esm/track/ref.js';
-import { portFor } from '../dist/esm/track/registry.js';
+import { componentPort, portFor } from '../dist/esm/track/registry.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -41,7 +41,7 @@ const PRESETS = [
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
     'chain_t2', 'chain_t4',
     'lfo_chain', 'lfo_lfo1', 'lfo_lfo2', 'lfo_target_overlay', 'lfo_viz_unipolar', 'lfo_viz_retrig',
-    'mix_page', 'mix_page_chain', 'mix_page_host',
+    'mix_page', 'mix_page_chain', 'mix_page_host', 'master_send_slot', 'master_send_empty',
     'lfo_master', 'lfo_master_chain',
     'lfo_mod_mark', 'lfo_mod_and_auto', 'lfo_assign_toast',
     'drum-mrdrums-pad5', 'drum-mrdrums-global',
@@ -1005,6 +1005,33 @@ function applyView(preset) {
             if (preset === 'lfo_chain') lastRender = () => renderChainView(lm.getViewModel(), 4, false, 'T1', 'LFO');
             else lastRender = () => renderKnobsView(lm.getViewModel(), false, 0);
             lastRender();
+            break;
+        }
+        /* A movy-hosted SEND slot on the master page. It is left of the master
+         * FX both here and in the signal path — a send's output joins movy's
+         * stereo out, which schwung's master FX then process. */
+        case 'master_send_slot':
+        case 'master_send_empty': {
+            const loaded = preset === 'master_send_slot';
+            const oldGet = globalThis.host_module_get_param;
+            globalThis.host_module_get_param = (k) => {
+                if (k === 'snd0:module') return loaded ? 'reverb' : null;
+                if (k === 'snd0:name') return loaded ? 'Reverb' : null;
+                if (k === 'snd0:chain_params') {
+                    return loaded ? JSON.stringify([
+                        { key: 'mix',   name: 'Mix',   type: 'float' },
+                        { key: 'decay', name: 'Decay', type: 'float' },
+                    ]) : null;
+                }
+                return oldGet?.(k) ?? null;
+            };
+            resetPorts();
+            const sm = createModel(componentPort(0, 'snd0'), 'snd0');
+            sm.tick(); sm.tick();
+            lastRender = () => renderChainView(sm.getViewModel(), 0, false, 'MASTER', 'SEND 1',
+                                               MASTER_FX_SLOTS);
+            lastRender();
+            globalThis.host_module_get_param = oldGet;
             break;
         }
         /* Movy's own summing mixer as a page. `mix_page_host` is the same page

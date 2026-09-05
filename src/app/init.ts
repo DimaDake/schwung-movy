@@ -1,6 +1,6 @@
 import { createModel }  from '../model/index.js';
 import { resetSong } from '../seq/song.js';
-import { portFor, hostPort } from '../track/registry.js';
+import { portFor, componentPort } from '../track/registry.js';
 import { TRACK_COUNT } from '../track/ref.js';
 import { selectTrack } from '../track/focus.js';
 import { resetWatchPush } from '../seq/watch.js';
@@ -55,13 +55,15 @@ export function init(): void {
      * ticks (see app/tick.ts and seq/drum-sync.ts), so idle tracks are inert. */
     appState.trackModels = Array.from({ length: TRACK_COUNT },
         (_, slot) => buildTrackModels(slot));
-    /* `hostPort(0)` and not `portFor(0)`: a `master_fx:` key is global, and the
+    /* `componentPort` and not `portFor(0)`: a `master_fx:` key is global, and the
      * slot it rides on is only a carrier. Track 0 can become a movy chain
      * (`chtracks`), and the chain port would namespace those keys as
-     * `ch0:master_fx:…` and send the master chain's edits into a synth. */
+     * `ch0:master_fx:…` and send the master chain's edits into a synth. The two
+     * SEND slots on this page are movy's own and need a third destination
+     * again, which is exactly the choice componentPort exists to make. */
     appState.masterFxModels  = MASTER_FX_SLOTS.map((s, i) => isMasterLfoSlot(i)
         ? createScopedLfoModel(masterScope())
-        : createModel(hostPort(0), s.componentKey));
+        : createModel(componentPort(0, s.componentKey), s.componentKey));
     appState.masterChainIndex = 0;
     appState.masterDetail     = false;
     appState.trackChainIndex = new Array(TRACK_COUNT).fill(1) as number[];

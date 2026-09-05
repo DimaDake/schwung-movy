@@ -397,17 +397,33 @@ impl ChainSlots {
         }
     }
 
+    /* A bus holds ONE audio FX, so every key it is given belongs to the chain
+     * host's `fx1` component. Translating here rather than at the caller is what
+     * lets the UI address a bus and nothing else: the send's param page is an
+     * ordinary module page whose component key happens to be `snd0`. */
     pub fn send_param(&mut self, bus: usize, key: &str, val: &str) {
         if bus >= SEND_BUSES {
             return;
         }
         if let Some(inst) = self.send_slots[bus].as_mut() {
-            inst.set_param(key, val);
+            inst.set_param(&format!("{SEND_COMPONENT}:{key}"), val);
         }
     }
 
     pub fn send_get_param(&mut self, bus: usize, key: &str) -> Option<String> {
-        self.send_slots.get_mut(bus)?.as_mut()?.get_param(key)
+        let k = format!("{SEND_COMPONENT}:{key}");
+        self.send_slots.get_mut(bus)?.as_mut()?.get_param(&k)
+    }
+
+    /// The module a bus has loaded.
+    ///
+    /// Its own accessor because the chain host publishes a loaded module under
+    /// an UNDERSCORE alias (`fx1_module`), not the colon key it was set with.
+    /// Reading back the key we wrote answers "absent", and the UI then draws a
+    /// loaded send as "click jog to add".
+    pub fn send_module(&mut self, bus: usize) -> Option<String> {
+        let k = format!("{SEND_COMPONENT}_module");
+        self.send_slots.get_mut(bus)?.as_mut()?.get_param(&k)
     }
 
     /// Whether any bus is holding audio a track fed it. The zero-cost claim

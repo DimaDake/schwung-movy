@@ -166,4 +166,69 @@ _log('\nTest: automating a mix param');
     ok('and a chain one is not', !isMixTarget('synth:pan'));
 }
 
+/* ── The two SEND slots on the master page ───────────────────────────────── */
+
+_log('\nTest: master send FX slots');
+
+{
+    const { MASTER_FX_SLOTS, MASTER_LFO_INDEX, isMasterComponent, isSendComponent,
+            sendBusOf, moduleReadKey } = await import('../../dist/esm/chain/config.js');
+
+    eq('master reads SEND SEND MFX x4 LFO',
+       MASTER_FX_SLOTS.map((s) => s.label).join(' '),
+       'SEND 1 SEND 2 MFX 1 MFX 2 MFX 3 MFX 4 LFO');
+    eq('the sends are left of MFX', MASTER_FX_SLOTS[0].componentKey, 'snd0');
+    eq('MASTER_LFO_INDEX still points at the LFO',
+       MASTER_FX_SLOTS[MASTER_LFO_INDEX].label, 'LFO');
+
+    /* A send is movy's own, not schwung's master bus: routing one to a shadow
+     * slot would write master_fx keys for a chain schwung does not host. */
+    ok('a send is not a master component', !isMasterComponent('snd0'));
+    ok('a send is a send', isSendComponent('snd0') && isSendComponent('snd1'));
+    eq('and knows its bus', sendBusOf('snd1'), 1);
+    eq('a track component is not a send', sendBusOf('fx1'), -1);
+
+    /* The chain host publishes a loaded module under an underscore alias, not
+     * the colon key it was set with; the engine does that translation for a
+     * send, so the UI only ever says the bus. */
+    eq('a send reads back through its bus key', moduleReadKey('snd0'), 'snd0:module');
+    eq('a track component still uses the underscore alias', moduleReadKey('fx1'), 'fx1_module');
+    eq('a master component still uses the colon key',
+       moduleReadKey('master_fx:fx1'), 'master_fx:fx1:module');
+}
+
+_log('\nTest: send slot params reach the engine, not a shadow slot');
+
+{
+    const { componentPort, resetPorts } = await import('../../dist/esm/track/registry.js');
+
+    const writes = [];
+    const oSet = globalThis.shadow_set_param;
+    const oMSet = globalThis.host_module_set_param_blocking;
+    globalThis.shadow_set_param = (slot, k, v) => { writes.push(['shadow', k, v]); return true; };
+    globalThis.host_module_set_param_blocking = (k, v) => { writes.push(['engine', k, v]); return true; };
+    resetPorts();
+
+    /* The component key already names the destination, so the port must pass it
+     * through UNCHANGED. A prefixing port would ask for `snd0:snd0:module`, and
+     * every read would answer nothing — which renders a loaded send as an empty
+     * slot. */
+    componentPort(0, 'snd0').setParam('snd0:module', 'reverb');
+    eq('a send load goes to movy\'s engine', writes[0] && writes[0][0], 'engine');
+    eq('under the bus key, not a doubled one', writes[0] && writes[0][1], 'snd0:module');
+
+    writes.length = 0;
+    componentPort(0, 'master_fx:fx1').setParam('module', 'reverb');
+    eq('a master FX slot still goes to a shadow slot', writes[0] && writes[0][0], 'shadow');
+
+    writes.length = 0;
+    componentPort(1, 'snd1').setParam('snd1:chain_params', '[]');
+    eq('bus 2 is addressed as snd1', writes[0] && writes[0][1], 'snd1:chain_params');
+    eq('and never through a track port', writes[0] && writes[0][0], 'engine');
+
+    globalThis.shadow_set_param = oSet;
+    globalThis.host_module_set_param_blocking = oMSet;
+    resetPorts();
+}
+
 }

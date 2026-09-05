@@ -29,6 +29,11 @@ export function isLfoSlot(chainIndex: number): boolean { return chainIndex === L
 export function isMixSlot(chainIndex: number): boolean { return chainIndex === MIX_CHAIN_INDEX; }
 
 export const MASTER_FX_SLOTS: ChainSlot[] = [
+    /* Movy's own send buses, and deliberately FIRST: they are left of the master
+     * FX on the page because they are left of them in the signal path — a send's
+     * output joins movy's stereo out, which schwung's master FX then process. */
+    { componentKey: 'snd0', label: 'SEND 1', scanDir: 'audio_fx', expectedType: 'audio_fx' },
+    { componentKey: 'snd1', label: 'SEND 2', scanDir: 'audio_fx', expectedType: 'audio_fx' },
     { componentKey: 'master_fx:fx1', label: 'MFX 1', scanDir: 'audio_fx', expectedType: 'audio_fx' },
     { componentKey: 'master_fx:fx2', label: 'MFX 2', scanDir: 'audio_fx', expectedType: 'audio_fx' },
     { componentKey: 'master_fx:fx3', label: 'MFX 3', scanDir: 'audio_fx', expectedType: 'audio_fx' },
@@ -57,6 +62,17 @@ export function isMasterComponent(componentKey: string): boolean {
     return componentKey.startsWith('master_fx');
 }
 
+/* A send bus is hosted by MOVY, not by schwung's master bus. It rides the master
+ * page because that is where a user looks for it, but its params live in movy's
+ * engine under `snd<n>:` and its port must not be a shadow slot. */
+export function isSendComponent(componentKey: string): boolean {
+    return componentKey === 'snd0' || componentKey === 'snd1';
+}
+
+export function sendBusOf(componentKey: string): number {
+    return isSendComponent(componentKey) ? Number(componentKey.slice(3)) : -1;
+}
+
 /* Read-back param key for a component's loaded module id. The device sets a
  * module with the colon key (`fx1:module`) but track-chain components expose
  * the loaded id under an underscore alias (`fx1_module`) — while a master FX
@@ -65,6 +81,11 @@ export function isMasterComponent(componentKey: string): boolean {
  * (`master_fx:fx1:module`). Without this distinction a freshly added master FX
  * module reads back as empty and the slot keeps showing "click jog to add". */
 export function moduleReadKey(componentKey: string): string {
+    /* First, because a send key carries no colon and would otherwise take the
+     * underscore path and ask for `snd0_module`. The engine translates
+     * `snd<n>:module` onto the instance's own alias, so the bus number is all
+     * the UI ever has to say. */
+    if (isSendComponent(componentKey)) return componentKey + ':module';
     return componentKey.includes(':')
         ? componentKey + ':module'
         : componentKey + '_module';

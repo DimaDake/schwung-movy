@@ -5,9 +5,10 @@
 
 import { HostSlotPort } from './host-port.js';
 import { MovyChainPort } from './movy-chain-port.js';
+import { EngineRootPort } from './send-port.js';
 import type { TrackPort } from './port.js';
 import { trackKind } from './ref.js';
-import { isMasterComponent } from '../chain/config.js';
+import { isMasterComponent, isSendComponent } from '../chain/config.js';
 
 const ports: (TrackPort | undefined)[] = [];
 
@@ -32,6 +33,16 @@ export function portFor(index: number): TrackPort {
  *  as `ch0:master_fx:…` and the master chain's edits land in a synth. */
 const hostPorts: (TrackPort | undefined)[] = [];
 
+let enginePort: TrackPort | undefined;
+
+/** Params addressed at movy's engine root — today the two send buses, whose
+ *  component key already names the destination. Not a track and not a shadow
+ *  slot; see `EngineRootPort`. */
+export function engineRootPort(): TrackPort {
+    if (!enginePort) enginePort = new EngineRootPort();
+    return enginePort;
+}
+
 export function hostPort(slot: number): TrackPort {
     let p = hostPorts[slot];
     if (!p) {
@@ -53,6 +64,7 @@ export function hostPort(slot: number): TrackPort {
  *  module dumps, file params — resolves its port here, so the rule is written
  *  down once instead of at each call site that happens to remember it. */
 export function componentPort(index: number, componentKey: string): TrackPort {
+    if (isSendComponent(componentKey)) return engineRootPort();
     return isMasterComponent(componentKey) ? hostPort(0) : portFor(index);
 }
 
@@ -60,4 +72,5 @@ export function componentPort(index: number, componentKey: string): TrackPort {
 export function resetPorts(): void {
     ports.length = 0;
     hostPorts.length = 0;
+    enginePort = undefined;
 }

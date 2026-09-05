@@ -12,6 +12,7 @@ import { FONT_HEIGHT } from '../dist/esm/font/index.js';
 import { HINT_TOP, HINT_LINES } from '../dist/esm/renderer/flags-view.js';
 import { selectTrack, focusGroupStep } from '../dist/esm/track/focus.js';
 import { watchedTrack } from '../dist/esm/seq/watch.js';
+import { MASTER_FX_SLOTS as _MFX_SLOTS } from '../dist/esm/chain/config.js';
 import { installEnv } from './env.mjs';
 import { installMockEngine } from './mock-engine.mjs';
 import { MOCK_SYNTHS } from './mock-synth.mjs';
@@ -39,6 +40,11 @@ console.log = (...a) => { if (typeof a[0] === 'string' && a[0].startsWith('[movy
 /* Bundled app entry points assign init/tick/onMidiMessageInternal to globalThis. */
 await import('../dist/esm/app/globals.js');
 const { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_BROWSE, VIEW_FILE_BROWSE } = await import('../dist/esm/app/state.js');
+
+/* The first master FX slot, by COMPONENT rather than by position: movy's own
+ * send buses sit in front of them on the master page, and these blocks are
+ * about what a `master_fx:` slot does, not about what happens to be first. */
+const MFX1 = _MFX_SLOTS.findIndex((s) => s.componentKey.startsWith('master_fx'));
 const { seqState, resetSeqState, occHasStep } = await import('../dist/esm/seq/state.js');
 const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
 const { resetSetSession } = await import('../dist/esm/seq/set-session.js');
@@ -881,7 +887,7 @@ _log('\napp-loop: master FX slot adds a module by DSP path');
 
     resetApp();
     seqState.sessionMode = true;          // master FX chain is shown in Session mode
-    appState.masterChainIndex = 0;
+    appState.masterChainIndex = MFX1;
     appState.currentView = VIEW_CHAIN;
     advance(2);
 
@@ -942,7 +948,7 @@ _log('\napp-loop: master FX adds a module while tracks 1-4 are movy chains');
     };
 
     seqState.sessionMode = true;          // master FX chain is shown in Session mode
-    appState.masterChainIndex = 0;
+    appState.masterChainIndex = MFX1;
     appState.currentView = VIEW_CHAIN;
     advance(2);
 
@@ -975,22 +981,22 @@ _log('\napp-loop: master FX slot drills into detail params on jog-click');
     // master_fx:fx1:name reads back → masterModel[0] polls non-empty (slot loaded).
     env.setParams({ ...MOCK_SYNTHS.mrdrums, 'master_fx:fx1:name': 'Reverb' });
     seqState.sessionMode = true;
-    appState.masterChainIndex = 0;
+    appState.masterChainIndex = MFX1;
     appState.currentView = VIEW_CHAIN;
     appState.masterDetail = false;
-    appState.masterFxModels[0].reload();   // pollCountdown=1 → next tick reads the name
+    appState.masterFxModels[MFX1].reload();   // pollCountdown=1 → next tick reads the name
     advance(2);
 
-    eq('master slot reads as loaded', appState.masterFxModels[0].getViewModel().isEmpty, false);
+    eq('master slot reads as loaded', appState.masterFxModels[MFX1].getViewModel().isEmpty, false);
 
     sendMidi([0xB0, globalThis.MoveMainButton, 127]);   // jog-click on a loaded master slot
     eq('jog-click drills into master detail params', appState.masterDetail, true);
 
     // Jog rotation while in detail scrolls the module's param pages — it must
     // NOT switch master slots (that is grid-view navigation).
-    appState.masterChainIndex = 0;
+    appState.masterChainIndex = MFX1;
     sendMidi([0xB0, globalThis.MoveMainKnob, 1]);
-    eq('jog rotation in detail does not switch master slot', appState.masterChainIndex, 0);
+    eq('jog rotation in detail does not switch master slot', appState.masterChainIndex, MFX1);
 
     // Second jog-click (now in detail) opens the module browser to swap, like
     // the track chain's VIEW_KNOBS. Back returns to the detail page (not grid).
@@ -1019,9 +1025,9 @@ _log('\napp-loop: the master chain reaches its LFO page');
     appState.masterDetail = false;
     advance(2);
 
-    /* Jog right past the four FX slots: the grid used to clamp at 3, so the LFO
-     * page was unreachable even once it existed. */
-    for (let i = 0; i < 6; i++) sendMidi([0xB0, globalThis.MoveMainKnob, 1]);
+    /* Jog right past the two sends and the four FX slots: the grid used to clamp
+     * at 3, so the LFO page was unreachable even once it existed. */
+    for (let i = 0; i < _MFX_SLOTS.length + 2; i++) sendMidi([0xB0, globalThis.MoveMainKnob, 1]);
     eq('jog reaches the LFO slot', appState.masterChainIndex, MASTER_LFO_INDEX);
     eq('and stops there', appState.masterChainIndex, MASTER_LFO_INDEX);
 
@@ -2419,8 +2425,16 @@ _log('\napp-loop: a master FX load resyncs schwung\'s persistence mirror');
     loadSelectedModule();
     eq('a TRACK slot load leaves the master mirror alone', stub.resyncs, beforeTrack);
 
+    /* A SEND slot rides the master page but is a chain MOVY hosts: schwung's
+     * mirror knows nothing about it, so resyncing on its account would be a
+     * write about a slot that is not there. */
+    const beforeSend = stub.resyncs;
+    openBrowser(MASTER_FX_SLOTS.find((s) => s.componentKey === 'snd0'), 0, () => {});
+    loadSelectedModule();
+    eq('a SEND slot load leaves the master mirror alone', stub.resyncs, beforeSend);
+
     const beforeMaster = stub.resyncs;
-    openBrowser(MASTER_FX_SLOTS[0], 0, () => {});
+    openBrowser(MASTER_FX_SLOTS[MFX1], 0, () => {});
     loadSelectedModule();
     eq('a MASTER slot load resyncs the mirror', stub.resyncs, beforeMaster + 1);
 

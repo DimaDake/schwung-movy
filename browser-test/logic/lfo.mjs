@@ -229,11 +229,12 @@ _log('\nTest: master chain LFO page');
     const { resetPorts } = await import('../../dist/esm/track/registry.js');
     const DETENT = 8;
 
-    eq('master chain has an LFO slot', MASTER_FX_SLOTS.length, 5);
-    eq('it is last', MASTER_LFO_INDEX, 4);
-    eq('isMasterLfoSlot(4)', isMasterLfoSlot(4), true);
+    /* Two sends, four master FX, one LFO. */
+    eq('master chain has an LFO slot', MASTER_FX_SLOTS.length, 7);
+    eq('it is last', MASTER_LFO_INDEX, MASTER_FX_SLOTS.length - 1);
+    eq('isMasterLfoSlot(last)', isMasterLfoSlot(MASTER_LFO_INDEX), true);
     eq('isMasterLfoSlot(0)', isMasterLfoSlot(0), false);
-    eq('the LFO slot is virtual', isVirtualSlot(MASTER_FX_SLOTS[4]), true);
+    eq('the LFO slot is virtual', isVirtualSlot(MASTER_FX_SLOTS[MASTER_LFO_INDEX]), true);
     eq('an FX slot is not', isVirtualSlot(MASTER_FX_SLOTS[0]), false);
 
     /* The master LFOs live in the shim under `master_fx:`, reachable through any

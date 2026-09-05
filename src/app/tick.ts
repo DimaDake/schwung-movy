@@ -29,6 +29,7 @@ import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs, updateSingleKnobLED, resetKnobLedCache } from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
 import { drumSyncTick, resetDrumSync } from '../seq/drum-sync.js';
+import { applyLaneMapping } from '../seq/lane-mapping.js';
 import { syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull, verifyLaneMappings, requestLaneWarm, laneWarmTick } from '../seq/automation.js';
 import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
@@ -438,7 +439,8 @@ function tickBody(): void {
         if (labels) {
             syncLabelsFromEngine(
                 labels,
-                (slot, lane, tp) => portFor(slot).setParam('knob_' + (lane + 1) + '_set', tp),
+                (slot, lane, tp) =>
+                    applyLaneMapping((k, v) => portFor(slot).setParam(k, v), lane, tp),
                 (track, tp) => {
                     // Validate against the lane's own (track, component) model param
                     // set — authoritative even for config-driven drum modules. Keep
@@ -463,7 +465,7 @@ function tickBody(): void {
             (slot, lane) => portFor(slot).getParam( 'knob_' + (lane + 1) + '_name'),
             (slot, lane, tp) => {
                 mlog('auto remap t=' + slot + ' lane=' + lane + ' ' + tp);
-                portFor(slot).setParam('knob_' + (lane + 1) + '_set', tp);
+                applyLaneMapping((k, v) => portFor(slot).setParam(k, v), lane, tp);
             },
         );
     }

@@ -127,4 +127,43 @@ _log('\nTest: MIX page values and ranges');
     eq('knob order matches the cells', FIELD_AT.join(' '), 'gain pan send1 send2');
 }
 
+/* ── Automating a mix param ──────────────────────────────────────────────── */
+
+_log('\nTest: automating a mix param');
+
+{
+    const { mappingFor, applyLaneMapping, isMixTarget } =
+        await import('../../dist/esm/seq/lane-mapping.js');
+
+    /* A mix param is not a chain-host param, so the ordinary knob_<N>_set
+     * mapping has nowhere to land — the lane has to be declared to movy's own
+     * mixer instead. Assert the WRITE, not that a callback ran: a mapping
+     * issued to the wrong key works perfectly, on nothing. */
+    const writes = [];
+    const w = (k, v) => { writes.push(k + '=' + v); return true; };
+    const info = { target: 'mix', ioKey: 'send1', min: 0, max: 1, value: 0,
+                   type: 'float', automatable: true, gi: 2, key: 'send1' };
+    mappingFor(info, w)(3);
+    eq('a mix param declares a mix lane', writes.join('|'), 'mixlane=3,send1');
+
+    writes.length = 0;
+    mappingFor({ ...info, target: 'synth', ioKey: 'cutoff' }, w)(3);
+    ok('a module param still uses the chain mapping',
+       writes.includes('knob_4_set=synth:cutoff'));
+    /* A lane reassigned from a send to a module param would otherwise keep
+     * being swallowed by the mixer, with a lane, a label and a drawn arc all
+     * saying the module param should be moving. */
+    ok('and releases any mix binding the lane still carried',
+       writes.indexOf('mixlane=3,-') === 0);
+
+    /* The restore and verify paths go through the same writer, so they cannot
+     * re-apply a mix lane as a chain mapping that silently does nothing. */
+    writes.length = 0;
+    applyLaneMapping(w, 0, 'mix:gain');
+    eq('a restored mix lane is re-declared to the mixer', writes.join('|'), 'mixlane=0,gain');
+
+    ok('a mix target is recognised from its label', isMixTarget('mix:pan'));
+    ok('and a chain one is not', !isMixTarget('synth:pan'));
+}
+
 }

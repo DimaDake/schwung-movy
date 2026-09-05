@@ -26,6 +26,7 @@ function knobInfoFor(k: number): any | null {
 import { focusedTrack, focusGroupStep, GROUP_DIR_UP, GROUP_DIR_DOWN } from '../track/focus.js';
 import { beginTrackSwitch, restoreTrackState, switchToTrack } from '../track/switch.js';
 import { portFor } from '../track/registry.js';
+import { mappingFor } from '../seq/lane-mapping.js';
 import { setButtonHeld } from '../seq/button-held.js';
 import { sessionPhase, sessionReady } from '../seq/set-session.js';
 import { sessionStartFromScratch } from '../seq/set-fail.js';
@@ -465,7 +466,7 @@ export function onMidiMessageInternal(data: number[]): void {
                         model.getComponentKey ? model.getComponentKey() : 'synth') : null;
         const info = knobInfoFor(k);
         if (info && handleAutomationKnob(track, k, info, delta,
-                (lane) => portFor(track).setParam('knob_' + (lane + 1) + '_set', info.target + ':' + info.ioKey))) {
+                mappingFor(info, (key, val) => portFor(track).setParam(key, val)))) {
             return;
         }
         /* Not automation, so it is an edit — through Schwung's own onKnobTurn,

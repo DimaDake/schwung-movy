@@ -13,6 +13,7 @@ import { endEdit } from '../undo/group.js';
 import { beginGesture, undoableEdit } from '../undo/edit.js';
 import { seqSideEffect } from '../undo/record.js';
 import { seqCmd, requestLabelSync } from './engine.js';
+import { isMixTarget } from './lane-mapping.js';
 import { seqState } from './state.js';
 import { seqToast } from './render.js';
 import { beginStepAutomation, heldRange } from './step-edit.js';
@@ -312,7 +313,10 @@ export function verifyLaneMappings(
     const t = verifyTrack;
     verifyTrack = (verifyTrack + 1) % TRACK_COUNT;
     const lanes = registry[t];
-    const first = lanes.findIndex((e) => e !== null);
+    /* A mix lane is not mapped inside the chain, so `knob_<N>_name` says nothing
+     * about it — probing one would read null, call the mapping cleared, and
+     * re-apply every lane on the track on every sweep. */
+    const first = lanes.findIndex((e) => e !== null && !isMixTarget(e.targetParam));
     if (first < 0) return; // no lanes on this track → no IPC
     const e = lanes[first]!;
     const name = readKnobName(t, first);

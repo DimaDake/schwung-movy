@@ -19,6 +19,7 @@ use crate::ffi::MOVE_MIDI_SOURCE_INTERNAL;
 use crate::host;
 use crate::load_queue::{LoadQueue, LoadRequest};
 use crate::mixer::{mix_into, TrackMix};
+use crate::send_bus::{SendBuses, SEND_BUSES};
 use crate::render_plan::Planner;
 use crate::render_pool::{RenderPool, Task};
 
@@ -62,6 +63,18 @@ const MAX_LANES: usize = 4;
 /// after chains have rendered, so it cannot be fixed at load time — but
 /// repartitioning every block would move chains between lanes on noise. ~3 s.
 const REPLAN_BLOCKS: u32 = 1024;
+
+/// The chain host component a send bus loads its FX into. A send holds one
+/// audio FX, so the bus number lives in the engine key and the component
+/// underneath is always the same — the UI never has to know it exists.
+const SEND_COMPONENT: &str = "fx1";
+
+/// Load-queue slot for send bus `n`. Above every chain, so it can never
+/// collide with a track: the queue is slot-generic and would not notice, but a
+/// reverb loaded into somebody's synth is not a subtle failure.
+fn send_queue_slot(bus: usize) -> usize {
+    MOVY_CHAINS + bus
+}
 
 pub struct ChainSlots {
     host: Option<ChainHost>,
@@ -152,6 +165,14 @@ pub struct ChainSlots {
     /// The equivalence oracle: what each chain rendered, not what it cost.
     /// Idle until `chdigest` arms it.
     digest: ChainDigest,
+    /// The two send buses. Deliberately NOT entries in `slots`: `ch<N>` IS
+    /// track N, and sixty-odd sites in this crate read `slots` as exactly
+    /// `MOVY_CHAINS` tracks. A separate field makes every one of them correct
+    /// by construction rather than by audit (design §4).
+    sends: SendBuses,
+    /// The FX instance behind each bus. One audio FX per send, so the chain
+    /// host's component underneath is always `fx1`.
+    send_slots: Vec<Option<ChainInstance>>,
 }
 
 impl ChainSlots {
@@ -189,6 +210,8 @@ impl ChainSlots {
             work: vec![Work::NONE; MOVY_CHAINS],
             synth_peak: vec![0; MOVY_CHAINS],
             plan_idle_epoch: u32::MAX,
+            sends: SendBuses::new(),
+            send_slots: (0..SEND_BUSES).map(|_| None).collect(),
         }
     }
 
@@ -334,6 +357,58 @@ impl ChainSlots {
             module: module.to_string(),
             state: None,
         });
+    }
+
+    /// Queue a module load into send bus `n`.
+    ///
+    /// Rides the shared `LoadQueue` under a slot number above every chain, so
+    /// the one-load-per-audio-callback bound covers a send exactly as it covers
+    /// a track — a set that opens with two sends and twelve chains must not
+    /// stack fourteen blocking `dlopen`s into one callback.
+    pub fn request_send_load(&mut self, bus: usize, module: &str) {
+        if bus >= SEND_BUSES {
+            return;
+        }
+        self.queue.push(LoadRequest {
+            slot: send_queue_slot(bus),
+            component: SEND_COMPONENT.to_string(),
+            module: module.to_string(),
+            state: None,
+        });
+    }
+
+    /// Apply a module-preset blob to a send. Rides a pending load when there is
+    /// one, for the same reason `set_state` does: the blob cannot be written
+    /// before its module exists.
+    pub fn set_send_state(&mut self, bus: usize, state: &str) {
+        if bus >= SEND_BUSES {
+            return;
+        }
+        if self.queue.attach_state(send_queue_slot(bus), SEND_COMPONENT, state) {
+            return;
+        }
+        if let Some(inst) = self.send_slots[bus].as_mut() {
+            inst.set_param(&format!("{SEND_COMPONENT}:state"), state);
+        }
+    }
+
+    pub fn send_param(&mut self, bus: usize, key: &str, val: &str) {
+        if bus >= SEND_BUSES {
+            return;
+        }
+        if let Some(inst) = self.send_slots[bus].as_mut() {
+            inst.set_param(key, val);
+        }
+    }
+
+    pub fn send_get_param(&mut self, bus: usize, key: &str) -> Option<String> {
+        self.send_slots.get_mut(bus)?.as_mut()?.get_param(key)
+    }
+
+    /// Whether any bus is holding audio a track fed it. The zero-cost claim
+    /// (design §5) is about this staying false when nothing sends.
+    pub fn sends_dirty(&self) -> bool {
+        self.sends.any_dirty()
     }
 
     /// The chain set, as the document `set_chain_set` accepts.
@@ -547,6 +622,12 @@ impl ChainSlots {
     /// is what stops a twelve-chain restore stacking into a single block.
     pub fn service_loads(&mut self) {
         let Some(req) = self.queue.take_one() else { return };
+        /* Ahead of everything: `slots` holds MOVY_CHAINS entries, so a send's
+         * synthetic slot number would index past the end of it. */
+        if req.slot >= MOVY_CHAINS {
+            self.service_send_load(req);
+            return;
+        }
         let Some(hostref) = self.host.as_ref() else { return };
 
         if self.slots[req.slot].is_none() {
@@ -592,6 +673,49 @@ impl ChainSlots {
             "chain {}: {} = {}",
             req.slot,
             req.component,
+            if req.module.is_empty() { "(cleared)" } else { req.module.as_str() }
+        ));
+    }
+
+    /// Load one send bus's FX. The chain-slot path's shape, minus everything a
+    /// bus does not have: no pin policy (a send is one instance, never a
+    /// duplicate group), no idle wake (the bus's own tail rule decides that),
+    /// and no synth.
+    fn service_send_load(&mut self, req: LoadRequest) {
+        let bus = req.slot - MOVY_CHAINS;
+        if bus >= SEND_BUSES {
+            return;
+        }
+        let Some(hostref) = self.host.as_ref() else { return };
+        if self.send_slots[bus].is_none() {
+            match hostref.create_instance(&self.module_dir) {
+                Some(inst) => self.send_slots[bus] = Some(inst),
+                None => return,
+            }
+        }
+        /* Whatever the outgoing FX was still ringing belongs to the outgoing
+         * FX. Without this its tail plays on through its replacement. */
+        self.sends.discard(bus);
+        let t_set = std::time::Instant::now();
+        if let Some(inst) = self.send_slots[bus].as_mut() {
+            inst.set_param(&format!("{SEND_COMPONENT}:module"), &req.module);
+            if let Some(state) = req.state.as_deref() {
+                inst.set_param(&format!("{SEND_COMPONENT}:state"), state);
+            }
+            /* A send has no synth: `render_block` could only ever hand back
+             * silence, and the FX has to run over the bus's own buffer. */
+            inst.set_external_fx_mode(true);
+            let continuous = inst.fx_requires_continuous();
+            self.sends.set_continuous(bus, continuous);
+        }
+        self.generation = self.generation.wrapping_add(1);
+        let set_ms = t_set.elapsed().as_millis();
+        if set_ms >= 20 {
+            host::log(&format!("send {}: load blocked {} ms", bus, set_ms));
+        }
+        host::log(&format!(
+            "send {}: {}",
+            bus,
             if req.module.is_empty() { "(cleared)" } else { req.module.as_str() }
         ));
     }
@@ -712,9 +836,11 @@ impl ChainSlots {
         } else {
             self.render_serial(frames)
         };
-        if active > 0 {
-            self.cost.add_wall(t0.elapsed().as_nanos() as u64);
-        }
+        /* Held rather than reported: the CPU meter tracks a per-CALL maximum,
+         * so the send phase has to arrive in the same `add_wall` as the render
+         * it follows. Two calls would report two smaller peaks and a capacity
+         * bar that never sees the real block. */
+        let render_ns = t0.elapsed().as_nanos() as u64;
         // A chain that did no work this block cost nothing, and its mean has to
         // say so. Serial `continue`s past it and parallel skips it above, so
         // without this the mean simply freezes — see the fold in
@@ -754,6 +880,11 @@ impl ChainSlots {
                 host::log(&format!("chain {}: audio active (peak {})", i, peak));
             }
             mix_into(&mut out[..frames], scratch, &self.mixes[i]);
+            /* The same block, at the same gains, tapped into whichever buses
+             * this track feeds — post-fader and post-pan by construction, not
+             * by a second gain calculation that could drift from the mix's.
+             * Two float compares for a track that sends nothing. */
+            self.sends.accumulate(scratch, &self.mixes[i]);
         }
         // Folded back after the mix, so the borrow of `scratch` is done with.
         for i in 0..MOVY_CHAINS {
@@ -765,7 +896,31 @@ impl ChainSlots {
                 w.fx && self.slots[i].as_mut().is_some_and(|s| s.fx_requires_continuous());
             self.idle.observe(i, w, self.synth_peak[i], self.peaks[i], keep_alive);
         }
-        if active > 0 {
+        /* After every chain has rendered AND mixed: a bus is a sum of tracks,
+         * so it cannot exist until they are all in. Serial on the audio thread
+         * by construction — there is no join left to hide behind (design §5). */
+        let t_send = self.cost.start();
+        let plan = self.sends.take_plan();
+        let mut send_ran = false;
+        for n in 0..SEND_BUSES {
+            if !plan[n] {
+                continue;
+            }
+            if self.send_slots[n].is_none() {
+                // Fed, but with nowhere to go. Dropped rather than left to ring
+                // into the block after its module was removed.
+                self.sends.discard(n);
+                continue;
+            }
+            if let Some(inst) = self.send_slots[n].as_mut() {
+                inst.process_fx(&mut self.sends.buf_mut(n)[..frames]);
+            }
+            self.sends.finish(n, &mut out[..frames], frames);
+            send_ran = true;
+        }
+        let send_ns = if send_ran { t_send.elapsed().as_nanos() as u64 } else { 0 };
+        if active > 0 || send_ran {
+            self.cost.add_wall(render_ns + send_ns);
             self.cost.end_block();
         }
         self.active_last_block = active;
@@ -1047,6 +1202,37 @@ mod tests {
         slots.render(&mut out);
         assert!(out.iter().all(|&s| s == 1234));
         assert_eq!(slots.active_count(), 0);
+    }
+
+    /* A send bus is not a chain. It rides the same load queue — so the
+     * one-load-per-audio-callback bound covers it — under a slot number above
+     * every track, because `ch<N>` IS track N and a collision there would load
+     * a reverb into somebody's synth. */
+    #[test]
+    fn a_send_load_is_queued_above_every_chain() {
+        let mut slots = ChainSlots::new();
+        slots.request_send_load(0, "reverb");
+        assert_eq!(slots.pending_loads(), 1, "a send load rides the shared queue");
+        slots.request_send_load(1, "delay");
+        assert_eq!(slots.pending_loads(), 2, "the two buses are separate requests");
+    }
+
+    #[test]
+    fn a_send_bus_that_cannot_exist_is_refused() {
+        let mut slots = ChainSlots::new();
+        slots.request_send_load(SEND_BUSES, "reverb");
+        assert_eq!(slots.pending_loads(), 0, "there are only two buses");
+    }
+
+    /* Every send accessor is reachable before a module has ever been loaded —
+     * the UI reads a slot to decide whether to draw "click jog to add". */
+    #[test]
+    fn an_empty_send_answers_without_panicking() {
+        let mut slots = ChainSlots::new();
+        assert_eq!(slots.send_get_param(0, "fx1_module"), None);
+        slots.send_param(0, "fx1:mix", "0.5");
+        slots.set_send_state(0, "blob");
+        assert!(!slots.sends_dirty());
     }
 
     /* The mix is movy's own state — no chain-host param carries it — so it was

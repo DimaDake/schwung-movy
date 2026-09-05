@@ -43,6 +43,21 @@ fn parse_chain_key(key: &str) -> Option<(usize, &str)> {
     Some((slot, &body[colon + 1..]))
 }
 
+/// `snd0:module` -> `(0, "module")`.
+///
+/// A send bus is not a track and never takes a `ch<N>` key — `ch<N>` IS track
+/// N. Out-of-range buses are refused rather than clamped: a write meant for a
+/// bus that does not exist must not land on one that does.
+fn parse_send_key(key: &str) -> Option<(usize, &str)> {
+    let body = key.strip_prefix("snd")?;
+    let colon = body.find(':')?;
+    let bus: usize = body[..colon].parse().ok()?;
+    if bus >= send_bus::SEND_BUSES {
+        return None;
+    }
+    Some((bus, &body[colon + 1..]))
+}
+
 /// `"144.60.100"` -> `[0x90, 60, 100]`. Returns None on anything malformed, so
 /// a garbled param cannot inject a stuck note.
 fn parse_midi_triplet(val: &str) -> Option<[u8; 3]> {
@@ -85,7 +100,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.62.0";
+const ENGINE_VERSION: &str = "0.63.0";
 
 /// Tracks backed by schwung's own shadow slots by default. Their notes go out as
 /// MIDI on the matching channel; everything above this index is a chain movy
@@ -363,6 +378,18 @@ impl Instance {
                     self.engine.dirty = false;
                 }
             }
+            /* `snd<n>:<rest>` addresses send bus n. Module loads are diverted
+             * into the same queue chain loads use, so a set that opens with two
+             * sends cannot stack their dlopens into one audio callback. */
+            _ if key.starts_with("snd") => {
+                if let Some((bus, rest)) = parse_send_key(key) {
+                    match rest {
+                        "module" => self.chains.request_send_load(bus, val),
+                        "state" => self.chains.set_send_state(bus, val),
+                        _ => self.chains.send_param(bus, rest, val),
+                    }
+                }
+            }
             /* `ch<N>:<rest>` addresses movy chain N (0-11 = tracks 5-16).
              * Module loads are diverted into the queue so they cannot bypass
              * the one-load-per-callback rule; everything else is a plain
@@ -444,6 +471,17 @@ impl Instance {
                 self.chains.active_count(),
                 self.chains.asleep_count()
             )),
+            _ if key.starts_with("snd") => {
+                let (bus, rest) = parse_send_key(key)?;
+                /* The chain host publishes a loaded module under an underscore
+                 * alias, not the colon key it was set with. Reading back the
+                 * key we wrote answers "absent", and the UI then draws a loaded
+                 * send slot as "click jog to add". */
+                if rest == "module" {
+                    return self.chains.send_get_param(bus, "fx1_module");
+                }
+                self.chains.send_get_param(bus, rest)
+            }
             _ if key.starts_with("ch") => {
                 let (slot, rest) = parse_chain_key(key)?;
                 /* Symmetric with set_param: the mix is movy's own state, not
@@ -778,6 +816,23 @@ mod tests {
         // A garbled write leaves the last good level alone.
         inst.set_param("ch4:mix", "nonsense");
         assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("0.3162,0.0000,0,0.5000,0.2500"));
+    }
+
+    #[test]
+    fn parses_a_send_key() {
+        assert_eq!(parse_send_key("snd0:module"), Some((0, "module")));
+        assert_eq!(parse_send_key("snd1:fx1:mix"), Some((1, "fx1:mix")),
+                   "the remainder keeps its colons");
+    }
+
+    #[test]
+    fn rejects_send_buses_that_cannot_exist() {
+        // Clamping would land a write meant for nothing on bus 0.
+        assert_eq!(parse_send_key("snd2:module"), None);
+        assert_eq!(parse_send_key("snd9:module"), None);
+        assert_eq!(parse_send_key("sndx:module"), None);
+        assert_eq!(parse_send_key("snd0"), None);
+        assert_eq!(parse_send_key("sound:module"), None);
     }
 
     #[test]

@@ -31,6 +31,8 @@ official docs first:
    - [Opening Movy](#opening-movy)
 2. [Parameter pages](#2-parameter-pages)
 3. [The module chain](#3-the-module-chain)
+   - [The MIX page](#the-mix-page)
+   - [Send FX](#send-fx)
 4. [Keyboard & drums](#4-keyboard--drums)
 5. [The sequencer (aligned with Move)](#5-the-sequencer-aligned-with-move)
 6. [Beyond Move: Step, Clip & Set parameters](#6-beyond-move-step-clip--set-parameters)
@@ -506,8 +508,8 @@ In **Chain** view you see the slots of the current track:
 
 ![Chain view](docs/assets/chain_synth.png)
 
-- **Jog wheel** scrolls between slots (MIDI FX, Synth, FX 1, FX 2, and the LFO
-  page).
+- **Jog wheel** scrolls between slots (MIDI FX, Synth, FX 1, FX 2, the LFO page
+  and the MIX page).
 - **Jog click** on a loaded slot **drills into** that module's parameter pages.
 - **Jog click** on an empty slot — or **Shift + jog click** on any slot — opens
   the **module browser** to load/swap the module in that slot:
@@ -519,8 +521,9 @@ In **Chain** view you see the slots of the current track:
 - **Back** returns from a module's pages to the chain, and from the chain it
   exits Movy.
 
-In **Session** view, the same navigation applies to a **master FX chain**
-(MFX 1–4) that processes the whole mix, followed by a fifth **LFO** page — see
+In **Session** view, the same navigation applies to the **master chain**: two
+**send FX** slots, then **MFX 1–4** processing the whole mix, then an **LFO**
+page — see [Send FX](#send-fx) and
 [The master chain's LFOs](#the-master-chains-lfos).
 
 ### Track volume
@@ -556,6 +559,57 @@ for 5-16 — and it is **saved with the Set**, so it survives leaving Movy, a
 power cycle, and switching to another Set and back. A Movy-hosted track's level
 is saved alongside its chain, so a chain with nothing loaded in it has no level
 to keep.
+
+### The MIX page
+
+The last slot in every track's chain is **MIX** — Movy's own mixer for that
+track.
+
+![MIX page](docs/assets/mix_page_chain.png)
+
+| Knob | What it does |
+| --- | --- |
+| **VOL** | Track level. The same fader as **track + volume**, on the same one-dB-per-detent ladder. |
+| **PAN** | Position in the stereo field, shown as `C`, `L50`, `R100`. |
+| **SND1** | How much of this track goes to send FX 1. |
+| **SND2** | How much of this track goes to send FX 2. |
+
+All four are **automatable** like any module parameter: hold a step and turn, or
+turn while recording. See [Step parameters](#step-parameters--per-trig-locks).
+
+The sends are **post-fader and post-pan**: pulling a track's level down takes its
+reverb with it, and a hard-panned track arrives in the return where you left it.
+Muting a track mutes its sends too.
+
+⚠️ **Tracks 1–4 show only VOL** unless they are Movy-hosted. A Schwung-hosted
+track's audio never passes through Movy, so there is nothing for Movy to pan or
+to tap for a send, and Schwung has no pan control of its own. Turn on
+**Movy tracks** in Settings to get the full page on tracks 1–4. This is a
+routing fact, not a missing feature.
+
+### Send FX
+
+The master chain starts with two **send FX** slots, to the left of MFX 1.
+
+![Send FX slot](docs/assets/master_send_slot.png)
+
+Load one the way you load any module — jog to the slot, jog click, pick from the
+browser — and then raise **SND1** or **SND2** on the MIX page of whichever tracks
+should feed it. Each send holds **one audio FX**. Its output is added back at
+unity; the send amount on each track is the level control.
+
+They sit left of the master FX on screen because they sit left of them in the
+signal path: a send's output joins Movy's own output, which the master FX then
+process.
+
+**Why bother.** One reverb shared by eight tracks costs a fraction of eight
+reverbs. The saving is real from about four tracks up; below that it is roughly
+a wash, and for one track an ordinary FX slot on the track is cheaper. Sends are
+for *wet* effects — reverb, delay. An effect that replaces the dry signal
+(distortion, compression, EQ) belongs in the track's own FX slot, where it will
+sound like you intended.
+
+Sends are **saved with the Set**, module and preset alike.
 
 ### The LFO page
 
@@ -1693,6 +1747,8 @@ behaviour you'd like — or, better, a PR.
 | **Shift / Play / Rec** (Leave menu up) | Run normally *without* closing the menu. |
 | **Parameter knobs** (Leave menu up) | Inert — the menu covers the screen, so the edit would be invisible. |
 | **Hold track + volume encoder** | Set that track's volume (0–400%, 100% = unity, 1 dB per detent). Add **Shift** to see Movy's slider instead of Move's native overlay. |
+| **MIX page knobs 1–4** | VOL / PAN / SND1 / SND2 for the current track. All four automate like any parameter. Movy-hosted tracks only — a Schwung track shows VOL alone (see [The MIX page](#the-mix-page)). |
+| **Jog to the master chain's first two slots** | The two **send FX**. Load one like any module; feed it with SND1 / SND2 on each track's MIX page (see [Send FX](#send-fx)). |
 | **+ / −** (Up/Down) | Shift the **active track's** octave (melodic tracks only). Each track remembers its own, saved with the set. In **Session** view they step the focused **track group** instead (**+** towards tracks 1-4, **−** towards 13-16). |
 
 ### Sequencer

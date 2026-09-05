@@ -11,6 +11,46 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
+## [Unreleased]
+
+### Highlights
+
+- **Send FX.** The master chain gains two **send** slots at its head, hosted by
+  Movy itself. Load one audio FX into each, then feed it from any Movy track's
+  new MIX page. The sends are post-fader and post-pan — pulling a track down
+  takes its reverb with it — and their output joins Movy's own, which the master
+  FX then process.
+
+  One reverb shared by eight tracks costs a fraction of eight reverbs. The
+  saving is real from about four tracks up; below that it is roughly a wash, and
+  for a single track an ordinary FX slot is cheaper. Sends only make sense for
+  wet effects: an insert-shaped one (distortion, compression, EQ) belongs on the
+  track.
+
+- **A MIX page per track.** The last slot in every chain: **VOL**, **PAN**,
+  **SND1**, **SND2**. Pan and mute existed in Movy's mixer from the start with
+  no control surface; this is it. All four automate like any module parameter.
+
+  On a Schwung-hosted track only VOL is shown. That track's audio never passes
+  through Movy, so there is nothing to pan or to tap for a send, and Schwung has
+  no pan of its own — turn on **Movy tracks** for the full page on tracks 1-4.
+
+- **Nothing to pay when unused.** With no send module loaded and every track at
+  zero, the added per-block work is a handful of branches: an untouched bus is
+  never accumulated into, never processed, and never cleared.
+
+### Fixed
+
+- **Automation lanes on tracks 5-16 were never restored.** The engine has always
+  emitted labels for all 16 tracks, but the UI read only the first four — a
+  leftover from when Movy had four. Automation played back in the session it was
+  recorded in and was silently gone the next time the Set was opened. The
+  round-robin that re-applies mappings after a module reload had the same cap.
+
+- **The track-volume gesture would have zeroed both sends.** It rebuilt the rest
+  of the mixer value from a fixed three fields, so any nudge of the fader wrote
+  the new send levels back as zero. It now carries the remainder opaquely.
+
 ## [0.31.0] — 2026-09-03
 
 ### Highlights

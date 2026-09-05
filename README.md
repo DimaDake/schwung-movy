@@ -91,9 +91,16 @@ Movy stands on the shoulders of several projects:
   ![Choosing a bank](docs/assets/items_overlay.png)
 
 - **Full chain navigation** — MIDI FX, Synth, FX 1, FX 2 per track, plus a
-  master FX chain in Session view.
+  master chain in Session view: two send FX and four master FX.
 
   ![Chain view](docs/assets/chain_synth.png)
+
+- **A mixer per track, and two send FX** — the MIX page ends every track's
+  chain with level, pan and two send amounts, all automatable. Two shared send
+  FX sit at the head of the master chain, so eight tracks can share one reverb
+  instead of paying for eight.
+
+  ![MIX page](docs/assets/mix_page_chain.png)
 
 - **Track volume** — hold a track button and turn the volume encoder to set that
   track's level (0–400%, unity marked). Add Shift for Movy's own slider.

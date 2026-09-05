@@ -289,4 +289,48 @@ _log('\nTest: send persistence');
     eq('and a send with no blob writes nothing', sendPayloadPairs({ b: 1, m: 'delay' }), null);
 }
 
+/* ── Editing and undo ────────────────────────────────────────────────────── */
+
+_log('\nTest: MIX page edits are undoable');
+
+{
+    const { createMixModel } = await import('../../dist/esm/mixer/mix-model.js');
+    const { resetPorts } = await import('../../dist/esm/track/registry.js');
+    const { takeUndoViolation } = await import('../../dist/esm/undo/record.js');
+    const { DETENT_DIV } = await import('../../dist/esm/seq/detent.js');
+    const { undoDepth, resetUndoState } = await import('../../dist/esm/undo/state.js');
+
+    const writes = [];
+    const oG = globalThis.host_module_get_param;
+    const oS = globalThis.host_module_set_param_blocking;
+    globalThis.host_module_get_param = (k) =>
+        k === 'ch6:mix' ? '1.0000,0.0000,0,0.0000,0.0000' : (oG ? oG(k) : null);
+    globalThis.host_module_set_param_blocking = (k, v) => { writes.push([k, v]); return true; };
+    resetPorts();
+    resetUndoState(); takeUndoViolation();
+
+    const m = createMixModel(6);
+    m.tick();
+
+    /* `recordParamOp` logs a violation and DROPS the entry when no undo group
+     * is open, so an edit with no gesture is both un-undoable and noisy. */
+    /* One physical click is DETENT_DIV raw units — the same one-step-per-click
+     * feel the hold-track+volume gesture has. */
+    m.handleKnobTouch(2);
+    m.handleKnobDelta(2, DETENT_DIV);
+    eq('a send turn writes the mixer', writes.length > 0, true);
+    eq('and writes the whole value', (writes[0][1].match(/,/g) || []).length, 4);
+    eq('with no ungrouped-write violation', takeUndoViolation(), '');
+
+    /* One gesture, one undo entry, however many detents it took. */
+    m.handleKnobDelta(2, DETENT_DIV);
+    m.handleKnobDelta(2, DETENT_DIV);
+    m.handleKnobRelease(2);
+    eq('a whole turn is one undo entry', undoDepth(), 1);
+
+    globalThis.host_module_get_param = oG;
+    globalThis.host_module_set_param_blocking = oS;
+    resetPorts();
+}
+
 }

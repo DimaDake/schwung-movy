@@ -15,6 +15,8 @@ import type { Model } from '../model/index.js';
 import type { ViewModel } from '../types/viewmodel.js';
 import type { KnobParamInfo } from '../model/store.js';
 import { countDetents } from '../seq/detent.js';
+import { beginGesture } from '../undo/edit.js';
+import { endEdit } from '../undo/group.js';
 import { inertModelSurface } from '../lfo/inert.js';
 import { ampToIdx, idxToAmp, VOL_STEPS } from './db-ladder.js';
 import { buildMixVM } from './mix-cells.js';
@@ -55,6 +57,10 @@ export function createMixModel(track: number): Model {
         return Math.min(max, idxToAmp(Math.min(VOL_STEPS, Math.max(0, ampToIdx(current) + n))));
     }
 
+    /* One undo group per knob: the key has to survive every detent of a turn
+     * and close only on release. */
+    function gestureKey(k: number): string { return 'mix:' + track + ':' + FIELD_AT[k]; }
+
     function edit(k: number, delta: number): void {
         const field = FIELD_AT[k];
         if (field === undefined || trackKind(track) === 'host' && field !== 'gain') return;
@@ -73,6 +79,12 @@ export function createMixModel(track: number): Model {
                 v.send[i] = ladderStep(v.send[i], n, SEND_MAX);
             }
         }
+        /* An undo group has to be OPEN before the write: `recordParamOp` logs a
+         * violation and drops the entry otherwise, so the edit would be both
+         * un-undoable and noisy. Keyed per field so turning VOL and then PAN
+         * are two entries, and closed on knob release — one gesture, one undo,
+         * however many detents it took. */
+        beginGesture(gestureKey(k), 'MIX', 'T' + (track + 1), false);
         writeMix(track, v, before);
         dirty = true;
     }
@@ -86,8 +98,14 @@ export function createMixModel(track: number): Model {
             dirty = true;
         },
         handleKnobRelease(k?: number): boolean {
-            if (k !== undefined) { const i = touched.indexOf(k); if (i >= 0) touched.splice(i, 1); }
-            else touched.length = 0;
+            if (k !== undefined) {
+                const i = touched.indexOf(k);
+                if (i >= 0) touched.splice(i, 1);
+                endEdit(gestureKey(k));
+            } else {
+                touched.length = 0;
+                endEdit();
+            }
             dirty = true;
             return false;
         },

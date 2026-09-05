@@ -430,7 +430,11 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
         },
 
         getDrumConfig(): import('../types/param.js').DrumConfig | null {
-            return s.moduleConfig?.drum ?? null;
+            /* `drumConfig` is the RESOLVED one — the module's declaration where
+             * it made one, movy's table otherwise — settled once per hierarchy
+             * load. Falls back to the table for a model whose hierarchy has not
+             * loaded yet, which is what this returned before. */
+            return s.drumConfig ?? s.moduleConfig?.drum ?? null;
         },
 
         /* The two drum facts the app tick needs every frame. They are plain

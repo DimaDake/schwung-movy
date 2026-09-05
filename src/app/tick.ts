@@ -20,6 +20,8 @@ import { WHITE_DIM } from '../seq/colors.js';
 import { padColor } from '../seq/pads.js';
 import { midiNoteName } from '../keyboard/notes.js';
 import { renderKnobsView } from '../renderer/knob-view.js';
+import { schwungGridMode, schwungPageFor, schwungActiveFor } from '../renderer/schwung-grid.js';
+import { schwungEditorActive, renderSchwungEditor } from '../renderer/schwung-editor.js';
 import { renderKeysView }  from '../renderer/keys-view.js';
 import { renderBrowseView } from '../renderer/browse-view.js';
 import { renderChainView }    from '../renderer/chain-view.js';
@@ -128,6 +130,72 @@ function buildAutomationView(track: number, model: Model): AutomationView {
     };
 }
 
+/* The automation view built for this frame, so the Schwung page can resolve
+ * lanes without building a second one. */
+let lastAutoView: any = undefined;
+let _schwungDiag = '';
+/*
+ * The Schwung body for whichever module grid is being drawn.
+ *
+ * Returned as a CALLBACK the view calls in place of drawKnobParams, because
+ * movy draws a module's knobs from more than one screen — renderKnobsView AND
+ * renderChainView — and routing only the first is what left the device drawing
+ * movy's widgets while every local check passed. One helper, both call sites.
+ *
+ * Body-only: each view keeps its own header and bank bar. The chain view's bar
+ * indexes CHAIN SLOTS, not param pages, so replacing it with Schwung's page
+ * indicator would be a lie about what the jog does there.
+ */
+function schwungBodyFor(model: any, stepSelected: boolean): (() => void) | undefined {
+    /* Says WHY it declined, once per distinct reason. Reporting only that the
+     * grid "is still movy's" cost two device round trips; the answer is always
+     * one of these four and none of them is visible from the screen. */
+    const why = (r: string) => {
+        if (r !== _schwungWhy) { _schwungWhy = r; mlog('schwung-body ' + r); }
+        return undefined;
+    };
+    if (schwungGridMode() !== 'page') return why('mode=' + schwungGridMode());
+    if (!model) return why('no-model');
+    if (stepSelected) return why('step-page-selected');
+    const ck = model.getComponentKey ? model.getComponentKey() : '(none)';
+    const sp = schwungPageFor(appState.activeTrack.index, ck);
+    /* BEFORE the ready check, so an unready page keeps asking. The page is
+     * built while the module is still loading, and without this its first
+     * empty answer stood for the whole session. */
+    sp.tick();
+    if (!sp.ready) {
+        return why(`not-ready track=${appState.activeTrack.index} ck=${ck} `
+                 + `pages=${sp.pageCount}`);
+    }
+    why(`ok track=${appState.activeTrack.index} ck=${ck} pages=${sp.pageCount} `
+      + `at=${sp.pageIndex}`);
+    /* The bands live with the page now, not with each call site: which chrome
+     * movy keeps is one decision about the embedding, and repeating it here
+     * would let the two disagree. */
+    return () => { sp.render('', lastAutoView, -1); };
+}
+
+/*
+ * WHAT THE BANK BAR SHOULD COUNT on the module page.
+ *
+ * movy draws the bar; Schwung only reports. Under the grid the jog pages
+ * SCHWUNG's page set, and its count differs from movy's banks, so movy's own
+ * index would sit still while the body paged. `schwungActiveFor` is the same
+ * one predicate every input site asks, so the bar cannot end up indexing a
+ * page set the jog is not moving.
+ *
+ * Undefined means "movy's own banks", which is also the answer on the step
+ * page — that page IS movy's, and so is its bar.
+ */
+function schwungBankFor(model: any, stepSelected: boolean):
+        { index: number; count: number } | undefined {
+    if (stepSelected || !model) return undefined;
+    const sp = schwungActiveFor(appState.activeTrack.index,
+        model.getComponentKey ? model.getComponentKey() : 'synth');
+    return sp ? { index: sp.pageIndex, count: sp.pageCount } : undefined;
+}
+let _schwungView = '';
+let _schwungWhy = '';
 let _autoLanesLog = '';
 let _autoRenderLog = '';
 /* Diagnostic (off unless debug_log_on): the per-knob automation render decision
@@ -558,6 +626,15 @@ function tickBody(): void {
          * below doesn't paint over it. Recomputed each rendered frame; persists
          * across non-dirty ticks since the on-screen toast persists too. */
         jogToastShown = false;
+        /* Which branch of this chain is about to draw. Logged once per change:
+         * the Schwung delegation was put on VIEW_KNOBS, but `seqState.sessionMode`
+         * is tested EARLIER in the same else-if chain, so in session mode
+         * VIEW_KNOBS is unreachable and the delegation never ran on device. */
+        {
+            const vst = `view=${appState.currentView} session=${seqState.sessionMode}`
+                      + ` masterDetail=${appState.masterDetail} ready=${sessionReady()}`;
+            if (vst !== _schwungView) { _schwungView = vst; mlog('schwung-view ' + vst); }
+        }
         if (appState.currentView === VIEW_BROWSE) {
             // A browser opened from the master chain shows the master slot label.
             const browseTitle = seqState.sessionMode
@@ -584,6 +661,13 @@ function tickBody(): void {
             // Only knob 1 lights, and its brightness is the value — the page is
             // a list, so the LED is the only thing saying which knob edits it.
             updateSingleKnobLED(FLAG_KNOB, vm.knobNormalized);
+        } else if (schwungEditorActive()) {
+            /* A divable parameter's list, drawn over whatever view opened it.
+             * Ahead of every view branch because it is modal — the page beneath
+             * is not what the gestures are addressing. */
+            clear_screen();
+            renderSchwungEditor();
+            updateSingleKnobLED(-1, 0);
         } else if (appState.currentView === VIEW_CPU) {
             renderCpuView(buildCpuPageVM());
             // Nothing on this page is editable, so every knob goes dark. A knob
@@ -611,6 +695,7 @@ function tickBody(): void {
             } else {
                 perfPhase('autoview');
                 const av = buildAutomationView(appState.activeTrack.index, activeModel!);
+                lastAutoView = av;
                 perfPhase('buildvm');
                 vm = activeModel!.getViewModel(av);
                 perfPhaseEnd();
@@ -618,7 +703,23 @@ function tickBody(): void {
             }
             diagAutoRender(vm);
             perfPhase('render');
-            renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index);
+            /*
+             * SCHWUNG PAGINATION. Under mode 'page' Schwung plans the page set
+             * and draws the whole grid; movy's contribution is the automation
+             * view, which Schwung resolves BY PARAMETER KEY — so a lane keeps
+             * pointing at its parameter wherever Schwung puts it.
+             *
+             * Only the module view takes this path. VIEW_MAIN_PARAMS and
+             * VIEW_CLIP_PARAMS are movy's OWN pages (tempo, swing, clip
+             * settings); they are not a module's declared contract and there is
+             * nothing for a module planner to plan. Routing them here would
+             * have replaced the sequencer's own screens with an empty grid.
+             *
+             * The step page is movy's too, so it keeps its own renderer.
+             */
+            renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
+                            schwungBodyFor(activeModel, stepAvail && stepPageState.selected),
+                            schwungBankFor(activeModel, stepAvail && stepPageState.selected));
             perfPhaseEnd();
             // The pool-full toast shares the bottom rows with the Loop strip;
             // claim them so the strip yields to it (like every other toast).
@@ -633,11 +734,22 @@ function tickBody(): void {
             if (stepAvail && stepPageState.selected) {
                 vm = buildStepPageVM(heldTrigInput(), activeModel?.getBankCount() ?? 1);
             } else {
-                vm = activeModel!.getViewModel(buildAutomationView(appState.activeTrack.index, activeModel!));
+                /* KEPT, not discarded. `schwungBodyFor` renders Schwung from
+                 * `lastAutoView`, which is what carries the parameter locks —
+                 * and this branch used to build the view, hand it to
+                 * getViewModel and throw it away. So on THIS view, the one movy
+                 * opens on, Schwung was drawn with whatever a previous
+                 * VIEW_KNOBS frame had left behind, or with nothing at all.
+                 * Reported from the device as "i can't see p locks working". */
+                const av = buildAutomationView(appState.activeTrack.index, activeModel!);
+                lastAutoView = av;
+                vm = activeModel!.getViewModel(av);
                 if (stepAvail) { vm.stepPagePresent = true; vm.stepPageSelected = false; }
             }
             diagAutoRender(vm);
-            renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1));
+            renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1),
+                            undefined, undefined as any,
+                            schwungBodyFor(activeModel, stepAvail && stepPageState.selected));
             /* Must match what renderChainView actually drew: the Loop strip
              * clears rows 60-63 every tick and would erase a toast it was not
              * told about. */

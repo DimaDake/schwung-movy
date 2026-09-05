@@ -10,6 +10,16 @@ const root  = resolve(__dir, '..');
 await esbuild.build({
     entryPoints: [
         resolve(root, 'src/model/index.ts'),
+        /* Entry points so the browser tests can toggle the grid and call the
+         * adapter directly; without these esbuild folds them into a chunk and
+         * there is no dist/esm/renderer/schwung-flag.js to import. */
+        resolve(root, 'src/renderer/schwung-flag.ts'),
+        resolve(root, 'src/renderer/schwung-body.ts'),
+        resolve(root, 'src/renderer/schwung-page.ts'),
+        resolve(root, 'src/renderer/schwung-editor.ts'),
+        resolve(root, 'src/renderer/schwung-widgets.ts'),
+        resolve(root, 'src/renderer/schwung-voices.ts'),
+        resolve(root, 'src/renderer/schwung-grid.ts'),
         resolve(root, 'src/model/envelope.ts'),
         resolve(root, 'src/model/lfo-viz.ts'),
         resolve(root, 'src/model/page-layout.ts'),
@@ -80,6 +90,7 @@ await esbuild.build({
         resolve(root, 'src/seq/colors.ts'),
         resolve(root, 'src/keyboard/drum-handler.ts'),
         resolve(root, 'src/keyboard/drum-grid.ts'),
+        resolve(root, 'src/model/drum-declared.ts'),
         resolve(root, 'src/keyboard/layouts.ts'),
         resolve(root, 'src/keyboard/state.ts'),
         resolve(root, 'src/keyboard/held-notes.ts'),
@@ -207,10 +218,33 @@ await esbuild.build({
                 path: resolve(root, 'browser-test/stubs/shadow_ui_ctx.mjs'),
             }));
         },
+    }, {
+        /* renderer/schwung-body.ts imports Schwung's shared param_pages by its
+         * absolute device path, which the device build leaves external (it is
+         * already in build/device.mjs's `external` list, alongside
+         * constants.mjs and input_filter.mjs). Off device there is no such
+         * file, so point it at a real schwung checkout — that is what lets the
+         * browser tests render the actual Schwung widgets rather than a stub.
+         *
+         * SCHWUNG is optional: without it the import resolves to a stub that
+         * throws only if the grid is switched on, so the whole existing suite
+         * still builds and runs on a machine with no schwung checkout. */
+        name: 'schwung-param-pages',
+        setup(build) {
+            const SCHWUNG = process.env.SCHWUNG;
+            build.onResolve({ filter: /^\/data\/UserData\/schwung\/shared\/param_pages\// }, (a) => {
+                if (SCHWUNG) {
+                    const tail = a.path.replace('/data/UserData/schwung/', '');
+                    return { path: resolve(SCHWUNG, 'src/' + tail) };
+                }
+                return { path: resolve(root, 'browser-test/stubs/schwung-param-pages.mjs') };
+            });
+        },
     }],
     /* Tests exercise the debug-only surfaces, so they build with the gate ON —
      * a suite that compiled them out would assert nothing about them. */
-    define:    { __MOVY_DEBUG__: 'true' },
+    define:    { __MOVY_DEBUG__: 'true',
+                 __MOVY_SCHWUNG_GRID__: JSON.stringify(process.env.MOVY_SCHWUNG_GRID || 'off') },
     outdir:    resolve(root, 'dist/esm'),
     outbase:   resolve(root, 'src'),
     format:    'esm',

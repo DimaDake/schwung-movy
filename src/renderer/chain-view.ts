@@ -10,7 +10,8 @@ import { CHAIN_SLOTS, isVirtualSlot, type ChainSlot } from '../chain/config.js';
  * CHAIN_SLOTS unconditionally, which drew the track chain's five dots over the
  * master's four slots. */
 export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: boolean, trackLabel: string,
-                                slotLabel?: string, slots: ChainSlot[] = CHAIN_SLOTS): void {
+                                slotLabel?: string, slots: ChainSlot[] = CHAIN_SLOTS,
+                                bodyOverride?: () => void): void {
     clear_screen();
 
     const slot = slots[chainIndex] ?? slots[1];
@@ -40,19 +41,35 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
         const showIcon = vm.isPadScoped && vm.drumPadCount > 0;
         const leftW    = fontWidth(trackLabel) + 4 + (showIcon ? PAD_ICON_W : 0);
         const maxRight = W - leftW - 4;
-        let right = vm.moduleName;
+        /* A DECLARED RACK NAMES THE PAD, not the module. The module's name is
+         * already the one thing this view's bank bar and slot dots are about,
+         * while WHICH DRUM the knobs below belong to is otherwise unsayable —
+         * reported from the device as a header that just read "T4 Voice-POC"
+         * however many pads you moved through. Falls back to the module name
+         * the moment the module has not declared one. */
+        let right = vm.drumPadName || vm.moduleName;
         while (right.length > 1 && fontWidth(right) > maxRight) right = right.slice(0, -1);
         if (showIcon) drawHeaderWithPadIcon(trackLabel, right, vm.drumPadCount, vm.drumCurrentPad);
         else          drawHeader(trackLabel, right, false);
     }
 
+    /* THIS BAR STAYS, GRID OR NOT. It counts CHAIN SLOTS, and on this view the
+     * jog moves chain slots — `setChainIndex`, never schwungChangePage — so it
+     * is live and it is the only thing saying which fx slot you are on.
+     * Schwung is asked not to draw a bank bar (see schwung-page.ts) precisely
+     * so this one is the only one. */
     if (vm.stepPagePresent) {
         const sel = vm.stepPageSelected ? 0 : chainIndex + 1;
         drawBankBar(sel, slots.length + 1, true);
     } else {
         drawBankBar(chainIndex, slots.length);
     }
-    drawKnobParams(vm);
+    /* THE CHAIN VIEW DRAWS THE KNOB BODY TOO. It was the site the Schwung
+     * delegation missed: renderKnobsView was routed, this was not, and movy
+     * opens on this view — so on device the grid stayed movy's while every
+     * local check passed. */
+    if (bodyOverride) bodyOverride();
+    else drawKnobParams(vm);
 
     if (vm.overlay) drawEnumOverlay(vm);
     /* The file-browse gesture works here too — the touched param lives on the

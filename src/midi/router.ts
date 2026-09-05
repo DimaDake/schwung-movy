@@ -1,4 +1,28 @@
 import { trackRef } from '../track/ref.js';
+import { schwungChangePage, schwungActiveFor } from '../renderer/schwung-grid.js';
+import { openSchwungEditor, schwungEditorActive, schwungEditorJog,
+         schwungEditorCommit, schwungEditorCancel } from '../renderer/schwung-editor.js';
+
+/*
+ * WHICH PARAMETER IS UNDER KNOB k — one answer, for every gesture.
+ *
+ * The turn path asked Schwung and the touch/release paths asked movy, so a
+ * single gesture had two answers: the lane was CREATED against the parameter
+ * on screen, then Delete+touch cleared the lane for a different one, and
+ * hold-to-modulate armed a third. Under Schwung pagination those are genuinely
+ * different keys — obxd page 1 knob 0 is `cutoff` to Schwung and `attack` to
+ * movy — so this was not theoretical.
+ *
+ * Applying the rule to one of three sites is how I introduced it; asking one
+ * function is how it stays fixed.
+ */
+function knobInfoFor(k: number): any | null {
+    const m = knobModel();
+    if (!m) return null;
+    const sp = schwungActiveFor(appState.activeTrack.index,
+                                m.getComponentKey ? m.getComponentKey() : 'synth');
+    return (sp ? sp.knobParamInfo(k) : m.getKnobParamInfo(k)) ?? null;
+}
 import { focusedTrack, focusGroupStep, GROUP_DIR_UP, GROUP_DIR_DOWN } from '../track/focus.js';
 import { beginTrackSwitch, restoreTrackState, switchToTrack } from '../track/switch.js';
 import { portFor } from '../track/registry.js';
@@ -265,21 +289,35 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         if (d2 > 0) {
-            const info = knobModel()?.getKnobParamInfo(d1) ?? null;
+            const info = knobInfoFor(d1);
             if (deleteActive() && info) {
                 clearLaneForKnob(appState.activeTrack.index, info);
                 markDeleteActed();   // Clear release must not also delete the clip
                 return;
             }
             knobModel()?.handleKnobTouch(d1);
+            {   /* Schwung shows the held param's full name and value in the
+                 * header strip, and a dive is a click WITH a knob held — both
+                 * need the same finger movy just saw. */
+                const m2 = knobModel();
+                const sp2 = m2 ? schwungActiveFor(appState.activeTrack.index,
+                                m2.getComponentKey ? m2.getComponentKey() : 'synth') : null;
+                if (sp2) sp2.knobTouch(d1, true);
+            }
             automationKnobTouched(d1);    // arm tap-to-clear in step-auto mode
             /* Scoped to whichever chain the knobs are editing: hold-to-modulate
              * works on the master FX pages too, and a master knob's target
              * belongs to the master LFOs, not the active track's. */
             holdTouch(knobLfoScope(), d1, info);   // arm hold-to-modulate
         } else {
-            const info = knobModel()?.getKnobParamInfo(d1) ?? null;
+            const info = knobInfoFor(d1);
             if (knobModel()?.handleKnobRelease(d1)) seqToast('Wrong preset type');
+            {
+                const m2 = knobModel();
+                const sp2 = m2 ? schwungActiveFor(appState.activeTrack.index,
+                                m2.getComponentKey ? m2.getComponentKey() : 'synth') : null;
+                if (sp2) sp2.knobTouch(d1, false);
+            }
             if (info) automationKnobReleased(appState.activeTrack.index, d1, info);
             holdRelease(d1);
         }
@@ -326,6 +364,16 @@ export function onMidiMessageInternal(data: number[]): void {
                     /* Pad-follow, for configs that declare `pad` on a bank. A
                      * no-op for every config that does not. */
                     model!.selectBankForPad(pad);
+                    /* The same follow for a DECLARED rack: the module said
+                     * which level each voice lives on and Schwung named that
+                     * level on the page it planned, so the pad shows its
+                     * voice's page. Reported from the device as the header
+                     * following the pad while the page stood still. Returns
+                     * false for anything that has not declared, which is where
+                     * selectBankForPad above still answers. */
+                    const spd = schwungActiveFor(appState.activeTrack.index,
+                        model!.getComponentKey());
+                    if (spd) spd.focusVoice(pad);
                 }
             } else {
                 noteOn(d1, PAD_MIN, track, vel);
@@ -402,12 +450,29 @@ export function onMidiMessageInternal(data: number[]): void {
         }
         mlog('knobCC k=' + k + ' d2=' + d2 + ' delta=' + delta);
         const model = knobModel();
-        const info  = model?.getKnobParamInfo(k) ?? null;
         const track = appState.activeTrack.index;
+        /*
+         * THE LANE MUST TARGET THE PARAMETER THAT IS ACTUALLY UNDER THE KNOB.
+         *
+         * `model.getKnobParamInfo(k)` is movy's idea of it, and under Schwung
+         * pagination the two planners put DIFFERENT keys in the same cell — 9
+         * of them across the mock presets. Binding a lane from movy's answer
+         * while Schwung draws the page is a silent mis-target: the lane works
+         * perfectly, on the wrong param. So the info comes from whoever owns
+         * the page, and the automation layer is unchanged.
+         */
+        const spk = model ? schwungActiveFor(track,
+                        model.getComponentKey ? model.getComponentKey() : 'synth') : null;
+        const info = knobInfoFor(k);
         if (info && handleAutomationKnob(track, k, info, delta,
                 (lane) => portFor(track).setParam('knob_' + (lane + 1) + '_set', info.target + ':' + info.ioKey))) {
             return;
         }
+        /* Not automation, so it is an edit — through Schwung's own onKnobTurn,
+         * which carries the acceleration curve, the enum seeding, the write
+         * throttle and the settle window. A second write path here is what the
+         * one-implementation rule exists to prevent. */
+        if (spk) { spk.knobTurn(k, delta); appState.dirty = true; return; }
         model?.handleKnobDelta(k, delta);
         return;
     }
@@ -455,6 +520,41 @@ export function onMidiMessageInternal(data: number[]): void {
     if (d1 === MoveBack && d2 > 0) {
         jogHintTouch(false);
         holdTurnCancel();   // Back cancels an active hold-to-modulate
+        /*
+         * SCHWUNG'S LAYERS COME DOWN FIRST, one per press: a hint, then the
+         * enum peek, then the section picker, then an entered menu. Only when
+         * none of them was up does Schwung answer `exit`, and only then is Back
+         * movy's — which is what keeps it from being a trap. Reported upstream
+         * as "if i hit back during autopeek it exits the module": a peek about
+         * to vanish on its own should not take the module with it.
+         *
+         * The ladder is Schwung's own `applyInput`, not a copy — see
+         * schwung-page.ts. movy asks and obeys.
+         */
+        /* The divable editor is movy's own layer, so it comes down before we
+         * ask Schwung about its layers. */
+        if (schwungEditorActive()) { schwungEditorCancel(); appState.dirty = true; return; }
+        {
+            /* ONLY WHILE SCHWUNG IS THE THING ON SCREEN.
+             *
+             * `schwungActiveFor` says a page EXISTS, not that you are looking
+             * at it — it stays ready while movy shows its module browser, the
+             * keys view, a param page of its own. Routing Back to it from
+             * those swallowed the press and the browser could not be left:
+             * Back is Schwung's ladder on Schwung's pages and movy's
+             * everywhere else. Found on device, backing out of the module
+             * browser. */
+            const onSchwungView = appState.currentView === VIEW_KNOBS
+                               || appState.currentView === VIEW_CHAIN;
+            const m = onSchwungView ? knobModel() : null;
+            const spb = m ? schwungActiveFor(appState.activeTrack.index,
+                                m.getComponentKey ? m.getComponentKey() : 'synth') : null;
+            if (spb) {
+                const intent = spb.back();
+                appState.dirty = true;
+                if (!intent) return;         /* a layer came down; that was the press */
+            }
+        }
         if (masterDetailActive()) {
             appState.masterDetail = false;   // master detail → back to the slot grid
             appState.dirty = true;
@@ -494,6 +594,62 @@ export function onMidiMessageInternal(data: number[]): void {
 
     /* Jog click */
     if (d1 === MoveMainButton && d2 > 0) {
+        /*
+         * A DOOR IS SCHWUNG'S CLICK.
+         *
+         * While Schwung owns the pages, a menu / items / preset / child page is
+         * something you go INTO, and only Schwung knows that — movy's click on
+         * these views opens its module browser. Asking `isDoor()` rather than
+         * listing kinds is the controller's own instruction ("Ask the
+         * controller; do not restate the kinds"), and it is what keeps the
+         * module browser reachable everywhere else.
+         */
+        {
+            const m = knobModel();
+            const spc = m ? schwungActiveFor(appState.activeTrack.index,
+                                             m.getComponentKey ? m.getComponentKey() : 'synth') : null;
+            /*
+             * Schwung takes the click when it has something to do with it: a
+             * door page to enter, its own picker to choose from, or a KNOB
+             * UNDER THE HAND whose parameter dives.
+             *
+             * Deliberately NOT the fourth rung of Schwung's ladder — a click
+             * with nothing held opens its section picker, and that is movy's
+             * module browser on both these views. Taking it would trade a
+             * gesture people use for one they have never had. Left with movy
+             * until the collision is decided.
+             */
+            /*
+             * SHIFT+CLICK IS THE SECTION PICKER, which is Schwung's own idiom
+             * ("Shift+Click is the section picker, EVERYWHERE" — page_input).
+             * Taken only on VIEW_KNOBS: on VIEW_CHAIN Shift+click already opens
+             * movy's module browser, and that gesture is older and more used.
+             *
+             * The plain no-knob-held click stays movy's on both views for the
+             * same reason — it is the module browser, and Schwung's fourth rung
+             * would have taken it.
+             */
+            const wantPicker = appState.shiftHeld && appState.currentView === VIEW_KNOBS;
+            /* Same gate as Back: a page that exists is not a page you are
+             * looking at, and a click on movy's own screens is movy's. */
+            const onSchwungView = appState.currentView === VIEW_KNOBS
+                               || appState.currentView === VIEW_CHAIN;
+            if (onSchwungView && spc
+                && (wantPicker || spc.ctl.pickerOpen || spc.ctl.isDoor()
+                    || spc.ctl.state.touched >= 0)) {
+                const intent = spc.click(wantPicker);
+                appState.dirty = true;
+                /* A divable param opens its list. An intent with no options —
+                 * a filepath, a canvas — has no editor here; it is logged
+                 * rather than dropped, because a param that appears inert is
+                 * exactly the failure a silent drop would hide. */
+                if (intent && intent.action === 'open' && !openSchwungEditor(intent, spc)) {
+                    mlog('schwung-open unhandled ' + (intent.key || '?')
+                       + ' kind=' + (intent.meta ? intent.meta.kind : '?'));
+                }
+                return;
+            }
+        }
         // Assign-mode: commit the LFO modulation (assign → jump to that LFO's
         // chain page; remove → stay + toast). Consumes the click.
         if (assignActive()) {
@@ -568,6 +724,9 @@ export function onMidiMessageInternal(data: number[]): void {
             // same gesture works on the module knob page and on the chain page,
             // since the touched param lives on the model regardless of view.
             // browseOrigin returns to whichever view the click happened in.
+            /* The editor is a modal layer: while it is up the click is its
+             * commit and nothing else's. */
+            if (schwungEditorActive()) { schwungEditorCommit(); appState.dirty = true; return; }
             const fileTarget = activeModel()?.getFileBrowseTarget() ?? null;
             if (fileTarget) {
                 // Capture the origin BEFORE openFileBrowser flips currentView to
@@ -611,6 +770,10 @@ export function onMidiMessageInternal(data: number[]): void {
         const delta = decodeDelta(d2);
         if (delta !== 0) {
             jogHintTouch(false);   // a turn answers the hint's question — drop it
+            /* The editor's list is what the jog moves while it is up — ahead of
+             * everything, because a modal that let the page change underneath
+             * it would commit against a parameter you can no longer see. */
+            if (schwungEditorActive()) { schwungEditorJog(delta); appState.dirty = true; return; }
             if (assignActive()) { assignCycle(delta); appState.dirty = true; return; }
             /* Global Params scrolls its list. Ahead of the view branches below
              * because the jog is the page's ONLY navigation — the other two
@@ -655,10 +818,18 @@ export function onMidiMessageInternal(data: number[]): void {
                     } else if (dir < 0 && onBank0) {
                         setStepPageSelected(true);
                     } else {
-                        m?.changePage(dir);
+                        /* Schwung owns the page set under mode 'page' — its page COUNT differs
+                         * from movy's, so advancing movy's index and mirroring it would land
+                         * on a page that does not exist. It takes the move or declines it. */
+                        if (!schwungChangePage(appState.activeTrack.index,
+                                               m?.getComponentKey() ?? 'synth', dir)) m?.changePage(dir);
                     }
                 } else {
-                    m?.changePage(dir);
+                    /* Schwung owns the page set under mode 'page' — its page COUNT differs
+                     * from movy's, so advancing movy's index and mirroring it would land
+                     * on a page that does not exist. It takes the move or declines it. */
+                    if (!schwungChangePage(appState.activeTrack.index,
+                                           m?.getComponentKey() ?? 'synth', dir)) m?.changePage(dir);
                 }
             } else if (appState.currentView === VIEW_BROWSE) {
                 browserState.browseIndex = Math.max(0, Math.min(browserState.modules.length - 1, browserState.browseIndex + delta));

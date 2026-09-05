@@ -1,5 +1,6 @@
 import type { ModelState } from './state.js';
 import { loadModuleConfig, loadModuleJson } from '../modules/loader.js';
+import { effectiveDrumConfig, readSurface } from './drum-declared.js';
 import { mlog } from '../log.js';
 import { moduleReadKey } from '../chain/config.js';
 import { buildConfigPages } from './config-pages.js';
@@ -58,6 +59,12 @@ export function loadHierarchy(s: ModelState): void {
         }
     }
 
+    /* The contract as the module wrote it, kept so the drum surface can be read
+     * from it below. absorbHierarchy flattens levels into paramDefs and loses
+     * the top-level statements (`pad_layout`, `focus_param`) that say what kind
+     * of instrument this is. */
+    let declaredHierarchy: any = null;
+
     s.isDrum             = false;
     s.drumPadCount       = 0;
     // Focused pad is movy-authoritative: default 1, changed only by a manual pad
@@ -109,10 +116,35 @@ export function loadHierarchy(s: ModelState): void {
         }
     }
 
-    const raw = s.port.getParam(s.componentKey + ':ui_hierarchy');
+    /*
+     * `ui_hierarchy`, THEN `ui_pages`.
+     *
+     * A module that ships its own chain editor serves `ui_hierarchy` EMPTY on
+     * purpose: the shadow UI reaches for the hierarchy editor whenever one is
+     * offered, and only falls back to the module's ui_chain.js when it is not.
+     * 9W9 is the case — its RD-9 pad editor is the point — so it answers ""
+     * there and publishes the same hierarchy under `ui_pages`, which the host
+     * does not probe, for ui_chain.js to feed the param_pages controller.
+     *
+     * movy asked only the first key, so for exactly the modules that ship their
+     * own editor it saw no contract at all: no declared drum rack, no pad names,
+     * no notes. It looked like the declaration was being ignored; it was never
+     * being read. Asking the second key costs one param read on the modules
+     * that answer nothing to the first.
+     *
+     * NOT CACHED BEYOND THIS LOAD. 9W9's note map is switchable at runtime and
+     * it serves a DIFFERENT hierarchy per map, so a value kept across loads
+     * would seat every voice at the wrong note with nothing to say why. This
+     * runs on each hierarchy load, which is what a map change triggers.
+     */
+    let raw = s.port.getParam(s.componentKey + ':ui_hierarchy');
+    if (!raw) raw = s.port.getParam(s.componentKey + ':ui_pages');
     if (raw) {
-        try { absorbHierarchy(JSON.parse(raw) as { levels?: Record<string, HierLevel> }); }
-        catch (e) { mlog('ui_hierarchy parse error: ' + e); }
+        try {
+            const parsed = JSON.parse(raw) as { levels?: Record<string, HierLevel> };
+            declaredHierarchy = parsed;
+            absorbHierarchy(parsed);
+        } catch (e) { mlog('ui_hierarchy parse error: ' + e); }
     }
 
     /* Nothing served? Read the module's own manifest. Schwung serves a SYNTH
@@ -127,8 +159,41 @@ export function loadHierarchy(s: ModelState): void {
         const hier = caps?.ui_hierarchy as { levels?: Record<string, HierLevel> } | undefined;
         if (hier?.levels) {
             mlog('loadHierarchy: ui_hierarchy from module.json');
+            declaredHierarchy = hier;
             absorbHierarchy(hier);
         }
+    }
+
+    /*
+     * THE MODULE'S OWN WORD ABOUT ITS PADS, now the contract is in hand.
+     *
+     * The block above answered from movy's table alone, because it runs before
+     * the hierarchy is read. A module that DECLARES its voices (schwung #411)
+     * overrides that here: its pad count and its notes are what it says, and
+     * the table survives only as the fallback for the 100 fleet modules that
+     * declare nothing — for those `effectiveDrumConfig` hands back the very
+     * object it was given, so nothing moves.
+     *
+     * Resolved once, onto `s.drumConfig`, rather than at each call site: two
+     * places merging the two sources is how they would come to disagree.
+     */
+    const declaredSurface = readSurface(declaredHierarchy);
+    /* Says what the module declared, once per load. Without it a rack that does
+     * not seat itself is indistinguishable from a rack that declared nothing,
+     * and the difference is the whole feature — the reader, the contract that
+     * reached movy, and the table fallback all fail the same silent way. */
+    mlog('drum-declared layout=' + (declaredSurface ? declaredSurface.layout : 'no-reader')
+       + ' voices=' + (declaredSurface ? declaredSurface.voices.length : 0)
+       + ' hier=' + (declaredHierarchy ? 'yes' : 'none')
+       + ' keys=' + (declaredHierarchy ? Object.keys(declaredHierarchy).join('|') : '-'));
+    s.drumPadNames = (declaredSurface && declaredSurface.layout === 'drums')
+        ? declaredSurface.voices.map((v) => v.name || '')
+        : [];
+    s.drumConfig = effectiveDrumConfig(declaredSurface, s.moduleConfig?.drum ?? null);
+    if (s.drumConfig) {
+        s.isDrum       = true;
+        s.drumPadCount = s.drumConfig.padCount;
+        s.drumCurrentPhysPad = physPadOfDrumPad(s.drumCurrentPad, PAD_MIN, s.drumConfig);
     }
 
     // B1: with no ui_hierarchy and no config we can still build pages from

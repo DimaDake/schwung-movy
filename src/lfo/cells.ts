@@ -115,7 +115,7 @@ export function buildLfoVM(scope: LfoScope, st: LfoPageState): ViewModel {
             ? { slot: st.overlay.pos, options: st.overlay.options, selected: st.overlay.selected, shapeIds: null }
             : null,
         isEmpty: false,
-        drumPadCount: 0, drumCurrentPad: 0, drumCurrentPhysPad: 0, isPadScoped: false,
+        drumPadCount: 0, drumCurrentPad: 0, drumCurrentPhysPad: 0, drumPadName: '', isPadScoped: false,
         // LFO editing is independent of automation — never hide/held.
         automationHeld: false, automationPoolFull: false,
         stepPagePresent: false, stepPageSelected: false,

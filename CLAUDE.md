@@ -230,6 +230,11 @@ node scripts/test-jog-hint.mjs [move.local]
 # reach — a host build cannot load a chain at all)
 ./scripts/test-cpu.sh [move.local]
 
+# Device e2e: a send FX bus actually carries audio — a track's signal reaches
+# the bus, the FX pass runs, and audio comes out (the one claim no host build
+# can reach: it cannot load a chain at all). `sndlog` is the read-back.
+./scripts/test-sends.sh [move.local]
+
 # Device e2e: closing Movy mid-sequence releases every sounding note.
 # Fills all 16 steps first — one note on one step is silent for most of the
 # loop, so a teardown sampled at random would find no open gate and prove

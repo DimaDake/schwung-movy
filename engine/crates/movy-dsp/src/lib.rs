@@ -218,6 +218,14 @@ impl Instance {
             "chloadedlog" => {
                 host::log(&format!("chain loaded: {}", self.chains.loaded_report()));
             }
+            /* `sndlog` — what each send bus was fed, what came out of it, and
+             * which module is in it. A send's contribution never lands in a
+             * chain's scratch, so `chpeak` cannot see it: this is the only
+             * read-back that distinguishes "no track is sending" from "the FX
+             * pass produced silence". Read by scripts/test-sends.sh. */
+            "sndlog" => {
+                host::log(&format!("sends: {}", self.chains.send_report()));
+            }
             "chpeaklog" => {
                 host::log(&format!("chain peaks: {}", self.chains.peaks_csv()));
             }

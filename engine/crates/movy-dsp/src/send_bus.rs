@@ -41,6 +41,13 @@ struct Bus {
     /// Output peak of the last block this bus processed.
     last_peak: i32,
     continuous: bool,
+    /// What the tracks fed it, measured before the FX ran. Diagnostic only —
+    /// without it a silent return is indistinguishable from a bus nothing sent
+    /// to, which are opposite bugs with the same symptom.
+    in_peak: i32,
+    /// Blocks this bus has processed. Never reset: a device test needs to see
+    /// that the FX pass ran at all.
+    processed: u32,
 }
 
 pub struct SendBuses {
@@ -51,7 +58,14 @@ impl SendBuses {
     pub fn new() -> Self {
         Self {
             buses: (0..SEND_BUSES)
-                .map(|_| Bus { buf: vec![0i16; BUS_SAMPLES], dirty: false, last_peak: 0, continuous: false })
+                .map(|_| Bus {
+                    buf: vec![0i16; BUS_SAMPLES],
+                    dirty: false,
+                    last_peak: 0,
+                    continuous: false,
+                    in_peak: 0,
+                    processed: 0,
+                })
                 .collect(),
         }
     }
@@ -66,6 +80,8 @@ impl SendBuses {
             let len = bus.buf.len().min(src.len());
             mix_into_gains(&mut bus.buf[..len], &src[..len], gl, gr);
             bus.dirty = true;
+            let peak = bus.buf[..len].iter().fold(0i32, |m, &s| m.max((s as i32).abs()));
+            bus.in_peak = peak;
         }
     }
 
@@ -73,8 +89,14 @@ impl SendBuses {
     /// the process phase cannot answer the question differently.
     pub fn take_plan(&mut self) -> [bool; SEND_BUSES] {
         let mut plan = [false; SEND_BUSES];
-        for (n, bus) in self.buses.iter().enumerate() {
+        for (n, bus) in self.buses.iter_mut().enumerate() {
             plan[n] = should_process(bus.dirty, bus.last_peak, bus.continuous);
+            /* The input peak is about THIS block. Left sticky it reads as a
+             * track still feeding a bus whose send was turned down minutes ago
+             * — which is the one thing the diagnostic exists to rule out. */
+            if !bus.dirty {
+                bus.in_peak = 0;
+            }
         }
         plan
     }
@@ -91,6 +113,7 @@ impl SendBuses {
         let bus = &mut self.buses[n];
         let len = bus.buf.len().min(frames);
         bus.last_peak = bus.buf[..len].iter().fold(0i32, |m, &s| m.max((s as i32).abs()));
+        bus.processed = bus.processed.wrapping_add(1);
         let out_len = len.min(out.len());
         mix_into_gains(&mut out[..out_len], &bus.buf[..out_len], 1.0, 1.0);
         bus.buf[..len].fill(0);
@@ -103,6 +126,23 @@ impl SendBuses {
         if let Some(b) = self.buses.get_mut(n) {
             b.continuous = on;
         }
+    }
+
+    /// `0:in=1234,out=987,blocks=3421 1:in=0,out=0,blocks=0`
+    ///
+    /// The remote-UI socket a device test drives can write engine params but
+    /// cannot read them, so a log line is the only way to see from outside that
+    /// a bus was fed AND that its FX pass produced something. Those are
+    /// different failures with the same symptom — silence.
+    pub fn report(&self) -> String {
+        let mut out = String::new();
+        for (n, b) in self.buses.iter().enumerate() {
+            if n > 0 {
+                out.push(' ');
+            }
+            out.push_str(&format!("{}:in={},out={},blocks={}", n, b.in_peak, b.last_peak, b.processed));
+        }
+        out
     }
 
     pub fn any_dirty(&self) -> bool {
@@ -216,6 +256,35 @@ mod tests {
         b.finish(0, &mut out, 2);
         // Input has stopped, but the last output was loud: still processing.
         assert_eq!(b.take_plan(), [true, false]);
+    }
+
+    #[test]
+    fn the_input_peak_is_about_this_block_only() {
+        // Left sticky it reads as a track still feeding a bus whose send was
+        // turned down minutes ago — the one thing the diagnostic is for.
+        let mut b = SendBuses::new();
+        b.accumulate(&[8000, 8000], &sending(1.0));
+        b.take_plan();
+        let mut out = vec![0i16; 2];
+        b.finish(0, &mut out, 2);
+        b.take_plan();
+        assert!(b.report().starts_with("0:in=0,"), "got {}", b.report());
+    }
+
+    #[test]
+    fn the_report_separates_a_fed_bus_from_a_working_one() {
+        // "No track is sending" and "the FX produced silence" are opposite
+        // bugs with the same symptom. The report has to tell them apart, or a
+        // device test cannot say which one it is looking at.
+        let mut b = SendBuses::new();
+        assert_eq!(b.report(), "0:in=0,out=0,blocks=0 1:in=0,out=0,blocks=0");
+
+        b.accumulate(&[8000, 8000], &sending(1.0));
+        b.take_plan();
+        let mut out = vec![0i16; 2];
+        b.finish(0, &mut out, 2);
+        assert_eq!(b.report(), "0:in=8000,out=8000,blocks=1 1:in=0,out=0,blocks=0",
+                   "a bus that was fed and passed its audio through");
     }
 
     /* The zero-cost claim, as an assertion rather than a promise. A set with no

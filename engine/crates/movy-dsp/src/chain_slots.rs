@@ -432,6 +432,17 @@ impl ChainSlots {
         self.sends.any_dirty()
     }
 
+    /// What each send bus was fed and what came out of it, plus the module in
+    /// it. The only read-back a device test has — see `SendBuses::report`.
+    pub fn send_report(&mut self) -> String {
+        let mut out = String::new();
+        for bus in 0..SEND_BUSES {
+            let module = self.send_module(bus).unwrap_or_default();
+            out.push_str(&format!(" {}:mod={}", bus, if module.is_empty() { "-" } else { &module }));
+        }
+        format!("{}{}", self.sends.report(), out)
+    }
+
     /// The chain set, as the document `set_chain_set` accepts.
     pub fn chain_set(&self) -> String {
         let mut entries = Vec::new();

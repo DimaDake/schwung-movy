@@ -121,8 +121,8 @@ export function createMixModel(track: number): Model {
             if (!loaded) { load(); dirty = true; }
             const d = dirty; dirty = false; return d;
         },
-        getViewModel(_auto?: import('../types/viewmodel.js').AutomationView): ViewModel {
-            return buildMixVM({ vals: ensure(), kind: trackKind(track), touched });
+        getViewModel(auto?: import('../types/viewmodel.js').AutomationView): ViewModel {
+            return buildMixVM({ vals: ensure(), kind: trackKind(track), touched, auto });
         },
         reload(): void { dropCache(); },
         reloadNow(): void { dropCache(); },

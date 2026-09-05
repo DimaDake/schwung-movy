@@ -4,11 +4,13 @@
  * appearance can be asserted without driving knob gestures, and so the model
  * file stays about state — the same split `lfo/cells.ts` uses. */
 
-import type { ParamVM, ViewModel } from '../types/viewmodel.js';
+import type { AutomationView, ParamVM, ViewModel } from '../types/viewmodel.js';
 import { paramCell as cell } from '../seq/param-vm.js';
 import type { TrackKind } from '../track/ref.js';
 import { volumeFrac } from './db-ladder.js';
-import { formatDb, formatPan, formatSend, PAN_MAX, PAN_MIN, type MixVals } from './mix-io.js';
+import {
+    FIELD_AT, FIELD_RANGE, formatDb, formatPan, formatSend, PAN_MAX, PAN_MIN, type MixVals,
+} from './mix-io.js';
 
 /* Pan sits on a plain linear arc: -1..+1 mapped to 0..1 of the travel, with
  * centre at half. */
@@ -49,12 +51,42 @@ export interface MixPageState {
     kind: TrackKind;
     /** Knob touch order; the last entry owns the header toast. */
     touched: number[];
+    /** Lanes, locks and live turns. Absent on a page built for a test. */
+    auto?: AutomationView;
+}
+
+/* Show what the AUTOMATION is doing, not the base value — the same treatment a
+ * module's page gets. Without it a send can be automated and the page says
+ * nothing about it: no lane marker, no locked value on a held step, no arc
+ * following a live take. "Automatable" and "usable" are not the same claim. */
+function decorate(cells: (ParamVM | null)[], v: MixVals, auto: AutomationView): void {
+    for (let k = 0; k < cells.length; k++) {
+        const cell = cells[k];
+        const field = FIELD_AT[k];
+        if (!cell || field === undefined) continue;
+        const lane = auto.laneForKey(field);
+        if (lane < 0) continue;
+        cell.assigned = true;
+        cell.automated = (auto.activeLanes & (1 << lane)) !== 0;
+        const held = auto.held && auto.heldValues.has(lane);
+        const live = !auto.held && auto.liveValues.has(lane);
+        if (!held && !live) continue;
+        const raw = (held ? auto.heldValues.get(lane) : auto.liveValues.get(lane)) as number;
+        const r = FIELD_RANGE[field];
+        const value = r.min + (raw / 127) * (r.max - r.min);
+        cell.touched = true;
+        cell.displayValue = field === 'pan' ? formatPan(value)
+                          : field === 'gain' ? formatDb(value) : formatSend(value);
+        cell.normalizedValue = field === 'pan' ? panFrac(value) : volumeFrac(value);
+    }
+    void v;
 }
 
 /** The whole page as a ViewModel, so the existing chain/knob renderers and the
  *  router plumbing drive it exactly like a module's page. */
 export function buildMixVM(st: MixPageState): ViewModel {
     const cells = buildMixCells(st.vals, st.kind);
+    if (st.auto) decorate(cells, st.vals, st.auto);
     const primary = st.touched.length > 0 ? st.touched[st.touched.length - 1] : -1;
     const primaryCell = primary >= 0 && primary < 8 ? cells[primary] : null;
     let toast: ViewModel['toast'] = null;
@@ -73,10 +105,10 @@ export function buildMixVM(st: MixPageState): ViewModel {
         overlay: null,
         isEmpty: false,
         drumPadCount: 0, drumCurrentPad: 0, drumCurrentPhysPad: 0, drumPadName: '', isPadScoped: false,
-        /* Unlike the LFO page, these params ARE automatable, so the held-step
-         * dimming has to work here — the flags are passed through rather than
-         * hard-coded false. */
-        automationHeld: false, automationPoolFull: false,
+        /* Unlike the LFO page these params ARE automatable, so the held-step
+         * dimming and the pool-full toast have to work here. */
+        automationHeld: st.auto?.held ?? false,
+        automationPoolFull: st.auto?.poolFull ?? false,
         stepPagePresent: false, stepPageSelected: false,
     };
 }

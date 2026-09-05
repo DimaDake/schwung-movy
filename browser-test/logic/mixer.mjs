@@ -333,4 +333,53 @@ _log('\nTest: MIX page edits are undoable');
     resetPorts();
 }
 
+/* ── The page shows what the automation is doing ─────────────────────────── */
+
+_log('\nTest: MIX page automation feedback');
+
+{
+    const { buildMixVM } = await import('../../dist/esm/mixer/mix-cells.js');
+
+    const vals = { gain: 1, pan: 0, muted: false, send: [0, 0] };
+    const auto = (over = {}) => ({
+        assignedLanes: 0, activeLanes: 0, held: false, poolFull: false,
+        heldValues: new Map(), liveValues: new Map(),
+        laneForKey: (k) => (k === 'send1' ? 3 : -1),
+        ...over,
+    });
+
+    /* Without this the page says nothing about a send you have automated: no
+     * lane marker, no locked value on a held step, no arc following a take. */
+    const assigned = buildMixVM({ vals, kind: 'movy', touched: [], auto: auto() });
+    ok('an assigned param is marked', assigned.rows[0][2].assigned);
+    ok('an unassigned one is not', !assigned.rows[0][1].assigned);
+    ok('and it is not "automated" until a lock exists', !assigned.rows[0][2].automated);
+
+    const active = buildMixVM({ vals, kind: 'movy', touched: [],
+                               auto: auto({ activeLanes: 1 << 3 }) });
+    ok('a lane with locks reads as automated', active.rows[0][2].automated);
+
+    /* A held step shows THAT STEP's value, denormalized on the send's own range
+     * — the same range the engine uses, or the arc would disagree with what you
+     * hear. */
+    const held = buildMixVM({ vals, kind: 'movy', touched: [],
+        auto: auto({ held: true, heldValues: new Map([[3, 127]]) }) });
+    eq('a held step shows its locked value', held.rows[0][2].displayValue, '0.0 dB');
+    ok('and inverts the cell, like a knob touch', held.rows[0][2].touched);
+    ok('the page reports the hold', held.automationHeld);
+
+    const live = buildMixVM({ vals, kind: 'movy', touched: [],
+        auto: auto({ liveValues: new Map([[3, 64]]) }) });
+    ok('a live take moves the arc', live.rows[0][2].normalizedValue > 0);
+
+    const full = buildMixVM({ vals, kind: 'movy', touched: [], auto: auto({ poolFull: true }) });
+    ok('and a full lane pool is reported', full.automationPoolFull);
+
+    /* A page built without one must still render — the screenshot scenes and
+     * every test above build it that way. */
+    const bare = buildMixVM({ vals, kind: 'movy', touched: [] });
+    ok('no automation view is not a crash', bare.rows[0][2] !== null);
+    ok('and nothing claims to be assigned', !bare.rows[0][2].assigned);
+}
+
 }

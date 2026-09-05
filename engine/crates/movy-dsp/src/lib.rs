@@ -57,15 +57,30 @@ fn parse_midi_triplet(val: &str) -> Option<[u8; 3]> {
 
 /// `"0.8.-0.5.0"` -> gain 0.8, pan -0.5, unmuted. Returns None on anything
 /// malformed so a garbled param cannot silence or blast a track.
+/// `gain,pan,muted` or `gain,pan,muted,send1,send2`.
+///
+/// Three fields is the legacy form every set saved before sends existed
+/// carries, and it must keep restoring — at zero sends, not at whatever the
+/// slot happened to hold. A lone fourth field is half a pair and is refused
+/// whole: applying a send level nothing wrote is worse than refusing the value.
 fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
     let mut it = val.split(',');
     let gain: f32 = it.next()?.trim().parse().ok()?;
     let pan: f32 = it.next()?.trim().parse().ok()?;
     let muted = it.next()?.trim() != "0";
-    if it.next().is_some() || !gain.is_finite() || !pan.is_finite() {
+    let mut send = [0.0f32; 2];
+    match (it.next(), it.next(), it.next()) {
+        (None, _, _) => {}
+        (Some(a), Some(b), None) => {
+            send[0] = a.trim().parse().ok()?;
+            send[1] = b.trim().parse().ok()?;
+        }
+        _ => return None,
+    }
+    if !gain.is_finite() || !pan.is_finite() || !send.iter().all(|s| s.is_finite()) {
         return None;
     }
-    Some(crate::mixer::TrackMix { gain, pan, muted })
+    Some(crate::mixer::TrackMix { gain, pan, muted, send })
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
@@ -714,6 +729,31 @@ mod tests {
     }
 
     #[test]
+    fn a_legacy_three_field_mix_parses_with_no_sends() {
+        // Sets saved before sends existed must restore, silently, at zero.
+        let m = parse_mix("0.5,-0.25,0").expect("three fields is still valid");
+        assert_eq!(m.gain, 0.5);
+        assert_eq!(m.pan, -0.25);
+        assert!(!m.muted);
+        assert_eq!(m.send, [0.0, 0.0]);
+    }
+
+    #[test]
+    fn a_five_field_mix_carries_the_sends() {
+        let m = parse_mix("1.0,0.0,0,0.25,0.75").expect("five fields is valid");
+        assert_eq!(m.send, [0.25, 0.75]);
+    }
+
+    #[test]
+    fn a_partial_send_pair_is_refused_whole() {
+        // Half a pair is not a mix this build can honour: applying a level
+        // nothing wrote is worse than refusing the value.
+        assert!(parse_mix("1.0,0.0,0,0.25").is_none());
+        assert!(parse_mix("1.0,0.0,0,0.25,0.5,0.5").is_none());
+        assert!(parse_mix("1.0,0.0,0,nan,0.5").is_none());
+    }
+
+    #[test]
     fn rejects_a_malformed_mix() {
         // A garbled param must not silence a track or send it to full scale.
         for bad in ["", "1", "1,0", "1,0,0,0", "x,0,0", "nan,0,0", "inf,0,0"] {
@@ -728,12 +768,15 @@ mod tests {
     #[test]
     fn a_chain_mix_round_trips_through_the_param_wire() {
         let mut inst = Instance::new();
-        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("1.0000,0.0000,0"));
+        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("1.0000,0.0000,0,0.0000,0.0000"));
         inst.set_param("ch4:mix", "0.3162,0,0");
-        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("0.3162,0.0000,0"));
+        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("0.3162,0.0000,0,0.0000,0.0000"),
+                   "a legacy three-field write reads back in the five-field form");
+        inst.set_param("ch4:mix", "0.3162,0,0,0.5,0.25");
+        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("0.3162,0.0000,0,0.5000,0.2500"));
         // A garbled write leaves the last good level alone.
         inst.set_param("ch4:mix", "nonsense");
-        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("0.3162,0.0000,0"));
+        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("0.3162,0.0000,0,0.5000,0.2500"));
     }
 
     #[test]

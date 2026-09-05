@@ -641,7 +641,8 @@ impl ChainSlots {
     /// level it last set, and the set file had no way to record it.
     pub fn mix_csv(&self, slot: usize) -> Option<String> {
         let m = self.mixes.get(slot)?;
-        Some(format!("{:.4},{:.4},{}", m.gain, m.pan, m.muted as u8))
+        Some(format!("{:.4},{:.4},{},{:.4},{:.4}",
+                     m.gain, m.pan, m.muted as u8, m.send[0], m.send[1]))
     }
 
     /// Deliver a MIDI message to one chain.
@@ -1055,10 +1056,12 @@ mod tests {
     #[test]
     fn the_mix_reads_back_what_was_set() {
         let mut slots = ChainSlots::new();
-        assert_eq!(slots.mix_csv(4).as_deref(), Some("1.0000,0.0000,0"), "unity by default");
-        slots.set_mix(4, TrackMix { gain: 0.3162, pan: -0.5, muted: true });
-        assert_eq!(slots.mix_csv(4).as_deref(), Some("0.3162,-0.5000,1"));
-        assert_eq!(slots.mix_csv(5).as_deref(), Some("1.0000,0.0000,0"), "one slot only");
+        assert_eq!(slots.mix_csv(4).as_deref(), Some("1.0000,0.0000,0,0.0000,0.0000"),
+                   "unity, centred, no sends by default");
+        slots.set_mix(4, TrackMix { gain: 0.3162, pan: -0.5, muted: true, send: [0.25, 0.0] });
+        assert_eq!(slots.mix_csv(4).as_deref(), Some("0.3162,-0.5000,1,0.2500,0.0000"));
+        assert_eq!(slots.mix_csv(5).as_deref(), Some("1.0000,0.0000,0,0.0000,0.0000"),
+                   "one slot only");
         assert_eq!(slots.mix_csv(MOVY_CHAINS), None, "out of range");
     }
 
@@ -1069,7 +1072,7 @@ mod tests {
         let mut slots = ChainSlots::new();
         slots.set_mix(4, TrackMix { gain: 0.1, ..TrackMix::default() });
         assert!(slots.set_chain_set("0\n"));
-        assert_eq!(slots.mix_csv(4).as_deref(), Some("1.0000,0.0000,0"));
+        assert_eq!(slots.mix_csv(4).as_deref(), Some("1.0000,0.0000,0,0.0000,0.0000"));
     }
 
     #[test]

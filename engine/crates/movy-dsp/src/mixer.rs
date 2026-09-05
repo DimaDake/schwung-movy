@@ -19,11 +19,13 @@ pub struct TrackMix {
     /// -1.0 = hard left, 0.0 = centre, +1.0 = hard right.
     pub pan: f32,
     pub muted: bool,
+    /// Post-fader, post-pan tap into each send bus. 0.0 = off.
+    pub send: [f32; 2],
 }
 
 impl Default for TrackMix {
     fn default() -> Self {
-        Self { gain: 1.0, pan: 0.0, muted: false }
+        Self { gain: 1.0, pan: 0.0, muted: false, send: [0.0, 0.0] }
     }
 }
 
@@ -39,6 +41,23 @@ impl TrackMix {
         let g = if self.gain.is_finite() { self.gain.max(0.0) } else { 0.0 };
         (g * (1.0 - p.max(0.0)), g * (1.0 + p.min(0.0)))
     }
+
+    /// This track's contribution to send bus `n`.
+    ///
+    /// Post-fader and post-pan: the send follows the fader and the pan
+    /// position, so pulling a track down takes its reverb with it and a
+    /// hard-panned track arrives in the return where you left it. Live's
+    /// default, and the one that matches "left of MFX" being true of the
+    /// signal path and not just the page order.
+    pub fn send_gains(&self, n: usize) -> (f32, f32) {
+        let Some(&s) = self.send.get(n) else { return (0.0, 0.0) };
+        let s = if s.is_finite() { s.max(0.0) } else { 0.0 };
+        if s == 0.0 {
+            return (0.0, 0.0);
+        }
+        let (gl, gr) = self.channel_gains();
+        (gl * s, gr * s)
+    }
 }
 
 #[inline]
@@ -52,6 +71,14 @@ fn saturate(v: i32) -> i16 {
 /// where a panic would be caught but the block would be lost.
 pub fn mix_into(out: &mut [i16], src: &[i16], mix: &TrackMix) {
     let (gl, gr) = mix.channel_gains();
+    mix_into_gains(out, src, gl, gr);
+}
+
+/// Mix `src` into `out` at explicit per-channel gains.
+///
+/// The shared core of the main mix and every send tap, so there is one
+/// saturation rule and one rounding rule rather than two that drift.
+pub fn mix_into_gains(out: &mut [i16], src: &[i16], gl: f32, gr: f32) {
     if gl == 0.0 && gr == 0.0 {
         return; // muted or silent: nothing to add, and no rounding noise either
     }
@@ -151,5 +178,49 @@ mod tests {
         let mut out = vec![0i16; 2];
         mix_into(&mut out, &[100, 100, 100, 100], &unity());
         assert_eq!(out, vec![100, 100], "long source is truncated, not overrun");
+    }
+
+    #[test]
+    fn send_is_post_fader_and_post_pan() {
+        // The whole point of the tap point: a track faded to half and panned
+        // hard right sends a half-level, hard-right signal — not the raw synth
+        // output. Pulling a fader down takes its reverb with it.
+        let mix = TrackMix { gain: 0.5, pan: 1.0, send: [1.0, 0.0], ..TrackMix::default() };
+        assert_eq!(mix.send_gains(0), (0.0, 0.5));
+        assert_eq!(mix.send_gains(1), (0.0, 0.0));
+    }
+
+    #[test]
+    fn a_muted_track_sends_nothing() {
+        // Muting a track must take its reverb with it, as it does in Live.
+        let mix = TrackMix { muted: true, send: [1.0, 1.0], ..TrackMix::default() };
+        assert_eq!(mix.send_gains(0), (0.0, 0.0));
+    }
+
+    #[test]
+    fn send_level_scales_the_tap() {
+        let mix = TrackMix { send: [0.25, 1.0], ..TrackMix::default() };
+        assert_eq!(mix.send_gains(0), (0.25, 0.25));
+        assert_eq!(mix.send_gains(1), (1.0, 1.0));
+    }
+
+    #[test]
+    fn a_bad_send_level_is_silence_not_noise() {
+        // The same rule gain already has: a NaN must never reach the bus.
+        for bad in [-1.0f32, f32::NAN, f32::INFINITY] {
+            let mix = TrackMix { send: [bad, 0.0], ..TrackMix::default() };
+            assert_eq!(mix.send_gains(0), (0.0, 0.0), "send {:?} must not corrupt the bus", bad);
+        }
+    }
+
+    #[test]
+    fn an_out_of_range_bus_index_sends_nothing() {
+        let mix = TrackMix { send: [1.0, 1.0], ..TrackMix::default() };
+        assert_eq!(mix.send_gains(2), (0.0, 0.0));
+    }
+
+    #[test]
+    fn defaults_send_nothing() {
+        assert_eq!(TrackMix::default().send, [0.0, 0.0]);
     }
 }

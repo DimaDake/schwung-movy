@@ -1011,6 +1011,40 @@ _log('\napp-loop: master FX slot drills into detail params on jog-click');
     eq('Back stays in session mode', seqState.sessionMode, true);
 }
 
+_log('\napp-loop: the track chain reaches its LAST slot');
+{
+    /* The jog clamped to LFO_CHAIN_INDEX, which was the last slot until MIX was
+     * appended after it — so the bank bar drew a sixth segment the jog could
+     * never reach. The constant was doing double duty ("which slot is the LFO"
+     * AND "the highest slot"), and a grep for isLfoSlot() callers does not find
+     * a site that uses the constant directly. Walk to the end and back rather
+     * than asserting one index, so the next appended slot is covered too. */
+    const { CHAIN_SLOTS, LFO_CHAIN_INDEX, MIX_CHAIN_INDEX } =
+        await import('../dist/esm/chain/config.js');
+    const last = CHAIN_SLOTS.length - 1;
+    resetApp();
+    env.setParams(MOCK_SYNTHS.test8);
+    appState.currentView = VIEW_CHAIN;
+    appState.trackChainIndex[appState.activeTrack.index] = 0;
+    advance(2);
+
+    const chainIdx = () => appState.trackChainIndex[appState.activeTrack.index];
+    for (let i = 0; i < CHAIN_SLOTS.length + 2; i++) sendMidi([0xB0, globalThis.MoveMainKnob, 1]);
+    eq('the jog reaches the last chain slot', chainIdx(), last);
+    eq('which is MIX', chainIdx(), MIX_CHAIN_INDEX);
+    ok('and that is past the LFO', last > LFO_CHAIN_INDEX);
+
+    /* The Right arrow carries the same clamp (router.ts, MoveRight branch) and
+     * it is fixed with it — but NOT asserted here: in this state the sequencer's
+     * first-look dispatch consumes the arrows for bar navigation, so the branch
+     * never runs and the assertion would pass or fail for reasons that have
+     * nothing to do with the bound. The jog is the gesture that reaches slots.
+     */
+
+    for (let i = 0; i < CHAIN_SLOTS.length + 2; i++) sendMidi([0xB0, globalThis.MoveMainKnob, 127]);
+    eq('and jogging back stops at the first slot', chainIdx(), 0);
+}
+
 _log('\napp-loop: the master chain reaches its LFO page');
 {
     const { MASTER_LFO_INDEX } = await import('../dist/esm/chain/config.js');

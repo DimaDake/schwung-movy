@@ -28,6 +28,14 @@ export const MIX_CHAIN_INDEX = 5;
 export function isLfoSlot(chainIndex: number): boolean { return chainIndex === LFO_CHAIN_INDEX; }
 export function isMixSlot(chainIndex: number): boolean { return chainIndex === MIX_CHAIN_INDEX; }
 
+/* How far the jog and the arrows may walk. Its OWN name, because
+ * `LFO_CHAIN_INDEX` used to be both "which slot is the LFO" and "the last
+ * slot", and appending MIX after it broke only the second meaning — the bank
+ * bar drew a sixth segment the jog could never reach. A grep for `isLfoSlot`
+ * callers does not find a clamp that uses the constant directly, which is
+ * exactly how that shipped. */
+export const LAST_CHAIN_INDEX = CHAIN_SLOTS.length - 1;
+
 export const MASTER_FX_SLOTS: ChainSlot[] = [
     /* Movy's own send buses, and deliberately FIRST: they are left of the master
      * FX on the page because they are left of them in the signal path — a send's
@@ -45,6 +53,11 @@ export const MASTER_FX_SLOTS: ChainSlot[] = [
 
 export const MASTER_LFO_INDEX = MASTER_FX_SLOTS.length - 1;
 export function isMasterLfoSlot(i: number): boolean { return i === MASTER_LFO_INDEX; }
+
+/* The master chain's navigation bound, kept apart from MASTER_LFO_INDEX for the
+ * same reason LAST_CHAIN_INDEX is kept apart from LFO_CHAIN_INDEX. They are the
+ * same number today only because the LFO happens to be last here. */
+export const LAST_MASTER_INDEX = MASTER_FX_SLOTS.length - 1;
 
 /* A slot with nothing to scan holds no module of its own — today that means the
  * LFO page, on either chain. Renderers ask this rather than comparing indices,

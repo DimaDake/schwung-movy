@@ -87,16 +87,25 @@ f=open(\"/dev/shm/schwung-control\",\"r+b\"); mm=mmap.mmap(f.fileno(),0); mm[56]
 sleep 3
 
 echo -e "${BLD}=== Loading a module into master FX slot 1 ===${RST}"
-# Session view is what puts the master chain on screen (masterChainActive);
-# masterChainIndex starts at 0 and the slot is empty, so a jog click opens the
-# browser straight onto master_fx:fx1 rather than drilling a detail.
+# Session view is what puts the master chain on screen (masterChainActive).
+# masterChainIndex starts at 0, which is movy's own SEND 1 — the master page
+# reads SEND 1 / SEND 2 / MFX 1-4 / LFO — so the jog has to walk past both sends
+# before a click opens master_fx:fx1. This suite is about schwung's master
+# chain; the sends are movy-hosted and persist by a different route entirely.
 #
 # CC 50 TOGGLES Note/Session, so which view a single tap lands on depends on
 # where movy already was — device state this suite does not own. Try, look at
 # what actually opened, and correct, rather than assuming a starting view.
+MFX1_SLOT=2                 # index of master_fx:fx1 in MASTER_FX_SLOTS
 for attempt in 1 2 3; do
     ts_tap_cc $CC_SESSION
     sleep 1.0
+    # Jog right onto the first master FX slot. Harmless when the view is not the
+    # master chain: the retry below is what decides whether the gesture landed.
+    for _ in $(seq $MFX1_SLOT); do
+        ts_send "0x0B:0xB0:$CC_JOG_TURN:1:0.30"
+        sleep 0.4
+    done
     ts_tap_cc $CC_JOG_CLICK
     sleep 1.5
     ts_ssh "cat $LOG" | qgrep "browse: open t=[0-9]* master_fx:fx" && break

@@ -432,6 +432,13 @@ impl ChainSlots {
         self.sends.any_dirty()
     }
 
+    /// What each send bus's FX pass costs per block, and a fresh window after.
+    pub fn send_cost_report(&mut self) -> String {
+        let r = self.sends.cost_report();
+        self.sends.cost_reset();
+        r
+    }
+
     /// What each send bus was fed and what came out of it, plus the module in
     /// it. The only read-back a device test has — see `SendBuses::report`.
     pub fn send_report(&mut self) -> String {
@@ -978,9 +985,11 @@ impl ChainSlots {
                 self.sends.discard(n);
                 continue;
             }
+            let t_bus = self.cost.start();
             if let Some(inst) = self.send_slots[n].as_mut() {
                 inst.process_fx(&mut self.sends.buf_mut(n)[..frames]);
             }
+            self.sends.add_cost(n, t_bus.elapsed().as_nanos() as u64);
             self.sends.finish(n, &mut out[..frames], frames);
             send_ran = true;
         }

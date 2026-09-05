@@ -48,6 +48,12 @@ struct Bus {
     /// Blocks this bus has processed. Never reset: a device test needs to see
     /// that the FX pass ran at all.
     processed: u32,
+    /// 1/16 exponential mean of what this bus's FX pass costs, in ns. The same
+    /// estimator `CostMeter` uses for a chain, and for the same reason: a
+    /// note-on's one expensive block must not dominate the answer.
+    cost_ns: u64,
+    /// Worst single block, so a mean that hides a spike can be seen to.
+    max_ns: u64,
 }
 
 pub struct SendBuses {
@@ -65,6 +71,8 @@ impl SendBuses {
                     continuous: false,
                     in_peak: 0,
                     processed: 0,
+                    cost_ns: 0,
+                    max_ns: 0,
                 })
                 .collect(),
         }
@@ -118,6 +126,40 @@ impl SendBuses {
         mix_into_gains(&mut out[..out_len], &bus.buf[..out_len], 1.0, 1.0);
         bus.buf[..len].fill(0);
         bus.dirty = false;
+    }
+
+    /// What this bus's FX pass just cost. Recorded by the caller because the
+    /// FFI call it times lives there — this file stays free of chain types.
+    pub fn add_cost(&mut self, n: usize, dt: u64) {
+        let Some(b) = self.buses.get_mut(n) else { return };
+        b.cost_ns = if b.cost_ns == 0 { dt } else { b.cost_ns - b.cost_ns / 16 + dt / 16 };
+        if dt > b.max_ns {
+            b.max_ns = dt;
+        }
+    }
+
+    /// Per-bus mean and worst-block cost in microseconds: `0:us=312.0,max=980.0`.
+    /// Answers the two questions a serial send phase raises — whether a second
+    /// bus is worth a rendezvous (~21us of scheduler wake), and what a third
+    /// and fourth would add to the critical path.
+    pub fn cost_report(&self) -> String {
+        let mut out = String::new();
+        for (n, b) in self.buses.iter().enumerate() {
+            if n > 0 {
+                out.push(' ');
+            }
+            out.push_str(&format!("{}:us={:.1},max={:.1}", n, b.cost_ns as f64 / 1000.0,
+                                  b.max_ns as f64 / 1000.0));
+        }
+        out
+    }
+
+    /// Start a fresh cost window, so a measurement can discard the load phase.
+    pub fn cost_reset(&mut self) {
+        for b in self.buses.iter_mut() {
+            b.cost_ns = 0;
+            b.max_ns = 0;
+        }
     }
 
     /// Cached from the FX chain, so the audio thread never asks across FFI on

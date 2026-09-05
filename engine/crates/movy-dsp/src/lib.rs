@@ -226,6 +226,12 @@ impl Instance {
             "sndlog" => {
                 host::log(&format!("sends: {}", self.chains.send_report()));
             }
+            /* `sndcostlog` — what each send bus's FX pass costs per block, then
+             * start a fresh window. The window reset is what lets a measurement
+             * discard the load phase, exactly as `chcostlog` does for a chain. */
+            "sndcostlog" => {
+                host::log(&format!("send cost: {}", self.chains.send_cost_report()));
+            }
             "chpeaklog" => {
                 host::log(&format!("chain peaks: {}", self.chains.peaks_csv()));
             }

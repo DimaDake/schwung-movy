@@ -20,8 +20,7 @@
  * with no error. Every global the script could plausibly claim is therefore
  * saved and restored around the call, restore included on the throwing path.
  */
-// @ts-ignore — absolute device path; external in the device build, aliased locally
-import { registerWidget, clearWidgets, isWidgetAvailable } from '/data/UserData/schwung/shared/param_pages/widget_registry.mjs';
+import { schwungLib } from './schwung-lib.js';
 
 /*
  * RE-EXPORTED BECAUSE THE REGISTRY IS PER MODULE INSTANCE.
@@ -36,7 +35,13 @@ import { registerWidget, clearWidgets, isWidgetAvailable } from '/data/UserData/
  * So movy's binding is the one door. Anything registering a widget for movy —
  * including its tests — goes through here.
  */
-export { registerWidget, clearWidgets, isWidgetAvailable };
+/* STILL THE ONE DOOR. The registry is MODULE STATE: reaching it by a second
+ * specifier gives a second instance with its own empty map, the widget
+ * registers into one and `vizGroups()` reads the other. These wrappers keep
+ * that guarantee now that the library itself is reached dynamically. */
+export function registerWidget(kind: string, impl: any): void { schwungLib().registerWidget(kind, impl); }
+export function clearWidgets(): void { schwungLib().clearWidgets(); }
+export function isWidgetAvailable(kind: string): boolean { return schwungLib().isWidgetAvailable(kind); }
 
 declare const shadow_load_ui_module: ((path: string) => boolean) | undefined;
 

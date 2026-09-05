@@ -14,6 +14,7 @@ await esbuild.build({
          * adapter directly; without these esbuild folds them into a chunk and
          * there is no dist/esm/renderer/schwung-flag.js to import. */
         resolve(root, 'src/renderer/schwung-flag.ts'),
+        resolve(root, 'src/renderer/schwung-lib.ts'),
         resolve(root, 'src/renderer/schwung-body.ts'),
         resolve(root, 'src/renderer/schwung-page.ts'),
         resolve(root, 'src/renderer/schwung-editor.ts'),
@@ -243,8 +244,8 @@ await esbuild.build({
     }],
     /* Tests exercise the debug-only surfaces, so they build with the gate ON —
      * a suite that compiled them out would assert nothing about them. */
-    define:    { __MOVY_DEBUG__: 'true',
-                 __MOVY_SCHWUNG_GRID__: JSON.stringify(process.env.MOVY_SCHWUNG_GRID || 'off') },
+    define:    { __MOVY_DEBUG__: 'true' },
+    supported: { 'top-level-await': true },
     outdir:    resolve(root, 'dist/esm'),
     outbase:   resolve(root, 'src'),
     format:    'esm',

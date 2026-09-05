@@ -29,11 +29,10 @@
 import type { ViewModel, ParamVM } from '../types/viewmodel.js';
 import { fontPrint, fontWidth } from '../font/index.js';
 
-/* Schwung's shared library, by absolute device path — the same way movy already
- * imports constants.mjs and input_filter.mjs, and already marked external in
- * build/device.mjs. */
-// @ts-ignore — resolved on device / aliased in the local build
-import { renderPageMovy, BAND_H } from '/data/UserData/schwung/shared/param_pages/render_page_movy.mjs';
+/* Reached through schwung-lib, not imported directly: the switch between this
+ * renderer and movy's own is a runtime flag now, so both have to survive a
+ * Schwung that cannot serve the library at all. */
+import { schwungLib } from './schwung-lib.js';
 
 /* The body band movy hands over: below its header + bank bar, above its footer
  * row. Schwung's body is a fixed 48 rows (two gutters, two 15-row widget bands,
@@ -135,7 +134,7 @@ export function drawKnobParamsSchwung(vm: ViewModel, touched = -1): void {
         textWidth: (t: string) => fontWidth(t),
     };
 
-    renderPageMovy(ctx, {
+    schwungLib().renderPageMovy(ctx, {
         page: { kind: 'knobs', name: vm.bankName || '', keys },
         metaIndex,
         values,
@@ -160,4 +159,3 @@ export function drawKnobParamsSchwung(vm: ViewModel, touched = -1): void {
     });
 }
 
-export { BAND_H };

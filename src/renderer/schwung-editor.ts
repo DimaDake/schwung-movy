@@ -20,8 +20,7 @@
 import type { SchwungIntent, SchwungPage } from './schwung-page.js';
 import { fontPrint, fontWidth } from '../font/index.js';
 
-// @ts-ignore — absolute device path; external in the device build, aliased locally
-import { drawEnumList } from '/data/UserData/schwung/shared/param_pages/enum_list.mjs';
+import { schwungLib } from './schwung-lib.js';
 
 interface EditorState {
     intent: SchwungIntent;
@@ -85,7 +84,7 @@ export function renderSchwungEditor(): void {
         print: (x: number, y: number, t: string, c: any) => fontPrint(x, y, t, c ? 1 : 0),
         textWidth: (t: string) => fontWidth(t),
     };
-    drawEnumList(ctx, {
+    schwungLib().drawEnumList(ctx, {
         title: state.intent.meta?.label || state.intent.meta?.name || state.intent.key || '',
         /* "SELECT", not "TURNING": here a choice is pending and a click takes
          * it. The peek says TURNING because its value is already set. */

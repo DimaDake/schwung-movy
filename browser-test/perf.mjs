@@ -415,6 +415,50 @@ _origLog('\nTest 4b: fill_rect calls per renderKnobsView (main params page)');
     _origLog(`    (baseline: ${fillRectCount} calls — 4 knobs, mostly preset/enum)`);
 }
 
+/* ── Test 4b1: MIX page ───────────────────────────────────────────────────── */
+
+_origLog('\nTest 4b1: MIX page render and read cost');
+
+{
+    const { createMixModel } = await import('../dist/esm/mixer/mix-model.js');
+    const { resetPorts } = await import('../dist/esm/track/registry.js');
+
+    /* Track 6 is always a movy chain, so this is the four-knob variant. */
+    let mixReads = 0;
+    const oldGet = globalThis.host_module_get_param;
+    globalThis.host_module_get_param = (k) => {
+        if (k === 'ch6:mix') { mixReads++; return '0.7079,-0.5,0,0.5,0'; }
+        return oldGet ? oldGet(k) : null;
+    };
+    resetPorts();
+
+    const mixModel = createMixModel(6);
+    mixModel.tick();
+    const vm = mixModel.getViewModel();
+
+    fillRectCount = 0;
+    renderKnobsView(vm, false);
+    check('fill_rect calls (mix page)', fillRectCount, FILL_RECT_PER_RENDER_MAX);
+    _origLog(`    (baseline: ${fillRectCount} calls — 4 arc knobs, 4 blank cells)`);
+
+    /* The page's values are read ONCE and owned by movy after that. A page that
+     * re-read its mixer every frame would put a blocking engine GET (3-5 ms on
+     * device) inside the tick that IS movy's MIDI sampling interval. */
+    mixReads = 0;
+    for (let i = 0; i < 20; i++) { mixModel.tick(); mixModel.getViewModel(); }
+    check('engine reads over 20 idle frames', mixReads, 0);
+
+    /* And it must re-read when something writes behind its back — an undo, or
+     * an automation lane moving the mixer during playback. */
+    mixModel.reload();
+    mixModel.tick();
+    mixModel.getViewModel();
+    check('but a reload costs exactly one', mixReads, 1);
+
+    globalThis.host_module_get_param = oldGet;
+    resetPorts();
+}
+
 /* ── Test 4c: Main Params page with overlay open (scale selector) ────────── */
 
 _origLog('\nTest 4c: fill_rect calls with overlay open (main params scale list)');

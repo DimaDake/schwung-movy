@@ -218,6 +218,27 @@ mod tests {
         assert_eq!(b.take_plan(), [true, false]);
     }
 
+    /* The zero-cost claim, as an assertion rather than a promise. A set with no
+     * send module and no track sending must not touch a buffer at all — not
+     * accumulate into one, not process one, not memset one clear.
+     *
+     * Asserted HERE and not in `ChainSlots::render`, which is where the phase
+     * actually runs: a host build has no chain host, so `render` returns before
+     * reaching it and a test there would pass while testing nothing. */
+    #[test]
+    fn a_set_that_sends_nothing_never_touches_a_bus() {
+        let mut b = SendBuses::new();
+        for _ in 0..64 {
+            for _ in 0..16 {
+                b.accumulate(&[30000, -30000], &TrackMix::default());
+            }
+            assert_eq!(b.take_plan(), [false, false]);
+            assert!(!b.any_dirty());
+        }
+        assert_eq!(&b.buf_mut(0)[..2], &[0, 0]);
+        assert_eq!(&b.buf_mut(1)[..2], &[0, 0]);
+    }
+
     #[test]
     fn discarding_drops_a_fed_bus_without_processing_it() {
         // The block a send module is removed: the buffer must not ring on into

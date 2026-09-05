@@ -19,6 +19,7 @@ mod render_plan;
 mod render_pool;
 mod load_queue;
 mod mixer;
+mod send_bus;
 mod pad_route;
 
 use chain_slots::ChainSlots;

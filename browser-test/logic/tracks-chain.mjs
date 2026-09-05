@@ -460,8 +460,21 @@ export async function run() {
   volumeKnobDelta(1);
   const movyWrite = writes.find((w) => w[0] === 'movy');
   eq('movy track writes its mixer', movyWrite && movyWrite[1], 'ch6:mix');
-  eq('mixer write is the gain,pan,mute triple',
-     !!(movyWrite && /^[0-9.]+,0,0$/.test(movyWrite[2])), true);
+  eq('mixer write is the whole value, not just the gain',
+     !!(movyWrite && /^[0-9.]+(,[-0-9.]+){4}$/.test(movyWrite[2])), true);
+
+  /* Only the gain is on this fader, so everything after it must be carried
+   * across unchanged — as READ, not as defaults. A gesture that rewrote the
+   * remainder would discard a pan the set file had restored, and once sends
+   * existed it would silence both of them on the next volume nudge. */
+  writes.length = 0;
+  volumeTrackUp(6);
+  globalThis.host_module_get_param = () => '0.5,-0.75,0,0.25,0.5';
+  volumeTrackDown(6);
+  volumeKnobDelta(1);
+  const carried = writes.find((w) => w[0] === 'movy');
+  eq('pan, mute and both sends survive a volume turn',
+     carried && carried[2].slice(carried[2].indexOf(',')), ',-0.75,0,0.25,0.5');
 
   /* The fader has to resume from the level it last set. `ch<N>:mix` had no
    * reader in the engine — `get_param` forwarded it to the chain instance,

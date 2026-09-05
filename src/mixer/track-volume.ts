@@ -5,6 +5,13 @@ import { portFor } from '../track/registry.js';
 import { trackKind } from '../track/ref.js';
 import { beginGesture } from '../undo/edit.js';
 import { endEdit } from '../undo/group.js';
+import {
+    ampToIdx, idxToAmp, idxToFrac, UNITY_FRAC, VOL_MAX, VOL_MIN, VOL_STEPS, volumeFrac,
+} from './db-ladder.js';
+
+/* Re-exported: the slider renderer has always read this from here, and the
+ * ladder moving out is not a reason for a call site to change. */
+export { volumeFrac };
 /* Hold a track button + turn the master volume knob → that track's schwung
  * chain-slot volume (`slot:volume`, 0–4 where 1.0 = unity).
  *
@@ -44,43 +51,6 @@ import { mlog } from '../log.js';
 export const MASTER_CC         = 79;   /* MoveMaster — raw relative encoder */
 export const MASTER_TOUCH_NOTE = 8;    /* MoveMasterTouch (note 9 is the jog) */
 
-/* schwung stores slot:volume as a linear amplitude, 0-4 with 1.0 = unity. A
- * fixed linear step is unusable as a fader: 0.05 is 0.1 dB near the top of the
- * range and 6 dB from 0.10 to 0.05, so the quiet half of the travel — the half
- * a mixer is actually used in — is five detents wide and the last one drops
- * straight to silence. Reported from the field as "it's adjustable down to
- * about -8.5 dB, then completely cuts off the sound".
- *
- * So the gesture walks a dB ladder instead and converts on write: one detent is
- * one dB anywhere in the range. Index 0 is true silence, index 1 is DB_MIN, and
- * unity lands exactly on index 49 — the same value the encoder can always
- * return to. */
-const VOL_MIN  = 0;
-const VOL_MAX  = 4;
-const DB_MIN   = -48;   // quietest audible position; one step below it is silence
-const DB_STEP  = 1;
-const DB_MAX   = 20 * Math.log10(VOL_MAX);
-const VOL_STEPS = Math.ceil((DB_MAX - DB_MIN) / DB_STEP) + 1;
-
-function idxToAmp(i: number): number {
-    if (i <= 0) return VOL_MIN;
-    const db = DB_MIN + (Math.min(i, VOL_STEPS) - 1) * DB_STEP;
-    return Math.min(VOL_MAX, Math.pow(10, db / 20));
-}
-
-function ampToIdx(a: number): number {
-    if (a <= VOL_MIN) return 0;
-    const db = 20 * Math.log10(a);
-    if (db <= DB_MIN) return 1;
-    return Math.min(VOL_STEPS, Math.round((db - DB_MIN) / DB_STEP) + 1);
-}
-
-/* Position on the ladder, 0..1 — the slider fill and its unity mark, so the
- * drawn travel matches what the knob does. */
-function idxToFrac(i: number): number { return Math.min(1, Math.max(0, i / VOL_STEPS)); }
-export function volumeFrac(amp: number): number { return idxToFrac(ampToIdx(amp)); }
-const UNITY_FRAC = volumeFrac(1);
-
 /* Track button CCs are reversed on the hardware: CC43 = track 1 → slot 0. */
 function trackCc(track: number): number { return 43 - track; }
 
@@ -114,11 +84,16 @@ function volumeKey(track: number): string {
     return trackKind(track) === 'movy' ? MIX_KEY : 'slot:volume';
 }
 
-/* The rest of a movy track's triple, carried unchanged across the write. Only
- * the gain is on this fader, and the triple is saved state now — writing the
- * other two fields back at their defaults would quietly discard a pan the set
- * file had restored. */
-let mixTail = ',0,0';
+/* Everything after the gain, carried unchanged across the write.
+ *
+ * Only the gain is on this fader, and the value is saved state, so writing the
+ * other fields back at their defaults would quietly discard a pan the set file
+ * had restored — or, once sends existed, silence both of them on the next
+ * volume nudge. Deliberately kept as an opaque REMAINDER rather than a parsed
+ * triple: this gesture must not need updating every time the mixer grows a
+ * field. */
+const MIX_TAIL_DEFAULT = ',0,0,0,0';
+let mixTail = MIX_TAIL_DEFAULT;
 
 /* One shape for the value, so the undo inverse is written in the same form as
  * the edit. A movy track's param is the whole triple: recording just the gain
@@ -130,10 +105,11 @@ function writeValue(track: number, amp: number): string {
 
 function readVolume(track: number): number {
     if (trackKind(track) === 'movy') {
-        /* "gain,pan,muted" — only the gain is on the fader. */
+        /* "gain,pan,muted[,send1,send2]" — only the gain is on the fader. */
         const raw = portFor(track).getParam(MIX_KEY);
         const parts = raw === null ? [] : raw.split(',');
-        mixTail = parts.length === 3 ? ',' + parts[1] + ',' + parts[2] : ',0,0';
+        const comma = raw === null ? -1 : raw.indexOf(',');
+        mixTail = comma >= 0 ? raw!.slice(comma) : MIX_TAIL_DEFAULT;
         const g = parts.length === 0 ? NaN : parseFloat(parts[0]);
         return Number.isFinite(g) ? Math.min(VOL_MAX, Math.max(VOL_MIN, g)) : 1;
     }
@@ -241,5 +217,5 @@ export function resetTrackVolume(): void {
     diverted  = -1;
     value     = 1;
     volIdx    = ampToIdx(1);
-    mixTail   = ',0,0';
+    mixTail   = MIX_TAIL_DEFAULT;
 }

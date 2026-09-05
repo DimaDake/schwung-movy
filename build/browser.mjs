@@ -82,6 +82,7 @@ await esbuild.build({
         resolve(root, 'src/undo/edit.ts'),
         resolve(root, 'src/undo/ui-fields.ts'),
         resolve(root, 'src/chain/set-param.ts'),
+        resolve(root, 'src/mixer/db-ladder.ts'),
         resolve(root, 'src/mixer/track-volume.ts'),
         resolve(root, 'src/mixer/track-mutes.ts'),
         resolve(root, 'src/seq/leds.ts'),

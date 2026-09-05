@@ -11,12 +11,22 @@ export const CHAIN_SLOTS: ChainSlot[] = [
     { componentKey: 'fx1',      label: 'FX 1',    scanDir: 'audio_fx',         expectedType: 'audio_fx'        },
     { componentKey: 'fx2',      label: 'FX 2',    scanDir: 'audio_fx',         expectedType: 'audio_fx'        },
     { componentKey: 'lfo',      label: 'LFO',     scanDir: '',                 expectedType: ''                },
+    { componentKey: 'mix',      label: 'MIX',     scanDir: '',                 expectedType: ''                },
 ];
 
-/* The LFO is a virtual last chain slot (no module to scan/swap) — it edits the
- * track's two schwung slot LFOs. */
-export const LFO_CHAIN_INDEX = CHAIN_SLOTS.length - 1;
+/* The two virtual chain slots (no module to scan or swap): the LFO page edits
+ * the track's two schwung slot LFOs, and the MIX page edits movy's own summing
+ * mixer — level, pan and the two send amounts.
+ *
+ * Both are addressed by an EXPLICIT index. `length - 1` was fine while the LFO
+ * was last, but the moment a page was appended after it every `isLfoSlot()`
+ * caller silently retargeted at the new page — including `persistableComponents`
+ * and `buildTrackModels`, which is to say the two callers that decide which
+ * slots hold a module at all. */
+export const LFO_CHAIN_INDEX = 4;
+export const MIX_CHAIN_INDEX = 5;
 export function isLfoSlot(chainIndex: number): boolean { return chainIndex === LFO_CHAIN_INDEX; }
+export function isMixSlot(chainIndex: number): boolean { return chainIndex === MIX_CHAIN_INDEX; }
 
 export const MASTER_FX_SLOTS: ChainSlot[] = [
     { componentKey: 'master_fx:fx1', label: 'MFX 1', scanDir: 'audio_fx', expectedType: 'audio_fx' },

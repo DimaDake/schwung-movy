@@ -22,7 +22,7 @@
  * starts the loads that make the bulk channel unwritable. chain-payload.ts owns
  * that wait and the reason for it. */
 
-import { CHAIN_SLOTS, isLfoSlot } from '../chain/config.js';
+import { CHAIN_SLOTS, isVirtualSlot } from '../chain/config.js';
 import { armChainPayloads, pendingPayloadFor, resetChainPayloads, type ChainPayload }
     from './chain-payload.js';
 import { decodeBulk, encodeBulk } from './bulk.js';
@@ -63,10 +63,13 @@ const CHAIN_SET_KEY = 'chains';
  * per-component writes were being dropped. */
 const SET_TIMEOUT_MS = 500;
 
-/* The chain components worth persisting: every real slot, minus the virtual LFO
- * page (it has no module of its own). */
-function persistableComponents(): string[] {
-    return CHAIN_SLOTS.filter((_, i) => !isLfoSlot(i)).map((s) => s.componentKey);
+/* The chain components worth persisting: every real slot, minus the virtual
+ * pages. Asked of the SLOT rather than of its index, so a page appended after
+ * the LFO cannot quietly join the list — a virtual slot in here means every
+ * save asks the engine for a module that cannot exist, and every restore tries
+ * to load one. */
+export function persistableComponents(): string[] {
+    return CHAIN_SLOTS.filter((s) => !isVirtualSlot(s)).map((s) => s.componentKey);
 }
 
 /** The last blob captured for `<track>|<component>`, so a read that fails can

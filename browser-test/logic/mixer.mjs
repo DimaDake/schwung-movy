@@ -30,4 +30,101 @@ _log('\nTest: mixer dB ladder');
     eq('silence is the bottom of the travel', volumeFrac(0), 0);
 }
 
+/* ── The MIX chain slot ──────────────────────────────────────────────────── */
+
+_log('\nTest: the MIX chain slot');
+
+{
+    const { CHAIN_SLOTS, LFO_CHAIN_INDEX, MIX_CHAIN_INDEX, isLfoSlot, isMixSlot, isVirtualSlot } =
+        await import('../../dist/esm/chain/config.js');
+    const { persistableComponents } = await import('../../dist/esm/track/chain-persist.js');
+
+    eq('MIX is the last slot', MIX_CHAIN_INDEX, CHAIN_SLOTS.length - 1);
+    ok('MIX comes after LFO', MIX_CHAIN_INDEX > LFO_CHAIN_INDEX);
+    /* LFO_CHAIN_INDEX used to be `length - 1`. Appending a slot after it
+     * silently retargeted every isLfoSlot() caller at MIX — including the two
+     * that decide which slots hold a module at all. */
+    eq('LFO is still LFO', CHAIN_SLOTS[LFO_CHAIN_INDEX].label, 'LFO');
+    ok('isLfoSlot does not claim MIX', !isLfoSlot(MIX_CHAIN_INDEX));
+    ok('isMixSlot does not claim LFO', !isMixSlot(LFO_CHAIN_INDEX));
+    ok('MIX holds no module of its own', isVirtualSlot(CHAIN_SLOTS[MIX_CHAIN_INDEX]));
+
+    /* A virtual slot in the persist list means every save asks the engine for a
+     * module that cannot exist, and every restore tries to load "". */
+    const comps = persistableComponents();
+    ok('MIX is not persisted as a component', !comps.includes('mix'));
+    ok('LFO is not persisted as a component', !comps.includes('lfo'));
+    eq('only the four real components are', comps.length, 4);
+}
+
+/* ── The MIX page ────────────────────────────────────────────────────────── */
+
+_log('\nTest: the MIX page');
+
+{
+    const { buildMixCells } = await import('../../dist/esm/mixer/mix-cells.js');
+
+    const movy = buildMixCells({ gain: 1, pan: 0, muted: false, send: [0, 0] }, 'movy');
+    eq('four cells, four blanks', movy.filter((c) => c !== null).length, 4);
+    eq('the order is VOL PAN SND1 SND2',
+       movy.slice(0, 4).map((c) => c.shortName).join(' '), 'VOL PAN SND1 SND2');
+    eq('unity reads 0.0 dB', movy[0].displayValue, '0.0 dB');
+    eq('centre pan reads C', movy[1].displayValue, 'C');
+    eq('a send at zero reads OFF', movy[2].displayValue, 'OFF');
+    ok('all four are automatable on a movy chain',
+       movy.slice(0, 4).every((c) => c.automatable));
+
+    const panned = buildMixCells({ gain: 0.5, pan: -1, muted: false, send: [1, 0.5] }, 'movy');
+    eq('hard left reads L100', panned[1].displayValue, 'L100');
+    eq('a full send reads 0.0 dB', panned[2].displayValue, '0.0 dB');
+    eq('a half send reads its level in dB', panned[3].displayValue, '-6.0 dB');
+    eq('a fader at half reads -6.0 dB', panned[0].displayValue, '-6.0 dB');
+    ok('centre is halfway along the pan arc',
+       buildMixCells({ gain: 1, pan: 0, muted: false, send: [0, 0] }, 'movy')[1].normalizedValue === 0.5);
+
+    /* A schwung-hosted track renders inside the shim: movy never sees its audio
+     * and schwung has no slot:pan, so three of the four are unreachable — not
+     * unimplemented. Drawing live knobs there invites a gesture that cannot do
+     * anything. */
+    const host = buildMixCells({ gain: 1, pan: 0, muted: false, send: [0, 0] }, 'host');
+    eq('a host track keeps its fader', host[0].shortName, 'VOL');
+    ok('a host track has no pan cell', host[1] === null);
+    ok('a host track has no send cells', host[2] === null && host[3] === null);
+    ok('and its fader is not automatable either', !host[0].automatable);
+
+    /* Mute is the engine's own per-track mute, so the fader still shows the
+     * level it will return to. */
+    const muted = buildMixCells({ gain: 0.5, pan: 0, muted: true, send: [0, 0] }, 'movy');
+    eq('mute does not zero the displayed level', muted[0].displayValue, '-6.0 dB');
+
+    eq('silence reads -INF',
+       buildMixCells({ gain: 0, pan: 0, muted: false, send: [0, 0] }, 'movy')[0].displayValue, '-INF');
+}
+
+_log('\nTest: MIX page values and ranges');
+
+{
+    const { parseMixValue, packMixValue, FIELD_RANGE, FIELD_AT } =
+        await import('../../dist/esm/mixer/mix-io.js');
+
+    /* Legacy sets carry three fields. Reading one must not invent send levels. */
+    const legacy = parseMixValue('0.5,-0.25,0');
+    eq('a legacy triple parses', legacy.gain, 0.5);
+    eq('and sends nothing', legacy.send.join(','), '0,0');
+    const five = parseMixValue('0.5,-0.25,1,0.25,0.75');
+    eq('a five-field value carries both sends', five.send.join(','), '0.25,0.75');
+    ok('and the mute', five.muted);
+    eq('a malformed value is the default', parseMixValue('nonsense').gain, 1);
+    eq('a partial send pair is refused whole', parseMixValue('1,0,0,0.5').send.join(','), '0,0');
+    eq('always written as five fields', packMixValue(five), '0.5000,-0.2500,1,0.2500,0.7500');
+
+    /* These three ranges are the engine's too (MixField::denorm). A lane that
+     * scaled differently from the knob would make an automated value jump the
+     * moment the knob was released. */
+    eq('gain spans the whole fader', FIELD_RANGE.gain.min + '..' + FIELD_RANGE.gain.max, '0..4');
+    eq('pan spans left to right', FIELD_RANGE.pan.min + '..' + FIELD_RANGE.pan.max, '-1..1');
+    eq('a send spans off to unity', FIELD_RANGE.send1.min + '..' + FIELD_RANGE.send1.max, '0..1');
+    eq('knob order matches the cells', FIELD_AT.join(' '), 'gain pan send1 send2');
+}
+
 }

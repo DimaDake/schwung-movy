@@ -289,7 +289,7 @@ _log('\nTest: master chain LFO page');
 
 _log('\nTest: LFO chain slot wiring');
 {
-    eq('CHAIN_SLOTS has 5 entries', CHAIN_SLOTS.length, 5);
+    eq('CHAIN_SLOTS has 6 entries', CHAIN_SLOTS.length, 6);
     eq('slot 4 is LFO', CHAIN_SLOTS[4].componentKey, 'lfo');
     eq('LFO_CHAIN_INDEX', LFO_CHAIN_INDEX, 4);
     eq('isLfoSlot(4)', isLfoSlot(4), true);
@@ -297,7 +297,8 @@ _log('\nTest: LFO chain slot wiring');
 
     env.setParams({});
     init();
-    eq('each track has 5 models', appState.trackModels[0].length, 5);
+    eq('each track has 6 models', appState.trackModels[0].length, 6);
+    eq('track model 5 is MIX', appState.trackModels[0][5].getComponentKey(), 'mix');
     eq('track model 4 is LFO', appState.trackModels[0][4].getComponentKey(), 'lfo');
     eq('track model 1 is a module', appState.trackModels[0][1].getComponentKey(), 'synth');
 }

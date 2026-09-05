@@ -41,6 +41,7 @@ const PRESETS = [
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
     'chain_t2', 'chain_t4',
     'lfo_chain', 'lfo_lfo1', 'lfo_lfo2', 'lfo_target_overlay', 'lfo_viz_unipolar', 'lfo_viz_retrig',
+    'mix_page', 'mix_page_chain', 'mix_page_host',
     'lfo_master', 'lfo_master_chain',
     'lfo_mod_mark', 'lfo_mod_and_auto', 'lfo_assign_toast',
     'drum-mrdrums-pad5', 'drum-mrdrums-global',
@@ -162,6 +163,7 @@ globalThis.clear_screen = () => paint(0, 0, W, H, OFF);
 
 const { createModel }      = await import('../dist/esm/model/index.js');
 const { createLfoModel, createScopedLfoModel } = await import('../dist/esm/lfo/model.js');
+const { createMixModel } = await import('../dist/esm/mixer/mix-model.js');
 const { masterScope }      = await import('../dist/esm/lfo/scope.js');
 const { resetPorts }       = await import('../dist/esm/track/registry.js');
 const { MASTER_FX_SLOTS, MASTER_LFO_INDEX } = await import('../dist/esm/chain/config.js');
@@ -1003,6 +1005,33 @@ function applyView(preset) {
             if (preset === 'lfo_chain') lastRender = () => renderChainView(lm.getViewModel(), 4, false, 'T1', 'LFO');
             else lastRender = () => renderKnobsView(lm.getViewModel(), false, 0);
             lastRender();
+            break;
+        }
+        /* Movy's own summing mixer as a page. `mix_page_host` is the same page
+         * on a schwung-hosted track, where movy never sees the audio: the fader
+         * is real (`slot:volume`) and pan and both sends are blank, because a
+         * drawn knob that cannot do anything reads as broken. */
+        case 'mix_page':
+        case 'mix_page_chain':
+        case 'mix_page_host': {
+            const host = preset === 'mix_page_host';
+            /* Track 0 is a schwung slot unless `chtracks` says otherwise; track
+             * 6 is always a movy chain. */
+            const mtrk = host ? 0 : 6;
+            env.setParams({ 'slot:volume': '0.7079' });          // -3.0 dB
+            const oldGet = globalThis.host_module_get_param;
+            globalThis.host_module_get_param = (k) =>
+                k === 'ch6:mix' ? '0.7079,-0.5000,0,0.5012,0.0000' : oldGet?.(k) ?? null;
+            resetPorts();
+            const mx = createMixModel(mtrk);
+            mx.tick();
+            if (preset === 'mix_page_chain') {
+                lastRender = () => renderChainView(mx.getViewModel(), 5, false, 'T' + (mtrk + 1), 'MIX');
+            } else {
+                lastRender = () => renderKnobsView(mx.getViewModel(), false, mtrk);
+            }
+            lastRender();
+            globalThis.host_module_get_param = oldGet;
             break;
         }
         /* The master chain's own LFO page: same eight positions, but knob 7 is

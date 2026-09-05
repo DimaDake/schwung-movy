@@ -18,7 +18,7 @@ use crate::chain_pin::PinPolicy;
 use crate::ffi::MOVE_MIDI_SOURCE_INTERNAL;
 use crate::host;
 use crate::load_queue::{LoadQueue, LoadRequest};
-use crate::mixer::{mix_into, TrackMix};
+use crate::mixer::{mix_into, MixField, TrackMix};
 use crate::send_bus::{SendBuses, SEND_BUSES};
 use crate::render_plan::Planner;
 use crate::render_pool::{RenderPool, Task};
@@ -170,6 +170,10 @@ pub struct ChainSlots {
     /// `MOVY_CHAINS` tracks. A separate field makes every one of them correct
     /// by construction rather than by audit (design §4).
     sends: SendBuses,
+    /// Which of a chain's eight automation lanes drive the MIXER rather than a
+    /// param inside the chain. Empty for every lane by default, so a chain that
+    /// automates nothing of movy's own costs one array lookup per CC.
+    mix_lanes: Vec<[Option<MixField>; 8]>,
     /// The FX instance behind each bus. One audio FX per send, so the chain
     /// host's component underneath is always `fx1`.
     send_slots: Vec<Option<ChainInstance>>,
@@ -211,6 +215,7 @@ impl ChainSlots {
             synth_peak: vec![0; MOVY_CHAINS],
             plan_idle_epoch: u32::MAX,
             sends: SendBuses::new(),
+            mix_lanes: vec![[None; 8]; MOVY_CHAINS],
             send_slots: (0..SEND_BUSES).map(|_| None).collect(),
         }
     }
@@ -445,6 +450,11 @@ impl ChainSlots {
          * stay at default are the ones the new set says nothing about. */
         for m in self.mixes.iter_mut() {
             *m = TrackMix::default();
+        }
+        /* And the lanes that drove them. A mix lane left over from the previous
+         * Set would go on eating a CC the new Set's module is expecting. */
+        for l in self.mix_lanes.iter_mut() {
+            *l = [None; 8];
         }
         let mut gone: Vec<(usize, String)> = Vec::new();
         for (slot, comps) in self.desired.iter().enumerate() {
@@ -749,6 +759,35 @@ impl ChainSlots {
 
     pub fn get_param(&mut self, slot: usize, key: &str) -> Option<String> {
         self.slots.get_mut(slot)?.as_mut()?.get_param(key)
+    }
+
+    /// Bind one of a chain's eight automation lanes to a mixer field. The UI
+    /// owns lane assignment; the engine only needs to know which lanes stop
+    /// being CCs.
+    pub fn set_mix_lane(&mut self, slot: usize, lane: u8, field: MixField) {
+        if let Some(l) = self.mix_lanes.get_mut(slot).and_then(|m| m.get_mut(lane as usize)) {
+            *l = Some(field);
+        }
+    }
+
+    pub fn clear_mix_lane(&mut self, slot: usize, lane: u8) {
+        if let Some(l) = self.mix_lanes.get_mut(slot).and_then(|m| m.get_mut(lane as usize)) {
+            *l = None;
+        }
+    }
+
+    /// Apply an automation value to a mix lane. Returns false when the lane is
+    /// not one — the caller then sends the CC into the chain as usual, so an
+    /// unmapped lane behaves exactly as it did before mix lanes existed.
+    pub fn apply_mix_lane(&mut self, slot: usize, lane: u8, val: u8) -> bool {
+        let Some(field) = self.mix_lanes.get(slot).and_then(|m| m.get(lane as usize)).copied().flatten()
+        else {
+            return false;
+        };
+        if let Some(mix) = self.mixes.get_mut(slot) {
+            field.apply(mix, val);
+        }
+        true
     }
 
     pub fn set_mix(&mut self, slot: usize, mix: TrackMix) {
@@ -1202,6 +1241,63 @@ mod tests {
         slots.render(&mut out);
         assert!(out.iter().all(|&s| s == 1234));
         assert_eq!(slots.active_count(), 0);
+    }
+
+    /* A mix param is not a chain-host param: `knob_find_param` resolves only
+     * components inside the chain, so the CC the engine would emit for the lane
+     * has nowhere to land. The lane has to write the mixer directly. */
+    #[test]
+    fn a_mix_lane_writes_the_mixer_not_the_chain() {
+        let mut slots = ChainSlots::new();
+        slots.set_mix_lane(4, 2, MixField::Pan);
+        assert!(slots.apply_mix_lane(4, 2, 127), "lane 2 is a mix lane: consumed");
+        assert_eq!(slots.mix_csv(4).as_deref(), Some("1.0000,1.0000,0,0.0000,0.0000"));
+        assert!(slots.apply_mix_lane(4, 2, 0));
+        assert_eq!(slots.mix_csv(4).as_deref(), Some("1.0000,-1.0000,0,0.0000,0.0000"),
+                   "pan spans -1..+1, so 0 is hard left");
+    }
+
+    #[test]
+    fn an_unmapped_lane_is_left_to_the_chain() {
+        let mut slots = ChainSlots::new();
+        assert!(!slots.apply_mix_lane(4, 0, 64), "no mapping: the CC must still be sent");
+        assert!(!slots.apply_mix_lane(MOVY_CHAINS, 0, 64), "and an impossible chain never claims one");
+    }
+
+    #[test]
+    fn a_gain_lane_spans_the_full_fader() {
+        let mut slots = ChainSlots::new();
+        slots.set_mix_lane(4, 0, MixField::Gain);
+        slots.apply_mix_lane(4, 0, 127);
+        let m = slots.mix_csv(4).unwrap();
+        assert!(m.starts_with("4.0000,"), "127 is the top of the 0-4 fader, got {m}");
+    }
+
+    #[test]
+    fn a_send_lane_spans_zero_to_unity() {
+        let mut slots = ChainSlots::new();
+        slots.set_mix_lane(4, 1, MixField::Send2);
+        slots.apply_mix_lane(4, 1, 127);
+        assert_eq!(slots.mix_csv(4).as_deref(), Some("1.0000,0.0000,0,0.0000,1.0000"));
+    }
+
+    #[test]
+    fn clearing_a_mix_lane_returns_it_to_the_chain() {
+        let mut slots = ChainSlots::new();
+        slots.set_mix_lane(4, 3, MixField::Gain);
+        slots.clear_mix_lane(4, 3);
+        assert!(!slots.apply_mix_lane(4, 3, 64));
+    }
+
+    /* A lane that survives a module swap must not survive into a different
+     * SET: the set document is a whole-set replace, and a stale mix lane would
+     * eat a CC the new set's module is expecting. */
+    #[test]
+    fn a_new_set_document_clears_the_mix_lanes() {
+        let mut slots = ChainSlots::new();
+        slots.set_mix_lane(4, 0, MixField::Gain);
+        assert!(slots.set_chain_set("0\n"));
+        assert!(!slots.apply_mix_lane(4, 0, 64));
     }
 
     /* A send bus is not a chain. It rides the same load queue — so the

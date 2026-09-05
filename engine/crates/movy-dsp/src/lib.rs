@@ -408,6 +408,19 @@ impl Instance {
                         if let Some(mix) = parse_mix(val) {
                             self.chains.set_mix(slot, mix);
                         }
+                    } else if rest == "mixlane" {
+                        /* "<lane>,<field>", or "<lane>,-" to release the lane
+                         * back to the chain. The UI owns lane assignment; the
+                         * engine only has to know which lanes stop being CCs. */
+                        let mut it = val.split(',');
+                        if let (Some(l), Some(f)) = (it.next(), it.next()) {
+                            if let Ok(lane) = l.trim().parse::<u8>() {
+                                match mixer::MixField::parse(f.trim()) {
+                                    Some(field) => self.chains.set_mix_lane(slot, lane, field),
+                                    None => self.chains.clear_mix_lane(slot, lane),
+                                }
+                            }
+                        }
                     } else if rest == "midi" {
                         // Live pad notes: "status.d1.d2". A movy chain cannot be
                         // reached by shadow_send_midi_to_dsp, which addresses
@@ -542,11 +555,16 @@ impl Instance {
                             host::midi_send_internal(0xB0 | track, 102 + lane, val);
                         }
                         Some(c) => {
-                            self.chains.on_midi(
-                                c,
-                                &[0xB0, 102 + lane, val],
-                                MOVE_MIDI_SOURCE_INTERNAL,
-                            );
+                            /* A mix lane drives movy's own mixer, which is not
+                             * a param the chain can be told about — see
+                             * MixField. Anything else is an ordinary CC. */
+                            if !self.chains.apply_mix_lane(c, lane, val) {
+                                self.chains.on_midi(
+                                    c,
+                                    &[0xB0, 102 + lane, val],
+                                    MOVE_MIDI_SOURCE_INTERNAL,
+                                );
+                            }
                         }
                     }
                 }
@@ -816,6 +834,31 @@ mod tests {
         // A garbled write leaves the last good level alone.
         inst.set_param("ch4:mix", "nonsense");
         assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("0.3162,0.0000,0,0.5000,0.2500"));
+    }
+
+    /* End to end through the param wire: the bug this guards against is a
+     * ROUTING one, and a unit test of the map cannot see a key that never
+     * reaches it. */
+    #[test]
+    fn a_mix_lane_is_declared_over_the_param_wire() {
+        let mut inst = Instance::new();
+        inst.set_param("ch4:mixlane", "0,send1");
+        inst.set_param("ch4:mix", "1,0,0,0,0");
+        // Drive the lane the way the engine's own automation does.
+        assert!(inst.chains.apply_mix_lane(4, 0, 127));
+        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("1.0000,0.0000,0,1.0000,0.0000"));
+        // And released again.
+        inst.set_param("ch4:mixlane", "0,-");
+        assert!(!inst.chains.apply_mix_lane(4, 0, 0));
+    }
+
+    #[test]
+    fn a_malformed_mix_lane_declaration_changes_nothing() {
+        let mut inst = Instance::new();
+        for bad in ["", "0", "x,gain", "0,cutoff", "99,gain"] {
+            inst.set_param("ch4:mixlane", bad);
+        }
+        assert!(!inst.chains.apply_mix_lane(4, 0, 127), "no lane was ever bound");
     }
 
     #[test]

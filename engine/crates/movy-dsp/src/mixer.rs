@@ -60,6 +60,56 @@ impl TrackMix {
     }
 }
 
+/// A mixer field an automation lane can drive.
+///
+/// Movy's own, because none of these is a chain-host param: `knob_find_param`
+/// resolves only components inside the chain, so the ordinary CC 102+lane path
+/// has nothing to land on. The engine writes the field instead of emitting the
+/// CC (design §7).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum MixField {
+    Gain,
+    Pan,
+    Send1,
+    Send2,
+}
+
+impl MixField {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "gain" => Some(Self::Gain),
+            "pan" => Some(Self::Pan),
+            "send1" => Some(Self::Send1),
+            "send2" => Some(Self::Send2),
+            _ => None,
+        }
+    }
+
+    /// Denormalize a 0-127 lane value onto this field's range.
+    ///
+    /// These three ranges are the UI's too (`src/mixer/mix-io.ts`). A lane that
+    /// scaled differently from the knob would make an automated value jump the
+    /// moment the knob was released.
+    pub fn denorm(self, v: u8) -> f32 {
+        let n = (v.min(127) as f32) / 127.0;
+        match self {
+            Self::Gain => n * 4.0,
+            Self::Pan => n * 2.0 - 1.0,
+            Self::Send1 | Self::Send2 => n,
+        }
+    }
+
+    pub fn apply(self, mix: &mut TrackMix, v: u8) {
+        let f = self.denorm(v);
+        match self {
+            Self::Gain => mix.gain = f,
+            Self::Pan => mix.pan = f,
+            Self::Send1 => mix.send[0] = f,
+            Self::Send2 => mix.send[1] = f,
+        }
+    }
+}
+
 #[inline]
 fn saturate(v: i32) -> i16 {
     v.clamp(i16::MIN as i32, i16::MAX as i32) as i16

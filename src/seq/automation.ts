@@ -300,7 +300,7 @@ export function clearLaneForKnob(track: number, info: KnobParamInfo): void {
  * the shadow UI, or a dev redeploy) silently clears them while the lane
  * registry and the engine's lanes live on — automation then no-ops with a
  * fully intact UI. Called on a slow cadence; verifies ONE track per call
- * (round-robin) by reading the first assigned lane's knob_<N>_name and
+ * (round-robin over all TRACK_COUNT of them) by reading the first assigned lane's knob_<N>_name and
  * re-issuing every lane's knob_<N>_set on mismatch. The name check matches
  * the chain's "target: param" format loosely (both halves present) so a
  * formatting tweak can't trigger a re-apply storm. */
@@ -310,7 +310,7 @@ export function verifyLaneMappings(
     apply: (slot: number, lane: number, targetParam: string) => void,
 ): void {
     const t = verifyTrack;
-    verifyTrack = (verifyTrack + 1) & 3;
+    verifyTrack = (verifyTrack + 1) % TRACK_COUNT;
     const lanes = registry[t];
     const first = lanes.findIndex((e) => e !== null);
     if (first < 0) return; // no lanes on this track → no IPC
@@ -424,7 +424,12 @@ export function syncLabelsFromEngine(
     validate: (track: number, targetParam: string) => LaneVerdict,
 ): void {
     const tracks = alabels.split(',');
-    for (let t = 0; t < 4 && t < tracks.length; t++) {
+    /* Every track, not the first four. The engine emits labels for all of them
+     * and always has; the cap here was a leftover from when movy had four
+     * tracks, and it meant a lane on track 5-16 was never rebuilt after a Set
+     * load — automation that played back in one session and was silently gone
+     * in the next. */
+    for (let t = 0; t < TRACK_COUNT && t < tracks.length; t++) {
         const lanes = tracks[t].split('.');
         for (let l = 0; l < 8 && l < lanes.length; l++) {
             const tp = lanes[l];

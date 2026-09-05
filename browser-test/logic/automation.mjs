@@ -459,6 +459,7 @@ _log('\nautomation verifyLaneMappings:');
 {
     const { verifyLaneMappings, automationRegistry, resetAutomation } =
         await import('../../dist/esm/seq/automation.js');
+    const { TRACK_COUNT } = await import('../../dist/esm/track/ref.js');
     resetAutomation();
     const reg = automationRegistry();
     reg[0][0] = { targetParam: 'synth:pv1_f1_cut', shortName: 'pv1_f1_cut', min: 0, max: 1, type: 'float' };
@@ -471,22 +472,23 @@ _log('\nautomation verifyLaneMappings:');
         () => { reads++; return name; },
         (slot, lane, tp) => applied.push(slot + ':' + lane + ':' + tp),
     );
-    // 4 calls round-robin all tracks; only track 0 has lanes → 1 read.
+    /* One full sweep round-robins every track; only track 0 has lanes, so it is
+     * also the only track that costs a read. */
     reads = 0; applied = [];
-    for (let i = 0; i < 4; i++) run('synth: pv1_f1_cut');
+    for (let i = 0; i < TRACK_COUNT; i++) run('synth: pv1_f1_cut');
     eq('intact mapping: no re-apply', applied.length, 0);
     eq('only lane-bearing track reads', reads, 1);
 
     // Mapping cleared (null name = chain returned "knob not mapped") → every
     // assigned lane on that track re-applied.
     applied = [];
-    for (let i = 0; i < 4; i++) run(null);
+    for (let i = 0; i < TRACK_COUNT; i++) run(null);
     eq('cleared mapping: re-applies all lanes',
         applied.join('|'), '0:0:synth:pv1_f1_cut|0:3:synth:v5_fx2');
 
     // Foreign mapping (module swapped, knob remapped elsewhere) → re-apply.
     applied = [];
-    for (let i = 0; i < 4; i++) run('synth: cutoff');
+    for (let i = 0; i < TRACK_COUNT; i++) run('synth: cutoff');
     eq('foreign mapping: re-applies', applied.length, 2);
     resetAutomation();
 }
@@ -548,6 +550,38 @@ _log('\nautomation label sync:');
     eq('aclr queued for obsolete-alias lane', q.includes('aclr 0 2'), true);
     eq('aclr queued for stale lane', q.includes('aclr 0 3'), true);
     eq('no aclr for the valid lane', q.includes('aclr 0 1'), false);
+}
+
+/* ── automation: lane restore reaches every track ─────────────────────────── */
+_log('\nautomation lane restore covers 16 tracks:');
+{
+    const { resetAutomation, syncLabelsFromEngine, verifyLaneMappings, automationRegistry } =
+        await import('../../dist/esm/seq/automation.js');
+    const { resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
+    const { TRACK_COUNT } = await import('../../dist/esm/track/ref.js');
+
+    /* The engine emits labels for all 16 tracks (engine.rs auto_labels), but the
+     * UI read only the first four — a leftover from when movy had four. Lanes on
+     * tracks 5-16 were therefore never rebuilt after a Set load and never
+     * re-applied after a module reload: automation that plays back in one
+     * session and is silently gone in the next. */
+    resetAutomation(); resetSeqEngine();
+    const lanes = ['synth:cutoff', '-', '-', '-', '-', '-', '-', '-'].join('.');
+    const labels = Array.from({ length: TRACK_COUNT }, () => lanes).join(',');
+    const applied = [];
+    syncLabelsFromEngine(labels, (slot) => applied.push(slot),
+                         () => ({ min: 0, max: 1, type: 'float' }));
+    eq('every track is restored', applied.length, TRACK_COUNT);
+    eq('the last track is restored', applied.includes(TRACK_COUNT - 1), true);
+
+    /* verifyLaneMappings round-robins one track per call, so a full sweep must
+     * visit all of them — otherwise a module reload on track 9 leaves its lanes
+     * mapped to nothing, with a fully intact UI on top. */
+    const seen = new Set();
+    for (let i = 0; i < TRACK_COUNT; i++) {
+        verifyLaneMappings((slot) => { seen.add(slot); return 'synth: cutoff'; }, () => {});
+    }
+    eq('the round-robin visits every track', seen.size, TRACK_COUNT);
 }
 
 }

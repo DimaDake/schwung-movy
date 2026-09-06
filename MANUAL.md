@@ -360,6 +360,25 @@ automatically. You don't configure anything for most modules.
   keep their knobs — each is an amount of something else that happens to say
   "level".
 
+- **Pan bars** — a knob that sets a **stereo position** — a track's pan, a
+  drum pad's pan, a per-voice pan, a *Panorama* — is drawn as a **bipolar bar**
+  instead of a dial: a dotted rail marking the travel, a tick above its centre,
+  and a bar that fills out from the middle toward the side you pan to. Pan is
+  the one common parameter whose default is the *centre* rather than an end, and
+  on a bar that centre is the one state that looks different from every other:
+
+  ![Stereo position knobs drawn as pan bars](docs/assets/pan_dials.png)
+
+  It works the same whether the module counts pan from −1 to +1 or from 0 to
+  127 — the middle of the range is the middle of the bar.
+
+  Only a genuine position qualifies. A *Rnd Pan* (how far a voice wanders), a
+  *Pan Width* or *Unison Pan* spread, a *Pan KF* key-follow, a *Pan Velocity* or
+  *Pan LFO* amount, and a *Pan Morph* all keep their knobs — each is an amount of
+  something else that happens to say "pan". So does an *Osc Balance* or *Filter
+  Balance*, which crossfades between two sources rather than two speakers, and a
+  one-sided *Pan L* / *Pan R* pair, which has no centre of its own.
+
 - **Multiple pages** — modules with more than 8 parameters split into pages
   (`MAIN`, `PAGE 1`, `PAGE 2`, …). Scroll them with the jog wheel (or Left/Right
   when the sequencer isn't using those buttons). The line under the title is the

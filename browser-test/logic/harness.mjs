@@ -122,6 +122,8 @@ import { wavPeaksTick, wavPeaks, resetWavPeaks, resamplePeaks, PEAK_WIDTH } from
 import { drawWavForm } from '../../dist/esm/renderer/wav-form.js';
 import { drawFilterCurve } from '../../dist/esm/renderer/filter-curve.js';
 import { isFaderParam } from '../../dist/esm/model/fader.js';
+import { isPanParam } from '../../dist/esm/model/pan.js';
+import { drawPanDial } from '../../dist/esm/renderer/pan-dial.js';
 import { isToggleParam, isActionParam } from '../../dist/esm/model/toggle.js';
 import { triggerIndices } from '../../dist/esm/model/trigger.js';
 import { renderKnobsView } from '../../dist/esm/renderer/knob-view.js';
@@ -264,7 +266,7 @@ export {
     staticModeFromTokens, lfoShapeId, isShapeEnum, enumClassOf, waveCellIndices, waveToggleOf,
     envStageOf, detectEqViz, cutKindOf, detectCutPair, drawCutCurve, detectWavViz,
     wavPeaksTick, wavPeaks, resetWavPeaks, resamplePeaks, PEAK_WIDTH, drawWavForm,
-    drawFilterCurve, isFaderParam, isToggleParam, isActionParam, triggerIndices, renderKnobsView,
+    drawFilterCurve, isFaderParam, isPanParam, drawPanDial, isToggleParam, isActionParam, triggerIndices, renderKnobsView,
     renderChainView, lfoTargetsParam, assignLfoTarget, clearLfoTarget, trackScope, masterScope,
     holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle,
     assignCommit, assignToastText, resetAssignMode, jogHintTouch, jogHintTick, jogHintVisible,

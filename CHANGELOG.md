@@ -55,6 +55,17 @@ far. Earlier work is summarised in the timeline below for context.
   did. Nothing to turn on: it follows **Parallel render**, and turning that off
   restores the old behaviour for measurement.
 
+- **Pan knobs are drawn as a bipolar bar.** A stereo position is the one common
+  parameter whose default is the middle rather than an end, and on a 300-degree
+  dial that middle is an unremarkable spot two thirds of the way round. Pan now
+  gets a dotted rail, a centre tick and a bar filling out from the middle toward
+  the side you pan to, so centred looks unlike every other value. It applies to
+  the MIX page and to pan-like parameters inside modules — 24 across the dumped
+  fleet — and reads the same whether a module counts pan from -1..+1 or 0..127.
+  Parameters that only *say* pan keep their dials: `Rnd Pan`, `Pan Width`,
+  `Pan KF`, `Pan Velocity`, a `Pan Morph`, an `Osc Balance` crossfade, and a
+  one-sided `Pan L`/`Pan R` pair all lack a centre to fill out from.
+
 ### Fixed
 
 - **Automation lanes on tracks 5-16 were never restored.** The engine has always

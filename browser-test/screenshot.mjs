@@ -73,7 +73,7 @@ const PRESETS = [
     'font_5x3_all', 'font_small_all', 'font_big_all_1', 'font_big_all_2',
     'wave_cells', 'wave_overlay', 'wave_helm', 'wave_toggles',
     'env_stages', 'eq_bands', 'cut_filters', 'faders', 'wav_sample', 'wav_loop', 'wav_loop_off', 'wav_beside_filter',
-    'switches', 'spray_saturated',
+    'switches', 'pan_dials', 'spray_saturated',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -114,7 +114,7 @@ const BASE = {
     lfo_helm_step: 'lfo_helm', lfo_helm_pyramid: 'lfo_helm',
     wave_cells: 'wave_cells', wave_overlay: 'wave_cells', wave_helm: 'helm_waves',
     wave_toggles: 'wave_toggles', env_stages: 'env_stages', eq_bands: 'eq_bands', cut_filters: 'cut_filters',
-    faders: 'faders', switches: 'switches',
+    faders: 'faders', switches: 'switches', pan_dials: 'pan_dials',
     spray_saturated: 'wav_sample', wav_sample: 'wav_sample', wav_loop: 'wav_loop', wav_loop_off: 'wav_loop',
     wav_beside_filter: 'wav_beside_filter',
     signal_voice: 'signal', forge_voice: 'forge',
@@ -458,6 +458,13 @@ function applyView(preset) {
         case 'switches':
             setFilter({ osc2_sync: '1', legato: 'Off', unison: '0', bypass: 'on',
                         lfo_mode: 'Sync', rnd_patch: '0', cutoff: '0.5', voice_mode: 'Poly' });
+            for (let i = 0; i < 80; i++) model.tick();
+            forceRender();
+            break;
+        case 'pan_dials':
+            /* The whole sweep in one frame — hard left, part left, centre,
+             * part right, hard right — beside the two near-misses that keep
+             * the arc. A single value would not show that the bar travels. */
             for (let i = 0; i < 80; i++) model.tick();
             forceRender();
             break;

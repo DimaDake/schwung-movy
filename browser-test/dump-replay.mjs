@@ -393,6 +393,38 @@ const BOOL_ACTIONS_EXPECTED = [
     'sound_generator--forge::rnd_voice',
 ];
 
+/* Every knob the fleet draws as a bipolar pan bar. Two entries look wrong and
+ * are not: `mono-voice::amp7` is literally named "Pan" (0..127, default 64),
+ * and `usefulity::pan` is labelled "Balance" — the key decides. The near-misses
+ * that must stay dials are the point of the pin: `rnd_pan`, `pan_width`,
+ * `Pan KF`, `mono-voice::amp15` ("Pan Key Track"), `osc_balance`, `pan_l/_r`. */
+const PANS_EXPECTED = [
+    'audio_fx--magneto::input_pan',
+    'audio_fx--usefulity::pan',
+    'sound_generator--forge::cv_pan',
+    'sound_generator--freak::pan',
+    'sound_generator--minijv::nvram_patchCommon_patchpan',
+    'sound_generator--minijv::nvram_tone_0_pan',
+    'sound_generator--minijv::nvram_tone_1_pan',
+    'sound_generator--minijv::nvram_tone_2_pan',
+    'sound_generator--minijv::nvram_tone_3_pan',
+    'sound_generator--minijv::partpan',
+    'sound_generator--mono-voice::amp7',
+    'sound_generator--mrdrums::pad_pan',
+    'sound_generator--obxd::pan_1',
+    'sound_generator--obxd::pan_2',
+    'sound_generator--obxd::pan_3',
+    'sound_generator--obxd::pan_4',
+    'sound_generator--obxd::pan_5',
+    'sound_generator--obxd::pan_6',
+    'sound_generator--obxd::pan_7',
+    'sound_generator--obxd::pan_8',
+    'sound_generator--osirus::panorama',
+    'sound_generator--signal::cv_pan',
+    'sound_generator--surge::pan',
+    'sound_generator--weird-dreams::cv_pan',
+];
+
 const SWITCHES_EXPECTED = [
     'audio_fx--ambiotica::lofi_tails',
     'audio_fx--ambiotica::mod_sync',
@@ -633,6 +665,8 @@ function collectWaveCells(key, model, into, intoToggles, intoStages, intoEqs, in
                 if (!opts.includes('idle')) boolActions.push(`${key}::${p.key}`);
             } else if (p.renderStyle === 'switch') {
                 switches.push(`${key}::${p.key}`);
+            } else if (p.renderStyle === 'pan') {
+                pans.push(`${key}::${p.key}`);
             }
         });
         if (model.getComponentKey() === 'synth') {
@@ -671,6 +705,7 @@ const eqGroups = [];
 const cutPairs = [];
 const cutSingles = [];
 const switches = [];
+const pans = [];
 const boolActions = [];
 
 for (const entry of dump.modules) {
@@ -733,6 +768,20 @@ for (const [label, got0, want0] of [
     const added   = got.filter(k => !want.includes(k));
     const dropped = want.filter(k => !got.includes(k));
     check(`wave toggles: ${got.length} params${added.length ? ` — UNEXPECTED: ${added.join(', ')}` : ''}${dropped.length ? ` — MISSING: ${dropped.join(', ')}` : ''}`,
+        added.length === 0 && dropped.length === 0);
+}
+
+/* Fleet-wide bipolar pan set. The rule is name-driven and the fleet is full of
+ * params that merely SAY pan — `rnd_pan` is a wander amount, `pan_width` a
+ * spread, `Pan KF` a key-follow. Promoting one of those claims it has a centre
+ * and puts its resting value at the wrong end of the widget. Pinning the set by
+ * name is what makes a loosened word show up as a named diff. */
+{
+    const got = [...new Set(pans)].sort();
+    const want = PANS_EXPECTED.slice().sort();
+    const added   = got.filter(k => !want.includes(k));
+    const dropped = want.filter(k => !got.includes(k));
+    check(`pans: ${got.length} params${added.length ? ` — UNEXPECTED: ${added.join(', ')}` : ''}${dropped.length ? ` — MISSING: ${dropped.join(', ')}` : ''}`,
         added.length === 0 && dropped.length === 0);
 }
 

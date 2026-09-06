@@ -7,6 +7,7 @@ import { enumSquareLines } from './shorten.js';
 import { drawLine, hatchRect } from './primitives.js';
 import { drawWave } from './lfo-wave.js';
 import { drawCutCurve } from './cut-curve.js';
+import { drawPanDial } from './pan-dial.js';
 import { toggleIsOn } from '../model/toggle.js';
 
 function drawCircleBorder(cx: number, cy: number, r: number): void {
@@ -332,6 +333,10 @@ export function drawKnobWidget(col: number, rowY: number, pvm: ParamVM): void {
         drawEnumSquare(kx, ky, pvm.options, pvm.enumIndex);
     } else if (pvm.renderStyle === 'xbox') {
         drawXBox(kx, ky);
+    } else if (pvm.renderStyle === 'pan') {
+        /* Straddles the 16px box, so it takes the CELL origin like the
+         * waveform cell rather than `kx`. */
+        drawPanDial(col * CELL_W, ky, pvm.normalizedValue);
     } else if (pvm.renderStyle === 'vbar') {
         drawFader(kx, ky, pvm.normalizedValue);
     } else {

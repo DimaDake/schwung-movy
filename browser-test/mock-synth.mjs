@@ -288,6 +288,24 @@ export const MOCK_SYNTHS = {
 
     /* Faders: loudness params next to two knobs that merely mention level-ish
      * words, so the rule's exclusions are visible in the picture too. */
+    pan_dials: {
+        "synth:name": "Pan",
+        "synth:ui_hierarchy": hier([
+            { key: "pan",       label: "Pan",      type: "float", min: -1, max: 1, step: 0.01 },
+            { key: "v1_pan",    label: "V1 Pan",   type: "float", min: -1, max: 1, step: 0.01 },
+            { key: "pan_1",     label: "Pan 1",    type: "int",   min: 0,  max: 100, step: 1 },
+            { key: "panorama",  label: "Panorama", type: "int",   min: 0,  max: 127, step: 1 },
+            { key: "pad_pan",   label: "Pan",      type: "float", min: -1, max: 1, step: 0.01 },
+            { key: "input_pan", label: "Pan",      type: "float", min: 0,  max: 1, step: 0.01 },
+            /* The two that only SAY pan: both must still draw an arc. */
+            { key: "rnd_pan",   label: "Rnd Pan",  type: "float", min: 0,  max: 1, step: 0.01 },
+            { key: "pan_width", label: "Pan Width",type: "float", min: 0,  max: 100, step: 1 },
+        ]),
+        "synth:pan": "-1", "synth:v1_pan": "-0.5", "synth:pan_1": "25",
+        "synth:panorama": "64", "synth:pad_pan": "0.4", "synth:input_pan": "1",
+        "synth:rnd_pan": "0.35", "synth:pan_width": "60",
+    },
+
     faders: {
         "synth:name": "Faders",
         "synth:ui_hierarchy": hier([

@@ -31,6 +31,8 @@ await esbuild.build({
         resolve(root, 'src/model/filter-mode.ts'),
         resolve(root, 'src/model/enum-class.ts'),
         resolve(root, 'src/model/fader.ts'),
+        resolve(root, 'src/model/pan.ts'),
+        resolve(root, 'src/renderer/pan-dial.ts'),
         resolve(root, 'src/model/wave-viz.ts'),
         resolve(root, 'src/model/wave-toggle.ts'),
         resolve(root, 'src/model/env-stage.ts'),

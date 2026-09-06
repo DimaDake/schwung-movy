@@ -14,8 +14,8 @@ import {
 } from './mix-io.js';
 import { SEND_BUSES } from '../chain/config.js';
 
-/* Pan sits on a plain linear arc: -1..+1 mapped to 0..1 of the travel, with
- * centre at half. */
+/* Pan maps linearly onto the bipolar bar's travel: -1..+1 becomes 0..1, so
+ * centre lands at half — which is where the widget puts its detent. */
 function panFrac(pan: number): number {
     return (pan - PAN_MIN) / (PAN_MAX - PAN_MIN);
 }
@@ -36,7 +36,7 @@ export function buildMixCells(v: MixVals, kind: TrackKind): (ParamVM | null)[] {
     }
     const cells: (ParamVM | null)[] = [
         vol,
-        cell({ shortName: 'PAN', fullName: 'Pan', type: 'float', renderStyle: 'arc',
+        cell({ shortName: 'PAN', fullName: 'Pan', type: 'float', renderStyle: 'pan',
             displayValue: formatPan(v.pan), normalizedValue: panFrac(v.pan), automatable: true }),
         null, null, null, null, null, null,
     ];

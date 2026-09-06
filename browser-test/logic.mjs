@@ -57,6 +57,7 @@ import { run as run_flags } from './logic/flags.mjs';
 import { run as run_schwung_grid } from './logic/schwung-grid.mjs';
 import { run as run_cpu_page } from './logic/cpu-page.mjs';
 import { run as run_mixer } from './logic/mixer.mjs';
+import { run as run_pan_viz } from './logic/pan-viz.mjs';
 
 /* Awaited one at a time: the suites share the mock device globals, and the
  * expected output is a fixed transcript, so they must not interleave. */
@@ -108,6 +109,7 @@ const SUITES = [
     run_schwung_grid,
     run_cpu_page,
     run_mixer,
+    run_pan_viz,
 ];
 
 /* Between suites, back to the world movy boots in: no Set has said yet which

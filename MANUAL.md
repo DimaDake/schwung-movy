@@ -588,17 +588,26 @@ track.
 
 | Knob | What it does |
 | --- | --- |
-| **VOL** | Track level. The same fader as **track + volume**, on the same one-dB-per-detent ladder. |
+| **VOL** | Track level, drawn as a fader. Silence to +12 dB, on the same dB curve as **track + volume**. |
 | **PAN** | Position in the stereo field, shown as `C`, `L50`, `R100`. |
-| **SND1** | How much of this track goes to send FX 1. |
+| **SND1** | How much of this track goes to send FX 1. Full right is 0 dB. |
 | **SND2** | How much of this track goes to send FX 2. |
 | **SND3** | How much of this track goes to send FX 3. |
 
 VOL and PAN sit on the top row; the three sends are together on the bottom row,
 under encoders 5–7.
 
+Every knob here turns at the same rate as a module's — a full sweep is a full
+sweep, wherever you are on the fader — and lands on the round numbers: `0.0 dB`
+and centre pan are always reachable, whatever the value started at. Hold two
+knobs and both show their values; the header follows the one you touched last.
+
+![Two knobs held on the MIX page](docs/assets/mix_page_two_held.png)
+
 All five are **automatable** like any module parameter: hold a step and turn, or
 turn while recording. See [Step parameters](#step-parameters--per-trig-locks).
+Automation follows the same fader curve the knob does, so an automated level
+moves where you expect it to rather than crowding into one end of the travel.
 
 The sends are **post-fader and post-pan**: pulling a track's level down takes its
 reverb with it, and a hard-panned track arrives in the return where you left it.

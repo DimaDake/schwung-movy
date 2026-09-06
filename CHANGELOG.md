@@ -31,6 +31,9 @@ far. Earlier work is summarised in the timeline below for context.
   the top row, **SND1**, **SND2** and **SND3** together on the bottom under
   encoders 5-7. Pan and mute existed in Movy's mixer from the start with no
   control surface; this is it. All five automate like any module parameter.
+  VOL is drawn as a fader and PAN as a bipolar bar — vertical and horizontal
+  versions of the same picture — so the page reads as a channel strip rather
+  than as five identical dials.
 
   On a Schwung-hosted track only VOL is shown. That track's audio never passes
   through Movy, so there is nothing to pan or to tap for a send, and Schwung has
@@ -66,7 +69,37 @@ far. Earlier work is summarised in the timeline below for context.
   `Pan KF`, `Pan Velocity`, a `Pan Morph`, an `Osc Balance` crossfade, and a
   one-sided `Pan L`/`Pan R` pair all lack a centre to fill out from.
 
+- **Knob labels use the whole cell.** Every parameter name was capped at five
+  characters, which is the worst case of a proportional font — five M's fill a
+  cell, but CUTOFF, ATTACK, OUTPUT and PRESET all fit inside one and were being
+  cut anyway. The cap is now the cell's width in pixels, so 62 of the 80 dumped
+  modules gained letters back and nothing got wider than it already was.
+
 ### Fixed
+
+- **The MIX page's knobs moved in whole-dB jumps.** They stepped one ladder
+  index at a time, eight CC units apart, so a small turn did nothing at all and
+  then leapt a dB — reported as "too sensitive". They now travel continuously,
+  at exactly the rate a module's knob does, and land on the round numbers:
+  `0.0 dB` and centre pan are reachable from any starting value. Pan could not
+  return to centre at all if it started off the detent grid.
+
+- **A send's arc stopped four fifths of the way round.** It was drawn against
+  the fader's travel, which runs 12 dB past unity, while a send stops at unity.
+  0 dB is now the far end of the knob.
+
+- **Automated MIX parameters were stuck against one end.** Two faults: the page
+  denormalized an already-denormalized lane value, pinning every automated knob
+  near the bottom of its travel, and the lane itself was linear in amplitude
+  where the knob is a dB fader, so unity sat a quarter of the way up the lane. A
+  MIX lane's 0-127 is now the fader's own position, in the engine and in the UI.
+  Existing MIX automation will play back at different levels than it was
+  recorded at.
+
+- **Only one held MIX knob showed its value.** Holding two showed one value and
+  one name, which reads as a knob that stopped responding. Every held knob shows
+  its value now; the header still follows the one touched last, as on a module
+  page.
 
 - **Automation lanes on tracks 5-16 were never restored.** The engine has always
   emitted labels for all 16 tracks, but the UI read only the first four — a

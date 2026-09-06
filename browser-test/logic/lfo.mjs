@@ -224,13 +224,14 @@ _log('\nTest: LFO target commit reaches a movy-hosted track');
 
 _log('\nTest: master chain LFO page');
 {
-    const { MASTER_FX_SLOTS, MASTER_LFO_INDEX, isMasterLfoSlot, isVirtualSlot } = await import('../../dist/esm/chain/config.js');
+    const { MASTER_FX_SLOTS, MASTER_LFO_INDEX, SEND_BUSES, isMasterLfoSlot, isVirtualSlot } = await import('../../dist/esm/chain/config.js');
     const { createScopedLfoModel } = await import('../../dist/esm/lfo/model.js');
     const { resetPorts } = await import('../../dist/esm/track/registry.js');
     const DETENT = 8;
 
     /* Two sends, four master FX, one LFO. */
-    eq('master chain has an LFO slot', MASTER_FX_SLOTS.length, 7);
+    /* Every send, four master FX, and the LFO. */
+    eq('master chain has an LFO slot', MASTER_FX_SLOTS.length, SEND_BUSES + 4 + 1);
     eq('it is last', MASTER_LFO_INDEX, MASTER_FX_SLOTS.length - 1);
     eq('isMasterLfoSlot(last)', isMasterLfoSlot(MASTER_LFO_INDEX), true);
     eq('isMasterLfoSlot(0)', isMasterLfoSlot(0), false);

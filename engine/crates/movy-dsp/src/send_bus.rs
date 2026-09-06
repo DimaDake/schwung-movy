@@ -1,15 +1,17 @@
-//! The two send buses movy sums its tracks into.
+//! The send buses movy sums its tracks into.
 //!
 //! A send bus is `chain_process_fx` (`chain_host.c:2176`) run over a buffer
-//! every track has already contributed to — so it cannot be planned onto a
-//! render lane: it depends on every chain having rendered, and runs after the
-//! join, serially on the audio thread (design §5).
+//! every track has already contributed to — so it cannot share a render lane
+//! with the chains: it depends on every one of them having rendered, and runs
+//! after the join (design §5). The buses can be fanned out across each other,
+//! and are, when the arithmetic says a wake pays for itself — see
+//! `ChainSlots::plan_sends`.
 //!
 //! **Costing nothing when no send is in use is a commitment, not a property
 //! that falls out.** Three early-outs, one test each: a bus with no instance is
 //! never processed, a track at zero send never touches a buffer, and a bus
 //! nothing wrote is never cleared. Get them wrong and a feature nobody switched
-//! on costs two memsets and sixteen chains of multiply-adds every block.
+//! on costs a memset per bus and sixteen chains of multiply-adds every block.
 //!
 //! Free of chain, host and FFI types, exactly as `chain_idle` is: every rule
 //! here is decided by counting peaks and flags, so the audio-thread code that
@@ -18,7 +20,7 @@
 use crate::chain_idle::SILENCE_LEVEL;
 use crate::mixer::{mix_into_gains, TrackMix};
 
-pub const SEND_BUSES: usize = 2;
+pub const SEND_BUSES: usize = 3;
 
 /// 128 frames stereo — schwung's block size, the same as a chain's scratch.
 /// Preallocated: nothing may allocate on the audio thread.
@@ -238,8 +240,36 @@ mod tests {
     use super::*;
     use crate::mixer::TrackMix;
 
+    /// A track feeding bus 0 only.
     fn sending(level: f32) -> TrackMix {
-        TrackMix { send: [level, 0.0], ..TrackMix::default() }
+        let mut send = [0.0; SEND_BUSES];
+        send[0] = level;
+        TrackMix { send, ..TrackMix::default() }
+    }
+
+    /// The plan every bus says no to, whatever `SEND_BUSES` is today.
+    fn none() -> [bool; SEND_BUSES] {
+        [false; SEND_BUSES]
+    }
+
+    /// Every bus's report line at rest, joined as `report` joins them. Built
+    /// from `SEND_BUSES` so adding a bus does not turn these into assertions
+    /// about a prefix of the string.
+    fn quiet(fed: &[(usize, &str)]) -> String {
+        (0..SEND_BUSES)
+            .map(|n| match fed.iter().find(|(b, _)| *b == n) {
+                Some((_, line)) => format!("{n}:{line}"),
+                None => format!("{n}:in=0,out=0,blocks=0"),
+            })
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+
+    /// The plan where bus 0 alone says yes.
+    fn only_first() -> [bool; SEND_BUSES] {
+        let mut p = [false; SEND_BUSES];
+        p[0] = true;
+        p
     }
 
     #[test]
@@ -272,7 +302,7 @@ mod tests {
     fn an_untouched_bus_is_not_processed_and_not_cleared() {
         // Zero cost when unused, rules 1 and 3.
         let mut b = SendBuses::new();
-        assert_eq!(b.take_plan(), [false, false]);
+        assert_eq!(b.take_plan(), none());
     }
 
     #[test]
@@ -320,7 +350,7 @@ mod tests {
         let mut out = vec![0i16; 2];
         b.finish(0, &mut out, 2);
         // Input has stopped, but the last output was loud: still processing.
-        assert_eq!(b.take_plan(), [true, false]);
+        assert_eq!(b.take_plan(), only_first());
     }
 
     #[test]
@@ -342,13 +372,13 @@ mod tests {
         // bugs with the same symptom. The report has to tell them apart, or a
         // device test cannot say which one it is looking at.
         let mut b = SendBuses::new();
-        assert_eq!(b.report(), "0:in=0,out=0,blocks=0 1:in=0,out=0,blocks=0");
+        assert_eq!(b.report(), quiet(&[]));
 
         b.accumulate(&[8000, 8000], &sending(1.0));
         b.take_plan();
         let mut out = vec![0i16; 2];
         b.finish(0, &mut out, 2);
-        assert_eq!(b.report(), "0:in=8000,out=8000,blocks=1 1:in=0,out=0,blocks=0",
+        assert_eq!(b.report(), quiet(&[(0, "in=8000,out=8000,blocks=1")]),
                    "a bus that was fed and passed its audio through");
     }
 
@@ -366,7 +396,7 @@ mod tests {
             for _ in 0..16 {
                 b.accumulate(&[30000, -30000], &TrackMix::default());
             }
-            assert_eq!(b.take_plan(), [false, false]);
+            assert_eq!(b.take_plan(), none());
             assert!(!b.any_dirty());
         }
         assert_eq!(&b.buf_mut(0)[..2], &[0, 0]);
@@ -386,7 +416,11 @@ mod tests {
         let before = b.plan_cost().to_vec();
         assert!(before[0] > before[1] && before[1] > 0, "got {before:?}");
         b.cost_reset();
-        assert_eq!(b.cost_report(), "0:us=0.0,max=0.0 1:us=0.0,max=0.0");
+        let zeroed = (0..SEND_BUSES)
+            .map(|n| format!("{n}:us=0.0,max=0.0"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        assert_eq!(b.cost_report(), zeroed);
         assert_eq!(b.plan_cost(), &before[..], "the planner lost its costs to a log read");
     }
 
@@ -399,6 +433,6 @@ mod tests {
         b.discard(0);
         assert!(!b.any_dirty());
         assert_eq!(&b.buf_mut(0)[..2], &[0, 0]);
-        assert_eq!(b.take_plan(), [false, false], "and its tail is gone too");
+        assert_eq!(b.take_plan(), none(), "and its tail is gone too");
     }
 }

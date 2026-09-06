@@ -58,7 +58,7 @@ export function init(): void {
     /* `componentPort` and not `portFor(0)`: a `master_fx:` key is global, and the
      * slot it rides on is only a carrier. Track 0 can become a movy chain
      * (`chtracks`), and the chain port would namespace those keys as
-     * `ch0:master_fx:…` and send the master chain's edits into a synth. The two
+     * `ch0:master_fx:…` and send the master chain's edits into a synth. The
      * SEND slots on this page are movy's own and need a third destination
      * again, which is exactly the choice componentPort exists to make. */
     appState.masterFxModels  = MASTER_FX_SLOTS.map((s, i) => isMasterLfoSlot(i)

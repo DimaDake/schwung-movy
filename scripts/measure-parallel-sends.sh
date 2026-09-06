@@ -24,7 +24,11 @@
 # path ran, an arm that silently fell through to serial would print as a real
 # measurement of nothing.
 #
-# Usage: ./scripts/measure-parallel-sends.sh [move.local] [fx0] [fx1]
+# Usage: ./scripts/measure-parallel-sends.sh [move.local] [fx0] [fx1] [fx2...]
+#
+# Extra FX arguments load extra buses, up to SEND_BUSES. The default loadout is
+# the two-bus pair the 2026-09-06 run measured, so an unadorned run stays
+# comparable with the number recorded in the plan.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
@@ -33,6 +37,8 @@ HOST="${1:-move.local}"
 # inside the noise of a 2902us block — measuring it would be measuring jitter.
 FX0="${2:-dragonfly-hall}"
 FX1="${3:-tape-echo2}"
+shift $(( $# > 3 ? 3 : $# ))
+FX=("$FX0" "$FX1" "$@")
 
 LOG=/data/UserData/schwung/debug.log
 TRACK=0            # the only track the fixture seeds with a synth
@@ -52,13 +58,21 @@ sleep 3
 cb_require_engine_link
 
 # ── The set under test ──────────────────────────────────────────────────────
-echo "loading sends: 0=$FX0 1=$FX1"
-ep "snd0:module" "$FX0"; sleep 2
-ep "snd1:module" "$FX1"; sleep 2
-# Unity, centred, unmuted, BOTH sends at full. A bus fed nothing idles out and
-# measures zero — which is indistinguishable from a fan-out that saved
-# everything.
-ep "ch$TRACK:mix" "1.0,0.0,0,1.0,1.0"
+SEND_BUSES=$(node -e "import('./dist/esm/chain/config.js').then(m => console.log(m.SEND_BUSES))")
+[ "${#FX[@]}" -le "$SEND_BUSES" ] || {
+    echo "asked for ${#FX[@]} buses but the engine has $SEND_BUSES"; exit 2; }
+
+echo "loading sends: $(for i in "${!FX[@]}"; do printf '%s=%s ' "$i" "${FX[$i]}"; done)"
+for i in "${!FX[@]}"; do ep "snd$i:module" "${FX[$i]}"; sleep 2; done
+# Unity, centred, unmuted, every LOADED send at full. A bus fed nothing idles
+# out and measures zero — which is indistinguishable from a fan-out that saved
+# everything. An unloaded bus is deliberately left at zero: it must contribute
+# neither cost nor a lane.
+MIXV="1.0,0.0,0"
+for ((b = 0; b < SEND_BUSES; b++)); do
+    if [ "$b" -lt "${#FX[@]}" ]; then MIXV="$MIXV,1.0"; else MIXV="$MIXV,0.0"; fi
+done
+ep "ch$TRACK:mix" "$MIXV"
 
 hold()    { ep "ch$TRACK:midi" "144.60.100"; ep "ch$TRACK:midi" "144.64.100"; }
 release() { ep "ch$TRACK:midi" "128.60.0";   ep "ch$TRACK:midi" "128.64.0"; }
@@ -87,8 +101,10 @@ arm() {
     # Per-bus costs from the SAME window as the wall, so the rendezvous below is
     # derived from one arm rather than from two runs of different things.
     sndc=$(ts_ssh "grep -o 'send cost: .*' $LOG | tail -n 1")
-    ARM_B0=$(printf '%s' "$sndc" | grep -oE '0:us=[0-9.]+' | cut -d= -f2)
-    ARM_B1=$(printf '%s' "$sndc" | grep -oE '1:us=[0-9.]+' | cut -d= -f2)
+    ARM_BUSES=""
+    for ((b = 0; b < ${#FX[@]}; b++)); do
+        ARM_BUSES="$ARM_BUSES $(printf '%s' "$sndc" | grep -oE "$b:us=[0-9.]+" | cut -d= -f2)"
+    done
     wall=$(printf '%s' "$cost" | sed -n 's/.*wall=\([0-9]*\)\/.*/\1/p')
     SND=$(snd_line)
     par=$(printf '%s' "$SND" | grep -oE 'par=[01]' | cut -d= -f2)
@@ -101,7 +117,7 @@ arm() {
 
 echo
 echo "=== arms (send phase) ==="
-arm 0 serial;   S1=$ARM_WALL;  P1=$ARM_PAR; B0=$ARM_B0; B1=$ARM_B1
+arm 0 serial;   S1=$ARM_WALL;  P1=$ARM_PAR; BUSES=$ARM_BUSES
 arm 1 parallel; PW=$ARM_WALL;  PP=$ARM_PAR
 arm 0 "serial-2"; S2=$ARM_WALL;  P2=$ARM_PAR
 release
@@ -136,18 +152,30 @@ awk -v s="$SERIAL" -v p="$PW" -v d="$DRIFT" 'BEGIN{
 # ~21 us over from the chain work without a send-phase rendezvous existing yet.
 # The 2026-09-06 run put it at 25.2 us, which is what FANOUT_NS now holds.
 #
-#   serial   = C + A + B          (C = chain render + the rest of the callback)
-#   parallel = C + max(A,B) + F
-#   so       F = min(A,B) - (serial - parallel)
+#   serial   = C + SUM(costs)          (C = chain render + the rest of the callback)
+#   parallel = C + MAX(costs) + F      (one bus per lane)
+#   so       F = (SUM - MAX) - (serial - parallel)
 #
 # C cancels, which is what makes this readable off two walls and the per-bus
-# costs rather than needing the callback broken down.
-awk -v s="$SERIAL" -v p="$PW" -v b0="${B0:-0}" -v b1="${B1:-0}" 'BEGIN{
-    if (b0 <= 0 || b1 <= 0) { print "\nrendezvous: not derivable (a bus reported no cost)"; exit }
-    min = (b0 < b1) ? b0 : b1
-    printf "\nbuses    %8.1f us + %8.1f us  (serial arm, settled)\n", b0, b1
-    printf "rendezvous %6.1f us  = the cheaper bus (%.1f) minus what was saved (%.1f)\n", \
-        min - (s-p)/1000, min, (s-p)/1000
+# costs rather than needing the callback broken down. For two buses SUM-MAX is
+# just the cheaper one, which is the form the first run of this was written in.
+#
+# One bus per lane is an ASSUMPTION, not a measurement: read the `plan=` column
+# above. If two buses shared a lane, MAX understates the parallel arm and this
+# prints a rendezvous larger than it is.
+awk -v s="$SERIAL" -v p="$PW" -v costs="$BUSES" 'BEGIN{
+    n = split(costs, c, " ")
+    sum = 0; mx = 0
+    for (i = 1; i <= n; i++) {
+        if (c[i] <= 0) { print "\nrendezvous: not derivable (a bus reported no cost)"; exit }
+        sum += c[i]; if (c[i] > mx) mx = c[i]
+    }
+    if (n < 2) { print "\nrendezvous: not derivable (one bus does not overlap)"; exit }
+    printf "\nbuses   "
+    for (i = 1; i <= n; i++) printf " %8.1f us", c[i]
+    printf "   (serial arm, settled)\n"
+    printf "rendezvous %6.1f us  = what serial does twice (%.1f) minus what was saved (%.1f)\n", \
+        (sum - mx) - (s-p)/1000, sum - mx, (s-p)/1000
     printf "           render_plan::FANOUT_NS is set to 25.0 us\n"
 }'
 exit "$FAIL"

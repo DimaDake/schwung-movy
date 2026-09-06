@@ -9,8 +9,10 @@ import { paramCell as cell } from '../seq/param-vm.js';
 import type { TrackKind } from '../track/ref.js';
 import { volumeFrac } from './db-ladder.js';
 import {
-    FIELD_AT, FIELD_RANGE, formatDb, formatPan, formatSend, PAN_MAX, PAN_MIN, type MixVals,
+    FIELD_AT, FIELD_RANGE, sendField, formatDb, formatPan, formatSend,
+    PAN_MAX, PAN_MIN, type MixVals,
 } from './mix-io.js';
+import { SEND_BUSES } from '../chain/config.js';
 
 /* Pan sits on a plain linear arc: -1..+1 mapped to 0..1 of the travel, with
  * centre at half. */
@@ -26,24 +28,31 @@ export function buildMixCells(v: MixVals, kind: TrackKind): (ParamVM | null)[] {
     });
     /* A schwung-hosted track renders inside the shim: movy never sees its audio,
      * and schwung has no `slot:pan`. Its fader is real — that is `slot:volume`,
-     * which Move's own mixer reads — but pan and both sends are unreachable, not
+     * which Move's own mixer reads — but pan and every send are unreachable, not
      * unimplemented. A drawn knob that does nothing reads as broken, so the
-     * three cells are blank and their LEDs stay dark. */
+     * other cells are blank and their LEDs stay dark. */
     if (kind === 'host') {
         return [vol, null, null, null, null, null, null, null];
     }
-    return [
+    const cells: (ParamVM | null)[] = [
         vol,
         cell({ shortName: 'PAN', fullName: 'Pan', type: 'float', renderStyle: 'arc',
             displayValue: formatPan(v.pan), normalizedValue: panFrac(v.pan), automatable: true }),
-        cell({ shortName: 'SND1', fullName: 'Send 1', type: 'float', renderStyle: 'arc',
-            displayValue: formatSend(v.send[0]), normalizedValue: volumeFrac(v.send[0]),
-            automatable: true }),
-        cell({ shortName: 'SND2', fullName: 'Send 2', type: 'float', renderStyle: 'arc',
-            displayValue: formatSend(v.send[1]), normalizedValue: volumeFrac(v.send[1]),
-            automatable: true }),
-        null, null, null, null,
+        null, null, null, null, null, null,
     ];
+    /* The sends land where FIELD_AT puts them — line 2, encoders 5-7 — rather
+     * than at a written-out index, so the page and the knob routing cannot
+     * disagree about which encoder a send is under. */
+    for (let bus = 0; bus < SEND_BUSES; bus++) {
+        const level = v.send[bus] ?? 0;
+        cells[FIELD_AT.indexOf(sendField(bus))] = cell({
+            shortName: 'SND' + (bus + 1), fullName: 'Send ' + (bus + 1),
+            type: 'float', renderStyle: 'arc',
+            displayValue: formatSend(level), normalizedValue: volumeFrac(level),
+            automatable: true,
+        });
+    }
+    return cells;
 }
 
 export interface MixPageState {

@@ -21,6 +21,9 @@ cd "$(dirname "$0")/.."
 HOST="${1:-move.local}"
 LOG=/data/UserData/schwung/debug.log
 SEND_FX=freeverb        # cheap, always installed, and audibly wet
+# Read from the UI's own constant so this suite widens with the engine rather
+# than testing a bus count it was written against.
+SEND_BUSES=$(node -e "import('./dist/esm/chain/config.js').then(m => console.log(m.SEND_BUSES))")
 # The fixture seeds a synth on track 0 (and a drum module on track 1); every
 # other track is empty, so a send from one would measure silence and report it
 # as a routing bug. With TS_HOST_MODE=movy, track 0 IS movy chain 0.
@@ -87,11 +90,11 @@ FED=$(snd_read)
 ep "ch$TRACK:midi" "128.60.0"
 echo "  $FED"
 
-# One regex over bus 0's whole group: `out=` and `blocks=` are not prefixed
-# with the bus number, so matching them alone would pick up bus 1's.
-bus0() { echo "$1" | grep -oE '0:in=[0-9]+,out=[0-9]+,blocks=[0-9]+' | head -1; }
+# One regex over ONE bus's whole group: `out=` and `blocks=` are not prefixed
+# with the bus number, so matching them alone would pick up another bus's.
+bus() { echo "$2" | grep -oE "$1:in=[0-9]+,out=[0-9]+,blocks=[0-9]+" | head -1; }
 field() { echo "$1" | grep -oE "$2=[0-9]+" | cut -d= -f2; }
-G=$(bus0 "$FED")
+G=$(bus 0 "$FED")
 IN=$(field "$G" in); OUT=$(field "$G" out); BLOCKS=$(field "$G" blocks)
 IN=${IN:-0}; OUT=${OUT:-0}; BLOCKS=${BLOCKS:-0}
 
@@ -112,12 +115,49 @@ sleep 2
 ZERO=$(snd_read)
 ep "ch$TRACK:midi" "128.60.0"
 echo "  $ZERO"
-ZIN=$(field "$(bus0 "$ZERO")" in); ZIN=${ZIN:-0}
+ZIN=$(field "$(bus 0 "$ZERO")" in); ZIN=${ZIN:-0}
 check "nothing reaches a bus the track is not sending to" \
       "$([ "$ZIN" = 0 ] && echo 1 || echo 0)" "in=$ZIN with the send at zero"
 
-# Leave the bus empty: this suite owns the device state it created.
-ep "snd0:module" ""
+echo -e "\033[1m=== The last bus is fed by its own field, not another bus's ===\033[0m"
+# The widening claim, and the one a unit test cannot make: a six-field mix has
+# to land on bus 2 and NOWHERE ELSE. An off-by-one in the parse or in the tap
+# would feed bus 0 or 1 instead, and every "a send carries audio" check above
+# would still pass while the third knob drove the wrong reverb.
+#
+# Bus 0 still holds its module from the arms above, with its send at zero — so
+# it is a live control, not an empty slot that could not light up anyway.
+LAST=$((SEND_BUSES - 1))
+ep "snd$LAST:module" "$SEND_FX"
+sleep 2
+# Sends: every bus at zero except the last, which is full.
+MIXV="1.0,0.0,0"
+for ((b = 0; b < SEND_BUSES; b++)); do
+    if [ "$b" = "$LAST" ]; then MIXV="$MIXV,1.0"; else MIXV="$MIXV,0.0"; fi
+done
+ep "ch$TRACK:mix" "$MIXV"
+sleep 1
+ts_ssh "> $LOG" >/dev/null 2>&1
+ep "ch$TRACK:midi" "144.60.100"
+sleep 2
+WIDE=$(snd_read)
+ep "ch$TRACK:midi" "128.60.0"
+echo "  mix=$MIXV"
+echo "  $WIDE"
+check "the engine accepted a mix as wide as it has buses" \
+      "$(echo "$WIDE" | qgrep "$LAST:mod=$SEND_FX" && echo 1 || echo 0)" "$WIDE"
+LG=$(bus "$LAST" "$WIDE")
+LIN=$(field "$LG" in); LOUT=$(field "$LG" out)
+LIN=${LIN:-0}; LOUT=${LOUT:-0}
+check "the last bus was fed" "$([ "$LIN" -gt 0 ] && echo 1 || echo 0)" \
+      "in=$LIN — the widened field never reached bus $LAST"
+check "and audio came out of it" "$([ "$LOUT" -gt 0 ] && echo 1 || echo 0)" "out=$LOUT"
+OIN=$(field "$(bus 0 "$WIDE")" in); OIN=${OIN:-0}
+check "and bus 0 was left alone" "$([ "$OIN" = 0 ] && echo 1 || echo 0)" \
+      "in=$OIN on bus 0 — the send landed on the wrong bus"
+
+# Leave every bus empty: this suite owns the device state it created.
+for ((b = 0; b < SEND_BUSES; b++)); do ep "snd$b:module" ""; done
 
 echo
 if [ "$FAILS" = 0 ]; then

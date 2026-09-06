@@ -1,4 +1,4 @@
-/* Saving and restoring the two send FX buses.
+/* Saving and restoring the send FX buses.
  *
  * A send is not a track, so it gets its own array in the saved blob rather than
  * a `ChainTrackState` with `t: 16` — a reader that took `t` for a track index
@@ -14,7 +14,7 @@ import { pendingSendFor } from './chain-payload.js';
 import { SEND_COMPONENT, SEND_BUSES } from '../chain/config.js';
 
 export interface SendState {
-    /** Bus index, 0 or 1. */
+    /** Bus index, 0 to SEND_BUSES-1. */
     b: number;
     /** Module id. */
     m: string;

@@ -35,7 +35,7 @@ const hostPorts: (TrackPort | undefined)[] = [];
 
 let enginePort: TrackPort | undefined;
 
-/** Params addressed at movy's engine root — today the two send buses, whose
+/** Params addressed at movy's engine root — the send buses, whose
  *  component key already names the destination. Not a track and not a shadow
  *  slot; see `EngineRootPort`. */
 export function engineRootPort(): TrackPort {

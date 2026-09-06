@@ -15,8 +15,8 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Highlights
 
-- **Send FX.** The master chain gains two **send** slots at its head, hosted by
-  Movy itself. Load one audio FX into each, then feed it from any Movy track's
+- **Send FX.** The master chain gains three **send** slots at its head, hosted
+  by Movy itself. Load one audio FX into each, then feed it from any Movy track's
   new MIX page. The sends are post-fader and post-pan — pulling a track down
   takes its reverb with it — and their output joins Movy's own, which the master
   FX then process.
@@ -27,9 +27,10 @@ far. Earlier work is summarised in the timeline below for context.
   wet effects: an insert-shaped one (distortion, compression, EQ) belongs on the
   track.
 
-- **A MIX page per track.** The last slot in every chain: **VOL**, **PAN**,
-  **SND1**, **SND2**. Pan and mute existed in Movy's mixer from the start with
-  no control surface; this is it. All four automate like any module parameter.
+- **A MIX page per track.** The last slot in every chain: **VOL** and **PAN** on
+  the top row, **SND1**, **SND2** and **SND3** together on the bottom under
+  encoders 5-7. Pan and mute existed in Movy's mixer from the start with no
+  control surface; this is it. All five automate like any module parameter.
 
   On a Schwung-hosted track only VOL is shown. That track's audio never passes
   through Movy, so there is nothing to pan or to tap for a send, and Schwung has
@@ -39,13 +40,17 @@ far. Earlier work is summarised in the timeline below for context.
   zero, the added per-block work is a handful of branches: an untouched bus is
   never accumulated into, never processed, and never cleared.
 
-- **Two heavy sends now render at the same time.** The send phase still runs
-  after every track has rendered — a bus is a sum of tracks — but the buses no
-  longer wait on each other: they go onto the same helper threads Movy already
-  renders its chains across. Two big reverbs cost the more expensive of the two
-  instead of both added together.
+- **Heavy sends render at the same time.** The send phase still runs after every
+  track has rendered — a bus is a sum of tracks — but the buses no longer wait on
+  each other: they go onto the same helper threads Movy already renders its
+  chains across. Several big reverbs cost about the most expensive one instead of
+  all of them added together.
 
-  It fans out only when that is worth the ~21 µs it costs to wake a helper, so a
+  Measured on device against a 2902 µs audio block: two heavy reverbs, 627 µs
+  down to 421 µs; three, 847 µs down to 423 µs — about 15% of the frame handed
+  back.
+
+  It fans out only when that is worth the ~25 µs it costs to wake a helper, so a
   single bus, or a heavy one beside a nearly-free one, still runs exactly as it
   did. Nothing to turn on: it follows **Parallel render**, and turning that off
   restores the old behaviour for measurement.

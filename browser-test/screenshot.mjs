@@ -1048,7 +1048,10 @@ function applyView(preset) {
             env.setParams({ 'slot:volume': '0.7079' });          // -3.0 dB
             const oldGet = globalThis.host_module_get_param;
             globalThis.host_module_get_param = (k) =>
-                k === 'ch6:mix' ? '0.7079,-0.5000,0,0.5012,0.0000' : oldGet?.(k) ?? null;
+                /* Full width, and every send at a DIFFERENT level: a baseline
+                 * where two knobs agree cannot show one being drawn under the
+                 * wrong encoder. */
+                k === 'ch6:mix' ? '0.7079,-0.5000,0,0.5012,0.0000,0.2512' : oldGet?.(k) ?? null;
             resetPorts();
             const mx = createMixModel(mtrk);
             mx.tick();

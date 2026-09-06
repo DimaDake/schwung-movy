@@ -10,6 +10,8 @@
 //! negative spike, which is not "a bit distorted", it is a click on every peak.
 //! Clipping is merely loud; wrapping is broken.
 
+use crate::send_bus::SEND_BUSES;
+
 /// Per-track mix controls. Movy owns these because Move's mixer cannot see the
 /// individual tracks (design §1: "Movy owns its own mixer").
 #[derive(Debug, Clone, Copy)]
@@ -20,12 +22,16 @@ pub struct TrackMix {
     pub pan: f32,
     pub muted: bool,
     /// Post-fader, post-pan tap into each send bus. 0.0 = off.
-    pub send: [f32; 2],
+    ///
+    /// Sized by `SEND_BUSES` rather than spelled out, so widening the bus count
+    /// is a compile error everywhere a tap is written by hand instead of a
+    /// silently-ignored field.
+    pub send: [f32; SEND_BUSES],
 }
 
 impl Default for TrackMix {
     fn default() -> Self {
-        Self { gain: 1.0, pan: 0.0, muted: false, send: [0.0, 0.0] }
+        Self { gain: 1.0, pan: 0.0, muted: false, send: [0.0; SEND_BUSES] }
     }
 }
 
@@ -70,18 +76,22 @@ impl TrackMix {
 pub enum MixField {
     Gain,
     Pan,
-    Send1,
-    Send2,
+    Send(usize),
 }
 
 impl MixField {
+    /// `"send1"` is bus 0: the wire name is what the knob is LABELLED, and the
+    /// labels are one-based. Out-of-range buses are refused rather than
+    /// clamped, so a lane restored from a set saved by a build with more sends
+    /// stays unassigned instead of driving the wrong one.
     pub fn parse(s: &str) -> Option<Self> {
         match s {
             "gain" => Some(Self::Gain),
             "pan" => Some(Self::Pan),
-            "send1" => Some(Self::Send1),
-            "send2" => Some(Self::Send2),
-            _ => None,
+            _ => {
+                let n: usize = s.strip_prefix("send")?.parse().ok()?;
+                (1..=SEND_BUSES).contains(&n).then_some(Self::Send(n - 1))
+            }
         }
     }
 
@@ -95,7 +105,7 @@ impl MixField {
         match self {
             Self::Gain => n * 4.0,
             Self::Pan => n * 2.0 - 1.0,
-            Self::Send1 | Self::Send2 => n,
+            Self::Send(_) => n,
         }
     }
 
@@ -104,8 +114,14 @@ impl MixField {
         match self {
             Self::Gain => mix.gain = f,
             Self::Pan => mix.pan = f,
-            Self::Send1 => mix.send[0] = f,
-            Self::Send2 => mix.send[1] = f,
+            /* `parse` is the only way to build one and it bounds the index, so
+             * this cannot be out of range — but it is written as a guarded
+             * write anyway, because a panic here is on the audio thread. */
+            Self::Send(n) => {
+                if let Some(s) = mix.send.get_mut(n) {
+                    *s = f;
+                }
+            }
         }
     }
 }
@@ -235,7 +251,7 @@ mod tests {
         // The whole point of the tap point: a track faded to half and panned
         // hard right sends a half-level, hard-right signal — not the raw synth
         // output. Pulling a fader down takes its reverb with it.
-        let mix = TrackMix { gain: 0.5, pan: 1.0, send: [1.0, 0.0], ..TrackMix::default() };
+        let mix = TrackMix { gain: 0.5, pan: 1.0, send: [1.0, 0.0, 0.0], ..TrackMix::default() };
         assert_eq!(mix.send_gains(0), (0.0, 0.5));
         assert_eq!(mix.send_gains(1), (0.0, 0.0));
     }
@@ -243,34 +259,37 @@ mod tests {
     #[test]
     fn a_muted_track_sends_nothing() {
         // Muting a track must take its reverb with it, as it does in Live.
-        let mix = TrackMix { muted: true, send: [1.0, 1.0], ..TrackMix::default() };
-        assert_eq!(mix.send_gains(0), (0.0, 0.0));
+        let mix = TrackMix { muted: true, send: [1.0; SEND_BUSES], ..TrackMix::default() };
+        for n in 0..SEND_BUSES {
+            assert_eq!(mix.send_gains(n), (0.0, 0.0), "bus {n}");
+        }
     }
 
     #[test]
     fn send_level_scales_the_tap() {
-        let mix = TrackMix { send: [0.25, 1.0], ..TrackMix::default() };
+        let mix = TrackMix { send: [0.25, 1.0, 0.5], ..TrackMix::default() };
         assert_eq!(mix.send_gains(0), (0.25, 0.25));
         assert_eq!(mix.send_gains(1), (1.0, 1.0));
+        assert_eq!(mix.send_gains(2), (0.5, 0.5));
     }
 
     #[test]
     fn a_bad_send_level_is_silence_not_noise() {
         // The same rule gain already has: a NaN must never reach the bus.
         for bad in [-1.0f32, f32::NAN, f32::INFINITY] {
-            let mix = TrackMix { send: [bad, 0.0], ..TrackMix::default() };
+            let mix = TrackMix { send: [bad, 0.0, 0.0], ..TrackMix::default() };
             assert_eq!(mix.send_gains(0), (0.0, 0.0), "send {:?} must not corrupt the bus", bad);
         }
     }
 
     #[test]
     fn an_out_of_range_bus_index_sends_nothing() {
-        let mix = TrackMix { send: [1.0, 1.0], ..TrackMix::default() };
-        assert_eq!(mix.send_gains(2), (0.0, 0.0));
+        let mix = TrackMix { send: [1.0; SEND_BUSES], ..TrackMix::default() };
+        assert_eq!(mix.send_gains(SEND_BUSES), (0.0, 0.0));
     }
 
     #[test]
     fn defaults_send_nothing() {
-        assert_eq!(TrackMix::default().send, [0.0, 0.0]);
+        assert_eq!(TrackMix::default().send, [0.0; SEND_BUSES]);
     }
 }

@@ -71,27 +71,43 @@ fn parse_midi_triplet(val: &str) -> Option<[u8; 3]> {
     Some([s, d1, d2])
 }
 
-/// `"0.8.-0.5.0"` -> gain 0.8, pan -0.5, unmuted. Returns None on anything
+/// `"0.8,-0.5,0"` -> gain 0.8, pan -0.5, unmuted. Returns None on anything
 /// malformed so a garbled param cannot silence or blast a track.
-/// `gain,pan,muted` or `gain,pan,muted,send1,send2`.
+/// `gain,pan,muted` followed by a COMPLETE block of send levels, or none.
 ///
 /// Three fields is the legacy form every set saved before sends existed
 /// carries, and it must keep restoring — at zero sends, not at whatever the
-/// slot happened to hold. A lone fourth field is half a pair and is refused
-/// whole: applying a send level nothing wrote is worse than refusing the value.
+/// slot happened to hold. Five is the form written while two sends were all
+/// there were: it must restore both and leave the rest at zero.
+///
+/// A PARTIAL block is refused whole — `gain,pan,muted,0.25` is a truncated
+/// five-field value, never a form movy wrote, because the send block has only
+/// ever grown as a unit. Applying a mix with a send level silently dropped
+/// leaves a track at a level nothing chose, which is worse than refusing it.
+///
+/// More sends than this build has is refused for the same reason: those levels
+/// have nowhere to land.
 fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
+    /* Shipped shapes only. The list grows when a bus is added; the older widths
+     * stay, because sets written by older builds keep opening. */
+    const SEND_FIELDS: [usize; 3] = [0, 2, send_bus::SEND_BUSES];
+    /* Iterated rather than collected: this is the param write path, and nothing
+     * movy reaches from the audio callback may allocate. */
     let mut it = val.split(',');
     let gain: f32 = it.next()?.trim().parse().ok()?;
     let pan: f32 = it.next()?.trim().parse().ok()?;
     let muted = it.next()?.trim() != "0";
-    let mut send = [0.0f32; 2];
-    match (it.next(), it.next(), it.next()) {
-        (None, _, _) => {}
-        (Some(a), Some(b), None) => {
-            send[0] = a.trim().parse().ok()?;
-            send[1] = b.trim().parse().ok()?;
+    let mut send = [0.0f32; send_bus::SEND_BUSES];
+    let mut n = 0usize;
+    for raw in it {
+        if n == send_bus::SEND_BUSES {
+            return None; // more sends than this build has anywhere to put
         }
-        _ => return None,
+        send[n] = raw.trim().parse().ok()?;
+        n += 1;
+    }
+    if !SEND_FIELDS.contains(&n) {
+        return None;
     }
     if !gain.is_finite() || !pan.is_finite() || !send.iter().all(|s| s.is_finite()) {
         return None;
@@ -100,7 +116,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.66.0";
+const ENGINE_VERSION: &str = "0.67.0";
 
 /// Tracks backed by schwung's own shadow slots by default. Their notes go out as
 /// MIDI on the matching channel; everything above this index is a chain movy
@@ -805,22 +821,43 @@ mod tests {
         assert_eq!(m.gain, 0.5);
         assert_eq!(m.pan, -0.25);
         assert!(!m.muted);
-        assert_eq!(m.send, [0.0, 0.0]);
+        assert_eq!(m.send, [0.0; send_bus::SEND_BUSES]);
     }
 
+    /* The width every set written between sends shipping and send 3 shipping
+     * carries. It must restore BOTH levels and leave the added bus at zero —
+     * not at whatever the slot happened to hold, and not refused for being
+     * narrow. This is the half of the compatibility that faces backwards. */
     #[test]
-    fn a_five_field_mix_carries_the_sends() {
+    fn a_two_send_mix_from_an_older_build_still_restores() {
         let m = parse_mix("1.0,0.0,0,0.25,0.75").expect("five fields is valid");
-        assert_eq!(m.send, [0.25, 0.75]);
+        assert_eq!(m.send[0], 0.25);
+        assert_eq!(m.send[1], 0.75);
+        assert_eq!(m.send[2], 0.0, "the bus this build added is not invented");
     }
 
     #[test]
-    fn a_partial_send_pair_is_refused_whole() {
-        // Half a pair is not a mix this build can honour: applying a level
-        // nothing wrote is worse than refusing the value.
-        assert!(parse_mix("1.0,0.0,0,0.25").is_none());
-        assert!(parse_mix("1.0,0.0,0,0.25,0.5,0.5").is_none());
+    fn a_full_width_mix_carries_every_send() {
+        let m = parse_mix("1.0,0.0,0,0.25,0.75,0.5").expect("six fields is valid");
+        assert_eq!(m.send, [0.25, 0.75, 0.5]);
+    }
+
+    #[test]
+    fn a_partial_send_block_is_refused_whole() {
+        // A truncated value, never a shape movy wrote: the send block has only
+        // ever grown as a unit. Applying a level nothing wrote is worse than
+        // refusing the value.
+        assert!(parse_mix("1.0,0.0,0,0.25").is_none(), "one send is a truncation");
         assert!(parse_mix("1.0,0.0,0,nan,0.5").is_none());
+    }
+
+    /* The half that faces FORWARDS. A set written by a build with more sends
+     * than this one has levels with nowhere to land, and a mix applied with a
+     * field silently dropped is a track at a level nobody chose. */
+    #[test]
+    fn a_mix_wider_than_this_build_is_refused() {
+        let too_wide = "1.0,0.0,0".to_string() + &",0.5".repeat(send_bus::SEND_BUSES + 1);
+        assert!(parse_mix(&too_wide).is_none(), "{too_wide} must be refused");
     }
 
     #[test]
@@ -884,7 +921,8 @@ mod tests {
     #[test]
     fn rejects_send_buses_that_cannot_exist() {
         // Clamping would land a write meant for nothing on bus 0.
-        assert_eq!(parse_send_key("snd2:module"), None);
+        let past_the_end = format!("snd{}:module", send_bus::SEND_BUSES);
+        assert_eq!(parse_send_key(&past_the_end), None, "{past_the_end}");
         assert_eq!(parse_send_key("snd9:module"), None);
         assert_eq!(parse_send_key("sndx:module"), None);
         assert_eq!(parse_send_key("snd0"), None);

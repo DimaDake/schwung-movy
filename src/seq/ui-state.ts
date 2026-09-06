@@ -39,7 +39,7 @@ export function serializeUiState(): string {
         /* Movy-hosted chains. Host tracks are not here: Move's own set file
          * carries those, and duplicating them would let the two disagree. */
         chains: captureChains(chainDoc),
-        /* The two send FX buses. Their own array, not a `chains` entry with a
+        /* The send FX buses. Their own array, not a `chains` entry with a
          * track index above TRACK_COUNT: a send is not a track, and a reader
          * that took `t` for one would address a track that does not exist. */
         sends: captureSends(chainDoc),

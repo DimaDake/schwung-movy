@@ -16,7 +16,7 @@ export const CHAIN_SLOTS: ChainSlot[] = [
 
 /* The two virtual chain slots (no module to scan or swap): the LFO page edits
  * the track's two schwung slot LFOs, and the MIX page edits movy's own summing
- * mixer — level, pan and the two send amounts.
+ * mixer — level, pan and the send amounts.
  *
  * Both are addressed by an EXPLICIT index. `length - 1` was fine while the LFO
  * was last, but the moment a page was appended after it every `isLfoSlot()`
@@ -42,6 +42,7 @@ export const MASTER_FX_SLOTS: ChainSlot[] = [
      * output joins movy's stereo out, which schwung's master FX then process. */
     { componentKey: 'snd0', label: 'SEND 1', scanDir: 'audio_fx', expectedType: 'audio_fx' },
     { componentKey: 'snd1', label: 'SEND 2', scanDir: 'audio_fx', expectedType: 'audio_fx' },
+    { componentKey: 'snd2', label: 'SEND 3', scanDir: 'audio_fx', expectedType: 'audio_fx' },
     { componentKey: 'master_fx:fx1', label: 'MFX 1', scanDir: 'audio_fx', expectedType: 'audio_fx' },
     { componentKey: 'master_fx:fx2', label: 'MFX 2', scanDir: 'audio_fx', expectedType: 'audio_fx' },
     { componentKey: 'master_fx:fx3', label: 'MFX 3', scanDir: 'audio_fx', expectedType: 'audio_fx' },
@@ -78,7 +79,7 @@ export function isMasterComponent(componentKey: string): boolean {
 /* A send bus is hosted by MOVY, not by schwung's master bus. It rides the master
  * page because that is where a user looks for it, but its params live in movy's
  * engine under `snd<n>:` and its port must not be a shadow slot. */
-export const SEND_BUSES = 2;
+export const SEND_BUSES = 3;
 
 /* The chain host component a send bus loads its FX into. A send holds ONE audio
  * FX, so the bus lives in the engine key and the component underneath is always
@@ -86,12 +87,23 @@ export const SEND_BUSES = 2;
  * `SEND_COMPONENT` in `engine/crates/movy-dsp/src/chain_slots.rs`. */
 export const SEND_COMPONENT = 'fx1';
 
+/* Derived from SEND_BUSES rather than listed. While the two keys were spelled
+ * out here, adding a bus would have given it a slot that renders on the master
+ * page and browses for a module — but `componentPort` would route its edits to
+ * a shadow slot instead of movy's engine, which is a send that loads a module
+ * and then does nothing at all. */
 export function isSendComponent(componentKey: string): boolean {
-    return componentKey === 'snd0' || componentKey === 'snd1';
+    return sendBusOf(componentKey) >= 0;
 }
 
 export function sendBusOf(componentKey: string): number {
-    return isSendComponent(componentKey) ? Number(componentKey.slice(3)) : -1;
+    if (!componentKey.startsWith('snd')) return -1;
+    const rest = componentKey.slice(3);
+    /* Digits only, and not `Number()`: that reads '' as 0 and ' 1' as 1, so
+     * `snd` alone would answer bus 0 and take a master FX slot's edits with it. */
+    if (!/^[0-9]+$/.test(rest)) return -1;
+    const bus = Number(rest);
+    return bus < SEND_BUSES ? bus : -1;
 }
 
 /* Read-back param key for a component's loaded module id. The device sets a

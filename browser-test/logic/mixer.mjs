@@ -63,60 +63,91 @@ _log('\nTest: the MIX page');
 
 {
     const { buildMixCells } = await import('../../dist/esm/mixer/mix-cells.js');
+    const { SEND_BUSES } = await import('../../dist/esm/chain/config.js');
 
-    const movy = buildMixCells({ gain: 1, pan: 0, muted: false, send: [0, 0] }, 'movy');
-    eq('four cells, four blanks', movy.filter((c) => c !== null).length, 4);
-    eq('the order is VOL PAN SND1 SND2',
-       movy.slice(0, 4).map((c) => c.shortName).join(' '), 'VOL PAN SND1 SND2');
+    const off = () => new Array(SEND_BUSES).fill(0);
+    const names = (cells) => cells.map((c) => (c ? c.shortName : '-')).join(' ');
+
+    const movy = buildMixCells({ gain: 1, pan: 0, muted: false, send: off() }, 'movy');
+    eq('a cell per field, the rest blank', movy.filter((c) => c !== null).length, 2 + SEND_BUSES);
+
+    /* The layout itself, both rows, as one string. VOL and PAN sit alone on
+     * line 1 and every send is together on line 2 under encoders 5-7: the sends
+     * are a group and read as one, where splitting them put SND1 beside PAN and
+     * invited reading it as part of the fader. */
+    eq('line 1 is the fader, line 2 is the sends',
+       names(movy), 'VOL PAN - - SND1 SND2 SND3 -');
+
     eq('unity reads 0.0 dB', movy[0].displayValue, '0.0 dB');
     eq('centre pan reads C', movy[1].displayValue, 'C');
-    eq('a send at zero reads OFF', movy[2].displayValue, 'OFF');
-    ok('all four are automatable on a movy chain',
-       movy.slice(0, 4).every((c) => c.automatable));
+    eq('a send at zero reads OFF', movy[4].displayValue, 'OFF');
+    ok('every drawn cell is automatable on a movy chain',
+       movy.filter((c) => c !== null).every((c) => c.automatable));
 
-    const panned = buildMixCells({ gain: 0.5, pan: -1, muted: false, send: [1, 0.5] }, 'movy');
+    const panned = buildMixCells({ gain: 0.5, pan: -1, muted: false, send: [1, 0.5, 0.25] }, 'movy');
     eq('hard left reads L100', panned[1].displayValue, 'L100');
-    eq('a full send reads 0.0 dB', panned[2].displayValue, '0.0 dB');
-    eq('a half send reads its level in dB', panned[3].displayValue, '-6.0 dB');
+    eq('a full send reads 0.0 dB', panned[4].displayValue, '0.0 dB');
+    eq('a half send reads its level in dB', panned[5].displayValue, '-6.0 dB');
+    eq('the third send is its own level', panned[6].displayValue, '-12.0 dB');
     eq('a fader at half reads -6.0 dB', panned[0].displayValue, '-6.0 dB');
     ok('centre is halfway along the pan arc',
-       buildMixCells({ gain: 1, pan: 0, muted: false, send: [0, 0] }, 'movy')[1].normalizedValue === 0.5);
+       buildMixCells({ gain: 1, pan: 0, muted: false, send: off() }, 'movy')[1].normalizedValue === 0.5);
 
     /* A schwung-hosted track renders inside the shim: movy never sees its audio
-     * and schwung has no slot:pan, so three of the four are unreachable — not
-     * unimplemented. Drawing live knobs there invites a gesture that cannot do
-     * anything. */
-    const host = buildMixCells({ gain: 1, pan: 0, muted: false, send: [0, 0] }, 'host');
-    eq('a host track keeps its fader', host[0].shortName, 'VOL');
-    ok('a host track has no pan cell', host[1] === null);
-    ok('a host track has no send cells', host[2] === null && host[3] === null);
+     * and schwung has no slot:pan, so everything but the fader is unreachable —
+     * not unimplemented. Drawing live knobs there invites a gesture that cannot
+     * do anything. */
+    const host = buildMixCells({ gain: 1, pan: 0, muted: false, send: off() }, 'host');
+    eq('a host track keeps its fader, alone', names(host), 'VOL - - - - - - -');
     ok('and its fader is not automatable either', !host[0].automatable);
 
     /* Mute is the engine's own per-track mute, so the fader still shows the
      * level it will return to. */
-    const muted = buildMixCells({ gain: 0.5, pan: 0, muted: true, send: [0, 0] }, 'movy');
+    const muted = buildMixCells({ gain: 0.5, pan: 0, muted: true, send: off() }, 'movy');
     eq('mute does not zero the displayed level', muted[0].displayValue, '-6.0 dB');
 
     eq('silence reads -INF',
-       buildMixCells({ gain: 0, pan: 0, muted: false, send: [0, 0] }, 'movy')[0].displayValue, '-INF');
+       buildMixCells({ gain: 0, pan: 0, muted: false, send: off() }, 'movy')[0].displayValue, '-INF');
 }
 
 _log('\nTest: MIX page values and ranges');
 
 {
-    const { parseMixValue, packMixValue, FIELD_RANGE, FIELD_AT } =
+    const { parseMixValue, packMixValue, isMixValue, FIELD_RANGE, FIELD_AT } =
         await import('../../dist/esm/mixer/mix-io.js');
 
     /* Legacy sets carry three fields. Reading one must not invent send levels. */
     const legacy = parseMixValue('0.5,-0.25,0');
     eq('a legacy triple parses', legacy.gain, 0.5);
-    eq('and sends nothing', legacy.send.join(','), '0,0');
+    eq('and sends nothing', legacy.send.join(','), '0,0,0');
+
+    /* The width every set written before send 3 existed carries. Both levels
+     * must restore and the added bus must stay at zero — this is the half of
+     * the compatibility that faces backwards. */
     const five = parseMixValue('0.5,-0.25,1,0.25,0.75');
-    eq('a five-field value carries both sends', five.send.join(','), '0.25,0.75');
+    eq('a two-send value restores both', five.send.join(','), '0.25,0.75,0');
     ok('and the mute', five.muted);
+
+    const six = parseMixValue('0.5,-0.25,1,0.25,0.75,0.5');
+    eq('a full-width value carries every send', six.send.join(','), '0.25,0.75,0.5');
+
     eq('a malformed value is the default', parseMixValue('nonsense').gain, 1);
-    eq('a partial send pair is refused whole', parseMixValue('1,0,0,0.5').send.join(','), '0,0');
-    eq('always written as five fields', packMixValue(five), '0.5000,-0.2500,1,0.2500,0.7500');
+    /* A truncated value, never a shape movy wrote: the send block has only ever
+     * grown as a unit. */
+    eq('a partial send block is refused whole', parseMixValue('1,0,0,0.5').send.join(','), '0,0,0');
+    ok('and a value wider than this build has buses is refused',
+       !isMixValue('1,0,0,0.5,0.5,0.5,0.5'));
+
+    /* THE downgrade rule. This string is what lands in the set file, so its
+     * width decides whether a build with only two sends can still open the set
+     * — and such a build refuses a value it cannot parse WHOLE, which would
+     * bring the track back unmuted, at unity, at a level nobody chose. */
+    eq('a set that never touched send 3 stays two-send wide',
+       packMixValue(five), '0.5000,-0.2500,1,0.2500,0.7500');
+    eq('and widens only once send 3 is turned up',
+       packMixValue(six), '0.5000,-0.2500,1,0.2500,0.7500,0.5000');
+    eq('never narrower than the two-send form',
+       packMixValue(parseMixValue('0.5,-0.25,0')), '0.5000,-0.2500,0,0.0000,0.0000');
 
     /* These three ranges are the engine's too (MixField::denorm). A lane that
      * scaled differently from the knob would make an automated value jump the
@@ -124,7 +155,10 @@ _log('\nTest: MIX page values and ranges');
     eq('gain spans the whole fader', FIELD_RANGE.gain.min + '..' + FIELD_RANGE.gain.max, '0..4');
     eq('pan spans left to right', FIELD_RANGE.pan.min + '..' + FIELD_RANGE.pan.max, '-1..1');
     eq('a send spans off to unity', FIELD_RANGE.send1.min + '..' + FIELD_RANGE.send1.max, '0..1');
-    eq('knob order matches the cells', FIELD_AT.join(' '), 'gain pan send1 send2');
+    /* The holes are load-bearing: a knob with no field must not open an undo
+     * group or claim an automation lane. */
+    eq('knob order matches the cells',
+       FIELD_AT.map((f) => f ?? '-').join(' '), 'gain pan - - send1 send2 send3');
 }
 
 /* ── Automating a mix param ──────────────────────────────────────────────── */
@@ -166,27 +200,38 @@ _log('\nTest: automating a mix param');
     ok('and a chain one is not', !isMixTarget('synth:pan'));
 }
 
-/* ── The two SEND slots on the master page ───────────────────────────────── */
+/* ── The SEND slots on the master page ────────────────────────────────────── */
 
 _log('\nTest: master send FX slots');
 
 {
-    const { MASTER_FX_SLOTS, MASTER_LFO_INDEX, isMasterComponent, isSendComponent,
-            sendBusOf, moduleReadKey } = await import('../../dist/esm/chain/config.js');
+    const { MASTER_FX_SLOTS, MASTER_LFO_INDEX, SEND_BUSES, isMasterComponent,
+            isSendComponent, sendBusOf, moduleReadKey } =
+        await import('../../dist/esm/chain/config.js');
 
-    eq('master reads SEND SEND MFX x4 LFO',
+    eq('master reads SEND x3, MFX x4, LFO',
        MASTER_FX_SLOTS.map((s) => s.label).join(' '),
-       'SEND 1 SEND 2 MFX 1 MFX 2 MFX 3 MFX 4 LFO');
-    eq('the sends are left of MFX', MASTER_FX_SLOTS[0].componentKey, 'snd0');
+       'SEND 1 SEND 2 SEND 3 MFX 1 MFX 2 MFX 3 MFX 4 LFO');
+    /* Left of the master FX because they are left of them in the SIGNAL PATH:
+     * a send's output joins movy's stereo out, which the master FX then
+     * process. A bus appended after them would draw in the wrong order. */
+    eq('every send is left of MFX',
+       MASTER_FX_SLOTS.slice(0, SEND_BUSES).map((s) => s.componentKey).join(' '),
+       'snd0 snd1 snd2');
     eq('MASTER_LFO_INDEX still points at the LFO',
        MASTER_FX_SLOTS[MASTER_LFO_INDEX].label, 'LFO');
 
     /* A send is movy's own, not schwung's master bus: routing one to a shadow
      * slot would write master_fx keys for a chain schwung does not host. */
     ok('a send is not a master component', !isMasterComponent('snd0'));
-    ok('a send is a send', isSendComponent('snd0') && isSendComponent('snd1'));
-    eq('and knows its bus', sendBusOf('snd1'), 1);
+    ok('every bus is a send',
+       Array.from({ length: SEND_BUSES }, (_, n) => isSendComponent('snd' + n)).every(Boolean));
+    eq('and knows its bus', sendBusOf('snd2'), 2);
     eq('a track component is not a send', sendBusOf('fx1'), -1);
+    /* `componentPort` routes on this: a key that answers a bus it does not have
+     * would take a master FX slot's edits into movy's engine and drop them. */
+    eq('one past the last bus is not a send', sendBusOf('snd' + SEND_BUSES), -1);
+    eq('and neither is the bare prefix', sendBusOf('snd'), -1);
 
     /* The chain host publishes a loaded module under an underscore alias, not
      * the colon key it was set with; the engine does that translation for a
@@ -260,6 +305,7 @@ _log('\nTest: send persistence');
     const { sendsFromDoc, sendTriples, sendDocSlot, busOfDocSlot, sendPayloadPairs } =
         await import('../../dist/esm/track/send-persist.js');
     const { MOVY_CHAINS } = await import('../../dist/esm/track/ref.js');
+    const { SEND_BUSES } = await import('../../dist/esm/chain/config.js');
 
     /* On the wire a send rides the same slot-generic chain-set document, above
      * every track — the engine expects a bus at MOVY_CHAINS + n. */
@@ -267,7 +313,7 @@ _log('\nTest: send persistence');
     eq('and bus 1 the one after', sendDocSlot(1), MOVY_CHAINS + 1);
     eq('a track slot is not a bus', busOfDocSlot(7), -1);
     eq('a bus slot is', busOfDocSlot(MOVY_CHAINS + 1), 1);
-    eq('and one past the last bus is not', busOfDocSlot(MOVY_CHAINS + 2), -1);
+    eq('and one past the last bus is not', busOfDocSlot(MOVY_CHAINS + SEND_BUSES), -1);
 
     const doc = [String(MOVY_CHAINS), 'fx1', 'reverb', '7', 'synth', 'plaits'];
     const sends = sendsFromDoc(doc);
@@ -298,6 +344,7 @@ _log('\nTest: MIX page edits are undoable');
     const { resetPorts } = await import('../../dist/esm/track/registry.js');
     const { takeUndoViolation } = await import('../../dist/esm/undo/record.js');
     const { DETENT_DIV } = await import('../../dist/esm/seq/detent.js');
+    const { FIELD_AT } = await import('../../dist/esm/mixer/mix-io.js');
     const { undoDepth, resetUndoState } = await import('../../dist/esm/undo/state.js');
 
     const writes = [];
@@ -316,16 +363,20 @@ _log('\nTest: MIX page edits are undoable');
      * is open, so an edit with no gesture is both un-undoable and noisy. */
     /* One physical click is DETENT_DIV raw units — the same one-step-per-click
      * feel the hold-track+volume gesture has. */
-    m.handleKnobTouch(2);
-    m.handleKnobDelta(2, DETENT_DIV);
+    /* Knob 5 is SND1 — the first encoder of line 2, per FIELD_AT. Written as
+     * the lookup rather than the number so this follows the layout instead of
+     * silently turning into a test of whatever knob 5 becomes next. */
+    const snd1 = FIELD_AT.indexOf('send1');
+    m.handleKnobTouch(snd1);
+    m.handleKnobDelta(snd1, DETENT_DIV);
     eq('a send turn writes the mixer', writes.length > 0, true);
     eq('and writes the whole value', (writes[0][1].match(/,/g) || []).length, 4);
     eq('with no ungrouped-write violation', takeUndoViolation(), '');
 
     /* One gesture, one undo entry, however many detents it took. */
-    m.handleKnobDelta(2, DETENT_DIV);
-    m.handleKnobDelta(2, DETENT_DIV);
-    m.handleKnobRelease(2);
+    m.handleKnobDelta(snd1, DETENT_DIV);
+    m.handleKnobDelta(snd1, DETENT_DIV);
+    m.handleKnobRelease(snd1);
     eq('a whole turn is one undo entry', undoDepth(), 1);
 
     globalThis.host_module_get_param = oG;
@@ -339,8 +390,19 @@ _log('\nTest: MIX page automation feedback');
 
 {
     const { buildMixVM } = await import('../../dist/esm/mixer/mix-cells.js');
+    const { FIELD_AT } = await import('../../dist/esm/mixer/mix-io.js');
+    const { SEND_BUSES } = await import('../../dist/esm/chain/config.js');
 
-    const vals = { gain: 1, pan: 0, muted: false, send: [0, 0] };
+    /* By FIELD then, not by row and column: which encoder SND1 sits under is
+     * the layout's business, and these assertions are about the automation
+     * decoration. Addressed positionally they would silently start testing PAN
+     * the next time the page is rearranged. */
+    const cellFor = (vm, field) => {
+        const k = FIELD_AT.indexOf(field);
+        return vm.rows[Math.floor(k / 4)][k % 4];
+    };
+
+    const vals = { gain: 1, pan: 0, muted: false, send: new Array(SEND_BUSES).fill(0) };
     const auto = (over = {}) => ({
         assignedLanes: 0, activeLanes: 0, held: false, poolFull: false,
         heldValues: new Map(), liveValues: new Map(),
@@ -351,26 +413,26 @@ _log('\nTest: MIX page automation feedback');
     /* Without this the page says nothing about a send you have automated: no
      * lane marker, no locked value on a held step, no arc following a take. */
     const assigned = buildMixVM({ vals, kind: 'movy', touched: [], auto: auto() });
-    ok('an assigned param is marked', assigned.rows[0][2].assigned);
-    ok('an unassigned one is not', !assigned.rows[0][1].assigned);
-    ok('and it is not "automated" until a lock exists', !assigned.rows[0][2].automated);
+    ok('an assigned param is marked', cellFor(assigned, 'send1').assigned);
+    ok('an unassigned one is not', !cellFor(assigned, 'pan').assigned);
+    ok('and it is not "automated" until a lock exists', !cellFor(assigned, 'send1').automated);
 
     const active = buildMixVM({ vals, kind: 'movy', touched: [],
                                auto: auto({ activeLanes: 1 << 3 }) });
-    ok('a lane with locks reads as automated', active.rows[0][2].automated);
+    ok('a lane with locks reads as automated', cellFor(active, 'send1').automated);
 
     /* A held step shows THAT STEP's value, denormalized on the send's own range
      * — the same range the engine uses, or the arc would disagree with what you
      * hear. */
     const held = buildMixVM({ vals, kind: 'movy', touched: [],
         auto: auto({ held: true, heldValues: new Map([[3, 127]]) }) });
-    eq('a held step shows its locked value', held.rows[0][2].displayValue, '0.0 dB');
-    ok('and inverts the cell, like a knob touch', held.rows[0][2].touched);
+    eq('a held step shows its locked value', cellFor(held, 'send1').displayValue, '0.0 dB');
+    ok('and inverts the cell, like a knob touch', cellFor(held, 'send1').touched);
     ok('the page reports the hold', held.automationHeld);
 
     const live = buildMixVM({ vals, kind: 'movy', touched: [],
         auto: auto({ liveValues: new Map([[3, 64]]) }) });
-    ok('a live take moves the arc', live.rows[0][2].normalizedValue > 0);
+    ok('a live take moves the arc', cellFor(live, 'send1').normalizedValue > 0);
 
     const full = buildMixVM({ vals, kind: 'movy', touched: [], auto: auto({ poolFull: true }) });
     ok('and a full lane pool is reported', full.automationPoolFull);
@@ -378,8 +440,8 @@ _log('\nTest: MIX page automation feedback');
     /* A page built without one must still render — the screenshot scenes and
      * every test above build it that way. */
     const bare = buildMixVM({ vals, kind: 'movy', touched: [] });
-    ok('no automation view is not a crash', bare.rows[0][2] !== null);
-    ok('and nothing claims to be assigned', !bare.rows[0][2].assigned);
+    ok('no automation view is not a crash', cellFor(bare, 'send1') !== null);
+    ok('and nothing claims to be assigned', !cellFor(bare, 'send1').assigned);
 }
 
 }

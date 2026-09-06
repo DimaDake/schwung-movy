@@ -1,11 +1,11 @@
 /* createMixModel — a Model-conforming object for the virtual MIX chain slot.
  *
- * Movy's own summing mixer as one page: level, pan and the two send amounts
+ * Movy's own summing mixer as one page: level, pan and the send amounts
  * (design §8). Built like `createLfoModel` — a closure over cached values plus
  * `inertModelSurface` for the accessors a page with no module answers the same
  * way.
  *
- * Unlike the LFO page, these four params ARE automatable, so four of those
+ * Unlike the LFO page, these params ARE automatable, so four of those
  * inert accessors are overridden: the lane layer asks this page for a param's
  * identity, its range and its current value exactly as it asks a module's
  * model, and a lane restored from the engine is validated through the same
@@ -21,8 +21,8 @@ import { inertModelSurface } from '../lfo/inert.js';
 import { ampToIdx, idxToAmp, VOL_STEPS } from './db-ladder.js';
 import { buildMixVM } from './mix-cells.js';
 import {
-    FIELD_AT, FIELD_RANGE, PAN_MAX, PAN_MIN, SEND_MAX, defaultMix, packMixValue,
-    readMix, writeMix, type MixFieldName, type MixVals,
+    FIELD_AT, FIELD_RANGE, PAN_MAX, PAN_MIN, SEND_MAX, busOfField, defaultMix,
+    packMixValue, readMix, writeMix, type MixFieldName, type MixVals,
 } from './mix-io.js';
 import { trackKind } from '../track/ref.js';
 
@@ -45,12 +45,12 @@ export function createMixModel(track: number): Model {
 
     function valueOf(field: MixFieldName): number {
         const v = ensure();
-        return field === 'gain' ? v.gain
-             : field === 'pan' ? v.pan
-             : field === 'send1' ? v.send[0] : v.send[1];
+        if (field === 'gain') return v.gain;
+        if (field === 'pan') return v.pan;
+        return v.send[busOfField(field)] ?? 0;
     }
 
-    /* VOL and both sends walk the shared dB ladder — one detent is one dB, and
+    /* VOL and every send walk the shared dB ladder — one detent is one dB, and
      * index 0 is true silence — so the page and the hold-track+volume gesture
      * feel like the same fader. */
     function ladderStep(current: number, n: number, max: number): number {
@@ -75,8 +75,8 @@ export function createMixModel(track: number): Model {
             if (n === 0) return;
             if (field === 'gain') v.gain = ladderStep(v.gain, n, FIELD_RANGE.gain.max);
             else {
-                const i = field === 'send1' ? 0 : 1;
-                v.send[i] = ladderStep(v.send[i], n, SEND_MAX);
+                const i = busOfField(field);
+                v.send[i] = ladderStep(v.send[i] ?? 0, n, SEND_MAX);
             }
         }
         /* An undo group has to be OPEN before the write: `recordParamOp` logs a
@@ -134,7 +134,7 @@ export function createMixModel(track: number): Model {
         refreshParamKey(): boolean { dropCache(); return true; },
         hasLoadedParams(): boolean { return loaded; },
         ...inertModelSurface('mix', 'MIX', 'mix'),
-        /* AFTER the spread: these four are the half of the surface the LFO page
+        /* AFTER the spread: these are the half of the surface the LFO page
          * does not have. `target: 'mix'` is what routes the lane to movy's own
          * mixer instead of a chain knob mapping (see seq/lane-mapping.ts). */
         getKnobParamInfo(physK: number): KnobParamInfo | null {

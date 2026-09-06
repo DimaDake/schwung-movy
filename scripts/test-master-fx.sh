@@ -89,14 +89,17 @@ sleep 3
 echo -e "${BLD}=== Loading a module into master FX slot 1 ===${RST}"
 # Session view is what puts the master chain on screen (masterChainActive).
 # masterChainIndex starts at 0, which is movy's own SEND 1 — the master page
-# reads SEND 1 / SEND 2 / MFX 1-4 / LFO — so the jog has to walk past both sends
+# reads SEND 1..N / MFX 1-4 / LFO — so the jog has to walk past EVERY send
 # before a click opens master_fx:fx1. This suite is about schwung's master
 # chain; the sends are movy-hosted and persist by a different route entirely.
 #
 # CC 50 TOGGLES Note/Session, so which view a single tap lands on depends on
 # where movy already was — device state this suite does not own. Try, look at
 # what actually opened, and correct, rather than assuming a starting view.
-MFX1_SLOT=2                 # index of master_fx:fx1 in MASTER_FX_SLOTS
+# Index of master_fx:fx1 in MASTER_FX_SLOTS, read from the UI's own constant.
+# Hardcoded, this pointed at the last SEND slot the moment a bus was added — and
+# the suite would have opened a send's browser while reporting on master FX.
+MFX1_SLOT=$(node -e "import('./dist/esm/chain/config.js').then(m => console.log(m.SEND_BUSES))")
 for attempt in 1 2 3; do
     ts_tap_cc $CC_SESSION
     sleep 1.0

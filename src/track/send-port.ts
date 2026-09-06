@@ -1,5 +1,5 @@
 /* Params addressed at movy's engine ROOT, with the component key carrying the
- * namespace — today the two send buses, `snd0` and `snd1`.
+ * namespace — the send buses, `snd0` upward.
  *
  * Deliberately NOT a prefixing port like `MovyChainPort`. A chain port turns
  * `synth:cutoff` into `ch7:synth:cutoff` because the track number is not in the

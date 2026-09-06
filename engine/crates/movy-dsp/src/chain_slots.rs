@@ -882,15 +882,30 @@ impl ChainSlots {
         }
     }
 
-    /// One chain's mix as the same `gain,pan,muted` triple `set_mix` accepts.
+    /// One chain's mix in the same shape `set_mix` accepts.
     ///
     /// Movy owns this state — no chain-host param carries it — so without a
     /// reader it was write-only: the volume gesture could not resume from the
     /// level it last set, and the set file had no way to record it.
+    ///
+    /// **The SHORTEST shape that carries the truth**, because this string is
+    /// what lands in the set file. Trailing sends at zero are dropped down to
+    /// the two-send width, so a set that never touched send 3 still opens on a
+    /// build that has only two — where a six-field value would be refused whole
+    /// and the track would come back at unity, unmuted, at a level nobody
+    /// chose. Widths below two are never emitted: three fields is a shape only
+    /// older builds wrote, and re-emitting it would buy nothing.
     pub fn mix_csv(&self, slot: usize) -> Option<String> {
         let m = self.mixes.get(slot)?;
-        Some(format!("{:.4},{:.4},{},{:.4},{:.4}",
-                     m.gain, m.pan, m.muted as u8, m.send[0], m.send[1]))
+        let mut n = m.send.len();
+        while n > 2 && m.send[n - 1] == 0.0 {
+            n -= 1;
+        }
+        let mut out = format!("{:.4},{:.4},{}", m.gain, m.pan, m.muted as u8);
+        for s in &m.send[..n] {
+            out.push_str(&format!(",{s:.4}"));
+        }
+        Some(out)
     }
 
     /// Deliver a MIDI message to one chain.
@@ -1470,7 +1485,7 @@ mod tests {
     #[test]
     fn a_send_lane_spans_zero_to_unity() {
         let mut slots = ChainSlots::new();
-        slots.set_mix_lane(4, 1, MixField::Send2);
+        slots.set_mix_lane(4, 1, MixField::Send(1));
         slots.apply_mix_lane(4, 1, 127);
         assert_eq!(slots.mix_csv(4).as_deref(), Some("1.0000,0.0000,0,0.0000,1.0000"));
     }
@@ -1534,7 +1549,8 @@ mod tests {
         let mut slots = ChainSlots::new();
         assert_eq!(slots.mix_csv(4).as_deref(), Some("1.0000,0.0000,0,0.0000,0.0000"),
                    "unity, centred, no sends by default");
-        slots.set_mix(4, TrackMix { gain: 0.3162, pan: -0.5, muted: true, send: [0.25, 0.0] });
+        slots.set_mix(4, TrackMix { gain: 0.3162, pan: -0.5, muted: true,
+                                    send: [0.25, 0.0, 0.0] });
         assert_eq!(slots.mix_csv(4).as_deref(), Some("0.3162,-0.5000,1,0.2500,0.0000"));
         assert_eq!(slots.mix_csv(5).as_deref(), Some("1.0000,0.0000,0,0.0000,0.0000"),
                    "one slot only");
@@ -1847,6 +1863,16 @@ mod tests {
         slots.sends.add_cost(bus, ns);
     }
 
+    /// Exactly these buses are running this block; every other one is retired.
+    /// Sized from `SEND_BUSES` rather than written out, so adding a bus does not
+    /// silently shorten the slice these tests hand the planner.
+    fn running(slots: &mut ChainSlots, buses: &[usize]) {
+        slots.send_work = vec![false; SEND_BUSES];
+        for &b in buses {
+            slots.send_work[b] = true;
+        }
+    }
+
     /// THE no-regression claim. One bus overlaps with nothing, so a fan-out can
     /// only add a wake and a wait — and "is the send phase busy?" is not the
     /// question, because a single tape-echo is as busy as a phase gets.
@@ -1854,7 +1880,7 @@ mod tests {
     fn one_running_bus_is_never_fanned_out() {
         let mut slots = ChainSlots::new();
         cost(&mut slots, 0, 353_600);
-        slots.send_work = vec![true, false];
+        running(&mut slots, &[0]);
         assert!(!slots.plan_sends(), "a lone bus was fanned out");
     }
 
@@ -1863,7 +1889,7 @@ mod tests {
     #[test]
     fn no_running_bus_is_never_fanned_out() {
         let mut slots = ChainSlots::new();
-        slots.send_work = vec![false, false];
+        running(&mut slots, &[]);
         assert!(!slots.plan_sends());
     }
 
@@ -1874,12 +1900,58 @@ mod tests {
         let mut slots = ChainSlots::new();
         cost(&mut slots, 0, 230_800); // dragonfly-hall
         cost(&mut slots, 1, 353_600); // tape-echo2
-        slots.send_work = vec![true, true];
+        running(&mut slots, &[0, 1]);
         assert!(slots.plan_sends(), "584 us serial was not worth a 21 us wake");
         let lane_of = |b: usize| {
             slots.send_planner.lanes.iter().position(|l| l.contains(&b)).expect("unplanned bus")
         };
         assert_ne!(lane_of(0), lane_of(1), "{:?}", slots.send_planner.lanes);
+    }
+
+    /// Three heavy buses are the loadout the third send was added FOR: 938 us
+    /// serial, and one lane each brings the makespan down to the slowest of
+    /// them.
+    ///
+    /// The makespan and not just the lane assignment, because that is what the
+    /// saving is made of: with `DEFAULT_LANES` at 2 the planner still returns a
+    /// valid partition — two buses on one lane — and every "each bus got a
+    /// lane" assertion would pass while the phase ran 584 us instead of 354.
+    #[test]
+    fn three_heavy_buses_each_get_a_lane() {
+        let mut slots = ChainSlots::new();
+        cost(&mut slots, 0, 230_800); // dragonfly-hall
+        cost(&mut slots, 1, 353_600); // tape-echo2
+        cost(&mut slots, 2, 353_600); // tape-echo2
+        running(&mut slots, &[0, 1, 2]);
+        assert!(slots.plan_sends(), "938 us serial was not worth a wake");
+        assert_eq!(slots.send_planner.makespan(), 353_600,
+                   "two buses shared a lane: {:?}", slots.send_planner.lanes);
+        let lane_of = |b: usize| {
+            slots.send_planner.lanes.iter().position(|l| l.contains(&b)).expect("unplanned bus")
+        };
+        let (a, b, c) = (lane_of(0), lane_of(1), lane_of(2));
+        assert!(a != b && b != c && a != c, "{:?}", slots.send_planner.lanes);
+    }
+
+    /// Every per-bus array a fresh `ChainSlots` holds is `SEND_BUSES` wide.
+    ///
+    /// The planning tests set `send_work` themselves, so none of them would
+    /// notice a field left at the old width — and the failure it hides is not
+    /// the loud kind everywhere: `plan_sends` panics on a short `send_work`,
+    /// but a short cost slice would simply price the new bus at zero forever
+    /// and the planner would keep stacking it onto whichever lane looked idle.
+    #[test]
+    fn every_per_bus_array_is_as_wide_as_the_bus_count() {
+        let mut slots = ChainSlots::new();
+        assert_eq!(slots.send_work.len(), SEND_BUSES, "send_work");
+        assert_eq!(slots.sends.plan_cost().len(), SEND_BUSES, "plan_cost");
+        assert_eq!(slots.send_slots.len(), SEND_BUSES, "send_slots");
+        /* And the shared index space reaches the last bus: `pin_keys` is sliced
+         * from `MOVY_CHAINS` on, so a policy still sized to the chains alone
+         * would panic here rather than quietly skip the containment. */
+        assert_eq!(slots.pin.pin_keys().len(), MOVY_CHAINS + SEND_BUSES, "pin keys");
+        running(&mut slots, &[SEND_BUSES - 1]);
+        slots.plan_sends();
     }
 
     /// A bus that is not running this block must get no task. It is the tail
@@ -1891,7 +1963,7 @@ mod tests {
         let mut slots = ChainSlots::new();
         cost(&mut slots, 0, 353_600);
         cost(&mut slots, 1, 353_600);
-        slots.send_work = vec![true, false];
+        running(&mut slots, &[0]);
         slots.plan_sends();
         assert!(
             slots.send_planner.lanes.iter().all(|l| !l.contains(&1)),
@@ -1916,7 +1988,7 @@ mod tests {
         slots.pin.on_load(send_index(1), SEND_COMPONENT, "mverb");
         cost(&mut slots, 0, 353_600);
         cost(&mut slots, 1, 353_600);
-        slots.send_work = vec![true, true];
+        running(&mut slots, &[0, 1]);
 
         assert!(!slots.plan_sends(), "a pinned pair has nothing to overlap");
         let with = |b: usize| slots.send_planner.lanes.iter().filter(|l| l.contains(&b)).count();
@@ -1941,7 +2013,7 @@ mod tests {
         slots.pin.on_load(send_index(0), SEND_COMPONENT, "mverb");
         cost(&mut slots, 0, 230_800);
         cost(&mut slots, 1, 353_600);
-        slots.send_work = vec![true, true];
+        running(&mut slots, &[0, 1]);
         assert!(slots.plan_sends());
         let lane_of = |b: usize| {
             slots.send_planner.lanes.iter().position(|l| l.contains(&b)).expect("unplanned bus")

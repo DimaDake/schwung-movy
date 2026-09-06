@@ -134,6 +134,11 @@ sets, so the same shape extends), two more `MixField` variants, two more
 `MASTER_FX_SLOTS` entries, and two more cells on the MIX page. No new mechanism
 anywhere — every piece already exists and is tested.
 
+**Superseded on the parallel half, 2026-09-06** — parallel send rendering was
+built anyway, for the heavy-FX case this section prices at 207 us. See
+`2026-09-06-parallel-send-render.md`; the recommendation to add sends 3 and 4
+still stands and is still unbuilt.
+
 Revisit parallel only once there is evidence people load three or four expensive
 FX at a time. At that point it is worth 27% of the frame rather than 7%, and the
 cost meter added here is what will say so.

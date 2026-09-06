@@ -100,7 +100,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.64.0";
+const ENGINE_VERSION: &str = "0.66.0";
 
 /// Tracks backed by schwung's own shadow slots by default. Their notes go out as
 /// MIDI on the matching channel; everything above this index is a chain movy
@@ -218,11 +218,14 @@ impl Instance {
             "chloadedlog" => {
                 host::log(&format!("chain loaded: {}", self.chains.loaded_report()));
             }
-            /* `sndlog` — what each send bus was fed, what came out of it, and
-             * which module is in it. A send's contribution never lands in a
+            /* `sndlog` — what each send bus was fed, what came out of it,
+             * which module is in it, and whether the phase fanned out (`par`)
+             * onto which lanes (`plan`). A send's contribution never lands in a
              * chain's scratch, so `chpeak` cannot see it: this is the only
              * read-back that distinguishes "no track is sending" from "the FX
-             * pass produced silence". Read by scripts/test-sends.sh. */
+             * pass produced silence" — and, since a parallel send phase sounds
+             * exactly like a serial one, the only one that says which ran.
+             * Read by scripts/test-sends.sh and scripts/measure-send-cost.sh. */
             "sndlog" => {
                 host::log(&format!("sends: {}", self.chains.send_report()));
             }

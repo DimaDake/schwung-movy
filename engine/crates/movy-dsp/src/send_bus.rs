@@ -58,11 +58,19 @@ struct Bus {
 
 pub struct SendBuses {
     buses: Vec<Bus>,
+    /// The same 1/16 mean as `cost_ns`, kept apart because `cost_reset` must not
+    /// touch it: the lane planner reads this every block, and a `sndcostlog`
+    /// taken mid-set would otherwise tell the planner every bus is free.
+    ///
+    /// A `Vec` beside the buses rather than a field inside one, because the
+    /// planner wants it as a contiguous slice.
+    plan_ns: Vec<u64>,
 }
 
 impl SendBuses {
     pub fn new() -> Self {
         Self {
+            plan_ns: vec![0; SEND_BUSES],
             buses: (0..SEND_BUSES)
                 .map(|_| Bus {
                     buf: vec![0i16; BUS_SAMPLES],
@@ -136,6 +144,21 @@ impl SendBuses {
         if dt > b.max_ns {
             b.max_ns = dt;
         }
+        let p = &mut self.plan_ns[n];
+        *p = if *p == 0 { dt } else { *p - *p / 16 + dt / 16 };
+    }
+
+    /// What the lane planner partitions by — see `plan_ns`.
+    pub fn plan_cost(&self) -> &[u64] {
+        &self.plan_ns
+    }
+
+    /// The bus's buffer as a raw pointer, for a `Task` the pool may run on
+    /// another lane. Two buses are two independent allocations, so handing out
+    /// one pointer each is the same disjointness argument the chain scratches
+    /// rest on — `&mut` cannot express it because the phase needs both at once.
+    pub fn buf_ptr(&mut self, n: usize) -> *mut i16 {
+        self.buses[n].buf.as_mut_ptr()
     }
 
     /// Per-bus mean and worst-block cost in microseconds: `0:us=312.0,max=980.0`.
@@ -348,6 +371,23 @@ mod tests {
         }
         assert_eq!(&b.buf_mut(0)[..2], &[0, 0]);
         assert_eq!(&b.buf_mut(1)[..2], &[0, 0]);
+    }
+
+    /* `sndcostlog` resets the measurement window on every read, and a device
+     * measurement reads it repeatedly. If that reset also cleared what the lane
+     * planner partitions by, taking a measurement would flatten every bus to
+     * zero cost — and the planner would answer "not worth fanning out" for
+     * precisely as long as somebody was watching. */
+    #[test]
+    fn a_measurement_reset_does_not_erase_what_the_planner_reads() {
+        let mut b = SendBuses::new();
+        b.add_cost(0, 300_000);
+        b.add_cost(1, 40_000);
+        let before = b.plan_cost().to_vec();
+        assert!(before[0] > before[1] && before[1] > 0, "got {before:?}");
+        b.cost_reset();
+        assert_eq!(b.cost_report(), "0:us=0.0,max=0.0 1:us=0.0,max=0.0");
+        assert_eq!(b.plan_cost(), &before[..], "the planner lost its costs to a log read");
     }
 
     #[test]

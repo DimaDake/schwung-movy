@@ -39,6 +39,17 @@ far. Earlier work is summarised in the timeline below for context.
   zero, the added per-block work is a handful of branches: an untouched bus is
   never accumulated into, never processed, and never cleared.
 
+- **Two heavy sends now render at the same time.** The send phase still runs
+  after every track has rendered — a bus is a sum of tracks — but the buses no
+  longer wait on each other: they go onto the same helper threads Movy already
+  renders its chains across. Two big reverbs cost the more expensive of the two
+  instead of both added together.
+
+  It fans out only when that is worth the ~21 µs it costs to wake a helper, so a
+  single bus, or a heavy one beside a nearly-free one, still runs exactly as it
+  did. Nothing to turn on: it follows **Parallel render**, and turning that off
+  restores the old behaviour for measurement.
+
 ### Fixed
 
 - **Automation lanes on tracks 5-16 were never restored.** The engine has always

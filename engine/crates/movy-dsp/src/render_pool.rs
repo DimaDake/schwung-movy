@@ -30,10 +30,8 @@ use crate::host;
 /// at all, which is what makes its safety argument checkable in one place.
 #[derive(Clone, Copy)]
 pub struct Task {
-    /// `None` when the chain's synth is asleep. The lane zeroes `buf` instead —
-    /// `process_fx` must decay a tail into silence, not into whatever the last
-    /// block left behind.
-    pub render: Option<unsafe extern "C" fn(*mut c_void, *mut i16, i32)>,
+    /// What puts audio in `buf` before `process_fx` sees it.
+    pub pre: Pre,
     /// `None` when the FX is asleep, or when the chain is not being split at
     /// all and `render` already did the FX itself.
     pub process_fx: Option<unsafe extern "C" fn(*mut c_void, *mut i16, i32)>,
@@ -41,6 +39,25 @@ pub struct Task {
     pub buf: *mut i16,
     pub frames: i32,
     pub chain: usize,
+}
+
+/// Where a task's input comes from.
+///
+/// The distinction between the last two is the whole reason this is an enum
+/// rather than an `Option`: both mean "no synth ran", and they want OPPOSITE
+/// things done to the buffer. Getting them confused is silent — a stuck buzz in
+/// one direction, a send bus that never sounds in the other.
+#[derive(Clone, Copy)]
+pub enum Pre {
+    /// The chain's synth renders into `buf`.
+    Render(unsafe extern "C" fn(*mut c_void, *mut i16, i32)),
+    /// The synth is asleep, so the lane zeroes `buf`: `process_fx` must decay a
+    /// tail into silence, not into whatever the last block left behind.
+    Silence,
+    /// `buf` already holds this task's input and must be left alone — a send
+    /// bus, whose buffer is the sum every track fed it before the join. Zeroing
+    /// it would delete exactly the audio the FX exists to process.
+    Keep,
 }
 
 struct Lane {
@@ -266,28 +283,37 @@ fn run(tasks: &[Task], shared: &Shared) {
         // Safe by the partition argument on `Shared`: this lane owns `inst` and
         // `buf` for the duration of the round.
         unsafe {
-            match t.render {
-                Some(f) => f(t.inst, t.buf, t.frames),
+            match t.pre {
+                Pre::Render(f) => f(t.inst, t.buf, t.frames),
                 // A sleeping synth still owes its FX a block of SILENCE. Handing
                 // it the previous block is a stuck buzz, not a decaying tail.
-                None => core::ptr::write_bytes(t.buf, 0, samples),
+                Pre::Silence => core::ptr::write_bytes(t.buf, 0, samples),
+                // A send bus's input is already there. See `Pre::Keep`.
+                Pre::Keep => {}
             }
         }
         // Split HERE, not after the peak scan: the scan is movy's own
         // bookkeeping, and a module must not be charged for it. A sleeping
         // synth rendered nothing, so it cost nothing — the zero-fill above is
         // ours.
-        let synth_ns = if t.render.is_some() { t0.elapsed().as_nanos() as u64 } else { 0 };
+        let rendered = matches!(t.pre, Pre::Render(_));
+        let synth_ns = if rendered { t0.elapsed().as_nanos() as u64 } else { 0 };
         if let Some(s) = shared.synth_ns.get(t.chain) {
             s.store(synth_ns, Ordering::Relaxed);
         }
         // Measured HERE, between the two stages: an FX that never settles must
         // not be able to hold a silent synth awake.
+        //
+        // Only scanned for a synth that ran: `Silence` just zeroed the buffer,
+        // and a `Keep` task has no synth stage to gate — scanning either would
+        // charge 256 samples of movy's bookkeeping for an answer already known.
         if let Some(p) = shared.synth_peak.get(t.chain) {
             let mut peak = 0i32;
-            for k in 0..samples {
-                let s = unsafe { *t.buf.add(k) } as i32;
-                peak = peak.max(s.abs());
+            if rendered {
+                for k in 0..samples {
+                    let s = unsafe { *t.buf.add(k) } as i32;
+                    peak = peak.max(s.abs());
+                }
             }
             p.store(peak, Ordering::Relaxed);
         }
@@ -416,7 +442,7 @@ mod tests {
         let _lock = crate::midi_out::test_guard();
         let pool = RenderPool::new(1, CHAINS);
         let mk = |chain: usize| Task {
-            render: Some(sends_midi),
+            pre: Pre::Render(sends_midi),
             process_fx: None,
             inst: (0x40 + chain) as *mut c_void,
             buf: core::ptr::null_mut(),
@@ -445,7 +471,7 @@ mod tests {
         let mut buf = vec![0i16; BLOCK * 2];
         pool.render_block(&[
             vec![Task {
-                render: Some(fill),
+                pre: Pre::Render(fill),
                 process_fx: None,
                 inst: 7 as *mut c_void,
                 buf: buf.as_mut_ptr(),
@@ -474,7 +500,7 @@ mod tests {
         let _lock = crate::midi_out::test_guard();
         let pool = RenderPool::new(0, CHAINS);
         pool.render_block(&[vec![Task {
-            render: Some(sends_midi),
+            pre: Pre::Render(sends_midi),
             process_fx: None,
             inst: 0x41 as *mut c_void,
             buf: core::ptr::null_mut(),
@@ -495,7 +521,7 @@ mod tests {
     fn tasks(bufs: &mut [[i16; BLOCK]], range: std::ops::Range<usize>) -> Vec<Task> {
         range
             .map(|c| Task {
-                render: Some(fill),
+                pre: Pre::Render(fill),
                 process_fx: None,
                 inst: (c + 1) as *mut c_void,
                 buf: bufs[c].as_mut_ptr(),
@@ -521,7 +547,7 @@ mod tests {
         let mut b = bufs();
         b[0] = [7, 7, 7, 7];
         let lanes = vec![vec![Task {
-            render: None,
+            pre: Pre::Silence,
             process_fx: Some(assert_zero_then_mark),
             inst: 1 as *mut c_void,
             buf: b[0].as_mut_ptr(),
@@ -530,6 +556,63 @@ mod tests {
         }]];
         pool.render_block(&lanes);
         assert_eq!(b[0][0], 99, "the FX ran");
+    }
+
+    /* A send bus hands the pool a buffer that ALREADY holds its input: the sum
+     * of every track feeding it, accumulated before the chain join. `Silence`
+     * is the right pre-stage for a sleeping synth and would delete that sum
+     * entirely — the bus would process 128 frames of nothing, every block, and
+     * the only symptom is a send that never sounds. */
+    #[test]
+    fn a_keep_task_gives_its_fx_the_buffer_it_was_handed() {
+        unsafe extern "C" fn double_it(_i: *mut c_void, buf: *mut i16, frames: i32) {
+            for k in 0..(frames as usize) * 2 {
+                unsafe { *buf.add(k) *= 2 };
+            }
+        }
+        let pool = RenderPool::new(1, CHAINS);
+        let mut b = bufs();
+        b[0] = [11, 22, 33, 44];
+        b[1] = [11, 22, 33, 44];
+        let mk = |buf: *mut i16, chain: usize| Task {
+            pre: Pre::Keep,
+            process_fx: Some(double_it),
+            inst: 1 as *mut c_void,
+            buf,
+            frames: (BLOCK / 2) as i32,
+            chain,
+        };
+        // Both lanes: a bus is as likely to be planned onto a helper as onto
+        // the audio thread, and `run` is the only place either one goes through.
+        let lanes = vec![vec![mk(b[0].as_mut_ptr(), 0)], vec![mk(b[1].as_mut_ptr(), 1)]];
+        pool.render_block(&lanes);
+        assert_eq!(b[0], [22, 44, 66, 88], "lane 0 zeroed a bus that was already fed");
+        assert_eq!(b[1], [22, 44, 66, 88], "the helper zeroed a bus that was already fed");
+    }
+
+    /// A `Keep` task has no synth stage, so it must not be charged for one — and
+    /// must not publish a peak either. The idle gate reads `synth_peak` to decide
+    /// whether a chain is silent; a send bus writing into that array would be
+    /// answering a question nobody asked about it.
+    #[test]
+    fn a_keep_task_has_no_synth_stage() {
+        unsafe extern "C" fn loud(_i: *mut c_void, buf: *mut i16, _f: i32) {
+            unsafe { *buf = 30000 };
+        }
+        let pool = RenderPool::new(0, CHAINS);
+        let mut b = bufs();
+        b[0] = [9000, 9000, 9000, 9000];
+        pool.render_block(&[vec![Task {
+            pre: Pre::Keep,
+            process_fx: Some(loud),
+            inst: 1 as *mut c_void,
+            buf: b[0].as_mut_ptr(),
+            frames: (BLOCK / 2) as i32,
+            chain: 0,
+        }]]);
+        assert_eq!(pool.synth_ns(0), 0, "a bus has no synth to charge");
+        assert_eq!(pool.synth_peak(0), 0, "a bus must not publish a synth peak");
+        assert!(pool.cost_ns(0) > 0, "but its FX pass is still timed");
     }
 
     /// The synth gate reads the buffer BEFORE the FX touches it, so an FX that
@@ -545,7 +628,7 @@ mod tests {
         let pool = RenderPool::new(1, CHAINS);
         let mut b = bufs();
         let lanes = vec![vec![Task {
-            render: Some(quiet_synth),
+            pre: Pre::Render(quiet_synth),
             process_fx: Some(loud_fx),
             inst: 1 as *mut c_void,
             buf: b[0].as_mut_ptr(),
@@ -645,7 +728,7 @@ mod tests {
 
         pool.render_block(&[
             vec![Task {
-                render: Some(fill),
+                pre: Pre::Render(fill),
                 process_fx: None,
                 inst: 7 as *mut c_void,
                 buf: buf.as_mut_ptr(),
@@ -662,7 +745,7 @@ mod tests {
 
         pool.render_block(&[
             vec![Task {
-                render: None,
+                pre: Pre::Silence,
                 process_fx: None,
                 inst: 7 as *mut c_void,
                 buf: buf.as_mut_ptr(),

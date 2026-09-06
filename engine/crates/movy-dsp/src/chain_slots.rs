@@ -20,8 +20,8 @@ use crate::host;
 use crate::load_queue::{LoadQueue, LoadRequest};
 use crate::mixer::{mix_into, MixField, TrackMix};
 use crate::send_bus::{SendBuses, SEND_BUSES};
-use crate::render_plan::Planner;
-use crate::render_pool::{RenderPool, Task};
+use crate::render_plan::{worth_fanning_out, Planner};
+use crate::render_pool::{Pre, RenderPool, Task};
 
 /// Chains movy hosts itself: **one per track, and `ch<N>` IS track N.**
 ///
@@ -69,10 +69,19 @@ const REPLAN_BLOCKS: u32 = 1024;
 /// underneath is always the same — the UI never has to know it exists.
 const SEND_COMPONENT: &str = "fx1";
 
-/// Load-queue slot for send bus `n`. Above every chain, so it can never
-/// collide with a track: the queue is slot-generic and would not notice, but a
-/// reverb loaded into somebody's synth is not a subtle failure.
-fn send_queue_slot(bus: usize) -> usize {
+/// Every position the render pool can be given work for: the chains, then the
+/// send buses. ONE index space, so a task's `chain` field names exactly one
+/// cost slot, one MIDI queue and one pin key whichever phase built it.
+pub const RENDER_SLOTS: usize = MOVY_CHAINS + SEND_BUSES;
+
+/// Where send bus `n` sits in that space. Above every chain, so it can never
+/// collide with a track: the load queue is slot-generic and would not notice,
+/// but a reverb loaded into somebody's synth is not a subtle failure.
+///
+/// One formula, four users — the load queue, the pool's per-slot cost and MIDI
+/// attribution, and `chain_pin`. A second copy of it is a mapping somebody gets
+/// wrong in only one of them.
+pub fn send_index(bus: usize) -> usize {
     MOVY_CHAINS + bus
 }
 
@@ -170,6 +179,20 @@ pub struct ChainSlots {
     /// `MOVY_CHAINS` tracks. A separate field makes every one of them correct
     /// by construction rather than by audit (design §4).
     sends: SendBuses,
+    /// Whether the last send phase actually fanned out. The `sndlog` read-back
+    /// for it: from outside, a parallel send phase and a serial one produce
+    /// identical audio and identical per-bus costs, so without this a device
+    /// measurement cannot tell which one it just timed — and every number it
+    /// reports would be unfalsifiable.
+    send_fanned: bool,
+    /// Which buses owe their FX a call this block. Decided once, before the
+    /// phase runs, so the partition and the mix cannot disagree about it.
+    send_work: Vec<bool>,
+    /// The send phase's own partition. A second `Planner` rather than a reuse of
+    /// the chain one: the two phases run one after the other and hold different
+    /// assignments at the same time, and one instance cannot carry both.
+    send_planner: Planner,
+    send_lanes: Vec<Vec<Task>>,
     /// Which of a chain's eight automation lanes drive the MIXER rather than a
     /// param inside the chain. Empty for every lane by default, so a chain that
     /// automates nothing of movy's own costs one array lookup per CC.
@@ -192,7 +215,7 @@ impl ChainSlots {
             queue: LoadQueue::new(),
             desired: vec![Vec::new(); MOVY_CHAINS],
             scratch: vec![vec![0i16; SCRATCH_SAMPLES]; MOVY_CHAINS],
-            pin: PinPolicy::new(MOVY_CHAINS),
+            pin: PinPolicy::new(RENDER_SLOTS),
             host_failed: false,
             module_dir: String::new(),
             audible: vec![false; MOVY_CHAINS],
@@ -215,6 +238,10 @@ impl ChainSlots {
             synth_peak: vec![0; MOVY_CHAINS],
             plan_idle_epoch: u32::MAX,
             sends: SendBuses::new(),
+            send_fanned: false,
+            send_work: vec![false; SEND_BUSES],
+            send_planner: Planner::new(SEND_BUSES, DEFAULT_LANES),
+            send_lanes: (0..DEFAULT_LANES).map(|_| Vec::with_capacity(SEND_BUSES)).collect(),
             mix_lanes: vec![[None; 8]; MOVY_CHAINS],
             send_slots: (0..SEND_BUSES).map(|_| None).collect(),
         }
@@ -225,7 +252,7 @@ impl ChainSlots {
     /// threads — and so a device measurement can A/B the same running set.
     pub fn set_parallel(&mut self, on: bool) {
         if on && self.pool.is_none() {
-            self.pool = Some(RenderPool::new(self.lane_count - 1, MOVY_CHAINS));
+            self.pool = Some(RenderPool::new(self.lane_count - 1, RENDER_SLOTS));
         }
         self.parallel = on;
         // The next block replans: a plan built for one lane is wrong for three.
@@ -256,12 +283,14 @@ impl ChainSlots {
         self.lane_count = lanes;
         self.planner = Planner::new(MOVY_CHAINS, lanes);
         self.lanes = (0..lanes).map(|_| Vec::with_capacity(MOVY_CHAINS)).collect();
+        self.send_planner = Planner::new(SEND_BUSES, lanes);
+        self.send_lanes = (0..lanes).map(|_| Vec::with_capacity(SEND_BUSES)).collect();
         self.plan_generation = u32::MAX;
         // Drop first: two pools' helpers must never be alive at once, or the
         // measurement is against more threads than it thinks it has.
         self.pool = None;
         if self.parallel {
-            self.pool = Some(RenderPool::new(lanes - 1, MOVY_CHAINS));
+            self.pool = Some(RenderPool::new(lanes - 1, RENDER_SLOTS));
         }
         host::log(&format!("chain mode: lanes={lanes}"));
     }
@@ -375,7 +404,7 @@ impl ChainSlots {
             return;
         }
         self.queue.push(LoadRequest {
-            slot: send_queue_slot(bus),
+            slot: send_index(bus),
             component: SEND_COMPONENT.to_string(),
             module: module.to_string(),
             state: None,
@@ -389,7 +418,7 @@ impl ChainSlots {
         if bus >= SEND_BUSES {
             return;
         }
-        if self.queue.attach_state(send_queue_slot(bus), SEND_COMPONENT, state) {
+        if self.queue.attach_state(send_index(bus), SEND_COMPONENT, state) {
             return;
         }
         if let Some(inst) = self.send_slots[bus].as_mut() {
@@ -447,7 +476,23 @@ impl ChainSlots {
             let module = self.send_module(bus).unwrap_or_default();
             out.push_str(&format!(" {}:mod={}", bus, if module.is_empty() { "-" } else { &module }));
         }
-        format!("{}{}", self.sends.report(), out)
+        /* `par` is the arm, `plan` is the partition it ran. Both, because a
+         * fanned-out phase whose buses all landed on lane 0 is a serial phase
+         * wearing the flag, and a measurement that read only `par` would call
+         * it parallel. */
+        let plan: Vec<String> = self
+            .send_planner
+            .lanes
+            .iter()
+            .map(|l| l.iter().map(|b| b.to_string()).collect::<Vec<_>>().join(","))
+            .collect();
+        format!(
+            "{}{} par={} plan={}",
+            self.sends.report(),
+            out,
+            u8::from(self.send_fanned),
+            plan.join("|")
+        )
     }
 
     /// The chain set, as the document `set_chain_set` accepts.
@@ -737,6 +782,12 @@ impl ChainSlots {
                 None => return,
             }
         }
+        /* Registered for the same reason a chain's module is: two buses holding
+         * ONE module through one file share its whole `.data`, and the send
+         * phase now renders them on different lanes. Without this the
+         * blacklist — the containment for a module that turns out to race —
+         * reaches every chain in the set and neither of the two sends. */
+        self.pin.on_load(req.slot, &req.component, &req.module);
         /* Whatever the outgoing FX was still ringing belongs to the outgoing
          * FX. Without this its tail plays on through its replacement. */
         self.sends.discard(bus);
@@ -976,6 +1027,7 @@ impl ChainSlots {
         let plan = self.sends.take_plan();
         let mut send_ran = false;
         for n in 0..SEND_BUSES {
+            self.send_work[n] = false;
             if !plan[n] {
                 continue;
             }
@@ -985,13 +1037,32 @@ impl ChainSlots {
                 self.sends.discard(n);
                 continue;
             }
-            let t_bus = self.cost.start();
-            if let Some(inst) = self.send_slots[n].as_mut() {
-                inst.process_fx(&mut self.sends.buf_mut(n)[..frames]);
-            }
-            self.sends.add_cost(n, t_bus.elapsed().as_nanos() as u64);
-            self.sends.finish(n, &mut out[..frames], frames);
+            self.send_work[n] = true;
             send_ran = true;
+        }
+        /* Assigned even when the phase does not run, so `sndlog` cannot report
+         * last block's fan-out as though it were this one's. Short-circuits
+         * before `plan_sends` when nothing is running. */
+        self.send_fanned = send_ran && self.parallel_ready() && self.plan_sends();
+        if send_ran {
+            if self.send_fanned {
+                self.render_sends_parallel(frames);
+            } else {
+                self.render_sends_serial(frames);
+            }
+            // Same rule as the chain phase, one phase later: every lane is idle
+            // again, so schwung sees one producer, and bus order makes the
+            // emission deterministic.
+            crate::midi_out::QUEUE.drain(crate::chain_host::send_direct);
+            /* Summed into the output AFTER the whole phase, in bus order — never
+             * in the order the lanes happened to finish. That is what makes the
+             * parallel result the same samples as the serial one rather than
+             * merely the same samples somewhere. */
+            for n in 0..SEND_BUSES {
+                if self.send_work[n] {
+                    self.sends.finish(n, &mut out[..frames], frames);
+                }
+            }
         }
         let send_ns = if send_ran { t_send.elapsed().as_nanos() as u64 } else { 0 };
         if active > 0 || send_ran {
@@ -1106,7 +1177,7 @@ impl ChainSlots {
                 }
                 active += 1;
                 self.lanes[lane].push(Task {
-                    render,
+                    pre: render.map_or(Pre::Silence, Pre::Render),
                     process_fx: fx,
                     inst: ptr,
                     buf: self.scratch[c].as_mut_ptr(),
@@ -1135,6 +1206,93 @@ impl ChainSlots {
             }
         }
         active
+    }
+
+    /// Partition the buses about to run, and say whether fanning them out is
+    /// worth its wake.
+    ///
+    /// Planned EVERY block rather than on the chain phase's `REPLAN_BLOCKS`
+    /// timer: which buses run is a per-block fact (a reverb tail ending retires
+    /// one), there are at most `SEND_BUSES` of them, and a stale plan here does
+    /// not merely cost balance — it would fan out for a bus that is no longer
+    /// running, which is the one outcome the threshold exists to prevent.
+    ///
+    /// `pin_keys` is sliced from `MOVY_CHAINS` on: send buses live at the tail
+    /// of the shared index space (`send_index`), so bus `n` is entry `n` of the
+    /// slice and two buses holding one blacklisted module stay on one lane —
+    /// the same containment a pair of chains gets.
+    fn plan_sends(&mut self) -> bool {
+        let costs = self.sends.plan_cost();
+        self.send_planner.plan(&self.pin.pin_keys()[MOVY_CHAINS..], costs, &self.send_work);
+        let serial: u64 =
+            (0..SEND_BUSES).filter(|&n| self.send_work[n]).map(|n| costs[n]).sum();
+        worth_fanning_out(serial, self.send_planner.makespan())
+    }
+
+    /// The send phase on the audio thread — one bus after another, exactly as
+    /// the phase has always run.
+    fn render_sends_serial(&mut self, frames: usize) {
+        for n in 0..SEND_BUSES {
+            if !self.send_work[n] {
+                continue;
+            }
+            let t_bus = self.cost.start();
+            // The same scope a lane takes, for the same reason the serial chain
+            // path takes one: a module's MIDI must leave in the same order
+            // whichever path ran it, or the ordering is something parallel
+            // introduced.
+            let scope = crate::midi_out::Scope::enter(send_index(n));
+            if let Some(inst) = self.send_slots[n].as_mut() {
+                inst.process_fx(&mut self.sends.buf_mut(n)[..frames]);
+            }
+            drop(scope);
+            self.sends.add_cost(n, t_bus.elapsed().as_nanos() as u64);
+        }
+    }
+
+    /// The send phase across the render pool.
+    ///
+    /// `Pre::Keep` is the whole difference from a chain task: the bus buffer
+    /// already holds the sum every track fed it, and a lane that zeroed it would
+    /// hand the FX 128 frames of silence.
+    fn render_sends_parallel(&mut self, frames: usize) {
+        for l in self.send_lanes.iter_mut() {
+            l.clear();
+        }
+        for lane in 0..self.send_planner.lanes.len().min(self.send_lanes.len()) {
+            for idx in 0..self.send_planner.lanes[lane].len() {
+                let n = self.send_planner.lanes[lane][idx];
+                if !self.send_work[n] {
+                    continue;
+                }
+                let Some((inst, _, Some(fx))) = self.send_slots[n].as_mut().map(|s| s.raw_parts())
+                else {
+                    // A module with no `chain_process_fx` cannot process the bus
+                    // at all. It keeps its accumulated block, which `finish`
+                    // then passes through at unity — the same audio the serial
+                    // path produced when `process_fx` found no symbol.
+                    continue;
+                };
+                self.send_lanes[lane].push(Task {
+                    pre: Pre::Keep,
+                    process_fx: Some(fx),
+                    inst,
+                    buf: self.sends.buf_ptr(n),
+                    frames: (frames / 2) as i32,
+                    chain: send_index(n),
+                });
+            }
+        }
+        if let Some(pool) = self.pool.as_ref() {
+            pool.render_block(&self.send_lanes);
+            // Timed on whichever lane ran the bus, for the same reason a chain's
+            // cost is: the audio thread cannot bracket a call it did not make.
+            for n in 0..SEND_BUSES {
+                if self.send_work[n] {
+                    self.sends.add_cost(n, pool.cost_ns(send_index(n)));
+                }
+            }
+        }
     }
 
     /// Rebuild the lane assignment when the chain set changes, and periodically
@@ -1677,6 +1835,118 @@ mod tests {
         assert!(slots.set_chain_set(&chain_doc::encode(&[chain_doc::Entry {
             slot: MOVY_CHAINS, component: "synth".into(), module: "plaits".into() }])));
         assert_eq!(chain_doc::decode(&slots.chain_set()), Some(vec![]));
+    }
+
+    /* The send phase's fan-out decision. `render` itself is unreachable on a
+     * host build — it returns before the phase when there is no chain host, the
+     * same reason `send_bus.rs` asserts the zero-cost rule in its own file — but
+     * `plan_sends` is the whole decision and needs nothing loaded. */
+
+    /// Seed a bus's measured cost, as a block of real rendering would.
+    fn cost(slots: &mut ChainSlots, bus: usize, ns: u64) {
+        slots.sends.add_cost(bus, ns);
+    }
+
+    /// THE no-regression claim. One bus overlaps with nothing, so a fan-out can
+    /// only add a wake and a wait — and "is the send phase busy?" is not the
+    /// question, because a single tape-echo is as busy as a phase gets.
+    #[test]
+    fn one_running_bus_is_never_fanned_out() {
+        let mut slots = ChainSlots::new();
+        cost(&mut slots, 0, 353_600);
+        slots.send_work = vec![true, false];
+        assert!(!slots.plan_sends(), "a lone bus was fanned out");
+    }
+
+    /// And neither is none of them — the phase does not even reach here, but a
+    /// planner asked to partition nothing must not answer "worth it".
+    #[test]
+    fn no_running_bus_is_never_fanned_out() {
+        let mut slots = ChainSlots::new();
+        slots.send_work = vec![false, false];
+        assert!(!slots.plan_sends());
+    }
+
+    /// The case the phase exists for: two heavy reverbs, 584 us serial, split
+    /// onto separate lanes for a 354 us makespan.
+    #[test]
+    fn two_heavy_buses_are_split_across_lanes() {
+        let mut slots = ChainSlots::new();
+        cost(&mut slots, 0, 230_800); // dragonfly-hall
+        cost(&mut slots, 1, 353_600); // tape-echo2
+        slots.send_work = vec![true, true];
+        assert!(slots.plan_sends(), "584 us serial was not worth a 21 us wake");
+        let lane_of = |b: usize| {
+            slots.send_planner.lanes.iter().position(|l| l.contains(&b)).expect("unplanned bus")
+        };
+        assert_ne!(lane_of(0), lane_of(1), "{:?}", slots.send_planner.lanes);
+    }
+
+    /// A bus that is not running this block must get no task. It is the tail
+    /// rule that retires one — a reverb whose input stopped and whose tail has
+    /// decayed — so this happens in the middle of ordinary playing, not only at
+    /// the edges.
+    #[test]
+    fn a_bus_that_is_not_running_is_given_no_lane() {
+        let mut slots = ChainSlots::new();
+        cost(&mut slots, 0, 353_600);
+        cost(&mut slots, 1, 353_600);
+        slots.send_work = vec![true, false];
+        slots.plan_sends();
+        assert!(
+            slots.send_planner.lanes.iter().all(|l| !l.contains(&1)),
+            "a retired bus was planned: {:?}",
+            slots.send_planner.lanes
+        );
+    }
+
+    /* The safety claim. Two buses holding ONE module share its whole `.data`,
+     * and the send phase renders them on different lanes — the same hazard
+     * `chain_pin` contains for chains, which had no reach into the sends at all
+     * until they entered its index space.
+     *
+     * The keys are sliced from `MOVY_CHAINS` on, so this also pins the offset:
+     * read from 0 instead, the planner would be handed CHAIN 0 and 1's keys and
+     * silently split a pinned pair. */
+    #[test]
+    fn two_sends_holding_one_module_can_be_pinned_onto_one_lane() {
+        let mut slots = ChainSlots::new();
+        slots.set_pin_duplicates(true);
+        slots.pin.on_load(send_index(0), SEND_COMPONENT, "mverb");
+        slots.pin.on_load(send_index(1), SEND_COMPONENT, "mverb");
+        cost(&mut slots, 0, 353_600);
+        cost(&mut slots, 1, 353_600);
+        slots.send_work = vec![true, true];
+
+        assert!(!slots.plan_sends(), "a pinned pair has nothing to overlap");
+        let with = |b: usize| slots.send_planner.lanes.iter().filter(|l| l.contains(&b)).count();
+        assert_eq!(with(0), 1);
+        let together = slots
+            .send_planner
+            .lanes
+            .iter()
+            .any(|l| l.contains(&0) && l.contains(&1));
+        assert!(together, "pinned sends were split: {:?}", slots.send_planner.lanes);
+    }
+
+    /// Chains must not be pinned to sends. They are one index space now, but
+    /// two phases: the send phase runs after the chain join, so no chain and no
+    /// bus is ever in flight at the same time and a shared module between them
+    /// costs a lane for nothing.
+    #[test]
+    fn a_chain_and_a_send_sharing_a_module_still_use_every_lane() {
+        let mut slots = ChainSlots::new();
+        slots.set_pin_duplicates(true);
+        slots.pin.on_load(0, "fx1", "mverb");
+        slots.pin.on_load(send_index(0), SEND_COMPONENT, "mverb");
+        cost(&mut slots, 0, 230_800);
+        cost(&mut slots, 1, 353_600);
+        slots.send_work = vec![true, true];
+        assert!(slots.plan_sends());
+        let lane_of = |b: usize| {
+            slots.send_planner.lanes.iter().position(|l| l.contains(&b)).expect("unplanned bus")
+        };
+        assert_ne!(lane_of(0), lane_of(1), "a chain pinned the sends together");
     }
 
     #[test]

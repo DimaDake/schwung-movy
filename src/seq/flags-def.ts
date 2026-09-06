@@ -132,7 +132,7 @@ export const FLAGS: FlagDef[] = [
     },
     {
         key: 'chparallel', name: 'Parallel Render',
-        hint: 'Renders chains on several threads.',
+        hint: 'Renders chains and send FX on several threads.',
         // On: measured 2.15x on the twelve-chain obxd ramp and 2.0-2.2x across
         // the mid-weight fleet (docs/track-performance.md §1, §2), which is what
         // takes hera and nusaw from over the frame budget to under it. The

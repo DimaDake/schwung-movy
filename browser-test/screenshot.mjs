@@ -41,7 +41,8 @@ const PRESETS = [
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
     'chain_t2', 'chain_t4',
     'lfo_chain', 'lfo_lfo1', 'lfo_lfo2', 'lfo_target_overlay', 'lfo_viz_unipolar', 'lfo_viz_retrig',
-    'mix_page', 'mix_page_chain', 'mix_page_host', 'master_send_slot', 'master_send_empty',
+    'mix_page', 'mix_page_chain', 'mix_page_host', 'mix_page_two_held',
+    'master_send_slot', 'master_send_empty',
     'lfo_master', 'lfo_master_chain',
     'lfo_mod_mark', 'lfo_mod_and_auto', 'lfo_assign_toast',
     'drum-mrdrums-pad5', 'drum-mrdrums-global',
@@ -164,6 +165,7 @@ globalThis.clear_screen = () => paint(0, 0, W, H, OFF);
 const { createModel }      = await import('../dist/esm/model/index.js');
 const { createLfoModel, createScopedLfoModel } = await import('../dist/esm/lfo/model.js');
 const { createMixModel } = await import('../dist/esm/mixer/mix-model.js');
+const { FIELD_AT } = await import('../dist/esm/mixer/mix-io.js');
 const { masterScope }      = await import('../dist/esm/lfo/scope.js');
 const { resetPorts }       = await import('../dist/esm/track/registry.js');
 const { MASTER_FX_SLOTS, MASTER_LFO_INDEX } = await import('../dist/esm/chain/config.js');
@@ -1045,9 +1047,13 @@ function applyView(preset) {
          * on a schwung-hosted track, where movy never sees the audio: the fader
          * is real (`slot:volume`) and pan and both sends are blank, because a
          * drawn knob that cannot do anything reads as broken. */
+        /* `mix_page_two_held` is two knobs held at once: BOTH show their value,
+         * and the header follows the one touched last. One readout for two
+         * hands reads as a knob that stopped responding. */
         case 'mix_page':
         case 'mix_page_chain':
-        case 'mix_page_host': {
+        case 'mix_page_host':
+        case 'mix_page_two_held': {
             const host = preset === 'mix_page_host';
             /* Track 0 is a schwung slot unless `chtracks` says otherwise; track
              * 6 is always a movy chain. */
@@ -1062,6 +1068,10 @@ function applyView(preset) {
             resetPorts();
             const mx = createMixModel(mtrk);
             mx.tick();
+            if (preset === 'mix_page_two_held') {
+                mx.handleKnobTouch(0);          // VOL
+                mx.handleKnobTouch(FIELD_AT.indexOf('send2'));
+            }
             if (preset === 'mix_page_chain') {
                 lastRender = () => renderChainView(mx.getViewModel(), 5, false, 'T' + (mtrk + 1), 'MIX');
             } else {

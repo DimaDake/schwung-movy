@@ -14,21 +14,36 @@
 import type { Model } from '../model/index.js';
 import type { ViewModel } from '../types/viewmodel.js';
 import type { KnobParamInfo } from '../model/store.js';
-import { countDetents } from '../seq/detent.js';
 import { beginGesture } from '../undo/edit.js';
 import { endEdit } from '../undo/group.js';
 import { inertModelSurface } from '../lfo/inert.js';
-import { ampToIdx, idxToAmp, VOL_STEPS } from './db-ladder.js';
+import { SEND_TOP_DB, VOL_TOP_DB, stepAmpDb } from './db-ladder.js';
 import { buildMixVM } from './mix-cells.js';
 import {
-    FIELD_AT, FIELD_RANGE, PAN_MAX, PAN_MIN, SEND_MAX, busOfField, defaultMix,
+    FIELD_AT, LANE_RANGE, PAN_MAX, PAN_MIN, busOfField, defaultMix, fieldFrac,
     packMixValue, readMix, writeMix, type MixFieldName, type MixVals,
 } from './mix-io.js';
+import { CONTINUOUS_TICK_FRAC } from '../model/constants.js';
 import { trackKind } from '../track/ref.js';
 
-/* Pan is the one field not on the dB ladder: 64 detents corner to corner, so a
- * full sweep is about the same wrist travel as the fader's. */
-const PAN_STEP = (PAN_MAX - PAN_MIN) / 64;
+/* Pan is the one field not on the dB ladder, but it travels at the same rate as
+ * everything else on the page: one CC unit is CONTINUOUS_TICK_FRAC of the
+ * corner-to-corner range.
+ *
+ * Derived inside the call, not as a module-level const: esbuild's code-split
+ * build put this file's initializer BEFORE the chunk holding PAN_MIN/PAN_MAX,
+ * so a `const` computed from them here was NaN and every pan edit wrote NaN.
+ * The device bundle happened to order it the other way, which is why only the
+ * browser build ever saw it. */
+function panStep(): number { return (PAN_MAX - PAN_MIN) * CONTINUOUS_TICK_FRAC; }
+
+/* Snapped to the step grid, so pan can always return to exactly centre: a value
+ * restored off-grid (a set file, an automation write) would otherwise carry its
+ * offset through every detent and never land on 0 again. */
+function stepPan(pan: number, ticks: number): number {
+    const g = panStep();
+    return clampF(Math.round((pan + ticks * g) / g) * g, PAN_MIN, PAN_MAX);
+}
 
 const clampF = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
@@ -37,7 +52,6 @@ export function createMixModel(track: number): Model {
     let loaded = false;
     let dirty = true;
     const touched: number[] = [];
-    const accum = new Array(8).fill(0) as number[];
 
     function dropCache(): void { loaded = false; dirty = true; }
     function load(): void { vals = readMix(track); loaded = true; }
@@ -50,13 +64,6 @@ export function createMixModel(track: number): Model {
         return v.send[busOfField(field)] ?? 0;
     }
 
-    /* VOL and every send walk the shared dB ladder — one detent is one dB, and
-     * index 0 is true silence — so the page and the hold-track+volume gesture
-     * feel like the same fader. */
-    function ladderStep(current: number, n: number, max: number): number {
-        return Math.min(max, idxToAmp(Math.min(VOL_STEPS, Math.max(0, ampToIdx(current) + n))));
-    }
-
     /* One undo group per knob: the key has to survive every detent of a turn
      * and close only on release. */
     function gestureKey(k: number): string { return 'mix:' + track + ':' + FIELD_AT[k]; }
@@ -66,19 +73,18 @@ export function createMixModel(track: number): Model {
         if (field === undefined || trackKind(track) === 'host' && field !== 'gain') return;
         const v = ensure();
         const before = packMixValue(v);
-        if (field === 'pan') {
-            const n = countDetents(accum, k, delta);
-            if (n === 0) return;
-            v.pan = clampF(v.pan + n * PAN_STEP, PAN_MIN, PAN_MAX);
-        } else {
-            const n = countDetents(accum, k, delta);
-            if (n === 0) return;
-            if (field === 'gain') v.gain = ladderStep(v.gain, n, FIELD_RANGE.gain.max);
-            else {
-                const i = busOfField(field);
-                v.send[i] = ladderStep(v.send[i] ?? 0, n, SEND_MAX);
-            }
+        /* VOL and every send walk the shared dB ladder — silence at the bottom,
+         * the fader's 12 dB of headroom or a send's unity at the top — so the
+         * page and the hold-track+volume gesture describe the same curve. */
+        if (field === 'pan') v.pan = stepPan(v.pan, delta);
+        else if (field === 'gain') v.gain = stepAmpDb(v.gain, delta, VOL_TOP_DB);
+        else {
+            const i = busOfField(field);
+            v.send[i] = stepAmpDb(v.send[i] ?? 0, delta, SEND_TOP_DB);
         }
+        /* Nothing moved — the control is against a stop. No write, and no undo
+         * entry for an edit that changed nothing. */
+        if (packMixValue(v) === before) return;
         /* An undo group has to be OPEN before the write: `recordParamOp` logs a
          * violation and drops the entry otherwise, so the edit would be both
          * un-undoable and noisy. Keyed per field so turning VOL and then PAN
@@ -116,7 +122,7 @@ export function createMixModel(track: number): Model {
         changePageGroup(_delta: number): void { /* one page */ },
         selectBankForPad(_pad: number): void { /* no pad claims this page */ },
         getModuleName(): string { return 'MIX'; },
-        reset(): void { touched.length = 0; accum.fill(0); dropCache(); },
+        reset(): void { touched.length = 0; dropCache(); },
         tick(): boolean {
             if (!loaded) { load(); dirty = true; }
             const d = dirty; dirty = false; return d;
@@ -144,20 +150,22 @@ export function createMixModel(track: number): Model {
              * param, and `knob_find_param` resolves only components inside the
              * chain, so there is nothing for a lane to target. */
             if (trackKind(track) === 'host') return null;
-            const r = FIELD_RANGE[field];
+            /* Reported as a POSITION on the control's travel, not in the
+             * field's own units: that is what a lane's 0-127 means here, so the
+             * automation the knob writes follows the curve the knob walks. */
             return {
                 gi: physK, key: field, ioKey: field, target: 'mix',
-                value: valueOf(field), min: r.min, max: r.max, type: r.type,
+                value: fieldFrac(field, valueOf(field)),
+                min: LANE_RANGE.min, max: LANE_RANGE.max, type: LANE_RANGE.type,
                 automatable: true,
             };
         },
         paramRangeByKey(key: string) {
-            const r = FIELD_RANGE[key as MixFieldName];
-            return r ? { min: r.min, max: r.max, type: r.type } : null;
+            return FIELD_AT.includes(key as MixFieldName) ? { ...LANE_RANGE } : null;
         },
         getValueByKey(key: string) {
-            const r = FIELD_RANGE[key as MixFieldName];
-            return r ? valueOf(key as MixFieldName) : null;
+            const field = key as MixFieldName;
+            return FIELD_AT.includes(field) ? fieldFrac(field, valueOf(field)) : null;
         },
     };
 

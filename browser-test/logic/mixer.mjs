@@ -343,7 +343,6 @@ _log('\nTest: MIX page edits are undoable');
     const { createMixModel } = await import('../../dist/esm/mixer/mix-model.js');
     const { resetPorts } = await import('../../dist/esm/track/registry.js');
     const { takeUndoViolation } = await import('../../dist/esm/undo/record.js');
-    const { DETENT_DIV } = await import('../../dist/esm/seq/detent.js');
     const { FIELD_AT } = await import('../../dist/esm/mixer/mix-io.js');
     const { undoDepth, resetUndoState } = await import('../../dist/esm/undo/state.js');
 
@@ -361,21 +360,19 @@ _log('\nTest: MIX page edits are undoable');
 
     /* `recordParamOp` logs a violation and DROPS the entry when no undo group
      * is open, so an edit with no gesture is both un-undoable and noisy. */
-    /* One physical click is DETENT_DIV raw units — the same one-step-per-click
-     * feel the hold-track+volume gesture has. */
     /* Knob 5 is SND1 — the first encoder of line 2, per FIELD_AT. Written as
      * the lookup rather than the number so this follows the layout instead of
      * silently turning into a test of whatever knob 5 becomes next. */
     const snd1 = FIELD_AT.indexOf('send1');
     m.handleKnobTouch(snd1);
-    m.handleKnobDelta(snd1, DETENT_DIV);
+    m.handleKnobDelta(snd1, 1);
     eq('a send turn writes the mixer', writes.length > 0, true);
     eq('and writes the whole value', (writes[0][1].match(/,/g) || []).length, 4);
     eq('with no ungrouped-write violation', takeUndoViolation(), '');
 
     /* One gesture, one undo entry, however many detents it took. */
-    m.handleKnobDelta(snd1, DETENT_DIV);
-    m.handleKnobDelta(snd1, DETENT_DIV);
+    m.handleKnobDelta(snd1, 1);
+    m.handleKnobDelta(snd1, 1);
     m.handleKnobRelease(snd1);
     eq('a whole turn is one undo entry', undoDepth(), 1);
 
@@ -421,27 +418,165 @@ _log('\nTest: MIX page automation feedback');
                                auto: auto({ activeLanes: 1 << 3 }) });
     ok('a lane with locks reads as automated', cellFor(active, 'send1').automated);
 
-    /* A held step shows THAT STEP's value, denormalized on the send's own range
-     * — the same range the engine uses, or the arc would disagree with what you
-     * hear. */
+    /* A held step shows THAT STEP's value. What arrives here is what
+     * `buildAutomationView` produces — the lane value already denormalized on
+     * the lane's own range, which for a mix lane is the control's POSITION,
+     * 0..1. This test used to hand it 127, and passing a 0-127 value through a
+     * second denormalization is exactly the bug that pinned every automated
+     * mix knob near the bottom of its travel. */
     const held = buildMixVM({ vals, kind: 'movy', touched: [],
-        auto: auto({ held: true, heldValues: new Map([[3, 127]]) }) });
-    eq('a held step shows its locked value', cellFor(held, 'send1').displayValue, '0.0 dB');
+        auto: auto({ held: true, heldValues: new Map([[3, 1]]) }) });
+    eq('a held step at the top of the lane is the top of the control',
+       cellFor(held, 'send1').displayValue, '0.0 dB');
+    eq('and it fills the arc', cellFor(held, 'send1').normalizedValue, 1);
     ok('and inverts the cell, like a knob touch', cellFor(held, 'send1').touched);
     ok('the page reports the hold', held.automationHeld);
 
+    /* Half the lane is half the DECIBELS — the curve the knob walks. Read
+     * linearly over the send's 0..1 amplitude this said -6.0 dB. */
+    const halfway = buildMixVM({ vals, kind: 'movy', touched: [],
+        auto: auto({ held: true, heldValues: new Map([[3, 0.5]]) }) });
+    eq('halfway up the lane is halfway down the fader',
+       cellFor(halfway, 'send1').displayValue, '-24.0 dB');
+
     const live = buildMixVM({ vals, kind: 'movy', touched: [],
-        auto: auto({ liveValues: new Map([[3, 64]]) }) });
+        auto: auto({ liveValues: new Map([[3, 0.5]]) }) });
     ok('a live take moves the arc', cellFor(live, 'send1').normalizedValue > 0);
 
     const full = buildMixVM({ vals, kind: 'movy', touched: [], auto: auto({ poolFull: true }) });
     ok('and a full lane pool is reported', full.automationPoolFull);
+
+    /* Two hands on the page is two readouts. Only the header toast is
+     * singular; before this, the second knob's cell showed its NAME while the
+     * first showed a value, which reads as one of them not responding. */
+    const two = buildMixVM({ vals, kind: 'movy', touched: [FIELD_AT.indexOf('gain'),
+                                                          FIELD_AT.indexOf('send1')] });
+    ok('the first held knob shows its value', cellFor(two, 'gain').touched);
+    ok('and so does the second', cellFor(two, 'send1').touched);
+    eq('the toast follows the one touched last', two.toast.fullName, 'Send 1');
+    ok('an untouched cell is unchanged', !cellFor(two, 'pan').touched);
 
     /* A page built without one must still render — the screenshot scenes and
      * every test above build it that way. */
     const bare = buildMixVM({ vals, kind: 'movy', touched: [] });
     ok('no automation view is not a crash', cellFor(bare, 'send1') !== null);
     ok('and nothing claims to be assigned', !cellFor(bare, 'send1').assigned);
+}
+
+/* ── Knob feel: the page travels like the pages either side of it ────────── */
+
+_log('\nTest: MIX knob travel matches a module knob');
+
+{
+    const { createMixModel } = await import('../../dist/esm/mixer/mix-model.js');
+    const { resetPorts } = await import('../../dist/esm/track/registry.js');
+    const { FIELD_AT, parseMixValue } = await import('../../dist/esm/mixer/mix-io.js');
+    const { CONTINUOUS_TICK_FRAC } = await import('../../dist/esm/model/constants.js');
+
+    let mix = '1.0000,0.0000,0,0.0000,0.0000,0.0000';
+    const oG = globalThis.host_module_get_param;
+    const oS = globalThis.host_module_set_param_blocking;
+    globalThis.host_module_get_param = (k) => (k === 'ch6:mix' ? mix : (oG ? oG(k) : null));
+    globalThis.host_module_set_param_blocking = (k, v) => {
+        if (k === 'ch6:mix') mix = v;
+        return true;
+    };
+    resetPorts();
+
+    const m = createMixModel(6);
+    const reset = (v) => { mix = v; m.reloadNow(); m.tick(); };
+    /* CC units spent before the value stops changing, and whether any one of
+     * them was WASTED — a tick that writes nothing is the stair-step this page
+     * used to have, where a small turn did nothing and then leapt a whole dB. */
+    const sweep = (knob, dir) => {
+        let ticks = 0, dead = 0, last = mix;
+        for (let i = 0; i < 2000; i++) {
+            m.handleKnobDelta(knob, dir);
+            m.reloadNow(); m.tick();
+            if (mix === last) { dead++; if (dead > 2) break; continue; }
+            dead = 0; last = mix; ticks = i + 1;
+        }
+        return ticks;
+    };
+
+    /* The target: a module knob moves CONTINUOUS_TICK_FRAC of its range per CC
+     * unit, so a full sweep is 1/that. Asserted against the constant rather
+     * than against 200, so the two cannot drift apart silently. */
+    const FULL = Math.round(1 / CONTINUOUS_TICK_FRAC);
+    const near = (n, want, tol) => Math.abs(n - want) <= tol;
+
+    const vol = FIELD_AT.indexOf('gain');
+    reset('1.0000,0.0000,0,0,0,0');
+    const volUp = sweep(vol, +1);
+    reset('1.0000,0.0000,0,0,0,0');
+    const volDown = sweep(vol, -1);
+    /* The fader's travel is one range: 48 dB below unity plus 12 above. */
+    ok('the fader crosses its whole travel in a module knob\'s sweep',
+       near(volUp + volDown, FULL, 6), volUp + volDown + ' ticks, want ~' + FULL);
+
+    reset('1.0000,0.0000,0,0,0,0');
+    const panRight = sweep(FIELD_AT.indexOf('pan'), +1);
+    ok('pan crosses half its travel in half a sweep',
+       near(panRight * 2, FULL, 4), panRight * 2 + ' ticks, want ~' + FULL);
+
+    reset('1.0000,0.0000,0,0,0,0');
+    const send = sweep(FIELD_AT.indexOf('send1'), +1);
+    ok('a send crosses its whole travel in a sweep',
+       near(send, FULL, 4), send + ' ticks, want ~' + FULL);
+
+    /* Every CC unit moves the value. With the old whole-detent step, seven of
+     * every eight wrote nothing at all. */
+    reset('1.0000,0.0000,0,0,0,0');
+    let moved = 0;
+    for (let i = 0; i < 20; i++) {
+        const before = mix;
+        m.handleKnobDelta(vol, -1);
+        m.reloadNow(); m.tick();
+        if (mix !== before) moved++;
+    }
+    eq('no CC unit is swallowed', moved, 20);
+
+    /* The landmarks have to be reachable from wherever a set file or an
+     * automation write left the value — the reason the step is snapped to the
+     * grid rather than added to whatever offset it found. */
+    const trajectory = (knob, dir, n) => {
+        const seen = [];
+        for (let i = 0; i < n; i++) {
+            m.handleKnobDelta(knob, dir);
+            m.reloadNow(); m.tick();
+            seen.push(parseMixValue(mix));
+        }
+        return seen;
+    };
+
+    const pan = FIELD_AT.indexOf('pan');
+    reset('1.0000,0.0730,0,0,0,0');
+    ok('pan lands on exactly centre from an off-grid value',
+       trajectory(pan, -1, 12).some((v) => v.pan === 0));
+
+    reset('0.9310,0.0000,0,0,0,0');
+    ok('and the fader on exactly unity',
+       trajectory(FIELD_AT.indexOf('gain'), +1, 12).some((v) => v.gain === 1));
+
+    globalThis.host_module_get_param = oG;
+    globalThis.host_module_set_param_blocking = oS;
+    resetPorts();
+}
+
+_log('\nTest: a send arc ends at 0 dB');
+
+{
+    const { sendFrac, volumeFrac } = await import('../../dist/esm/mixer/db-ladder.js');
+    const { SEND_MAX } = await import('../../dist/esm/mixer/mix-io.js');
+
+    /* Normalized against the FADER's travel — which runs 12 dB past unity — a
+     * send at its maximum drew four fifths of an arc and read as a control that
+     * had stopped early. */
+    eq('a send at its maximum is a full arc', sendFrac(SEND_MAX), 1);
+    eq('and off is an empty one', sendFrac(0), 0);
+    ok('the fader keeps its headroom above unity', volumeFrac(1) < 1);
+    ok('a send is louder than the fader at the same position',
+       sendFrac(0.5) > volumeFrac(0.5));
 }
 
 }

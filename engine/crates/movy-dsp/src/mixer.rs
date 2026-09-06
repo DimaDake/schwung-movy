@@ -95,17 +95,23 @@ impl MixField {
         }
     }
 
-    /// Denormalize a 0-127 lane value onto this field's range.
+    /// Denormalize a 0-127 lane value onto this field's control.
     ///
-    /// These three ranges are the UI's too (`src/mixer/mix-io.ts`). A lane that
-    /// scaled differently from the knob would make an automated value jump the
-    /// moment the knob was released.
+    /// A lane value is the control's POSITION on its own travel, not a linear
+    /// fraction of its value range — the same mapping the UI writes with
+    /// (`fieldFrac` in `src/mixer/mix-io.ts`). A lane that scaled differently
+    /// from the knob makes the automated value jump the moment the knob is
+    /// released, and linear-over-amplitude was exactly that: unity is 1.0 of
+    /// 0..4, so the whole usable fader sat in the bottom quarter of the lane
+    /// and an automated level read as stuck against its end.
+    ///
+    /// Pan is unaffected — its position and its value are the same line.
     pub fn denorm(self, v: u8) -> f32 {
         let n = (v.min(127) as f32) / 127.0;
         match self {
-            Self::Gain => n * 4.0,
+            Self::Gain => amp_at(n, GAIN_TOP_DB),
             Self::Pan => n * 2.0 - 1.0,
-            Self::Send(_) => n,
+            Self::Send(_) => amp_at(n, SEND_TOP_DB),
         }
     }
 
@@ -124,6 +130,24 @@ impl MixField {
             }
         }
     }
+}
+
+/// The fader curve, shared with the UI's `db-ladder.ts`: position 0 is silence,
+/// position 1 is `top_db`, and everything between is one straight line in dB.
+/// The floor is the same -48 dB the UI uses; a level below it is silence, which
+/// is what position 0 means.
+const DB_FLOOR: f32 = -48.0;
+/// The fader's ceiling: 12 dB of headroom above unity (amplitude 4.0).
+const GAIN_TOP_DB: f32 = 12.041_2;
+/// A send stops at unity.
+const SEND_TOP_DB: f32 = 0.0;
+
+fn amp_at(frac: f32, top_db: f32) -> f32 {
+    if frac <= 0.0 {
+        return 0.0;
+    }
+    let db = DB_FLOOR + frac.min(1.0) * (top_db - DB_FLOOR);
+    10f32.powf(db / 20.0)
 }
 
 #[inline]
@@ -163,6 +187,43 @@ mod tests {
 
     fn unity() -> TrackMix {
         TrackMix::default()
+    }
+
+    /// A lane's 0-127 is a POSITION on the control's travel. Linear-over-
+    /// amplitude put unity a quarter of the way up and left the automated
+    /// fader stuck against one end; these pin the curve to the UI's.
+    #[test]
+    fn a_gain_lane_walks_the_fader_curve() {
+        let g = MixField::Gain;
+        assert_eq!(g.denorm(0), 0.0, "the bottom of a lane is silence");
+        let top = g.denorm(127);
+        assert!((top - 4.0).abs() < 0.01, "the top is the fader maximum, got {top}");
+        // Unity is 48 dB up a 60.04 dB travel: 0.7995 of the way, lane value
+        // 102 — within half a lane step (0.47 dB), which is as close as a
+        // 7-bit lane gets to any particular value.
+        let unity = 20.0 * g.denorm(102).log10();
+        assert!(unity.abs() < 0.5, "unity sits where the knob puts it, got {unity} dB");
+        // Half the lane is half the DECIBELS, not half the amplitude.
+        let mid = 20.0 * g.denorm(64).log10();
+        assert!((mid - -17.8).abs() < 0.5, "midway is midway in dB, got {mid} dB");
+    }
+
+    #[test]
+    fn a_send_lane_tops_out_at_unity() {
+        let s = MixField::Send(0);
+        assert_eq!(s.denorm(0), 0.0, "off");
+        let top = s.denorm(127);
+        assert!((top - 1.0).abs() < 0.001, "a send's travel ends at 0 dB, got {top}");
+        let mid = 20.0 * s.denorm(64).log10();
+        assert!((mid - -23.8).abs() < 0.5, "and is linear in dB between, got {mid} dB");
+    }
+
+    #[test]
+    fn a_pan_lane_is_unchanged() {
+        let p = MixField::Pan;
+        assert!((p.denorm(0) + 1.0).abs() < 0.001, "hard left");
+        assert!(p.denorm(64).abs() < 0.01, "centre");
+        assert!((p.denorm(127) - 1.0).abs() < 0.001, "hard right");
     }
 
     #[test]

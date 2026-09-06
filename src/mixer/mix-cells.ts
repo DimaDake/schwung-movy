@@ -7,9 +7,9 @@
 import type { AutomationView, ParamVM, ViewModel } from '../types/viewmodel.js';
 import { paramCell as cell } from '../seq/param-vm.js';
 import type { TrackKind } from '../track/ref.js';
-import { volumeFrac } from './db-ladder.js';
+import { sendFrac, volumeFrac } from './db-ladder.js';
 import {
-    FIELD_AT, FIELD_RANGE, sendField, formatDb, formatPan, formatSend,
+    FIELD_AT, fieldFromFrac, sendField, formatDb, formatPan, formatSend,
     PAN_MAX, PAN_MIN, type MixVals,
 } from './mix-io.js';
 import { SEND_BUSES } from '../chain/config.js';
@@ -21,8 +21,10 @@ function panFrac(pan: number): number {
 }
 
 export function buildMixCells(v: MixVals, kind: TrackKind): (ParamVM | null)[] {
+    /* A fader, not an arc: this is a channel level, and the widget already
+     * exists as the vertical partner of the pan dial's horizontal bar. */
     const vol = cell({
-        shortName: 'VOL', fullName: 'Volume', type: 'float', renderStyle: 'arc',
+        shortName: 'VOL', fullName: 'Volume', type: 'float', renderStyle: 'vbar',
         displayValue: formatDb(v.gain), normalizedValue: volumeFrac(v.gain),
         automatable: kind === 'movy',
     });
@@ -48,7 +50,10 @@ export function buildMixCells(v: MixVals, kind: TrackKind): (ParamVM | null)[] {
         cells[FIELD_AT.indexOf(sendField(bus))] = cell({
             shortName: 'SND' + (bus + 1), fullName: 'Send ' + (bus + 1),
             type: 'float', renderStyle: 'arc',
-            displayValue: formatSend(level), normalizedValue: volumeFrac(level),
+            /* A send's own travel, which ends at unity. Normalized against the
+             * FADER's travel it drew four fifths of an arc at its maximum, and
+             * read as a control that had stopped early. */
+            displayValue: formatSend(level), normalizedValue: sendFrac(level),
             automatable: true,
         });
     }
@@ -80,13 +85,18 @@ function decorate(cells: (ParamVM | null)[], v: MixVals, auto: AutomationView): 
         const held = auto.held && auto.heldValues.has(lane);
         const live = !auto.held && auto.liveValues.has(lane);
         if (!held && !live) continue;
-        const raw = (held ? auto.heldValues.get(lane) : auto.liveValues.get(lane)) as number;
-        const r = FIELD_RANGE[field];
-        const value = r.min + (raw / 127) * (r.max - r.min);
+        /* Already in the lane's own units — `buildAutomationView` denormalizes
+         * every lane value once, and for a mix lane those units are the
+         * control's POSITION. Re-denormalizing it here as if it were still
+         * 0-127 pinned every automated mix knob near the bottom of its travel,
+         * which is what "stuck on one side" was. */
+        const frac = (held ? auto.heldValues.get(lane) : auto.liveValues.get(lane)) as number;
+        const value = fieldFromFrac(field, frac);
         cell.touched = true;
         cell.displayValue = field === 'pan' ? formatPan(value)
                           : field === 'gain' ? formatDb(value) : formatSend(value);
-        cell.normalizedValue = field === 'pan' ? panFrac(value) : volumeFrac(value);
+        cell.normalizedValue = field === 'pan' ? panFrac(value)
+                             : field === 'gain' ? volumeFrac(value) : sendFrac(value);
     }
     void v;
 }
@@ -96,11 +106,17 @@ function decorate(cells: (ParamVM | null)[], v: MixVals, auto: AutomationView): 
 export function buildMixVM(st: MixPageState): ViewModel {
     const cells = buildMixCells(st.vals, st.kind);
     if (st.auto) decorate(cells, st.vals, st.auto);
+    /* EVERY held knob shows its value, not just the last one — two hands on the
+     * page is two readouts, the same as a module's. Only the header toast is
+     * singular, and it follows the knob touched most recently. */
+    for (const k of st.touched) {
+        const c = k >= 0 && k < 8 ? cells[k] : null;
+        if (c) c.touched = true;
+    }
     const primary = st.touched.length > 0 ? st.touched[st.touched.length - 1] : -1;
     const primaryCell = primary >= 0 && primary < 8 ? cells[primary] : null;
     let toast: ViewModel['toast'] = null;
     if (primaryCell) {
-        primaryCell.touched = true;
         toast = { fullName: primaryCell.fullName, value: primaryCell.displayValue, browseHint: false };
     }
     return {

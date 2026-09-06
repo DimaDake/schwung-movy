@@ -13,7 +13,7 @@ import { markUiStateDirty } from '../seq/ui-dirty.js';
 import { portFor } from '../track/registry.js';
 import { trackKind } from '../track/ref.js';
 import { SEND_BUSES } from '../chain/config.js';
-import { VOL_MAX, VOL_MIN } from './db-ladder.js';
+import { SEND_TOP_DB, VOL_MAX, VOL_MIN, VOL_TOP_DB, dbFrac, fracToAmp } from './db-ladder.js';
 
 /* One-based, because the name is what the knob is LABELLED and the engine
  * parses the same spelling (`MixField::parse`). Written out rather than a
@@ -35,10 +35,8 @@ export const PAN_MIN = -1;
 export const PAN_MAX = 1;
 export const SEND_MAX = 1;
 
-/* The lane ranges, and deliberately the same three the engine denormalizes with
- * (`MixField::denorm` in engine/crates/movy-dsp/src/mixer.rs). A lane that
- * scaled differently from the knob would make an automated value jump the
- * moment the knob was released. */
+/* What each field's VALUE spans. The lane that automates it does not span this
+ * — see LANE_RANGE. */
 export const FIELD_RANGE: Record<MixFieldName, { min: number; max: number; type: string }> = {
     gain:  { min: VOL_MIN, max: VOL_MAX, type: 'float' },
     pan:   { min: PAN_MIN, max: PAN_MAX, type: 'float' },
@@ -46,6 +44,33 @@ export const FIELD_RANGE: Record<MixFieldName, { min: number; max: number; type:
     send2: { min: 0,       max: SEND_MAX, type: 'float' },
     send3: { min: 0,       max: SEND_MAX, type: 'float' },
 };
+
+/* ── What a lane's 0-127 means ─────────────────────────────────────────────
+ *
+ * The POSITION of the control on its own travel, not the value — and
+ * deliberately the same mapping the engine denormalizes with (`MixField::denorm`
+ * in engine/crates/movy-dsp/src/mixer.rs).
+ *
+ * A lane that scaled differently from the knob makes the automated value jump
+ * the moment the knob is released, and a LINEAR lane over an amplitude range is
+ * exactly that: unity is 1.0 of 0..4, so three quarters of the lane travel
+ * covered the top 12 dB and the whole usable fader was squeezed into the bottom
+ * quarter — reported from the device as automated mix knobs "stuck on one
+ * side". Pan is unchanged by this: its position and its value are the same
+ * straight line. */
+export const LANE_RANGE = { min: 0, max: 1, type: 'float' };
+
+/** A field's value as its control's position, 0..1. */
+export function fieldFrac(field: MixFieldName, value: number): number {
+    if (field === 'pan') return (value - PAN_MIN) / (PAN_MAX - PAN_MIN);
+    return dbFrac(value, field === 'gain' ? VOL_TOP_DB : SEND_TOP_DB);
+}
+
+/** The inverse: a position back to the field's own units. */
+export function fieldFromFrac(field: MixFieldName, frac: number): number {
+    if (field === 'pan') return PAN_MIN + frac * (PAN_MAX - PAN_MIN);
+    return fracToAmp(frac, field === 'gain' ? VOL_TOP_DB : SEND_TOP_DB);
+}
 
 /** The field name for bus `n`, one-based on the wire. */
 export function sendField(bus: number): MixFieldName {

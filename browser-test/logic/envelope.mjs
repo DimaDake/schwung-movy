@@ -242,8 +242,8 @@ _log('\n── Envelope knob↔screen mapping (rearrange) ──');
     m.changePage(1);                       // preset page is 0; Main is 1
     const vm = m.getViewModel();
     eq('obxd: line0 is envelope', !!vm.envelopeLines?.[0], true);
-    eq('obxd: top-left cell = Attack', vm.rows[0][0]?.shortName, 'ATTAC');
-    eq('obxd: bottom-left cell = Cutoff', vm.rows[1][0]?.shortName, 'CUTOF');
+    eq('obxd: top-left cell = Attack', vm.rows[0][0]?.shortName, 'ATTACK');
+    eq('obxd: bottom-left cell = Cutoff', vm.rows[1][0]?.shortName, 'CUTOFF');
 
     // Touch physical knob 0 → top-left (attack) highlights, not the param that
     // used to live at page index 0 (cutoff, now bottom-left).

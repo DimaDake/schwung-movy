@@ -13,7 +13,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { createModel }    from '../../dist/esm/model/index.js';
 import { portFor }        from '../../dist/esm/track/registry.js';
 import { trackRef, TRACK_COUNT } from '../../dist/esm/track/ref.js';
-import { dedupShortNames } from '../../dist/esm/renderer/shorten.js';
+import { dedupShortNames, LABEL_BUDGET } from '../../dist/esm/renderer/shorten.js';
 import { detectEnvelopes } from '../../dist/esm/model/envelope.js';
 import { planPageLayout } from '../../dist/esm/model/page-layout.js';
 import { enumRawToIndex, enumUsesIndex, enumSetValue } from '../../dist/esm/model/enum-value.js';
@@ -229,7 +229,7 @@ const P = (key, label, env) => ({ key, label, shortLabel: null, type: 'float',
 
 export {
     readFileSync, readdirSync, createModel, portFor, trackRef, TRACK_COUNT,
-    dedupShortNames, detectEnvelopes, planPageLayout, enumRawToIndex, enumUsesIndex, enumSetValue,
+    dedupShortNames, LABEL_BUDGET, detectEnvelopes, planPageLayout, enumRawToIndex, enumUsesIndex, enumSetValue,
     MOCK_SYNTHS, drumPadOn, drumPadOff, ENGINE_VERSION, NAME_POLL_TICKS, META_RETRY_LIMIT,
     KNOBS_PER_PAGE, OVERRIDES_MODULE_FILE,
     readActiveSet, uuidToStatePath, uuidToUiStatePath, loadNameIndex, rememberSet, BLANK_STATE,

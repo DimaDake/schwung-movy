@@ -13,7 +13,7 @@ import { cutKindOf } from './cut-viz.js';
 import { wavPeaks, resamplePeaks } from './wav-peaks.js';
 import { KNOBS_PER_PAGE, KNOBS_PER_ROW } from './constants.js';
 import { pageRotation, rotationPos, isVoiceBank } from './page-rotation.js';
-import { dedupShortNames } from '../renderer/shorten.js';
+import { dedupShortNames, LABEL_BUDGET } from '../renderer/shorten.js';
 import { basename } from './path.js';
 import { triggerVisual } from './trigger.js';
 
@@ -54,7 +54,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         const p = s.knobParams[pageStart + i];
         return p ? { label: p.label, shortLabel: p.shortLabel ?? null } : null;
     });
-    const shortNames = dedupShortNames(pageEntries, 5);
+    const shortNames = dedupShortNames(pageEntries, LABEL_BUDGET);
 
     const layout = planPageLayout(s.knobParams.slice(pageStart, pageStart + KNOBS_PER_PAGE));
     /* Cells whose enum draws as a waveform silhouette instead of option text.

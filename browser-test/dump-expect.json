@@ -8,13 +8,13 @@
   ],
   "pageShortNames": [
    [
-    "PRESE"
+    "PRESET"
    ],
    [
     "MIX",
     "LOOP",
     "GRAIN",
-    "SCATT",
+    "SCATTE",
     "MICRO",
     "DECAY",
     "DEPTH",
@@ -59,14 +59,14 @@
    [
     "KEY",
     "SCALE",
-    "RETUN",
+    "RETUNE",
     "AMOUN"
    ],
    [
-    "VOIC1",
-    "VOIC2",
-    "VOIC3",
-    "VOIC4",
+    "VOICE1",
+    "VOICE2",
+    "VOICE3",
+    "VOICE4",
     "HARM",
     "SPREA",
     "DOUBL"
@@ -76,7 +76,7 @@
     "WET",
     "FORMA",
     "FLEX",
-    "HUMAN"
+    "HUMANI"
    ]
   ],
   "envelopeLines": 0,
@@ -112,17 +112,17 @@
   "pageShortNames": [
    [
     "DRIVE",
-    "SATUR",
+    "SATURA",
     "BIAS",
     "TONE",
     "SPEED",
-    "FLUTT",
+    "FLUTTE",
     "CHEW",
     "MIX"
    ],
    [
     "DEGRA",
-    "OUTPU"
+    "OUTPUT"
    ]
   ],
   "envelopeLines": 0,
@@ -151,7 +151,7 @@
   ],
   "pageShortNames": [
    [
-    "PRESE"
+    "PRESET"
    ],
    [
     "HEADR",
@@ -159,7 +159,7 @@
     "AL",
     "BD",
     "BL",
-    "OUTPU",
+    "OUTPUT",
     "PARA6",
     "PARA7"
    ]
@@ -192,15 +192,15 @@
     "MIX",
     "DECAY",
     "SIZE",
-    "PRE-D",
+    "PRE-DE",
     "LOW",
     "HIGH",
-    "DIFFU",
+    "DIFFUSI",
     "MOD"
    ],
    [
     "MOD",
-    "SW"
+    "STEREO"
    ]
   ],
   "envelopeLines": 0,
@@ -230,11 +230,11 @@
   ],
   "pageShortNames": [
    [
-    "DISSO",
+    "DISSOL",
     "FREEZ",
-    "STRET",
+    "STRETC",
     "SPREA",
-    "EVOLU",
+    "EVOLUT",
     "DECAY",
     "TONE",
     "DRY/W"
@@ -242,15 +242,15 @@
    [
     "MIX",
     "TONE",
-    "SW",
+    "STEREO",
     "COMPR",
     "SD",
     "FC",
     "TILT",
-    "OL"
+    "OUTPUT"
    ],
    [
-    "AT",
+    "ATTACK",
     "RT"
    ]
   ],
@@ -289,7 +289,7 @@
   ],
   "pageShortNames": [
    [
-    "PRESE"
+    "PRESET"
    ],
    [
     "DRY",
@@ -297,7 +297,7 @@
     "LATE",
     "SIZE",
     "DECAY",
-    "DIFFU",
+    "DIFFUS",
     "PREDE",
     "WIDTH"
    ],
@@ -346,10 +346,10 @@
   "pageShortNames": [
    [
     "CHANN",
-    "TRIGG",
+    "TRIGGE",
     "MODE",
     "DEPTH",
-    "ATTAC",
+    "ATTACK",
     "RELEA",
     "HOLD",
     "CURVE"
@@ -386,7 +386,7 @@
   ],
   "pageShortNames": [
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
     "DRIVE",
     "MIX",
@@ -412,7 +412,7 @@
    ],
    [
     "MIX",
-    "OUTPU"
+    "OUTPUT"
    ]
   ],
   "envelopeLines": 1,
@@ -446,7 +446,7 @@
   "pageShortNames": [
    [
     "ROOM",
-    "DAMPI",
+    "DAMPIN",
     "WET",
     "DRY",
     "WIDTH"
@@ -472,13 +472,13 @@
   ],
   "pageShortNames": [
    [
-    "ATTAC",
+    "ATTACK",
     "RELEA",
-    "THRES",
+    "THRESH",
     "HOLD",
     "RANGE",
     "RATIO",
-    "HYSTE",
+    "HYSTER",
     "MODE"
    ]
   ],
@@ -509,9 +509,9 @@
   ],
   "pageShortNames": [
    [
-    "DENSI",
+    "DENSIT",
     "SIZE",
-    "POSIT",
+    "POSITIO",
     "PITCH",
     "FEEDB",
     "PAN",
@@ -532,13 +532,13 @@
    ],
    [
     "SYNC",
-    "DIVIS",
+    "DIVISIO",
     "RHYTH"
    ],
    [
     "INPUT",
     "MUTE",
-    "VOICE"
+    "VOICES"
    ]
   ],
   "envelopeLines": 0,
@@ -582,7 +582,7 @@
    [
     "MODE",
     "MIX",
-    "BRIGH"
+    "BRIGHT"
    ]
   ],
   "envelopeLines": 0,
@@ -631,8 +631,8 @@
     "JUMP",
     "SCAN",
     "REVER",
-    "STUTT",
-    "FAILU",
+    "STUTTE",
+    "FAILUR",
     "TAPE",
     "STOP"
    ],
@@ -652,8 +652,8 @@
    [
     "TAPE",
     "WOW",
-    "FLUTT",
-    "SATUR",
+    "FLUTTE",
+    "SATURA",
     "HF",
     "LOW",
     "HISS",
@@ -745,20 +745,20 @@
   ],
   "pageShortNames": [
    [
-    "PRESE"
+    "PRESET"
    ],
    [
     "MIX",
     "FEEDB",
     "INPUT",
-    "OG",
+    "OUTPUT",
     "LOW",
     "HIGH",
-    "PRE-D",
+    "PRE-DE",
     "WIDTH"
    ],
    [
-    "DAMPI",
+    "DAMPIN",
     "TILT",
     "RATE",
     "DEPTH"
@@ -793,9 +793,9 @@
   ],
   "pageShortNames": [
    [
-    "DAMPI",
-    "DENSI",
-    "BANDW",
+    "DAMPIN",
+    "DENSIT",
+    "BANDWI",
     "DECAY",
     "PREDE",
     "SIZE",
@@ -831,7 +831,7 @@
   "pageShortNames": [
    [
     "INPUT",
-    "OUTPU",
+    "OUTPUT",
     "CAB"
    ]
   ],
@@ -862,32 +862,32 @@
     "UPWAR",
     "DOWNW",
     "TIME",
-    "IN",
+    "IN GAIN",
     "OUT",
     "LH"
    ],
    [
-    "MH"
+    "MID/HI"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "RELEA",
-    "THR",
-    "RATIO",
+    "UP THR",
+    "UP",
     "GAIN",
     "MID",
-    "HI",
-    "DN"
+    "HI GAIN",
+    "DN THR"
    ],
    [
     "LOW",
     "MUT",
     "MUR",
     "MDT",
-    "MDR",
+    "DN",
     "HUT",
     "HUR",
-    "DN"
+    "HDT"
    ],
    [
     "HI"
@@ -939,8 +939,8 @@
   ],
   "pageShortNames": [
    [
-    "FX1AM",
-    "FX1MC",
+    "FX1AMN",
+    "FX1MCR",
     "FX2AM",
     "FX2MC",
     "FX3AM",
@@ -949,9 +949,9 @@
     "FX4MC"
    ],
    [
-    "PRESE",
+    "PRESET",
     "PATCH",
-    "RNDFX",
+    "RND FX",
     "AMT",
     "MACRO",
     "VALUE",
@@ -963,23 +963,23 @@
    ],
    [
     "FX1",
-    "FX1AM",
-    "FX1MC",
-    "FX1DR",
+    "FX1AMN",
+    "FX1MCR",
+    "FX1DRF",
     "FX2",
     "FX2AM",
     "FX2MC",
-    "FX2DR"
+    "FX2DRF"
    ],
    [
     "FX3",
     "FX3AM",
     "FX3MC",
-    "FX3DR",
+    "FX3DRF",
     "FX4",
     "FX4AM",
     "FX4MC",
-    "FX4DR"
+    "FX4DRF"
    ],
    [
     "FEEDB",
@@ -1087,18 +1087,18 @@
     "CURVE",
     "RATE",
     "VOLUM",
-    "FILTE",
+    "FILTER",
     "SLOPE",
     "SHIFT",
     "BAND",
-    "OUTPU"
+    "OUTPUT"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "BAND"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
     "DRIVE",
     "MODE",
@@ -1145,7 +1145,7 @@
     "LOOP",
     "SLICE",
     "WET",
-    "RE-RO",
+    "RE-ROL",
     "A/B",
     "SEED"
    ],
@@ -1157,7 +1157,7 @@
     "CN",
     "ARM",
     "A/B",
-    "RE-RO",
+    "RE-ROL",
     "FX",
     "ORDER",
     "WET",
@@ -1165,7 +1165,7 @@
    ],
    [
     "CLEAR",
-    "DB",
+    "DETECT",
     "PAD"
    ],
    [
@@ -1179,7 +1179,7 @@
     "PAN R"
    ],
    [
-    "TRANS"
+    "TRANSP"
    ]
   ],
   "envelopeLines": 0,
@@ -1223,8 +1223,8 @@
    [
     "ONSET",
     "FREQU",
-    "BRIGH",
-    "TIMBR",
+    "BRIGHT",
+    "TIMBRE",
     "DECAY",
     "ROOT",
     "SCALE",
@@ -1241,7 +1241,7 @@
     "POST"
    ],
    [
-    "LIMIT",
+    "LIMITER",
     "POLYP"
    ],
    [
@@ -1255,12 +1255,12 @@
     "SCOOP"
    ],
    [
-    "PRESE",
+    "PRESET",
     "RP",
-    "SPECT",
-    "MOTIO",
+    "SPECTR",
+    "MOTION",
     "PAN",
-    "SW"
+    "STEREO"
    ]
   ],
   "envelopeLines": 0,
@@ -1314,17 +1314,17 @@
   "pageShortNames": [
    [
     "ENVEL",
-    "DENSI",
+    "DENSIT",
     "GRAIN",
     "TIME",
     "FEEDB",
     "MODE",
-    "SPECI",
+    "SPECIA",
     "MIX"
    ],
    [
     "ENV",
-    "DENSI",
+    "DENSIT",
     "GRAIN",
     "RT",
     "PAN",
@@ -1333,13 +1333,13 @@
     "MULT"
    ],
    [
-    "DETEC",
+    "DETECT",
     "RND"
    ],
    [
-    "PRESE",
+    "PRESET",
     "RP",
-    "FILTE",
+    "FILTER",
     "REVER",
     "MIX",
     "SIZE",
@@ -1412,7 +1412,7 @@
     "HIGH"
    ],
    [
-    "M-SHF",
+    "M-SHFT",
     "FLAVO",
     "VOC",
     "VOCGN"
@@ -1420,7 +1420,7 @@
    [
     "ATK",
     "REL",
-    "THRES",
+    "THRESH",
     "M-DRV",
     "PRE",
     "GRIT",
@@ -1432,7 +1432,7 @@
     "HICUT",
     "SAT",
     "AGE",
-    "FLUTT",
+    "FLUTTE",
     "BUMP",
     "LIMIT",
     "BYPAS"
@@ -1490,11 +1490,11 @@
   "pageShortNames": [
    [
     "TIME",
-    "DIVIS",
+    "DIVISIO",
     "FEEDB",
     "MIX",
     "TONE",
-    "SW"
+    "STEREO"
    ]
   ],
   "envelopeLines": 0,
@@ -1524,7 +1524,7 @@
     "WOBBL",
     "NOISE",
     "TONE",
-    "OUTPU",
+    "OUTPUT",
     "AGE",
     "COMPR"
    ],
@@ -1606,11 +1606,11 @@
   ],
   "pageShortNames": [
    [
-    "POSIT",
+    "POSITIO",
     "SIZE",
     "PITCH",
-    "DENSI",
-    "TEXTU",
+    "DENSIT",
+    "TEXTUR",
     "FEEDB",
     "REVER",
     "MIX"
@@ -1618,13 +1618,13 @@
    [
     "MODE",
     "FREEZ",
-    "QUALI",
+    "QUALIT",
     "SPREA"
    ],
    [
     "HPF",
     "LPF",
-    "LIMIT",
+    "LIMITER",
     "PRE",
     "POST",
     "BOOST",
@@ -1672,13 +1672,13 @@
     "OUT",
     "BANDS",
     "MIX",
-    "ATTAC",
+    "ATTACK",
     "RELEA",
     "LOW",
     "HIGH"
    ],
    [
-    "UNVOI"
+    "UNVOIC"
    ]
   ],
   "envelopeLines": 1,
@@ -1715,36 +1715,36 @@
   ],
   "pageShortNames": [
    [
-    "EFFEC",
+    "EFFECT",
     "VAR",
-    "ACTIV",
-    "REPEA",
+    "ACTIVIT",
+    "REPEAT",
     "RV",
     "MIX",
     "SPACE",
-    "FILTE"
+    "FILTER"
    ],
    [
-    "PRESE"
+    "PRESET"
    ],
    [
     "SHAPE",
     "RESO",
-    "FX",
+    "FX VOL",
     "GRAIN",
     "SCALE"
    ],
    [
     "CLOCK",
-    "SUBDI",
+    "SUBDIV",
     "TEMPO"
    ],
    [
     "REVER",
-    "SHIMM",
+    "SHIMME",
     "WIDTH",
-    "STERE",
-    "SUSTA",
+    "STEREO",
+    "SUSTAI",
     "WARP",
     "DEP",
     "RATE"
@@ -1769,7 +1769,7 @@
    ],
    [
     "LOOPE",
-    "TRANS",
+    "TRANSP",
     "LEVEL",
     "SPEED",
     "REVER",
@@ -1782,9 +1782,9 @@
    ],
    [
     "INPUT",
-    "IN",
+    "IN GAIN",
     "BYPAS",
-    "TRAIL",
+    "TRAILS",
     "ECO"
    ]
   ],
@@ -1856,7 +1856,7 @@
    [
     "MODE",
     "BPM",
-    "DIVIS",
+    "DIVISIO",
     "SYNC"
    ]
   ],
@@ -1908,13 +1908,13 @@
     "NOTE",
     "BRAON",
     "RANLO",
-    "RANHI",
+    "RANDHI",
     "RAND"
    ],
    [
     "S",
     "RANLO",
-    "RANHI"
+    "RANDHI"
    ]
   ],
   "envelopeLines": 0,
@@ -1960,8 +1960,8 @@
   "pageShortNames": [
    [
     "CHORD",
-    "INVER",
-    "VOICI",
+    "INVERSI",
+    "VOICING",
     "STRUM",
     "DIR"
    ]
@@ -2009,7 +2009,7 @@
    ],
    [
     "PLAY",
-    "VOICE",
+    "VOICES",
     "RATE",
     "SYNC",
     "SWING",
@@ -2018,7 +2018,7 @@
     "OCT"
    ],
    [
-    "RETRI",
+    "RETRIG",
     "BPM",
     "VEL",
     "GATE",
@@ -2043,7 +2043,7 @@
     "STEPS",
     "PULSE",
     "ROT",
-    "DROP",
+    "DROP %",
     "NOTE",
     "OCT",
     "VEL"
@@ -2062,7 +2062,7 @@
     "STEPS",
     "PULSE",
     "ROT",
-    "DROP",
+    "DROP %",
     "NOTE",
     "OCT",
     "VEL"
@@ -2081,7 +2081,7 @@
     "STEPS",
     "PULSE",
     "ROT",
-    "DROP",
+    "DROP %",
     "NOTE",
     "OCT",
     "VEL"
@@ -2100,7 +2100,7 @@
     "STEPS",
     "PULSE",
     "ROT",
-    "DROP",
+    "DROP %",
     "NOTE",
     "OCT",
     "VEL"
@@ -2253,12 +2253,12 @@
     "L8"
    ],
    [
-    "PRESE",
+    "PRESET",
     "RP",
     "RATE",
     "SWING",
     "GATE",
-    "MUTAT",
+    "MUTATE",
     "CYC",
     "VEL"
    ],
@@ -2266,25 +2266,25 @@
     "VEL",
     "SYNC",
     "BPM",
-    "VOICE",
+    "VOICES",
     "RND",
     "MUT",
-    "PASST"
+    "PASSTH"
    ],
    [
     "L1",
     "STEPS",
     "PULSE",
-    "ROTAT",
+    "ROTATI",
     "RATE",
-    "ACCEN",
+    "ACCENT",
     "FREQ",
     "DECAY"
    ],
    [
     "DROP",
-    "VELOC",
-    "AA",
+    "VELOCI",
+    "ACCENT",
     "FILL",
     "GATE",
     "FREQ",
@@ -2294,16 +2294,16 @@
     "L2",
     "STEPS",
     "PULSE",
-    "ROTAT",
+    "ROTATI",
     "RATE",
-    "ACCEN",
+    "ACCENT",
     "FREQ",
     "DECAY"
    ],
    [
     "DROP",
-    "VELOC",
-    "AA",
+    "VELOCI",
+    "ACCENT",
     "FILL",
     "GATE",
     "FREQ",
@@ -2313,16 +2313,16 @@
     "L3",
     "STEPS",
     "PULSE",
-    "ROTAT",
+    "ROTATI",
     "RATE",
-    "ACCEN",
+    "ACCENT",
     "FREQ",
     "DECAY"
    ],
    [
     "DROP",
-    "VELOC",
-    "AA",
+    "VELOCI",
+    "ACCENT",
     "FILL",
     "GATE",
     "FREQ",
@@ -2332,16 +2332,16 @@
     "L4",
     "STEPS",
     "PULSE",
-    "ROTAT",
+    "ROTATI",
     "RATE",
-    "ACCEN",
+    "ACCENT",
     "FREQ",
     "DECAY"
    ],
    [
     "DROP",
-    "VELOC",
-    "AA",
+    "VELOCI",
+    "ACCENT",
     "FILL",
     "GATE",
     "FREQ",
@@ -2351,16 +2351,16 @@
     "L5",
     "STEPS",
     "PULSE",
-    "ROTAT",
+    "ROTATI",
     "RATE",
-    "ACCEN",
+    "ACCENT",
     "FREQ",
     "DECAY"
    ],
    [
     "DROP",
-    "VELOC",
-    "AA",
+    "VELOCI",
+    "ACCENT",
     "FILL",
     "GATE",
     "FREQ",
@@ -2370,16 +2370,16 @@
     "L6",
     "STEPS",
     "PULSE",
-    "ROTAT",
+    "ROTATI",
     "RATE",
-    "ACCEN",
+    "ACCENT",
     "FREQ",
     "DECAY"
    ],
    [
     "DROP",
-    "VELOC",
-    "AA",
+    "VELOCI",
+    "ACCENT",
     "FILL",
     "GATE",
     "FREQ",
@@ -2389,16 +2389,16 @@
     "L7",
     "STEPS",
     "PULSE",
-    "ROTAT",
+    "ROTATI",
     "RATE",
-    "ACCEN",
+    "ACCENT",
     "FREQ",
     "DECAY"
    ],
    [
     "DROP",
-    "VELOC",
-    "AA",
+    "VELOCI",
+    "ACCENT",
     "FILL",
     "GATE",
     "FREQ",
@@ -2408,16 +2408,16 @@
     "L8",
     "STEPS",
     "PULSE",
-    "ROTAT",
+    "ROTATI",
     "RATE",
-    "ACCEN",
+    "ACCENT",
     "FREQ",
     "DECAY"
    ],
    [
     "DROP",
-    "VELOC",
-    "AA",
+    "VELOCI",
+    "ACCENT",
     "FILL",
     "GATE",
     "FREQ",
@@ -2579,12 +2579,12 @@
   "pageShortNames": [
    [
     "ROOT",
-    "DIVIS",
+    "DIVISIO",
     "STEPS",
-    "CAPTU",
+    "CAPTUR",
     "EVOLV",
-    "STUTT",
-    "OCTAV",
+    "STUTTE",
+    "OCTAVE",
     "CHORD"
    ],
    [
@@ -2594,12 +2594,12 @@
    [
     "SYNC",
     "TEMPO",
-    "DIVIS",
+    "DIVISIO",
     "VEL",
-    "VELOC",
+    "VELOCI",
     "GATE",
     "STUT",
-    "HUMAN"
+    "HUMANI"
    ]
   ],
   "envelopeLines": 0,
@@ -2636,20 +2636,20 @@
   ],
   "pageShortNames": [
    [
-    "PRESE"
+    "PRESET"
    ],
    [
     "BASE",
-    "TRANS",
-    "INVER",
+    "TRANSP",
+    "INVERT",
     "STRUM",
     "TILT",
-    "ARTIC",
-    "LENGT",
-    "RETRI"
+    "ARTICU",
+    "LENGTH",
+    "RETRIG"
    ],
    [
-    "TIMIN",
+    "TIMING",
     "CHOKE",
     "NOTES",
     "FIT",
@@ -2697,7 +2697,7 @@
    [
     "LATCH",
     "GATE",
-    "VELOC",
+    "VELOCI",
     "DROP",
     "RAND",
     "VEL",
@@ -2708,11 +2708,11 @@
     "LATCH",
     "MAX",
     "RATE",
-    "TRIPL",
+    "TRIPLE",
     "SWING",
     "GATE",
-    "VELOC",
-    "OCTAV"
+    "VELOCI",
+    "OCTAVE"
    ],
    [
     "SYNC",
@@ -2720,17 +2720,17 @@
    ],
    [
     "MODE",
-    "PATTE",
-    "TRIGG",
+    "PATTER",
+    "TRIGGE",
     "NOTE",
     "SEED",
-    "LENGT",
+    "LENGTH",
     "CHORD",
     "CH"
    ],
    [
-    "PATTE",
-    "TRIGG"
+    "PATTER",
+    "TRIGGE"
    ],
    [
     "MOD",
@@ -2743,7 +2743,7 @@
     "NOTE"
    ],
    [
-    "TRIGG",
+    "TRIGGE",
     "VEL",
     "GATE",
     "OCT",
@@ -2803,7 +2803,7 @@
     "MIN",
     "MAX",
     "CURVE",
-    "PRESE"
+    "PRESET"
    ]
   ],
   "envelopeLines": 0,
@@ -2909,17 +2909,17 @@
     "VOLUM"
    ],
    [
-    "PRESE",
+    "PRESET",
     "PATCH",
-    "MUTAT",
+    "MUTATE",
     "MOD",
     "RESET",
-    "OCTAV",
-    "M.TUN",
+    "OCTAVE",
+    "M.TUNE",
     "PORTA"
    ],
    [
-    "TRIGG"
+    "TRIGGE"
    ],
    [
     "WAVE",
@@ -2929,7 +2929,7 @@
     "SCAL1",
     "SCAL2",
     "PORTA",
-    "M.TUN"
+    "M.TUNE"
    ],
    [
     "SYNC",
@@ -2938,8 +2938,8 @@
    [
     "VCO 1",
     "VCO 2",
-    "MG/T.",
-    "EG1/E",
+    "MG/T.E",
+    "EG1/EX",
     "ESP",
     "SUB",
     "NOISE",
@@ -2959,26 +2959,26 @@
     "LPFEG"
    ],
    [
-    "FR"
+    "FILTER"
    ],
    [
-    "E1ATK",
-    "E1REL",
-    "DELAY",
+    "E1 ATK",
+    "E1 REL",
+    "E1",
     "HOLD",
-    "E2ATK",
+    "E2 ATK",
     "DCY",
     "SUS",
-    "E2REL"
+    "REL"
    ],
    [
-    "LO",
-    "HI",
+    "LO CUT",
+    "HI CUT",
     "FREQ",
     "SHAPE",
     "SIG",
-    "CV",
-    "THRES",
+    "CV ADJ",
+    "THRESH",
     "MG PW"
    ],
    [
@@ -2995,30 +2995,30 @@
     "FREQ",
     "HPF",
     "LPF",
-    "IG",
+    "INITIAL",
     "2 CV",
     "EXT"
    ],
    [
-    "PWM",
+    "PWM IN",
     "EG1",
     "EG1+2"
    ],
    [
     "DRIFT",
     "DRIVE",
-    "KEYTR",
+    "KEYTRA",
     "MS-10",
     "V1",
     "V2",
     "MW→MG",
-    "MW→FI"
+    "MW→FIL"
    ],
    [
     "MODE",
     "X-MOD",
     "PW",
-    "DETUN",
+    "DETUNE",
     "VEL→A"
    ]
   ],
@@ -3128,14 +3128,14 @@
    [
     "KEY",
     "SCALE",
-    "RETUN",
+    "RETUNE",
     "AMOUN"
    ],
    [
-    "VOIC1",
-    "VOIC2",
-    "VOIC3",
-    "VOIC4",
+    "VOICE1",
+    "VOICE2",
+    "VOICE3",
+    "VOICE4",
     "HARM",
     "SPREA",
     "DOUBL"
@@ -3145,7 +3145,7 @@
     "WET",
     "FORMA",
     "FLEX",
-    "HUMAN"
+    "HUMANI"
    ]
   ],
   "envelopeLines": 0,
@@ -3184,42 +3184,42 @@
   ],
   "pageShortNames": [
    [
-    "PRESE"
+    "PRESET"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
-    "ALGOR",
-    "TIMBR",
+    "SUSTAI",
+    "ALGORI",
+    "TIMBRE",
     "COLOR",
-    "CUTOF",
+    "CUTOFF",
     "FILT"
    ],
    [
-    "ALGOR",
-    "TIMBR",
+    "ALGORI",
+    "TIMBRE",
     "COLOR",
     "FM"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
-    "F.ATT",
-    "F.DEC",
-    "F.SUS",
-    "F.REL",
-    "CUTOF",
+    "F.ATTA",
+    "F.DECA",
+    "F.SUST",
+    "F.RELE",
+    "CUTOFF",
     "RESON",
     "FILT"
    ],
    [
     "VOLUM",
-    "OCTAV"
+    "OCTAVE"
    ]
   ],
   "envelopeLines": 3,
@@ -3261,7 +3261,7 @@
   ],
   "pageShortNames": [
    [
-    "PRESE"
+    "PRESET"
    ],
    [
     "AS",
@@ -3276,12 +3276,12 @@
    [
     "ROLL",
     "FILL",
-    "R2",
-    "R3",
-    "R4",
-    "R8",
+    "RETR2X",
+    "RETR3X",
+    "RETR4X",
+    "RETR8X",
     "SAVE",
-    "STATU"
+    "STATUS"
    ]
   ],
   "envelopeLines": 0,
@@ -3703,27 +3703,27 @@
   "pageShortNames": [
    [
     "OSC1",
-    "TIMBR",
+    "TIMBRE",
     "OSC2",
     "HARMO",
     "OSC",
     "MIX",
     "TYPE",
-    "CUTOF"
+    "CUTOFF"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "Q",
     "DEPTH",
     "TYPE",
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
-    "FT",
-    "VEL>F"
+    "FILTER",
+    "VEL>FI"
    ],
    [
     "LFO",
@@ -3736,50 +3736,50 @@
     "PATCH"
    ],
    [
-    "PRESE",
+    "PRESET",
     "PAD",
     "PORTA",
-    "LEGAT"
+    "LEGATO"
    ],
    [
-    "ENV->",
-    "ENV-2",
-    "ENV-3",
-    "ENV-4",
-    "ENV-5",
-    "ENV-6",
-    "ENV-7",
-    "ENV-8"
+    "ENV->P",
+    "ENV->TI",
+    "ENV->2",
+    "ENV->H",
+    "ENV->F",
+    "ENV->3",
+    "ENV->C",
+    "ENV->L"
    ],
    [
-    "LF->P",
-    "LF->T",
-    "LF->2",
-    "LF->H",
-    "LF->F",
-    "LF->3",
-    "LF->C",
-    "LF->L"
+    "LF->PT",
+    "LFO->TI",
+    "LF->P2",
+    "LFO->H",
+    "LF->FL",
+    "LF->FT",
+    "LFO->C",
+    "LFO->L"
    ],
    [
-    "S&H->",
-    "S&H-2",
-    "S&H-3",
-    "S&H-4",
-    "S&H-5",
-    "S&H-6",
-    "S&H-7",
-    "S&H-8"
+    "S&H->P",
+    "S&H->TI",
+    "S&H->2",
+    "S&H->H",
+    "S&H->F",
+    "S&H->3",
+    "S&H->C",
+    "S&H->L"
    ],
    [
-    "NZ->P",
-    "NZ->T",
-    "NZ->2",
-    "NZ->H",
-    "NZ->F",
-    "NZ->3",
-    "NZ->C",
-    "NZ->L"
+    "NZ->PT",
+    "NZ->TI",
+    "NZ->P2",
+    "NZ->HA",
+    "NZ->FO",
+    "NZ->FT",
+    "NZ->CU",
+    "NZ->LE"
    ]
   ],
   "envelopeLines": 1,
@@ -3886,21 +3886,21 @@
   ],
   "pageShortNames": [
    [
-    "PRESE",
-    "OUTPU",
-    "OCTAV",
+    "PRESET",
+    "OUTPUT",
+    "OCTAVE",
     "FEEDB",
     "SPD",
     "PMD",
     "AMD"
    ],
    [
-    "OUTPU",
-    "OCTAV",
-    "ALGOR",
+    "OUTPUT",
+    "OCTAVE",
+    "ALGORI",
     "FEEDB",
     "OSC",
-    "TRANS"
+    "TRANSP"
    ],
    [
     "SPD",
@@ -3912,11 +3912,11 @@
     "SYNC"
    ],
    [
-    "PEGR1",
+    "PEG R1",
     "PEGR2",
     "PEGR3",
     "PEGR4",
-    "PEGL1",
+    "PEG L1",
     "PEGL2",
     "PEGL3",
     "PEGL4"
@@ -3934,38 +3934,38 @@
     "CRS",
     "FIN",
     "DET",
-    "OP1R1",
-    "OP1R4",
+    "OP1 R1",
+    "OP1 R4",
     "MODE",
     "VEL"
    ],
    [
-    "AMS",
-    "OP1RS"
+    "OP1",
+    "OP1 RS"
    ],
    [
-    "OP1R1",
-    "OP1R2",
-    "OP1R3",
-    "OP1R4",
-    "OP1L1",
-    "OP1L2",
-    "OP1L3",
-    "OP1L4"
+    "OP1 R1",
+    "OP1 R2",
+    "OP1 R3",
+    "OP1 R4",
+    "OP1 L1",
+    "OP1 L2",
+    "OP1 L3",
+    "OP1 L4"
    ],
    [
-    "OP1BP",
-    "OP1LD",
-    "OP1RD",
-    "OP1LC",
-    "OP1RC"
+    "OP1 BP",
+    "OP1 LD",
+    "OP1 RD",
+    "OP1 LC",
+    "OP1 RC"
    ],
    [
     "LVL",
     "CRS",
     "FIN",
     "DET",
-    "OP2R1",
+    "OP2 R1",
     "OP2R4",
     "MODE",
     "VEL"
@@ -3975,11 +3975,11 @@
     "OP2RS"
    ],
    [
-    "OP2R1",
+    "OP2 R1",
     "OP2R2",
     "OP2R3",
     "OP2R4",
-    "OP2L1",
+    "OP2 L1",
     "OP2L2",
     "OP2L3",
     "OP2L4"
@@ -3996,7 +3996,7 @@
     "CRS",
     "FIN",
     "DET",
-    "OP3R1",
+    "OP3 R1",
     "OP3R4",
     "MODE",
     "VEL"
@@ -4006,11 +4006,11 @@
     "OP3RS"
    ],
    [
-    "OP3R1",
+    "OP3 R1",
     "OP3R2",
     "OP3R3",
     "OP3R4",
-    "OP3L1",
+    "OP3 L1",
     "OP3L2",
     "OP3L3",
     "OP3L4"
@@ -4027,7 +4027,7 @@
     "CRS",
     "FIN",
     "DET",
-    "OP4R1",
+    "OP4 R1",
     "OP4R4",
     "MODE",
     "VEL"
@@ -4037,11 +4037,11 @@
     "OP4RS"
    ],
    [
-    "OP4R1",
+    "OP4 R1",
     "OP4R2",
     "OP4R3",
     "OP4R4",
-    "OP4L1",
+    "OP4 L1",
     "OP4L2",
     "OP4L3",
     "OP4L4"
@@ -4058,7 +4058,7 @@
     "CRS",
     "FIN",
     "DET",
-    "OP5R1",
+    "OP5 R1",
     "OP5R4",
     "MODE",
     "VEL"
@@ -4068,11 +4068,11 @@
     "OP5RS"
    ],
    [
-    "OP5R1",
+    "OP5 R1",
     "OP5R2",
     "OP5R3",
     "OP5R4",
-    "OP5L1",
+    "OP5 L1",
     "OP5L2",
     "OP5L3",
     "OP5L4"
@@ -4089,7 +4089,7 @@
     "CRS",
     "FIN",
     "DET",
-    "OP6R1",
+    "OP6 R1",
     "OP6R4",
     "MODE",
     "VEL"
@@ -4099,11 +4099,11 @@
     "OP6RS"
    ],
    [
-    "OP6R1",
+    "OP6 R1",
     "OP6R2",
     "OP6R3",
     "OP6R4",
-    "OP6L1",
+    "OP6 L1",
     "OP6L2",
     "OP6L3",
     "OP6L4"
@@ -4396,23 +4396,23 @@
   ],
   "pageShortNames": [
    [
-    "PRESE",
+    "PRESET",
     "PATCH",
-    "EXCIT",
+    "EXCITE",
     "RR",
-    "CUTOF",
+    "CUTOFF",
     "RESON",
     "ALL",
-    "FT"
+    "FILTER"
    ],
    [
-    "VOICI"
+    "VOICING"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
     "MIX",
-    "CRACK",
+    "CRACKL",
     "COLOR",
     "RESO",
     "LEVEL",
@@ -4424,8 +4424,8 @@
     "DECAY",
     "DAMP",
     "PA",
-    "TONE",
-    "TUNE",
+    "TONE A",
+    "TUNE A",
     "TA"
    ],
    [
@@ -4434,8 +4434,8 @@
     "DECAY",
     "DAMP",
     "PB",
-    "TONE",
-    "TUNE",
+    "TONE B",
+    "TUNE B",
     "TB"
    ],
    [
@@ -4469,23 +4469,23 @@
     "CEIL"
    ],
    [
-    "LF1SH",
+    "LF1SHP",
     "LF1RT",
-    "LF1DP",
-    "LF1TR",
+    "LF1DPT",
+    "LF1TRG",
     "LF2SH",
     "LF2RT",
-    "LF2DP",
-    "LF2TR"
+    "LF2DPT",
+    "LF2TRG"
    ],
    [
-    "PRESE",
-    "BRIGH",
+    "PRESET",
+    "BRIGHT",
     "BOW",
-    "CUTOF",
-    "VIB",
+    "CUTOFF",
+    "AT VIB",
     "BEND",
-    "RATE",
+    "VIB",
     "CURVE"
    ]
   ],
@@ -5513,18 +5513,18 @@
    [
     "MODEL",
     "HARMO",
-    "TIMBR",
+    "TIMBRE",
     "MORPH",
     "FM",
     "DECAY",
     "COLOR",
-    "CUTOF"
+    "CUTOFF"
    ],
    [
     "MODEL",
     "PITCH",
     "HARMO",
-    "TIMBR",
+    "TIMBRE",
     "MORPH",
     "FM",
     "AUX",
@@ -5534,7 +5534,7 @@
     "LPG"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
     "MODE"
    ],
@@ -5543,7 +5543,7 @@
     "ENV",
     "CYCLE",
     "RANDO",
-    "VELOC",
+    "VELOCI",
     "POLY"
    ],
    [
@@ -5551,7 +5551,7 @@
     "ENV",
     "CYCLE",
     "RANDO",
-    "VELOC",
+    "VELOCI",
     "POLY"
    ],
    [
@@ -5559,7 +5559,7 @@
     "ENV",
     "CYCLE",
     "RANDO",
-    "VELOC",
+    "VELOCI",
     "POLY"
    ],
    [
@@ -5567,25 +5567,25 @@
     "ENV",
     "CYCLE",
     "RANDO",
-    "VELOC",
+    "VELOCI",
     "POLY"
    ],
    [
-    "TARGE",
+    "TARGET",
     "LFO",
     "ENV",
     "CYCLE",
     "RANDO",
-    "VELOC",
+    "VELOCI",
     "POLY"
    ],
    [
-    "TARGE",
+    "TARGET",
     "LFO",
     "ENV",
     "CYCLE",
     "RANDO",
-    "VELOC",
+    "VELOCI",
     "POLY"
    ],
    [
@@ -5593,29 +5593,29 @@
     "PHASE",
     "RATE",
     "SYNC",
-    "RETRI"
+    "RETRIG"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA",
-    "RETRI"
+    "RETRIG"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
     "SHAPE",
     "SYNC",
-    "RETRI",
-    "BIPOL"
+    "RETRIG",
+    "BIPOLA"
    ],
    [
     "MODE",
     "RATE",
     "SYNC",
     "SLEW",
-    "RETRI"
+    "RETRIG"
    ],
    [
     "CURVE"
@@ -5628,8 +5628,8 @@
     "PAN",
     "VOICE",
     "POLYP",
-    "UNISO",
-    "DETUN",
+    "UNISON",
+    "DETUNE",
     "SPREA",
     "GLIDE"
    ]
@@ -5743,25 +5743,25 @@
   "pageShortNames": [
    [
     "SF",
-    "POSIT",
+    "POSITIO",
     "SPRAY",
     "SIZE",
-    "DENSI",
-    "JITTE",
+    "DENSIT",
+    "JITTER",
     "SCAN",
-    "GRAIN"
+    "GRAING"
    ],
    [
-    "QUALI"
+    "QUALIT"
    ],
    [
     "SF",
-    "POSIT",
+    "POSITIO",
     "SPRAY",
     "SIZE",
-    "DENSI",
-    "JITTE",
-    "GRAIN"
+    "DENSIT",
+    "JITTER",
+    "GRAING"
    ],
    [
     "ENABL",
@@ -5769,25 +5769,25 @@
     "END"
    ],
    [
-    "WINDO",
-    "WINSH",
-    "GRAIN",
-    "QUALI",
-    "TRIGG"
+    "WINDOW",
+    "WINSHA",
+    "GRAING",
+    "QUALIT",
+    "TRIGGE"
    ],
    [
     "PITCH",
     "FINE",
-    "KEYTR",
+    "KEYTRA",
     "PLAY",
     "POLYV",
     "PORTA",
     "SPREA"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ]
   ],
@@ -5868,75 +5868,75 @@
   ],
   "pageShortNames": [
    [
-    "PRESE"
+    "PRESET"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA",
-    "FC",
-    "FR",
-    "FED",
+    "CUTOFF",
+    "RESON",
+    "ENV",
     "VOLUM"
    ],
    [
     "WAVEF",
     "VOLUM",
-    "TRANS",
+    "TRANSP",
     "TUNE",
-    "UV",
-    "UD",
+    "VOICES",
+    "DETUNE",
     "HARMO"
    ],
    [
     "WAVEF",
     "VOLUM",
-    "TRANS",
+    "TRANSP",
     "TUNE",
-    "UV",
-    "UD",
+    "VOICES",
+    "DETUNE",
     "HARMO"
    ],
    [
     "WAVEF",
     "VOLUM",
-    "OD",
+    "OCTAVE",
     "SHUFF"
    ],
    [
     "NOISE",
     "AMOUN",
-    "TRANS",
+    "TRANSP",
     "TUNE"
    ],
    [
-    "SWITC",
+    "SWITCH",
     "STYLE",
-    "FB",
+    "BLEND",
     "SHELF",
-    "FC",
-    "FR",
-    "FKT",
-    "FD"
+    "CUTOFF",
+    "RESON",
+    "KEY",
+    "DRIVE"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
-    "FA",
-    "FD",
-    "FS",
-    "FR",
-    "FED"
+    "ATTACK",
+    "DECAY",
+    "SUSTAI",
+    "RELEA",
+    "ENV"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
@@ -5945,7 +5945,7 @@
     "AMP",
     "SYNC",
     "TEMPO",
-    "RETRI"
+    "RETRIG"
    ],
    [
     "WAVEF",
@@ -5953,7 +5953,7 @@
     "AMP",
     "SYNC",
     "TEMPO",
-    "RETRI"
+    "RETRIG"
    ],
    [
     "WAVEF",
@@ -5965,37 +5965,37 @@
    [
     "NUM",
     "FREQU",
-    "RETRI",
+    "RETRIG",
     "SYNC",
     "TEMPO",
     "SMOOT",
-    "STEP1",
-    "STEP2"
+    "STEP 1",
+    "STEP 2"
    ],
    [
-    "STEP3",
-    "STEP4",
-    "STEP5",
-    "STEP6",
-    "STEP7",
-    "STEP8",
-    "STEP9",
-    "STE10"
+    "STEP 3",
+    "STEP 4",
+    "STEP 5",
+    "STEP 6",
+    "STEP 7",
+    "STEP 8",
+    "STEP 9",
+    "STEP"
    ],
    [
-    "STE11",
-    "STE12",
-    "STE13",
-    "STE14",
-    "STE15",
-    "STE16",
-    "STE17",
-    "STE18"
+    "STEP11",
+    "STEP12",
+    "STEP13",
+    "STEP14",
+    "STEP15",
+    "STEP16",
+    "STEP17",
+    "STEP18"
    ],
    [
-    "STE19",
+    "STEP19",
     "STE20",
-    "STE21",
+    "STEP21",
     "STE22",
     "STE23",
     "STE24",
@@ -6007,15 +6007,15 @@
     "STE28",
     "STE29",
     "STE30",
-    "STE31",
+    "STEP31",
     "STE32"
    ],
    [
-    "SWITC",
-    "PATTE",
+    "SWITCH",
+    "PATTER",
     "SYNC",
     "TEMPO",
-    "OCTAV",
+    "OCTAVE",
     "GATE",
     "FREQU"
    ],
@@ -6031,7 +6031,7 @@
     "DM"
    ],
    [
-    "SWITC",
+    "SWITCH",
     "MIX",
     "FEEDB",
     "FREQU",
@@ -6045,61 +6045,61 @@
     "RD"
    ],
    [
-    "SWITC",
+    "SWITCH",
     "SF",
-    "STTTR",
+    "",
     "ST",
-    "SOFTN",
+    "SOFTNE",
     "RF",
-    "STTTR",
+    "",
     "ST"
    ],
    [
     "ENABL",
     "SOURC",
-    "DEST",
+    "0 DEST",
     "1 AMT"
    ],
    [
     "ENABL",
     "SOURC",
-    "DEST",
+    "1 DEST",
     "2 AMT"
    ],
    [
     "ENABL",
     "SOURC",
-    "DEST",
+    "2 DEST",
     "3 AMT"
    ],
    [
     "ENABL",
     "SOURC",
-    "DEST",
+    "3 DEST",
     "4 AMT"
    ],
    [
     "ENABL",
     "SOURC",
-    "DEST",
+    "4 DEST",
     "5 AMT"
    ],
    [
     "ENABL",
     "SOURC",
-    "DEST",
+    "5 DEST",
     "6 AMT"
    ],
    [
     "ENABL",
     "SOURC",
-    "DEST",
+    "6 DEST",
     "7 AMT"
    ],
    [
     "ENABL",
     "SOURC",
-    "DEST",
+    "7 DEST",
     "8 AMT"
    ],
    [
@@ -6109,7 +6109,7 @@
     "POLYP",
     "PORTA",
     "PT",
-    "LEGAT",
+    "LEGATO",
     "PITCH"
    ],
    [
@@ -6317,17 +6317,17 @@
   ],
   "pageShortNames": [
    [
-    "PRESE"
+    "PRESET"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESO",
     "VOLUM",
     "ENV",
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
-    "OCTAV"
+    "SUSTAI",
+    "OCTAVE"
    ],
    [
     "SAW",
@@ -6340,7 +6340,7 @@
     "PITCH"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESO",
     "ENV",
     "LFO",
@@ -6352,20 +6352,20 @@
     "TYPE"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
     "RATE",
     "DELAY",
-    "TRIGG"
+    "TRIGGE"
    ],
    [
     "HPF",
-    "CHORI",
-    "CHOII"
+    "CHORUI",
+    "CHORII"
    ]
   ],
   "envelopeLines": 2,
@@ -6685,7 +6685,7 @@
     "TYPE",
     "MODE",
     "TRIM",
-    "OT",
+    "OUTPUT",
     "GATE",
     "AMOUN"
    ],
@@ -6693,15 +6693,15 @@
     "HUM"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "RELEA",
-    "THRES",
+    "THRESH",
     "RANGE",
     "HOLD"
    ],
    [
     "HPF",
-    "LIMIT"
+    "LIMITER"
    ],
    [
     "CABLE",
@@ -6818,16 +6818,16 @@
   ],
   "pageShortNames": [
    [
-    "PRESE"
+    "PRESET"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA",
-    "CUTOF",
+    "CUTOFF",
     "RESON",
-    "FE",
+    "FILTER",
     "LFO"
    ],
    [
@@ -6864,12 +6864,12 @@
     "LINK"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
-    "A.ET1",
-    "A.ET2",
-    "A.EL3",
-    "A.ET4",
+    "A.ENT1",
+    "A.ENT2",
+    "A.ENL3",
+    "A.ENT4",
     "LEVEL",
     "PAN"
    ],
@@ -6884,54 +6884,54 @@
     "COARS",
     "FINE",
     "DEPTH",
-    "P.ET1",
-    "P.ET2",
-    "P.ET4",
-    "PITKF",
+    "P.ENT1",
+    "P.ENT2",
+    "P.ENT4",
+    "PITCKF",
     "RP"
    ],
    [
-    "P.ET3",
-    "P.EL1",
-    "P.EL2",
-    "P.EL3",
-    "P.EL4"
+    "P.ENT3",
+    "P.ENL1",
+    "P.ENL2",
+    "P.ENL3",
+    "P.ENL4"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
     "DEPTH",
-    "F.ET1",
-    "F.ET2",
-    "F.EL3",
-    "F.ET4",
-    "FM"
+    "F.ENT1",
+    "F.ENT2",
+    "F.ENL3",
+    "F.ENT4",
+    "FILTER"
    ],
    [
-    "CK",
+    "CUTOFF",
     "RESO",
     "VELO",
-    "F.ET3",
-    "F.EL1",
-    "F.EL2",
-    "F.EL4"
+    "F.ENT3",
+    "F.ENL1",
+    "F.ENL2",
+    "F.ENL4"
    ],
    [
     "LEVEL",
     "PAN",
-    "A.ET1",
-    "A.ET2",
-    "A.EL3",
-    "A.ET4",
+    "A.ENT1",
+    "A.ENT2",
+    "A.ENL3",
+    "A.ENT4",
     "VELO",
     "CURVE"
    ],
    [
     "LEVEL",
-    "PAN",
-    "A.ET3",
-    "A.EL1",
-    "A.EL2",
+    "PAN KF",
+    "A.ENT3",
+    "A.ENL1",
+    "A.ENL2",
     "MODE",
     "TIME"
    ],
@@ -6941,9 +6941,9 @@
     "DELAY",
     "FADE",
     "PITCH",
-    "FILTE",
+    "FILTER",
     "AMP",
-    "OFFSE"
+    "OFFSET"
    ],
    [
     "LFO1"
@@ -6954,7 +6954,7 @@
     "DELAY",
     "FADE",
     "PITCH",
-    "FILTE",
+    "FILTER",
     "AMP"
    ],
    [
@@ -6963,42 +6963,42 @@
     "CS"
    ],
    [
-    "DESTA",
+    "DEST A",
     "SENSA",
-    "DESTB",
+    "DEST B",
     "SENSB",
-    "DESTC",
+    "DEST C",
     "SENSC",
-    "DESTD",
+    "DEST D",
     "SENSD"
    ],
    [
-    "DESTA",
+    "DEST A",
     "SENSA",
-    "DESTB",
+    "DEST B",
     "SENSB",
-    "DESTC",
+    "DEST C",
     "SENSC",
-    "DESTD",
+    "DEST D",
     "SENSD"
    ],
    [
-    "DESTA",
+    "DEST A",
     "SENSA",
-    "DESTB",
+    "DEST B",
     "SENSB",
-    "DESTC",
+    "DEST C",
     "SENSC",
-    "DESTD",
+    "DEST D",
     "SENSD"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
-    "A.ET1",
-    "A.ET2",
-    "A.EL3",
-    "A.ET4",
+    "A.ENT1",
+    "A.ENT2",
+    "A.ENL3",
+    "A.ENT4",
     "LEVEL",
     "PAN"
    ],
@@ -7013,54 +7013,54 @@
     "COARS",
     "FINE",
     "DEPTH",
-    "P.ET1",
-    "P.ET2",
-    "P.ET4",
-    "PITKF",
+    "P.ENT1",
+    "P.ENT2",
+    "P.ENT4",
+    "PITCKF",
     "RP"
    ],
    [
-    "P.ET3",
-    "P.EL1",
-    "P.EL2",
-    "P.EL3",
-    "P.EL4"
+    "P.ENT3",
+    "P.ENL1",
+    "P.ENL2",
+    "P.ENL3",
+    "P.ENL4"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
     "DEPTH",
-    "F.ET1",
-    "F.ET2",
-    "F.EL3",
-    "F.ET4",
-    "FM"
+    "F.ENT1",
+    "F.ENT2",
+    "F.ENL3",
+    "F.ENT4",
+    "FILTER"
    ],
    [
-    "CK",
+    "CUTOFF",
     "RESO",
     "VELO",
-    "F.ET3",
-    "F.EL1",
-    "F.EL2",
-    "F.EL4"
+    "F.ENT3",
+    "F.ENL1",
+    "F.ENL2",
+    "F.ENL4"
    ],
    [
     "LEVEL",
     "PAN",
-    "A.ET1",
-    "A.ET2",
-    "A.EL3",
-    "A.ET4",
+    "A.ENT1",
+    "A.ENT2",
+    "A.ENL3",
+    "A.ENT4",
     "VELO",
     "CURVE"
    ],
    [
     "LEVEL",
-    "PAN",
-    "A.ET3",
-    "A.EL1",
-    "A.EL2",
+    "PAN KF",
+    "A.ENT3",
+    "A.ENL1",
+    "A.ENL2",
     "MODE",
     "TIME"
    ],
@@ -7070,9 +7070,9 @@
     "DELAY",
     "FADE",
     "PITCH",
-    "FILTE",
+    "FILTER",
     "AMP",
-    "OFFSE"
+    "OFFSET"
    ],
    [
     "LFO1"
@@ -7083,7 +7083,7 @@
     "DELAY",
     "FADE",
     "PITCH",
-    "FILTE",
+    "FILTER",
     "AMP"
    ],
    [
@@ -7092,42 +7092,42 @@
     "CS"
    ],
    [
-    "DESTA",
+    "DEST A",
     "SENSA",
-    "DESTB",
+    "DEST B",
     "SENSB",
-    "DESTC",
+    "DEST C",
     "SENSC",
-    "DESTD",
+    "DEST D",
     "SENSD"
    ],
    [
-    "DESTA",
+    "DEST A",
     "SENSA",
-    "DESTB",
+    "DEST B",
     "SENSB",
-    "DESTC",
+    "DEST C",
     "SENSC",
-    "DESTD",
+    "DEST D",
     "SENSD"
    ],
    [
-    "DESTA",
+    "DEST A",
     "SENSA",
-    "DESTB",
+    "DEST B",
     "SENSB",
-    "DESTC",
+    "DEST C",
     "SENSC",
-    "DESTD",
+    "DEST D",
     "SENSD"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
-    "A.ET1",
-    "A.ET2",
-    "A.EL3",
-    "A.ET4",
+    "A.ENT1",
+    "A.ENT2",
+    "A.ENL3",
+    "A.ENT4",
     "LEVEL",
     "PAN"
    ],
@@ -7142,54 +7142,54 @@
     "COARS",
     "FINE",
     "DEPTH",
-    "P.ET1",
-    "P.ET2",
-    "P.ET4",
-    "PITKF",
+    "P.ENT1",
+    "P.ENT2",
+    "P.ENT4",
+    "PITCKF",
     "RP"
    ],
    [
-    "P.ET3",
-    "P.EL1",
-    "P.EL2",
-    "P.EL3",
-    "P.EL4"
+    "P.ENT3",
+    "P.ENL1",
+    "P.ENL2",
+    "P.ENL3",
+    "P.ENL4"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
     "DEPTH",
-    "F.ET1",
-    "F.ET2",
-    "F.EL3",
-    "F.ET4",
-    "FM"
+    "F.ENT1",
+    "F.ENT2",
+    "F.ENL3",
+    "F.ENT4",
+    "FILTER"
    ],
    [
-    "CK",
+    "CUTOFF",
     "RESO",
     "VELO",
-    "F.ET3",
-    "F.EL1",
-    "F.EL2",
-    "F.EL4"
+    "F.ENT3",
+    "F.ENL1",
+    "F.ENL2",
+    "F.ENL4"
    ],
    [
     "LEVEL",
     "PAN",
-    "A.ET1",
-    "A.ET2",
-    "A.EL3",
-    "A.ET4",
+    "A.ENT1",
+    "A.ENT2",
+    "A.ENL3",
+    "A.ENT4",
     "VELO",
     "CURVE"
    ],
    [
     "LEVEL",
-    "PAN",
-    "A.ET3",
-    "A.EL1",
-    "A.EL2",
+    "PAN KF",
+    "A.ENT3",
+    "A.ENL1",
+    "A.ENL2",
     "MODE",
     "TIME"
    ],
@@ -7199,9 +7199,9 @@
     "DELAY",
     "FADE",
     "PITCH",
-    "FILTE",
+    "FILTER",
     "AMP",
-    "OFFSE"
+    "OFFSET"
    ],
    [
     "LFO1"
@@ -7212,7 +7212,7 @@
     "DELAY",
     "FADE",
     "PITCH",
-    "FILTE",
+    "FILTER",
     "AMP"
    ],
    [
@@ -7221,42 +7221,42 @@
     "CS"
    ],
    [
-    "DESTA",
+    "DEST A",
     "SENSA",
-    "DESTB",
+    "DEST B",
     "SENSB",
-    "DESTC",
+    "DEST C",
     "SENSC",
-    "DESTD",
+    "DEST D",
     "SENSD"
    ],
    [
-    "DESTA",
+    "DEST A",
     "SENSA",
-    "DESTB",
+    "DEST B",
     "SENSB",
-    "DESTC",
+    "DEST C",
     "SENSC",
-    "DESTD",
+    "DEST D",
     "SENSD"
    ],
    [
-    "DESTA",
+    "DEST A",
     "SENSA",
-    "DESTB",
+    "DEST B",
     "SENSB",
-    "DESTC",
+    "DEST C",
     "SENSC",
-    "DESTD",
+    "DEST D",
     "SENSD"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
-    "A.ET1",
-    "A.ET2",
-    "A.EL3",
-    "A.ET4",
+    "A.ENT1",
+    "A.ENT2",
+    "A.ENL3",
+    "A.ENT4",
     "LEVEL",
     "PAN"
    ],
@@ -7271,54 +7271,54 @@
     "COARS",
     "FINE",
     "DEPTH",
-    "P.ET1",
-    "P.ET2",
-    "P.ET4",
-    "PITKF",
+    "P.ENT1",
+    "P.ENT2",
+    "P.ENT4",
+    "PITCKF",
     "RP"
    ],
    [
-    "P.ET3",
-    "P.EL1",
-    "P.EL2",
-    "P.EL3",
-    "P.EL4"
+    "P.ENT3",
+    "P.ENL1",
+    "P.ENL2",
+    "P.ENL3",
+    "P.ENL4"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
     "DEPTH",
-    "F.ET1",
-    "F.ET2",
-    "F.EL3",
-    "F.ET4",
-    "FM"
+    "F.ENT1",
+    "F.ENT2",
+    "F.ENL3",
+    "F.ENT4",
+    "FILTER"
    ],
    [
-    "CK",
+    "CUTOFF",
     "RESO",
     "VELO",
-    "F.ET3",
-    "F.EL1",
-    "F.EL2",
-    "F.EL4"
+    "F.ENT3",
+    "F.ENL1",
+    "F.ENL2",
+    "F.ENL4"
    ],
    [
     "LEVEL",
     "PAN",
-    "A.ET1",
-    "A.ET2",
-    "A.EL3",
-    "A.ET4",
+    "A.ENT1",
+    "A.ENT2",
+    "A.ENL3",
+    "A.ENT4",
     "VELO",
     "CURVE"
    ],
    [
     "LEVEL",
-    "PAN",
-    "A.ET3",
-    "A.EL1",
-    "A.EL2",
+    "PAN KF",
+    "A.ENT3",
+    "A.ENL1",
+    "A.ENL2",
     "MODE",
     "TIME"
    ],
@@ -7328,9 +7328,9 @@
     "DELAY",
     "FADE",
     "PITCH",
-    "FILTE",
+    "FILTER",
     "AMP",
-    "OFFSE"
+    "OFFSET"
    ],
    [
     "LFO1"
@@ -7341,7 +7341,7 @@
     "DELAY",
     "FADE",
     "PITCH",
-    "FILTE",
+    "FILTER",
     "AMP"
    ],
    [
@@ -7350,37 +7350,37 @@
     "CS"
    ],
    [
-    "DESTA",
+    "DEST A",
     "SENSA",
-    "DESTB",
+    "DEST B",
     "SENSB",
-    "DESTC",
+    "DEST C",
     "SENSC",
-    "DESTD",
+    "DEST D",
     "SENSD"
    ],
    [
-    "DESTA",
+    "DEST A",
     "SENSA",
-    "DESTB",
+    "DEST B",
     "SENSB",
-    "DESTC",
+    "DEST C",
     "SENSC",
-    "DESTD",
+    "DEST D",
     "SENSD"
    ],
    [
-    "DESTA",
+    "DEST A",
     "SENSA",
-    "DESTB",
+    "DEST B",
     "SENSB",
-    "DESTC",
+    "DEST C",
     "SENSC",
-    "DESTD",
+    "DEST D",
     "SENSD"
    ],
    [
-    "OCTAV"
+    "OCTAVE"
    ],
    [
     "LEVEL",
@@ -7389,13 +7389,13 @@
     "CHORU",
     "CT",
     "FINE",
-    "KEYLO",
-    "KEYHI"
+    "KEY LO",
+    "KEY HI"
    ],
    [
     "BANK",
     "PATCH",
-    "TRANS"
+    "TRANSP"
    ]
   ],
   "envelopeLines": 1,
@@ -7847,10 +7847,10 @@
   ],
   "pageShortNames": [
    [
-    "MACHI"
+    "MACHIN"
    ],
    [
-    "SYNT1",
+    "SYNTH1",
     "SYNT2",
     "SYNT3",
     "SYNT4",
@@ -7870,17 +7870,17 @@
     "NOISE"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
     "RELEA",
     "HOLD",
-    "DISTO",
+    "DISTOR",
     "VOLUM",
     "PAN",
     "PORTA"
    ],
    [
-    "AC",
+    "ATTACK",
     "DECAY",
     "RC",
     "VS",
@@ -7894,7 +7894,7 @@
     "WIDTH",
     "HP Q",
     "LP Q",
-    "ATTAC",
+    "ATTACK",
     "DECAY",
     "EB",
     "EW"
@@ -7903,11 +7903,11 @@
     "KEY",
     "VA",
     "EA",
-    "PRE-D",
+    "PRE-DR",
     "HP",
     "LP",
     "DRY/W",
-    "SATUR"
+    "SATURA"
    ],
    [
     "FREQ",
@@ -7921,21 +7921,21 @@
    ],
    [
     "EQ Q",
-    "EQ",
+    "EQ MIX",
     "BIT",
-    "PING-",
+    "PING-P",
     "DUCK",
     "DRIVE",
     "RATE",
     "DEPTH"
    ],
    [
-    "DESTI",
-    "TRIGG",
+    "DESTIN",
+    "TRIGGE",
     "WAVE",
-    "MULTI",
+    "MULTIP",
     "SPEED",
-    "INTER",
+    "INTERL",
     "DEPTH",
     "PHASE"
    ],
@@ -7945,17 +7945,17 @@
     "SLEW",
     "SYMME",
     "STEPS",
-    "POLAR",
+    "POLARI",
     "VA",
     "KEY"
    ],
    [
-    "DESTI",
-    "TRIGG",
+    "DESTIN",
+    "TRIGGE",
     "WAVE",
-    "MULTI",
+    "MULTIP",
     "SPEED",
-    "INTER",
+    "INTERL",
     "DEPTH",
     "PHASE"
    ],
@@ -7965,17 +7965,17 @@
     "SLEW",
     "SYMME",
     "STEPS",
-    "POLAR",
+    "POLARI",
     "VA",
     "KEY"
    ],
    [
-    "DESTI",
-    "TRIGG",
+    "DESTIN",
+    "TRIGGE",
     "WAVE",
-    "MULTI",
+    "MULTIP",
     "SPEED",
-    "INTER",
+    "INTERL",
     "DEPTH",
     "PHASE"
    ],
@@ -7985,7 +7985,7 @@
     "SLEW",
     "SYMME",
     "STEPS",
-    "POLAR",
+    "POLARI",
     "VA",
     "KEY"
    ]
@@ -8129,17 +8129,17 @@
   ],
   "pageShortNames": [
    [
-    "PRESE"
+    "PRESET"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA",
-    "CUTOF",
+    "CUTOFF",
     "RESON",
-    "CONTO",
-    "OCTAV"
+    "CONTOU",
+    "OCTAVE"
    ],
    [
     "WAVE",
@@ -8150,19 +8150,19 @@
     "WAVE",
     "VOLUM",
     "RANGE",
-    "DETUN"
+    "DETUNE"
    ],
    [
     "WAVE",
     "VOLUM",
     "RANGE",
-    "DETUN"
+    "DETUNE"
    ],
    [
     "WAVE",
     "VOLUM",
     "RANGE",
-    "DETUN"
+    "DETUNE"
    ],
    [
     "OSC1",
@@ -8173,35 +8173,35 @@
     "VOLUM"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
-    "CONTO",
+    "CONTOU",
     "KEY"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
     "LFO",
-    "LFO>P",
-    "LFO>F"
+    "LFO>PI",
+    "LFO>FI"
    ],
    [
     "GLIDE",
-    "MOD>F",
-    "MOD>P",
+    "MOD>FI",
+    "MOD>PI",
     "BEND",
     "VEL",
-    "OCTAV"
+    "OCTAVE"
    ]
   ],
   "envelopeLines": 3,
@@ -8553,11 +8553,11 @@
   ],
   "pageShortNames": [
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA",
-    "CUTOF",
+    "CUTOFF",
     "RESON",
     "SAMPL",
     "START"
@@ -8571,13 +8571,13 @@
     "LOOP"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
     "TYPE",
     "ENV"
@@ -8588,7 +8588,7 @@
    ],
    [
     "ROOT",
-    "TRANS",
+    "TRANSP",
     "FINE"
    ],
    [
@@ -8644,30 +8644,30 @@
   ],
   "pageShortNames": [
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
     "WAVE",
     "OSC2",
-    "FE",
-    "FT",
+    "ENV",
+    "TIME",
     "AMP",
     "VOLUM"
    ],
    [
     "OSC1W",
     "OSC2W",
-    "OSC1L",
+    "OSC1LV",
     "OSC2L",
     "SUB",
-    "DETUN",
+    "DETUNE",
     "OSCPW",
     "RING"
    ],
    [
-    "OSC1T",
-    "OSC1F",
-    "OSC1P",
-    "OSC2T",
+    "OSC1TN",
+    "OSC1FN",
+    "OSC1PH",
+    "OSC2TN",
     "OSC2F",
     "OSC2P",
     "OSCFM",
@@ -8675,38 +8675,38 @@
    ],
    [
     "MT",
-    "BITCR",
-    "VINTA"
+    "BITCRU",
+    "VINTAG"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
-    "FT",
+    "TYPE",
     "KEY",
-    "FE",
-    "FD",
+    "ENV",
+    "DRIVE",
     "HIGH",
     "VEL"
    ],
    [
-    "FA",
-    "FD",
-    "FS",
-    "FR",
-    "CUTOF",
+    "ATTACK",
+    "DECAY",
+    "SUSTAI",
+    "RELEA",
+    "CUTOFF",
     "RESON",
-    "FT",
-    "FE"
+    "TIME",
+    "ENV"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA",
     "TIME",
     "VEL",
     "VOLUM",
-    "CUTOF"
+    "CUTOFF"
    ],
    [
     "WAVE",
@@ -8715,7 +8715,7 @@
     "AMOUN",
     "DEST",
     "SYNC",
-    "KEYTR",
+    "KEYTRI",
     "VOLUM"
    ],
    [
@@ -8725,42 +8725,42 @@
     "AMOUN",
     "DEST",
     "SYNC",
-    "KEYTR",
+    "KEYTRI",
     "VOLUM"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
     "AMOUN",
     "DEST",
-    "CUTOF",
+    "CUTOFF",
     "RESON",
-    "FE",
+    "FILTER",
     "VOLUM"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
     "DEST",
     "AMT",
     "SPEED",
-    "FE",
+    "FILTER",
     "AMP",
     "VOLUM"
    ],
    [
-    "VOICE",
+    "VOICES",
     "PORTA",
     "PM",
     "VOL",
     "ENV",
-    "CUTOF",
+    "CUTOFF",
     "BEND",
     "WHEEL"
    ],
    [
-    "CHORI",
-    "CHOII",
+    "CHORUI",
+    "CHORII",
     "RW",
     "RD",
     "RL",
@@ -8771,7 +8771,7 @@
    [
     "WET",
     "TIME",
-    "FEEDB",
+    "FEEDBK",
     "SYNC",
     "LOCUT",
     "HICUT",
@@ -8889,41 +8889,41 @@
   ],
   "pageShortNames": [
    [
-    "PRESE"
+    "PRESET"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
-    "DETUN",
+    "DETUNE",
     "SPREA",
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
-    "DETUN",
+    "DETUNE",
     "SPREA",
     "SAWS",
     "SUB",
     "OCT"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
     "FILT"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA",
     "FILT"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
@@ -8940,7 +8940,7 @@
     "VOLUM",
     "VEL",
     "BEND",
-    "OCTAV"
+    "OCTAVE"
    ]
   ],
   "envelopeLines": 3,
@@ -9006,30 +9006,30 @@
   ],
   "pageShortNames": [
    [
-    "PRESE"
+    "PRESET"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA",
-    "CUTOF",
+    "CUTOFF",
     "RESON",
-    "FE",
-    "OCTAV"
+    "FILTER",
+    "OCTAVE"
    ],
    [
     "VOLUM",
     "TUNE",
-    "OCTAV",
+    "OCTAVE",
     "PORTA",
-    "UNISO",
+    "UNISON",
     "UNI",
-    "LEGAT",
-    "OCTAV"
+    "LEGATO",
+    "OCTAVE"
    ],
    [
-    "VOICE",
+    "VOICES",
     "AS"
    ],
    [
@@ -9043,7 +9043,7 @@
     "PULSE",
     "PITCH",
     "MIX",
-    "DETUN",
+    "DETUNE",
     "SYNC",
     "OSC"
    ],
@@ -9052,17 +9052,17 @@
     "AMT",
     "NOISE",
     "X-MOD",
-    "BRIGH",
+    "BRIGHT",
     "BOTH",
     "OSC2"
    ],
    [
-    "CUTOF",
+    "CUTOFF",
     "RESON",
-    "FE",
+    "FILTER",
     "KEY",
-    "MULTI",
-    "4-POL",
+    "MULTIM",
+    "4-POLE",
     "BANDP",
     "SELF"
    ],
@@ -9070,16 +9070,16 @@
     "F.ENV"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA",
-    "VEL>F"
+    "VEL>FI"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA",
     "VEL>A"
    ],
@@ -9093,21 +9093,21 @@
     "SYNC"
    ],
    [
-    "LF>SC",
-    "LF>S2",
-    "LFO>F",
-    "LF>PW",
-    "LF>P2"
+    "LF>SC1",
+    "LF>SC2",
+    "LFO>FI",
+    "LF>PW1",
+    "LF>PW"
    ],
    [
-    "ENV>P",
+    "ENV>PI",
     "BEND",
-    "BEND>",
-    "VIBRA",
+    "BEND>O",
+    "VIBRAT",
     "ENV"
    ],
    [
-    "FV",
+    "FILTER",
     "PORTA",
     "ENV",
     "LEVEL",
@@ -9246,14 +9246,14 @@
   ],
   "pageShortNames": [
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA",
-    "CUTOF",
+    "CUTOFF",
     "RESO",
     "ENVAM",
-    "OCTAV"
+    "OCTAVE"
    ],
    [
     "SHAPE",
@@ -9269,10 +9269,10 @@
     "OSCPW",
     "WAVE",
     "SEMI",
-    "DETUN",
-    "OFA",
+    "DETUNE",
+    "AMT",
     "SYNC",
-    "FILTE",
+    "OF",
     "FF"
    ],
    [
@@ -9286,28 +9286,28 @@
     "COLOR"
    ],
    [
-    "CUTOF",
-    "FLT1R",
+    "CUTOFF",
+    "FLT1RS",
     "MODE",
     "FILT",
     "CO",
-    "FLT2R",
+    "FLT2RS",
     "ENVAM",
     "KEYFL"
    ],
    [
     "KEYFL",
     "FILT",
-    "SATUR",
+    "SATURA",
     "MODE",
-    "FS",
+    "FILTER",
     "FLT2",
     "FLT"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA",
     "SUS",
     "POL",
@@ -9320,12 +9320,12 @@
     "RESO2"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA",
     "SUS",
-    "VELOC",
+    "VELOCI",
     "PUNCH"
    ],
    [
@@ -9336,7 +9336,7 @@
     "ENV",
     "MODE",
     "KEYFL",
-    "KEYTR"
+    "KEYTRI"
    ],
    [
     "LFO1",
@@ -9346,14 +9346,14 @@
     "FL"
    ],
    [
-    "LS",
+    "SHAPE",
     "RATE",
     "SYMME",
-    "SL",
+    "LFO2",
     "ENV",
     "MODE",
     "KEYFL",
-    "KEYTR"
+    "KEYTRI"
    ],
    [
     "LFO2",
@@ -9369,22 +9369,22 @@
     "OSC",
     "MODE",
     "KEYFL",
-    "FADEI",
+    "FADEIN",
     "CLOCK"
    ],
    [
     "MODE",
-    "PATTE",
-    "OCTAV",
+    "PATTER",
+    "OCTAVE",
     "SWING",
     "HOLD",
-    "LENGT",
-    "AC",
-    "CT"
+    "LENGTH",
+    "CLOCK",
+    "TEMPO"
    ],
    [
     "CM",
-    "ES",
+    "EFFECT",
     "TIME",
     "FDBK",
     "CR",
@@ -9405,7 +9405,7 @@
     "AMT1",
     "ASGN3",
     "LFO1",
-    "ASGN1",
+    "ASGN1S",
     "DST",
     "ASGN2",
     "DST1"
@@ -9428,15 +9428,15 @@
    [
     "VOLUM",
     "PANOR",
-    "UM",
+    "MODE",
     "PORTA",
-    "TRANS",
+    "TRANSP",
     "KEY",
-    "UD",
-    "UP"
+    "DETUNE",
+    "PAN"
    ],
    [
-    "ULP",
+    "UNISON",
     "BENUP",
     "DOWN",
     "OSC1",
@@ -9447,7 +9447,7 @@
    ],
    [
     "DSP",
-    "GAIN",
+    "GAIN %",
     "ROM"
    ]
   ],
@@ -9699,13 +9699,13 @@
   ],
   "pageShortNames": [
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA",
     "GAIN",
     "START",
-    "TRANS",
+    "TRANSP",
     "MODE"
    ],
    [
@@ -9736,7 +9736,7 @@
   ],
   "pageShortNames": [
    [
-    "OCTAV",
+    "OCTAVE",
     "GAIN",
     "BR",
     "RL",
@@ -10193,7 +10193,7 @@
     "LOOP",
     "SLICE",
     "WET",
-    "RE-RO",
+    "RE-ROL",
     "A/B",
     "SEED"
    ],
@@ -10205,7 +10205,7 @@
     "CN",
     "ARM",
     "A/B",
-    "RE-RO",
+    "RE-ROL",
     "FX",
     "ORDER",
     "WET",
@@ -10213,7 +10213,7 @@
    ],
    [
     "CLEAR",
-    "DB",
+    "DETECT",
     "PAD"
    ],
    [
@@ -10227,7 +10227,7 @@
     "PAN R"
    ],
    [
-    "TRANS"
+    "TRANSP"
    ]
   ],
   "envelopeLines": 0,
@@ -10314,65 +10314,65 @@
   ],
   "pageShortNames": [
    [
-    "PRESE"
+    "PRESET"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA",
-    "F1C",
-    "F1R",
-    "F1FMA",
+    "CUTOFF",
+    "RESON",
+    "FEG",
     "VOLUM"
    ],
    [
     "TYPE",
     "PITCH",
     "SHAPE",
-    "WIDT1",
-    "WIDT2",
+    "WIDTH1",
+    "WIDTH2",
     "SUB",
     "SYNC",
-    "UD"
+    "UNISON"
    ],
    [
-    "OCTAV",
-    "UV",
-    "KEYTR",
-    "RETRI"
+    "OCTAVE",
+    "UNISON",
+    "KEYTRA",
+    "RETRIG"
    ],
    [
     "TYPE",
     "PITCH",
     "SHAPE",
-    "WIDT1",
-    "WIDT2",
+    "WIDTH1",
+    "WIDTH2",
     "SUB",
     "SYNC",
-    "UD"
+    "UNISON"
    ],
    [
-    "OCTAV",
-    "UV",
-    "KEYTR",
-    "RETRI"
+    "OCTAVE",
+    "UNISON",
+    "KEYTRA",
+    "RETRIG"
    ],
    [
     "TYPE",
     "PITCH",
     "SHAPE",
-    "WIDT1",
-    "WIDT2",
+    "WIDTH1",
+    "WIDTH2",
     "SUB",
     "SYNC",
-    "UD"
+    "UNISON"
    ],
    [
-    "OCTAV",
-    "UV",
-    "KEYTR",
-    "RETRI"
+    "OCTAVE",
+    "UNISON",
+    "KEYTRA",
+    "RETRIG"
    ],
    [
     "VOLUM",
@@ -10385,14 +10385,14 @@
     "ROUTE"
    ],
    [
-    "ROUTE",
-    "ROUT2",
+    "2R",
+    "3R",
     "NOISE",
     "1X2",
     "2X3",
-    "1",
-    "MUTE",
-    "MUTE2"
+    "1 MUTE",
+    "2M",
+    "3M"
    ],
    [
     "NOISE",
@@ -10402,7 +10402,7 @@
    [
     "AUTO",
     "BPM",
-    "OCTAV",
+    "OCTAVE",
     "VOLUM",
     "PAN",
     "WIDTH",
@@ -10413,17 +10413,17 @@
     "FEEDB",
     "WT",
     "WD",
-    "OCTAV",
+    "OCTAVE",
     "PITCH",
     "PLAY",
-    "ROUTI",
+    "ROUTIN",
     "DEPTH"
    ],
    [
     "NOISE",
-    "FC",
-    "FB",
-    "HIGHP",
+    "CONFIG",
+    "BALAN",
+    "HIGHPA",
     "VCA",
     "V>VG",
     "UP",
@@ -10436,42 +10436,42 @@
     "4"
    ],
    [
-    "F1C",
-    "F1R",
-    "F1T",
-    "F1FMA",
-    "F1K",
-    "F1S"
+    "CUTOFF",
+    "RESON",
+    "TYPE",
+    "FEG",
+    "KEYTRA",
+    "SUBTYP"
    ],
    [
-    "F2C",
-    "F2R",
-    "F2T",
-    "F2FMA",
-    "F2K",
-    "F2S",
-    "F2OM",
+    "CUTOFF",
+    "RESON",
+    "TYPE",
+    "FEG",
+    "KEYTRA",
+    "SUBTYP",
+    "OFFSET",
     "LINK"
    ],
    [
-    "ATTAC",
+    "ATTACK",
     "DECAY",
-    "SUSTA",
+    "SUSTAI",
     "RELEA",
     "AS",
-    "SHAPE",
+    "DS",
     "RS",
     "EM"
    ],
    [
-    "FEA",
-    "FED",
-    "FES",
-    "FER",
-    "FEAS",
-    "FEDS",
-    "FERS",
-    "FEEM"
+    "ATTACK",
+    "DECAY",
+    "SUSTAI",
+    "RELEA",
+    "AS",
+    "DS",
+    "RS",
+    "EM"
    ],
    [
     "ENABL",
@@ -10481,204 +10481,204 @@
     "TYPE",
     "PHASE",
     "RATE",
-    "AMPLI",
+    "AMPLIT",
     "DEFOR",
     "DELAY",
-    "ATTAC",
+    "ATTACK",
     "DECAY"
    ],
    [
     "TM",
-    "UNIPO",
+    "UNIPOL",
     "HOLD",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
     "TYPE",
     "PHASE",
     "RATE",
-    "AMPLI",
+    "AMPLIT",
     "DEFOR",
     "DELAY",
-    "ATTAC",
+    "ATTACK",
     "DECAY"
    ],
    [
     "TM",
-    "UNIPO",
+    "UNIPOL",
     "HOLD",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
     "TYPE",
     "PHASE",
     "RATE",
-    "AMPLI",
+    "AMPLIT",
     "DEFOR",
     "DELAY",
-    "ATTAC",
+    "ATTACK",
     "DECAY"
    ],
    [
     "TM",
-    "UNIPO",
+    "UNIPOL",
     "HOLD",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
     "TYPE",
     "PHASE",
     "RATE",
-    "AMPLI",
+    "AMPLIT",
     "DEFOR",
     "DELAY",
-    "ATTAC",
+    "ATTACK",
     "DECAY"
    ],
    [
     "TM",
-    "UNIPO",
+    "UNIPOL",
     "HOLD",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
     "TYPE",
     "PHASE",
     "RATE",
-    "AMPLI",
+    "AMPLIT",
     "DEFOR",
     "DELAY",
-    "ATTAC",
+    "ATTACK",
     "DECAY"
    ],
    [
     "TM",
-    "UNIPO",
+    "UNIPOL",
     "HOLD",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
     "TYPE",
     "PHASE",
     "RATE",
-    "AMPLI",
+    "AMPLIT",
     "DEFOR",
     "DELAY",
-    "ATTAC",
+    "ATTACK",
     "DECAY"
    ],
    [
     "TM",
-    "UNIPO",
+    "UNIPOL",
     "HOLD",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
     "TYPE",
     "PHASE",
     "RATE",
-    "AMPLI",
+    "AMPLIT",
     "DEFOR",
     "DELAY",
-    "ATTAC",
+    "ATTACK",
     "DECAY"
    ],
    [
     "TM",
-    "UNIPO",
+    "UNIPOL",
     "HOLD",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
     "TYPE",
     "PHASE",
     "RATE",
-    "AMPLI",
+    "AMPLIT",
     "DEFOR",
     "DELAY",
-    "ATTAC",
+    "ATTACK",
     "DECAY"
    ],
    [
     "TM",
-    "UNIPO",
+    "UNIPOL",
     "HOLD",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
     "TYPE",
     "PHASE",
     "RATE",
-    "AMPLI",
+    "AMPLIT",
     "DEFOR",
     "DELAY",
-    "ATTAC",
+    "ATTACK",
     "DECAY"
    ],
    [
     "TM",
-    "UNIPO",
+    "UNIPOL",
     "HOLD",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
     "TYPE",
     "PHASE",
     "RATE",
-    "AMPLI",
+    "AMPLIT",
     "DEFOR",
     "DELAY",
-    "ATTAC",
+    "ATTACK",
     "DECAY"
    ],
    [
     "TM",
-    "UNIPO",
+    "UNIPOL",
     "HOLD",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
     "TYPE",
     "PHASE",
     "RATE",
-    "AMPLI",
+    "AMPLIT",
     "DEFOR",
     "DELAY",
-    "ATTAC",
+    "ATTACK",
     "DECAY"
    ],
    [
     "TM",
-    "UNIPO",
+    "UNIPOL",
     "HOLD",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [
     "TYPE",
     "PHASE",
     "RATE",
-    "AMPLI",
+    "AMPLIT",
     "DEFOR",
     "DELAY",
-    "ATTAC",
+    "ATTACK",
     "DECAY"
    ],
    [
     "TM",
-    "UNIPO",
+    "UNIPOL",
     "HOLD",
-    "SUSTA",
+    "SUSTAI",
     "RELEA"
    ],
    [

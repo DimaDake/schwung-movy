@@ -30,7 +30,15 @@
 # cheaper" from "the second arm is always cheaper". The two send arms are the
 # error bar.
 #
-# Usage: ./scripts/measure-send-colocation.sh [move.local] [fx] [chains]
+# MULTI-FEEDER runs (`feeders` > 1) drop the insert arm, because an insert no
+# longer models co-location: two feeders would need two copies of the FX, which
+# is a different amount of work. What they answer instead is the question the
+# single-feeder run cannot — whether the accept rule still FIRES when the group
+# is several chains wide, and whether the wall drops when it does. A refusal
+# there is the signal that the "all feeders on one lane" constraint is what
+# binds, and that a precedence-aware scheduler is the next thing to build.
+#
+# Usage: ./scripts/measure-send-colocation.sh [move.local] [fx] [chains] [feeders]
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
@@ -40,6 +48,7 @@ HOST="${1:-move.local}"
 # runs, so it could not falsify anything.
 FX="${2:-tape-echo2}"
 CHAINS="${3:-12}"
+FEEDERS="${4:-1}"  # how many tracks send to bus 0
 TRACK=0            # the fed track, and the one the insert goes on
 SETTLE=6
 
@@ -55,7 +64,7 @@ ssh -o ConnectTimeout=5 "ableton@$HOST" true 2>/dev/null || { echo "DEVICE OFFLI
 ssh "ableton@$HOST" 'touch /data/UserData/schwung/debug_log_on'
 
 echo "${BLD}=== send vs insert: what co-locating a bus with its feeder would save ===${RST}"
-echo "host=$HOST  fx=$FX  chains=$CHAINS  fed track=ch$TRACK"
+echo "host=$HOST  fx=$FX  chains=$CHAINS  feeders=$FEEDERS (ch0..ch$((FEEDERS-1)))"
 
 ts_open_movy
 sleep 8
@@ -99,11 +108,14 @@ restrike() { release; sleep 1; hold; }
 # every other bus at zero. An unfed bus must cost nothing; that is the point of
 # the early-outs in send_bus.rs, and a leak here would land in both arms.
 mix() {
-    local v="1.0,0.0,0" b
-    for ((b = 0; b < SEND_BUSES; b++)); do
-        if [ "$b" -eq 0 ]; then v="$v,$1"; else v="$v,0.0"; fi
+    local v b c
+    for ((c = 0; c < CHAINS; c++)); do
+        v="1.0,0.0,0"
+        for ((b = 0; b < SEND_BUSES; b++)); do
+            if [ "$b" -eq 0 ] && [ "$c" -lt "$FEEDERS" ]; then v="$v,$1"; else v="$v,0.0"; fi
+        done
+        ep "ch$c:mix" "$v"
     done
-    ep "ch$TRACK:mix" "$v"
 }
 
 # `arm <send|insert> <chcolo> <label>` — put the FX in one place, take it out of
@@ -165,7 +177,11 @@ echo
 echo "${BLD}=== arms ===${RST}"
 arm send   0 "send";      S1=$ARM_WALL; S1B=$ARM_BUS; S1C=$ARM_CH0; SND1=$ARM_SOUNDING; C1=$ARM_COLO
 arm send   1 "send+colo";  CW=$ARM_WALL; CB=$ARM_BUS;  CC=$ARM_CH0;  SNDC=$ARM_SOUNDING; CC_M=$ARM_COLO
-arm insert 0 "insert";     IW=$ARM_WALL; IB=$ARM_BUS;  IC=$ARM_CH0;  SNDI=$ARM_SOUNDING
+if [ "$FEEDERS" -eq 1 ]; then
+    arm insert 0 "insert";  IW=$ARM_WALL; IB=$ARM_BUS; IC=$ARM_CH0; SNDI=$ARM_SOUNDING
+else
+    IW=0; IB=0; IC=0; SNDI=$CHAINS
+fi
 arm send   0 "send-2";     S2=$ARM_WALL; S2B=$ARM_BUS; S2C=$ARM_CH0; SND2=$ARM_SOUNDING; C2=$ARM_COLO
 
 release
@@ -183,6 +199,7 @@ FAIL=0
 [ "$EP_FAILS" -eq 0 ] || { echo "${RED}FAIL: $EP_FAILS engine writes never arrived${RST}"; FAIL=1; }
 awk -v a="$S1B" -v b="$S2B" 'BEGIN{ exit !(a > 1 && b > 1) }' \
     || { echo "${RED}FAIL: a send arm reported bus0=$S1B/$S2B us — the bus never ran${RST}"; FAIL=1; }
+if [ "$FEEDERS" -eq 1 ]; then
 awk -v v="$IB" 'BEGIN{ exit !(v < 1) }' \
     || { echo "${RED}FAIL: the insert arm reported bus0=$IB us — the send was still fed${RST}"; FAIL=1; }
 # The FX has to have MOVED, not merely vanished. Chain 0 must carry roughly what
@@ -190,8 +207,17 @@ awk -v v="$IB" 'BEGIN{ exit !(v < 1) }' \
 # total saving.
 awk -v ic="$IC" -v sc="$S1C" -v bus="$S1B" 'BEGIN{ exit !((ic - sc)/1000 > bus * 0.5) }' \
     || { echo "${RED}FAIL: ch0 rose by $(awk -v a="$IC" -v b="$S1C" 'BEGIN{printf "%.1f", (a-b)/1000}') us, not the ~$S1B us the bus cost — did the insert load?${RST}"; FAIL=1; }
+fi
 [ "$C1" = "0" ] && [ "$C2" = "0" ] || { echo "${RED}FAIL: a chcolo 0 arm reported colo=$C1/$C2 -- the flag never reached the engine${RST}"; FAIL=1; }
-[ "$CC_M" = "1" ] || { echo "${RED}FAIL: the chcolo 1 arm reported colo=$CC_M -- the bus was NOT co-located, so its wall measures the old path${RST}"; FAIL=1; }
+if [ "$CC_M" = "1" ]; then
+    echo "${GRN}the chcolo 1 arm co-located the bus (colo=1)${RST}"
+else
+    # NOT a harness failure with several feeders: a refusal is a RESULT. It says
+    # the group would not fit a lane, which is what a precedence-aware scheduler
+    # would fix and this one cannot.
+    echo "${YEL}REFUSED: the chcolo 1 arm reported colo=$CC_M — the planner declined the group.${RST}"
+    [ "$FEEDERS" -eq 1 ] && { echo "${RED}FAIL: a single feeder must always be offered a lane${RST}"; FAIL=1; }
+fi
 for s in "$SND1" "$SNDC" "$SNDI" "$SND2"; do
     [ "${s:-0}" -ge $((CHAINS * 2 / 3)) ] || { echo "${YEL}WARNING: only $s/$CHAINS chains sounding — silent chains cost their idle price and the set looks lighter than it is${RST}"; }
 done
@@ -203,12 +229,14 @@ awk -v s1="$S1" -v s2="$S2" -v c="$CW" -v i="$IW" -v bus="$S1B" 'BEGIN{
     d = s1 - s2; if (d < 0) d = -d
     printf "send  (chcolo 0)  %8.1f us  (arms differ by %.1f us — the error bar)\n", s/1000, d/1000
     printf "send  (chcolo 1)  %8.1f us\n", c/1000
-    printf "insert            %8.1f us  (the target: what the same FX costs on the track)\n", i/1000
+    if (i > 0) printf "insert            %8.1f us  (the target: what the same FX costs on the track)\n", i/1000
     printf "\ndelivered         %8.1f us  (%.1f%% of a 2902 us frame)\n", (s-c)/1000, (s-c)/29020
-    printf "available         %8.1f us  (send minus insert)\n", (s-i)/1000
-    if (s - i > 0) printf "captured          %8.0f%% of it\n", (s-c)*100/(s-i)
+    if (i > 0) {
+        printf "available         %8.1f us  (send minus insert)\n", (s-i)/1000
+        printf "captured          %8.0f%% of it\n", (s-c)*100/(s-i)
+    }
     if (s - c <= d) print "\nINCONCLUSIVE: the saving does not clear the drift between the chcolo 0 arms."
-    if (c > i + d) print "\nSHORT: a co-located send still costs more than the insert. Something is left on the table."
+    if (i > 0 && c > i + d) print "\nSHORT: a co-located send still costs more than the insert. Something is left on the table."
 }'
 [ "$FAIL" -eq 0 ] || { echo "\n${RED}ARMS INVALID — the numbers above measure something else.${RST}"; exit 1; }
 echo "${GRN}arms valid${RST}"

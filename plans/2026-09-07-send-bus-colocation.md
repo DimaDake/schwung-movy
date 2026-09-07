@@ -1,7 +1,7 @@
 # Send-bus co-location: make a send never cost more than an insert
 
-**Status: measured, not yet built.** The measurement is in §1 and it is the
-reason to build this.
+**Status: SHIPPED 2026-09-07** (`chcolo`, default on, ENGINE 0.70.0). The
+measurement in §1 is the reason it was built; §10 is what it delivered.
 
 `2026-09-05-send-fx-and-mix-page-design.md` §3 prices sends honestly and the
 answer is uncomfortable: they only win at **N>=4** tracks, and at **N=1** they
@@ -238,3 +238,50 @@ number — 1515.8 us should become ~1242 us.
   That was the incidental finding in §1 (460.9 vs 41.5 + 362.6) and nothing here
   depends on it, but it is unexplained and worth a look — it may be the chain's
   own FX-split bookkeeping, in which case it is a second small saving.
+
+
+---
+
+## 10. Delivered, 2026-09-07
+
+`./scripts/measure-send-colocation.sh move.local` — the same twelve-chain set,
+now with a `chcolo` arm between the two controls.
+
+| arm | wall | `colo=` |
+|---|---:|---|
+| send, `chcolo 0` | 1493.0 us | 0 |
+| **send, `chcolo 1`** | **1248.9 us** | 1 |
+| insert (the target) | 1239.4 us | 0 |
+| send, `chcolo 0` | 1492.0 us | 0 |
+
+**244.1 us — 8.4% of the frame, and 96% of what §1 said was available.** The
+two control arms differ by 2.0 us. A send is now within **9.5 us** of the same
+effect inserted on the track that feeds it, which is the property this was for.
+
+`colo=` is in `sndlog` for the same reason `par=` is: a co-located bus sounds
+identical to one in the send phase and reports the same per-bus cost, so an arm
+whose co-location was silently refused would print as a measurement of a path it
+never took.
+
+### The rule is about BLOCKS, not lanes
+
+Worth recording because the first statement of it was wrong. "Co-locate if the
+group fits inside the busiest lane" is intuitive and it would refuse the largest
+saving available: a 2 ms bus beside 600 us of chains is far bigger than any
+lane, and is still worth taking — 2040 us co-located against 2600 us serial,
+because the other lanes' work runs UNDER it instead of after it.
+`worth_colocating` compares predicted blocks, and
+`a_bus_heavier_than_the_partition_is_still_taken` pins the case.
+
+The real refusal is a SPARSE set: one chain feeding one bus has nothing to
+overlap with, so the group is the block either way. That is the fixture
+`measure-send-cost.sh` uses, and it is why that fixture could not have measured
+this change.
+
+### The co-located bus reads dearer
+
+360.6 us in the send phase, 416.3 us on a lane. Two candidates, and nothing here
+depends on telling them apart: the tap is charged to the task that does it, and
+a third lane costs its neighbours ~27% in contention
+(`2026-08-23-parallel-render-prototype.md` §6). The block still got 244 us
+shorter, so this is a cost accounted honestly rather than a regression.

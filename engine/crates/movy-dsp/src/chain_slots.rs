@@ -2400,6 +2400,35 @@ mod tests {
         assert_eq!(slots.colocated_mask(), 1, "the heavier bus is offered the lane first");
     }
 
+    /// Two buses fed by DIFFERENT tracks are independent groups and both get a
+    /// lane. Only a SHARED feeder forces a choice — see the test above.
+    ///
+    /// Worth its own test because the refusal above is easy to over-apply: a
+    /// rule that declined "a second bus" rather than "a second claim on one
+    /// track" would silently halve the feature for anyone using two sends,
+    /// which is the ordinary way to use them.
+    #[test]
+    fn two_buses_on_separate_feeders_both_get_a_lane() {
+        let mut slots = ChainSlots::new();
+        busy_set(&mut slots);
+        sends_to(&mut slots, 10, 0);
+        sends_to(&mut slots, 11, 1);
+        cost(&mut slots, 0, 200_000);
+        cost(&mut slots, 1, 150_000);
+        slots.plan_with_colocation();
+        assert_eq!(slots.colocated_mask(), 0b11, "both buses must be co-located");
+        for bus in 0..2 {
+            let lane = lane_of(&slots, bus).unwrap();
+            let at = lane.iter().position(|&x| x == send_index(bus)).unwrap();
+            let feeder = 10 + bus;
+            let f = lane
+                .iter()
+                .position(|&x| x == feeder)
+                .unwrap_or_else(|| panic!("bus {bus} left its feeder behind: {lane:?}"));
+            assert!(f < at, "bus {bus} renders before its feeder: {lane:?}");
+        }
+    }
+
     /* The replan trigger. A feeder appearing on another lane under a stale plan
      * is two threads writing one bus buffer, so this is a correctness rule and
      * not a balance one. */

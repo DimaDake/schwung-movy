@@ -17,6 +17,16 @@
 //! blacklist says. It is the conservative arm of a measurement and the fallback
 //! if a set misbehaves and the culprit is not yet known.
 //!
+//! **Neither is a shipping policy — pinning is a test setting.** The shipped
+//! default is and stays *nothing pinned*: an empty blacklist and `chpin 0`.
+//! Both switches exist to answer a question — is this set misbehaving because
+//! two instances share state? — and to hold a known-bad module still until it
+//! is fixed at the source. A duplicate that has to be pinned to sound right is
+//! a bug to find, not a configuration to ship: pinning gives back exactly the
+//! parallelism it contains, and twelve chains of one module pinned together
+//! return 1.00x. Do not seed the blacklist defensively, and do not reach for
+//! `chpin` as a fix.
+//!
 //! Keys are `<namespace>/<module>`, not the synth id, because two chains can
 //! share an audio FX while running different synths — airwindows is an FX pack
 //! and the module in the fleet most likely to appear twice in one set.

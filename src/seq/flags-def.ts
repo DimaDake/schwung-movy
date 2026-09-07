@@ -177,6 +177,11 @@ export const FLAGS: FlagDef[] = [
         // Off by default: modules are assumed thread-safe and the ones proven
         // otherwise go on chain_pin's blacklist. This is the blunt containment
         // for a set that misbehaves before the culprit is known.
+        //
+        // A TEST SETTING, never a shipping default. Pinning gives back exactly
+        // the parallelism it contains — twelve chains of one module pinned
+        // together return 1.00x — so a set that needs it has a bug to find
+        // rather than a configuration to ship. See chain_pin.rs.
         min: 0, max: 1, def: 0, bool: true,
     },
     {

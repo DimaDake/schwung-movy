@@ -73,10 +73,10 @@ _log('\nTest: the MIX page');
 
     /* The layout itself, both rows, as one string. VOL and PAN sit alone on
      * line 1 and every send is together on line 2 under encoders 5-7: the sends
-     * are a group and read as one, where splitting them put SND1 beside PAN and
+     * are a group and read as one, where splitting them put SEND1 beside PAN and
      * invited reading it as part of the fader. */
     eq('line 1 is the fader, line 2 is the sends',
-       names(movy), 'VOL PAN - - SND1 SND2 SND3 -');
+       names(movy), 'VOL PAN - - SEND1 SEND2 SEND3 -');
 
     eq('unity reads 0.0 dB', movy[0].displayValue, '0.0 dB');
     eq('centre pan reads C', movy[1].displayValue, 'C');

@@ -48,7 +48,7 @@ export function buildMixCells(v: MixVals, kind: TrackKind): (ParamVM | null)[] {
     for (let bus = 0; bus < SEND_BUSES; bus++) {
         const level = v.send[bus] ?? 0;
         cells[FIELD_AT.indexOf(sendField(bus))] = cell({
-            shortName: 'SND' + (bus + 1), fullName: 'Send ' + (bus + 1),
+            shortName: 'SEND' + (bus + 1), fullName: 'Send ' + (bus + 1),
             type: 'float', renderStyle: 'arc',
             /* A send's own travel, which ends at unity. Normalized against the
              * FADER's travel it drew four fifths of an arc at its maximum, and

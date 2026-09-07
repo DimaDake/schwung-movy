@@ -108,6 +108,13 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Hold-to-modulate offered an LFO on knobs no LFO could drive.** Holding a
+  knob on a **send FX** slot or on the **MIX** page raised the assign prompt,
+  and clicking through wrote a target the chain host cannot route — so nothing
+  modulated, *and* the write replaced whatever that LFO was legitimately
+  driving. Movy's sends and mixer live in Movy's own engine, while the LFOs are
+  the chain host's; the gesture is now offered only on knobs an LFO can reach.
+
 - **The MIX page's knobs moved in whole-dB jumps.** They stepped one ladder
   index at a time, eight CC units apart, so a small turn did nothing at all and
   then leapt a dB — reported as "too sensitive". They now travel continuously,

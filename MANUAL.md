@@ -717,6 +717,11 @@ the LFO moves the sound, not the displayed knob.
 
 Both work on **every track**, Schwung-backed (1–4) and Movy-hosted (5–16) alike.
 
+The prompt only appears on knobs an LFO can actually reach — a module's own
+parameters. It is not offered on the **MIX** page or on a **send FX** slot: those
+live in Movy's own audio engine, while the LFOs belong to Schwung's chain host,
+so it has no way to drive them. Automate those with a parameter lane instead.
+
 ### The master chain's LFOs
 
 The master FX chain has an LFO page of its own, in the same place: the **fifth

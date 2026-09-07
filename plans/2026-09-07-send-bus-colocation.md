@@ -231,9 +231,7 @@ number — 1515.8 us should become ~1242 us.
 
 ## 9. Open
 
-- **N>=2 feeders is unmeasured** (§1). The rule handles it by arithmetic; the
-  first device run after chunk 2 should feed a bus from two tracks and confirm
-  the planner co-locates it and the wall drops.
+- ~~**N>=2 feeders is unmeasured**~~ — **CLOSED 2026-09-07**, see §11.
 - **Does an inserted FX really cost ~57 us more than the same FX on a bus?**
   That was the incidental finding in §1 (460.9 vs 41.5 + 362.6) and nothing here
   depends on it, but it is unexplained and worth a look — it may be the chain's
@@ -285,3 +283,41 @@ depends on telling them apart: the tap is charged to the task that does it, and
 a third lane costs its neighbours ~27% in contention
 (`2026-08-23-parallel-render-prototype.md` §6). The block still got 244 us
 shorter, so this is a cost accounted honestly rather than a regression.
+
+---
+
+## 11. Feeder count, measured 2026-09-07
+
+The open question from §9, and the one that decides whether the *"all feeders on
+one lane"* constraint is worth removing. `measure-send-colocation.sh` takes a
+feeder count; above one it drops the insert arm (two feeders would need two
+copies of the FX, which is a different amount of work) and reports a refusal as
+a RESULT rather than a harness failure.
+
+| feeders | `chcolo 0` | `chcolo 1` | delivered | error bar | `colo=` |
+|---|---:|---:|---:|---:|---|
+| 1 | 1493.0 us | 1248.9 us | **244.1 us** | 2.0 us | 1 |
+| 2 | 1525.3 us | 1226.2 us | **299.0 us** | 13.7 us | 1 |
+| 3 | 1510.1 us | 1247.8 us | **262.3 us** | 12.5 us | 1 |
+
+**Every one co-located, and the saving does not fall off with feeder count** —
+two feeders delivered MORE than one, which follows: a wider group moves more of
+what used to run serially into the parallel phase.
+
+### What this closes
+
+**The precedence-aware scheduler is not worth building.** The plan for it was:
+per-lane partial bus buffers, a dependency counter, and a lane that waits on its
+feeders wherever they ran — which would free the partition completely. It exists
+to fix refusals caused by the one-lane constraint, and across the whole range
+where sends used to lose to inserts (1-3 feeders) there are no refusals to fix.
+
+At 4+ feeders a refusal becomes likely, and it does not matter: that is where
+sends already beat inserts by doing 1/N the work, which is the case the buses
+were built for in the first place. The two halves cover each other, exactly as
+§2 predicted.
+
+Left on the table, and deliberately: `render_plan`'s LPT is 4/3-approximate
+(`lpt_is_four_thirds_approximate` pins a case where the optimum is 6 and LPT
+returns 7). A pairwise-swap improvement pass after the packing would close most
+of that gap, allocation-free, and is independent of everything here.

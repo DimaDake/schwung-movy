@@ -641,11 +641,18 @@ signal path: a send's output joins Movy's own output, which the master FX then
 process.
 
 **Why bother.** One reverb shared by eight tracks costs a fraction of eight
-reverbs. The saving is real from about four tracks up; below that it is roughly
-a wash, and for one track an ordinary FX slot on the track is cheaper. Sends are
-for *wet* effects — reverb, delay. An effect that replaces the dry signal
-(distortion, compression, EQ) belongs in the track's own FX slot, where it will
-sound like you intended.
+reverbs — and a send is never more expensive than putting the same effect on the
+track itself, however few tracks feed it. That used not to be true: a bus had to
+wait for every track to finish and then ran on its own, so below about four
+tracks a send cost more than an FX slot did. Movy now renders a bus on the same
+render lane as the tracks feeding it whenever that shortens the block, which on
+a twelve-track set with one heavy delay is worth about 250 µs — 9% of the audio
+frame. Nothing is delayed to do it, so short effects behave normally on a send.
+
+Sends are still for *wet* effects — reverb, delay, chorus. An effect that
+replaces the dry signal (distortion, compression, EQ) belongs in the track's own
+FX slot, where it will sound like you intended: that is a question of what it
+does to the sound, not of what it costs.
 
 Sends are **saved with the Set**, module and preset alike.
 

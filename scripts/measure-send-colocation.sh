@@ -109,10 +109,13 @@ restrike() { release; sleep 1; hold; }
 # the early-outs in send_bus.rs, and a leak here would land in both arms.
 mix() {
     local v b c
-    for ((c = 0; c < CHAINS; c++)); do
+    # Only the FEEDER tracks are written. Every other chain is left at the
+    # engine's default, which already sends nothing — writing a zero to all
+    # twelve costs a round trip each and once pushed a run past its timeout.
+    for ((c = 0; c < FEEDERS; c++)); do
         v="1.0,0.0,0"
         for ((b = 0; b < SEND_BUSES; b++)); do
-            if [ "$b" -eq 0 ] && [ "$c" -lt "$FEEDERS" ]; then v="$v,$1"; else v="$v,0.0"; fi
+            if [ "$b" -eq 0 ]; then v="$v,$1"; else v="$v,0.0"; fi
         done
         ep "ch$c:mix" "$v"
     done

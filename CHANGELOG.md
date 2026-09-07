@@ -21,11 +21,28 @@ far. Earlier work is summarised in the timeline below for context.
   takes its reverb with it — and their output joins Movy's own, which the master
   FX then process.
 
-  One reverb shared by eight tracks costs a fraction of eight reverbs. The
-  saving is real from about four tracks up; below that it is roughly a wash, and
-  for a single track an ordinary FX slot is cheaper. Sends only make sense for
-  wet effects: an insert-shaped one (distortion, compression, EQ) belongs on the
-  track.
+  One reverb shared by eight tracks costs a fraction of eight reverbs — and a
+  send is never more expensive than the same effect on the track itself, however
+  few tracks feed it (see **Sends render beside their tracks** below). Sends
+  still only make sense for wet effects: an insert-shaped one (distortion,
+  compression, EQ) belongs on the track, because of what it does to the sound
+  rather than what it costs.
+
+- **Sends render beside their tracks.** A send bus used to wait for every chain
+  at the join and then run alone on the audio thread with both helper lanes
+  idle — so below about four tracks it cost MORE than putting the effect on the
+  track, which is not something anyone should have to know. Movy now renders a
+  bus on the same lane as the tracks feeding it whenever that shortens the
+  block.
+
+  Measured on twelve chains with one heavy delay: **244-299 µs back, 8-10% of
+  the audio frame**, at one, two and three feeding tracks. A send now costs
+  within 10 µs of the same effect inserted on the track.
+
+  Nothing is delayed to achieve it. A lane runs its work in order, so the bus
+  still sees the complete sum at the same point in musical time — short effects
+  like chorus and slap delay behave exactly as they do on a track. `chcolo` on
+  the Flags page (**Send On Lane**) turns it off.
 
 - **A MIX page per track.** The last slot in every chain: **VOL** and **PAN** on
   the top row, **SND1**, **SND2** and **SND3** together on the bottom under

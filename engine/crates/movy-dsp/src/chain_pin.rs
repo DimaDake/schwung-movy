@@ -167,6 +167,16 @@ impl PinPolicy {
     }
 
     /// Per-chain planner grouping key; empty means "run free".
+    /// Force one slot's key. For tests that need a pinned neighbour without a
+    /// chain host to load a duplicate module into.
+    #[cfg(test)]
+    pub fn set_key_for_test(&mut self, slot: usize, key: &str) {
+        if let Some(k) = self.pin_keys.get_mut(slot) {
+            k.clear();
+            k.push_str(key);
+        }
+    }
+
     pub fn pin_keys(&self) -> &[String] {
         &self.pin_keys
     }

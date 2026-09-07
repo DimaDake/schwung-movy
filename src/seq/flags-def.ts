@@ -149,6 +149,22 @@ export const FLAGS: FlagDef[] = [
         min: 1, max: 4, def: 3,
     },
     {
+        key: 'chcolo', name: 'Send On Lane',
+        hint: 'Renders a send beside the tracks feeding it.',
+        // On: measured 274 us -- 9.4% of a 2902 us frame -- on twelve chains
+        // with one heavy send, against the same FX inserted on the track that
+        // fed it (plans/2026-09-07-send-bus-colocation.md §1). It closes the
+        // gap that made a send more expensive than an insert below four tracks,
+        // which is a trap a user cannot be expected to know about.
+        //
+        // A flag where the parallel send phase deliberately had none: that was
+        // measured on a one-synth fixture where `chparallel 0` was a clean
+        // control, and this is measured on twelve chains where the same flag
+        // would move ~1500 us of chain work too. Off is the arm to compare
+        // against.
+        min: 0, max: 1, def: 1, bool: true,
+    },
+    {
         key: 'chidle', name: 'Idle Skip',
         hint: 'Skips chains that are silent.',
         // An ordinal, not a bool: the FX gate depends on the synth gate.

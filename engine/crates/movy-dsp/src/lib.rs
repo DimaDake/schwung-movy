@@ -15,6 +15,7 @@ mod midi_out;
 mod chain_host;
 mod chain_slots;
 mod chain_pin;
+mod chain_colo;
 mod render_plan;
 mod render_pool;
 mod load_queue;
@@ -116,7 +117,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.69.0";
+const ENGINE_VERSION: &str = "0.70.0";
 
 /// Tracks backed by schwung's own shadow slots by default. Their notes go out as
 /// MIDI on the matching channel; everything above this index is a chain movy
@@ -314,6 +315,21 @@ impl Instance {
              * way. */
             "chpin" => {
                 self.chains.set_pin_duplicates(val != "0" && !val.is_empty());
+            }
+            /* `chcolo <0|1>` — let a send bus render on a chain lane, behind
+             * the tracks that feed it, instead of alone in the send phase after
+             * the join. Measured at 274 us on a twelve-chain set with one heavy
+             * FX (`plans/2026-09-07-send-bus-colocation.md`).
+             *
+             * It has a flag where the parallel send phase deliberately did not,
+             * because the control arm has to hold the chains constant: that
+             * change was measured on a one-synth fixture where `chparallel 0`
+             * moved nothing else, and this one is measured on twelve chains
+             * where it would move ~1500 us of chain work as well. Without
+             * `chcolo` the device measurement has no arm to compare against.
+             * Default on, matching the UI. */
+            "chcolo" => {
+                self.chains.set_colocate(val != "0" && !val.is_empty());
             }
             /* `chblock <csv>` — modules proven to race, whose instances all go
              * back on one lane. Replaces the list wholesale, so an empty value

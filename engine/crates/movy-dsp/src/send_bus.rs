@@ -99,9 +99,36 @@ impl SendBuses {
         }
     }
 
-    /// Tap one chain's rendered block into every bus it feeds.
-    pub fn accumulate(&mut self, src: &[i16], mix: &TrackMix) {
+    /// Whether a co-located bus owes its FX a call, asked BEFORE the block
+    /// rather than after it. `fed` is what `dirty` is about to become.
+    pub fn should_run(&self, n: usize, fed: bool) -> bool {
+        self.buses.get(n).is_some_and(|b| should_process(fed, b.last_peak, b.continuous))
+    }
+
+    /// Record that a lane summed into this bus and ran its FX, so the audio
+    /// thread's bookkeeping matches the co-located path.
+    ///
+    /// `in_peak` comes from the lane because it cannot come from anywhere else:
+    /// the FX overwrites the buffer before the join, so the audio thread never
+    /// sees a co-located bus's input at all.
+    pub fn note_colocated(&mut self, n: usize, in_peak: i32) {
+        let Some(b) = self.buses.get_mut(n) else { return };
+        b.dirty = true;
+        b.in_peak = in_peak;
+    }
+
+    /// Tap one chain's rendered block into every bus it feeds, except the buses
+    /// named in `skip`.
+    ///
+    /// A skipped bus is one a render lane has already summed this chain into
+    /// (`chain_colo`). Doing it again here would double the send — audible as a
+    /// send 6 dB hot, which is exactly the kind of bug that reads as a taste
+    /// decision rather than as an error.
+    pub fn accumulate(&mut self, src: &[i16], mix: &TrackMix, skip: u16) {
         for (n, bus) in self.buses.iter_mut().enumerate() {
+            if skip & (1 << n) != 0 {
+                continue;
+            }
             let (gl, gr) = mix.send_gains(n);
             if gl == 0.0 && gr == 0.0 {
                 continue; // zero send: the buffer is not even touched
@@ -394,8 +421,8 @@ mod tests {
     #[test]
     fn accumulating_sums_every_track_into_one_bus() {
         let mut b = SendBuses::new();
-        b.accumulate(&[1000, 1000], &sending(1.0));
-        b.accumulate(&[500, 500], &sending(1.0));
+        b.accumulate(&[1000, 1000], &sending(1.0), 0);
+        b.accumulate(&[500, 500], &sending(1.0), 0);
         assert_eq!(&b.buf_mut(0)[..2], &[1500, 1500], "a bus is a sum, not a replace");
     }
 
@@ -403,7 +430,7 @@ mod tests {
     fn a_zero_send_never_touches_the_bus() {
         // Zero cost when unused, rule 2 of three.
         let mut b = SendBuses::new();
-        b.accumulate(&[30000, 30000], &sending(0.0));
+        b.accumulate(&[30000, 30000], &sending(0.0), 0);
         assert!(!b.any_dirty(), "a track at zero send must not dirty the bus");
         assert_eq!(&b.buf_mut(0)[..2], &[0, 0]);
     }
@@ -412,7 +439,7 @@ mod tests {
     fn the_bus_saturates_like_the_main_mix() {
         let mut b = SendBuses::new();
         for _ in 0..4 {
-            b.accumulate(&[30000, -30000], &sending(1.0));
+            b.accumulate(&[30000, -30000], &sending(1.0), 0);
         }
         assert_eq!(&b.buf_mut(0)[..2], &[i16::MAX, i16::MIN], "clipped, not wrapped");
     }
@@ -452,7 +479,7 @@ mod tests {
     #[test]
     fn finishing_mixes_at_unity_and_zeroes_the_bus() {
         let mut b = SendBuses::new();
-        b.accumulate(&[1000, 1000], &sending(1.0));
+        b.accumulate(&[1000, 1000], &sending(1.0), 0);
         b.take_plan();
         let mut out = vec![100i16, 100];
         b.finish(0, &mut out, 2);
@@ -464,7 +491,7 @@ mod tests {
     #[test]
     fn finishing_remembers_the_output_peak_for_the_tail_rule() {
         let mut b = SendBuses::new();
-        b.accumulate(&[9000, -9000], &sending(1.0));
+        b.accumulate(&[9000, -9000], &sending(1.0), 0);
         b.take_plan();
         let mut out = vec![0i16; 2];
         b.finish(0, &mut out, 2);
@@ -477,7 +504,7 @@ mod tests {
         // Left sticky it reads as a track still feeding a bus whose send was
         // turned down minutes ago — the one thing the diagnostic is for.
         let mut b = SendBuses::new();
-        b.accumulate(&[8000, 8000], &sending(1.0));
+        b.accumulate(&[8000, 8000], &sending(1.0), 0);
         b.take_plan();
         let mut out = vec![0i16; 2];
         b.finish(0, &mut out, 2);
@@ -493,7 +520,7 @@ mod tests {
         let mut b = SendBuses::new();
         assert_eq!(b.report(), quiet(&[]));
 
-        b.accumulate(&[8000, 8000], &sending(1.0));
+        b.accumulate(&[8000, 8000], &sending(1.0), 0);
         b.take_plan();
         let mut out = vec![0i16; 2];
         b.finish(0, &mut out, 2);
@@ -513,7 +540,7 @@ mod tests {
         let mut b = SendBuses::new();
         for _ in 0..64 {
             for _ in 0..16 {
-                b.accumulate(&[30000, -30000], &TrackMix::default());
+                b.accumulate(&[30000, -30000], &TrackMix::default(), 0);
             }
             assert_eq!(b.take_plan(), none());
             assert!(!b.any_dirty());
@@ -548,7 +575,7 @@ mod tests {
         // The block a send module is removed: the buffer must not ring on into
         // whatever is loaded next.
         let mut b = SendBuses::new();
-        b.accumulate(&[9000, 9000], &sending(1.0));
+        b.accumulate(&[9000, 9000], &sending(1.0), 0);
         b.discard(0);
         assert!(!b.any_dirty());
         assert_eq!(&b.buf_mut(0)[..2], &[0, 0]);

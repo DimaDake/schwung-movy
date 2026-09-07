@@ -106,9 +106,10 @@ mix() {
     ep "ch$TRACK:mix" "$v"
 }
 
-# `arm <send|insert> <label>` — put the FX in one place, take it out of the
-# other, and read the wall.
+# `arm <send|insert> <chcolo> <label>` — put the FX in one place, take it out of
+# the other, set the arm's flag, and read the wall.
 arm() {
+    ep "chcolo" "$2"
     if [ "$1" = "send" ]; then
         ep "ch$TRACK:fx1:module" ""
         sleep 2
@@ -133,6 +134,7 @@ arm() {
     ep "chpeaklog" "1"
     ep "chcostlog" "1"; sleep 1
     ep "sndcostlog" "1"; sleep 1
+    ep "sndlog" "1"; sleep 1
     local cost sndc peaks
     cost=$(ts_ssh  "grep -o 'chain cost: .*'  $LOG | tail -n 1")
     sndc=$(ts_ssh  "grep -o 'send cost: .*'   $LOG | tail -n 1")
@@ -146,17 +148,25 @@ arm() {
     ARM_BUS=$(printf '%s' "$sndc" | grep -oE '0:us=[0-9.]+' | cut -d= -f2)
     ARM_BUS="${ARM_BUS:-0}"
     ARM_SOUNDING=$(printf '%s' "$peaks" | tr ',' '\n' | awk '$1+0 > 0' | wc -l | tr -d ' ')
-    printf '  %-9s wall %8.1f us   ch0 %7.1f us   bus0 %7.1f us   sounding %s/%s\n' \
-        "$2" "$(awk -v v="$ARM_WALL" 'BEGIN{print v/1000}')" \
-        "$(awk -v v="$ARM_CH0" 'BEGIN{print v/1000}')" "$ARM_BUS" \
+    # `colo=` is the arm's proof. A co-located bus sounds exactly like one in the
+    # send phase and reports the same per-bus cost, so an arm whose co-location
+    # was silently refused -- an unmeasured bus, a pinned feeder -- would print
+    # as a measurement of a path it never took.
+    ARM_COLO=$(ts_ssh "grep -o 'sends: .*' $LOG | tail -n 1" 2>/dev/null \
+        | grep -oE 'colo=[0-9a-f]+' | cut -d= -f2)
+    ARM_COLO="${ARM_COLO:-?}"
+    printf '  %-11s wall %8.1f us   ch0 %7.1f us   bus0 %7.1f us   colo=%s  sounding %s/%s\n' \
+        "$3" "$(awk -v v="$ARM_WALL" 'BEGIN{print v/1000}')" \
+        "$(awk -v v="$ARM_CH0" 'BEGIN{print v/1000}')" "$ARM_BUS" "$ARM_COLO" \
         "$ARM_SOUNDING" "$CHAINS"
 }
 
 echo
 echo "${BLD}=== arms ===${RST}"
-arm send   "send";    S1=$ARM_WALL; S1B=$ARM_BUS; S1C=$ARM_CH0; SND1=$ARM_SOUNDING
-arm insert "insert";  IW=$ARM_WALL; IB=$ARM_BUS;  IC=$ARM_CH0;  SNDI=$ARM_SOUNDING
-arm send   "send-2";  S2=$ARM_WALL; S2B=$ARM_BUS; S2C=$ARM_CH0; SND2=$ARM_SOUNDING
+arm send   0 "send";      S1=$ARM_WALL; S1B=$ARM_BUS; S1C=$ARM_CH0; SND1=$ARM_SOUNDING; C1=$ARM_COLO
+arm send   1 "send+colo";  CW=$ARM_WALL; CB=$ARM_BUS;  CC=$ARM_CH0;  SNDC=$ARM_SOUNDING; CC_M=$ARM_COLO
+arm insert 0 "insert";     IW=$ARM_WALL; IB=$ARM_BUS;  IC=$ARM_CH0;  SNDI=$ARM_SOUNDING
+arm send   0 "send-2";     S2=$ARM_WALL; S2B=$ARM_BUS; S2C=$ARM_CH0; SND2=$ARM_SOUNDING; C2=$ARM_COLO
 
 release
 ep "ch$TRACK:fx1:module" ""
@@ -180,22 +190,25 @@ awk -v v="$IB" 'BEGIN{ exit !(v < 1) }' \
 # total saving.
 awk -v ic="$IC" -v sc="$S1C" -v bus="$S1B" 'BEGIN{ exit !((ic - sc)/1000 > bus * 0.5) }' \
     || { echo "${RED}FAIL: ch0 rose by $(awk -v a="$IC" -v b="$S1C" 'BEGIN{printf "%.1f", (a-b)/1000}') us, not the ~$S1B us the bus cost — did the insert load?${RST}"; FAIL=1; }
-for s in "$SND1" "$SNDI" "$SND2"; do
+[ "$C1" = "0" ] && [ "$C2" = "0" ] || { echo "${RED}FAIL: a chcolo 0 arm reported colo=$C1/$C2 -- the flag never reached the engine${RST}"; FAIL=1; }
+[ "$CC_M" = "1" ] || { echo "${RED}FAIL: the chcolo 1 arm reported colo=$CC_M -- the bus was NOT co-located, so its wall measures the old path${RST}"; FAIL=1; }
+for s in "$SND1" "$SNDC" "$SNDI" "$SND2"; do
     [ "${s:-0}" -ge $((CHAINS * 2 / 3)) ] || { echo "${YEL}WARNING: only $s/$CHAINS chains sounding — silent chains cost their idle price and the set looks lighter than it is${RST}"; }
 done
 
 # ── the answer ──────────────────────────────────────────────────────────────
 echo
-awk -v s1="$S1" -v s2="$S2" -v i="$IW" -v bus="$S1B" 'BEGIN{
+awk -v s1="$S1" -v s2="$S2" -v c="$CW" -v i="$IW" -v bus="$S1B" 'BEGIN{
     s = (s1 + s2) / 2
     d = s1 - s2; if (d < 0) d = -d
-    printf "send     %8.1f us  (arms differ by %.1f us — the error bar)\n", s/1000, d/1000
-    printf "insert   %8.1f us\n", i/1000
-    printf "saving   %8.1f us  (%.1f%% of a 2902 us frame)\n", (s-i)/1000, (s-i)/29020
-    printf "\nthe bus cost %.1f us wherever it ran; co-location would recover %.0f%% of that.\n", \
-        bus, (s-i)/10/bus
-    if (s - i <= d) print "\nINCONCLUSIVE: the saving does not clear the drift between the send arms."
-    else if ((s - i)/1000 < 50) print "\nWEAK: under 50 us. Not worth a scheduler change."
+    printf "send  (chcolo 0)  %8.1f us  (arms differ by %.1f us — the error bar)\n", s/1000, d/1000
+    printf "send  (chcolo 1)  %8.1f us\n", c/1000
+    printf "insert            %8.1f us  (the target: what the same FX costs on the track)\n", i/1000
+    printf "\ndelivered         %8.1f us  (%.1f%% of a 2902 us frame)\n", (s-c)/1000, (s-c)/29020
+    printf "available         %8.1f us  (send minus insert)\n", (s-i)/1000
+    if (s - i > 0) printf "captured          %8.0f%% of it\n", (s-c)*100/(s-i)
+    if (s - c <= d) print "\nINCONCLUSIVE: the saving does not clear the drift between the chcolo 0 arms."
+    if (c > i + d) print "\nSHORT: a co-located send still costs more than the insert. Something is left on the table."
 }'
 [ "$FAIL" -eq 0 ] || { echo "\n${RED}ARMS INVALID — the numbers above measure something else.${RST}"; exit 1; }
 echo "${GRN}arms valid${RST}"

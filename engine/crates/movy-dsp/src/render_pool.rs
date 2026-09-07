@@ -32,6 +32,15 @@ use crate::host;
 pub struct Task {
     /// What puts audio in `buf` before `process_fx` sees it.
     pub pre: Pre,
+    /// Send buses this task's output is summed into, by the lane that produced
+    /// it rather than by the audio thread after the join.
+    ///
+    /// This is what lets a bus render on a chain lane: the tap and the bus's own
+    /// FX pass are then two entries in ONE lane's ordered task list, so the sum
+    /// is complete before the FX reads it without any synchronisation at all.
+    /// A tap is only ever built for a bus co-located on this same lane — see
+    /// `chain_colo`; every other bus is still summed on the audio thread.
+    pub taps: [Option<Tap>; MAX_TAPS],
     /// `None` when the FX is asleep, or when the chain is not being split at
     /// all and `render` already did the FX itself.
     pub process_fx: Option<unsafe extern "C" fn(*mut c_void, *mut i16, i32)>,
@@ -39,6 +48,23 @@ pub struct Task {
     pub buf: *mut i16,
     pub frames: i32,
     pub chain: usize,
+}
+
+/// The most send buses one chain can be tapped into by its own lane. Sized to
+/// `send_bus::SEND_BUSES`, kept as a separate constant so this module stays free
+/// of the mixer's types; `taps_cover_every_bus` pins them together.
+pub const MAX_TAPS: usize = 4;
+
+/// A task that taps nothing — every chain on the serial path, and every chain
+/// whose buses are not co-located with it.
+pub const NO_TAPS: [Option<Tap>; MAX_TAPS] = [None; MAX_TAPS];
+
+/// One bus a lane sums a rendered block into, at that track's send gains.
+#[derive(Clone, Copy)]
+pub struct Tap {
+    pub buf: *mut i16,
+    pub gl: f32,
+    pub gr: f32,
 }
 
 /// Where a task's input comes from.
@@ -307,9 +333,17 @@ fn run(tasks: &[Task], shared: &Shared) {
         // Only scanned for a synth that ran: `Silence` just zeroed the buffer,
         // and a `Keep` task has no synth stage to gate — scanning either would
         // charge 256 samples of movy's bookkeeping for an answer already known.
+        // A `Keep` task is scanned too, and the number means something else for
+        // it: the peak of what the lanes SUMMED IN, taken at the only moment it
+        // still exists. A co-located bus's FX is about to overwrite this buffer,
+        // and the audio thread never sees the input at all — without this,
+        // `sndlog in=` would go blind on exactly the path most likely to have a
+        // bug in it, and a silent bus would be indistinguishable from one
+        // nothing fed. 256 reads against an FX pass that costs hundreds of
+        // microseconds.
         if let Some(p) = shared.synth_peak.get(t.chain) {
             let mut peak = 0i32;
-            if rendered {
+            if rendered || matches!(t.pre, Pre::Keep) {
                 for k in 0..samples {
                     let s = unsafe { *t.buf.add(k) } as i32;
                     peak = peak.max(s.abs());
@@ -319,6 +353,20 @@ fn run(tasks: &[Task], shared: &Shared) {
         }
         if let Some(f) = t.process_fx {
             unsafe { f(t.inst, t.buf, t.frames) };
+        }
+        /* Tapped AFTER the FX, so a send is post-insert exactly as it is on the
+         * audio-thread path — a track's send carries what the track sounds
+         * like, not what its synth produced before its own effects.
+         *
+         * Charged to this task's cost, deliberately: the sum is work the lane
+         * did for this chain, and hiding it would make a co-located plan look
+         * cheaper than it is to the very planner that decides to build one. */
+        for tap in t.taps.iter().flatten() {
+            // Safe by the same partition argument as `buf`: a tap is only built
+            // for a bus assigned to THIS lane, so no other thread holds it.
+            let dst = unsafe { core::slice::from_raw_parts_mut(tap.buf, samples) };
+            let src = unsafe { core::slice::from_raw_parts(t.buf, samples) };
+            crate::mixer::mix_into_gains(dst, src, tap.gl, tap.gr);
         }
         if let Some(c) = shared.cost_ns.get(t.chain) {
             c.store(t0.elapsed().as_nanos() as u64, Ordering::Relaxed);
@@ -443,6 +491,7 @@ mod tests {
         let pool = RenderPool::new(1, CHAINS);
         let mk = |chain: usize| Task {
             pre: Pre::Render(sends_midi),
+            taps: NO_TAPS,
             process_fx: None,
             inst: (0x40 + chain) as *mut c_void,
             buf: core::ptr::null_mut(),
@@ -472,6 +521,7 @@ mod tests {
         pool.render_block(&[
             vec![Task {
                 pre: Pre::Render(fill),
+                taps: NO_TAPS,
                 process_fx: None,
                 inst: 7 as *mut c_void,
                 buf: buf.as_mut_ptr(),
@@ -501,6 +551,7 @@ mod tests {
         let pool = RenderPool::new(0, CHAINS);
         pool.render_block(&[vec![Task {
             pre: Pre::Render(sends_midi),
+            taps: NO_TAPS,
             process_fx: None,
             inst: 0x41 as *mut c_void,
             buf: core::ptr::null_mut(),
@@ -522,6 +573,7 @@ mod tests {
         range
             .map(|c| Task {
                 pre: Pre::Render(fill),
+                taps: NO_TAPS,
                 process_fx: None,
                 inst: (c + 1) as *mut c_void,
                 buf: bufs[c].as_mut_ptr(),
@@ -548,6 +600,7 @@ mod tests {
         b[0] = [7, 7, 7, 7];
         let lanes = vec![vec![Task {
             pre: Pre::Silence,
+            taps: NO_TAPS,
             process_fx: Some(assert_zero_then_mark),
             inst: 1 as *mut c_void,
             buf: b[0].as_mut_ptr(),
@@ -576,6 +629,7 @@ mod tests {
         b[1] = [11, 22, 33, 44];
         let mk = |buf: *mut i16, chain: usize| Task {
             pre: Pre::Keep,
+            taps: NO_TAPS,
             process_fx: Some(double_it),
             inst: 1 as *mut c_void,
             buf,
@@ -590,12 +644,19 @@ mod tests {
         assert_eq!(b[1], [22, 44, 66, 88], "the helper zeroed a bus that was already fed");
     }
 
-    /// A `Keep` task has no synth stage, so it must not be charged for one — and
-    /// must not publish a peak either. The idle gate reads `synth_peak` to decide
-    /// whether a chain is silent; a send bus writing into that array would be
-    /// answering a question nobody asked about it.
+    /// A `Keep` task has no synth stage, so it must not be charged for one — but
+    /// it DOES publish a peak, and the peak is of its INPUT.
+    ///
+    /// That is the only moment the input exists: a co-located bus's FX
+    /// overwrites the buffer before the join, and the audio thread never sees
+    /// what the lanes summed in. `SendBuses::note_colocated` folds it back as
+    /// `in_peak`, which is what tells a silent bus apart from one nothing fed.
+    ///
+    /// Writing into the same array the idle gate reads is safe because a bus
+    /// lives PAST the chains in the shared index space (`send_index`), and
+    /// `ChainSlots` only ever copies the chain range out of it.
     #[test]
-    fn a_keep_task_has_no_synth_stage() {
+    fn a_keep_task_publishes_the_peak_of_what_it_was_handed() {
         unsafe extern "C" fn loud(_i: *mut c_void, buf: *mut i16, _f: i32) {
             unsafe { *buf = 30000 };
         }
@@ -604,6 +665,7 @@ mod tests {
         b[0] = [9000, 9000, 9000, 9000];
         pool.render_block(&[vec![Task {
             pre: Pre::Keep,
+            taps: NO_TAPS,
             process_fx: Some(loud),
             inst: 1 as *mut c_void,
             buf: b[0].as_mut_ptr(),
@@ -611,8 +673,76 @@ mod tests {
             chain: 0,
         }]]);
         assert_eq!(pool.synth_ns(0), 0, "a bus has no synth to charge");
-        assert_eq!(pool.synth_peak(0), 0, "a bus must not publish a synth peak");
+        assert_eq!(
+            pool.synth_peak(0),
+            9000,
+            "the peak must be of the INPUT, taken before the FX overwrote it"
+        );
         assert!(pool.cost_ns(0) > 0, "but its FX pass is still timed");
+    }
+
+    /// A tap sums this task's OUTPUT into a bus, on the lane that produced it.
+    /// This is the whole mechanism co-location rests on: run after `process_fx`,
+    /// at the track's send gains, into a buffer only this lane holds.
+    #[test]
+    fn a_tap_sums_the_rendered_block_into_its_bus() {
+        unsafe extern "C" fn synth(_i: *mut c_void, buf: *mut i16, f: i32) {
+            for k in 0..(f as usize * 2) {
+                unsafe { *buf.add(k) = 1000 };
+            }
+        }
+        let pool = RenderPool::new(0, CHAINS);
+        let mut b = bufs();
+        let mut bus = [7i16; BLOCK];
+        pool.render_block(&[vec![Task {
+            pre: Pre::Render(synth),
+            taps: [Some(Tap { buf: bus.as_mut_ptr(), gl: 0.5, gr: 0.5 }), None, None, None],
+            process_fx: None,
+            inst: 1 as *mut c_void,
+            buf: b[0].as_mut_ptr(),
+            frames: (BLOCK / 2) as i32,
+            chain: 0,
+        }]]);
+        assert_eq!(b[0][0], 1000, "the chain's own output is untouched by the tap");
+        assert_eq!(bus[0], 507, "the bus is SUMMED into at the send gain, not replaced");
+    }
+
+    /// The tap runs AFTER the FX, so a send carries what the track sounds like
+    /// rather than what its synth produced before its own effects. Tapping
+    /// first is silent — the send just sounds dry — which is why it is pinned.
+    #[test]
+    fn a_tap_is_taken_after_the_fx() {
+        unsafe extern "C" fn synth(_i: *mut c_void, buf: *mut i16, f: i32) {
+            for k in 0..(f as usize * 2) {
+                unsafe { *buf.add(k) = 100 };
+            }
+        }
+        unsafe extern "C" fn boost(_i: *mut c_void, buf: *mut i16, f: i32) {
+            for k in 0..(f as usize * 2) {
+                unsafe { *buf.add(k) = *buf.add(k) * 10 };
+            }
+        }
+        let pool = RenderPool::new(0, CHAINS);
+        let mut b = bufs();
+        let mut bus = [0i16; BLOCK];
+        pool.render_block(&[vec![Task {
+            pre: Pre::Render(synth),
+            taps: [Some(Tap { buf: bus.as_mut_ptr(), gl: 1.0, gr: 1.0 }), None, None, None],
+            process_fx: Some(boost),
+            inst: 1 as *mut c_void,
+            buf: b[0].as_mut_ptr(),
+            frames: (BLOCK / 2) as i32,
+            chain: 0,
+        }]]);
+        assert_eq!(bus[0], 1000, "the tap took the pre-FX block");
+    }
+
+    /// `MAX_TAPS` is this module's own constant so it stays free of the mixer's
+    /// types, which makes it a number that can drift. A bus that could not be
+    /// tapped would simply never sound.
+    #[test]
+    fn taps_cover_every_bus() {
+        assert!(MAX_TAPS >= crate::send_bus::SEND_BUSES);
     }
 
     /// The synth gate reads the buffer BEFORE the FX touches it, so an FX that
@@ -629,6 +759,7 @@ mod tests {
         let mut b = bufs();
         let lanes = vec![vec![Task {
             pre: Pre::Render(quiet_synth),
+            taps: NO_TAPS,
             process_fx: Some(loud_fx),
             inst: 1 as *mut c_void,
             buf: b[0].as_mut_ptr(),
@@ -729,6 +860,7 @@ mod tests {
         pool.render_block(&[
             vec![Task {
                 pre: Pre::Render(fill),
+                taps: NO_TAPS,
                 process_fx: None,
                 inst: 7 as *mut c_void,
                 buf: buf.as_mut_ptr(),
@@ -746,6 +878,7 @@ mod tests {
         pool.render_block(&[
             vec![Task {
                 pre: Pre::Silence,
+                taps: NO_TAPS,
                 process_fx: None,
                 inst: 7 as *mut c_void,
                 buf: buf.as_mut_ptr(),

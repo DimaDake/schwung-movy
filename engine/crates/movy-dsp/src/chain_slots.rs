@@ -200,6 +200,14 @@ pub struct ChainSlots {
     /// The FX instance behind each bus. One audio FX per send, so the chain
     /// host's component underneath is always `fx1`.
     send_slots: Vec<Option<ChainInstance>>,
+    /// Whether a bus actually holds a module.
+    ///
+    /// NOT `send_slots[n].is_some()`: clearing a send sets `fx1:module` to the
+    /// empty string and leaves the instance in place, so the slot stays `Some`
+    /// for a bus with nothing in it. The alternative read-back, `send_module`,
+    /// asks the chain host across FFI and needs `&mut self` — neither of which
+    /// belongs in a status line built 24 times a second.
+    send_loaded: Vec<bool>,
 }
 
 impl ChainSlots {
@@ -244,6 +252,7 @@ impl ChainSlots {
             send_lanes: (0..DEFAULT_LANES).map(|_| Vec::with_capacity(SEND_BUSES)).collect(),
             mix_lanes: vec![[None; 8]; MOVY_CHAINS],
             send_slots: (0..SEND_BUSES).map(|_| None).collect(),
+            send_loaded: vec![false; SEND_BUSES],
         }
     }
 
@@ -789,8 +798,12 @@ impl ChainSlots {
          * reaches every chain in the set and neither of the two sends. */
         self.pin.on_load(req.slot, &req.component, &req.module);
         /* Whatever the outgoing FX was still ringing belongs to the outgoing
-         * FX. Without this its tail plays on through its replacement. */
+         * FX. Without this its tail plays on through its replacement — and its
+         * cost goes on being drawn as the incoming module's, which is the same
+         * mistake one page further out. */
         self.sends.discard(bus);
+        self.sends.ui_clear(bus);
+        self.send_loaded[bus] = !req.module.is_empty();
         let t_set = std::time::Instant::now();
         if let Some(inst) = self.send_slots[bus].as_mut() {
             inst.set_param(&format!("{SEND_COMPONENT}:module"), &req.module);
@@ -1055,6 +1068,15 @@ impl ChainSlots {
             self.send_work[n] = true;
             send_ran = true;
         }
+        /* A bus that skipped this block cost nothing, and the meter has to say
+         * so — see `SendBuses::ui_idle`. Unconditional, exactly like the chain
+         * loop above: a set gone entirely quiet is the case where a frozen mean
+         * is most visibly wrong. */
+        for n in 0..SEND_BUSES {
+            if !self.send_work[n] {
+                self.sends.ui_idle(n);
+            }
+        }
         /* Assigned even when the phase does not run, so `sndlog` cannot report
          * last block's fan-out as though it were this one's. Short-circuits
          * before `plan_sends` when nothing is running. */
@@ -1080,10 +1102,7 @@ impl ChainSlots {
             }
         }
         let send_ns = if send_ran { t_send.elapsed().as_nanos() as u64 } else { 0 };
-        if active > 0 || send_ran {
-            self.cost.add_wall(render_ns + send_ns);
-            self.cost.end_block();
-        }
+        self.close_block(render_ns, send_ns, active, send_ran);
         self.active_last_block = active;
         // The run releases what it struck: a device must never be left holding
         // 48 notes because a benchmark was interrupted between arms.
@@ -1370,12 +1389,52 @@ impl ChainSlots {
             }
         }
         s.push_str(&format!(" chmask={loaded:04x}/{asleep:04x}"));
+        s.push_str(" sndcost=");
+        for n in 0..SEND_BUSES {
+            if n > 0 {
+                s.push(',');
+            }
+            /* `-`, not `0/0`. "There is no module here" and "the module here is
+             * costing nothing right now" are the two different answers a zero
+             * column has, and the page draws them differently. Carried in this
+             * field rather than a second mask, so a bus's occupancy and its cost
+             * cannot arrive out of step. */
+            if !self.send_loaded[n] {
+                s.push('-');
+                continue;
+            }
+            let (mean, peak) = self.sends.ui_costs(n);
+            s.push_str(&format!("{}/{}", mean / 1000, peak / 1000));
+        }
         s
     }
 
+    /// Fold one block's timings into the CPU meter.
+    ///
+    /// ONE `add_wall` for the chain render AND the send phase, deliberately:
+    /// the meter holds a per-CALL maximum, so two calls would report two smaller
+    /// peaks and a capacity bar that never sees a whole block.
+    ///
+    /// And the gate is an `or`, not `active > 0`. A set whose only cost this
+    /// block was a ringing reverb on a send still spent that time, and a meter
+    /// that skipped it would read zero while the block was half full.
+    ///
+    /// Its own method so both rules are reachable from a test: `render` returns
+    /// at the door on a host build, for want of a chain host.
+    fn close_block(&mut self, render_ns: u64, send_ns: u64, active: usize, send_ran: bool) {
+        if active == 0 && !send_ran {
+            return;
+        }
+        self.cost.add_wall(render_ns + send_ns);
+        self.cost.end_block();
+    }
+
     /// Clear the meter's held peaks — the page's own reset, never `report()`.
+    /// The send buses' peaks go with them: `cpurst` means one fresh observation
+    /// of the whole page, not of the columns left of the gap.
     pub fn cost_ui_reset(&mut self) {
         self.cost.ui_reset();
+        self.sends.ui_reset();
     }
 
     /// Per-chain render cost since the last call — see `CostMeter::report`.
@@ -1406,6 +1465,11 @@ impl ChainSlots {
             *a = false;
         }
         self.pin.clear();
+        for n in 0..SEND_BUSES {
+            self.send_slots[n] = None;
+            self.send_loaded[n] = false;
+            self.sends.ui_clear(n);
+        }
         // Costs belong to instances that no longer exist — including the ones
         // the planner would otherwise reuse to assign lanes to a different set.
         self.cost.reset_all();
@@ -1871,6 +1935,45 @@ mod tests {
         for &b in buses {
             slots.send_work[b] = true;
         }
+    }
+
+    /* What the CPU page's capacity bar is over. `render` cannot be driven on a
+     * host build, so the rule lives in `close_block` and is asserted there. */
+
+    #[test]
+    fn the_capacity_bar_counts_the_send_phase() {
+        let mut slots = ChainSlots::new();
+        slots.close_block(400_000, 150_000, 2, true);
+        assert_eq!(slots.cost.ui_wall().0, 550_000, "the send phase is missing from the wall");
+    }
+
+    /// One call, not two: the meter holds a per-CALL maximum, so splitting the
+    /// block in half reports two smaller peaks and a bar that never sees a whole
+    /// one.
+    #[test]
+    fn a_block_reaches_the_peak_whole() {
+        let mut slots = ChainSlots::new();
+        slots.close_block(400_000, 150_000, 2, true);
+        assert_eq!(slots.cost.ui_wall().1, 550_000);
+    }
+
+    /// A set with no movy instrument but a ringing reverb on a send still spent
+    /// the time. Gated on `active > 0` alone, the meter reads zero on a block
+    /// that was half full.
+    #[test]
+    fn a_send_only_block_still_reaches_the_meter() {
+        let mut slots = ChainSlots::new();
+        slots.close_block(0, 150_000, 0, true);
+        assert_eq!(slots.cost.ui_wall(), (150_000, 150_000));
+    }
+
+    /// And a block where nothing at all ran is not a block. Counted, it would
+    /// drag the mean towards zero for every silent block between notes.
+    #[test]
+    fn an_empty_block_is_not_counted() {
+        let mut slots = ChainSlots::new();
+        slots.close_block(0, 0, 0, false);
+        assert_eq!(slots.cost.ui_wall(), (0, 0));
     }
 
     /// THE no-regression claim. One bus overlaps with nothing, so a fan-out can

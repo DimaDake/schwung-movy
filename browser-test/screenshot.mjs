@@ -60,6 +60,7 @@ const PRESETS = [
     'main-quant', 'quant-overlay-three', 'quant-overlay-two',
     'flags-top', 'flags-scrolled', 'flags-release',
     'cpu-opt-on', 'cpu-opt-off', 'cpu-overscale', 'cpu-empty',
+    'cpu-sends', 'cpu-sends-quiet',
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
     'filter_slope24', 'filter_dual', 'filter_open',
@@ -609,7 +610,15 @@ function applyView(preset) {
         case 'cpu-opt-on':
         case 'cpu-opt-off':
         case 'cpu-overscale':
-        case 'cpu-empty': {
+        case 'cpu-empty':
+        /* The page's SECOND layout: any send bus holding a module narrows every
+         * track column to make room for the send region. Two scenes because the
+         * region has to say which of its three buses is doing work — `cpu-sends`
+         * has one heavy and one light bus, `cpu-sends-quiet` has a loaded bus
+         * nothing is feeding, which must read as asleep-with-a-peak rather than
+         * as empty. */
+        case 'cpu-sends':
+        case 'cpu-sends-quiet': {
             resetFlags();
             const on = preset !== 'cpu-opt-off';
             setFlag('cpuopt', on ? 1 : 0);
@@ -649,6 +658,10 @@ function applyView(preset) {
                 seqState.cpuWall = preset === 'cpu-overscale' ? '2210/2680/2902' : '1491/2180/2902';
                 seqState.cpuMask = '01ff/0100';
             }
+            seqState.cpuSend =
+                preset === 'cpu-sends' ? '760/1180,190/240,-'
+                : preset === 'cpu-sends-quiet' ? '0/1180,-,-'
+                : '-,-,-';
             lastRender = () => renderCpuView(buildCpuPageVM());
             lastRender();
             break;

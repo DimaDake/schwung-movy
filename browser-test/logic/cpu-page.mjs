@@ -6,8 +6,8 @@
  */
 
 import {
-    buildCpuPageVM, FULL_SCALE_US, USABLE_BLOCK, scaleFor, scaleLabel, setFlag, resetFlags,
-    ok, eq, _log,
+    buildCpuPageVM, buildSendColumns, FULL_SCALE_US, USABLE_BLOCK, scaleFor, scaleLabel,
+    setFlag, resetFlags, ok, eq, _log,
 } from './harness.mjs';
 
 export async function run() {
@@ -20,10 +20,12 @@ export async function run() {
         '0/0/0', '0/0/0', '0/0/0', '0/0/0', '0/0/0', '0/0/0', '0/0/0', '0/0/0',
     ].join(',');
 
-    const feed = ({ mask = '01ff/0100', cost = COST, wall = '1491/2180/2902' } = {}) => {
+    const feed = ({ mask = '01ff/0100', cost = COST, wall = '1491/2180/2902',
+                    snd = '-,-,-' } = {}) => {
         seqState.cpuCost = cost;
         seqState.cpuWall = wall;
         seqState.cpuMask = mask;
+        seqState.cpuSend = snd;
     };
 
     _log('\ncpu page: columns');
@@ -107,6 +109,58 @@ export async function run() {
         eq('the floor is 1MS', scaleLabel(FULL_SCALE_US), '1MS');
     }
 
+    _log('\ncpu page: send buses');
+    {
+        /* The page has two layouts and the empty array IS the switch: a set that
+         * uses no send draws exactly the plot it always did, at full track
+         * width. */
+        eq('no bus holds a module, so there is no send region', buildSendColumns('-,-,-').length, 0);
+        eq('and an engine that predates the field is the same', buildSendColumns('').length, 0);
+
+        /* Once ANY bus is filled all three get columns, so a bus keeps its
+         * position as its neighbours come and go. */
+        const one = buildSendColumns('-,410/980,-');
+        eq('one loaded bus brings the whole region', one.length, 3);
+        eq('the filled one reads live', one[1].kind, 'live');
+        eq('its total is what the engine said', one[1].totalUs, 410);
+        eq('and its held peak', one[1].peakUs, 980);
+        eq('an unfilled neighbour is empty', one[0].kind, 'empty');
+        eq('on both sides', one[2].kind, 'empty');
+
+        /* The three-way distinction the dash exists for. `0/0` would collapse
+         * "nothing here" into "here, and costing nothing this block" — and a
+         * reverb that spiked and then went quiet is exactly what someone opens
+         * this page to look at. */
+        const quiet = buildSendColumns('0/1400,-,-');
+        eq('a loaded bus nothing is feeding is asleep, not empty', quiet[0].kind, 'asleep');
+        eq('and it still carries what it once cost', quiet[0].peakUs, 1400);
+
+        /* A bus IS an FX pass over a buffer the tracks filled. Drawn as a synth
+         * segment it would claim a stage it does not have. */
+        eq('a send has no synth stage', one[1].synthUs, 0);
+
+        /* A reverb is routinely the most expensive thing in a set. Left out of
+         * the scale it would sit clamped at the top for the whole viewing,
+         * reading as "at the limit" when it IS the limit. */
+        const col = (total, peak) => ({ kind: 'live', totalUs: total, synthUs: total, peakUs: peak });
+        eq('a heavy send lifts the plot like a heavy chain',
+           scaleFor([col(300, 400)], buildSendColumns('1300/1600,-,-')), 1500);
+        eq('and the tracks still set it when they are the heavier',
+           scaleFor([col(2400, 2900)], buildSendColumns('300/400,-,-')), 3000);
+
+        /* End to end, through the poll field the engine actually writes. */
+        resetFlags();
+        setFlag('cpuopt', 1);
+        setFlag('chtracks', 1);
+        feed({ snd: '-,-,620/1500' });
+        vm = buildCpuPageVM();
+        eq('the view model carries the region', vm.sends.length, 3);
+        eq('with the loaded bus in its own place', vm.sends[2].totalUs, 620);
+        feed();
+        vm = buildCpuPageVM();
+        eq('and drops it again when the sends are cleared', vm.sends.length, 0);
+    }
+
     _log('\ncpu page: the pixel quantisation the repaint gate compares on');
     {
         const { barPixels } = await import('../../dist/esm/renderer/cpu-view.js');
@@ -131,7 +185,7 @@ export async function run() {
     _log('\ncpu page: nothing to draw');
     resetFlags();
     setFlag('chtracks', 1);
-    seqState.cpuCost = ''; seqState.cpuWall = ''; seqState.cpuMask = '';
+    seqState.cpuCost = ''; seqState.cpuWall = ''; seqState.cpuMask = ''; seqState.cpuSend = '';
     vm = buildCpuPageVM();
     eq('an engine that never sent the fields draws empty', vm.columns[0].kind, 'empty');
     eq('and no load', vm.load, 0);

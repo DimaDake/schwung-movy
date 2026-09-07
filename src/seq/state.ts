@@ -66,6 +66,10 @@ export interface SeqUiState {
     cpuCost: string;
     cpuWall: string;
     cpuMask: string;
+    /* One entry per send bus: `-` for a bus with no module, else `mean/peak`
+     * microseconds. Occupancy travels in the same field as the cost so the two
+     * cannot arrive out of step — see `cost_status` in `chain_slots.rs`. */
+    cpuSend: string;
 
     /* note entry */
     lastPitch: number[];     // per-track: last played pitch (step-entry value)
@@ -151,6 +155,7 @@ function defaults(): SeqUiState {
         cpuCost: '',
         cpuWall: '',
         cpuMask: '',
+        cpuSend: '',
         lastPitch: new Array(TRACK_COUNT).fill(60) as number[],
         lastVel: new Array(TRACK_COUNT).fill(100) as number[],
         barOffset: 0,

@@ -56,6 +56,15 @@ struct Bus {
     cost_ns: u64,
     /// Worst single block, so a mean that hides a spike can be seen to.
     max_ns: u64,
+    /// The CPU page's own pair, in nanoseconds.
+    ///
+    /// Deliberately NOT `cost_ns` / `max_ns`: reading `sndcostlog` closes that
+    /// window, and a device script closes it whenever it likes. A peak the user
+    /// is looking at must not disappear because someone read a log, so these
+    /// live on the page's reset schedule (`ui_reset`, driven by `cpurst`) —
+    /// the same split `CostMeter` keeps, for the same reason.
+    ui_ns: u64,
+    ui_max_ns: u64,
 }
 
 pub struct SendBuses {
@@ -83,6 +92,8 @@ impl SendBuses {
                     processed: 0,
                     cost_ns: 0,
                     max_ns: 0,
+                    ui_ns: 0,
+                    ui_max_ns: 0,
                 })
                 .collect(),
         }
@@ -146,6 +157,10 @@ impl SendBuses {
         if dt > b.max_ns {
             b.max_ns = dt;
         }
+        b.ui_ns = if b.ui_ns == 0 { dt } else { b.ui_ns - b.ui_ns / 16 + dt / 16 };
+        if dt > b.ui_max_ns {
+            b.ui_max_ns = dt;
+        }
         let p = &mut self.plan_ns[n];
         *p = if *p == 0 { dt } else { *p - *p / 16 + dt / 16 };
     }
@@ -153,6 +168,43 @@ impl SendBuses {
     /// What the lane planner partitions by — see `plan_ns`.
     pub fn plan_cost(&self) -> &[u64] {
         &self.plan_ns
+    }
+
+    /// A block this bus did not process, for the CPU page's mean only.
+    ///
+    /// Without it the mean simply FREEZES when a bus goes quiet — fed only on
+    /// the blocks that ran, it goes on reporting the cost of a pass that is no
+    /// longer happening, and the page draws a column for work nobody is doing.
+    /// The chain phase applies the same rule (`ChainSlots::render`).
+    ///
+    /// `plan_ns` is deliberately left out of it. The planner partitions by what
+    /// a RUNNING bus costs and only ever looks at buses that are running, so a
+    /// decayed-to-zero estimate would buy nothing and mis-plan the block a bus
+    /// wakes on.
+    pub fn ui_idle(&mut self, n: usize) {
+        let Some(b) = self.buses.get_mut(n) else { return };
+        b.ui_ns -= b.ui_ns / 16;
+    }
+
+    /// `(mean, held peak)` in nanoseconds — the two numbers a column draws.
+    pub fn ui_costs(&self, n: usize) -> (u64, u64) {
+        self.buses.get(n).map_or((0, 0), |b| (b.ui_ns, b.ui_max_ns))
+    }
+
+    /// Clear the held peaks. The means are left alone — they settle in a couple
+    /// of hundred blocks, and blanking them would open the page on zeros.
+    pub fn ui_reset(&mut self) {
+        for b in self.buses.iter_mut() {
+            b.ui_max_ns = 0;
+        }
+    }
+
+    /// Forget one bus's page numbers outright — its FX has been replaced, and
+    /// both of them describe the module that left.
+    pub fn ui_clear(&mut self, n: usize) {
+        let Some(b) = self.buses.get_mut(n) else { return };
+        b.ui_ns = 0;
+        b.ui_max_ns = 0;
     }
 
     /// The bus's buffer as a raw pointer, for a `Task` the pool may run on
@@ -270,6 +322,73 @@ mod tests {
         let mut p = [false; SEND_BUSES];
         p[0] = true;
         p
+    }
+
+    /* The CPU page's numbers. Their whole reason for existing apart from
+     * `cost_ns` / `max_ns` is that a device script may close that window at any
+     * moment — so the split is the assertion, not an implementation note. */
+
+    #[test]
+    fn reading_the_benchmark_log_does_not_disturb_the_page() {
+        let mut b = SendBuses::new();
+        b.add_cost(0, 400_000);
+        b.cost_reset();                       // what `sndcostlog` does
+        assert_eq!(b.ui_costs(0), (400_000, 400_000), "the page kept its mean and its peak");
+    }
+
+    #[test]
+    fn the_pages_reset_does_not_disturb_the_benchmark() {
+        let mut b = SendBuses::new();
+        b.add_cost(0, 400_000);
+        b.ui_reset();                         // what `cpurst` does
+        assert!(b.cost_report().starts_with("0:us=400.0,max=400.0"), "got {}", b.cost_report());
+    }
+
+    #[test]
+    fn the_pages_reset_clears_the_peak_and_keeps_the_mean() {
+        // Blanking the mean would open the page on zeros for a couple of
+        // hundred blocks, which is the whole reading someone came for.
+        let mut b = SendBuses::new();
+        b.add_cost(0, 400_000);
+        b.ui_reset();
+        assert_eq!(b.ui_costs(0), (400_000, 0));
+    }
+
+    /* A mean fed only on the blocks that ran does not fall — it freezes at the
+     * last cost the bus had, and the page draws a column for a pass that
+     * stopped happening minutes ago. */
+    #[test]
+    fn a_bus_that_stops_running_decays_towards_zero() {
+        let mut b = SendBuses::new();
+        b.add_cost(0, 400_000);
+        for _ in 0..200 {
+            b.ui_idle(0);
+        }
+        let (mean, peak) = b.ui_costs(0);
+        assert!(mean < 1_000, "the mean froze at {mean} ns");
+        assert_eq!(peak, 400_000, "but what it once cost is still held");
+    }
+
+    /// The planner must NOT see the idle blocks: it partitions by what a running
+    /// bus costs, and only ever asks about buses that are running.
+    #[test]
+    fn idling_leaves_the_planners_estimate_alone() {
+        let mut b = SendBuses::new();
+        b.add_cost(0, 400_000);
+        for _ in 0..200 {
+            b.ui_idle(0);
+        }
+        assert_eq!(b.plan_cost()[0], 400_000);
+    }
+
+    /// A replaced FX takes its numbers with it, or the incoming module's first
+    /// second on the page is the outgoing one's cost.
+    #[test]
+    fn loading_over_a_bus_forgets_what_the_old_fx_cost() {
+        let mut b = SendBuses::new();
+        b.add_cost(0, 400_000);
+        b.ui_clear(0);
+        assert_eq!(b.ui_costs(0), (0, 0));
     }
 
     #[test]

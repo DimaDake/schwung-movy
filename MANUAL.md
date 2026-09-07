@@ -1580,6 +1580,32 @@ so — the same bargain any level meter makes.
 | Just the baseline | Nothing loaded |
 | A dotted vertical column | A **Schwung**-hosted track — it renders outside Movy, so Movy cannot measure it. Not the same as costing nothing |
 
+#### Send buses
+
+![CPU meter with send buses](docs/assets/cpu-sends.png)
+
+As soon as any **send bus** holds an effect, three more columns appear at the
+right of the plot under **SND**, one per send. The track columns narrow to make
+room, and the tracks lose their `13` label — the scale, which moves to the right
+of the track columns, is the more useful number of the two. A set that uses no
+sends draws exactly the plot it always did.
+
+The send columns are always all three, in bus order, whether or not each one has
+an effect in it — so a bus keeps its place as you load and clear its neighbours.
+They read on the same scale as the tracks, so you can compare a reverb against
+the instrument feeding it directly, and a heavy send lifts the whole plot the
+same way a heavy track does.
+
+A send is an effect pass over a buffer every track has already contributed to,
+so its column is checkered all the way up: there is no instrument stage to
+draw. And because a bus only runs when something is feeding it or its tail is
+still ringing, a send you have stopped playing into drops to a **dash** —
+loaded, costing nothing this block — with its peak line still showing what it
+cost when it was working.
+
+The send phase has always counted towards the bar and the percentage at the top;
+these columns just show you which bus the time went to.
+
 #### A module that reads as free
 
 A few modules do their synthesis in a **separate process** and hand Movy
@@ -1842,7 +1868,7 @@ only.
 | **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/link/quantize, root/key/mode/layout). |
 | **Shift + Step 6** | Toggle the **metronome**. |
 | **Shift + Step 10** | Toggle **full velocity** — every pad note at 127. Kept across sets and restarts. |
-| **Shift + Step 12** | Open the **CPU meter** (per-track cost, block usage). Press again to clear the held peaks. |
+| **Shift + Step 12** | Open the **CPU meter** (per-track and per-send cost, block usage). Press again to clear the held peaks. |
 | **Shift + Step 15** | **Double** the loop. |
 | **Shift + Step 16** | Cycle the current clip's **quantization** (0 / default / 100 %). |
 

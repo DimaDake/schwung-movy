@@ -14,7 +14,7 @@ import { selectTrack, focusGroupStep } from '../dist/esm/track/focus.js';
 import { watchedTrack } from '../dist/esm/seq/watch.js';
 import { MASTER_FX_SLOTS as _MFX_SLOTS } from '../dist/esm/chain/config.js';
 import { installEnv } from './env.mjs';
-import { installMockEngine } from './mock-engine.mjs';
+import { installMockEngine, reinstallMockEngine } from './mock-engine.mjs';
 import { MOCK_SYNTHS } from './mock-synth.mjs';
 
 const env    = installEnv();
@@ -2379,7 +2379,7 @@ _log('\napp-loop: track state exists for every track, not just the first four');
 
 _log('\napp-loop: the module browser loads onto a movy-hosted track');
 {
-    const { installMockEngine, uninstallMockEngine } = await import('./mock-engine.mjs');
+    const { uninstallMockEngine } = await import('./mock-engine.mjs');
     const { openBrowser, loadSelectedModule } = await import('../dist/esm/browser/handler.js');
     const { browserState } = await import('../dist/esm/browser/state.js');
     const { CHAIN_SLOTS } = await import('../dist/esm/chain/config.js');
@@ -2389,7 +2389,7 @@ _log('\napp-loop: the module browser loads onto a movy-hosted track');
     resetSeqState(); resetSeqEngine();
     globalThis.init();
     advance(6);
-    installMockEngine();
+    reinstallMockEngine(engine);
 
     /* Capture what actually reaches the engine — the whole question is whether
      * a browser load on a movy track becomes a ch<N>: write rather than a
@@ -2486,7 +2486,7 @@ _log('\napp-loop: the step view follows the FOCUSED track, not the button index'
     /* The block above uninstalls the mock engine, and movy refuses input until
      * the engine holds the Set — so this needs one back before it can press a
      * track button. */
-    installMockEngine();
+    reinstallMockEngine(engine);
     engine.reset();
     env.setParams(MOCK_SYNTHS.file_param);
     resetSeqState(); resetSeqEngine(); resetSetSession();
@@ -2720,9 +2720,23 @@ _log('\napp-loop: CPU page repaints only when a drawn pixel changes');
         engine.status.chcost = cols(900, 700);
     }) > 0, true);
 
+    /* A send bus loading changes NONE of the three chain fields, and it is the
+     * biggest change the page can undergo: every track column narrows to make
+     * room for the send region. Left out of the gate's cheap stage it is
+     * swallowed outright and the page sits on the old layout until a chain's
+     * cost happens to move.
+     *
+     * Gate-attributable in this window specifically: the jitter arm above
+     * asserts that nothing else repaints here, so the count can only have come
+     * from this. */
+    eq('a send bus appearing repaints the page', paintsAfter(() => {
+        engine.status.sndcost = '640/900,-,-';
+    }) > 0, true);
+
     delete engine.status.chcost;
     delete engine.status.chwall;
     delete engine.status.chmask;
+    delete engine.status.sndcost;
     appState.currentView = closeParamPage();
 }
 

@@ -105,6 +105,26 @@ export function installMockEngine() {
         }
         return true;
     };
+    engine._setParam = setParam;
+    installGlobals(engine);
+    return engine;
+}
+
+/** Point the globals back at an engine that already exists.
+ *
+ *  For a suite that holds one engine for its whole run and needs the host
+ *  functions back after `uninstallMockEngine()`. Calling `installMockEngine()`
+ *  there instead builds a SECOND engine and wires the globals to it, silently
+ *  detaching every later `engine.status.x = ...` from what the UI polls — and an
+ *  assertion of the form "this change does not repaint" then passes because no
+ *  change ever arrives. */
+export function reinstallMockEngine(engine) {
+    installGlobals(engine);
+    return engine;
+}
+
+function installGlobals(engine) {
+    const setParam = engine._setParam;
     globalThis.host_module_set_param = setParam;
     globalThis.host_module_set_param_blocking = (key, value, _timeoutMs) => setParam(key, value);
 
@@ -124,8 +144,6 @@ export function installMockEngine() {
         if (key === 'state') return engine.stateBlob;
         return null;
     };
-
-    return engine;
 }
 
 export function uninstallMockEngine() {

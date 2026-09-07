@@ -116,7 +116,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.68.0";
+const ENGINE_VERSION: &str = "0.69.0";
 
 /// Tracks backed by schwung's own shadow slots by default. Their notes go out as
 /// MIDI on the matching channel; everything above this index is a chain movy
@@ -1063,6 +1063,17 @@ mod tests {
         assert!((2800..3000).contains(&block), "128 frames at 44.1k is ~2902us, got {block}");
 
         assert!(s.contains(" chmask=0000/0000"), "nothing loaded, nothing asleep: {s}");
+        /* A dash per bus, not `0/0`. The page shows no send region at all until
+         * something is in one, and a zeroed pair is indistinguishable from a
+         * loaded reverb sitting silent. */
+        let sends: Vec<&str> = s
+            .split(" sndcost=")
+            .nth(1)
+            .and_then(|r| r.split(' ').next())
+            .expect("sndcost field")
+            .split(',')
+            .collect();
+        assert_eq!(sends, vec!["-"; send_bus::SEND_BUSES], "no send module loaded: {s}");
     }
 
     /* `cpurst` must not be `chcostlog`: that one closes the window a device

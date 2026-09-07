@@ -87,8 +87,21 @@ ep "ch$TRACK:mix" "1.0,0.0,0,1.0,0.0"
 ep "ch$TRACK:midi" "144.60.100"
 sleep 2
 FED=$(snd_read)
+
+# The CPU page's own field, in the one state no host build can produce: a real
+# FX loaded into a real bus, doing work. `send_loaded` is set in
+# `service_send_load`, which a host build never reaches — so "the page shows a
+# send region at all" is only ever provable here.
+#
+# Read while the note is still HELD. The mean decays once the bus stops running,
+# which is correct and is why the assertion below is on the HELD PEAK: that one
+# survives, and it is fed by the same `add_cost` the mean is.
+ep "cpulog" "1"
+sleep 1
+CPU=$(ts_ssh "grep -o 'cpu: .*' $LOG | tail -n 1" 2>/dev/null)
 ep "ch$TRACK:midi" "128.60.0"
 echo "  $FED"
+echo "  $CPU"
 
 # One regex over ONE bus's whole group: `out=` and `blocks=` are not prefixed
 # with the bus number, so matching them alone would pick up another bus's.
@@ -103,6 +116,16 @@ check "the track's audio reached the bus" "$([ "$IN" -gt 0 ] && echo 1 || echo 0
 check "the FX pass ran" "$([ "$BLOCKS" -gt 0 ] && echo 1 || echo 0)" "blocks=$BLOCKS"
 check "and audio came out of it" "$([ "$OUT" -gt 0 ] && echo 1 || echo 0)" \
       "out=$OUT — the bus was fed but the FX produced silence"
+
+SND=$(echo "$CPU" | grep -oE 'sndcost=[^ ]+' | cut -d= -f2)
+B0=$(echo "$SND" | cut -d, -f1)
+check "the CPU page sees a module in the bus" \
+      "$([ -n "$B0" ] && [ "$B0" != '-' ] && echo 1 || echo 0)" \
+      "sndcost=${SND:-missing} — a loaded bus still reads as empty, so the page draws no send column for it"
+B0PEAK=$(echo "$B0" | cut -d/ -f2)
+check "and charges it for what its FX pass cost" \
+      "$([ "${B0PEAK:-0}" -gt 0 ] 2>/dev/null && echo 1 || echo 0)" \
+      "bus 0 held peak ${B0PEAK:-none} us — the FX ran but the meter never saw it"
 
 echo -e "\033[1m=== A track at zero send feeds nothing ===\033[0m"
 # The zero-cost path, on the device rather than in a unit test: the same note,

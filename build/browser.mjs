@@ -205,6 +205,7 @@ await esbuild.build({
         resolve(root, 'src/renderer/cpu-view.ts'),
         resolve(root, 'src/seq/cpu-page.ts'),
         resolve(root, 'src/seq/cpu-page-vm.ts'),
+        resolve(root, 'src/seq/cpu-scale.ts'),
         resolve(root, 'src/seq/flags-page.ts'),
         resolve(root, 'src/seq/flags-page-vm.ts'),
         resolve(root, 'src/seq/flags-visible.ts'),

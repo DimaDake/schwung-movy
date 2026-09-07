@@ -58,6 +58,20 @@ far. Earlier work is summarised in the timeline below for context.
   did. Nothing to turn on: it follows **Parallel render**, and turning that off
   restores the old behaviour for measurement.
 
+- **The CPU meter shows the send buses.** Once any send bus holds an effect,
+  three more columns appear at the right of the plot under **SND**, one per bus,
+  on the same scale as the tracks — so a reverb can be read against the
+  instruments feeding it. The track columns narrow to make room; a set that uses
+  no sends draws exactly the plot it always did.
+
+  A send column is checkered all the way up: a bus is an effect pass, with no
+  instrument stage to draw. A bus nothing is feeding, and whose tail has died
+  away, drops to a dash and keeps its peak line — the same vocabulary a sleeping
+  track column uses.
+
+  The capacity bar and the header percentage already counted the send phase;
+  this is where you find out which bus the time went to.
+
 - **Pan knobs are drawn as a bipolar bar.** A stereo position is the one common
   parameter whose default is the middle rather than an end, and on a 300-degree
   dial that middle is an unremarkable spot two thirds of the way round. Pan now

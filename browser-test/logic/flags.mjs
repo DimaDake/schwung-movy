@@ -306,12 +306,34 @@ export async function run() {
     setFlag('chparallel', 1);
     setFlag('chlanes', 4);
     const vm = buildFlagsPageVM();
-    eq('one row per listed flag', vm.rows.length, visibleFlags().length);
+    /* ONE DRAWN ROW PER SELECTABLE ROW, and this is the assertion that was
+     * missing when BACKUPS shipped invisible: it was added to the jog's clamp
+     * and to the router but not to this list, so it was selectable, clickable
+     * and undrawn — and every screenshot stayed byte-identical, because the
+     * viewmodel never changed. Comparing against `visibleFlags().length` could
+     * not have caught it; comparing against what the gestures walk can. */
+    eq('one drawn row per selectable row', vm.rows.length, flagsRowCount());
+    eq('the flags come first', vm.rows[0].name, visibleFlags()[0].name);
+    eq('and the action row is last', vm.rows[vm.rows.length - 1].name, 'BACKUPS');
     eq('the name column is the readable name', vm.rows[0].name, visibleFlags()[0].name);
     eq('exactly one row is selected', vm.rows.filter((r) => r.selected).length, 1);
     ok('a bool flag shows ON/OFF',
         vm.rows.some((r) => r.value === 'ON' || r.value === 'OFF'));
     ok('a numeric flag shows its number', vm.rows.some((r) => r.value === '4'));
+
+    /* Selecting the action row: it draws as selected, the hint explains it
+     * rather than the flag above, and knob 1 goes dark because it does nothing
+     * there. */
+    {
+        resetFlagsPage();
+        for (let i = 0; i < FLAGS.length + 5; i++) flagsPageJog(1);
+        const av = buildFlagsPageVM();
+        ok('the action row can be selected', av.rows[av.rows.length - 1].selected);
+        eq('exactly one row is still selected', av.rows.filter((r) => r.selected).length, 1);
+        ok('the hint is the action row\'s own', av.hint.toLowerCase().includes('versions'));
+        eq('the knob LED is dark on it', av.knobNormalized, 0);
+        resetFlagsPage();
+    }
 
     /* The LED carries the value AND says which knob is live — it is the only
      * lit one. A flat brightness would leave the page mute about both. */

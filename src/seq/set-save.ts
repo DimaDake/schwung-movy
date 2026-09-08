@@ -15,6 +15,7 @@ import { seqState } from './state.js';
 import { markUiStateDirty, takeUiDirty } from './ui-dirty.js';
 import { serializeUiState } from './ui-state.js';
 import { writeStateBlob, writeUiBlob } from './persist-store.js';
+import { captureAutoIfDue } from './version-capture.js';
 
 let lastGoodPayload = '';
 let saveRetry = false;
@@ -64,5 +65,8 @@ export function saveSet(
     lastGoodPayload = payload;
     saveRetry = false;
     mlog('seq: saved ' + payload.length + ' bytes (gen ' + (gen + 1) + ')');
+    /* Rides the save that just wrote, so the history costs no extra engine
+     * read — and is rate-limited inside, because this runs every few seconds. */
+    captureAutoIfDue(id, payload, gen + 1);
     return { ok: true, wrote: true, gen: gen + 1 };
 }

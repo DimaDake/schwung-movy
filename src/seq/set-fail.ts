@@ -6,7 +6,8 @@
 
 import { mlog } from '../log.js';
 import { BLANK_STATE } from './set-context.js';
-import { writeStateBlob } from './persist-store.js';
+import { readBestState, writeStateBlob } from './persist-store.js';
+import { captureVersion } from './version-capture.js';
 import { bumpGen, clearFailure, currentGen, currentSetUuid } from './set-session.js';
 
 /* Give up on this Set's stored state and start it empty.
@@ -19,6 +20,11 @@ import { bumpGen, clearFailure, currentGen, currentSetUuid } from './set-session
 export function sessionStartFromScratch(): void {
     mlog('seq: starting ' + (currentSetUuid() || 'this set') + ' from scratch on request');
         const id = currentSetUuid() || '_default';
+    /* The Set about to be blanked, kept unconditionally. This is the capture
+     * the whole version history exists for: the user is one press away from
+     * losing work movy can still see. */
+    const stored = readBestState(id);
+    if (stored) captureVersion(id, 'pre-wipe', stored.payload, stored.gen);
     writeStateBlob(id, BLANK_STATE, currentGen() + 1);
     bumpGen();
     clearFailure();

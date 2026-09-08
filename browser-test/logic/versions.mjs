@@ -207,4 +207,96 @@ export async function run() {
 
     uninstallMockFs();
 }
+
+{
+    _log('\nadopting what earlier builds wrote:');
+    const { readFileSync } = await import('node:fs');
+    const { installMockFs, uninstallMockFs } = await import('./harness.mjs');
+    const { adoptExistingVersions, captureVersion, captureAutoIfDue, resetVersionCapture }
+        = await import('../../dist/esm/seq/version-capture.js');
+    const { readVersionIndex, readVersionUi } = await import('../../dist/esm/seq/version-store.js');
+    const { uuidToStatePath, uuidToUiStatePath, shadowPath }
+        = await import('../../dist/esm/seq/set-context.js');
+    const { wrapState } = await import('../../dist/esm/seq/persist-blob.js');
+
+    const NOW = 1788892154000;
+    const FIX = 'browser-test/fixtures/old-sets/movy-chains';
+    const oldSeq = readFileSync(`${FIX}/seq-state.json`, 'utf8');
+    const oldUi = readFileSync(`${FIX}/ui-state.json`, 'utf8');
+
+    /* A real set from an earlier build: canonical plus two shadows, one of them
+     * an older generation. All three predate this feature. */
+    {
+        resetVersionCapture();
+        const fs = installMockFs({
+            [uuidToStatePath('OLD')]: oldSeq,
+            [shadowPath('OLD', 1)]: oldSeq,
+            [shadowPath('OLD', 2)]: wrapState('movy1\ncl 0 0 16 0 9:24:60:100:0\n', 3),
+            [uuidToUiStatePath('OLD')]: oldUi,
+        });
+        eq('adopts the distinct copies', adoptExistingVersions('OLD', NOW), 2);
+        const idx = readVersionIndex('OLD');
+        eq('duplicates collapsed', idx.v.length, 2);
+        ok('ordered newest first', idx.v[0].gen > idx.v[1].gen);
+        eq('the newest adopted carries the ui blob', idx.v[0].ui, true);
+        eq('and it is the current one', readVersionUi('OLD', idx.v[0].n), oldUi);
+        /* Older adopted versions get NO ui blob: ui-state.json was never
+         * rotated, so pairing an older sequence with today's chains would be a
+         * quiet lie. */
+        eq('the older adopted has none', idx.v[1].ui, false);
+
+        /* Adoption COPIES. Adopting the shadows by reference would mean the
+         * history evaporates on the next autosave, which rewrites them. */
+        ok('the shadow was copied, not referenced',
+            Object.keys(fs.files).some((p) => p.includes('/v/') && p.endsWith('seq-state.json')));
+
+        eq('adoption is once per set', adoptExistingVersions('OLD', NOW), 0);
+        eq('and did not touch the current state', fs.files[uuidToStatePath('OLD')], oldSeq);
+        uninstallMockFs();
+    }
+
+    /* A legacy envelope — written before gen/end existed — adopts at 0. */
+    {
+        resetVersionCapture();
+        installMockFs({ [uuidToStatePath('LEG')]: 'movy1\ncl 0 0 16 0 0:24:60:100:0\n' });
+        eq('a legacy file adopts', adoptExistingVersions('LEG', NOW), 1);
+        eq('at generation 0', readVersionIndex('LEG').v[0].gen, 0);
+        uninstallMockFs();
+    }
+
+    /* A set with nothing on disk has nothing to adopt — and must not record an
+     * empty version, which would sit in the menu pretending to be work. */
+    {
+        resetVersionCapture();
+        installMockFs({});
+        eq('nothing to adopt', adoptExistingVersions('NEW', NOW), 0);
+        uninstallMockFs();
+    }
+
+    _log('\ncapture conditions:');
+    {
+        resetVersionCapture();
+        installMockFs({});
+        captureVersion('S2', 'open', 'movy1\ncl 0 0 16 0 x\n', 4, NOW);
+        eq('open captured', readVersionIndex('S2').v.length, 1);
+        /* An identical payload is not a new version — the autosave rewrites the
+         * same bytes whenever anything else in the set changed. */
+        captureVersion('S2', 'exit', 'movy1\ncl 0 0 16 0 x\n', 5, NOW + 1000);
+        eq('an unchanged payload is not captured again', readVersionIndex('S2').v.length, 1);
+        captureVersion('S2', 'exit', 'movy1\ncl 0 0 16 0 y\n', 6, NOW + 2000);
+        eq('a changed payload is', readVersionIndex('S2').v.length, 2);
+
+        /* auto is rate-limited: the autosave fires every few seconds forever. */
+        captureAutoIfDue('S2', 'movy1\ncl 0 0 16 0 z\n', 7, NOW + 3000);
+        eq('auto is refused inside the interval', readVersionIndex('S2').v.length, 2);
+        captureAutoIfDue('S2', 'movy1\ncl 0 0 16 0 z\n', 7, NOW + 11 * 60_000);
+        eq('and allowed after it', readVersionIndex('S2').v.length, 3);
+
+        /* A pre-wipe is unconditional — it is the capture the feature exists
+         * for, and the thing being wiped may well be the only copy. */
+        captureVersion('S2', 'pre-wipe', 'movy1\ncl 0 0 16 0 z\n', 8, NOW + 12 * 60_000);
+        eq('a pre-wipe is recorded even when unchanged', readVersionIndex('S2').v.length, 4);
+        uninstallMockFs();
+    }
+}
 }

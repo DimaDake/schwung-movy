@@ -112,7 +112,7 @@ export async function run() {
     /* ── A set movy hosts the first four tracks of ──────────────────────── */
     {
         const arm = 'movy-chains';
-        const { eng } = boot(arm);
+        const { eng, fs } = boot(arm);
         const file = read(arm, 'seq-state.json');
 
         eq('A the set opens', sessionPhase(), 'ready');
@@ -147,6 +147,23 @@ export async function run() {
          * a blank set would come up with. */
         eq('A track 2 keeps its octave', keyboardState.octave[2], 5);
         eq('A the default quantise came back', seqState.defaultQuant, 0);
+
+        /* And the set now has a history, seeded from the very files it was
+         * opened from. Asserted through the REAL lifecycle rather than by
+         * calling adoption directly: a hook that stopped being reached would
+         * pass every unit test adoption has.
+         *
+         * It has to be the ADOPTED entry specifically. The `open` capture also
+         * writes an index and a version directory, so "there is a history" is
+         * satisfied with adoption removed entirely — which is exactly what the
+         * first version of this assertion did. */
+        const vidx = JSON.parse(fs.files[`${DIR}/versions.json`] || '{"v":[]}');
+        ok('opening an old set adopted what was already there',
+            vidx.v.some((r) => r.why === 'adopted'));
+        ok('and copied it out of the rotation',
+            Object.keys(fs.files).some((p) => p.startsWith(`${DIR}/v/`)));
+        ok('without touching the file it adopted',
+            fs.files[`${DIR}/seq-state.json`] === read(arm, 'seq-state.json'));
 
         /* This vintage predates send buses. The document must still be sent
          * (it is what unloads the previous set's) and must invent nothing. */

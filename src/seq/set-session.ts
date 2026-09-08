@@ -29,6 +29,7 @@ import { readBestState, readUiBlob, writeStateBlob, writeUiBlob } from './persis
 import { clearUiDirty, markUiStateDirty } from './ui-dirty.js';
 import { resetUiState } from './ui-state.js';
 import { loadSet, setHasState } from './set-load.js';
+import { adoptExistingVersions, captureVersion, resetVersionCapture } from './version-capture.js';
 import { adoptSaved, resetSetSave, saveNeeded, saveSet, savedPayload } from './set-save.js';
 
 export type Phase = 'booting' | 'loading' | 'settling' | 'ready' | 'switching' | 'failed';
@@ -92,6 +93,7 @@ export function resetSetSession(): void {
     collected = false;
     resetSetSave();
     resetSetCommit();
+    resetVersionCapture();
     clearUiDirty();
 }
 
@@ -144,6 +146,12 @@ function enterLoading(id: string, name: string): void {
         phase = 'failed';
         return;
     }
+    /* Before movy can write anything to this Set: adopt whatever earlier
+     * builds left behind, then snapshot what was actually on disk. This one
+     * capture is what makes a Set that comes up blank a menu entry rather than
+     * a loss. */
+    adoptExistingVersions(id);
+    if (stored) captureVersion(id, 'open', stored.payload, stored.gen);
     const st = loadSet(id, name);
     setId = id; setName = name; gen = st.gen;
     adoptSaved(st.payload);
@@ -226,6 +234,9 @@ export function sessionFlush(force = false): void {
     if (!saveNeeded() && !force) return;
     const r = saveSet(setId, gen, force);
     if (r.ok) gen = r.gen;
+    /* A forced flush is a teardown or a set switch — a natural boundary, and
+     * the last chance this Set has to record where it got to. */
+    if (force && r.ok) captureVersion(setId, 'exit', savedPayload(), gen);
 }
 
 export function sessionTick(): void {

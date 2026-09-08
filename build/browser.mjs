@@ -185,6 +185,8 @@ await esbuild.build({
         resolve(root, 'src/seq/version-store.ts'),
         resolve(root, 'src/seq/version-capture.ts'),
         resolve(root, 'src/seq/version-restore.ts'),
+        resolve(root, 'src/seq/versions-page.ts'),
+        resolve(root, 'src/seq/versions-page-vm.ts'),
         resolve(root, 'src/seq/held.ts'),
         resolve(root, 'src/seq/buttons.ts'),
         resolve(root, 'src/keyboard/leds.ts'),

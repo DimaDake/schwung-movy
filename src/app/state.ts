@@ -11,6 +11,7 @@ export const VIEW_MAIN_PARAMS = 6;
 export const VIEW_CLIP_PARAMS = 7;
 export const VIEW_FLAGS       = 8;   // Global Params (debug builds only)
 export const VIEW_CPU         = 9;   // CPU meter (Shift+Step 12)
+export const VIEW_VERSIONS    = 10;  // Backups (Settings -> BACKUPS)
 
 export interface FileBrowserItem {
     name:  string;

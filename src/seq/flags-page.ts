@@ -33,6 +33,16 @@ export function flagsPageActive(): boolean {
     return appState.currentView === VIEW_FLAGS;
 }
 
+/* The settings list ends with one row that is not a flag. It sits LAST so it
+ * never moves when the flag list changes between debug and release builds, and
+ * it is an ACTION: knob 1 does nothing on it, and the jog click opens the page.
+ * Rows are counted through here rather than off `visibleFlags()` directly, so a
+ * clamp cannot forget it exists. */
+export function flagsRowCount(): number { return visibleFlags().length + 1; }
+export function backupsRowSelected(): boolean {
+    return flagsPageState.selected === visibleFlags().length;
+}
+
 /** Drop the transient gesture state; the view switch belongs to param-page.ts.
  *  The selection is NOT reset — coming back to the page you were just on should
  *  land where you left it, the way a knob page keeps its bank. */
@@ -43,7 +53,7 @@ export function clearFlagsPage(): void {
 /** Jog: move the selection. Clamped rather than wrapped, so the ends of a list
  *  that will grow stay findable by feel. */
 export function flagsPageJog(delta: number): void {
-    const next = Math.max(0, Math.min(visibleFlags().length - 1, flagsPageState.selected + delta));
+    const next = Math.max(0, Math.min(flagsRowCount() - 1, flagsPageState.selected + delta));
     if (next === flagsPageState.selected) return;
     flagsPageState.selected = next;
     accum[0] = 0;   // a detent half-turned on the previous flag is not this one's
@@ -54,6 +64,7 @@ export function flagsPageJog(delta: number): void {
  *  would be a change nobody could attribute. */
 export function flagsPageKnob(k: number, delta: number): void {
     if (k !== FLAG_KNOB) return;
+    if (backupsRowSelected()) return;   // an action row has no value to turn
     const n = countDetents(accum, 0, delta);
     if (n === 0) return;
     /* The VISIBLE list: the page draws it, so it is also what the selection

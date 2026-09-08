@@ -52,6 +52,7 @@ import {
 } from '../../dist/esm/seq/flags.js';
 import {
     flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
+    flagsRowCount, backupsRowSelected,
 } from '../../dist/esm/seq/flags-page.js';
 import { buildFlagsPageVM } from '../../dist/esm/seq/flags-page-vm.js';
 import { visibleFlags } from '../../dist/esm/seq/flags-visible.js';
@@ -243,7 +244,7 @@ export {
     flagValue, setFlag, applyFlagsToEngine, resetFlags,
     schwungGridMode, setSchwungGridMode, schwungPageFor, schwungGridReload,
     schwungLibAvailable, schwungLibError,
-    flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
+    flagsPageState, flagsRowCount, backupsRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
     visibleFlags, movyTracksOn, loadSetHostChoice, loadPerSetFlags, resetPorts,
     wrapWords, HINT_W, HINT_LINES, DETENT_DIV, fontWidth, W,

@@ -394,4 +394,61 @@ export async function run() {
         uninstallMockFs();
     }
 }
+
+{
+    _log('\nversions page:');
+    const { installMockFs, uninstallMockFs } = await import('./harness.mjs');
+    const { agoLabel, buildVersionsPageVM }
+        = await import('../../dist/esm/seq/versions-page-vm.js');
+    const { versionsPageState, versionsPageJog, versionsPageBack, resetVersionsPage }
+        = await import('../../dist/esm/seq/versions-page.js');
+    const { writeVersion } = await import('../../dist/esm/seq/version-store.js');
+
+    const NOW = 1788892154000;
+    const MIN = 60_000, HOUR = 3600_000, DAY = 24 * HOUR;
+
+    eq('just now', agoLabel(NOW - 5000, NOW), 'JUST NOW');
+    eq('minutes', agoLabel(NOW - 18 * MIN, NOW), '18M AGO');
+    eq('hours', agoLabel(NOW - 3 * HOUR, NOW), '3H AGO');
+    eq('yesterday', agoLabel(NOW - 30 * HOUR, NOW), 'YESTERDAY');
+    eq('days', agoLabel(NOW - 4 * DAY, NOW), '4D AGO');
+    /* No usable clock: say so rather than invent a date. Nothing in the list is
+     * ORDERED by time, so an unknown one costs only its label. */
+    eq('no timestamp', agoLabel(0, NOW), 'OLDEST');
+    eq('a future timestamp is not a negative age', agoLabel(NOW + HOUR, NOW), 'OLDEST');
+
+    installMockFs({});
+    eq('an empty set says so', buildVersionsPageVM(NOW, 'E1').empty, true);
+
+    writeVersion('P1', 'pre-wipe', 'movy1\ncl 0 0 16 0 x\ncl 1 0 16 0 y\n', 3, '{}', NOW - 2 * MIN);
+    writeVersion('P1', 'adopted', 'movy1\ncl 0 0 16 0 z\n', 1, null, 0);
+    const vm = buildVersionsPageVM(NOW, 'P1');
+    eq('two rows', vm.rows.length, 2);
+    eq('newest first', vm.rows[0].why, 'BEFORE WIPE');
+    eq('shows the clip count', vm.rows[0].clips, '2 CLIPS');
+    eq('one clip is singular', vm.rows[1].clips, '1 CLIP');
+    /* A version with no ui half restores the sequence alone, and the row has to
+     * say so — a user restoring one expects their instruments back too. */
+    eq('a version with no ui half is marked', vm.rows[1].seqOnly, true);
+    eq('and one with a ui half is not', vm.rows[0].seqOnly, false);
+
+    resetVersionsPage();
+    versionsPageJog(1, false, 'P1');
+    eq('jog moves one row', versionsPageState.selected, 1);
+    versionsPageJog(1, false, 'P1');
+    eq('and clamps at the end', versionsPageState.selected, 1);
+    versionsPageJog(-1, false, 'P1');
+    eq('and back up', versionsPageState.selected, 0);
+
+    /* The confirm owns the jog: a list that scrolled under an armed confirm
+     * would restore whatever the jog happened to land on. */
+    versionsPageState.confirming = true;
+    versionsPageJog(1, false, 'P1');
+    eq('an armed confirm freezes the selection', versionsPageState.selected, 0);
+    ok('and Back cancels it', versionsPageBack());
+    eq('the confirm is gone', versionsPageState.confirming, false);
+    ok('a second Back is not consumed', !versionsPageBack());
+
+    uninstallMockFs();
+}
 }

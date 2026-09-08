@@ -28,12 +28,14 @@ import { beginTrackSwitch, restoreTrackState, switchToTrack } from '../track/swi
 import { portFor } from '../track/registry.js';
 import { mappingFor } from '../seq/lane-mapping.js';
 import { setButtonHeld } from '../seq/button-held.js';
-import { sessionFailScope, sessionPhase, sessionReady } from '../seq/set-session.js';
+import { currentSetUuid, reloadCurrentSet, sessionFailScope, sessionPhase, sessionReady } from '../seq/set-session.js';
 import { sessionStartFromScratch } from '../seq/set-fail.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } from '../app/state.js';
 import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease } from '../seq/main-page.js';
 import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease } from '../seq/clip-page.js';
-import { flagsPageActive, flagsPageJog, flagsPageKnob } from '../seq/flags-page.js';
+import { backupsRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob } from '../seq/flags-page.js';
+import { openVersionsPage, versionsPageActive, versionsPageBack, versionsPageClick, versionsPageJog }
+    from '../seq/versions-page.js';
 import { cpuPageActive } from '../seq/cpu-page.js';
 import { closeParamPage, paramPageActive } from '../seq/param-page.js';
 import { CHAIN_SLOTS, MASTER_FX_SLOTS, LAST_CHAIN_INDEX, LAST_MASTER_INDEX,
@@ -538,6 +540,10 @@ export function onMidiMessageInternal(data: number[]): void {
          * The ladder is Schwung's own `applyInput`, not a copy — see
          * schwung-page.ts. movy asks and obeys.
          */
+        /* An armed restore confirm is movy's own layer too, and the innermost
+         * one on this page: Back must cancel the restore before it leaves the
+         * page, or the only way out of a confirm is to perform it. */
+        if (versionsPageActive() && versionsPageBack()) { appState.dirty = true; return; }
         /* The divable editor is movy's own layer, so it comes down before we
          * ask Schwung about its layers. */
         if (schwungEditorActive()) { schwungEditorCancel(); appState.dirty = true; return; }
@@ -601,6 +607,21 @@ export function onMidiMessageInternal(data: number[]): void {
 
     /* Jog click */
     if (d1 === MoveMainButton && d2 > 0) {
+        /* The two list pages take the click before any of the chain/knob
+         * handling below: on them it is the list's own action, not a door. */
+        if (versionsPageActive()) {
+            /* A restore rewrote the files under the open Set, so it has to be
+             * re-entered — the same path a set switch takes, which is what
+             * makes the modules reload behind the ordinary splash. */
+            if (versionsPageClick(currentSetUuid())) reloadCurrentSet();
+            appState.dirty = true;
+            return;
+        }
+        if (flagsPageActive() && backupsRowSelected()) {
+            openVersionsPage();
+            appState.dirty = true;
+            return;
+        }
         /*
          * A DOOR IS SCHWUNG'S CLICK.
          *
@@ -786,6 +807,14 @@ export function onMidiMessageInternal(data: number[]): void {
              * because the jog is the page's ONLY navigation — the other two
              * param pages put every parameter under a knob and leave the jog to
              * the chain nav underneath. */
+            /* Shift+jog jumps a screen: 32 versions is eight screens of plain
+             * scrolling, and the level-skip idiom is already established by the
+             * cursor pagination. */
+            if (versionsPageActive()) {
+                versionsPageJog(delta > 0 ? 1 : -1, appState.shiftHeld, currentSetUuid());
+                appState.dirty = true;
+                return;
+            }
             if (flagsPageActive()) {
                 flagsPageJog(delta > 0 ? 1 : -1);
                 appState.dirty = true;

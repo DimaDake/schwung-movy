@@ -9,6 +9,7 @@ import {
     FLAGS, flagDef, clampFlag, flagValueLabel, flagNormalized,
     flagValue, setFlag, applyFlagsToEngine, resetFlags,
     flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
+    flagsRowCount, backupsRowSelected,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
     visibleFlags, movyTracksOn, loadSetHostChoice, trackRef, DETENT_DIV,
     wrapWords, HINT_W, HINT_LINES, fontWidth, W,
@@ -261,8 +262,12 @@ export async function run() {
     eq('and back up', flagsPageState.selected, 0);
     flagsPageJog(-1);
     eq('the top is clamped, not wrapped', flagsPageState.selected, 0);
+    /* The list ends one row PAST the last flag: BACKUPS is an action row, and
+     * counting rows off `visibleFlags()` alone would put it out of the jog's
+     * reach — which is how a row that draws but cannot be selected happens. */
     for (let i = 0; i < FLAGS.length + 5; i++) flagsPageJog(1);
-    eq('and so is the bottom', flagsPageState.selected, visibleFlags().length - 1);
+    eq('and so is the bottom', flagsPageState.selected, flagsRowCount() - 1);
+    ok('the last row is BACKUPS, not a flag', backupsRowSelected());
 
     /* Knob 1 edits whatever the jog selected — that is the whole interaction,
      * and it is what lets the list grow past eight entries. */
@@ -388,7 +393,13 @@ export async function run() {
     resetFlagsPage();
     for (let i = 0; i < FLAGS.length + 5; i++) flagsPageJog(1);
     ok('the selection cannot leave the listed rows',
-       flagsPageState.selected < visibleFlags().length);
+       flagsPageState.selected < flagsRowCount());
+    /* A knob turn on the action row must change nothing: it has no value, and
+     * the row above it does. */
+    const beforeAction = flagValue(visibleFlags()[visibleFlags().length - 1].key);
+    flagsPageKnob(0, 40);
+    eq('the knob is inert on the action row',
+       flagValue(visibleFlags()[visibleFlags().length - 1].key), beforeAction);
 
     /* And the knob edits the row the page DREW. Hiding `This Set` shifts every
      * row below it up by one, so a page reading the raw table edits the flag

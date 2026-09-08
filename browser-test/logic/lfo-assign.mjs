@@ -5,7 +5,7 @@
  */
 
 import {
-    portFor, lfoTargetsParam, assignLfoTarget, clearLfoTarget, trackScope, holdTouch,
+    portFor, lfoTargetsParam, assignLfoTarget, clearLfoTarget, trackScope, masterScope, holdTouch,
     holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle, assignCommit,
     assignToastText, resetAssignMode, jogHintTouch, jogHintTick, jogHintVisible, eq,
     bankNames, _log, env,
@@ -99,6 +99,53 @@ _log('\nTest: LFO assign-mode gesture');
     eq('active before release', assignActive(), true);
     holdRelease(0);
     eq('release cancels', assignActive(), false);
+    Date.now = realNow;
+}
+
+_log('\nTest: a knob the LFO cannot reach never arms');
+{
+    /* Movy's send buses are hosted by movy's ENGINE; the master LFOs are the
+     * shim's, and it routes `master_fx:lfoN:target` through
+     * master_fx_route_target(), which only parses `fx<N>` (or the other LFO).
+     * A `snd0` target is dropped there — so arming the gesture on a send knob
+     * offered a modulation that could never happen, and committing it
+     * overwrote whatever that LFO was legitimately driving. */
+    const realNow = Date.now;
+    let t = 1000; Date.now = () => t;
+    const send = { gi: 0, key: 'mix', ioKey: 'mix', target: 'snd0',
+        value: 0, min: 0, max: 1, type: 'float', automatable: true };
+
+    env.setParams({});
+    resetAssignMode();
+    assignLfoTarget(masterScope(), 0, 'fx2', 'cutoff');
+
+    holdTouch(masterScope(), 0, send);
+    t = 2100;
+    eq('send knob does not arm', holdTick(), false);
+    eq('no assign mode on a send', assignActive(), false);
+    eq('no toast on a send', assignToastText(), '');
+    eq('commit is a no-op', assignCommit(), null);
+    eq('existing master target survives', env.params['master_fx:lfo1:target'], 'fx2');
+
+    /* Same rule, same reason, on the track chain: the MIX page's knobs report
+     * `target: 'mix'`, and movy's mixer is no more a chain component than a
+     * send bus is. */
+    resetAssignMode();
+    env.setParams({});
+    assignLfoTarget(trackScope(0), 0, 'synth', 'cutoff');
+    t = 5000;
+    holdTouch(trackScope(0), 0, { ...send, target: 'mix' });
+    t = 6200;
+    eq('mix knob does not arm', holdTick(), false);
+    eq('existing track target survives', env.params['lfo1:target'], 'synth');
+
+    /* Control: a master FX knob on the same scope still arms. */
+    resetAssignMode();
+    t = 3000;
+    holdTouch(masterScope(), 0, { ...send, target: 'master_fx:fx1' });
+    t = 4200;
+    eq('master FX knob still arms', holdTick(), true);
+    resetAssignMode();
     Date.now = realNow;
 }
 

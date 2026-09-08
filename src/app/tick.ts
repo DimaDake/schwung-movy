@@ -29,6 +29,7 @@ import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs, updateSingleKnobLED, resetKnobLedCache } from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
 import { drumSyncTick, resetDrumSync } from '../seq/drum-sync.js';
+import { applyLaneMapping } from '../seq/lane-mapping.js';
 import { syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull, verifyLaneMappings, requestLaneWarm, laneWarmTick } from '../seq/automation.js';
 import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
@@ -257,16 +258,24 @@ let lastCpuSig = '';
  * call their function twice per tick, which this one cannot afford. */
 function cpuRepaintTick(): void {
     if (!cpuPageActive()) return;
-    const raw = seqState.cpuCost + '|' + seqState.cpuWall + '|' + seqState.cpuMask;
+    const raw = seqState.cpuCost + '|' + seqState.cpuWall + '|' + seqState.cpuMask
+        + '|' + seqState.cpuSend;
     if (raw === lastCpuRaw) return;
     lastCpuRaw = raw;
     const vm = buildCpuPageVM();
-    const cols = vm.columns.map((c) => c.kind[0] + barPixels(c.synthUs, vm.scaleUs)
-        + '.' + barPixels(c.totalUs, vm.scaleUs) + '.' + barPixels(c.peakUs, vm.scaleUs));
+    const draw = (c: { kind: string; synthUs: number; totalUs: number; peakUs: number }) =>
+        c.kind[0] + barPixels(c.synthUs, vm.scaleUs)
+        + '.' + barPixels(c.totalUs, vm.scaleUs) + '.' + barPixels(c.peakUs, vm.scaleUs);
+    const cols = vm.columns.map(draw);
+    /* The send columns are in the signature for their heights AND for their
+     * count: going from none to some re-lays out every track column on the page,
+     * and that is the one change no individual number reports. */
+    const snd = vm.sends.map(draw);
     // The scale itself is in the signature: it changes every column's height at
     // once, and is the one change that moves no individual number.
     const sig = Math.round(vm.load * 100) + '|' + Math.round(vm.peakLoad * 100) + '|'
-        + (vm.optimized ? 1 : 0) + '|' + vm.scaleUs + '|' + cols.join(',');
+        + (vm.optimized ? 1 : 0) + '|' + vm.scaleUs + '|' + cols.join(',')
+        + '|' + snd.join(',');
     if (sig === lastCpuSig) return;
     lastCpuSig = sig;
     appState.dirty = true;
@@ -438,7 +447,8 @@ function tickBody(): void {
         if (labels) {
             syncLabelsFromEngine(
                 labels,
-                (slot, lane, tp) => portFor(slot).setParam('knob_' + (lane + 1) + '_set', tp),
+                (slot, lane, tp) =>
+                    applyLaneMapping((k, v) => portFor(slot).setParam(k, v), lane, tp),
                 (track, tp) => {
                     // Validate against the lane's own (track, component) model param
                     // set — authoritative even for config-driven drum modules. Keep
@@ -463,7 +473,7 @@ function tickBody(): void {
             (slot, lane) => portFor(slot).getParam( 'knob_' + (lane + 1) + '_name'),
             (slot, lane, tp) => {
                 mlog('auto remap t=' + slot + ' lane=' + lane + ' ' + tp);
-                portFor(slot).setParam('knob_' + (lane + 1) + '_set', tp);
+                applyLaneMapping((k, v) => portFor(slot).setParam(k, v), lane, tp);
             },
         );
     }

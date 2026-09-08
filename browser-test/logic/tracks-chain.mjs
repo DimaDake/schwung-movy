@@ -168,6 +168,36 @@ export async function run() {
     eq('the blob rides it', flat[flat.indexOf('ch4:synth:state') + 1], 'BLOB42');
   }
 
+  /* ── the sends ride the SAME document ────────────────────────────────────
+   * One acknowledged message that says the whole truth about what should be
+   * loaded. Sent separately they would be one more unacknowledged write racing
+   * the very loads the document just queued — the defect the document exists
+   * to fix. */
+  {
+    resetChainPayloads();
+    writes.length = 0; bulkSets.length = 0;
+    const sends = [{ b: 0, m: 'reverb', s: 'SENDBLOB' }];
+    restoreChains(snap, sends);
+    eq('still ONE acknowledged write', writes.filter(([k]) => k === 'chains').length, 1);
+    const flat = decodeBulk(writes[0][1]);
+    eq('and the document names the track AND the send',
+       flat.join('|'), '4|synth|plaits|16|fx1|reverb');
+    /* A send's blob waits for the same drain as a track's: its load was queued
+     * by the same document and holds the same audio thread. */
+    eq('the send blob is deferred too', bulkSets.length, 0);
+    eq('and delivering it lands', deliverChainPayloads(), true);
+    const all = bulkSets.map(decodeBulk).flat();
+    eq('the send blob rides its own bus key', all[all.indexOf('snd0:state') + 1], 'SENDBLOB');
+
+    /* An empty send list is the instruction to unload — a send must not outlive
+     * a set switch the way a chain module once did. */
+    resetChainPayloads();
+    writes.length = 0;
+    restoreChains(snap, []);
+    eq('a set with no sends names none', decodeBulk(writes[0][1]).join('|'), '4|synth|plaits');
+    resetChainPayloads();
+  }
+
   /* ── the data loss, which is worse than the silent restore ───────────────
    * `lastBlob` covers a read that FAILS. It does not cover one that succeeds
    * and returns the module's defaults, which is exactly what an undelivered
@@ -460,8 +490,21 @@ export async function run() {
   volumeKnobDelta(1);
   const movyWrite = writes.find((w) => w[0] === 'movy');
   eq('movy track writes its mixer', movyWrite && movyWrite[1], 'ch6:mix');
-  eq('mixer write is the gain,pan,mute triple',
-     !!(movyWrite && /^[0-9.]+,0,0$/.test(movyWrite[2])), true);
+  eq('mixer write is the whole value, not just the gain',
+     !!(movyWrite && /^[0-9.]+(,[-0-9.]+){4}$/.test(movyWrite[2])), true);
+
+  /* Only the gain is on this fader, so everything after it must be carried
+   * across unchanged — as READ, not as defaults. A gesture that rewrote the
+   * remainder would discard a pan the set file had restored, and once sends
+   * existed it would silence both of them on the next volume nudge. */
+  writes.length = 0;
+  volumeTrackUp(6);
+  globalThis.host_module_get_param = () => '0.5,-0.75,0,0.25,0.5';
+  volumeTrackDown(6);
+  volumeKnobDelta(1);
+  const carried = writes.find((w) => w[0] === 'movy');
+  eq('pan, mute and both sends survive a volume turn',
+     carried && carried[2].slice(carried[2].indexOf(',')), ',-0.75,0,0.25,0.5');
 
   /* The fader has to resume from the level it last set. `ch<N>:mix` had no
    * reader in the engine — `get_param` forwarded it to the chain instance,

@@ -11,6 +11,145 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
+## [0.32.0] — 2026-09-08
+
+### Highlights
+
+- **Send FX.** The master chain gains three **send** slots at its head, hosted
+  by Movy itself. Load one audio FX into each, then feed it from any Movy track's
+  new MIX page. The sends are post-fader and post-pan — pulling a track down
+  takes its reverb with it — and their output joins Movy's own, which the master
+  FX then process.
+
+  One reverb shared by eight tracks costs a fraction of eight reverbs — and a
+  send is never more expensive than the same effect on the track itself, however
+  few tracks feed it (see **Sends render beside their tracks** below). Sends
+  still only make sense for wet effects: an insert-shaped one (distortion,
+  compression, EQ) belongs on the track, because of what it does to the sound
+  rather than what it costs.
+
+- **Sends render beside their tracks.** A send bus used to wait for every chain
+  at the join and then run alone on the audio thread with both helper lanes
+  idle — so below about four tracks it cost MORE than putting the effect on the
+  track, which is not something anyone should have to know. Movy now renders a
+  bus on the same lane as the tracks feeding it whenever that shortens the
+  block.
+
+  Measured on twelve chains with one heavy delay: **244-299 µs back, 8-10% of
+  the audio frame**, at one, two and three feeding tracks. A send now costs
+  within 10 µs of the same effect inserted on the track.
+
+  Nothing is delayed to achieve it. A lane runs its work in order, so the bus
+  still sees the complete sum at the same point in musical time — short effects
+  like chorus and slap delay behave exactly as they do on a track. `chcolo` on
+  the Flags page (**Send On Lane**) turns it off.
+
+- **A MIX page per track.** The last slot in every chain: **VOL** and **PAN** on
+  the top row, **SEND1**, **SEND2** and **SEND3** together on the bottom under
+  encoders 5-7. Pan and mute existed in Movy's mixer from the start with no
+  control surface; this is it. All five automate like any module parameter,
+  and one turn of a knob undoes as a single gesture.
+  VOL is drawn as a fader and PAN as a bipolar bar — vertical and horizontal
+  versions of the same picture — so the page reads as a channel strip rather
+  than as five identical dials.
+
+  On a Schwung-hosted track only VOL is shown. That track's audio never passes
+  through Movy, so there is nothing to pan or to tap for a send, and Schwung has
+  no pan of its own — turn on **Movy tracks** for the full page on tracks 1-4.
+
+- **Nothing to pay when unused.** With no send module loaded and every track at
+  zero, the added per-block work is a handful of branches: an untouched bus is
+  never accumulated into, never processed, and never cleared.
+
+- **Heavy sends render at the same time.** The send phase still runs after every
+  track has rendered — a bus is a sum of tracks — but the buses no longer wait on
+  each other: they go onto the same helper threads Movy already renders its
+  chains across. Several big reverbs cost about the most expensive one instead of
+  all of them added together.
+
+  Measured on device against a 2902 µs audio block: two heavy reverbs, 627 µs
+  down to 421 µs; three, 847 µs down to 423 µs — about 15% of the frame handed
+  back.
+
+  It fans out only when that is worth the ~25 µs it costs to wake a helper, so a
+  single bus, or a heavy one beside a nearly-free one, still runs exactly as it
+  did. Nothing to turn on: it follows **Parallel render**, and turning that off
+  restores the old behaviour for measurement.
+
+- **The CPU meter shows the send buses.** Once any send bus holds an effect,
+  three more columns appear at the right of the plot under **SND**, one per bus,
+  on the same scale as the tracks — so a reverb can be read against the
+  instruments feeding it. The track columns narrow to make room; a set that uses
+  no sends draws exactly the plot it always did.
+
+  A send column is checkered all the way up: a bus is an effect pass, with no
+  instrument stage to draw. A bus nothing is feeding, and whose tail has died
+  away, drops to a dash and keeps its peak line — the same vocabulary a sleeping
+  track column uses.
+
+  The capacity bar and the header percentage already counted the send phase;
+  this is where you find out which bus the time went to.
+
+- **Pan knobs are drawn as a bipolar bar.** A stereo position is the one common
+  parameter whose default is the middle rather than an end, and on a 300-degree
+  dial that middle is an unremarkable spot two thirds of the way round. Pan now
+  gets a dotted rail, a centre tick and a bar filling out from the middle toward
+  the side you pan to, so centred looks unlike every other value. It applies to
+  the MIX page and to pan-like parameters inside modules — 24 across the dumped
+  fleet — and reads the same whether a module counts pan from -1..+1 or 0..127.
+  Parameters that only *say* pan keep their dials: `Rnd Pan`, `Pan Width`,
+  `Pan KF`, `Pan Velocity`, a `Pan Morph`, an `Osc Balance` crossfade, and a
+  one-sided `Pan L`/`Pan R` pair all lack a centre to fill out from.
+
+- **Knob labels use the whole cell.** Every parameter name was capped at five
+  characters, which is the worst case of a proportional font — five M's fill a
+  cell, but CUTOFF, ATTACK, OUTPUT and PRESET all fit inside one and were being
+  cut anyway. The cap is now the cell's width in pixels, so 62 of the 80 dumped
+  modules gained letters back and nothing got wider than it already was.
+
+### Fixed
+
+- **Hold-to-modulate offered an LFO on knobs no LFO could drive.** Holding a
+  knob on a **send FX** slot or on the **MIX** page raised the assign prompt,
+  and clicking through wrote a target the chain host cannot route — so nothing
+  modulated, *and* the write replaced whatever that LFO was legitimately
+  driving. Movy's sends and mixer live in Movy's own engine, while the LFOs are
+  the chain host's; the gesture is now offered only on knobs an LFO can reach.
+
+- **The MIX page's knobs moved in whole-dB jumps.** They stepped one ladder
+  index at a time, eight CC units apart, so a small turn did nothing at all and
+  then leapt a dB — reported as "too sensitive". They now travel continuously,
+  at exactly the rate a module's knob does, and land on the round numbers:
+  `0.0 dB` and centre pan are reachable from any starting value. Pan could not
+  return to centre at all if it started off the detent grid.
+
+- **A send's arc stopped four fifths of the way round.** It was drawn against
+  the fader's travel, which runs 12 dB past unity, while a send stops at unity.
+  0 dB is now the far end of the knob.
+
+- **Automated MIX parameters were stuck against one end.** Two faults: the page
+  denormalized an already-denormalized lane value, pinning every automated knob
+  near the bottom of its travel, and the lane itself was linear in amplitude
+  where the knob is a dB fader, so unity sat a quarter of the way up the lane. A
+  MIX lane's 0-127 is now the fader's own position, in the engine and in the UI.
+  Existing MIX automation will play back at different levels than it was
+  recorded at.
+
+- **Only one held MIX knob showed its value.** Holding two showed one value and
+  one name, which reads as a knob that stopped responding. Every held knob shows
+  its value now; the header still follows the one touched last, as on a module
+  page.
+
+- **Automation lanes on tracks 5-16 were never restored.** The engine has always
+  emitted labels for all 16 tracks, but the UI read only the first four — a
+  leftover from when Movy had four. Automation played back in the session it was
+  recorded in and was silently gone the next time the Set was opened. The
+  round-robin that re-applies mappings after a module reload had the same cap.
+
+- **The track-volume gesture would have zeroed both sends.** It rebuilt the rest
+  of the mixer value from a fixed three fields, so any nudge of the fader wrote
+  the new send levels back as zero. It now carries the remainder opaquely.
+
 ## [0.31.0] — 2026-09-03
 
 ### Highlights
@@ -1819,4 +1958,4 @@ A condensed timeline of how Movy got here (pre-`0.21.0`):
 - **2026-06-07 → 08** — Module chain view, multi-track, render performance work.
 - **2026-06-06** — Initial release: chromatic keyboard + module host for Schwung.
 
-[Unreleased]: https://github.com/DimaDake/schwung-movy/compare/main...HEAD
+[0.32.0]: https://github.com/DimaDake/schwung-movy/releases/tag/v0.32.0

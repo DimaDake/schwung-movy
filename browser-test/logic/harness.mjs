@@ -13,7 +13,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { createModel }    from '../../dist/esm/model/index.js';
 import { portFor }        from '../../dist/esm/track/registry.js';
 import { trackRef, TRACK_COUNT } from '../../dist/esm/track/ref.js';
-import { dedupShortNames } from '../../dist/esm/renderer/shorten.js';
+import { dedupShortNames, LABEL_BUDGET } from '../../dist/esm/renderer/shorten.js';
 import { detectEnvelopes } from '../../dist/esm/model/envelope.js';
 import { planPageLayout } from '../../dist/esm/model/page-layout.js';
 import { enumRawToIndex, enumUsesIndex, enumSetValue } from '../../dist/esm/model/enum-value.js';
@@ -122,6 +122,8 @@ import { wavPeaksTick, wavPeaks, resetWavPeaks, resamplePeaks, PEAK_WIDTH } from
 import { drawWavForm } from '../../dist/esm/renderer/wav-form.js';
 import { drawFilterCurve } from '../../dist/esm/renderer/filter-curve.js';
 import { isFaderParam } from '../../dist/esm/model/fader.js';
+import { isPanParam } from '../../dist/esm/model/pan.js';
+import { drawPanDial } from '../../dist/esm/renderer/pan-dial.js';
 import { isToggleParam, isActionParam } from '../../dist/esm/model/toggle.js';
 import { triggerIndices } from '../../dist/esm/model/trigger.js';
 import { renderKnobsView } from '../../dist/esm/renderer/knob-view.js';
@@ -134,7 +136,8 @@ import { shapeSample, drawWave } from '../../dist/esm/renderer/lfo-wave.js';
 import { CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../../dist/esm/chain/config.js';
 import { init } from '../../dist/esm/app/init.js';
 import { appState } from '../../dist/esm/app/state.js';
-import { buildCpuPageVM, FULL_SCALE_US, USABLE_BLOCK, scaleFor, scaleLabel } from '../../dist/esm/seq/cpu-page-vm.js';
+import { buildCpuPageVM, buildSendColumns, USABLE_BLOCK } from '../../dist/esm/seq/cpu-page-vm.js';
+import { FULL_SCALE_US, scaleFor, scaleLabel } from '../../dist/esm/seq/cpu-scale.js';
 /* The sequencer's track is the SELECTED track — a suite that wants the step row
  * on track N selects track N, the way a user does. There is no separate field
  * to set: seq/watch.ts derives the engine's watch from this one. */
@@ -227,7 +230,7 @@ const P = (key, label, env) => ({ key, label, shortLabel: null, type: 'float',
 
 export {
     readFileSync, readdirSync, createModel, portFor, trackRef, TRACK_COUNT,
-    dedupShortNames, detectEnvelopes, planPageLayout, enumRawToIndex, enumUsesIndex, enumSetValue,
+    dedupShortNames, LABEL_BUDGET, detectEnvelopes, planPageLayout, enumRawToIndex, enumUsesIndex, enumSetValue,
     MOCK_SYNTHS, drumPadOn, drumPadOff, ENGINE_VERSION, NAME_POLL_TICKS, META_RETRY_LIMIT,
     KNOBS_PER_PAGE, OVERRIDES_MODULE_FILE,
     readActiveSet, uuidToStatePath, uuidToUiStatePath, loadNameIndex, rememberSet, BLANK_STATE,
@@ -246,7 +249,7 @@ export {
     wrapWords, HINT_W, HINT_LINES, DETENT_DIV, fontWidth, W,
     serializeUiState, applyUiState, resetUiState,
     readPrefModuleBlacklist,
-    buildCpuPageVM, FULL_SCALE_US, USABLE_BLOCK, scaleFor, scaleLabel,
+    buildCpuPageVM, buildSendColumns, FULL_SCALE_US, USABLE_BLOCK, scaleFor, scaleLabel,
     DEBUG_BUILD, openParamPage, closeParamPage, paramPageActive,
     VIEW_FLAGS, VIEW_CHAIN, VIEW_MAIN_PARAMS,
     FACTORY_DEFAULT_QUANT, armQuantOverlay, quantOverlayActive, quantOverlayTickAt, quantOverlayJog, quantOverlayAction,
@@ -264,7 +267,7 @@ export {
     staticModeFromTokens, lfoShapeId, isShapeEnum, enumClassOf, waveCellIndices, waveToggleOf,
     envStageOf, detectEqViz, cutKindOf, detectCutPair, drawCutCurve, detectWavViz,
     wavPeaksTick, wavPeaks, resetWavPeaks, resamplePeaks, PEAK_WIDTH, drawWavForm,
-    drawFilterCurve, isFaderParam, isToggleParam, isActionParam, triggerIndices, renderKnobsView,
+    drawFilterCurve, isFaderParam, isPanParam, drawPanDial, isToggleParam, isActionParam, triggerIndices, renderKnobsView,
     renderChainView, lfoTargetsParam, assignLfoTarget, clearLfoTarget, trackScope, masterScope,
     holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle,
     assignCommit, assignToastText, resetAssignMode, jogHintTouch, jogHintTick, jogHintVisible,

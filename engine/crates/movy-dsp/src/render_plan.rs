@@ -138,9 +138,79 @@ impl Planner {
     }
 }
 
+/// What one fan-out costs: waking the helpers and joining them. Essentially all
+/// of it is scheduler wake, and it does not grow with the workload.
+///
+/// 25 us, measured on the SEND path by `scripts/measure-parallel-sends.sh`
+/// (2026-09-06: two heavy reverbs, 630 us serial against 424 us parallel, so
+/// the cheaper bus's 232 us bought back 206 — the missing 25 is this). The
+/// chain work's standalone figure was 21 us
+/// (`plans/2026-08-22-join-cost-prototype.md`); the send phase runs later in the
+/// callback, and the number here is the one taken where it is spent.
+pub const FANOUT_NS: u64 = 25_000;
+
+/// Whether fanning a phase out earns the wake it costs.
+///
+/// `serial` is what the phase costs run start-to-finish on the audio thread —
+/// the sum. `makespan` is the busiest lane, what it costs fanned out. The wake
+/// is charged to the parallel side because it is only ever paid there.
+///
+/// The chain phase does not ask: twelve synths always clear the wake. The SEND
+/// phase must, because its whole range is near the margin — one bus alone
+/// overlaps with nothing and would just hand the audio thread a wait, and two
+/// light reverbs save 45 us gross against a 25 us wake. Below the margin the
+/// phase collapses onto lane 0 and is the serial path it replaced.
+pub fn worth_fanning_out(serial: u64, makespan: u64) -> bool {
+    makespan + FANOUT_NS < serial
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /* The send phase's no-regression rule, as arithmetic rather than as a hope.
+     * Numbers are the measured per-block costs from
+     * `plans/2026-09-06-send-cost-measurement.md` §2, in nanoseconds. */
+    #[test]
+    fn one_bus_alone_never_fans_out() {
+        // Nothing to overlap with: the makespan IS the serial cost, so the wake
+        // is pure loss. The heaviest FX in the fleet does not change that.
+        assert!(!worth_fanning_out(353_600, 353_600));
+    }
+
+    /// A heavy bus beside a nearly-free one. The pair is busy, so a rule that
+    /// only asked "is more than one bus running" would fan out — and overlap
+    /// 354 us with 10, saving 10 us for a 21 us wake. Being busy is not the
+    /// question; the SMALLER lane is, because that is all an overlap can hide.
+    #[test]
+    fn a_heavy_bus_beside_a_trivial_one_stays_serial() {
+        assert!(!worth_fanning_out(363_600, 353_600));
+    }
+
+    /// Two light reverbs (midiverb + freeverb, 93 us serial / 48 us makespan)
+    /// DO clear the wake — 20 us net. Small, and the plan doc calls it noise
+    /// against a 2902 us block, but it is a saving by the same arithmetic that
+    /// justifies the heavy case. Tightening the constant until this case fell
+    /// the other way would be fitting the rule to an opinion.
+    #[test]
+    fn a_marginal_pair_is_decided_by_the_arithmetic_and_not_by_taste() {
+        assert!(worth_fanning_out(93_000, 48_200));
+    }
+
+    #[test]
+    fn two_heavy_buses_are() {
+        // dragonfly + tape-echo2: 584 us serial, 354 us makespan. 207 us saved,
+        // 7% of the frame. This is the case the whole phase exists for.
+        assert!(worth_fanning_out(584_400, 353_600));
+    }
+
+    /// Before anything has rendered every cost is zero, so the rule must answer
+    /// "serial" rather than divide by nothing. The phase then bootstraps: it
+    /// runs serially, measures, and fans out once it knows it is worth it.
+    #[test]
+    fn unmeasured_costs_stay_serial() {
+        assert!(!worth_fanning_out(0, 0));
+    }
 
     fn run(keys: &[&str], costs: &[u64], lanes: usize) -> Planner {
         let m: Vec<String> = keys.iter().map(|s| s.to_string()).collect();

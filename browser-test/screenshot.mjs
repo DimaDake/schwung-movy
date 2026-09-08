@@ -14,7 +14,7 @@
  */
 
 import { trackRef } from '../dist/esm/track/ref.js';
-import { portFor } from '../dist/esm/track/registry.js';
+import { componentPort, portFor } from '../dist/esm/track/registry.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -41,6 +41,8 @@ const PRESETS = [
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
     'chain_t2', 'chain_t4',
     'lfo_chain', 'lfo_lfo1', 'lfo_lfo2', 'lfo_target_overlay', 'lfo_viz_unipolar', 'lfo_viz_retrig',
+    'mix_page', 'mix_page_chain', 'mix_page_host', 'mix_page_two_held',
+    'master_send_slot', 'master_send_empty',
     'lfo_master', 'lfo_master_chain',
     'lfo_mod_mark', 'lfo_mod_and_auto', 'lfo_assign_toast',
     'drum-mrdrums-pad5', 'drum-mrdrums-global',
@@ -58,6 +60,7 @@ const PRESETS = [
     'main-quant', 'quant-overlay-three', 'quant-overlay-two',
     'flags-top', 'flags-scrolled', 'flags-release',
     'cpu-opt-on', 'cpu-opt-off', 'cpu-overscale', 'cpu-empty',
+    'cpu-sends', 'cpu-sends-quiet',
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
     'filter_slope24', 'filter_dual', 'filter_open',
@@ -72,7 +75,7 @@ const PRESETS = [
     'font_5x3_all', 'font_small_all', 'font_big_all_1', 'font_big_all_2',
     'wave_cells', 'wave_overlay', 'wave_helm', 'wave_toggles',
     'env_stages', 'eq_bands', 'cut_filters', 'faders', 'wav_sample', 'wav_loop', 'wav_loop_off', 'wav_beside_filter',
-    'switches', 'spray_saturated',
+    'switches', 'pan_dials', 'spray_saturated',
 ];
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -113,7 +116,7 @@ const BASE = {
     lfo_helm_step: 'lfo_helm', lfo_helm_pyramid: 'lfo_helm',
     wave_cells: 'wave_cells', wave_overlay: 'wave_cells', wave_helm: 'helm_waves',
     wave_toggles: 'wave_toggles', env_stages: 'env_stages', eq_bands: 'eq_bands', cut_filters: 'cut_filters',
-    faders: 'faders', switches: 'switches',
+    faders: 'faders', switches: 'switches', pan_dials: 'pan_dials',
     spray_saturated: 'wav_sample', wav_sample: 'wav_sample', wav_loop: 'wav_loop', wav_loop_off: 'wav_loop',
     wav_beside_filter: 'wav_beside_filter',
     signal_voice: 'signal', forge_voice: 'forge',
@@ -162,6 +165,8 @@ globalThis.clear_screen = () => paint(0, 0, W, H, OFF);
 
 const { createModel }      = await import('../dist/esm/model/index.js');
 const { createLfoModel, createScopedLfoModel } = await import('../dist/esm/lfo/model.js');
+const { createMixModel } = await import('../dist/esm/mixer/mix-model.js');
+const { FIELD_AT } = await import('../dist/esm/mixer/mix-io.js');
 const { masterScope }      = await import('../dist/esm/lfo/scope.js');
 const { resetPorts }       = await import('../dist/esm/track/registry.js');
 const { MASTER_FX_SLOTS, MASTER_LFO_INDEX } = await import('../dist/esm/chain/config.js');
@@ -459,6 +464,13 @@ function applyView(preset) {
             for (let i = 0; i < 80; i++) model.tick();
             forceRender();
             break;
+        case 'pan_dials':
+            /* The whole sweep in one frame — hard left, part left, centre,
+             * part right, hard right — beside the two near-misses that keep
+             * the arc. A single value would not show that the bar travels. */
+            for (let i = 0; i < 80; i++) model.tick();
+            forceRender();
+            break;
         case 'faders':
             setFilter({ volume: '0.75', gain: '0.3', lvl_snare: '1.0', sub_level: '0',
                         trim_db: '0', pre_gain: '-9', cutoff: '0.5', rate: '0.4' });
@@ -598,7 +610,15 @@ function applyView(preset) {
         case 'cpu-opt-on':
         case 'cpu-opt-off':
         case 'cpu-overscale':
-        case 'cpu-empty': {
+        case 'cpu-empty':
+        /* The page's SECOND layout: any send bus holding a module narrows every
+         * track column to make room for the send region. Two scenes because the
+         * region has to say which of its three buses is doing work — `cpu-sends`
+         * has one heavy and one light bus, `cpu-sends-quiet` has a loaded bus
+         * nothing is feeding, which must read as asleep-with-a-peak rather than
+         * as empty. */
+        case 'cpu-sends':
+        case 'cpu-sends-quiet': {
             resetFlags();
             const on = preset !== 'cpu-opt-off';
             setFlag('cpuopt', on ? 1 : 0);
@@ -638,6 +658,10 @@ function applyView(preset) {
                 seqState.cpuWall = preset === 'cpu-overscale' ? '2210/2680/2902' : '1491/2180/2902';
                 seqState.cpuMask = '01ff/0100';
             }
+            seqState.cpuSend =
+                preset === 'cpu-sends' ? '760/1180,190/240,-'
+                : preset === 'cpu-sends-quiet' ? '0/1180,-,-'
+                : '-,-,-';
             lastRender = () => renderCpuView(buildCpuPageVM());
             lastRender();
             break;
@@ -1003,6 +1027,71 @@ function applyView(preset) {
             if (preset === 'lfo_chain') lastRender = () => renderChainView(lm.getViewModel(), 4, false, 'T1', 'LFO');
             else lastRender = () => renderKnobsView(lm.getViewModel(), false, 0);
             lastRender();
+            break;
+        }
+        /* A movy-hosted SEND slot on the master page. It is left of the master
+         * FX both here and in the signal path — a send's output joins movy's
+         * stereo out, which schwung's master FX then process. */
+        case 'master_send_slot':
+        case 'master_send_empty': {
+            const loaded = preset === 'master_send_slot';
+            const oldGet = globalThis.host_module_get_param;
+            globalThis.host_module_get_param = (k) => {
+                if (k === 'snd0:module') return loaded ? 'reverb' : null;
+                if (k === 'snd0:name') return loaded ? 'Reverb' : null;
+                if (k === 'snd0:chain_params') {
+                    return loaded ? JSON.stringify([
+                        { key: 'mix',   name: 'Mix',   type: 'float' },
+                        { key: 'decay', name: 'Decay', type: 'float' },
+                    ]) : null;
+                }
+                return oldGet?.(k) ?? null;
+            };
+            resetPorts();
+            const sm = createModel(componentPort(0, 'snd0'), 'snd0');
+            sm.tick(); sm.tick();
+            lastRender = () => renderChainView(sm.getViewModel(), 0, false, 'MASTER', 'SEND 1',
+                                               MASTER_FX_SLOTS);
+            lastRender();
+            globalThis.host_module_get_param = oldGet;
+            break;
+        }
+        /* Movy's own summing mixer as a page. `mix_page_host` is the same page
+         * on a schwung-hosted track, where movy never sees the audio: the fader
+         * is real (`slot:volume`) and pan and both sends are blank, because a
+         * drawn knob that cannot do anything reads as broken. */
+        /* `mix_page_two_held` is two knobs held at once: BOTH show their value,
+         * and the header follows the one touched last. One readout for two
+         * hands reads as a knob that stopped responding. */
+        case 'mix_page':
+        case 'mix_page_chain':
+        case 'mix_page_host':
+        case 'mix_page_two_held': {
+            const host = preset === 'mix_page_host';
+            /* Track 0 is a schwung slot unless `chtracks` says otherwise; track
+             * 6 is always a movy chain. */
+            const mtrk = host ? 0 : 6;
+            env.setParams({ 'slot:volume': '0.7079' });          // -3.0 dB
+            const oldGet = globalThis.host_module_get_param;
+            globalThis.host_module_get_param = (k) =>
+                /* Full width, and every send at a DIFFERENT level: a baseline
+                 * where two knobs agree cannot show one being drawn under the
+                 * wrong encoder. */
+                k === 'ch6:mix' ? '0.7079,-0.5000,0,0.5012,0.0000,0.2512' : oldGet?.(k) ?? null;
+            resetPorts();
+            const mx = createMixModel(mtrk);
+            mx.tick();
+            if (preset === 'mix_page_two_held') {
+                mx.handleKnobTouch(0);          // VOL
+                mx.handleKnobTouch(FIELD_AT.indexOf('send2'));
+            }
+            if (preset === 'mix_page_chain') {
+                lastRender = () => renderChainView(mx.getViewModel(), 5, false, 'T' + (mtrk + 1), 'MIX');
+            } else {
+                lastRender = () => renderKnobsView(mx.getViewModel(), false, mtrk);
+            }
+            lastRender();
+            globalThis.host_module_get_param = oldGet;
             break;
         }
         /* The master chain's own LFO page: same eight positions, but knob 7 is

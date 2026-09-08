@@ -42,7 +42,11 @@ export function detentsPerStep(p: KnobParam): number {
  * directions, and every batch size, match it.
  */
 export function perDetentStep(p: KnobParam): number {
-    const arcScale = p.renderStyle === 'arc' ? ARC_DELTA_SCALE : 1;
+    /* 'pan' rides with 'arc': the scaling is about how far a detent should
+     * move a continuous value, which the widget drawn over it does not change.
+     * Left out, every pan param silently changed feel the day it stopped
+     * being an arc. */
+    const arcScale = (p.renderStyle === 'arc' || p.renderStyle === 'pan') ? ARC_DELTA_SCALE : 1;
     if (p.max <= p.min) return p.step * arcScale;   // unturnable; the clamp pins it anyway
     const rangeStep = (p.max - p.min) * MIN_STEP_RANGE_FRAC;
     if (p.type === 'int')   return Math.round(Math.max(p.step, rangeStep) * arcScale);

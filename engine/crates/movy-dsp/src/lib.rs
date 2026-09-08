@@ -15,10 +15,12 @@ mod midi_out;
 mod chain_host;
 mod chain_slots;
 mod chain_pin;
+mod chain_colo;
 mod render_plan;
 mod render_pool;
 mod load_queue;
 mod mixer;
+mod send_bus;
 mod pad_route;
 
 use chain_slots::ChainSlots;
@@ -42,6 +44,21 @@ fn parse_chain_key(key: &str) -> Option<(usize, &str)> {
     Some((slot, &body[colon + 1..]))
 }
 
+/// `snd0:module` -> `(0, "module")`.
+///
+/// A send bus is not a track and never takes a `ch<N>` key — `ch<N>` IS track
+/// N. Out-of-range buses are refused rather than clamped: a write meant for a
+/// bus that does not exist must not land on one that does.
+fn parse_send_key(key: &str) -> Option<(usize, &str)> {
+    let body = key.strip_prefix("snd")?;
+    let colon = body.find(':')?;
+    let bus: usize = body[..colon].parse().ok()?;
+    if bus >= send_bus::SEND_BUSES {
+        return None;
+    }
+    Some((bus, &body[colon + 1..]))
+}
+
 /// `"144.60.100"` -> `[0x90, 60, 100]`. Returns None on anything malformed, so
 /// a garbled param cannot inject a stuck note.
 fn parse_midi_triplet(val: &str) -> Option<[u8; 3]> {
@@ -55,21 +72,52 @@ fn parse_midi_triplet(val: &str) -> Option<[u8; 3]> {
     Some([s, d1, d2])
 }
 
-/// `"0.8.-0.5.0"` -> gain 0.8, pan -0.5, unmuted. Returns None on anything
+/// `"0.8,-0.5,0"` -> gain 0.8, pan -0.5, unmuted. Returns None on anything
 /// malformed so a garbled param cannot silence or blast a track.
+/// `gain,pan,muted` followed by a COMPLETE block of send levels, or none.
+///
+/// Three fields is the legacy form every set saved before sends existed
+/// carries, and it must keep restoring — at zero sends, not at whatever the
+/// slot happened to hold. Five is the form written while two sends were all
+/// there were: it must restore both and leave the rest at zero.
+///
+/// A PARTIAL block is refused whole — `gain,pan,muted,0.25` is a truncated
+/// five-field value, never a form movy wrote, because the send block has only
+/// ever grown as a unit. Applying a mix with a send level silently dropped
+/// leaves a track at a level nothing chose, which is worse than refusing it.
+///
+/// More sends than this build has is refused for the same reason: those levels
+/// have nowhere to land.
 fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
+    /* Shipped shapes only. The list grows when a bus is added; the older widths
+     * stay, because sets written by older builds keep opening. */
+    const SEND_FIELDS: [usize; 3] = [0, 2, send_bus::SEND_BUSES];
+    /* Iterated rather than collected: this is the param write path, and nothing
+     * movy reaches from the audio callback may allocate. */
     let mut it = val.split(',');
     let gain: f32 = it.next()?.trim().parse().ok()?;
     let pan: f32 = it.next()?.trim().parse().ok()?;
     let muted = it.next()?.trim() != "0";
-    if it.next().is_some() || !gain.is_finite() || !pan.is_finite() {
+    let mut send = [0.0f32; send_bus::SEND_BUSES];
+    let mut n = 0usize;
+    for raw in it {
+        if n == send_bus::SEND_BUSES {
+            return None; // more sends than this build has anywhere to put
+        }
+        send[n] = raw.trim().parse().ok()?;
+        n += 1;
+    }
+    if !SEND_FIELDS.contains(&n) {
         return None;
     }
-    Some(crate::mixer::TrackMix { gain, pan, muted })
+    if !gain.is_finite() || !pan.is_finite() || !send.iter().all(|s| s.is_finite()) {
+        return None;
+    }
+    Some(crate::mixer::TrackMix { gain, pan, muted, send })
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.62.0";
+const ENGINE_VERSION: &str = "0.70.0";
 
 /// Tracks backed by schwung's own shadow slots by default. Their notes go out as
 /// MIDI on the matching channel; everything above this index is a chain movy
@@ -187,6 +235,23 @@ impl Instance {
             "chloadedlog" => {
                 host::log(&format!("chain loaded: {}", self.chains.loaded_report()));
             }
+            /* `sndlog` — what each send bus was fed, what came out of it,
+             * which module is in it, and whether the phase fanned out (`par`)
+             * onto which lanes (`plan`). A send's contribution never lands in a
+             * chain's scratch, so `chpeak` cannot see it: this is the only
+             * read-back that distinguishes "no track is sending" from "the FX
+             * pass produced silence" — and, since a parallel send phase sounds
+             * exactly like a serial one, the only one that says which ran.
+             * Read by scripts/test-sends.sh and scripts/measure-send-cost.sh. */
+            "sndlog" => {
+                host::log(&format!("sends: {}", self.chains.send_report()));
+            }
+            /* `sndcostlog` — what each send bus's FX pass costs per block, then
+             * start a fresh window. The window reset is what lets a measurement
+             * discard the load phase, exactly as `chcostlog` does for a chain. */
+            "sndcostlog" => {
+                host::log(&format!("send cost: {}", self.chains.send_cost_report()));
+            }
             "chpeaklog" => {
                 host::log(&format!("chain peaks: {}", self.chains.peaks_csv()));
             }
@@ -250,6 +315,21 @@ impl Instance {
              * way. */
             "chpin" => {
                 self.chains.set_pin_duplicates(val != "0" && !val.is_empty());
+            }
+            /* `chcolo <0|1>` — let a send bus render on a chain lane, behind
+             * the tracks that feed it, instead of alone in the send phase after
+             * the join. Measured at 274 us on a twelve-chain set with one heavy
+             * FX (`plans/2026-09-07-send-bus-colocation.md`).
+             *
+             * It has a flag where the parallel send phase deliberately did not,
+             * because the control arm has to hold the chains constant: that
+             * change was measured on a one-synth fixture where `chparallel 0`
+             * moved nothing else, and this one is measured on twelve chains
+             * where it would move ~1500 us of chain work as well. Without
+             * `chcolo` the device measurement has no arm to compare against.
+             * Default on, matching the UI. */
+            "chcolo" => {
+                self.chains.set_colocate(val != "0" && !val.is_empty());
             }
             /* `chblock <csv>` — modules proven to race, whose instances all go
              * back on one lane. Replaces the list wholesale, so an empty value
@@ -347,6 +427,18 @@ impl Instance {
                     self.engine.dirty = false;
                 }
             }
+            /* `snd<n>:<rest>` addresses send bus n. Module loads are diverted
+             * into the same queue chain loads use, so a set that opens with two
+             * sends cannot stack their dlopens into one audio callback. */
+            _ if key.starts_with("snd") => {
+                if let Some((bus, rest)) = parse_send_key(key) {
+                    match rest {
+                        "module" => self.chains.request_send_load(bus, val),
+                        "state" => self.chains.set_send_state(bus, val),
+                        _ => self.chains.send_param(bus, rest, val),
+                    }
+                }
+            }
             /* `ch<N>:<rest>` addresses movy chain N (0-11 = tracks 5-16).
              * Module loads are diverted into the queue so they cannot bypass
              * the one-load-per-callback rule; everything else is a plain
@@ -364,6 +456,19 @@ impl Instance {
                         // mixer sees all twelve chains as one channel.
                         if let Some(mix) = parse_mix(val) {
                             self.chains.set_mix(slot, mix);
+                        }
+                    } else if rest == "mixlane" {
+                        /* "<lane>,<field>", or "<lane>,-" to release the lane
+                         * back to the chain. The UI owns lane assignment; the
+                         * engine only has to know which lanes stop being CCs. */
+                        let mut it = val.split(',');
+                        if let (Some(l), Some(f)) = (it.next(), it.next()) {
+                            if let Ok(lane) = l.trim().parse::<u8>() {
+                                match mixer::MixField::parse(f.trim()) {
+                                    Some(field) => self.chains.set_mix_lane(slot, lane, field),
+                                    None => self.chains.clear_mix_lane(slot, lane),
+                                }
+                            }
                         }
                     } else if rest == "midi" {
                         // Live pad notes: "status.d1.d2". A movy chain cannot be
@@ -428,6 +533,13 @@ impl Instance {
                 self.chains.active_count(),
                 self.chains.asleep_count()
             )),
+            _ if key.starts_with("snd") => {
+                let (bus, rest) = parse_send_key(key)?;
+                if rest == "module" {
+                    return self.chains.send_module(bus);
+                }
+                self.chains.send_get_param(bus, rest)
+            }
             _ if key.starts_with("ch") => {
                 let (slot, rest) = parse_chain_key(key)?;
                 /* Symmetric with set_param: the mix is movy's own state, not
@@ -488,11 +600,16 @@ impl Instance {
                             host::midi_send_internal(0xB0 | track, 102 + lane, val);
                         }
                         Some(c) => {
-                            self.chains.on_midi(
-                                c,
-                                &[0xB0, 102 + lane, val],
-                                MOVE_MIDI_SOURCE_INTERNAL,
-                            );
+                            /* A mix lane drives movy's own mixer, which is not
+                             * a param the chain can be told about — see
+                             * MixField. Anything else is an ordinary CC. */
+                            if !self.chains.apply_mix_lane(c, lane, val) {
+                                self.chains.on_midi(
+                                    c,
+                                    &[0xB0, 102 + lane, val],
+                                    MOVE_MIDI_SOURCE_INTERNAL,
+                                );
+                            }
                         }
                     }
                 }
@@ -714,6 +831,52 @@ mod tests {
     }
 
     #[test]
+    fn a_legacy_three_field_mix_parses_with_no_sends() {
+        // Sets saved before sends existed must restore, silently, at zero.
+        let m = parse_mix("0.5,-0.25,0").expect("three fields is still valid");
+        assert_eq!(m.gain, 0.5);
+        assert_eq!(m.pan, -0.25);
+        assert!(!m.muted);
+        assert_eq!(m.send, [0.0; send_bus::SEND_BUSES]);
+    }
+
+    /* The width every set written between sends shipping and send 3 shipping
+     * carries. It must restore BOTH levels and leave the added bus at zero —
+     * not at whatever the slot happened to hold, and not refused for being
+     * narrow. This is the half of the compatibility that faces backwards. */
+    #[test]
+    fn a_two_send_mix_from_an_older_build_still_restores() {
+        let m = parse_mix("1.0,0.0,0,0.25,0.75").expect("five fields is valid");
+        assert_eq!(m.send[0], 0.25);
+        assert_eq!(m.send[1], 0.75);
+        assert_eq!(m.send[2], 0.0, "the bus this build added is not invented");
+    }
+
+    #[test]
+    fn a_full_width_mix_carries_every_send() {
+        let m = parse_mix("1.0,0.0,0,0.25,0.75,0.5").expect("six fields is valid");
+        assert_eq!(m.send, [0.25, 0.75, 0.5]);
+    }
+
+    #[test]
+    fn a_partial_send_block_is_refused_whole() {
+        // A truncated value, never a shape movy wrote: the send block has only
+        // ever grown as a unit. Applying a level nothing wrote is worse than
+        // refusing the value.
+        assert!(parse_mix("1.0,0.0,0,0.25").is_none(), "one send is a truncation");
+        assert!(parse_mix("1.0,0.0,0,nan,0.5").is_none());
+    }
+
+    /* The half that faces FORWARDS. A set written by a build with more sends
+     * than this one has levels with nowhere to land, and a mix applied with a
+     * field silently dropped is a track at a level nobody chose. */
+    #[test]
+    fn a_mix_wider_than_this_build_is_refused() {
+        let too_wide = "1.0,0.0,0".to_string() + &",0.5".repeat(send_bus::SEND_BUSES + 1);
+        assert!(parse_mix(&too_wide).is_none(), "{too_wide} must be refused");
+    }
+
+    #[test]
     fn rejects_a_malformed_mix() {
         // A garbled param must not silence a track or send it to full scale.
         for bad in ["", "1", "1,0", "1,0,0,0", "x,0,0", "nan,0,0", "inf,0,0"] {
@@ -728,12 +891,58 @@ mod tests {
     #[test]
     fn a_chain_mix_round_trips_through_the_param_wire() {
         let mut inst = Instance::new();
-        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("1.0000,0.0000,0"));
+        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("1.0000,0.0000,0,0.0000,0.0000"));
         inst.set_param("ch4:mix", "0.3162,0,0");
-        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("0.3162,0.0000,0"));
+        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("0.3162,0.0000,0,0.0000,0.0000"),
+                   "a legacy three-field write reads back in the five-field form");
+        inst.set_param("ch4:mix", "0.3162,0,0,0.5,0.25");
+        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("0.3162,0.0000,0,0.5000,0.2500"));
         // A garbled write leaves the last good level alone.
         inst.set_param("ch4:mix", "nonsense");
-        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("0.3162,0.0000,0"));
+        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("0.3162,0.0000,0,0.5000,0.2500"));
+    }
+
+    /* End to end through the param wire: the bug this guards against is a
+     * ROUTING one, and a unit test of the map cannot see a key that never
+     * reaches it. */
+    #[test]
+    fn a_mix_lane_is_declared_over_the_param_wire() {
+        let mut inst = Instance::new();
+        inst.set_param("ch4:mixlane", "0,send1");
+        inst.set_param("ch4:mix", "1,0,0,0,0");
+        // Drive the lane the way the engine's own automation does.
+        assert!(inst.chains.apply_mix_lane(4, 0, 127));
+        assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("1.0000,0.0000,0,1.0000,0.0000"));
+        // And released again.
+        inst.set_param("ch4:mixlane", "0,-");
+        assert!(!inst.chains.apply_mix_lane(4, 0, 0));
+    }
+
+    #[test]
+    fn a_malformed_mix_lane_declaration_changes_nothing() {
+        let mut inst = Instance::new();
+        for bad in ["", "0", "x,gain", "0,cutoff", "99,gain"] {
+            inst.set_param("ch4:mixlane", bad);
+        }
+        assert!(!inst.chains.apply_mix_lane(4, 0, 127), "no lane was ever bound");
+    }
+
+    #[test]
+    fn parses_a_send_key() {
+        assert_eq!(parse_send_key("snd0:module"), Some((0, "module")));
+        assert_eq!(parse_send_key("snd1:fx1:mix"), Some((1, "fx1:mix")),
+                   "the remainder keeps its colons");
+    }
+
+    #[test]
+    fn rejects_send_buses_that_cannot_exist() {
+        // Clamping would land a write meant for nothing on bus 0.
+        let past_the_end = format!("snd{}:module", send_bus::SEND_BUSES);
+        assert_eq!(parse_send_key(&past_the_end), None, "{past_the_end}");
+        assert_eq!(parse_send_key("snd9:module"), None);
+        assert_eq!(parse_send_key("sndx:module"), None);
+        assert_eq!(parse_send_key("snd0"), None);
+        assert_eq!(parse_send_key("sound:module"), None);
     }
 
     #[test]
@@ -870,6 +1079,17 @@ mod tests {
         assert!((2800..3000).contains(&block), "128 frames at 44.1k is ~2902us, got {block}");
 
         assert!(s.contains(" chmask=0000/0000"), "nothing loaded, nothing asleep: {s}");
+        /* A dash per bus, not `0/0`. The page shows no send region at all until
+         * something is in one, and a zeroed pair is indistinguishable from a
+         * loaded reverb sitting silent. */
+        let sends: Vec<&str> = s
+            .split(" sndcost=")
+            .nth(1)
+            .and_then(|r| r.split(' ').next())
+            .expect("sndcost field")
+            .split(',')
+            .collect();
+        assert_eq!(sends, vec!["-"; send_bus::SEND_BUSES], "no send module loaded: {s}");
     }
 
     /* `cpurst` must not be `chcostlog`: that one closes the window a device

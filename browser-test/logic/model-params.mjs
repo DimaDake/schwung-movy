@@ -5,7 +5,7 @@
  */
 
 import {
-    dedupShortNames, MOCK_SYNTHS, eq, bootModel, _log, env,
+    dedupShortNames, LABEL_BUDGET, fontWidth, MOCK_SYNTHS, eq, bootModel, _log, env,
     mockFsEntries, installMockFs, uninstallMockFs, readPrefFileDir, PREFS_PATH,
 } from './harness.mjs';
 
@@ -15,7 +15,7 @@ export async function run() {
 _log('\nTest: dedupShortNames — collisions resolved to unique names');
 
 function dedup(labels) {
-    return dedupShortNames(labels.map(l => ({ label: l, shortLabel: null })), 5);
+    return dedupShortNames(labels.map(l => ({ label: l, shortLabel: null })), LABEL_BUDGET);
 }
 function assertUnique(tag, labels, names) {
     // Two names may match only if their labels are identical.
@@ -26,7 +26,10 @@ function assertUnique(tag, labels, names) {
         seen.set(n, labels[i]);
     });
     eq(`${tag}: all shortNames unique`, dup, null);
-    eq(`${tag}: all ≤ 5 chars`, names.every(n => n.length <= 5 && n.length > 0), true);
+    /* The budget is PIXELS, not characters: the font is proportional, so
+     * "CUTOFF" fits a cell where five M's do not. */
+    eq(`${tag}: all fit the label cell`,
+       names.every(n => n.length > 0 && fontWidth(n) <= LABEL_BUDGET), true);
 }
 
 {
@@ -45,7 +48,7 @@ function assertUnique(tag, labels, names) {
                    "Delay Tone Lo","Delay Mode","Delay Mod Rate","Delay Mod Depth"];
     const n = dedup(delay);
     assertUnique('delay', delay, n);
-    eq('delay: Tone Hi → TONHI', n[3], 'TONHI');
+    eq('delay: Tone Hi → TONEHI', n[3], 'TONEHI');
     eq('delay: Tone Lo → TONLO', n[4], 'TONLO');
     eq('delay: Mod Rate → RATE',  n[6], 'RATE');
     eq('delay: Mod Depth → DEPTH', n[7], 'DEPTH');
@@ -56,7 +59,7 @@ function assertUnique(tag, labels, names) {
                   "Ctrl to Vibrato","Ctrl to Shape","Ctrl to FM"];
     const n = dedup(ctrl);
     assertUnique('ctrl', ctrl, n);
-    eq('ctrl: to Cutoff → CUTOF', n[2], 'CUTOF');
+    eq('ctrl: to Cutoff → CUTOFF', n[2], 'CUTOFF');
     // "Ctrl to FM" already shortens to a unique "TO FM" — a non-colliding name,
     // so it must be left unchanged (per the no-baseline-shift rule).
     eq('ctrl: to FM → TO FM',     n[6], 'TO FM');
@@ -75,8 +78,13 @@ function assertUnique(tag, labels, names) {
                  "Amp EG Attack Shape","Amp EG Decay Shape","Amp EG Release Shape","Amp EG Envelope Mode"];
     const n = dedup(amp);
     assertUnique('amp', amp, n);
-    eq('amp: Decay → DECAY',       n[1], 'DECAY');
-    eq('amp: Decay Shape → SHAPE', n[5], 'SHAPE');
+    eq('amp: Decay → DECAY', n[1], 'DECAY');
+    /* The two shapes and Release Shape read as one family of initials rather
+     * than one of them claiming the word SHAPE outright — the four envelope
+     * params are what a page is read for, and they keep their own names. */
+    eq('amp: Decay Shape → DS',   n[5], 'DS');
+    eq('amp: Attack Shape → AS',  n[4], 'AS');
+    eq('amp: Attack keeps its name', n[0], 'ATTACK');
 }
 {
     // surge Oscillator 1 — WIDTH 1/2 with a deep common prefix.
@@ -84,8 +92,8 @@ function assertUnique(tag, labels, names) {
                       "Osc 1 Width 2","Osc 1 Sub Mix","Osc 1 Sync","Osc 1 Unison Detune"];
     const n = dedup(surgeOsc);
     assertUnique('surgeOsc', surgeOsc, n);
-    eq('surgeOsc: Width 1 → WIDT1', n[3], 'WIDT1');
-    eq('surgeOsc: Width 2 → WIDT2', n[4], 'WIDT2');
+    eq('surgeOsc: Width 1 → WIDTH1', n[3], 'WIDTH1');
+    eq('surgeOsc: Width 2 → WIDTH2', n[4], 'WIDTH2');
 }
 {
     // palette Main — AMOUNT/MACRO ×4 with a distinguishing "FXn" head word.
@@ -99,14 +107,14 @@ function assertUnique(tag, labels, names) {
         { label: "Foo Bar", shortLabel: "SAME" },
         { label: "Baz Qux", shortLabel: "SAME" },
     ];
-    const n = dedupShortNames(entries, 5);
+    const n = dedupShortNames(entries, LABEL_BUDGET);
     eq('explicit shortLabels preserved', JSON.stringify(n), JSON.stringify(["SAME", "SAME"]));
 }
 {
     // Non-colliding labels keep their plain autoShorten form.
     const plain = ["Cutoff", "Reso", "Drive", "Volume"];
     eq('non-colliding unchanged', JSON.stringify(dedup(plain)),
-        JSON.stringify(["CUTOF", "RESO", "DRIVE", "VOLUM"]));
+        JSON.stringify(["CUTOFF", "RESO", "DRIVE", "VOLUM"]));
 }
 
 _log('\nTest: colliding page renders unique shortNames through the model');

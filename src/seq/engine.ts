@@ -287,6 +287,7 @@ function parseStatus(s: string): void {
     seqState.cpuCost = '';
     seqState.cpuWall = '';
     seqState.cpuMask = '';
+    seqState.cpuSend = '';
     for (const kv of s.split(' ')) {
         const eq = kv.indexOf('=');
         if (eq <= 0) continue;
@@ -327,6 +328,7 @@ function parseStatus(s: string): void {
         else if (key === 'chcost') seqState.cpuCost = val;
         else if (key === 'chwall') seqState.cpuWall = val;
         else if (key === 'chmask') seqState.cpuMask = val;
+        else if (key === 'sndcost') seqState.cpuSend = val;
         else if (key === 'rec') seqState.recording = val === '1';
         else if (key === 'cin') seqState.countingIn = val === '1';
         else if (key === 'cap') {

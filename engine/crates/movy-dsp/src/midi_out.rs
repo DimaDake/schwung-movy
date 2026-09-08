@@ -39,7 +39,7 @@
 use std::cell::{Cell, UnsafeCell};
 use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 
-use crate::chain_slots::MOVY_CHAINS;
+use crate::chain_slots::RENDER_SLOTS;
 
 /// Messages one chain may emit per block before the queue starts dropping.
 ///
@@ -75,8 +75,11 @@ pub struct MidiOut {
     /// thread after the join. That is the same ownership argument the scratch
     /// buffers rely on, and the pool's release/acquire pair on `pending`
     /// publishes both.
-    q: [UnsafeCell<[Msg; CAP]>; MOVY_CHAINS],
-    n: [AtomicUsize; MOVY_CHAINS],
+    /// Indexed over `RENDER_SLOTS`, not just the chains: a send bus's FX runs on
+    /// a lane too, and a module that emits MIDI from `process_fx` needs a queue
+    /// of its own there for the same single-producer reason a chain does.
+    q: [UnsafeCell<[Msg; CAP]>; RENDER_SLOTS],
+    n: [AtomicUsize; RENDER_SLOTS],
     dropped: AtomicU32,
 }
 
@@ -115,8 +118,8 @@ pub fn test_guard() -> std::sync::MutexGuard<'static, ()> {
 impl MidiOut {
     const fn new() -> Self {
         Self {
-            q: [const { UnsafeCell::new([EMPTY; CAP]) }; MOVY_CHAINS],
-            n: [const { AtomicUsize::new(0) }; MOVY_CHAINS],
+            q: [const { UnsafeCell::new([EMPTY; CAP]) }; RENDER_SLOTS],
+            n: [const { AtomicUsize::new(0) }; RENDER_SLOTS],
             dropped: AtomicU32::new(0),
         }
     }
@@ -128,7 +131,7 @@ impl MidiOut {
     /// module, 0 being the host API's own failure value.
     pub fn park(&self, msg: &[u8], external: bool) -> Option<c_len> {
         let chain = CHAIN.with(|c| c.get());
-        if chain >= MOVY_CHAINS {
+        if chain >= RENDER_SLOTS {
             return None;
         }
         // A packet longer than the 4-byte USB-MIDI shape the API documents is
@@ -156,7 +159,7 @@ impl MidiOut {
     /// Replay everything parked this block, in slot order. Audio thread only,
     /// and only after the join.
     pub fn drain(&self, mut send: impl FnMut(&[u8], bool)) {
-        for chain in 0..MOVY_CHAINS {
+        for chain in 0..RENDER_SLOTS {
             let n = self.n[chain].swap(0, Ordering::Relaxed).min(CAP);
             for i in 0..n {
                 // Safe: every producer is joined, and `swap` means no other

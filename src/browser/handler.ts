@@ -1,7 +1,7 @@
 import { componentPort } from '../track/registry.js';
 import { browserState } from './state.js';
 import { appState, VIEW_BROWSE } from '../app/state.js';
-import { moduleReadKey, type ChainSlot } from '../chain/config.js';
+import { isMasterComponent, moduleReadKey, type ChainSlot } from '../chain/config.js';
 import { requestLaneWarm } from '../seq/automation.js';
 import { releaseAllLive } from '../keyboard/release.js';
 import { captureLfoAssignments, captureModuleState, dumpModuleParams } from '../undo/module-dump.js';
@@ -83,10 +83,14 @@ export function loadSelectedModule(): void {
     if (browserState.modules.length === 0) return;
     const mod = browserState.modules[browserState.browseIndex];
     // Track chain slots load a module by its id (`fx1:module` = "reverb"); master
-    // FX slots (colon-namespaced componentKey, e.g. `master_fx:fx1`) instead take
-    // the full DSP path — schwung's master bus resolves `master_fx:fxN:module`
-    // as a path, not an id, so writing the id silently no-ops.
-    const isMaster = browserState.componentKey.includes(':');
+    // FX slots instead take the full DSP path — schwung's master bus resolves
+    // `master_fx:fxN:module` as a path, not an id, so writing the id silently
+    // no-ops.
+    //
+    // Asked by COMPONENT and not by "does the key contain a colon": movy's own
+    // SEND slots also ride the master page, and they are chains movy hosts — id,
+    // not path, and no master mirror to resync.
+    const isMaster = isMasterComponent(browserState.componentKey);
     const value    = isMaster ? mod.path : mod.id;
     // The outgoing module is about to be torn down; its notes must be released
     // while it is still there to receive the off.

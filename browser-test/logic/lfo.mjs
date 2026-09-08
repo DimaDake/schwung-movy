@@ -224,16 +224,18 @@ _log('\nTest: LFO target commit reaches a movy-hosted track');
 
 _log('\nTest: master chain LFO page');
 {
-    const { MASTER_FX_SLOTS, MASTER_LFO_INDEX, isMasterLfoSlot, isVirtualSlot } = await import('../../dist/esm/chain/config.js');
+    const { MASTER_FX_SLOTS, MASTER_LFO_INDEX, SEND_BUSES, isMasterLfoSlot, isVirtualSlot } = await import('../../dist/esm/chain/config.js');
     const { createScopedLfoModel } = await import('../../dist/esm/lfo/model.js');
     const { resetPorts } = await import('../../dist/esm/track/registry.js');
     const DETENT = 8;
 
-    eq('master chain has an LFO slot', MASTER_FX_SLOTS.length, 5);
-    eq('it is last', MASTER_LFO_INDEX, 4);
-    eq('isMasterLfoSlot(4)', isMasterLfoSlot(4), true);
+    /* Two sends, four master FX, one LFO. */
+    /* Every send, four master FX, and the LFO. */
+    eq('master chain has an LFO slot', MASTER_FX_SLOTS.length, SEND_BUSES + 4 + 1);
+    eq('it is last', MASTER_LFO_INDEX, MASTER_FX_SLOTS.length - 1);
+    eq('isMasterLfoSlot(last)', isMasterLfoSlot(MASTER_LFO_INDEX), true);
     eq('isMasterLfoSlot(0)', isMasterLfoSlot(0), false);
-    eq('the LFO slot is virtual', isVirtualSlot(MASTER_FX_SLOTS[4]), true);
+    eq('the LFO slot is virtual', isVirtualSlot(MASTER_FX_SLOTS[MASTER_LFO_INDEX]), true);
     eq('an FX slot is not', isVirtualSlot(MASTER_FX_SLOTS[0]), false);
 
     /* The master LFOs live in the shim under `master_fx:`, reachable through any
@@ -289,7 +291,7 @@ _log('\nTest: master chain LFO page');
 
 _log('\nTest: LFO chain slot wiring');
 {
-    eq('CHAIN_SLOTS has 5 entries', CHAIN_SLOTS.length, 5);
+    eq('CHAIN_SLOTS has 6 entries', CHAIN_SLOTS.length, 6);
     eq('slot 4 is LFO', CHAIN_SLOTS[4].componentKey, 'lfo');
     eq('LFO_CHAIN_INDEX', LFO_CHAIN_INDEX, 4);
     eq('isLfoSlot(4)', isLfoSlot(4), true);
@@ -297,7 +299,8 @@ _log('\nTest: LFO chain slot wiring');
 
     env.setParams({});
     init();
-    eq('each track has 5 models', appState.trackModels[0].length, 5);
+    eq('each track has 6 models', appState.trackModels[0].length, 6);
+    eq('track model 5 is MIX', appState.trackModels[0][5].getComponentKey(), 'mix');
     eq('track model 4 is LFO', appState.trackModels[0][4].getComponentKey(), 'lfo');
     eq('track model 1 is a module', appState.trackModels[0][1].getComponentKey(), 'synth');
 }

@@ -15,9 +15,24 @@ const state = { held: null as Held | null, active: false, lfoSel: 0 };
  * carries the `master_fx:` namespace; the shim's target field does not. */
 function comp(h: Held): string { return targetComponent(h.scope, h.info.target); }
 
+/* Whether this scope's LFOs can address the knob's component at all.
+ *
+ * `scope.components` is already the list the LFO page's target picker walks;
+ * the hold gesture used to skip it and offer whatever component the knob
+ * happened to belong to. On the master page that includes movy's SEND buses,
+ * which are hosted by movy's ENGINE and not by the shim — and the shim routes
+ * `master_fx:lfoN:target` through `master_fx_route_target()`, which parses only
+ * `fx<N>` (or the sibling LFO). A `snd0` target was therefore dropped on the
+ * floor, so the toast promised a modulation that could never happen AND the
+ * commit overwrote whatever that LFO was legitimately driving. */
+function reachable(scope: LfoScope, info: KnobParamInfo): boolean {
+    return scope.components.indexOf(targetComponent(scope, info.target)) >= 0;
+}
+
 export function holdTouch(scope: LfoScope, physK: number, info: KnobParamInfo | null): void {
     state.active = false;
-    state.held = (info && info.automatable) ? { scope, physK, info, pressMs: Date.now() } : null;
+    state.held = (info && info.automatable && reachable(scope, info))
+        ? { scope, physK, info, pressMs: Date.now() } : null;
 }
 
 export function holdTurnCancel(): void { state.held = null; if (state.active) resetAssignMode(); }

@@ -3,61 +3,14 @@
  * Same split as the other pages: the renderer is pure and takes this, so every
  * rule below can be asserted without a framebuffer.
  *
- * The three inputs arrive as raw strings on the status poll and are parsed
+ * The four inputs arrive as raw strings on the status poll and are parsed
  * HERE, once per repaint, rather than on every poll — see seq/state.ts. */
 
 import { seqState } from './state.js';
+import { scaleFor } from './cpu-scale.js';
 import { flagValue } from './flags.js';
 import { TRACK_COUNT, trackKind } from '../track/ref.js';
-
-/** The column scale's FLOOR, microseconds per block.
- *
- *  Free auto-ranging would make a column legible on any set and comparable on
- *  none — not between sessions, and not across the CPU Optimize flag, which is
- *  the one comparison the page exists to make. So the scale does not follow the
- *  set downward: it sits at 1 ms, which is round and fits almost every chain the
- *  fleet has measured, and only ever grows. */
-export const FULL_SCALE_US = 1000;
-
-/** Steps the scale may take, once 1 ms is not enough.
- *
- *  A ladder rather than "round up to the next 100 us" so the number under the
- *  plot stays a number you can hold in your head, and so the plot does not
- *  re-scale by a hair every time a peak creeps up. */
-const SCALE_LADDER = [FULL_SCALE_US, 1500, 2000, 3000, 4000, 5000, 6000, 8000, 9000];
-
-/** The scale this set needs, driven by the BARS — the settled means.
- *
- *  Explicitly NOT the held peaks, which was the first thing tried and is wrong:
- *  a peak is a single worst block, and loading a chain costs several
- *  milliseconds in `dlopen` and first-block allocation. On device that one
- *  transient took the scale to 5 ms and squashed every real column to nothing
- *  for the rest of the viewing — the same failure a fixed scale had, in reverse.
- *  The bar is what you read continuously, so the bar is what the plot fits.
- *
- *  A peak past the top is not lost: it clamps and its column says so with the
- *  detached cap. That is the ordinary bargain of a level meter — the scale
- *  follows the sustained level and the peak indicator clips.
- *
- *  Rises only, so it needs no hysteresis and no state of its own: a settled
- *  mean does not oscillate across a ladder step the way a peak does, and the
- *  ladder's gaps absorb what drift there is. */
-export function scaleFor(columns: CpuColumn[]): number {
-    let worst = 0;
-    for (const c of columns) {
-        if (c.totalUs > worst) worst = c.totalUs;
-    }
-    for (const step of SCALE_LADDER) {
-        if (worst <= step) return step;
-    }
-    return SCALE_LADDER[SCALE_LADDER.length - 1];
-}
-
-/** The scale as the label under the plot draws it: `1MS`, `1.5MS`, `2MS`. */
-export function scaleLabel(scaleUs: number): string {
-    const ms = scaleUs / 1000;
-    return (Number.isInteger(ms) ? String(ms) : ms.toFixed(1)) + 'MS';
-}
+import { SEND_BUSES } from '../chain/config.js';
 
 /** Fallback block period, microseconds — 128 frames at 44.1 kHz. Only used
  *  before the first poll carrying `chwall`; the engine computes the real one
@@ -100,6 +53,14 @@ export type CpuColumn = {
 
 export type CpuPageVM = {
     columns: CpuColumn[];
+    /* One per send bus, or EMPTY when no bus holds a module — the page's two
+     * layouts are exactly `sends.length === 0` and not, and a set that uses no
+     * send draws the plot it always did.
+     *
+     * All three arrive together once any one of them is filled, so a bus keeps
+     * its column position whatever its neighbours are doing. An unfilled one is
+     * `empty`, the same as an unused track. */
+    sends: CpuColumn[];
     /** Microseconds at the top of a column. At least `FULL_SCALE_US`. */
     scaleUs: number;
     wallUs: number;
@@ -156,10 +117,12 @@ export function buildCpuPageVM(): CpuPageVM {
         });
     }
 
+    const sends = buildSendColumns(seqState.cpuSend);
     const budgetUs = Math.max(1, Math.round(blockUs * USABLE_BLOCK));
     return {
         columns,
-        scaleUs: scaleFor(columns),
+        sends,
+        scaleUs: scaleFor(columns, sends),
         wallUs,
         wallPeakUs,
         blockUs,
@@ -168,4 +131,39 @@ export function buildCpuPageVM(): CpuPageVM {
         peakLoad: wallPeakUs / budgetUs,
         optimized: flagValue('cpuopt') > 0,
     };
+}
+
+/** The ` sndcost=` field as columns: `-,312/980,-` → three columns, the middle
+ *  one live.
+ *
+ *  Returns EMPTY when no bus holds a module, which is what hides the whole send
+ *  region. A bus reading `-` inside a non-empty result is a real answer — "this
+ *  bus is free" — and a bus at zero is a third: loaded, and skipped this block
+ *  because nothing is feeding it and its tail has died away. The page draws
+ *  those two differently, which is the entire reason the engine sends a dash
+ *  rather than `0/0`.
+ *
+ *  A send has no synth stage — a bus IS an FX pass over a buffer the tracks
+ *  filled — so `synthUs` is 0 and the whole column draws as the hatched FX
+ *  segment. That is not a gap in the data; it is what a send is. */
+export function buildSendColumns(raw: string): CpuColumn[] {
+    if (!raw) return [];
+    const fields = raw.split(',');
+    const cols: CpuColumn[] = [];
+    for (let n = 0; n < SEND_BUSES; n++) {
+        const f = fields[n];
+        if (f === undefined || f === '-') {
+            cols.push({ kind: 'empty', totalUs: 0, synthUs: 0, peakUs: 0 });
+            continue;
+        }
+        const [total, peak] = f.split('/');
+        const totalUs = num(total);
+        cols.push({
+            kind: totalUs > 0 ? 'live' : 'asleep',
+            totalUs,
+            synthUs: 0,
+            peakUs: num(peak),
+        });
+    }
+    return cols.some((c) => c.kind !== 'empty') ? cols : [];
 }

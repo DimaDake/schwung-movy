@@ -132,7 +132,7 @@ export const FLAGS: FlagDef[] = [
     },
     {
         key: 'chparallel', name: 'Parallel Render',
-        hint: 'Renders chains on several threads.',
+        hint: 'Renders chains and send FX on several threads.',
         // On: measured 2.15x on the twelve-chain obxd ramp and 2.0-2.2x across
         // the mid-weight fleet (docs/track-performance.md §1, §2), which is what
         // takes hera and nusaw from over the frame budget to under it. The
@@ -147,6 +147,22 @@ export const FLAGS: FlagDef[] = [
         // 1 is a real setting, not an alias for serial: it is the parallel path
         // with no helpers. 4 is MAX_LANES in chain_slots.rs.
         min: 1, max: 4, def: 3,
+    },
+    {
+        key: 'chcolo', name: 'Send On Lane',
+        hint: 'Renders a send beside the tracks feeding it.',
+        // On: measured 274 us -- 9.4% of a 2902 us frame -- on twelve chains
+        // with one heavy send, against the same FX inserted on the track that
+        // fed it (plans/2026-09-07-send-bus-colocation.md §1). It closes the
+        // gap that made a send more expensive than an insert below four tracks,
+        // which is a trap a user cannot be expected to know about.
+        //
+        // A flag where the parallel send phase deliberately had none: that was
+        // measured on a one-synth fixture where `chparallel 0` was a clean
+        // control, and this is measured on twelve chains where the same flag
+        // would move ~1500 us of chain work too. Off is the arm to compare
+        // against.
+        min: 0, max: 1, def: 1, bool: true,
     },
     {
         key: 'chidle', name: 'Idle Skip',
@@ -177,6 +193,11 @@ export const FLAGS: FlagDef[] = [
         // Off by default: modules are assumed thread-safe and the ones proven
         // otherwise go on chain_pin's blacklist. This is the blunt containment
         // for a set that misbehaves before the culprit is known.
+        //
+        // A TEST SETTING, never a shipping default. Pinning gives back exactly
+        // the parallelism it contains — twelve chains of one module pinned
+        // together return 1.00x — so a set that needs it has a bug to find
+        // rather than a configuration to ship. See chain_pin.rs.
         min: 0, max: 1, def: 0, bool: true,
     },
     {

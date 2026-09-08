@@ -26,6 +26,7 @@ function knobInfoFor(k: number): any | null {
 import { focusedTrack, focusGroupStep, GROUP_DIR_UP, GROUP_DIR_DOWN } from '../track/focus.js';
 import { beginTrackSwitch, restoreTrackState, switchToTrack } from '../track/switch.js';
 import { portFor } from '../track/registry.js';
+import { mappingFor } from '../seq/lane-mapping.js';
 import { setButtonHeld } from '../seq/button-held.js';
 import { sessionPhase, sessionReady } from '../seq/set-session.js';
 import { sessionStartFromScratch } from '../seq/set-fail.js';
@@ -35,7 +36,8 @@ import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease } from '..
 import { flagsPageActive, flagsPageJog, flagsPageKnob } from '../seq/flags-page.js';
 import { cpuPageActive } from '../seq/cpu-page.js';
 import { closeParamPage, paramPageActive } from '../seq/param-page.js';
-import { CHAIN_SLOTS, MASTER_FX_SLOTS, LFO_CHAIN_INDEX, MASTER_LFO_INDEX, isLfoSlot, isMasterLfoSlot } from '../chain/config.js';
+import { CHAIN_SLOTS, MASTER_FX_SLOTS, LAST_CHAIN_INDEX, LAST_MASTER_INDEX,
+         LFO_CHAIN_INDEX, MASTER_LFO_INDEX, isLfoSlot, isMasterLfoSlot } from '../chain/config.js';
 import { keyboardState } from '../keyboard/state.js';
 import { browserState } from '../browser/state.js';
 import { noteOn, noteOff, changeOctave } from '../keyboard/handler.js';
@@ -465,7 +467,7 @@ export function onMidiMessageInternal(data: number[]): void {
                         model.getComponentKey ? model.getComponentKey() : 'synth') : null;
         const info = knobInfoFor(k);
         if (info && handleAutomationKnob(track, k, info, delta,
-                (lane) => portFor(track).setParam('knob_' + (lane + 1) + '_set', info.target + ':' + info.ioKey))) {
+                mappingFor(info, (key, val) => portFor(track).setParam(key, val)))) {
             return;
         }
         /* Not automation, so it is an edit — through Schwung's own onKnobTurn,
@@ -788,7 +790,7 @@ export function onMidiMessageInternal(data: number[]): void {
             if (masterDetailActive()) {
                 masterModel()?.changePage(delta > 0 ? 1 : -1);
             } else if (masterGridActive()) {
-                appState.masterChainIndex = Math.max(0, Math.min(MASTER_LFO_INDEX, appState.masterChainIndex + (delta > 0 ? 1 : -1)));
+                appState.masterChainIndex = Math.max(0, Math.min(LAST_MASTER_INDEX, appState.masterChainIndex + (delta > 0 ? 1 : -1)));
             } else if (appState.currentView === VIEW_CHAIN) {
                 const dir = delta > 0 ? 1 : -1;
                 if (stepPageAvailable()) {
@@ -797,10 +799,10 @@ export function onMidiMessageInternal(data: number[]): void {
                     } else if (dir < 0 && chainIndex() === 0) {
                         setStepPageSelected(true);                     // enter step page
                     } else {
-                        setChainIndex(Math.max(0, Math.min(LFO_CHAIN_INDEX, chainIndex() + dir)));
+                        setChainIndex(Math.max(0, Math.min(LAST_CHAIN_INDEX, chainIndex() + dir)));
                     }
                 } else {
-                    setChainIndex(Math.max(0, Math.min(LFO_CHAIN_INDEX, chainIndex() + dir)));
+                    setChainIndex(Math.max(0, Math.min(LAST_CHAIN_INDEX, chainIndex() + dir)));
                 }
                 mlog('chain chainIndex=' + chainIndex());
             } else if (appState.currentView === VIEW_KNOBS) {
@@ -863,10 +865,10 @@ export function onMidiMessageInternal(data: number[]): void {
         if (masterDetailActive()) {
             masterModel()?.changePage(1);
         } else if (masterGridActive()) {
-            appState.masterChainIndex = Math.min(MASTER_LFO_INDEX, appState.masterChainIndex + 1);
+            appState.masterChainIndex = Math.min(LAST_MASTER_INDEX, appState.masterChainIndex + 1);
         } else if (appState.currentView === VIEW_CHAIN) {
             if (stepPageAvailable() && stepPageState.selected) setStepPageSelected(false);
-            else setChainIndex(Math.min(LFO_CHAIN_INDEX, chainIndex() + 1));
+            else setChainIndex(Math.min(LAST_CHAIN_INDEX, chainIndex() + 1));
         } else if (appState.currentView === VIEW_KNOBS) {
             const m = activeModel();
             if (stepPageAvailable() && stepPageState.selected) setStepPageSelected(false);

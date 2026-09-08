@@ -39,6 +39,11 @@ export const ARC_DELTA_SCALE        = 0.5;  /* sensitivity multiplier for contin
  * wide-range knobs (reso 0.5..20) and hair-trigger narrow ones. Ints keep their
  * natural step as a floor so discrete values still move; enums are exempt. */
 export const MIN_STEP_RANGE_FRAC    = 0.01;
+/* One CC unit's share of a continuous knob's travel — the two constants above,
+ * multiplied. Movy's own mixer steps by this so a fader, a pan and a send
+ * travel exactly as far per turn as the module knobs either side of them
+ * (mixer/db-ladder.ts). */
+export const CONTINUOUS_TICK_FRAC   = MIN_STEP_RANGE_FRAC * ARC_DELTA_SCALE;
 
 /* Settle window after committing an item selection before the module is
  * re-read. The DSP is loading a bank of patches and its answers change

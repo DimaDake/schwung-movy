@@ -521,10 +521,22 @@ export async function run() {
    * with and hides the bug entirely, which is why this re-inits. */
   setMovyTracks(true);
   init();
+  /* By COMPONENT, not by index: the master page grew two movy-hosted SEND
+   * slots in front of the master FX, and this assertion is about what a
+   * `master_fx:` key does, not about what happens to be first. */
+  const mfx = appState.masterFxModels.find((m) => m.getComponentKey().startsWith('master_fx'));
   slotReads.length = 0; chainReads.length = 0;
-  appState.masterFxModels[0].reload();
-  appState.masterFxModels[0].tick();
+  mfx.reload();
+  mfx.tick();
   eq('master FX still reads through a schwung slot', slotReads.length > 0, true);
+
+  /* And its neighbour must not: a send bus is movy's own, so its params go to
+   * the engine however chtracks has resolved track 0. */
+  const snd = appState.masterFxModels.find((m) => m.getComponentKey() === 'snd0');
+  slotReads.length = 0; chainReads.length = 0;
+  snd.reload();
+  snd.tick();
+  eq('a send slot never reads a schwung slot', slotReads.length, 0);
   eq('and never namespaces its keys to a chain',
      chainReads.filter((k) => k.indexOf('ch') === 0).join(','), '');
 

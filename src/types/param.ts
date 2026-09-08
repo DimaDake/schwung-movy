@@ -188,7 +188,7 @@ export interface KnobParam {
     step:           number;
     options:        string[] | null;
     nameKey?:       string;
-    renderStyle:    'arc' | 'hbar' | 'vbar' | 'switch' | 'preset' | 'xbox' | 'steps' | 'items';
+    renderStyle:    'arc' | 'hbar' | 'vbar' | 'pan' | 'switch' | 'preset' | 'xbox' | 'steps' | 'items';
     /* Item selector only (see model/items-param.ts): the module's own index for
      * each option. knobValues holds the screen POSITION; this maps it back to
      * the value written to select_param, which a sparse list makes different. */

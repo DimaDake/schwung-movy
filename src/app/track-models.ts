@@ -7,14 +7,17 @@
  * nothing until movy is restarted.
  */
 
-import { CHAIN_SLOTS, isLfoSlot } from '../chain/config.js';
+import { CHAIN_SLOTS, isLfoSlot, isMixSlot } from '../chain/config.js';
 import { createLfoModel } from '../lfo/model.js';
+import { createMixModel } from '../mixer/mix-model.js';
 import { createModel } from '../model/index.js';
 import { portFor } from '../track/registry.js';
 
 /** One model per chain slot for `track`, against whichever host it has NOW. */
 export function buildTrackModels(track: number): ReturnType<typeof createModel>[] {
-    return CHAIN_SLOTS.map((s, i) => isLfoSlot(i)
-        ? createLfoModel(track)
-        : createModel(portFor(track), s.componentKey)) as ReturnType<typeof createModel>[];
+    return CHAIN_SLOTS.map((s, i) => {
+        if (isLfoSlot(i)) return createLfoModel(track);
+        if (isMixSlot(i)) return createMixModel(track);
+        return createModel(portFor(track), s.componentKey);
+    }) as ReturnType<typeof createModel>[];
 }

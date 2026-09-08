@@ -11,14 +11,38 @@ export const CHAIN_SLOTS: ChainSlot[] = [
     { componentKey: 'fx1',      label: 'FX 1',    scanDir: 'audio_fx',         expectedType: 'audio_fx'        },
     { componentKey: 'fx2',      label: 'FX 2',    scanDir: 'audio_fx',         expectedType: 'audio_fx'        },
     { componentKey: 'lfo',      label: 'LFO',     scanDir: '',                 expectedType: ''                },
+    { componentKey: 'mix',      label: 'MIX',     scanDir: '',                 expectedType: ''                },
 ];
 
-/* The LFO is a virtual last chain slot (no module to scan/swap) — it edits the
- * track's two schwung slot LFOs. */
-export const LFO_CHAIN_INDEX = CHAIN_SLOTS.length - 1;
+/* The two virtual chain slots (no module to scan or swap): the LFO page edits
+ * the track's two schwung slot LFOs, and the MIX page edits movy's own summing
+ * mixer — level, pan and the send amounts.
+ *
+ * Both are addressed by an EXPLICIT index. `length - 1` was fine while the LFO
+ * was last, but the moment a page was appended after it every `isLfoSlot()`
+ * caller silently retargeted at the new page — including `persistableComponents`
+ * and `buildTrackModels`, which is to say the two callers that decide which
+ * slots hold a module at all. */
+export const LFO_CHAIN_INDEX = 4;
+export const MIX_CHAIN_INDEX = 5;
 export function isLfoSlot(chainIndex: number): boolean { return chainIndex === LFO_CHAIN_INDEX; }
+export function isMixSlot(chainIndex: number): boolean { return chainIndex === MIX_CHAIN_INDEX; }
+
+/* How far the jog and the arrows may walk. Its OWN name, because
+ * `LFO_CHAIN_INDEX` used to be both "which slot is the LFO" and "the last
+ * slot", and appending MIX after it broke only the second meaning — the bank
+ * bar drew a sixth segment the jog could never reach. A grep for `isLfoSlot`
+ * callers does not find a clamp that uses the constant directly, which is
+ * exactly how that shipped. */
+export const LAST_CHAIN_INDEX = CHAIN_SLOTS.length - 1;
 
 export const MASTER_FX_SLOTS: ChainSlot[] = [
+    /* Movy's own send buses, and deliberately FIRST: they are left of the master
+     * FX on the page because they are left of them in the signal path — a send's
+     * output joins movy's stereo out, which schwung's master FX then process. */
+    { componentKey: 'snd0', label: 'SEND 1', scanDir: 'audio_fx', expectedType: 'audio_fx' },
+    { componentKey: 'snd1', label: 'SEND 2', scanDir: 'audio_fx', expectedType: 'audio_fx' },
+    { componentKey: 'snd2', label: 'SEND 3', scanDir: 'audio_fx', expectedType: 'audio_fx' },
     { componentKey: 'master_fx:fx1', label: 'MFX 1', scanDir: 'audio_fx', expectedType: 'audio_fx' },
     { componentKey: 'master_fx:fx2', label: 'MFX 2', scanDir: 'audio_fx', expectedType: 'audio_fx' },
     { componentKey: 'master_fx:fx3', label: 'MFX 3', scanDir: 'audio_fx', expectedType: 'audio_fx' },
@@ -30,6 +54,11 @@ export const MASTER_FX_SLOTS: ChainSlot[] = [
 
 export const MASTER_LFO_INDEX = MASTER_FX_SLOTS.length - 1;
 export function isMasterLfoSlot(i: number): boolean { return i === MASTER_LFO_INDEX; }
+
+/* The master chain's navigation bound, kept apart from MASTER_LFO_INDEX for the
+ * same reason LAST_CHAIN_INDEX is kept apart from LFO_CHAIN_INDEX. They are the
+ * same number today only because the LFO happens to be last here. */
+export const LAST_MASTER_INDEX = MASTER_FX_SLOTS.length - 1;
 
 /* A slot with nothing to scan holds no module of its own — today that means the
  * LFO page, on either chain. Renderers ask this rather than comparing indices,
@@ -47,6 +76,36 @@ export function isMasterComponent(componentKey: string): boolean {
     return componentKey.startsWith('master_fx');
 }
 
+/* A send bus is hosted by MOVY, not by schwung's master bus. It rides the master
+ * page because that is where a user looks for it, but its params live in movy's
+ * engine under `snd<n>:` and its port must not be a shadow slot. */
+export const SEND_BUSES = 3;
+
+/* The chain host component a send bus loads its FX into. A send holds ONE audio
+ * FX, so the bus lives in the engine key and the component underneath is always
+ * this — the UI addresses a bus and never a component. Must match
+ * `SEND_COMPONENT` in `engine/crates/movy-dsp/src/chain_slots.rs`. */
+export const SEND_COMPONENT = 'fx1';
+
+/* Derived from SEND_BUSES rather than listed. While the two keys were spelled
+ * out here, adding a bus would have given it a slot that renders on the master
+ * page and browses for a module — but `componentPort` would route its edits to
+ * a shadow slot instead of movy's engine, which is a send that loads a module
+ * and then does nothing at all. */
+export function isSendComponent(componentKey: string): boolean {
+    return sendBusOf(componentKey) >= 0;
+}
+
+export function sendBusOf(componentKey: string): number {
+    if (!componentKey.startsWith('snd')) return -1;
+    const rest = componentKey.slice(3);
+    /* Digits only, and not `Number()`: that reads '' as 0 and ' 1' as 1, so
+     * `snd` alone would answer bus 0 and take a master FX slot's edits with it. */
+    if (!/^[0-9]+$/.test(rest)) return -1;
+    const bus = Number(rest);
+    return bus < SEND_BUSES ? bus : -1;
+}
+
 /* Read-back param key for a component's loaded module id. The device sets a
  * module with the colon key (`fx1:module`) but track-chain components expose
  * the loaded id under an underscore alias (`fx1_module`) — while a master FX
@@ -55,6 +114,11 @@ export function isMasterComponent(componentKey: string): boolean {
  * (`master_fx:fx1:module`). Without this distinction a freshly added master FX
  * module reads back as empty and the slot keeps showing "click jog to add". */
 export function moduleReadKey(componentKey: string): string {
+    /* First, because a send key carries no colon and would otherwise take the
+     * underscore path and ask for `snd0_module`. The engine translates
+     * `snd<n>:module` onto the instance's own alias, so the bus number is all
+     * the UI ever has to say. */
+    if (isSendComponent(componentKey)) return componentKey + ':module';
     return componentKey.includes(':')
         ? componentKey + ':module'
         : componentKey + '_module';

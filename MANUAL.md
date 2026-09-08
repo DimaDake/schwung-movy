@@ -31,6 +31,8 @@ official docs first:
    - [Opening Movy](#opening-movy)
 2. [Parameter pages](#2-parameter-pages)
 3. [The module chain](#3-the-module-chain)
+   - [The MIX page](#the-mix-page)
+   - [Send FX](#send-fx)
 4. [Keyboard & drums](#4-keyboard--drums)
 5. [The sequencer (aligned with Move)](#5-the-sequencer-aligned-with-move)
 6. [Beyond Move: Step, Clip & Set parameters](#6-beyond-move-step-clip--set-parameters)
@@ -358,6 +360,25 @@ automatically. You don't configure anything for most modules.
   keep their knobs — each is an amount of something else that happens to say
   "level".
 
+- **Pan bars** — a knob that sets a **stereo position** — a track's pan, a
+  drum pad's pan, a per-voice pan, a *Panorama* — is drawn as a **bipolar bar**
+  instead of a dial: a dotted rail marking the travel, a tick above its centre,
+  and a bar that fills out from the middle toward the side you pan to. Pan is
+  the one common parameter whose default is the *centre* rather than an end, and
+  on a bar that centre is the one state that looks different from every other:
+
+  ![Stereo position knobs drawn as pan bars](docs/assets/pan_dials.png)
+
+  It works the same whether the module counts pan from −1 to +1 or from 0 to
+  127 — the middle of the range is the middle of the bar.
+
+  Only a genuine position qualifies. A *Rnd Pan* (how far a voice wanders), a
+  *Pan Width* or *Unison Pan* spread, a *Pan KF* key-follow, a *Pan Velocity* or
+  *Pan LFO* amount, and a *Pan Morph* all keep their knobs — each is an amount of
+  something else that happens to say "pan". So does an *Osc Balance* or *Filter
+  Balance*, which crossfades between two sources rather than two speakers, and a
+  one-sided *Pan L* / *Pan R* pair, which has no centre of its own.
+
 - **Multiple pages** — modules with more than 8 parameters split into pages
   (`MAIN`, `PAGE 1`, `PAGE 2`, …). Scroll them with the jog wheel (or Left/Right
   when the sequencer isn't using those buttons). The line under the title is the
@@ -506,8 +527,8 @@ In **Chain** view you see the slots of the current track:
 
 ![Chain view](docs/assets/chain_synth.png)
 
-- **Jog wheel** scrolls between slots (MIDI FX, Synth, FX 1, FX 2, and the LFO
-  page).
+- **Jog wheel** scrolls between slots (MIDI FX, Synth, FX 1, FX 2, the LFO page
+  and the MIX page).
 - **Jog click** on a loaded slot **drills into** that module's parameter pages.
 - **Jog click** on an empty slot — or **Shift + jog click** on any slot — opens
   the **module browser** to load/swap the module in that slot:
@@ -519,8 +540,9 @@ In **Chain** view you see the slots of the current track:
 - **Back** returns from a module's pages to the chain, and from the chain it
   exits Movy.
 
-In **Session** view, the same navigation applies to a **master FX chain**
-(MFX 1–4) that processes the whole mix, followed by a fifth **LFO** page — see
+In **Session** view, the same navigation applies to the **master chain**: two
+**send FX** slots, then **MFX 1–4** processing the whole mix, then an **LFO**
+page — see [Send FX](#send-fx) and
 [The master chain's LFOs](#the-master-chains-lfos).
 
 ### Track volume
@@ -556,6 +578,83 @@ for 5-16 — and it is **saved with the Set**, so it survives leaving Movy, a
 power cycle, and switching to another Set and back. A Movy-hosted track's level
 is saved alongside its chain, so a chain with nothing loaded in it has no level
 to keep.
+
+### The MIX page
+
+The last slot in every track's chain is **MIX** — Movy's own mixer for that
+track.
+
+![MIX page](docs/assets/mix_page_chain.png)
+
+| Knob | What it does |
+| --- | --- |
+| **VOL** | Track level, drawn as a fader. Silence to +12 dB, on the same dB curve as **track + volume**. |
+| **PAN** | Position in the stereo field, shown as `C`, `L50`, `R100`. |
+| **SEND1** | How much of this track goes to send FX 1. Full right is 0 dB. |
+| **SEND2** | How much of this track goes to send FX 2. |
+| **SEND3** | How much of this track goes to send FX 3. |
+
+VOL and PAN sit on the top row; the three sends are together on the bottom row,
+under encoders 5–7.
+
+Every knob here turns at the same rate as a module's — a full sweep is a full
+sweep, wherever you are on the fader — and lands on the round numbers: `0.0 dB`
+and centre pan are always reachable, whatever the value started at. Hold two
+knobs and both show their values; the header follows the one you touched last.
+
+![Two knobs held on the MIX page](docs/assets/mix_page_two_held.png)
+
+All five are **automatable** like any module parameter: hold a step and turn, or
+turn while recording. See [Step parameters](#step-parameters--per-trig-locks).
+Automation follows the same fader curve the knob does, so an automated level
+moves where you expect it to rather than crowding into one end of the travel.
+
+The sends are **post-fader and post-pan**: pulling a track's level down takes its
+reverb with it, and a hard-panned track arrives in the return where you left it.
+Muting a track mutes its sends too.
+
+⚠️ **Tracks 1–4 show only VOL** unless they are Movy-hosted. A Schwung-hosted
+track's audio never passes through Movy, so there is nothing for Movy to pan or
+to tap for a send, and Schwung has no pan control of its own. Turn on
+**Movy tracks** in Settings to get the full page on tracks 1–4. This is a
+routing fact, not a missing feature.
+
+### Send FX
+
+The master chain starts with three **send FX** slots, to the left of MFX 1.
+
+![Send FX slot](docs/assets/master_send_slot.png)
+
+Load one the way you load any module — jog to the slot, jog click, pick from the
+browser — and then raise **SEND1**, **SEND2** or **SEND3** on the MIX page of
+whichever tracks should feed it. Each send holds **one audio FX**. Its output is
+added back at unity; the send amount on each track is the level control.
+
+The buses render **in parallel** when it pays for itself. Three heavy reverbs
+cost 847 µs of a 2902 µs audio block one after another and 423 µs spread across
+Movy's render lanes — a saving of about 15% of the frame. Movy checks the
+arithmetic per block and stays serial when overlapping would cost more than it
+saves, which is what happens when only one bus is working.
+
+They sit left of the master FX on screen because they sit left of them in the
+signal path: a send's output joins Movy's own output, which the master FX then
+process.
+
+**Why bother.** One reverb shared by eight tracks costs a fraction of eight
+reverbs — and a send is never more expensive than putting the same effect on the
+track itself, however few tracks feed it. That used not to be true: a bus had to
+wait for every track to finish and then ran on its own, so below about four
+tracks a send cost more than an FX slot did. Movy now renders a bus on the same
+render lane as the tracks feeding it whenever that shortens the block, which on
+a twelve-track set with one heavy delay is worth about 250 µs — 9% of the audio
+frame. Nothing is delayed to do it, so short effects behave normally on a send.
+
+Sends are still for *wet* effects — reverb, delay, chorus. An effect that
+replaces the dry signal (distortion, compression, EQ) belongs in the track's own
+FX slot, where it will sound like you intended: that is a question of what it
+does to the sound, not of what it costs.
+
+Sends are **saved with the Set**, module and preset alike.
 
 ### The LFO page
 
@@ -617,6 +716,11 @@ While a parameter is modulated its on-screen knob stays at your **base value** �
 the LFO moves the sound, not the displayed knob.
 
 Both work on **every track**, Schwung-backed (1–4) and Movy-hosted (5–16) alike.
+
+The prompt only appears on knobs an LFO can actually reach — a module's own
+parameters. It is not offered on the **MIX** page or on a **send FX** slot: those
+live in Movy's own audio engine, while the LFOs belong to Schwung's chain host,
+so it has no way to drive them. Automate those with a parameter lane instead.
 
 ### The master chain's LFOs
 
@@ -1488,6 +1592,32 @@ so — the same bargain any level meter makes.
 | Just the baseline | Nothing loaded |
 | A dotted vertical column | A **Schwung**-hosted track — it renders outside Movy, so Movy cannot measure it. Not the same as costing nothing |
 
+#### Send buses
+
+![CPU meter with send buses](docs/assets/cpu-sends.png)
+
+As soon as any **send bus** holds an effect, three more columns appear at the
+right of the plot under **SND**, one per send. The track columns narrow to make
+room, and the tracks lose their `13` label — the scale, which moves to the right
+of the track columns, is the more useful number of the two. A set that uses no
+sends draws exactly the plot it always did.
+
+The send columns are always all three, in bus order, whether or not each one has
+an effect in it — so a bus keeps its place as you load and clear its neighbours.
+They read on the same scale as the tracks, so you can compare a reverb against
+the instrument feeding it directly, and a heavy send lifts the whole plot the
+same way a heavy track does.
+
+A send is an effect pass over a buffer every track has already contributed to,
+so its column is checkered all the way up: there is no instrument stage to
+draw. And because a bus only runs when something is feeding it or its tail is
+still ringing, a send you have stopped playing into drops to a **dash** —
+loaded, costing nothing this block — with its peak line still showing what it
+cost when it was working.
+
+The send phase has always counted towards the bar and the percentage at the top;
+these columns just show you which bus the time went to.
+
 #### A module that reads as free
 
 A few modules do their synthesis in a **separate process** and hand Movy
@@ -1693,6 +1823,8 @@ behaviour you'd like — or, better, a PR.
 | **Shift / Play / Rec** (Leave menu up) | Run normally *without* closing the menu. |
 | **Parameter knobs** (Leave menu up) | Inert — the menu covers the screen, so the edit would be invisible. |
 | **Hold track + volume encoder** | Set that track's volume (0–400%, 100% = unity, 1 dB per detent). Add **Shift** to see Movy's slider instead of Move's native overlay. |
+| **MIX page knobs 1–2, 5–7** | VOL / PAN on the top row, SEND1 / SEND2 / SEND3 on the bottom, for the current track. All five automate like any parameter. Movy-hosted tracks only — a Schwung track shows VOL alone (see [The MIX page](#the-mix-page)). |
+| **Jog to the master chain's first three slots** | The three **send FX**. Load one like any module; feed it with SEND1 / SEND2 / SEND3 on each track's MIX page (see [Send FX](#send-fx)). |
 | **+ / −** (Up/Down) | Shift the **active track's** octave (melodic tracks only). Each track remembers its own, saved with the set. In **Session** view they step the focused **track group** instead (**+** towards tracks 1-4, **−** towards 13-16). |
 
 ### Sequencer
@@ -1748,7 +1880,7 @@ only.
 | **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/link/quantize, root/key/mode/layout). |
 | **Shift + Step 6** | Toggle the **metronome**. |
 | **Shift + Step 10** | Toggle **full velocity** — every pad note at 127. Kept across sets and restarts. |
-| **Shift + Step 12** | Open the **CPU meter** (per-track cost, block usage). Press again to clear the held peaks. |
+| **Shift + Step 12** | Open the **CPU meter** (per-track and per-send cost, block usage). Press again to clear the held peaks. |
 | **Shift + Step 15** | **Double** the loop. |
 | **Shift + Step 16** | Cycle the current clip's **quantization** (0 / default / 100 %). |
 

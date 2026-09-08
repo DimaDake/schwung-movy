@@ -1923,6 +1923,35 @@ only.
 
   **Do it with Movy closed, and before reopening the Set** — the rescue copy
   lives in the shadow slot the next autosave writes to.
+
+  Without a checkout of this repo, the same thing over plain SSH. First find
+  which Set is affected and which copy still has the music:
+
+  ```bash
+  ssh ableton@move.local 'S=/data/UserData/schwung/modules/tools/movy/sets
+  for d in "$S"/*/; do
+    c=$(grep -c "^cl " "$d/seq-state.json" 2>/dev/null); c=${c:-0}
+    [ "$c" != "0" ] && continue
+    for n in 1 2; do
+      s=$(grep -c "^cl " "$d/seq-state.$n.json" 2>/dev/null); s=${s:-0}
+      [ "$s" != "0" ] && echo "$(basename $d) -> seq-state.$n.json holds $s clip(s)"
+    done
+  done'
+  ```
+
+  Then copy that file over **both** the canonical file and the other shadow,
+  using the folder and number it printed:
+
+  ```bash
+  ssh ableton@move.local 'D=/data/UserData/schwung/modules/tools/movy/sets/<uuid>
+  cp $D/seq-state.2.json $D/seq-state.json
+  cp $D/seq-state.2.json $D/seq-state.1.json'
+  ```
+
+  Overwriting the other shadow is not optional. Each copy carries a generation
+  number and Movy loads the highest one it can read, so a blank left in the
+  other slot is newer than the rescue and still wins — restoring only
+  `seq-state.json` looks right and loads empty.
 - **The audio engine (MoveOriginal) crashed.** A sequencer engine bug should be
   caught before it can take down Move, but if audio dies, a full restart of the
   Schwung stack recovers it (see the build/test notes in

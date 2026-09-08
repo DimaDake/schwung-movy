@@ -182,6 +182,7 @@ await esbuild.build({
          * without a filesystem. */
         resolve(root, 'src/seq/version-index.ts'),
         resolve(root, 'src/seq/version-retain.ts'),
+        resolve(root, 'src/seq/version-store.ts'),
         resolve(root, 'src/seq/held.ts'),
         resolve(root, 'src/seq/buttons.ts'),
         resolve(root, 'src/keyboard/leds.ts'),

@@ -151,4 +151,60 @@ export async function run() {
         ok('future timestamps still thin', versionToDrop(list, NOW) !== null);
     }
 }
+
+{
+    _log('\nversion store:');
+    const { installMockFs, uninstallMockFs } = await import('./harness.mjs');
+    const { readVersionIndex, writeVersion, readVersionState, readVersionUi }
+        = await import('../../dist/esm/seq/version-store.js');
+    const { versionStatePath } = await import('../../dist/esm/seq/set-context.js');
+
+    const NOW = 1788892154000;
+    const fs = installMockFs({});
+    eq('a set with no history reads empty', readVersionIndex('S1').v.length, 0);
+
+    ok('writes a version', writeVersion('S1', 'open', 'movy1\ncl 0 0 16 0 x\n', 5, '{"root":48}', NOW));
+    const idx = readVersionIndex('S1');
+    eq('one version', idx.v.length, 1);
+    eq('numbered from 1', idx.v[0].n, 1);
+    eq('carries the generation', idx.v[0].gen, 5);
+    eq('counted its clips', idx.v[0].clips, 1);
+    eq('recorded the ui blob', idx.v[0].ui, true);
+    eq('next advanced', idx.next, 2);
+
+    eq('the payload comes back', readVersionState('S1', 1).payload, 'movy1\ncl 0 0 16 0 x\n');
+    eq('the ui blob comes back', readVersionUi('S1', 1), '{"root":48}');
+
+    /* The version DIRECTORY is written before the index entry, so a crash
+     * between them leaves an unreferenced directory — collectable — instead of
+     * an index naming files that do not exist. */
+    const order = fs.writes.filter((p) => p.includes('/v/1/') || p.endsWith('versions.json'));
+    ok('directory written before the index', order[order.length - 1].endsWith('versions.json'));
+
+    /* No ui blob is a legitimate version: an adopted OLDER sequence has no ui
+     * state of its own age, and restoring it must leave the chains alone. */
+    writeVersion('S1', 'adopted', 'movy1\n', 1, null, 0);
+    eq('a version can have no ui half', readVersionIndex('S1').v.find((r) => r.n === 2).ui, false);
+    eq('and reads back as null', readVersionUi('S1', 2), null);
+
+    /* An index naming a version whose files are gone must not offer it. */
+    delete fs.files[versionStatePath('S1', 2)];
+    eq('a dangling entry is dropped on read',
+        readVersionIndex('S1').v.some((r) => r.n === 2), false);
+
+    /* A failed write must leave NO index entry: a version that half exists is
+     * worse than one that does not, because the menu would offer it. */
+    fs.failWrites = '/v/3/';
+    eq('a failed capture is not recorded',
+        writeVersion('S1', 'auto', 'movy1\ncl 0 0 16 0 z\n', 9, null, NOW), false);
+    fs.failWrites = null;
+    eq('and left the index alone', readVersionIndex('S1').v.some((r) => r.n === 3), false);
+
+    /* Over the cap, the store prunes as it writes — the ladder decides which. */
+    for (let i = 0; i < 40; i++)
+        writeVersion('CAP', 'auto', 'movy1\ncl 0 0 16 0 ' + i + '\n', i + 1, null, NOW + i * 60_000);
+    ok('the store keeps the set within its cap', readVersionIndex('CAP').v.length <= 32);
+
+    uninstallMockFs();
+}
 }

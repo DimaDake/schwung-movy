@@ -36,6 +36,7 @@ const PRESETS = [
     'enum_overlay', 'knob_toast', 'no_params', 'keys_view', 'browse_view',
     'session_booting', 'session_loading', 'session_modules', 'session_preparing', 'session_failed',
     'session_failed_update',
+    'versions_empty', 'versions_list', 'versions_confirm',
     'obxd_preset_page', 'obxd_main_page', 'obxd_filter_page',
     'items_cell', 'items_overlay',
     'lfo_prefix', 'collide_osc',
@@ -196,6 +197,7 @@ const { volumeFrac }       = await import('../dist/esm/mixer/track-volume.js');
 const { renderKnobsView }  = await import('../dist/esm/renderer/knob-view.js');
 const { renderKeysView }   = await import('../dist/esm/renderer/keys-view.js');
 const { renderLoadingView } = await import('../dist/esm/renderer/loading-view.js');
+const { renderVersionsView } = await import('../dist/esm/renderer/versions-view.js');
 const { renderBrowseView } = await import('../dist/esm/renderer/browse-view.js');
 const { renderChainView }  = await import('../dist/esm/renderer/chain-view.js');
 const { buildStepPageVM }  = await import('../dist/esm/seq/step-page-vm.js');
@@ -373,6 +375,28 @@ function applyView(preset) {
          * is wrong with the set, and no button here wipes anything. */
         case 'session_failed_update':
             lastRender = () => renderLoadingView('failed', 'MOVY WAS UPDATED', 0, 'engine');
+            lastRender(); break;
+        case 'versions_empty':
+            lastRender = () => renderVersionsView(
+                { rows: [], selected: 0, confirming: false, empty: true });
+            lastRender(); break;
+        case 'versions_list':
+            lastRender = () => renderVersionsView({
+                rows: [
+                    { age: '2M AGO',  why: 'OPENED',      clips: '6 CLIPS', seqOnly: false },
+                    { age: '18M AGO', why: 'AUTOSAVE',    clips: '6 CLIPS', seqOnly: false },
+                    { age: '1H AGO',  why: 'PRE-WIPE',    clips: '6 CLIPS', seqOnly: false },
+                    { age: '3H AGO',  why: 'AUTOSAVE',    clips: '4 CLIPS', seqOnly: false },
+                    { age: 'OLDEST',  why: 'FOUND',       clips: '5 CLIPS', seqOnly: true  },
+                    { age: '2D AGO',  why: 'ON EXIT',     clips: '5 CLIPS', seqOnly: false },
+                ], selected: 2, confirming: false, empty: false });
+            lastRender(); break;
+        /* The confirm must say what a restore does NOT cover — Schwung's own
+         * four track slots live in Move's set file, out of movy's reach. */
+        case 'versions_confirm':
+            lastRender = () => renderVersionsView({
+                rows: [{ age: '2M AGO', why: 'OPENED', clips: '6 CLIPS', seqOnly: false }],
+                selected: 0, confirming: true, empty: false });
             lastRender(); break;
         case 'browse_view':      showBrowse([{ name: 'Plaits' }, { name: 'Wurl' }, { name: 'Bass' }], 1); break;
         /* Trigger badge phases. Time is frozen so the fired flash and two drain

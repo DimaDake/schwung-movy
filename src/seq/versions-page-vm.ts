@@ -11,9 +11,12 @@ export interface VersionsPageVM {
     rows: VersionsRowVM[]; selected: number; confirming: boolean; empty: boolean;
 }
 
+/* Short on purpose: three columns share 128 pixels, and the reason is the least
+ * load-bearing of them. PRE- rather than BEFORE because "WIPE" alone reads as
+ * what this version IS rather than what it came before. */
 const WHY_LABEL: Record<VersionWhy, string> = {
     'open': 'OPENED', 'auto': 'AUTOSAVE', 'exit': 'ON EXIT',
-    'pre-wipe': 'BEFORE WIPE', 'pre-restore': 'BEFORE UNDO', 'adopted': 'ADOPTED',
+    'pre-wipe': 'PRE-WIPE', 'pre-restore': 'PRE-UNDO', 'adopted': 'FOUND',
 };
 
 const MIN = 60_000, HOUR = 3600_000, DAY = 24 * HOUR;

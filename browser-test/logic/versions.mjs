@@ -424,7 +424,7 @@ export async function run() {
     writeVersion('P1', 'adopted', 'movy1\ncl 0 0 16 0 z\n', 1, null, 0);
     const vm = buildVersionsPageVM(NOW, 'P1');
     eq('two rows', vm.rows.length, 2);
-    eq('newest first', vm.rows[0].why, 'BEFORE WIPE');
+    eq('newest first', vm.rows[0].why, 'PRE-WIPE');
     eq('shows the clip count', vm.rows[0].clips, '2 CLIPS');
     eq('one clip is singular', vm.rows[1].clips, '1 CLIP');
     /* A version with no ui half restores the sequence alone, and the row has to

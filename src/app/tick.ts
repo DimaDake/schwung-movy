@@ -1,12 +1,15 @@
 import { portFor } from '../track/registry.js';
-import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS, VIEW_CPU } from './state.js';
+import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS, VIEW_CPU, VIEW_VERSIONS } from './state.js';
 import { mainPageActive, mainPageState } from '../seq/main-page.js';
 import { buildMainPageVM } from '../seq/main-page-vm.js';
 import { clipPageActive, clipPageState } from '../seq/clip-page.js';
 import { buildClipPageVM } from '../seq/clip-page-vm.js';
 import { buildFlagsPageVM } from '../seq/flags-page-vm.js';
+import { buildVersionsPageVM } from '../seq/versions-page-vm.js';
+import { versionsPageState } from '../seq/versions-page.js';
 import { FLAG_KNOB } from '../seq/flags-page.js';
 import { renderFlagsView } from '../renderer/flags-view.js';
+import { renderVersionsView } from '../renderer/versions-view.js';
 import { renderCpuView, barPixels } from '../renderer/cpu-view.js';
 import { buildCpuPageVM } from '../seq/cpu-page-vm.js';
 import { cpuPageActive } from '../seq/cpu-page.js';
@@ -35,7 +38,7 @@ import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
 import { concreteKey } from '../model/pad-scope.js';
 import { mlog } from '../log.js';
-import { chainLoadsPending, sessionError, sessionFailScope, sessionPhase, sessionReady, sessionTick } from '../seq/set-session.js';
+import { chainLoadsPending, currentSetUuid, sessionError, sessionFailScope, sessionPhase, sessionReady, sessionTick } from '../seq/set-session.js';
 import { takeSurfaceReturn } from '../seq/set-commit.js';
 import { claimLedOwnership } from './led-ownership.js';
 import { renderLoadingView } from '../renderer/loading-view.js';
@@ -671,6 +674,11 @@ function tickBody(): void {
             // Only knob 1 lights, and its brightness is the value — the page is
             // a list, so the LED is the only thing saying which knob edits it.
             updateSingleKnobLED(FLAG_KNOB, vm.knobNormalized);
+        } else if (appState.currentView === VIEW_VERSIONS) {
+            const vm = buildVersionsPageVM(Date.now(), currentSetUuid());
+            vm.selected = versionsPageState.selected;
+            vm.confirming = versionsPageState.confirming;
+            renderVersionsView(vm);
         } else if (schwungEditorActive()) {
             /* A divable parameter's list, drawn over whatever view opened it.
              * Ahead of every view branch because it is modal — the page beneath

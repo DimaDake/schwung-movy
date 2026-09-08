@@ -590,9 +590,9 @@ track.
 | --- | --- |
 | **VOL** | Track level, drawn as a fader. Silence to +12 dB, on the same dB curve as **track + volume**. |
 | **PAN** | Position in the stereo field, shown as `C`, `L50`, `R100`. |
-| **SND1** | How much of this track goes to send FX 1. Full right is 0 dB. |
-| **SND2** | How much of this track goes to send FX 2. |
-| **SND3** | How much of this track goes to send FX 3. |
+| **SEND1** | How much of this track goes to send FX 1. Full right is 0 dB. |
+| **SEND2** | How much of this track goes to send FX 2. |
+| **SEND3** | How much of this track goes to send FX 3. |
 
 VOL and PAN sit on the top row; the three sends are together on the bottom row,
 under encoders 5–7.
@@ -626,7 +626,7 @@ The master chain starts with three **send FX** slots, to the left of MFX 1.
 ![Send FX slot](docs/assets/master_send_slot.png)
 
 Load one the way you load any module — jog to the slot, jog click, pick from the
-browser — and then raise **SND1**, **SND2** or **SND3** on the MIX page of
+browser — and then raise **SEND1**, **SEND2** or **SEND3** on the MIX page of
 whichever tracks should feed it. Each send holds **one audio FX**. Its output is
 added back at unity; the send amount on each track is the level control.
 
@@ -1823,8 +1823,8 @@ behaviour you'd like — or, better, a PR.
 | **Shift / Play / Rec** (Leave menu up) | Run normally *without* closing the menu. |
 | **Parameter knobs** (Leave menu up) | Inert — the menu covers the screen, so the edit would be invisible. |
 | **Hold track + volume encoder** | Set that track's volume (0–400%, 100% = unity, 1 dB per detent). Add **Shift** to see Movy's slider instead of Move's native overlay. |
-| **MIX page knobs 1–2, 5–7** | VOL / PAN on the top row, SND1 / SND2 / SND3 on the bottom, for the current track. All five automate like any parameter. Movy-hosted tracks only — a Schwung track shows VOL alone (see [The MIX page](#the-mix-page)). |
-| **Jog to the master chain's first three slots** | The three **send FX**. Load one like any module; feed it with SND1 / SND2 / SND3 on each track's MIX page (see [Send FX](#send-fx)). |
+| **MIX page knobs 1–2, 5–7** | VOL / PAN on the top row, SEND1 / SEND2 / SEND3 on the bottom, for the current track. All five automate like any parameter. Movy-hosted tracks only — a Schwung track shows VOL alone (see [The MIX page](#the-mix-page)). |
+| **Jog to the master chain's first three slots** | The three **send FX**. Load one like any module; feed it with SEND1 / SEND2 / SEND3 on each track's MIX page (see [Send FX](#send-fx)). |
 | **+ / −** (Up/Down) | Shift the **active track's** octave (melodic tracks only). Each track remembers its own, saved with the set. In **Session** view they step the focused **track group** instead (**+** towards tracks 1-4, **−** towards 13-16). |
 
 ### Sequencer

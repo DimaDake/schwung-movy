@@ -11,7 +11,7 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
-## [Unreleased]
+## [0.32.0] — 2026-09-08
 
 ### Highlights
 
@@ -45,9 +45,10 @@ far. Earlier work is summarised in the timeline below for context.
   the Flags page (**Send On Lane**) turns it off.
 
 - **A MIX page per track.** The last slot in every chain: **VOL** and **PAN** on
-  the top row, **SND1**, **SND2** and **SND3** together on the bottom under
+  the top row, **SEND1**, **SEND2** and **SEND3** together on the bottom under
   encoders 5-7. Pan and mute existed in Movy's mixer from the start with no
-  control surface; this is it. All five automate like any module parameter.
+  control surface; this is it. All five automate like any module parameter,
+  and one turn of a knob undoes as a single gesture.
   VOL is drawn as a fader and PAN as a bipolar bar — vertical and horizontal
   versions of the same picture — so the page reads as a channel strip rather
   than as five identical dials.
@@ -1957,4 +1958,4 @@ A condensed timeline of how Movy got here (pre-`0.21.0`):
 - **2026-06-07 → 08** — Module chain view, multi-track, render performance work.
 - **2026-06-06** — Initial release: chromatic keyboard + module host for Schwung.
 
-[Unreleased]: https://github.com/DimaDake/schwung-movy/compare/main...HEAD
+[0.32.0]: https://github.com/DimaDake/schwung-movy/releases/tag/v0.32.0

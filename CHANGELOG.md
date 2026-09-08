@@ -13,6 +13,32 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Added
+
+- **Set backups, with a restore menu on the device.** Movy kept two rotating
+  copies of a Set's sequence, which is a torn-write guard and nothing more: both
+  are rewritten every few seconds, so they survive a crash and not a decision.
+  Every Set now keeps up to **32 older versions** as well.
+
+  A version is kept when a Set is **opened** — a snapshot of what was on disk
+  before Movy can write anything — roughly every ten minutes of work, when the
+  Set is **left**, and always **before** anything that would wipe it. They are
+  thinned on a ladder rather than a queue: the last hour in detail, today by the
+  hour, this week by the day, then by the week, so a long session cannot push
+  out the milestone you actually want.
+
+  **Settings → BACKUPS** lists them by age, reason and clip count. Jog scrolls,
+  Shift + jog jumps a screen, and a jog click asks to confirm before restoring —
+  restoring is itself undoable, since the state you had is kept first. Schwung's
+  own four track slots are not included and the confirm says so: those live in
+  Move's Set file, which Movy cannot write.
+
+  **Sets made by earlier builds are adopted, not started from scratch.** The
+  first time one is opened, the copies already on disk — including the rotating
+  backup that `recover-sets.mjs` reaches for today — are copied into its history,
+  so the menu is useful immediately. Older adopted versions restore the sequence
+  alone and leave your instruments untouched, marked `*` in the list.
+
 ### Fixed
 
 - **"Movy was updated — restart your Move", instead of a dead end.** Movy's

@@ -116,6 +116,37 @@ Movy never became live, so it never wrote anything.
 `ENGINE DID NOT START` on the same screen means the engine did not answer at
 all. The remedy is the same restart.
 
+### Backups
+
+Movy keeps older versions of every Set and can put one back without a computer.
+Open **Settings** (Shift + Step 2) and scroll to the last row, **BACKUPS**:
+
+![Backups](docs/assets/versions_list.png)
+
+Each row is one saved version: how long ago it was kept, why it was kept, and
+how many clips are in it — the clip count is the quickest way to spot the one
+that still has your work. **Jog** scrolls; **Shift + jog** jumps a screen at a
+time. A `*` after the count means *sequence only*: that version restores your
+notes and leaves your instruments exactly as they are.
+
+A version is kept when you **open** a Set, roughly every ten minutes while you
+work, when you **leave**, and always **before** anything that would wipe the
+Set. Up to 32 are kept per Set, thinned so you get the last hour in detail,
+today by the hour, this week by the day, and older ones by the week.
+
+**Jog click** on a row asks to confirm, because restoring replaces what you have
+now:
+
+![Restoring](docs/assets/versions_confirm.png)
+
+**Jog click** again restores it; **Back** cancels. Two things worth knowing:
+
+- Restoring is itself undoable — the state you had is kept as a version first,
+  so a mis-press costs you nothing.
+- **Schwung's own four track slots are not included.** Those live in Move's Set
+  file rather than Movy's, so a restore brings back your sequence and Movy's own
+  chains, and leaves those slots alone.
+
 ### Which Set your sequence belongs to
 
 Movy stores one sequence per Move Set, and follows Move: pick another Set and
@@ -1911,9 +1942,14 @@ only.
   `schwung/modules/tools/movy/sets/<set-uuid>/` — `seq-state.json` plus
   `seq-state.1.json` / `seq-state.2.json`. Attach all of them to a bug report;
   each carries a generation number, which says which was written last.
-- **A set went blank after you pressed the jog on a failure screen.** Older Movy
-  builds offered `JOG CLICK = START EMPTY` on every failure, including ones where
-  the Set was fine — and taking that offer blanked the Set. The previous save is
+- **A set went blank, or you want an earlier version of it.** Open
+  **Settings → BACKUPS** (Shift + Step 2, then scroll to the last row) and pick
+  one — see [Backups](#backups) below. Every Set keeps up to 32 older versions,
+  and a Set that predates this feature has its existing backup copies adopted
+  into the list the first time you open it.
+- **A set went blank on an OLDER build, before backups existed.** Those builds
+  offered `JOG CLICK = START EMPTY` on every failure, including ones where the
+  Set was fine — and taking that offer blanked the Set. The previous save is
   usually still in one of the rotating copies, so it can be put back:
 
   ```bash

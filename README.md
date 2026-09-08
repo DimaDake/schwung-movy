@@ -195,6 +195,15 @@ Movy stands on the shoulders of several projects:
 
   ![Settings](docs/assets/flags-release.png)
 
+- **Backups** — every Set keeps up to 32 older versions, kept when you open it,
+  as you work, and always before anything that would wipe it. Browse them by
+  age and clip count in **Settings → BACKUPS** and put one back on the device,
+  no computer needed. Restoring is itself undoable, and a Set from an older
+  build has its existing copies adopted into the list the first time you open
+  it.
+
+  ![Backups](docs/assets/versions_list.png)
+
 - **Background mode** — Back at the root opens a Leave menu; choose Background
   to keep Movy sequencing under Move's own screens (synced LFOs stay locked).
   Shift + Back exits instantly.

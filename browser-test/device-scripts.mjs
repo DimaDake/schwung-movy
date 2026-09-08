@@ -344,6 +344,22 @@ log('\nTest 8: test.sh keys on phrases the source can actually emit');
         ok(`src can emit ${JSON.stringify(phrase)}`, src.includes(phrase));
         ok(`test.sh looks for ${JSON.stringify(phrase.trim())}`, testSh.includes(phrase.trim()));
     }
+
+    /* Same rule for the versions suite, whose verdict on the whole feature is
+     * two greps: one for the log line the restore emits, one for the shape of
+     * the index entry adoption writes. Rename either and the suite goes green
+     * having tested nothing. */
+    const versionsSh = readFileSync('scripts/test-versions.sh', 'utf8');
+    ok('src can emit "versions: restored "', src.includes('versions: restored '));
+    ok('test-versions.sh looks for it', versionsSh.includes('versions: restored'));
+    ok('src can write a why of "adopted"', src.includes("'adopted'"));
+    ok('test-versions.sh greps the adopted entry', versionsSh.includes('"why":"adopted"'));
+    /* And that the shape it greps for is the shape the index actually
+     * serializes — JSON.stringify writes no spaces, which is why the pattern
+     * has none. A pretty-printed index would slip past this grep. */
+    ok('the index is serialized without spaces',
+        readFileSync('src/seq/version-index.ts', 'utf8')
+            .includes('JSON.stringify({ next: idx.next, v: idx.v })'));
     /* And the branch that made the dead phrase harmless-looking: with a fixture
      * that guarantees a synth, "no synth loaded" cannot be a pass. */
     ok('a missing instrument is a failure, not an outcome',

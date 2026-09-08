@@ -35,7 +35,7 @@ import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
 import { concreteKey } from '../model/pad-scope.js';
 import { mlog } from '../log.js';
-import { chainLoadsPending, sessionError, sessionPhase, sessionReady, sessionTick } from '../seq/set-session.js';
+import { chainLoadsPending, sessionError, sessionFailScope, sessionPhase, sessionReady, sessionTick } from '../seq/set-session.js';
 import { takeSurfaceReturn } from '../seq/set-commit.js';
 import { claimLedOwnership } from './led-ownership.js';
 import { renderLoadingView } from '../renderer/loading-view.js';
@@ -656,7 +656,7 @@ function tickBody(): void {
         } else if (!sessionReady()) {
             /* Ahead of every view: until the Set is in the engine there is
              * nothing truthful to draw, and input is refused anyway. */
-            renderLoadingView(sessionPhase(), sessionError(), chainLoadsPending());
+            renderLoadingView(sessionPhase(), sessionError(), chainLoadsPending(), sessionFailScope());
         } else if (appState.currentView === VIEW_MAIN_PARAMS) {
             const vm = buildMainPageVM();
             renderKnobsView(vm, false, appState.activeTrack.index);

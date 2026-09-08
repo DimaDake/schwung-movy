@@ -28,7 +28,7 @@ import { beginTrackSwitch, restoreTrackState, switchToTrack } from '../track/swi
 import { portFor } from '../track/registry.js';
 import { mappingFor } from '../seq/lane-mapping.js';
 import { setButtonHeld } from '../seq/button-held.js';
-import { sessionPhase, sessionReady } from '../seq/set-session.js';
+import { sessionFailScope, sessionPhase, sessionReady } from '../seq/set-session.js';
 import { sessionStartFromScratch } from '../seq/set-fail.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } from '../app/state.js';
 import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease } from '../seq/main-page.js';
@@ -165,7 +165,12 @@ export function onMidiMessageInternal(data: number[]): void {
     if (!sessionReady()) {
         const isCc = (data[0] & 0xF0) === 0xB0 && data[2] > 0;
         if (isCc && data[1] === MoveBack) { /* fall through to the Back handler */ }
-        else if (isCc && data[1] === MoveMainButton && sessionPhase() === 'failed') {
+        else if (isCc && data[1] === MoveMainButton && sessionPhase() === 'failed'
+                 && sessionFailScope() === 'set') {
+            /* Only a set-scoped failure. Starting empty BLANKS THE SET on disk,
+             * which cannot fix an engine that never started — it would just
+             * destroy an intact set while the user is trying to get past a
+             * screen. The engine failure screen offers no jog click at all. */
             sessionStartFromScratch();
             appState.dirty = true;
             return;

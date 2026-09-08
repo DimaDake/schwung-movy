@@ -14,7 +14,7 @@
  * state? — and nothing ever waits on identity. */
 
 import { mlog } from '../log.js';
-import { engineAbsent, engineGeneration, engineReady } from './engine.js';
+import { engineAbsent, engineAbsentReason, engineGeneration, engineReady } from './engine.js';
 import { seqState } from './state.js';
 import { beginSettle, resetSettle, settleCheck, settleOutstanding, settleWaited } from './set-settle.js';
 import {
@@ -32,6 +32,7 @@ import { loadSet, setHasState } from './set-load.js';
 import { adoptSaved, resetSetSave, saveNeeded, saveSet, savedPayload } from './set-save.js';
 
 export type Phase = 'booting' | 'loading' | 'settling' | 'ready' | 'switching' | 'failed';
+export type FailScope = 'set' | 'engine';
 
 const SAVE_TICKS = 600;      // ~3-8 s: the device tick is 63-205 Hz and varies with load
 const SET_POLL_TICKS = 96;   // ~0.5 s: catch a set switch, including on resume
@@ -46,16 +47,26 @@ let loadedGen = -1;
 let saveCountdown = SAVE_TICKS;
 let pollCountdown = 1;
 let failReason = '';
+/* Whether the thing that failed is THIS SET or the engine underneath it. Only
+ * a set-scoped failure has a recovery movy can offer, because the only
+ * recovery it has is to blank the set — which cannot fix an engine that never
+ * started, and would destroy a set that is perfectly fine. */
+let failScope: FailScope = 'set';
 /* Dead-set collection is a once-per-session sweep, not a per-load one. */
 let collected = false;
 
 export function sessionPhase(): Phase { return phase; }
 export function sessionError(): string { return failReason; }
+export function sessionFailScope(): FailScope { return failScope; }
 /* set-fail.ts drives these: the failure states and their one recovery live
  * there so this file stays the lifecycle and nothing else. */
 export function setPhase(p: Phase): void { phase = p; }
-export function setFailure(reason: string): void { failReason = reason; phase = 'failed'; }
-export function clearFailure(): void { failReason = ''; phase = 'booting'; pollCountdown = 1; }
+export function setFailure(reason: string, scope: FailScope = 'set'): void {
+    failReason = reason; failScope = scope; phase = 'failed';
+}
+export function clearFailure(): void {
+    failReason = ''; failScope = 'set'; phase = 'booting'; pollCountdown = 1;
+}
 export function currentGen(): number { return gen; }
 export function bumpGen(): void { gen++; }
 export function sessionReady(): boolean { return phase === 'ready'; }
@@ -76,6 +87,7 @@ export function resetSetSession(): void {
     setId = ''; setName = ''; gen = 0; loadedGen = -1;
     saveCountdown = SAVE_TICKS; pollCountdown = 1;
     failReason = '';
+    failScope = 'set';
     resetSettle();
     collected = false;
     resetSetSave();
@@ -126,6 +138,7 @@ function enterLoading(id: string, name: string): void {
     const stored = readBestState(id);
     if (stored === null && fileExists(uuidToStatePath(id))) {
         failReason = 'SET FILE UNREADABLE';
+        failScope = 'set';
         mlog('seq: FAILED — ' + id + ' has a state file that will not parse');
         setId = id; setName = name;
         phase = 'failed';
@@ -220,8 +233,19 @@ export function sessionTick(): void {
      * screen that will never finish. */
     if (engineAbsent()) {
         if (phase !== 'failed') {
-            failReason = 'ENGINE DID NOT START';
-            mlog('seq: FAILED — the engine never answered');
+            /* A STALE answer names its own fix. The shim dlopens the engine by
+             * path and glibc keeps serving the library already loaded there for
+             * as long as MoveOriginal lives, so a movy whose `dsp.so` was
+             * replaced underneath it — a store update — probes forever against
+             * the previous version. Nothing movy can do reaches that; a restart
+             * does, and saying so is the difference between a dead end and a
+             * ten-second fix. */
+            const stale = engineAbsentReason() === 'stale';
+            failReason = stale ? 'MOVY WAS UPDATED' : 'ENGINE DID NOT START';
+            failScope = 'engine';
+            mlog('seq: FAILED — ' + (stale
+                ? 'the previous engine is still loaded; the Move must restart'
+                : 'the engine never answered'));
             phase = 'failed';
         }
         return;

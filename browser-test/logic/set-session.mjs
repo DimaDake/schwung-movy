@@ -212,6 +212,96 @@ export async function run() {
         teardown();
     }
 
+    /* R13 — the engine ANSWERED, with the wrong version.
+     *
+     * This is what a module-store update leaves behind: schwung's installer
+     * untars the new `dsp.so` over the old one at the same inode, the shim
+     * dlopens by path, and glibc goes on serving the library already loaded
+     * there until MoveOriginal restarts. Movy then probes forever against the
+     * previous engine. Reported as silence it is a dead end; reported as what
+     * it is, the fix is a restart. */
+    {
+        const { sessionError, sessionFailScope }
+            = await import('../../dist/esm/seq/set-session.js');
+        const { engineAbsentReason } = await import('../../dist/esm/seq/engine.js');
+        const eng = installMockEngine();
+        const fs = installMockFs({
+            [ACTIVE]: 'S1\nSong One\n',
+            [uuidToStatePath('S1')]: SAVED,
+        });
+        resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
+        eng.statusUnavailable = true;
+        eng.pingVersion = '0.0.1-previous';
+        run(4000);
+        eq('R13 gave up visibly', sessionPhase(), 'failed');
+        eq('R13 knowing an engine answered', engineAbsentReason(), 'stale');
+        eq('R13 and named the update, not a dead engine',
+            sessionError(), 'MOVY WAS UPDATED');
+        eq('R13 the failure is the engine, not this set', sessionFailScope(), 'engine');
+
+        /* The set on disk is the thing to protect: movy never became live, so
+         * nothing may have been written over it. */
+        eq('R13 the set was not touched', fs.files[uuidToStatePath('S1')], SAVED);
+        teardown();
+    }
+
+    /* R14 — the failure screen only offers to blank the set when blanking it
+     * could possibly help. Starting empty answers ONE failure: this set's file
+     * will not parse. Offered against an engine that never started it destroys
+     * an intact set for a user who read the jog click as "get me out of here". */
+    {
+        const { failureLines } = await import('../../dist/esm/renderer/loading-view.js');
+        /* Through the app entry, which is what the device calls: it is the only
+         * built artefact carrying the router. Importing `midi/router.js`
+         * directly reached a build from three weeks earlier — esbuild folded
+         * the module into this entry and left the old file behind — so the
+         * click was delivered to code that no longer ships. */
+        await import('../../dist/esm/app/globals.js');
+        const onMidiMessageInternal = globalThis.onMidiMessageInternal;
+        const { sessionError, sessionFailScope }
+            = await import('../../dist/esm/seq/set-session.js');
+
+        eq('R14 an unreadable set is offered the wipe',
+            failureLines('SET FILE UNREADABLE', 'set')[2], 'JOG CLICK = START EMPTY');
+        eq('R14 an engine failure is offered a restart',
+            failureLines('MOVY WAS UPDATED', 'engine')[1], 'RESTART YOUR MOVE');
+        eq('R14 and no wipe at all',
+            failureLines('MOVY WAS UPDATED', 'engine')[2], '');
+        eq('R14 nor is the set blamed for it',
+            failureLines('MOVY WAS UPDATED', 'engine')[0], 'MOVY WAS UPDATED');
+
+        /* And the button itself, which is what actually writes: the guard is
+         * one condition in the router, and a screen that merely stops SAYING
+         * "jog click" still wipes the set when the jog is clicked.
+         *
+         * The engine has to die AFTER the Set is open, which is the case that
+         * can lose data. An engine that never started at all leaves movy
+         * without a Set identity — `sessionTick` returns above the identity
+         * poll — so `sessionStartFromScratch` blanks `_default` and the user's
+         * Set is out of reach. Asserting on that arrangement proves nothing:
+         * it passes with the guard removed. */
+        const { eng, fs } = boot({
+            [ACTIVE]: 'S1\nSong One\n',
+            [uuidToStatePath('S1')]: SAVED,
+        });
+        eq('R14 the Set opened first', currentSetUuid(), 'S1');
+
+        /* Now the engine is replaced underneath the running tool: the status
+         * poll stops answering, the probe restarts, and what answers `ping` is
+         * a different version. */
+        eng.statusUnavailable = true;
+        eng.pingVersion = '0.0.1-previous';
+        run(4000);
+        eq('R14 the engine failure is up', sessionFailScope(), 'engine');
+        eq('R14 with the Set still identified', currentSetUuid(), 'S1');
+
+        onMidiMessageInternal([0xB0, globalThis.MoveMainButton, 127]);
+        eq('R14 a jog click does NOT blank the set',
+            readBestState('S1').payload, SAVED);
+        eq('R14 and the screen still says what to do', sessionError(), 'MOVY WAS UPDATED');
+        teardown();
+    }
+
     /* R7 — teardown flushes rather than dropping the last edits. */
     {
         const { eng } = boot({ [ACTIVE]: 'S1\nSong One\n', [uuidToStatePath('S1')]: SAVED });

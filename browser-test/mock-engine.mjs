@@ -21,6 +21,11 @@ export function installMockEngine() {
         /* Set true to simulate a DSP that never loads: the UI probes `ping`
          * until it gives up and declares the engine absent. */
         pingUnavailable: false,
+        /* An engine that ANSWERS with another version — what a store update
+         * leaves behind, because the shim dlopens by path and glibc keeps
+         * serving the library already loaded there until MoveOriginal
+         * restarts. Distinct from silence: the UI can name the fix. */
+        pingVersion: null,
         setParamCalls: 0,
         getParamCalls: 0,
         /* DSP (re)load requests ("load" key, shim-handled on device) */
@@ -50,6 +55,7 @@ export function installMockEngine() {
             this.status = { play: 0, tick: 0, bpm: 12000, trk: 0 };
             this.statusUnavailable = false;
             this.pingUnavailable = false;
+            this.pingVersion = null;
             this.setParamCalls = 0;
             this.getParamCalls = 0;
             this.loadRequests = [];
@@ -147,7 +153,10 @@ function installGlobals(engine) {
                 .map(([k, v]) => `${k}=${v}`)
                 .join(' ');
         }
-        if (key === 'ping') return engine.pingUnavailable ? null : 'pong ' + ENGINE_VERSION;
+        if (key === 'ping') {
+            if (engine.pingUnavailable) return null;
+            return 'pong ' + (engine.pingVersion ?? ENGINE_VERSION);
+        }
         if (key === 'alabels') return engine.alabels;
         if (key === 'state') return engine.stateBlob;
         return null;

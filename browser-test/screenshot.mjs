@@ -35,6 +35,7 @@ const PRESETS = [
     'test8', 'test16', 'test_enum', 'test_steps', 'plaits', 'wurl',
     'enum_overlay', 'knob_toast', 'no_params', 'keys_view', 'browse_view',
     'session_booting', 'session_loading', 'session_modules', 'session_preparing', 'session_failed',
+    'session_failed_update',
     'obxd_preset_page', 'obxd_main_page', 'obxd_filter_page',
     'items_cell', 'items_overlay',
     'lfo_prefix', 'collide_osc',
@@ -366,7 +367,13 @@ function applyView(preset) {
         case 'session_modules':  lastRender = () => renderLoadingView('settling', '', 7); lastRender(); break;
         case 'session_preparing': lastRender = () => renderLoadingView('settling', '', 0); lastRender(); break;
         case 'session_failed':
-            lastRender = () => renderLoadingView('failed', 'ENGINE DID NOT START'); lastRender(); break;
+            lastRender = () => renderLoadingView('failed', 'SET FILE UNREADABLE', 0, 'set');
+            lastRender(); break;
+        /* The other failure, and it must not look like the one above: nothing
+         * is wrong with the set, and no button here wipes anything. */
+        case 'session_failed_update':
+            lastRender = () => renderLoadingView('failed', 'MOVY WAS UPDATED', 0, 'engine');
+            lastRender(); break;
         case 'browse_view':      showBrowse([{ name: 'Plaits' }, { name: 'Wurl' }, { name: 'Bass' }], 1); break;
         /* Trigger badge phases. Time is frozen so the fired flash and two drain
          * positions are deterministic; the drain is what makes the re-arm

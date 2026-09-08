@@ -1,11 +1,19 @@
 // Bundles model + renderer entry points -> dist/esm/ for browser tests.
 // Code splitting puts shared code in chunk files; JSON configs are inlined.
 import * as esbuild from 'esbuild';
+import { rmSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const root  = resolve(__dir, '..');
+
+/* Wipe the output first. esbuild only writes the files this build produces, so
+ * dropping an entry point (or letting one fold into a chunk) LEAVES THE OLD
+ * FILE THERE — and a test that imports it goes on passing against code that is
+ * no longer built. dist/esm/midi/router.js sat three weeks stale exactly that
+ * way, and a suite asserting on it could not tell a fix from its removal. */
+rmSync(resolve(root, 'dist/esm'), { recursive: true, force: true });
 
 await esbuild.build({
     entryPoints: [

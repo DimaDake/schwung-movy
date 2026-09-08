@@ -28,15 +28,40 @@ export function loadingStage(phase: string, chainPending: number): string {
     return chainPending > 0 ? 'LOADING MODULES' : 'PREPARING SET';
 }
 
-export function renderLoadingView(phase: string, error: string, chainPending = 0): void {
+/** The failure screen's three lines: what happened, why, and what to do.
+ *
+ *  Separated from the drawing for the same reason as `loadingStage` — and
+ *  because WHICH ACTION IS OFFERED is a correctness question, not a wording
+ *  one. The only recovery movy has is to blank the set, and that answers
+ *  exactly one failure: this set's own file will not parse. Offered against an
+ *  engine that never started it is worse than useless — the set is fine, the
+ *  engine is not, and a jog click the user reads as "get me out of here"
+ *  overwrites their sequencer state with nothing.
+ *
+ *  An empty string means the line is not drawn.
+ */
+export function failureLines(reason: string, scope: string): [string, string, string] {
+    if (scope === 'engine') {
+        /* No "cannot load this set": the set is not what failed, and a user who
+         * is told it is will go looking for the damage in the wrong place. */
+        return [reason, 'RESTART YOUR MOVE', ''];
+    }
+    /* Naming the button rather than "press to continue": this wipes the Set's
+     * sequencer state, and a user who did not mean to should be able to tell
+     * from the screen alone. */
+    return ['CANNOT LOAD THIS SET', reason, 'JOG CLICK = START EMPTY'];
+}
+
+export function renderLoadingView(
+    phase: string, error: string, chainPending = 0, failScope = 'set',
+): void {
     clear_screen();
     if (phase === 'failed') {
-        centre(18, 'CANNOT LOAD THIS SET', 1);
-        centre(30, error, 1);
-        /* Naming the button rather than "press to continue": this wipes the
-         * Set's sequencer state, and a user who did not mean to should be able
-         * to tell from the screen alone. */
-        centre(46, 'JOG CLICK = START EMPTY', 1);
+        const lines = failureLines(error, failScope);
+        /* Two lines sit where three would leave a gap at the bottom, so the
+         * block stays vertically centred whichever failure this is. */
+        const ys = lines[2] === '' ? [22, 36, 0] : [18, 30, 46];
+        for (let i = 0; i < 3; i++) if (lines[i] !== '') centre(ys[i], lines[i], 1);
         return;
     }
     centre(Math.floor(H / 2) - 3, loadingStage(phase, chainPending), 1);

@@ -11,6 +11,30 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
+## [Unreleased]
+
+### Fixed
+
+- **"Movy was updated — restart your Move", instead of a dead end.** Movy's
+  sequencer engine is loaded once per boot and cannot be swapped while the Move
+  is running: the shim opens `dsp.so` by path, and the system goes on serving
+  the copy already loaded there. So straight after an update from the module
+  store, the previous engine is still the one running, the new Movy will not run
+  against it, and every Set failed to open behind `ENGINE DID NOT START`. Movy
+  now tells the two apart — an engine that answered with another version is an
+  update needing a restart, and says so.
+
+- **A failure screen no longer offers to wipe a Set it cannot fix.** The
+  `JOG CLICK = START EMPTY` recovery answers exactly one failure: this Set's own
+  file will not parse. It was offered for engine failures too, where the Set is
+  intact and blanking it cannot possibly help — so a jog click meant as "get me
+  past this screen" overwrote a good Set with an empty one. The engine screen now
+  offers no jog click at all.
+
+- **`scripts/recover-sets.mjs`** puts back a Set blanked that way. The save
+  before it is usually still in one of the rotating shadow copies; run it with
+  Movy closed and before reopening the Set.
+
 ## [0.32.0] — 2026-09-08
 
 ### Highlights

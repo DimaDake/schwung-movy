@@ -102,6 +102,20 @@ on its own — the unreadable file is left untouched, so it can still be recover
 from the device by hand. Your modules and their settings are Schwung's and are
 not affected either way.
 
+A different screen means a different problem, and there is no jog click on it:
+
+![Movy was updated](docs/assets/session_failed_update.png)
+
+This one is about the engine, not your Set. Movy's sequencer runs in a small
+audio engine that Schwung loads once per boot, and it cannot be swapped while
+the Move is running — so straight after a Movy update the previous engine is
+still the one loaded, and the new Movy will not run against it. **Restart your
+Move** (power off and on) and it comes up normally. Your Sets are untouched:
+Movy never became live, so it never wrote anything.
+
+`ENGINE DID NOT START` on the same screen means the engine did not answer at
+all. The remedy is the same restart.
+
 ### Which Set your sequence belongs to
 
 Movy stores one sequence per Move Set, and follows Move: pick another Set and
@@ -1897,6 +1911,18 @@ only.
   `schwung/modules/tools/movy/sets/<set-uuid>/` — `seq-state.json` plus
   `seq-state.1.json` / `seq-state.2.json`. Attach all of them to a bug report;
   each carries a generation number, which says which was written last.
+- **A set went blank after you pressed the jog on a failure screen.** Older Movy
+  builds offered `JOG CLICK = START EMPTY` on every failure, including ones where
+  the Set was fine — and taking that offer blanked the Set. The previous save is
+  usually still in one of the rotating copies, so it can be put back:
+
+  ```bash
+  node scripts/recover-sets.mjs move.local            # report what is recoverable
+  node scripts/recover-sets.mjs move.local --apply    # put it back
+  ```
+
+  **Do it with Movy closed, and before reopening the Set** — the rescue copy
+  lives in the shadow slot the next autosave writes to.
 - **The audio engine (MoveOriginal) crashed.** A sequencer engine bug should be
   caught before it can take down Move, but if audio dies, a full restart of the
   Schwung stack recovers it (see the build/test notes in

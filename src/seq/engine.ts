@@ -39,6 +39,13 @@ const ABSENT_RETRY_TICKS = 2000;
 
 type BootState = 'probe' | 'ok' | 'absent';
 
+/** Why the probe gave up. `stale` means an engine ANSWERED and it was the wrong
+ *  version — a different `dsp.so` is already dlopened under our path, which the
+ *  shim cannot replace while MoveOriginal lives (glibc serves the library
+ *  already loaded by path). That is what a store update looks like from here,
+ *  and unlike silence it has a recovery the user can act on. */
+export type AbsentReason = 'silent' | 'stale';
+
 const cmdQueue: string[] = [];
 let bootState: BootState = 'probe';
 /* Bumped every time the engine enters service. A re-dlopen after a wedge comes
@@ -50,6 +57,7 @@ let probeCountdown = 1;
 let probeFailures = 0;
 let loadAttempts = 0;
 let absentCountdown = 0;
+let absentReason: AbsentReason = 'silent';
 let pollCountdown = 1;
 let statusFailures = 0;
 /* Successful status parses this engine session — see statusSeq(). */
@@ -84,6 +92,9 @@ export function engineReady(): boolean {
 export function engineAbsent(): boolean {
     return bootState === 'absent';
 }
+
+/** Only meaningful while `engineAbsent()`. */
+export function engineAbsentReason(): AbsentReason { return absentReason; }
 
 /* Monotonic UI-tick counter, for short interaction timers (e.g. double-tap
  * detection) that need a coarse clock without wall-time access. */
@@ -256,7 +267,12 @@ function probeTick(): void {
     if (stale || probeFailures >= PROBES_PER_LOAD) {
         probeFailures = 0;
         if (loadAttempts >= MAX_LOADS) {
-            mlog('seq: engine unavailable after ' + MAX_LOADS + ' load attempts');
+            /* The LAST answer is the one that says what is wrong: an engine that
+             * kept replying with another version is a different `dsp.so` we
+             * cannot displace, not an engine that failed to load. */
+            absentReason = stale ? 'stale' : 'silent';
+            mlog('seq: engine unavailable after ' + MAX_LOADS
+                 + ' load attempts (' + absentReason + ')');
             bootState = 'absent';
             absentCountdown = ABSENT_RETRY_TICKS;
             cmdQueue.length = 0;
@@ -396,6 +412,7 @@ export function resetSeqEngine(): void {
     probeFailures = 0;
     loadAttempts = 0;
     absentCountdown = 0;
+    absentReason = 'silent';
     pollCountdown = 1;
     statusFailures = 0;
     statusPolls = 0;

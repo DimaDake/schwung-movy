@@ -89,11 +89,38 @@ if (idle < 0.5) pass(`no hint before the gesture (band ${(idle * 100).toFixed(0)
 else fail(`band already looks like a toast before touching the jog (${(idle * 100).toFixed(0)}%)`);
 
 // ── 3. Touch and look immediately — nothing may appear ───────────────────────
-inject('note_on', JOG_TOUCH, 127);
-sleep(300);
-const onTouch = toastFill();
-if (onTouch < 0.5) pass(`touch alone draws no hint (band ${(onTouch * 100).toFixed(0)}% lit)`);
-else fail(`hint flashed on touch (band ${(onTouch * 100).toFixed(0)}% lit) — the hold delay is not applied`);
+/* The only check here with a DEADLINE. It asserts the hint is ABSENT, which is
+ * only true for the first HOLD_MS — and `toastFill` reads the framebuffer over
+ * scp, so the sample lands at inject + a round trip whose latency is not ours
+ * to control. When that round trip alone outruns the hold, the hint is up
+ * legitimately and a failure here reports the link, not the code. Seen exactly
+ * that way once: the same build failed this check on one host sweep and passed
+ * it on the other, minutes apart.
+ *
+ * So time every sample and judge only one that landed well inside the window.
+ * If the link never gets quick enough, say so and skip — an inconclusive
+ * observation must not be scored as evidence in either direction. */
+const TOUCH_DEADLINE = HOLD_MS * 0.8;
+let onTouch = null, onTouchMs = 0;
+for (let attempt = 1; attempt <= 4 && onTouch === null; attempt++) {
+    inject('note_off', JOG_TOUCH);       // the hold has to start from finger-up
+    sleep(400);
+    const t0 = Date.now();
+    inject('note_on', JOG_TOUCH, 127);
+    sleep(150);                          // ample for a flash to reach the frame
+    const fill = toastFill();
+    const elapsed = Date.now() - t0;     // upper bound: the read happened within it
+    if (elapsed < TOUCH_DEADLINE) { onTouch = fill; onTouchMs = elapsed; }
+    else info(`sample ${attempt} landed at ${elapsed}ms, past the ${HOLD_MS}ms hold — retrying`);
+}
+if (onTouch === null)
+    info(`SKIPPED: no framebuffer read landed inside ${HOLD_MS}ms, so a flash and a `
+       + 'legitimate hint cannot be told apart on this link');
+else if (onTouch < 0.5)
+    pass(`touch alone draws no hint (band ${(onTouch * 100).toFixed(0)}% lit at ${onTouchMs}ms)`);
+else
+    fail(`hint flashed on touch (band ${(onTouch * 100).toFixed(0)}% lit at ${onTouchMs}ms) `
+       + '— the hold delay is not applied');
 
 // ── 4. Keep resting past the hold time — it must appear ──────────────────────
 sleep(HOLD_MS + 500);

@@ -42,20 +42,31 @@ const pass = m => console.log(`${G}✓${X} ${m}`);
 const fail = m => { console.log(`${R}✗${X} ${m}`); failures++; };
 const info = m => console.log(`${Y}→${X} ${m}`);
 
-const ssh = cmd => execFileSync('ssh', ['-o', 'ConnectTimeout=5', `ableton@${HOST}`, cmd],
+const tmpDir = mkdtempSync(join(tmpdir(), 'movy-jog-'));
+
+/* One TCP connection, reused. Not a speed indulgence: the touch check below has
+ * a HOLD_MS deadline, and a fresh ssh handshake per grab costs ~1.1 s on this
+ * link — so every sample landed after the hold and the check could never
+ * observe the thing it asserts. Multiplexing puts a grab at well under 100 ms,
+ * which is what makes it a live check rather than a permanent skip.
+ *
+ * A socket path under the OS temp dir overruns the 104-char sun_path limit on
+ * macOS, so this one is short and %C-hashed rather than living beside the
+ * framebuffer grabs. */
+const MUX = ['-o', 'ControlMaster=auto', '-o', 'ControlPath=/tmp/movy-jh-%C',
+             '-o', 'ControlPersist=60', '-o', 'ConnectTimeout=5'];
+
+const ssh = cmd => execFileSync('ssh', [...MUX, `ableton@${HOST}`, cmd],
     { encoding: 'utf8' });
 const inject = (...args) => execFileSync('python3', [INJECT, HOST, ...args.map(String)],
     { encoding: 'utf8' });
 const sleep = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 
-const tmpDir = mkdtempSync(join(tmpdir(), 'movy-jog-'));
-
 /* Fraction of the toast band that is lit. A drawn hint fills it solid (minus
  * the inverted glyph pixels); ordinary page content leaves it mostly dark. */
 function toastFill() {
     const out = join(tmpDir, `fb-${Date.now()}.bin`);
-    execFileSync('scp', ['-q', '-o', 'ConnectTimeout=5',
-        `ableton@${HOST}:/dev/shm/schwung-display`, out]);
+    execFileSync('scp', ['-q', ...MUX, `ableton@${HOST}:/dev/shm/schwung-display`, out]);
     const buf = readFileSync(out);
     let lit = 0;
     for (let y = TOAST_Y; y < TOAST_Y + TOAST_H; y++) {
@@ -100,7 +111,11 @@ else fail(`band already looks like a toast before touching the jog (${(idle * 10
  * So time every sample and judge only one that landed well inside the window.
  * If the link never gets quick enough, say so and skip — an inconclusive
  * observation must not be scored as evidence in either direction. */
-const TOUCH_DEADLINE = HOLD_MS * 0.8;
+/* `elapsed` is already conservative in the safe direction — it is measured from
+ * BEFORE the inject and includes the whole grab, while the framebuffer was read
+ * somewhere inside it and the device started its own hold timer later still. So
+ * the margin only has to cover clock skew, not the read. */
+const TOUCH_DEADLINE = HOLD_MS * 0.9;
 let onTouch = null, onTouchMs = 0;
 for (let attempt = 1; attempt <= 4 && onTouch === null; attempt++) {
     inject('note_off', JOG_TOUCH);       // the hold has to start from finger-up

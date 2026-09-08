@@ -146,7 +146,7 @@ far. Earlier work is summarised in the timeline below for context.
   recorded in and was silently gone the next time the Set was opened. The
   round-robin that re-applies mappings after a module reload had the same cap.
 
-- **The track-volume gesture would have zeroed both sends.** It rebuilt the rest
+- **The track-volume gesture would have zeroed every send.** It rebuilt the rest
   of the mixer value from a fixed three fields, so any nudge of the fader wrote
   the new send levels back as zero. It now carries the remainder opaquely.
 

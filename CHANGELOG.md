@@ -109,6 +109,15 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Undoing a MIX edit moved the sound but not the knob.** Undo announced the
+  change and the inverse really was written — the level went back — but the
+  page went on drawing the value it had cached before the undo, so the fader
+  sat where it had just been turned and the whole thing read as broken. Every
+  other param write is keyed `<component>:<param>`, which names the page that
+  displays it; neither mixer key is. A Movy track writes the bare `mix`, which
+  the lookup skipped outright, and a Schwung track writes `slot:volume`, which
+  it routed to a component no page answers to. Both now find the MIX page.
+
 - **Hold-to-modulate offered an LFO on knobs no LFO could drive.** Holding a
   knob on a **send FX** slot or on the **MIX** page raised the assign prompt,
   and clicking through wrote a target the chain host cannot route — so nothing

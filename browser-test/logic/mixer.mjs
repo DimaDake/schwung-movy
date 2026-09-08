@@ -381,6 +381,91 @@ _log('\nTest: MIX page edits are undoable');
     resetPorts();
 }
 
+/* ── Undo puts the knob back, not just the value ─────────────────────────── */
+
+/* The test above proves an undo ENTRY exists. That is not the user-visible
+ * claim: reported from the device as "there is an undo action, it announces
+ * something is undone, but the knob does not return". The inverse write was
+ * landing all along — what never happened was the page being told, so it went
+ * on drawing the reading it had cached before the undo. */
+
+_log('\nTest: undo returns the MIX knob to where it started');
+
+{
+    const { createMixModel } = await import('../../dist/esm/mixer/mix-model.js');
+    const { resetPorts } = await import('../../dist/esm/track/registry.js');
+    const { FIELD_AT } = await import('../../dist/esm/mixer/mix-io.js');
+    const { undoDepth, resetUndoState } = await import('../../dist/esm/undo/state.js');
+    const { undoOnce } = await import('../../dist/esm/undo/apply.js');
+    const { appState } = await import('../../dist/esm/app/state.js');
+
+    /* Stateful, unlike the test above: the whole claim is that a RE-READ after
+     * the inverse write returns the original value, and a fixed response cannot
+     * show that either way — it would pass with the page frozen. */
+    let live = '1.0000,0.0000,0,0.0000,0.0000';
+    const oG = globalThis.host_module_get_param;
+    const oS = globalThis.host_module_set_param_blocking;
+    globalThis.host_module_get_param = (k) => (k === 'ch6:mix' ? live : (oG ? oG(k) : null));
+    globalThis.host_module_set_param_blocking = (k, v) => {
+        if (k === 'ch6:mix') live = v;
+        return true;
+    };
+    resetPorts();
+    resetUndoState();
+
+    const m = createMixModel(6);
+    m.tick();
+    /* syncParamsToModels walks the slot's REGISTERED models; a page that is not
+     * in the list can never be told its value moved. */
+    appState.trackModels[6] = [m];
+
+    const vol = FIELD_AT.indexOf('gain');
+    const before = m.getValueByKey('gain');
+    m.handleKnobTouch(vol);
+    m.handleKnobDelta(vol, -4);
+    m.handleKnobRelease(vol);
+
+    eq('the turn moved the fader', m.getValueByKey('gain') !== before, true);
+    eq('and recorded one undo entry', undoDepth(), 1);
+
+    undoOnce();
+
+    eq('undo restores the mixer on the wire', live.split(',')[0], '1.0000');
+    /* THE assertion. Without the fix the inverse above still passes and this
+     * one fails: the value is back, the knob is not. */
+    eq('and the knob goes back with it', m.getValueByKey('gain'), before);
+
+    appState.trackModels.length = 0;
+    globalThis.host_module_get_param = oG;
+    globalThis.host_module_set_param_blocking = oS;
+    resetPorts();
+}
+
+/* The other half of the same bug, and it failed for a DIFFERENT reason. A host
+ * track's fader writes `slot:volume`, which does have a colon — so it was never
+ * skipped, it was routed to a component named `slot` that no page answers to.
+ * Driven through syncParamsToModels with a stub page: standing up a whole
+ * host-kind track would prove nothing more about the routing, which is the
+ * thing that was wrong. */
+
+_log('\nTest: both mixer key shapes reach the MIX page');
+
+{
+    const { syncParamsToModels } = await import('../../dist/esm/undo/param-sync.js');
+    const { appState } = await import('../../dist/esm/app/state.js');
+
+    for (const key of ['mix', 'slot:volume']) {
+        let refreshed = 0;
+        appState.trackModels[2] = [{
+            getComponentKey: () => 'mix',
+            refreshParamKey: () => { refreshed++; return true; },
+        }];
+        syncParamsToModels([{ slot: 2, key, old: '1.0000', new: '0.5000' }]);
+        eq(`a "${key}" write refreshes the MIX page`, refreshed, 1);
+    }
+    appState.trackModels.length = 0;
+}
+
 /* ── The page shows what the automation is doing ─────────────────────────── */
 
 _log('\nTest: MIX page automation feedback');

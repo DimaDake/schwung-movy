@@ -31,6 +31,26 @@ export interface MixVals {
 /** The engine param carrying a chain's mixer state. */
 export const MIX_KEY = 'mix';
 
+/** A host track's level: schwung's own slot fader, which Move's mixer reads
+ *  too. The only mixer field such a track has. */
+export const HOST_VOLUME_KEY = 'slot:volume';
+
+/** Where a track's level lives — the two shapes a mixer write can take. */
+export function mixerKeyFor(track: number): string {
+    return trackKind(track) === 'movy' ? MIX_KEY : HOST_VOLUME_KEY;
+}
+
+/** Whether a recorded param write came from the mixer, in either shape.
+ *
+ *  Undo needs this to find the page that must re-read. Every other param key is
+ *  `<component>:<param>`, which names the model that owns it; neither mixer key
+ *  is — `mix` has no component part at all, and `slot:volume` names schwung's
+ *  slot rather than any movy page. So the generic lookup skipped both, and an
+ *  undone MIX edit changed the sound while the knob stayed put. */
+export function isMixerKey(key: string): boolean {
+    return key === MIX_KEY || key === HOST_VOLUME_KEY;
+}
+
 export const PAN_MIN = -1;
 export const PAN_MAX = 1;
 export const SEND_MAX = 1;
@@ -167,7 +187,7 @@ export function readMix(track: number): MixVals {
     const port = portFor(track);
     if (trackKind(track) === 'host') {
         /* No mixer, no pan, no sends — only schwung's slot fader. */
-        const raw = port.getParam('slot:volume');
+        const raw = port.getParam(HOST_VOLUME_KEY);
         const g = raw === null ? NaN : parseFloat(raw);
         return { ...defaultMix(), gain: Number.isFinite(g) ? clamp(g, VOL_MIN, VOL_MAX) : 1 };
     }
@@ -181,7 +201,7 @@ export function readMix(track: number): MixVals {
 export function writeMix(track: number, v: MixVals, before: string | null): void {
     const port = portFor(track);
     if (trackKind(track) === 'host') {
-        setChainParam(port, 'slot:volume', v.gain.toFixed(4), before);
+        setChainParam(port, HOST_VOLUME_KEY, v.gain.toFixed(4), before);
         return;
     }
     setChainParam(port, MIX_KEY, packMixValue(v), before);

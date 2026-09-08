@@ -1,5 +1,6 @@
 import { setChainParam } from '../chain/set-param.js';
 import { MIX_KEY } from '../track/mix-persist.js';
+import { mixerKeyFor } from './mix-io.js';
 import { markUiStateDirty } from '../seq/ui-dirty.js';
 import { portFor } from '../track/registry.js';
 import { trackKind } from '../track/ref.js';
@@ -79,10 +80,12 @@ function setMoveExcluded(excluded: boolean): void {
  * A host track's is schwung's `slot:volume` — a chain-host param Move's own
  * mixer also sees. A movy track has no schwung slot and no Move fader, so movy
  * keeps its level itself and applies it in the summing mixer (design §5.4).
- * Same gesture, same dB ladder, different destination. */
-function volumeKey(track: number): string {
-    return trackKind(track) === 'movy' ? MIX_KEY : 'slot:volume';
-}
+ * Same gesture, same dB ladder, different destination.
+ *
+ * Shared with mix-io rather than spelled out again here: undo has to recognise
+ * both shapes to find the page that displays them, so a third copy of the rule
+ * is a third place for them to disagree. */
+const volumeKey = mixerKeyFor;
 
 /* Everything after the gain, carried unchanged across the write.
  *

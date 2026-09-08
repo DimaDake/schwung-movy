@@ -47,6 +47,25 @@ export function shadowPath(uuid: string, slot: number): string {
     return SETS_DIR + '/' + (uuid || '_default') + '/seq-state.' + slot + '.json';
 }
 
+/* Version history lives under the set's own directory so a dead Set takes its
+ * history with it — `collectDeadSets` removes the whole tree.
+ *
+ * One directory PER VERSION, which looks extravagant until you notice that
+ * `host_remove_dir` is the only removal the host offers: a version that cannot
+ * be deleted on its own cannot be thinned, and thinning is the whole point. */
+export function versionsIndexPath(uuid: string): string {
+    return SETS_DIR + '/' + (uuid || '_default') + '/versions.json';
+}
+export function versionDir(uuid: string, n: number): string {
+    return SETS_DIR + '/' + (uuid || '_default') + '/v/' + n;
+}
+export function versionStatePath(uuid: string, n: number): string {
+    return versionDir(uuid, n) + '/seq-state.json';
+}
+export function versionUiPath(uuid: string, n: number): string {
+    return versionDir(uuid, n) + '/ui-state.json';
+}
+
 /* Provisional: an id that names a pad Move has not committed to disk rather
  * than a Set. `_default` (no answer at all) counts — it is not a Set either.
  *

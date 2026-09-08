@@ -176,6 +176,11 @@ await esbuild.build({
         resolve(root, 'src/seq/set-inherit.ts'),
         resolve(root, 'src/seq/ui-state.ts'),
         resolve(root, 'src/seq/set-context.ts'),
+        /* Version history. Entry points rather than chunk members so the logic
+         * suite can import each layer on its own — the retention ladder in
+         * particular is a pure function whose whole value is being testable
+         * without a filesystem. */
+        resolve(root, 'src/seq/version-index.ts'),
         resolve(root, 'src/seq/held.ts'),
         resolve(root, 'src/seq/buttons.ts'),
         resolve(root, 'src/keyboard/leds.ts'),

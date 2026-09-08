@@ -21,8 +21,10 @@ const FOOT_TOP = TOAST_Y - 2 * ROW_H;
  * reserves those lines only while a confirm is up. */
 export const VERSION_ROWS = Math.floor((TOAST_Y - 2 - LIST_TOP) / ROW_H);
 /* Where the reason column starts. Fixed rather than measured so the three
- * columns line up down the list however long an individual label is. */
-const WHY_X = 41;
+ * columns line up down the list however long an individual label is. Set to
+ * clear the widest age label — "YESTERDAY" (45px from x=2) ends at 47 — with a
+ * two-pixel gap, otherwise a recent row reads "JUST NOWPRE-UNDO" as one word. */
+const WHY_X = 49;
 
 /** The longest prefix of `text` that fits in `w` pixels. */
 function fit(text: string, w: number): string {

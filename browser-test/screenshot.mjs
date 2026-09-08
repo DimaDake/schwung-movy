@@ -383,12 +383,15 @@ function applyView(preset) {
         case 'versions_list':
             lastRender = () => renderVersionsView({
                 rows: [
-                    { age: '2M AGO',  why: 'OPENED',      clips: '6 CLIPS', seqOnly: false },
-                    { age: '18M AGO', why: 'AUTOSAVE',    clips: '6 CLIPS', seqOnly: false },
-                    { age: '1H AGO',  why: 'PRE-WIPE',    clips: '6 CLIPS', seqOnly: false },
-                    { age: '3H AGO',  why: 'AUTOSAVE',    clips: '4 CLIPS', seqOnly: false },
-                    { age: 'OLDEST',  why: 'FOUND',       clips: '5 CLIPS', seqOnly: true  },
-                    { age: '2D AGO',  why: 'ON EXIT',     clips: '5 CLIPS', seqOnly: false },
+                    /* The widest age label beside a wide reason — the pair that
+                     * used to read as one word, "JUST NOWPRE-UNDO", when the
+                     * reason column started at 41. WHY_X is what keeps them apart. */
+                    { age: 'JUST NOW', why: 'PRE-UNDO',   clips: '6 CLIPS', seqOnly: false },
+                    { age: '18M AGO',  why: 'AUTOSAVE',   clips: '6 CLIPS', seqOnly: false },
+                    { age: '1H AGO',   why: 'PRE-WIPE',   clips: '6 CLIPS', seqOnly: false },
+                    { age: '3H AGO',   why: 'AUTOSAVE',   clips: '4 CLIPS', seqOnly: false },
+                    { age: 'OLDEST',   why: 'FOUND',      clips: '5 CLIPS', seqOnly: true  },
+                    { age: '2D AGO',   why: 'ON EXIT',    clips: '5 CLIPS', seqOnly: false },
                 ], selected: 2, confirming: false, empty: false });
             lastRender(); break;
         /* The confirm must say what a restore does NOT cover — Schwung's own

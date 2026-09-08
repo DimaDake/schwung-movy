@@ -299,4 +299,99 @@ export async function run() {
         uninstallMockFs();
     }
 }
+
+{
+    _log('\nrestoring a version:');
+    const { installMockFs, uninstallMockFs } = await import('./harness.mjs');
+    const { restoreVersion } = await import('../../dist/esm/seq/version-restore.js');
+    const { writeVersion, readVersionIndex } = await import('../../dist/esm/seq/version-store.js');
+    const { resetVersionCapture } = await import('../../dist/esm/seq/version-capture.js');
+    const { readBestState } = await import('../../dist/esm/seq/persist-store.js');
+    const { uuidToStatePath, uuidToUiStatePath, shadowPath }
+        = await import('../../dist/esm/seq/set-context.js');
+    const { wrapState } = await import('../../dist/esm/seq/persist-blob.js');
+
+    const NOW = 1788892154000;
+    const MUSIC = 'movy1\ncl 0 0 16 0 0:24:60:100:0\n';
+
+    {
+        resetVersionCapture();
+        /* The state after a wipe, exactly as it looks on a damaged device: a
+         * blank at a HIGHER generation than the good copy. */
+        const fs = installMockFs({
+            [uuidToStatePath('S3')]: wrapState('movy1\n', 8),
+            [shadowPath('S3', 1)]: wrapState('movy1\n', 8),
+            [shadowPath('S3', 2)]: wrapState(MUSIC, 7),
+            [uuidToUiStatePath('S3')]: '{"root":48}',
+        });
+        writeVersion('S3', 'pre-wipe', MUSIC, 7, '{"root":60}', NOW - 1000);
+        const n = readVersionIndex('S3').v[0].n;
+
+        ok('restores', restoreVersion('S3', n, NOW));
+
+        /* The whole point, and the trap proved on device: restoring only the
+         * canonical file still loads EMPTY, because readBestState takes the
+         * highest generation it can read and the blank in a shadow is newer. */
+        eq('movy would now load the music', readBestState('S3').payload, MUSIC);
+        eq('the ui blob came back too', fs.files[uuidToUiStatePath('S3')], '{"root":60}');
+
+        /* A restore is itself undoable. */
+        ok('the present was captured first',
+            readVersionIndex('S3').v.some((r) => r.why === 'pre-restore'));
+        uninstallMockFs();
+    }
+
+    /* A version with no ui half restores the sequence and leaves chains alone —
+     * that is what SEQ ONLY promises in the menu. */
+    {
+        resetVersionCapture();
+        const fs = installMockFs({
+            [uuidToStatePath('S4')]: wrapState('movy1\n', 2),
+            [uuidToUiStatePath('S4')]: '{"root":48}',
+        });
+        writeVersion('S4', 'adopted', MUSIC, 1, null, 0);
+        const n = readVersionIndex('S4').v.find((r) => r.ui === false).n;
+        ok('restores', restoreVersion('S4', n, NOW));
+        eq('the sequence came back', readBestState('S4').payload, MUSIC);
+        eq('the chains were left alone', fs.files[uuidToUiStatePath('S4')], '{"root":48}');
+        uninstallMockFs();
+    }
+
+    /* WHY all three copies are written, and the assertion the first version of
+     * this suite got wrong: a restore that only wrote the canonical file passed
+     * every check above, because the generation bump already made it win. It is
+     * the TORN write that needs the shadows — there is no fsync here, so a
+     * power cut mid-write leaves readBestState falling through to whatever the
+     * shadows hold, and if that is the blank the user restored away from, the
+     * restore silently undid itself. */
+    {
+        resetVersionCapture();
+        const fs = installMockFs({
+            [uuidToStatePath('S6')]: wrapState('movy1\n', 8),
+            [shadowPath('S6', 1)]: wrapState('movy1\n', 8),
+            [shadowPath('S6', 2)]: wrapState('movy1\n', 8),
+        });
+        writeVersion('S6', 'pre-wipe', MUSIC, 7, null, NOW - 1000);
+        const n = readVersionIndex('S6').v.find((r) => r.why === 'pre-wipe').n;
+        /* The canonical write is cut short — exactly what a power cut mid-fwrite
+         * looks like from JS. safeWrite reports the failure, and the shadows
+         * written alongside are what the set survives on. */
+        fs.truncate = { path: 'sets/S6/seq-state.json', at: 12 };
+        restoreVersion('S6', n, NOW);
+        fs.truncate = null;
+        eq('a torn canonical write still leaves the rescue readable',
+            readBestState('S6').payload, MUSIC);
+        uninstallMockFs();
+    }
+
+    /* A version whose files vanished is refused rather than restoring nothing
+     * over the user's work. */
+    {
+        resetVersionCapture();
+        installMockFs({ [uuidToStatePath('S5')]: wrapState(MUSIC, 3) });
+        eq('an unknown version is refused', restoreVersion('S5', 99, NOW), false);
+        eq('and the set is untouched', readBestState('S5').payload, MUSIC);
+        uninstallMockFs();
+    }
+}
 }

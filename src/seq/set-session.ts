@@ -83,6 +83,15 @@ export function chainLoadsPending(): number {
 }
 export function currentSetUuid(): string { return setId; }
 
+/** Re-enter the load path for the Set already open — what a restore needs once
+ *  the files on disk have changed under it. Deliberately the SAME path a set
+ *  switch takes, so a restore inherits the settle wait and the module reload
+ *  rather than inventing its own. */
+export function reloadCurrentSet(): void {
+    if (!setId && !setName) return;
+    enterLoading(setId, setName);
+}
+
 export function resetSetSession(): void {
     phase = 'booting';
     setId = ''; setName = ''; gen = 0; loadedGen = -1;

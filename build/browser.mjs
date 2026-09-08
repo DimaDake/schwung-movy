@@ -181,6 +181,7 @@ await esbuild.build({
          * particular is a pure function whose whole value is being testable
          * without a filesystem. */
         resolve(root, 'src/seq/version-index.ts'),
+        resolve(root, 'src/seq/version-retain.ts'),
         resolve(root, 'src/seq/held.ts'),
         resolve(root, 'src/seq/buttons.ts'),
         resolve(root, 'src/keyboard/leds.ts'),

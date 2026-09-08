@@ -55,4 +55,100 @@ export async function run() {
     eq('counts clips', countClips('movy1\ncl 0 0 16 0 x\ncp 0\ncl 1 0 16 0 y\n'), 2);
     eq('a blank has none', countClips('movy1\n'), 0);
 }
+
+{
+    _log('\nretention ladder:');
+    const { versionToDrop, MAX_VERSIONS }
+        = await import('../../dist/esm/seq/version-retain.js');
+
+    const NOW = 1788892154000;
+    const MIN = 60_000, HOUR = 3600_000, DAY = 24 * HOUR;
+
+    /* Build a list with an exact per-bucket occupancy. Ages are spread evenly
+     * inside each bucket, newest first, gen descending — the order the index
+     * keeps. `mark` overrides one entry's `why` by position. */
+    const build = (counts, mark = {}) => {
+        const spans = [[0, HOUR], [HOUR, DAY], [DAY, 7 * DAY], [7 * DAY, 30 * DAY]];
+        const ages = [];
+        counts.forEach((c, b) => {
+            const [lo, hi] = spans[b];
+            for (let i = 0; i < c; i++) ages.push(lo + ((i + 1) * (hi - lo)) / (c + 1));
+        });
+        ages.sort((a, b) => a - b);
+        return ages.map((a, i) => ({
+            n: ages.length - i, gen: ages.length - i, ms: NOW - a,
+            why: mark[i] || 'auto', clips: 4, ui: true,
+        }));
+    };
+    const bucketOfAge = (age) =>
+        age <= HOUR ? 0 : age <= DAY ? 1 : age <= 7 * DAY ? 2 : 3;
+    const droppedBucket = (list, drop) => {
+        const r = list.find((x) => x.n === drop);
+        return r ? bucketOfAge(NOW - r.ms) : -1;
+    };
+
+    eq('a short list is never thinned', versionToDrop(build([3, 0, 0, 0]), NOW), null);
+    /* Exactly MAX fits. Thinning below the total would throw away recent work
+     * while free slots sat unused — the caps bound the SHAPE, the total bounds
+     * the size. */
+    eq('exactly MAX is not thinned', versionToDrop(build([8, 8, 8, 8]), NOW), null);
+    eq('MAX is 32', MAX_VERSIONS, 32);
+
+    /* One over, in the newest bucket: that is the bucket that gives one up. */
+    {
+        const list = build([9, 8, 8, 8]);
+        eq('drops from the over-cap bucket', droppedBucket(list, versionToDrop(list, NOW)), 0);
+    }
+
+    /* No rollover, and this is the assertion that proves it: the newest bucket
+     * is within its cap and an OLDER one is over, so the drop must come from
+     * the older one. A ladder that simply always thinned the densest end would
+     * fail here. */
+    {
+        const list = build([8, 9, 8, 8]);
+        eq('drops from an older over-cap bucket', droppedBucket(list, versionToDrop(list, NOW)), 1);
+    }
+    {
+        const list = build([8, 8, 8, 9]);
+        eq('and from the oldest one', droppedBucket(list, versionToDrop(list, NOW)), 3);
+    }
+
+    /* The newest three are never dropped, however dense that end is. */
+    {
+        const list = build([12, 8, 8, 8]);
+        const drop = versionToDrop(list, NOW);
+        ok('never the newest three',
+            drop !== list[0].n && drop !== list[1].n && drop !== list[2].n);
+    }
+
+    /* A pre-wipe inside 7 days survives even when it sits at the densest point.
+     * Those versions exist BECAUSE something destructive happened. */
+    {
+        const list = build([9, 8, 8, 8], { 5: 'pre-wipe' });
+        eq('a recent pre-wipe is not the drop', versionToDrop(list, NOW) === list[5].n, false);
+    }
+
+    /* A version with no usable clock cannot be aged, so it lands in the oldest
+     * bucket and is ranked there by generation. Nothing is ordered by time. */
+    {
+        const list = [
+            ...build([8, 8, 8, 0]),
+            ...Array.from({ length: 9 }, (_, i) => ({
+                n: 100 - i, gen: 100 - i, ms: 0, why: 'adopted', clips: 1, ui: false,
+            })),
+        ];
+        const drop = versionToDrop(list, NOW);
+        ok('a clockless version is thinned as oldest', drop >= 90);
+    }
+
+    /* A clock that jumped backwards must not make every version "in the future"
+     * and therefore unthinnable. */
+    {
+        const list = Array.from({ length: 33 }, (_, i) => ({
+            n: 33 - i, gen: 33 - i, ms: NOW + (i + 1) * HOUR,
+            why: 'auto', clips: 2, ui: true,
+        }));
+        ok('future timestamps still thin', versionToDrop(list, NOW) !== null);
+    }
+}
 }

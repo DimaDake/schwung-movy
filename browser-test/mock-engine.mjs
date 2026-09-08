@@ -38,6 +38,11 @@ export function installMockEngine() {
         /* blocking `state` loads, in order; stateBlob = last loaded blob */
         stateLoads: [],
         stateBlob: null,
+        /* Every other set_param, last value per key — the chain-set document
+         * (`chains`) among them. RECORDED ONLY, never served back by
+         * get_param: a mock that answered a key the real engine had not been
+         * asked for would let a test assert on its own write. */
+        params: {},
 
         reset() {
             this.cmdBatches = [];
@@ -51,6 +56,7 @@ export function installMockEngine() {
             this.alabels = null;
             this.stateLoads = [];
             this.stateBlob = null;
+            this.params = {};
             this.trackClipLength = false;
         },
     };
@@ -102,6 +108,8 @@ export function installMockEngine() {
         } else if (key === 'state') {
             engine.stateLoads.push(value);
             engine.stateBlob = value;
+        } else {
+            engine.params[key] = value;
         }
         return true;
     };

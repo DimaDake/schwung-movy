@@ -32,6 +32,7 @@ import { run as run_keyboard } from './logic/keyboard.mjs';
 import { run as run_params_pages } from './logic/params-pages.mjs';
 import { run as run_envelope } from './logic/envelope.mjs';
 import { run as run_set_state } from './logic/set-state.mjs';
+import { run as run_old_set } from './logic/old-set.mjs';
 import { run as run_lfo } from './logic/lfo.mjs';
 import { run as run_filter_viz } from './logic/filter-viz.mjs';
 import { run as run_lfo_assign } from './logic/lfo-assign.mjs';
@@ -84,6 +85,7 @@ const SUITES = [
     run_params_pages,
     run_envelope,
     run_set_state,
+    run_old_set,
     run_lfo,
     run_filter_viz,
     run_lfo_assign,

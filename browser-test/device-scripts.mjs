@@ -398,6 +398,27 @@ log('\nTest 9: every movy chain component ships the fixture\'s parameter values'
     }
 }
 
+/* ── Test 10: clearing a version store is done with root ─────────────────────
+ * Movy's saves go through the host, which runs as ROOT, so the version store it
+ * writes (sets/<uuid>/v/<n>/) is root-owned DIRECTORIES. `ableton` cannot
+ * unlink inside them, so an ableton-only `rm -rf .../v` fails — and under
+ * `set -euo pipefail` it takes the suite down before its first assertion.
+ * test-versions.sh shipped that way and could only ever pass on a device where
+ * movy had never written a version: green once, dead on every run after.
+ */
+log('\nTest 10: a suite that clears a version store can reach the root-owned tree');
+
+ok('the shared lib defines ts_ssh_root', /^ts_ssh_root\(\)/m.test(libSrc),
+   'without it a suite has no way to remove what movy wrote as root');
+
+const versionWipers = shFiles.filter(f => /rm -rf[^\n]*\$D\/v\b/.test(readFileSync(f, 'utf8')));
+ok('a script does clear a version store', versionWipers.length > 0,
+   'if this is 0 the check below is vacuous');
+
+const rootless = versionWipers.filter(f => !/ts_ssh_root/.test(readFileSync(f, 'utf8')));
+ok('every one of them falls back to root', rootless.length === 0,
+   rootless.join(', ') || `${versionWipers.length} checked`);
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 log('');

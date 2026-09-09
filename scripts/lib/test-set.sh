@@ -43,6 +43,16 @@ TS_FLAGS_REV=$(grep -oE 'FLAGS_REV = [0-9]+' "$MOVY_DIR/src/seq/flags-def.ts" \
 
 ts_ssh() { ssh "ableton@$HOST" "$@"; }
 
+# Same, as root. Movy's own saves go through the host, which runs as ROOT
+# (MoveOriginal's), so the version store it writes — sets/<uuid>/v/<n>/ — is
+# root-owned DIRECTORIES, not merely root-owned files. The ts_seq_apply trick
+# below (unlink the file; the directory is ableton's, so it is allowed) does
+# not reach them: unlinking inside a root-owned directory is refused however
+# writable the set directory is. Clearing a version store is therefore the one
+# fixture step that can need root, and a suite that skips this dies on a bare
+# "Permission denied" before its first assertion.
+ts_ssh_root() { ssh "root@$HOST" "$@"; }
+
 # shellcheck source=restart-stack.sh
 . "$(dirname "${BASH_SOURCE[0]}")/restart-stack.sh"
 

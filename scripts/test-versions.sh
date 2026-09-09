@@ -49,7 +49,15 @@ ts_close_movy
 UUID=$(ts_active_uuid)
 [ -n "$UUID" ] || { echo "test-versions: no active set" >&2; exit 1; }
 D="$SETS/$UUID"
-ts_ssh "mkdir -p $D && rm -rf $D/v $D/versions.json"
+ts_ssh "mkdir -p $D"
+# A previous run's version store must go or adoption cannot be observed: this
+# set would already have a history and the "adopted" entry would never appear.
+# Try as ableton first — on a set movy has not yet versioned, v/ does not exist
+# and no root is needed — and fall back to root for the root-owned tree movy
+# leaves behind on every device it has actually run on (see ts_ssh_root).
+ts_ssh "rm -rf $D/v $D/versions.json" 2>/dev/null \
+    || ts_ssh_root "rm -rf $D/v $D/versions.json" \
+    || { echo "test-versions: cannot clear $D/v — movy writes it as root and root ssh is unavailable" >&2; exit 1; }
 scp -q "$FIX/seq-state.json" "ableton@$HOST:$D/seq-state.json"
 scp -q "$FIX/seq-state.json" "ableton@$HOST:$D/seq-state.1.json"
 scp -q "$FIX/ui-state.json"  "ableton@$HOST:$D/ui-state.json"

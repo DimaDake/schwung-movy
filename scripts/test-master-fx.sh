@@ -35,6 +35,15 @@ pass() { echo -e "${GRN}✓${RST} $1"; }
 fail() { echo -e "${RED}✗${RST} $1"; fails=$((fails+1)); }
 
 LOG=/data/UserData/schwung/debug.log
+
+# The shim's "master slot 0 was restored at boot" line, across host versions.
+# schwung 1.4.0 refactored the three boot restores onto one helper and moved the
+# slot into a prefix — "MFX boot: slot 0 loaded X" became "MFX[0] boot: loaded X"
+# — so the old literal matches nothing on a current host. That silently defeated
+# BOTH uses below: the positive check read a working restore as a failure, and
+# the negative one (the empty-slot control) could never match and so passed
+# without testing anything.
+MFX0_LOADED='MFX(\[0\])? boot: (slot 0 )?loaded'
 CC_SESSION=50; CC_JOG_TURN=14; CC_JOG_CLICK=3
 
 echo -e "${BLD}=== Deploying ===${RST}"
@@ -69,7 +78,7 @@ ts_ssh "touch /data/UserData/schwung/debug_log_on; > $LOG"
 ts_restart_stack "echo '{}' > $STATE"
 sleep 3
 
-if ts_ssh "cat $LOG" | qgrep "MFX boot: slot 0 loaded"; then
+if ts_ssh "cat $LOG" | qgrep -E "$MFX0_LOADED"; then
     fail "the shim restored a master module at boot — this run cannot prove anything"
     exit 1
 fi
@@ -212,8 +221,8 @@ if [ -n "$FOUND" ]; then
     ts_ssh "> $LOG"
     ts_restart_stack
     sleep 5
-    if ts_ssh "cat $LOG" | qgrep "MFX boot: slot 0 loaded"; then
-        pass "the master chain came back after a reboot: $(ts_ssh "grep -ao 'MFX boot: slot 0 loaded.*' $LOG" | head -n 1)"
+    if ts_ssh "cat $LOG" | qgrep -E "$MFX0_LOADED"; then
+        pass "the master chain came back after a reboot: $(ts_ssh "grep -aoE '$MFX0_LOADED.*' $LOG" | head -n 1)"
     else
         fail "the state file survived but the shim did not restore it at boot"
     fi

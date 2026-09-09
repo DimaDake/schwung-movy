@@ -11,7 +11,7 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
-## [Unreleased]
+## [0.33.0] — 2026-09-09
 
 ### Added
 
@@ -28,7 +28,7 @@ far. Earlier work is summarised in the timeline below for context.
   out the milestone you actually want.
 
   **Settings → BACKUPS** lists them by age, reason and clip count. Jog scrolls,
-  Shift + jog jumps a screen, and a jog click asks to confirm before restoring —
+  Shift + jog jumps eight at a time, and a jog click asks to confirm before restoring —
   restoring is itself undoable, since the state you had is kept first. Schwung's
   own four track slots are not included and the confirm says so: those live in
   Move's Set file, which Movy cannot write.

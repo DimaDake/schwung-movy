@@ -125,7 +125,7 @@ Open **Settings** (Shift + Step 2) and scroll to the last row, **BACKUPS**:
 
 Each row is one saved version: how long ago it was kept, why it was kept, and
 how many clips are in it — the clip count is the quickest way to spot the one
-that still has your work. **Jog** scrolls; **Shift + jog** jumps a screen at a
+that still has your work. **Jog** scrolls; **Shift + jog** jumps eight rows at a
 time. A `*` after the count means *sequence only*: that version restores your
 notes and leaves your instruments exactly as they are.
 

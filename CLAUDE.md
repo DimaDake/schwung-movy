@@ -284,6 +284,17 @@ respawn it, so the device UI breaks until a full reboot.
 
 ---
 
+## Releasing
+
+`docs/RELEASING.md` is the procedure — changelog reconciliation, the version
+and `ENGINE_VERSION` bumps, doc assets, gates, the store-path verification, and
+when the upstream catalog needs a PR.
+
+Every release ships an announcement at `docs/discord-v<X.Y.Z>.md`, capped at
+Discord's 2000 characters. `scripts/build-module.sh` refuses to build the
+tarball without it, so it gets written while the release is still being
+prepared rather than after it is already public.
+
 ## Documentation
 
 **Update the user docs for any significant, user-facing change** — a new

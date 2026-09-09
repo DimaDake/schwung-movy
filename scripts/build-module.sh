@@ -27,7 +27,25 @@ if [[ "$REL_VER" != "$MOD_VER" ]]; then
     exit 1
 fi
 
+# Every release ships an announcement, and it is written BEFORE the tarball so
+# it cannot become an afterthought once the release is already public. Discord
+# hard-caps a message at 2000 characters and refuses a longer one, so the length
+# is checked here rather than discovered in the paste box.
+ANN="docs/discord-v$MOD_VER.md"
+if [[ ! -f "$ANN" ]]; then
+    echo "ERROR: no release announcement at $ANN" >&2
+    echo "       Write it first — what a user GETS, in their words." >&2
+    echo "       See docs/RELEASING.md." >&2
+    exit 1
+fi
+ANN_LEN=$(python3 -c "import sys;print(len(open(sys.argv[1],encoding='utf-8').read().rstrip()))" "$ANN")
+if (( ANN_LEN > 2000 )); then
+    echo "ERROR: $ANN is $ANN_LEN characters; Discord caps a message at 2000" >&2
+    exit 1
+fi
+
 echo "=== Building Movy module v$MOD_VER ==="
+echo "announcement: $ANN ($ANN_LEN/2000 chars)"
 # The one release path for the store tarball. The bundle and its gate assertion
 # live in scripts/lib/build-release-ui.sh, shared with `deploy.sh --release`.
 build_release_ui "$(pwd)"
